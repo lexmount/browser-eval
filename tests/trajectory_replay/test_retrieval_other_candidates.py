@@ -51,7 +51,7 @@ def test_current_read_observation_binds_exact_canonical_prefix_and_action(task_i
         validate_contract(contract, changed)
 
 
-@pytest.mark.parametrize("task_id", [28, 124, 132, 168, 225, 279, 303, 386])
+@pytest.mark.parametrize("task_id", [28, 124, 132, 168, 225, 279, 280, 282, 303, 386])
 def test_candidate_has_no_frozen_answer_or_mutating_network_call(task_id: int):
     candidate = json.loads((ROOT / f"task-{task_id}.json").read_text())
     script = candidate["tool_calls"][-1]["script"]
@@ -65,7 +65,7 @@ def test_candidate_has_no_frozen_answer_or_mutating_network_call(task_id: int):
     assert candidate["retrieval_contract"]["projection"] != {"source": "reference", "pointer": "/answer"}
 
 
-@pytest.mark.parametrize("task_id", [124, 279, 386])
+@pytest.mark.parametrize("task_id", [124, 279, 280, 282, 386])
 def test_shopping_candidates_require_declared_total_and_linked_products(task_id: int):
     script = json.loads((ROOT / f"task-{task_id}.json").read_text())["tool_calls"][-1]["script"]
     assert "rows.length!==total" in script
@@ -73,6 +73,21 @@ def test_shopping_candidates_require_declared_total_and_linked_products(task_id:
     assert "data.page_info.current_page!==page" in script
     assert "location.origin" in script
     assert "seen.has(row.sku)" in script
+
+
+@pytest.mark.parametrize("task_id", [280, 282])
+def test_current_catalog_candidates_bind_both_actions(task_id: int):
+    candidate = json.loads((ROOT / f"task-{task_id}.json").read_text())
+    calls, contract = candidate["tool_calls"], candidate["retrieval_contract"]
+    assert [call["action"] for call in calls] == ["navigate", "evaluate"]
+    assert contract["canonical_calls_sha256"] == digest(calls)
+    assert contract["sources"][0]["action_sha256"] == digest(calls[-1])
+    validate_contract(contract, calls)
+
+    changed = copy.deepcopy(calls)
+    changed[-1]["script"] += "\n// changed"
+    with pytest.raises(ValueError, match="canonical actions"):
+        validate_contract(contract, changed)
 
 
 def test_task168_absence_requires_complete_authenticated_personal_project_set():

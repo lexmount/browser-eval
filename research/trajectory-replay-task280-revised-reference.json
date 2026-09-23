@@ -1,0 +1,257 @@
+{
+  "schema": "trajectory_replay_revised_reference/1",
+  "task_id": 280,
+  "observed_at": "2026-09-23",
+  "derivation": {
+    "kind": "qualified_catalog_price_range/1",
+    "selection": "Complete name-match population for Anker, retaining names that also contain charger; this is the observable title rule shared by every official member."
+  },
+  "independent_source": {
+    "kind": "public_storefront_graphql",
+    "path": "/graphql",
+    "filter": {
+      "name": {
+        "match": "Anker"
+      }
+    },
+    "page_size": 100,
+    "total_count": 28,
+    "returned_items": 28,
+    "source_observation_sha256": "01bd5d981c53d17370317b12824a5b389c3151cedebcb74c16df0d6c24cba94c",
+    "candidate_binding": {
+      "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-280.json",
+      "sha256": "e975838d2a64045b57ebb62a336aa17ed193270f976fbce3e2fd2f8c4264b70b",
+      "contract_sha256": "c6bd0706f1826cb5597e78c68e25649e1453ffea62d79c0b76bc76506512bf51",
+      "canonical_calls_sha256": "e8c06d05e08447cc88534eb74a89956254a5ee159626de258c414512a0a588e7"
+    },
+    "evidence_sha256": {
+      "trace.json": "0695f0e22a469203854bf74216c445c096528fb26e9378ee68b18e0be24fa9e7",
+      "acceptance.json": "b56b5fded8911d8a4cd16150660f2e7593a5f60e7a37dea51bc70928f8fe2476",
+      "network.har": "3b6ccc3d87a4122af35c287d0b77710e6f1985a57b783d0fccce1493fd57f7ed",
+      "readiness.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "actual_response.json": "8dfde6ae3e0b25fe5a197ea1b0c427b9e3be0e028c109f4afebee4805f95e484",
+      "evaluation.json": "35b623bd852af7412ed0783b93f0e9214fee2969b468a9021d34f2d3e10f7aab"
+    },
+    "qualified_products": [
+      {
+        "sku": "B08LPPD3NL",
+        "name": "Magnetic Wireless Charger, Anker Wireless Charger with 5ft Built in USB-C Cable, PowerWave Magnetic Pad, 7.5W Charging for iPhone 13 / 13 Pro / 13 Pro Max / 13 mini / 12 / 12 Pro (No AC Adapter)",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/magnetic-wireless-charger-anker-wireless-charger-with-5ft-built-in-usb-c-cable-powerwave-magnetic-pad-7-5w-charging-for-iphone-13-13-pro-13-pro-max-13-mini-12-12-pro-no-ac-adapter.html",
+        "price_cents": 2399,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "Magnetic Wireless Charger, Anker Wireless Charger with 5ft Built in USB-C Cable, PowerWave Magnetic Pad, 7.5W Charging for iPhone 13 / 13 Pro / 13 Pro Max / 13 mini / 12 / 12 Pro (No AC Adapter)"
+        }
+      },
+      {
+        "sku": "B09C5SC9FW",
+        "name": "Anker USB C Charger 40W, 521 Charger (Nano Pro), PIQ 3.0 Durable Compact Fast Charger (Not Foldable) for iPhone 13/13 Mini/13 Pro/13 Pro Max/12, Galaxy, Pixel 4/3, iPad/iPad Mini (Cable Not Included)",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/anker-usb-c-charger-40w-521-charger-nano-pro-piq-3-0-durable-compact-fast-charger-not-foldable-for-iphone-13-13-mini-13-pro-13-pro-max-12-galaxy-pixel-4-3-ipad-ipad-mini-cable-not-included.html",
+        "price_cents": 3599,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "Anker USB C Charger 40W, 521 Charger (Nano Pro), PIQ 3.0 Durable Compact Fast Charger (Not Foldable) for iPhone 13/13 Mini/13 Pro/13 Pro Max/12, Galaxy, Pixel 4/3, iPad/iPad Mini (Cable Not Included)"
+        }
+      },
+      {
+        "sku": "B00VH8ZW02",
+        "name": "Anker 40W 5-Port USB Wall Charger, PowerPort 5 for iPhone XS / XS Max / XR / X / 8 / 7 / 6 / Plus, iPad Pro / Air 2 / mini, Galaxy S9 / S8 / Edge / Plus, Note 8 / 7, LG, Nexus, HTC and More, Black (AK-A2124111)",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/anker-40w-5-port-usb-wall-charger-powerport-5-for-iphone-xs-xs-max-xr-x-8-7-6-plus-ipad-pro-air-2-mini-galaxy-s9-s8-edge-plus-note-8-7-lg-nexus-htc-and-more-black-ak-a2124111.html",
+        "price_cents": 2999,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "Anker 40W 5-Port USB Wall Charger, PowerPort 5 for iPhone XS / XS Max / XR / X / 8 / 7 / 6 / Plus, iPad Pro / Air 2 / mini, Galaxy S9 / S8 / Edge / Plus, Note 8 / 7, LG, Nexus, HTC and More, Black (AK-A2124111)"
+        }
+      },
+      {
+        "sku": "B08J48CPMJ",
+        "name": "Anker 10W Max Wireless Charger, 313 Wireless Charger (Pad), Qi-Certified Wireless Charging 7.5W for iPhone 12/12 Pro/12 mini/12 Pro Max, 10W for Galaxy S10 S9 S8, S9 Plus, Note 9 (No AC Adapter)",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/anker-10w-max-wireless-charger-313-wireless-charger-pad-qi-certified-wireless-charging-7-5w-for-iphone-12-12-pro-12-mini-12-pro-max-10w-for-galaxy-s10-s9-s8-s9-plus-note-9-no-ac-adapter.html",
+        "price_cents": 899,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "Anker 10W Max Wireless Charger, 313 Wireless Charger (Pad), Qi-Certified Wireless Charging 7.5W for iPhone 12/12 Pro/12 mini/12 Pro Max, 10W for Galaxy S10 S9 S8, S9 Plus, Note 9 (No AC Adapter)"
+        }
+      },
+      {
+        "sku": "B09F671M86",
+        "name": "Anker Outlet Extender with Stepless Dimming Night Light,Surge Protector, 331 Outlet Extender with 6 AC Outlets and 2 USB Ports, 18W USB Wall Charger Plug for College Dorm Room, Home Office and Kitchen",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/anker-outlet-extender-with-stepless-dimming-night-light-surge-protector-331-outlet-extender-with-6-ac-outlets-and-2-usb-ports-18w-usb-wall-charger-plug-for-college-dorm-room-home-office-and-kitchen.html",
+        "price_cents": 1899,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "Anker Outlet Extender with Stepless Dimming Night Light,Surge Protector, 331 Outlet Extender with 6 AC Outlets and 2 USB Ports, 18W USB Wall Charger Plug for College Dorm Room, Home Office and Kitchen"
+        }
+      },
+      {
+        "sku": "B09FJWQ15T",
+        "name": "5Ft Micro-USB Charger Cord Cable Fit for Anker-PowerCore 5000 10000 20100 13000 26800 Mini 3350 Fusion II 15000 Redux 20000 Slim 10000 Astro E1 AC Replacement Power Adapter Supply",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/5ft-micro-usb-charger-cord-cable-fit-for-anker-powercore-5000-10000-20100-13000-26800-mini-3350-fusion-ii-15000-redux-20000-slim-10000-astro-e1-ac-replacement-power-adapter-supply.html",
+        "price_cents": 899,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "5Ft Micro-USB Charger Cord Cable Fit for Anker-PowerCore 5000 10000 20100 13000 26800 Mini 3350 Fusion II 15000 Redux 20000 Slim 10000 Astro E1 AC Replacement Power Adapter Supply"
+        }
+      },
+      {
+        "sku": "B08T67HDH1",
+        "name": "USB C Charger, Anker 20W PIQ 3.0 Fast Charger with Foldable Plug, PowerPort III Charger for iPhone 13/13 Mini/13 Pro/13 Pro Max/12/11, iPad/iPad Mini, MagSafe, and More (Cable Not Included)",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/usb-c-charger-anker-20w-piq-3-0-fast-charger-with-foldable-plug-powerport-iii-charger-for-iphone-13-13-mini-13-pro-13-pro-max-12-11-ipad-ipad-mini-magsafe-and-more-cable-not-included.html",
+        "price_cents": 1599,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "USB C Charger, Anker 20W PIQ 3.0 Fast Charger with Foldable Plug, PowerPort III Charger for iPhone 13/13 Mini/13 Pro/13 Pro Max/12/11, iPad/iPad Mini, MagSafe, and More (Cable Not Included)"
+        }
+      },
+      {
+        "sku": "B07DFGKFM3",
+        "name": "iPhone 12 Charger [GaN Tech], Anker 30W Compact USB-C Wall Charger with Power Delivery, PowerPort Atom for iPhone 12 / Mini/Pro/Pro Max / 11 / X/XS/XR, iPad Pro, MacBook 12'', Pixel, Galaxy",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/iphone-12-charger-gan-tech-anker-30w-compact-usb-c-wall-charger-with-power-delivery-powerport-atom-for-iphone-12-mini-pro-pro-max-11-x-xs-xr-ipad-pro-macbook-12-pixel-galaxy.html",
+        "price_cents": 2999,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "iPhone 12 Charger [GaN Tech], Anker 30W Compact USB-C Wall Charger with Power Delivery, PowerPort Atom for iPhone 12 / Mini/Pro/Pro Max / 11 / X/XS/XR, iPad Pro, MacBook 12'', Pixel, Galaxy"
+        }
+      },
+      {
+        "sku": "B01IUSYF8G",
+        "name": "Anker Quick Charge 3.0 39W Dual USB Wall Charger, PowerPort Speed 2 for Galaxy S10/S9/S8/Edge/Plus, Note 8/7 and PowerIQ for iPhone Xs/XS Max/XR/X/8/Plus, iPad Pro/Air 2/Mini, LG, Nexus, HTC and More",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/anker-quick-charge-3-0-39w-dual-usb-wall-charger-powerport-speed-2-for-galaxy-s10-s9-s8-edge-plus-note-8-7-and-poweriq-for-iphone-xs-xs-max-xr-x-8-plus-ipad-pro-air-2-mini-lg-nexus-htc-and-more.html",
+        "price_cents": 2599,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "Anker Quick Charge 3.0 39W Dual USB Wall Charger, PowerPort Speed 2 for Galaxy S10/S9/S8/Edge/Plus, Note 8/7 and PowerIQ for iPhone Xs/XS Max/XR/X/8/Plus, iPad Pro/Air 2/Mini, LG, Nexus, HTC and More"
+        }
+      },
+      {
+        "sku": "B0832KMRLT",
+        "name": "USB C Cable 60W 10ft, Anker Powerline III USB-C to USB-C Cable 2.0, USB C Charger Cable for MacBook Pro 2020, iPad Pro 2020, Switch, Samsung Galaxy S20 Plus S9 S8 Plus, Pixel, and More (White)",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/usb-c-cable-60w-10ft-anker-powerline-iii-usb-c-to-usb-c-cable-2-0-usb-c-charger-cable-for-macbook-pro-2020-ipad-pro-2020-switch-samsung-galaxy-s20-plus-s9-s8-plus-pixel-and-more-white.html",
+        "price_cents": 1999,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "USB C Cable 60W 10ft, Anker Powerline III USB-C to USB-C Cable 2.0, USB C Charger Cable for MacBook Pro 2020, iPad Pro 2020, Switch, Samsung Galaxy S20 Plus S9 S8 Plus, Pixel, and More (White)"
+        }
+      },
+      {
+        "sku": "B09J4YHB7J",
+        "name": "Anker USB C Charger 30W, 711 Charger, Compact Fast Charger (Not Foldable) for MacBook Air/iPhone 13/13 Mini/ 13 Pro/ 13 Pro Max/ 12, Galaxy S21, Note 20, iPad Pro, Pixel, and More",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/anker-usb-c-charger-30w-711-charger-compact-fast-charger-not-foldable-for-macbook-air-iphone-13-13-mini-13-pro-13-pro-max-12-galaxy-s21-note-20-ipad-pro-pixel-and-more.html",
+        "price_cents": 2999,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "Anker USB C Charger 30W, 711 Charger, Compact Fast Charger (Not Foldable) for MacBook Air/iPhone 13/13 Mini/ 13 Pro/ 13 Pro Max/ 12, Galaxy S21, Note 20, iPad Pro, Pixel, and More"
+        }
+      },
+      {
+        "sku": "B01N0X3NL5",
+        "name": "Anker PowerCore Speed 20000, 20000mAh Qualcomm Quick Charge 3.0 & PowerIQ Portable Charger, with Quick Charge Recharging, Power Bank for Samsung, iPhone, iPad and More, Black (A1278)",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/anker-powercore-speed-20000-20000mah-qualcomm-quick-charge-3-0-poweriq-portable-charger-with-quick-charge-recharging-power-bank-for-samsung-iphone-ipad-and-more-black-a1278.html",
+        "price_cents": 5999,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "Anker PowerCore Speed 20000, 20000mAh Qualcomm Quick Charge 3.0 & PowerIQ Portable Charger, with Quick Charge Recharging, Power Bank for Samsung, iPhone, iPad and More, Black (A1278)"
+        }
+      },
+      {
+        "sku": "B08XQRCPG4",
+        "name": "USB C Super Fast Charger, Anker 25W PD Wall Charger Fast Charging for Samsung Galaxy S21/S21+/S21 Ultra/S20/Z Flip/Note20/20 Ultra/Note10/10+/S9/S8/S10e, iPad Pro 12.9, and More (Cable not Included)",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/usb-c-super-fast-charger-anker-25w-pd-wall-charger-fast-charging-for-samsung-galaxy-s21-s21-s21-ultra-s20-z-flip-note20-20-ultra-note10-10-s9-s8-s10e-ipad-pro-12-9-and-more-cable-not-included.html",
+        "price_cents": 1999,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "USB C Super Fast Charger, Anker 25W PD Wall Charger Fast Charging for Samsung Galaxy S21/S21+/S21 Ultra/S20/Z Flip/Note20/20 Ultra/Note10/10+/S9/S8/S10e, iPad Pro 12.9, and More (Cable not Included)"
+        }
+      },
+      {
+        "sku": "B071YMZ4LD",
+        "name": "USB Charger, Anker Elite Dual Port 24W Wall Charger, PowerPort 2 with PowerIQ and Foldable Plug, for iPhone 11/Xs/XS Max/XR/X/8/7/6/Plus, iPad Pro/Air 2/Mini 3/Mini 4, Samsung S4/S5, and More",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/usb-charger-anker-elite-dual-port-24w-wall-charger-powerport-2-with-poweriq-and-foldable-plug-for-iphone-11-xs-xs-max-xr-x-8-7-6-plus-ipad-pro-air-2-mini-3-mini-4-samsung-s4-s5-and-more.html",
+        "price_cents": 1399,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "USB Charger, Anker Elite Dual Port 24W Wall Charger, PowerPort 2 with PowerIQ and Foldable Plug, for iPhone 11/Xs/XS Max/XR/X/8/7/6/Plus, iPad Pro/Air 2/Mini 3/Mini 4, Samsung S4/S5, and More"
+        }
+      },
+      {
+        "sku": "B01MSM6DE7",
+        "name": "Anker iPhone Charger Cable, Powerline II Lightning Cable (10ft), Durable Cable, MFi Certified for iPhone X / 8/8 Plus /7/7 Plus / 6/6 Plus / 5s (White), iPad 8, and More",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/anker-iphone-charger-cable-powerline-ii-lightning-cable-10ft-durable-cable-mfi-certified-for-iphone-x-8-8-plus-7-7-plus-6-6-plus-5s-white-ipad-8-and-more.html",
+        "price_cents": 1499,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "Anker iPhone Charger Cable, Powerline II Lightning Cable (10ft), Durable Cable, MFi Certified for iPhone X / 8/8 Plus /7/7 Plus / 6/6 Plus / 5s (White), iPad 8, and More"
+        }
+      },
+      {
+        "sku": "B07DBXZZN3",
+        "name": "Anker Wireless Charger, 313 Wireless Charger (Stand), Qi-Certified for iPhone 12, 12 Pro Max, SE, 11, 11 Pro, 11 Pro Max, XR, XS Max, 10W Fast-Charging Galaxy S20, S10 (No AC Adapter)",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/anker-wireless-charger-313-wireless-charger-stand-qi-certified-for-iphone-12-12-pro-max-se-11-11-pro-11-pro-max-xr-xs-max-10w-fast-charging-galaxy-s20-s10-no-ac-adapter.html",
+        "price_cents": 1949,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "Anker Wireless Charger, 313 Wireless Charger (Stand), Qi-Certified for iPhone 12, 12 Pro Max, SE, 11, 11 Pro, 11 Pro Max, XR, XS Max, 10W Fast-Charging Galaxy S20, S10 (No AC Adapter)"
+        }
+      },
+      {
+        "sku": "B07GWR9V1N",
+        "name": "USB C Charger, Anker 30W 2 Port Fast Charger with 18W USB C Power Adapter, Foldable PowerPort PD 2 Charger for iPad Pro, iPhone 11/11 Pro / 11 Pro Max/XS/Max/XR/X, Pixel, Galaxy, and More",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/usb-c-charger-anker-30w-2-port-fast-charger-with-18w-usb-c-power-adapter-foldable-powerport-pd-2-charger-for-ipad-pro-iphone-11-11-pro-11-pro-max-xs-max-xr-x-pixel-galaxy-and-more.html",
+        "price_cents": 2999,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name contains both Anker and charger, matching the official task's catalog-name qualification",
+          "matched_name": "USB C Charger, Anker 30W 2 Port Fast Charger with 18W USB C Power Adapter, Foldable PowerPort PD 2 Charger for iPad Pro, iPhone 11/11 Pro / 11 Pro Max/XS/Max/XR/X, Pixel, Galaxy, and More"
+        }
+      }
+    ]
+  },
+  "expected_response": {
+    "task_type": "RETRIEVE",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      {
+        "names": [
+          "Magnetic Wireless Charger, Anker Wireless Charger with 5ft Built in USB-C Cable, PowerWave Magnetic Pad, 7.5W Charging for iPhone 13 / 13 Pro / 13 Pro Max / 13 mini / 12 / 12 Pro (No AC Adapter)",
+          "Anker USB C Charger 40W, 521 Charger (Nano Pro), PIQ 3.0 Durable Compact Fast Charger (Not Foldable) for iPhone 13/13 Mini/13 Pro/13 Pro Max/12, Galaxy, Pixel 4/3, iPad/iPad Mini (Cable Not Included)",
+          "Anker 40W 5-Port USB Wall Charger, PowerPort 5 for iPhone XS / XS Max / XR / X / 8 / 7 / 6 / Plus, iPad Pro / Air 2 / mini, Galaxy S9 / S8 / Edge / Plus, Note 8 / 7, LG, Nexus, HTC and More, Black (AK-A2124111)",
+          "Anker 10W Max Wireless Charger, 313 Wireless Charger (Pad), Qi-Certified Wireless Charging 7.5W for iPhone 12/12 Pro/12 mini/12 Pro Max, 10W for Galaxy S10 S9 S8, S9 Plus, Note 9 (No AC Adapter)",
+          "Anker Outlet Extender with Stepless Dimming Night Light,Surge Protector, 331 Outlet Extender with 6 AC Outlets and 2 USB Ports, 18W USB Wall Charger Plug for College Dorm Room, Home Office and Kitchen",
+          "5Ft Micro-USB Charger Cord Cable Fit for Anker-PowerCore 5000 10000 20100 13000 26800 Mini 3350 Fusion II 15000 Redux 20000 Slim 10000 Astro E1 AC Replacement Power Adapter Supply",
+          "USB C Charger, Anker 20W PIQ 3.0 Fast Charger with Foldable Plug, PowerPort III Charger for iPhone 13/13 Mini/13 Pro/13 Pro Max/12/11, iPad/iPad Mini, MagSafe, and More (Cable Not Included)",
+          "iPhone 12 Charger [GaN Tech], Anker 30W Compact USB-C Wall Charger with Power Delivery, PowerPort Atom for iPhone 12 / Mini/Pro/Pro Max / 11 / X/XS/XR, iPad Pro, MacBook 12'', Pixel, Galaxy",
+          "Anker Quick Charge 3.0 39W Dual USB Wall Charger, PowerPort Speed 2 for Galaxy S10/S9/S8/Edge/Plus, Note 8/7 and PowerIQ for iPhone Xs/XS Max/XR/X/8/Plus, iPad Pro/Air 2/Mini, LG, Nexus, HTC and More",
+          "USB C Cable 60W 10ft, Anker Powerline III USB-C to USB-C Cable 2.0, USB C Charger Cable for MacBook Pro 2020, iPad Pro 2020, Switch, Samsung Galaxy S20 Plus S9 S8 Plus, Pixel, and More (White)",
+          "Anker USB C Charger 30W, 711 Charger, Compact Fast Charger (Not Foldable) for MacBook Air/iPhone 13/13 Mini/ 13 Pro/ 13 Pro Max/ 12, Galaxy S21, Note 20, iPad Pro, Pixel, and More",
+          "Anker PowerCore Speed 20000, 20000mAh Qualcomm Quick Charge 3.0 & PowerIQ Portable Charger, with Quick Charge Recharging, Power Bank for Samsung, iPhone, iPad and More, Black (A1278)",
+          "USB C Super Fast Charger, Anker 25W PD Wall Charger Fast Charging for Samsung Galaxy S21/S21+/S21 Ultra/S20/Z Flip/Note20/20 Ultra/Note10/10+/S9/S8/S10e, iPad Pro 12.9, and More (Cable not Included)",
+          "USB Charger, Anker Elite Dual Port 24W Wall Charger, PowerPort 2 with PowerIQ and Foldable Plug, for iPhone 11/Xs/XS Max/XR/X/8/7/6/Plus, iPad Pro/Air 2/Mini 3/Mini 4, Samsung S4/S5, and More",
+          "Anker iPhone Charger Cable, Powerline II Lightning Cable (10ft), Durable Cable, MFi Certified for iPhone X / 8/8 Plus /7/7 Plus / 6/6 Plus / 5s (White), iPad 8, and More",
+          "Anker Wireless Charger, 313 Wireless Charger (Stand), Qi-Certified for iPhone 12, 12 Pro Max, SE, 11, 11 Pro, 11 Pro Max, XR, XS Max, 10W Fast-Charging Galaxy S20, S10 (No AC Adapter)",
+          "USB C Charger, Anker 30W 2 Port Fast Charger with 18W USB C Power Adapter, Foldable PowerPort PD 2 Charger for iPad Pro, iPhone 11/11 Pro / 11 Pro Max/XS/Max/XR/X, Pixel, Galaxy, and More"
+        ],
+        "min": 8.99,
+        "max": 59.99
+      }
+    ],
+    "error_details": null
+  },
+  "root_cause": "The frozen reference contains 12 title-matched Anker charger products. The deployed catalog's complete 28-item Anker population now contains 17 names meeting the same title rule, so the frozen list omits five current products.",
+  "score_effect": "Reference membership changes from 12 to 17 products; price bounds remain USD 8.99–59.99. Historical results remain unchanged."
+}

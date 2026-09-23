@@ -97,6 +97,24 @@ def test_har_preserves_multipart_post_data_and_json_response() -> None:
     assert response["content"]["text"] == '{"items_qty":1}'
 
 
+def test_har_preserves_only_evaluator_safe_response_cookie_from_extra_info() -> None:
+    response = _har_response(
+        {"status": 302, "headers": {"Location": "/wishlist"}},
+        None,
+        {
+            "Set-Cookie": (
+                "PHPSESSID=secret; Path=/\r\n"
+                "mage-messages=product%20added; Path=/"
+            )
+        },
+    )
+
+    assert response["cookies"] == [
+        {"name": "mage-messages", "value": "product%20added"}
+    ]
+    assert "secret" not in json.dumps(response)
+
+
 def test_json_mime_matching_uses_case_insensitive_essence() -> None:
     for value in (
         "application/json",

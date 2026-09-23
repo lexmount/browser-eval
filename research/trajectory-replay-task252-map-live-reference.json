@@ -1,0 +1,44 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 252,
+  "task_intent": "Get the coordinates of Tokyo Japanese Food Store in Pittsburgh. Return an object with keys \"latitude\" and \"longitude\" (as decimal degrees) only, without any additional details.",
+  "source_sweep": "map-live-sweep-v120",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "85eed90fbf4300ef5b7496be378bd451dd85f58e3cccdb9e3c73eaff70d3d0b4",
+    "actual_response": "ab1900f422950e07184a1d2f6687abc8ce26c157df1ff9da03557cebfb41ca98",
+    "evaluation": "e679f761ec1bf62acb69d5d1f8823b9e824c293fe576b7e4145cc9a53ce09d8f",
+    "trace": "56512069021373508ba23165d45636194988efc249181a9da8d8990b300a1e26",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "4c4080057956f6c043782482cf776125b14dd7beb4aa3ce71db705a8ee83fda0"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      {
+        "latitude": "40.45760025",
+        "longitude": "-79.92932994166013"
+      }
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/0/expected/retrieved_data/0/latitude",
+      "official": "40.45761",
+      "corrected": "40.45760025"
+    },
+    {
+      "path": "/eval/0/expected/retrieved_data/0/longitude",
+      "official": "-79.92934",
+      "corrected": "-79.92932994166013"
+    }
+  ],
+  "derivation": {
+    "kind": "nominatim_object_geometry/1"
+  },
+  "regression_ids": [
+    "tr-252-accept-live-map-reference",
+    "tr-252-reject-nearby-wrong-map-reference"
+  ]
+}

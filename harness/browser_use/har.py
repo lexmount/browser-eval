@@ -6,6 +6,7 @@ import base64
 import json
 import time
 from datetime import UTC, datetime
+from http.cookies import SimpleCookie
 from pathlib import Path
 from typing import Any
 
@@ -37,7 +38,37 @@ def _har_request(request: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _har_response(response: dict[str, Any], body: dict[str, Any] | None) -> dict[str, Any]:
+def _response_cookies(
+    base_headers: dict[str, Any] | None, extra_headers: dict[str, Any] | None
+) -> list[dict[str, str]]:
+    """Expose only the Magento flash cookie needed by official evaluators."""
+    cookies: dict[str, str] = {}
+    for headers in (base_headers, extra_headers):
+        raw = next(
+            (
+                str(value)
+                for name, value in (headers or {}).items()
+                if str(name).lower() == "set-cookie"
+            ),
+            "",
+        )
+        if not raw:
+            continue
+        parsed = SimpleCookie()
+        try:
+            parsed.load(raw)
+        except Exception:
+            continue
+        if "mage-messages" in parsed:
+            cookies["mage-messages"] = parsed["mage-messages"].value
+    return [{"name": name, "value": value} for name, value in cookies.items()]
+
+
+def _har_response(
+    response: dict[str, Any],
+    body: dict[str, Any] | None,
+    extra_headers: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     headers = response.get("headers", {})
     mime_type = str(response.get("mimeType") or "")
     content: dict[str, Any] = {"mimeType": mime_type, "text": ""}
@@ -47,7 +78,7 @@ def _har_response(response: dict[str, Any], body: dict[str, Any] | None) -> dict
         "status": int(response["status"]),
         "statusText": str(response.get("statusText") or ""),
         "headers": _headers(headers),
-        "cookies": [],
+        "cookies": _response_cookies(headers, extra_headers),
         "redirectURL": next(
             (str(value) for name, value in headers.items() if name.lower() == "location"),
             "",
@@ -90,6 +121,7 @@ class CdpHarRecorder:
         self._session_ordinals: dict[int, int] = {}
         self._completion_timestamps: dict[tuple[int, str, int], Any] = {}
         self._extra_headers: dict[tuple[int, str], list[dict[str, Any]]] = {}
+        self._extra_response_headers: dict[tuple[int, str], list[dict[str, Any]]] = {}
         self._responses: list[tuple[Any, str, dict[str, Any], dict[str, Any]]] = []
         self._finished: set[tuple[int, str]] = set()
         self._failed: dict[tuple[int, str], dict[str, Any]] = {}
@@ -147,6 +179,10 @@ class CdpHarRecorder:
                 key: [dict(headers) for headers in values]
                 for key, values in self._extra_headers.items()
             }
+            extra_response_headers_snapshot = {
+                key: [dict(headers) for headers in values]
+                for key, values in self._extra_response_headers.items()
+            }
             responses = [
                 observation
                 for observation in responses_snapshot
@@ -197,6 +233,10 @@ class CdpHarRecorder:
                 extras = extra_headers_snapshot.get(key, [])
                 if ordinal < len(extras):
                     request["headers"] = {**request.get("headers", {}), **extras[ordinal]}
+                response_extras = extra_response_headers_snapshot.get(key, [])
+                response_extra = (
+                    response_extras[ordinal] if ordinal < len(response_extras) else None
+                )
                 mime_type = str((response or {}).get("mimeType") or "")
                 if (
                     index == last_response_by_key[key]
@@ -218,7 +258,7 @@ class CdpHarRecorder:
                 entry = {
                     "request": _har_request(request),
                     "response": (
-                        _har_response(response, body)
+                        _har_response(response, body, response_extra)
                         if response is not None
                         else {
                             "status": 0,
@@ -388,6 +428,12 @@ class CdpHarRecorder:
             session.on(
                 "Network.requestWillBeSentExtraInfo",
                 lambda event: self._extra_headers.setdefault(
+                    (session_index, str(event["requestId"])), []
+                ).append(event.get("headers", {})),
+            )
+            session.on(
+                "Network.responseReceivedExtraInfo",
+                lambda event: self._extra_response_headers.setdefault(
                     (session_index, str(event["requestId"])), []
                 ).append(event.get("headers", {})),
             )

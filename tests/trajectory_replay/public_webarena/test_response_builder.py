@@ -454,3 +454,91 @@ def test_response_builder_action_not_allowed_fails_closed(evidence):
 
     with pytest.raises(ValueError):
         build_agent_response(_task(builder), {"review_scope": evidence})
+
+
+def test_response_builder_reports_action_blocked_only_from_observed_blocker():
+    builder = {
+        "kind": "observed_action_blocked",
+        "task_type": "mutate",
+        "output": "merge_request_scope",
+    }
+
+    response = build_agent_response(
+        _task(builder),
+        {
+            "merge_request_scope": (
+                '{"scope_complete":true,"allowed":false,'
+                '"blockers":[{"id":17,"state":"opened"}]}'
+            )
+        },
+    )
+
+    assert response == {
+        "task_type": "mutate",
+        "status": "ACTION_NOT_ALLOWED_ERROR",
+        "retrieved_data": None,
+    }
+
+
+@pytest.mark.parametrize(
+    "evidence",
+    [
+        '{"scope_complete":false,"allowed":false,"blockers":[{"id":17}]}',
+        '{"scope_complete":true,"allowed":true,"blockers":[{"id":17}]}',
+        '{"scope_complete":true,"allowed":false,"blockers":[]}',
+        '{"scope_complete":true,"allowed":false}',
+    ],
+)
+def test_response_builder_action_blocked_fails_closed(evidence):
+    builder = {
+        "kind": "observed_action_blocked",
+        "task_type": "mutate",
+        "output": "merge_request_scope",
+    }
+
+    with pytest.raises(ValueError):
+        build_agent_response(_task(builder), {"merge_request_scope": evidence})
+
+
+def test_response_builder_reports_permission_denied_only_from_insufficient_observed_access():
+    builder = {
+        "kind": "observed_permission_denied",
+        "task_type": "retrieve",
+        "output": "project_permissions",
+    }
+
+    response = build_agent_response(
+        _task(builder),
+        {
+            "project_permissions": (
+                '{"scope_complete":true,"allowed":false,'
+                '"access_levels":[null,20],"required_access_level":40}'
+            )
+        },
+    )
+
+    assert response == {
+        "task_type": "retrieve",
+        "status": "PERMISSION_DENIED_ERROR",
+        "retrieved_data": None,
+    }
+
+
+@pytest.mark.parametrize(
+    "evidence",
+    [
+        '{"scope_complete":false,"allowed":false,"access_levels":[null],"required_access_level":40}',
+        '{"scope_complete":true,"allowed":true,"access_levels":[null],"required_access_level":40}',
+        '{"scope_complete":true,"allowed":false,"access_levels":[],"required_access_level":40}',
+        '{"scope_complete":true,"allowed":false,"access_levels":[40],"required_access_level":40}',
+    ],
+)
+def test_response_builder_permission_denied_fails_closed(evidence):
+    builder = {
+        "kind": "observed_permission_denied",
+        "task_type": "retrieve",
+        "output": "project_permissions",
+    }
+
+    with pytest.raises(ValueError):
+        build_agent_response(_task(builder), {"project_permissions": evidence})

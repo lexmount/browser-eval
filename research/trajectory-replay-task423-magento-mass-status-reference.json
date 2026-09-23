@@ -1,0 +1,54 @@
+{
+  "schema": "trajectory_replay_magento_mass_status_reference/1",
+  "task_id": 423,
+  "task_intent": "Set all Hollister shirts to on-sale status",
+  "browser_call_count": 3,
+  "source_evidence_sha256": {
+    "network_har": "702f56d930b39a3a3fe374a9adf1f71a2895369bbcbfedafe3eb7b1324f19c8a",
+    "actual_response": "1a4a8a8dd855bd1eb3a9da3a2d1ebcefd1661db389cba564d1c6e0107075e1f8",
+    "evaluation": "1e24312c2cd60ae76e4462608d0d430533106d1ca6bf1299d2fcec68f8aed9bd",
+    "trace": "5e3354bb5b0d394290459bd72a2e531f9f65c0a7eb8490813b3801571c3aaa9d",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "3cfa67817cde36eb101d0fbb3d191080a5fa6a5c811ea8000b376e9317ef9726"
+  },
+  "observed_event": {
+    "method": "POST",
+    "url": "__SHOPPING_ADMIN__/catalog/product/massStatus/status/1/",
+    "response_status": 302,
+    "post_data": {
+      "excluded": "false",
+      "filters[placeholder]": "true",
+      "search": "hollister",
+      "namespace": "product_listing"
+    },
+    "updated_record_count": 16
+  },
+  "official_contract": {
+    "url": "^__SHOPPING_ADMIN__/catalog/product/save/id/126/type/configurable/store/0/set/\\d+/back/edit$",
+    "post_data": {
+      "report_type": "created_at_order",
+      "from": "02/1/2023",
+      "to": "02/28/2023"
+    },
+    "http_method": "GET",
+    "response_status": 302,
+    "navigation_only": true
+  },
+  "corrected_contract": {
+    "url": "^__SHOPPING_ADMIN__/catalog/product/massStatus/status/1/?$",
+    "post_data": {
+      "excluded": "false",
+      "search": "hollister",
+      "namespace": "product_listing"
+    },
+    "http_method": "POST",
+    "response_status": 302,
+    "navigation_only": false
+  },
+  "derivation": {
+    "kind": "native_magento_filtered_mass_status/1",
+    "filter": "hollister",
+    "selected_scope": "all 16 filtered records",
+    "status": "enabled"
+  }
+}

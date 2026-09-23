@@ -334,28 +334,285 @@ def apply_correction(
                 raise ValueError(
                     f"task {task.task_id}: incomplete repeated-network-event reference"
                 )
+        elif observation.get("schema") == "trajectory_replay_reddit_forum_reference/1":
+            observed = observation.get("observation") or {}
+            original_expected = original["eval"][1]["expected"]
+            corrected_expected = corrected["eval"][1]["expected"]
+            if (
+                original.get("intent")
+                != 'Subscribe to the "machine learning" forum from the page of the newest post in that forum.'
+                or original_expected.get("url")
+                != [
+                    "__REDDIT__/f/machine learning/subscribe.json",
+                    "__REDDIT__/f/machine learning/unsubscribe.json",
+                ]
+                or corrected_expected.get("url")
+                != [
+                    "__REDDIT__/f/MachineLearning/subscribe.json",
+                    "__REDDIT__/f/MachineLearning/unsubscribe.json",
+                ]
+                or observed.get("matched_forum_href") != "/f/MachineLearning"
+                or observed.get("canonical_forum_href") != "/f/MachineLearning"
+                or observed.get("newest_post_href")
+                != "/f/MachineLearning/120613/d-yan-lecun-s-recent-recommendations"
+                or any(
+                    len(str(observed.get(key) or "")) != 64
+                    for key in ("search_response_sha256", "newest_response_sha256")
+                )
+            ):
+                raise ValueError(f"task {task.task_id}: incomplete Reddit forum reference")
+        elif observation.get("schema") == "trajectory_replay_map_live_reference/1":
+            bindings = observation.get("source_evidence_sha256") or {}
+            comparisons = observation.get("contract_values") or []
+            if (
+                observation.get("task_intent") != original.get("intent")
+                or not isinstance(observation.get("browser_call_count"), int)
+                or observation.get("browser_call_count") < 1
+                or not isinstance(bindings, dict)
+                or not {"network_har", "trace", "outputs", "readiness"}
+                <= set(bindings)
+                or any(
+                    not isinstance(value, str) or len(value) != 64
+                    for value in bindings.values()
+                )
+                or not isinstance(comparisons, list)
+                or not comparisons
+                or any(
+                    not isinstance(item, dict)
+                    or not isinstance(item.get("path"), str)
+                    or _resolve(original, item["path"]) != item.get("official")
+                    or _resolve(corrected, item["path"]) != item.get("corrected")
+                    for item in comparisons
+                )
+                or observation.get("observed_response") is None
+                or observation.get("derivation", {}).get("kind")
+                not in {
+                    "bounded_nominatim_osrm/1",
+                    "frozen_wikipedia_nominatim_osrm/1",
+                    "nominatim_spatial_distance/1",
+                    "frozen_wikipedia_relation_ids/1",
+                    "nominatim_object_geometry/1",
+                }
+            ):
+                raise ValueError(f"task {task.task_id}: incomplete live map reference")
+        elif observation.get("schema") == "trajectory_replay_gitlab_live_reference/1":
+            bindings = observation.get("source_evidence_sha256") or {}
+            query = observation.get("query") or {}
+            issue = observation.get("selected_issue") or {}
+            comparisons = observation.get("contract_values") or []
+            if (
+                    observation.get("task_intent") != original.get("intent")
+                    or observation.get("browser_call_count") != 1
+                    or not isinstance(bindings, dict)
+                    or not {"network_har", "actual_response", "evaluation", "trace"}
+                    <= set(bindings)
+                    or any(
+                        not isinstance(value, str) or len(value) != 64
+                        for value in bindings.values()
+                    )
+                    or query.get("authenticated_user_id") != query.get("author_id")
+                    or issue.get("author_id") != query.get("authenticated_user_id")
+                    or query.get("title_search") != "feature"
+                    or query.get("order_by") != "created_at"
+                    or query.get("sort") != "desc"
+                    or "feature" not in str(issue.get("title") or "").lower()
+                    or issue.get("state") not in {"opened", "closed"}
+                    or not isinstance(comparisons, list)
+                    or not comparisons
+                    or any(
+                        not isinstance(item, dict)
+                        or not isinstance(item.get("path"), str)
+                        or _resolve(original, item["path"]) != item.get("official")
+                        or _resolve(corrected, item["path"]) != item.get("corrected")
+                        for item in comparisons
+                    )
+                    or observation.get("observed_response", {}).get("retrieved_data")
+                    != [issue.get("state") == "closed"]
+            ):
+                raise ValueError(f"task {task.task_id}: incomplete live GitLab reference")
+        elif observation.get("schema") == "trajectory_replay_gitlab_repository_reference/1":
+            bindings = observation.get("source_evidence_sha256") or {}
+            query = observation.get("query") or {}
+            project = observation.get("selected_project") or {}
+            page_sizes = observation.get("commit_page_sizes") or []
+            commit_count = observation.get("commit_count")
+            observed_post = observation.get("observed_post") or {}
+            comparisons = observation.get("contract_values") or []
+            expected_post = corrected["eval"][1]["expected"]["post_data"]
+            topic = str(original.get("instantiation_dict", {}).get("topic") or "")
+            normalized_topic = re.sub(r"[^a-z0-9]", "", topic.lower())
+            normalized_path = re.sub(
+                r"[^a-z0-9]", "", str(project.get("path_with_namespace") or "").lower()
+            )
+            if (
+                observation.get("task_intent") != original.get("intent")
+                or observation.get("browser_call_count") != 1
+                or not isinstance(bindings, dict)
+                or not {"network_har", "trace", "outputs", "readiness"}
+                <= set(bindings)
+                or any(
+                    not isinstance(value, str) or len(value) != 64
+                    for value in bindings.values()
+                )
+                or query.get("search_term") != topic
+                or query.get("simple") is not True
+                or query.get("per_page") != 100
+                or query.get("result_count") != 1
+                or not isinstance(project.get("id"), int)
+                or not normalized_topic
+                or normalized_topic not in normalized_path
+                or not isinstance(page_sizes, list)
+                or not page_sizes
+                or any(type(size) is not int or size < 1 or size > 100 for size in page_sizes)
+                or any(size != 100 for size in page_sizes[:-1])
+                or page_sizes[-1] >= 100
+                or commit_count != sum(page_sizes)
+                or observed_post.get("kind") != "repo"
+                or observed_post.get("title") != project.get("path_with_namespace")
+                or not str(observed_post.get("url") or "").endswith(
+                    "/" + str(project.get("path_with_namespace") or "")
+                )
+                or observed_post.get("body") != f"{commit_count} commits already!"
+                or expected_post.get("submission[title]") != observed_post.get("title")
+                or not str(expected_post.get("submission[url]") or "").endswith(
+                    "/" + str(project.get("path_with_namespace") or "")
+                )
+                or expected_post.get("submission[body]") != observed_post.get("body")
+                or not isinstance(comparisons, list)
+                or not comparisons
+                or any(
+                    not isinstance(item, dict)
+                    or not isinstance(item.get("path"), str)
+                    or _resolve(original, item["path"]) != item.get("official")
+                    or _resolve(corrected, item["path"]) != item.get("corrected")
+                    for item in comparisons
+                )
+            ):
+                raise ValueError(
+                    f"task {task.task_id}: incomplete live GitLab repository reference"
+                )
+        elif (
+            observation.get("schema")
+            == "trajectory_replay_magento_create_options_reference/1"
+        ):
+            source = observation.get("official_source") or {}
+            source_observation = observation.get("source_observation") or {}
+            required_option = observation.get("required_option") or {}
+            original_expected = original["eval"][1]["expected"]
+            corrected_expected = corrected["eval"][1]["expected"]
+            if (
+                observation.get("task_intent") != original.get("intent")
+                or observation.get("official_endpoint") != original_expected.get("url")
+                or observation.get("corrected_endpoint") != corrected_expected.get("url")
+                or corrected_expected.get("response_status") != 200
+                or corrected_expected.get("post_data")
+                != {
+                    "options[0][label]": required_option.get("label"),
+                    "options[0][attribute_id]": required_option.get("attribute_id"),
+                    "options[0][is_new]": required_option.get("is_new"),
+                }
+                or source.get("repository") != "https://github.com/magento/magento2"
+                or source.get("path")
+                != "app/code/Magento/ConfigurableProduct/view/adminhtml/web/js/variations/steps/attributes_values.js"
+                or len(str(source.get("revision") or "")) != 40
+                or len(str(source.get("sha256") or "")) != 64
+                or source_observation
+                != {
+                    "method": "saveOptions",
+                    "request_method": "POST",
+                    "request_url_binding": "createOptionsUrl",
+                    "request_body_root": "options",
+                    "success_status_class": 200,
+                }
+            ):
+                raise ValueError(
+                    f"task {task.task_id}: incomplete Magento create-options reference"
+                )
+        elif (
+            observation.get("schema")
+            == "trajectory_replay_magento_mass_status_reference/1"
+        ):
+            bindings = observation.get("source_evidence_sha256") or {}
+            event = observation.get("observed_event") or {}
+            official_contract = observation.get("official_contract") or {}
+            corrected_contract = observation.get("corrected_contract") or {}
+            original_expected = original["eval"][1]["expected"]
+            corrected_expected = corrected["eval"][1]["expected"]
+            if (
+                observation.get("task_intent") != original.get("intent")
+                or observation.get("browser_call_count") != 3
+                or not isinstance(bindings, dict)
+                or not {
+                    "network_har",
+                    "actual_response",
+                    "evaluation",
+                    "trace",
+                    "readiness",
+                    "outputs",
+                }
+                <= set(bindings)
+                or any(
+                    not isinstance(value, str) or len(value) != 64
+                    for value in bindings.values()
+                )
+                or official_contract
+                != {
+                    "url": original_expected.get("url"),
+                    "post_data": original_expected.get("post_data"),
+                    "http_method": original_expected.get("http_method"),
+                    "response_status": original_expected.get("response_status"),
+                    "navigation_only": original["eval"][1].get("navigation_only"),
+                }
+                or corrected_contract
+                != {
+                    "url": corrected_expected.get("url"),
+                    "post_data": corrected_expected.get("post_data"),
+                    "http_method": corrected_expected.get("http_method"),
+                    "response_status": corrected_expected.get("response_status"),
+                    "navigation_only": corrected["eval"][1].get("navigation_only"),
+                }
+                or event.get("method") != "POST"
+                or event.get("url")
+                != "__SHOPPING_ADMIN__/catalog/product/massStatus/status/1/"
+                or event.get("response_status") != 302
+                or event.get("updated_record_count") != 16
+                or event.get("post_data")
+                != {
+                    "excluded": "false",
+                    "filters[placeholder]": "true",
+                    "search": "hollister",
+                    "namespace": "product_listing",
+                }
+                or observation.get("derivation", {}).get("kind")
+                != "native_magento_filtered_mass_status/1"
+            ):
+                raise ValueError(
+                    f"task {task.task_id}: incomplete Magento mass-status reference"
+                )
         elif observation.get("derivation", {}).get("kind") == "qualified_catalog_price_range/1":
             source = observation.get("independent_source") or {}
             products = source.get("qualified_products") or []
             if (
-                observation.get("schema") != "trajectory_replay_revised_reference/1"
-                or source.get("total_count") != source.get("returned_items")
-                or type(source.get("total_count")) is not int
-                or source["total_count"] < len(products)
-                or not products
-                or len({row.get("sku") for row in products}) != len(products)
-                or len({row.get("name") for row in products}) != len(products)
-                or any(
-                    not row.get("sku")
-                    or not row.get("name")
-                    or type(row.get("price_cents")) is not int
-                    or row["price_cents"] < 0
-                    or row.get("currency") != "USD"
-                    or not row.get("qualification_evidence")
-                    for row in products
-                )
+                    observation.get("schema") != "trajectory_replay_revised_reference/1"
+                    or source.get("total_count") != source.get("returned_items")
+                    or type(source.get("total_count")) is not int
+                    or source["total_count"] < len(products)
+                    or not products
+                    or len({row.get("sku") for row in products}) != len(products)
+                    or len({row.get("name") for row in products}) != len(products)
+                    or any(
+                        not row.get("sku")
+                        or not row.get("name")
+                        or type(row.get("price_cents")) is not int
+                        or row["price_cents"] < 0
+                        or row.get("currency") != "USD"
+                        or not row.get("qualification_evidence")
+                        for row in products
+                    )
             ):
-                raise ValueError(f"task {task.task_id}: incomplete qualified catalog reference")
+                raise ValueError(
+                    f"task {task.task_id}: incomplete qualified catalog reference"
+                )
             prices = [row["price_cents"] for row in products]
             expected = {
                 "task_type": "RETRIEVE",
@@ -370,7 +627,9 @@ def apply_correction(
                 "error_details": None,
             }
             if observation.get("expected_response") != expected:
-                raise ValueError(f"task {task.task_id}: catalog reference derivation differs")
+                raise ValueError(
+                    f"task {task.task_id}: catalog reference derivation differs"
+                )
             corrected["eval"][0]["expected"] = expected
         else:
             raise ValueError(f"task {task.task_id}: unsupported independent reference")

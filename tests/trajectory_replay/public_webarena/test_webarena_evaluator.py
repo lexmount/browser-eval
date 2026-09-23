@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from urllib.parse import urlencode
 
 import pytest
 
@@ -354,7 +355,13 @@ def test_official_task_678_has_navigate_get_xhr_evaluator_defect(tmp_path):
     assert result.checks[1]["actual"] == []
 
 
-def test_official_task_811_has_invalid_single_item_alternatives_schema(tmp_path):
+@pytest.mark.parametrize(
+    ("assignee_ids", "expected_status"),
+    [([2330], "pass"), ([2331], "fail")],
+)
+def test_official_task_811_compares_singleton_array_as_an_array(
+    tmp_path, assignee_ids, expected_status
+):
     config = tmp_path / "config.json"
     config.write_text(
         json.dumps({"environments": {"__GITLAB__": {"urls": ["http://gitlab.test"]}}}),
@@ -376,7 +383,9 @@ def test_official_task_811_has_invalid_single_item_alternatives_schema(tmp_path)
                                 "headers": [{"name": "content-type", "value": "application/json"}],
                                 "postData": {
                                     "mimeType": "application/json",
-                                    "text": '{"issue":{"assignee_ids":[2330]}}',
+                                    "text": json.dumps(
+                                        {"issue": {"assignee_ids": assignee_ids}}
+                                    ),
                                 },
                             },
                             "response": {
@@ -414,6 +423,183 @@ def test_official_task_811_has_invalid_single_item_alternatives_schema(tmp_path)
 
     result = WebArenaVerifiedEvaluator(config_path=config).evaluate(task, evidence)
 
-    assert result.status == "error"
-    assert result.checks[1]["status"] == "error"
-    assert "Alternatives require 2+ items" in str(result.checks[1]["error_msg"])
+    assert result.status == expected_status
+    assert result.checks[1]["status"] == (
+        "success" if expected_status == "pass" else "failure"
+    )
+
+
+def _reddit_entry(url, post_data):
+    return {
+        "request": {
+            "method": "POST",
+            "url": url,
+            "headers": [{"name": "content-type", "value": "application/x-www-form-urlencoded"}],
+            "postData": {
+                "mimeType": "application/x-www-form-urlencoded",
+                "text": urlencode(post_data),
+                "params": [{"name": key, "value": str(value)} for key, value in post_data.items()],
+            },
+        },
+        "response": {
+            "status": 302,
+            "redirectURL": "",
+            "headers": [],
+            "cookies": [],
+            "content": {"mimeType": "text/html", "text": ""},
+        },
+    }
+
+
+def _official_task(task_id):
+    return BrowserTask(
+        task_id=f"webarena-{task_id}",
+        title=f"Official task {task_id}",
+        tool_calls=(),
+        assertions=(),
+        tags=(),
+        difficulty="simple",
+        ground_truth={"expected_actions": []},
+        source={"url": f"https://example.test/{task_id}.trace.zip"},
+        evaluator={"kind": "webarena_verified", "task_id": task_id, "revision": 2},
+        environment={"kind": "webarena_verified"},
+    )
+
+
+@pytest.mark.parametrize(
+    ("retrieved_data", "expected_status"),
+    [(None, "pass"), ([0], "fail")],
+)
+def test_official_task_319_preserves_null_retrieved_data_key(
+    tmp_path, retrieved_data, expected_status
+):
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps({"environments": {"__SHOPPING__": {"urls": ["http://shopping.test"]}}}),
+        encoding="utf-8",
+    )
+    har = tmp_path / "network.har"
+    har.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "entries": [
+                        {
+                            "request": {
+                                "method": "GET",
+                                "url": "http://shopping.test/sales/order/history/",
+                                "headers": [],
+                            },
+                            "response": {
+                                "status": 200,
+                                "redirectURL": "",
+                                "headers": [],
+                                "cookies": [],
+                                "content": {"mimeType": "text/html", "text": "ok"},
+                            },
+                        }
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = WebArenaVerifiedEvaluator(config_path=config).evaluate(
+        _official_task(319),
+        TaskEvidence(
+            outputs={},
+            process_passed=True,
+            agent_response={
+                "task_type": "retrieve",
+                "status": "NOT_FOUND_ERROR",
+                "retrieved_data": retrieved_data,
+            },
+            network_har_path=har,
+        ),
+    )
+
+    assert result.status == expected_status
+
+
+def test_official_task_604_binds_dynamic_forum_id_from_the_submitted_form(tmp_path):
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps({"environments": {"__REDDIT__": {"urls": ["http://reddit.test"]}}}),
+        encoding="utf-8",
+    )
+    har = tmp_path / "network.har"
+    har.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "entries": [
+                        _reddit_entry(
+                            "http://reddit.test/submit",
+                            {
+                                "submission[title]": "what is the SOTA web navigation agent repo",
+                                "submission[forum]": "10043",
+                            },
+                        )
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = WebArenaVerifiedEvaluator(config_path=config).evaluate(
+        _official_task(604),
+        TaskEvidence(
+            outputs={},
+            process_passed=True,
+            agent_response={"task_type": "mutate", "status": "SUCCESS", "retrieved_data": None},
+            network_har_path=har,
+        ),
+    )
+
+    assert result.status == "pass"
+
+
+@pytest.mark.parametrize(
+    ("comment_key", "expected_status"),
+    [("reply_to_submission_69[comment]", "pass"), ("reply_to_submission_70[comment]", "fail")],
+)
+def test_official_task_611_requires_one_post_id_in_comment_url_and_form_key(
+    tmp_path, comment_key, expected_status
+):
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps({"environments": {"__REDDIT__": {"urls": ["http://reddit.test"]}}}),
+        encoding="utf-8",
+    )
+    har = tmp_path / "network.har"
+    har.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "entries": [
+                        _reddit_entry(
+                            "http://reddit.test/submit",
+                            {"submission[title]": "Harry Potter", "submission[forum]": "10037"},
+                        ),
+                        _reddit_entry(
+                            "http://reddit.test/f/books/69/-/comment",
+                            {comment_key: "Wonderful journey"},
+                        ),
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = WebArenaVerifiedEvaluator(config_path=config).evaluate(
+        _official_task(611),
+        TaskEvidence(
+            outputs={},
+            process_passed=True,
+            agent_response={"task_type": "mutate", "status": "SUCCESS", "retrieved_data": None},
+            network_har_path=har,
+        ),
+    )
+
+    assert result.status == expected_status

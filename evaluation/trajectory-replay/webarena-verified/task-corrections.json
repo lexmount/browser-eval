@@ -9,6 +9,303 @@
   },
   "corrections": [
     {
+      "task_id": 9,
+      "official_revision": 2,
+      "correction_id": "wv-9-map-live-reference-20260923",
+      "rationale": "Apply the stated 30 km driving threshold to the current deployed OSRM routes; no international airport qualifies.",
+      "root_cause": "The frozen answer includes an airport whose current deployed OSRM driving route exceeds the task threshold.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task9-map-live-reference.json",
+        "sha256": "6b8cd7d01288a6af017958f17ee50dd26897d10888a7da1974f3a60d6b613131"
+      },
+      "regression_ids": [
+        "tr-9-accept-live-map-reference",
+        "tr-9-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/0/expected/retrieved_data",
+          "equals": [
+            {
+              "name": "Pittsburgh International Airport",
+              "state": "Pennsylvania",
+              "postcode": "15231"
+            }
+          ]
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data",
+          "value": []
+        }
+      ]
+    },
+    {
+      "task_id": 18,
+      "official_revision": 2,
+      "correction_id": "wv-18-map-live-reference-20260923",
+      "rationale": "Use the current deployed OSRM driving and walking durations for the requested endpoints.",
+      "root_cause": "The frozen two-minute and sixteen-minute durations do not correspond to the current driving and walking routes between the named endpoints.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task18-map-live-reference.json",
+        "sha256": "db697ab146f801d429b0e4b5f052bb651510a2b091203c54bb8dbb7552aae5b9"
+      },
+      "regression_ids": [
+        "tr-18-accept-live-map-reference",
+        "tr-18-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/0/expected/retrieved_data",
+          "equals": [
+            {
+              "mode": "driving",
+              "duration": "2min"
+            },
+            {
+              "mode": "walking",
+              "duration": "16min"
+            }
+          ]
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data",
+          "value": [
+            {
+              "mode": "driving",
+              "duration": "876.7s"
+            },
+            {
+              "mode": "walking",
+              "duration": "6431.6s"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "task_id": 32,
+      "official_revision": 2,
+      "correction_id": "wv-32-map-live-reference-20260923",
+      "rationale": "Use the current shortest walking route distance to the locally owned supermarket.",
+      "root_cause": "The live route changed by more than the evaluator tolerance while the selected hotel and supermarket remain the task-qualified pair.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task32-map-live-reference.json",
+        "sha256": "f22129008f04f05ad1393e9d8dd9bc489fcffd2d00add74d4065697b52e7895e"
+      },
+      "regression_ids": [
+        "tr-32-accept-live-map-reference",
+        "tr-32-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/0/expected/retrieved_data/0/distance",
+          "equals": "2km"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data/0/distance",
+          "value": "1946.9m"
+        }
+      ]
+    },
+    {
+      "task_id": 34,
+      "official_revision": 2,
+      "correction_id": "wv-34-map-live-reference-20260923",
+      "rationale": "Align the response schema with the keys required by the intent and use the current shortest walking duration.",
+      "root_cause": "The evaluator schema names unrelated keys, bypassing duration normalization, and the live route duration has changed.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task34-map-live-reference.json",
+        "sha256": "868cbff5ae45cb0d0bb71583f44846d594b0668e0a93a15328953a9b31ef996a"
+      },
+      "regression_ids": [
+        "tr-34-accept-live-map-reference",
+        "tr-34-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/0/results_schema/items/properties",
+          "equals": {
+            "hotel": {
+              "type": "string",
+              "format": "location-name"
+            },
+            "information": {
+              "type": "string",
+              "format": "duration"
+            }
+          }
+        },
+        {
+          "path": "/eval/0/expected/retrieved_data/0/travel_time",
+          "equals": "3h 30min"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/results_schema/items/properties",
+          "value": {
+            "hotel_name": {
+              "type": "string",
+              "format": "location-name"
+            },
+            "travel_time": {
+              "type": "string",
+              "format": "duration"
+            }
+          }
+        },
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data/0/travel_time",
+          "value": "9892.3s"
+        }
+      ]
+    },
+    {
+      "task_id": 35,
+      "official_revision": 2,
+      "correction_id": "wv-35-map-live-reference-20260923",
+      "rationale": "Align the response schema with the hotel_name and travel_time keys required by the intent so duration normalization is applied.",
+      "root_cause": "The evaluator schema names unrelated keys, so it compares duration text literally instead of applying the declared duration format.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task35-map-live-reference.json",
+        "sha256": "7d75eef4e0ec8b896f8efb62ae484e885c9cf0849c00698854464a99fe06fcfe"
+      },
+      "regression_ids": [
+        "tr-35-accept-live-map-reference",
+        "tr-35-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/0/results_schema/items/properties",
+          "equals": {
+            "hotel": {
+              "type": "string",
+              "format": "location-name"
+            },
+            "information": {
+              "type": "string",
+              "format": "duration"
+            }
+          }
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/results_schema/items/properties",
+          "value": {
+            "hotel_name": {
+              "type": "string",
+              "format": "location-name"
+            },
+            "travel_time": {
+              "type": "string",
+              "format": "duration"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "task_id": 61,
+      "official_revision": 2,
+      "correction_id": "wv-61-map-live-reference-20260923",
+      "rationale": "Select the spatially closest current Nominatim restaurant result; the official answer is currently classified as a cafe.",
+      "root_cause": "The frozen answer is a cafe in current map data, while the task asks for the closest restaurant.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task61-map-live-reference.json",
+        "sha256": "5b986082d88f1fa263f74e4ad946057c7687c062b8590a22133202e4a5e82d56"
+      },
+      "regression_ids": [
+        "tr-61-accept-live-map-reference",
+        "tr-61-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/0/expected/retrieved_data/0",
+          "equals": "La Prima Espresso"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data/0",
+          "value": "Hunan Express"
+        }
+      ]
+    },
+    {
+      "task_id": 90,
+      "official_revision": 3,
+      "correction_id": "wv-90-map-live-reference-20260923",
+      "rationale": "Use the OpenStreetMap relation for New York State linked from the frozen state page, rather than the City of New York relation.",
+      "root_cause": "The frozen answer uses the City of New York relation where the task asks for the bordering state relation.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task90-map-live-reference.json",
+        "sha256": "f37ebc5f10bb714f06e2b857d2ed28b92124082d5e10492ae4a0a13cb3486aa2"
+      },
+      "regression_ids": [
+        "tr-90-accept-live-map-reference",
+        "tr-90-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/0/expected/retrieved_data/2",
+          "equals": 175905
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data/2",
+          "value": 61320
+        }
+      ]
+    },
+    {
+      "task_id": 179,
+      "official_revision": 2,
+      "correction_id": "wv-179-live-authored-issue-state-20260923",
+      "rationale": "Use the current state of the authenticated user's latest authored issue whose title contains feature.",
+      "root_cause": "The frozen answer says the latest matching authored issue is closed, while the deployed GitLab API identifies issue 83747 as the latest match and reports it open.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task179-live-issue-reference.json",
+        "sha256": "f3860c3b1188917970c28f199cec828571f66e0c3a6255247339cac091329440"
+      },
+      "regression_ids": [
+        "tr-179-accept-live-authored-issue-state",
+        "tr-179-reject-opposite-issue-state"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/0/expected/retrieved_data",
+          "equals": [
+            true
+          ]
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data",
+          "value": [
+            false
+          ]
+        }
+      ]
+    },
+    {
       "task_id": 225,
       "official_revision": 2,
       "correction_id": "wv-225-explicit-title-scope-20260918",
@@ -55,6 +352,155 @@
       ]
     },
     {
+      "task_id": 252,
+      "official_revision": 2,
+      "correction_id": "wv-252-map-live-reference-20260923",
+      "rationale": "Use the current Nominatim object geometry coordinates returned for Tokyo Japanese Food Store.",
+      "root_cause": "The frozen centroid differs from the current object geometry by slightly more than the coordinate evaluator tolerance.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task252-map-live-reference.json",
+        "sha256": "922192487ce820dae28b24a9e5998239a47da12e02ebf759468278e6d0ebc9d7"
+      },
+      "regression_ids": [
+        "tr-252-accept-live-map-reference",
+        "tr-252-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/0/expected/retrieved_data/0/latitude",
+          "equals": "40.45761"
+        },
+        {
+          "path": "/eval/0/expected/retrieved_data/0/longitude",
+          "equals": "-79.92934"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data/0/latitude",
+          "value": "40.45760025"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data/0/longitude",
+          "value": "-79.92932994166013"
+        }
+      ]
+    },
+    {
+      "task_id": 265,
+      "official_revision": 4,
+      "correction_id": "wv-265-map-live-reference-20260923",
+      "rationale": "Bind the route assertion to the coordinates currently exposed by the frozen Wikipedia pages and Nominatim object geometry.",
+      "root_cause": "The exact route URL freezes rounded coordinates that differ from the current source-derived coordinates.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task265-map-live-reference.json",
+        "sha256": "fa7abbd76d0ea6cfb2b6bb76ed0490cc6a306201aad5f4f02c1839f6a12a52eb"
+      },
+      "regression_ids": [
+        "tr-265-accept-live-map-reference",
+        "tr-265-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/v1/.*/-68.2177005,44.3494709;-71.0579762,42.3603713.*$"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/v1/.*/-68.2177005318788,44.3494709082008;-71.05768162905511,42.360400999999996.*$"
+        }
+      ]
+    },
+    {
+      "task_id": 266,
+      "official_revision": 4,
+      "correction_id": "wv-266-map-live-reference-20260923",
+      "rationale": "Bind the route assertion to the coordinates currently exposed by the frozen Wikipedia pages and Nominatim object geometry.",
+      "root_cause": "The exact route URL freezes rounded coordinates that differ from the current source-derived coordinates.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task266-map-live-reference.json",
+        "sha256": "b166a00814c63258dbcf790c9d4ccacc3b72e16fee51bb1f2a1de0479107330e"
+      },
+      "regression_ids": [
+        "tr-266-accept-live-map-reference",
+        "tr-266-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/v1/.*/-68.2177005,44.3494709;-70.2545299,43.6599147.*$"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/v1/.*/-68.2177005318788,44.3494709082008;-70.25452991354058,43.659914650000005.*$"
+        }
+      ]
+    },
+    {
+      "task_id": 267,
+      "official_revision": 4,
+      "correction_id": "wv-267-map-live-reference-20260923",
+      "rationale": "Bind the route assertion to the coordinates currently exposed by the frozen Wikipedia pages and Nominatim object geometry.",
+      "root_cause": "The exact route URL freezes rounded coordinates that differ from the current source-derived coordinates.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task267-map-live-reference.json",
+        "sha256": "eef51aeb64119c9df53908dc526e0ce24310539ec30a9837830c3086afd709a0"
+      },
+      "regression_ids": [
+        "tr-267-accept-live-map-reference",
+        "tr-267-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/.*/-68.2177005,44.3494709;-68.767507,44.8030715.*$"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/.*/-68.2177005318788,44.3494709082008;-68.76750570908236,44.803065340439595.*$"
+        }
+      ]
+    },
+    {
+      "task_id": 268,
+      "official_revision": 4,
+      "correction_id": "wv-268-map-live-reference-20260923",
+      "rationale": "Bind the bicycle route assertion to the coordinates currently exposed by the frozen Wikipedia pages and Nominatim object geometry.",
+      "root_cause": "The exact route URL freezes rounded coordinates that differ from the current source-derived coordinates.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task268-map-live-reference.json",
+        "sha256": "6781f91eed84d9126b3be7f1cc2cdb39b774a3e73522347f1886990d595ea680"
+      },
+      "regression_ids": [
+        "tr-268-accept-live-map-reference",
+        "tr-268-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/v1/.*/-68.2177005,44.3494709;-68.8315387,44.0478975.*$"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/v1/.*/-68.2177005318788,44.3494709082008;-68.83153867121342,44.047897450225626.*$"
+        }
+      ]
+    },
+    {
       "task_id": 279,
       "official_revision": 2,
       "correction_id": "wv-279-complete-bluetooth-catalog-20260918",
@@ -81,6 +527,407 @@
         "tr-279-complete-thirteen-products",
         "tr-279-reject-omitted-product",
         "tr-279-reject-wired-product"
+      ]
+    },
+    {
+      "task_id": 280,
+      "official_revision": 2,
+      "correction_id": "wv-280-complete-live-catalog-20260923",
+      "rationale": "The frozen reference contains 12 title-matched Anker charger products. The deployed catalog's complete 28-item Anker population now contains 17 names meeting the same title rule, so the frozen list omits five current products.",
+      "preconditions": [
+        {
+          "path": "/eval/0/expected",
+          "equals": {
+            "task_type": "RETRIEVE",
+            "status": "SUCCESS",
+            "retrieved_data": [
+              {
+                "names": [
+                  "Anker USB C Charger 30W, 711 Charger, Compact Fast Charger (Not Foldable) for MacBook Air/iPhone 13/13 Mini/13 Pro/13 Pro Max/12, Galaxy S21, Note 20, iPad Pro, Pixel, and More",
+                  "Anker USB C Charger 40W, 521 Charger (Nano Pro), PIQ 3.0 Durable Compact Fast Charger (Not Foldable) for iPhone 13/13 Mini/13 Pro/13 Pro Max/12, Galaxy, Pixel 4/3, iPad/iPad Mini (Cable Not Included)",
+                  "Anker PowerCore Speed 20000, 20000mAh Qualcomm Quick Charge 3.0 & PowerIQ Portable Charger, with Quick Charge Recharging, Power Bank for Samsung, iPhone, iPad and More, Black (A1278)",
+                  "5Ft Micro-USB Charger Cord Cable Fit for Anker-PowerCore 5000 10000 20100 13000 26800 Mini 3350 Fusion II 15000 Redux 20000 Slim 10000 Astro E1 AC Replacement Power Adapter Supply",
+                  "Anker 10W Max Wireless Charger, 313 Wireless Charger (Pad), Qi-Certified Wireless Charging 7.5W for iPhone 12/12 Pro/12 mini/12 Pro Max, 10W for Galaxy S10 S9 S8, S9 Plus, Note 9 (No AC Adapter)",
+                  "Anker Wireless Charger, 313 Wireless Charger (Stand), Qi-Certified for iPhone 12, 12 Pro Max, SE, 11, 11 Pro, 11 Pro Max, XR, XS Max, 10W Fast-Charging Galaxy S20, S10 (No AC Adapter)",
+                  "USB Charger, Anker Elite Dual Port 24W Wall Charger, PowerPort 2 with PowerIQ and Foldable Plug, for iPhone 11/Xs/XS Max/XR/X/8/7/6/Plus, iPad Pro/Air 2/Mini 3/Mini 4, Samsung S4/S5, and More",
+                  "iPhone 12 Charger [GaN Tech], Anker 30W Compact USB-C Wall Charger with Power Delivery, PowerPort Atom for iPhone 12 / Mini/Pro/Pro Max / 11 / X/XS/XR, iPad Pro, MacBook 12'', Pixel, Galaxy",
+                  "USB C Charger, Anker 30W 2 Port Fast Charger with 18W USB C Power Adapter, Foldable PowerPort PD 2 Charger for iPad Pro, iPhone 11/11 Pro / 11 Pro Max/XS/Max/XR/X, Pixel, Galaxy, and More",
+                  "Anker 40W 5-Port USB Wall Charger, PowerPort 5 for iPhone XS / XS Max / XR / X / 8 / 7 / 6 / Plus, iPad Pro / Air 2 / mini, Galaxy S9 / S8 / Edge / Plus, Note 8 / 7, LG, Nexus, HTC and More, Black (AK-A2124111)",
+                  "Anker Quick Charge 3.0 39W Dual USB Wall Charger, PowerPort Speed 2 for Galaxy S10/S9/S8/Edge/Plus, Note 8/7 and PowerIQ for iPhone Xs/XS Max/XR/X/8/Plus, iPad Pro/Air 2/Mini, LG, Nexus, HTC and More",
+                  "USB C Charger, Anker 20W PIQ 3.0 Fast Charger with Foldable Plug, PowerPort III Charger for iPhone 13/13 Mini/13 Pro/13 Pro Max/12/11, iPad/iPad Mini, MagSafe, and More (Cable Not Included)"
+                ],
+                "min": 8.99,
+                "max": 59.99
+              }
+            ],
+            "error_details": null
+          }
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected",
+          "value": {
+            "task_type": "RETRIEVE",
+            "status": "SUCCESS",
+            "retrieved_data": [
+              {
+                "names": [
+                  "Magnetic Wireless Charger, Anker Wireless Charger with 5ft Built in USB-C Cable, PowerWave Magnetic Pad, 7.5W Charging for iPhone 13 / 13 Pro / 13 Pro Max / 13 mini / 12 / 12 Pro (No AC Adapter)",
+                  "Anker USB C Charger 40W, 521 Charger (Nano Pro), PIQ 3.0 Durable Compact Fast Charger (Not Foldable) for iPhone 13/13 Mini/13 Pro/13 Pro Max/12, Galaxy, Pixel 4/3, iPad/iPad Mini (Cable Not Included)",
+                  "Anker 40W 5-Port USB Wall Charger, PowerPort 5 for iPhone XS / XS Max / XR / X / 8 / 7 / 6 / Plus, iPad Pro / Air 2 / mini, Galaxy S9 / S8 / Edge / Plus, Note 8 / 7, LG, Nexus, HTC and More, Black (AK-A2124111)",
+                  "Anker 10W Max Wireless Charger, 313 Wireless Charger (Pad), Qi-Certified Wireless Charging 7.5W for iPhone 12/12 Pro/12 mini/12 Pro Max, 10W for Galaxy S10 S9 S8, S9 Plus, Note 9 (No AC Adapter)",
+                  "Anker Outlet Extender with Stepless Dimming Night Light,Surge Protector, 331 Outlet Extender with 6 AC Outlets and 2 USB Ports, 18W USB Wall Charger Plug for College Dorm Room, Home Office and Kitchen",
+                  "5Ft Micro-USB Charger Cord Cable Fit for Anker-PowerCore 5000 10000 20100 13000 26800 Mini 3350 Fusion II 15000 Redux 20000 Slim 10000 Astro E1 AC Replacement Power Adapter Supply",
+                  "USB C Charger, Anker 20W PIQ 3.0 Fast Charger with Foldable Plug, PowerPort III Charger for iPhone 13/13 Mini/13 Pro/13 Pro Max/12/11, iPad/iPad Mini, MagSafe, and More (Cable Not Included)",
+                  "iPhone 12 Charger [GaN Tech], Anker 30W Compact USB-C Wall Charger with Power Delivery, PowerPort Atom for iPhone 12 / Mini/Pro/Pro Max / 11 / X/XS/XR, iPad Pro, MacBook 12'', Pixel, Galaxy",
+                  "Anker Quick Charge 3.0 39W Dual USB Wall Charger, PowerPort Speed 2 for Galaxy S10/S9/S8/Edge/Plus, Note 8/7 and PowerIQ for iPhone Xs/XS Max/XR/X/8/Plus, iPad Pro/Air 2/Mini, LG, Nexus, HTC and More",
+                  "USB C Cable 60W 10ft, Anker Powerline III USB-C to USB-C Cable 2.0, USB C Charger Cable for MacBook Pro 2020, iPad Pro 2020, Switch, Samsung Galaxy S20 Plus S9 S8 Plus, Pixel, and More (White)",
+                  "Anker USB C Charger 30W, 711 Charger, Compact Fast Charger (Not Foldable) for MacBook Air/iPhone 13/13 Mini/ 13 Pro/ 13 Pro Max/ 12, Galaxy S21, Note 20, iPad Pro, Pixel, and More",
+                  "Anker PowerCore Speed 20000, 20000mAh Qualcomm Quick Charge 3.0 & PowerIQ Portable Charger, with Quick Charge Recharging, Power Bank for Samsung, iPhone, iPad and More, Black (A1278)",
+                  "USB C Super Fast Charger, Anker 25W PD Wall Charger Fast Charging for Samsung Galaxy S21/S21+/S21 Ultra/S20/Z Flip/Note20/20 Ultra/Note10/10+/S9/S8/S10e, iPad Pro 12.9, and More (Cable not Included)",
+                  "USB Charger, Anker Elite Dual Port 24W Wall Charger, PowerPort 2 with PowerIQ and Foldable Plug, for iPhone 11/Xs/XS Max/XR/X/8/7/6/Plus, iPad Pro/Air 2/Mini 3/Mini 4, Samsung S4/S5, and More",
+                  "Anker iPhone Charger Cable, Powerline II Lightning Cable (10ft), Durable Cable, MFi Certified for iPhone X / 8/8 Plus /7/7 Plus / 6/6 Plus / 5s (White), iPad 8, and More",
+                  "Anker Wireless Charger, 313 Wireless Charger (Stand), Qi-Certified for iPhone 12, 12 Pro Max, SE, 11, 11 Pro, 11 Pro Max, XR, XS Max, 10W Fast-Charging Galaxy S20, S10 (No AC Adapter)",
+                  "USB C Charger, Anker 30W 2 Port Fast Charger with 18W USB C Power Adapter, Foldable PowerPort PD 2 Charger for iPad Pro, iPhone 11/11 Pro / 11 Pro Max/XS/Max/XR/X, Pixel, Galaxy, and More"
+                ],
+                "min": 8.99,
+                "max": 59.99
+              }
+            ],
+            "error_details": null
+          }
+        }
+      ],
+      "root_cause": "The frozen reference contains 12 title-matched Anker charger products. The deployed catalog's complete 28-item Anker population now contains 17 names meeting the same title rule, so the frozen list omits five current products.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task280-revised-reference.json",
+        "sha256": "347955c046cfc451c74f214f4fe494e07625949c13ede11bd9dfca50efab28e1"
+      },
+      "regression_ids": [
+        "tr-280-accept-complete-seventeen-products",
+        "tr-280-reject-frozen-omitted-products",
+        "tr-280-reject-non-charger-anker-product"
+      ]
+    },
+    {
+      "task_id": 282,
+      "official_revision": 2,
+      "correction_id": "wv-282-complete-live-catalog-20260923",
+      "rationale": "The frozen reference includes Nike womens Benassi Just Do It, which is absent from the deployed catalog's complete 148-item Nike population. The current population instead includes Nike Owaysis Mens Slide, changing both membership and the minimum price.",
+      "preconditions": [
+        {
+          "path": "/eval/0/expected",
+          "equals": {
+            "task_type": "RETRIEVE",
+            "status": "SUCCESS",
+            "retrieved_data": [
+              {
+                "names": [
+                  "Nike Men's Air Max Camden Slide Sandal",
+                  "Nike Men's Benassi JDI Fanny Pack Slides",
+                  "Nike Victori One Mens Comfort Slide Cn9675-003 (Midnight Navy/Midnight Navy/White, Numeric_10)",
+                  "Nike Offcourt Slide Mens Bq4639-002 Size 12",
+                  "Nike Jordan Men's Break Slide Red AR6374-602",
+                  "Nike Victori One Slide Mens Style : Dd9559-300",
+                  "Nike Men's Benassi Solarsoft Slide Athletic Sandal (Black/White, numeric_14)",
+                  "Nike Men's Benassi Solarsoft Slide Athletic Sandal (Midnight Navy/Blue, numeric_8)",
+                  "Nike womens Benassi Just Do It"
+                ],
+                "min": 27.6,
+                "max": 90.65
+              }
+            ],
+            "error_details": null
+          }
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected",
+          "value": {
+            "task_type": "RETRIEVE",
+            "status": "SUCCESS",
+            "retrieved_data": [
+              {
+                "names": [
+                  "Nike Men's Benassi Solarsoft Slide Athletic Sandal (Midnight Navy/Blue, numeric_8)",
+                  "Nike Men's Air Max Camden Slide Sandal",
+                  "Nike Men's Benassi Solarsoft Slide Athletic Sandal (Black/White, numeric_14)",
+                  "Nike Jordan Men's Break Slide Red AR6374-602",
+                  "Nike Men's Benassi JDI Fanny Pack Slides",
+                  "Nike Offcourt Slide Mens Bq4639-002 Size 12",
+                  "Nike Victori One Slide Mens Style : Dd9559-300",
+                  "Nike Victori One Mens Comfort Slide Cn9675-003 (Midnight Navy/Midnight Navy/White, Numeric_10)",
+                  "Nike Owaysis Mens Slide Casual Sandal Ct5545-002 Size 6 Black/Black-Black"
+                ],
+                "min": 36.86,
+                "max": 90.65
+              }
+            ],
+            "error_details": null
+          }
+        }
+      ],
+      "root_cause": "The frozen reference includes Nike womens Benassi Just Do It, which is absent from the deployed catalog's complete 148-item Nike population. The current population instead includes Nike Owaysis Mens Slide, changing both membership and the minimum price.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task282-revised-reference.json",
+        "sha256": "495fd15c19ce76be4a839f83ee15d8817c388867c236e8484c0fbcd941d46c7e"
+      },
+      "regression_ids": [
+        "tr-282-accept-current-nine-slides",
+        "tr-282-reject-retired-benassi-product",
+        "tr-282-reject-non-slide-nike-sandal"
+      ]
+    },
+    {
+      "task_id": 363,
+      "official_revision": 2,
+      "correction_id": "wv-363-map-live-reference-20260923",
+      "rationale": "Use the current deployed OSRM walking distance for the requested endpoints.",
+      "root_cause": "The deployed walking route distance changed beyond the strict two-percent distance tolerance.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task363-map-live-reference.json",
+        "sha256": "43da0e1c5b4e965dfdf822181adc5c8e3cf1069f6f239eda5ddf51eebdc801f1"
+      },
+      "regression_ids": [
+        "tr-363-accept-live-map-reference",
+        "tr-363-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/0/expected/retrieved_data/0",
+          "equals": "748m"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data/0",
+          "value": "778.3m"
+        }
+      ]
+    },
+    {
+      "task_id": 367,
+      "official_revision": 2,
+      "correction_id": "wv-367-map-live-reference-20260923",
+      "rationale": "Use the current deployed OSRM walking distance to the closest current CVS result.",
+      "root_cause": "The deployed walking route distance changed beyond the strict two-percent distance tolerance.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task367-map-live-reference.json",
+        "sha256": "4d0975533f2f64f189b764477a77546dfa5dbae3d5a8a3f7cb3275e8efcd7033"
+      },
+      "regression_ids": [
+        "tr-367-accept-live-map-reference",
+        "tr-367-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/0/expected/retrieved_data/0",
+          "equals": "1.4km"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data/0",
+          "value": "1454.8m"
+        }
+      ]
+    },
+    {
+      "task_id": 383,
+      "official_revision": 2,
+      "correction_id": "wv-383-map-live-reference-20260923",
+      "rationale": "Use the current Nominatim supermarket set whose deployed OSRM driving durations are at most 15 minutes.",
+      "root_cause": "The frozen supermarket membership no longer matches the current map search and 15-minute OSRM threshold.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task383-map-live-reference.json",
+        "sha256": "8a92c1a6067168dc91673778d37ebeed86487b71f9dea7a21d1e92849048054a"
+      },
+      "regression_ids": [
+        "tr-383-accept-live-map-reference",
+        "tr-383-reject-nearby-wrong-map-reference"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/0/expected/retrieved_data/0/supermarkets",
+          "equals": [
+            "Giant Eagle",
+            "ALDI"
+          ]
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/0/expected/retrieved_data/0/supermarkets",
+          "value": [
+            "Shop & Save",
+            "ALDI",
+            "Walmart Supercenter",
+            "Gordon Food Service",
+            "Magnet International Market"
+          ]
+        }
+      ]
+    },
+    {
+      "task_id": 423,
+      "official_revision": 2,
+      "correction_id": "wv-423-native-filtered-mass-status-20260923",
+      "rationale": "Evaluate the native Magento filtered-grid mass-status request that enables every Hollister product returned by the task filter.",
+      "root_cause": "The upstream evaluator is copied from an unrelated February 2023 order-report task and checks a configurable-product save with report fields, so the requested product-status mutation cannot satisfy it.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task423-magento-mass-status-reference.json",
+        "sha256": "b845ef5a7dfd23a30c809cfed0f50ab6b9544227bdea404735befa1317c6488c"
+      },
+      "regression_ids": [
+        "tr-423-accept-filtered-enable-all-hollister",
+        "tr-423-reject-wrong-filter-or-status"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^__SHOPPING_ADMIN__/catalog/product/save/id/126/type/configurable/store/0/set/\\d+/back/edit$"
+        },
+        {
+          "path": "/eval/1/expected/post_data",
+          "equals": {
+            "report_type": "created_at_order",
+            "from": "02/1/2023",
+            "to": "02/28/2023"
+          }
+        },
+        {
+          "path": "/eval/1/expected/http_method",
+          "equals": "GET"
+        },
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^__SHOPPING_ADMIN__/catalog/product/massStatus/status/1/?$"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/post_data",
+          "value": {
+            "excluded": "false",
+            "search": "hollister",
+            "namespace": "product_listing"
+          }
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/http_method",
+          "value": "POST"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 429,
+      "official_revision": 2,
+      "correction_id": "wv-429-live-college-way-identities-20260923",
+      "rationale": "The deployed Nominatim records identify Washington & Jefferson College and Chatham University as OSM ways. Use those object kinds and let each evaluator inspect the complete trace so both separate-tab navigations can be recognized.",
+      "root_cause": "The upstream URLs label numeric way IDs as relations, and the navigation-only projection retains just the final popup navigation in the captured multi-tab HAR. The relation routes are absent; the same IDs under /way resolve to the required colleges. Matching the exact GET 200 page requests in the complete HAR preserves the two-page requirement.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task429-map-live-reference.json",
+        "sha256": "705e21e4b86f447d85c471eeff56267940e2e64771f1a4fdf97102f6f5883c77"
+      },
+      "regression_ids": [
+        "tr-429-accept-live-way-identities",
+        "tr-429-reject-relation-kind-for-way-identities"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "__MAP__/relation/583390395"
+        },
+        {
+          "path": "/eval/2/expected/url",
+          "equals": "__MAP__/relation/172206707"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "__MAP__/way/583390395"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/2/expected/url",
+          "value": "__MAP__/way/172206707"
+        },
+        {
+          "op": "add",
+          "path": "/eval/1/last_event_only",
+          "value": false
+        },
+        {
+          "op": "add",
+          "path": "/eval/2/last_event_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/2/navigation_only",
+          "value": false
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "network_event_selection",
+          "policy": "match_expected_url_method_and_query_before_recency",
+          "target": "both exact college detail GET requests in the multi-tab HAR"
+        }
+      ]
+    },
+    {
+      "task_id": 430,
+      "official_revision": 2,
+      "correction_id": "wv-430-resolve-college-map-placeholder-20260923",
+      "rationale": "Resolve the unfinished map placeholder to the deployed Washington & Jefferson College way, the Pennsylvania filming location outside Pittsburgh.",
+      "root_cause": "The upstream evaluator shipped a literal TASK_430_MAP_RELATION_ID placeholder. The deployed map index resolves Washington & Jefferson College to way 583390395, and that detail route is live.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task430-map-live-reference.json",
+        "sha256": "3eb03e15488451581a98706bf3779b23660cf78f922a41cc9053955538ececaf"
+      },
+      "regression_ids": [
+        "tr-430-accept-live-washington-jefferson-way",
+        "tr-430-reject-unresolved-placeholder"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "__MAP__/TASK_430_MAP_RELATION_ID"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "__MAP__/way/583390395"
+        }
       ]
     },
     {
@@ -226,6 +1073,82 @@
       ]
     },
     {
+      "task_id": 529,
+      "official_revision": 2,
+      "correction_id": "wv-529-dom-state-without-submit-20260923",
+      "rationale": "The task requires a filled but unsubmitted form, so a synthetic POST cannot be positive evidence; final DOM values plus absence of the real submit request express the contract.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^http://.*/dummy_bin$"
+        },
+        {
+          "path": "/eval/2/should_not_exist",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1"
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "final_dom_form_state",
+          "page_url": "__SHOPPING__/contact",
+          "form": "#contact-form",
+          "fields": {
+            "input[name='name']": "Emma Lopez",
+            "input[name='email']": "emma.lopez@gmail.com",
+            "textarea[name='comment']": "I need a refund. Order: 000000157. Amount: $122.05. Reason: It broke after three days of use."
+          },
+          "forbid_network_event": {
+            "url": "__SHOPPING__/contact/index/post",
+            "http_method": "POST"
+          }
+        }
+      ]
+    },
+    {
+      "task_id": 530,
+      "official_revision": 2,
+      "correction_id": "wv-530-dom-state-without-submit-20260923",
+      "rationale": "The task requires a filled but unsubmitted form, so a synthetic POST cannot be positive evidence; final DOM values plus absence of the real submit request express the contract.",
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^http://.*/dummy_bin$"
+        },
+        {
+          "path": "/eval/2/should_not_exist",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1"
+        }
+      ],
+      "replay_assertions": [
+        {
+          "kind": "final_dom_form_state",
+          "page_url": "__SHOPPING__/contact",
+          "form": "#contact-form",
+          "fields": {
+            "input[name='name']": "Emma Lopez",
+            "input[name='email']": "emma.lopez@gmail.com",
+            "textarea[name='comment']": "I need a refund. Order: 000000161. Amount: $68.88. Reason: It broke after three days of use."
+          },
+          "forbid_network_event": {
+            "url": "__SHOPPING__/contact/index/post",
+            "http_method": "POST"
+          }
+        }
+      ]
+    },
+    {
       "task_id": 547,
       "official_revision": 2,
       "correction_id": "wv-547-existing-brown-option-20260912",
@@ -240,6 +1163,188 @@
         {
           "op": "remove",
           "path": "/eval/1"
+        }
+      ]
+    },
+    {
+      "task_id": 548,
+      "official_revision": 2,
+      "correction_id": "wv-548-existing-blue-option-and-seeded-name-20260923",
+      "rationale": "Blue already exists as global color option 50 in the seeded fixture, so the native wizard correctly creates the S-Blue and M-Blue rows without saving attribute 93. The seeded parent name contains two spaces and the save request must preserve that exact unrelated field.",
+      "root_cause": "The upstream contract requires creation of a global Blue option that already exists in the frozen Magento catalog and expects a normalized parent name that differs from the seeded product value. A correct UI execution therefore cannot emit the redundant attribute-save request and should not rename the parent product as a side effect.",
+      "regression_ids": [
+        "tr-548-accept-existing-blue-small-medium-variations",
+        "tr-548-reject-incomplete-or-wrong-blue-variations"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "__SHOPPING_ADMIN__/catalog/product_attribute/save/attribute_id/93"
+        },
+        {
+          "path": "/eval/2/expected/post_data/product[name]",
+          "equals": "Frankie Sweatshirt"
+        }
+      ],
+      "operations": [
+        {
+          "op": "remove",
+          "path": "/eval/1"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/post_data/product[name]",
+          "value": "Frankie  Sweatshirt"
+        }
+      ]
+    },
+    {
+      "task_id": 549,
+      "official_revision": 2,
+      "correction_id": "wv-549-native-configurable-create-options-20260923",
+      "rationale": "Require Magento’s native configurable-product option request for the new size XXXL, followed by the unchanged strict parent-product variation assertion.",
+      "root_cause": "The upstream contract targets the standalone attribute editor save endpoint and serialized_options payload. Magento 2.4.6 configurable-product wizard instead persists new values through createOptionsUrl with an options array and a 200 response before saving the parent product. The same evaluator is also restricted to the final navigation event, while this save is an earlier XHR. The native endpoint adds an isAjax transport query parameter that is unrelated to the mutation semantics.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-magento-configurable-create-options-reference.json",
+        "sha256": "66bc360de8a4fdedc286a116a99074f35932a1d3f01ca282a61b550a05c42c7d"
+      },
+      "regression_ids": [
+        "tr-549-accept-native-create-options-and-required-variations",
+        "tr-549-reject-wrong-new-size-or-attribute"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "__SHOPPING_ADMIN__/catalog/product_attribute/save/attribute_id/144"
+        },
+        {
+          "path": "/eval/1/expected/response_status",
+          "equals": 302
+        },
+        {
+          "path": "/eval/1/last_event_only",
+          "equals": true
+        },
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        },
+        {
+          "path": "/eval/1/ignored_query_params",
+          "equals": null
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^__SHOPPING_ADMIN__/catalog/product_attribute/createOptions/?$"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/response_status",
+          "value": 200
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/post_data",
+          "value": {
+            "options[0][label]": "XXXL",
+            "options[0][attribute_id]": "144",
+            "options[0][is_new]": "true"
+          }
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/last_event_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/ignored_query_params",
+          "value": [
+            "isAjax"
+          ]
+        }
+      ]
+    },
+    {
+      "task_id": 550,
+      "official_revision": 2,
+      "correction_id": "wv-550-native-configurable-create-options-20260923",
+      "rationale": "Require Magento’s native configurable-product option request for the new size XXS, followed by the unchanged strict parent-product variation assertion.",
+      "root_cause": "The upstream contract targets the standalone attribute editor save endpoint and serialized_options payload. Magento 2.4.6 configurable-product wizard instead persists new values through createOptionsUrl with an options array and a 200 response before saving the parent product. The same evaluator is also restricted to the final navigation event, while this save is an earlier XHR. The native endpoint adds an isAjax transport query parameter that is unrelated to the mutation semantics.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task550-magento-configurable-create-options-reference.json",
+        "sha256": "c7f6b8fd09aea0c5f82ecf268dc052eb27878939a449a1a6a6ee0a2f22600b88"
+      },
+      "regression_ids": [
+        "tr-550-accept-native-create-options-and-required-variations",
+        "tr-550-reject-wrong-new-size-or-attribute"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "__SHOPPING_ADMIN__/catalog/product_attribute/save/attribute_id/144"
+        },
+        {
+          "path": "/eval/1/expected/response_status",
+          "equals": 302
+        },
+        {
+          "path": "/eval/1/last_event_only",
+          "equals": true
+        },
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        },
+        {
+          "path": "/eval/1/ignored_query_params",
+          "equals": null
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^__SHOPPING_ADMIN__/catalog/product_attribute/createOptions/?$"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/response_status",
+          "value": 200
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/post_data",
+          "value": {
+            "options[0][label]": "XXS",
+            "options[0][attribute_id]": "144",
+            "options[0][is_new]": "true"
+          }
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/last_event_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/ignored_query_params",
+          "value": [
+            "isAjax"
+          ]
         }
       ]
     },
@@ -268,6 +1373,226 @@
           "op": "replace",
           "path": "/eval/2/expected/url",
           "value": "__GITLAB__/api/v4/projects/byteblaze%2Fdo-it-myself/repository/commits"
+        }
+      ]
+    },
+    {
+      "task_id": 599,
+      "official_revision": 2,
+      "correction_id": "wv-599-reddit-machinelearning-slug-20260923",
+      "rationale": "Use the deployed case-sensitive MachineLearning forum slug while preserving the official newest-post identity and subscription-state requirement.",
+      "root_cause": "The official contract combines the human-readable forum label machine learning with a URL path, but the deployed forum route is /f/MachineLearning; the spaced path is absent and cannot emit the required subscription event.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task599-reddit-forum-reference.json",
+        "sha256": "84e403f1b2fdce393049c423edfcfdfce7d520e38f93c5a1630beb0bee2faaeb"
+      },
+      "regression_ids": [
+        "tr-599-accept-machinelearning-subscription",
+        "tr-599-reject-human-label-url"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": [
+            "__REDDIT__/f/machine learning/subscribe.json",
+            "__REDDIT__/f/machine learning/unsubscribe.json"
+          ]
+        },
+        {
+          "path": "/eval/1/expected/headers/referer",
+          "equals": "__REDDIT__/f/machine learning/120613/d-yan-lecun-s-recent-recommendations"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": [
+            "__REDDIT__/f/MachineLearning/subscribe.json",
+            "__REDDIT__/f/MachineLearning/unsubscribe.json"
+          ]
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/headers/referer",
+          "value": "__REDDIT__/f/MachineLearning/120613/d-yan-lecun-s-recent-recommendations"
+        }
+      ]
+    },
+    {
+      "task_id": 677,
+      "official_revision": 2,
+      "correction_id": "wv-677-select-admin-grid-xhr-20260923",
+      "rationale": "Evaluate the Magento grid XHR named by the official URL, query and Referer contract after the sales-order page navigation.",
+      "root_cause": "The upstream contract expects an XHR while navigation_only restricts evaluation to the preceding HTML document navigation.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task677-navigation-xhr-reference.json",
+        "sha256": "48962726e6306f0a5c8209020790a9d05953792921843c7ac5ce9eb096282d65"
+      },
+      "regression_ids": [
+        "tr-677-accept-empty-search-processing",
+        "tr-677-reject-stale-search"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 678,
+      "official_revision": 2,
+      "correction_id": "wv-678-select-admin-grid-xhr-20260923",
+      "rationale": "Evaluate the Magento grid XHR named by the official URL, query and Referer contract after the sales-order page navigation.",
+      "root_cause": "The upstream contract expects an XHR while navigation_only restricts evaluation to the preceding HTML document navigation.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task678-navigation-xhr-reference.json",
+        "sha256": "a734389ca5fdac97d1eff8565103817cbaa2486183a1bbf65698df1eb8d7fcca"
+      },
+      "regression_ids": [
+        "tr-678-accept-empty-search-canceled",
+        "tr-678-reject-stale-search"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 679,
+      "official_revision": 2,
+      "correction_id": "wv-679-select-admin-grid-xhr-20260923",
+      "rationale": "Evaluate the Magento grid XHR named by the official URL, query and Referer contract after the sales-order page navigation.",
+      "root_cause": "The upstream contract expects an XHR while navigation_only restricts evaluation to the preceding HTML document navigation.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task679-navigation-xhr-reference.json",
+        "sha256": "bed5afd298bd42e558df1424c80c6e9603ec39a2034e6f52db983558677ff1ed"
+      },
+      "regression_ids": [
+        "tr-679-accept-empty-search-complete",
+        "tr-679-reject-stale-search"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 680,
+      "official_revision": 2,
+      "correction_id": "wv-680-select-admin-grid-xhr-20260923",
+      "rationale": "Evaluate the Magento grid XHR named by the official URL, query and Referer contract after the sales-order page navigation.",
+      "root_cause": "The upstream contract expects an XHR while navigation_only restricts evaluation to the preceding HTML document navigation.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task680-navigation-xhr-reference.json",
+        "sha256": "471013573c62fbd491fd9b89651ff219eddb55253543b8087ec98cae1a5059b9"
+      },
+      "regression_ids": [
+        "tr-680-accept-empty-search-holded",
+        "tr-680-reject-stale-search"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 682,
+      "official_revision": 2,
+      "correction_id": "wv-682-live-chatgpt-commit-count-20260923",
+      "rationale": "Use the sole deployed GitLab project matching chatGPT and its complete commit pagination when constructing the forum post.",
+      "root_cause": "The frozen contract expects 193 commits, while the deployed GitLab search returns only convexegg/chatgpt and that repository contains one commit.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task682-live-repository-reference.json",
+        "sha256": "1fbe9dec8774394af8efd3dc8f78a4a6cdc8dfddefe8623ca10c4a8db9e75b8b"
+      },
+      "regression_ids": [
+        "tr-682-accept-live-repository-post",
+        "tr-682-reject-frozen-repository-post"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/post_data/submission[body]",
+          "equals": "193 commits already!"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/post_data/submission[body]",
+          "value": "1 commits already!"
+        }
+      ]
+    },
+    {
+      "task_id": 683,
+      "official_revision": 2,
+      "correction_id": "wv-683-live-metaseq-project-path-20260923",
+      "rationale": "Use the sole deployed GitLab project matching metaseq while preserving the complete observed commit count.",
+      "root_cause": "The frozen contract names facebook/metaseq, while the deployed GitLab search returns exactly one match at root/metaseq; its complete three-page history still contains 272 commits.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task683-live-repository-reference.json",
+        "sha256": "026d055ba37e6f70a04198aac8a3a6d2a1956be43be8015a18bba6c2dbaf20de"
+      },
+      "regression_ids": [
+        "tr-683-accept-live-repository-post",
+        "tr-683-reject-frozen-repository-post"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/post_data/submission[url]",
+          "equals": "__GITLAB__/facebook/metaseq"
+        },
+        {
+          "path": "/eval/1/expected/post_data/submission[title]",
+          "equals": "facebook/metaseq"
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/post_data/submission[url]",
+          "value": "__GITLAB__/root/metaseq"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/post_data/submission[title]",
+          "value": "root/metaseq"
         }
       ]
     },
@@ -725,192 +2050,6 @@
       ]
     },
     {
-      "task_id": 759,
-      "official_revision": 2,
-      "correction_id": "wv-759-osrm-route-event-contract-20260923",
-      "rationale": "Evaluate the OSRM route request emitted after the directions-page navigation and match its coordinates to the task’s stated origin-to-destination direction.",
-      "root_cause": "The upstream contract both limits a route-XHR assertion to the HTML navigation event and stores destination coordinates before origin coordinates, so a correct route cannot pass.",
-      "reference_receipt": {
-        "path": "research/trajectory-replay-task759-route-order-reference.json",
-        "sha256": "61365f77b06c8b56d578ce200dcedb27689c42d335cafcf8f69b8517a3c7e7d9"
-      },
-      "regression_ids": [
-        "tr-759-accept-origin-to-destination",
-        "tr-759-reject-reversed-route"
-      ],
-      "preconditions": [
-        {
-          "path": "/eval/1/expected/url",
-          "equals": "^.*/route/v1/.*/-71.060511,42.3554334;-1.4869496,55.0252998.*$"
-        },
-        {
-          "path": "/eval/1/navigation_only",
-          "equals": true
-        }
-      ],
-      "operations": [
-        {
-          "op": "replace",
-          "path": "/eval/1/expected/url",
-          "value": "^.*/route/v1/.*/-1.4869496,55.0252998;-71.060511,42.3554334.*$"
-        },
-        {
-          "op": "replace",
-          "path": "/eval/1/navigation_only",
-          "value": false
-        }
-      ]
-    },
-    {
-      "task_id": 760,
-      "official_revision": 2,
-      "correction_id": "wv-760-osrm-route-event-contract-20260923",
-      "rationale": "Evaluate the OSRM route request emitted after the directions-page navigation and match its coordinates to the task’s stated origin-to-destination direction.",
-      "root_cause": "The upstream contract both limits a route-XHR assertion to the HTML navigation event and stores destination coordinates before origin coordinates, so a correct route cannot pass.",
-      "reference_receipt": {
-        "path": "research/trajectory-replay-task760-route-order-reference.json",
-        "sha256": "cac48bce5612957b6530ae9b6dc14890e8962773efd91bc2b62f40521b07bd61"
-      },
-      "regression_ids": [
-        "tr-760-accept-origin-to-destination",
-        "tr-760-reject-reversed-route"
-      ],
-      "preconditions": [
-        {
-          "path": "/eval/1/expected/url",
-          "equals": "^.*/route/v1/.*/-75.4716115,40.6022552;-74.4041622,40.0757384.*$"
-        },
-        {
-          "path": "/eval/1/navigation_only",
-          "equals": true
-        }
-      ],
-      "operations": [
-        {
-          "op": "replace",
-          "path": "/eval/1/expected/url",
-          "value": "^.*/route/v1/.*/-74.4041622,40.0757384;-75.4716115,40.6022552.*$"
-        },
-        {
-          "op": "replace",
-          "path": "/eval/1/navigation_only",
-          "value": false
-        }
-      ]
-    },
-    {
-      "task_id": 677,
-      "official_revision": 2,
-      "correction_id": "wv-677-select-admin-grid-xhr-20260923",
-      "rationale": "Evaluate the Magento grid XHR named by the official URL, query and Referer contract after the sales-order page navigation.",
-      "root_cause": "The upstream contract expects an XHR while navigation_only restricts evaluation to the preceding HTML document navigation.",
-      "reference_receipt": {
-        "path": "research/trajectory-replay-task677-navigation-xhr-reference.json",
-        "sha256": "48962726e6306f0a5c8209020790a9d05953792921843c7ac5ce9eb096282d65"
-      },
-      "regression_ids": [
-        "tr-677-accept-empty-search-processing",
-        "tr-677-reject-stale-search"
-      ],
-      "preconditions": [
-        {
-          "path": "/eval/1/navigation_only",
-          "equals": true
-        }
-      ],
-      "operations": [
-        {
-          "op": "replace",
-          "path": "/eval/1/navigation_only",
-          "value": false
-        }
-      ]
-    },
-    {
-      "task_id": 678,
-      "official_revision": 2,
-      "correction_id": "wv-678-select-admin-grid-xhr-20260923",
-      "rationale": "Evaluate the Magento grid XHR named by the official URL, query and Referer contract after the sales-order page navigation.",
-      "root_cause": "The upstream contract expects an XHR while navigation_only restricts evaluation to the preceding HTML document navigation.",
-      "reference_receipt": {
-        "path": "research/trajectory-replay-task678-navigation-xhr-reference.json",
-        "sha256": "a734389ca5fdac97d1eff8565103817cbaa2486183a1bbf65698df1eb8d7fcca"
-      },
-      "regression_ids": [
-        "tr-678-accept-empty-search-canceled",
-        "tr-678-reject-stale-search"
-      ],
-      "preconditions": [
-        {
-          "path": "/eval/1/navigation_only",
-          "equals": true
-        }
-      ],
-      "operations": [
-        {
-          "op": "replace",
-          "path": "/eval/1/navigation_only",
-          "value": false
-        }
-      ]
-    },
-    {
-      "task_id": 679,
-      "official_revision": 2,
-      "correction_id": "wv-679-select-admin-grid-xhr-20260923",
-      "rationale": "Evaluate the Magento grid XHR named by the official URL, query and Referer contract after the sales-order page navigation.",
-      "root_cause": "The upstream contract expects an XHR while navigation_only restricts evaluation to the preceding HTML document navigation.",
-      "reference_receipt": {
-        "path": "research/trajectory-replay-task679-navigation-xhr-reference.json",
-        "sha256": "bed5afd298bd42e558df1424c80c6e9603ec39a2034e6f52db983558677ff1ed"
-      },
-      "regression_ids": [
-        "tr-679-accept-empty-search-complete",
-        "tr-679-reject-stale-search"
-      ],
-      "preconditions": [
-        {
-          "path": "/eval/1/navigation_only",
-          "equals": true
-        }
-      ],
-      "operations": [
-        {
-          "op": "replace",
-          "path": "/eval/1/navigation_only",
-          "value": false
-        }
-      ]
-    },
-    {
-      "task_id": 680,
-      "official_revision": 2,
-      "correction_id": "wv-680-select-admin-grid-xhr-20260923",
-      "rationale": "Evaluate the Magento grid XHR named by the official URL, query and Referer contract after the sales-order page navigation.",
-      "root_cause": "The upstream contract expects an XHR while navigation_only restricts evaluation to the preceding HTML document navigation.",
-      "reference_receipt": {
-        "path": "research/trajectory-replay-task680-navigation-xhr-reference.json",
-        "sha256": "471013573c62fbd491fd9b89651ff219eddb55253543b8087ec98cae1a5059b9"
-      },
-      "regression_ids": [
-        "tr-680-accept-empty-search-holded",
-        "tr-680-reject-stale-search"
-      ],
-      "preconditions": [
-        {
-          "path": "/eval/1/navigation_only",
-          "equals": true
-        }
-      ],
-      "operations": [
-        {
-          "op": "replace",
-          "path": "/eval/1/navigation_only",
-          "value": false
-        }
-      ]
-    },
-    {
       "task_id": 742,
       "official_revision": 2,
       "correction_id": "wv-742-match-all-member-events-20260923",
@@ -1072,6 +2211,80 @@
         {
           "op": "replace",
           "path": "/eval/4/last_event_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 759,
+      "official_revision": 2,
+      "correction_id": "wv-759-osrm-route-event-contract-20260923",
+      "rationale": "Evaluate the OSRM route request emitted after the directions-page navigation and match its coordinates to the task’s stated origin-to-destination direction.",
+      "root_cause": "The upstream contract both limits a route-XHR assertion to the HTML navigation event and stores destination coordinates before origin coordinates, so a correct route cannot pass.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task759-route-order-reference.json",
+        "sha256": "61365f77b06c8b56d578ce200dcedb27689c42d335cafcf8f69b8517a3c7e7d9"
+      },
+      "regression_ids": [
+        "tr-759-accept-origin-to-destination",
+        "tr-759-reject-reversed-route"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/v1/.*/-71.060511,42.3554334;-1.4869496,55.0252998.*$"
+        },
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/v1/.*/-1.4869496,55.0252998;-71.060511,42.3554334.*$"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
+          "value": false
+        }
+      ]
+    },
+    {
+      "task_id": 760,
+      "official_revision": 2,
+      "correction_id": "wv-760-osrm-route-event-contract-20260923",
+      "rationale": "Evaluate the OSRM route request emitted after the directions-page navigation and match its coordinates to the task’s stated origin-to-destination direction.",
+      "root_cause": "The upstream contract both limits a route-XHR assertion to the HTML navigation event and stores destination coordinates before origin coordinates, so a correct route cannot pass.",
+      "reference_receipt": {
+        "path": "research/trajectory-replay-task760-route-order-reference.json",
+        "sha256": "cac48bce5612957b6530ae9b6dc14890e8962773efd91bc2b62f40521b07bd61"
+      },
+      "regression_ids": [
+        "tr-760-accept-origin-to-destination",
+        "tr-760-reject-reversed-route"
+      ],
+      "preconditions": [
+        {
+          "path": "/eval/1/expected/url",
+          "equals": "^.*/route/v1/.*/-75.4716115,40.6022552;-74.4041622,40.0757384.*$"
+        },
+        {
+          "path": "/eval/1/navigation_only",
+          "equals": true
+        }
+      ],
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/eval/1/expected/url",
+          "value": "^.*/route/v1/.*/-74.4041622,40.0757384;-75.4716115,40.6022552.*$"
+        },
+        {
+          "op": "replace",
+          "path": "/eval/1/navigation_only",
           "value": false
         }
       ]

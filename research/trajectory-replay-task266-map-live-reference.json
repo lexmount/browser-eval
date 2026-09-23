@@ -1,0 +1,39 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 266,
+  "task_intent": "Get the relation ID of the closest national park to the largest city in Maine and the distance to drive there. Return a list of objects with keys \"relation_id\" (integer) and \"distance\" (numeric value with unit km or m, e.g., 2.4km, 500m) only, without any additional details. (Use the OSRM direction service and the provided wiki to look up any needed information and search both source and destination by coordinates from the place official page on the wiki.)",
+  "source_sweep": "map-live-sweep-v126",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "5fe85e84aee96355b71afbccc75ee93977c23443d904199273d7468ef39186ec",
+    "actual_response": "a6c296e928e8221bff6e4da75e33ae9802421cf93c475bf773961bacd12c7aa7",
+    "evaluation": "dcf03d1504888358987df5b573a9a5e5fe112149a2e480e9bc5657da4f769e0d",
+    "trace": "a35938377ecb3643b67b5c7252cc1942b1097f4ddf6e58bb902ff6825e66641f",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "82520969148cc96f6f7b4b790e8186e70bfd92c913dfa44ed583122a399b6108"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      {
+        "relation_id": 2176999,
+        "distance": "289743.7m"
+      }
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/1/expected/url",
+      "official": "^.*/route/v1/.*/-68.2177005,44.3494709;-70.2545299,43.6599147.*$",
+      "corrected": "^.*/route/v1/.*/-68.2177005318788,44.3494709082008;-70.25452991354058,43.659914650000005.*$"
+    }
+  ],
+  "derivation": {
+    "kind": "frozen_wikipedia_nominatim_osrm/1"
+  },
+  "regression_ids": [
+    "tr-266-accept-live-map-reference",
+    "tr-266-reject-nearby-wrong-map-reference"
+  ]
+}

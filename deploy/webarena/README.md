@@ -59,7 +59,8 @@ Nominatim 的 `flatnode.file` 导入／增量更新缓存。评测使用固定�
 镜像自带的 Rails OSM 对象库没有节点、道路或关系记录；搜索结果来自已恢复的
 Nominatim 库，直接点击原本会得到 404。对象详情入口从同一份冻结数据按 OSM
 类型和 ID 查询，展示名称、地址、坐标及可用的附加标签，保留原来的 `/node/`、
-`/way/`、`/relation/` 地址。它只展示 Nominatim 收录的对象；缺失对象仍返回 404，
+`/way/`、`/relation/` 地址。Nominatim 不索引的评测所需路线 relation 只接受绑定到
+固定 Wikidata revision、OSM ID 和来源哈希的精确记录；其它缺失对象仍返回 404，
 不会合成不存在的内容或声称提供完整 OSM 版本历史和成员关系。
 
 三个原始归档约 174.5 GiB。初始化逐包下载、校验 SHA-256、稀疏解包并删除归档，

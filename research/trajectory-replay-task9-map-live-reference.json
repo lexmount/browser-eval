@@ -1,0 +1,40 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 9,
+  "task_intent": "Get the name, state, and zip code of all international airports that are within a driving distance of 30 km to Carnegie Art Museum. Return a list of objects with keys \"name\", \"state\", and \"postcode\". (Use the OSRM direction service.)",
+  "source_sweep": "map-live-sweep-v129",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "0db2ea9f39116af859f83dac60c378f365dbd22df3c53906c263876de46aa2a6",
+    "actual_response": "15259d424bd360178fbe18c7b2fc1d5d8de3fe1e9c9f8b5518fd453a2c964dbd",
+    "evaluation": "5504441711b60b4d4d7eba11a888a98a326777a8866963dd985ecc9c065f9199",
+    "trace": "49166abd182bf4fa34c8a3d7a080e5c12ccb412e097e2d55f00274a1f4bd53cb",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "4593009ffeed11944c0e43084086d50b1406bae69767c9519f13da88931000e7"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": []
+  },
+  "contract_values": [
+    {
+      "path": "/eval/0/expected/retrieved_data",
+      "official": [
+        {
+          "name": "Pittsburgh International Airport",
+          "state": "Pennsylvania",
+          "postcode": "15231"
+        }
+      ],
+      "corrected": []
+    }
+  ],
+  "derivation": {
+    "kind": "bounded_nominatim_osrm/1"
+  },
+  "regression_ids": [
+    "tr-9-accept-live-map-reference",
+    "tr-9-reject-nearby-wrong-map-reference"
+  ]
+}

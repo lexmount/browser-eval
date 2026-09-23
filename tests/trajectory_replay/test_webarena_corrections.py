@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
+from urllib.parse import urlencode
 
 import pytest
 from webarena_verified.types.task import WebArenaSite
@@ -51,6 +52,7 @@ def _dump_eval(contract: CorrectedReplayContract, index: int) -> dict:
 
 
 def _route_har(path: Path, url: str) -> Path:
+    engine = "bicycle" if "routed-bike" in url else "car"
     path.write_text(
         json.dumps(
             {
@@ -83,7 +85,7 @@ def _route_har(path: Path, url: str) -> Path:
                                 "headers": [
                                     {
                                         "name": "Cookie",
-                                        "value": "_osm_directions_engine=fossgis_osrm_car",
+                                        "value": f"_osm_directions_engine=fossgis_osrm_{engine}",
                                     }
                                 ],
                             },
@@ -101,6 +103,174 @@ def _route_har(path: Path, url: str) -> Path:
         encoding="utf-8",
     )
     return path
+
+
+def _empty_har(path: Path) -> Path:
+    return _route_har(path, "http://map.test/unrelated")
+
+
+@pytest.mark.parametrize(
+    "task_id",
+    [9, 18, 32, 34, 35, 61, 90, 252, 265, 266, 267, 268, 363, 367, 383],
+)
+def test_live_map_reference_corrections_accept_bound_observation_and_reject_neighbor(
+    tmp_path, route_benchmark, catalog, task_id
+) -> None:
+    contract = apply_correction(route_benchmark.get_task(task_id), catalog)
+    record = catalog.records[task_id]
+    receipt_path = Path(__file__).resolve().parents[2] / record["reference_receipt"]["path"]
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert record["regression_ids"] == [
+        f"tr-{task_id}-accept-live-map-reference",
+        f"tr-{task_id}-reject-nearby-wrong-map-reference",
+    ]
+    response = receipt["observed_response"]
+    route_urls = {
+        265: "http://map.test/osrm/routed-car/route/v1/driving/-68.2177005318788,44.3494709082008;-71.05768162905511,42.360400999999996?overview=false",
+        266: "http://map.test/osrm/routed-car/route/v1/driving/-68.2177005318788,44.3494709082008;-70.25452991354058,43.659914650000005?overview=false",
+        267: "http://map.test/osrm/routed-car/route/v1/driving/-68.2177005318788,44.3494709082008;-68.76750570908236,44.803065340439595?overview=false",
+        268: "http://map.test/osrm/routed-bike/route/v1/driving/-68.2177005318788,44.3494709082008;-68.83153867121342,44.047897450225626?overview=false",
+    }
+    positive_har = (
+        _route_har(tmp_path / "positive.har", route_urls[task_id])
+        if task_id in route_urls
+        else _empty_har(tmp_path / "positive.har")
+    )
+    positive = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=response,
+        network_trace=positive_har,
+    )
+    assert float(positive.score) == 1.0
+
+    if task_id in route_urls:
+        negative_har = _route_har(
+            tmp_path / "negative.har",
+            route_urls[task_id].replace("-68.2177005318788", "-67.2177005318788"),
+        )
+        negative_response = response
+    else:
+        negative_har = _empty_har(tmp_path / "negative.har")
+        negative_response = copy.deepcopy(response)
+        negative_response["retrieved_data"] = ["definitely wrong"]
+    negative = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=negative_response,
+        network_trace=negative_har,
+    )
+    assert float(negative.score) == 0.0
+
+
+def test_live_gitlab_issue_state_accepts_observed_boolean_and_rejects_opposite(
+    tmp_path, route_benchmark, catalog
+) -> None:
+    contract = apply_correction(route_benchmark.get_task(179), catalog)
+    record = catalog.records[179]
+    receipt_path = Path(__file__).resolve().parents[2] / record["reference_receipt"]["path"]
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert record["regression_ids"] == [
+        "tr-179-accept-live-authored-issue-state",
+        "tr-179-reject-opposite-issue-state",
+    ]
+    assert receipt["selected_issue"]["author_id"] == receipt["query"]["authenticated_user_id"]
+    assert receipt["selected_issue"]["state"] == "opened"
+
+    positive = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=receipt["observed_response"],
+        network_trace=_empty_har(tmp_path / "positive.har"),
+    )
+    negative_response = copy.deepcopy(receipt["observed_response"])
+    negative_response["retrieved_data"] = [True]
+    negative = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=negative_response,
+        network_trace=_empty_har(tmp_path / "negative.har"),
+    )
+    assert float(positive.score) == 1.0
+    assert float(negative.score) == 0.0
+
+
+@pytest.mark.parametrize("task_id", [682, 683])
+def test_live_gitlab_repository_post_accepts_observed_project_and_rejects_frozen_value(
+    tmp_path, route_benchmark, catalog, task_id
+) -> None:
+    contract = apply_correction(route_benchmark.get_task(task_id), catalog)
+    record = catalog.records[task_id]
+    receipt_path = Path(__file__).resolve().parents[2] / record["reference_receipt"]["path"]
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert record["regression_ids"] == [
+        f"tr-{task_id}-accept-live-repository-post",
+        f"tr-{task_id}-reject-frozen-repository-post",
+    ]
+    assert receipt["query"]["result_count"] == 1
+    assert sum(receipt["commit_page_sizes"]) == receipt["commit_count"]
+
+    corrected_post = _dump_eval(contract, 1)["expected"]["post_data"]
+    positive_fields = {
+        "submission[mediaType]": "url",
+        "submission[url]": corrected_post["submission[url]"].replace(
+            "__GITLAB__", "http://git.test"
+        ),
+        "submission[title]": corrected_post["submission[title]"],
+        "submission[body]": corrected_post["submission[body]"],
+        "submission[forum]": "10043",
+    }
+
+    def score(fields: dict[str, str], name: str) -> float:
+        har = tmp_path / f"{name}.har"
+        har.write_text(
+            json.dumps(
+                {
+                    "log": {
+                        "version": "1.2",
+                        "creator": {"name": "gitlab-repository-control", "version": "1"},
+                        "entries": [
+                            {
+                                "request": {
+                                    "method": "POST",
+                                    "url": "http://reddit.test/submit/",
+                                    "headers": [],
+                                    "postData": {
+                                        "mimeType": "application/x-www-form-urlencoded",
+                                        "text": urlencode(fields),
+                                    },
+                                },
+                                "response": {
+                                    "status": 302,
+                                    "headers": [],
+                                    "cookies": [],
+                                    "content": {"mimeType": "text/html", "text": ""},
+                                },
+                            }
+                        ],
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        response = {"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None}
+        return float(
+            evaluate_corrected_contract(
+                route_benchmark,
+                contract,
+                agent_response=response,
+                network_trace=har,
+            ).score
+        )
+
+    assert score(positive_fields, "positive") == 1.0
+    negative_fields = dict(positive_fields)
+    first_change = record["preconditions"][0]
+    field = first_change["path"].rsplit("/", 1)[-1]
+    negative_fields[field] = first_change["equals"].replace(
+        "__GITLAB__", "http://git.test"
+    )
+    assert score(negative_fields, "negative") == 0.0
 
 
 @pytest.mark.parametrize("task_id", [737, 738, 739, 740, 741, 759, 760])
@@ -275,6 +445,54 @@ def test_multi_member_project_corrections_match_every_member_event(
     assert float(negative.score) == 0.0
 
 
+def test_reddit_forum_slug_correction_accepts_deployed_route_and_rejects_label_url(
+    tmp_path, route_benchmark, catalog
+) -> None:
+    contract = apply_correction(route_benchmark.get_task(599), catalog)
+    response = {"task_type": "mutate", "status": "SUCCESS", "retrieved_data": None}
+
+    def write_har(path: Path, forum_path: str) -> Path:
+        post = f"http://reddit.test/f/{forum_path}/120613/d-yan-lecun-s-recent-recommendations"
+        payload = {
+            "log": {
+                "entries": [
+                    {
+                        "request": {
+                            "method": "POST",
+                            "url": f"http://reddit.test/f/{forum_path}/subscribe.json",
+                            "headers": [{"name": "referer", "value": post}],
+                        },
+                        "response": {
+                            "status": 200,
+                            "headers": [],
+                            "content": {
+                                "mimeType": "application/json",
+                                "text": json.dumps({"subscribed": True}),
+                            },
+                        },
+                    }
+                ]
+            }
+        }
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        return path
+
+    positive = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=response,
+        network_trace=write_har(tmp_path / "positive.har", "MachineLearning"),
+    )
+    negative = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=response,
+        network_trace=write_har(tmp_path / "negative.har", "machine%20learning"),
+    )
+    assert float(positive.score) == 1.0
+    assert float(negative.score) == 0.0
+
+
 def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
     payload = json.loads(catalog.source_path.read_text(encoding="utf-8"))
     assert payload["historical_browser_use_scores_immutable"] is True
@@ -284,17 +502,46 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
     assert set(catalog.record_sha256s) == set(catalog.records)
     assert len(set(catalog.record_sha256s.values())) == len(catalog.records)
     assert corrected_task_ids(catalog) == (
+        9,
+        18,
+        32,
+        34,
+        35,
+        61,
+        90,
+        179,
         225,
+        252,
+        265,
+        266,
+        267,
+        268,
         279,
+        280,
+        282,
+        363,
+        367,
+        383,
+        423,
+        429,
+        430,
         448,
         510,
         528,
+        529,
+        530,
         547,
+        548,
+        549,
+        550,
         566,
+        599,
         677,
         678,
         679,
         680,
+        682,
+        683,
         689,
         690,
         691,
@@ -392,7 +639,7 @@ def test_archived_catalog_reproduces_all_unchanged_task_contracts(benchmark, cat
     for task_id in corrected_task_ids(archived):
         previous = apply_correction(benchmark.get_task(task_id), archived)
         current = apply_correction(benchmark.get_task(task_id), catalog)
-        if task_id in {448, 510}:
+        if task_id in {280, 282, 448, 510}:
             assert previous.corrected_task_sha256 != current.corrected_task_sha256
         else:
             assert previous.corrected_task_sha256 == current.corrected_task_sha256
@@ -450,6 +697,63 @@ def test_279_complete_catalog_scores_both_directions(tmp_path, benchmark, catalo
             }
         )
     )
+    result = evaluate_corrected_contract(
+        benchmark, contract, agent_response=response, network_trace=trace
+    )
+    assert float(result.score) == score
+
+
+@pytest.mark.parametrize(
+    "task_id,expected_count,expected_min,expected_max",
+    [(280, 17, 8.99, 59.99), (282, 9, 36.86, 90.65)],
+)
+def test_current_catalog_price_ranges_are_complete(
+    benchmark, catalog, task_id, expected_count, expected_min, expected_max
+):
+    contract = apply_correction(benchmark.get_task(task_id), catalog)
+    result = _dump_eval(contract, 0)["expected"]["retrieved_data"][0]
+    assert len(result["names"]) == expected_count
+    assert result["min"] == expected_min
+    assert result["max"] == expected_max
+
+
+@pytest.mark.parametrize(
+    "task_id,mutation,score",
+    [
+        (280, "complete", 1.0),
+        (280, "omitted", 0.0),
+        (280, "unqualified", 0.0),
+        (282, "complete", 1.0),
+        (282, "retired", 0.0),
+        (282, "unqualified", 0.0),
+    ],
+    ids=[
+        "tr-280-accept-complete-seventeen-products",
+        "tr-280-reject-frozen-omitted-products",
+        "tr-280-reject-non-charger-anker-product",
+        "tr-282-accept-current-nine-slides",
+        "tr-282-reject-retired-benassi-product",
+        "tr-282-reject-non-slide-nike-sandal",
+    ],
+)
+def test_current_catalog_price_ranges_score_both_directions(
+    tmp_path, benchmark, catalog, task_id, mutation, score
+):
+    contract = apply_correction(benchmark.get_task(task_id), catalog)
+    response = copy.deepcopy(_dump_eval(contract, 0)["expected"])
+    values = response["retrieved_data"][0]
+    if mutation == "omitted":
+        values["names"].pop()
+    elif mutation == "retired":
+        values["names"][-1] = "Nike womens Benassi Just Do It"
+        values["min"] = 27.6
+    elif mutation == "unqualified":
+        values["names"].append(
+            "Anker Soundcore Mini 3 Bluetooth Speaker"
+            if task_id == 280
+            else "Nike Women's Tanjun Sandal"
+        )
+    trace = _route_har(tmp_path / f"catalog-{task_id}.har", "http://shop.test/")
     result = evaluate_corrected_contract(
         benchmark, contract, agent_response=response, network_trace=trace
     )
@@ -696,8 +1000,11 @@ def test_510_freezes_selection_order_and_product(benchmark, catalog) -> None:
     assert _dump_eval(applied, 2)["expected"]["response_content"]["items_qty"] == 1
 
 
-def test_528_uses_final_dom_state_and_forbids_real_submission(benchmark, catalog) -> None:
-    applied = apply_correction(benchmark.get_task(528), catalog)
+@pytest.mark.parametrize("task_id", [528, 529, 530])
+def test_refund_forms_use_final_dom_state_and_forbid_real_submission(
+    benchmark, catalog, task_id
+) -> None:
+    applied = apply_correction(benchmark.get_task(task_id), catalog)
     network = [_dump_eval(applied, index) for index in range(1, len(applied.task.eval))]
     assert len(network) == 1
     assert network[0]["expected"]["url"] == "__SHOPPING__/contact/index/post"

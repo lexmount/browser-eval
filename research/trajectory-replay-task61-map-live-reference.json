@@ -1,0 +1,36 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 61,
+  "task_intent": "Get the closest restaurant(s) to CMU Sorrells Library",
+  "source_sweep": "map-live-sweep-v128",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "77ae52fe84fa898cfcd960f61094d5c4a5b3fae71f862507fa3c05308f065de2",
+    "actual_response": "02677d978fd0dc8a99b394094cc4fba897a2b6669ffd23dcc0c84038e6c7b30d",
+    "evaluation": "b3279fd4e76ccf5cc330ed4b1fcec1a7918ec249f8038a206f69a7977c813daf",
+    "trace": "f633fcc18c2d5c45ff88d8f01ac35517b03b3b90262a2a0509a5dce5ed1b182f",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "812d2589ab738989d5801a067a499e3d275074f8464d80a8ed54a33edb6cefa3"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      "Hunan Express"
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/0/expected/retrieved_data/0",
+      "official": "La Prima Espresso",
+      "corrected": "Hunan Express"
+    }
+  ],
+  "derivation": {
+    "kind": "nominatim_spatial_distance/1"
+  },
+  "regression_ids": [
+    "tr-61-accept-live-map-reference",
+    "tr-61-reject-nearby-wrong-map-reference"
+  ]
+}

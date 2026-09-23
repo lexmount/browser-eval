@@ -1,0 +1,45 @@
+{
+  "task_id": 280,
+  "tool_calls": [
+    {
+      "action": "navigate",
+      "url": "http://host.docker.internal:7770/catalogsearch/result/?q=Anker&product_list_limit=36"
+    },
+    {
+      "action": "evaluate",
+      "timeout": 200000,
+      "script": "(async()=>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),120000);try{\nif(!location.pathname.startsWith('/catalogsearch/result')||new URL(location.href).searchParams.get('q')!==\"Anker\")throw Error('wrong current catalog scope');\nconst rows=[],pages=[],seen=new Set();let total=null;\nfor(let page=1;page<=100;page++){\n const query='query {products(filter:{name:{match:'+JSON.stringify(\"Anker\")+'}},pageSize:100,currentPage:'+page+`){total_count page_info{current_page total_pages} items{sku name url_key price_range{minimum_price{final_price{value currency}}}}}}`;\n const url=new URL('/graphql',location.origin);url.searchParams.set('query',query);\n const response=await fetch(url.href,{credentials:'same-origin',redirect:'error',signal:controller.signal,headers:{Accept:'application/json'}});\n if(!response.ok||response.redirected||!/^application\\/json\\b/i.test(response.headers.get('content-type')||''))throw Error('catalog response unavailable');\n const payload=await response.json(),data=payload.data?.products;\n if(payload.errors?.length||!data||!Number.isSafeInteger(data.total_count)||data.total_count<0||!Array.isArray(data.items))throw Error('invalid catalog response');\n if(total===null)total=data.total_count;\n const count=Math.max(1,Math.ceil(total/100));\n if(total!==data.total_count||count>100||data.page_info.current_page!==page||data.page_info.total_pages!==Math.ceil(total/100)||data.items.length!==Math.min(100,Math.max(0,total-(page-1)*100)))throw Error('incomplete or changed catalog');\n for(const row of data.items){\n  const price=row.price_range?.minimum_price?.final_price;\n  if(typeof row.sku!=='string'||!row.sku||seen.has(row.sku)||typeof row.name!=='string'||!row.name||typeof row.url_key!=='string'||!row.url_key||row.url_key.includes('/')||price?.currency!=='USD'||typeof price.value!=='number'||!Number.isFinite(price.value)||price.value<0)throw Error('catalog identity or price invalid');\n  seen.add(row.sku);rows.push({sku:row.sku,name:row.name,url:new URL('/'+row.url_key+'.html',location.origin).href,price_cents:Math.round(price.value*100),currency:price.currency});\n }\n pages.push({page,rows:data.items.length,total,ids:data.items.map(r=>r.sku)});if(page===count)break;\n}\nif(rows.length!==total)throw Error('catalog population incomplete');\nconst qualified=rows.filter(r=>/anker/i.test(r.name)&&/charger/i.test(r.name)).map(r=>({...r,qualification_evidence:{rule:\"name contains both Anker and charger, matching the official task's catalog-name qualification\",matched_name:r.name}}));\nif(!qualified.length||new Set(qualified.map(r=>r.name)).size!==qualified.length)throw Error('qualified catalog identity absent or duplicated');\nconst prices=qualified.map(r=>r.price_cents);\nreturn {scope:true,complete:true,total_count:total,returned_items:rows.length,pages,qualified_products:qualified,answer:{names:qualified.map(r=>r.name),min:Math.min(...prices)/100,max:Math.max(...prices)/100}};\n}finally{controller.abort();clearTimeout(timer)}})()"
+    }
+  ],
+  "retrieval_contract": {
+    "schema": "lex_replay_current_run_retrieval/1",
+    "task_id": 280,
+    "canonical_calls_sha256": "e8c06d05e08447cc88534eb74a89956254a5ee159626de258c414512a0a588e7",
+    "sources": [
+      {
+        "name": "observation",
+        "step": 2,
+        "action_sha256": "0e9d25a8b161a9dc256818d5d0f2841d66d57c272e6f07ba32364e335a878c01",
+        "decode": "json"
+      }
+    ],
+    "requirements": {
+      "scope": {
+        "source": "observation",
+        "pointer": "/scope"
+      },
+      "completeness": {
+        "source": "observation",
+        "pointer": "/complete"
+      }
+    },
+    "projection": {
+      "array": [
+        {
+          "source": "observation",
+          "pointer": "/answer"
+        }
+      ]
+    }
+  }
+}

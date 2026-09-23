@@ -7,6 +7,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
+from harness.trajectory_replay.webarena_evaluator_fixes import (
+    install_webarena_evaluator_fixes,
+)
+
 from .executor import judge_outputs
 from .suite import BrowserTask
 
@@ -67,6 +71,7 @@ class WebArenaVerifiedEvaluator:
             raise RuntimeError(
                 "webarena-verified is required for WebArena result evaluation"
             ) from exc
+        install_webarena_evaluator_fixes()
         self._implementation = WebArenaVerified(
             config=Path(config_path) if config_path is not None else None
         )

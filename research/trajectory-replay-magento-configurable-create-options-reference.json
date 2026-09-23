@@ -1,0 +1,41 @@
+{
+  "schema": "trajectory_replay_magento_create_options_reference/1",
+  "task_id": 549,
+  "task_intent": "Add a new size XXXL to green Minerva LumaTech V-Tee",
+  "official_endpoint": "__SHOPPING_ADMIN__/catalog/product_attribute/save/attribute_id/144",
+  "corrected_endpoint": "^__SHOPPING_ADMIN__/catalog/product_attribute/createOptions/?$",
+  "captured_at": "2026-09-23T19:45:45+08:00",
+  "subject": "Magento configurable-product wizard new attribute option contract",
+  "official_source": {
+    "repository": "https://github.com/magento/magento2",
+    "revision": "efd7420a8d0758777032ee2f6fcc6c922d8bb3f9",
+    "path": "app/code/Magento/ConfigurableProduct/view/adminhtml/web/js/variations/steps/attributes_values.js",
+    "sha256": "088fb13a9b60cf160d40adbcd4dcdb7325da9239f2c241063794a9befa6aec3d"
+  },
+  "source_observation": {
+    "method": "saveOptions",
+    "request_method": "POST",
+    "request_url_binding": "createOptionsUrl",
+    "request_body_root": "options",
+    "success_status_class": 200
+  },
+  "required_option": {
+    "attribute_id": "144",
+    "label": "XXXL",
+    "is_new": "true"
+  },
+  "live_observation": {
+    "site": "shopping_admin",
+    "task_id": 549,
+    "request_method": "POST",
+    "request_path": "/admin/catalog/product_attribute/createOptions/",
+    "response_status": 200,
+    "new_option": {
+      "attribute_id": "144",
+      "label": "XXXL",
+      "is_new": "true"
+    },
+    "network_har_sha256": "d3974443c857afd700927b96568700ddd1c6d5ffa2fff516a161d0037e4fd7df",
+    "browser_call_count": 1
+  }
+}

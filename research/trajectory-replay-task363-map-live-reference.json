@@ -1,0 +1,36 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 363,
+  "task_intent": "Measure distance between Carnegie Mellon University and Carnegie Music Hall by walking. Return the value as a string (numeric value with unit km or m, e.g., 2.4km, 500m) only, without any additional details. (Use the OSRM direction service.)",
+  "source_sweep": "map-live-sweep-v117",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "87b8e36c7eb9d96e38a36b2d57033836d0b0809ede03d165ba234018a5f26c24",
+    "actual_response": "b6f55bd02474296e12be174da5a6738b57ac9ca84e1cec3b1cc308734c81fd0f",
+    "evaluation": "8e128aa88f6504952d95bbffa4167334fad06982ff53f56f53ed09724f98022f",
+    "trace": "77cac636a0fe850fe2e7a6df4d88e88d3b49fc557fcc862b6c061acf515d07af",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "18a53355083e8bcd0d1aeb2c87ccac70bd3b04e920f367d9306931091f1428ba"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      "778.3m"
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/0/expected/retrieved_data/0",
+      "official": "748m",
+      "corrected": "778.3m"
+    }
+  ],
+  "derivation": {
+    "kind": "bounded_nominatim_osrm/1"
+  },
+  "regression_ids": [
+    "tr-363-accept-live-map-reference",
+    "tr-363-reject-nearby-wrong-map-reference"
+  ]
+}
