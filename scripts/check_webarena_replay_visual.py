@@ -52,11 +52,32 @@ def _browser_executable() -> str:
     raise ValueError("visual QA requires Chrome or Chromium")
 
 
+def _hosted_preview_error_message(errors: list[tuple[int, str]]) -> str:
+    details = []
+    for code, path in errors[:3]:
+        if path.startswith("/api/preview/replay~fixture/"):
+            cause = "missing file on versioned preview"
+        elif path.startswith("/api/preview/replay/"):
+            cause = "asset requested without preview version"
+        else:
+            cause = "hosted preview request failed"
+        details.append(f"{code} {path} ({cause})")
+    return "hosted preview HTTP errors: " + "; ".join(details)
+
+
 class _QuietHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *_args: object) -> None:
         return
 
+    def send_error(self, code: int, *args: object, **kwargs: object) -> None:
+        # Both missing version credentials and missing files on a versioned route
+        # break a hosted report; the final diagnostic identifies which occurred.
+        if code >= 400 and self.path.startswith("/api/preview/"):
+            getattr(self.server, "preview_errors", []).append((code, self.path))
+        super().send_error(code, *args, **kwargs)
+
     def do_GET(self) -> None:
+        # Artifact Site serves private HTML at the plain route but denies its assets.
         for prefix in ("/api/preview/replay~fixture/", "/api/preview/replay/"):
             if not self.path.startswith(prefix):
                 continue
@@ -65,9 +86,14 @@ class _QuietHandler(http.server.SimpleHTTPRequestHandler):
             if not target.is_relative_to(Path(self.directory).resolve()) or not target.is_file():
                 self.send_error(404)
                 return
-            if prefix.endswith("~fixture/") and target.suffix == ".html":
+            if prefix == "/api/preview/replay/" and target.suffix != ".html":
+                self.send_error(404)
+                return
+            if target.suffix == ".html":
                 content = target.read_text(encoding="utf-8")
-                content = content.replace("<head>", '<head><base href="/api/preview/">', 1)
+                content = content.replace(
+                    "<head>", '<head><base href="/api/preview/replay~fixture/">', 1
+                )
                 encoded = content.encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -78,6 +104,35 @@ class _QuietHandler(http.server.SimpleHTTPRequestHandler):
             self.path = "/" + route
             return super().do_GET()
         return super().do_GET()
+
+
+def _validate_hosted_resource_state(state: dict[str, str], origin: str, route: str) -> None:
+    root = origin + "/api/preview/replay~fixture/"
+    folder = route.rpartition("/")[0]
+    expected_base = root + (folder + "/" if folder else "")
+    expected = {
+        "base": expected_base,
+        "css": root + "assets/report.css",
+        "script": root + "assets/app.js",
+    }
+    for key, target in expected.items():
+        if state.get(key) != target:
+            raise ValueError(f"hosted {route} {key} resolves outside its private version")
+    if state.get("background") == "rgba(0, 0, 0, 0)":
+        raise ValueError(f"hosted {route} report stylesheet did not apply")
+
+
+def _check_hosted_resources(page, origin: str, route: str) -> None:
+    page.wait_for_load_state("load")
+    state = page.evaluate(
+        """() => ({
+            base: document.baseURI,
+            css: document.querySelector('link[href$="assets/report.css"]')?.href || '',
+            script: document.querySelector('script[src$="assets/app.js"]')?.src || '',
+            background: getComputedStyle(document.body).backgroundColor,
+        })"""
+    )
+    _validate_hosted_resource_state(state, origin, route)
 
 
 def _first_failed_key(report: Path) -> str | None:
@@ -168,6 +223,7 @@ def check(report: Path, receipt: Path) -> None:
         *args, directory=str(report), **kwargs
     )
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    server.preview_errors = []
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     failures: list[dict[str, object]] = []
@@ -181,6 +237,7 @@ def check(report: Path, receipt: Path) -> None:
             )
             try:
                 failed_key = _first_failed_key(report)
+                hosted_origin = f"http://127.0.0.1:{server.server_port}"
                 if failed_key is not None:
                     route_page = browser.new_page()
                     page_errors: list[str] = []
@@ -189,14 +246,10 @@ def check(report: Path, receipt: Path) -> None:
                         f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/result/{failed_key}.html",
                         wait_until="domcontentloaded",
                     )
-                    route_page.wait_for_function(
-                        "() => document.baseURI.includes('/api/preview/replay~fixture/result/')"
+                    _check_hosted_resources(
+                        route_page, hosted_origin, f"result/{failed_key}.html"
                     )
                     route_page.wait_for_function("() => !!document.documentElement.dataset.theme")
-                    route_page.wait_for_function(
-                        "() => getComputedStyle(document.body).backgroundColor"
-                        " !== 'rgba(0, 0, 0, 0)'"
-                    )
                     assert "/api/preview/replay~fixture/result/" in route_page.locator(
                         ".peer-list a"
                     ).first.evaluate("element => element.href")
@@ -248,12 +301,17 @@ def check(report: Path, receipt: Path) -> None:
                         f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/index.html"
                     )
                     route_page.locator("h1").wait_for()
+                    _check_hosted_resources(route_page, hosted_origin, "index.html")
                     if "en" not in report_languages(report):
                         route_page.locator("a.language").click()
                         route_page.locator("[data-english-not-generated]").wait_for()
                         assert "英文报告未生成" in route_page.locator("h1").inner_text()
+                        assert route_page.locator('a[href="../index.html"]').evaluate(
+                            "element => element.href"
+                        ) == hosted_origin + "/api/preview/replay~fixture/index.html"
                         route_page.locator('a[href="../index.html"]').click()
                         route_page.locator("a.language").wait_for()
+                        _check_hosted_resources(route_page, hosted_origin, "index.html")
                     route_page.close()
                     for language in report_languages(report):
                         modal_page = browser.new_page(viewport={"width": 390, "height": 844})
@@ -290,15 +348,26 @@ def check(report: Path, receipt: Path) -> None:
                         f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/fix/{fix_id}.html",
                         wait_until="domcontentloaded",
                     )
-                    fix_page.wait_for_function(
-                        "() => document.baseURI.includes('/api/preview/replay~fixture/fix/')"
-                    )
+                    _check_hosted_resources(fix_page, hosted_origin, f"fix/{fix_id}.html")
                     fix_page.locator('nav a[href="../index.html"]').first.click()
                     fix_page.wait_for_url(
                         f"http://127.0.0.1:{server.server_port}/api/preview/replay~fixture/index.html"
                     )
                     fix_page.locator("h1").wait_for()
                     fix_page.close()
+                results = json.loads((report / "data/results.json").read_text(encoding="utf-8"))
+                passed_key = next((item["key"] for item in results if item["status"] == "pass"), None)
+                if passed_key is not None:
+                    passed_page = browser.new_page()
+                    passed_page.goto(
+                        hosted_origin
+                        + f"/api/preview/replay~fixture/result/{passed_key}.html",
+                        wait_until="domcontentloaded",
+                    )
+                    _check_hosted_resources(
+                        passed_page, hosted_origin, f"result/{passed_key}.html"
+                    )
+                    passed_page.close()
                 if (report / "diagnostics.html").is_file():
                     hosted_page = browser.new_page()
                     hosted_root = (
@@ -533,11 +602,13 @@ return {
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
+    if server.preview_errors:
+        raise ValueError(_hosted_preview_error_message(server.preview_errors))
     receipt.parent.mkdir(parents=True, exist_ok=True)
     receipt.write_text(
         json.dumps(
             {
-                "schema": "lex_webarena_replay_visual_qa/1",
+                "schema": "lex_webarena_replay_visual_qa/3",
                 "report_tree_sha256": _tree_sha256(report),
                 "browser_executable": executable,
                 "route_classes": len(_routes(report)),

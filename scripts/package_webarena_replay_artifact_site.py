@@ -54,7 +54,7 @@ def validate_release(report: Path, visual_receipt: Path) -> dict[str, int]:
     except (OSError, ValueError):
         visual = {}
     if (
-        visual.get("schema") != "lex_webarena_replay_visual_qa/1"
+        visual.get("schema") != "lex_webarena_replay_visual_qa/3"
         or visual.get("report_tree_sha256") != tree_sha256(report)
         or visual.get("failures")
         or int(visual.get("states_checked") or 0) <= 0

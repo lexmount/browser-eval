@@ -16,7 +16,8 @@ def test_chinese_output_has_notice_without_translated_routes(tmp_path):
     notice = (tmp_path / "en/index.html").read_text()
     assert "英文报告未生成" in notice
     assert 'href="../index.html"' in notice
-    assert "location.origin+location.pathname" in notice
+    assert 'new URL("en/",b.href)' in notice
+    assert "location.origin+location.pathname" not in notice
     (tmp_path / "en/old.html").write_text("stale")
     with pytest.raises(ValueError, match="stale English"):
         check_language_contract(tmp_path)

@@ -1,5 +1,9 @@
 import importlib.util
+import http.server
 import json
+import threading
+import urllib.error
+import urllib.request
 import pytest
 from pathlib import Path
 
@@ -11,6 +15,76 @@ _SPEC.loader.exec_module(_MODULE)
 _routes = _MODULE._routes
 _first_failed_key = _MODULE._first_failed_key
 _first_fix_id = _MODULE._first_fix_id
+
+
+def test_private_preview_fixture_denies_assets_without_version(tmp_path):
+    (tmp_path / "index.html").write_text("<html><head></head><body>report</body></html>")
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets/report.css").write_text("body { color: black; }")
+    handler = lambda *args, **kwargs: _MODULE._QuietHandler(
+        *args, directory=str(tmp_path), **kwargs
+    )
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    server.preview_errors = []
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    root = f"http://127.0.0.1:{server.server_port}/api/preview/"
+    try:
+        with urllib.request.urlopen(root + "replay/index.html") as response:
+            assert b'<base href="/api/preview/replay~fixture/">' in response.read()
+        with pytest.raises(urllib.error.HTTPError) as denied:
+            urllib.request.urlopen(root + "replay/assets/report.css")
+        assert denied.value.code == 404
+        assert server.preview_errors == [(404, "/api/preview/replay/assets/report.css")]
+        with urllib.request.urlopen(root + "replay~fixture/assets/report.css") as response:
+            assert response.status == 200
+        with pytest.raises(urllib.error.HTTPError) as missing:
+            urllib.request.urlopen(root + "replay~fixture/assets/missing.css")
+        assert missing.value.code == 404
+        assert server.preview_errors[-1] == (404, "/api/preview/replay~fixture/assets/missing.css")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_hosted_preview_errors_identify_missing_file_and_version():
+    message = _MODULE._hosted_preview_error_message([
+        (404, "/api/preview/replay/assets/report.css"),
+        (404, "/api/preview/replay~fixture/assets/missing.css"),
+    ])
+    assert "asset requested without preview version" in message
+    assert "missing file on versioned preview" in message
+    assert "/api/preview/replay~fixture/assets/missing.css" in message
+
+
+@pytest.mark.parametrize(
+    "route,changed_field,wrong_value",
+    [
+        ("index.html", "base", "https://example.test/api/preview/replay/"),
+        ("index.html", "css", "https://example.test/api/preview/replay/assets/report.css"),
+        ("result/moli-1.html", "base", "https://example.test/api/preview/replay~fixture/"),
+        ("result/moli-1.html", "css", "https://example.test/api/preview/assets/report.css"),
+        ("result/moli-1.html", "script", "https://example.test/api/preview/assets/app.js"),
+        ("result/moli-1.html", "background", "rgba(0, 0, 0, 0)"),
+    ],
+)
+def test_private_preview_gate_rejects_lost_credentials_and_nested_assets(
+    route, changed_field, wrong_value
+):
+    origin = "https://example.test"
+    root = origin + "/api/preview/replay~fixture/"
+    folder = route.rpartition("/")[0]
+    state = {
+        "base": root + (folder + "/" if folder else ""),
+        "css": root + "assets/report.css",
+        "script": root + "assets/app.js",
+        "background": "rgb(246, 248, 251)",
+    }
+    _MODULE._validate_hosted_resource_state(state, origin, route)
+    state[changed_field] = wrong_value
+    with pytest.raises(ValueError, match="hosted"):
+        _MODULE._validate_hosted_resource_state(state, origin, route)
 
 
 def test_header_contrast_rejects_light_panel_with_dark_theme_ink():

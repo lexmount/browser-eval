@@ -503,6 +503,32 @@ def test_package_binds_report_evidence_and_release_gate(monkeypatch, tmp_path: P
         packager.package(report, evidence, output, tmp_path / "visual.json")
 
 
+@pytest.mark.parametrize("old_schema", [
+    "lex_webarena_replay_visual_qa/1",
+    "lex_webarena_replay_visual_qa/2",
+])
+def test_package_reruns_private_preview_gate_for_old_receipt(
+    monkeypatch, tmp_path: Path, old_schema: str
+) -> None:
+    report = tmp_path / "report"
+    report.mkdir()
+    (report / "index.html").write_text("<html></html>", encoding="utf-8")
+    receipt = tmp_path / "visual.json"
+    receipt.write_text(json.dumps({
+        "schema": old_schema,
+        "report_tree_sha256": packager.tree_sha256(report),
+        "states_checked": 48,
+        "failures": [],
+    }), encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(packager, "check_report", lambda _report: {"html_pages": 1})
+    monkeypatch.setattr(packager, "check_visual", lambda *_args: calls.append("private preview"))
+
+    packager.validate_release(report, receipt)
+
+    assert calls == ["private preview"]
+
+
 def test_package_rejects_diagnostic_appendix_and_mixed_dataset(
     monkeypatch, tmp_path: Path
 ) -> None:

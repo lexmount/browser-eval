@@ -527,18 +527,20 @@ def _shell(lang: str, active: str, title: str, body: str, *, depth: int = 0, cur
         else "WebArena-Verified 1.2.3 · Browser Trajectory Replay"
     )
     preview_bootstrap = r'''<script>(function(){
-const parts=location.pathname.split('/');
-const at=parts.indexOf('preview');
-if(at<1||parts[at-1]!=='api')return;
-const mount=parts[at+1]||'';
-const slug=mount.split('~')[0];
-if(!/^[A-Za-z0-9_-]+$/.test(slug))return;
-const route=parts.slice(at+2).join('/');
-const node=document.querySelector('base[href]')||document.createElement('base');
-node.href=location.origin+'/api/preview/'+mount+'/'+route;
-if(!node.isConnected)document.head.prepend(node);
+const base=document.querySelector('base[href]');
+if(base){
+  const parts=location.pathname.split('/');
+  const at=parts.indexOf('preview');
+  if(at>0&&parts[at-1]==='api'){
+    const folders=parts.slice(at+2,-1);
+    if(folders.length)base.href=new URL(folders.join('/')+'/',base.href).href;
+  }
+}
+const css=document.querySelector('link[data-report-css]');
+css.href=css.dataset.src;
 })();</script>'''
-    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)}</title>{preview_bootstrap}<link rel="stylesheet" href="{asset_prefix}assets/report.css"></head><body>{_nav(lang, active, depth=depth, current_route=current_route)}<main>{body}</main><footer>{footer}</footer><script src="{asset_prefix}assets/app.js"></script></body></html>'''
+    body = body.replace('<img src=', '<img data-src=')
+    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)}</title><link rel="stylesheet" data-report-css data-src="{asset_prefix}assets/report.css">{preview_bootstrap}</head><body>{_nav(lang, active, depth=depth, current_route=current_route)}<main>{body}</main><footer>{footer}</footer><script type="application/x-report-app" data-report-app data-src="{asset_prefix}assets/app.js"></script><script>(function(){{document.querySelectorAll('img[data-src]').forEach(img=>img.src=img.dataset.src);const app=document.querySelector('script[data-report-app]');const loader=document.createElement('script');loader.src=app.dataset.src;app.replaceWith(loader)}})();</script></body></html>'''
 
 
 def _winner(value: str, won: bool, *, lang: str) -> str:
@@ -1857,11 +1859,8 @@ def build_webarena_replay_report(
         (english_root / "index.html").write_text(
             '<!doctype html><html lang="zh"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width, initial-scale=1">'
-            '<script>(function(){const p=location.pathname.split("/");'
-            'const i=p.indexOf("preview");if(i<1||p[i-1]!=="api")return;'
-            'const b=document.querySelector("base")||document.createElement("base");'
-            'b.href=location.origin+location.pathname;'
-            'if(!b.isConnected)document.head.prepend(b);})();</script>'
+            '<script>(function(){const b=document.querySelector("base[href]");'
+            'if(b)b.href=new URL("en/",b.href).href;})();</script>'
             '<title>英文报告未生成</title></head><body>'
             '<main data-english-not-generated><h1>英文报告未生成</h1>'
             '<p>English report has not been generated.</p>'
