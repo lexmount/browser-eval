@@ -9,7 +9,12 @@ from pathlib import Path
 from harness.trajectory_replay.public_webarena.suite import load_suite
 from harness.trajectory_replay.remote_runtime import load_remote_sites, rebind_remote_calls
 from harness.trajectory_replay.webarena_replay import _json_sha256
-from scripts.run_webarena_full_catalog import TRUSTED_RECORDED_HOSTS, _hash, _load_inputs
+from scripts.run_webarena_full_catalog import (
+    TRUSTED_RECORDED_HOSTS,
+    _hash,
+    _load_inputs,
+    _source_sites,
+)
 
 
 def rebind_catalog(
@@ -18,6 +23,7 @@ def rebind_catalog(
     site_map_path: Path,
     *,
     revised_task_ids: set[int] | None = None,
+    source_site_map_path: Path | None = None,
 ) -> dict:
     source = json.loads(catalog_path.read_text(encoding="utf-8"))
     suite = load_suite(suite_path)
@@ -27,6 +33,13 @@ def rebind_catalog(
     target["predecessor_catalog_sha256"] = _hash(catalog_path)
     target["site_map_sha256"] = _hash(site_map_path)
     target["portable_suite_sha256"] = _hash(suite_path)
+    if source_site_map_path is not None:
+        if _hash(source_site_map_path) != source["site_map_sha256"]:
+            raise ValueError("source site map differs from the predecessor catalog")
+        target["source_site_urls"] = {
+            site.value: url for site, url in load_remote_sites(source_site_map_path).items()
+        }
+    source_sites = _source_sites(target)
     target["rows"] = []
     revised = set(revised_task_ids or ())
     if revised and target["site_map_sha256"] != source["site_map_sha256"]:
@@ -40,7 +53,7 @@ def rebind_catalog(
             else row["source_actions"]
         )
         row["bound_calls_sha256"] = _json_sha256(
-            rebind_remote_calls(actions, sites, set(TRUSTED_RECORDED_HOSTS))
+            rebind_remote_calls(actions, sites, set(TRUSTED_RECORDED_HOSTS), source_sites)
         )
         if task_id in revised:
             if row["mode"] != "portable" or row["bound_calls_sha256"] == original["bound_calls_sha256"]:
@@ -64,6 +77,7 @@ def main() -> None:
     parser.add_argument("--catalog", type=Path, required=True)
     parser.add_argument("--portable-suite", type=Path, required=True)
     parser.add_argument("--site-map", type=Path, required=True)
+    parser.add_argument("--source-site-map", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--revised-task-id", type=int, action="append", default=[])
     args = parser.parse_args()
@@ -74,6 +88,7 @@ def main() -> None:
         args.portable_suite,
         args.site_map,
         revised_task_ids=set(args.revised_task_id),
+        source_site_map_path=args.source_site_map,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

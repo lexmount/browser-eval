@@ -14,6 +14,8 @@ import traceback
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from webarena_verified.types.task import WebArenaSite
+
 from harness.trajectory_replay.public_webarena.suite import load_suite
 from harness.trajectory_replay.remote_execution import _browser_command, _run_task, _wait_cdp
 from harness.trajectory_replay.remote_runtime import (
@@ -73,6 +75,15 @@ def _task_ids(task_from: int, task_to: int) -> list[int]:
     return list(range(task_from, task_to + 1))
 
 
+def _source_sites(catalog: dict) -> dict[WebArenaSite, str]:
+    raw = catalog.get("source_site_urls") or {}
+    if not isinstance(raw, dict) or not set(raw) <= {site.value for site in WebArenaSite}:
+        raise ValueError("catalog source site URLs are invalid")
+    if any(not isinstance(value, str) or not urlsplit(value).netloc for value in raw.values()):
+        raise ValueError("catalog source site URLs are invalid")
+    return {WebArenaSite(key): value for key, value in raw.items()}
+
+
 def _load_inputs(catalog_path: Path, suite_path: Path, site_map_path: Path):
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     sites = load_remote_sites(site_map_path)
@@ -91,6 +102,7 @@ def _load_inputs(catalog_path: Path, suite_path: Path, site_map_path: Path):
     portable_ids = {row["task_id"] for row in rows if row.get("mode") == "portable"}
     if portable_ids != set(tasks):
         raise ValueError("portable suite differs from the catalog")
+    source_sites = _source_sites(catalog)
     for row in rows:
         task_id = row["task_id"]
         mode = row.get("mode")
@@ -105,7 +117,9 @@ def _load_inputs(catalog_path: Path, suite_path: Path, site_map_path: Path):
                 validate_contract(contract, source_actions)
         else:
             raise ValueError(f"task {task_id}: unknown catalog mode")
-        actions = rebind_remote_calls(source_actions, sites, set(TRUSTED_RECORDED_HOSTS))
+        actions = rebind_remote_calls(
+            source_actions, sites, set(TRUSTED_RECORDED_HOSTS), source_sites
+        )
         if _json_sha256(actions) != row.get("bound_calls_sha256"):
             raise ValueError(f"task {task_id}: bound actions changed")
         if "recorded_response" in row:
@@ -133,6 +147,7 @@ def main() -> None:
     catalog, sites, portable_tasks = _load_inputs(
         args.catalog, args.portable_suite, args.site_map
     )
+    source_sites = _source_sites(catalog)
     benchmark = remote_benchmark(sites)
     origins = {f"{urlsplit(url).scheme}://{urlsplit(url).netloc}" for url in sites.values()}
     ids = _task_ids(args.task_from, args.task_to)
@@ -193,7 +208,7 @@ def main() -> None:
                 row = {
                     **frozen,
                     "actions": rebind_remote_calls(
-                        source_actions, sites, set(TRUSTED_RECORDED_HOSTS)
+                        source_actions, sites, set(TRUSTED_RECORDED_HOSTS), source_sites
                     ),
                     "readiness": list(frozen.get("readiness") or []),
                 }

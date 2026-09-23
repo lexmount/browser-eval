@@ -203,6 +203,56 @@ def test_evaluate_runs_declared_page_script_and_captures_json():
     assert page.calls == [("evaluate", "() => ({ok: true, count: 2})", None)]
 
 
+def test_form_submission_evaluate_continues_only_after_expected_navigation():
+    class FormPage(FakePage):
+        def evaluate(self, script, argument=None):
+            self.calls.append(("evaluate", script, argument))
+            raise RuntimeError("Execution context was destroyed, most likely because of a navigation")
+
+        def wait_for_url(self, url, **kwargs):
+            self.calls.append(("wait_for_url", url.pattern, kwargs))
+            self.url = "http://gitlab.example/byteblaze/new_project"
+
+    page = FormPage()
+    trace = []
+    outputs = execute_steps(
+        page,
+        [
+            {
+                "action": "evaluate",
+                "script": "() => document.querySelector('form').submit()",
+                "accept_navigation_url_regex": r"/byteblaze/new_project$",
+                "save_as": "submitted",
+            },
+            {"action": "get_text", "selector": "body", "save_as": "landed"},
+        ],
+        trace=trace,
+    )
+
+    assert outputs["submitted"].endswith("/byteblaze/new_project")
+    assert outputs["landed"] == "Example Domain"
+    assert trace[0]["accepted_navigation"]["expected_url_regex"] == r"/byteblaze/new_project$"
+
+
+def test_form_submission_evaluate_rejects_wrong_navigation():
+    class WrongPage(FakePage):
+        def evaluate(self, script, argument=None):
+            raise RuntimeError("Execution context was destroyed, most likely because of a navigation")
+
+        def wait_for_url(self, url, **kwargs):
+            self.url = "http://gitlab.example/byteblaze/another_project"
+
+    with pytest.raises(ValueError, match="wrong URL"):
+        execute_steps(
+            WrongPage(),
+            [{
+                "action": "evaluate",
+                "script": "() => document.querySelector('form').submit()",
+                "accept_navigation_url_regex": r"/byteblaze/new_project$",
+            }],
+        )
+
+
 def test_action_can_wait_for_loading_mask_to_disappear_before_clicking():
     page = FakePage()
     execute_steps(

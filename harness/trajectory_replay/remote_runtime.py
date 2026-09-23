@@ -104,6 +104,7 @@ def rebind_remote_calls(
     calls: list[dict[str, Any]],
     sites: dict[WebArenaSite, str],
     trusted_source_hosts: set[str],
+    source_sites: dict[WebArenaSite, str] | None = None,
 ) -> list[dict[str, Any]]:
     """Bind frozen WebArena URLs while tolerating HTTP-to-HTTPS proxy upgrades.
 
@@ -113,12 +114,17 @@ def rebind_remote_calls(
     """
     by_port = {port: site for site, ports in SITE_PORTS.items() for port in ports}
     by_port.update(READ_ONLY_PORTS)
+    by_source_origin = {
+        urlsplit(url).netloc: site for site, url in (source_sites or {}).items()
+    }
 
     def rebind_url(value: str) -> str:
         parsed = urlsplit(value)
-        if parsed.scheme not in {"http", "https"} or parsed.hostname not in trusted_source_hosts:
+        if parsed.scheme not in {"http", "https"}:
             return value
-        site = by_port.get(parsed.port)
+        site = by_source_origin.get(parsed.netloc)
+        if site is None and parsed.hostname in trusted_source_hosts:
+            site = by_port.get(parsed.port)
         if site is None:
             return value
         target = urlsplit(sites[site])

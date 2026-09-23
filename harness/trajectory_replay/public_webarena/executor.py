@@ -342,12 +342,33 @@ def execute_steps(
                 script = call.get("script")
                 if not isinstance(script, str) or not script.strip():
                     raise ValueError("evaluate requires a non-empty script")
-                value = action_page.evaluate(script)
-                observation = (
-                    value
-                    if isinstance(value, str)
-                    else json.dumps(value, ensure_ascii=False)
-                )
+                try:
+                    value = action_page.evaluate(script)
+                except Exception as exc:
+                    pattern = call.get("accept_navigation_url_regex")
+                    if not (
+                        isinstance(pattern, str)
+                        and pattern
+                        and "Execution context was destroyed" in str(exc)
+                    ):
+                        raise
+                    action_page.wait_for_url(
+                        re.compile(pattern), wait_until="domcontentloaded", timeout=timeout
+                    )
+                    if not re.search(pattern, str(action_page.url)):
+                        raise ValueError("evaluate navigation ended at the wrong URL") from exc
+                    record["accepted_navigation"] = {
+                        "url": str(action_page.url),
+                        "expected_url_regex": pattern,
+                        "error": f"{type(exc).__name__}: {exc}",
+                    }
+                    observation = f"Navigated to: {action_page.url}"
+                else:
+                    observation = (
+                        value
+                        if isinstance(value, str)
+                        else json.dumps(value, ensure_ascii=False)
+                    )
                 observation = observation[: int(call.get("max_chars", 40_000))]
             elif action == "wait_for_url":
                 action_page.wait_for_url(

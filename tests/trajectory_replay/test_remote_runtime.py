@@ -181,6 +181,22 @@ def test_rebind_remote_calls_preserves_path_query_and_non_site_urls(tmp_path):
     assert calls[0]["url"].startswith("http://host.docker.internal")
 
 
+def test_rebinds_absolute_urls_from_a_previous_deployment(tmp_path):
+    sites = load_remote_sites(_site_map(tmp_path))
+    previous = {
+        WebArenaSite.SHOPPING_ADMIN: "http://old-slice.example/admin",
+    }
+    calls = [
+        {"action": "navigate", "url": "http://old-slice.example/admin/catalog/product/edit/id/110/"},
+        {"action": "navigate", "url": "http://unrelated.example/admin/catalog/product/edit/id/110/"},
+    ]
+
+    rebound = rebind_remote_calls(calls, sites, set(), previous)
+
+    assert rebound[0]["url"] == "http://admin.example/admin/catalog/product/edit/id/110/"
+    assert rebound[1] == calls[1]
+
+
 def test_rebind_url_form_input_without_rewriting_prose_or_external_links(tmp_path):
     calls = [
         {"action": "fill", "text": "http://192.168.5.2:9999/submission_images/a.jpg?x=1#image"},
