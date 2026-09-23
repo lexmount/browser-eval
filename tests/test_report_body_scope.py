@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from harness.web_fetch.report import (
     TRACKS, attempt_row, case_rate, generate, overview_card, ranking, reason, stable_anchor_evidence,
-    stable_failure_summary, write_support,
+    stable_answer_panel, stable_checks, stable_failure_summary, write_support,
 )
 from harness.web_fetch.report_components import (
     task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status, task_instruction,
@@ -49,6 +49,21 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_long_stable_text_and_record_lists_scroll_only_after_five_items(self):
+        anchors=[{'id':f'a-{index}','alternatives':[f'Stable text {index}']} for index in range(6)]
+        contract={'minimum_records':6,'maximum_records':6,'stable_text_anchors':anchors}
+        answer=stable_answer_panel(contract)
+        self.assertIn('<div class="answer-list" data-scroll-after="5">',answer)
+        metrics={'stable_anchor_results':[
+            {'id':item['id'],'alternatives':item['alternatives'],'matched':item['alternatives'],'pass':True}
+            for item in anchors],
+            'stable_records':[{'fields':{'title':f'Item {index}'},'valid':True,'errors':[]} for index in range(6)],
+            'stable_page_pattern_results':[],'stable_task_errors':[]}
+        evidence=stable_anchor_evidence(metrics,'\n'.join(item['alternatives'][0] for item in anchors))
+        self.assertIn('<div class="anchor-grid" data-scroll-after="5">',evidence)
+        self.assertIn('<div class="record-scroll" data-scroll-after="5">',stable_checks(metrics))
+        self.assertNotIn('data-scroll-after="5"',stable_answer_panel({**contract,'stable_text_anchors':anchors[:5]}))
+
     def test_request_failure_reason_precedes_derived_empty_body_metrics(self):
         c=case('document','body','document');r=record(c,passed=False,ok=False)
         r['metrics']['body_region_results']=[{'coverage':0,'target_pass':False}]
@@ -285,18 +300,25 @@ class ReportBodyScopeTests(unittest.TestCase):
             out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
             artifact.write_text('alpha beta gamma delta')
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
-                generate(out,{'cases':[c]},[r],[])
+                generate(out,{'cases':[c]},[r],[],include_english=True)
             detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
             self.assertLess(detail.index('标准答案与实际返回'),detail.index('为什么这样判'))
             self.assertIn('alpha beta gamma delta',detail)
-            for phrase in ['评分使用上方完整标准答案和完整实际返回', '连续六字符片段',
-                           '12 ÷ 12 = 100.0%', '定位样例（仅供人工查看）',
+            for phrase in ['正文判定：', '每段至少达到 60.0%',
+                           '本段覆盖率为 100.0%', '完整实际返回中的对应文字',
+                           '查看各段完整标准正文和实际对应文字',
                            '查看判定使用的标准答案', '查看本次完整实际返回']:
                 self.assertIn(phrase,detail)
-            self.assertNotIn('实际返回中的对应原文',detail)
+            self.assertNotIn('定位样例（仅供人工查看）',detail)
+            self.assertNotIn('这项分数怎样计算',detail)
+            self.assertEqual(detail.count('data-kind="region-output"'),1)
             self.assertIn('方法直接取得原始文档 → pypdf → 可读正文',detail)
             self.assertIn('标准答案位置',detail)
             self.assertNotIn('第 1/1 段',detail)
+            english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
+            for phrase in ['Body-text rule:', 'Every region must reach at least 60.0%',
+                           'Corresponding text in the complete actual output']:
+                self.assertIn(phrase,english)
             dataset=(out/'datasets/article.html').read_text()
             self.assertIn('同一份标准答案',dataset)
             self.assertNotIn('字符六元组数',dataset)
@@ -315,16 +337,17 @@ class ReportBodyScopeTests(unittest.TestCase):
                 generate(out,{'cases':[c]},[r],[],include_english=True)
             detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
             english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
-            for phrase in ['data-call-log-open="call-log-dialog"','<dialog class="call-log-dialog"',
-                           '最后输出','最后报错','Cloudflare returned no extractable markdown',
-                           '这次历史运行没有保存统一事件日志','请求路线','browser_rendering_markdown',
+            for phrase in ['href="#run-log"','id="run-log"','查看运行日志与证据',
+                           '最后报错','Cloudflare returned no extractable markdown',
+                           '这次历史调用没有保存逐行 debug 日志','请求路线','browser_rendering_markdown',
                            '原始供应商响应信封仅在内部证据中保留']:
                 self.assertIn(phrase,detail)
+            self.assertNotIn('data-call-log-open="call-log-dialog"',detail)
+            self.assertNotIn('<dialog class="call-log-dialog" id="call-log-dialog"',detail)
             self.assertNotIn('private_artifacts/secret.bin',detail)
             self.assertNotIn('<pre data-kind="output"></pre>',detail)
-            for phrase in ['Open complete call record','Final output','Final error',
-                           'This historical run did not retain a unified event log',
-                           'Close call record']:
+            for phrase in ['View run logs and evidence','Run logs and evidence','Final error',
+                           'This historical call did not retain a line-by-line debug log']:
                 self.assertIn(phrase,english)
 
     def test_attempt_call_record_uses_hash_bound_native_log_when_available(self):
@@ -339,9 +362,30 @@ class ReportBodyScopeTests(unittest.TestCase):
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[r],[])
             detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
-            self.assertIn('1 个物理调用日志已保存并通过 SHA-256 校验',detail)
-            self.assertIn('<pre data-kind="call-log">event=request.start',detail)
+            self.assertIn('1 份真实日志文件已保存并通过 SHA-256 校验',detail)
+            self.assertIn('<pre data-kind="call-log">     1  event=request.start',detail)
+            self.assertIn('查看错误与关键日志',detail)
+            self.assertIn('查看并下载完整 stdout / stderr / debug 证据',detail)
             self.assertIn(r['call_log_sha256'],detail)
+
+    def test_attempt_log_drilldown_accepts_hash_bound_public_debug_stderr(self):
+        c=case('debugged','body','web');r=record(c,passed=False,ok=False)
+        debug=b'INFO request started\nERROR challenge page returned\nINFO request ended\n'
+        debug_path='logs/fixture/debugged/run-001.stderr.log'
+        r['error_type']='challenge';r['error_message']='challenge page returned'
+        r['provider_metadata']={'public_stderr_path':debug_path,
+                                'public_stderr_sha256':hashlib.sha256(debug).hexdigest()}
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
+            artifact.write_text('output')
+            log=out/debug_path;log.parent.mkdir(parents=True);log.write_bytes(debug)
+            with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
+                generate(out,{'cases':[c]},[r],[])
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            self.assertIn('stderr / debug 日志',detail)
+            self.assertIn('ERROR challenge page returned',detail)
+            self.assertIn('../'+debug_path,detail)
+            self.assertIn(hashlib.sha256(debug).hexdigest(),detail)
 
     def test_minimal_document_scope_is_explicit_and_does_not_claim_long_document_coverage(self):
         c=case('minimal','body','document')

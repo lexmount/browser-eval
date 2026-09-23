@@ -561,8 +561,8 @@ def empty_output_reason(record,case,output):
   return '最终输出确实为空。上游请求有响应，但适配器没有得到可提取的正文。'
  return '最终输出确实为空；本次历史记录没有保存更具体的原因，不能据此推断是服务端、网络还是适配器问题。'
 
-def call_log_dialog(out,record,case,output):
- """Render one honest drill-down view from a native log or legacy result fields."""
+def run_log_section(out,record,output):
+ """Render one in-page, progressively disclosed view of retained run evidence."""
  metadata=record.get('provider_metadata') or {}
  public_metadata=public_provider_metadata(metadata)
  logs=[]
@@ -576,53 +576,72 @@ def call_log_dialog(out,record,case,output):
   try:payload=json.loads(log_bytes)
   except (UnicodeDecodeError,json.JSONDecodeError):payload={}
   logs.append({'label':label,'path':binding['path'],'text':text,'sha256':observed,
-               'bound':bool(binding.get('sha256')),'payload':payload})
+               'bytes':len(log_bytes),'bound':bool(binding.get('sha256')),'payload':payload})
+ legacy_path=metadata.get('public_stderr_path')
+ if str(legacy_path).startswith('private_artifacts/'):legacy_path=None
+ if legacy_path and not any(item['path']==legacy_path for item in logs):
+  path=contained_path(out,legacy_path)
+  if path.is_file():
+   log_bytes=path.read_bytes();observed=hashlib.sha256(log_bytes).hexdigest()
+   declared=metadata.get('public_stderr_sha256')
+   if declared and declared!=observed:raise ValueError(f'Public stderr hash mismatch: {record["attempt_id"]}')
+   logs.append({'label':'stderr / debug 日志','path':legacy_path,
+                'text':readable_output(log_bytes.decode('utf-8',errors='replace')),
+                'sha256':observed,'bytes':len(log_bytes),'bound':bool(declared),'payload':{}})
+ declared_logs=bool(call_log_bindings(record) or legacy_path)
  if logs:
-  native=(f'{len(logs)} 个物理调用日志已保存并通过 SHA-256 校验。' if all(item['bound'] for item in logs) else
-          '事件日志文件可以读取，但至少一条记录未声明其 SHA-256；页面会展示内容，但不能证明全部日志均与运行记录绑定。')
- elif call_log_bindings(record):
-  native='记录声明了事件日志，但公开证据中没有可读取文件；下面仅展示可核验的结果字段。'
+  availability=(f'{len(logs)} 份真实日志文件已保存并通过 SHA-256 校验。' if all(item['bound'] for item in logs) else
+                f'{len(logs)} 份真实日志文件可以读取；其中至少一份没有在运行记录中声明 SHA-256。')
+ elif declared_logs:
+  availability='运行记录声明了日志文件，但公开证据中没有可读取文件；日志证据不完整。'
  else:
-  native='这次历史运行没有保存统一事件日志。下面由最终输出、结果字段和公开适配器元数据合成，不能还原未记录的逐行过程。'
+  availability='这次历史调用没有保存逐行 debug 日志；不会补造不存在的日志。'
  final_log=logs[-1]['payload'] if logs else {}
  log_error=final_log.get('error') if isinstance(final_log.get('error'),dict) else {}
  log_process=final_log.get('process') if isinstance(final_log.get('process'),dict) else {}
  error_type=record.get('error_type') or log_error.get('type') or '—（未记录）'
  error_message=(record.get('error_message') or log_error.get('message') or log_process.get('stderr') or
                 ('无报错；请求记录为成功。' if record.get('ok') else '请求失败，但历史记录未保存错误文字。'))
- error_class=' call-log-error' if record.get('error_type') or record.get('error_message') or not record.get('ok') else ''
- if output:
-  output_html=f'<pre data-kind="call-output">{esc(readable_output(output))}</pre>'
- else:
-  output_html=f'<div class="call-log-empty">{esc(empty_output_reason(record,case,output))}</div>'
  log_request=final_log.get('request') if isinstance(final_log.get('request'),dict) else {}
  route=(log_request.get('route') or metadata.get('route') or metadata.get('extractor') or
         metadata.get('output_contract') or '—（未记录）')
  status=('成功' if record.get('ok') else '失败')+' · HTTP '+(str(record.get('status_code')) if record.get('status_code') is not None else '未提供')
  retry=metadata.get('retry')
- retry_count=(len(retry.get('attempts',[])) if isinstance(retry,dict) else
-              record.get('physical_attempt_count') or 1)
- log_section=('' if not logs else '<div class="call-log-section"><h3>原生事件日志</h3>'+''.join(
-              f'<details open><summary>{esc(item["label"])}</summary><p class="source-note">SHA-256：<code class="break">{esc(item["sha256"])}</code></p><pre data-kind="call-log">{esc(item["text"])}</pre></details>'
-              for item in logs)+'</div>')
- retry_section=('<p>本次没有登记重试；只保留一个物理调用。</p>' if not retry else
-                f'<pre data-kind="call-retry">{esc(json.dumps(public_provider_metadata(retry),ensure_ascii=False,indent=2))}</pre>')
- private_note=('原始供应商响应信封仅在内部证据中保留，不进入公开弹窗或发布包。'
-               if metadata.get('raw_response_path') or metadata.get('private_artifacts') else
-               '没有登记仅限内部保存的原始响应信封。')
+ retry_count=(len(retry.get('attempts',[])) if isinstance(retry,dict) else record.get('physical_attempt_count') or 1)
+ artifact=contained_path(out,record['artifact_path'])
+ output_bytes=artifact.stat().st_size if artifact.is_file() else len(output.encode('utf-8'))
+ output_sha=hashlib.sha256(artifact.read_bytes()).hexdigest() if artifact.is_file() else hashlib.sha256(output.encode('utf-8')).hexdigest()
  facts=[('请求路线',route),('请求状态',status),('总耗时',ms(record.get('elapsed_ms'))),
         ('开始时间',record.get('started_at') or '—（未记录）'),('完成时间',record.get('completed_at') or '—（未记录）'),
-        ('物理调用',str(retry_count))]
- fact_html=''.join(f'<div class="call-log-fact"><b>{esc(label)}</b><span>{esc(value)}</span></div>' for label,value in facts)
- return (f'<dialog class="call-log-dialog" id="call-log-dialog" aria-labelledby="call-log-title"><div class="call-log-shell">'
-         f'<header class="call-log-head"><div><h2 id="call-log-title">调用记录</h2><p><code>{esc(record.get("run_id") or execution_id(record))}</code></p></div><button type="button" class="call-log-close" data-call-log-close data-i18n-attrs aria-label="关闭调用记录">关闭</button></header>'
-         f'<div class="call-log-body"><p class="callout call-log-availability"><b>日志可用性：</b>{esc(native)}</p>'
-         f'<div class="call-log-priority"><article class="call-log-card"><h3>最后输出</h3>{output_html}</article>'
-         f'<article class="call-log-card{error_class}"><h3>最后报错</h3><p><b>{esc(error_type)}</b></p><p>{esc(error_message)}</p></article></div>'
-         f'<div class="call-log-facts">{fact_html}</div>{log_section}'
-         f'<div class="call-log-section"><h3>重试与物理调用</h3>{retry_section}</div>'
-         f'<div class="call-log-section"><details><summary>查看公开适配器字段</summary><pre data-kind="call-metadata">{esc(json.dumps(public_metadata,ensure_ascii=False,indent=2))}</pre></details><p class="call-log-private">{esc(private_note)}</p></div>'
-         '</div></div></dialog>')
+        ('物理调用',str(retry_count)),('最终输出',f'{output_bytes:,} 字节'),('运行日志',f'{sum(item["bytes"] for item in logs):,} 字节')]
+ fact_html=''.join(f'<dt>{esc(label)}</dt><dd>{esc(value)}</dd>' for label,value in facts)
+ log_html=''.join(
+  f'<article><h3>{esc(item["label"])}</h3><p class="source-note">{item["bytes"]:,} 字节 · SHA-256：<code class="break">{esc(item["sha256"])}</code></p>'
+  f'<pre data-kind="call-log">{esc(_diagnostic_log_excerpt(item["text"]))}</pre>'
+  f'<p><a class="log-download" href="../{esc(item["path"])}" download>下载完整真实日志</a></p></article>'
+  for item in logs)
+ if not log_html:log_html='<p class="source-note">没有可展示的逐行日志。</p>'
+ download_html=''.join(
+  f'<p><a class="log-download" href="../{esc(item["path"])}" download>下载{esc(item["label"])}完整文件</a> · '
+  f'{item["bytes"]:,} 字节 · SHA-256：<code class="break">{esc(item["sha256"])}</code></p>'
+  for item in logs)
+ if not download_html:download_html='<p class="source-note">没有可下载的逐行日志文件。</p>'
+ retry_html=('<p>本次没有登记重试；只保留一个物理调用。</p>' if not retry else
+             f'<pre data-kind="call-retry">{esc(json.dumps(public_provider_metadata(retry),ensure_ascii=False,indent=2))}</pre>')
+ output_link=(f'<a href="../{esc(record["artifact_path"])}" download>下载完整实际输出</a> · '
+              f'{output_bytes:,} 字节 · SHA-256：<code class="break">{esc(output_sha)}</code>')
+ private_note=('原始供应商响应信封仅在内部证据中保留，不进入公开报告或发布包。'
+               if metadata.get('raw_response_path') or metadata.get('private_artifacts') else
+               '没有登记仅限内部保存的原始响应信封。')
+ return (f'<section class="section" id="run-log"><div class="wrap"><h2>运行日志与证据</h2>'
+         f'<p class="callout call-log-availability"><b>日志可用性：</b>{esc(availability)}</p>'
+         f'<dl class="diagnostic-fields">{fact_html}</dl>'
+         f'<p class="log-summary"><b>最后报错：</b>{esc(error_type)} · {esc(error_message)}</p>'
+         f'<details class="diagnostic-log"><summary>查看错误与关键日志</summary><div class="diagnostic-log-body">{log_html}</div></details>'
+         f'<details class="diagnostic-log"><summary>查看并下载完整 stdout / stderr / debug 证据</summary><div class="diagnostic-log-body"><p>{output_link}</p>{download_html}</div></details>'
+         f'<details class="diagnostic-log"><summary>查看重试与物理调用</summary><div class="diagnostic-log-body">{retry_html}</div></details>'
+         f'<details class="diagnostic-log"><summary>查看公开适配器字段与证据边界</summary><div class="diagnostic-log-body"><pre data-kind="call-metadata">{esc(json.dumps(public_metadata,ensure_ascii=False,indent=2))}</pre><p class="source-note">{esc(private_note)}</p></div></details>'
+         '</div></section>')
 def pct(n):return '—' if n is None else f'{n*100:.1f}%'
 def ms(n):return '—' if n is None else f'{n:,.0f} ms'
 def link(url,label):return f'<a href="{esc(safe_href(url))}">{esc(label)}</a>'
@@ -636,6 +655,20 @@ def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header='�
  sort_attrs=(f' data-col="{default_sort[0]}" data-dir="{default_sort[1]}"' if default_sort else '')
  return metric_legend(headers if metrics is None else metrics)+f'<div class="table-wrap"><table class="{cls}"'+(f' id="{id}"' if id else '')+sort_attrs+f'><thead><tr>{head}</tr></thead><tbody'+(' id="rows"' if id=='filtered-table' else '')+f'>{body}</tbody></table></div>'
 EXTRA+='\n.change-log section{padding:24px 0}.change-log h2{font-size:24px}.change-log p{margin:10px 0;line-height:1.75}.change-log summary{font-weight:650;color:var(--accent)}.change-log .table-wrap{overflow-x:auto}\n'
+EXTRA+='''
+.anchor-grid[data-scroll-after="5"],.answer-list[data-scroll-after="5"],.record-scroll{max-height:620px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:6px}
+.region-pair pre{max-height:360px;overflow:auto;scrollbar-gutter:stable}
+.diagnostic-log{margin-top:18px;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.diagnostic-log>summary{cursor:pointer;padding:14px 16px;font-weight:800;color:var(--accent)}
+.diagnostic-log-body{padding:0 16px 16px}.diagnostic-log article{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.diagnostic-log h3{margin:0 0 10px}.diagnostic-log pre,.log-lines{max-height:360px;overflow:auto;border:1px solid #263746;border-radius:10px;background:#071722;color:#e6edf3;font:12px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.diagnostic-log pre{padding:15px}.log-lines{margin:12px 0 14px;padding:15px 16px 15px 52px;white-space:pre-wrap;overflow-wrap:anywhere}.log-lines li::marker{color:#8292a2}.log-lines code{color:inherit;background:transparent}
+.log-download{display:inline-block;padding:8px 12px;border-radius:8px;background:var(--accent);color:#fff!important;font-weight:850;text-decoration:none}.log-download:hover{text-decoration:underline}.log-download:focus-visible{outline:3px solid #428bff;outline-offset:3px}
+.diagnostic-fields{display:grid;grid-template-columns:minmax(150px,.45fr) 1fr;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}.diagnostic-fields dt,.diagnostic-fields dd{margin:0;padding:10px 12px;border-bottom:1px solid var(--line)}.diagnostic-fields dt{font-weight:750;background:var(--panel2)}.diagnostic-fields dd{overflow-wrap:anywhere}.diagnostic-fields dt:last-of-type,.diagnostic-fields dd:last-of-type{border-bottom:0}
+.log-summary{padding:13px 15px;border-radius:10px;background:var(--accent-soft);line-height:1.65}
+@media(max-width:700px){.anchor-grid[data-scroll-after="5"],.answer-list[data-scroll-after="5"],.record-scroll{max-height:480px}.region-pair pre{max-height:320px}}
+@media(max-width:640px){.diagnostic-fields{grid-template-columns:1fr}.diagnostic-fields dt{border-bottom:0}.log-lines{padding-left:44px}}
+'''
 
 _RELIABILITY_BANNER=''
 
@@ -873,6 +906,36 @@ def _best_evidence_excerpt(expected, output):
   if score>best_score:best,best_score=chunk,score
  return best if best_score>=min(.25,3/max(1,sum(wanted.values()))) else ''
 
+def _complete_evidence_lines(expected, output):
+ """Return complete readable output lines that materially match one rule region."""
+ from .body_coverage import tokens
+ from .metrics import normalize_for_match
+ wanted=Counter(tokens(expected))
+ normalized_expected=normalize_for_match(expected)
+ selected=[]
+ for raw in output.splitlines():
+  line=raw.strip()
+  if not line:continue
+  normalized_line=normalize_for_match(line)
+  if normalized_expected and normalized_expected in normalized_line:
+   if line not in selected:selected.append(line)
+   continue
+  found=Counter(tokens(line));denominator=sum(wanted.values())
+  overlap=sum((wanted & found).values())
+  if wanted and (overlap/max(1,denominator)>=.18 or overlap/max(1,sum(found.values()))>=.45):
+   if line not in selected:selected.append(line)
+ return '\n\n'.join(selected)
+
+def _diagnostic_log_excerpt(text):
+ """Keep exact retained log lines around reader-relevant diagnostics."""
+ pattern=re.compile(r'error|warn|fail|timeout|timed out|panic|denied|challenge',re.I)
+ lines=text.splitlines();selected=set()
+ for index,line in enumerate(lines):
+  if pattern.search(line):selected.update(range(max(0,index-1),min(len(lines),index+2)))
+  if len(selected)>=36:break
+ if not selected:selected.update(range(min(12,len(lines))))
+ return '\n'.join(f'{index+1:>6}  {lines[index]}' for index in sorted(selected))
+
 def _position_label(index,total):
  names=['开头','前部','中部','后部','结尾'] if total==5 else [f'位置 {i+1}' for i in range(total)]
  start=round(index*100/total);end=round((index+1)*100/total)
@@ -896,10 +959,10 @@ def body_region_rows(case, metrics, output):
   css='pass' if passed else 'fail'
   rows.append(('',cell(esc(label))+cell(f'{expected_count:,}')+cell(f'{matched:,}')+
                cell(pct(actual['coverage']))+cell(esc(judgement))))
-  excerpt=_best_evidence_excerpt(expected,output)
-  actual_html=(f'<pre data-kind="region-output">{esc(excerpt)}</pre>' if excerpt else
-               '<p class="empty">没有可供人工定位的连续文字样例；机器覆盖率仍按上方完整实际返回计算。</p>')
-  cards.append(f'<article class="region-card {css}" id="region-{index}"><div class="region-head"><div><h3>{index}. {esc(label)}</h3><p>这一段标准答案产生 {expected_count:,} 个连续六字符片段；在上方完整实际返回（{len(output):,} 字符）中命中 {matched:,} 个，所以覆盖率为 {matched:,} ÷ {expected_count:,} = {pct(actual["coverage"])}。目标 {pct(actual["minimum"])}，硬下限 {pct(actual.get("floor",actual["minimum"]))}。</p></div><span class="verdict-badge">{esc(judgement)}</span></div><div class="region-pair"><div><b>这一位置的完整标准正文</b><pre data-kind="reference">{esc(expected)}</pre></div><div><b>实际输出中的定位样例（仅供人工查看）</b><p class="source-note">这是从完整实际返回中选出的一小段，便于确认文字确实出现；它不是覆盖率计算所使用的全部实际输出。</p>{actual_html}</div></div></article>')
+  passage=_complete_evidence_lines(expected,output)
+  actual_html=(f'<pre data-kind="region-output">{esc(passage)}</pre>' if passage else
+               '<p class="empty">完整实际返回中没有找到属于这一段的可读对应文字。</p>')
+  cards.append(f'<article class="region-card {css}" id="region-{index}"><div class="region-head"><div><h3>{index}. {esc(label)}</h3><p>本段覆盖率为 {pct(actual["coverage"])}。每段至少达到 {pct(actual.get("floor",actual["minimum"]))}；达到 {pct(actual["minimum"])} 时算作主要完整段落。</p></div><span class="verdict-badge">{esc(judgement)}</span></div><div class="region-pair"><div><b>这一位置的完整标准正文</b><pre data-kind="reference">{esc(expected)}</pre></div><div><b>完整实际返回中的对应文字</b>{actual_html}</div></div></article>')
  return rows,cards
 
 def stable_answer_panel(contract):
@@ -913,7 +976,10 @@ def stable_answer_panel(contract):
  maximum=contract.get('maximum_records')
  count=(f'至少 {minimum} 条完整且不重复的记录' if maximum is None else
         f'{minimum}–{maximum} 条完整且不重复的记录')
- return f'<div class="answer-list"><div class="answer-item"><b>结构要求</b><blockquote>{esc(count)}</blockquote></div>{"".join(items)}</div>'
+ scroll=' data-scroll-after="5"' if len(anchors)>5 else ''
+ note=(f'<p class="source-note">共 {len(anchors)} 组稳定文字，全部属于标准答案；当前区域显示约 5 组高度，向下滚动查看全部。</p>'
+       if len(anchors)>5 else '')
+ return note+f'<div class="answer-list"{scroll}><div class="answer-item"><b>结构要求</b><blockquote>{esc(count)}</blockquote></div>{"".join(items)}</div>'
 
 def _stable_field_comparison(metrics,item):
  """Find the closest parsed record for a structured anchor, for display only."""
@@ -962,9 +1028,12 @@ def stable_anchor_evidence(metrics,output):
   alternatives=item.get('alternatives',[]);expected='\n或\n'.join(alternatives)
   excerpt=''
   for alternative in alternatives:
-   candidate=_best_evidence_excerpt(alternative,output)
+   candidate=_complete_evidence_lines(alternative,output)
    if candidate:excerpt=candidate;break
   passed=bool(item.get('pass'));css='pass' if passed else 'fail'
+  if passed and not excerpt:
+   matched=[value for value in item.get('matched',[]) if value]
+   excerpt='\n'.join(matched)
   comparison=_stable_field_comparison(metrics,item) if not passed else None
   field_detail='';badge='命中' if passed else '未命中'
   if comparison:
@@ -980,7 +1049,11 @@ def stable_anchor_evidence(metrics,output):
    badge='字段边界不合格'
   actual=(f'<p>{esc(excerpt)}</p>' if excerpt else '<p class="empty">实际返回中未找到可供定位的连续原文。</p>')
   cards.append(f'<article class="anchor-card {css}"><div class="anchor-head"><h3>稳定文字 {index}</h3><span class="verdict-badge">{badge}</span></div><div class="evidence-pair"><div class="evidence-sample"><b>标准答案</b><p>{esc(expected)}</p></div><div class="evidence-sample"><b>实际返回证据</b>{actual}</div></div>{field_detail}</article>')
- return '<div class="anchor-grid">'+''.join(cards)+'</div>' if cards else ''
+ if not cards:return ''
+ note=(f'<p class="source-note">共 {len(cards)} 项稳定文字判定，全部参与评分；当前区域显示约 5 项高度，向下滚动查看全部。</p>'
+       if len(cards)>5 else '')
+ scroll=' data-scroll-after="5"' if len(cards)>5 else ''
+ return note+f'<div class="anchor-grid"{scroll}>'+''.join(cards)+'</div>'
 
 def failure_category(r,c):
  if not measured(r,c):return '未测：缺少验收证据'
@@ -1071,7 +1144,9 @@ def stable_checks(m):
   checks.append(('',cell(f'页面模式 {i}')+cell(esc(x['pattern']))+cell('通过' if x['pass'] else '未通过')+cell('—')))
  content=table(['稳定内容核对点','目标','判定','实际命中'],checks) if checks else '<p>本例未设置稳定文字核对点，不作文字内容已核验的结论。</p>'
  records=[('',cell(esc(json.dumps(x.get('fields',{}),ensure_ascii=False)))+cell('通过' if x.get('valid') else '未通过')+cell(esc('；'.join(x.get('errors',[])) or '—'))) for x in m.get('stable_records',[])]
- return content+table(['条目字段','结构判定','原因'],records)+('<p>未通过原因：'+esc(stable_failure_summary(m))+'。</p>' if m.get('stable_task_errors') else '')
+ record_table=table(['条目字段','结构判定','原因'],records)
+ if len(records)>5:record_table=f'<div class="record-scroll" data-scroll-after="5">{record_table}</div>'
+ return content+record_table+('<p>未通过原因：'+esc(stable_failure_summary(m))+'。</p>' if m.get('stable_task_errors') else '')
 
 def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
  from .report_components import comparable_body_reference
@@ -1528,7 +1603,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   summary+=('<p class="actions"><a href="#evidence-reference">查看判定使用的标准答案</a>'
             '<a href="#evidence-output">查看本次完整实际返回</a>'
             '<a href="#decision">查看逐项判定</a>'
-            '<button type="button" class="call-log-button" data-call-log-open="call-log-dialog" aria-haspopup="dialog">打开完整调用记录</button></p>')
+            '<a href="#run-log">查看运行日志与证据</a></p>')
   if r.get('diagnosis') and not passed:
    d=r['diagnosis'];s=d.get('independent_source_check') or {}
    quote_issue=_quote_field_issue(m)
@@ -1618,20 +1693,19 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    region_rows,region_cards=body_region_rows(c,m,output);rules=c.get('body_requirements',{})
    required=rules.get('minimum_region_passes',len(rules.get('regions',[])))
    region_count=len(rules.get('regions',[]))
-   region_intro=(f'<div class="decision-lead"><b>这项分数怎样计算：</b>评分使用上方完整标准答案和完整实际返回，不使用下面展示的短定位样例。'
-                 '两边先统一大小写和常见排版差异，去掉 Markdown 链接地址、空白及标点，再切成连续六字符片段。'
-                 f'标准答案按前后位置分成 {region_count} 份；每份覆盖率 = 在完整实际返回中找到的片段数 ÷ 该份标准片段总数。'
-                 f'本任务要求每个位置至少达到 {pct(rules.get("minimum_floor",rules.get("minimum_coverage")))}，且至少 {required}/{region_count} 个位置达到 {pct(rules.get("minimum_coverage"))}。'
-                 '所有位置同时做全局容量分配，且同一个实际片段实例只能计入一个位置；因此重复文字不会被多次借用，位置排列顺序也不会改变判定。全文完整度、纯净度和 F1 仍按完整文本另行计算。</div>')
+   region_intro=(f'<div class="decision-lead"><b>正文判定：</b>本例分为 {region_count} 段。'
+                 f'每段至少达到 {pct(rules.get("minimum_floor",rules.get("minimum_coverage")))}，'
+                 f'其中至少 {required} 段达到 {pct(rules.get("minimum_coverage"))}。'
+                 '先看下表；需要核对原文时，再展开下面的左右对照。</div>')
    body+=section('正文是否抓全',region_intro+table(['标准答案位置','标准片段数','命中片段数','覆盖率','判定'],region_rows,metrics=[])+
-                 '<details class="technical-details"><summary>查看各位置的完整标准正文和人工定位样例</summary>'+''.join(region_cards)+'</details>','body-coverage')
+                 '<details class="technical-details"><summary>查看各段完整标准正文和实际对应文字</summary>'+''.join(region_cards)+'</details>','body-coverage')
   if title_details:body+=section('标题文字质量',title_details)
   runtime=('<details class="technical-details"><summary>查看完整运行、哈希与评分字段</summary>'
            +metric_legend(detail_metrics)+table(['项目','值'],rows,metrics=[])+
            f'<details><summary>接口返回的公开附加字段</summary><pre data-kind="metadata">{esc(json.dumps(public_provider_metadata(r.get("provider_metadata",{})),ensure_ascii=False,indent=2))}</pre></details></details>'
            f'<p class="actions">{link(c["url"],"打开源页 ↗")}{link("../datasets/"+c["id"]+".html","查看该任务的全部方法")}</p>')
   body+=section('运行与评分信息',runtime,'run-info')
-  body+=call_log_dialog(out,r,c,output)
+  body+=run_log_section(out,r,output)
   if r.get('provider_metadata',{}).get('rendered_html_path'):
    body+=section('浏览器 HTML 证据','<p>'+link('../'+r['provider_metadata']['rendered_html_path'],'下载转换前的完整 DOM HTML')+'</p>')
   if r.get('provider_metadata',{}).get('raw_stdout_path'):
