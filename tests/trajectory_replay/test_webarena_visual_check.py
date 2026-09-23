@@ -38,6 +38,10 @@ def test_private_preview_fixture_denies_assets_without_version(tmp_path):
         assert server.preview_errors == [(404, "/api/preview/replay/assets/report.css")]
         with urllib.request.urlopen(root + "replay~fixture/assets/report.css") as response:
             assert response.status == 200
+        with pytest.raises(urllib.error.HTTPError) as missing:
+            urllib.request.urlopen(root + "replay~fixture/assets/missing.css")
+        assert missing.value.code == 404
+        assert server.preview_errors[-1] == (404, "/api/preview/replay~fixture/assets/missing.css")
     finally:
         server.shutdown()
         server.server_close()

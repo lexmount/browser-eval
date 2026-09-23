@@ -588,7 +588,7 @@ return {
         server.server_close()
         thread.join(timeout=5)
     if server.preview_errors:
-        raise ValueError(f"private preview requested missing resources: {server.preview_errors[:3]}")
+        raise ValueError(f"hosted preview returned HTTP errors: {server.preview_errors[:3]}")
     receipt.parent.mkdir(parents=True, exist_ok=True)
     receipt.write_text(
         json.dumps(
