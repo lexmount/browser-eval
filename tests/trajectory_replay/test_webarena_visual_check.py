@@ -1,5 +1,9 @@
 import importlib.util
+import http.server
 import json
+import threading
+import urllib.error
+import urllib.request
 import pytest
 from pathlib import Path
 
@@ -11,6 +15,33 @@ _SPEC.loader.exec_module(_MODULE)
 _routes = _MODULE._routes
 _first_failed_key = _MODULE._first_failed_key
 _first_fix_id = _MODULE._first_fix_id
+
+
+def test_private_preview_fixture_denies_assets_without_version(tmp_path):
+    (tmp_path / "index.html").write_text("<html><head></head><body>report</body></html>")
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets/report.css").write_text("body { color: black; }")
+    handler = lambda *args, **kwargs: _MODULE._QuietHandler(
+        *args, directory=str(tmp_path), **kwargs
+    )
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    server.preview_errors = []
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    root = f"http://127.0.0.1:{server.server_port}/api/preview/"
+    try:
+        with urllib.request.urlopen(root + "replay/index.html") as response:
+            assert b'<base href="/api/preview/replay~fixture/">' in response.read()
+        with pytest.raises(urllib.error.HTTPError) as denied:
+            urllib.request.urlopen(root + "replay/assets/report.css")
+        assert denied.value.code == 404
+        assert server.preview_errors == [(404, "/api/preview/replay/assets/report.css")]
+        with urllib.request.urlopen(root + "replay~fixture/assets/report.css") as response:
+            assert response.status == 200
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 @pytest.mark.parametrize(

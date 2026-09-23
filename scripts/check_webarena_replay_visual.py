@@ -56,7 +56,13 @@ class _QuietHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *_args: object) -> None:
         return
 
+    def send_error(self, code: int, *args: object, **kwargs: object) -> None:
+        if code >= 400 and self.path.startswith("/api/preview/"):
+            getattr(self.server, "preview_errors", []).append((code, self.path))
+        super().send_error(code, *args, **kwargs)
+
     def do_GET(self) -> None:
+        # Artifact Site serves private HTML at the plain route but denies its assets.
         for prefix in ("/api/preview/replay~fixture/", "/api/preview/replay/"):
             if not self.path.startswith(prefix):
                 continue
@@ -202,6 +208,7 @@ def check(report: Path, receipt: Path) -> None:
         *args, directory=str(report), **kwargs
     )
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    server.preview_errors = []
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     failures: list[dict[str, object]] = []
@@ -580,11 +587,13 @@ return {
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
+    if server.preview_errors:
+        raise ValueError(f"private preview requested missing resources: {server.preview_errors[:3]}")
     receipt.parent.mkdir(parents=True, exist_ok=True)
     receipt.write_text(
         json.dumps(
             {
-                "schema": "lex_webarena_replay_visual_qa/2",
+                "schema": "lex_webarena_replay_visual_qa/3",
                 "report_tree_sha256": _tree_sha256(report),
                 "browser_executable": executable,
                 "route_classes": len(_routes(report)),

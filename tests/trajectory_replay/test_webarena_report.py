@@ -603,14 +603,18 @@ def test_report_shell_preserves_private_preview_resource_base() -> None:
     ):
         rendered = _shell("zh", "results", "结果", "<p>证据</p>", depth=depth, current_route=route)
         page = BeautifulSoup(rendered, "html.parser")
-        assert page.select_one('link[rel="stylesheet"]')["href"] == css
-        assert page.select_one("script[src]")["src"] == app
+        assert page.select_one('link[rel="stylesheet"]')["data-src"] == css
+        assert page.select_one("script[data-report-app]")["data-src"] == app
+        assert page.select_one('link[rel="stylesheet"]').get("href") is None
+        assert page.select_one("script[data-report-app]").get("src") is None
         assert page.select_one("base") is None
         bootstraps = page.select("head script:not([src])")
         assert len(bootstraps) == 1
         bootstrap = bootstraps[0].get_text()
         assert "new URL(folders.join('/')+'/',base.href)" in bootstrap
+        assert "css.href=css.dataset.src" in bootstrap
         assert "location.origin+'/api/preview/'" not in bootstrap
+        assert "img.src=img.dataset.src" in page.select("body script")[-1].get_text()
 
 
 def test_mobile_header_keeps_language_and_theme_controls_visible(tmp_path: Path) -> None:

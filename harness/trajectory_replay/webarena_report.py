@@ -528,14 +528,19 @@ def _shell(lang: str, active: str, title: str, body: str, *, depth: int = 0, cur
     )
     preview_bootstrap = r'''<script>(function(){
 const base=document.querySelector('base[href]');
-if(!base)return;
-const parts=location.pathname.split('/');
-const at=parts.indexOf('preview');
-if(at<1||parts[at-1]!=='api')return;
-const folders=parts.slice(at+2,-1);
-if(folders.length)base.href=new URL(folders.join('/')+'/',base.href).href;
+if(base){
+  const parts=location.pathname.split('/');
+  const at=parts.indexOf('preview');
+  if(at>0&&parts[at-1]==='api'){
+    const folders=parts.slice(at+2,-1);
+    if(folders.length)base.href=new URL(folders.join('/')+'/',base.href).href;
+  }
+}
+const css=document.querySelector('link[data-report-css]');
+css.href=css.dataset.src;
 })();</script>'''
-    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)}</title>{preview_bootstrap}<link rel="stylesheet" href="{asset_prefix}assets/report.css"></head><body>{_nav(lang, active, depth=depth, current_route=current_route)}<main>{body}</main><footer>{footer}</footer><script src="{asset_prefix}assets/app.js"></script></body></html>'''
+    body = body.replace('<img src=', '<img data-src=')
+    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)}</title><link rel="stylesheet" data-report-css data-src="{asset_prefix}assets/report.css">{preview_bootstrap}</head><body>{_nav(lang, active, depth=depth, current_route=current_route)}<main>{body}</main><footer>{footer}</footer><script type="application/x-report-app" data-report-app data-src="{asset_prefix}assets/app.js"></script><script>(function(){{document.querySelectorAll('img[data-src]').forEach(img=>img.src=img.dataset.src);const app=document.querySelector('script[data-report-app]');const loader=document.createElement('script');loader.src=app.dataset.src;app.replaceWith(loader)}})();</script></body></html>'''
 
 
 def _winner(value: str, won: bool, *, lang: str) -> str:
