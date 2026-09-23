@@ -3,7 +3,7 @@ import argparse,json,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from harness.web_fetch.report_build import build_report, build_public_benchmark_research, build_wcxb_report
+from harness.web_fetch.report_build import build_report, build_public_benchmark_research, build_wcxb_report, build_webmainbench_full_report
 from harness.web_fetch.storage import (
     current_evidence_dir,
     require_canonical_inputs,
@@ -21,7 +21,13 @@ if __name__ == '__main__':
     parser.add_argument('--wcxb-source',type=Path)
     parser.add_argument('--wcxb-sample',type=Path)
     parser.add_argument('--wcxb',action='store_true',help='Build the independently bound WCXB report')
+    parser.add_argument('--webmainbench-full',action='store_true',help='Build the separately certified complete 545-case report')
     args=parser.parse_args()
+    if args.webmainbench_full:
+        if not args.evidence or args.include_english:
+            parser.error('--webmainbench-full requires --evidence and generates Chinese only')
+        print(build_webmainbench_full_report(args.evidence,args.output or ROOT/'reports/webmainbench-full'))
+        raise SystemExit(0)
     if args.public_benchmark_research:
         if args.evidence:
             parser.error('--evidence and --public-benchmark-research are mutually exclusive')
