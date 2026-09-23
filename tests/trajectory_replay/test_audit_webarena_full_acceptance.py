@@ -44,6 +44,7 @@ def test_acceptance_keeps_one_ordered_sweep_and_only_repairs_a_failure(tmp_path,
 
     assert ledger["counts"] == {
         "total": 812, "pass": 812, "unresolved": 0, "physical_attempts": 813,
+        "excluded_duplicate_attempts": 0,
     }
     assert [attempt["status"] for attempt in ledger["rows"][66]["attempts"]] == ["fail", "pass"]
     assert len(ledger["rows"][67]["attempts"]) == 1
@@ -81,6 +82,22 @@ def test_acceptance_rejects_rerunning_a_pass(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match="repair does not follow a failure"):
         acceptance.audit(scope, [sweep], [repeated])
+
+
+def test_acceptance_records_an_explicit_duplicate_without_replacing_first_pass(tmp_path, monkeypatch):
+    monkeypatch.setattr(acceptance, "_verified_attempt", lambda directory, row: row)
+    scope = _scope(tmp_path)
+    sweep = _run(tmp_path, "sweep", list(range(812)), {500: "fail"})
+    repair = _run(tmp_path, "repair", [499, 500], {})
+
+    ledger = acceptance.audit(
+        scope, [sweep], [repair], excluded_duplicate_repair_tasks={499}
+    )
+
+    assert len(ledger["rows"][499]["attempts"]) == 1
+    assert [row["status"] for row in ledger["rows"][500]["attempts"]] == ["fail", "pass"]
+    assert ledger["counts"]["physical_attempts"] == 814
+    assert ledger["excluded_attempts"][0]["task_id"] == 499
 
 
 def test_acceptance_rejects_an_order_gap(tmp_path, monkeypatch):

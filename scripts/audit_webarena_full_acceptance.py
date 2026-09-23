@@ -52,7 +52,13 @@ def _verified_attempt(directory: Path, row: dict) -> dict:
     }
 
 
-def audit(scope_path: Path, segment_dirs: list[Path], repair_dirs: list[Path]) -> dict:
+def audit(
+    scope_path: Path,
+    segment_dirs: list[Path],
+    repair_dirs: list[Path],
+    *,
+    excluded_duplicate_repair_tasks: set[int] | None = None,
+) -> dict:
     scope = json.loads(scope_path.read_text(encoding="utf-8"))
     ids = scope.get("task_ids")
     if scope.get("schema") != "lex_webarena_verified_full_scope/1" or ids != list(range(812)):
@@ -60,6 +66,9 @@ def audit(scope_path: Path, segment_dirs: list[Path], repair_dirs: list[Path]) -
     if not segment_dirs:
         raise ValueError("acceptance segments are required")
     states = {task_id: {"task_id": task_id, "attempts": []} for task_id in ids}
+    excluded_requested = set(excluded_duplicate_repair_tasks or ())
+    excluded_seen: set[int] = set()
+    excluded_attempts = []
     ordered_ids: list[int] = []
     bindings = []
     sweep_reset_sha256 = None
@@ -90,11 +99,26 @@ def audit(scope_path: Path, segment_dirs: list[Path], repair_dirs: list[Path]) -
                 task_id = row["task_id"]
                 if kind == "segment":
                     ordered_ids.append(task_id)
+                if kind == "repair" and task_id in excluded_requested:
+                    if not states[task_id]["attempts"] or states[task_id]["attempts"][-1]["status"] != "pass":
+                        raise ValueError(f"task {task_id} is not a duplicate pass")
+                    if task_id in excluded_seen:
+                        raise ValueError(f"task {task_id} was excluded more than once")
+                    excluded_seen.add(task_id)
+                    excluded_attempts.append({
+                        "reason": "duplicate_execution_after_prior_pass",
+                        "run_inputs_sha256": _sha256(directory / "inputs.json"),
+                        **_verified_attempt(directory, row),
+                    })
+                    continue
                 elif not states[task_id]["attempts"] or states[task_id]["attempts"][-1]["status"] == "pass":
-                    raise ValueError(f"task {task_id} repair does not follow a failure")
+                    if kind == "repair":
+                        raise ValueError(f"task {task_id} repair does not follow a failure")
                 if states[task_id]["attempts"] and states[task_id]["attempts"][-1]["status"] == "pass":
                     raise ValueError(f"task {task_id} repeated after passing")
                 states[task_id]["attempts"].append(_verified_attempt(directory, row))
+    if excluded_seen != excluded_requested:
+        raise ValueError("declared duplicate repair exclusions were not found")
     if ordered_ids != ids:
         raise ValueError("acceptance sweep is incomplete or changed official order")
     rows = []
@@ -112,11 +136,13 @@ def audit(scope_path: Path, segment_dirs: list[Path], repair_dirs: list[Path]) -
         "site_preparation_receipt_sha256s": sorted(preparation_sha256s),
         "binary_sha256": binary_sha256,
         "runs": bindings,
+        "excluded_attempts": excluded_attempts,
         "counts": {
             "total": len(ids),
             "pass": sum(row["status"] == "pass" for row in rows),
             "unresolved": sum(row["status"] != "pass" for row in rows),
-            "physical_attempts": sum(len(row["attempts"]) for row in rows),
+            "physical_attempts": sum(len(row["attempts"]) for row in rows) + len(excluded_attempts),
+            "excluded_duplicate_attempts": len(excluded_attempts),
         },
         "rows": rows,
     }
@@ -127,10 +153,16 @@ def main() -> None:
     parser.add_argument("--scope", type=Path, default=Path("evaluation/trajectory-replay/webarena-verified-full/scope.json"))
     parser.add_argument("--segment", type=Path, action="append", required=True)
     parser.add_argument("--repair", type=Path, action="append", default=[])
+    parser.add_argument("--exclude-duplicate-repair-task", type=int, action="append", default=[])
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--require-all-pass", action="store_true")
     args = parser.parse_args()
-    result = audit(args.scope, args.segment, args.repair)
+    result = audit(
+        args.scope,
+        args.segment,
+        args.repair,
+        excluded_duplicate_repair_tasks=set(args.exclude_duplicate_repair_task),
+    )
     if args.require_all_pass and result["counts"]["unresolved"]:
         raise ValueError("the Chromium acceptance sweep has unresolved cases")
     if args.output.exists():
