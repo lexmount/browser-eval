@@ -183,3 +183,42 @@ def test_ledger_accepts_bound_offline_rescore_without_new_physical_attempt(
         "physical_attempts": 1,
     }
     assert ledger["rows"][1]["pass_source"] == "offline_rescore"
+
+
+def test_ledger_accepts_runtime_corrected_offline_rescore(tmp_path: Path) -> None:
+    scope, queue, inherited, sweep = _fixture(tmp_path)
+    progress_path = sweep / "progress.jsonl"
+    rows = [json.loads(line) for line in progress_path.read_text().splitlines()]
+    rows[1]["status"] = "fail"
+    rows[1]["score"] = 0
+    progress_path.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
+    rescore = tmp_path / "runtime-rescore"
+    evaluation = _write(
+        rescore / "task-1" / "evaluation.json",
+        {
+            "score": 1,
+            "runtime_correction_id": "remote-same-host-transport-v1",
+            "corrected_runtime_sha256": "b" * 64,
+        },
+    )
+    _write(
+        rescore / "rescoring.json",
+        {
+            "schema": "lex_webarena_verified_offline_rescore/1",
+            "rows": [
+                {
+                    "task_id": 1,
+                    "source_evidence_sha256": rows[1]["evidence_sha256"],
+                    "evaluation_sha256": _hash(evaluation),
+                }
+            ],
+        },
+    )
+    ledger = build_ledger(scope, queue, inherited, [sweep], [rescore])
+    assert ledger["counts"]["pass"] == 2
+    assert ledger["rows"][1]["offline_rescore"] == {
+        "source_evidence_sha256": rows[1]["evidence_sha256"],
+        "evaluation_sha256": _hash(evaluation),
+        "runtime_correction_id": "remote-same-host-transport-v1",
+        "corrected_runtime_sha256": "b" * 64,
+    }

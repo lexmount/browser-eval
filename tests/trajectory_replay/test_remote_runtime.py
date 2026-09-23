@@ -58,6 +58,57 @@ def test_six_site_remote_map_accepts_read_only_sites_and_rebinds_them(tmp_path):
     ]
 
 
+def test_remote_benchmark_matches_same_host_network_event_after_transport_change(tmp_path):
+    site_map = _site_map(tmp_path)
+    payload = json.loads(site_map.read_text())
+    payload["sites"]["shopping_admin"] = "https://admin.example/admin"
+    site_map.write_text(json.dumps(payload))
+    benchmark = remote_benchmark(load_remote_sites(site_map))
+    trace = tmp_path / "shipment.har"
+    trace.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "entries": [
+                        {
+                            "request": {
+                                "method": "POST",
+                                "url": (
+                                    "http://admin.example/admin/admin/order_shipment/"
+                                    "save/order_id/299/"
+                                ),
+                                "headers": [],
+                                "postData": {
+                                    "mimeType": "application/x-www-form-urlencoded",
+                                    "text": urlencode(
+                                        {
+                                            "tracking[1][carrier_code]": "fedex",
+                                            "tracking[1][number]": "8974568499",
+                                        }
+                                    ),
+                                },
+                            },
+                            "response": {
+                                "status": 302,
+                                "redirectURL": "http://admin.example/admin/sales/order/",
+                                "headers": [],
+                                "content": {},
+                            },
+                        }
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = benchmark.evaluate_task(
+        task_id=496,
+        agent_response={"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None},
+        network_trace=trace,
+    )
+    assert float(result.score) == 1.0, result.model_dump_json(indent=2)
+
+
 def test_rebind_remote_calls_preserves_path_query_and_non_site_urls(tmp_path):
     sites = load_remote_sites(_site_map(tmp_path))
     calls = [

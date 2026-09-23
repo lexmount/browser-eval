@@ -153,20 +153,38 @@ def build_ledger(
             ):
                 raise ValueError(f"task {task_id} offline rescore evaluation changed")
             evaluation = json.loads(evaluation_path.read_text(encoding="utf-8"))
+            contract_correction_id = evaluation.get("contract_correction_id")
+            corrected_task_sha256 = evaluation.get("corrected_task_sha256")
+            runtime_correction_id = evaluation.get("runtime_correction_id")
+            corrected_runtime_sha256 = evaluation.get("corrected_runtime_sha256")
+            correction_is_bound = bool(
+                (contract_correction_id and corrected_task_sha256)
+                or (runtime_correction_id and corrected_runtime_sha256)
+            )
             if (
                 float(evaluation.get("score") or 0) != 1
-                or not evaluation.get("contract_correction_id")
-                or not evaluation.get("corrected_task_sha256")
+                or not correction_is_bound
             ):
                 raise ValueError(f"task {task_id} offline rescore is not a corrected pass")
             if state["status"] == "pass":
                 raise ValueError(f"task {task_id} rescored after its first pass")
             state["status"] = "pass"
             state["pass_source"] = "offline_rescore"
+            correction_binding = (
+                {
+                    "contract_correction_id": contract_correction_id,
+                    "corrected_task_sha256": corrected_task_sha256,
+                }
+                if contract_correction_id
+                else {
+                    "runtime_correction_id": runtime_correction_id,
+                    "corrected_runtime_sha256": corrected_runtime_sha256,
+                }
+            )
             state["offline_rescore"] = {
                 "source_evidence_sha256": source,
                 "evaluation_sha256": row["evaluation_sha256"],
-                "contract_correction_id": evaluation["contract_correction_id"],
+                **correction_binding,
             }
         rescore_sha256.append(_hash(manifest_path))
     return {

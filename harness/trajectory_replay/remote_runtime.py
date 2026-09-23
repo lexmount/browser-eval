@@ -71,7 +71,26 @@ def remote_benchmark(sites: dict[WebArenaSite, str]) -> WebArenaVerified:
         config=WebArenaVerifiedConfig(
             environments={
                 site: EnvironmentConfig(
-                    urls=[url],
+                    # Reverse proxies can terminate HTTPS while an application
+                    # still emits same-host HTTP requests from its configured
+                    # public base URL. Both transports identify the same bound
+                    # fixture and must derender to the same site token.
+                    urls=list(
+                        dict.fromkeys(
+                            [
+                                url,
+                                urlunsplit(
+                                    (
+                                        "http" if urlsplit(url).scheme == "https" else "https",
+                                        urlsplit(url).netloc,
+                                        urlsplit(url).path,
+                                        urlsplit(url).query,
+                                        urlsplit(url).fragment,
+                                    )
+                                ),
+                            ]
+                        )
+                    ),
                     credentials=SITE_CREDENTIALS.get(site),
                     use_header_login=site == WebArenaSite.SHOPPING_ADMIN,
                 )
