@@ -42,6 +42,27 @@ class ResultProvider(Provider):
 
 
 class PublicCallLogTests(unittest.TestCase):
+    def test_common_sensitive_fields_are_redacted_from_public_log(self):
+        secret_lines = "\n".join([
+            'refresh_token=refresh-secret',
+            'AWS_SECRET_ACCESS_KEY=aws-secret',
+            'X-Api-Key: header-secret',
+            '{"client_secret":"json-secret","safe":"visible"}',
+            'curl failed: https://example.test/api?access_token=query-secret&view=full',
+        ])
+        result = ProviderResult(
+            True, "Expected", metadata={"stderr": secret_lines, "exit_code": 0}
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            record = run(root, ResultProvider(result))
+            serialized = (root / record["provider_metadata"]["call_log"]["path"]).read_text()
+            for secret in ("refresh-secret", "aws-secret", "header-secret", "json-secret",
+                           "query-secret"):
+                self.assertNotIn(secret, serialized)
+            self.assertIn('\\"safe\\":\\"visible\\"', serialized)
+            self.assertIn('view=full', serialized)
+
     def test_success_has_closed_complete_hash_bound_log(self):
         raw = b'{"private":"Bearer never-publish"}'
         result = ProviderResult(

@@ -1,0 +1,10 @@
+{
+  "case_id": "challenge-10-justwatch",
+  "url": "https://www.justwatch.com/us/tv-shows",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "1fdaee01d8cc8f0bf8f7fa82881643597555a15331463c73977d3a88948e5cfc",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-062-bbc-com",
+  "url": "https://bbc.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "3699ad1fb9f20bfbed633a77378aa2e9ca300dff9c31c5625bf67e812d86d482",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

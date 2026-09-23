@@ -14,6 +14,8 @@ from harness.web_fetch.storage import (
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence',type=Path)
+    parser.add_argument('--profile',type=Path,
+                        help='current-report profile under evaluation/; requires an explicit output unless the profile declares report_output')
     parser.add_argument('--public-benchmark-research',type=Path)
     parser.add_argument('--output',type=Path)
     parser.add_argument('--include-english',action='store_true',
@@ -22,6 +24,8 @@ if __name__ == '__main__':
     parser.add_argument('--wcxb-sample',type=Path)
     parser.add_argument('--wcxb',action='store_true',help='Build the independently bound WCXB report')
     args=parser.parse_args()
+    if args.profile and args.wcxb:
+        parser.error('--profile and --wcxb are mutually exclusive')
     if args.public_benchmark_research:
         if args.evidence:
             parser.error('--evidence and --public-benchmark-research are mutually exclusive')
@@ -31,7 +35,12 @@ if __name__ == '__main__':
         print(build_public_benchmark_research(
             args.public_benchmark_research,output,include_english=args.include_english))
         raise SystemExit(0)
-    profile_path=ROOT/('evaluation/wcxb/current-report.json' if args.wcxb else 'evaluation/current-report.json')
+    if args.profile:
+        profile_path=(ROOT/args.profile).resolve() if not args.profile.is_absolute() else args.profile.resolve()
+        if not profile_path.is_relative_to((ROOT/'evaluation').resolve()):
+            parser.error('--profile must stay under evaluation/')
+    else:
+        profile_path=ROOT/('evaluation/wcxb/current-report.json' if args.wcxb else 'evaluation/current-report.json')
     profile=json.loads(profile_path.read_text())
     if args.wcxb and profile.get('comparison_kind')!='wcxb_frozen_html_to_markdown':
         parser.error('The WCXB profile does not describe the WCXB matrix')
@@ -44,7 +53,13 @@ if __name__ == '__main__':
         raise SystemExit(0)
     evidence=require_evidence(args.evidence or current_evidence_dir())
     if profile.get('comparison_kind')!='webmainbench_frozen_html_to_markdown':
-        require_canonical_inputs(evidence,ROOT/'evaluation')
+        canonical=(profile_path.parent if (profile_path.parent/'dataset.json').is_file()
+                   else ROOT/'evaluation')
+        require_canonical_inputs(evidence,canonical)
     require_current_report_profile(evidence,profile_path)
-    print(build_report(evidence,args.output or ROOT/'reports/webfetch',
+    declared_output=profile.get('report_output')
+    if args.profile and args.output is None and not declared_output:
+        parser.error('a custom --profile requires --output or report_output in the profile')
+    output=(args.output or (ROOT/declared_output if declared_output else ROOT/'reports/webfetch'))
+    print(build_report(evidence,output,
                        include_english=args.include_english))

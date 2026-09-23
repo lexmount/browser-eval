@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-036-globo-com",
+  "url": "https://globo.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "9ba063ce37c02201ba3c9897ec31fea65002636af3e036436d9c2da6446ba1d6",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

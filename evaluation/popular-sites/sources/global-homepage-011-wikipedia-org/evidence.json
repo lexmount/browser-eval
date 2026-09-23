@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "case_id": "global-homepage-011-wikipedia-org",
+  "url": "https://wikipedia.org/",
+  "checked_at": "2026-09-20",
+  "source": "Targeted task-relevance adjudication of independent auxiliary-label evidence",
+  "provider_output_used": false,
+  "stable_page_sha256": "9222ed451b4beee228a9e7e89b9a4bc721ea50d77da72e43dad3c853addf84da",
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

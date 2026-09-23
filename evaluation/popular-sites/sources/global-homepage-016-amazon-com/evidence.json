@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-016-amazon-com",
+  "url": "https://amazon.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "3a65fa150009edc70a828010785ac5e85cf5a4b3805a8174935debf261f9f86f",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

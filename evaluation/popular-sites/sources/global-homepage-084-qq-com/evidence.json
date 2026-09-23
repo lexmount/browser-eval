@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-084-qq-com",
+  "url": "https://qq.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "9f2bb4267630ea8e88fa48615a0d44103794136e173cff1203b4a78d5728ce9d",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-065-lingxing-com",
+  "url": "https://lingxing.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "d8726d87e456ced66dff453ac5ce7f8a9dca69ed95af62924b133f8284c48f07",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

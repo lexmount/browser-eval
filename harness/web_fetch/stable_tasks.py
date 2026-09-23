@@ -462,10 +462,16 @@ def _anchor_matches(anchor, records, visible, schema):
     from .metrics import fact_in_text, normalize_for_match
     if anchor.get('match_scope') == 'non_record_lines':
         # A known record label cannot stand in for page context. This is a
-        # conservative text-layout rule, not a claim of recovered DOM ownership.
+        # conservative ownership rule, not a claim of recovered DOM ownership.
+        # Some converters flatten a navigation row and record links onto one
+        # physical line. Mask only the independently parsed record titles so
+        # genuine page labels on that line remain available to the anchor.
         titles = [normalize_for_match(r['fields']['title']) for r in records if r.get('valid') and r.get('fields',{}).get('title')]
-        visible = '\n'.join(line for line in visible.splitlines()
-            if not any(title in normalize_for_match(line) for title in titles))
+        folded = normalize_for_match(visible)
+        for title in sorted(set(titles), key=len, reverse=True):
+            folded = folded.replace(title, ' ')
+        return [value for value in anchor["alternatives"]
+                if fact_in_text(folded, normalize_for_match(_visible(value)))]
     owned = []
     if schema != "named_link":
         for value in anchor["alternatives"]:
@@ -497,7 +503,7 @@ def validate_acceptance_contract(contract: dict) -> None:
             or contract.get("version") != 1 or not isinstance(contract.get("schema"), str)
             or contract.get("schema") not in SCHEMA_FIELDS):
         raise ValueError("Unsupported stable acceptance contract")
-    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "field_minimum_records", "record_name_exclusions"}:
+    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "field_minimum_records", "record_name_exclusions", "identity_query_keys", "link_base_url"}:
         raise ValueError("Unknown stable acceptance contract fields")
     field_counts = contract.get('field_minimum_records', {})
     if not isinstance(field_counts, dict) or any(k not in _LABELS or type(v) is not int or v < 1 for k,v in field_counts.items()):
@@ -528,9 +534,14 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Stable body-text contracts require text anchors or page patterns")
     if contract["schema"] == "named_link":
         hosts = contract.get("hosts")
+        identity_query_keys = contract.get("identity_query_keys", [])
         if (not isinstance(hosts, list) or not hosts
                 or any(not isinstance(host, str) or not re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)*", host) for host in hosts)
-                or not isinstance(contract.get("entry_path"), str) or not contract["entry_path"]):
+                or not isinstance(contract.get("entry_path"), str) or not contract["entry_path"]
+                or not isinstance(identity_query_keys, list)
+                or len(identity_query_keys) != len(set(identity_query_keys))
+                or any(not isinstance(key, str) or not re.fullmatch(r"[A-Za-z0-9_.~-]+", key)
+                       for key in identity_query_keys)):
             raise ValueError("Named links require allowed hosts and detail path pattern")
         if contract.get('entry_context', 'list_or_card') != 'list_or_card':
             raise ValueError('Named-link entry context must be list_or_card')
@@ -545,7 +556,21 @@ def validate_acceptance_contract(contract: dict) -> None:
             if not isinstance(identity_pattern, str) or not identity_pattern:
                 raise ValueError('Invalid named-link identity pattern')
             patterns.append(identity_pattern)
-    elif "hosts" in contract or "entry_path" in contract or "record_name_exclusions" in contract:
+        if "link_base_url" in contract:
+            value = contract["link_base_url"]
+            try:
+                base = urlsplit(value) if isinstance(value, str) else None
+                valid = (base and base.scheme in {"http", "https"} and base.hostname in hosts
+                         and not base.username and not base.password and not base.query
+                         and not base.fragment and not any(char.isspace() for char in value))
+                if base:
+                    base.port
+            except ValueError:
+                valid = False
+            if not valid:
+                raise ValueError("Link base must be an observed HTTP(S) URL on an allowed host")
+    elif any(key in contract for key in ("hosts", "entry_path", "record_name_exclusions",
+                                         "identity_query_keys", "link_base_url")):
         raise ValueError("Host/path contracts apply only to named_link records")
     try:
         for pattern in patterns:

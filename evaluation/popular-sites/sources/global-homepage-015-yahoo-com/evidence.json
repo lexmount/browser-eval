@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-015-yahoo-com",
+  "url": "https://www.yahoo.com/?p=us",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "0be23073ff1fc1d8e05a0574cb0683d24b84fa54a08e4304d6e14f34f97a0870",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

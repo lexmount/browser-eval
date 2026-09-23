@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-013-yahoo-co-jp",
+  "url": "https://yahoo.co.jp/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "45c79d3811323c5e7ad25d35dfb1141170db92ee47f3b369b44589a42850a9fe",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

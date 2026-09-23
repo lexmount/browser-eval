@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-032-canva-com",
+  "url": "https://canva.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "13e8910eb0fcd0e77496f3a67aaa1e7cc38944d18b31c66b74d4838593cff7fd",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

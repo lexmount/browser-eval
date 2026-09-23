@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-042-kdocs-cn",
+  "url": "https://kdocs.cn/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "e490ca50c2664fb56cf3e4debf282fb2200e3767c3dcf3098a286987c42ecad6",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

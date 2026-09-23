@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "global-homepage-008-whatsapp-com",
+  "checked_at": "2026-09-18",
+  "provider_output_used": false,
+  "stable_page_sha256": "a576b8bc14483d3ca37a1d9785ddb7633bf53193b270a8d7b8acf154154ee69c",
+  "url": "https://whatsapp.com/",
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

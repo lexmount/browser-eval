@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-055-huya-com",
+  "url": "https://huya.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "66fb5c63149d2915a44e0055726d1fef5b37d32654f5984b4903e19802d768d2",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

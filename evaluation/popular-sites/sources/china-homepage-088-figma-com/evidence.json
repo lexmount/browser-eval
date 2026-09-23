@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-088-figma-com",
+  "url": "https://figma.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "d90df27d57dac68552dc0a272ad1fa0280e7ae0e10ecb923a87beb82c00b319f",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

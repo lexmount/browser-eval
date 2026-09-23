@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-005-chatgpt-com",
+  "url": "https://chatgpt.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "b858ebd9b68bb0bd57eba393ce24398ca89617e5d654eeb69f83e45f554ae792",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

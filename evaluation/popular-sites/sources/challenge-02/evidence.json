@@ -1,0 +1,10 @@
+{
+  "case_id": "challenge-02",
+  "url": "https://www.jd.com/chanpin/109113.html",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "f552a06eaa3531e150989981b2ea0c69e58616df6589428e4f995522c85899fa",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

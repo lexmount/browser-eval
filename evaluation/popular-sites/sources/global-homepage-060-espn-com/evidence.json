@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-060-espn-com",
+  "url": "https://espn.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "7198b60f3bdbb2b73e7b0e3f71be89f5c502fd741137228464721f41eabca661",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

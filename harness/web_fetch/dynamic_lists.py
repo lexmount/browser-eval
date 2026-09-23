@@ -7,7 +7,7 @@ import re
 import unicodedata
 from html import unescape
 from html.parser import HTMLParser
-from urllib.parse import unquote,urljoin,urlsplit,urlunsplit
+from urllib.parse import parse_qsl,unquote,urlencode,urljoin,urlsplit,urlunsplit
 
 
 class Links(HTMLParser):
@@ -54,12 +54,16 @@ def _is_named_label(title,url,parts):
 
 
 def extract_named_entries(content,contract,base_url,links=None):
+    base_url = contract.get("link_base_url", base_url)
     parser=Links();parser.feed(content)
     from .response_input import safe_named_links
     from .reference_quality import markdown_links, visible_markdown_links
     items=list(parser.items) + safe_named_links(links, base_url)
     for link in markdown_links(content):
-        if link.is_image or not link.destination.startswith(('http://','https://','/')):
+        destination=link.destination.strip()
+        target=urlsplit(destination)
+        if (link.is_image or not destination or destination.startswith(('#','?'))
+                or (target.scheme and target.scheme not in {'http','https'})):
             continue
         # Explicit balanced link syntax owns a multiline label, including card
         # headings separated by blank layout lines. Text before the opening on
@@ -72,15 +76,36 @@ def extract_named_entries(content,contract,base_url,links=None):
         for previous in reversed(markdown_links(prefix)):
             prefix=prefix[:previous.start]+prefix[previous.end:]
         prefix=prefix.strip()
-        if prefix and not re.fullmatch(r'[\s#>*\-\d.)|]*',prefix):
+        line_end=content.find('\n',link.end)
+        line=content[line_start:None if line_end < 0 else line_end]
+        line_links=markdown_links(line)
+        linked_chars=sum(item.end-item.start for item in line_links)
+        link_collection=(len(line_links) >= 3 and linked_chars >= 0.8 * len(line))
+        if (prefix and not link_collection
+                and not re.fullmatch(r'[\s#>*\-\d.)|]*',prefix)):
             continue
         non_image_label=link.label
         for nested in reversed(markdown_links(link.label)):
             if nested.is_image:
                 non_image_label=non_image_label[:nested.start]+non_image_label[nested.end:]
+        paired_heading=None
+        if not re.search(r'[\w\u3400-\u9fff]',non_image_label):
+            image_label=visible_markdown_links(link.label).strip()
+            tail=content[link.end:]
+            boundary=len(tail)
+            for following in markdown_links(tail):
+                candidate=urlsplit(urljoin(base_url,unescape(following.destination)))
+                if (candidate.hostname in contract['hosts']
+                        and re.fullmatch(contract['entry_path'],candidate.path.rstrip('/'))):
+                    boundary=following.start
+                    break
+            headings=re.findall(r'(?m)^\s*#{2,6}\s+(.+?)\s*$',tail[:boundary])
+            if len(headings)==1 and _label_key(headings[0])==_label_key(image_label):
+                paired_heading=headings[0].strip()
+                non_image_label=paired_heading
         if not re.search(r'[\w\u3400-\u9fff]',non_image_label):
             continue
-        title=re.sub(r'\s+',' ',visible_markdown_links(link.label)).strip()
+        title=re.sub(r'\s+',' ',paired_heading or visible_markdown_links(link.label)).strip()
         items.append((link.destination,title))
     candidates={}
     for url,title in items:
@@ -97,6 +122,19 @@ def extract_named_entries(content,contract,base_url,links=None):
             if not match or not match.groups():
                 raise ValueError('entry_identity_pattern must match and capture an identity')
             identity = match[1]
+        identity_keys = contract.get('identity_query_keys', [])
+        if identity_keys:
+            query_values = {key: [] for key in identity_keys}
+            for key, value in parse_qsl(parts.query, keep_blank_values=True):
+                if key in query_values:
+                    query_values[key].append(value)
+            present = {key: values for key, values in query_values.items() if values}
+            if (not present or any(len(values) != 1 or not values[0].strip()
+                                   for values in present.values())):
+                continue
+            identity += '?' + urlencode(sorted(
+                (key, values[0]) for key, values in present.items()
+            ))
         candidates[parts.hostname+'::'+identity]={'url':url,'title':title}
     return list(candidates.values())
 

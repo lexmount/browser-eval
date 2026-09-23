@@ -204,6 +204,53 @@ class StableTaskTests(unittest.TestCase):
         result = self.check(text, "named_link", **rules)
         self.assertTrue(result["stable_task_pass"], result["stable_task_errors"])
 
+    def test_named_link_query_identity_and_link_base_contracts_are_bounded(self):
+        valid = contract(
+            "named_link", hosts=["example.test"], entry_path=r"/item\.htm",
+            identity_query_keys=["id", "v"], link_base_url="https://example.test/catalog/",
+        )
+        validate_acceptance_contract(valid)
+        for keys in ("id", ["id", "id"], ["bad key"], [1]):
+            with self.subTest(keys=keys), self.assertRaises(ValueError):
+                validate_acceptance_contract(contract(
+                    "named_link", hosts=["example.test"], entry_path=r"/item\.htm",
+                    identity_query_keys=keys,
+                ))
+        for value in ("https://evil.test/", "ftp://example.test/",
+                      "https://user:pass@example.test/", "https://example.test/?x=1",
+                      "https://example.test/#fragment", "https://example.test:bad/"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                validate_acceptance_contract(contract(
+                    "named_link", hosts=["example.test"], entry_path=r"/item\.htm",
+                    link_base_url=value,
+                ))
+
+    def test_non_record_anchor_survives_flattened_navigation_and_record_line(self):
+        rules = contract(
+            "named_link", 2, hosts=["example.test"], entry_path=r"/item/\d+",
+            stable_text_anchors=[{
+                "id": "section", "alternatives": ["News"],
+                "match_scope": "non_record_lines",
+            }],
+        )
+        links = [
+            {"title": "First story", "url": "https://example.test/item/1"},
+            {"title": "Second story", "url": "https://example.test/item/2"},
+        ]
+        result = evaluate_stable_task(
+            "Portal News First story Second story", rules,
+            "https://example.test/", links=links,
+        )
+        self.assertTrue(result["stable_task_pass"], result)
+        title_only = {**rules, "stable_text_anchors": [{
+            "id": "record", "alternatives": ["First story"],
+            "match_scope": "non_record_lines",
+        }]}
+        self.assertFalse(evaluate_stable_task(
+            "Portal News First story Second story", title_only,
+            "https://example.test/", links=links,
+        )["stable_content_pass"])
+
     def test_stable_anchor_compares_visible_relative_autolinks_and_link_labels(self):
         rules = {
             "hosts": ["example.test"],

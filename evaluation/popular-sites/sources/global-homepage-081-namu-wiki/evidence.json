@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-081-namu-wiki",
+  "url": "https://namu.wiki/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "b62c95632e8e28759813894ef59e8c9f8314a293c76800a37b51817ac3bb0e85",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

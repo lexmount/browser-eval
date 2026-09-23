@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "case_id": "global-homepage-012-gemini-google-com",
+  "checked_at": "2026-09-18",
+  "provider_output_used": false,
+  "stable_page_sha256": "a810e6a2ea3746c7191355bd1e799f8780078f70bb65ce86305cd11cb2f90c55",
+  "url": "https://gemini.google.com/",
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

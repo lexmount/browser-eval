@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "status": "current_pending_pr_review",
+  "case_count": 100,
+  "result_count": 100,
+  "independently_reviewed_result_count": 100,
+  "unresolved_result_count": 0,
+  "task_pass": 84,
+  "request_success": 97,
+  "provider_calls_for_revision": 0,
+  "changed_case_ids": [
+    "global-homepage-002-youtube-com",
+    "global-homepage-010-bing-com",
+    "global-homepage-029-twitch-tv",
+    "china-homepage-026-aliyun-com",
+    "china-homepage-044-kimi-com",
+    "china-homepage-046-wedoany-com",
+    "china-homepage-047-qianwen-com",
+    "china-homepage-078-nga-cn",
+    "china-homepage-083-grok-com",
+    "global-homepage-008-whatsapp-com",
+    "global-homepage-011-wikipedia-org",
+    "global-homepage-012-gemini-google-com",
+    "global-homepage-021-netflix-com"
+  ],
+  "remaining_limits": [
+    {
+      "case_id": "china-homepage-078-nga-cn",
+      "kind": "nonblocking_coverage_limit",
+      "text": "pid-only link identity",
+      "reason": "Two pid-only destinations remain outside the tid-only contract because independent identity mapping is unavailable. Existing accepted records already exceed the minimum; no evidence supports additional credit or a merge blocker."
+    },
+    {
+      "case_id": "china-homepage-078-nga-cn",
+      "kind": "diagnostic_limit",
+      "text": "flattened heading ownership",
+      "reason": "Associated heading candidates can contain summaries; they are not certified exact titles."
+    },
+    {
+      "case_id": "china-homepage-047-qianwen-com",
+      "kind": "inherited_reference_scope",
+      "text": "input-area prompt semantics",
+      "reason": "This correction addresses only the clipped heading. The retained input-area prompt and other inherited criteria were not newly certified across historical page states."
+    }
+  ],
+  "case_rules_sha256": "c8226b15aa6c3544817b64e98b5a81e38d5ae665836ad667e93870580dae2089"
+}

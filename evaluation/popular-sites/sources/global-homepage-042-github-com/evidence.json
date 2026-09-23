@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-042-github-com",
+  "url": "https://github.com/",
+  "checked_at": "2026-09-18",
+  "source": "3 fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "9619cd18e426b2d3de782dffeda0d8cab3e214b276a4502cf4f184e4b2d13e66",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

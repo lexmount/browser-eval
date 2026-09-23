@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-040-quark-cn",
+  "url": "https://quark.cn/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "3206f822994495f731d6a477c4debc8211197a924657c082c3f447243ececcdc",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

@@ -1,0 +1,10 @@
+{
+  "case_id": "challenge-06",
+  "url": "https://guide.michelin.com/jp/en/shanghai-municipality/shanghai/restaurants/all-starred",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "b27f4ff9a91e5e88c7fbbe3b707252948ac6e008ba313f1ae6aabd732448d058",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

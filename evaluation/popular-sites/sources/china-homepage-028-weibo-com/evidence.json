@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-028-weibo-com",
+  "url": "https://weibo.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "94e7e4c1a0f660f89fba469f516c4e20370ec86b06ce3d467d5456f30cf06e76",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

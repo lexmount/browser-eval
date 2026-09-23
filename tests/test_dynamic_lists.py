@@ -24,6 +24,77 @@ class DynamicListTests(unittest.TestCase):
         self.assertEqual(measured["named_entry_count"], 2)
         self.assertTrue(measured["structure_pass"])
 
+    def test_declared_query_identity_ignores_tracking_and_rejects_ambiguous_values(self):
+        contract = {
+            "hosts": ["example.com"],
+            "entry_path": r"/item\.htm",
+            "identity_query_keys": ["id", "v"],
+            "minimum_entries": 2,
+        }
+        content = "\n".join([
+            "[One](https://example.com/item.htm?id=1&tracking=a)",
+            "[One again](https://example.com/item.htm?tracking=b&id=1)",
+            "[Two](https://example.com/item.htm?v=2)",
+            "[Missing](https://example.com/item.htm?tracking=c)",
+            "[Ambiguous](https://example.com/item.htm?id=3&id=4)",
+        ])
+        entries = extract_named_entries(content, contract, "https://example.com/")
+        self.assertEqual({entry["title"] for entry in entries}, {"One again", "Two"})
+
+    def test_declared_link_base_resolves_relative_links_without_expanding_hosts(self):
+        contract = {
+            "hosts": ["www.example.com"],
+            "entry_path": r"/news/item/\d+",
+            "link_base_url": "https://www.example.com/news/",
+            "minimum_entries": 1,
+        }
+        entries = extract_named_entries(
+            '<a href="item/1">Story</a>', contract, "https://redirect.example.net/start"
+        )
+        self.assertEqual(entries, [{"url": "https://www.example.com/news/item/1", "title": "Story"}])
+
+        markdown = extract_named_entries(
+            '[Story](item/1)', contract, "https://redirect.example.net/start"
+        )
+        self.assertEqual(markdown, entries)
+        self.assertEqual(extract_named_entries(
+            '[Other](https://outside.example/news/item/2)', contract,
+            "https://redirect.example.net/start"), [])
+        self.assertEqual(extract_named_entries(
+            'Read [Story](item/1) for context.', contract,
+            "https://redirect.example.net/start"), [])
+
+    def test_dense_flattened_link_collection_is_not_mistaken_for_prose(self):
+        content = (
+            '- Group - [First](https://example.com/item/1) - '
+            '[Second](https://example.com/item/2) - '
+            '[Third](https://example.com/item/3)'
+        )
+        self.assertEqual(
+            {entry['title'] for entry in extract_named_entries(
+                content, self.contract, 'https://example.com/'
+            )},
+            {'First', 'Second', 'Third'},
+        )
+        prose = (
+            'Read [First](https://example.com/item/1), compare it carefully with '
+            '[Second](https://example.com/item/2), then see '
+            '[Third](https://example.com/item/3) for context.'
+        )
+        self.assertEqual(extract_named_entries(prose, self.contract, 'https://example.com/'), [])
+
+    def test_image_link_can_use_one_matching_heading_in_the_same_card(self):
+        content = (
+            '[![First title](https://img.example/1.jpg)](/item/1)\n\n'
+            '[Category](/category)\n\n## First title\n\nDescription\n\n'
+            '[![Second title](https://img.example/2.jpg)](/item/2)\n\n'
+            '## Different heading\n'
+        )
+        self.assertEqual(
+            extract_named_entries(content, self.contract, 'https://example.com/'),
+            [{'url': 'https://example.com/item/1', 'title': 'First title'}],
+        )
+
     def check(self, text, ok=True):
         return evaluate_dynamic_list(text, self.contract, "https://example.com", ok)
 

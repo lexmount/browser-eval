@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-086-usps-com",
+  "url": "https://usps.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "b9d2e87bb0fd1e90f0de44ee8af80cf64f2437ce1d47170c46de888a9f44f331",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

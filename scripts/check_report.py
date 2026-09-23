@@ -1,4 +1,5 @@
 """Data and generated-output acceptance checks for the current report."""
+import argparse
 import hashlib
 import json
 import re
@@ -10,6 +11,7 @@ from urllib.parse import urlsplit
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from harness.web_fetch.reliability import require_reliable
 from harness.web_fetch.reference_lifecycle import validate_resource_source_evidence
+from harness.web_fetch.storage import require_canonical_inputs, require_current_report_profile
 from harness.report_languages import check_language_contract, generated_languages
 from scripts.report_asset_parity import ArticleAssetParity
 
@@ -68,7 +70,20 @@ class PageShape(HTMLParser):
  def handle_data(self,text):
   if not self.skip:self.numbers.extend(re.findall(r'\d+(?:[.,]\d+)*(?:%|\b)',text))
 
-root=Path(sys.argv[1]).resolve()
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('root',type=Path)
+parser.add_argument('--profile',type=Path)
+args=parser.parse_args()
+root=args.root.resolve()
+repository=Path(__file__).resolve().parents[1]
+profile_path=None
+if args.profile:
+ profile_path=(repository/args.profile).resolve() if not args.profile.is_absolute() else args.profile.resolve()
+ if not profile_path.is_relative_to((repository/'evaluation').resolve()):
+  parser.error('--profile must stay under evaluation/')
+ require_current_report_profile(root,profile_path)
+ canonical=profile_path.parent if (profile_path.parent/'dataset.json').is_file() else repository/'evaluation'
+ require_canonical_inputs(root,canonical)
 if (root/'sample-manifest.json').is_file() and (root/'certification.json').is_file():
  from scripts.check_wcxb_report import check
  check(root)
@@ -76,14 +91,21 @@ if (root/'sample-manifest.json').is_file() and (root/'certification.json').is_fi
 d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
 check_language_contract(root)
 has_english='en' in generated_languages(root)
-repository=Path(__file__).resolve().parents[1]
 if d.get('comparison',{}).get('kind')=='webmainbench_frozen_html_to_markdown':
  from scripts.check_webmainbench_report import check_report
  check_report(root,d,rs)
  print('PASS: WebMainBench preselected-200 matrix, sample, scores, retries, bilingual routes and reference assets verified')
  raise SystemExit(0)
 names={r['provider'] for r in rs}
-inventory=json.loads((Path(__file__).resolve().parents[1]/'configs/evaluation-inventory.json').read_text())
+if profile_path and (profile_path.parent/'dataset.json').is_file():
+ inventory={track:{'case_ids':[case['id'] for case in d['cases']
+                              if case.get('track','web')==track],
+                   'providers':providers}
+            for track,providers in d.get('coverage_plan',{}).items()}
+ canonical_dataset=profile_path.parent/'dataset.json'
+else:
+ inventory=json.loads((repository/'configs/evaluation-inventory.json').read_text())
+ canonical_dataset=repository/'evaluation/dataset.json'
 if d.get('comparison',{}).get('kind') in {'headless_html','headless_markdown'}:
  headless=json.loads((Path(__file__).resolve().parents[1]/'configs/providers.headless.json').read_text())
  profile=json.loads((Path(__file__).resolve().parents[1]/'evaluation/current-report.json').read_text())
@@ -106,7 +128,7 @@ assert len({r['attempt_id'] for r in rs})==expected
 assert len({(r['provider'],r['case_id']) for r in rs})==expected
 case_by_id={c['id']:c for c in d['cases']}
 for case in d['cases']:
- validate_resource_source_evidence(case,repository/'evaluation/dataset.json')
+ validate_resource_source_evidence(case,canonical_dataset)
 reliability=require_reliable(d,rs)
 saved_reliability=json.loads((root/'reliability.json').read_text())
 assert saved_reliability==reliability,'Saved reliability status differs from report evidence'
@@ -189,7 +211,14 @@ for p in root.rglob('*.html'):
   for delivered in record.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[]):
    assert '../'+delivered['artifact_path'] in text and delivered['sha256'] in text,p
 execution=json.loads((root/'execution.json').read_text())['batches']
-assert Counter(i for b in execution for i in b['attempt_ids'])==Counter(r['attempt_id'] for r in rs)
+physical_attempts=Counter(i for b in execution for i in b['attempt_ids'])
+logical_attempts=Counter(r['attempt_id'] for r in rs)
+if d.get('comparison',{}).get('superseded_formal_provider_calls'):
+ assert set(physical_attempts)==set(logical_attempts)
+ assert (sum(physical_attempts.values())-sum(logical_attempts.values()) ==
+         d['comparison']['superseded_formal_provider_calls'])
+else:
+ assert physical_attempts==logical_attempts
 home=(root/'index.html').read_text()
 track_count=len({case['track'] for case in d['cases']})
 assert home.index(f'<h2>{track_count} 类任务概览</h2>') < home.index('<h2>综合通过率总榜</h2>') < home.index(f'<h2>{track_count} 类分榜</h2>'),'Task overview and overall ranking must precede detailed rankings'

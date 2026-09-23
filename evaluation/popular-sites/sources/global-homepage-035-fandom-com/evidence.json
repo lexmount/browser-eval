@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-035-fandom-com",
+  "url": "https://fandom.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "25cfd390443eda65c19187cafdf6b5df6f52353e461eec47ef9abba274006ec4",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

@@ -1,0 +1,10 @@
+{
+  "case_id": "global-homepage-010-bing-com",
+  "url": "https://www.bing.com/?cc=us&setlang=en-us",
+  "checked_at": "2026-09-18",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "ce637158bf39da31accbb45048be6bd203196e57aeb2e7c99440ffcb33d6ee58",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}

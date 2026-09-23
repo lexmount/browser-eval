@@ -1,0 +1,10 @@
+{
+  "case_id": "china-homepage-064-gamer520-com",
+  "url": "https://gamer520.com/",
+  "checked_at": "2026-09-16",
+  "source": "Three fresh anonymous Chromium initial-load observations",
+  "provider_output_used": false,
+  "stable_page_sha256": "48af874737edfa5487ac28bd9880e754eb3b3bae026bbe928bd451509ebcd799",
+  "schema_version": 1,
+  "dataset": "evaluation/popular-sites/dataset.json"
+}
