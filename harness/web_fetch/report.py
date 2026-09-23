@@ -565,7 +565,8 @@ def run_log_section(out,record,output):
  """Render one in-page, progressively disclosed view of retained run evidence."""
  metadata=record.get('provider_metadata') or {}
  logs=[]
- for label,binding in call_log_bindings(record):
+ bindings=call_log_bindings(record)
+ for label,binding in bindings:
   path=contained_path(out,binding['path'])
   if not path.is_file():continue
   log_bytes=path.read_bytes();observed=hashlib.sha256(log_bytes).hexdigest()
@@ -576,7 +577,7 @@ def run_log_section(out,record,output):
   except (UnicodeDecodeError,json.JSONDecodeError):payload={}
   logs.append({'label':label,'path':binding['path'],'text':text,'sha256':observed,
                'bytes':len(log_bytes),'bound':bool(binding.get('sha256')),'payload':payload})
- declared_logs=bool(call_log_bindings(record))
+ declared_logs=bool(bindings)
  if logs:
   availability=(f'{len(logs)} 份真实日志文件已保存并通过 SHA-256 校验。' if all(item['bound'] for item in logs) else
                 f'{len(logs)} 份真实日志文件可以读取；其中至少一份没有在运行记录中声明 SHA-256。')

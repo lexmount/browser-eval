@@ -2985,7 +2985,6 @@ TEXT.update({
     "没有可下载的逐行日志文件。": "No line-by-line log file is available to download.",
     "查看重试与物理调用": "View retries and physical calls",
     "原始供应商响应信封仅在内部证据中保留，不进入公开报告或发布包。": "The original provider response envelope is retained only in internal evidence and is excluded from the public report and publication bundle.",
-    "这一位置的完整标准正文": "Complete reference text for this position",
     "参与本段计分的完整实际返回行": "Complete actual-output lines used to score this region",
     "评分器没有向这一段分配可展示的实际返回文字。": "The scorer assigned no displayable actual-output text to this region.",
     "查看各段完整标准正文和计分行": "View complete reference text and scoring lines for each region",
