@@ -86,8 +86,12 @@ def test_full_report_renders_five_way_details_and_failure_evidence(tmp_path: Pat
     assert detail.select_one('[data-failure-diagnosis]') is not None
     comparison = BeautifulSoup((tmp_path / "cases/index.html").read_text(encoding="utf-8"), "html.parser")
     assert comparison.select_one("#case-results") is not None
+    assert comparison.select_one("#case-comparison") is not None
+    assert comparison.select_one("#case-reference") is not None
     analysis = BeautifulSoup((tmp_path / "analysis/index.html").read_text(encoding="utf-8"), "html.parser")
     assert len(analysis.select("tr[data-result]")) == 5
+    assert analysis.select_one("#cause") is not None
+    assert analysis.select_one('tr[data-cause="测试环境错误"]') is not None
     assert json.loads((tmp_path / "report-manifest.json").read_text())["languages"] == ["zh"]
     home_html = (tmp_path / "index.html").read_text(encoding="utf-8")
     with pytest.raises(ValueError, match="extremum"):

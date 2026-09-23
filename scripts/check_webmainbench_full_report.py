@@ -83,14 +83,16 @@ def check(root: Path) -> None:
     if not home.select_one('source[media="(max-width:650px)"][srcset="assets/infographic-mobile.png"]'):
         raise ValueError("Mobile infographic route missing")
     analysis = BeautifulSoup((root / "analysis/index.html").read_text(encoding="utf-8"), "html.parser")
-    if len(analysis.select("tr[data-result]")) != 2725 or not analysis.select_one("#kind"):
+    if (len(analysis.select("tr[data-result]")) != 2725 or not analysis.select_one("#kind")
+            or not analysis.select_one("#cause")):
         raise ValueError("Result inventory incomplete")
     if not any(row.get("data-kind") != "未触发诊断" for row in analysis.select("tr[data-result]")):
         raise ValueError("Default diagnostic population is empty")
     if not (root / "en/index.html").is_file() or "返回中文报告" not in (root / "en/index.html").read_text(encoding="utf-8"):
         raise ValueError("English not-generated route missing")
     case_template = BeautifulSoup((root / "cases/index.html").read_text(encoding="utf-8"), "html.parser")
-    if not case_template.select_one("#case-results") or not case_template.select_one("#case-source"):
+    if (not case_template.select_one("#case-results") or not case_template.select_one("#case-source")
+            or not case_template.select_one("#case-reference") or not case_template.select_one("#case-comparison")):
         raise ValueError("Same-case comparison template is incomplete")
     result_template = check_presentation((root / "results/index.html").read_text(encoding="utf-8"))
     if not result_template.select_one('[data-result-summary]') or not result_template.select_one('#result-logs pre[data-kind="error"]'):
@@ -122,6 +124,17 @@ def check(root: Path) -> None:
         for cell in cells
     )):
         raise ValueError("Interpretation diagnosis matrix differs from measured results")
+    cause_counts = Counter((entry["category_label"], entry["provider"])
+                           for entry in failure_analysis["reviewed_failures"])
+    cause_cells = guide.select("td[data-cause-provider][data-cause-kind]")
+    expected_cause_cells = {(kind, provider) for kind, _ in cause_counts for provider in providers}
+    if ({(cell["data-cause-kind"], cell["data-cause-provider"]) for cell in cause_cells} != expected_cause_cells
+            or len(cause_cells) != len(expected_cause_cells)
+            or any(cell.get_text(strip=True) !=
+                   (str(cause_counts[cell["data-cause-kind"], cell["data-cause-provider"]])
+                    if cause_counts[cell["data-cause-kind"], cell["data-cause-provider"]] else "—")
+                   for cell in cause_cells)):
+        raise ValueError("Per-method cause matrix differs from reviewed evidence")
     reviewed_by_key = {(row["provider"], row["case_id"]): row for row in failure_analysis["reviewed_failures"]}
     for row in records:
         check_result_payload(row, index, artifact_index, shards)

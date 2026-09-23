@@ -1276,6 +1276,17 @@
   ],
   "releases": [
     {
+      "id": "2026-09-23-webmainbench-error-attribution-and-case-comparison",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-23",
+      "title": "按方法定位机器问题并展示同页完整输出",
+      "title_i18n": {"en": "Attribute machine issues by method and show complete same-page outputs"},
+      "summary": "机器问题图与解读页交叉列出错误类型、方法和可确认的归属。逐题对照页在同一处显示人工主内容答案与五种方法的完整输出，结果清单可按复核原因筛选。",
+      "summary_i18n": {"en": "The issue graphic and interpretation cross-tabulate error type, method, and evidenced attribution. Each case comparison displays the human main-content reference beside all five complete outputs, and the result inventory can filter by reviewed cause."},
+      "changes": [["错误归属与逐题阅读", "汇总数不能直接显示每种错误发生在哪个方法，逐题页只列分数而需分别打开答案和输出。", "增加错误类型与方法矩阵、归属说明及原因筛选；同页显示参考答案和五种完整结果。", "545 题输入、2725 条结果、分数、耗时和已复核的 28 条机器问题均不变。"]],
+      "changes_i18n": {"en": [["Issue attribution and case reading", "Aggregate counts did not show which method encountered each issue, and case pages listed scores without the reference and outputs in one view.", "Add an error-type-by-method matrix, attribution notes, and cause filtering; display the reference and five full outputs on each case page.", "The 545 inputs, 2,725 results, scores, timings, and 28 reviewed machine issues remain unchanged."]]}
+    },
+    {
       "id": "2026-09-23-webmainbench-complete-545-five-methods",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-23",

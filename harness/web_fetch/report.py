@@ -2739,7 +2739,6 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
     content = json.loads((out / "report-content.json").read_text(encoding="utf-8"))
     failure_analysis = json.loads((out / "failure-analysis.json").read_text(encoding="utf-8"))
     reviewed_failures = {(row["provider"], row["case_id"]): row for row in failure_analysis["reviewed_failures"]}
-    reviewed_categories = Counter(row["category_label"] for row in failure_analysis["reviewed_failures"])
     machine_issue_count = sum(webmainbench_full_machine_issue(out, row) for row in records)
     adoption = json.loads((out / "provider-adoption.json").read_text(encoding="utf-8"))
     cloudflare_matches = {(entry["repo"], match["path"]) for entry in adoption["included"]
@@ -2776,13 +2775,56 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
 
     categories = {row["attempt_id"]: classify(row) for row in records}
     counts = Counter(categories.values())
-    css = """*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172637;font:16px/1.55 system-ui,sans-serif}body.dark{background:#101923;color:#edf3fa}a{color:#1859a5}body.dark a{color:#92c7ff}.wrap{width:min(1200px,calc(100% - 32px));margin:auto}header{background:#142d4b;color:white}header .wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:15px 0}header a{color:white;text-decoration:none}header strong{margin-right:auto}nav{display:flex;gap:14px;flex-wrap:wrap}button,input,select{font:inherit;border:1px solid #9aacc0;border-radius:7px;padding:7px 10px;background:white;color:#172637}body.dark button,body.dark input,body.dark select{background:#25384b;color:white;border-color:#61768b}h1{font-size:clamp(30px,4vw,48px);line-height:1.18;margin:0 0 15px}h2{font-size:26px;margin:0 0 14px}.hero{padding:48px 0 22px}.hero p{font-size:18px;max-width:900px;color:#506377}body.dark .hero p,body.dark .note{color:#bfd0e1}section{margin:24px 0 38px}figure{margin:24px 0}.panel{background:white;border:1px solid #d8e1eb;border-radius:12px;padding:20px;margin:14px 0}body.dark .panel{background:#1c2b3b;border-color:#38506a}.scroll{overflow:auto;max-height:66vh;border:1px solid #d8e1eb;border-radius:10px;background:white}body.dark .scroll{background:#1c2b3b;border-color:#38506a}table{border-collapse:collapse;width:100%;min-width:820px}th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #dce5ee;vertical-align:top}th{position:sticky;top:0;background:#e9f0f8;color:#152a40;z-index:1}body.dark th{background:#29435d;color:white}tbody tr:hover{background:#edf4fc}body.dark tbody tr:hover{background:#28445f}td small{display:block;color:#597088}body.dark td small{color:#b8cadb}.number{font-variant-numeric:tabular-nums;white-space:nowrap}.winner{color:#116b3c;font-weight:750}body.dark .winner{color:#82e1a7}.filters{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}.filters label{display:grid;gap:4px;font-size:13px;font-weight:700}.note{color:#52677b;font-size:14px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0e2032;color:#f1f6fb;padding:17px;border-radius:8px;max-height:65vh;overflow:auto;font:13px/1.5 ui-monospace,monospace}details{border:1px solid #dce5ee;border-radius:8px;padding:10px 14px;margin:10px 0}body.dark details{border-color:#38506a}summary{cursor:pointer;font-weight:700}.actions{display:flex;gap:14px;flex-wrap:wrap}.source{overflow-wrap:anywhere}footer{padding:32px 0;color:#52677b}@media(max-width:650px){.panel{padding:14px}header nav{width:100%}th,td{padding:7px 9px}}"""
-    js = """function theme(){document.body.classList.toggle('dark');try{localStorage.setItem('wmb545-theme',document.body.classList.contains('dark')?'dark':'light')}catch(e){}}try{if(localStorage.getItem('wmb545-theme')==='dark')document.body.classList.add('dark')}catch(e){}function filter(){let q=(document.getElementById('q')?.value||'').toLowerCase(),p=document.getElementById('provider')?.value||'',k=document.getElementById('kind')?.value||'issue',n=0;document.querySelectorAll('tr[data-result]').forEach(r=>{let show=(!q||r.dataset.search.includes(q))&&(!p||r.dataset.provider===p)&&(k==='all'||(k==='issue'?r.dataset.kind!=='未触发诊断':r.dataset.kind===k));r.hidden=!show;if(show)n++});let c=document.getElementById('count');if(c)c.textContent=n;let e=document.getElementById('empty');if(e)e.hidden=n!==0}document.addEventListener('DOMContentLoaded',()=>{for(let id of ['q','provider','kind'])document.getElementById(id)?.addEventListener('input',filter);let params=new URLSearchParams(location.search);for(let id of ['provider','kind']){let select=document.getElementById(id);if(select&&params.has(id))select.value=params.get(id)}filter();let node=document.getElementById('evidence-content');if(node){let path=params.get('path')||'';if(!/^(artifacts|references|sources)\\/[A-Za-z0-9_.\\/-]+$/.test(path)||path.includes('..')){node.textContent='无效证据路径';return}document.getElementById('evidence-path').textContent=path;document.getElementById('evidence-raw').href=path;loadEvidence(path,node)}});"""
+    css = """*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172637;font:16px/1.55 system-ui,sans-serif}body.dark{background:#101923;color:#edf3fa}a{color:#1859a5}body.dark a{color:#92c7ff}.wrap{width:min(1200px,calc(100% - 32px));margin:auto}header{background:#142d4b;color:white}header .wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:15px 0}header a{color:white;text-decoration:none}header strong{margin-right:auto}nav{display:flex;gap:14px;flex-wrap:wrap}button,input,select{font:inherit;border:1px solid #9aacc0;border-radius:7px;padding:7px 10px;background:white;color:#172637}body.dark button,body.dark input,body.dark select{background:#25384b;color:white;border-color:#61768b}h1{font-size:clamp(30px,4vw,48px);line-height:1.18;margin:0 0 15px}h2{font-size:26px;margin:0 0 14px}.hero{padding:48px 0 22px}.hero p{font-size:18px;max-width:900px;color:#506377}body.dark .hero p,body.dark .note{color:#bfd0e1}section{margin:24px 0 38px}figure{margin:24px 0}.panel{background:white;border:1px solid #d8e1eb;border-radius:12px;padding:20px;margin:14px 0}body.dark .panel{background:#1c2b3b;border-color:#38506a}.scroll{overflow:auto;max-height:66vh;border:1px solid #d8e1eb;border-radius:10px;background:white}body.dark .scroll{background:#1c2b3b;border-color:#38506a}table{border-collapse:collapse;width:100%;min-width:820px}th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #dce5ee;vertical-align:top}th{position:sticky;top:0;background:#e9f0f8;color:#152a40;z-index:1}body.dark th{background:#29435d;color:white}tbody tr:hover{background:#edf4fc}body.dark tbody tr:hover{background:#28445f}td small{display:block;color:#597088}body.dark td small{color:#b8cadb}.number{font-variant-numeric:tabular-nums;white-space:nowrap}.winner{color:#116b3c;font-weight:750}body.dark .winner{color:#82e1a7}.filters{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}.filters label{display:grid;gap:4px;font-size:13px;font-weight:700}.note{color:#52677b;font-size:14px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0e2032;color:#f1f6fb;padding:17px;border-radius:8px;max-height:65vh;overflow:auto;font:13px/1.5 ui-monospace,monospace}.compare-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.compare-grid .panel{min-width:0;margin:0}.compare-grid pre{max-height:70vh}details{border:1px solid #dce5ee;border-radius:8px;padding:10px 14px;margin:10px 0}body.dark details{border-color:#38506a}summary{cursor:pointer;font-weight:700}.actions{display:flex;gap:14px;flex-wrap:wrap}.source{overflow-wrap:anywhere}footer{padding:32px 0;color:#52677b}@media(max-width:800px){.compare-grid{grid-template-columns:1fr}}@media(max-width:650px){.panel{padding:14px}header nav{width:100%}th,td{padding:7px 9px}}"""
+    js = """function theme(){document.body.classList.toggle('dark');try{localStorage.setItem('wmb545-theme',document.body.classList.contains('dark')?'dark':'light')}catch(e){}}try{if(localStorage.getItem('wmb545-theme')==='dark')document.body.classList.add('dark')}catch(e){}function filter(){let q=(document.getElementById('q')?.value||'').toLowerCase(),p=document.getElementById('provider')?.value||'',k=document.getElementById('kind')?.value||'issue',cause=document.getElementById('cause')?.value||'',n=0;document.querySelectorAll('tr[data-result]').forEach(r=>{let show=(!q||r.dataset.search.includes(q))&&(!p||r.dataset.provider===p)&&(!cause||r.dataset.cause===cause)&&(k==='all'||(k==='issue'?r.dataset.kind!=='未触发诊断':r.dataset.kind===k));r.hidden=!show;if(show)n++});let c=document.getElementById('count');if(c)c.textContent=n;let e=document.getElementById('empty');if(e)e.hidden=n!==0}document.addEventListener('DOMContentLoaded',()=>{for(let id of ['q','provider','kind','cause'])document.getElementById(id)?.addEventListener('input',filter);let params=new URLSearchParams(location.search);for(let id of ['provider','kind','cause']){let select=document.getElementById(id);if(select&&params.has(id))select.value=params.get(id)}filter();let node=document.getElementById('evidence-content');if(node){let path=params.get('path')||'';if(!/^(artifacts|references|sources)\\/[A-Za-z0-9_.\\/-]+$/.test(path)||path.includes('..')){node.textContent='无效证据路径';return}document.getElementById('evidence-path').textContent=path;document.getElementById('evidence-raw').href=path;loadEvidence(path,node)}});"""
     js += """
 async function loadJson(path){let response=await fetch(path);if(!response.ok)throw Error('HTTP '+response.status);return response.json()}
 async function loadEvidence(path,node){try{let index=await loadJson('artifact-shard-index.json'),shardPath=index[path];if(!shardPath)throw Error('证据索引缺失');let shard=await loadJson(shardPath),hash=shard.artifacts[path],value=shard.blobs[hash];if(typeof value!=='string')throw Error('证据内容缺失');node.textContent=value;let raw=document.getElementById('evidence-raw');raw.href=URL.createObjectURL(new Blob([value],{type:'text/plain;charset=utf-8'}));raw.download=path.split('/').pop()}catch(error){node.textContent='无法读取证据：'+error.message}}
 async function renderResult(){let params=new URLSearchParams(location.search),provider=params.get('provider')||'',id=params.get('id')||'';let title=document.getElementById('result-title');if(!/^[a-z0-9-]+$/.test(provider)||!/^[A-Za-z0-9-]+$/.test(id)){title.textContent='无效结果地址';return}try{let index=await loadJson('result-shard-index.json'),key=provider+'|'+id,shardPath=index[key];if(!shardPath)throw Error('结果索引缺失');let shard=await loadJson(shardPath),row=shard.results[key];if(!row)throw Error('结果内容缺失');let names={moli:'Moli',lightpanda:'Lightpanda',obscura:'Obscura',chromium:'Chrome',kitesurf:'Kitesurf'},name=names[provider]||provider;title.textContent=name+' · '+id;document.title=title.textContent+' · WebMainBench 545';document.getElementById('result-source').textContent=row.original_url;let failure=['请求失败','空输出','错误页'].includes(row.diagnosis),detail=document.querySelector('[data-report-detail]');detail.dataset.reportDetail=failure?'failed':'success';document.getElementById('result-summary').textContent='状态：'+(row.ok?'返回成功':'请求失败')+'；诊断：'+row.diagnosis+'；最终调用 '+row.elapsed_ms.toFixed(0)+' ms；物理调用 '+row.physical_attempt_count+' 次，含重试总耗时 '+row.total_elapsed_ms.toFixed(0)+' ms。';let section=document.getElementById('result-failure');section.hidden=!failure;if(failure){document.getElementById('result-stage').textContent='阶段：'+(row.error_type||row.diagnosis);document.getElementById('result-error').textContent='程序错误：'+(row.error_message||'无');document.getElementById('result-log').textContent=row.provider_metadata?.stderr||row.provider_metadata?.browser_stderr||'无日志';document.getElementById('result-cause').textContent='复核原因：'+(row.review?.cause||'未记录');document.getElementById('result-treatment').textContent='处理：'+(row.review?.treatment||'未记录').replace(/[。；]+$/,'')+'；状态：'+(row.review?.status||'未记录')}let labels=[['text_edit','全文'],['code_edit','代码'],['formula_edit','公式'],['table_edit','表格内容'],['table_TEDS','表格结构']],body=document.getElementById('result-metrics');for(let [metric,label] of labels){let tr=document.createElement('tr'),entry=row.metrics?.[metric]||{};for(let value of [label,(!entry.success||entry.score==null)?'—':(entry.score*100).toFixed(1)+'%',entry.success?'参与计分':'不参与计分']){let td=document.createElement('td');td.textContent=value;tr.append(td)}body.append(tr)}document.getElementById('result-case').href='cases/index.html?id='+id;document.getElementById('result-output').href='viewer/index.html?path='+encodeURIComponent(row.artifact_path);document.getElementById('result-reference').href='viewer/index.html?path=references/'+id+'.md';document.getElementById('result-source-link').href='viewer/index.html?path=sources/'+id+'.html.txt';let physical=shard.physical[id]||[],list=document.getElementById('result-physical-list');for(let [number,attempt] of physical.entries()){let li=document.createElement('li'),a=document.createElement('a');a.href='viewer/index.html?path='+encodeURIComponent(attempt.physical_artifact_path);a.textContent='第 '+(number+1)+' 次调用 · '+attempt.elapsed_ms.toFixed(0)+' ms';li.append(a);list.append(li)}document.getElementById('result-physical').hidden=!physical.length}catch(error){title.textContent='无法载入结果：'+error.message}}
-async function renderCase(){let id=new URLSearchParams(location.search).get('id')||'',slot=document.getElementById('case-id');if(!/^[A-Za-z0-9-]+$/.test(id)){slot.textContent='无效任务地址';return}try{let dataset=await loadJson('dataset.json'),item=dataset.cases.find(x=>x.id===id);if(!item)throw Error('任务不存在');slot.textContent=id;document.getElementById('case-url').textContent=item.url;document.title='同页比较 '+id+' · WebMainBench 545';document.getElementById('case-source').href='viewer/index.html?path=sources/'+id+'.html.txt';document.getElementById('case-reference').href='viewer/index.html?path=references/'+id+'.md';let index=await loadJson('result-shard-index.json'),names={moli:'Moli',lightpanda:'Lightpanda',obscura:'Obscura',chromium:'Chrome',kitesurf:'Kitesurf'},metrics=['overall','text_edit','code_edit','formula_edit','table_edit','table_TEDS'],providers=dataset.coverage_plan.static_html,paths=[...new Set(providers.map(p=>index[p+'|'+id]))];if(paths.some(x=>!x))throw Error('同页结果不完整');let loaded=await Promise.all(paths.map(loadJson)),shards=Object.fromEntries(paths.map((p,i)=>[p,loaded[i]])),body=document.getElementById('case-results');for(let provider of providers){let row=shards[index[provider+'|'+id]].results[provider+'|'+id];if(!row)throw Error('同页方法缺失');let tr=document.createElement('tr'),td=document.createElement('td'),link=document.createElement('a');link.href='results/index.html?provider='+provider+'&id='+id;link.textContent=names[provider]||provider;td.append(link);tr.append(td);td=document.createElement('td');td.textContent=row.diagnosis;tr.append(td);for(let metric of metrics){td=document.createElement('td');let score=row.metrics?.[metric]?.score;td.textContent=(!row.metrics?.[metric]?.success||score==null)?'—':(score*100).toFixed(1)+'%';tr.append(td)}body.append(tr)}}catch(error){slot.textContent='无法载入同页结果：'+error.message}}
+async function renderCase(){
+  let id=new URLSearchParams(location.search).get('id')||'',slot=document.getElementById('case-id');
+  if(!/^[A-Za-z0-9-]+$/.test(id)){slot.textContent='无效任务地址';return}
+  try{
+    let dataset=await loadJson('dataset.json'),item=dataset.cases.find(x=>x.id===id);
+    if(!item)throw Error('任务不存在');
+    slot.textContent=id;document.getElementById('case-url').textContent=item.url;
+    document.title='同页比较 '+id+' · WebMainBench 545';
+    document.getElementById('case-source').href='viewer/index.html?path=sources/'+id+'.html.txt';
+    document.getElementById('case-reference').href='viewer/index.html?path=references/'+id+'.md';
+    let resultIndex=await loadJson('result-shard-index.json'),artifactIndex=await loadJson('artifact-shard-index.json');
+    let names={moli:'Moli',lightpanda:'Lightpanda',obscura:'Obscura',chromium:'Chrome',kitesurf:'Kitesurf'};
+    let metrics=['overall','text_edit','code_edit','formula_edit','table_edit','table_TEDS'];
+    let providers=dataset.coverage_plan.static_html,referencePath='references/'+id+'.md';
+    let paths=[...new Set([...providers.map(p=>resultIndex[p+'|'+id]),artifactIndex[referencePath]])];
+    if(paths.some(x=>!x))throw Error('同页证据不完整');
+    let loaded=await Promise.all(paths.map(loadJson)),shards=Object.fromEntries(paths.map((p,i)=>[p,loaded[i]]));
+    let referenceShard=shards[artifactIndex[referencePath]],reference=referenceShard.blobs[referenceShard.artifacts[referencePath]];
+    if(typeof reference!=='string')throw Error('人工答案缺失');
+    let grid=document.getElementById('case-comparison'),referencePanel=document.createElement('article');
+    referencePanel.className='panel';let referenceTitle=document.createElement('h2');referenceTitle.textContent='人工主内容答案';
+    let referenceNote=document.createElement('p');referenceNote.className='note';referenceNote.textContent='人工答案是评测参考，判断正文与格式仍需结合冻结网页和各方法输出。';
+    let referenceBody=document.createElement('pre');referenceBody.textContent=reference;
+    referencePanel.append(referenceTitle,referenceNote,referenceBody);grid.append(referencePanel);
+    let body=document.getElementById('case-results');
+    for(let provider of providers){
+      let shard=shards[resultIndex[provider+'|'+id]],row=shard.results[provider+'|'+id];
+      if(!row)throw Error('同页方法缺失');
+      let output=shard.blobs[shard.artifacts[row.artifact_path]];
+      if(typeof output!=='string')throw Error('方法输出缺失：'+provider);
+      let tr=document.createElement('tr'),td=document.createElement('td'),link=document.createElement('a');
+      link.href='results/index.html?provider='+provider+'&id='+id;link.textContent=names[provider]||provider;
+      td.append(link);tr.append(td);td=document.createElement('td');td.textContent=row.diagnosis;tr.append(td);
+      for(let metric of metrics){td=document.createElement('td');let entry=row.metrics?.[metric];td.textContent=(!entry?.success||entry.score==null)?'—':(entry.score*100).toFixed(1)+'%';tr.append(td)}
+      body.append(tr);
+      let panel=document.createElement('article');panel.className='panel result-output';
+      let title=document.createElement('h2');title.textContent=names[provider]||provider;
+      let note=document.createElement('p');note.className='note';note.textContent='诊断：'+row.diagnosis+'；正文 '+row.output_chars+' 字。';
+      let detail=document.createElement('a');detail.href=link.href;detail.textContent='查看评分、错误与调用记录';
+      let raw=document.createElement('pre');raw.textContent=output||'（空输出）';
+      panel.append(title,note,detail,raw);grid.append(panel);
+    }
+  }catch(error){slot.textContent='无法载入同页结果：'+error.message}
+}
 document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('result-title'))renderResult();if(document.getElementById('case-id'))renderCase()});
 """
     (out / "assets").mkdir(exist_ok=True)
@@ -2867,7 +2909,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
         return table(['方法', '全部逻辑调用', '均值', 'P50', 'P95'], rows)
 
     home = ('<section class="hero"><h1>' + prose('home_title') + '</h1><p>' + prose('home_lead') + '</p></section>' +
-            '<figure><picture><source media="(max-width:650px)" srcset="assets/infographic-mobile.png"><img src="assets/infographic.png" alt="545 页完整测试：Moli 34.00%，Lightpanda 33.43%，Kitesurf 32.86%，Chrome 23.64%，Obscura 22.35%；机器问题共 28 条，其中请求失败 17、成功却空正文 10、浏览器错误页 1" style="display:block;width:100%;height:auto;border-radius:12px"></picture><figcaption class="note">' + prose('infographic_caption') + '</figcaption></figure>' +
+            '<figure><picture><source media="(max-width:650px)" srcset="assets/infographic-mobile.png"><img src="assets/infographic.png" alt="545 页五方法的机器问题矩阵：Moli 解析器崩溃 2、共 3 条；Lightpanda 0；Obscura 共 3 条；Chrome 错误页 1；Kitesurf 服务错误 6、超时 5、空正文 10，共 21 条；冻结页跳转受阻分别影响 Moli、Obscura、Chrome 各 1 条" style="display:block;width:100%;height:auto;border-radius:12px"></picture><figcaption class="note">' + prose('infographic_caption') + '</figcaption></figure>' +
             '<section><h2>核心结果</h2>' + metric_table() + '<p class="note">' + prose('score_note') + '</p></section>' +
             '<section><h2>全部页面的调用耗时</h2>' + all_call_latency_table() + '<p class="note">' + prose('all_latency_note') + '</p></section>' +
             '<section><h2>成功页面的调用耗时与重试成本</h2>' + latency_table() + '<p class="note">' + prose('latency_note') + '</p></section>' +
@@ -2886,29 +2928,36 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
     page("dataset/index.html", "数据集", '<section class="hero"><h1>冻结网页与人工答案</h1><p>' + prose('dataset_lead') + '</p></section>' +
          table(["任务 ID", "语言", "难度", "来源", "证据"], dataset_rows))
     options = ["issue", "all", "请求失败", "空输出", "错误页", "低全文相似度", "未触发诊断"]
+    cause_order = ("Moli 解析器崩溃", "Kitesurf 服务错误", "Kitesurf 请求超时",
+                   "Kitesurf 空正文", "Obscura 空响应", "Obscura 导航循环", "冻结页跳转受阻")
     filters = ('<div class="filters"><label>搜索任务或网址<input id="q" type="search"></label><label>方法<select id="provider"><option value="">全部方法</option>' +
                ''.join('<option value="' + provider + '">' + esc(labels[provider]) + "</option>" for provider in providers) +
                '</select></label><label>诊断<select id="kind">' +
                ''.join('<option value="' + esc(kind) + '">' + esc("全部问题" if kind == "issue" else "全部结果" if kind == "all" else kind) + "</option>" for kind in options) +
+               '</select></label><label>已复核原因<select id="cause"><option value="">全部原因</option>' +
+               ''.join('<option value="' + esc(kind) + '">' + esc(kind) + '</option>' for kind in cause_order) +
                "</select></label></div>")
     result_rows = []
     for row in records:
         case_id, provider = row["case_id"], row["provider"]
         kind = categories[row["attempt_id"]]
+        review = reviewed_failures.get((provider, case_id))
         result_rows.append('<tr data-result data-provider="' + provider + '" data-kind="' + esc(kind) +
+                           '" data-cause="' + esc(review["category_label"] if review else "") +
                            '" data-search="' + esc((case_id + " " + row["original_url"]).lower()) + '"><td>' +
-                           anchor("results/index.html?provider=" + provider + "&id=" + case_id, case_id) + "</td><td>" +
-                           esc(labels[provider]) + "</td><td>" + esc(kind) + "</td><td>" +
+                           anchor("cases/index.html?id=" + case_id, case_id) + "</td><td>" +
+                           anchor("results/index.html?provider=" + provider + "&id=" + case_id, labels[provider]) + "</td><td>" + esc(kind) + "</td><td>" +
                            percent(score(row, "text_edit")) + "</td><td>" + f'{row["elapsed_ms"]:,.0f} ms' +
                            "</td><td>" + anchor("cases/index.html?id=" + case_id, "同页") + "</td></tr>")
     page("analysis/index.html", "结果分析", '<section class="hero"><h1>逐项结果与问题定位</h1><p>' + prose('analysis_lead') + '</p></section>' +
          filters + '<p>当前显示 <strong id="count"></strong> 条。<span id="empty" hidden>当前条件无结果。</span></p>' +
          table(["任务", "方法", "诊断", "全文分", "最终调用", "同页"], result_rows))
     page("cases/index.html", "同页比较",
-         '<section class="hero"><h1>同一网页的五种转换</h1><p id="case-id"></p><p class="source" id="case-url"></p></section>'
+         '<section class="hero"><h1>人工答案与五种方法的完整输出</h1><p id="case-id"></p><p class="source" id="case-url"></p></section>'
          '<p class="actions"><a id="case-source">冻结网页</a><a id="case-reference">人工答案</a>' + anchor("dataset/index.html", "返回数据集") + '</p>'
          '<div class="scroll"><table><thead><tr><th>方法</th><th>诊断</th>' + ''.join('<th>' + esc(label) + '</th>' for _, label in measures) +
-         '</tr></thead><tbody id="case-results"></tbody></table></div>')
+         '</tr></thead><tbody id="case-results"></tbody></table></div>'
+         '<section><h2>同页内容对照</h2><div class="compare-grid" id="case-comparison"></div></section>')
     page("results/index.html", "逐项结果",
          '<div data-report-detail="pending"><section class="hero"><h1 id="result-title">正在载入结果…</h1><p class="source" id="result-source"></p></section>'
          '<section class="panel" data-result-summary><h2>结果摘要</h2><p id="result-summary"></p></section>'
@@ -3011,6 +3060,28 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
             anchor("analysis/index.html?provider=" + provider + "&kind=" + kind,
                    str(sum(categories[row["attempt_id"]] == kind for row in selected))) + "</td>"
             for kind in diagnostic_kinds) + "</tr>")
+    cause_owners = {
+        "Moli 解析器崩溃": "Moli 引擎",
+        "Kitesurf 服务错误": "Kitesurf 服务",
+        "Kitesurf 请求超时": "Kitesurf 服务或传输，内部阶段未定位",
+        "Kitesurf 空正文": "Kitesurf 接口，内部原因未知",
+        "Obscura 空响应": "Obscura",
+        "Obscura 导航循环": "Obscura",
+        "冻结页跳转受阻": "共享输入与隔离环境",
+    }
+    cause_counts = Counter((row["category_label"], row["provider"])
+                           for row in failure_analysis["reviewed_failures"])
+    cause_rows = []
+    for cause in cause_order:
+        cells = []
+        for provider in providers:
+            count = cause_counts[cause, provider]
+            label = str(count) if count else "—"
+            target = "analysis/index.html?provider=" + provider + "&cause=" + cause
+            cells.append('<td data-cause-provider="' + provider + '" data-cause-kind="' + esc(cause) + '">' +
+                         (anchor(target, label) if count else label) + '</td>')
+        cause_rows.append('<tr><td>' + esc(cause) + '</td>' + ''.join(cells) +
+                          '<td>' + esc(cause_owners[cause]) + '</td></tr>')
     page("guide/index.html", "结果解读",
          '<section class="hero"><h1>结果解读</h1><p>' + esc(outcome) + " " + prose('guide_lead') + '</p></section><section><h2>质量与样本</h2>' +
          metric_table() + '<p class="note">' + prose('guide_scope') + '</p></section><section><h2>核对完整输出</h2><p>' + prose('guide_outputs') + '</p>' +
@@ -3021,8 +3092,8 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
          '<p class="note">' + prose('guide_method_scope') + '</p>' +
          table(["方法", *diagnostic_kinds], diagnostic_rows) + '</section><section><h2>错误类别</h2>' +
          table(["类别", "结果数"], ["<tr><td>" + esc(kind) + "</td><td>" + str(count) + "</td></tr>" for kind, count in sorted(counts.items())]) +
-         '<p class="note">' + prose('guide_diagnosis') + '</p><h3>已复核的机器问题原因</h3>' +
-         table(["原因", "结果数"], ["<tr><td>" + esc(kind) + "</td><td>" + str(count) + "</td></tr>" for kind, count in sorted(reviewed_categories.items())]) +
+         '<p class="note">' + prose('guide_diagnosis') + '</p><h3>已复核问题：错误类型 × 方法</h3>' +
+         table(["错误类型", *[labels[provider] for provider in providers], "归属或定位"], cause_rows) +
          '<p>' + str(len(reviewed_failures)) + '/' + str(machine_issue_count) + ' ' + prose('review_scope_failure') +
          '；' + str(len(records) - len(reviewed_failures)) + ' ' + prose('review_scope_pass') + '</p>' +
          anchor('failure-analysis.json', '查看逐条失败原因与处理') +
