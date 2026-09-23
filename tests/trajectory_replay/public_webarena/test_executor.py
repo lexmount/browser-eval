@@ -35,6 +35,9 @@ class FakePage:
         self.calls.append(("wait_for_url", url, kwargs))
         self.url = "https://example.com/reports/ready"
 
+    def wait_for_timeout(self, milliseconds):
+        self.calls.append(("wait", milliseconds))
+
     def evaluate(self, script, argument=None):
         self.calls.append(("evaluate", script, argument))
         if script == "() => ({ok: true, count: 2})":
@@ -258,6 +261,13 @@ def test_wait_for_url_uses_declared_readiness_contract():
             {"wait_until": "domcontentloaded", "timeout": 120_000},
         )
     ]
+
+
+@pytest.mark.parametrize("duration,expected", [({"timeout": 700}, 700), ({"seconds": 2}, 2000)])
+def test_wait_preserves_recorded_duration(duration, expected):
+    page = FakePage()
+    execute_steps(page, ({"action": "wait", **duration},))
+    assert page.calls == [("wait", expected)]
 
 
 def test_task_wall_clock_budget_caps_each_action_timeout(monkeypatch):

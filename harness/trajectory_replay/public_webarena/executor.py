@@ -356,6 +356,16 @@ def execute_steps(
                     timeout=timeout,
                 )
                 observation = f"URL ready: {getattr(action_page, 'url', '')}"
+            elif action == "wait":
+                requested_ms = (
+                    int(call["timeout"])
+                    if "timeout" in call
+                    else round(float(call["seconds"]) * 1000)
+                )
+                if requested_ms > timeout:
+                    raise TimeoutError("wait exceeds the remaining action budget")
+                action_page.wait_for_timeout(requested_ms)
+                observation = f"Waited {requested_ms} ms."
             elif action == "back":
                 action_page.go_back(wait_until=call.get("wait_until", "commit"), timeout=timeout)
                 observation = f"Navigated back to: {getattr(action_page, 'url', '')}"

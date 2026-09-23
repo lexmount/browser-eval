@@ -114,6 +114,17 @@ def test_load_suite_requires_url_pattern_for_wait_for_url(tmp_path):
         load_suite(path)
 
 
+@pytest.mark.parametrize("duration", [{}, {"timeout": 0}, {"seconds": -1}, {"timeout": 1, "seconds": 1}])
+def test_load_suite_rejects_invalid_wait_duration(tmp_path, duration):
+    path = tmp_path / "tasks.json"
+    path.write_text(
+        json.dumps({"schema": "lex_browser_use_tasks/3", "tasks": [_task("bad", [{"action": "wait", **duration}])]}),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="wait call 1"):
+        load_suite(path)
+
+
 @pytest.mark.parametrize("action", ["click", "fill", "select"])
 @pytest.mark.parametrize("selector", [None, "", "  ", 12])
 def test_load_suite_rejects_ref_only_and_invalid_selectors(tmp_path, action, selector):

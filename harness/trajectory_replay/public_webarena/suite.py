@@ -39,6 +39,7 @@ SUPPORTED_ACTIONS = frozenset(
         "scroll",
         "evaluate",
         "wait_for_url",
+        "wait",
     }
 )
 
@@ -152,6 +153,14 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
         raise ValueError(f"{task_id}: evaluate call {index} requires a non-empty script")
     if action == "wait_for_url" and not str(step.get("url") or "").strip():
         raise ValueError(f"{task_id}: wait_for_url call {index} requires a URL pattern")
+    if action == "wait":
+        milliseconds = step.get("timeout")
+        seconds = step.get("seconds")
+        if (milliseconds is None) == (seconds is None):
+            raise ValueError(f"{task_id}: wait call {index} requires exactly one duration")
+        duration = milliseconds if milliseconds is not None else seconds
+        if type(duration) not in {int, float} or duration <= 0:
+            raise ValueError(f"{task_id}: wait call {index} requires a positive duration")
     try:
         validate_selector(step)
     except ValueError as exc:
