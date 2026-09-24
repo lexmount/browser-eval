@@ -94,13 +94,19 @@ def _run_index(ledger: dict, root: Path) -> dict[str, Path]:
     return found
 
 
-def build(ledger_path: Path, run_root: Path, site_map: Path, catalog_path: Path,
-          suite_path: Path, review_path: Path, output: Path) -> dict:
+def build(ledger_path: Path, predecessor_ledger_path: Path, run_root: Path,
+          site_map: Path, catalog_path: Path, suite_path: Path,
+          review_path: Path, output: Path) -> dict:
     if output.exists() and any(output.iterdir()):
         raise FileExistsError(output)
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
     if ledger.get("schema") != "lex_webarena_full_acceptance_ledger/1" or ledger["counts"]["pass"] != 812 or ledger["counts"]["unresolved"] != 0:
         raise ValueError("full acceptance ledger is incomplete")
+    predecessor = json.loads(predecessor_ledger_path.read_text(encoding="utf-8"))
+    if (predecessor.get("schema") != "lex_webarena_full_acceptance_ledger/1"
+            or predecessor.get("counts", {}).get("pass") != 812
+            or predecessor["counts"].get("unresolved") != 0):
+        raise ValueError("first-round acceptance ledger is incomplete")
     scope_path = Path("evaluation/trajectory-replay/webarena-verified-full/scope.json")
     environment_path = Path("evaluation/trajectory-replay/webarena-verified-full/environment.json")
     scope = json.loads(scope_path.read_text(encoding="utf-8"))
@@ -210,7 +216,7 @@ def build(ledger_path: Path, run_root: Path, site_map: Path, catalog_path: Path,
     if len(failures) != len(failure_ids) or sum(site_groups.values()) != 812:
         raise ValueError("initial failure or site population changed")
     initial_pass = 812 - len(failures)
-    summary = (f'<h1>WebArena-Verified 全量轨迹重放</h1><p class="lead">Chromium：812 / 812 题获得一次官方 evaluator 通过（100%）。'
+    summary = (f'<h1>WebArena-Verified 全量轨迹重放</h1><p class="lead">重置后的 Chromium 第二轮验收：812 / 812 题获得一次官方 evaluator 通过（100%）。'
                f'按官方题号顺序的验收主轮首次通过 {initial_pass} / 812；失败 {len(failures)} 题在定向修复后通过。</p>')
     summary += ('<section class="panel"><h2>核心结果</h2><div class="scroll"><table><thead><tr><th>浏览器</th><th>题数</th><th>通过</th><th>主轮首次通过</th><th>Mean 耗时</th><th>P50 耗时</th><th>P95 耗时</th></tr></thead><tbody>'
                 f'<tr><td>Chromium</td><td>812</td><td>812</td><td>{initial_pass}</td><td>{statistics.mean(timings)/1000:.2f} 秒</td><td>{statistics.median(timings)/1000:.2f} 秒</td><td>{_percentile(timings,.95)/1000:.2f} 秒</td></tr></tbody></table></div>'
@@ -236,8 +242,9 @@ def build(ledger_path: Path, run_root: Path, site_map: Path, catalog_path: Path,
                        'else document.getElementById("payload").textContent="无效的题号";</script>')
     (output / "contract.html").write_text(_page("任务接受条件与固定轨迹", contract_viewer), encoding="utf-8")
     method = ('<h1>方法与适用边界</h1><section class="panel"><h2>执行链</h2>'
-              '<pre>官方 812 题与 evaluator → 固定 BrowserTool 动作 → Chromium 执行 → 官方 evaluator → 不通过题定向修复 → 首次通过锁定</pre>'
+              '<pre>第一轮 812 / 812 收尾 → 重置四个可变站点 → 官方顺序完整执行 812 题 → 仅修复本轮失败题 → 第二轮 812 / 812</pre>'
               '<p>按题号 0–811 执行主轮；每题仅在失败后补跑。浏览器引擎为 Chromium，二进制和每次运行输入按 SHA-256 绑定。六个网站部署在 Rainbond。</p>'
+              f'<p>前序全量验收已达到 812 / 812，共 {predecessor["counts"]["physical_attempts"]} 次物理执行；本报告只以重置后的第二轮作为当前结果。</p>'
               '<p>可执行候选轨迹并不等于官方人工 gold 轨迹。仓库另有 179 条公开人工 Playwright 录制；其原始录制本身不保证官方判分通过。</p></section>'
               '<section class="panel"><h2>判分与审计</h2><p>每题最后一次选入调用必须由原版官方 evaluator 给出 score 1.0；失败调用仍保留。'
               f'评测答案和通过标准未因浏览器表现而放松。主轮 {len(failures)} 题首次失败均有补跑证据；通过题不因诊断再测。</p>'
@@ -259,6 +266,8 @@ def build(ledger_path: Path, run_root: Path, site_map: Path, catalog_path: Path,
     (output / "en" / "index.html").write_text(_page("English edition not generated", '<h1>English edition not generated</h1><p>本次仅生成中文版。<a href="../index.html">返回中文报告</a></p>', prefix="../"), encoding="utf-8")
     manifest = {"schema": "lex_webarena_full_acceptance_report/1", "generated_languages": ["zh"],
                 "ledger_sha256": _hash(ledger_path), "scope_sha256": _hash(scope_path),
+                "predecessor_ledger_sha256": _hash(predecessor_ledger_path),
+                "predecessor_physical_attempts": predecessor["counts"]["physical_attempts"],
                 "failure_review_sha256": _hash(review_path),
                 "environment_sha256": _hash(environment_path),
                 "catalog_sha256": _hash(catalog_path), "portable_suite_sha256": _hash(suite_path),
@@ -274,6 +283,7 @@ def build(ledger_path: Path, run_root: Path, site_map: Path, catalog_path: Path,
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ledger", type=Path, required=True)
+    parser.add_argument("--predecessor-ledger", type=Path, required=True)
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--site-map", type=Path, required=True)
     parser.add_argument("--catalog", type=Path, required=True)
@@ -281,7 +291,7 @@ def main() -> None:
     parser.add_argument("--failure-review", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    print(json.dumps(build(args.ledger, args.run_root, args.site_map,
+    print(json.dumps(build(args.ledger, args.predecessor_ledger, args.run_root, args.site_map,
                            args.catalog, args.portable_suite, args.failure_review, args.output), ensure_ascii=False))
 
 

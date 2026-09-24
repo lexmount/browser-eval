@@ -22,6 +22,8 @@ def check_report(root: Path) -> None:
             or not isinstance(manifest.get("initial_failures"), list)
             or manifest.get("initial_pass") != 812 - len(manifest["initial_failures"])
             or manifest.get("physical_attempts", 0) < 812
+            or manifest.get("predecessor_physical_attempts", 0) < 812
+            or not manifest.get("predecessor_ledger_sha256")
             or not manifest.get("failure_review_sha256")):
         raise ValueError("report manifest differs from the audited population")
     home = (root / "index.html").read_text(encoding="utf-8")
@@ -37,6 +39,7 @@ def check_report(root: Path) -> None:
     if (home.count('data-search="') != 812
             or home.count('href="case/') != 812
             or home.count("<h2>核心结果</h2>") != 1
+            or "第二轮验收" not in home
             or "812 / 812" not in home or f'{manifest["initial_pass"]} / 812' not in home
             or str(manifest["physical_attempts"]) not in home
             or any(label not in home for label in ("Mean 耗时", "P50 耗时", "P95 耗时", "网站分布", "逐题结果"))):
@@ -52,6 +55,8 @@ def check_report(root: Path) -> None:
                 or not contract.get("fixed_actions")):
             raise ValueError(f"task {task_id} acceptance contract or trajectory is missing")
     if ("部署与镜像" not in method or "验收专用应用" not in method
+            or "第一轮 812 / 812 收尾" not in method
+            or str(manifest["predecessor_physical_attempts"]) not in method
             or "evidence/" not in viewer
             or "English edition not generated" not in english
             or '../index.html' not in english):

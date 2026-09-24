@@ -5,9 +5,10 @@
   "browser": "chromium",
   "scope_path": "evaluation/trajectory-replay/webarena-verified-full/scope.json",
   "scope_sha256": "91b93b44603d06cd84fa43e17296b41058a56e3288430fd53ec635ce5c8e81d5",
+  "first_round_acceptance_ledger_sha256": "fd7d5190b44c202d0adec77d9a7748136b9ebc19a1723d04f7ae5a0ac96c41ec",
   "acceptance_ledger_sha256": "4c4eaa9f8b243562778c715cb25e70683b8be372fd544a8081b84a1d89ee7b8c",
-  "report_manifest_sha256": "8dc37e0f84a33c5bacac7699a208bda76d4fa32989b972f750eb5d7c57c4e136",
-  "report_archive_sha256": "37bf6e86149ddec81b3054fa20a80833b731b5753e15cecc829f39a298078073",
+  "report_manifest_sha256": "9ec556c80660e88c1bbfba4d641a0e67041dec49343274a5747be9f9cbab7f68",
+  "report_archive_sha256": "d3627b5d51fd3ac57c81fabee417277b3e5a1012f909aa621ff55a9d822d055c",
   "generated_languages": ["zh"],
   "publication": {
     "service": "artifact-site",
