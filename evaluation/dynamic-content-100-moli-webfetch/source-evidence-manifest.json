@@ -1,0 +1,1511 @@
+{
+  "schema_version": 1,
+  "kind": "dataset_source_evidence_inventory",
+  "dataset_id": "dynamic-qualified-100-moli-native-local-audit-20260924",
+  "dataset_sha256": "2a149a7003a43ee4746bf1d11669154506a96172ddfe51f7abb9b2d547fba8b3",
+  "scope": {
+    "dataset_cases": 100,
+    "cases_with_source_evidence": 88,
+    "files": 214
+  },
+  "files": [
+    {
+      "case_id": "dynamic-013-en-stable-patternfly-table",
+      "path": "evaluation/sources/dynamic-013-en-stable-patternfly-table/mixed-session-stable-text.json",
+      "sha256": "c53790991c19ef2a13cd796528b490994e102485ceb9e6e72e058e19085176d0",
+      "bytes": 6707,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-013-en-stable-patternfly-table",
+      "path": "evaluation/sources/dynamic-013-en-stable-patternfly-table/mixed-session-stable-text.txt",
+      "sha256": "c1a9038a6e635c30a53be894bb72c10b7c9f4ddbd9a161ea8755215a7485e019",
+      "bytes": 5372,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-014-en-stable-rsuite-table",
+      "path": "evaluation/sources/dynamic-014-en-stable-rsuite-table/mixed-session-stable-text.json",
+      "sha256": "02e8f9cb3b7c00f759c8461ac47bdc18376ff89328e1a33dda9544619b536b5c",
+      "bytes": 47040,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-014-en-stable-rsuite-table",
+      "path": "evaluation/sources/dynamic-014-en-stable-rsuite-table/mixed-session-stable-text.txt",
+      "sha256": "05bfea3e8d6386414b91e6e03219da766d9155687af54a0cd6c87e6e4dd443a4",
+      "bytes": 39874,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-015-015-testpages-iframe-list",
+      "path": "evaluation/sources/dynamic-015-015-testpages-iframe-list/mixed-session-stable-text.json",
+      "sha256": "cc1c90aec8f0550b7dc91b747abbe591e346ec4195fa75693a0c8e4ebb048800",
+      "bytes": 14889,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-015-015-testpages-iframe-list",
+      "path": "evaluation/sources/dynamic-015-015-testpages-iframe-list/mixed-session-stable-text.txt",
+      "sha256": "73ce5d1e75cad5299061de4c3f878bd2e996116e9c6df0d3ccf4ef783ba900bb",
+      "bytes": 12404,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-016-en-stable-angular-tree",
+      "path": "evaluation/sources/dynamic-016-en-stable-angular-tree/mixed-session-stable-text.json",
+      "sha256": "605e40bdc84e0cc2dc9e5dec9620011b341801b73646054b674b0547142e5a55",
+      "bytes": 3005,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-016-en-stable-angular-tree",
+      "path": "evaluation/sources/dynamic-016-en-stable-angular-tree/mixed-session-stable-text.txt",
+      "sha256": "cc01dbc3c0b777cc7f546e839037855025abe7a33b1746735027b2b8571795d3",
+      "bytes": 2210,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-017-en-stable-eui-table",
+      "path": "evaluation/sources/dynamic-017-en-stable-eui-table/mixed-session-stable-text.json",
+      "sha256": "409b97ae9ace29e601564980d13762ea9b929781b53f506efade02bcb191ac2f",
+      "bytes": 12451,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-017-en-stable-eui-table",
+      "path": "evaluation/sources/dynamic-017-en-stable-eui-table/mixed-session-stable-text.txt",
+      "sha256": "9821c2b84a557a609c9733278264207ecb2c4e15e4061ca0871adddc2b3977e1",
+      "bytes": 10312,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-018-en-stable-varlet-home",
+      "path": "evaluation/sources/dynamic-018-en-stable-varlet-home/mixed-session-stable-text.json",
+      "sha256": "c4beef6e406a74fa0a02a9ef3cbe729ea78c2ba6f4c13649b31baf922467f2eb",
+      "bytes": 2051,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-018-en-stable-varlet-home",
+      "path": "evaluation/sources/dynamic-018-en-stable-varlet-home/mixed-session-stable-text.txt",
+      "sha256": "e22c367b02830ec7e49c120f38e69c1bf45435d0af93946708a1721b87250e94",
+      "bytes": 1415,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-019-selenium-dev-selenium",
+      "path": "evaluation/sources/dynamic-019-selenium-dev-selenium/mixed-session-stable-text.json",
+      "sha256": "2931d10a0dec9fd1ba467e3e8dab7f311d4e996d1d3792cdf70c6e1ff2a41020",
+      "bytes": 5338,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-019-selenium-dev-selenium",
+      "path": "evaluation/sources/dynamic-019-selenium-dev-selenium/mixed-session-stable-text.txt",
+      "sha256": "3b6b294c6a9c4b7ab1c29e1407ef20a3021706a322182f280188d1fe1509df3e",
+      "bytes": 4305,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-020-webscraper-io-test",
+      "path": "evaluation/sources/dynamic-020-webscraper-io-test/mixed-session-stable-text.json",
+      "sha256": "05d40bd267789bff2ae9fc4fe128c1fb7382572f955a7932931dc200a595d6a5",
+      "bytes": 8493,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-020-webscraper-io-test",
+      "path": "evaluation/sources/dynamic-020-webscraper-io-test/mixed-session-stable-text.txt",
+      "sha256": "c267fe184dcf774da6d82940f393c0f378c691dd0625037b955dc5b92b13c08d",
+      "bytes": 6916,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-021-021-scalar-get-operation",
+      "path": "evaluation/sources/dynamic-021-021-scalar-get-operation/mixed-session-stable-text.json",
+      "sha256": "24bd023ec4e968f99e07c8ad26e5dd9cb6a786239eb70dfdb241fbd9db5753c4",
+      "bytes": 3320,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-021-021-scalar-get-operation",
+      "path": "evaluation/sources/dynamic-021-021-scalar-get-operation/mixed-session-stable-text.txt",
+      "sha256": "bc98d9ef3bb7fee3f530153c3397f146297653334363941e49345e84da3adfa5",
+      "bytes": 2498,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-022-en-stable-syncfusion-grid",
+      "path": "evaluation/sources/dynamic-022-en-stable-syncfusion-grid/mixed-session-stable-text.json",
+      "sha256": "17645460d22bb007bab3dbc2d9cea4b5f53ee71663289edf47dec79349cff098",
+      "bytes": 4763,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-022-en-stable-syncfusion-grid",
+      "path": "evaluation/sources/dynamic-022-en-stable-syncfusion-grid/mixed-session-stable-text.txt",
+      "sha256": "a9c5fcd5839ac7430ad8431fe32dbb91a701c25b2eb58097f8e2f6e4804211a3",
+      "bytes": 3824,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-023-en-mui-data-grid-pagination",
+      "path": "evaluation/sources/dynamic-023-en-mui-data-grid-pagination/mixed-session-stable-text.json",
+      "sha256": "493ccc931aecb40c3248890136ac78f1a10530543f9d6ba4fa8cae6f92c03f38",
+      "bytes": 2664,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-023-en-mui-data-grid-pagination",
+      "path": "evaluation/sources/dynamic-023-en-mui-data-grid-pagination/mixed-session-stable-text.txt",
+      "sha256": "e8bf14fae2fb17037d5a893b5e95df7bb14016e0f20bdf7390a4575eaca72d23",
+      "bytes": 1925,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-024-en-stable-gridjs-pagination",
+      "path": "evaluation/sources/dynamic-024-en-stable-gridjs-pagination/mixed-session-stable-text.json",
+      "sha256": "dcfeb948bf473646e2cd990896b729ca5ba3c13ca268513dc2428155318f9eb7",
+      "bytes": 14265,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-024-en-stable-gridjs-pagination",
+      "path": "evaluation/sources/dynamic-024-en-stable-gridjs-pagination/mixed-session-stable-text.txt",
+      "sha256": "55f2fbe41c7e65fc4572c4579fc7a83fcc5e4b501e57142666add369428d4337",
+      "bytes": 11848,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-025-025-tabulator-vertical-virtual-dom",
+      "path": "evaluation/sources/dynamic-025-025-tabulator-vertical-virtual-dom/mixed-session-stable-text.json",
+      "sha256": "19b0a125a2173dc5d33c6be71c180ea0df972e327224bb5c3e9883ce64cbac93",
+      "bytes": 25926,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-025-025-tabulator-vertical-virtual-dom",
+      "path": "evaluation/sources/dynamic-025-025-tabulator-vertical-virtual-dom/mixed-session-stable-text.txt",
+      "sha256": "eefb7082ffc5b7cca01efb1dc46a32f7fcd5b2a547464bd960e2644ef95db820",
+      "bytes": 21879,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-026-bilibili-rank",
+      "path": "evaluation/sources/dynamic-026-bilibili-rank/mixed-session-stable-text.json",
+      "sha256": "171717e867e1e7cc18f2ab3df7bd399a4001a141113958a97c844177b8eb350d",
+      "bytes": 4716,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-026-bilibili-rank",
+      "path": "evaluation/sources/dynamic-026-bilibili-rank/mixed-session-stable-text.txt",
+      "sha256": "99e97ad0a8d7cbaedaacf329343e27251aec9afc0f666b7385bc27943e736ad8",
+      "bytes": 3736,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-027-ej2-syncfusion-com-react",
+      "path": "evaluation/sources/dynamic-027-ej2-syncfusion-com-react/mixed-session-stable-text.json",
+      "sha256": "2286ec111a7627c9c3f47d1755deb4d2d787591c786434f9c182cdf59734d8a3",
+      "bytes": 5583,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-027-ej2-syncfusion-com-react",
+      "path": "evaluation/sources/dynamic-027-ej2-syncfusion-com-react/mixed-session-stable-text.txt",
+      "sha256": "f459297dbf67c83e5ebd0fcc16cbfd0d7827d17526b287bbe154e917f1577047",
+      "bytes": 4585,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-028-ej2-syncfusion-com-react",
+      "path": "evaluation/sources/dynamic-028-ej2-syncfusion-com-react/mixed-session-stable-text.json",
+      "sha256": "a5df2e77bb71012aa81632687d42167440db4bbe77f054c00a454eeb884a02d4",
+      "bytes": 5253,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-028-ej2-syncfusion-com-react",
+      "path": "evaluation/sources/dynamic-028-ej2-syncfusion-com-react/mixed-session-stable-text.txt",
+      "sha256": "8641d57ff536218b2fd57d513cbf4bdb8215d87dcd5ad687877d27f16909c399",
+      "bytes": 4267,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-029-029-primevue-basic-treetable",
+      "path": "evaluation/sources/dynamic-029-029-primevue-basic-treetable/mixed-session-stable-text.json",
+      "sha256": "1e53311ad1d98fa4e52e217bba83c312519ef443421e1605c82046304fede5d4",
+      "bytes": 44818,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-029-029-primevue-basic-treetable",
+      "path": "evaluation/sources/dynamic-029-029-primevue-basic-treetable/mixed-session-stable-text.txt",
+      "sha256": "7ff3e1ca2d40c5188b65959b97500d99198774aa0d620a07cdd92e486de5f768",
+      "bytes": 37995,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-030-030-primevue-basic-virtualscroller",
+      "path": "evaluation/sources/dynamic-030-030-primevue-basic-virtualscroller/mixed-session-stable-text.json",
+      "sha256": "1fc5191bdee88297d6767aa521e78c3780815aefd71ca0a97ad6f012848b1877",
+      "bytes": 41158,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-030-030-primevue-basic-virtualscroller",
+      "path": "evaluation/sources/dynamic-030-030-primevue-basic-virtualscroller/mixed-session-stable-text.txt",
+      "sha256": "671de246cb5aaf7fd80ef53633ca9b1ca8f59929a2d1b327f7d190ba99b34961",
+      "bytes": 34857,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-031-031-primeng-basic-table",
+      "path": "evaluation/sources/dynamic-031-031-primeng-basic-table/mixed-session-stable-text.json",
+      "sha256": "a0ef5c8d828cfb38cc98b570c17295229d187ea807a5276d9a7fcf1d4f8aa852",
+      "bytes": 53137,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-031-031-primeng-basic-table",
+      "path": "evaluation/sources/dynamic-031-031-primeng-basic-table/mixed-session-stable-text.txt",
+      "sha256": "08430be7b3f207202071c52a68922fc4d03a0233f6ca8ca53303951b990ce85a",
+      "bytes": 45120,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-032-032-primeng-basic-virtualscroller",
+      "path": "evaluation/sources/dynamic-032-032-primeng-basic-virtualscroller/mixed-session-stable-text.json",
+      "sha256": "169d1364ea59fa9e25c261437636407efdedc19c60ccce05d822a3d13ff5a938",
+      "bytes": 43150,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-032-032-primeng-basic-virtualscroller",
+      "path": "evaluation/sources/dynamic-032-032-primeng-basic-virtualscroller/mixed-session-stable-text.txt",
+      "sha256": "3d08795c88cd856ae7e5776f58791d7279951aaef0aff681722be0913626ffaa",
+      "bytes": 36563,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-033-033-vuetify-usage-table",
+      "path": "evaluation/sources/dynamic-033-033-vuetify-usage-table/mixed-session-stable-text.json",
+      "sha256": "29c80eb28aeb653c97bd7713234ae577de3c0ddde22691882e14147e4e106461",
+      "bytes": 62652,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-033-033-vuetify-usage-table",
+      "path": "evaluation/sources/dynamic-033-033-vuetify-usage-table/mixed-session-stable-text.txt",
+      "sha256": "51e365dffc25fe7c3c93278fdcab7abd06b3d3c22962df092934f0cd474423a3",
+      "bytes": 53351,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-034-034-vuetify-server-table",
+      "path": "evaluation/sources/dynamic-034-034-vuetify-server-table/mixed-session-stable-text.json",
+      "sha256": "ca6914a35d424ba2275ef0d266bdeed718026e918152485aa471191a96b2c12b",
+      "bytes": 54773,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-034-034-vuetify-server-table",
+      "path": "evaluation/sources/dynamic-034-034-vuetify-server-table/mixed-session-stable-text.txt",
+      "sha256": "effad47bd28fd1e7314fcbdf7ae558bc5fee8238742fb98a5d1aacf96eeb61da",
+      "bytes": 46609,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-035-035-vuetify-virtual-table",
+      "path": "evaluation/sources/dynamic-035-035-vuetify-virtual-table/mixed-session-stable-text.json",
+      "sha256": "5be0c329bf12524156e2c89f05edd7000cde207f6008f220c5237e819d7ad027",
+      "bytes": 54061,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-035-035-vuetify-virtual-table",
+      "path": "evaluation/sources/dynamic-035-035-vuetify-virtual-table/mixed-session-stable-text.txt",
+      "sha256": "70d05bf891baabc5b1287eec68f7ca719dc169af8694f550bdfdf5e79a915572",
+      "bytes": 45997,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-036-yonhap-home",
+      "path": "evaluation/sources/dynamic-036-yonhap-home/mixed-session-stable-text.json",
+      "sha256": "2662ac486f26ed675c75d921b60dcb034e56880dbadb6f7ce45ec3150daf4bbb",
+      "bytes": 5057,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-036-yonhap-home",
+      "path": "evaluation/sources/dynamic-036-yonhap-home/mixed-session-stable-text.txt",
+      "sha256": "5441c0791b264793a117c458a779df0610489f3ceaa84cf042f521e48e4004fa",
+      "bytes": 4004,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-037-quasar-dev-vue",
+      "path": "evaluation/sources/dynamic-037-quasar-dev-vue/mixed-session-stable-text.json",
+      "sha256": "659bc79ca81615b7ad9c64adce3297edccc19fc46d68bcc30330fe3aedbc8fd0",
+      "bytes": 11972,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-037-quasar-dev-vue",
+      "path": "evaluation/sources/dynamic-037-quasar-dev-vue/mixed-session-stable-text.txt",
+      "sha256": "2bd5b89f04300b0c1ec5d3ce818313a39fec08dd1dbf99eeb74e8083cc2559ef",
+      "bytes": 9884,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-038-material-angular-dev-components",
+      "path": "evaluation/sources/dynamic-038-material-angular-dev-components/mixed-session-stable-text.json",
+      "sha256": "37c04420d616f1b6719af3045d4e7e2c521979f453bc4b64d62047c1b7fde204",
+      "bytes": 11028,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-038-material-angular-dev-components",
+      "path": "evaluation/sources/dynamic-038-material-angular-dev-components/mixed-session-stable-text.txt",
+      "sha256": "c966955f1985d1acf0e2333e7f56ff5cc50e6b18881b2bfa83bc953d8fbd12a5",
+      "bytes": 9079,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-039-039-angular-autocomplete-examples",
+      "path": "evaluation/sources/dynamic-039-039-angular-autocomplete-examples/mixed-session-stable-text.json",
+      "sha256": "d982b6225507b968379a3be1223586b7c38d786ed62216609e135b5893af4159",
+      "bytes": 5431,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-039-039-angular-autocomplete-examples",
+      "path": "evaluation/sources/dynamic-039-039-angular-autocomplete-examples/mixed-session-stable-text.txt",
+      "sha256": "e865e1230858c1fcc99adc507e7eeb85e00b389f0b56ad85b3683dbfd7ad8a82",
+      "bytes": 4291,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-040-gridjs-io-docs",
+      "path": "evaluation/sources/dynamic-040-gridjs-io-docs/body-reference.json",
+      "sha256": "56038be5b24df9a8158a7c37e1f7ebc0a1a0ff1595827325b45478651ee05f2c",
+      "bytes": 2562,
+      "purpose": "body reference receipt"
+    },
+    {
+      "case_id": "dynamic-040-gridjs-io-docs",
+      "path": "evaluation/sources/dynamic-040-gridjs-io-docs/mixed-session-stable-text.json",
+      "sha256": "454ba099928c104b9433893d4a800855278102061fd39728e048941bbd3c1d07",
+      "bytes": 14585,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-040-gridjs-io-docs",
+      "path": "evaluation/sources/dynamic-040-gridjs-io-docs/mixed-session-stable-text.txt",
+      "sha256": "900f6be4240b341fef21038bd21486b3201a4a72371ab57efa10cdad50b40f62",
+      "bytes": 12119,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-041-en-stable-heroui-table",
+      "path": "evaluation/sources/dynamic-041-en-stable-heroui-table/mixed-session-stable-text.json",
+      "sha256": "c4673ac4afc1c2869ab31cc0373659cb282b6ca2489dfe1f23ba712448e91987",
+      "bytes": 5298,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-041-en-stable-heroui-table",
+      "path": "evaluation/sources/dynamic-041-en-stable-heroui-table/mixed-session-stable-text.txt",
+      "sha256": "700b1bfe50b33aa605ce732472b0cfb25f93aa6e72775705a96692e03a98c199",
+      "bytes": 4175,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-043-en-stable-grommet-table",
+      "path": "evaluation/sources/dynamic-043-en-stable-grommet-table/mixed-session-stable-text.json",
+      "sha256": "2ddfa246ff784f3d296b87a8cab8775b754627253bef21a6cca86b36ac771ffb",
+      "bytes": 22536,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-043-en-stable-grommet-table",
+      "path": "evaluation/sources/dynamic-043-en-stable-grommet-table/mixed-session-stable-text.txt",
+      "sha256": "be8675dd718607e496bcab6a84c82b0521182dfcdf44d61fa4325acf8b9e2c81",
+      "bytes": 19026,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-046-en-real-hn-algolia",
+      "path": "evaluation/sources/dynamic-046-en-real-hn-algolia/mixed-session-stable-text.json",
+      "sha256": "0853876e66723137b0b032f10c0283899efde685d5a087a7922cfd1f5e2b12c8",
+      "bytes": 3152,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-046-en-real-hn-algolia",
+      "path": "evaluation/sources/dynamic-046-en-real-hn-algolia/mixed-session-stable-text.txt",
+      "sha256": "6662585b36da81116c3922ecef1762a340285a1aeda5abf9356d842d31f854d9",
+      "bytes": 2308,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-050-en-real-usgs-earthquakes",
+      "path": "evaluation/sources/dynamic-050-en-real-usgs-earthquakes/mixed-session-stable-text.json",
+      "sha256": "1e818b7f1a8ce205d437e17761283634b84fce50b1f0559ddcfc1c755adae385",
+      "bytes": 3386,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-050-en-real-usgs-earthquakes",
+      "path": "evaluation/sources/dynamic-050-en-real-usgs-earthquakes/mixed-session-stable-text.txt",
+      "sha256": "ae3c3b1020f8b055af401d8b9648676a5bf8a6e32772e3c8072b728247892f80",
+      "bytes": 2552,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-051-youzan-github-io-vant",
+      "path": "evaluation/sources/dynamic-051-youzan-github-io-vant/mixed-session-stable-text.json",
+      "sha256": "a7cb2d3f95642183e1a0fed765a5b044c64afbaafa5ba0c94a995fe115ce256a",
+      "bytes": 3965,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-051-youzan-github-io-vant",
+      "path": "evaluation/sources/dynamic-051-youzan-github-io-vant/mixed-session-stable-text.txt",
+      "sha256": "4c1c4c95042535aa26a393f04b1cc00dde31a014eb9be3073ee36a283c165944",
+      "bytes": 3046,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-052-bilibili-com-v",
+      "path": "evaluation/sources/dynamic-052-bilibili-com-v/mixed-session-stable-text.json",
+      "sha256": "a2f9e5824ee2a965cfb5b22776195b25be292e70b07b997c23d31cf67f812e83",
+      "bytes": 3332,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-052-bilibili-com-v",
+      "path": "evaluation/sources/dynamic-052-bilibili-com-v/mixed-session-stable-text.txt",
+      "sha256": "21eb9ddb7f8637757689ddfc959030cfeb7e70dfdffa0a9e05dfda1ff69e7c43",
+      "bytes": 2503,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-054-ant-protable-api",
+      "path": "evaluation/sources/dynamic-054-ant-protable-api/mixed-session-stable-text.json",
+      "sha256": "6e78eecf4a8216176c0263cf046a008754f594d1f1fa332501186dc6154944c3",
+      "bytes": 12791,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-054-ant-protable-api",
+      "path": "evaluation/sources/dynamic-054-ant-protable-api/mixed-session-stable-text.txt",
+      "sha256": "5b77c65b1af750a6636dd010bbed99711fd23b2554bf346f04dc7e1ae3ba6e24",
+      "bytes": 10607,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-055-arco-design-vue",
+      "path": "evaluation/sources/dynamic-055-arco-design-vue/mixed-session-stable-text.json",
+      "sha256": "0a35cb5955422b90487baa5aa088280905e68b7dfb7b6bfb7774b062eec71b07",
+      "bytes": 41806,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-055-arco-design-vue",
+      "path": "evaluation/sources/dynamic-055-arco-design-vue/mixed-session-stable-text.txt",
+      "sha256": "3762c74de96a32863a71cdd29639280dd13d6a45ceab11e209fb2be89de08c33",
+      "bytes": 35503,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-056-vant-ui-github-io-vant",
+      "path": "evaluation/sources/dynamic-056-vant-ui-github-io-vant/mixed-session-stable-text.json",
+      "sha256": "c08d3010d50f02abde8f927a5bf2f82612f1ff1fe9f2e669828c266cd0868e95",
+      "bytes": 6637,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-056-vant-ui-github-io-vant",
+      "path": "evaluation/sources/dynamic-056-vant-ui-github-io-vant/mixed-session-stable-text.txt",
+      "sha256": "d4dd65b240ebbfd76b0c04bf3411408f018762e03419a83eb47be99d4ade3e4c",
+      "bytes": 5335,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-057-nutui-jd-com-h5",
+      "path": "evaluation/sources/dynamic-057-nutui-jd-com-h5/mixed-session-stable-text.json",
+      "sha256": "1c5d8492aaa9d61ef4926d35f0986ed21a9ed6a468f7754d1d8fab49c14d98a7",
+      "bytes": 4280,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-057-nutui-jd-com-h5",
+      "path": "evaluation/sources/dynamic-057-nutui-jd-com-h5/mixed-session-stable-text.txt",
+      "sha256": "40d3eed97d07fa79f39b7aaa65792eab921d01a00195e4253535da3cbbb0ef43",
+      "bytes": 3314,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-058-zh-stable-tdesign-table",
+      "path": "evaluation/sources/dynamic-058-zh-stable-tdesign-table/mixed-session-stable-text.json",
+      "sha256": "d0c1e3b8a745214dd0ea360991cbb1eac543efe4c3a3e005b5e2dd2c3f4dd815",
+      "bytes": 10270,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-058-zh-stable-tdesign-table",
+      "path": "evaluation/sources/dynamic-058-zh-stable-tdesign-table/mixed-session-stable-text.txt",
+      "sha256": "3b248150dc3f41dc7330bfddc2ab19019f430b3b319c358a2f221c94f8e97813",
+      "bytes": 8466,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-059-layui-vue-com-zh",
+      "path": "evaluation/sources/dynamic-059-layui-vue-com-zh/mixed-session-stable-text.json",
+      "sha256": "c85154a71432fdf553d25ae20b69acb5e201bf0876a1d56d485b7624ccc4408f",
+      "bytes": 2309,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-059-layui-vue-com-zh",
+      "path": "evaluation/sources/dynamic-059-layui-vue-com-zh/mixed-session-stable-text.txt",
+      "sha256": "5788d6615798815d1eb9c4708f141c6c58a1a86e0713c1f6c9d392f80f923f58",
+      "bytes": 1615,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-061-061-juejin-ranking",
+      "path": "evaluation/sources/dynamic-061-061-juejin-ranking/mixed-session-stable-text.json",
+      "sha256": "1856e1326e6ee1bb9100eb341c7832ba812cae7b56076b1ed59bba9687243341",
+      "bytes": 3199,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-061-061-juejin-ranking",
+      "path": "evaluation/sources/dynamic-061-061-juejin-ranking/mixed-session-stable-text.txt",
+      "sha256": "d559ab36dfdde32714ae1baff47c84d5d6f605651cb5030964c91af5c2464275",
+      "bytes": 2391,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-062-zh-sspai-home",
+      "path": "evaluation/sources/dynamic-062-zh-sspai-home/mixed-session-stable-text.json",
+      "sha256": "7e2b94ae621cf3bed03a230fb5a7c7dd848d54c689ae86ea77fcf613528a157b",
+      "bytes": 2578,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-062-zh-sspai-home",
+      "path": "evaluation/sources/dynamic-062-zh-sspai-home/mixed-session-stable-text.txt",
+      "sha256": "91477c126b65b4f4db1aea200be4e5e3638d6da10aa3b1083e3571192da67d29",
+      "bytes": 1866,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-063-s-weibo-com-top",
+      "path": "evaluation/sources/dynamic-063-s-weibo-com-top/mixed-session-stable-text.json",
+      "sha256": "8177f00e6558a3ad714181d42a95ef5a4dccce41f2e172ac4ca00ca0aaa150e0",
+      "bytes": 3958,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-063-s-weibo-com-top",
+      "path": "evaluation/sources/dynamic-063-s-weibo-com-top/mixed-session-stable-text.txt",
+      "sha256": "61237b9a22896820a069a2a73b69bc232bc280bbd05c9c8eaed7988ecfd850c8",
+      "bytes": 3041,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-065-franceinfo-home",
+      "path": "evaluation/sources/dynamic-065-franceinfo-home/mixed-session-stable-text.json",
+      "sha256": "254111452c2cec1b5a5a9481c5204b01aa029cb06c97563092db9d12208ba58b",
+      "bytes": 13321,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-065-franceinfo-home",
+      "path": "evaluation/sources/dynamic-065-franceinfo-home/mixed-session-stable-text.txt",
+      "sha256": "04ddee5467d9e209c1c3a79f8bbf563d953bb08c65b376e5a36127f959dc39a6",
+      "bytes": 11158,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-068-ja-nintendo-switch2-software",
+      "path": "evaluation/sources/dynamic-068-ja-nintendo-switch2-software/mixed-session-stable-text.json",
+      "sha256": "de9e8edfd7657f4367c5d890ab31af49f91a7862f25ddf5b0b9eef3180ecc888",
+      "bytes": 2751,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-068-ja-nintendo-switch2-software",
+      "path": "evaluation/sources/dynamic-068-ja-nintendo-switch2-software/mixed-session-stable-text.txt",
+      "sha256": "2dfd01157cc0705589f97cf7c2617cb910b095ede2304e44c3a01c6b21a94145",
+      "bytes": 2005,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-069-ja-nintendo-search",
+      "path": "evaluation/sources/dynamic-069-ja-nintendo-search/mixed-session-stable-text.json",
+      "sha256": "105a86d6658b0e5ebe0fe30f6eb701123617971e63bb029f7e8acb30db77f6d0",
+      "bytes": 4148,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-069-ja-nintendo-search",
+      "path": "evaluation/sources/dynamic-069-ja-nintendo-search/mixed-session-stable-text.txt",
+      "sha256": "cf2984e4ade7eedd70a34907f9fa36d4ba90ccf542d5001b78e50c0f2ec4de3d",
+      "bytes": 3206,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-070-nintendo-feature",
+      "path": "evaluation/sources/dynamic-070-nintendo-feature/mixed-session-stable-text.json",
+      "sha256": "876dfb895a8ab4f25d5f4283f8c894842c7b5453949219003ae1c05f7a5d6f71",
+      "bytes": 3722,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-070-nintendo-feature",
+      "path": "evaluation/sources/dynamic-070-nintendo-feature/mixed-session-stable-text.txt",
+      "sha256": "0fe9c8d138ea1d04ee486f4cdd04c8b8535b82834a3e21e822b01b88740fc9fe",
+      "bytes": 2832,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-071-es-cl-falabella-audio",
+      "path": "evaluation/sources/dynamic-071-es-cl-falabella-audio/mixed-session-stable-text.json",
+      "sha256": "28b9f7fc5ace41261d0b7132fa9b787d31227e2b310fa1c6254f80a9846a34c3",
+      "bytes": 3183,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-071-es-cl-falabella-audio",
+      "path": "evaluation/sources/dynamic-071-es-cl-falabella-audio/mixed-session-stable-text.txt",
+      "sha256": "f00d21a4a3f5c38c4d0c375abea84149923f5cb83fb839d2c9a36435b2c9f1d5",
+      "bytes": 2357,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-072-ko-lotteon-home",
+      "path": "evaluation/sources/dynamic-072-ko-lotteon-home/mixed-session-stable-text.json",
+      "sha256": "4306a760fb0ba548b2670ab9b4d4cc031dca54ff9f32942bbfdc7313ff1d70c7",
+      "bytes": 2719,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-072-ko-lotteon-home",
+      "path": "evaluation/sources/dynamic-072-ko-lotteon-home/mixed-session-stable-text.txt",
+      "sha256": "5429b6212ce158acd25b02c007209a9b95906bcb4361f55fd7e8cc64eab3aa3b",
+      "bytes": 1979,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-074-melon-com-chart",
+      "path": "evaluation/sources/dynamic-074-melon-com-chart/mixed-session-stable-text.json",
+      "sha256": "2a3e7a05344a97e68ae919af4af2cbadaf423a7642371287f279ae24a58eb856",
+      "bytes": 4808,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-074-melon-com-chart",
+      "path": "evaluation/sources/dynamic-074-melon-com-chart/mixed-session-stable-text.txt",
+      "sha256": "b3469c344a51c0c0a66280fce20f03032fe37a394d60c3054d01beaea8ecf337",
+      "bytes": 3797,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-076-es-es-nintendo-mario-search",
+      "path": "evaluation/sources/dynamic-076-es-es-nintendo-mario-search/mixed-session-stable-text.json",
+      "sha256": "a4472b1ab4865e39af46e0a65bf9785f534a22beaf34625831ac1c5d3615a7d9",
+      "bytes": 3492,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-076-es-es-nintendo-mario-search",
+      "path": "evaluation/sources/dynamic-076-es-es-nintendo-mario-search/mixed-session-stable-text.txt",
+      "sha256": "947b263ad9f202dbea2a92456ed0c9b8cf5f182868ff9b90cd89588def073862",
+      "bytes": 2626,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-078-es-es-nintendo-switch2-search",
+      "path": "evaluation/sources/dynamic-078-es-es-nintendo-switch2-search/mixed-session-stable-text.json",
+      "sha256": "63185a69f110531144bf641fe55210a97a840a4a7c3976cfc6fff118d1098b28",
+      "bytes": 3491,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-078-es-es-nintendo-switch2-search",
+      "path": "evaluation/sources/dynamic-078-es-es-nintendo-switch2-search/mixed-session-stable-text.txt",
+      "sha256": "f316b5a6ce1bf42c3b8a17c2ef823e2970f708b004738842099ab1ed5cc82bbe",
+      "bytes": 2626,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-080-es-es-nintendo-switch2-edition-search",
+      "path": "evaluation/sources/dynamic-080-es-es-nintendo-switch2-edition-search/mixed-session-stable-text.json",
+      "sha256": "8ee4b9e0ff499c7842d734328cc3290ec6440e17f3ae7b0777ed793ce3c1204a",
+      "bytes": 3541,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-080-es-es-nintendo-switch2-edition-search",
+      "path": "evaluation/sources/dynamic-080-es-es-nintendo-switch2-edition-search/mixed-session-stable-text.txt",
+      "sha256": "54081592894c0965b71467de1989f97bf476c53a8da84bea452ea9c7c6fbba54",
+      "bytes": 2662,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-082-allocine-films",
+      "path": "evaluation/sources/dynamic-082-allocine-films/mixed-session-stable-text.json",
+      "sha256": "8789eac6a33af446aa38f100084ecebe5a418af33583bf935709056c01b48afc",
+      "bytes": 19574,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-082-allocine-films",
+      "path": "evaluation/sources/dynamic-082-allocine-films/mixed-session-stable-text.txt",
+      "sha256": "8ab263580acc18b2d7fd4c7504a36b46a4eacb08f65705da013ad2b550ef2d78",
+      "bytes": 16450,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-086-joyn-prosieben",
+      "path": "evaluation/sources/dynamic-086-joyn-prosieben/mixed-session-stable-text.json",
+      "sha256": "7d96a910fbcf288b1a6424bfae3b094aae7f4e2fe0281698dcc014cc59517af5",
+      "bytes": 6342,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-086-joyn-prosieben",
+      "path": "evaluation/sources/dynamic-086-joyn-prosieben/mixed-session-stable-text.txt",
+      "sha256": "8b9e2b65a5b074181f469938a7973461daf8ce7925bcd7f1d5f81532c0f4814c",
+      "bytes": 5078,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-087-joyn-filme",
+      "path": "evaluation/sources/dynamic-087-joyn-filme/mixed-session-stable-text.json",
+      "sha256": "d6da72d9fb2f2aef4c986cb8602b6d91dc8b4284e6e2e8e256c381c4bf591a25",
+      "bytes": 6294,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-087-joyn-filme",
+      "path": "evaluation/sources/dynamic-087-joyn-filme/mixed-session-stable-text.txt",
+      "sha256": "da9e54661ed0cc3d75d3ef81bac2f75de7a874ea4d35bd89c6ff070ca8b27859",
+      "bytes": 5046,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-091-pt-br-kabum-hardware",
+      "path": "evaluation/sources/dynamic-091-pt-br-kabum-hardware/mixed-session-stable-text.json",
+      "sha256": "3d0a72a6d6536768aa467045ecf95ecd6f16af8f9cf35a4e9f7b1fa804da5071",
+      "bytes": 2671,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-091-pt-br-kabum-hardware",
+      "path": "evaluation/sources/dynamic-091-pt-br-kabum-hardware/mixed-session-stable-text.txt",
+      "sha256": "3948608d53dbffff885d0330cb17d35896d4997b7dab3cc0e24e6ee080da641a",
+      "bytes": 1942,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-092-play-uol-com-br",
+      "path": "evaluation/sources/dynamic-092-play-uol-com-br/mixed-session-stable-text.json",
+      "sha256": "6b0e96c727ef400b48e4de58ce0d682088c8e1deda12244a79433a98f70980d1",
+      "bytes": 9716,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-092-play-uol-com-br",
+      "path": "evaluation/sources/dynamic-092-play-uol-com-br/mixed-session-stable-text.txt",
+      "sha256": "f6697d3e0dabc3f97a878d7b112a91a5da766ad080da89cf78e9d8c803f77268",
+      "bytes": 7989,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-095-joyn-home",
+      "path": "evaluation/sources/dynamic-095-joyn-home/mixed-session-stable-text.json",
+      "sha256": "304e511abae818498aa693819196018212fc24123d4c347d93ec034eaaded92f",
+      "bytes": 6278,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-095-joyn-home",
+      "path": "evaluation/sources/dynamic-095-joyn-home/mixed-session-stable-text.txt",
+      "sha256": "62dc3e1a7ce6e6de33bacc093d7ffc7331d749540d50990951d50be4657f9c9a",
+      "bytes": 5035,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-096-ar-real-cnn-world",
+      "path": "evaluation/sources/dynamic-096-ar-real-cnn-world/mixed-session-stable-text.json",
+      "sha256": "d6113a4d1e194d8f5e10885d78120640d69ce1af6fa133dc9f99f1d7d13e3597",
+      "bytes": 14835,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-096-ar-real-cnn-world",
+      "path": "evaluation/sources/dynamic-096-ar-real-cnn-world/mixed-session-stable-text.txt",
+      "sha256": "cc44653f3a82ea642f3cbb14f2efeec746c841b011f259ccfa9b3e1f034d255c",
+      "bytes": 12384,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-098-shahid-mbc-net-ar",
+      "path": "evaluation/sources/dynamic-098-shahid-mbc-net-ar/mixed-session-stable-text.json",
+      "sha256": "c1d0a6166b5c74fc74a94397faf980bb49e87fa478d7a7848897d03f5276df7f",
+      "bytes": 2946,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-098-shahid-mbc-net-ar",
+      "path": "evaluation/sources/dynamic-098-shahid-mbc-net-ar/mixed-session-stable-text.txt",
+      "sha256": "0785c0d208f51c502bd8b941f6c7f83d41ec5d4f9d2c20e6cb9882d261de65f0",
+      "bytes": 2179,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-104-mui-data-grid",
+      "path": "evaluation/sources/dynamic-104-mui-data-grid/mixed-session-stable-text.json",
+      "sha256": "12b65c951c0a0bedc989f9af00b7638623790a317030d59d5c7d04f6d23877c0",
+      "bytes": 27954,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-104-mui-data-grid",
+      "path": "evaluation/sources/dynamic-104-mui-data-grid/mixed-session-stable-text.txt",
+      "sha256": "2b230b826268a7431fea2f94bf39eff12977034d4d27656ba6ff49cdedb31204",
+      "bytes": 23577,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-105-blueprint-docs",
+      "path": "evaluation/sources/dynamic-105-blueprint-docs/mixed-session-stable-text.json",
+      "sha256": "dc223a01cfadd5d4e63ae066a869392fa69779675c6ade2628248cbd0ca53f4e",
+      "bytes": 1921,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-105-blueprint-docs",
+      "path": "evaluation/sources/dynamic-105-blueprint-docs/mixed-session-stable-text.txt",
+      "sha256": "cfc92f4dfb6945ae4d28dada89de7eb66bbb3e23a2cd4afbc4a86d7752468d47",
+      "bytes": 1294,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-107-redoc-cafe-api",
+      "path": "evaluation/sources/dynamic-107-redoc-cafe-api/mixed-session-stable-text.json",
+      "sha256": "a2e7c1b81fe1193e6c21f0f48070bdb3149bdae52adb109c497e4250bfdb975e",
+      "bytes": 7084,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-107-redoc-cafe-api",
+      "path": "evaluation/sources/dynamic-107-redoc-cafe-api/mixed-session-stable-text.txt",
+      "sha256": "c6ce8bc00330969cad413791b4a70e10d86881efc9a6c4a53bf067f87b2d1923",
+      "bytes": 5733,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-108-swagger-petstore3",
+      "path": "evaluation/sources/dynamic-108-swagger-petstore3/mixed-session-stable-text.json",
+      "sha256": "b321682ffef4342c58f4209fc91a608391fe9753aa6249d0c99b543a8dda9209",
+      "bytes": 2244,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-108-swagger-petstore3",
+      "path": "evaluation/sources/dynamic-108-swagger-petstore3/mixed-session-stable-text.txt",
+      "sha256": "0a45c884c14a78cf9d142bc05a9fdfdb19bcb2608a3c32439a46f031b687f2db",
+      "bytes": 1617,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-angular-phones",
+      "path": "evaluation/sources/dynamic-angular-phones/evidence.json",
+      "sha256": "dcd2f8f1b829cf31e4ceed4caf4be7f8408a61a855596ab546c29d45a7811ba0",
+      "bytes": 792,
+      "purpose": "source verification receipt"
+    },
+    {
+      "case_id": "dynamic-angular-phones",
+      "path": "evaluation/sources/dynamic-angular-phones/initial.html.txt",
+      "sha256": "7c3764ba94011fe3ccdafd51eeb679e49a2fa0519bbc09e6b31aa7438b727954",
+      "bytes": 875,
+      "purpose": "initial HTTP response"
+    },
+    {
+      "case_id": "dynamic-angular-phones",
+      "path": "evaluation/sources/dynamic-angular-phones/mixed-session-stable-text.json",
+      "sha256": "2475cae4f5ea7964575cd01338fef40aa4298fae8c7d223d976ac308aca1dfd9",
+      "bytes": 16045,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-angular-phones",
+      "path": "evaluation/sources/dynamic-angular-phones/mixed-session-stable-text.txt",
+      "sha256": "22053b15c1c26aee5aa3bbb94fd10b998cf27cf5603d3fb0795c331c24d6d2e7",
+      "bytes": 13663,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-angular-phones",
+      "path": "evaluation/sources/dynamic-angular-phones/reference.txt",
+      "sha256": "877d5cd0a01d27940808b469c7792136644f4df27dcebf6f814324bd5ede95f1",
+      "bytes": 2855,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "dynamic-angular-phones",
+      "path": "evaluation/sources/dynamic-angular-phones/render-audit.json",
+      "sha256": "c54ad48f9f2abb7bbf8c02afc6f54339691fab9a8ddb9ff929230fd0b4903b7a",
+      "bytes": 26357,
+      "purpose": "render audit receipt"
+    },
+    {
+      "case_id": "dynamic-angular-phones",
+      "path": "evaluation/sources/dynamic-angular-phones/rendered.txt",
+      "sha256": "877d5cd0a01d27940808b469c7792136644f4df27dcebf6f814324bd5ede95f1",
+      "bytes": 2855,
+      "purpose": "independently rendered visible text"
+    },
+    {
+      "case_id": "dynamic-catalog",
+      "path": "evaluation/sources/dynamic-catalog/evidence.json",
+      "sha256": "4d9909d4f38405587411daa60bd87b2f72f3e208e91906f62e94ba2ebd537bdc",
+      "bytes": 811,
+      "purpose": "source verification receipt"
+    },
+    {
+      "case_id": "dynamic-catalog",
+      "path": "evaluation/sources/dynamic-catalog/initial.html.txt",
+      "sha256": "e783830ff739f9007b90614a3c439fdab994fd33119a7326fff76299d6d31445",
+      "bytes": 56216,
+      "purpose": "initial HTTP response"
+    },
+    {
+      "case_id": "dynamic-catalog",
+      "path": "evaluation/sources/dynamic-catalog/mixed-session-stable-text.json",
+      "sha256": "59fb23bbc2d65b84614dddc6f95298fb95df041a0dca680c85fa0c5ce6b47345",
+      "bytes": 8478,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-catalog",
+      "path": "evaluation/sources/dynamic-catalog/mixed-session-stable-text.txt",
+      "sha256": "c6f89f4f5e29e16922df0f395040ba682447ec5cca62c911d2d01544f72ce66d",
+      "bytes": 6901,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-catalog",
+      "path": "evaluation/sources/dynamic-catalog/reference.txt",
+      "sha256": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836",
+      "bytes": 794,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "dynamic-catalog",
+      "path": "evaluation/sources/dynamic-catalog/render-audit.json",
+      "sha256": "3ca7557260399e93b4fa70f353243c4bba9a286cbb04abe1533a6a43684b5c40",
+      "bytes": 14792,
+      "purpose": "render audit receipt"
+    },
+    {
+      "case_id": "dynamic-catalog",
+      "path": "evaluation/sources/dynamic-catalog/rendered.txt",
+      "sha256": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836",
+      "bytes": 794,
+      "purpose": "independently rendered visible text"
+    },
+    {
+      "case_id": "dynamic-delayed",
+      "path": "evaluation/sources/dynamic-delayed/evidence.json",
+      "sha256": "26209353e22b59194c182985aa24f71301ce2da0e888e6b77a184f5a89cd4028",
+      "bytes": 788,
+      "purpose": "source verification receipt"
+    },
+    {
+      "case_id": "dynamic-delayed",
+      "path": "evaluation/sources/dynamic-delayed/initial.html.txt",
+      "sha256": "dd107dafcb272fae743c8fc84ee4807c8c1fb3dea2416c30ff6c242e13305329",
+      "bytes": 6013,
+      "purpose": "initial HTTP response"
+    },
+    {
+      "case_id": "dynamic-delayed",
+      "path": "evaluation/sources/dynamic-delayed/mixed-session-stable-text.json",
+      "sha256": "2643c299ed80661475f0a59adb2c806f00f4b7a7b288de9a1c5892624652b4b8",
+      "bytes": 2637,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-delayed",
+      "path": "evaluation/sources/dynamic-delayed/mixed-session-stable-text.txt",
+      "sha256": "6e35b3d57e7f277899b762554d5a36cec22cbd1b2ab42a3e93b7271db7753cb9",
+      "bytes": 1893,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-delayed",
+      "path": "evaluation/sources/dynamic-delayed/reference.txt",
+      "sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+      "bytes": 1470,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "dynamic-delayed",
+      "path": "evaluation/sources/dynamic-delayed/render-audit.json",
+      "sha256": "cb72f36b479827c25816f1df5e2448885c0935ab61c0ad130bc145a2d466cc93",
+      "bytes": 20089,
+      "purpose": "render audit receipt"
+    },
+    {
+      "case_id": "dynamic-delayed",
+      "path": "evaluation/sources/dynamic-delayed/rendered.txt",
+      "sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+      "bytes": 1470,
+      "purpose": "independently rendered visible text"
+    },
+    {
+      "case_id": "dynamic-iframe",
+      "path": "evaluation/sources/dynamic-iframe/evidence.json",
+      "sha256": "b9b07645c39bdbb38f2847cca35de1e9136be99dbe54785d5d2d949464528003",
+      "bytes": 854,
+      "purpose": "source verification receipt"
+    },
+    {
+      "case_id": "dynamic-iframe",
+      "path": "evaluation/sources/dynamic-iframe/initial.html.txt",
+      "sha256": "c15cf12b2fa2c6d8c25c36b598fbcaca516fc93f87409d92eb9932a3644cca77",
+      "bytes": 10337,
+      "purpose": "initial HTTP response"
+    },
+    {
+      "case_id": "dynamic-iframe",
+      "path": "evaluation/sources/dynamic-iframe/mixed-session-stable-text.json",
+      "sha256": "172660884552f70c96b0c102794869bc22e7a009f46f5aeb1192a79c6363381e",
+      "bytes": 2969,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-iframe",
+      "path": "evaluation/sources/dynamic-iframe/mixed-session-stable-text.txt",
+      "sha256": "f5f7f74ec314d1dfa58b8f08498d07892a71e4df436243a9723d723a17173501",
+      "bytes": 2183,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-iframe",
+      "path": "evaluation/sources/dynamic-iframe/reference.txt",
+      "sha256": "e4183696f6e74f9016c0668ee9809eb2fe7b03c244bfdae2231d8e1a1326f9ca",
+      "bytes": 197,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "dynamic-iframe",
+      "path": "evaluation/sources/dynamic-iframe/render-audit.json",
+      "sha256": "f786bb18e53d3f3b4e2ff9166ffbd4592f19f1249a5971745f199584d1b032b4",
+      "bytes": 8664,
+      "purpose": "render audit receipt"
+    },
+    {
+      "case_id": "dynamic-iframe",
+      "path": "evaluation/sources/dynamic-iframe/rendered.txt",
+      "sha256": "e4183696f6e74f9016c0668ee9809eb2fe7b03c244bfdae2231d8e1a1326f9ca",
+      "bytes": 197,
+      "purpose": "independently rendered visible text"
+    },
+    {
+      "case_id": "dynamic-product-reviews",
+      "path": "evaluation/sources/dynamic-product-reviews/evidence.json",
+      "sha256": "7ca6bc0ca65ca3c1846e281b7d6ed2171262dae3d271c4b678aee4c786ee273b",
+      "bytes": 810,
+      "purpose": "source verification receipt"
+    },
+    {
+      "case_id": "dynamic-product-reviews",
+      "path": "evaluation/sources/dynamic-product-reviews/initial.html.txt",
+      "sha256": "f6fcba817d82e366420bc5aacc356abc524129391ed49e05565d68a05123cbba",
+      "bytes": 33765,
+      "purpose": "initial HTTP response"
+    },
+    {
+      "case_id": "dynamic-product-reviews",
+      "path": "evaluation/sources/dynamic-product-reviews/mixed-session-stable-text.json",
+      "sha256": "a0a162cfab383d2f08e2c91258661a8c6cea804a8bf7664ea48b3458b0a732a7",
+      "bytes": 8918,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-product-reviews",
+      "path": "evaluation/sources/dynamic-product-reviews/mixed-session-stable-text.txt",
+      "sha256": "0cc095dc80055154c9e9e686fafaa3f0df08cc6908807569e361c22b6c4638d5",
+      "bytes": 7277,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-product-reviews",
+      "path": "evaluation/sources/dynamic-product-reviews/reference.txt",
+      "sha256": "e1b7d42946c236ed613e0318b20fefd56a7652073fccb88d6dcc29980fb27246",
+      "bytes": 371,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "dynamic-product-reviews",
+      "path": "evaluation/sources/dynamic-product-reviews/render-audit.json",
+      "sha256": "b628650731c7c03f189b6bd8193a1167ff633e40425c304ca09d7fc3f483b2d7",
+      "bytes": 7688,
+      "purpose": "render audit receipt"
+    },
+    {
+      "case_id": "dynamic-product-reviews",
+      "path": "evaluation/sources/dynamic-product-reviews/rendered.txt",
+      "sha256": "e1b7d42946c236ed613e0318b20fefd56a7652073fccb88d6dcc29980fb27246",
+      "bytes": 371,
+      "purpose": "independently rendered visible text"
+    },
+    {
+      "case_id": "dynamic-products-api",
+      "path": "evaluation/sources/dynamic-products-api/evidence.json",
+      "sha256": "9be92f5c318cb0881e4807fc8b03cc73d2b28557e58b89056e646a763310bd99",
+      "bytes": 807,
+      "purpose": "source verification receipt"
+    },
+    {
+      "case_id": "dynamic-products-api",
+      "path": "evaluation/sources/dynamic-products-api/initial.html.txt",
+      "sha256": "b9daac7e24122000dbc457ed0e4ed24b43b89593db88eac038e98499db93292a",
+      "bytes": 29640,
+      "purpose": "initial HTTP response"
+    },
+    {
+      "case_id": "dynamic-products-api",
+      "path": "evaluation/sources/dynamic-products-api/mixed-session-stable-text.json",
+      "sha256": "083aa7630e2f8de27d7cc92cac58432902912e06f92a37a6cf1ab5fe40db02b0",
+      "bytes": 2317,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-products-api",
+      "path": "evaluation/sources/dynamic-products-api/mixed-session-stable-text.txt",
+      "sha256": "fc3878e9b6c5e9e37e35373589e3992464c2394636d19aec89c660ef2cf6e427",
+      "bytes": 1620,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-products-api",
+      "path": "evaluation/sources/dynamic-products-api/reference.txt",
+      "sha256": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c",
+      "bytes": 319,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "dynamic-products-api",
+      "path": "evaluation/sources/dynamic-products-api/render-audit.json",
+      "sha256": "9c1705607ffca11287755bf973406111fde824cafab2f652e8509e1feeb914dc",
+      "bytes": 13424,
+      "purpose": "render audit receipt"
+    },
+    {
+      "case_id": "dynamic-products-api",
+      "path": "evaluation/sources/dynamic-products-api/rendered.txt",
+      "sha256": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c",
+      "bytes": 319,
+      "purpose": "independently rendered visible text"
+    },
+    {
+      "case_id": "dynamic-quotes-api",
+      "path": "evaluation/sources/dynamic-quotes-api/evidence.json",
+      "sha256": "cff06fde65caaf284b330a498ddf7e65a0b62c3ea6f0c92f3f6a716d4b319904",
+      "bytes": 783,
+      "purpose": "source verification receipt"
+    },
+    {
+      "case_id": "dynamic-quotes-api",
+      "path": "evaluation/sources/dynamic-quotes-api/initial.html.txt",
+      "sha256": "5da9be6db041b94bb3a9de9d77fb247d90120097d24725decc83aa0b1c52d9e5",
+      "bytes": 2673,
+      "purpose": "initial HTTP response"
+    },
+    {
+      "case_id": "dynamic-quotes-api",
+      "path": "evaluation/sources/dynamic-quotes-api/mixed-session-stable-text.json",
+      "sha256": "2335af7af32f85c6b3e7156fc73c90337ae9d5c0899f97c8ffbaa409d9a2f679",
+      "bytes": 2267,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-quotes-api",
+      "path": "evaluation/sources/dynamic-quotes-api/mixed-session-stable-text.txt",
+      "sha256": "50867390d39c9646c7b304ce9d998342bd8c96dd2965cd2dd0436062dc283953",
+      "bytes": 1587,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-quotes-api",
+      "path": "evaluation/sources/dynamic-quotes-api/reference.txt",
+      "sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+      "bytes": 1470,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "dynamic-quotes-api",
+      "path": "evaluation/sources/dynamic-quotes-api/render-audit.json",
+      "sha256": "edfb44ada3e09556e79aad09ca658171a6391e6b840c300718da28d636a30442",
+      "bytes": 18342,
+      "purpose": "render audit receipt"
+    },
+    {
+      "case_id": "dynamic-quotes-api",
+      "path": "evaluation/sources/dynamic-quotes-api/rendered.txt",
+      "sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780",
+      "bytes": 1470,
+      "purpose": "independently rendered visible text"
+    },
+    {
+      "case_id": "dynamic-react-cart",
+      "path": "evaluation/sources/dynamic-react-cart/evidence.json",
+      "sha256": "eb72850a1e749cc646373bf8bcbae69ac0c6f469a379ff5cf8976f9c294763db",
+      "bytes": 841,
+      "purpose": "source verification receipt"
+    },
+    {
+      "case_id": "dynamic-react-cart",
+      "path": "evaluation/sources/dynamic-react-cart/initial.html.txt",
+      "sha256": "02a1977864cf6faadbb2ea10daf394a4a22243d2474ba001c1654d8d2721b843",
+      "bytes": 2058,
+      "purpose": "initial HTTP response"
+    },
+    {
+      "case_id": "dynamic-react-cart",
+      "path": "evaluation/sources/dynamic-react-cart/mixed-session-stable-text.json",
+      "sha256": "10d2feaaac1844b25babb6f7e3596945030b2360ff0e17ec5e196d9e62734938",
+      "bytes": 4814,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-react-cart",
+      "path": "evaluation/sources/dynamic-react-cart/mixed-session-stable-text.txt",
+      "sha256": "9360327306e45bfd26ac06c8a6391b315f8031a7a1a608fbd7a9c41e0a8d0cd6",
+      "bytes": 3781,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-react-cart",
+      "path": "evaluation/sources/dynamic-react-cart/reference.txt",
+      "sha256": "cf603310fbc4eabf16baa9ef3ddcb0ae6bfc156de5cb4e3a4fe9af605692a2df",
+      "bytes": 828,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "dynamic-react-cart",
+      "path": "evaluation/sources/dynamic-react-cart/render-audit.json",
+      "sha256": "644f0bc9ca6cc920fb89b0284f9a367c5dc5f5a8cd45151683ee500bb907c6f8",
+      "bytes": 31446,
+      "purpose": "render audit receipt"
+    },
+    {
+      "case_id": "dynamic-react-cart",
+      "path": "evaluation/sources/dynamic-react-cart/rendered.txt",
+      "sha256": "cf603310fbc4eabf16baa9ef3ddcb0ae6bfc156de5cb4e3a4fe9af605692a2df",
+      "bytes": 828,
+      "purpose": "independently rendered visible text"
+    },
+    {
+      "case_id": "dynamic-reviews-graphql",
+      "path": "evaluation/sources/dynamic-reviews-graphql/evidence.json",
+      "sha256": "3e698a11ede42584c8f749218a35d6041fca58f4875f569b613d7239c07ff5bc",
+      "bytes": 778,
+      "purpose": "source verification receipt"
+    },
+    {
+      "case_id": "dynamic-reviews-graphql",
+      "path": "evaluation/sources/dynamic-reviews-graphql/initial.html.txt",
+      "sha256": "77a5e13ddd2d8d9d65ba531340293d16870224866f7d52bbf7377f113b514665",
+      "bytes": 14727,
+      "purpose": "initial HTTP response"
+    },
+    {
+      "case_id": "dynamic-reviews-graphql",
+      "path": "evaluation/sources/dynamic-reviews-graphql/mixed-session-stable-text.json",
+      "sha256": "76ff4f5d059dfab7ced06a0bdc59137d9d90365007e11fc6a27a5bcd667af36c",
+      "bytes": 5582,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-reviews-graphql",
+      "path": "evaluation/sources/dynamic-reviews-graphql/mixed-session-stable-text.txt",
+      "sha256": "95324fbd5e3f2d89eef653a65040a88334adff1bbeb2336d5ea3d239cf7c6465",
+      "bytes": 4423,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-reviews-graphql",
+      "path": "evaluation/sources/dynamic-reviews-graphql/reference.txt",
+      "sha256": "176193496a44f0acfbd9d91ecca4a8443a75debc8839acab4c37f5cb31de0535",
+      "bytes": 1782,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "dynamic-reviews-graphql",
+      "path": "evaluation/sources/dynamic-reviews-graphql/render-audit.json",
+      "sha256": "94f2716ff5b94b7efb42eb1a4c2ed995ddee8ab4ae53f594e2c49d9d546b2e11",
+      "bytes": 23652,
+      "purpose": "render audit receipt"
+    },
+    {
+      "case_id": "dynamic-reviews-graphql",
+      "path": "evaluation/sources/dynamic-reviews-graphql/rendered.txt",
+      "sha256": "176193496a44f0acfbd9d91ecca4a8443a75debc8839acab4c37f5cb31de0535",
+      "bytes": 1782,
+      "purpose": "independently rendered visible text"
+    },
+    {
+      "case_id": "dynamic-swagger",
+      "path": "evaluation/sources/dynamic-swagger/evidence.json",
+      "sha256": "21f56faaf3380723e8a6836305c81eecb8e175df98b5240f7dd812d2f9e55e3e",
+      "bytes": 817,
+      "purpose": "source verification receipt"
+    },
+    {
+      "case_id": "dynamic-swagger",
+      "path": "evaluation/sources/dynamic-swagger/initial.html.txt",
+      "sha256": "7b9bafc5d8b1bde52b53d50e595aff01c0f2449c2f45dc778f46b540e3695e6b",
+      "bytes": 1258,
+      "purpose": "initial HTTP response"
+    },
+    {
+      "case_id": "dynamic-swagger",
+      "path": "evaluation/sources/dynamic-swagger/mixed-session-stable-text.json",
+      "sha256": "cfc236cb0c9c00480330dff1f36e116aea514ddbfc35ae94a053506cb49e39f1",
+      "bytes": 1907,
+      "purpose": "cross-session stability receipt"
+    },
+    {
+      "case_id": "dynamic-swagger",
+      "path": "evaluation/sources/dynamic-swagger/mixed-session-stable-text.txt",
+      "sha256": "c3f3f1d5b376fbffa2c08db5becfed7c280dbcdebb1a6cda86b50d7e8d46460e",
+      "bytes": 1281,
+      "purpose": "cross-session stable text"
+    },
+    {
+      "case_id": "dynamic-swagger",
+      "path": "evaluation/sources/dynamic-swagger/reference.txt",
+      "sha256": "37727508e4f211fe7a6f2f18e74b5840f8f9a6c9595d91bc8f74f5d662db5054",
+      "bytes": 929,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "dynamic-swagger",
+      "path": "evaluation/sources/dynamic-swagger/render-audit.json",
+      "sha256": "6a0e8231ca5410c538eb02c35a34e5aef8ac9f194e83a974dec307608fafb02e",
+      "bytes": 31729,
+      "purpose": "render audit receipt"
+    },
+    {
+      "case_id": "dynamic-swagger",
+      "path": "evaluation/sources/dynamic-swagger/rendered.txt",
+      "sha256": "37727508e4f211fe7a6f2f18e74b5840f8f9a6c9595d91bc8f74f5d662db5054",
+      "bytes": 929,
+      "purpose": "independently rendered visible text"
+    },
+    {
+      "case_id": "replacement-en-gridjs-search",
+      "path": "evaluation/sources/replacement-en-gridjs-search/reference.txt",
+      "sha256": "d18f6de35fe9532465d7871b04381886b0c9d5cc56f2ceddf34c953144e172c5",
+      "bytes": 1473,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "replacement-en-gridjs-sort",
+      "path": "evaluation/sources/replacement-en-gridjs-sort/reference.txt",
+      "sha256": "3a6f2e51ef9faeab8856f44183ba58be4ab8de493ef0a0f9c77316324fca7322",
+      "bytes": 497,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "replacement-en-mui-filtering",
+      "path": "evaluation/sources/replacement-en-mui-filtering/reference.txt",
+      "sha256": "9ff0b7040a0f9eb5129e49185f67ea10bbbb11146778308232164ec86b41e1a8",
+      "bytes": 8315,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "replacement-en-mui-sorting",
+      "path": "evaluation/sources/replacement-en-mui-sorting/reference.txt",
+      "sha256": "88454719b55a31ab0623c8ba247e2d31a504bfd392cde831c8738086e1aa90ce",
+      "bytes": 6268,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "replacement-en-quasar-table",
+      "path": "evaluation/sources/replacement-en-quasar-table/reference.txt",
+      "sha256": "53f8dafed08ae90d38c0d9587d31dbfb9176126e2d1ca819b20a8f29340a1e82",
+      "bytes": 5089,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "replacement-en-syncfusion-filtering",
+      "path": "evaluation/sources/replacement-en-syncfusion-filtering/reference.txt",
+      "sha256": "311b736e39da294a11ea93f6db0a097acd7780773e06d9c4bc5adef46bbff137",
+      "bytes": 2262,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "replacement-en-syncfusion-sorting",
+      "path": "evaluation/sources/replacement-en-syncfusion-sorting/reference.txt",
+      "sha256": "c79ea782f5533822c331c64fcdf79001821308afff24d6db3923ab1d80c0ff9c",
+      "bytes": 1359,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "replacement-fix3-de-dashboard-deutschland",
+      "path": "evaluation/sources/replacement-fix3-de-dashboard-deutschland/reference.txt",
+      "sha256": "2138b719c502ff33b7556c64a6199b71317ead2837c173553fabd4770dd2325e",
+      "bytes": 775,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "replacement-fix3-fr-fr-datapass-stats",
+      "path": "evaluation/sources/replacement-fix3-fr-fr-datapass-stats/reference.txt",
+      "sha256": "1cbdbf0068b4ec8f03e3ac60304554f92969974be46b0a967b216e8b385a0fad",
+      "bytes": 372,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "replacement-fix3-fr-fr-mobilites-durables",
+      "path": "evaluation/sources/replacement-fix3-fr-fr-mobilites-durables/reference.txt",
+      "sha256": "47cb9e5b86e54387cf754c428c8c34cf748211a79058cd0175e4b9d2e24b50d5",
+      "bytes": 2259,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "replacement-fix6-es-mx-lokus-home",
+      "path": "evaluation/sources/replacement-fix6-es-mx-lokus-home/reference.txt",
+      "sha256": "6f5bd555d62439e3e7e96e7935b49e7f987f087756d34ab2d303384a97e74d59",
+      "bytes": 1468,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "replacement-zh-ant-descriptions",
+      "path": "evaluation/sources/replacement-zh-ant-descriptions/reference.txt",
+      "sha256": "f1174a7e6bb1faf882656ab7cccdde2cfab6d5a6bb194c7a26bf69f4f54950b1",
+      "bytes": 4166,
+      "purpose": "frozen scoring reference"
+    },
+    {
+      "case_id": "replacement-zh-ant-form",
+      "path": "evaluation/sources/replacement-zh-ant-form/reference.txt",
+      "sha256": "737157c11c3e204235441cf7a68e5e751fb2dff8d77a61c770c4ba46fe04d433",
+      "bytes": 6250,
+      "purpose": "frozen scoring reference"
+    }
+  ]
+}

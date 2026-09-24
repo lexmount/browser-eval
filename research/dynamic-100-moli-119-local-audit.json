@@ -34,6 +34,12 @@
     "source_evidence_in_git": true,
     "rebuild_from_persistent_evidence": true
   },
+  "repository_evidence": {
+    "source_manifest_path": "evaluation/dynamic-content-100-moli-webfetch/source-evidence-manifest.json",
+    "source_manifest_sha256": "1ab9659445d38f51b17a59827cf1f62d6519d67936571ecab711b12328b7df6d",
+    "scoring_revision_path": "research/dynamic-100-moli-119-scoring-revision.json",
+    "scoring_revision_sha256": "7638d673e8392d25091ab9dc9f5153c44ea9c5625aa3f6798745dc45a77ba2c7"
+  },
   "review": {
     "supplement_cases_reviewed": 25,
     "supplement_dataset_sha256": "2e2928cd1057f7730fab50cf34715b6da513ad61707178e9bab466dbfd21cbdc",

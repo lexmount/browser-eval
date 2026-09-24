@@ -121,6 +121,7 @@ def test_local_audit_requires_complete_inventory_and_review_lineage(tmp_path, mo
     }
     _write(root / receipt_relative, receipt)
     monkeypatch.setattr(local_audit, "ROOT", root)
+    monkeypatch.setattr(local_audit, "_require_repository_bindings", lambda *_: None)
 
     validated = local_audit.require_local_audit(source, dataset, [record])
     assert validated["reviewed_attempts"] == 1

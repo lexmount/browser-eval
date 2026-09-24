@@ -15,6 +15,165 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _canonical_sha256(value) -> str:
+    encoded = json.dumps(
+        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _repository_file(relative: str) -> Path:
+    if not isinstance(relative, str) or not relative:
+        raise ValueError("Repository evidence path is missing")
+    path = contained_path(ROOT, relative)
+    cursor = ROOT
+    has_symlink = False
+    for part in Path(relative).parts:
+        cursor = cursor / part
+        has_symlink = has_symlink or cursor.is_symlink()
+    if not path.is_file() or has_symlink:
+        raise ValueError("Repository evidence is missing or unsafe: " + relative)
+    return path
+
+
+def _source_evidence_inventory(dataset: dict) -> list[dict]:
+    purposes = {
+        "evidence.json": "source verification receipt",
+        "reference.txt": "frozen scoring reference",
+        "source.html.txt": "captured source response",
+        "current-source.html.txt": "current source response",
+        "current-capture.json": "current capture receipt",
+        "mixed-session-stable-text.txt": "cross-session stable text",
+        "mixed-session-stable-text.json": "cross-session stability receipt",
+        "rendered.txt": "independently rendered visible text",
+        "render-audit.json": "render audit receipt",
+        "initial.html.txt": "initial HTTP response",
+        "stable-page.txt": "stable page observation",
+        "stable-page.json": "stable page receipt",
+        "source.pdf": "independent source document",
+        "items.json": "independent structured source items",
+        "current-browser-observation.json": "current browser observation",
+        "source.bin": "independent binary source",
+        "browser-observation.json": "browser observation receipt",
+        "unavailable-reference.json": "reference unavailability receipt",
+        "source.docx": "independent source document",
+        "body-reference.json": "body reference receipt",
+    }
+    rows = []
+    source_root = ROOT / "evaluation/sources"
+    if source_root.is_symlink():
+        raise ValueError("Repository source evidence root must not be a symlink")
+    for case_id in sorted(case["id"] for case in dataset.get("cases", [])):
+        raw_directory = source_root / case_id
+        if raw_directory.is_symlink():
+            raise ValueError("Repository source evidence must not contain symlinks")
+        directory = contained_path(source_root, case_id)
+        if not directory.exists():
+            continue
+        for path in sorted(directory.rglob("*")):
+            if path.is_symlink():
+                raise ValueError("Repository source evidence must not contain symlinks")
+            if not path.is_file():
+                continue
+            rows.append({
+                "case_id": case_id,
+                "path": path.relative_to(ROOT).as_posix(),
+                "sha256": _sha256(path),
+                "bytes": path.stat().st_size,
+                "purpose": purposes.get(path.name, "independent source evidence"),
+            })
+    return rows
+
+
+def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
+    """Verify committed source evidence and scoring controls as exact inventories."""
+    bindings = receipt.get("repository_evidence", {})
+    source_path = _repository_file(bindings.get("source_manifest_path"))
+    if _sha256(source_path) != bindings.get("source_manifest_sha256"):
+        raise ValueError("Repository source evidence manifest changed")
+    source_manifest = json.loads(source_path.read_text(encoding="utf-8"))
+    if (source_manifest.get("schema_version") != 1
+            or source_manifest.get("kind") != "dataset_source_evidence_inventory"
+            or source_manifest.get("dataset_id") != dataset.get("id")
+            or source_manifest.get("dataset_sha256")
+            != receipt.get("bindings", {}).get("dataset_sha256")):
+        raise ValueError("Repository source evidence manifest has wrong bindings")
+    declared_files = source_manifest.get("files", [])
+    if declared_files != _source_evidence_inventory(dataset):
+        raise ValueError("Repository source evidence inventory or hashes changed")
+    scope = source_manifest.get("scope", {})
+    if (scope.get("dataset_cases") != len(dataset.get("cases", []))
+            or scope.get("cases_with_source_evidence")
+            != len({row["case_id"] for row in declared_files})
+            or scope.get("files") != len(declared_files)):
+        raise ValueError("Repository source evidence scope is inconsistent")
+
+    scoring_path = _repository_file(bindings.get("scoring_revision_path"))
+    if _sha256(scoring_path) != bindings.get("scoring_revision_sha256"):
+        raise ValueError("Scoring revision receipt changed")
+    scoring = json.loads(scoring_path.read_text(encoding="utf-8"))
+    if (scoring.get("schema_version") != 1
+            or scoring.get("kind") != "scoring_revision_receipt"
+            or scoring.get("dataset_id") != dataset.get("id")
+            or scoring.get("dataset_sha256")
+            != receipt.get("bindings", {}).get("dataset_sha256")
+            or scoring.get("provider_calls") != 0
+            or scoring.get("bindings", {}).get("scoring_source_sha256")
+            != receipt.get("bindings", {}).get("scoring_source_sha256")):
+        raise ValueError("Scoring revision receipt has wrong bindings")
+    regressions_path = _repository_file("evaluation/scoring-regressions.json")
+    if _sha256(regressions_path) != scoring.get("bindings", {}).get(
+            "scoring_regressions_sha256"):
+        raise ValueError("Scoring regression inventory changed")
+    controls = json.loads(regressions_path.read_text(encoding="utf-8")).get("cases", [])
+    current_ids = [row.get("id") for row in controls]
+    base_ids = scoring.get("preexisting_control_ids", [])
+    revision_rows = scoring.get("revision_controls", [])
+    revision_ids = [row.get("id") for row in revision_rows]
+    if (len(current_ids) != len(set(current_ids))
+            or len(base_ids) != len(set(base_ids))
+            or len(revision_ids) != len(set(revision_ids))
+            or set(base_ids) & set(revision_ids)
+            or set(current_ids) != set(base_ids) | set(revision_ids)):
+        raise ValueError("Scoring control partition is incomplete or duplicated")
+    base_set, revision_set = set(base_ids), set(revision_ids)
+    base_controls = [row for row in controls if row["id"] in base_set]
+    revision_controls = [row for row in controls if row["id"] in revision_set]
+    if (_canonical_sha256(base_controls)
+            != scoring.get("bindings", {}).get("preexisting_controls_sha256")
+            or _canonical_sha256(revision_controls)
+            != scoring.get("bindings", {}).get("revision_controls_sha256")):
+        raise ValueError("Scoring control contents changed")
+    expected_rows = [{
+        "id": row["id"], "root_cause": row.get("root_cause"),
+        "failure_mode": row.get("failure_mode"),
+    } for row in revision_controls]
+    if revision_rows != expected_rows:
+        raise ValueError("Scoring revision control metadata changed")
+    root_causes = {}
+    for row in revision_controls:
+        root = root_causes.setdefault(
+            row.get("root_cause"), {"false-positive": [], "false-negative": []})
+        if row.get("failure_mode") not in root:
+            raise ValueError("Scoring control has an unsupported failure mode")
+        root[row["failure_mode"]].append(row["id"])
+    expected_roots = [{
+        "id": key,
+        "false_positive_ids": sorted(value["false-positive"]),
+        "false_negative_ids": sorted(value["false-negative"]),
+    } for key, value in sorted(root_causes.items())]
+    if (scoring.get("root_causes") != expected_roots
+            or any(not row["false_positive_ids"] or not row["false_negative_ids"]
+                   for row in expected_roots)):
+        raise ValueError("Scoring root causes lack paired error-direction controls")
+    scope = scoring.get("scope", {})
+    if (scope.get("preexisting_controls") != len(base_controls)
+            or scope.get("revision_controls") != len(revision_controls)
+            or scope.get("root_causes") != len(expected_roots)
+            or scope.get("paired_error_directions") is not True):
+        raise ValueError("Scoring revision scope is inconsistent")
+
+
 def audit_file_inventory(source: Path) -> list[dict]:
     """Return the complete regular-file inventory, rejecting every symlink."""
     source = source.resolve()
@@ -202,6 +361,7 @@ def require_local_audit(source: Path, dataset: dict, records: list[dict]) -> dic
                       ("results.jsonl", "results_sha256")):
         if _sha256(contained_path(source, name)) != bindings.get(key):
             raise ValueError("Local audit receipt binding mismatch: " + name)
+    _require_repository_bindings(dataset, receipt)
     manifest = _require_manifest(source, receipt)
     for name in ("dataset.json", "results.jsonl", "result-review.json"):
         if manifest.get("bindings", {}).get(name) != _sha256(contained_path(source, name)):
