@@ -20,7 +20,9 @@ def test_full_report_renders_six_way_details_and_failure_evidence(tmp_path: Path
     physical = []
     summaries = {}
     for index, provider in enumerate(providers):
-        text = "" if provider == "moli" else f"response {provider}"
+        text = ("" if provider == "moli" else
+                "# 无法访问此网站\nERR_ACCESS_DENIED" if provider == "chromium" else
+                f"response {provider}")
         artifact = f"artifacts/{provider}.md"
         (tmp_path / artifact).write_text(text, encoding="utf-8")
         physical_path = f"artifacts/{provider}-p01.txt"
@@ -84,6 +86,9 @@ def test_full_report_renders_six_way_details_and_failure_evidence(tmp_path: Path
     home = check_presentation((tmp_path / "index.html").read_text(encoding="utf-8"))
     assert len(home.select('td[data-metric-direction="max"]')) == 36
     assert len(home.select('td[data-metric-direction="max"] .comparison-winner')) == 6
+    assert home.select_one('td[data-target-body-provider="chromium"]').get_text(strip=True) == "0/545"
+    assert home.select_one('td[data-target-body-provider="moli-fixed"]').get_text(strip=True) == "1/545"
+    assert "目标正文" in home.get_text()
     detail = check_presentation((tmp_path / "results/index.html").read_text(encoding="utf-8"))
     assert detail.select_one('[data-failure-diagnosis]') is not None
     comparison = BeautifulSoup((tmp_path / "cases/index.html").read_text(encoding="utf-8"), "html.parser")

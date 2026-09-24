@@ -18,6 +18,12 @@ from harness.web_fetch.safety import contained_path
 FIXED = "moli-fixed"
 
 
+def require_unique_attempt_ids(rows: list[dict], label: str) -> None:
+    attempt_ids = [row.get("attempt_id") for row in rows]
+    if None in attempt_ids or len(set(attempt_ids)) != len(attempt_ids):
+        raise ValueError(f"{label} attempt identity is not unique")
+
+
 def assemble(baseline: Path, candidate: Path, output: Path, scorer: Path) -> None:
     if output.exists():
         raise ValueError("Composite evidence is immutable")
@@ -60,8 +66,9 @@ def assemble(baseline: Path, candidate: Path, output: Path, scorer: Path) -> Non
         return row
     rows = [alias({**row, "case_id": row["track_id"]}) for row in measured]
     attempts = [alias(row) for row in read_jsonl(shard / "physical-attempts.jsonl")]
-    if len({row["attempt_id"] for row in rows}) != 545:
-        raise ValueError("Fixed logical result identity is not unique")
+    if len(rows) != 545:
+        raise ValueError("Fixed logical result matrix is incomplete")
+    require_unique_attempt_ids(rows, "Fixed logical result")
     for row in measured:
         source = contained_path(shard, row["artifact_path"])
         if digest(source) != row["output_sha256"]:
@@ -77,10 +84,12 @@ def assemble(baseline: Path, candidate: Path, output: Path, scorer: Path) -> Non
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
     combined = read_jsonl(baseline / "results.jsonl") + rows
-    if len(combined) != 3270 or len({row["attempt_id"] for row in combined}) != 3270:
+    if len(combined) != 3270:
         raise ValueError("Six-version result matrix is incomplete")
+    require_unique_attempt_ids(combined, "Six-version logical result")
     (output / "results.jsonl").write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in combined))
     physical = read_jsonl(baseline / "physical-attempts.jsonl") + attempts
+    require_unique_attempt_ids(physical, "Six-version physical")
     (output / "physical-attempts.jsonl").write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in physical))
     summary = json.loads((baseline / "score-summaries.json").read_text())
     summary[FIXED] = {**json.loads((shard / "score-summary.json").read_text()), "provider": FIXED}

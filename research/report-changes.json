@@ -1276,6 +1276,15 @@
   ],
   "releases": [
     {
+      "id": "2026-09-24-webmainbench-target-body-population",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-24",
+      "title": "区分请求成功与目标正文",
+      "summary": "核心表和条件耗时改按实际生成目标正文的页面统计；浏览器错误页、空输出和请求失败不再计入正文页数。评分、原始输出和 3,270 条逻辑结果不变。",
+      "changes": [["正文与耗时口径", "进程成功退出会把 ERR_ACCESS_DENIED 等浏览器错误页计入“返回成功”，并进入成功页条件耗时。", "从已保存的逐页诊断生成目标正文标记；核心表、条件耗时和 Moli 修复前后对照共用该标记。", "Chrome 的错误页不再算目标正文；全部调用耗时、质量评分、重试成本和冻结证据保持不变。"]],
+      "i18n": {"en": {"title": "Separate successful requests from target-body delivery", "summary": "The core table and conditional latency now count pages that actually produced target body content. Browser error pages, empty output, and request failures are excluded. Scores, raw outputs, and all 3,270 logical results are unchanged.", "changes": [["Body and latency population", "A zero-exit process could count an ERR_ACCESS_DENIED browser page as a successful return and include it in conditional success latency.", "Derive target-body delivery from the retained per-page diagnosis and use it consistently in the core table, conditional latency, and Moli before/after comparison.", "The Chrome error page no longer counts as target body. All-call latency, quality scores, retry cost, and frozen evidence remain unchanged."]]}}
+    },
+    {
       "id": "2026-09-24-webmainbench-six-versions-certified",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-24",

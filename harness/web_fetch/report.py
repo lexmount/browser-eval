@@ -2786,6 +2786,13 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
 
     categories = {row["attempt_id"]: classify(row) for row in records}
     counts = Counter(categories.values())
+    target_body = {
+        row["attempt_id"]: categories[row["attempt_id"]] not in {"请求失败", "空输出", "错误页"}
+        for row in records
+    }
+
+    def target_body_count(provider):
+        return sum(target_body[row["attempt_id"]] for row in records if row["provider"] == provider)
     css = """*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172637;font:16px/1.55 system-ui,sans-serif}body.dark{background:#101923;color:#edf3fa}a{color:#1859a5}body.dark a{color:#92c7ff}.wrap{width:min(1200px,calc(100% - 32px));margin:auto}header{background:#142d4b;color:white}header .wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:15px 0}header a{color:white;text-decoration:none}header strong{margin-right:auto}nav{display:flex;gap:14px;flex-wrap:wrap}button,input,select{font:inherit;border:1px solid #9aacc0;border-radius:7px;padding:7px 10px;background:white;color:#172637}body.dark button,body.dark input,body.dark select{background:#25384b;color:white;border-color:#61768b}h1{font-size:clamp(30px,4vw,48px);line-height:1.18;margin:0 0 15px}h2{font-size:26px;margin:0 0 14px}.hero{padding:48px 0 22px}.hero p{font-size:18px;max-width:900px;color:#506377}body.dark .hero p,body.dark .note{color:#bfd0e1}section{margin:24px 0 38px}figure{margin:24px 0}.panel{background:white;border:1px solid #d8e1eb;border-radius:12px;padding:20px;margin:14px 0}body.dark .panel{background:#1c2b3b;border-color:#38506a}.scroll{overflow:auto;max-height:66vh;border:1px solid #d8e1eb;border-radius:10px;background:white}body.dark .scroll{background:#1c2b3b;border-color:#38506a}table{border-collapse:collapse;width:100%;min-width:820px}th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #dce5ee;vertical-align:top}th{position:sticky;top:0;background:#e9f0f8;color:#152a40;z-index:1}body.dark th{background:#29435d;color:white}tbody tr:hover{background:#edf4fc}body.dark tbody tr:hover{background:#28445f}td small{display:block;color:#597088}body.dark td small{color:#b8cadb}.number{font-variant-numeric:tabular-nums;white-space:nowrap}.winner{color:#116b3c;font-weight:750}body.dark .winner{color:#82e1a7}.filters{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}.filters label{display:grid;gap:4px;font-size:13px;font-weight:700}.note{color:#52677b;font-size:14px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0e2032;color:#f1f6fb;padding:17px;border-radius:8px;max-height:65vh;overflow:auto;font:13px/1.5 ui-monospace,monospace}.compare-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.compare-grid .panel{min-width:0;margin:0}.compare-grid pre{max-height:70vh}details{border:1px solid #dce5ee;border-radius:8px;padding:10px 14px;margin:10px 0}body.dark details{border-color:#38506a}summary{cursor:pointer;font-weight:700}.actions{display:flex;gap:14px;flex-wrap:wrap}.source{overflow-wrap:anywhere}footer{padding:32px 0;color:#52677b}@media(max-width:800px){.compare-grid{grid-template-columns:1fr}}@media(max-width:650px){.panel{padding:14px}header nav{width:100%}th,td{padding:7px 9px}}"""
     js = """function theme(){document.body.classList.toggle('dark');try{localStorage.setItem('wmb545-theme',document.body.classList.contains('dark')?'dark':'light')}catch(e){}}try{if(localStorage.getItem('wmb545-theme')==='dark')document.body.classList.add('dark')}catch(e){}function filter(){let q=(document.getElementById('q')?.value||'').toLowerCase(),p=document.getElementById('provider')?.value||'',k=document.getElementById('kind')?.value||'issue',cause=document.getElementById('cause')?.value||'',n=0;document.querySelectorAll('tr[data-result]').forEach(r=>{let show=(!q||r.dataset.search.includes(q))&&(!p||r.dataset.provider===p)&&(!cause||r.dataset.cause===cause)&&(k==='all'||(k==='issue'?r.dataset.kind!=='未触发诊断':r.dataset.kind===k));r.hidden=!show;if(show)n++});let c=document.getElementById('count');if(c)c.textContent=n;let e=document.getElementById('empty');if(e)e.hidden=n!==0}document.addEventListener('DOMContentLoaded',()=>{for(let id of ['q','provider','kind','cause'])document.getElementById(id)?.addEventListener('input',filter);let params=new URLSearchParams(location.search);for(let id of ['provider','kind','cause']){let select=document.getElementById(id);if(select&&params.has(id))select.value=params.get(id)}filter();let node=document.getElementById('evidence-content');if(node){let path=params.get('path')||'';if(!/^(artifacts|references|sources)\\/[A-Za-z0-9_.\\/-]+$/.test(path)||path.includes('..')){node.textContent='无效证据路径';return}document.getElementById('evidence-path').textContent=path;document.getElementById('evidence-raw').href=path;loadEvidence(path,node)}});"""
     js += """
@@ -2887,14 +2894,18 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                 digits = 2 if metric == 'overall' else 3 if metric == 'code_edit' else 1
                 cells.append('<td class="number" data-metric="' + metric + '" data-metric-direction="max" data-sort="' + str(value) +
                              '"><span class="' + winner + '">' + f'{value * 100:.{digits}f}%' + "</span>" + detail + "</td>")
-            cells.append('<td class="number">' + str(summary["request_successes"]) + "/545</td>")
+            cells.append('<td class="number" data-target-body-provider="' + provider + '">' +
+                         str(target_body_count(provider)) + "/545</td>")
             rows.append("<tr>" + "".join(cells) + "</tr>")
-        return table(["方法"] + [label for _, label in measures] + ["返回成功"], rows)
+        return table(["方法"] + [label for _, label in measures] + ["目标正文"], rows)
 
     def latency_table():
         rows = []
         by_provider = {provider: [row for row in records if row["provider"] == provider] for provider in providers}
-        successful_by_provider = {provider: [row["elapsed_ms"] for row in by_provider[provider] if row["ok"]] for provider in providers}
+        successful_by_provider = {
+            provider: [row["elapsed_ms"] for row in by_provider[provider] if target_body[row["attempt_id"]]]
+            for provider in providers
+        }
         values_by_provider = {provider: ([statistics.mean(values), percentile(values, .5), percentile(values, .95)] if values else [None] * 3) +
                               [sum(row["total_elapsed_ms"] for row in by_provider[provider])]
                               for provider, values in successful_by_provider.items()}
@@ -2909,7 +2920,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                                (' data-sort="' + str(value) + '"' if value is not None else '') + '>' + marker +
                                (f"{value:,.0f} ms" if value is not None else "—") + end + '</td>')
             rows.append("<tr><td>" + esc(labels[provider]) + "</td><td>" + str(len(successful_by_provider[provider])) + "/545</td>" + ''.join(numbers) + "</tr>")
-        return table(["方法", "成功页", "均值", "P50", "P95", "含重试总耗时"], rows)
+        return table(["方法", "目标正文页", "均值", "P50", "P95", "含重试总耗时"], rows)
 
     def all_call_latency_table():
         distributions = {provider: [row["elapsed_ms"] for row in records if row["provider"] == provider] for provider in providers}
@@ -2930,7 +2941,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
     home = ('<section class="hero"><h1>' + prose('home_title') + '</h1><p>' + prose('home_lead') + '</p></section>' +
             '<section><h2>核心结果</h2>' + metric_table() + '<p class="note">' + prose('score_note') + '</p></section>' +
             '<section><h2>全部页面的调用耗时</h2>' + all_call_latency_table() + '<p class="note">' + prose('all_latency_note') + '</p></section>' +
-            '<section><h2>成功页面的调用耗时与重试成本</h2>' + latency_table() + '<p class="note">' + prose('latency_note') + '</p></section>' +
+            '<section><h2>目标正文页面的调用耗时与重试成本</h2>' + latency_table() + '<p class="note">' + prose('latency_note') + '</p></section>' +
             '<section><h2>问题分布</h2>' + table(["自动诊断", "结果数"], ['<tr><td>' + anchor("analysis/index.html?kind=" + kind, kind) + '</td><td>' + str(count) + '</td></tr>' for kind, count in sorted(counts.items())]) +
             '<p class="note">' + prose('diagnostic_note') + '</p></section>')
     page("index.html", "完整结果", home)
@@ -3067,19 +3078,20 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                "、".join(labels[provider] for provider in leaders) + " 并列取得。")
     old_moli, fixed_moli = summaries['moli'], summaries['moli-fixed']
     changed_moli = [case_id for case_id in cases
-                    if grouped[case_id]['moli']['ok'] != grouped[case_id]['moli-fixed']['ok']]
+                    if target_body[grouped[case_id]['moli']['attempt_id']] !=
+                    target_body[grouped[case_id]['moli-fixed']['attempt_id']]]
     changed_moli_rows = ["<tr><td>" + anchor("cases/index.html?id=" + case_id, case_id) +
-                         "</td><td>" + ("成功" if grouped[case_id]['moli']['ok'] else "失败") +
-                         "</td><td>" + ("成功" if grouped[case_id]['moli-fixed']['ok'] else "失败") +
+                         "</td><td>" + ("有正文" if target_body[grouped[case_id]['moli']['attempt_id']] else "无正文") +
+                         "</td><td>" + ("有正文" if target_body[grouped[case_id]['moli-fixed']['attempt_id']] else "无正文") +
                          "</td><td>" + anchor("results/index.html?provider=moli-fixed&id=" + case_id, "修复版输出与错误") +
                          "</td></tr>" for case_id in changed_moli]
-    fixed_section = ('<section><h2>Moli 修复前后</h2><p>原版返回成功 ' +
-                     str(old_moli['request_successes']) + '/545，修复版 ' +
-                     str(fixed_moli['request_successes']) + '/545。经同一表格结构评分修正，综合分分别为 ' +
+    fixed_section = ('<section><h2>Moli 修复前后</h2><p>原版生成目标正文 ' +
+                     str(target_body_count('moli')) + '/545，修复版 ' +
+                     str(target_body_count('moli-fixed')) + '/545。经同一表格结构评分修正，综合分分别为 ' +
                      f"{old_moli['official_aggregate']['scores']['overall'] * 100:.2f}%" + ' 和 ' +
                      f"{fixed_moli['official_aggregate']['scores']['overall'] * 100:.2f}%" + '。' +
                      prose('fixed_quality') + '</p><p>' + prose('fixed_mechanism') + '</p>' +
-                     table(['任务', '原版', '修复版', '逐项证据'], changed_moli_rows) +
+                     table(['任务', '原版正文', '修复版正文', '逐项证据'], changed_moli_rows) +
                      '<p class="note">修复版另一次全量运行；两版的耗时不是同一时间窗交叉测量。' +
                      anchor('six-method-binding.json', '两轮认证证据') + ' · ' +
                      anchor('https://github.com/lexmount/moli/pull/785', '修复代码与 CI') + '</p></section>')
@@ -3090,7 +3102,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
         selected = [row for row in records if row["provider"] == provider]
         issues = sum(categories[row["attempt_id"]] != "未触发诊断" for row in selected)
         method_rows.append("<tr><td>" + anchor("analysis/index.html?provider=" + provider, labels[provider]) +
-                           "</td><td>" + str(summaries[provider]["request_successes"]) +
+                           "</td><td>" + str(target_body_count(provider)) +
                            "/545</td><td>" + str(issues) + "</td><td>" +
                            prose("guide_method_" + provider) + "</td></tr>")
         diagnostic_rows.append("<tr><td>" + esc(labels[provider]) + "</td>" + "".join(
@@ -3120,7 +3132,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
          anchor("analysis/index.html?kind=低全文相似度", "查看低全文分案例") +
          '</section><section><h2>可检查的一页</h2><p>' + prose('guide_example') + '</p><p>' + example_links + '</p>' +
          '</section>' + fixed_section + '<section><h2>各方法的主要问题</h2>' +
-         table(["方法", "返回成功", "自动诊断数", "本轮观察"], method_rows) +
+         table(["方法", "目标正文", "自动诊断数", "本轮观察"], method_rows) +
          '<p class="note">' + prose('guide_method_scope') + '</p>' +
          table(["方法", *diagnostic_kinds], diagnostic_rows) + '</section><section><h2>错误类别</h2>' +
          table(["类别", "结果数"], ["<tr><td>" + esc(kind) + "</td><td>" + str(count) + "</td></tr>" for kind, count in sorted(counts.items())]) +

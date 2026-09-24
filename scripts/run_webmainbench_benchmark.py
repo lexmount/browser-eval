@@ -7,7 +7,9 @@ import hashlib
 import json
 import os
 import platform
+import select
 import shutil
+import socket
 import ssl
 import subprocess
 import sys
@@ -154,27 +156,56 @@ def case_for(record: dict, url: str) -> EvalCase:
 
 
 @contextmanager
-def fixture_server(records: list[dict]):
-    bodies = {
-        "/case/" + record["track_id"]: record["html"].encode("utf-8")
-        for record in records
-    }
+def fixture_server(records: list[dict], preserve_original_origin: bool = False):
+    bodies = {}
+    path_fallbacks = {}
+    ambiguous_paths = set()
+    hosts = set()
+    for record in records:
+        if not preserve_original_origin:
+            bodies["/case/" + record["track_id"]] = record["html"].encode("utf-8")
+            continue
+        parsed = urlsplit(record["url"])
+        host = parsed.hostname
+        if not host:
+            raise ValueError("Frozen record URL lacks a hostname: " + record["track_id"])
+        hosts.add(host)
+        path_key = (host.casefold(), parsed.path or "/")
+        key = (*path_key, parsed.query)
+        if key in bodies:
+            raise ValueError("Frozen fixture URL is not unique: " + record["url"])
+        bodies[key] = record["html"].encode("utf-8")
+        if path_key in path_fallbacks:
+            ambiguous_paths.add(path_key)
+        else:
+            path_fallbacks[path_key] = bodies[key]
+
+    def frozen_body(host_header: str, request_path: str):
+        host = host_header.rsplit(":", 1)[0].strip("[]").casefold()
+        parsed = urlsplit(request_path)
+        path_key = (host, parsed.path or "/")
+        exact = bodies.get((*path_key, parsed.query))
+        if exact is not None:
+            return exact
+        return None if path_key in ambiguous_paths else path_fallbacks.get(path_key)
+
+    def write_frozen(handler, body):
+        if body is None:
+            handler.send_error(404)
+            return
+        handler.send_response(200)
+        handler.send_header("Content-Type", "text/html; charset=utf-8")
+        handler.send_header("Content-Length", str(len(body)))
+        handler.send_header("Content-Security-Policy", CSP)
+        handler.send_header("Cache-Control", "no-store")
+        handler.end_headers()
+        handler.wfile.write(body)
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):  # noqa: N802 - BaseHTTPRequestHandler API
-            # Frozen pages may add a query string during inline navigation.
-            # It does not change which frozen case supplies the response.
-            body = bodies.get(urlsplit(self.path).path)
-            if body is None:
-                self.send_error(404)
-                return
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.send_header("Content-Security-Policy", CSP)
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(body)
+            body = (frozen_body(self.headers.get("Host", ""), self.path)
+                    if preserve_original_origin else bodies.get(urlsplit(self.path).path))
+            write_frozen(self, body)
 
         def log_message(self, _format, *_args):
             return
@@ -186,13 +217,16 @@ def fixture_server(records: list[dict]):
         tls = Path(directory)
         ca_key, ca_cert = tls / "ca-key.pem", tls / "ca.pem"
         leaf_key, leaf_csr, leaf_cert = tls / "leaf-key.pem", tls / "leaf.csr", tls / "leaf.pem"
+        san = (",".join("IP:" + host if host.replace(".", "").isdigit() else "DNS:" + host
+                        for host in sorted(hosts)) if preserve_original_origin
+               else "DNS:localhost,IP:127.0.0.1")
         commands = [
             [openssl, "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", str(ca_key),
              "-out", str(ca_cert), "-days", "1", "-subj", "/CN=WebMainBench-Local-CA",
              "-addext", "basicConstraints=critical,CA:TRUE"],
             [openssl, "req", "-newkey", "rsa:2048", "-nodes", "-keyout", str(leaf_key),
-             "-out", str(leaf_csr), "-subj", "/CN=localhost",
-             "-addext", "subjectAltName=DNS:localhost,IP:127.0.0.1"],
+             "-out", str(leaf_csr), "-subj", "/CN=WebMainBench-Frozen-Origin",
+             "-addext", "subjectAltName=" + san],
             [openssl, "x509", "-req", "-in", str(leaf_csr), "-CA", str(ca_cert),
              "-CAkey", str(ca_key), "-CAcreateserial", "-out", str(leaf_cert),
              "-days", "1", "-copy_extensions", "copy"],
@@ -207,9 +241,47 @@ def fixture_server(records: list[dict]):
         server.socket = context.wrap_socket(server.socket, server_side=True)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
+
+        class ProxyHandler(BaseHTTPRequestHandler):
+            def do_CONNECT(self):  # noqa: N802 - BaseHTTPRequestHandler API
+                upstream = socket.create_connection(("127.0.0.1", server.server_port), timeout=5)
+                self.send_response(200, "Connection Established")
+                self.end_headers()
+                peers = (self.connection, upstream)
+                try:
+                    while True:
+                        ready, _, _ = select.select(peers, (), (), 5)
+                        for source in ready:
+                            data = source.recv(65536)
+                            if not data:
+                                return
+                            target = upstream if source is self.connection else self.connection
+                            target.sendall(data)
+                finally:
+                    upstream.close()
+
+            def do_GET(self):  # noqa: N802 - BaseHTTPRequestHandler API
+                parsed = urlsplit(self.path)
+                request_path = parsed.path + (("?" + parsed.query) if parsed.query else "")
+                write_frozen(self, frozen_body(parsed.netloc, request_path))
+
+            def log_message(self, _format, *_args):
+                return
+
+        proxy = proxy_thread = None
+        if preserve_original_origin:
+            proxy = ThreadingHTTPServer(("127.0.0.1", 0), ProxyHandler)
+            proxy_thread = threading.Thread(target=proxy.serve_forever, daemon=True)
+            proxy_thread.start()
         try:
-            yield f"https://localhost:{server.server_port}", ca_cert
+            endpoint = (f"http://127.0.0.1:{proxy.server_port}" if proxy
+                        else f"https://localhost:{server.server_port}")
+            yield endpoint, ca_cert
         finally:
+            if proxy and proxy_thread:
+                proxy.shutdown()
+                proxy.server_close()
+                proxy_thread.join(timeout=5)
             server.shutdown()
             server.server_close()
             thread.join(timeout=5)
@@ -240,27 +312,49 @@ def public_metadata(value: dict) -> dict:
     return {key: item for key, item in value.items() if not key.startswith("_")}
 
 
-def verify_loopback_sandbox(fixture_base: str, ca_cert: Path, record: dict) -> dict:
+def verify_loopback_sandbox(endpoint: str, ca_cert: Path, record: dict,
+                            preserve_original_origin: bool = False) -> dict:
     """Prove that the measured child can read the fixture but cannot connect externally."""
-    parsed = urlsplit(fixture_base)
-    path = "/case/" + record["track_id"]
-    probe = (
+    parsed = urlsplit(endpoint)
+    origin = urlsplit(record["url"])
+    path = origin.path or "/" if preserve_original_origin else "/case/" + record["track_id"]
+    direct_probe = (
         "import errno,hashlib,json,socket,ssl,sys;"
         "host,port,path,expected,ca=sys.argv[1],int(sys.argv[2]),sys.argv[3],sys.argv[4],sys.argv[5];"
         "s=ssl.create_default_context(cafile=ca).wrap_socket(socket.create_connection((host,port),2),server_hostname=host);"
         "s.sendall(('GET '+path+' HTTP/1.0\\r\\nHost: '+host+'\\r\\n\\r\\n').encode());"
-        "raw=b'';"
-        "\nwhile True:\n chunk=s.recv(65536)\n if not chunk: break\n raw+=chunk\n"
-        "s.close();body=raw.split(b'\\r\\n\\r\\n',1)[1];"
+        "response=b'';"
+        "\nwhile True:\n chunk=s.recv(65536)\n if not chunk: break\n response+=chunk\n"
+        "s.close();body=response.split(b'\\r\\n\\r\\n',1)[1];"
         "result={'loopback_body_sha256':hashlib.sha256(body).hexdigest()};"
         "\ntry:\n socket.create_connection(('1.1.1.1',443),1);result['external_connect_errno']=0\n"
         "except OSError as exc:\n result['external_connect_errno']=exc.errno\n"
         "print(json.dumps(result));"
         "sys.exit(0 if result['loopback_body_sha256']==expected and result['external_connect_errno'] in (errno.EPERM,errno.EACCES) else 9)"
     )
+    proxy_probe = (
+        "import errno,hashlib,json,socket,ssl,sys;"
+        "proxy,port,host,path,expected,ca=sys.argv[1],int(sys.argv[2]),sys.argv[3],sys.argv[4],sys.argv[5],sys.argv[6];"
+        "raw=socket.create_connection((proxy,port),2);"
+        "raw.sendall(('CONNECT '+host+':443 HTTP/1.0\\r\\nHost: '+host+'\\r\\n\\r\\n').encode());"
+        "head=b'';"
+        "\nwhile b'\\r\\n\\r\\n' not in head:\n head+=raw.recv(4096)\n"
+        "s=ssl.create_default_context(cafile=ca).wrap_socket(raw,server_hostname=host);"
+        "s.sendall(('GET '+path+' HTTP/1.0\\r\\nHost: '+host+'\\r\\n\\r\\n').encode());"
+        "response=b'';"
+        "\nwhile True:\n chunk=s.recv(65536)\n if not chunk: break\n response+=chunk\n"
+        "s.close();body=response.split(b'\\r\\n\\r\\n',1)[1];"
+        "result={'loopback_body_sha256':hashlib.sha256(body).hexdigest()};"
+        "\ntry:\n socket.create_connection(('1.1.1.1',443),1);result['external_connect_errno']=0\n"
+        "except OSError as exc:\n result['external_connect_errno']=exc.errno\n"
+        "print(json.dumps(result));"
+        "sys.exit(0 if result['loopback_body_sha256']==expected and result['external_connect_errno'] in (errno.EPERM,errno.EACCES) else 9)"
+    )
+    probe = proxy_probe if preserve_original_origin else direct_probe
+    probe_args = [origin.hostname or "", path] if preserve_original_origin else [path]
     completed = subprocess.run(
         ["/usr/bin/sandbox-exec", "-p", LOOPBACK_SANDBOX_PROFILE, sys.executable, "-c", probe,
-         parsed.hostname or "127.0.0.1", str(parsed.port), path,
+         parsed.hostname or "127.0.0.1", str(parsed.port), *probe_args,
          sha256_bytes(record["html"].encode("utf-8")), str(ca_cert)],
         capture_output=True, text=True, timeout=10, check=False,
     )
@@ -341,6 +435,8 @@ def run(args: argparse.Namespace) -> None:
         "selection_manifest": selection_binding,
         "input_contract": {
             "body": "official html UTF-8 bytes without mutation",
+            "origin": ("original URL retained while frozen bytes are served by a loopback-only proxy"
+                       if args.preserve_original_origin else "original URL retained as evidence metadata only"),
             "subresources": "blocked",
             "javascript": "inline page-authored JavaScript may run; external script and data access is blocked",
             "network_policy": "local engines run under a loopback-only OS sandbox; Kitesurf rejects subresource types",
@@ -362,14 +458,17 @@ def run(args: argparse.Namespace) -> None:
 
     network_isolation_probe = None
     fixture_ca_artifact = None
-    with fixture_server(records) as (fixture_base, ca_cert), physical_path.open("w", encoding="utf-8") as physical, result_path.open("w", encoding="utf-8") as results:
+    with fixture_server(records, args.preserve_original_origin) as (fixture_endpoint, ca_cert), physical_path.open("w", encoding="utf-8") as physical, result_path.open("w", encoding="utf-8") as results:
         if args.provider == "kitesurf":
             network_isolation_probe = {"mode": "cloudflare_reject_external_resource_types"}
         else:
             provider.config["ca_cert"] = str(ca_cert)
+            if args.preserve_original_origin:
+                provider.config["http_proxy"] = fixture_endpoint
             shutil.copy2(ca_cert, args.output / "fixture-ca.pem")
             fixture_ca_artifact = "fixture-ca.pem"
-            network_isolation_probe = verify_loopback_sandbox(fixture_base, ca_cert, records[0])
+            network_isolation_probe = verify_loopback_sandbox(
+                fixture_endpoint, ca_cert, records[0], args.preserve_original_origin)
             network_isolation_probe["fixture_ca_sha256"] = sha256_bytes(ca_cert.read_bytes())
         for index, record in enumerate(records, 1):
             body = record["html"].encode("utf-8")
@@ -377,7 +476,8 @@ def run(args: argparse.Namespace) -> None:
             attempts = []
             total_elapsed = 0.0
             for retry in range(args.max_failure_retries + 1):
-                target_url = f"{fixture_base}/case/{record['track_id']}"
+                target_url = (record["url"] if args.preserve_original_origin
+                              else f"{fixture_endpoint}/case/{record['track_id']}")
                 call_started = iso_now()
                 clock = time.monotonic()
                 response = fetch_record(provider, cloudflare, record, target_url, args.timeout)
@@ -464,6 +564,10 @@ def main() -> None:
     parser.add_argument("--timeout", type=float, default=45.0)
     parser.add_argument("--max-failure-retries", type=int, choices=(0, 1), default=1)
     parser.add_argument("--expected-version", help="Exact release version required for this provider")
+    parser.add_argument(
+        "--preserve-original-origin", action="store_true",
+        help="Serve frozen bytes through a loopback proxy while retaining each source URL",
+    )
     args = parser.parse_args()
     if args.benchmark == 'wcxb' and args.provider not in WCXB_PROVIDERS:
         parser.error(f'--provider {args.provider} is not in the WCXB method matrix')
