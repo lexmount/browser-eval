@@ -2,7 +2,7 @@ import hashlib
 
 import pytest
 
-from scripts.consolidate_webarena_full_catalog import _verified_run_directories
+from harness.trajectory_replay.catalog_consolidation import _verified_run_directories
 
 
 def test_consolidation_rejects_inputs_changed_after_acceptance(tmp_path):

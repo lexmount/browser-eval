@@ -1,4 +1,4 @@
-"""Audit an ordered full WebArena sweep and only the repairs that follow failures."""
+"""Audit an ordered WebArena catalog sweep and only its failed-case repairs."""
 
 from __future__ import annotations
 
@@ -101,10 +101,12 @@ def audit(
     data_checksum = str(scope.get("official_dataset_sha256") or "")
     if (
         scope.get("schema") != "lex_webarena_verified_full_scope/1"
-        or ids != list(range(812))
+        or not isinstance(ids, list)
+        or not ids
+        or len(set(ids)) != len(ids)
         or not data_checksum
     ):
-        raise ValueError("the official 812-case scope changed")
+        raise ValueError("the declared WebArena task scope changed")
     if not segment_dirs:
         raise ValueError("acceptance segments are required")
     states = {task_id: {"task_id": task_id, "attempts": []} for task_id in ids}

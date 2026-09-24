@@ -1,4 +1,4 @@
-"""Bind a frozen full WebArena action catalog to another site deployment."""
+"""Bind a frozen WebArena action catalog to another site deployment."""
 
 from __future__ import annotations
 

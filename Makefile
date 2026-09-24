@@ -101,7 +101,7 @@ trajectory-replay-publish: runtime-check
 	$(PY) scripts/publish_webarena_replay_artifact_site.py
 
 webarena-full-release-check: runtime-check
-	$(PY) scripts/check_webarena_full_release.py $(if $(DATA_HOME),--data-home "$(DATA_HOME)",)
+	$(PY) scripts/check_webarena_catalog_release.py $(if $(DATA_HOME),--data-home "$(DATA_HOME)",)
 
 public-webarena-report: runtime-check
 	$(PY) scripts/release_webarena_trajectory_report.py $(if $(FORMAL_ROOT),--formal-root "$(FORMAL_ROOT)",)

@@ -14,17 +14,18 @@ from harness.trajectory_replay.full_catalog import (
 )
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
 from harness.trajectory_replay.webarena_replay import _json_sha256
-from scripts.run_webarena_full_catalog import _recover_completed_attempts, _task_ids
+from harness.trajectory_replay.catalog_runner import _recover_completed_attempts, _task_ids
 
 
 def test_task_ids_preserve_requested_official_order():
-    assert _task_ids(7, 11) == [7, 8, 9, 10, 11]
+    assert _task_ids([3, 7, 11, 20], 7, 20) == [7, 11, 20]
+    assert _task_ids([3, 7, 11, 20], None, None) == [3, 7, 11, 20]
 
 
 @pytest.mark.parametrize("bounds", [(-1, 1), (2, 1), (0, 812)])
 def test_task_ids_reject_out_of_catalog_range(bounds):
-    with pytest.raises(ValueError, match="official 0..811 order"):
-        _task_ids(*bounds)
+    with pytest.raises(ValueError, match="catalog"):
+        _task_ids([0, 1, 2], *bounds)
 
 
 def _write(path: Path, value: object) -> str:

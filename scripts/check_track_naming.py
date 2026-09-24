@@ -40,12 +40,12 @@ FORBIDDEN = (
     "Browser-" + "agent",
     "Browser-" + "kernel",
 )
-FULL_REPLAY_ENTRYPOINTS = {
-    "scripts/audit_webarena_full_acceptance.py",
-    "scripts/check_webarena_full_release.py",
-    "scripts/consolidate_webarena_full_catalog.py",
-    "scripts/rebind_webarena_full_catalog.py",
-    "scripts/run_webarena_full_catalog.py",
+CATALOG_REPLAY_ENTRYPOINTS = {
+    "scripts/audit_webarena_catalog_acceptance.py",
+    "scripts/check_webarena_catalog_release.py",
+    "scripts/consolidate_webarena_catalog.py",
+    "scripts/rebind_webarena_catalog.py",
+    "scripts/run_webarena_catalog.py",
 }
 
 
@@ -64,14 +64,24 @@ def repository_contract_findings(root: Path) -> list[str]:
         for term in FORBIDDEN:
             if term in text:
                 findings.append(f"{name}: retired track name {term!r}")
-    full_replay_entrypoints = {
-        path.relative_to(root).as_posix() for path in (root / "scripts").glob("*webarena*full*.py")
+    catalog_replay_entrypoints = {
+        path.relative_to(root).as_posix()
+        for path in (root / "scripts").glob("*webarena_catalog*.py")
     }
-    if full_replay_entrypoints != FULL_REPLAY_ENTRYPOINTS:
+    if catalog_replay_entrypoints != CATALOG_REPLAY_ENTRYPOINTS:
         findings.append(
-            "full WebArena replay entry points changed: "
-            f"unexpected={sorted(full_replay_entrypoints - FULL_REPLAY_ENTRYPOINTS)}, "
-            f"missing={sorted(FULL_REPLAY_ENTRYPOINTS - full_replay_entrypoints)}"
+            "WebArena catalog replay entry points changed: "
+            f"unexpected={sorted(catalog_replay_entrypoints - CATALOG_REPLAY_ENTRYPOINTS)}, "
+            f"missing={sorted(CATALOG_REPLAY_ENTRYPOINTS - catalog_replay_entrypoints)}"
+        )
+    specialized_replay_entrypoints = sorted(
+        path.relative_to(root).as_posix()
+        for path in (root / "scripts").glob("*webarena*full*.py")
+    )
+    if specialized_replay_entrypoints:
+        findings.append(
+            "dataset size belongs in catalog data, not specialized entry points: "
+            + ", ".join(specialized_replay_entrypoints)
         )
     repair_programs = sorted(
         path.relative_to(root).as_posix()

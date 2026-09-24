@@ -1,4 +1,4 @@
-"""Replay one frozen 812-case WebArena catalog in official task order."""
+"""Replay one frozen WebArena catalog in its declared task order."""
 
 from __future__ import annotations
 
@@ -35,10 +35,18 @@ def _append(path: Path, row: dict) -> None:
         os.fsync(target.fileno())
 
 
-def _task_ids(task_from: int, task_to: int) -> list[int]:
-    if not 0 <= task_from <= task_to < 812:
-        raise ValueError("task range must be within the official 0..811 order")
-    return list(range(task_from, task_to + 1))
+def _task_ids(declared: list[int], task_from: int | None, task_to: int | None) -> list[int]:
+    if not declared or len(set(declared)) != len(declared):
+        raise ValueError("catalog task order is empty or contains duplicates")
+    lower = declared[0] if task_from is None else task_from
+    upper = declared[-1] if task_to is None else task_to
+    if lower not in declared or upper not in declared:
+        raise ValueError("task range endpoints must belong to the catalog")
+    start = declared.index(lower)
+    end = declared.index(upper)
+    if start > end:
+        raise ValueError("task range is reversed in catalog order")
+    return declared[start : end + 1]
 
 
 def _recover_completed_attempts(output: Path, progress: Path, ids: list[int]) -> set[int]:
@@ -78,8 +86,8 @@ def main() -> None:
     parser.add_argument("--cowagent", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--action-timeout-ms", type=int, default=30_000)
-    parser.add_argument("--task-from", type=int, default=0)
-    parser.add_argument("--task-to", type=int, default=811)
+    parser.add_argument("--task-from", type=int)
+    parser.add_argument("--task-to", type=int)
     args = parser.parse_args()
     if args.action_timeout_ms < 1:
         raise ValueError("action timeout must be positive")
@@ -95,7 +103,7 @@ def main() -> None:
     corrections = load_corrections()
     benchmark = remote_benchmark(sites)
     origins = {f"{urlsplit(url).scheme}://{urlsplit(url).netloc}" for url in sites.values()}
-    ids = _task_ids(args.task_from, args.task_to)
+    ids = _task_ids(list(catalog["task_ids"]), args.task_from, args.task_to)
     os.umask(0o077)
     args.output.mkdir(parents=True, exist_ok=True)
     binding = {

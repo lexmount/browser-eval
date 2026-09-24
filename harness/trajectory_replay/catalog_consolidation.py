@@ -1,4 +1,4 @@
-"""Freeze each accepted trajectory into one catalog for a fresh deployment."""
+"""Freeze accepted WebArena trajectories into one deployment-bound catalog."""
 
 from __future__ import annotations
 
@@ -64,11 +64,13 @@ def consolidate(
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
     if (
         ledger.get("schema") != "lex_webarena_full_acceptance_ledger/1"
-        or ledger.get("counts", {}).get("pass") != 812
+        or ledger.get("counts", {}).get("pass") != ledger.get("counts", {}).get("total")
         or ledger.get("counts", {}).get("unresolved") != 0
-        or [row.get("task_id") for row in ledger.get("rows", [])] != list(range(812))
+        or not ledger.get("rows")
+        or len({row.get("task_id") for row in ledger.get("rows", [])})
+        != len(ledger.get("rows", []))
     ):
-        raise ValueError("accepted ledger must contain all 812 passing tasks in official order")
+        raise ValueError("accepted ledger must contain every declared passing task in order")
     selected = {row["attempts"][-1]["progress_sha256"] for row in ledger["rows"]}
     runs = _verified_run_directories(ledger, run_root, selected)
     inputs = {
@@ -190,7 +192,11 @@ def main() -> None:
         args.site_map,
         accepted_ledger_path=args.ledger,
     )
-    print(json.dumps({"tasks": 812, "catalog_sha256": file_sha256(args.output_catalog)}))
+    print(
+        json.dumps(
+            {"tasks": len(catalog["rows"]), "catalog_sha256": file_sha256(args.output_catalog)}
+        )
+    )
 
 
 if __name__ == "__main__":

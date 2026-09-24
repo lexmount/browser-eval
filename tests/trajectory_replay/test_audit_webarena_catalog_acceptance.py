@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from scripts import audit_webarena_full_acceptance as acceptance
+from harness.trajectory_replay import catalog_acceptance as acceptance
 
 
 def _run(

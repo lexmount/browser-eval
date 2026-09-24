@@ -1,4 +1,4 @@
-"""Validate the current full WebArena report profile and frozen local artifacts."""
+"""Validate a WebArena catalog report profile and its frozen local artifacts."""
 
 from __future__ import annotations
 

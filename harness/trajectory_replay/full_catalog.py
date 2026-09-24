@@ -21,7 +21,8 @@ from harness.trajectory_replay.retrieval_acceptance import validate_contract
 from harness.trajectory_replay.webarena_corrections import apply_correction
 from harness.trajectory_replay.webarena_replay import _json_sha256
 
-CATALOG_SCHEMA = "lex_webarena_full_replay_catalog/1"
+CATALOG_SCHEMA = "lex_webarena_replay_catalog/1"
+CATALOG_SCHEMAS = frozenset({CATALOG_SCHEMA, "lex_webarena_full_replay_catalog/1"})
 RUN_SCHEMAS = frozenset({"lex_webarena_full_replay_run/1", "lex_webarena_full_replay_run/2"})
 TRUSTED_RECORDED_HOSTS = frozenset(
     {
@@ -102,8 +103,9 @@ def load_catalog_inputs(
     rows = catalog.get("rows") or []
     ids = [row.get("task_id") for row in rows]
     if (
-        catalog.get("schema") != CATALOG_SCHEMA
-        or ids != list(range(812))
+        catalog.get("schema") not in CATALOG_SCHEMAS
+        or not ids
+        or len(set(ids)) != len(ids)
         or catalog.get("task_ids") != ids
         or catalog.get("site_map_sha256") != file_sha256(site_map_path)
         or catalog.get("portable_suite_sha256") != file_sha256(suite_path)
