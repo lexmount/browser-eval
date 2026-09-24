@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
 from harness.trajectory_replay.full_catalog import (
     file_sha256,
+    repository_root,
     validate_environment_preparation,
     validate_full_report_profile,
 )
@@ -63,6 +65,33 @@ def _files(tmp_path):
 def test_environment_preparation_is_bound_to_versioned_profile(tmp_path):
     receipt, profile = _files(tmp_path)
     assert validate_environment_preparation(receipt, profile)["fresh_app_id"] == 202
+
+
+def test_environment_preparation_accepts_complete_pinned_component_restart(tmp_path):
+    receipt, profile = _files(tmp_path)
+    payload = json.loads(receipt.read_text(encoding="utf-8"))
+    payload["method"] = "component_restarts_from_pinned_images"
+    payload["reset_scope"] = ["shopping", "shopping_admin", "reddit", "gitlab"]
+    receipt.write_text(json.dumps(payload), encoding="utf-8")
+
+    assert validate_environment_preparation(receipt, profile)["method"].startswith("component_")
+
+
+def test_environment_preparation_rejects_partial_component_restart(tmp_path):
+    receipt, profile = _files(tmp_path)
+    payload = json.loads(receipt.read_text(encoding="utf-8"))
+    payload["method"] = "component_restarts_from_pinned_images"
+    payload["reset_scope"] = ["shopping"]
+    receipt.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="reset scope"):
+        validate_environment_preparation(receipt, profile)
+
+
+def test_repository_root_is_independent_of_current_working_directory():
+    root = repository_root(Path(__file__))
+    assert (root / "pyproject.toml").is_file()
+    assert (root / "harness/trajectory_replay/webarena_evaluator_fixes.py").is_file()
 
 
 @pytest.mark.parametrize(

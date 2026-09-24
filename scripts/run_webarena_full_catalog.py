@@ -18,6 +18,7 @@ from harness.trajectory_replay.full_catalog import (
     completed_task_ids,
     file_sha256,
     load_catalog_inputs,
+    repository_root,
     row_source_sites,
     validate_environment_preparation,
     verify_physical_evidence,
@@ -110,7 +111,8 @@ def main() -> None:
         "action_timeout_ms": args.action_timeout_ms,
         "corrections_sha256": corrections.source_sha256,
         "evaluator_fixes_sha256": file_sha256(
-            Path("harness/trajectory_replay/webarena_evaluator_fixes.py")
+            repository_root(Path(__file__))
+            / "harness/trajectory_replay/webarena_evaluator_fixes.py"
         ),
         "runner_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         "cowagent_revision": (

@@ -38,6 +38,12 @@ TRUSTED_RECORDED_HOSTS = frozenset(
 )
 WEBARENA_FORK_REPOSITORY = "https://github.com/lexmount/webarena-verified.git"
 WEBARENA_FORK_BRANCH = "lex-main"
+ENVIRONMENT_PREPARATION_METHODS = frozenset(
+    {
+        "new_rainbond_application_from_pinned_images",
+        "component_restarts_from_pinned_images",
+    }
+)
 
 _EVIDENCE_FILENAMES = {
     "network_har": "network.har",
@@ -189,13 +195,17 @@ def validate_environment_preparation(receipt_path: Path, environment_profile_pat
     if (
         profile.get("schema") != "lex_webarena_verified_full_environment/1"
         or receipt.get("schema") != "lex_webarena_environment_preparation/1"
-        or receipt.get("method") != "new_rainbond_application_from_pinned_images"
+        or receipt.get("method") not in ENVIRONMENT_PREPARATION_METHODS
         or receipt.get("source_app_id") != deployment.get("source_app_id")
         or receipt.get("fresh_app_id") != deployment.get("acceptance_app_id")
         or receipt.get("source_app_id") == receipt.get("fresh_app_id")
         or receipt.get("site_reset_between_tasks") is not deployment.get("site_reset_between_tasks")
     ):
         raise ValueError("environment preparation is not bound to the declared deployment")
+    if receipt["method"] == "component_restarts_from_pinned_images" and set(
+        receipt.get("reset_scope") or ()
+    ) != set(mutable_sites):
+        raise ValueError("environment preparation reset scope is incomplete")
     receipt_images = receipt.get("site_component_images") or {}
     volumes = receipt.get("database_volume_mounts") or {}
     initialization = receipt.get("initialization") or {}
@@ -213,6 +223,24 @@ def validate_environment_preparation(receipt_path: Path, environment_profile_pat
     if set(receipt.get("shared_site_components") or ()) != {"map", "wikipedia"}:
         raise ValueError("environment preparation has an unexpected shared-site scope")
     return receipt
+
+
+def repository_root(path: Path) -> Path:
+    """Find the browser-eval checkout that owns a versioned input or entry point."""
+
+    start = path.resolve()
+    candidates = (start, *start.parents) if start.is_dir() else start.parents
+    root = next(
+        (
+            candidate
+            for candidate in candidates
+            if (candidate / "pyproject.toml").is_file() and (candidate / "uv.lock").is_file()
+        ),
+        None,
+    )
+    if root is None:
+        raise ValueError("path is outside a browser-eval repository")
+    return root
 
 
 def validate_passing_evaluation(
@@ -262,18 +290,9 @@ def validate_full_report_profile(profile_path: Path, data_home: Path) -> dict:
     """Validate the repository authority against its frozen local release artifacts."""
 
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
-    repository_root = next(
-        (
-            candidate
-            for candidate in profile_path.resolve().parents
-            if (candidate / "pyproject.toml").is_file() and (candidate / "uv.lock").is_file()
-        ),
-        None,
-    )
-    if repository_root is None:
-        raise ValueError("full report profile is outside a browser-eval repository")
-    dataset_path = repository_root / str(profile.get("dataset_path") or "")
-    scope_path = repository_root / str(profile.get("scope_path") or "")
+    root = repository_root(profile_path)
+    dataset_path = root / str(profile.get("dataset_path") or "")
+    scope_path = root / str(profile.get("scope_path") or "")
     if (
         profile.get("schema") != "lex_webarena_verified_full_report_profile/1"
         or not dataset_path.is_file()
@@ -284,11 +303,11 @@ def validate_full_report_profile(profile_path: Path, data_home: Path) -> dict:
         raise ValueError("full report profile changed its versioned dataset binding")
     dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
     evaluator_source = dataset.get("evaluator_source") or {}
-    project = tomllib.loads((repository_root / "pyproject.toml").read_text(encoding="utf-8"))
+    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
     dependency_source = (
         project.get("tool", {}).get("uv", {}).get("sources", {}).get("webarena-verified") or {}
     )
-    lock = tomllib.loads((repository_root / "uv.lock").read_text(encoding="utf-8"))
+    lock = tomllib.loads((root / "uv.lock").read_text(encoding="utf-8"))
     locked_package = next(
         (
             package
