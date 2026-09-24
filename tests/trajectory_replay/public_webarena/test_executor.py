@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from contextlib import contextmanager
 from unittest.mock import MagicMock
 
@@ -208,6 +209,77 @@ def test_evaluate_runs_declared_page_script_and_captures_json():
 
     assert outputs["result"] == '{"ok": true, "count": 2}'
     assert page.calls == [("evaluate", "() => ({ok: true, count: 2})", None)]
+
+
+def test_evaluate_keeps_large_structured_json_complete_for_retrieval():
+    value = {"scope": True, "complete": True, "records": ["x" * 1_000] * 50}
+
+    class StructuredPage(FakePage):
+        def evaluate(self, script, argument=None):
+            self.calls.append(("evaluate", script, argument))
+            return value
+
+    outputs = execute_steps(
+        StructuredPage(),
+        ({"action": "evaluate", "script": "collect()", "save_as": "retrieval"},),
+    )
+
+    assert len(outputs["retrieval"]) > 40_000
+    assert json.loads(outputs["retrieval"]) == value
+
+
+def test_evaluate_never_slices_structured_json_at_an_explicit_limit():
+    value = {"records": ["x" * 100]}
+
+    class StructuredPage(FakePage):
+        def evaluate(self, script, argument=None):
+            return value
+
+    trace = []
+    with pytest.raises(ValueError, match="structured observation exceeds"):
+        execute_steps(
+            StructuredPage(),
+            ({"action": "evaluate", "script": "collect()", "max_chars": 20},),
+            trace=trace,
+        )
+
+    assert trace[0]["status"] == "fail"
+    assert trace[0]["output"] == ""
+
+
+def test_evaluate_keeps_parseable_json_strings_atomic_but_bounds_plain_text():
+    values = iter((json.dumps({"record": "x" * 100}), "x" * 50_000))
+
+    class StringPage(FakePage):
+        def evaluate(self, script, argument=None):
+            return next(values)
+
+    page = StringPage()
+    structured = execute_steps(
+        page,
+        ({"action": "evaluate", "script": "json()", "save_as": "result"},),
+    )
+    plain = execute_steps(
+        page,
+        ({"action": "evaluate", "script": "text()", "save_as": "result"},),
+    )
+
+    assert json.loads(structured["result"])["record"] == "x" * 100
+    assert len(plain["result"]) == 40_000
+
+
+def test_evaluate_structured_limit_counts_utf8_bytes():
+    value = {"records": ["😀" * 1_100_000]}
+
+    class StructuredPage(FakePage):
+        def evaluate(self, script, argument=None):
+            return value
+
+    with pytest.raises(ValueError, match="4194304-byte evidence limit"):
+        execute_steps(
+            StructuredPage(),
+            ({"action": "evaluate", "script": "collect()"},),
+        )
 
 
 def test_evaluate_explicit_function_body_executes_side_effect_once():

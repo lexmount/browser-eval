@@ -310,14 +310,11 @@ def build_agent_response(task: BrowserTask, outputs: dict[str, str]) -> dict[str
             raise ValueError(
                 "observed_permission_denied access levels must be non-negative integers or null"
             )
-        if not any(type(level) is int for level in access_levels):
-            raise ValueError(
-                "observed_permission_denied requires at least one concrete access level"
-            )
         required_access_level = evidence.get("required_access_level")
         if type(required_access_level) is not int or required_access_level < 1:
             raise ValueError("observed_permission_denied requires a positive required access level")
-        if any(level is not None and level >= required_access_level for level in access_levels):
+        concrete_access_levels = [level for level in access_levels if level is not None]
+        if any(level >= required_access_level for level in concrete_access_levels):
             raise ValueError("observed_permission_denied found sufficient access")
         retrieved_data = None
         response_status = "PERMISSION_DENIED_ERROR"

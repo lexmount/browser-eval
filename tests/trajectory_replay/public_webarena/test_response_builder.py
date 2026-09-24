@@ -496,7 +496,22 @@ def test_response_builder_action_blocked_fails_closed(evidence):
         build_agent_response(_task(builder), {"merge_request_scope": evidence})
 
 
-def test_response_builder_reports_permission_denied_only_from_insufficient_observed_access():
+@pytest.mark.parametrize(
+    "evidence",
+    [
+        (
+            '{"scope_complete":true,"allowed":false,'
+            '"access_levels":[null,20],"required_access_level":40}'
+        ),
+        (
+            '{"scope_complete":true,"allowed":false,'
+            '"access_levels":[null,null],"required_access_level":40}'
+        ),
+    ],
+)
+def test_response_builder_reports_permission_denied_from_absent_or_insufficient_access(
+    evidence,
+):
     builder = {
         "kind": "observed_permission_denied",
         "task_type": "retrieve",
@@ -505,12 +520,7 @@ def test_response_builder_reports_permission_denied_only_from_insufficient_obser
 
     response = build_agent_response(
         _task(builder),
-        {
-            "project_permissions": (
-                '{"scope_complete":true,"allowed":false,'
-                '"access_levels":[null,20],"required_access_level":40}'
-            )
-        },
+        {"project_permissions": evidence},
     )
 
     assert response == {
@@ -527,7 +537,6 @@ def test_response_builder_reports_permission_denied_only_from_insufficient_obser
         '{"scope_complete":true,"allowed":true,"access_levels":[null],"required_access_level":40}',
         '{"scope_complete":true,"allowed":false,"access_levels":[],"required_access_level":40}',
         '{"scope_complete":true,"allowed":false,"access_levels":[40],"required_access_level":40}',
-        '{"scope_complete":true,"allowed":false,"access_levels":[null,null],"required_access_level":40}',
         '{"scope_complete":true,"allowed":false,"access_levels":[false],"required_access_level":40}',
         '{"scope_complete":true,"allowed":false,"access_levels":[20],"required_access_level":true}',
     ],

@@ -19,6 +19,10 @@ from harness.browser_use.runner import (
     _login_context,
     _prepare_browser_viewport,
 )
+from harness.trajectory_replay.catalog_contracts import (
+    apply_action_overrides,
+    catalog_action_overrides,
+)
 from harness.trajectory_replay.public_webarena.executor import execute_steps
 from harness.trajectory_replay.public_webarena.response_builder import build_agent_response
 from harness.trajectory_replay.public_webarena.suite import BrowserTask
@@ -42,6 +46,22 @@ from harness.trajectory_replay.webarena_replay import (
 )
 
 NETWORK_SETTLE_MS = 2_000
+
+
+def _effective_retrieval_calls(task_id: int, row: dict, calls: list[dict]) -> list[dict]:
+    """Apply the catalog's frozen amendments without changing contract source calls."""
+
+    provenance = row.get("action_overrides")
+    catalog = {
+        "action_overrides_sha256": (
+            provenance.get("source_sha256") if isinstance(provenance, dict) else None
+        )
+    }
+    return apply_action_overrides(
+        calls,
+        catalog_action_overrides(catalog, row),
+        task_id=task_id,
+    )
 
 
 def _finalize_network_recorder(
@@ -161,7 +181,7 @@ def _read_retrieval_contract(
             WebArenaSite(site): url for site, url in (row.get("source_site_urls") or {}).items()
         }
         rebound = rebind_remote_calls(
-            embedded_calls,
+            _effective_retrieval_calls(task_id, row, embedded_calls),
             sites,
             {
                 "onestopmarket.example.com",
@@ -192,7 +212,7 @@ def _read_retrieval_contract(
     if candidate["task_id"] != task_id or candidate["retrieval_contract"]["task_id"] != task_id:
         raise ValueError(f"task {task_id}: retrieval contract identity mismatch")
     rebound = rebind_remote_calls(
-        candidate["tool_calls"],
+        _effective_retrieval_calls(task_id, row, candidate["tool_calls"]),
         sites,
         {"127.0.0.1", "192.168.5.2", "host.docker.internal"},
     )

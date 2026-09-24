@@ -36,6 +36,10 @@ TABLE_COLUMN_EXPRESSION = r"""(table, options) => {
 
 NAVIGATION_NETWORK_IDLE_TIMEOUT_MS = 1_500
 NAVIGATION_RENDER_GRACE_MS = 300
+TEXT_OBSERVATION_MAX_CHARS = 40_000
+# BrowserTool returns complete JSON evaluate results.  Keep that retrieval
+# contract while placing a finite ceiling on one captured observation.
+STRUCTURED_OBSERVATION_MAX_BYTES = 4 * 1024 * 1024
 
 
 def _completed_action_navigation_timeout(exc: Exception) -> bool:
@@ -55,6 +59,41 @@ def _evaluate_script(page: Any, script: str, script_mode: Any) -> Any:
     if script_mode == "function_body":
         return page.evaluate(f"(async () => {{\n{script}\n}})()")
     raise ValueError("evaluate script_mode must be function_body when provided")
+
+
+def _bounded_evaluate_observation(value: Any, requested_max_chars: Any = None) -> str:
+    """Serialize evaluate observations without producing partial JSON."""
+
+    structured = not isinstance(value, str)
+    if structured:
+        observation = json.dumps(value, ensure_ascii=False, allow_nan=False)
+    else:
+        observation = value
+        try:
+            json.loads(observation)
+        except (TypeError, ValueError):
+            pass
+        else:
+            structured = True
+    limit = (
+        TEXT_OBSERVATION_MAX_CHARS
+        if requested_max_chars is None
+        else int(requested_max_chars)
+    )
+    if limit < 1:
+        raise ValueError("observation max_chars must be positive")
+    if structured:
+        if requested_max_chars is not None and len(observation) > limit:
+            raise ValueError(
+                f"structured observation exceeds the {limit}-character evidence limit"
+            )
+        byte_length = len(observation.encode("utf-8"))
+        if byte_length > STRUCTURED_OBSERVATION_MAX_BYTES:
+            raise ValueError(
+                "structured observation exceeds the 4194304-byte evidence limit"
+            )
+        return observation
+    return observation[:limit]
 
 
 def _actionability_probe(page: Any, selector: str) -> dict[str, Any]:
@@ -406,10 +445,9 @@ def execute_steps(
                     }
                     observation = f"Navigated to: {action_page.url}"
                 else:
-                    observation = (
-                        value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+                    observation = _bounded_evaluate_observation(
+                        value, call.get("max_chars")
                     )
-                observation = observation[: int(call.get("max_chars", 40_000))]
             elif action == "wait_for_url":
                 action_page.wait_for_url(
                     str(call["url"]),
