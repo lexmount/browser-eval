@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 
 from scripts.report_presentation_contract import check_presentation
 from harness.web_fetch.safety import contained_path
-from harness.web_fetch.report import ERROR_PAGE
+from harness.web_fetch.report import ERROR_PAGE, WEBMAINBENCH_FULL_CAUSE_OWNERS
 
 
 def check_result_payload(row: dict, index: dict, artifact_index: dict, shards: dict) -> None:
@@ -173,7 +173,7 @@ def check(root: Path) -> None:
     cause_counts = Counter((entry["category_label"], entry["provider"])
                            for entry in failure_analysis["reviewed_failures"])
     cause_cells = guide.select("td[data-cause-provider][data-cause-kind]")
-    expected_cause_cells = {(kind, provider) for kind, _ in cause_counts for provider in providers}
+    expected_cause_cells = {(kind, provider) for kind in WEBMAINBENCH_FULL_CAUSE_OWNERS for provider in providers}
     if ({(cell["data-cause-kind"], cell["data-cause-provider"]) for cell in cause_cells} != expected_cause_cells
             or len(cause_cells) != len(expected_cause_cells)
             or any(cell.get_text(strip=True) !=

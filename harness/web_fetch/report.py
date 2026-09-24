@@ -2733,6 +2733,17 @@ def webmainbench_full_machine_issue(root: Path, row: dict) -> bool:
     return bool(ERROR_PAGE.search(contained_path(root, row["artifact_path"]).read_text(encoding="utf-8")))
 
 
+WEBMAINBENCH_FULL_CAUSE_OWNERS = {
+    "Moli 解析器崩溃": "Moli 引擎",
+    "Kitesurf 服务错误": "Kitesurf 服务",
+    "Kitesurf 请求超时": "Kitesurf 服务或传输，内部阶段未定位",
+    "Kitesurf 空正文": "Kitesurf 接口，内部原因未知",
+    "Obscura 空响应": "Obscura",
+    "Obscura 导航循环": "Obscura",
+    "冻结页跳转受阻": "共享输入与隔离环境",
+}
+
+
 def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
                                summaries: dict, profile: dict) -> None:
     """Render the complete frozen WebMainBench cohort inside the shared report module."""
@@ -2968,15 +2979,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
     page("dataset/index.html", "数据集", '<section class="hero"><h1>冻结网页与人工答案</h1><p>' + prose('dataset_lead') + '</p></section>' +
          table(["任务 ID", "语言", "难度", "来源", "证据"], dataset_rows))
     options = ["issue", "all", "请求失败", "空输出", "错误页", "低全文相似度", "未触发诊断"]
-    cause_owners = {
-        "Moli 解析器崩溃": "Moli 引擎",
-        "Kitesurf 服务错误": "Kitesurf 服务",
-        "Kitesurf 请求超时": "Kitesurf 服务或传输，内部阶段未定位",
-        "Kitesurf 空正文": "Kitesurf 接口，内部原因未知",
-        "Obscura 空响应": "Obscura",
-        "Obscura 导航循环": "Obscura",
-        "冻结页跳转受阻": "共享输入与隔离环境",
-    }
+    cause_owners = WEBMAINBENCH_FULL_CAUSE_OWNERS
     cause_order = tuple(cause_owners)
     filters = ('<div class="filters"><label>搜索任务或网址<input id="q" type="search"></label><label>方法<select id="provider"><option value="">全部方法</option>' +
                ''.join('<option value="' + provider + '">' + esc(labels[provider]) + "</option>" for provider in providers) +
