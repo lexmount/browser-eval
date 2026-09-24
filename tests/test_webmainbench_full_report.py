@@ -62,7 +62,8 @@ def test_full_report_renders_six_way_details_and_failure_evidence(tmp_path: Path
                     "dataset_lead", "analysis_lead", "method_lead", "method_input",
                     "method_scoring", "method_correction", "guide_lead", "guide_scope",
                     "guide_outputs", "guide_diagnosis", "guide_example", "reproduce_lead",
-                    "guide_method_scope", "guide_conclusion")
+                    "guide_method_scope", "guide_conclusion", "audit_scope", "audit_findings",
+                    "audit_resolution", "audit_limit")
     (tmp_path / "report-content.json").write_text(json.dumps({key: "说明" for key in content_keys}), encoding="utf-8")
     content = json.loads((tmp_path / "report-content.json").read_text())
     content["interfaces"] = {provider: "调用接口" for provider in providers}

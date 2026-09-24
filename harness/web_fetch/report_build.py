@@ -618,7 +618,8 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         raise ValueError('Fixed Moli cohort was not certified')
     providers = profile['providers'] + ['moli-fixed']
     display_profile = {**profile, 'providers': providers,
-                       'versions': {**profile['versions'], 'moli-fixed': '1.1.9'}}
+                       'versions': {**profile['versions'],
+                                    'moli-fixed': fixed_profile['versions']['moli']}}
     cases = {case['id']: case for case in dataset['cases']}
     if (len(cases) != 545 or len(records) != 545 * len(providers)
             or {(row['provider'], row['case_id']) for row in records} !=

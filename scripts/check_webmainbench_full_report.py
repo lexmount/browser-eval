@@ -131,14 +131,27 @@ def check(root: Path) -> None:
     home = check_presentation((root / "index.html").read_text(encoding="utf-8"))
     guide = check_presentation((root / "guide/index.html").read_text(encoding="utf-8"))
     illustrations = repo / 'evaluation/webmainbench-full/illustrations.json'
+    overview_claims = None
     if illustrations.exists():
         for asset in json.loads(illustrations.read_text())['assets']:
             filename = 'assets/' + asset['name']
             if (hashlib.sha256(contained_path(root, filename).read_bytes()).hexdigest() != asset['sha256']
                     or not guide.select_one('img[src="' + filename + '"]')):
                 raise ValueError('Bound error analysis illustration missing or changed')
+            if asset['name'] == 'overview-moli-1.1.10.png':
+                overview_claims = asset.get('claims')
+    summaries = json.loads((root / 'score-summaries.json').read_text(encoding='utf-8'))
+    if (not overview_claims or overview_claims.get('scores_percent') != {
+            provider: f"{summaries[provider]['official_aggregate']['scores']['overall'] * 100:.2f}"
+            for provider in ('moli', 'lightpanda', 'moli-fixed', 'kitesurf', 'chromium', 'obscura')}):
+        raise ValueError('Overview illustration score claims differ from measured results')
     if correction_binding.exists() and not guide.select_one('#fixture-correction'):
         raise ValueError('Corrected case explanation missing')
+    audit = guide.select_one('#content-audit')
+    if (not audit or '545/545' not in audit.get_text(' ', strip=True)
+            or '604' not in audit.get_text(' ', strip=True)
+            or '修复前候选输出' not in audit.get_text(' ', strip=True)):
+        raise ValueError('Full content-audit scope, findings or limitation missing')
     for page in (home, guide):
         if len(page.select('td[data-metric-direction="max"]')) != 36:
             raise ValueError("Core metrics or winner controls missing")
@@ -184,6 +197,13 @@ def check(root: Path) -> None:
         output = shard["blobs"].get(shard["artifacts"].get(path), "")
         if not row["ok"] or not row["output_chars"] or ERROR_PAGE.search(output):
             failures.add((row["provider"], row["case_id"]))
+    if {"machine_issues": len(failures),
+        "request_failures": sum(counts['请求失败'] for counts in diagnostic_counts.values()),
+        "empty_outputs": sum(counts['空输出'] for counts in diagnostic_counts.values()),
+        "error_pages": sum(counts['错误页'] for counts in diagnostic_counts.values())} != {
+            key: overview_claims[key] for key in
+            ('machine_issues', 'request_failures', 'empty_outputs', 'error_pages')}:
+        raise ValueError('Overview illustration issue claims differ from measured results')
     if reviewed != {item for item in failures if item[0] != 'moli-fixed'}:
         raise ValueError("Published baseline failure analysis scope is incomplete")
     if not any(row['provider'] == 'moli-fixed' for row in records):

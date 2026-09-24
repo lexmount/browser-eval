@@ -16,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.score_webmainbench_results import load_records, official_calculator, metric_dict
 from scripts.correct_webmainbench_teds import corrected_distance
 from scripts.run_certified_webmainbench_full import verify_shard
+from harness.web_fetch.safety import contained_path
 
 
 def digest(path):
@@ -32,8 +33,10 @@ def write(path, value):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ('source', 'dataset', 'scorer', 'output', 'moli-binary', 'fixed-binary'):
+    for name in ('source', 'dataset', 'scorer', 'output', 'fixed-binary'):
         parser.add_argument('--' + name, type=Path, required=True)
+    parser.add_argument('--moli-binary', type=Path)
+    parser.add_argument('--prior-correction', type=Path)
     parser.add_argument('--case-id', required=True)
     args = parser.parse_args(argv)
     if args.output.exists():
@@ -44,17 +47,57 @@ def main(argv=None):
     if set(selected) != set(providers) or len(providers) != 6:
         raise ValueError('Correction requires all six methods')
     source_case = load_records(args.dataset)[args.case_id]
-    binaries = {'moli': args.moli_binary, 'moli-fixed': args.fixed_binary}
+    binaries = {'moli-fixed': args.fixed_binary}
+    if args.moli_binary:
+        binaries['moli'] = args.moli_binary
+    if not args.prior_correction and 'moli' not in binaries:
+        parser.error('--moli-binary is required without --prior-correction')
     for name, binary in binaries.items():
         if digest(binary) != selected[name]['provider_metadata']['binary_sha256']:
             raise ValueError('Binary differs from frozen cohort: ' + name)
+    prior_rows = prior_physical = []
+    prior_certificate_sha256 = None
+    if args.prior_correction:
+        certificate_path = args.prior_correction / 'certificate.json'
+        prior_certificate = json.loads(certificate_path.read_text())
+        prior_plan = prior_certificate.get('preflight', {})
+        if (prior_certificate.get('kind') != 'webmainbench_origin_correction_v1'
+                or prior_plan != prior_certificate.get('postflight')
+                or prior_plan.get('case_id') != args.case_id
+                or prior_plan.get('source_sha256') != digest(args.dataset)
+                or set(prior_plan.get('providers', ())) != set(providers)
+                or prior_certificate.get('results_sha256') != digest(args.prior_correction / 'results.jsonl')
+                or prior_certificate.get('physical_sha256') != digest(args.prior_correction / 'physical-attempts.jsonl')):
+            raise ValueError('Prior origin correction certificate mismatch')
+        prior_rows = rows(args.prior_correction / 'results.jsonl')
+        prior_physical = rows(args.prior_correction / 'physical-attempts.jsonl')
+        prior_certificate_sha256 = digest(certificate_path)
+        inherited = {row['provider']: row for row in prior_rows if row['provider'] != 'moli-fixed'}
+        if set(inherited) != set(providers) - {'moli-fixed'}:
+            raise ValueError('Prior origin correction does not cover unchanged methods')
+        for name, row in inherited.items():
+            old = selected[name]
+            if (row.get('supersedes_attempt_id') != old['attempt_id']
+                    or any(row.get(key) != old.get(key) for key in ('input_html_sha256', 'reference_sha256'))
+                    or any(row['provider_metadata'].get(key) != old['provider_metadata'].get(key)
+                           for key in ('binary_sha256', 'browser_version', 'extractor_version', 'converter_sha256'))
+                    or digest(contained_path(args.prior_correction, row['artifact_path'])) != row['output_sha256']):
+                raise ValueError('Prior origin correction differs from current method: ' + name)
+        if any(digest(contained_path(args.prior_correction, call['physical_artifact_path']))
+               != call['output_sha256'] for call in prior_physical if call['provider'] != 'moli-fixed'):
+            raise ValueError('Prior origin correction physical artifact changed')
     plan = {'kind': 'webmainbench_origin_correction_v1', 'case_id': args.case_id,
             'providers': providers, 'parent_results_sha256': digest(args.source / 'results.jsonl'),
             'source_sha256': digest(args.dataset), 'timeout_seconds': 45, 'max_failure_retries': 1,
             'input_html_sha256': hashlib.sha256(source_case['html'].encode()).hexdigest(),
             'reference_sha256': hashlib.sha256(source_case['groundtruth_content'].encode()).hexdigest(),
             'reason': 'localhost substitution triggers the frozen page canonical-URL redirect; preserve the original URL while serving the same frozen bytes and blocking external resources',
-            'selection': 'final physical call; all six methods selected before execution'}
+            'selection': ('five unchanged methods inherited from a bound prior certified correction; '
+                          'the final physical call for moli-fixed was selected before execution'
+                          if args.prior_correction else
+                          'final physical call; all six methods selected before execution')}
+    if prior_certificate_sha256:
+        plan['prior_correction_certificate_sha256'] = prior_certificate_sha256
     args.output.mkdir(parents=True)
     write(args.output / 'preflight.json', plan)
     selection = args.output / 'case-ids.txt'
@@ -62,6 +105,23 @@ def main(argv=None):
     corrected = []
     physical = []
     for name in providers:
+        if args.prior_correction and name != 'moli-fixed':
+            row = next(row for row in prior_rows if row['provider'] == name)
+            corrected.append(row)
+            for call in prior_physical:
+                if call['provider'] != name:
+                    continue
+                target = call['physical_artifact_path']
+                dest = args.output / target
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(contained_path(args.prior_correction, target), dest)
+                physical.append(call)
+            target = row['artifact_path']
+            dest = args.output / target
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(contained_path(args.prior_correction, target), dest)
+            print(name, row['ok'], row['output_chars'], 'inherited', flush=True)
+            continue
         provider = 'moli' if name == 'moli-fixed' else name
         shard = args.output / name
         env = dict(os.environ)

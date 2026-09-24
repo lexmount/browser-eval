@@ -1297,6 +1297,61 @@
       }}
     },
     {
+      "id": "webmainbench-545-moli-110-content-audit-20260924",
+      "date": "2026-09-24",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "title": "以 Moli 1.1.10 完成内容修复和六方法正式报告",
+      "summary": "修复前候选输出完成 545/545 页内容审计，问题按共享机制修复后只编译一次 Moli 1.1.10，并完成 545 页认证重测。修复版生成目标正文 545/545，综合分 32.97%，表格结构分 16.71% 为六方法最高；正式报告保留六方法、逐页证据和两张分析图。",
+      "changes": [
+        [
+          "内容审计与修复",
+          "先前报告只复核机器失败，未覆盖修复候选的全部成功输出。",
+          "逐页读取 545 份候选 Markdown 与冻结源码，归并可见性、表格、数学、媒体、链接、表单和代码边界共因，在通用转换层修复并增加行为回归。",
+          "审计记录 149 页可接受、351 页明确缺陷、45 页需运行时确认；这些诊断不替代官方分数。"
+        ],
+        [
+          "最终六方法结果",
+          "修复版仍绑定较早的 1.1.9 构建和过期结果说明。",
+          "从最新 main 上的提交 39169d705 编译一次 Moli 1.1.10，并用该固定二进制完成 545 页认证运行和原网址纠正。",
+          "修复版目标正文为 545/545；综合分 32.97%，原版 Moli 1.1.9 综合分 34.01% 仍最高。"
+        ],
+        [
+          "正式报告",
+          "旧正文仍写修复版 34.08% 最高，并把实测版本称为 1.1.9。",
+          "以最终证据重算表格、修复说明和结论，保留六方法同页对照、错误机制图、结果图与原始调用。",
+          "交付成功率、质量分和跨日期耗时分别解释。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Complete content repairs and the formal six-method report with Moli 1.1.10",
+          "summary": "All 545 candidate outputs were content-audited before shared causes were repaired. One Moli 1.1.10 release build then completed the certified 545-page rerun. The repaired method delivers target body text on 545/545 pages, scores 32.97% overall, and leads table structure at 16.71%; the formal report retains all six methods, per-page evidence, and both analysis figures.",
+          "changes": [
+            [
+              "Content audit and repair",
+              "The earlier report reviewed machine failures but did not inspect every successful candidate output.",
+              "Read all 545 candidate Markdown outputs against frozen source evidence, group visibility, table, math, media, link, form, and code-boundary causes, and repair them in shared conversion layers with behavioral regressions.",
+              "The audit recorded 149 acceptable pages, 351 definite defects, and 45 runtime checks. These diagnoses do not replace official scores."
+            ],
+            [
+              "Final six-method result",
+              "The repaired method was still described as an older 1.1.9 build with stale result prose.",
+              "Build Moli 1.1.10 once from commit 39169d705 on current main, then run the certified 545-page cohort and origin correction with that fixed binary.",
+              "The repaired method delivers 545/545 target bodies and scores 32.97% overall; original Moli 1.1.9 remains the overall leader at 34.01%."
+            ],
+            [
+              "Formal report",
+              "The previous prose still called the repaired result 34.08% and identified it as 1.1.9.",
+              "Recompute tables and conclusions from final evidence while retaining six-method same-case views, both analysis figures, failure evidence, and physical calls.",
+              "Delivery, quality scores, and cross-date latency are explained separately."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "webmainbench-545-six-method-origin-correction-20260924",
       "date": "2026-09-24",
       "comparison_kinds": [

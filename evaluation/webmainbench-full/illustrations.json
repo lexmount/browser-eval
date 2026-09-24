@@ -2,10 +2,24 @@
   "schema_version": 1,
   "assets": [
     {
-      "name": "overview.png",
-      "sha256": "1166017830d43cf56876e7cfc771d34dcd2b77998cac38d07bb84fa4e869d177",
+      "name": "overview-moli-1.1.10.png",
+      "sha256": "d9487d0e761b9187e09fd934f63f10371e78738939b54d47221037130bae6c53",
       "generator": "ImageGen",
-      "scope": "six methods after certified origin correction"
+      "scope": "six methods after certified origin correction",
+      "claims": {
+        "scores_percent": {
+          "moli": "34.01",
+          "lightpanda": "33.43",
+          "moli-fixed": "32.97",
+          "kitesurf": "32.86",
+          "chromium": "23.66",
+          "obscura": "22.36"
+        },
+        "machine_issues": 25,
+        "request_failures": 15,
+        "empty_outputs": 10,
+        "error_pages": 0
+      }
     },
     {
       "name": "error-mechanisms.png",
