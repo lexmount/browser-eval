@@ -6,13 +6,34 @@ from pathlib import Path
 
 import pytest
 
-from scripts.build_webarena_authored_suite import navigate, task_definition
 from scripts.build_webarena_repair_queue import build_repair_queue
 
 
 def _write(path: Path, value: object) -> Path:
     path.write_text(json.dumps(value), encoding="utf-8")
     return path
+
+
+def _task_definition(task_id: int) -> dict:
+    actions = [{"action": "navigate", "url": "http://gitlab.example.com:8023", "save_as": "page"}]
+    return {
+        "id": f"webarena-{task_id}",
+        "title": "Create the requested issue",
+        "trajectory": {
+            "schema": "lex_browser_trajectory/1",
+            "actions": actions,
+            "provenance": {"kind": "browser_observed_fixed_path"},
+        },
+        "difficulty": "medium",
+        "ground_truth": {
+            "oracle": "webarena_verified",
+            "expected_actions": ["navigate"],
+            "response_builder": {"kind": "null_after_verified_path", "task_type": "mutate"},
+        },
+        "evaluator": {"kind": "webarena_verified", "task_id": task_id, "revision": 1},
+        "source": {"url": "https://github.com/opendatalab/WebArena-Verified"},
+        "environment": {"kind": "webarena_verified"},
+    }
 
 
 def _inputs(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
@@ -43,10 +64,7 @@ def _inputs(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
         {
             "schema": "lex_browser_use_tasks/4",
             "tasks": [
-                task_definition(
-                    {"task_id": 1, "intent": "Create the requested issue", "revision": 1},
-                    [navigate("http://gitlab.example.com:8023", "page")],
-                )
+                _task_definition(1)
             ],
         },
     )

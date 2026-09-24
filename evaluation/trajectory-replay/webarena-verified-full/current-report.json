@@ -3,11 +3,25 @@
   "benchmark": "WebArena-Verified",
   "split": "full-812",
   "browser": "chromium",
+  "dataset_path": "evaluation/trajectory-replay/webarena-verified-full/dataset.json",
+  "dataset_sha256": "cd1ef419784b6b46076819a8f46904a63d96a3c638cbc810c562218c88ef650e",
   "scope_path": "evaluation/trajectory-replay/webarena-verified-full/scope.json",
   "scope_sha256": "91b93b44603d06cd84fa43e17296b41058a56e3288430fd53ec635ce5c8e81d5",
+  "evidence_root": "trajectory-replay/full-812-chromium-clean-20260924",
+  "accepted_catalog": {
+    "path": "accepted-catalog-clean-202-v1.json",
+    "sha256": "7d440e3f075e5d176c4a84588555fc539b34ee87db72c3c5d86fe7c082600dc1"
+  },
+  "accepted_portable_suite": {
+    "path": "accepted-suite-clean-202-v1.json",
+    "sha256": "a53a10358cadc59ed6896ffee7c9aa1a8d3308d5a23c8279384f1dd1c079a594"
+  },
+  "acceptance_ledger_path": "final-ledger-clean-202-v1.json",
   "first_round_acceptance_ledger_sha256": "fd7d5190b44c202d0adec77d9a7748136b9ebc19a1723d04f7ae5a0ac96c41ec",
   "acceptance_ledger_sha256": "4c4eaa9f8b243562778c715cb25e70683b8be372fd544a8081b84a1d89ee7b8c",
+  "report_manifest_path": "report-clean-202-v4/manifest.json",
   "report_manifest_sha256": "9ec556c80660e88c1bbfba4d641a0e67041dec49343274a5747be9f9cbab7f68",
+  "report_archive_path": "report-clean-202-v4.zip",
   "report_archive_sha256": "d3627b5d51fd3ac57c81fabee417277b3e5a1012f909aa621ff55a9d822d055c",
   "generated_languages": ["zh"],
   "publication": {

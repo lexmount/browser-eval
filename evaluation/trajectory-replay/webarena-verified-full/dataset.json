@@ -1,0 +1,15 @@
+{
+  "schema": "lex_webarena_verified_full_dataset/1",
+  "benchmark": "WebArena-Verified",
+  "official_dataset_sha256": "7ab0ef7e61af98efc5e16ba2b4303ddc0b8f5b66b5c88c58cb76e89e9235b57a",
+  "task_count": 812,
+  "task_id_range": [0, 811],
+  "execution_order": "ascending_official_task_id",
+  "success_policy": "one verified official-evaluator pass per case",
+  "retry_policy": "never repeat a passed case; repair failures after the initial sweep",
+  "independent_sample_split": {
+    "path": "evaluation/trajectory-replay/webarena-verified/selection.json",
+    "sha256": "06d8d999164c7c2de6cb21d15ec12f5260bfc2a58ca81b098a8c7779d4d2d91a",
+    "task_count": 90
+  }
+}

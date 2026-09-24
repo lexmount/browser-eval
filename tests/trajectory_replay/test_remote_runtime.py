@@ -35,26 +35,36 @@ def _site_map(tmp_path):
 def test_six_site_remote_map_accepts_read_only_sites_and_rebinds_them(tmp_path):
     site_map = _site_map(tmp_path)
     payload = json.loads(site_map.read_text())
-    payload["sites"].update({
-        "map": "http://map.example/",
-        "wikipedia": "http://wiki.example/",
-    })
+    payload["sites"].update(
+        {
+            "map": "http://map.example/",
+            "wikipedia": "http://wiki.example/",
+        }
+    )
     site_map.write_text(json.dumps(payload))
     sites = load_remote_sites(site_map)
     assert set(sites) == {
-        WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN, WebArenaSite.REDDIT,
-        WebArenaSite.GITLAB, WebArenaSite.MAP, WebArenaSite.WIKIPEDIA,
+        WebArenaSite.SHOPPING,
+        WebArenaSite.SHOPPING_ADMIN,
+        WebArenaSite.REDDIT,
+        WebArenaSite.GITLAB,
+        WebArenaSite.MAP,
+        WebArenaSite.WIKIPEDIA,
     }
     assert remote_benchmark(sites).config.get_environment(WebArenaSite.MAP).active_url == (
         "http://map.example"
     )
     result = rebind_remote_calls(
-        [{"action": "navigate", "url": "http://host.docker.internal:3000/search?q=boston"},
-         {"action": "navigate", "url": "http://host.docker.internal:8888/wiki/Boston"}],
-        sites, {"host.docker.internal"},
+        [
+            {"action": "navigate", "url": "http://host.docker.internal:3000/search?q=boston"},
+            {"action": "navigate", "url": "http://host.docker.internal:8888/wiki/Boston"},
+        ],
+        sites,
+        {"host.docker.internal"},
     )
     assert [row["url"] for row in result] == [
-        "http://map.example/search?q=boston", "http://wiki.example/wiki/Boston",
+        "http://map.example/search?q=boston",
+        "http://wiki.example/wiki/Boston",
     ]
 
 
@@ -150,6 +160,47 @@ def test_remote_benchmark_matches_distinct_bodies_sent_to_one_endpoint(tmp_path)
     assert float(result.score) == 1.0, result.model_dump_json(indent=2)
 
 
+def test_remote_benchmark_rejects_missing_required_body_on_repeated_endpoint(tmp_path):
+    benchmark = remote_benchmark(load_remote_sites(_site_map(tmp_path)))
+    task = benchmark.get_task(567)
+    expected = [item.expected for item in task.eval if item.evaluator == "NetworkEventEvaluator"]
+    trace = tmp_path / "members-missing-first.har"
+    trace.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "entries": [
+                        {
+                            "request": {
+                                "method": item.http_method,
+                                "url": item.url.replace("__GITLAB__", "http://gitlab.example"),
+                                "headers": [],
+                                "postData": {
+                                    "mimeType": "application/json",
+                                    "text": json.dumps(dict(item.post_data)),
+                                },
+                            },
+                            "response": {
+                                "status": item.response_status,
+                                "headers": [],
+                                "content": {},
+                            },
+                        }
+                        for item in expected[1:]
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = benchmark.evaluate_task(
+        task_id=567,
+        agent_response={"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None},
+        network_trace=trace,
+    )
+    assert float(result.score) == 0.0, result.model_dump_json(indent=2)
+
+
 def test_rebind_remote_calls_preserves_path_query_and_non_site_urls(tmp_path):
     sites = load_remote_sites(_site_map(tmp_path))
     calls = [
@@ -191,8 +242,14 @@ def test_rebinds_absolute_urls_from_a_previous_deployment(tmp_path):
         WebArenaSite.SHOPPING_ADMIN: "http://old-slice.example/admin",
     }
     calls = [
-        {"action": "navigate", "url": "http://old-slice.example/admin/catalog/product/edit/id/110/"},
-        {"action": "navigate", "url": "http://unrelated.example/admin/catalog/product/edit/id/110/"},
+        {
+            "action": "navigate",
+            "url": "http://old-slice.example/admin/catalog/product/edit/id/110/",
+        },
+        {
+            "action": "navigate",
+            "url": "http://unrelated.example/admin/catalog/product/edit/id/110/",
+        },
     ]
 
     rebound = rebind_remote_calls(calls, sites, set(), previous)
@@ -243,9 +300,7 @@ def test_rebinds_recorded_url_inside_portable_playwright_target(tmp_path):
             },
         }
     ]
-    result = rebind_remote_calls(
-        calls, sites, {"ec2-3-135-39-80.us-east-2.compute.amazonaws.com"}
-    )
+    result = rebind_remote_calls(calls, sites, {"ec2-3-135-39-80.us-east-2.compute.amazonaws.com"})
     assert "http://admin.example/admin/review/product/" in result[0]["target"]["value"]
     assert calls[0]["target"]["value"].startswith('internal:attr=[title="http://ec2-')
 
@@ -255,9 +310,7 @@ def test_rebinds_recorded_url_inside_portable_playwright_target(tmp_path):
     [("http://reddit.example", 1.0), ("http://wrong.example", 0.0)],
     ids=["markdown-deployment-url", "markdown-wrong-origin"],
 )
-def test_remote_benchmark_derenders_urls_inside_markdown(
-    tmp_path, reddit_origin, expected_score
-):
+def test_remote_benchmark_derenders_urls_inside_markdown(tmp_path, reddit_origin, expected_score):
     benchmark = remote_benchmark(load_remote_sites(_site_map(tmp_path)))
     task = benchmark.get_task(562)
     project = task.eval[1].expected.post_data
@@ -265,9 +318,7 @@ def test_remote_benchmark_derenders_urls_inside_markdown(
     content = expected_content.replace("__REDDIT__", reddit_origin)
     commit = {
         "branch": "main",
-        "actions": [
-            {"action": "create", "file_path": "README.md", "content": content}
-        ],
+        "actions": [{"action": "create", "file_path": "README.md", "content": content}],
     }
     trace = tmp_path / f"task-562-{expected_score}.har"
     trace.write_text(
@@ -333,9 +384,7 @@ def test_remote_benchmark_derenders_url_valued_form_strings(
     benchmark = remote_benchmark(load_remote_sites(_site_map(tmp_path)))
     task = benchmark.get_task(684)
     post_data = dict(task.eval[1].expected.post_data)
-    post_data["submission[url]"] = post_data["submission[url]"].replace(
-        "__GITLAB__", gitlab_origin
-    )
+    post_data["submission[url]"] = post_data["submission[url]"].replace("__GITLAB__", gitlab_origin)
     trace = tmp_path / f"task-684-{expected_score}.har"
     trace.write_text(
         json.dumps(
@@ -544,10 +593,15 @@ def test_cohort_reset_requires_bound_fast_read_only_site_probes(tmp_path):
         "site_map_sha256": file_sha256(site_path),
         "reset_scope": "once_before_original36_candidate_cohort",
         "site_reset_between_tasks": False,
-        "sites": {site.value: dict(row) for site in (
-            WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN,
-            WebArenaSite.REDDIT, WebArenaSite.GITLAB,
-        )},
+        "sites": {
+            site.value: dict(row)
+            for site in (
+                WebArenaSite.SHOPPING,
+                WebArenaSite.SHOPPING_ADMIN,
+                WebArenaSite.REDDIT,
+                WebArenaSite.GITLAB,
+            )
+        },
         "site_readiness": [probe],
     }
     receipt["sites"]["reddit"]["baseline_check"] = {"row_count": 0}
@@ -557,24 +611,33 @@ def test_cohort_reset_requires_bound_fast_read_only_site_probes(tmp_path):
         "site_map_sha256": file_sha256(site_path),
         "app_id": 195,
         "reset_scope": "once_before_original36_candidate_cohort",
-        "required_readiness_probes": [{
-            "site": "reddit", "path": "/f/DIY/post", "url": url, "max_stable_ms": 5000,
-        }],
+        "required_readiness_probes": [
+            {
+                "site": "reddit",
+                "path": "/f/DIY/post",
+                "url": url,
+                "max_stable_ms": 5000,
+            }
+        ],
     }
     assert validate_remote_cohort_reset_receipt(receipt_path, **kwargs) == receipt
     recovered = json.loads(json.dumps(receipt))
-    recovered["site_readiness"][0].update({
-        "cold_http_status": 500,
-        "recovery_http_status": 200,
-        "recovery_ms": 15_000,
-    })
+    recovered["site_readiness"][0].update(
+        {
+            "cold_http_status": 500,
+            "recovery_http_status": 200,
+            "recovery_ms": 15_000,
+        }
+    )
     receipt_path.write_text(json.dumps(recovered))
     assert validate_remote_cohort_reset_receipt(receipt_path, **kwargs) == recovered
     timed_out = json.loads(json.dumps(recovered))
-    timed_out["site_readiness"][0].update({
-        "cold_http_status": 0,
-        "cold_error": "timeout",
-    })
+    timed_out["site_readiness"][0].update(
+        {
+            "cold_http_status": 0,
+            "cold_error": "timeout",
+        }
+    )
     receipt_path.write_text(json.dumps(timed_out))
     assert validate_remote_cohort_reset_receipt(receipt_path, **kwargs) == timed_out
     del timed_out["site_readiness"][0]["cold_error"]

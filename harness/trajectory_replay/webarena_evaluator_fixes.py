@@ -16,14 +16,15 @@ from webarena_verified.core.evaluation.data_types import (
     MarkdownString,
     NormalizedString,
 )
-from webarena_verified.core.evaluation.evaluators.network_event_evaluator import (
-    NetworkEventEvaluator,
-)
 from webarena_verified.core.evaluation.evaluators.agent_response_evaluator import (
     AgentResponseEvaluator,
 )
+from webarena_verified.core.evaluation.evaluators.network_event_evaluator import (
+    NetworkEventEvaluator,
+)
 
 _PLACEHOLDER = re.compile(r"\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}")
+_REPEATED_NETWORK_EVENT_TASKS = frozenset({567, 568, 569, 570})
 
 
 def _derender_embedded_url(instance: Any, value: str) -> str:
@@ -112,10 +113,17 @@ def _runtime_configs(context: Any, config: Any) -> list[Any]:
         url_templates = list(urls) if isinstance(urls, (list, tuple)) else [urls]
         post_templates = expected.get("post_data") or {}
         for event in context.network_trace.evaluation_events:
-            if expected.get("http_method") and event.http_method.lower() != expected["http_method"].lower():
+            if (
+                expected.get("http_method")
+                and event.http_method.lower() != expected["http_method"].lower()
+            ):
                 continue
             bindings: dict[str, str] = {}
-            dynamic_urls = [item for item in url_templates if isinstance(item, str) and _PLACEHOLDER.search(item)]
+            dynamic_urls = [
+                item
+                for item in url_templates
+                if isinstance(item, str) and _PLACEHOLDER.search(item)
+            ]
             if dynamic_urls:
                 actual_url = context.config.derender_url(
                     event.url, sites=context.task.sites, strict=False
@@ -134,7 +142,9 @@ def _runtime_configs(context: Any, config: Any) -> list[Any]:
                         ),
                         None,
                     )
-                    if matched_key is None or not _template_match(key_template, matched_key, bindings):
+                    if matched_key is None or not _template_match(
+                        key_template, matched_key, bindings
+                    ):
                         valid = False
                         break
                     actual_value = actual_post[matched_key]
@@ -167,8 +177,7 @@ def _runtime_configs(context: Any, config: Any) -> list[Any]:
             schema = {
                 "type": "object",
                 "properties": {
-                    key: {"type": "array", "items": {"type": "string"}}
-                    for key in singleton_arrays
+                    key: {"type": "array", "items": {"type": "string"}} for key in singleton_arrays
                 },
             }
             candidate = candidate.model_copy(update={"post_data_schema": schema})
@@ -235,7 +244,11 @@ def install_webarena_evaluator_fixes() -> None:
                 and item.expected.url == config.expected.url
                 and item.expected.http_method == config.expected.http_method
             ]
-            if config.last_event_only and len(siblings) > 1:
+            if (
+                context.task.task_id in _REPEATED_NETWORK_EVENT_TASKS
+                and config.last_event_only
+                and len(siblings) > 1
+            ):
                 # Upstream defaults to the final URL/method match before it
                 # compares POST data.  Official tasks that intentionally send
                 # several distinct bodies to one endpoint therefore make every

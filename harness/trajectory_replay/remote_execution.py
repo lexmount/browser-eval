@@ -411,7 +411,7 @@ def _run_task(
     hashes["readiness"] = _write(task_dir / "readiness.json", readiness_records)
     if portable_task is not None:
         hashes["outputs"] = _write(task_dir / "outputs.json", portable_outputs)
-    return {
+    outcome = {
         "task_id": task_id,
         "status": status,
         "score": score,
@@ -426,3 +426,11 @@ def _run_task(
         "error": error,
         "evidence_sha256": hashes,
     }
+    result_path = task_dir / "result.json"
+    result_tmp = task_dir / ".result.json.tmp"
+    result_tmp.write_text(
+        json.dumps(outcome, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    result_tmp.chmod(0o600)
+    result_tmp.replace(result_path)
+    return outcome

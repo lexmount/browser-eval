@@ -233,9 +233,7 @@ def test_response_builder_filters_aligned_observed_rows_by_requested_value():
     )
 
     assert response is not None
-    assert response["retrieved_data"] == [
-        {"name": "Ada", "email": "ada@example.test"}
-    ]
+    assert response["retrieved_data"] == [{"name": "Ada", "email": "ada@example.test"}]
 
 
 def test_response_builder_ranks_observed_labels_by_numeric_score():
@@ -294,8 +292,7 @@ def test_response_builder_deduplicates_review_authors_across_observed_pages():
         ),
         {
             "page_two": '["Review by Ada\\nLow quality"]',
-            "page_one": '["Review by Grace\\nQuality issue", '
-            '"Review by Ada\\nQuality issue"]',
+            "page_one": '["Review by Grace\\nQuality issue", "Review by Ada\\nQuality issue"]',
         },
     )
 
@@ -467,8 +464,7 @@ def test_response_builder_reports_action_blocked_only_from_observed_blocker():
         _task(builder),
         {
             "merge_request_scope": (
-                '{"scope_complete":true,"allowed":false,'
-                '"blockers":[{"id":17,"state":"opened"}]}'
+                '{"scope_complete":true,"allowed":false,"blockers":[{"id":17,"state":"opened"}]}'
             )
         },
     )
@@ -532,6 +528,8 @@ def test_response_builder_reports_permission_denied_only_from_insufficient_obser
         '{"scope_complete":true,"allowed":false,"access_levels":[],"required_access_level":40}',
         '{"scope_complete":true,"allowed":false,"access_levels":[40],"required_access_level":40}',
         '{"scope_complete":true,"allowed":false,"access_levels":[null,null],"required_access_level":40}',
+        '{"scope_complete":true,"allowed":false,"access_levels":[false],"required_access_level":40}',
+        '{"scope_complete":true,"allowed":false,"access_levels":[20],"required_access_level":true}',
     ],
 )
 def test_response_builder_permission_denied_fails_closed(evidence):

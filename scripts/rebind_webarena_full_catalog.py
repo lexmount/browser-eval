@@ -6,15 +6,15 @@ import argparse
 import json
 from pathlib import Path
 
+from harness.trajectory_replay.full_catalog import (
+    TRUSTED_RECORDED_HOSTS,
+    file_sha256,
+    load_catalog_inputs,
+    row_source_sites,
+)
 from harness.trajectory_replay.public_webarena.suite import load_suite
 from harness.trajectory_replay.remote_runtime import load_remote_sites, rebind_remote_calls
 from harness.trajectory_replay.webarena_replay import _json_sha256
-from scripts.run_webarena_full_catalog import (
-    TRUSTED_RECORDED_HOSTS,
-    _hash,
-    _load_inputs,
-    _row_source_sites,
-)
 
 
 def rebind_catalog(
@@ -30,11 +30,11 @@ def rebind_catalog(
     tasks = {int(task.task_id.removeprefix("webarena-")): task for task in suite.tasks}
     sites = load_remote_sites(site_map_path)
     target = dict(source)
-    target["predecessor_catalog_sha256"] = _hash(catalog_path)
-    target["site_map_sha256"] = _hash(site_map_path)
-    target["portable_suite_sha256"] = _hash(suite_path)
+    target["predecessor_catalog_sha256"] = file_sha256(catalog_path)
+    target["site_map_sha256"] = file_sha256(site_map_path)
+    target["portable_suite_sha256"] = file_sha256(suite_path)
     if source_site_map_path is not None:
-        if _hash(source_site_map_path) != source["site_map_sha256"]:
+        if file_sha256(source_site_map_path) != source["site_map_sha256"]:
             raise ValueError("source site map differs from the predecessor catalog")
         target["source_site_urls"] = {
             site.value: url for site, url in load_remote_sites(source_site_map_path).items()
@@ -47,13 +47,11 @@ def rebind_catalog(
         row = dict(original)
         task_id = row["task_id"]
         actions = (
-            list(tasks[task_id].tool_calls)
-            if row["mode"] == "portable"
-            else row["source_actions"]
+            list(tasks[task_id].tool_calls) if row["mode"] == "portable" else row["source_actions"]
         )
         row["bound_calls_sha256"] = _json_sha256(
             rebind_remote_calls(
-                actions, sites, set(TRUSTED_RECORDED_HOSTS), _row_source_sites(target, row)
+                actions, sites, set(TRUSTED_RECORDED_HOSTS), row_source_sites(target, row)
             )
         )
         if task_id in revised:
@@ -63,16 +61,19 @@ def rebind_catalog(
             ):
                 raise ValueError(f"task {task_id} has no revised portable actions")
             row["source_kind"] = "revised_portable_suite"
-            row["source_path"] = str(suite_path.resolve())
+            row["source_suite_sha256"] = file_sha256(suite_path)
+            row.pop("source_path", None)
         target["rows"].append(row)
     if revised - {row["task_id"] for row in target["rows"]}:
         raise ValueError("revised task IDs are outside the catalog")
     if revised:
-        target["repairs"] = list(source.get("repairs") or []) + [{
-            "kind": "portable_action_revision",
-            "task_ids": sorted(revised),
-            "suite_sha256": _hash(suite_path),
-        }]
+        target["repairs"] = list(source.get("repairs") or []) + [
+            {
+                "kind": "portable_action_revision",
+                "task_ids": sorted(revised),
+                "suite_sha256": file_sha256(suite_path),
+            }
+        ]
     return target
 
 
@@ -98,8 +99,8 @@ def main() -> None:
     args.output.write_text(
         json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    _load_inputs(args.output, args.portable_suite, args.site_map)
-    print(json.dumps({"tasks": len(result["rows"]), "catalog_sha256": _hash(args.output)}))
+    load_catalog_inputs(args.output, args.portable_suite, args.site_map)
+    print(json.dumps({"tasks": len(result["rows"]), "catalog_sha256": file_sha256(args.output)}))
 
 
 if __name__ == "__main__":

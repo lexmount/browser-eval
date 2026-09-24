@@ -7,16 +7,16 @@ import hashlib
 import json
 from pathlib import Path
 
+from harness.trajectory_replay.full_catalog import (
+    CATALOG_SCHEMA,
+    TRUSTED_RECORDED_HOSTS,
+    file_sha256,
+    load_catalog_inputs,
+    row_source_sites,
+)
 from harness.trajectory_replay.public_webarena.suite import load_suite
 from harness.trajectory_replay.remote_runtime import load_remote_sites, rebind_remote_calls
 from harness.trajectory_replay.webarena_replay import _json_sha256
-from scripts.run_webarena_full_catalog import (
-    SCHEMA,
-    TRUSTED_RECORDED_HOSTS,
-    _hash,
-    _load_inputs,
-    _row_source_sites,
-)
 
 
 def _source_files(roots: list[Path], expected: set[str]) -> dict[str, Path]:
@@ -27,12 +27,32 @@ def _source_files(roots: list[Path], expected: set[str]) -> dict[str, Path]:
                 raise ValueError(f"source file is a symlink: {path}")
             if not any(word in path.name for word in ("catalog", "suite", "sites")):
                 continue
-            digest = _hash(path)
+            digest = file_sha256(path)
             if digest in expected:
                 found.setdefault(digest, path)
     if set(found) != expected:
         raise FileNotFoundError(f"frozen inputs missing: {sorted(expected - set(found))}")
     return found
+
+
+def _verified_run_directories(
+    ledger: dict, run_root: Path, selected_progress: set[str]
+) -> dict[str, Path]:
+    runs = {
+        file_sha256(progress): progress.parent for progress in run_root.glob("*/progress.jsonl")
+    }
+    ledger_runs = {row["progress_sha256"]: row for row in ledger.get("runs") or []}
+    if len(ledger_runs) != len(ledger.get("runs") or []):
+        raise ValueError("accepted ledger contains duplicate run bindings")
+    if not selected_progress <= set(runs):
+        raise FileNotFoundError("accepted progress evidence is missing")
+    if not selected_progress <= set(ledger_runs):
+        raise ValueError("accepted attempts are not bound to ledger runs")
+    for digest in selected_progress:
+        inputs_path = runs[digest] / "inputs.json"
+        if file_sha256(inputs_path) != ledger_runs[digest]["inputs_sha256"]:
+            raise ValueError("run inputs changed after acceptance audit")
+    return runs
 
 
 def consolidate(
@@ -49,12 +69,8 @@ def consolidate(
         or [row.get("task_id") for row in ledger.get("rows", [])] != list(range(812))
     ):
         raise ValueError("accepted ledger must contain all 812 passing tasks in official order")
-    runs = {
-        _hash(progress): progress.parent for progress in run_root.glob("*/progress.jsonl")
-    }
     selected = {row["attempts"][-1]["progress_sha256"] for row in ledger["rows"]}
-    if not selected <= set(runs):
-        raise FileNotFoundError("accepted progress evidence is missing")
+    runs = _verified_run_directories(ledger, run_root, selected)
     inputs = {
         digest: json.loads((runs[digest] / "inputs.json").read_text(encoding="utf-8"))
         for digest in selected
@@ -107,18 +123,16 @@ def consolidate(
             portable_tasks.append(raw_suites[suite_hash][task_id])
         else:
             actions = source_row["source_actions"]
-        source_sites = _row_source_sites(source_catalog, source_row)
+        source_sites = row_source_sites(source_catalog, source_row)
         run_sites = load_remote_sites(files[binding["site_map_sha256"]])
         old_digest = _json_sha256(
             rebind_remote_calls(actions, run_sites, set(TRUSTED_RECORDED_HOSTS), source_sites)
         )
-        progress_lines = (runs[run_digest] / "progress.jsonl").read_text(
-            encoding="utf-8"
-        ).splitlines()
+        progress_lines = (
+            (runs[run_digest] / "progress.jsonl").read_text(encoding="utf-8").splitlines()
+        )
         progress = next(
-            json.loads(line)
-            for line in progress_lines
-            if json.loads(line)["task_id"] == task_id
+            json.loads(line) for line in progress_lines if json.loads(line)["task_id"] == task_id
         )
         if old_digest != progress["executed_actions_sha256"]:
             raise ValueError(f"task {task_id}: accepted actions differ from source inputs")
@@ -126,9 +140,7 @@ def consolidate(
         # their source origins. Carry those origins into the new binding.
         rebind_sources = {**run_sites, **source_sites}
         row = dict(source_row)
-        row["source_site_urls"] = {
-            site.value: url for site, url in rebind_sources.items()
-        }
+        row["source_site_urls"] = {site.value: url for site, url in rebind_sources.items()}
         row["bound_calls_sha256"] = _json_sha256(
             rebind_remote_calls(actions, target_sites, set(TRUSTED_RECORDED_HOSTS), rebind_sources)
         )
@@ -136,11 +148,11 @@ def consolidate(
         rows.append(row)
     suite = {"schema": "lex_browser_use_tasks/4", "tasks": portable_tasks}
     catalog = {
-        "schema": SCHEMA,
+        "schema": CATALOG_SCHEMA,
         "task_ids": list(range(812)),
-        "site_map_sha256": _hash(site_map_path),
+        "site_map_sha256": file_sha256(site_map_path),
         "portable_suite_sha256": _json_file_sha256(suite),
-        "accepted_ledger_sha256": _hash(ledger_path),
+        "accepted_ledger_sha256": file_sha256(ledger_path),
         "rows": rows,
     }
     return catalog, suite
@@ -162,9 +174,7 @@ def main() -> None:
     args = parser.parse_args()
     if args.output_catalog.exists() or args.output_suite.exists():
         raise FileExistsError("consolidated catalog or suite already exists")
-    catalog, suite = consolidate(
-        args.ledger, args.run_root, args.source_root, args.site_map
-    )
+    catalog, suite = consolidate(args.ledger, args.run_root, args.source_root, args.site_map)
     args.output_suite.parent.mkdir(parents=True, exist_ok=True)
     args.output_catalog.parent.mkdir(parents=True, exist_ok=True)
     args.output_suite.write_text(
@@ -173,8 +183,13 @@ def main() -> None:
     args.output_catalog.write_text(
         json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    _load_inputs(args.output_catalog, args.output_suite, args.site_map)
-    print(json.dumps({"tasks": 812, "catalog_sha256": _hash(args.output_catalog)}))
+    load_catalog_inputs(
+        args.output_catalog,
+        args.output_suite,
+        args.site_map,
+        accepted_ledger_path=args.ledger,
+    )
+    print(json.dumps({"tasks": 812, "catalog_sha256": file_sha256(args.output_catalog)}))
 
 
 if __name__ == "__main__":
