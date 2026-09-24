@@ -11,7 +11,7 @@ dependencies = [
 browser-harness-eval = "harness.web_fetch.cli:main"
 
 [tool.uv.sources]
-webarena-verified = { git = "https://github.com/lexmount/webarena-verified.git", rev = "7d060ec92b611d66b48d667acb9d92c35cfbdbda" }
+webarena-verified = { git = "https://github.com/lexmount/webarena-verified.git", rev = "ada543a9e9eddc80769f962c102576baa845ae0e" }
 
 [project.optional-dependencies]
 headless-eval = [

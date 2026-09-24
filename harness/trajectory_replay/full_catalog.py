@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 from importlib.metadata import version
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -35,6 +36,8 @@ TRUSTED_RECORDED_HOSTS = frozenset(
         "127.0.0.1",
     }
 )
+WEBARENA_FORK_REPOSITORY = "https://github.com/lexmount/webarena-verified.git"
+WEBARENA_FORK_BRANCH = "lex-main"
 
 _EVIDENCE_FILENAMES = {
     "network_har": "network.har",
@@ -280,11 +283,35 @@ def validate_full_report_profile(profile_path: Path, data_home: Path) -> dict:
     ):
         raise ValueError("full report profile changed its versioned dataset binding")
     dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
+    evaluator_source = dataset.get("evaluator_source") or {}
+    project = tomllib.loads((repository_root / "pyproject.toml").read_text(encoding="utf-8"))
+    dependency_source = (
+        project.get("tool", {}).get("uv", {}).get("sources", {}).get("webarena-verified") or {}
+    )
+    lock = tomllib.loads((repository_root / "uv.lock").read_text(encoding="utf-8"))
+    locked_package = next(
+        (
+            package
+            for package in lock.get("package", [])
+            if package.get("name") == "webarena-verified"
+        ),
+        {},
+    )
+    locked_git = (locked_package.get("source") or {}).get("git", "")
     if (
         dataset.get("schema") != "lex_webarena_verified_full_dataset/1"
         or dataset.get("task_count") != 812
         or dataset.get("task_id_range") != [0, 811]
         or "browser" in dataset
+        or evaluator_source.get("repository") != WEBARENA_FORK_REPOSITORY
+        or evaluator_source.get("branch") != WEBARENA_FORK_BRANCH
+        or dependency_source.get("git") != WEBARENA_FORK_REPOSITORY
+        or dependency_source.get("rev") != evaluator_source.get("revision")
+        or locked_git
+        != (
+            f"{WEBARENA_FORK_REPOSITORY}?rev={evaluator_source.get('revision')}"
+            f"#{evaluator_source.get('revision')}"
+        )
     ):
         raise ValueError("full WebArena dataset definition is invalid")
     root = data_home / str(profile.get("evidence_root") or "")

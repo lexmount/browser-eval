@@ -4,7 +4,7 @@
   "split": "full-812",
   "browser": "chromium",
   "dataset_path": "evaluation/trajectory-replay/webarena-verified-full/dataset.json",
-  "dataset_sha256": "cd1ef419784b6b46076819a8f46904a63d96a3c638cbc810c562218c88ef650e",
+  "dataset_sha256": "f498dd395561b1f8b31de75b226dccd0ea841cc6a5e2bb48c63d6fc375e9aefd",
   "scope_path": "evaluation/trajectory-replay/webarena-verified-full/scope.json",
   "scope_sha256": "91b93b44603d06cd84fa43e17296b41058a56e3288430fd53ec635ce5c8e81d5",
   "evidence_root": "trajectory-replay/full-812-chromium-clean-20260924",

@@ -92,14 +92,27 @@ def _write_json(path, value):
 def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path):
     repository = tmp_path / "repository"
     (repository / "pyproject.toml").parent.mkdir(parents=True)
-    (repository / "pyproject.toml").write_text("[project]\nname='fixture'\n")
-    (repository / "uv.lock").write_text("")
+    revision = "a" * 40
+    fork = "https://github.com/lexmount/webarena-verified.git"
+    (repository / "pyproject.toml").write_text(
+        f"[project]\nname='fixture'\n[tool.uv.sources]\n"
+        f"webarena-verified = {{ git = '{fork}', rev = '{revision}' }}\n"
+    )
+    (repository / "uv.lock").write_text(
+        f"version = 1\n[[package]]\nname = 'webarena-verified'\n"
+        f"source = {{ git = '{fork}?rev={revision}#{revision}' }}\n"
+    )
     dataset = _write_json(
         repository / "evaluation/full/dataset.json",
         {
             "schema": "lex_webarena_verified_full_dataset/1",
             "task_count": 812,
             "task_id_range": [0, 811],
+            "evaluator_source": {
+                "repository": fork,
+                "branch": "lex-main",
+                "revision": revision,
+            },
         },
     )
     scope = _write_json(repository / "evaluation/full/scope.json", {"task_ids": list(range(812))})
@@ -163,4 +176,14 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
     changed["accepted_counts"]["physical_attempts"] += 1
     profile.write_text(json.dumps(changed))
     with pytest.raises(ValueError, match="acceptance population changed"):
+        validate_full_report_profile(profile, data_home)
+
+    changed = json.loads(dataset.read_text())
+    changed["evaluator_source"]["repository"] = "https://github.com/ServiceNow/webarena-verified.git"
+    dataset.write_text(json.dumps(changed))
+    changed_profile = json.loads(profile.read_text())
+    changed_profile["accepted_counts"] = counts
+    changed_profile["dataset_sha256"] = file_sha256(dataset)
+    profile.write_text(json.dumps(changed_profile))
+    with pytest.raises(ValueError, match="dataset definition is invalid"):
         validate_full_report_profile(profile, data_home)
