@@ -116,6 +116,9 @@ def assemble(baseline: Path, candidate: Path, output: Path, scorer: Path) -> Non
                "fixed_scored_results_sha256": digest(shard / "scored-results.jsonl"),
                "fixed_binary_sha256": fixed_profile["binary_sha256"],
                "fixed_source_commit": fixed_profile["source_commit"],
+               # This is the complete six-method matrix before TEDS recomputation.
+               # correct_webmainbench_teds.py later preserves these exact bytes as
+               # original-results.jsonl, which is what the build and release gates verify.
                "results_sha256": digest(output / "results.jsonl"),
                "logical_results": len(combined), "physical_calls": len(physical)}
     (output / "six-method-binding.json").write_text(json.dumps(binding, ensure_ascii=False, indent=2) + "\n")

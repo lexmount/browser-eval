@@ -1300,8 +1300,21 @@
       "i18n": {
         "en": {
           "title": "Correct origin substitution and restore six-method analysis figures",
-          "summary": "A certified six-method rerun preserves the original URL and frozen HTML. All six produce body text; fixed Moli now delivers 545/545 pages. The current matrix has 25 machine issues.",
-          "changes": []
+          "summary": "A certified six-method rerun preserves the original URL and frozen HTML. All six produce body text; fixed Moli now delivers 545/545 pages. The current matrix has 25 machine issues, and the main tables, same-case results, attribution, and aggregate scores are updated together.",
+          "changes": [
+            [
+              "Test environment",
+              "Replacing the origin with localhost triggered a redirect back to the live site, which the isolation rules then blocked as a false failure.",
+              "Preserve the original URL while continuing to serve frozen HTML and block external resources; rerun the same page for all six methods as one certified correction.",
+              "Add six calls while leaving the other 544 pages unchanged; retain the superseded calls and original scores."
+            ],
+            [
+              "Analysis figures",
+              "The five-method figures were not updated for the six-method report, and the later generator no longer referenced them.",
+              "Reconnect hash-bound six-method result and error-mechanism figures to the interpretation page.",
+              "The release gate rejects a missing figure or an illustration whose hash has changed."
+            ]
+          ]
         }
       }
     },
