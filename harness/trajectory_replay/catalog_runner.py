@@ -127,6 +127,7 @@ def main() -> None:
     ids = _task_ids(list(catalog["task_ids"]), args.task_from, args.task_to, args.task_id)
     os.umask(0o077)
     args.output.mkdir(parents=True, exist_ok=True)
+    root = repository_root(Path(__file__))
     binding = {
         "schema": "lex_webarena_full_replay_run/2",
         "catalog_sha256": file_sha256(args.catalog),
@@ -140,10 +141,11 @@ def main() -> None:
         "action_timeout_ms": args.action_timeout_ms,
         "corrections_sha256": corrections.source_sha256,
         "evaluator_fixes_sha256": file_sha256(
-            repository_root(Path(__file__))
-            / "harness/trajectory_replay/webarena_evaluator_fixes.py"
+            root / "harness/trajectory_replay/webarena_evaluator_fixes.py"
         ),
-        "runner_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+        "runner_revision": subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+        ).strip(),
         "cowagent_revision": (
             subprocess.check_output(
                 ["git", "-C", str(args.cowagent), "rev-parse", "HEAD"], text=True
