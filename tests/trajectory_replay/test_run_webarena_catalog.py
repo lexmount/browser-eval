@@ -33,7 +33,7 @@ def _write(path: Path, value: object) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_full_catalog_requires_one_hash_bound_row_in_official_order(tmp_path: Path) -> None:
+def test_catalog_requires_one_hash_bound_row_in_declared_order(tmp_path: Path) -> None:
     sites_path = tmp_path / "sites.json"
     sites_hash = _write(
         sites_path,
@@ -86,22 +86,22 @@ def test_full_catalog_requires_one_hash_bound_row_in_official_order(tmp_path: Pa
             "bound_calls_sha256": _json_sha256([action]),
             **({} if task_id == 0 else {"source_actions": [action]}),
         }
-        for task_id in range(812)
+        for task_id in range(3)
     ]
     catalog_path = tmp_path / "catalog.json"
     catalog = {
         "schema": "lex_webarena_full_replay_catalog/1",
-        "task_ids": list(range(812)),
+        "task_ids": list(range(3)),
         "site_map_sha256": sites_hash,
         "portable_suite_sha256": suite_hash,
         "rows": rows,
     }
     _write(catalog_path, catalog)
     loaded, _sites, tasks = load_catalog_inputs(catalog_path, suite_path, sites_path)
-    assert len(loaded["rows"]) == 812
+    assert len(loaded["rows"]) == 3
     assert set(tasks) == {0}
 
-    catalog["rows"][811]["recorded_response"] = {"status": "SUCCESS"}
+    catalog["rows"][2]["recorded_response"] = {"status": "SUCCESS"}
     _write(catalog_path, catalog)
     with pytest.raises(ValueError, match="recorded answers"):
         load_catalog_inputs(catalog_path, suite_path, sites_path)

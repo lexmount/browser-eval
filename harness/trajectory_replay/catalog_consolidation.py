@@ -152,7 +152,7 @@ def consolidate(
     suite = {"schema": "lex_browser_use_tasks/4", "tasks": portable_tasks}
     catalog = {
         "schema": CATALOG_SCHEMA,
-        "task_ids": list(range(812)),
+        "task_ids": [row["task_id"] for row in rows],
         "site_map_sha256": file_sha256(site_map_path),
         "portable_suite_sha256": _json_file_sha256(suite),
         "accepted_ledger_sha256": file_sha256(ledger_path),

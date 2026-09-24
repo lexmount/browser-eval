@@ -94,7 +94,7 @@ def load_catalog_inputs(
     *,
     accepted_ledger_path: Path | None = None,
 ) -> tuple[dict, dict[WebArenaSite, str], dict[int, object]]:
-    """Load and fully validate one frozen full-catalog input set."""
+    """Load and fully validate one frozen catalog input set."""
 
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     sites = load_remote_sites(site_map_path)
@@ -110,11 +110,11 @@ def load_catalog_inputs(
         or catalog.get("site_map_sha256") != file_sha256(site_map_path)
         or catalog.get("portable_suite_sha256") != file_sha256(suite_path)
     ):
-        raise ValueError("full replay catalog binding is invalid")
+        raise ValueError("replay catalog binding is invalid")
     if accepted_ledger_path is not None and catalog.get("accepted_ledger_sha256") != file_sha256(
         accepted_ledger_path
     ):
-        raise ValueError("full replay catalog is not bound to the accepted ledger")
+        raise ValueError("replay catalog is not bound to the accepted ledger")
     portable_ids = {row["task_id"] for row in rows if row.get("mode") == "portable"}
     if portable_ids != set(tasks):
         raise ValueError("portable suite differs from the catalog")
