@@ -1276,6 +1276,15 @@
   ],
   "releases": [
     {
+      "id": "2026-09-24-webmainbench-moli-repair-545-followup",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-24",
+      "title": "补充 Moli 修复后的 545 页复测",
+      "summary": "同一批冻结输入上的 Moli 单方法复测由 542/545 页返回成功增至 544/545 页；两条解析器崩溃恢复，一条隔离环境阻断的跳转仍失败。",
+      "changes": [["修复复测", "原五方法报告只记录修复前的 Moli 结果，读者无法看到后续解析器修复的实际效果。", "单列 545 页复测、同口径四项原评分、恢复页面的完整输出与剩余失败。", "五方法认证结果和排名未改；恢复的 Autochina360 页仍夹杂大量无关链接，全文分 22.8%。不同时间的耗时和未经同一 TEDS 修正的综合分不作前后比较。"]],
+      "i18n": {"en": {"title": "Add the 545-page Moli repair follow-up", "summary": "In a Moli-only rerun of the same frozen pages, request success rose from 542/545 to 544/545. Two parser crashes recovered; one redirect blocked by the isolated fixture still failed.", "changes": [["Repair follow-up", "The five-method report only showed Moli before the parser repair.", "Present the full-page rerun, four original-scorer metrics, complete outputs for recovered pages, and the remaining failure.", "The certified five-method ranking is unchanged. The recovered Autochina360 output still contains many unrelated links and scores 22.8% on full text; timing across dates and aggregate scores without the same TEDS correction are not compared."]]}}
+    },
+    {
       "id": "2026-09-23-webmainbench-error-attribution-and-case-comparison",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-23",

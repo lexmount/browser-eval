@@ -2737,6 +2737,7 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
                                summaries: dict, profile: dict) -> None:
     """Render the complete frozen WebMainBench cohort inside the shared report module."""
     content = json.loads((out / "report-content.json").read_text(encoding="utf-8"))
+    followup = json.loads((out / "moli-followup.json").read_text(encoding="utf-8")) if (out / "moli-followup.json").is_file() else None
     failure_analysis = json.loads((out / "failure-analysis.json").read_text(encoding="utf-8"))
     reviewed_failures = {(row["provider"], row["case_id"]): row for row in failure_analysis["reviewed_failures"]}
     machine_issue_count = sum(webmainbench_full_machine_issue(out, row) for row in records)
@@ -2837,9 +2838,11 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
     def table(headers, rows):
         return '<div class="scroll"><table><thead><tr>' + ''.join("<th>" + esc(x) + "</th>" for x in headers) + '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table></div>'
 
-    navigation = [("总览", "index.html"), ("数据集", "dataset/index.html"),
+    navigation = [("总览", "index.html"), ("Moli 修复复测", "moli-update/index.html")] if followup else [("总览", "index.html")]
+    navigation += [("数据集", "dataset/index.html"),
                   ("结果分析", "analysis/index.html"), ("解读", "guide/index.html"),
-                  ("方法", "methodology/index.html"), ("复现", "reproduce/index.html")]
+                  ("方法", "methodology/index.html"), ("复现", "reproduce/index.html"),
+                  ("更新记录", "history/index.html")]
 
     def page(route, title, body):
         prefix = "../" * route.count("/")
@@ -2911,11 +2914,48 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
     home = ('<section class="hero"><h1>' + prose('home_title') + '</h1><p>' + prose('home_lead') + '</p></section>' +
             '<figure><picture><source media="(max-width:650px)" srcset="assets/infographic-mobile.png"><img src="assets/infographic.png" alt="错误类型与五种方法的机器问题矩阵；各格数量和归属说明见结果解读页" style="display:block;width:100%;height:auto;border-radius:12px"></picture><figcaption class="note">' + prose('infographic_caption') + '</figcaption></figure>' +
             '<section><h2>核心结果</h2>' + metric_table() + '<p class="note">' + prose('score_note') + '</p></section>' +
+            ('<section class="panel"><h2>修复后 Moli 的完整复测</h2><p>' + prose('followup_home') + '</p>' +
+             anchor('moli-update/index.html', '查看复测结果与逐页证据') + '</section>' if followup else '') +
             '<section><h2>全部页面的调用耗时</h2>' + all_call_latency_table() + '<p class="note">' + prose('all_latency_note') + '</p></section>' +
             '<section><h2>成功页面的调用耗时与重试成本</h2>' + latency_table() + '<p class="note">' + prose('latency_note') + '</p></section>' +
             '<section><h2>问题分布</h2>' + table(["自动诊断", "结果数"], ['<tr><td>' + anchor("analysis/index.html?kind=" + kind, kind) + '</td><td>' + str(count) + '</td></tr>' for kind, count in sorted(counts.items())]) +
             '<p class="note">' + prose('diagnostic_note') + '</p></section>')
     page("index.html", "完整结果", home)
+    if followup:
+        followup_metric_labels = {'text_edit': '全文', 'code_edit': '代码',
+                                  'formula_edit': '公式', 'table_edit': '表格内容'}
+        followup_metric_rows = []
+        for metric, label in followup_metric_labels.items():
+            item = followup['metrics_original_scorer'][metric]
+            followup_metric_rows.append('<tr data-followup-metric="' + metric + '"><td>' + label +
+                '</td><td>' + f"{item['baseline'] * 100:.2f}%" + '<small>' + str(item['baseline_n']) +
+                ' 页计分</small></td><td>' + f"{item['candidate'] * 100:.2f}%" + '<small>' +
+                str(item['candidate_n']) + ' 页计分</small></td></tr>')
+        recovered_rows = []
+        for item in followup['recovered']:
+            case_id = item['case_id']
+            recovered_rows.append('<tr><td>' + anchor('cases/index.html?id=' + case_id, case_id) +
+                '</td><td>解析器崩溃</td><td>返回成功；全文分 ' + f"{item['text_score'] * 100:.1f}%" +
+                '</td><td>' + anchor('moli-followup/' + case_id + '.txt', '修复后完整输出') + '</td></tr>')
+        remaining_rows = ['<tr><td>' + anchor('cases/index.html?id=' + item['case_id'], item['case_id']) +
+                          '</td><td>原站跳转被隔离环境阻断</td></tr>' for item in followup['remaining']]
+        page('moli-update/index.html', 'Moli 修复复测',
+             '<section class="hero"><h1>Moli 修复后的 545 页复测</h1><p>' +
+             prose('followup_lead') + '</p></section><section><h2>修复了什么</h2><p>' +
+             prose('followup_mechanism') + '</p></section><section><h2>完整范围的结果</h2><p>' +
+             '请求返回成功由 ' + str(followup['baseline_successes']) + '/545 升至 ' +
+             str(followup['candidate_successes']) + '/545；修复后共 ' +
+             str(followup['candidate_physical_calls']) + ' 次物理调用。</p>' +
+             table(['指标', '五方法基线中的 Moli', '修复后 Moli 单方法复测'], followup_metric_rows) +
+             '<p class="note">' + prose('followup_metric_scope') + '</p></section>' +
+             '<section><h2>恢复的页面与剩余失败</h2>' +
+             table(['任务', '原结果', '复测结果', '证据'], recovered_rows) +
+             '<p>' + prose('followup_quality') + '</p>' +
+             table(['任务', '剩余问题'], remaining_rows) + '</section>' +
+             '<section><h2>证据与适用范围</h2><p>' + prose('followup_limit') + '</p><p>' +
+             anchor('moli-followup.json', '完整范围与哈希绑定') + ' · ' +
+             anchor('https://github.com/lexmount/moli/pull/785', 'Moli 修复代码与 CI') +
+             '</p></section>')
     dataset_rows = []
     for case in dataset["cases"]:
         case_id = case["id"]
@@ -2928,8 +2968,16 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
     page("dataset/index.html", "数据集", '<section class="hero"><h1>冻结网页与人工答案</h1><p>' + prose('dataset_lead') + '</p></section>' +
          table(["任务 ID", "语言", "难度", "来源", "证据"], dataset_rows))
     options = ["issue", "all", "请求失败", "空输出", "错误页", "低全文相似度", "未触发诊断"]
-    cause_order = ("Moli 解析器崩溃", "Kitesurf 服务错误", "Kitesurf 请求超时",
-                   "Kitesurf 空正文", "Obscura 空响应", "Obscura 导航循环", "冻结页跳转受阻")
+    cause_owners = {
+        "Moli 解析器崩溃": "Moli 引擎",
+        "Kitesurf 服务错误": "Kitesurf 服务",
+        "Kitesurf 请求超时": "Kitesurf 服务或传输，内部阶段未定位",
+        "Kitesurf 空正文": "Kitesurf 接口，内部原因未知",
+        "Obscura 空响应": "Obscura",
+        "Obscura 导航循环": "Obscura",
+        "冻结页跳转受阻": "共享输入与隔离环境",
+    }
+    cause_order = tuple(cause_owners)
     filters = ('<div class="filters"><label>搜索任务或网址<input id="q" type="search"></label><label>方法<select id="provider"><option value="">全部方法</option>' +
                ''.join('<option value="' + provider + '">' + esc(labels[provider]) + "</option>" for provider in providers) +
                '</select></label><label>诊断<select id="kind">' +
@@ -3060,15 +3108,6 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
             anchor("analysis/index.html?provider=" + provider + "&kind=" + kind,
                    str(sum(categories[row["attempt_id"]] == kind for row in selected))) + "</td>"
             for kind in diagnostic_kinds) + "</tr>")
-    cause_owners = {
-        "Moli 解析器崩溃": "Moli 引擎",
-        "Kitesurf 服务错误": "Kitesurf 服务",
-        "Kitesurf 请求超时": "Kitesurf 服务或传输，内部阶段未定位",
-        "Kitesurf 空正文": "Kitesurf 接口，内部原因未知",
-        "Obscura 空响应": "Obscura",
-        "Obscura 导航循环": "Obscura",
-        "冻结页跳转受阻": "共享输入与隔离环境",
-    }
     cause_counts = Counter((row["category_label"], row["provider"])
                            for row in failure_analysis["reviewed_failures"])
     unknown_causes = {cause for cause, _ in cause_counts} - set(cause_owners)
@@ -3107,6 +3146,14 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
     page("reproduce/index.html", "复现依据",
          '<section class="hero"><h1>复现依据</h1><p>' + prose('reproduce_lead') + '</p></section><p>' +
          " · ".join(anchor(name, name) for name in evidence_links) + "</p>")
+    releases = json.loads((Path(__file__).resolve().parents[2] / 'research/report-changes.json').read_text(encoding='utf-8'))['releases']
+    webmainbench_releases = [item for item in releases if 'webmainbench_frozen_html_to_markdown' in item.get('comparison_kinds', [])]
+    history_rows = ['<tr data-release-id="' + esc(item['id']) + '"><td>' + esc(item['date']) +
+                    '</td><td>' + esc(item['title']) + '</td><td>' + esc(item['summary']) + '</td></tr>'
+                    for item in webmainbench_releases]
+    page('history/index.html', '更新记录',
+         '<section class="hero"><h1>报告更新记录</h1><p>按发布记录说明读者可见的结果与内容变化。</p></section>' +
+         table(['日期', '更新', '内容'], history_rows))
     page("viewer/index.html", "证据查看器",
          '<section class="hero"><h1>证据查看器</h1><p>按需载入原始证据。</p></section><div class="panel"><p id="evidence-path"></p><p><a id="evidence-raw" href="#">原始文件</a></p><pre id="evidence-content">正在载入…</pre></div>')
     page("en/index.html", "英文版未生成",

@@ -8,7 +8,7 @@ import pytest
 
 from harness.web_fetch.report import generate_webmainbench_full
 from scripts.report_presentation_contract import check_presentation
-from scripts.check_webmainbench_full_report import check_result_payload
+from scripts.check_webmainbench_full_report import check_result_payload, check_moli_followup
 
 
 def test_full_report_renders_five_way_details_and_failure_evidence(tmp_path: Path) -> None:
@@ -111,3 +111,39 @@ def test_full_report_renders_five_way_details_and_failure_evidence(tmp_path: Pat
         check_presentation(detail_html.replace('data-report-detail="pending"', 'data-report-detail="failed"').replace('data-kind="error"', 'data-kind="other"'))
     with pytest.raises(ValueError, match="exactly one summary"):
         check_presentation(detail_html.replace('data-result-summary', 'data-no-summary'))
+
+
+def test_moli_followup_gate_checks_values_links_and_output_bytes(tmp_path: Path) -> None:
+    (tmp_path / 'moli-update').mkdir()
+    (tmp_path / 'moli-followup').mkdir()
+    cases = ['restored-one', 'restored-two']
+    recovered = []
+    links = []
+    for case_id in cases:
+        content = 'Recovered page: ' + case_id
+        (tmp_path / 'moli-followup' / (case_id + '.txt')).write_text(content)
+        recovered.append({'case_id': case_id, 'output_sha256': hashlib.sha256(content.encode()).hexdigest()})
+        links.append('<a href="moli-followup/' + case_id + '.txt">输出</a>')
+    metrics = {name: {'baseline': 0.4, 'candidate': 0.5, 'baseline_n': 542,
+                      'candidate_n': 544} for name in ('text_edit', 'code_edit', 'formula_edit', 'table_edit')}
+    receipt = {'kind': 'webmainbench_moli_full_diagnostic_followup', 'case_count': 545,
+               'baseline_successes': 542, 'candidate_successes': 544, 'recovered': recovered,
+               'remaining': [{'case_id': 'still-failed'}], 'metrics_original_scorer': metrics}
+    receipt_path = tmp_path / 'moli-followup.json'
+    receipt_path.write_text(json.dumps(receipt))
+    binding = {'relative_path': 'moli-followup.json',
+               'sha256': hashlib.sha256(receipt_path.read_bytes()).hexdigest()}
+    (tmp_path / 'index.html').write_text('<a href="moli-update/index.html">复测</a>')
+    rows = ''.join('<tr data-followup-metric="' + name + '"><td>40.00% 542</td><td>50.00% 544</td></tr>'
+                   for name in metrics)
+    page = '<p>542/545 → 544/545</p>' + rows + ''.join(links)
+    followup_page = tmp_path / 'moli-update/index.html'
+    followup_page.write_text(page)
+    check_moli_followup(tmp_path, binding)
+    followup_page.write_text(page.replace('50.00%', '51.00%', 1))
+    with pytest.raises(ValueError, match='score differs'):
+        check_moli_followup(tmp_path, binding)
+    followup_page.write_text(page)
+    (tmp_path / 'moli-followup/restored-one.txt').write_text('Changed output')
+    with pytest.raises(ValueError, match='output changed'):
+        check_moli_followup(tmp_path, binding)

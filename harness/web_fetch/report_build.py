@@ -592,6 +592,36 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     content_path = data_home() / 'report-assets/webmainbench-full' / content_binding['relative_path']
     if digest(content_path) != content_binding['sha256']:
         raise ValueError('Report prose differs from the compact content binding')
+    followup_binding = json.loads((Path(__file__).resolve().parents[2] /
+        'evaluation/webmainbench-full/moli-followup-binding.json').read_text(encoding='utf-8'))
+    followup_path = data_home() / 'report-assets/webmainbench-full' / followup_binding['relative_path']
+    if followup_path.is_symlink() or digest(followup_path) != followup_binding['sha256']:
+        raise ValueError('Moli follow-up differs from the compact evidence binding')
+    followup = json.loads(followup_path.read_text(encoding='utf-8'))
+    candidate = data_home() / 'evidence' / followup_binding['candidate_evidence']
+    if candidate.is_symlink() or any(path.is_symlink() for path in candidate.rglob('*')):
+        raise ValueError('Symlinked Moli follow-up evidence is forbidden')
+    for name, key in (('results.jsonl', 'candidate_results_sha256'),
+                      ('scored-results.jsonl', 'candidate_scored_results_sha256'),
+                      ('physical-attempts.jsonl', 'candidate_physical_attempts_sha256'),
+                      ('execution.json', 'candidate_execution_sha256'),
+                      ('score-summary.json', 'candidate_score_summary_sha256')):
+        if digest(candidate / name) != followup[key]:
+            raise ValueError('Moli follow-up source changed: ' + name)
+    if digest(source / 'original-results.jsonl') != followup['baseline_original_results_sha256']:
+        raise ValueError('Moli follow-up baseline differs from certified cohort')
+    candidate_rows = read_jsonl(candidate / 'scored-results.jsonl')
+    candidate_physical = read_jsonl(candidate / 'physical-attempts.jsonl')
+    if (followup.get('kind') != 'webmainbench_moli_full_diagnostic_followup'
+            or followup.get('case_count') != 545 or len(candidate_rows) != 545
+            or len(candidate_physical) != followup['candidate_physical_calls']
+            or {row['track_id'] for row in candidate_rows} != cases.keys()
+            or any(row['provider'] != 'moli' or
+                   digest(contained_path(candidate, row['artifact_path'])) != row['output_sha256']
+                   for row in candidate_rows)
+            or sum(bool(row['ok']) for row in candidate_rows) != followup['candidate_successes']
+            or followup['source_sha256'] != profile['source_dataset_sha256']):
+        raise ValueError('Moli follow-up population or output integrity mismatch')
     illustration_path = data_home() / 'report-assets/webmainbench-full' / content_binding['infographic']
     if digest(illustration_path) != content_binding['infographic_sha256']:
         raise ValueError('Report illustration differs from the compact asset binding')
@@ -634,6 +664,14 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
                      'teds-correction.json', 'teds-correction-review.json'):
             shutil.copy2(source / name, staging / name)
         shutil.copy2(content_path, staging / 'report-content.json')
+        shutil.copy2(followup_path, staging / 'moli-followup.json')
+        (staging / 'moli-followup').mkdir()
+        for entry in followup['recovered']:
+            row = next(row for row in candidate_rows if row['track_id'] == entry['case_id'])
+            if row['output_sha256'] != entry['output_sha256'] or not row['ok']:
+                raise ValueError('Recovered Moli case differs from follow-up receipt')
+            shutil.copy2(contained_path(candidate, row['artifact_path']),
+                         staging / 'moli-followup' / (entry['case_id'] + '.txt'))
         shutil.copy2(failure_path, staging / 'failure-analysis.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json', staging / 'provider-adoption.json')
         (staging / 'assets').mkdir(exist_ok=True)

@@ -30,7 +30,53 @@ def check_result_payload(row: dict, index: dict, artifact_index: dict, shards: d
         raise ValueError("Raw output absent or changed: " + artifact)
 
 
+def check_moli_followup(root: Path, binding: dict) -> None:
+    receipt_path = root / binding['relative_path']
+    if hashlib.sha256(receipt_path.read_bytes()).hexdigest() != binding['sha256']:
+        raise ValueError('Moli follow-up receipt changed')
+    receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
+    if (receipt.get('kind') != 'webmainbench_moli_full_diagnostic_followup'
+            or receipt.get('case_count') != 545
+            or receipt.get('baseline_successes') != 542
+            or receipt.get('candidate_successes') != 544
+            or len(receipt.get('recovered', [])) != 2
+            or len(receipt.get('remaining', [])) != 1):
+        raise ValueError('Moli follow-up population or outcomes changed')
+    home = BeautifulSoup((root / 'index.html').read_text(encoding='utf-8'), 'html.parser')
+    page = BeautifulSoup((root / 'moli-update/index.html').read_text(encoding='utf-8'), 'html.parser')
+    if (not home.select_one('a[href="moli-update/index.html"]')
+            or '542/545' not in page.get_text(' ', strip=True)
+            or '544/545' not in page.get_text(' ', strip=True)
+            or len(page.select('tr[data-followup-metric]')) != 4):
+        raise ValueError('Moli follow-up result is missing from report')
+    for metric, values in receipt['metrics_original_scorer'].items():
+        row = page.select_one('tr[data-followup-metric="' + metric + '"]')
+        if (row is None or f"{values['baseline'] * 100:.2f}%" not in row.get_text(' ', strip=True)
+                or f"{values['candidate'] * 100:.2f}%" not in row.get_text(' ', strip=True)
+                or str(values['baseline_n']) not in row.get_text(' ', strip=True)
+                or str(values['candidate_n']) not in row.get_text(' ', strip=True)):
+            raise ValueError('Moli follow-up score differs from bound evidence: ' + metric)
+    for entry in receipt['recovered']:
+        path = root / 'moli-followup' / (entry['case_id'] + '.txt')
+        if hashlib.sha256(path.read_bytes()).hexdigest() != entry['output_sha256']:
+            raise ValueError('Recovered Moli output changed: ' + entry['case_id'])
+        if not page.select_one('a[href="moli-followup/' + entry['case_id'] + '.txt"]'):
+            raise ValueError('Recovered Moli output link missing: ' + entry['case_id'])
+
+
 def check(root: Path) -> None:
+    followup_binding = json.loads((Path(__file__).resolve().parents[1] /
+        'evaluation/webmainbench-full/moli-followup-binding.json').read_text(encoding='utf-8'))
+    check_moli_followup(root, followup_binding)
+    releases = json.loads((Path(__file__).resolve().parents[1] / 'research/report-changes.json').read_text(encoding='utf-8'))['releases']
+    expected_releases = [item for item in releases if 'webmainbench_frozen_html_to_markdown' in item.get('comparison_kinds', [])]
+    history = BeautifulSoup((root / 'history/index.html').read_text(encoding='utf-8'), 'html.parser')
+    history_rows = history.select('tr[data-release-id]')
+    if ([row['data-release-id'] for row in history_rows] != [item['id'] for item in expected_releases]
+            or any(item['title'] not in row.get_text(' ', strip=True) or
+                   item['summary'] not in row.get_text(' ', strip=True)
+                   for row, item in zip(history_rows, expected_releases))):
+        raise ValueError('WebMainBench release history differs from structured records')
     binding_path = Path(__file__).resolve().parents[1] / "evaluation/webmainbench-full/content-binding.json"
     binding = json.loads(binding_path.read_text(encoding="utf-8"))
     for path, expected in ((root / "report-content.json", binding["sha256"]),
