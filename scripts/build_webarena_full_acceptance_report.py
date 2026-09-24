@@ -33,12 +33,13 @@ SITE_LABELS = {
 def _sanitize(value: object) -> object:
     if isinstance(value, dict):
         return {str(key): _sanitize(item) for key, item in value.items()
-                if str(key).lower() not in {"cookie", "cookies", "authorization", "password", "secret", "token"}}
+                if not re.search(r"cookie|authorization|password|secret|token", str(key), re.I)}
     if isinstance(value, list):
         return [_sanitize(item) for item in value]
     if isinstance(value, str):
         value = re.sub(r"/Users/[^\s\"']+", "[本地路径]", value)
         value = re.sub(r"(?i)(authorization|set-cookie|cookie):\s*[^\r\n]+", r"\1: [已隐藏]", value)
+        value = re.sub(r"(?i)(feed_token=)[^\s&\"'\\]+", r"\1[已隐藏]", value)
         return value
     return value
 
@@ -63,9 +64,9 @@ def _page(title: str, body: str, *, prefix: str = "") -> str:
     nav = (f'<nav><a href="{prefix}index.html">结果</a>'
            f'<a href="{prefix}dataset.html">数据集</a>'
            f'<a href="{prefix}method.html">方法与边界</a></nav>')
-    return ("<!doctype html><html lang=\"zh-CN\"><meta charset=\"utf-8\">"
+    return ("<!doctype html><html lang=\"zh-CN\"><head><meta charset=\"utf-8\">"
             '<meta name="viewport" content="width=device-width, initial-scale=1">'
-            f"<title>{_e(title)}</title><style>{STYLE}</style><body>{nav}{body}"
+            f"<title>{_e(title)}</title><style>{STYLE}</style></head><body>{nav}{body}"
             '<footer>WebArena-Verified 全量轨迹重放 · Chromium</footer></body></html>')
 
 
@@ -93,22 +94,8 @@ def _run_index(ledger: dict, root: Path) -> dict[str, Path]:
     return found
 
 
-def _failure_reason(task_id: int) -> str:
-    groups = {
-        "页面跳转后的定位或等待": {66, 349, 548, 549, 550, 556, 557, 558, 559, 560, 561},
-        "站点状态与任务相互影响": {496, 497, 500, 525, 527, 666, 678, 679},
-        "目标定位或过滤条件错误": {121, 346, 658},
-        "Magento 表单缺少必填字段": {700, 701, 703},
-        "零结果网格的轨迹观察不兼容": {790},
-    }
-    matches = [name for name, ids in groups.items() if task_id in ids]
-    if len(matches) != 1:
-        raise ValueError(f"failure cause for {task_id} is not uniquely reviewed")
-    return matches[0]
-
-
 def build(ledger_path: Path, run_root: Path, site_map: Path, catalog_path: Path,
-          suite_path: Path, output: Path) -> dict:
+          suite_path: Path, review_path: Path, output: Path) -> dict:
     if output.exists() and any(output.iterdir()):
         raise FileExistsError(output)
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
@@ -120,6 +107,13 @@ def build(ledger_path: Path, run_root: Path, site_map: Path, catalog_path: Path,
     environment = json.loads(environment_path.read_text(encoding="utf-8"))
     if _hash(scope_path) != ledger["scope_sha256"] or scope["task_ids"] != list(range(812)):
         raise ValueError("official scope changed")
+    review = json.loads(review_path.read_text(encoding="utf-8"))
+    failure_ids = {row["task_id"] for row in ledger["rows"] if row["attempts"][0]["status"] != "pass"}
+    if (review.get("schema") != "lex_webarena_full_failure_review/1"
+            or {int(key) for key in review.get("failures", {})} != failure_ids
+            or any(not item.get("cause") or not item.get("treatment")
+                   for item in review["failures"].values())):
+        raise ValueError("failure review does not cover the audited initial failures")
     runs = _run_index(ledger, run_root)
     benchmark = remote_benchmark(load_remote_sites(site_map))
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
@@ -193,36 +187,36 @@ def build(ledger_path: Path, run_root: Path, site_map: Path, catalog_path: Path,
         timings.append(float(final["duration_ms"] or 0))
         evidence_file = f"evidence/{task_id:03d}.json"
         (output / evidence_file).write_text(json.dumps({"task_id": task_id, "attempts": rendered_attempts}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        cause = _failure_reason(task_id) if task_id in failures else ""
+        diagnosis = review["failures"].get(str(task_id))
         detail = (f'<h1>第 {task_id} 题 · Chromium 通过</h1><p class="lead">{_e(task.intent)}</p>'
-                  f'<section class="panel" data-report-detail><h2>官方判分</h2><p class="ok">通过 · score 1.0</p>'
+                  f'<section class="panel" data-report-detail="passed"><div data-result-summary>'
+                  f'<h2>官方判分</h2><p class="ok">通过 · score 1.0</p>'
                   f'<p>网站：{_e(task_label)}；最终执行耗时：{float(final["duration_ms"] or 0)/1000:.2f} 秒；物理执行：{len(attempts)} 次。</p>'
-                  f'<p>官方数据校验：<code>{_e(scope["official_dataset_sha256"])}</code></p></section>')
-        if cause:
+                  f'<p>官方数据校验：<code>{_e(scope["official_dataset_sha256"])}</code></p></div></section>')
+        if diagnosis:
             first = next(item for item in rendered_attempts if item["status"] != "pass")
             first_error = first.get("error") or (first.get("evaluation") or {}).get("error_msg")
             exact = str(first_error or json.dumps(first.get("evaluation") or {}, ensure_ascii=False))
-            detail += (f'<section class="panel"><h2>首轮失败与处理</h2><p>归因：{_e(cause)}。</p>'
+            detail += (f'<section class="panel" data-failure-diagnosis><h2>首轮失败与处理</h2><p>原因：{_e(diagnosis["cause"])}。</p>'
+                       f'<p>处理：{_e(diagnosis["treatment"])}。</p>'
                        f'<details><summary>查看原始错误</summary><pre>{_e(exact)}</pre></details>'
-                       f'<p>后续补跑通过；原失败仍保留在证据链中。</p></section>')
-        if task_id == 790:
-            detail += ('<section class="panel"><h2>验证边界</h2><p>备用站点运行时目标差评已不存在。官方 evaluator 确认目标状态满足，'
-                       '但这次通过不能证明该轨迹能从仍有差评的初始状态执行删除。</p></section>')
+                       f'<p>最终官方判分与此前执行记录均可在证据中查看。</p></section>')
         detail += (f'<section class="panel"><h2>执行证据</h2><p><a href="../evidence.html?task={task_id:03d}">查看全部 BrowserTool 响应与官方评测结果</a>'
                    f' · <a href="../{evidence_file}">下载 JSON</a></p></section>')
         (output / "case" / f"{task_id:03d}.html").write_text(_page(f"第 {task_id} 题结果", detail, prefix="../"), encoding="utf-8")
         result_rows.append(f'<tr data-search="{_e(str(task_id)+" "+task_label+" "+task.intent)}"><td><a href="case/{task_id:03d}.html">{task_id}</a></td><td>{_e(task_label)}</td><td class="ok">通过</td><td>{len(attempts)}</td><td>{float(final["duration_ms"] or 0)/1000:.2f}</td></tr>')
         evaluator_names = "、".join(item.evaluator for item in task.eval)
         dataset_rows.append(f'<tr><td><a href="contract.html?task={task_id:03d}">{task_id}</a></td><td>{_e(task_label)}</td><td>{_e(task.intent)}</td><td>{_e(evaluator_names)}</td></tr>')
-    if len(failures) != 26 or sum(site_groups.values()) != 812:
+    if len(failures) != len(failure_ids) or sum(site_groups.values()) != 812:
         raise ValueError("initial failure or site population changed")
+    initial_pass = 812 - len(failures)
     summary = (f'<h1>WebArena-Verified 全量轨迹重放</h1><p class="lead">Chromium：812 / 812 题获得一次官方 evaluator 通过（100%）。'
-               f'按官方题号顺序的验收主轮首次通过 786 / 812；失败 26 题在定向修复后通过。</p>')
+               f'按官方题号顺序的验收主轮首次通过 {initial_pass} / 812；失败 {len(failures)} 题在定向修复后通过。</p>')
     summary += ('<section class="panel"><h2>核心结果</h2><div class="scroll"><table><thead><tr><th>浏览器</th><th>题数</th><th>通过</th><th>主轮首次通过</th><th>Mean 耗时</th><th>P50 耗时</th><th>P95 耗时</th></tr></thead><tbody>'
-                f'<tr><td>Chromium</td><td>812</td><td>812</td><td>786</td><td>{statistics.mean(timings)/1000:.2f} 秒</td><td>{statistics.median(timings)/1000:.2f} 秒</td><td>{_percentile(timings,.95)/1000:.2f} 秒</td></tr></tbody></table></div>'
+                f'<tr><td>Chromium</td><td>812</td><td>812</td><td>{initial_pass}</td><td>{statistics.mean(timings)/1000:.2f} 秒</td><td>{statistics.median(timings)/1000:.2f} 秒</td><td>{_percentile(timings,.95)/1000:.2f} 秒</td></tr></tbody></table></div>'
                 '<p class="muted">耗时统计每题最终一次物理调用；Mean 为算术平均，P50 为中位数，P95 为第 95 百分位。'
-                f'本次审计核对 {ledger["counts"]["physical_attempts"]} 次物理执行；其中 {ledger["counts"]["excluded_duplicate_attempts"]} 次重复执行不进入逐题结果。'
-                f'其余 {sum(len(row["attempts"]) for row in ledger["rows"])} 次调用累计耗时 {all_timing/1000:.1f} 秒。早期探索和诊断调用不在此数内。</p></section>')
+                f'本次审计核对 {ledger["counts"]["physical_attempts"]} 次物理执行；其中 {ledger["counts"]["excluded_duplicate_attempts"]} 次通过后重复执行。'
+                f'全部审计调用累计耗时 {all_timing/1000:.1f} 秒；通过率以每题最终一次官方判分计。</p></section>')
     summary += '<section class="panel"><h2>网站分布</h2><p>一题可涉及多个网站，所以下表网站计数之和大于 812。</p><div class="scroll"><table><thead><tr><th>网站</th><th>涉及题数</th></tr></thead><tbody>'
     summary += ''.join(f'<tr><td>{_e(SITE_LABELS[site])}</td><td>{count}</td></tr>' for site,count in sorted(site_counts.items()))
     summary += '</tbody></table></div></section>'
@@ -246,15 +240,13 @@ def build(ledger_path: Path, run_root: Path, site_map: Path, catalog_path: Path,
               '<p>按题号 0–811 执行主轮；每题仅在失败后补跑。浏览器引擎为 Chromium，二进制和每次运行输入按 SHA-256 绑定。六个网站部署在 Rainbond。</p>'
               '<p>可执行候选轨迹并不等于官方人工 gold 轨迹。仓库另有 179 条公开人工 Playwright 录制；其原始录制本身不保证官方判分通过。</p></section>'
               '<section class="panel"><h2>判分与审计</h2><p>每题最后一次选入调用必须由原版官方 evaluator 给出 score 1.0；失败调用仍保留。'
-              '评测答案和通过标准未因浏览器表现而放松。主轮 26 题首次失败均有补跑证据；通过题不因诊断再测。</p>'
+              f'评测答案和通过标准未因浏览器表现而放松。主轮 {len(failures)} 题首次失败均有补跑证据；通过题不因诊断再测。</p>'
               f'<p>验收账本 SHA-256：<code>{_hash(ledger_path)}</code>；官方 scope SHA-256：<code>{_hash(scope_path)}</code>。</p>'
-              '<p>此次展示一套 Chromium 配置，不据此推断 Moli、Firefox 或 WebKit 的表现。站点会话与数据库在题间有延续，部分定向补跑使用备用部署；通过率是这些固定轨迹在该部署状态和官方 evaluator 下“至少通过一次”的记录，不能解释为从任意全新状态必然成功。</p>'
-              '<p>轮前 Rainbond 收据记录了组件更新与站点就绪，没有数据库恢复到初始种子的证据。因此这轮结果不能称为数据重置后的验收。</p>'
-              '<p>第 790 题目标差评在备用站点已不存在，详情页单独标注该边界。</p></section>')
+              '<p>此次展示一套 Chromium 配置，不据此推断 Moli、Firefox 或 WebKit 的表现。题间保留站点状态；定向修复期间仅对已确认受状态影响的专用组件重启并留下收据。通过率表示每题至少一次按官方 evaluator 通过，不代表任意站点状态下都能通过。</p></section>')
     method += ('<section class="panel"><h2>部署与镜像</h2>'
-               f'<p>Rainbond 主应用 {environment["deployment"]["primary_app_id"]}，备用应用 {environment["deployment"]["repair_app_id"]}；'
+               f'<p>Rainbond 验收专用应用 {environment["deployment"]["acceptance_app_id"]}，从应用 {environment["deployment"]["source_app_id"]} 的固定镜像新建；'
                f'地图应用 {environment["deployment"]["shared_map_app_id"]}，维基应用 {environment["deployment"]["shared_wikipedia_app_id"]}。'
-               '地图和维基共用只读部署；其余站点在主应用与备用应用各有一份。下表是部署组件读取的镜像摘要，维基条目为运行容器镜像。</p>'
+               '地图和维基共用部署；其余四个站点在验收专用应用运行。下表是部署组件读取的镜像摘要，维基条目为运行容器镜像。</p>'
                '<div class="scroll"><table><thead><tr><th>组件</th><th>镜像摘要</th></tr></thead><tbody>'
                + ''.join(f'<tr><td>{_e(SITE_LABELS[site])}</td><td><code>{_e(digest)}</code></td></tr>' for site,digest in sorted(environment["images"].items()))
                + '</tbody></table></div></section>')
@@ -267,9 +259,12 @@ def build(ledger_path: Path, run_root: Path, site_map: Path, catalog_path: Path,
     (output / "en" / "index.html").write_text(_page("English edition not generated", '<h1>English edition not generated</h1><p>本次仅生成中文版。<a href="../index.html">返回中文报告</a></p>', prefix="../"), encoding="utf-8")
     manifest = {"schema": "lex_webarena_full_acceptance_report/1", "generated_languages": ["zh"],
                 "ledger_sha256": _hash(ledger_path), "scope_sha256": _hash(scope_path),
+                "failure_review_sha256": _hash(review_path),
                 "environment_sha256": _hash(environment_path),
                 "catalog_sha256": _hash(catalog_path), "portable_suite_sha256": _hash(suite_path),
-                "task_count": 812, "pass": 812, "initial_failures": failures,
+                "task_count": 812, "pass": 812, "initial_pass": initial_pass,
+                "physical_attempts": ledger["counts"]["physical_attempts"],
+                "initial_failures": failures,
                 "site_counts": dict(sorted(site_counts.items())), "site_group_counts": dict(sorted(site_groups.items())),
                 "evaluator_checksum": rendered_attempts[-1]["evaluation"]["webarena_verified_evaluator_checksum"]}
     (output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -283,10 +278,11 @@ def main() -> None:
     parser.add_argument("--site-map", type=Path, required=True)
     parser.add_argument("--catalog", type=Path, required=True)
     parser.add_argument("--portable-suite", type=Path, required=True)
+    parser.add_argument("--failure-review", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     print(json.dumps(build(args.ledger, args.run_root, args.site_map,
-                           args.catalog, args.portable_suite, args.output), ensure_ascii=False))
+                           args.catalog, args.portable_suite, args.failure_review, args.output), ensure_ascii=False))
 
 
 if __name__ == "__main__":

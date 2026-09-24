@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import shutil
 import tempfile
 from pathlib import Path
+
+from scripts.report_presentation_contract import check_presentation
 
 
 def check_report(root: Path) -> None:
@@ -18,7 +19,10 @@ def check_report(root: Path) -> None:
     if (manifest.get("schema") != "lex_webarena_full_acceptance_report/1"
             or manifest.get("generated_languages") != ["zh"]
             or manifest.get("task_count") != 812 or manifest.get("pass") != 812
-            or len(manifest.get("initial_failures") or []) != 26):
+            or not isinstance(manifest.get("initial_failures"), list)
+            or manifest.get("initial_pass") != 812 - len(manifest["initial_failures"])
+            or manifest.get("physical_attempts", 0) < 812
+            or not manifest.get("failure_review_sha256")):
         raise ValueError("report manifest differs from the audited population")
     home = (root / "index.html").read_text(encoding="utf-8")
     dataset = (root / "dataset.html").read_text(encoding="utf-8")
@@ -27,10 +31,14 @@ def check_report(root: Path) -> None:
     method = (root / "method.html").read_text(encoding="utf-8")
     viewer = (root / "evidence.html").read_text(encoding="utf-8")
     english = (root / "en" / "index.html").read_text(encoding="utf-8")
+    if any("<head>" not in page or "</head><body>" not in page
+           for page in (home, dataset, contract_viewer, method, viewer, english)):
+        raise ValueError("report entry has no explicit HTML head")
     if (home.count('data-search="') != 812
             or home.count('href="case/') != 812
             or home.count("<h2>核心结果</h2>") != 1
-            or "812 / 812" not in home or "786 / 812" not in home
+            or "812 / 812" not in home or f'{manifest["initial_pass"]} / 812' not in home
+            or str(manifest["physical_attempts"]) not in home
             or any(label not in home for label in ("Mean 耗时", "P50 耗时", "P95 耗时", "网站分布", "逐题结果"))):
         raise ValueError("result summary, denominator or inventory is missing")
     if (dataset.count("<tr>") != 813 or dataset.count('href="contract.html?task=') != 812
@@ -43,9 +51,8 @@ def check_report(root: Path) -> None:
         if (contract.get("task_id") != task_id or not contract.get("official_evaluators")
                 or not contract.get("fixed_actions")):
             raise ValueError(f"task {task_id} acceptance contract or trajectory is missing")
-    if ("部署与镜像" not in method or "第 790 题" not in method
-            or "没有数据库恢复到初始种子的证据" not in method
-            or "早期" not in home or "evidence/" not in viewer
+    if ("部署与镜像" not in method or "验收专用应用" not in method
+            or "evidence/" not in viewer
             or "English edition not generated" not in english
             or '../index.html' not in english):
         raise ValueError("method, evidence viewer or language notice is incomplete")
@@ -56,6 +63,9 @@ def check_report(root: Path) -> None:
         if not case.is_file() or not evidence.is_file():
             raise ValueError(f"task {task_id} result evidence is missing")
         page = case.read_text(encoding="utf-8")
+        if "<head>" not in page or "</head><body>" not in page:
+            raise ValueError(f"task {task_id} page has no explicit HTML head")
+        check_presentation(page)
         record = json.loads(evidence.read_text(encoding="utf-8"))
         if (page.count('data-report-detail') != 1
                 or f"第 {task_id} 题" not in page
@@ -72,10 +82,12 @@ def check_report(root: Path) -> None:
                 raise ValueError(f"task {task_id} failure diagnosis is missing")
         elif "首轮失败与处理" in page:
             raise ValueError(f"task {task_id} invented a failure")
-        if "/Users/" in page or "/Users/" in evidence.read_text(encoding="utf-8"):
-            raise ValueError(f"task {task_id} exposes a local path")
-    if "目标差评已不存在" not in (root / "case" / "790.html").read_text(encoding="utf-8"):
-        raise ValueError("task 790 validation boundary is missing")
+        evidence_text = evidence.read_text(encoding="utf-8")
+        if ("/Users/" in page or "/Users/" in evidence_text
+                or "/private/tmp/" in evidence_text
+                or re.search(r'(?i)feed_token=[A-Za-z0-9_-]{8,}', evidence_text)
+                or re.search(r'^\s*"(?:authenticity_token|token)"\s*:', evidence_text, re.M)):
+            raise ValueError(f"task {task_id} exposes private data")
     for source, page in ((root / "index.html", home), (root / "dataset.html", dataset),
                          (root / "contract.html", contract_viewer),
                          (root / "method.html", method), (root / "evidence.html", viewer),
@@ -88,22 +100,26 @@ def check_report(root: Path) -> None:
 
 
 def negative_controls(root: Path) -> None:
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    failed_id = manifest["initial_failures"][0]
+    failed_page = f"case/{failed_id:03d}.html"
     edits = (
         ("index.html", "<h2>核心结果</h2>", ""),
-        ("case/525.html", "../evidence/525.json", "../evidence/missing.json"),
-        ("case/525.html", "查看原始错误", "缺少原始错误"),
-        ("method.html", "没有数据库恢复到初始种子的证据", "数据库已恢复到初始种子"),
+        (failed_page, f"../evidence/{failed_id:03d}.json", "../evidence/missing.json"),
+        (failed_page, "查看原始错误", "缺少原始错误"),
+        (failed_page, "data-result-summary", "data-summary-missing"),
+        ("method.html", "验收专用应用", "未知应用"),
     )
     for name, original, changed in edits:
         with tempfile.TemporaryDirectory(prefix="webarena-report-negative-") as directory:
             copy = Path(directory) / "report"
-            shutil.copytree(root, copy, copy_function=os.link)
+            shutil.copytree(root, copy, copy_function=shutil.copy2)
             target = copy / name
             source = target.read_text(encoding="utf-8")
             if original not in source:
                 raise ValueError(f"negative control source marker is absent: {original}")
             target.unlink()
-            target.write_text(source.replace(original, changed, 1), encoding="utf-8")
+            target.write_text(source.replace(original, changed), encoding="utf-8")
             try:
                 check_report(copy)
             except ValueError:

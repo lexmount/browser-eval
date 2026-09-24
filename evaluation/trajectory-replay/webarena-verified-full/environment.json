@@ -4,10 +4,11 @@
   "region": "rainbond",
   "team": "ye7izl3p",
   "deployment": {
-    "primary_app_id": 195,
-    "repair_app_id": 194,
+    "acceptance_app_id": 202,
+    "source_app_id": 195,
     "shared_map_app_id": 201,
-    "shared_wikipedia_app_id": 198
+    "shared_wikipedia_app_id": 198,
+    "site_reset_between_tasks": false
   },
   "images": {
     "gitlab": "sha256:673ba94d757c5b3f4bb55751ad8b745a33bad2b987349322403cbc41035a92e0",
