@@ -21216,6 +21216,230 @@
         "expected_metrics": {
             "stable_complete_record_count": 1
         }
+    },
+    {
+        "id": "ambiguous-query-candidate-does-not-discard-valid-sibling",
+        "category": "structured-extraction",
+        "root_cause": "ambiguous_query_candidate_scope",
+        "failure_mode": "false-negative",
+        "case": {
+            "url": "https://example.test/list",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "named_link",
+                "minimum_records": 1,
+                "hosts": ["example.test"],
+                "entry_path": "/item\\.htm",
+                "identity_query_keys": ["id", "v"]
+            }
+        },
+        "artifact": "[Valid](https://example.test/item.htm?id=1)\n[Ambiguous](https://example.test/item.htm?id=2&id=3)",
+        "ok": true,
+        "expected_task_pass": true
+    },
+    {
+        "id": "ambiguous-query-candidate-alone-cannot-form-record",
+        "category": "structured-extraction",
+        "root_cause": "ambiguous_query_candidate_scope",
+        "failure_mode": "false-positive",
+        "case": {
+            "url": "https://example.test/list",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "named_link",
+                "minimum_records": 1,
+                "hosts": ["example.test"],
+                "entry_path": "/item\\.htm",
+                "identity_query_keys": ["id", "v"]
+            }
+        },
+        "artifact": "[Ambiguous](https://example.test/item.htm?id=2&id=3)",
+        "ok": true,
+        "expected_task_pass": false
+    },
+    {
+        "id": "dense-flattened-link-collection-remains-a-list",
+        "category": "structured-extraction",
+        "root_cause": "flattened_markdown_collection_classification",
+        "failure_mode": "false-negative",
+        "case": {
+            "url": "https://example.test/list",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "named_link",
+                "minimum_records": 3,
+                "hosts": ["example.test"],
+                "entry_path": "/item/\\d+"
+            }
+        },
+        "artifact": "- Group - [First](https://example.test/item/1) - [Second](https://example.test/item/2) - [Third](https://example.test/item/3)",
+        "ok": true,
+        "expected_task_pass": true
+    },
+    {
+        "id": "prose-with-three-links-remains-prose",
+        "category": "structured-extraction",
+        "root_cause": "flattened_markdown_collection_classification",
+        "failure_mode": "false-positive",
+        "case": {
+            "url": "https://example.test/list",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "named_link",
+                "minimum_records": 3,
+                "hosts": ["example.test"],
+                "entry_path": "/item/\\d+"
+            }
+        },
+        "artifact": "Read [First](https://example.test/item/1), compare it carefully with [Second](https://example.test/item/2), then see [Third](https://example.test/item/3) for context.",
+        "ok": true,
+        "expected_task_pass": false
+    },
+    {
+        "id": "redirected-relative-markdown-uses-response-origin",
+        "category": "structured-extraction",
+        "root_cause": "redirected_markdown_link_base",
+        "failure_mode": "false-negative",
+        "case": {
+            "url": "https://old.example.test/start",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "named_link",
+                "minimum_records": 1,
+                "hosts": ["new.example.test"],
+                "entry_path": "/news/item/\\d+"
+            }
+        },
+        "artifact": "[Story](item/1)",
+        "final_url": "https://new.example.test/news/",
+        "ok": true,
+        "expected_task_pass": true
+    },
+    {
+        "id": "wrong-redirect-cannot-authorize-relative-markdown",
+        "category": "structured-extraction",
+        "root_cause": "redirected_markdown_link_base",
+        "failure_mode": "false-positive",
+        "case": {
+            "url": "https://old.example.test/start",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "named_link",
+                "minimum_records": 1,
+                "hosts": ["old.example.test"],
+                "entry_path": "/news/item/\\d+"
+            }
+        },
+        "artifact": "[Story](item/1)",
+        "final_url": "https://other.example.test/news/",
+        "ok": true,
+        "expected_task_pass": false
+    },
+    {
+        "id": "malformed-link-is-reported-without-erasing-valid-sibling",
+        "category": "structured-extraction",
+        "root_cause": "candidate_local_malformed_link_validation",
+        "failure_mode": "false-positive",
+        "case": {
+            "url": "https://example.test/list",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "named_link",
+                "minimum_records": 1,
+                "hosts": ["example.test"],
+                "entry_path": "/item/\\d+"
+            }
+        },
+        "artifact": "[Broken](https://[invalid/item/1)\n[Valid](https://example.test/item/2)",
+        "ok": true,
+        "expected_task_pass": false,
+        "expected_metrics": {
+            "stable_complete_record_count": 1,
+            "stable_task_errors": ["invalid_link_output"]
+        }
+    },
+    {
+        "id": "well-formed-link-is-not-marked-as-malformed",
+        "category": "structured-extraction",
+        "root_cause": "candidate_local_malformed_link_validation",
+        "failure_mode": "false-negative",
+        "case": {
+            "url": "https://example.test/list",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "named_link",
+                "minimum_records": 1,
+                "hosts": ["example.test"],
+                "entry_path": "/item/\\d+"
+            }
+        },
+        "artifact": "[Valid](https://example.test/item/2)",
+        "ok": true,
+        "expected_task_pass": true,
+        "expected_metrics": {
+            "stable_complete_record_count": 1,
+            "stable_task_errors": []
+        }
+    },
+    {
+        "id": "linked-product-invalid-identity-does-not-discard-valid-sibling",
+        "category": "structured-extraction",
+        "root_cause": "linked_product_candidate_identity_isolation",
+        "failure_mode": "false-negative",
+        "case": {
+            "url": "https://shop.example/list",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "linked_product",
+                "minimum_records": 1,
+                "hosts": ["shop.example"],
+                "entry_path": "/product",
+                "identity_query_keys": ["id"],
+                "price_patterns": ["\\$\\s*\\d+(?:\\.\\d{2})?"],
+                "price_exclusion_patterns": []
+            }
+        },
+        "artifact": "[Missing identity](https://shop.example/product)\n$10.00\n\n[Valid product](https://shop.example/product?id=2)\n$20.00",
+        "ok": true,
+        "expected_task_pass": true,
+        "expected_metrics": {
+            "stable_complete_record_count": 1
+        }
+    },
+    {
+        "id": "linked-product-invalid-identity-alone-cannot-form-record",
+        "category": "structured-extraction",
+        "root_cause": "linked_product_candidate_identity_isolation",
+        "failure_mode": "false-positive",
+        "case": {
+            "url": "https://shop.example/list",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "linked_product",
+                "minimum_records": 1,
+                "hosts": ["shop.example"],
+                "entry_path": "/product",
+                "identity_query_keys": ["id"],
+                "price_patterns": ["\\$\\s*\\d+(?:\\.\\d{2})?"],
+                "price_exclusion_patterns": []
+            }
+        },
+        "artifact": "[Missing identity](https://shop.example/product)\n$10.00",
+        "ok": true,
+        "expected_task_pass": false,
+        "expected_metrics": {
+            "stable_complete_record_count": 0
+        }
     }
   ]
 }

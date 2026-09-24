@@ -850,17 +850,23 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         content_errors.append("blocked_page")
     errors = []
     if schema in {"named_link", "linked_product"}:
+        link_diagnostics = []
         try:
             if schema == "linked_product":
                 from .dynamic_lists import extract_linked_products
-                entries = extract_linked_products(content, contract, base_url)
+                entries = extract_linked_products(
+                    content, contract, base_url, diagnostics=link_diagnostics,
+                )
             else:
-                entries = extract_named_entries(content, contract, base_url, links)
+                entries = extract_named_entries(
+                    content, contract, base_url, links, link_diagnostics,
+                )
         except ValueError:
             # Malformed returned URLs are output validation failures, not
             # malformed contracts and not exceptions that abort a whole run.
             entries = []
             errors.append("invalid_link_output")
+        errors.extend(error for error in link_diagnostics if error not in errors)
         excluded_names = ({_key(value) for value in contract.get("record_name_exclusions", [])}
                           if schema == "named_link" else set())
         excluded_entries = [entry for entry in entries if _key(entry["title"]) in excluded_names]
@@ -883,7 +889,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         records = []
         for entry in entries:
             parts = urlsplit(entry["url"])
-            if parts.scheme not in {"http", "https"} or parts.username or parts.password:
+            if (parts.scheme not in {"http", "https"} or not parts.hostname
+                    or parts.username or parts.password):
                 continue
             records.append({"fields": entry, "valid": True, "errors": []})
     else:

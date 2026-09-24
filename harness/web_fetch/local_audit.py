@@ -43,7 +43,6 @@ def _source_evidence_inventory(dataset: dict) -> list[dict]:
         "source.html.txt": "captured source response",
         "current-source.html.txt": "current source response",
         "current-capture.json": "current capture receipt",
-        "mixed-session-stable-text.txt": "cross-session stable text",
         "mixed-session-stable-text.json": "cross-session stability receipt",
         "rendered.txt": "independently rendered visible text",
         "render-audit.json": "render audit receipt",
@@ -307,6 +306,10 @@ def _require_lineage(source: Path, receipt: dict) -> None:
         source, receipt, "local-evidence/local-audit-correction.json")
     bindings = receipt["bindings"]
     review = receipt["review"]
+    review_correction_path = review.get("post_correction_receipt")
+    if not isinstance(review_correction_path, str):
+        raise ValueError("Local audit post-correction receipt is missing")
+    review_correction = _read_bound_receipt(source, receipt, review_correction_path)
     if (merge.get("output", {}).get("dataset.json") != bindings.get("input_dataset_sha256")
             or merge.get("output", {}).get("results.jsonl") != bindings.get("input_results_sha256")
             or merge.get("output", {}).get("cases") != receipt.get("scope", {}).get("cases")
@@ -338,10 +341,22 @@ def _require_lineage(source: Path, receipt: dict) -> None:
             or classification.get("invariants", {}).get("verdicts_changed") is not False):
         raise ValueError("Local audit classification correction lineage is inconsistent")
     if (correction.get("output_dataset_sha256") != bindings.get("dataset_sha256")
-            or correction.get("output_results_sha256") != bindings.get("results_sha256")
             or correction.get("provider_calls") != 0
             or correction.get("task_verdict_changes") != []):
         raise ValueError("Local audit final correction lineage is inconsistent")
+    if (review_correction.get("input_dataset_sha256")
+            != correction.get("output_dataset_sha256")
+            or review_correction.get("input_results_sha256")
+            != correction.get("output_results_sha256")
+            or review_correction.get("output_dataset_sha256")
+            != bindings.get("dataset_sha256")
+            or review_correction.get("output_results_sha256")
+            != bindings.get("results_sha256")
+            or review_correction.get("scoring_source_sha256")
+            != bindings.get("scoring_source_sha256")
+            or review_correction.get("provider_calls") != 0
+            or review_correction.get("task_verdict_changes") != []):
+        raise ValueError("PR review correction lineage is inconsistent")
 
 
 def require_local_audit(source: Path, dataset: dict, records: list[dict]) -> dict:

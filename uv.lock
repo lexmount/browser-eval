@@ -291,6 +291,9 @@ wheels = [
 name = "browser-harness-eval"
 version = "0.1.0"
 source = { editable = "." }
+dependencies = [
+    { name = "beautifulsoup4" },
+]
 
 [package.optional-dependencies]
 browser-use-eval = [
@@ -337,6 +340,7 @@ webmainbench-eval = [
 
 [package.metadata]
 requires-dist = [
+    { name = "beautifulsoup4", specifier = ">=4.12,<5" },
     { name = "apted", marker = "extra == 'webmainbench-eval'", specifier = "==1.0.3" },
     { name = "beautifulsoup4", marker = "extra == 'reference-audit'", specifier = ">=4.12,<5" },
     { name = "beautifulsoup4", marker = "extra == 'webmainbench-eval'", specifier = "==4.14.2" },

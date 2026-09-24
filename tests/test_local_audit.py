@@ -90,6 +90,14 @@ def test_local_audit_requires_complete_inventory_and_review_lineage(tmp_path, mo
             "output_results_sha256": _digest(source / "results.jsonl"),
             "provider_calls": 0, "task_verdict_changes": [],
         },
+        "local-evidence/scoring-plumbing-correction.json": {
+            "input_dataset_sha256": _digest(source / "dataset.json"),
+            "input_results_sha256": _digest(source / "results.jsonl"),
+            "output_dataset_sha256": _digest(source / "dataset.json"),
+            "output_results_sha256": _digest(source / "results.jsonl"),
+            "scoring_source_sha256": "g" * 64,
+            "provider_calls": 0, "task_verdict_changes": [],
+        },
     }
     bound_receipts = {}
     for relative, document in lineage.items():
@@ -105,6 +113,7 @@ def test_local_audit_requires_complete_inventory_and_review_lineage(tmp_path, mo
             "input_results_sha256": input_results,
             "dataset_sha256": _digest(source / "dataset.json"),
             "results_sha256": _digest(source / "results.jsonl"),
+            "scoring_source_sha256": "g" * 64,
         },
         "scope": {"cases": 1, "results": 1},
         "evidence": {
@@ -116,6 +125,7 @@ def test_local_audit_requires_complete_inventory_and_review_lineage(tmp_path, mo
             "supplement_cases_reviewed": 1,
             "supplement_dataset_sha256": supplement_dataset,
             "supplement_results_sha256": supplement_results,
+            "post_correction_receipt": "local-evidence/scoring-plumbing-correction.json",
             "bound_receipts": bound_receipts,
         },
     }

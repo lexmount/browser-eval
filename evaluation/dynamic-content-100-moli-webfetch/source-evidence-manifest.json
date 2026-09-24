@@ -6,7 +6,7 @@
   "scope": {
     "dataset_cases": 100,
     "cases_with_source_evidence": 88,
-    "files": 214
+    "files": 139
   },
   "files": [
     {
@@ -17,25 +17,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-013-en-stable-patternfly-table",
-      "path": "evaluation/sources/dynamic-013-en-stable-patternfly-table/mixed-session-stable-text.txt",
-      "sha256": "c1a9038a6e635c30a53be894bb72c10b7c9f4ddbd9a161ea8755215a7485e019",
-      "bytes": 5372,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-014-en-stable-rsuite-table",
       "path": "evaluation/sources/dynamic-014-en-stable-rsuite-table/mixed-session-stable-text.json",
       "sha256": "02e8f9cb3b7c00f759c8461ac47bdc18376ff89328e1a33dda9544619b536b5c",
       "bytes": 47040,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-014-en-stable-rsuite-table",
-      "path": "evaluation/sources/dynamic-014-en-stable-rsuite-table/mixed-session-stable-text.txt",
-      "sha256": "05bfea3e8d6386414b91e6e03219da766d9155687af54a0cd6c87e6e4dd443a4",
-      "bytes": 39874,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-015-015-testpages-iframe-list",
@@ -45,25 +31,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-015-015-testpages-iframe-list",
-      "path": "evaluation/sources/dynamic-015-015-testpages-iframe-list/mixed-session-stable-text.txt",
-      "sha256": "73ce5d1e75cad5299061de4c3f878bd2e996116e9c6df0d3ccf4ef783ba900bb",
-      "bytes": 12404,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-016-en-stable-angular-tree",
       "path": "evaluation/sources/dynamic-016-en-stable-angular-tree/mixed-session-stable-text.json",
       "sha256": "605e40bdc84e0cc2dc9e5dec9620011b341801b73646054b674b0547142e5a55",
       "bytes": 3005,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-016-en-stable-angular-tree",
-      "path": "evaluation/sources/dynamic-016-en-stable-angular-tree/mixed-session-stable-text.txt",
-      "sha256": "cc01dbc3c0b777cc7f546e839037855025abe7a33b1746735027b2b8571795d3",
-      "bytes": 2210,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-017-en-stable-eui-table",
@@ -73,25 +45,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-017-en-stable-eui-table",
-      "path": "evaluation/sources/dynamic-017-en-stable-eui-table/mixed-session-stable-text.txt",
-      "sha256": "9821c2b84a557a609c9733278264207ecb2c4e15e4061ca0871adddc2b3977e1",
-      "bytes": 10312,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-018-en-stable-varlet-home",
       "path": "evaluation/sources/dynamic-018-en-stable-varlet-home/mixed-session-stable-text.json",
       "sha256": "c4beef6e406a74fa0a02a9ef3cbe729ea78c2ba6f4c13649b31baf922467f2eb",
       "bytes": 2051,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-018-en-stable-varlet-home",
-      "path": "evaluation/sources/dynamic-018-en-stable-varlet-home/mixed-session-stable-text.txt",
-      "sha256": "e22c367b02830ec7e49c120f38e69c1bf45435d0af93946708a1721b87250e94",
-      "bytes": 1415,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-019-selenium-dev-selenium",
@@ -101,25 +59,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-019-selenium-dev-selenium",
-      "path": "evaluation/sources/dynamic-019-selenium-dev-selenium/mixed-session-stable-text.txt",
-      "sha256": "3b6b294c6a9c4b7ab1c29e1407ef20a3021706a322182f280188d1fe1509df3e",
-      "bytes": 4305,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-020-webscraper-io-test",
       "path": "evaluation/sources/dynamic-020-webscraper-io-test/mixed-session-stable-text.json",
       "sha256": "05d40bd267789bff2ae9fc4fe128c1fb7382572f955a7932931dc200a595d6a5",
       "bytes": 8493,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-020-webscraper-io-test",
-      "path": "evaluation/sources/dynamic-020-webscraper-io-test/mixed-session-stable-text.txt",
-      "sha256": "c267fe184dcf774da6d82940f393c0f378c691dd0625037b955dc5b92b13c08d",
-      "bytes": 6916,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-021-021-scalar-get-operation",
@@ -129,25 +73,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-021-021-scalar-get-operation",
-      "path": "evaluation/sources/dynamic-021-021-scalar-get-operation/mixed-session-stable-text.txt",
-      "sha256": "bc98d9ef3bb7fee3f530153c3397f146297653334363941e49345e84da3adfa5",
-      "bytes": 2498,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-022-en-stable-syncfusion-grid",
       "path": "evaluation/sources/dynamic-022-en-stable-syncfusion-grid/mixed-session-stable-text.json",
       "sha256": "17645460d22bb007bab3dbc2d9cea4b5f53ee71663289edf47dec79349cff098",
       "bytes": 4763,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-022-en-stable-syncfusion-grid",
-      "path": "evaluation/sources/dynamic-022-en-stable-syncfusion-grid/mixed-session-stable-text.txt",
-      "sha256": "a9c5fcd5839ac7430ad8431fe32dbb91a701c25b2eb58097f8e2f6e4804211a3",
-      "bytes": 3824,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-023-en-mui-data-grid-pagination",
@@ -157,25 +87,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-023-en-mui-data-grid-pagination",
-      "path": "evaluation/sources/dynamic-023-en-mui-data-grid-pagination/mixed-session-stable-text.txt",
-      "sha256": "e8bf14fae2fb17037d5a893b5e95df7bb14016e0f20bdf7390a4575eaca72d23",
-      "bytes": 1925,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-024-en-stable-gridjs-pagination",
       "path": "evaluation/sources/dynamic-024-en-stable-gridjs-pagination/mixed-session-stable-text.json",
       "sha256": "dcfeb948bf473646e2cd990896b729ca5ba3c13ca268513dc2428155318f9eb7",
       "bytes": 14265,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-024-en-stable-gridjs-pagination",
-      "path": "evaluation/sources/dynamic-024-en-stable-gridjs-pagination/mixed-session-stable-text.txt",
-      "sha256": "55f2fbe41c7e65fc4572c4579fc7a83fcc5e4b501e57142666add369428d4337",
-      "bytes": 11848,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-025-025-tabulator-vertical-virtual-dom",
@@ -185,25 +101,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-025-025-tabulator-vertical-virtual-dom",
-      "path": "evaluation/sources/dynamic-025-025-tabulator-vertical-virtual-dom/mixed-session-stable-text.txt",
-      "sha256": "eefb7082ffc5b7cca01efb1dc46a32f7fcd5b2a547464bd960e2644ef95db820",
-      "bytes": 21879,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-026-bilibili-rank",
       "path": "evaluation/sources/dynamic-026-bilibili-rank/mixed-session-stable-text.json",
       "sha256": "171717e867e1e7cc18f2ab3df7bd399a4001a141113958a97c844177b8eb350d",
       "bytes": 4716,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-026-bilibili-rank",
-      "path": "evaluation/sources/dynamic-026-bilibili-rank/mixed-session-stable-text.txt",
-      "sha256": "99e97ad0a8d7cbaedaacf329343e27251aec9afc0f666b7385bc27943e736ad8",
-      "bytes": 3736,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-027-ej2-syncfusion-com-react",
@@ -213,25 +115,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-027-ej2-syncfusion-com-react",
-      "path": "evaluation/sources/dynamic-027-ej2-syncfusion-com-react/mixed-session-stable-text.txt",
-      "sha256": "f459297dbf67c83e5ebd0fcc16cbfd0d7827d17526b287bbe154e917f1577047",
-      "bytes": 4585,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-028-ej2-syncfusion-com-react",
       "path": "evaluation/sources/dynamic-028-ej2-syncfusion-com-react/mixed-session-stable-text.json",
       "sha256": "a5df2e77bb71012aa81632687d42167440db4bbe77f054c00a454eeb884a02d4",
       "bytes": 5253,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-028-ej2-syncfusion-com-react",
-      "path": "evaluation/sources/dynamic-028-ej2-syncfusion-com-react/mixed-session-stable-text.txt",
-      "sha256": "8641d57ff536218b2fd57d513cbf4bdb8215d87dcd5ad687877d27f16909c399",
-      "bytes": 4267,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-029-029-primevue-basic-treetable",
@@ -241,25 +129,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-029-029-primevue-basic-treetable",
-      "path": "evaluation/sources/dynamic-029-029-primevue-basic-treetable/mixed-session-stable-text.txt",
-      "sha256": "7ff3e1ca2d40c5188b65959b97500d99198774aa0d620a07cdd92e486de5f768",
-      "bytes": 37995,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-030-030-primevue-basic-virtualscroller",
       "path": "evaluation/sources/dynamic-030-030-primevue-basic-virtualscroller/mixed-session-stable-text.json",
       "sha256": "1fc5191bdee88297d6767aa521e78c3780815aefd71ca0a97ad6f012848b1877",
       "bytes": 41158,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-030-030-primevue-basic-virtualscroller",
-      "path": "evaluation/sources/dynamic-030-030-primevue-basic-virtualscroller/mixed-session-stable-text.txt",
-      "sha256": "671de246cb5aaf7fd80ef53633ca9b1ca8f59929a2d1b327f7d190ba99b34961",
-      "bytes": 34857,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-031-031-primeng-basic-table",
@@ -269,25 +143,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-031-031-primeng-basic-table",
-      "path": "evaluation/sources/dynamic-031-031-primeng-basic-table/mixed-session-stable-text.txt",
-      "sha256": "08430be7b3f207202071c52a68922fc4d03a0233f6ca8ca53303951b990ce85a",
-      "bytes": 45120,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-032-032-primeng-basic-virtualscroller",
       "path": "evaluation/sources/dynamic-032-032-primeng-basic-virtualscroller/mixed-session-stable-text.json",
       "sha256": "169d1364ea59fa9e25c261437636407efdedc19c60ccce05d822a3d13ff5a938",
       "bytes": 43150,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-032-032-primeng-basic-virtualscroller",
-      "path": "evaluation/sources/dynamic-032-032-primeng-basic-virtualscroller/mixed-session-stable-text.txt",
-      "sha256": "3d08795c88cd856ae7e5776f58791d7279951aaef0aff681722be0913626ffaa",
-      "bytes": 36563,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-033-033-vuetify-usage-table",
@@ -297,25 +157,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-033-033-vuetify-usage-table",
-      "path": "evaluation/sources/dynamic-033-033-vuetify-usage-table/mixed-session-stable-text.txt",
-      "sha256": "51e365dffc25fe7c3c93278fdcab7abd06b3d3c22962df092934f0cd474423a3",
-      "bytes": 53351,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-034-034-vuetify-server-table",
       "path": "evaluation/sources/dynamic-034-034-vuetify-server-table/mixed-session-stable-text.json",
       "sha256": "ca6914a35d424ba2275ef0d266bdeed718026e918152485aa471191a96b2c12b",
       "bytes": 54773,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-034-034-vuetify-server-table",
-      "path": "evaluation/sources/dynamic-034-034-vuetify-server-table/mixed-session-stable-text.txt",
-      "sha256": "effad47bd28fd1e7314fcbdf7ae558bc5fee8238742fb98a5d1aacf96eeb61da",
-      "bytes": 46609,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-035-035-vuetify-virtual-table",
@@ -325,25 +171,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-035-035-vuetify-virtual-table",
-      "path": "evaluation/sources/dynamic-035-035-vuetify-virtual-table/mixed-session-stable-text.txt",
-      "sha256": "70d05bf891baabc5b1287eec68f7ca719dc169af8694f550bdfdf5e79a915572",
-      "bytes": 45997,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-036-yonhap-home",
       "path": "evaluation/sources/dynamic-036-yonhap-home/mixed-session-stable-text.json",
       "sha256": "2662ac486f26ed675c75d921b60dcb034e56880dbadb6f7ce45ec3150daf4bbb",
       "bytes": 5057,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-036-yonhap-home",
-      "path": "evaluation/sources/dynamic-036-yonhap-home/mixed-session-stable-text.txt",
-      "sha256": "5441c0791b264793a117c458a779df0610489f3ceaa84cf042f521e48e4004fa",
-      "bytes": 4004,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-037-quasar-dev-vue",
@@ -353,13 +185,6 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-037-quasar-dev-vue",
-      "path": "evaluation/sources/dynamic-037-quasar-dev-vue/mixed-session-stable-text.txt",
-      "sha256": "2bd5b89f04300b0c1ec5d3ce818313a39fec08dd1dbf99eeb74e8083cc2559ef",
-      "bytes": 9884,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-038-material-angular-dev-components",
       "path": "evaluation/sources/dynamic-038-material-angular-dev-components/mixed-session-stable-text.json",
       "sha256": "37c04420d616f1b6719af3045d4e7e2c521979f453bc4b64d62047c1b7fde204",
@@ -367,25 +192,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-038-material-angular-dev-components",
-      "path": "evaluation/sources/dynamic-038-material-angular-dev-components/mixed-session-stable-text.txt",
-      "sha256": "c966955f1985d1acf0e2333e7f56ff5cc50e6b18881b2bfa83bc953d8fbd12a5",
-      "bytes": 9079,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-039-039-angular-autocomplete-examples",
       "path": "evaluation/sources/dynamic-039-039-angular-autocomplete-examples/mixed-session-stable-text.json",
       "sha256": "d982b6225507b968379a3be1223586b7c38d786ed62216609e135b5893af4159",
       "bytes": 5431,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-039-039-angular-autocomplete-examples",
-      "path": "evaluation/sources/dynamic-039-039-angular-autocomplete-examples/mixed-session-stable-text.txt",
-      "sha256": "e865e1230858c1fcc99adc507e7eeb85e00b389f0b56ad85b3683dbfd7ad8a82",
-      "bytes": 4291,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-040-gridjs-io-docs",
@@ -402,25 +213,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-040-gridjs-io-docs",
-      "path": "evaluation/sources/dynamic-040-gridjs-io-docs/mixed-session-stable-text.txt",
-      "sha256": "900f6be4240b341fef21038bd21486b3201a4a72371ab57efa10cdad50b40f62",
-      "bytes": 12119,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-041-en-stable-heroui-table",
       "path": "evaluation/sources/dynamic-041-en-stable-heroui-table/mixed-session-stable-text.json",
       "sha256": "c4673ac4afc1c2869ab31cc0373659cb282b6ca2489dfe1f23ba712448e91987",
       "bytes": 5298,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-041-en-stable-heroui-table",
-      "path": "evaluation/sources/dynamic-041-en-stable-heroui-table/mixed-session-stable-text.txt",
-      "sha256": "700b1bfe50b33aa605ce732472b0cfb25f93aa6e72775705a96692e03a98c199",
-      "bytes": 4175,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-043-en-stable-grommet-table",
@@ -430,25 +227,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-043-en-stable-grommet-table",
-      "path": "evaluation/sources/dynamic-043-en-stable-grommet-table/mixed-session-stable-text.txt",
-      "sha256": "be8675dd718607e496bcab6a84c82b0521182dfcdf44d61fa4325acf8b9e2c81",
-      "bytes": 19026,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-046-en-real-hn-algolia",
       "path": "evaluation/sources/dynamic-046-en-real-hn-algolia/mixed-session-stable-text.json",
       "sha256": "0853876e66723137b0b032f10c0283899efde685d5a087a7922cfd1f5e2b12c8",
       "bytes": 3152,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-046-en-real-hn-algolia",
-      "path": "evaluation/sources/dynamic-046-en-real-hn-algolia/mixed-session-stable-text.txt",
-      "sha256": "6662585b36da81116c3922ecef1762a340285a1aeda5abf9356d842d31f854d9",
-      "bytes": 2308,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-050-en-real-usgs-earthquakes",
@@ -458,25 +241,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-050-en-real-usgs-earthquakes",
-      "path": "evaluation/sources/dynamic-050-en-real-usgs-earthquakes/mixed-session-stable-text.txt",
-      "sha256": "ae3c3b1020f8b055af401d8b9648676a5bf8a6e32772e3c8072b728247892f80",
-      "bytes": 2552,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-051-youzan-github-io-vant",
       "path": "evaluation/sources/dynamic-051-youzan-github-io-vant/mixed-session-stable-text.json",
       "sha256": "a7cb2d3f95642183e1a0fed765a5b044c64afbaafa5ba0c94a995fe115ce256a",
       "bytes": 3965,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-051-youzan-github-io-vant",
-      "path": "evaluation/sources/dynamic-051-youzan-github-io-vant/mixed-session-stable-text.txt",
-      "sha256": "4c1c4c95042535aa26a393f04b1cc00dde31a014eb9be3073ee36a283c165944",
-      "bytes": 3046,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-052-bilibili-com-v",
@@ -486,25 +255,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-052-bilibili-com-v",
-      "path": "evaluation/sources/dynamic-052-bilibili-com-v/mixed-session-stable-text.txt",
-      "sha256": "21eb9ddb7f8637757689ddfc959030cfeb7e70dfdffa0a9e05dfda1ff69e7c43",
-      "bytes": 2503,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-054-ant-protable-api",
       "path": "evaluation/sources/dynamic-054-ant-protable-api/mixed-session-stable-text.json",
       "sha256": "6e78eecf4a8216176c0263cf046a008754f594d1f1fa332501186dc6154944c3",
       "bytes": 12791,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-054-ant-protable-api",
-      "path": "evaluation/sources/dynamic-054-ant-protable-api/mixed-session-stable-text.txt",
-      "sha256": "5b77c65b1af750a6636dd010bbed99711fd23b2554bf346f04dc7e1ae3ba6e24",
-      "bytes": 10607,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-055-arco-design-vue",
@@ -514,25 +269,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-055-arco-design-vue",
-      "path": "evaluation/sources/dynamic-055-arco-design-vue/mixed-session-stable-text.txt",
-      "sha256": "3762c74de96a32863a71cdd29639280dd13d6a45ceab11e209fb2be89de08c33",
-      "bytes": 35503,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-056-vant-ui-github-io-vant",
       "path": "evaluation/sources/dynamic-056-vant-ui-github-io-vant/mixed-session-stable-text.json",
       "sha256": "c08d3010d50f02abde8f927a5bf2f82612f1ff1fe9f2e669828c266cd0868e95",
       "bytes": 6637,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-056-vant-ui-github-io-vant",
-      "path": "evaluation/sources/dynamic-056-vant-ui-github-io-vant/mixed-session-stable-text.txt",
-      "sha256": "d4dd65b240ebbfd76b0c04bf3411408f018762e03419a83eb47be99d4ade3e4c",
-      "bytes": 5335,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-057-nutui-jd-com-h5",
@@ -542,25 +283,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-057-nutui-jd-com-h5",
-      "path": "evaluation/sources/dynamic-057-nutui-jd-com-h5/mixed-session-stable-text.txt",
-      "sha256": "40d3eed97d07fa79f39b7aaa65792eab921d01a00195e4253535da3cbbb0ef43",
-      "bytes": 3314,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-058-zh-stable-tdesign-table",
       "path": "evaluation/sources/dynamic-058-zh-stable-tdesign-table/mixed-session-stable-text.json",
       "sha256": "d0c1e3b8a745214dd0ea360991cbb1eac543efe4c3a3e005b5e2dd2c3f4dd815",
       "bytes": 10270,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-058-zh-stable-tdesign-table",
-      "path": "evaluation/sources/dynamic-058-zh-stable-tdesign-table/mixed-session-stable-text.txt",
-      "sha256": "3b248150dc3f41dc7330bfddc2ab19019f430b3b319c358a2f221c94f8e97813",
-      "bytes": 8466,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-059-layui-vue-com-zh",
@@ -570,25 +297,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-059-layui-vue-com-zh",
-      "path": "evaluation/sources/dynamic-059-layui-vue-com-zh/mixed-session-stable-text.txt",
-      "sha256": "5788d6615798815d1eb9c4708f141c6c58a1a86e0713c1f6c9d392f80f923f58",
-      "bytes": 1615,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-061-061-juejin-ranking",
       "path": "evaluation/sources/dynamic-061-061-juejin-ranking/mixed-session-stable-text.json",
       "sha256": "1856e1326e6ee1bb9100eb341c7832ba812cae7b56076b1ed59bba9687243341",
       "bytes": 3199,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-061-061-juejin-ranking",
-      "path": "evaluation/sources/dynamic-061-061-juejin-ranking/mixed-session-stable-text.txt",
-      "sha256": "d559ab36dfdde32714ae1baff47c84d5d6f605651cb5030964c91af5c2464275",
-      "bytes": 2391,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-062-zh-sspai-home",
@@ -598,25 +311,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-062-zh-sspai-home",
-      "path": "evaluation/sources/dynamic-062-zh-sspai-home/mixed-session-stable-text.txt",
-      "sha256": "91477c126b65b4f4db1aea200be4e5e3638d6da10aa3b1083e3571192da67d29",
-      "bytes": 1866,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-063-s-weibo-com-top",
       "path": "evaluation/sources/dynamic-063-s-weibo-com-top/mixed-session-stable-text.json",
       "sha256": "8177f00e6558a3ad714181d42a95ef5a4dccce41f2e172ac4ca00ca0aaa150e0",
       "bytes": 3958,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-063-s-weibo-com-top",
-      "path": "evaluation/sources/dynamic-063-s-weibo-com-top/mixed-session-stable-text.txt",
-      "sha256": "61237b9a22896820a069a2a73b69bc232bc280bbd05c9c8eaed7988ecfd850c8",
-      "bytes": 3041,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-065-franceinfo-home",
@@ -626,25 +325,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-065-franceinfo-home",
-      "path": "evaluation/sources/dynamic-065-franceinfo-home/mixed-session-stable-text.txt",
-      "sha256": "04ddee5467d9e209c1c3a79f8bbf563d953bb08c65b376e5a36127f959dc39a6",
-      "bytes": 11158,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-068-ja-nintendo-switch2-software",
       "path": "evaluation/sources/dynamic-068-ja-nintendo-switch2-software/mixed-session-stable-text.json",
       "sha256": "de9e8edfd7657f4367c5d890ab31af49f91a7862f25ddf5b0b9eef3180ecc888",
       "bytes": 2751,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-068-ja-nintendo-switch2-software",
-      "path": "evaluation/sources/dynamic-068-ja-nintendo-switch2-software/mixed-session-stable-text.txt",
-      "sha256": "2dfd01157cc0705589f97cf7c2617cb910b095ede2304e44c3a01c6b21a94145",
-      "bytes": 2005,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-069-ja-nintendo-search",
@@ -654,25 +339,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-069-ja-nintendo-search",
-      "path": "evaluation/sources/dynamic-069-ja-nintendo-search/mixed-session-stable-text.txt",
-      "sha256": "cf2984e4ade7eedd70a34907f9fa36d4ba90ccf542d5001b78e50c0f2ec4de3d",
-      "bytes": 3206,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-070-nintendo-feature",
       "path": "evaluation/sources/dynamic-070-nintendo-feature/mixed-session-stable-text.json",
       "sha256": "876dfb895a8ab4f25d5f4283f8c894842c7b5453949219003ae1c05f7a5d6f71",
       "bytes": 3722,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-070-nintendo-feature",
-      "path": "evaluation/sources/dynamic-070-nintendo-feature/mixed-session-stable-text.txt",
-      "sha256": "0fe9c8d138ea1d04ee486f4cdd04c8b8535b82834a3e21e822b01b88740fc9fe",
-      "bytes": 2832,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-071-es-cl-falabella-audio",
@@ -682,25 +353,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-071-es-cl-falabella-audio",
-      "path": "evaluation/sources/dynamic-071-es-cl-falabella-audio/mixed-session-stable-text.txt",
-      "sha256": "f00d21a4a3f5c38c4d0c375abea84149923f5cb83fb839d2c9a36435b2c9f1d5",
-      "bytes": 2357,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-072-ko-lotteon-home",
       "path": "evaluation/sources/dynamic-072-ko-lotteon-home/mixed-session-stable-text.json",
       "sha256": "4306a760fb0ba548b2670ab9b4d4cc031dca54ff9f32942bbfdc7313ff1d70c7",
       "bytes": 2719,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-072-ko-lotteon-home",
-      "path": "evaluation/sources/dynamic-072-ko-lotteon-home/mixed-session-stable-text.txt",
-      "sha256": "5429b6212ce158acd25b02c007209a9b95906bcb4361f55fd7e8cc64eab3aa3b",
-      "bytes": 1979,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-074-melon-com-chart",
@@ -710,25 +367,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-074-melon-com-chart",
-      "path": "evaluation/sources/dynamic-074-melon-com-chart/mixed-session-stable-text.txt",
-      "sha256": "b3469c344a51c0c0a66280fce20f03032fe37a394d60c3054d01beaea8ecf337",
-      "bytes": 3797,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-076-es-es-nintendo-mario-search",
       "path": "evaluation/sources/dynamic-076-es-es-nintendo-mario-search/mixed-session-stable-text.json",
       "sha256": "a4472b1ab4865e39af46e0a65bf9785f534a22beaf34625831ac1c5d3615a7d9",
       "bytes": 3492,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-076-es-es-nintendo-mario-search",
-      "path": "evaluation/sources/dynamic-076-es-es-nintendo-mario-search/mixed-session-stable-text.txt",
-      "sha256": "947b263ad9f202dbea2a92456ed0c9b8cf5f182868ff9b90cd89588def073862",
-      "bytes": 2626,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-078-es-es-nintendo-switch2-search",
@@ -738,25 +381,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-078-es-es-nintendo-switch2-search",
-      "path": "evaluation/sources/dynamic-078-es-es-nintendo-switch2-search/mixed-session-stable-text.txt",
-      "sha256": "f316b5a6ce1bf42c3b8a17c2ef823e2970f708b004738842099ab1ed5cc82bbe",
-      "bytes": 2626,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-080-es-es-nintendo-switch2-edition-search",
       "path": "evaluation/sources/dynamic-080-es-es-nintendo-switch2-edition-search/mixed-session-stable-text.json",
       "sha256": "8ee4b9e0ff499c7842d734328cc3290ec6440e17f3ae7b0777ed793ce3c1204a",
       "bytes": 3541,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-080-es-es-nintendo-switch2-edition-search",
-      "path": "evaluation/sources/dynamic-080-es-es-nintendo-switch2-edition-search/mixed-session-stable-text.txt",
-      "sha256": "54081592894c0965b71467de1989f97bf476c53a8da84bea452ea9c7c6fbba54",
-      "bytes": 2662,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-082-allocine-films",
@@ -766,25 +395,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-082-allocine-films",
-      "path": "evaluation/sources/dynamic-082-allocine-films/mixed-session-stable-text.txt",
-      "sha256": "8ab263580acc18b2d7fd4c7504a36b46a4eacb08f65705da013ad2b550ef2d78",
-      "bytes": 16450,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-086-joyn-prosieben",
       "path": "evaluation/sources/dynamic-086-joyn-prosieben/mixed-session-stable-text.json",
       "sha256": "7d96a910fbcf288b1a6424bfae3b094aae7f4e2fe0281698dcc014cc59517af5",
       "bytes": 6342,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-086-joyn-prosieben",
-      "path": "evaluation/sources/dynamic-086-joyn-prosieben/mixed-session-stable-text.txt",
-      "sha256": "8b9e2b65a5b074181f469938a7973461daf8ce7925bcd7f1d5f81532c0f4814c",
-      "bytes": 5078,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-087-joyn-filme",
@@ -794,25 +409,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-087-joyn-filme",
-      "path": "evaluation/sources/dynamic-087-joyn-filme/mixed-session-stable-text.txt",
-      "sha256": "da9e54661ed0cc3d75d3ef81bac2f75de7a874ea4d35bd89c6ff070ca8b27859",
-      "bytes": 5046,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-091-pt-br-kabum-hardware",
       "path": "evaluation/sources/dynamic-091-pt-br-kabum-hardware/mixed-session-stable-text.json",
       "sha256": "3d0a72a6d6536768aa467045ecf95ecd6f16af8f9cf35a4e9f7b1fa804da5071",
       "bytes": 2671,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-091-pt-br-kabum-hardware",
-      "path": "evaluation/sources/dynamic-091-pt-br-kabum-hardware/mixed-session-stable-text.txt",
-      "sha256": "3948608d53dbffff885d0330cb17d35896d4997b7dab3cc0e24e6ee080da641a",
-      "bytes": 1942,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-092-play-uol-com-br",
@@ -822,25 +423,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-092-play-uol-com-br",
-      "path": "evaluation/sources/dynamic-092-play-uol-com-br/mixed-session-stable-text.txt",
-      "sha256": "f6697d3e0dabc3f97a878d7b112a91a5da766ad080da89cf78e9d8c803f77268",
-      "bytes": 7989,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-095-joyn-home",
       "path": "evaluation/sources/dynamic-095-joyn-home/mixed-session-stable-text.json",
       "sha256": "304e511abae818498aa693819196018212fc24123d4c347d93ec034eaaded92f",
       "bytes": 6278,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-095-joyn-home",
-      "path": "evaluation/sources/dynamic-095-joyn-home/mixed-session-stable-text.txt",
-      "sha256": "62dc3e1a7ce6e6de33bacc093d7ffc7331d749540d50990951d50be4657f9c9a",
-      "bytes": 5035,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-096-ar-real-cnn-world",
@@ -850,25 +437,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-096-ar-real-cnn-world",
-      "path": "evaluation/sources/dynamic-096-ar-real-cnn-world/mixed-session-stable-text.txt",
-      "sha256": "cc44653f3a82ea642f3cbb14f2efeec746c841b011f259ccfa9b3e1f034d255c",
-      "bytes": 12384,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-098-shahid-mbc-net-ar",
       "path": "evaluation/sources/dynamic-098-shahid-mbc-net-ar/mixed-session-stable-text.json",
       "sha256": "c1d0a6166b5c74fc74a94397faf980bb49e87fa478d7a7848897d03f5276df7f",
       "bytes": 2946,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-098-shahid-mbc-net-ar",
-      "path": "evaluation/sources/dynamic-098-shahid-mbc-net-ar/mixed-session-stable-text.txt",
-      "sha256": "0785c0d208f51c502bd8b941f6c7f83d41ec5d4f9d2c20e6cb9882d261de65f0",
-      "bytes": 2179,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-104-mui-data-grid",
@@ -878,25 +451,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-104-mui-data-grid",
-      "path": "evaluation/sources/dynamic-104-mui-data-grid/mixed-session-stable-text.txt",
-      "sha256": "2b230b826268a7431fea2f94bf39eff12977034d4d27656ba6ff49cdedb31204",
-      "bytes": 23577,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-105-blueprint-docs",
       "path": "evaluation/sources/dynamic-105-blueprint-docs/mixed-session-stable-text.json",
       "sha256": "dc223a01cfadd5d4e63ae066a869392fa69779675c6ade2628248cbd0ca53f4e",
       "bytes": 1921,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-105-blueprint-docs",
-      "path": "evaluation/sources/dynamic-105-blueprint-docs/mixed-session-stable-text.txt",
-      "sha256": "cfc92f4dfb6945ae4d28dada89de7eb66bbb3e23a2cd4afbc4a86d7752468d47",
-      "bytes": 1294,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-107-redoc-cafe-api",
@@ -906,25 +465,11 @@
       "purpose": "cross-session stability receipt"
     },
     {
-      "case_id": "dynamic-107-redoc-cafe-api",
-      "path": "evaluation/sources/dynamic-107-redoc-cafe-api/mixed-session-stable-text.txt",
-      "sha256": "c6ce8bc00330969cad413791b4a70e10d86881efc9a6c4a53bf067f87b2d1923",
-      "bytes": 5733,
-      "purpose": "cross-session stable text"
-    },
-    {
       "case_id": "dynamic-108-swagger-petstore3",
       "path": "evaluation/sources/dynamic-108-swagger-petstore3/mixed-session-stable-text.json",
       "sha256": "b321682ffef4342c58f4209fc91a608391fe9753aa6249d0c99b543a8dda9209",
       "bytes": 2244,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-108-swagger-petstore3",
-      "path": "evaluation/sources/dynamic-108-swagger-petstore3/mixed-session-stable-text.txt",
-      "sha256": "0a45c884c14a78cf9d142bc05a9fdfdb19bcb2608a3c32439a46f031b687f2db",
-      "bytes": 1617,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-angular-phones",
@@ -946,13 +491,6 @@
       "sha256": "2475cae4f5ea7964575cd01338fef40aa4298fae8c7d223d976ac308aca1dfd9",
       "bytes": 16045,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-angular-phones",
-      "path": "evaluation/sources/dynamic-angular-phones/mixed-session-stable-text.txt",
-      "sha256": "22053b15c1c26aee5aa3bbb94fd10b998cf27cf5603d3fb0795c331c24d6d2e7",
-      "bytes": 13663,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-angular-phones",
@@ -998,13 +536,6 @@
     },
     {
       "case_id": "dynamic-catalog",
-      "path": "evaluation/sources/dynamic-catalog/mixed-session-stable-text.txt",
-      "sha256": "c6f89f4f5e29e16922df0f395040ba682447ec5cca62c911d2d01544f72ce66d",
-      "bytes": 6901,
-      "purpose": "cross-session stable text"
-    },
-    {
-      "case_id": "dynamic-catalog",
       "path": "evaluation/sources/dynamic-catalog/reference.txt",
       "sha256": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836",
       "bytes": 794,
@@ -1044,13 +575,6 @@
       "sha256": "2643c299ed80661475f0a59adb2c806f00f4b7a7b288de9a1c5892624652b4b8",
       "bytes": 2637,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-delayed",
-      "path": "evaluation/sources/dynamic-delayed/mixed-session-stable-text.txt",
-      "sha256": "6e35b3d57e7f277899b762554d5a36cec22cbd1b2ab42a3e93b7271db7753cb9",
-      "bytes": 1893,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-delayed",
@@ -1096,13 +620,6 @@
     },
     {
       "case_id": "dynamic-iframe",
-      "path": "evaluation/sources/dynamic-iframe/mixed-session-stable-text.txt",
-      "sha256": "f5f7f74ec314d1dfa58b8f08498d07892a71e4df436243a9723d723a17173501",
-      "bytes": 2183,
-      "purpose": "cross-session stable text"
-    },
-    {
-      "case_id": "dynamic-iframe",
       "path": "evaluation/sources/dynamic-iframe/reference.txt",
       "sha256": "e4183696f6e74f9016c0668ee9809eb2fe7b03c244bfdae2231d8e1a1326f9ca",
       "bytes": 197,
@@ -1142,13 +659,6 @@
       "sha256": "a0a162cfab383d2f08e2c91258661a8c6cea804a8bf7664ea48b3458b0a732a7",
       "bytes": 8918,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-product-reviews",
-      "path": "evaluation/sources/dynamic-product-reviews/mixed-session-stable-text.txt",
-      "sha256": "0cc095dc80055154c9e9e686fafaa3f0df08cc6908807569e361c22b6c4638d5",
-      "bytes": 7277,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-product-reviews",
@@ -1194,13 +704,6 @@
     },
     {
       "case_id": "dynamic-products-api",
-      "path": "evaluation/sources/dynamic-products-api/mixed-session-stable-text.txt",
-      "sha256": "fc3878e9b6c5e9e37e35373589e3992464c2394636d19aec89c660ef2cf6e427",
-      "bytes": 1620,
-      "purpose": "cross-session stable text"
-    },
-    {
-      "case_id": "dynamic-products-api",
       "path": "evaluation/sources/dynamic-products-api/reference.txt",
       "sha256": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c",
       "bytes": 319,
@@ -1240,13 +743,6 @@
       "sha256": "2335af7af32f85c6b3e7156fc73c90337ae9d5c0899f97c8ffbaa409d9a2f679",
       "bytes": 2267,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-quotes-api",
-      "path": "evaluation/sources/dynamic-quotes-api/mixed-session-stable-text.txt",
-      "sha256": "50867390d39c9646c7b304ce9d998342bd8c96dd2965cd2dd0436062dc283953",
-      "bytes": 1587,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-quotes-api",
@@ -1292,13 +788,6 @@
     },
     {
       "case_id": "dynamic-react-cart",
-      "path": "evaluation/sources/dynamic-react-cart/mixed-session-stable-text.txt",
-      "sha256": "9360327306e45bfd26ac06c8a6391b315f8031a7a1a608fbd7a9c41e0a8d0cd6",
-      "bytes": 3781,
-      "purpose": "cross-session stable text"
-    },
-    {
-      "case_id": "dynamic-react-cart",
       "path": "evaluation/sources/dynamic-react-cart/reference.txt",
       "sha256": "cf603310fbc4eabf16baa9ef3ddcb0ae6bfc156de5cb4e3a4fe9af605692a2df",
       "bytes": 828,
@@ -1341,13 +830,6 @@
     },
     {
       "case_id": "dynamic-reviews-graphql",
-      "path": "evaluation/sources/dynamic-reviews-graphql/mixed-session-stable-text.txt",
-      "sha256": "95324fbd5e3f2d89eef653a65040a88334adff1bbeb2336d5ea3d239cf7c6465",
-      "bytes": 4423,
-      "purpose": "cross-session stable text"
-    },
-    {
-      "case_id": "dynamic-reviews-graphql",
       "path": "evaluation/sources/dynamic-reviews-graphql/reference.txt",
       "sha256": "176193496a44f0acfbd9d91ecca4a8443a75debc8839acab4c37f5cb31de0535",
       "bytes": 1782,
@@ -1387,13 +869,6 @@
       "sha256": "cfc236cb0c9c00480330dff1f36e116aea514ddbfc35ae94a053506cb49e39f1",
       "bytes": 1907,
       "purpose": "cross-session stability receipt"
-    },
-    {
-      "case_id": "dynamic-swagger",
-      "path": "evaluation/sources/dynamic-swagger/mixed-session-stable-text.txt",
-      "sha256": "c3f3f1d5b376fbffa2c08db5becfed7c280dbcdebb1a6cda86b50d7e8d46460e",
-      "bytes": 1281,
-      "purpose": "cross-session stable text"
     },
     {
       "case_id": "dynamic-swagger",

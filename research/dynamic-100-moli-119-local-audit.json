@@ -1,6 +1,8 @@
 {
   "schema_version": 1,
+  "kind": "local_audit_bundle_receipt",
   "id": "dynamic-100-moli-119-local-audit-2026-09-24",
+  "purpose": "Bind the complete 100-case local audit dataset, measured results, review lineage, repository source evidence, and scoring revision provenance.",
   "date": "2026-09-24",
   "status": "local_audit_complete",
   "scope": {
@@ -22,9 +24,9 @@
     "input_dataset_sha256": "d181acdd31e51439df2d274fd8c6b3fdabd1aceb9f52c8a89d45fff50fb0437a",
     "dataset_sha256": "2a149a7003a43ee4746bf1d11669154506a96172ddfe51f7abb9b2d547fba8b3",
     "input_results_sha256": "01c04121f5cce4c206e48994d8ef18185b0e31ab69fcf01720df4c2aab5325ab",
-    "results_sha256": "f696d4172848dbc8be62e4c81a67bd2d997e62fade95292a4d6274e965ed0166",
-    "scoring_source_sha256": "9549c5e3ab5d1ec3977475ca11018eed4bae5c14c1415a53cf88407ac2e31d16",
-    "rescore_source_sha256": "d3b205a7088109d24a2198dc69e53c5a5cac10940d0dcd491d2fedebb7e8e754",
+    "results_sha256": "cca27ef9162406de2a1068ce8c7a5bb3b37439d873668e01dea0e1d26a061d2a",
+    "scoring_source_sha256": "0df7dc9f52f335df1a26b3958ae30fc88c6e073b5b0a3df4e9867e52cbe68647",
+    "rescore_source_sha256": "c9867b54c1cba366da233c0a1fbdca808ac8de2dfbcba08f343a2bcb74f7cac8",
     "moli_binary_sha256": "79699e50476118a7a5d1a36775f52d4106801fd5bc803727fd317501faa840cd"
   },
   "evidence_policy": {
@@ -36,9 +38,9 @@
   },
   "repository_evidence": {
     "source_manifest_path": "evaluation/dynamic-content-100-moli-webfetch/source-evidence-manifest.json",
-    "source_manifest_sha256": "1ab9659445d38f51b17a59827cf1f62d6519d67936571ecab711b12328b7df6d",
+    "source_manifest_sha256": "675e222321329281ebc7bc9272ca115656e0ea683478c9b01dbefd113d808f1e",
     "scoring_revision_path": "research/dynamic-100-moli-119-scoring-revision.json",
-    "scoring_revision_sha256": "7638d673e8392d25091ab9dc9f5153c44ea9c5625aa3f6798745dc45a77ba2c7"
+    "scoring_revision_sha256": "0150e15e8659699eb6f48b87d69170cbc963a413e00503c7dc9c501edca9e7fe"
   },
   "review": {
     "supplement_cases_reviewed": 25,
@@ -48,18 +50,20 @@
     "prior_75_review_retained": true,
     "machine_failure_classification_reviewed": true,
     "offline_rescore_verdict_changes": 0,
+    "post_correction_receipt": "local-evidence/scoring-plumbing-correction.json",
     "bound_receipts": {
       "local-evidence/merge-receipt.json": "78150ad021749502ce6988adaabf0d8c27da8bd0fe1f3176fe760bd247aac48f",
       "local-evidence/dynamic-25-full-result-audit.json": "b6e1bb1e5e74698689b3d92e980c31b7f5e7318b2c23d59ff953bae7b58b1e39",
       "local-evidence/failure-classification-correction.json": "103d74bf8d5c5b1e4fe015dc9cdc456faa19cd82dc01969e7d10efebb086430e",
       "local-evidence/cohorts/75/native-failure-audit.json": "a84ae4bc0fbcf484b4b959f4880e2c9361ebc6aa5e0b66f9f77eca01ab9c83d6",
       "local-evidence/cohorts/75/qualification-review.json": "d1420e286e55847d167fc7cce0870c5cd778deb1d153356a3f2170238011835b",
-      "local-evidence/local-audit-correction.json": "8ce3bdcf070758acf927c08ecfd9ab8989f45b7de355c90d09dd927262656f2b"
+      "local-evidence/local-audit-correction.json": "8ce3bdcf070758acf927c08ecfd9ab8989f45b7de355c90d09dd927262656f2b",
+      "local-evidence/scoring-plumbing-correction.json": "7bb2081677615661d00a7009e554b6177b49d696abde6cc791005d3e6e213d94"
     }
   },
   "evidence": {
     "manifest_path": "local-audit-manifest.json",
-    "manifest_sha256": "b47421d0802c69868ef81de05b20e777b0615ac27a39350cd83d15ba80dc2cf3",
-    "result_review_sha256": "08428843894d4689ff12c2b38e3a8152cc1dfed1dca85da9ad00dce7e4181b3d"
+    "manifest_sha256": "61c873bafef4daefa096a2d43806501e48887eb65d7f6e8ae4b18d1a18757fce",
+    "result_review_sha256": "99e97432260f12d2032ab2c67dd0ff9bda553d3e4c2601137c91fa94e758ff51"
   }
 }

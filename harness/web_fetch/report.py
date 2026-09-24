@@ -10,7 +10,7 @@ from collections import Counter,defaultdict
 from pathlib import Path
 from urllib.parse import urlsplit,urlencode
 from .metrics import percentile, task_passed, task_measured
-from .methods import method_info
+from .methods import ROUTE_LABELS, method_info, method_page_model
 from .accounts import report_access_registry
 from .report_interfaces import HEADLESS_ACCESS
 from .report_methods import PROFILES, adoption_counts
@@ -373,13 +373,6 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
    preview_section=f'<section class="panel" id="preview"><h2>{"冻结 HTML 阅读视图" if lang=="zh" else "Frozen HTML reading view"}</h2><p>{preview_note} <a href="{raw_input}">{"下载完整输入与证据 JSON" if lang=="zh" else "Download complete input and evidence JSON"}</a></p>{preview}</section>'
    body=f'<div class="hero"><h1>{esc(case)} · {esc(type_label(lang,gt["page_type"]))}</h1><p class="source"><a href="{href(lang,"cases/"+case+".html#preview")}" title="{"阅读冻结 HTML" if lang=="zh" else "Read frozen HTML"}">{esc(group[providers[0]]["original_url"])}</a></p></div>{qualification}<section><h2>{esc(x["summary"])}</h2><div class="scroll"><table><thead><tr>'+''.join(f'<th>{esc(x[k])}</th>' for k in ('provider','precision','recall','f1'))+f'<th>{"应包含命中" if lang=="zh" else "Required hits"}</th><th>{"应排除误命中" if lang=="zh" else "Forbidden hits"}</th><th>{esc(x["diagnosis"])}</th></tr></thead><tbody>'+same+f'</tbody></table></div></section>{preview_section}<section class="panel" id="reference"><h2>{esc(x["reference"])}</h2><p><a href="{evidence_path}">{"完整证据 JSON" if lang=="zh" else "Complete evidence JSON"}</a> · <a href="{source_link}">{esc(x["source"])} HTML.gz</a></p><details data-output><summary>{"冻结 HTML 输入" if lang=="zh" else "Frozen HTML input"}</summary><pre data-src="{evidence_path}"></pre></details><pre>{esc(readable_output(reference))}</pre></section>'+''.join(panels)
    page(lang,f'cases/{case}.html',case,body)
-ROUTE_LABELS={
- 'cloudflare_native_markdown':'Cloudflare Browser Run /markdown 直接返回 Markdown',
- 'lightpanda_native_markdown':'Lightpanda CLI 直接返回 Markdown',
- 'obscura_native_markdown':'Obscura CLI 直接返回 Markdown',
- 'moli_native_markdown':'Moli CLI 直接返回 Markdown',
- 'node-html-markdown':'Chromium 渲染 DOM → node-html-markdown 2.0.0',
-}
 def provider_label(name):return PROVIDER_LABELS.get(name,name)
 def active_tracks(cases):
  return [(key,label) for key,label in TRACKS.items() if any(c.get('track','web')==key for c in cases.values())]
@@ -390,34 +383,16 @@ def is_headless_cohort(records):
  return bool(records) and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records)
 
 def provider_configuration(name,records,info):
- """Describe only the route evidenced for this provider."""
- if name=='moli-webfetch' and _uses_moli_native_default_completion(records):
-  return ('本轮100例统一使用 Moli 原生 Markdown Fetch 与默认 done 完成方式；'
-          '除目标 URL 外没有逐例等待元素、额外等待时间、提取脚本或特殊参数。'
-          '未启用额外的理解模型或付费后备方法。')
- provider_type=records[0].get('provider_type') if records else ''
- if provider_type in {'headless_html','headless_markdown'}:
-  metadata=[r.get('provider_metadata',{}) for r in records]
-  extractors=sorted({ROUTE_LABELS.get(m.get('extractor'),m.get('extractor')) for m in metadata if m.get('extractor')})
-  contracts=sorted({str(m.get('output_contract')) for m in metadata if m.get('output_contract')})
-  route='；'.join(extractors) or info['endpoint']
-  output='、'.join(contracts) or info['output']
-  return f'本轮记录的交付路线：{route}；输出契约：{output}。未启用额外的理解模型或付费后备方法。'
- resource_routes={
-  'firecrawl':'正文与资源题请求 Markdown、links、images；原文件题改用唯一 rawBase64 格式并验收解码字节。动态顶层选择器使用 wait action，数量与 iframe 条件明确标为未完整执行。',
-  'tavily_extract':'本轮请求 Markdown；图片资源仅来自同一 Extract 响应的 images 字段。',
-  'exa_contents':'本轮请求正文文本；资源链接仅来自同一 Contents 响应的 extras 字段。',
- }
- return resource_routes.get(provider_type,'本轮使用该方法的默认正文或文件交付路线。')+' 未启用额外的理解模型或付费后备方法。'
+ """Compatibility accessor for the generic method-page model."""
+ return method_page_model(name,provider_label(name),records)['configuration']
 
-def _uses_moli_native_default_completion(records):
- return bool(records) and all(
-  r.get('provider_type')=='moli_webfetch'
-  and r.get('provider_metadata',{}).get('dump')=='markdown'
-  and r.get('provider_metadata',{}).get('route')=='dynamic_native_markdown'
-  and r.get('provider_metadata',{}).get('wait_until')=='done'
-  and r.get('provider_metadata',{}).get('wait',{}).get('strategy')=='native_default_completion'
-  for r in records)
+def provider_page_body(name,records,cases,headers,tracks):
+ """Render one method page from generic result records and method metadata."""
+ model=method_page_model(name,provider_label(name),records)
+ controls=filter_controls([('track','类型',tracks),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(records,cases))
+ body=hero(esc(model['title']),esc(model['contract']))+section('本轮配置',f'<p><code>{esc(model["endpoint"])}</code></p><p>{esc(model["freshness"])}</p><p>{esc(model["configuration"])}</p>')
+ body+=section('方法资料','<p class="actions">'+link('../adoption/index.html#'+model['pricing_anchor'],'价格与计费 →')+link('../adoption/index.html#interface-'+name,'接口与示例 →')+'</p>')
+ return body+section(f'{len(records)} 条执行记录',controls+table(headers,[attempt_row(r,cases[r['case_id']]) for r in records],'filtered-table'))
 JS=r'''function readTheme(){try{return localStorage.getItem('webfetch-theme')}catch{return 'light'}}
 function saveTheme(t){try{localStorage.setItem('webfetch-theme',t)}catch{}}
 
@@ -590,8 +565,8 @@ def _reader_log_excerpt(text):
 def run_log_section(out,record,output):
  """Render the approved summary → fields → real-log drill-down."""
  metadata=record.get('provider_metadata') or {}
- bindings=call_log_bindings(record);log=None
- for _label,binding in bindings:
+ bindings=call_log_bindings(record);logs=[]
+ for label,binding in bindings:
   path=contained_path(out,binding['path'])
   if not path.is_file():continue
   raw=path.read_bytes();observed=hashlib.sha256(raw).hexdigest()
@@ -599,23 +574,46 @@ def run_log_section(out,record,output):
   if binding.get('bytes') is not None and binding['bytes']!=len(raw):raise ValueError(f'Call log size mismatch: {record["attempt_id"]}')
   try:payload=json.loads(raw)
   except (UnicodeDecodeError,json.JSONDecodeError):payload={}
-  log={'path':binding['path'],'sha256':observed,'bytes':len(raw),'payload':payload}
- payload=log['payload'] if log else {}
+  logs.append({'label':label,'path':binding['path'],'sha256':observed,
+               'bytes':len(raw),'payload':payload})
+ payload=logs[-1]['payload'] if logs else {}
  process=payload.get('process') if isinstance(payload.get('process'),dict) else {}
  timing=payload.get('timing') if isinstance(payload.get('timing'),dict) else {}
- stderr_text=readable_output(str(process.get('stderr') or ''))
- stderr_data=stderr_text.encode('utf-8')
- stderr_path=''
- if stderr_data:
-  stderr_path=f'public-logs/{record["provider"]}/{record["case_id"]}/run-{int(record.get("run") or 1):03d}.stderr.log'
-  target=contained_path(out,stderr_path);target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(stderr_data)
- stderr_sha=hashlib.sha256(stderr_data).hexdigest() if stderr_data else ''
- artifact=contained_path(out,record['artifact_path'])
- output_data=artifact.read_bytes() if artifact.is_file() else output.encode('utf-8')
- output_bytes=len(output_data);output_sha=hashlib.sha256(output_data).hexdigest()
- truncated=bool(process.get('stderr_truncated') or metadata.get('stderr_truncated'))
- complete_label=('是' if stderr_data and not truncated else
-                 '否（公开保存的日志已截断）' if stderr_data else '不适用（没有保存 debug 日志）')
+ artifact_relative=record.get('artifact_path')
+ artifact=contained_path(out,artifact_relative) if artifact_relative else None
+ output_data=artifact.read_bytes() if artifact and artifact.is_file() else output.encode('utf-8')
+ output_bytes=len(output_data)
+ stderr_total=0;any_stderr=False;any_truncated=False;diagnostics=[]
+ for index,log in enumerate(logs,1):
+  log_process=(log['payload'].get('process')
+               if isinstance(log['payload'].get('process'),dict) else {})
+  stderr_text=readable_output(str(log_process.get('stderr') or ''))
+  stderr_data=stderr_text.encode('utf-8');stderr_total+=len(stderr_data)
+  truncated=bool(log_process.get('stderr_truncated') or metadata.get('stderr_truncated'))
+  any_stderr=any_stderr or bool(stderr_data);any_truncated=any_truncated or truncated
+  suffix='' if len(logs)==1 else f'-physical-{index:03d}'
+  stderr_path=(f'public-logs/{record["provider"]}/{record["case_id"]}/'
+               f'run-{int(record.get("run") or 1):03d}{suffix}.stderr.log')
+  raw_download=(f'<a href="../{esc(log["path"])}" download>下载调用日志 JSON</a> · '
+                f'<code class="break">JSON SHA-256：{esc(log["sha256"])}</code>')
+  if stderr_data:
+   target=contained_path(out,stderr_path);target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(stderr_data)
+   stderr_sha=hashlib.sha256(stderr_data).hexdigest()
+   rows=''.join(f'<li value="{int(match.group(1))}"><code>{esc(match.group(2))}</code></li>'
+                for line in _reader_log_excerpt(stderr_text).splitlines()
+                if (match:=re.match(r'\s*(\d+)\s{2}(.*)',line)))
+   completeness=('这份公开日志是现有调用记录中保存的前段内容，原始记录注明其已截断。' if truncated else
+                 '以下内容逐行摘自这次物理调用已保存的完整 stderr / debug 日志。')
+   body=(f'<p class="source-note">{completeness} 行号对应下载文件；人工说明不写入日志框。</p>'
+         +(f'<ol class="log-lines">{rows}</ol>' if rows else '')
+         +f'<p><a class="log-download" href="../{esc(stderr_path)}" download>下载已保存的公开日志</a> · '
+          f'<code class="break">公开 SHA-256：{esc(stderr_sha)}</code><br>{raw_download}</p>')
+  else:
+   body=(f'<p class="source-note">这次物理调用没有保存可展示的 stderr / debug 日志；'
+         f'不会补造不存在的日志。</p><p>{raw_download}</p>')
+  diagnostics.append(f'<article><h3>{esc(log["label"])}</h3>{body}</article>')
+ complete_label=('是' if any_stderr and not any_truncated else
+                 '否（至少一份公开日志已截断）' if any_stderr else '不适用（没有保存 debug 日志）')
  version=(metadata.get('reported_version') or metadata.get('binary_version') or
           metadata.get('moli_version') or metadata.get('version') or '—')
  command=metadata.get('command_args') or metadata.get('command') or '—（调用记录未保存可展示的完整命令）'
@@ -623,7 +621,8 @@ def run_log_section(out,record,output):
  status='成功' if record.get('ok') else '失败'
  result_note=('这次调用正常形成了可评分输出。' if record.get('ok') else
               '这次调用没有形成可通过的评分输出。')
- top_log_size=(f'{len(stderr_data):,} 字节' + ('（已截断）' if truncated else '') if stderr_data else '0 字节')
+ top_log_size=(f'{stderr_total:,} 字节' + ('（至少一份已截断）' if any_truncated else '')
+               if any_stderr else '0 字节')
  fields=(f'<dt>调用状态</dt><dd>{status}</dd><dt>耗时</dt><dd>{ms(record.get("elapsed_ms"))}</dd>'
          f'<dt>退出码</dt><dd>{esc(process.get("exit_code",metadata.get("exit_code","—")))}</dd>'
          f'<dt>Markdown 输出</dt><dd>{output_bytes:,} 字节</dd><dt>运行日志</dt><dd>{top_log_size}</dd>'
@@ -631,27 +630,16 @@ def run_log_section(out,record,output):
          f'<dt>Moli 版本</dt><dd>{esc(version)}</dd>')
  full_fields=(f'<dt>开始时间</dt><dd>{esc(record.get("started_at") or timing.get("started_at") or "—")}</dd>'
               f'<dt>结束时间</dt><dd>{esc(record.get("completed_at") or timing.get("completed_at") or "—")}</dd>'
-              f'<dt>日志级别</dt><dd>{esc(metadata.get("log_level") or ("已保存 stderr（级别未记录）" if stderr_data else "未开启 debug"))}</dd>'
+              f'<dt>日志级别</dt><dd>{esc(metadata.get("log_level") or ("已保存 stderr（级别未记录）" if any_stderr else "未开启 debug"))}</dd>'
               f'<dt>公开日志</dt><dd>{top_log_size}</dd><dt>公开日志脱敏</dt><dd>否</dd>'
               f'<dt>Moli SHA-256</dt><dd>{esc(metadata.get("binary_sha256") or "—")}</dd>'
               f'<dt>正式命令</dt><dd>{esc(command)}</dd>')
- if stderr_data:
-  rows=''.join(f'<li value="{int(match.group(1))}"><code>{esc(match.group(2))}</code></li>'
-               for line in _reader_log_excerpt(stderr_text).splitlines()
-               if (match:=re.match(r'\s*(\d+)\s{2}(.*)',line)))
-  completeness=('这份公开日志是现有调用记录中保存的前段内容，原始记录注明其已截断。' if truncated else
-                '以下内容逐行摘自本次正式调用已保存的完整 stderr / debug 日志。')
-  log_note=f'<p class="source-note">{completeness} 行号对应下载文件；人工说明不写入日志框。</p>'
-  log_list=f'<ol class="log-lines">{rows}</ol>' if rows else ''
-  download=(f'<p><a class="log-download" href="../{esc(stderr_path)}" download>下载已保存的公开日志</a> · '
-            f'<code class="break">公开 SHA-256：{esc(stderr_sha)}</code>'
-            +(f'<br><a href="../{esc(log["path"])}" download>下载调用日志 JSON</a> · '
-              f'<code class="break">JSON SHA-256：{esc(log["sha256"])}</code>' if log else '')+'</p>')
-  diagnostic=log_note+log_list+download
- else:
-  diagnostic='<p class="source-note">这次历史调用没有保存可展示的 stderr / debug 日志；不会补造不存在的日志。</p>'
- raw_record=(f'<a href="../{esc(log["path"])}" download>下载本次调用记录</a> · ' if log else '')
- raw_record+=f'<a href="../{esc(record["artifact_path"])}" download>下载本次保存的原始输出</a>'
+ diagnostic=''.join(diagnostics) if diagnostics else '<p class="source-note">这次历史调用没有保存可展示的 stderr / debug 日志；不会补造不存在的日志。</p>'
+ raw_record=' · '.join(f'<a href="../{esc(log["path"])}" download>下载{esc(log["label"])}记录</a>' for log in logs)
+ if artifact_relative:
+  if raw_record:raw_record+=' · '
+  raw_record+=f'<a href="../{esc(artifact_relative)}" download>下载本次保存的原始输出</a>'
+ if not raw_record:raw_record='这次历史调用没有可下载的原始记录'
  return (f'<section class="section" id="run-log"><div class="wrap"><h2>运行日志与证据</h2>'
          f'<dl class="diagnostic-fields">{fields}</dl>'
          f'<details class="technical-details"><summary>查看完整运行字段</summary><dl class="diagnostic-fields">{full_fields}</dl></details>'
@@ -1582,8 +1570,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    projected=c.get('stable_text_evidence') or {}
    if projected:
     source_record+=' · '+link('../'+projected['path'],'独立可见文字')+' · '+link('../'+projected['manifest_path'],'来源校验记录')
-   elif (out/'sources'/c['id']/'mixed-session-stable-text.txt').is_file():
-    source_record+=' · '+link('../sources/'+c['id']+'/mixed-session-stable-text.txt','独立可见文字')+' · '+link('../sources/'+c['id']+'/mixed-session-stable-text.json','来源校验记录')
+   elif (out/'sources'/c['id']/'mixed-session-stable-text.json').is_file():
+    source_record+=' · '+link('../sources/'+c['id']+'/mixed-session-stable-text.json','独立可见文字与来源校验记录')
    elif all((out/'sources'/c['id']/name).is_file() for name in ('initial.html.txt','rendered.txt','render-audit.json')):
     source_record+=' · '+link('../sources/'+c['id']+'/initial.html.txt','初始 HTML')+' · '+link('../sources/'+c['id']+'/rendered.txt','渲染正文')+' · '+link('../sources/'+c['id']+'/render-audit.json','配对证据校验')
    observed=sorted({r['provider'] for r in bycase[c['id']]})
@@ -1611,24 +1599,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   body+=section('全部方法执行结果',table(['方法']+headers[1:],[(attrs,values.replace(esc(c['name']),esc(provider_label(r['provider'])),1)) for r in bycase[c['id']] for attrs,values in [attempt_row(r,c)]]))
   write(out,'datasets/'+c['id']+'.html',c['name'],body)
  for name,rs in byprovider.items():
-  info=method_info(rs[0]['provider_type'])
-  controls=filter_controls([('track','类型',tracks),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(rs,cases))
-  reported_versions=sorted({str(r.get('provider_metadata',{}).get('reported_version','')).strip() for r in rs
-                            if str(r.get('provider_metadata',{}).get('reported_version','')).strip()})
-  title=provider_label(name)
- if name=='moli-webfetch' and len(reported_versions)==1:
-  version=re.sub(r'^moli\s+', 'Moli ', reported_versions[0], flags=re.I)
-  title+=f' · {version}'
-  native_moli=_uses_moli_native_default_completion(rs)
-  endpoint=('moli fetch --dump markdown --wait-until done URL'
-            if native_moli else info['endpoint'])
-  freshness=('每例启动一个独立进程；由 Moli 的默认 done 完成方式决定何时交付内容。'
-             if native_moli else info['freshness'])
-  body=hero(esc(title),esc(info['contract']))+section('本轮配置',f'<p><code>{esc(endpoint)}</code></p><p>{esc(freshness)}</p><p>{esc(provider_configuration(name,rs,info))}</p>')
-  price_anchor='pricing-'+name if name in {'firecrawl','tavily','exa','cloudflare-markdown'} else 'method-guide-pricing'
-  body+=section('方法资料','<p class="actions">'+link('../adoption/index.html#'+price_anchor,'价格与计费 →')+link('../adoption/index.html#interface-'+name,'接口与示例 →')+'</p>')
-  body+=section(f'{len(rs)} 条执行记录',controls+table(headers,[attempt_row(r,cases[r['case_id']]) for r in rs],'filtered-table'))
-  write(out,'providers/'+name+'.html',name,body)
+  write(out,'providers/'+name+'.html',name,provider_page_body(name,rs,cases,headers,tracks))
  for r in records:
   c=cases[r['case_id']];m=r['metrics'];ref=c.get('ground_truth_main_content') or c.get('reference_answer') or '检查下列目标资源。'
   output=contained_path(out,r['artifact_path']).read_text(encoding='utf-8',errors='replace')

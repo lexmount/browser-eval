@@ -1284,7 +1284,7 @@
       "changes": [
         ["调用口径", "旧的逐站等待与提取设置会替产品决定何时抓取。", "全部100例使用Moli 1.1.9原生Fetch、默认done和统一参数；只有网址不同。", "不同日期的两个批次合并展示，每例保留真实调用时间。"],
         ["规则与评分", "动态名单、表格和正文需要同一套可复核规则。", "冻结100例当前规则，使用稳定文字、同条目字段、名称链接、数量门槛和正文区域的公共评分实现。", "保存的原始返回离线重算仍为44/56，没有判定变化。"],
-        ["证据与报告", "原始结果、debug日志和生成HTML不适合进入Git。", "Git只保存案例定义、直接来源证据、公共评分与报告代码及哈希收据；运行产物留在外部持久证据目录。", "报告显示Moli版本、失败分类、正文证据及单一路径日志下钻。"]
+        ["证据与报告", "原始结果、debug日志和生成HTML不适合进入Git。", "Git只保存案例定义、直接来源证据、公共评分与报告代码及哈希收据；运行产物留在外部持久证据目录。", "报告显示Moli版本、失败分类、正文证据及完整物理调用链下钻。"]
       ],
       "i18n": {"en": {
         "title": "Complete the local audit build for 100 dynamic sites with Moli 1.1.9",
@@ -1292,7 +1292,7 @@
         "changes": [
           ["Call contract", "Earlier per-site waits and extractors could decide retrieval timing for the product.", "All 100 cases use Moli 1.1.9 native Fetch, default done completion and uniform parameters; only the URL changes.", "The two dated cohorts are combined while each case retains its actual call time."],
           ["Rules and scoring", "Dynamic lists, tables and body text require one auditable rule set.", "Freeze the current 100-case rules and use shared stable-text, same-record field, name-link, count-threshold and body-region scoring.", "Offline rescoring of saved raw responses remains 44/56 with no verdict changes."],
-          ["Evidence and report", "Raw results, debug logs and generated HTML do not belong in Git.", "Git retains case definitions, direct source evidence, shared scoring and report code, and hash receipts; run artifacts stay in persistent evidence.", "The report shows the Moli version, failure classes, body evidence and one-path log drill-down."]
+          ["Evidence and report", "Raw results, debug logs and generated HTML do not belong in Git.", "Git retains case definitions, direct source evidence, shared scoring and report code, and hash receipts; run artifacts stay in persistent evidence.", "The report shows the Moli version, failure classes, body evidence and a drill-down through the complete physical-call chain."]
         ]
       }}
     },

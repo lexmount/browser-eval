@@ -2,6 +2,7 @@
 from copy import deepcopy
 import hashlib
 import unittest
+from unittest.mock import patch
 
 from harness.web_fetch.dynamic_lists import named_entry_source_pair_hash
 from harness.web_fetch.metrics import evaluate_content, task_passed
@@ -17,6 +18,14 @@ def contract(schema, count=2, **extra):
 class StableTaskTests(unittest.TestCase):
     def check(self, text, schema="product", count=2, **extra):
         return evaluate_stable_task(text, contract(schema, count, **extra), "https://example.test/catalog")
+
+    def test_invalid_absolute_url_without_hostname_is_not_a_record(self):
+        rules=contract('named_link',1,hosts=['example.test'],entry_path=r'/item/\d+')
+        with patch('harness.web_fetch.stable_tasks.extract_named_entries',return_value=[
+                {'url':'http:///item/1','title':'Invalid'}]):
+            measured=evaluate_stable_task('',rules,'https://example.test/catalog')
+        self.assertFalse(measured['stable_structure_pass'])
+        self.assertEqual(measured['stable_record_count'],0)
 
     def test_body_text_contract_uses_only_stable_anchors_without_fake_records(self):
         rules={"version":1,"schema":"body_text","minimum_records":0,
@@ -662,6 +671,25 @@ class StableTaskTests(unittest.TestCase):
         self.assertTrue(self.check(good, "linked_product", 2, **rules)["stable_task_pass"])
         self.assertFalse(self.check(good.replace("$20.00", "20 reviews"),
                                     "linked_product", 2, **rules)["stable_task_pass"])
+
+    def test_linked_product_query_identity_failure_does_not_discard_valid_sibling(self):
+        rules = {
+            "hosts": ["shop.example"], "entry_path": r"/product",
+            "identity_query_keys": ["id"],
+            "price_patterns": [r"\$\s*\d+(?:\.\d{2})?"],
+            "price_exclusion_patterns": [],
+        }
+        mixed = ("[Missing identity](https://shop.example/product)\n$10.00\n\n"
+                 "[Valid product](https://shop.example/product?id=2)\n$20.00")
+        result = self.check(mixed, "linked_product", 1, **rules)
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_complete_record_count"], 1)
+        invalid = self.check(
+            "[Missing identity](https://shop.example/product)\n$10.00",
+            "linked_product", 1, **rules,
+        )
+        self.assertFalse(invalid["stable_task_pass"])
+        self.assertEqual(invalid["stable_complete_record_count"], 0)
 
     def test_page_identity_uses_anchors_without_fake_records(self):
         rules = {

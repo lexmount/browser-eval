@@ -346,9 +346,6 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if result_review is not None:
             (staging/'result-review.json').write_text(json.dumps(result_review,ensure_ascii=False,indent=2)+'\n')
         if local_audit:
-            shutil.copy2(source/'local-preview.json', staging/'local-preview.json')
-            if (source/'result-review-25.json').is_file():
-                shutil.copy2(source/'result-review-25.json', staging/'result-review-25.json')
             if (source/'local-evidence').is_dir():
                 shutil.copytree(source/'local-evidence', staging/'local-evidence')
         copy_methodology_assets(staging)

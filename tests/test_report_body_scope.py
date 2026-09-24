@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from harness.web_fetch.report import (
     TRACKS, _body_region_evidence, attempt_row, case_rate, generate, overview_card, ranking, reason, stable_anchor_evidence,
-    stable_answer_panel, stable_checks, stable_failure_summary, write_support,
+    run_log_section, stable_answer_panel, stable_checks, stable_failure_summary, write_support,
 )
 from harness.web_fetch.report_components import (
     task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status, task_instruction,
@@ -400,6 +400,54 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('下载已保存的公开日志',detail)
             self.assertIn('下载调用日志 JSON',detail)
             self.assertIn(r['call_log_sha256'],detail)
+
+    def test_attempt_call_record_renders_every_retry_log(self):
+        c=case('retried','body','web');r=record(c)
+        logs=[]
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
+            artifact.write_text('output')
+            for index,stderr in enumerate(('ERROR first physical call','final_url=https://example.com/retried'),1):
+                raw=json.dumps({'process':{'stderr':stderr,'exit_code':index-1}}).encode()
+                relative=f'call-logs/fixture/retried/physical-{index}.json'
+                path=out/relative;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(raw)
+                logs.append({'physical_attempt':index,
+                             'call_log':{'path':relative,'sha256':hashlib.sha256(raw).hexdigest(),
+                                         'bytes':len(raw)}})
+            r['provider_metadata']={'retry':{'attempts':logs}}
+            rendered=run_log_section(out,r,'output')
+            for phrase in ('物理调用 1','物理调用 2','ERROR first physical call',
+                           'final_url=https://example.com/retried','physical-1.json','physical-2.json'):
+                self.assertIn(phrase,rendered)
+            self.assertTrue((out/'public-logs/fixture/retried/run-001-physical-001.stderr.log').is_file())
+            self.assertTrue((out/'public-logs/fixture/retried/run-001-physical-002.stderr.log').is_file())
+
+    def test_run_log_section_uses_supplied_output_when_artifact_path_is_absent(self):
+        c=case('unpersisted','body','web');r=record(c);r.pop('artifact_path')
+        with tempfile.TemporaryDirectory() as directory:
+            rendered=run_log_section(Path(directory),r,'fallback output')
+        self.assertIn('15 字节',rendered)
+        self.assertIn('没有可下载的原始记录',rendered)
+
+    def test_generate_writes_every_provider_page_without_moli_version_metadata(self):
+        c=case('providers','body','web')
+        first=record(c);first['provider']='fixture-a';first['provider_type']='fixture'
+        first['attempt_id']='fixture-a__providers__r001'
+        first['artifact_path']='artifacts/fixture-a/providers/run-001.txt'
+        second=copy.deepcopy(first);second['provider']='fixture-b'
+        second['attempt_id']='fixture-b__providers__r001'
+        second['artifact_path']='artifacts/fixture-b/providers/run-001.txt'
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory)
+            for row in (first,second):
+                artifact=out/row['artifact_path'];artifact.parent.mkdir(parents=True,exist_ok=True)
+                artifact.write_text('output')
+            with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
+                generate(out,{'cases':[c]},[first,second],[])
+            for name in ('fixture-a','fixture-b'):
+                page=out/'providers'/f'{name}.html'
+                self.assertTrue(page.is_file(),name)
+                self.assertIn('1 条执行记录',page.read_text())
 
     def test_attempt_log_drilldown_uses_canonical_call_log_stderr_in_both_languages(self):
         c=case('debugged','body','web');r=record(c,passed=False,ok=False)

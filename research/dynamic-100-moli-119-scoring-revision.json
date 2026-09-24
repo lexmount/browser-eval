@@ -2,19 +2,20 @@
   "schema_version": 1,
   "kind": "scoring_revision_receipt",
   "id": "dynamic-100-moli-119-scoring-revision-2026-09-24",
+  "purpose": "Bind every shared-scoring correction to executable positive and negative controls for this local audit dataset.",
   "dataset_id": "dynamic-qualified-100-moli-native-local-audit-20260924",
   "dataset_sha256": "2a149a7003a43ee4746bf1d11669154506a96172ddfe51f7abb9b2d547fba8b3",
   "provider_calls": 0,
   "bindings": {
-    "scoring_source_sha256": "9549c5e3ab5d1ec3977475ca11018eed4bae5c14c1415a53cf88407ac2e31d16",
-    "scoring_regressions_sha256": "49979f8cf325b0aa25f645b5ae80ec1120d8a9d90d4bc79d927131a1ecacfb05",
+    "scoring_source_sha256": "0df7dc9f52f335df1a26b3958ae30fc88c6e073b5b0a3df4e9867e52cbe68647",
+    "scoring_regressions_sha256": "37653e59ea4b3036ff43cfad2dce89432d8d2f5fddd014c0037159978c1c0706",
     "preexisting_controls_sha256": "5d4b6ba3064390dd17e033efcb7c0df06ff2f4e3130da05d2a5789b3b0889131",
-    "revision_controls_sha256": "1961cd1cdd46af9760351f1ca6080b842ad56bf493c130242596287a1c64039a"
+    "revision_controls_sha256": "9cf407273ce156570d24d3d022ee22c1a7bd1ef4fd778bd93da9db3e0419bfc2"
   },
   "scope": {
     "preexisting_controls": 71,
-    "revision_controls": 465,
-    "root_causes": 91,
+    "revision_controls": 475,
+    "root_causes": 96,
     "paired_error_directions": true
   },
   "preexisting_control_ids": [
@@ -2415,6 +2416,56 @@
       "id": "inline-emphasis-cannot-supply-missing-shipping",
       "root_cause": "inline_emphasis_in_structured_fields",
       "failure_mode": "false-positive"
+    },
+    {
+      "id": "ambiguous-query-candidate-does-not-discard-valid-sibling",
+      "root_cause": "ambiguous_query_candidate_scope",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "ambiguous-query-candidate-alone-cannot-form-record",
+      "root_cause": "ambiguous_query_candidate_scope",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dense-flattened-link-collection-remains-a-list",
+      "root_cause": "flattened_markdown_collection_classification",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "prose-with-three-links-remains-prose",
+      "root_cause": "flattened_markdown_collection_classification",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "redirected-relative-markdown-uses-response-origin",
+      "root_cause": "redirected_markdown_link_base",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "wrong-redirect-cannot-authorize-relative-markdown",
+      "root_cause": "redirected_markdown_link_base",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "malformed-link-is-reported-without-erasing-valid-sibling",
+      "root_cause": "candidate_local_malformed_link_validation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "well-formed-link-is-not-marked-as-malformed",
+      "root_cause": "candidate_local_malformed_link_validation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "linked-product-invalid-identity-does-not-discard-valid-sibling",
+      "root_cause": "linked_product_candidate_identity_isolation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "linked-product-invalid-identity-alone-cannot-form-record",
+      "root_cause": "linked_product_candidate_identity_isolation",
+      "failure_mode": "false-positive"
     }
   ],
   "root_causes": [
@@ -2462,6 +2513,15 @@
       ],
       "false_negative_ids": [
         "amazon-tracking-suffix-remains-a-product-detail"
+      ]
+    },
+    {
+      "id": "ambiguous_query_candidate_scope",
+      "false_positive_ids": [
+        "ambiguous-query-candidate-alone-cannot-form-record"
+      ],
+      "false_negative_ids": [
+        "ambiguous-query-candidate-does-not-discard-valid-sibling"
       ]
     },
     {
@@ -2525,6 +2585,15 @@
       "false_negative_ids": [
         "table-ordinal-date-leap-date",
         "table-ordinal-date-real-date"
+      ]
+    },
+    {
+      "id": "candidate_local_malformed_link_validation",
+      "false_positive_ids": [
+        "malformed-link-is-reported-without-erasing-valid-sibling"
+      ],
+      "false_negative_ids": [
+        "well-formed-link-is-not-marked-as-malformed"
       ]
     },
     {
@@ -2781,6 +2850,15 @@
       ]
     },
     {
+      "id": "flattened_markdown_collection_classification",
+      "false_positive_ids": [
+        "prose-with-three-links-remains-prose"
+      ],
+      "false_negative_ids": [
+        "dense-flattened-link-collection-remains-a-list"
+      ]
+    },
+    {
       "id": "footer_links_not_dynamic_list_records",
       "false_positive_ids": [
         "dynamic-052-bilibili-com-v-footer-scope-footer-only",
@@ -2936,6 +3014,15 @@
         "remaining7-caption-md",
         "remaining7-caption-only-not-title",
         "remaining7-featured-card"
+      ]
+    },
+    {
+      "id": "linked_product_candidate_identity_isolation",
+      "false_positive_ids": [
+        "linked-product-invalid-identity-alone-cannot-form-record"
+      ],
+      "false_negative_ids": [
+        "linked-product-invalid-identity-does-not-discard-valid-sibling"
       ]
     },
     {
@@ -3171,6 +3258,15 @@
       ],
       "false_negative_ids": [
         "redirected-relative-article-uses-response-origin"
+      ]
+    },
+    {
+      "id": "redirected_markdown_link_base",
+      "false_positive_ids": [
+        "wrong-redirect-cannot-authorize-relative-markdown"
+      ],
+      "false_negative_ids": [
+        "redirected-relative-markdown-uses-response-origin"
       ]
     },
     {
