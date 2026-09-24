@@ -421,21 +421,28 @@ def _run_one(  # noqa: PLR0913
         for index, arguments in enumerate(calls, start=1):
             call_started = time.perf_counter()
             diagnostics: dict[str, Any] = {}
-            result_status, result_text = _execute_replay_call(tool, arguments, diagnostics=diagnostics)
+            result_status, result_text = _execute_replay_call(
+                tool, arguments, diagnostics=diagnostics
+            )
             dispatched_before_timeout = _click_was_dispatched_before_navigation_timeout(
                 arguments, result_status, result_text
+            )
+            effective_status, observation_error = _replay_step_status(
+                arguments,
+                result_status,
+                result_text,
+                dispatched=dispatched_before_timeout,
             )
             record = {
                 "index": index,
                 "arguments": arguments,
-                "status": "success" if dispatched_before_timeout else result_status,
+                "status": effective_status,
                 "tool_status": result_status,
                 "duration_ms": round((time.perf_counter() - call_started) * 1000, 3),
                 "result": result_text,
             }
             if diagnostics:
                 record["action_diagnostics"] = diagnostics
-            observation_error = _embedded_observation_error(arguments, result_status, result_text)
             if observation_error is not None:
                 record["observation_status"] = "error"
                 record["observation_error"] = observation_error
@@ -445,14 +452,15 @@ def _run_one(  # noqa: PLR0913
                     "action_retried": False,
                 }
             records.append(record)
-            if result_status != "success" and not dispatched_before_timeout:
+            if effective_status != "success":
                 try:
                     record["failure_ui_state"] = _capture_failure_ui_state(service, arguments)
                 except Exception as observation_exc:
                     record["failure_ui_state_error"] = (
                         f"{type(observation_exc).__name__}: {observation_exc}"
                     )[:300]
-                raise RuntimeError(f"step {index} failed: {result_text}")
+                detail = observation_error or result_text
+                raise RuntimeError(f"step {index} failed: {detail}")
         timings["trajectory_replay_ms"] = (time.perf_counter() - replay_started) * 1000
         _verify_session_viewport(service, viewport_evidence, "after_trajectory")
         process_status = "pass"
@@ -707,12 +715,12 @@ def _attempt_needs_retry(attempt: dict[str, Any]) -> bool:
 def _embedded_observation_error(
     arguments: dict[str, Any], result_status: str, result_text: str
 ) -> str | None:
-    """Expose BrowserTool snapshot degradation without rewriting task outcome.
+    """Expose BrowserTool snapshot degradation as a replay failure.
 
     BrowserTool currently returns a successful tool status with a bracketed error
     payload when the page execution context changes during a snapshot.  The action
-    remains completed, but the observation is unavailable and must be explicit in
-    evidence so diagnosis can identify the first degraded step.
+    remains completed, but the required observation is unavailable.  Both replay
+    runners use this classification to fail the step and retain the exact error.
     """
 
     if arguments.get("action") != "snapshot" or result_status != "success":
@@ -721,6 +729,17 @@ def _embedded_observation_error(
     if not result_text.startswith(prefix):
         return None
     return result_text[len(prefix) :].removesuffix("]").strip()
+
+
+def _replay_step_status(
+    arguments: dict[str, Any], result_status: str, result_text: str, *, dispatched: bool
+) -> tuple[str, str | None]:
+    """Apply the same snapshot failure policy in every replay runner."""
+
+    observation_error = _embedded_observation_error(arguments, result_status, result_text)
+    if observation_error is not None:
+        return "error", observation_error
+    return ("success" if dispatched else result_status), None
 
 
 def _diagnostic_locator(selector: str) -> str:
@@ -744,7 +763,8 @@ def _diagnostic_locator(selector: str) -> str:
         elif char in ("'", '"'):
             quote = char
         elif selector.startswith(":visible", index) and (
-            index + 8 == len(selector) or not (selector[index + 8].isalnum() or selector[index + 8] in "_-\\")
+            index + 8 == len(selector)
+            or not (selector[index + 8].isalnum() or selector[index + 8] in "_-\\")
         ):
             index += 8
             continue

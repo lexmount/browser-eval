@@ -34,17 +34,27 @@ TABLE_COLUMN_EXPRESSION = r"""(table, options) => {
     });
 }"""
 
+NAVIGATION_NETWORK_IDLE_TIMEOUT_MS = 1_500
+NAVIGATION_RENDER_GRACE_MS = 300
+
 
 def _completed_action_navigation_timeout(exc: Exception) -> bool:
     message = str(exc).lower()
     return (
-        "click action done" in message
-        and "waiting for scheduled navigations to finish" in message
+        "click action done" in message and "waiting for scheduled navigations to finish" in message
     )
 
 
 def _body_text(page: Any, timeout: int, limit: int) -> str:
     return page.locator("body").first.inner_text(timeout=timeout)[:limit]
+
+
+def _evaluate_script(page: Any, script: str, script_mode: Any) -> Any:
+    if script_mode is None:
+        return page.evaluate(script)
+    if script_mode == "function_body":
+        return page.evaluate(f"(async () => {{\n{script}\n}})()")
+    raise ValueError("evaluate script_mode must be function_body when provided")
 
 
 def _actionability_probe(page: Any, selector: str) -> dict[str, Any]:
@@ -105,11 +115,7 @@ def execute_steps(
         raise ValueError("default_action_timeout_ms must be positive")
     captured = outputs if outputs is not None else {}
     records = trace if trace is not None else []
-    deadline = (
-        time.monotonic() + task_timeout_ms / 1000
-        if task_timeout_ms is not None
-        else None
-    )
+    deadline = time.monotonic() + task_timeout_ms / 1000 if task_timeout_ms is not None else None
     for index, call in enumerate(tool_calls, start=1):
         action = call["action"]
         declared_timeout = int(call.get("timeout_ms", default_action_timeout_ms))
@@ -123,6 +129,16 @@ def execute_steps(
                 )
             timeout = min(declared_timeout, remaining_ms)
         started = time.perf_counter()
+        navigate_deadline = started + timeout / 1_000
+
+        def navigate_remaining(
+            action_deadline: float = navigate_deadline,
+        ) -> int:
+            remaining = int((action_deadline - time.perf_counter()) * 1_000)
+            if remaining < 1:
+                raise TimeoutError("navigate action budget exhausted")
+            return remaining
+
         locator_call = {**call, "timeout_ms": timeout}
         record = {
             "index": index,
@@ -137,26 +153,54 @@ def execute_steps(
         try:
             validate_selector(call)
             tab_index = int(call.get("tab_index", 0))
-            action_page = _page_for_tab(page, tab_index, timeout)
+            action_page = _page_for_tab(
+                page, tab_index, navigate_remaining() if action == "navigate" else timeout
+            )
             if page_observer is not None:
                 page_observer(action_page)
             hidden_selector = call.get("wait_for_selector_hidden")
             if hidden_selector is not None:
                 if not isinstance(hidden_selector, str) or not hidden_selector:
                     raise ValueError("wait_for_selector_hidden must be a non-empty selector")
-                action_page.locator(hidden_selector).wait_for(state="hidden", timeout=timeout)
+                action_page.locator(hidden_selector).wait_for(
+                    state="hidden",
+                    timeout=navigate_remaining() if action == "navigate" else timeout,
+                )
             observation = ""
             if action == "navigate":
                 response = action_page.goto(
                     call["url"],
                     wait_until=call.get("wait_until", "domcontentloaded"),
-                    timeout=timeout,
+                    timeout=navigate_remaining(),
                 )
+                # BrowserTool returns after DOMContentLoaded, then gives ordinary
+                # background requests a short chance to settle.  Network idle is
+                # deliberately best effort: analytics or streaming requests must
+                # not turn a completed navigation into a failed replay action.
+                try:
+                    action_page.wait_for_load_state(
+                        "networkidle",
+                        timeout=min(navigate_remaining(), NAVIGATION_NETWORK_IDLE_TIMEOUT_MS),
+                    )
+                except Exception:
+                    pass
+                try:
+                    action_page.wait_for_timeout(
+                        min(navigate_remaining(), NAVIGATION_RENDER_GRACE_MS)
+                    )
+                except TimeoutError:
+                    pass
                 limit = int(call.get("max_chars", 40_000))
-                title_fn = getattr(action_page, "title", None)
-                title = title_fn() if callable(title_fn) else ""
+                title = str(
+                    action_page.locator("html").first.evaluate(
+                        "element => element.ownerDocument.title",
+                        None,
+                        timeout=navigate_remaining(),
+                    )
+                    or ""
+                )
                 status = getattr(response, "status", "") if response is not None else ""
-                body = _body_text(action_page, timeout, limit)
+                body = _body_text(action_page, navigate_remaining(), limit)
                 observation = (
                     f"Navigated to: {getattr(action_page, 'url', call['url'])}\n"
                     f"Title: {title}\nStatus: {status}\n\n--- Page Snapshot ---\n{body}"
@@ -290,9 +334,9 @@ def execute_steps(
                             f"{wait_pattern!r}"
                         )
                     time.sleep(0.05)
-                observation = json.dumps(values, ensure_ascii=False)[: int(
-                    call.get("max_chars", 40_000)
-                )]
+                observation = json.dumps(values, ensure_ascii=False)[
+                    : int(call.get("max_chars", 40_000))
+                ]
             elif action == "get_attribute":
                 value = locator_for(action_page, locator_call).get_attribute(
                     str(call["name"]), timeout=timeout
@@ -332,9 +376,7 @@ def execute_steps(
                             break
                         time.sleep(0.05)
                     else:
-                        raise TimeoutError(
-                            f"{selector} did not match text regex {wait_pattern!r}"
-                        )
+                        raise TimeoutError(f"{selector} did not match text regex {wait_pattern!r}")
                 else:
                     observation = locator.inner_text(timeout=timeout)
                 observation = observation[: int(call.get("max_chars", 40_000))]
@@ -343,7 +385,7 @@ def execute_steps(
                 if not isinstance(script, str) or not script.strip():
                     raise ValueError("evaluate requires a non-empty script")
                 try:
-                    value = action_page.evaluate(script)
+                    value = _evaluate_script(action_page, script, call.get("script_mode"))
                 except Exception as exc:
                     pattern = call.get("accept_navigation_url_regex")
                     if not (
@@ -365,9 +407,7 @@ def execute_steps(
                     observation = f"Navigated to: {action_page.url}"
                 else:
                     observation = (
-                        value
-                        if isinstance(value, str)
-                        else json.dumps(value, ensure_ascii=False)
+                        value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
                     )
                 observation = observation[: int(call.get("max_chars", 40_000))]
             elif action == "wait_for_url":

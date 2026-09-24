@@ -38,6 +38,9 @@ class FakePage:
     def wait_for_timeout(self, milliseconds):
         self.calls.append(("wait", milliseconds))
 
+    def wait_for_load_state(self, state, **kwargs):
+        self.calls.append(("load_state", state, kwargs))
+
     def evaluate(self, script, argument=None):
         self.calls.append(("evaluate", script, argument))
         if script == "() => ({ok: true, count: 2})":
@@ -165,6 +168,10 @@ def test_execute_steps_counts_only_declared_browser_operations():
     assert "Navigated to: https://example.com" in outputs["page"]
     assert page.calls == [
         ("navigate", "https://example.com"),
+        ("load_state", "networkidle", {"timeout": 1500}),
+        ("wait", 300),
+        ("first", "html"),
+        ("get_property", "html", None),
         ("first", "body"),
         ("get_text", "body"),
         ("first", "h1"),
@@ -203,11 +210,92 @@ def test_evaluate_runs_declared_page_script_and_captures_json():
     assert page.calls == [("evaluate", "() => ({ok: true, count: 2})", None)]
 
 
+def test_evaluate_explicit_function_body_executes_side_effect_once():
+    class ReturnPage(FakePage):
+        def __init__(self):
+            super().__init__()
+            self.effects = 0
+
+        def evaluate(self, script, argument=None):
+            self.calls.append(("evaluate", script, argument))
+            self.effects += 1
+            return self.effects
+
+    page = ReturnPage()
+    outputs = execute_steps(
+        page,
+        (
+            {
+                "action": "evaluate",
+                "script": "window.count += 1; return window.count",
+                "script_mode": "function_body",
+                "save_as": "count",
+            },
+        ),
+    )
+
+    assert outputs == {"count": "1"}
+    assert page.effects == 1
+    assert len(page.calls) == 1
+    assert page.calls[0][1].startswith("(async () => {")
+
+
+def test_evaluate_never_retries_default_script_after_illegal_return():
+    class ReturnPage(FakePage):
+        def evaluate(self, script, argument=None):
+            self.calls.append(("evaluate", script, argument))
+            raise RuntimeError("SyntaxError: Illegal return statement")
+
+    page = ReturnPage()
+    with pytest.raises(RuntimeError, match="Illegal return statement"):
+        execute_steps(
+            page,
+            ({"action": "evaluate", "script": "sideEffect(); return true"},),
+        )
+    assert page.calls == [("evaluate", "sideEffect(); return true", None)]
+
+
+def test_evaluate_rejects_unknown_script_mode_before_page_execution():
+    page = FakePage()
+    with pytest.raises(ValueError, match="script_mode"):
+        execute_steps(
+            page,
+            ({"action": "evaluate", "script": "1", "script_mode": "retry"},),
+        )
+    assert page.calls == []
+
+
+def test_evaluate_does_not_retry_a_runtime_error():
+    class BrokenPage(FakePage):
+        def evaluate(self, script, argument=None):
+            self.calls.append(("evaluate", script, argument))
+            raise RuntimeError("ReferenceError: missing is not defined")
+
+    page = BrokenPage()
+    with pytest.raises(RuntimeError, match="ReferenceError"):
+        execute_steps(page, ({"action": "evaluate", "script": "missing()"},))
+    assert page.calls == [("evaluate", "missing()", None)]
+
+
+def test_navigation_network_idle_is_best_effort_and_keeps_render_grace():
+    class BusyPage(FakePage):
+        def wait_for_load_state(self, state, **kwargs):
+            self.calls.append(("load_state", state, kwargs))
+            raise TimeoutError("page keeps a streaming request open")
+
+    page = BusyPage()
+    execute_steps(page, ({"action": "navigate", "url": "https://example.com"},))
+    assert ("load_state", "networkidle", {"timeout": 1500}) in page.calls
+    assert ("wait", 300) in page.calls
+
+
 def test_form_submission_evaluate_continues_only_after_expected_navigation():
     class FormPage(FakePage):
         def evaluate(self, script, argument=None):
             self.calls.append(("evaluate", script, argument))
-            raise RuntimeError("Execution context was destroyed, most likely because of a navigation")
+            raise RuntimeError(
+                "Execution context was destroyed, most likely because of a navigation"
+            )
 
         def wait_for_url(self, url, **kwargs):
             self.calls.append(("wait_for_url", url.pattern, kwargs))
@@ -237,7 +325,9 @@ def test_form_submission_evaluate_continues_only_after_expected_navigation():
 def test_form_submission_evaluate_rejects_wrong_navigation():
     class WrongPage(FakePage):
         def evaluate(self, script, argument=None):
-            raise RuntimeError("Execution context was destroyed, most likely because of a navigation")
+            raise RuntimeError(
+                "Execution context was destroyed, most likely because of a navigation"
+            )
 
         def wait_for_url(self, url, **kwargs):
             self.url = "http://gitlab.example/byteblaze/another_project"
@@ -245,11 +335,13 @@ def test_form_submission_evaluate_rejects_wrong_navigation():
     with pytest.raises(ValueError, match="wrong URL"):
         execute_steps(
             WrongPage(),
-            [{
-                "action": "evaluate",
-                "script": "() => document.querySelector('form').submit()",
-                "accept_navigation_url_regex": r"/byteblaze/new_project$",
-            }],
+            [
+                {
+                    "action": "evaluate",
+                    "script": "() => document.querySelector('form').submit()",
+                    "accept_navigation_url_regex": r"/byteblaze/new_project$",
+                }
+            ],
         )
 
 

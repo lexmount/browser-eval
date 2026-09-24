@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -10,6 +11,24 @@ from playwright.sync_api import sync_playwright
 
 from harness.browser_use.runner import BENCHMARK_VIEWPORT
 from harness.trajectory_replay.public_webarena.executor import execute_steps
+
+SNAPSHOT_PRIMARY_TIMEOUT_MS = 5_000
+SNAPSHOT_NAVIGATION_SETTLE_TIMEOUT_MS = 1_500
+SNAPSHOT_NAVIGATION_GRACE_MS = 300
+
+
+def _navigation_interrupted_snapshot(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return any(
+        marker in message
+        for marker in (
+            "navigation to finish",
+            "execution context was destroyed",
+            "cannot find context with specified id",
+            "frame was detached",
+            "inspected target navigated or closed",
+        )
+    )
 
 
 @dataclass
@@ -46,12 +65,43 @@ class PlaywrightReplayTool:
     def _submit(self, callback):
         return callback()
 
+    def _snapshot(self, selector: str, timeout: int) -> str:
+        deadline = time.monotonic() + timeout / 1_000
+
+        def remaining(maximum: int | None = None) -> int:
+            value = int((deadline - time.monotonic()) * 1_000)
+            if value < 1:
+                raise TimeoutError("snapshot action budget exhausted")
+            return value if maximum is None else min(value, maximum)
+
+        def observe(maximum: int | None = None) -> str:
+            locator = self._page.locator(selector).first
+            locator.wait_for(state="visible", timeout=remaining(maximum))
+            return locator.aria_snapshot(timeout=remaining(maximum))
+
+        try:
+            return observe(SNAPSHOT_PRIMARY_TIMEOUT_MS)
+        except Exception as exc:
+            if not _navigation_interrupted_snapshot(exc):
+                raise
+            self._page.wait_for_load_state(
+                "domcontentloaded",
+                timeout=remaining(SNAPSHOT_NAVIGATION_SETTLE_TIMEOUT_MS),
+            )
+            self._page.wait_for_timeout(min(remaining(), SNAPSHOT_NAVIGATION_GRACE_MS))
+            return observe()
+
     def execute(self, arguments: dict[str, Any]) -> ReplayResult:
         action = arguments.get("action")
         if action == "snapshot":
             try:
                 selector = str(arguments.get("selector") or "body")
-                value = self._page.locator(selector).first.aria_snapshot(timeout=30_000)
+                timeout = int(arguments.get("timeout_ms", 30_000))
+                if timeout < 1:
+                    raise ValueError("snapshot timeout_ms must be positive")
+                value = self._snapshot(selector, timeout)
+                if not isinstance(value, str) or not value.strip():
+                    raise RuntimeError("snapshot returned an empty observation")
                 return ReplayResult("success", value[: int(arguments.get("max_chars", 40_000))])
             except Exception as exc:
                 return ReplayResult("error", f"Snapshot failed: {exc}")

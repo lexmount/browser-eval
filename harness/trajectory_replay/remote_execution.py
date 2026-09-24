@@ -38,6 +38,7 @@ from harness.trajectory_replay.webarena_replay import (
     _click_was_dispatched_before_navigation_timeout,
     _execute_replay_call,
     _json_sha256,
+    _replay_step_status,
 )
 
 NETWORK_SETTLE_MS = 2_000
@@ -157,8 +158,7 @@ def _read_retrieval_contract(
         if embedded_contract.get("task_id") != task_id:
             raise ValueError(f"task {task_id}: retrieval contract identity mismatch")
         source_sites = {
-            WebArenaSite(site): url
-            for site, url in (row.get("source_site_urls") or {}).items()
+            WebArenaSite(site): url for site, url in (row.get("source_site_urls") or {}).items()
         }
         rebound = rebind_remote_calls(
             embedded_calls,
@@ -293,26 +293,54 @@ def _run_task(
             for readiness in row["readiness"]:
                 if readiness["before_action"] == index:
                     ready_status, ready_result = _execute_replay_call(tool, readiness["input"])
-                    readiness_records.append(
-                        {"before_action": index, "status": ready_status, "result": ready_result}
+                    ready_effective_status, ready_observation_error = _replay_step_status(
+                        readiness["input"], ready_status, ready_result, dispatched=False
                     )
-                    if ready_status != "success":
-                        raise RuntimeError(f"readiness before step {index} failed: {ready_result}")
+                    readiness_records.append(
+                        {
+                            "before_action": index,
+                            "status": ready_effective_status,
+                            "tool_status": ready_status,
+                            "result": ready_result,
+                            **(
+                                {
+                                    "observation_status": "error",
+                                    "observation_error": ready_observation_error,
+                                }
+                                if ready_observation_error is not None
+                                else {}
+                            ),
+                        }
+                    )
+                    if ready_effective_status != "success":
+                        detail = ready_observation_error or ready_result
+                        raise RuntimeError(f"readiness before step {index} failed: {detail}")
             call_started = time.perf_counter()
             diagnostics = {}
             result_status, result = _execute_replay_call(tool, action, diagnostics=diagnostics)
             dispatched = _click_was_dispatched_before_navigation_timeout(
                 action, result_status, result
             )
+            effective_status, observation_error = _replay_step_status(
+                action, result_status, result, dispatched=dispatched
+            )
             records.append(
                 {
                     "index": index,
                     "arguments": action,
-                    "status": "success" if dispatched else result_status,
+                    "status": effective_status,
                     "tool_status": result_status,
                     "duration_ms": round((time.perf_counter() - call_started) * 1000, 3),
                     "result": result,
                     **({"action_diagnostics": diagnostics} if diagnostics else {}),
+                    **(
+                        {
+                            "observation_status": "error",
+                            "observation_error": observation_error,
+                        }
+                        if observation_error is not None
+                        else {}
+                    ),
                     **(
                         {"recovery": "click_dispatched_navigation_wait_timeout"}
                         if dispatched
@@ -320,14 +348,15 @@ def _run_task(
                     ),
                 }
             )
-            if result_status != "success" and not dispatched:
+            if effective_status != "success":
                 try:
                     records[-1]["failure_ui_state"] = _capture_failure_ui_state(service, action)
                 except Exception as observation_exc:
                     records[-1]["failure_ui_state_error"] = (
                         f"{type(observation_exc).__name__}: {observation_exc}"
                     )[:300]
-                raise RuntimeError(f"step {index} failed: {result}")
+                detail = observation_error or result
+                raise RuntimeError(f"step {index} failed: {detail}")
         if correction is not None and correction.replay_assertions:
             assertions = _evaluate_assertions(service, correction)
         else:

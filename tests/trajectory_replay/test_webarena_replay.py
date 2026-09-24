@@ -17,6 +17,7 @@ from harness.trajectory_replay.webarena_replay import (
     _origin,
     _rebind_url,
     _reject_partial_method_resume,
+    _replay_step_status,
     _run_one,
     _validated_resume,
     run_replay_suite,
@@ -325,6 +326,15 @@ def test_snapshot_payload_error_is_exposed_as_observation_error() -> None:
         is None
     )
     assert _embedded_observation_error({"action": "snapshot"}, "success", "Page: stable") is None
+    assert _replay_step_status(
+        {"action": "snapshot"},
+        "success",
+        "[Snapshot error: context destroyed]",
+        dispatched=False,
+    ) == ("error", "context destroyed")
+    assert _replay_step_status(
+        {"action": "click"}, "error", "navigation timeout", dispatched=True
+    ) == ("success", None)
     assert _attempt_needs_retry(
         {
             "status": "fail",
@@ -362,7 +372,9 @@ def test_completed_click_is_not_replayed_when_only_navigation_wait_times_out() -
 
 @pytest.mark.parametrize("collect_diagnostics", [False, True])
 @pytest.mark.parametrize("disabled", [False, True])
-def test_compiled_snapshot_ref_click_preserves_dom_click_semantics(collect_diagnostics, disabled) -> None:
+def test_compiled_snapshot_ref_click_preserves_dom_click_semantics(
+    collect_diagnostics, disabled
+) -> None:
     events = []
 
     class Locator:
