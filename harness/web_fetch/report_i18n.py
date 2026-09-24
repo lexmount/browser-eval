@@ -2951,6 +2951,7 @@ TEXT.update({
     "这次历史运行没有保存统一事件日志。下面由最终输出、结果字段和公开适配器元数据合成，不能还原未记录的逐行过程。": "This historical run did not retain a unified event log. The view below is reconstructed from the final output, result fields, and public adapter metadata; it cannot recover unrecorded step-by-step events.",
     "最后输出": "Final output",
     "最后报错": "Final error",
+    "最后报错：": "Final error: ",
     "无报错；请求记录为成功。": "No error was recorded; the request is recorded as successful.",
     "请求失败，但历史记录未保存错误文字。": "The request failed, but the historical record retained no error text.",
     "请求路线": "Request route",
@@ -2971,7 +2972,62 @@ TEXT.update({
     "最终输出确实为空；本次历史记录没有保存更具体的原因，不能据此推断是服务端、网络还是适配器问题。": "The final output is genuinely empty. This historical record retained no more specific reason, so it cannot establish whether the cause was the server, network, or adapter.",
     "—（未记录）": "— (not recorded)",
     "—（未记录错误类型）": "— (error type not recorded)",
+    "查看运行日志与证据": "View run logs and evidence",
+    "运行日志与证据": "Run logs and evidence",
+    "这次历史调用没有保存逐行 debug 日志；不会补造不存在的日志。": "This historical call did not retain a line-by-line debug log; no missing log is reconstructed.",
+    "运行记录声明了日志文件，但公开证据中没有可读取文件；日志证据不完整。": "The run record declares a log file, but no readable file is present in the public evidence; log evidence is incomplete.",
+    "运行日志": "Run logs",
+    "最终输出": "Final output",
+    "查看错误与关键日志": "View errors and key log lines",
+    "没有可展示的逐行日志。": "No line-by-line log is available to display.",
+    "查看并下载完整保存证据": "View and download complete retained evidence",
+    "下载完整实际输出": "Download complete actual output",
+    "下载完整调用日志 JSON": "Download complete call-log JSON",
+    "没有可下载的逐行日志文件。": "No line-by-line log file is available to download.",
+    "查看重试与物理调用": "View retries and physical calls",
+    "原始供应商响应信封仅在内部证据中保留，不进入公开报告或发布包。": "The original provider response envelope is retained only in internal evidence and is excluded from the public report and publication bundle.",
+    "参与本段计分的完整实际返回行": "Complete actual-output lines used to score this region",
+    "评分器没有向这一段分配可展示的实际返回文字。": "The scorer assigned no displayable actual-output text to this region.",
+    "查看各段完整标准正文和计分行": "View complete reference text and scoring lines for each region",
+    "正文判定：": "Body-text rule: ",
 })
+
+REGEX.insert(0, (
+    re.compile(r"^(\d+) 份真实日志文件已保存并通过 SHA-256 校验。$"),
+    r"\1 real log files were retained and verified by SHA-256.",
+))
+REGEX.insert(0, (
+    re.compile(r"^([\d,]+) 字节 · SHA-256：$"),
+    r"\1 bytes · SHA-256: ",
+))
+REGEX.insert(0, (
+    re.compile(r"^· ([\d,]+) 字节 · SHA-256：$"),
+    r"· \1 bytes · SHA-256: ",
+))
+REGEX.insert(0, (
+    re.compile(r"^(\d+) 份真实日志文件可以读取；其中至少一份没有在运行记录中声明 SHA-256。$"),
+    r"\1 real log files are readable; at least one has no SHA-256 declared in the run record.",
+))
+REGEX.insert(0, (
+    re.compile(r"^正文判定：本例分为 (\d+) 段。每段至少达到 ([\d.]+)%，其中至少 (\d+) 段达到 ([\d.]+)%。先看下表；需要核对原文时，再展开下面的左右对照。$"),
+    r"Body-text rule: this case has \1 regions. Every region must reach at least \2%, and at least \3 regions must reach \4%. Check the table first, then expand the side-by-side evidence when needed.",
+))
+REGEX.insert(0, (
+    re.compile(r"^本例分为 (\d+) 段。每段至少达到 ([\d.]+)%，其中至少 (\d+) 段达到 ([\d.]+)%。先看下表；需要核对原文时，再展开下面的左右对照。$"),
+    r"This case has \1 regions. Every region must reach at least \2%, and at least \3 regions must reach \4%. Check the table first, then expand the side-by-side evidence when needed.",
+))
+REGEX.insert(0, (
+    re.compile(r"^本段覆盖率为 ([\d.]+)%。每段至少达到 ([\d.]+)%；达到 ([\d.]+)% 时算作主要完整段落。$"),
+    r"This region has \1% coverage. Every region must reach at least \2%; reaching \3% counts as a substantially complete region.",
+))
+REGEX.insert(0, (
+    re.compile(r"^共 (\d+) 组稳定文字，全部属于标准答案；当前区域显示约 5 组高度，向下滚动查看全部。$"),
+    r"All \1 stable-text groups belong to the reference answer. This area shows about five groups at a time; scroll to view all.",
+))
+REGEX.insert(0, (
+    re.compile(r"^共 (\d+) 项稳定文字判定，全部参与评分；当前区域显示约 5 项高度，向下滚动查看全部。$"),
+    r"All \1 stable-text checks contribute to scoring. This area shows about five at a time; scroll to view all.",
+))
 
 REGEX.insert(0, (
     re.compile(r"^(\d+) 个物理调用日志已保存并通过 SHA-256 校验。$"),
