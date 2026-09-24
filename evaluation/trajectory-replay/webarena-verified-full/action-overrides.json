@@ -1,0 +1,83 @@
+{
+  "schema": "lex_webarena_replay_action_overrides/1",
+  "amendments": [
+    {
+      "task_id": 3,
+      "action_index": 2,
+      "precondition_action_sha256": "c620510a7bbdfbf321606582dd492d1d1c8d9ebc4eb62a12e89e51100325f7a8",
+      "set": {"wait_for_selector_hidden": ".loading-mask"}
+    },
+    {
+      "task_id": 5,
+      "action_index": 2,
+      "precondition_action_sha256": "fcd1769f363ee1b81ef8b1c8c527aa3a3f98c941f1e07ddebecf99dc0ec85a28",
+      "set": {"wait_for_selector_hidden": ".loading-mask"}
+    },
+    {
+      "task_id": 6,
+      "action_index": 2,
+      "precondition_action_sha256": "c620510a7bbdfbf321606582dd492d1d1c8d9ebc4eb62a12e89e51100325f7a8",
+      "set": {"wait_for_selector_hidden": ".loading-mask"}
+    },
+    {
+      "task_id": 458,
+      "action_index": 2,
+      "precondition_action_sha256": "9d7fe3c9e8d76df53e3e7188f81d80dc1ee73007a4a3dc73c08d937b3837fb4f",
+      "set": {"wait_for_selector_hidden": ".loading-mask"}
+    },
+    {
+      "task_id": 459,
+      "action_index": 2,
+      "precondition_action_sha256": "715b2b82a4d7d85e4680bda37cba159038ef0c02a1d95e60b853aa00559bb223",
+      "set": {"wait_for_selector_hidden": ".loading-mask"}
+    },
+    {
+      "task_id": 462,
+      "action_index": 2,
+      "precondition_action_sha256": "2cda73aa5baa10c3e96a48a5428a17dc12a466affec03f7071029828dca9cb9d",
+      "set": {"wait_for_selector_hidden": ".loading-mask"}
+    },
+    {
+      "task_id": 463,
+      "action_index": 2,
+      "precondition_action_sha256": "4af715ca18653a078156a3a26f989c6fcbff360b72c22405d9fd28c8c9b427b9",
+      "set": {"wait_for_selector_hidden": ".loading-mask"}
+    },
+    {
+      "task_id": 464,
+      "action_index": 3,
+      "precondition_action_sha256": "cde2b999aee833627b12ef6308d2863576b3113f121840fb465cefbb28b12298",
+      "set": {"script_mode": "function_body"}
+    },
+    {
+      "task_id": 464,
+      "action_index": 5,
+      "precondition_action_sha256": "34b3abca537d968a7863b498dbd1209eab3b681a94ee58f47d5beb3379c12f4d",
+      "set": {"script_mode": "function_body"}
+    },
+    {
+      "task_id": 470,
+      "action_index": 2,
+      "precondition_action_sha256": "5d5fb246799936030abcc1e6df87b0c5dd63225d79ad09efa50f86309d4ce022",
+      "set": {"script_mode": "function_body"}
+    },
+    {
+      "task_id": 470,
+      "action_index": 4,
+      "precondition_action_sha256": "cb0ec091ca536361e3010c0fd963c9a7a0db6282d066eebfe4c7e5439d4838e7",
+      "set": {"script_mode": "function_body"}
+    },
+    {
+      "task_id": 475,
+      "action_index": 3,
+      "precondition_action_sha256": "a1d771740b706d502e67b1b65b5f00336d15d53dfabdbdb01cb96df765ba9b2d",
+      "set": {"script_mode": "function_body"}
+    },
+    {
+      "task_id": 475,
+      "action_index": 4,
+      "precondition_action_sha256": "7380204d149036b699e85e0390f614ac8e0af042520d0636558b561b92cbe2bd",
+      "set": {"script_mode": "function_body"}
+    }
+  ]
+}

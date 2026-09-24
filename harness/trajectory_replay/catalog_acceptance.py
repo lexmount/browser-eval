@@ -14,6 +14,7 @@ from harness.trajectory_replay.catalog_contracts import (
     RUN_SCHEMAS,
     SCOPE_SCHEMAS,
     file_sha256,
+    load_action_overrides,
     validate_passing_evaluation,
     verify_physical_evidence,
 )
@@ -99,6 +100,7 @@ def audit(
     *,
     excluded_duplicate_repair_tasks: set[int] | None = None,
     expected_backend: str = "browsertool",
+    action_overrides_paths: list[Path] | None = None,
 ) -> dict:
     verify_webarena_runtime_source()
     scope = json.loads(scope_path.read_text(encoding="utf-8"))
@@ -129,9 +131,21 @@ def audit(
     physical_attempts = 0
     benchmark = remote_benchmark({site: f"http://{site.value}.invalid" for site in WebArenaSite})
     corrections = load_corrections()
+    override_sources = {}
+    for path in action_overrides_paths or []:
+        _amendments, digest = load_action_overrides(path)
+        if digest in override_sources:
+            raise ValueError("duplicate external action overrides source")
+        override_sources[digest] = path
+    used_override_sources: set[str] = set()
     for kind, directories in (("segment", segment_dirs), ("repair", repair_dirs)):
         for directory in directories:
             binding, rows = _read_run(directory)
+            if "action_overrides_sha256" in binding:
+                override_digest = binding["action_overrides_sha256"]
+                if override_digest not in override_sources:
+                    raise ValueError("acceptance run requires its external action overrides source")
+                used_override_sources.add(override_digest)
             schemas.add(binding["schema"])
             backend = binding.get("backend")
             engine = binding.get("engine", "chromium")
@@ -156,6 +170,7 @@ def audit(
                 binding.get("action_timeout_ms"),
                 binding.get("corrections_sha256"),
                 binding.get("evaluator_fixes_sha256"),
+                binding.get("action_overrides_sha256"),
             )
             if kind == "segment":
                 if sweep_contract is None:
@@ -184,6 +199,8 @@ def audit(
                         "evaluator_fixes_sha256": binding["evaluator_fixes_sha256"],
                     }
                 )
+            if "action_overrides_sha256" in binding:
+                run_record["action_overrides_sha256"] = binding["action_overrides_sha256"]
             bindings.append(run_record)
             for row in rows:
                 task_id = row["task_id"]
@@ -235,6 +252,8 @@ def audit(
                 states[task_id]["attempts"].append(attempt)
     if excluded_seen != excluded_requested:
         raise ValueError("declared duplicate repair exclusions were not found")
+    if used_override_sources != set(override_sources):
+        raise ValueError("external action overrides are not bound to an acceptance run")
     if ordered_ids != ids:
         raise ValueError("acceptance sweep is incomplete or changed official order")
     rows = [
@@ -269,6 +288,8 @@ def audit(
             "binary_sha256": participant_contract[2],
             "site_map_sha256": participant_contract[3],
         }
+    if used_override_sources:
+        result["action_overrides_sha256s"] = sorted(used_override_sources)
     return result
 
 
@@ -281,6 +302,7 @@ def main() -> None:
     )
     parser.add_argument("--segment", type=Path, action="append", required=True)
     parser.add_argument("--repair", type=Path, action="append", default=[])
+    parser.add_argument("--action-overrides", type=Path, action="append", default=[])
     parser.add_argument("--exclude-duplicate-repair-task", type=int, action="append", default=[])
     parser.add_argument(
         "--expected-backend", choices=("browsertool", "playwright"), default="browsertool"
@@ -294,6 +316,7 @@ def main() -> None:
         args.repair,
         excluded_duplicate_repair_tasks=set(args.exclude_duplicate_repair_task),
         expected_backend=args.expected_backend,
+        action_overrides_paths=args.action_overrides,
     )
     if args.require_all_pass and result["counts"]["unresolved"]:
         raise ValueError("the acceptance sweep has unresolved cases")

@@ -9,9 +9,13 @@ from pathlib import Path
 
 from harness.trajectory_replay.catalog_contracts import (
     ACCEPTANCE_SCHEMAS,
+    ACTION_OVERRIDES_SCHEMA,
     CATALOG_SCHEMA,
     TRUSTED_RECORDED_HOSTS,
+    apply_action_overrides,
+    catalog_action_overrides,
     file_sha256,
+    load_action_overrides,
     load_catalog_inputs,
     row_source_sites,
 )
@@ -65,11 +69,63 @@ def _catalog_rows_by_id(catalog: dict) -> dict[int, dict]:
     return indexed
 
 
+def _load_bound_action_overrides(
+    inputs: dict[str, dict], action_overrides_paths: list[Path]
+) -> dict[str, tuple[Path, dict[int, list[dict]]]]:
+    sources: dict[str, tuple[Path, dict[int, list[dict]]]] = {}
+    for path in action_overrides_paths:
+        override_map, digest = load_action_overrides(path)
+        if digest in sources:
+            raise ValueError("duplicate external action overrides source")
+        sources[digest] = (path, override_map)
+    required = {
+        binding["action_overrides_sha256"]
+        for binding in inputs.values()
+        if "action_overrides_sha256" in binding
+    }
+    if not required <= set(sources):
+        raise ValueError("accepted runs require their external action overrides source")
+    if set(sources) - required:
+        raise ValueError("external action overrides are not bound to an accepted run")
+    return sources
+
+
+def _source_action_overrides_path(
+    binding: dict,
+    source_catalog: dict,
+    override_sources: dict[str, tuple[Path, dict[int, list[dict]]]],
+) -> Path | None:
+    catalog_digest = source_catalog.get("action_overrides_sha256")
+    if binding.get("action_overrides_sha256") != catalog_digest:
+        raise ValueError("run action override binding differs from its source catalog")
+    if catalog_digest is None:
+        return None
+    try:
+        return override_sources[catalog_digest][0]
+    except KeyError as exc:
+        raise ValueError("source catalog requires its external action overrides source") from exc
+
+
+def _target_action_amendments(
+    task_id: int,
+    source_amendments: list[dict],
+    target_override_map: dict[int, list[dict]],
+) -> list[dict]:
+    target_amendments = target_override_map.get(task_id, [])
+    if source_amendments != target_amendments:
+        raise ValueError(
+            f"task {task_id}: target action overrides differ from its accepted execution"
+        )
+    return target_amendments
+
+
 def consolidate(
     ledger_path: Path,
     run_root: Path,
     source_roots: list[Path],
     site_map_path: Path,
+    action_overrides_paths: list[Path] | None = None,
+    target_action_overrides_path: Path | None = None,
 ) -> tuple[dict, dict]:
     verify_webarena_runtime_source()
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
@@ -88,6 +144,16 @@ def consolidate(
         digest: json.loads((runs[digest] / "inputs.json").read_text(encoding="utf-8"))
         for digest in selected
     }
+    override_sources = _load_bound_action_overrides(inputs, action_overrides_paths or [])
+    if target_action_overrides_path is not None:
+        target_override_map, target_override_sha256 = load_action_overrides(
+            target_action_overrides_path
+        )
+    else:
+        target_override_map = {}
+        target_override_sha256 = None
+    if override_sources and target_override_sha256 is None:
+        raise ValueError("consolidation requires an explicit target action overrides source")
     expected = {
         digest
         for binding in inputs.values()
@@ -117,6 +183,17 @@ def consolidate(
         }
         for digest in suites
     }
+    for binding in inputs.values():
+        source_catalog = catalogs[binding["catalog_sha256"]]
+        source_override_path = _source_action_overrides_path(
+            binding, source_catalog, override_sources
+        )
+        load_catalog_inputs(
+            files[binding["catalog_sha256"]],
+            files[binding["portable_suite_sha256"]],
+            files[binding["site_map_sha256"]],
+            action_overrides_path=source_override_path,
+        )
     target_sites = load_remote_sites(site_map_path)
     rows: list[dict] = []
     portable_tasks: list[dict] = []
@@ -131,7 +208,9 @@ def consolidate(
         try:
             source_row = catalog_rows[binding["catalog_sha256"]][task_id]
         except KeyError as exc:
-            raise ValueError(f"task {task_id}: accepted task is absent from source catalog") from exc
+            raise ValueError(
+                f"task {task_id}: accepted task is absent from source catalog"
+            ) from exc
         if source_row["task_id"] != task_id or attempt["status"] != "pass":
             raise ValueError(f"task {task_id}: accepted source row differs")
         if source_row["mode"] == "portable":
@@ -140,6 +219,11 @@ def consolidate(
             portable_tasks.append(raw_suites[suite_hash][task_id])
         else:
             actions = source_row["source_actions"]
+        source_amendments = catalog_action_overrides(source_catalog, source_row)
+        target_amendments = _target_action_amendments(
+            task_id, source_amendments, target_override_map
+        )
+        actions = apply_action_overrides(actions, source_amendments, task_id=task_id)
         source_sites = row_source_sites(source_catalog, source_row)
         run_sites = load_remote_sites(files[binding["site_map_sha256"]])
         old_digest = _json_sha256(
@@ -158,6 +242,15 @@ def consolidate(
         # their source origins. Carry those origins into the new binding.
         rebind_sources = {**run_sites, **source_sites}
         row = dict(source_row)
+        if target_amendments:
+            row["action_overrides"] = {
+                "schema": ACTION_OVERRIDES_SCHEMA,
+                "source_sha256": target_override_sha256,
+                "amendments_sha256": _json_sha256(target_amendments),
+                "amendments": target_amendments,
+            }
+        else:
+            row.pop("action_overrides", None)
         row["source_site_urls"] = {site.value: url for site, url in rebind_sources.items()}
         row["bound_calls_sha256"] = _json_sha256(
             rebind_remote_calls(actions, target_sites, set(TRUSTED_RECORDED_HOSTS), rebind_sources)
@@ -173,6 +266,22 @@ def consolidate(
         "accepted_ledger_sha256": file_sha256(ledger_path),
         "rows": rows,
     }
+    row_override_sources = {
+        row["action_overrides"]["source_sha256"]
+        for row in rows
+        if row.get("action_overrides") is not None
+    }
+    if len(row_override_sources) > 1:
+        raise ValueError("accepted rows mix action override sources")
+    if row_override_sources:
+        catalog["action_overrides_sha256"] = row_override_sources.pop()
+    embedded_overrides = {
+        row["task_id"]: row["action_overrides"]["amendments"]
+        for row in rows
+        if row.get("action_overrides") is not None
+    }
+    if embedded_overrides != target_override_map:
+        raise ValueError("accepted rows differ from the target action overrides source")
     return catalog, suite
 
 
@@ -187,12 +296,21 @@ def main() -> None:
     parser.add_argument("--run-root", type=Path, required=True)
     parser.add_argument("--source-root", type=Path, action="append", required=True)
     parser.add_argument("--site-map", type=Path, required=True)
+    parser.add_argument("--action-overrides", type=Path, action="append", default=[])
+    parser.add_argument("--target-action-overrides", type=Path)
     parser.add_argument("--output-catalog", type=Path, required=True)
     parser.add_argument("--output-suite", type=Path, required=True)
     args = parser.parse_args()
     if args.output_catalog.exists() or args.output_suite.exists():
         raise FileExistsError("consolidated catalog or suite already exists")
-    catalog, suite = consolidate(args.ledger, args.run_root, args.source_root, args.site_map)
+    catalog, suite = consolidate(
+        args.ledger,
+        args.run_root,
+        args.source_root,
+        args.site_map,
+        action_overrides_paths=args.action_overrides,
+        target_action_overrides_path=args.target_action_overrides,
+    )
     args.output_suite.parent.mkdir(parents=True, exist_ok=True)
     args.output_catalog.parent.mkdir(parents=True, exist_ok=True)
     args.output_suite.write_text(
@@ -206,6 +324,7 @@ def main() -> None:
         args.output_suite,
         args.site_map,
         accepted_ledger_path=args.ledger,
+        action_overrides_path=args.target_action_overrides,
     )
     print(
         json.dumps(

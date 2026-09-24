@@ -23,6 +23,7 @@ def _run(
     catalog="catalog",
     schema="lex_trajectory_replay_catalog_run/1",
     engine=None,
+    action_overrides=None,
 ):
     directory = tmp_path / name
     directory.mkdir()
@@ -39,6 +40,8 @@ def _run(
         "runner_revision": "revision",
         "cowagent_revision": "cowagent",
     }
+    if action_overrides is not None:
+        inputs["action_overrides_sha256"] = action_overrides
     if schema in {
         "lex_trajectory_replay_catalog_run/1",
         "lex_webarena_full_replay_run/2",
@@ -90,6 +93,27 @@ def _fake_verified(directory, row, **_kwargs):
     return (dict(row, progress_sha256="progress", evidence_sha256={}), True)
 
 
+def _action_overrides(tmp_path):
+    path = tmp_path / "action-overrides.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "lex_webarena_replay_action_overrides/1",
+                "amendments": [
+                    {
+                        "task_id": 7,
+                        "action_index": 1,
+                        "precondition_action_sha256": "a" * 64,
+                        "set": {"wait_for_selector_hidden": ".loading-mask"},
+                    }
+                ],
+            }
+        )
+        + "\n"
+    )
+    return path, hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def test_acceptance_still_reads_historical_run_schemas(tmp_path):
     legacy_v1 = _run(
         tmp_path,
@@ -108,6 +132,20 @@ def test_acceptance_still_reads_historical_run_schemas(tmp_path):
 
     assert acceptance._read_run(legacy_v1)[0]["schema"].endswith("/1")
     assert acceptance._read_run(legacy_v2)[0]["schema"].endswith("/2")
+
+
+def test_acceptance_requires_external_action_overrides_for_amended_run(tmp_path, monkeypatch):
+    monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
+    path, digest = _action_overrides(tmp_path)
+    scope = _scope(tmp_path, [7])
+    sweep = _run(tmp_path, "sweep", [7], {}, action_overrides=digest)
+
+    with pytest.raises(ValueError, match="requires its external action overrides"):
+        acceptance.audit(scope, [sweep], [])
+
+    ledger = acceptance.audit(scope, [sweep], [], action_overrides_paths=[path])
+    assert ledger["action_overrides_sha256s"] == [digest]
+    assert ledger["runs"][0]["action_overrides_sha256"] == digest
 
 
 def test_acceptance_keeps_one_ordered_sweep_and_only_repairs_a_failure(tmp_path, monkeypatch):

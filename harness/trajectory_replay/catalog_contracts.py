@@ -27,21 +27,17 @@ DATASET_SCHEMAS = frozenset({DATASET_SCHEMA, "lex_webarena_verified_full_dataset
 SCOPE_SCHEMA = "lex_webarena_replay_scope/1"
 SCOPE_SCHEMAS = frozenset({SCOPE_SCHEMA, "lex_webarena_verified_full_scope/1"})
 ENVIRONMENT_SCHEMA = "lex_webarena_replay_environment/1"
-ENVIRONMENT_SCHEMAS = frozenset(
-    {ENVIRONMENT_SCHEMA, "lex_webarena_verified_full_environment/1"}
-)
+ENVIRONMENT_SCHEMAS = frozenset({ENVIRONMENT_SCHEMA, "lex_webarena_verified_full_environment/1"})
 REPORT_PROFILE_SCHEMA = "lex_webarena_replay_report_profile/1"
 REPORT_PROFILE_SCHEMAS = frozenset(
     {REPORT_PROFILE_SCHEMA, "lex_webarena_verified_full_report_profile/1"}
 )
 RUN_SCHEMA = "lex_trajectory_replay_catalog_run/1"
-LEGACY_RUN_SCHEMAS = frozenset(
-    {"lex_webarena_full_replay_run/1", "lex_webarena_full_replay_run/2"}
-)
+LEGACY_RUN_SCHEMAS = frozenset({"lex_webarena_full_replay_run/1", "lex_webarena_full_replay_run/2"})
 RUN_SCHEMAS = frozenset({RUN_SCHEMA, *LEGACY_RUN_SCHEMAS})
-EXECUTION_CONTRACT_RUN_SCHEMAS = frozenset(
-    {RUN_SCHEMA, "lex_webarena_full_replay_run/2"}
-)
+EXECUTION_CONTRACT_RUN_SCHEMAS = frozenset({RUN_SCHEMA, "lex_webarena_full_replay_run/2"})
+ACTION_OVERRIDES_SCHEMA = "lex_webarena_replay_action_overrides/1"
+_ACTION_OVERRIDE_FIELDS = frozenset({"script_mode", "wait_for_selector_hidden"})
 ACCEPTANCE_SCHEMA = "lex_trajectory_replay_catalog_acceptance/1"
 LEGACY_ACCEPTANCE_SCHEMAS = frozenset({"lex_webarena_full_acceptance_ledger/1"})
 ACCEPTANCE_SCHEMAS = frozenset({ACCEPTANCE_SCHEMA, *LEGACY_ACCEPTANCE_SCHEMAS})
@@ -108,12 +104,123 @@ def row_source_sites(catalog: dict, row: dict) -> dict[WebArenaSite, str]:
     return source_sites(catalog)
 
 
+def _is_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(char in "0123456789abcdef" for char in value)
+    )
+
+
+def _validate_action_amendments(amendments: object) -> list[dict]:
+    if not isinstance(amendments, list):
+        raise ValueError("action override amendments must be a list")
+    validated: list[dict] = []
+    identities: set[tuple[int, int]] = set()
+    for amendment in amendments:
+        if not isinstance(amendment, dict) or set(amendment) != {
+            "task_id",
+            "action_index",
+            "precondition_action_sha256",
+            "set",
+        }:
+            raise ValueError("action override amendment fields are invalid")
+        task_id = amendment["task_id"]
+        action_index = amendment["action_index"]
+        precondition = amendment["precondition_action_sha256"]
+        updates = amendment["set"]
+        if (
+            type(task_id) is not int
+            or type(action_index) is not int
+            or action_index < 1
+            or not _is_sha256(precondition)
+            or not isinstance(updates, dict)
+            or not updates
+            or not set(updates) <= _ACTION_OVERRIDE_FIELDS
+        ):
+            raise ValueError("action override amendment is invalid")
+        if "script_mode" in updates and updates["script_mode"] != "function_body":
+            raise ValueError("action override script_mode is invalid")
+        hidden = updates.get("wait_for_selector_hidden")
+        if hidden is not None and (not isinstance(hidden, str) or not hidden):
+            raise ValueError("action override hidden selector is invalid")
+        identity = (task_id, action_index)
+        if identity in identities:
+            raise ValueError("action override amendments contain a duplicate action")
+        identities.add(identity)
+        validated.append(amendment)
+    return validated
+
+
+def load_action_overrides(path: Path) -> tuple[dict[int, list[dict]], str]:
+    """Load strict, versioned amendments without consulting a replay result."""
+
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("action overrides must be a regular file")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict) or set(payload) != {"schema", "amendments"}:
+        raise ValueError("action overrides contract fields are invalid")
+    if payload["schema"] != ACTION_OVERRIDES_SCHEMA:
+        raise ValueError("action overrides schema is invalid")
+    amendments = _validate_action_amendments(payload["amendments"])
+    if not amendments:
+        raise ValueError("action overrides must contain at least one amendment")
+    grouped: dict[int, list[dict]] = {}
+    for amendment in amendments:
+        grouped.setdefault(amendment["task_id"], []).append(amendment)
+    return grouped, file_sha256(path)
+
+
+def apply_action_overrides(
+    actions: list[dict], amendments: list[dict], *, task_id: int
+) -> list[dict]:
+    """Apply hash-guarded generic action fields to one immutable source trajectory."""
+
+    result = [dict(action) for action in actions]
+    for amendment in _validate_action_amendments(amendments):
+        if amendment["task_id"] != task_id:
+            raise ValueError(f"task {task_id}: action override belongs to another task")
+        index = amendment["action_index"] - 1
+        if index >= len(result):
+            raise ValueError(f"task {task_id}: action override index is outside the trajectory")
+        original = actions[index]
+        if _json_sha256(original) != amendment["precondition_action_sha256"]:
+            raise ValueError(f"task {task_id}: action override precondition changed")
+        if "script_mode" in amendment["set"] and original.get("action") != "evaluate":
+            raise ValueError(f"task {task_id}: script_mode requires an evaluate action")
+        result[index].update(amendment["set"])
+    return result
+
+
+def catalog_action_overrides(catalog: dict, row: dict) -> list[dict]:
+    """Read and validate the self-contained amendment provenance on a catalog row."""
+
+    provenance = row.get("action_overrides")
+    source_sha256 = catalog.get("action_overrides_sha256")
+    if provenance is None:
+        return []
+    if (
+        not isinstance(provenance, dict)
+        or set(provenance) != {"schema", "source_sha256", "amendments_sha256", "amendments"}
+        or provenance.get("schema") != ACTION_OVERRIDES_SCHEMA
+        or not _is_sha256(source_sha256)
+        or provenance.get("source_sha256") != source_sha256
+        or not _is_sha256(provenance.get("amendments_sha256"))
+    ):
+        raise ValueError(f"task {row.get('task_id')}: action override provenance is invalid")
+    amendments = _validate_action_amendments(provenance["amendments"])
+    if not amendments or _json_sha256(amendments) != provenance["amendments_sha256"]:
+        raise ValueError(f"task {row.get('task_id')}: action override provenance changed")
+    return amendments
+
+
 def load_catalog_inputs(
     catalog_path: Path,
     suite_path: Path,
     site_map_path: Path,
     *,
     accepted_ledger_path: Path | None = None,
+    action_overrides_path: Path | None = None,
 ) -> tuple[dict, dict[WebArenaSite, str], dict[int, object]]:
     """Load and fully validate one frozen catalog input set."""
 
@@ -136,6 +243,16 @@ def load_catalog_inputs(
         accepted_ledger_path
     ):
         raise ValueError("replay catalog is not bound to the accepted ledger")
+    external_overrides: dict[int, list[dict]] | None = None
+    has_override_binding = "action_overrides_sha256" in catalog or any(
+        row.get("action_overrides") is not None for row in rows
+    )
+    if has_override_binding and action_overrides_path is None:
+        raise ValueError("replay catalog requires its external action overrides source")
+    if action_overrides_path is not None:
+        external_overrides, override_sha256 = load_action_overrides(action_overrides_path)
+        if catalog.get("action_overrides_sha256") != override_sha256:
+            raise ValueError("replay catalog is not bound to the action overrides")
     portable_ids = {row["task_id"] for row in rows if row.get("mode") == "portable"}
     if portable_ids != set(tasks):
         raise ValueError("portable suite differs from the catalog")
@@ -153,6 +270,10 @@ def load_catalog_inputs(
                 validate_contract(contract, actions)
         else:
             raise ValueError(f"task {task_id}: unknown catalog mode")
+        amendments = catalog_action_overrides(catalog, row)
+        if external_overrides is not None and amendments != external_overrides.get(task_id, []):
+            raise ValueError(f"task {task_id}: catalog action overrides differ from their source")
+        actions = apply_action_overrides(actions, amendments, task_id=task_id)
         bound = rebind_remote_calls(
             actions, sites, set(TRUSTED_RECORDED_HOSTS), row_source_sites(catalog, row)
         )
@@ -160,6 +281,8 @@ def load_catalog_inputs(
             raise ValueError(f"task {task_id}: bound actions changed")
         if "recorded_response" in row:
             raise ValueError("recorded answers cannot enter a replay catalog")
+    if external_overrides is not None and set(external_overrides) - set(ids):
+        raise ValueError("action overrides contain tasks outside the catalog")
     return catalog, sites, tasks
 
 

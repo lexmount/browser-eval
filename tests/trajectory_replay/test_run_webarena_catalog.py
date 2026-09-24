@@ -6,19 +6,25 @@ from pathlib import Path
 
 import pytest
 
+from harness.trajectory_replay import catalog_runner
+from harness.trajectory_replay.catalog_binding import rebind_catalog
 from harness.trajectory_replay.catalog_contracts import (
     TRUSTED_RECORDED_HOSTS,
+    apply_action_overrides,
+    catalog_action_overrides,
     completed_task_ids,
+    file_sha256,
+    load_action_overrides,
     load_catalog_inputs,
     row_source_sites,
 )
-from harness.trajectory_replay.remote_runtime import rebind_remote_calls
-from harness.trajectory_replay.webarena_replay import _json_sha256
 from harness.trajectory_replay.catalog_runner import (
     _load_task_selection,
     _recover_completed_attempts,
     _task_ids,
 )
+from harness.trajectory_replay.remote_runtime import rebind_remote_calls
+from harness.trajectory_replay.webarena_replay import _json_sha256
 
 
 def test_task_ids_preserve_requested_official_order():
@@ -60,6 +66,102 @@ def test_task_selection_is_schema_bound(tmp_path: Path):
 def _write(path: Path, value: object) -> str:
     path.write_text(json.dumps(value) + "\n", encoding="utf-8")
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _amendment(task_id: int, action_index: int, action: dict, updates: dict) -> dict:
+    return {
+        "task_id": task_id,
+        "action_index": action_index,
+        "precondition_action_sha256": _json_sha256(action),
+        "set": updates,
+    }
+
+
+def test_action_overrides_apply_to_portable_and_direct_source_actions() -> None:
+    evaluate = {"action": "evaluate", "script": "return true;"}
+    fill = {"action": "fill", "target": {"by": "css", "value": "input"}, "text": "x"}
+    portable = apply_action_overrides(
+        [fill],
+        [_amendment(7, 1, fill, {"wait_for_selector_hidden": ".loading-mask"})],
+        task_id=7,
+    )
+    direct = apply_action_overrides(
+        [evaluate],
+        [_amendment(8, 1, evaluate, {"script_mode": "function_body"})],
+        task_id=8,
+    )
+    assert portable[0]["wait_for_selector_hidden"] == ".loading-mask"
+    assert direct[0]["script_mode"] == "function_body"
+    assert "wait_for_selector_hidden" not in fill
+    assert "script_mode" not in evaluate
+
+
+def test_action_overrides_reject_wrong_hash_unknown_field_and_bad_index() -> None:
+    action = {"action": "evaluate", "script": "return true;"}
+    wrong_hash = _amendment(9, 1, action, {"script_mode": "function_body"})
+    wrong_hash["precondition_action_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="precondition"):
+        apply_action_overrides([action], [wrong_hash], task_id=9)
+    with pytest.raises(ValueError, match="invalid"):
+        apply_action_overrides(
+            [action], [_amendment(9, 1, action, {"task_specific_delay": 2})], task_id=9
+        )
+    with pytest.raises(ValueError, match="outside"):
+        apply_action_overrides(
+            [action], [_amendment(9, 2, action, {"script_mode": "function_body"})], task_id=9
+        )
+
+
+@pytest.mark.parametrize(
+    ("catalog", "row_source_sha256"),
+    [
+        ({}, None),
+        ({"action_overrides_sha256": None}, None),
+        ({"action_overrides_sha256": "invalid"}, "invalid"),
+        ({"action_overrides_sha256": "A" * 64}, "A" * 64),
+    ],
+)
+def test_row_action_overrides_require_valid_catalog_source_hash(
+    catalog: dict, row_source_sha256: object
+) -> None:
+    action = {"action": "evaluate", "script": "return true;"}
+    amendments = [_amendment(9, 1, action, {"script_mode": "function_body"})]
+    row = {
+        "task_id": 9,
+        "action_overrides": {
+            "schema": "lex_webarena_replay_action_overrides/1",
+            "source_sha256": row_source_sha256,
+            "amendments_sha256": _json_sha256(amendments),
+            "amendments": amendments,
+        },
+    }
+    with pytest.raises(ValueError, match="provenance is invalid"):
+        catalog_action_overrides(catalog, row)
+
+
+def test_row_action_overrides_reject_empty_amendment_binding() -> None:
+    source_sha256 = "a" * 64
+    row = {
+        "task_id": 9,
+        "action_overrides": {
+            "schema": "lex_webarena_replay_action_overrides/1",
+            "source_sha256": source_sha256,
+            "amendments_sha256": _json_sha256([]),
+            "amendments": [],
+        },
+    }
+    with pytest.raises(ValueError, match="provenance changed"):
+        catalog_action_overrides({"action_overrides_sha256": source_sha256}, row)
+
+
+def test_external_action_overrides_reject_empty_amendment_binding(tmp_path: Path) -> None:
+    path = tmp_path / "empty-overrides.json"
+    _write(
+        path,
+        {"schema": "lex_webarena_replay_action_overrides/1", "amendments": []},
+    )
+    with pytest.raises(ValueError, match="at least one amendment"):
+        load_action_overrides(path)
 
 
 def test_catalog_requires_one_hash_bound_row_in_declared_order(tmp_path: Path) -> None:
@@ -134,6 +236,179 @@ def test_catalog_requires_one_hash_bound_row_in_declared_order(tmp_path: Path) -
     _write(catalog_path, catalog)
     with pytest.raises(ValueError, match="recorded answers"):
         load_catalog_inputs(catalog_path, suite_path, sites_path)
+
+
+def test_catalog_binding_embeds_override_provenance_and_hashes_amended_actions(
+    tmp_path: Path,
+) -> None:
+    sites_path = tmp_path / "sites.json"
+    sites_hash = _write(
+        sites_path,
+        {
+            "schema": "lex_webarena_remote_sites/1",
+            "sites": {
+                "shopping": "https://shopping.example.test",
+                "shopping_admin": "https://admin.example.test/admin",
+                "reddit": "https://reddit.example.test",
+                "gitlab": "https://gitlab.example.test",
+            },
+        },
+    )
+    portable_action = {"action": "fill", "target": {"by": "css", "value": "input"}, "text": "x"}
+    direct_action = {"action": "evaluate", "script": "return true;"}
+    suite_path = tmp_path / "suite.json"
+    suite_hash = _write(
+        suite_path,
+        {
+            "schema": "lex_browser_use_tasks/4",
+            "tasks": [
+                {
+                    "id": "webarena-0",
+                    "title": "Portable",
+                    "difficulty": "simple",
+                    "tags": ["webarena"],
+                    "trajectory": {
+                        "schema": "lex_browser_trajectory/1",
+                        "actions": [portable_action],
+                    },
+                    "assertions": [],
+                    "evaluator": {"kind": "webarena_verified", "task_id": 0, "revision": 2},
+                    "environment": {"kind": "webarena_verified"},
+                    "ground_truth": {
+                        "oracle": "webarena_verified",
+                        "expected_actions": ["fill"],
+                    },
+                    "source": {"url": "https://example.test"},
+                }
+            ],
+        },
+    )
+    catalog_path = tmp_path / "catalog.json"
+    _write(
+        catalog_path,
+        {
+            "schema": "lex_webarena_replay_catalog/1",
+            "task_ids": [0, 1],
+            "site_map_sha256": sites_hash,
+            "portable_suite_sha256": suite_hash,
+            "rows": [
+                {
+                    "task_id": 0,
+                    "mode": "portable",
+                    "bound_calls_sha256": _json_sha256([portable_action]),
+                },
+                {
+                    "task_id": 1,
+                    "mode": "direct",
+                    "source_actions": [direct_action],
+                    "bound_calls_sha256": _json_sha256([direct_action]),
+                },
+            ],
+        },
+    )
+    overrides_path = tmp_path / "overrides.json"
+    _write(
+        overrides_path,
+        {
+            "schema": "lex_webarena_replay_action_overrides/1",
+            "amendments": [
+                _amendment(0, 1, portable_action, {"wait_for_selector_hidden": ".loading-mask"}),
+                _amendment(1, 1, direct_action, {"script_mode": "function_body"}),
+            ],
+        },
+    )
+
+    rebound = rebind_catalog(
+        catalog_path, suite_path, sites_path, action_overrides_path=overrides_path
+    )
+    rows = {row["task_id"]: row for row in rebound["rows"]}
+    assert rebound["action_overrides_sha256"] == file_sha256(overrides_path)
+    assert rows[0]["bound_calls_sha256"] == _json_sha256(
+        [{**portable_action, "wait_for_selector_hidden": ".loading-mask"}]
+    )
+    assert rows[1]["bound_calls_sha256"] == _json_sha256(
+        [{**direct_action, "script_mode": "function_body"}]
+    )
+    assert rows[0]["action_overrides"]["source_sha256"] == file_sha256(overrides_path)
+
+    rebound_path = tmp_path / "rebound.json"
+    _write(rebound_path, rebound)
+    loaded, _, _ = load_catalog_inputs(
+        rebound_path, suite_path, sites_path, action_overrides_path=overrides_path
+    )
+    assert loaded["rows"] == rebound["rows"]
+
+    for top_hash in ("missing", None, "invalid"):
+        changed = json.loads(json.dumps(rebound))
+        if top_hash == "missing":
+            changed.pop("action_overrides_sha256")
+        else:
+            changed["action_overrides_sha256"] = top_hash
+        _write(rebound_path, changed)
+        with pytest.raises(ValueError, match="external action overrides source"):
+            load_catalog_inputs(rebound_path, suite_path, sites_path)
+        with pytest.raises(ValueError, match="not bound to the action overrides"):
+            load_catalog_inputs(
+                rebound_path,
+                suite_path,
+                sites_path,
+                action_overrides_path=overrides_path,
+            )
+
+    _write(rebound_path, rebound)
+    with pytest.raises(ValueError, match="rebind requires its external action overrides"):
+        rebind_catalog(rebound_path, suite_path, sites_path)
+
+    wrong_overrides_path = tmp_path / "wrong-overrides.json"
+    wrong_overrides = json.loads(overrides_path.read_text(encoding="utf-8"))
+    wrong_overrides["amendments"].reverse()
+    _write(wrong_overrides_path, wrong_overrides)
+    with pytest.raises(ValueError, match="not bound to the action overrides"):
+        load_catalog_inputs(
+            rebound_path,
+            suite_path,
+            sites_path,
+            action_overrides_path=wrong_overrides_path,
+        )
+
+
+@pytest.mark.parametrize("top_hash", ["missing", None])
+def test_runner_rejects_row_overrides_without_external_version_binding(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, top_hash: object
+) -> None:
+    catalog = {"rows": [{"task_id": 9, "action_overrides": {"amendments": []}}]}
+    if top_hash != "missing":
+        catalog["action_overrides_sha256"] = top_hash
+    monkeypatch.setattr(catalog_runner, "verify_webarena_runtime_source", lambda: None)
+    monkeypatch.setattr(
+        catalog_runner,
+        "load_catalog_inputs",
+        lambda *args, **kwargs: (catalog, {}, {}),
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run",
+            "--catalog",
+            str(tmp_path / "catalog.json"),
+            "--portable-suite",
+            str(tmp_path / "suite.json"),
+            "--site-map",
+            str(tmp_path / "sites.json"),
+            "--site-reset-receipt",
+            str(tmp_path / "receipt.json"),
+            "--environment-profile",
+            str(tmp_path / "environment.json"),
+            "--binary",
+            str(tmp_path / "browser"),
+            "--backend",
+            "playwright",
+            "--output",
+            str(tmp_path / "output"),
+        ],
+    )
+    with pytest.raises(ValueError, match="requires its versioned action overrides"):
+        catalog_runner.main()
 
 
 def test_rows_can_rebind_accepted_actions_from_distinct_source_deployments() -> None:

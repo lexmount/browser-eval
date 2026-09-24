@@ -16,6 +16,8 @@ from urllib.parse import urlsplit
 from harness.trajectory_replay.catalog_contracts import (
     RUN_SCHEMA,
     TRUSTED_RECORDED_HOSTS,
+    apply_action_overrides,
+    catalog_action_overrides,
     completed_task_ids,
     file_sha256,
     load_catalog_inputs,
@@ -48,7 +50,9 @@ def _task_ids(
     if selected:
         if task_from is not None or task_to is not None:
             raise ValueError("explicit task IDs cannot be combined with a task range")
-        if len(set(selected)) != len(selected) or any(task_id not in declared for task_id in selected):
+        if len(set(selected)) != len(selected) or any(
+            task_id not in declared for task_id in selected
+        ):
             raise ValueError("explicit task IDs must be unique catalog members")
         expected = [task_id for task_id in declared if task_id in set(selected)]
         if selected != expected:
@@ -139,6 +143,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--catalog", type=Path, required=True)
     parser.add_argument("--portable-suite", type=Path, required=True)
+    parser.add_argument("--action-overrides", type=Path)
     parser.add_argument("--site-map", type=Path, required=True)
     parser.add_argument("--site-reset-receipt", type=Path, required=True)
     parser.add_argument("--environment-profile", type=Path, required=True)
@@ -171,8 +176,16 @@ def main() -> None:
         if str(args.cowagent) not in sys.path:
             sys.path.insert(0, str(args.cowagent))
     catalog, sites, portable_tasks = load_catalog_inputs(
-        args.catalog, args.portable_suite, args.site_map
+        args.catalog,
+        args.portable_suite,
+        args.site_map,
+        action_overrides_path=args.action_overrides,
     )
+    if args.action_overrides is None and (
+        catalog.get("action_overrides_sha256") is not None
+        or any(row.get("action_overrides") is not None for row in catalog.get("rows") or [])
+    ):
+        raise ValueError("catalog requires its versioned action overrides input")
     validate_environment_preparation(args.site_reset_receipt, args.environment_profile)
     environment_profile = json.loads(args.environment_profile.read_text(encoding="utf-8"))
     corrections = load_corrections()
@@ -217,6 +230,8 @@ def main() -> None:
             file_sha256(args.task_selection) if args.task_selection is not None else None
         ),
     }
+    if args.action_overrides is not None:
+        binding["action_overrides_sha256"] = file_sha256(args.action_overrides)
     binding_path = args.output / "inputs.json"
     if binding_path.exists():
         if json.loads(binding_path.read_text(encoding="utf-8")) != binding:
@@ -254,6 +269,11 @@ def main() -> None:
                     list(portable_tasks[task_id].tool_calls)
                     if frozen["mode"] == "portable"
                     else frozen["source_actions"]
+                )
+                source_actions = apply_action_overrides(
+                    source_actions,
+                    catalog_action_overrides(catalog, frozen),
+                    task_id=task_id,
                 )
                 row = {
                     **frozen,
