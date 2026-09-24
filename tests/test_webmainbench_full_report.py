@@ -58,6 +58,8 @@ def test_full_report_renders_six_way_details_and_failure_evidence(tmp_path: Path
     (tmp_path / "references/case-1.md").write_text("answer")
     profile = {"providers": providers, "versions": {provider: "1.0" for provider in providers},
                "source_dataset_sha256": "a" * 64, "official_scorer_commit": "b" * 40}
+    profile["versions"]["moli"] = "1.0'</script><script>bad()"
+    profile["versions"]["moli-fixed"] = "1.1'</script><script>bad()"
     content_keys = ("home_title", "home_lead", "score_note", "latency_note", "all_latency_note", "diagnostic_note", "infographic_caption",
                     "dataset_lead", "analysis_lead", "method_lead", "method_input",
                     "method_scoring", "method_correction", "guide_lead", "guide_scope",
@@ -84,6 +86,9 @@ def test_full_report_renders_six_way_details_and_failure_evidence(tmp_path: Path
     (tmp_path / "physical-attempts.jsonl").write_text("".join(json.dumps(row) + "\n" for row in physical), encoding="utf-8")
     generate_webmainbench_full(tmp_path, dataset, rows, summaries, profile)
     subprocess.run(["node", "--check", str(tmp_path / "assets/report.js")], check=True)
+    report_js = (tmp_path / "assets/report.js").read_text(encoding="utf-8")
+    assert "</script><script>bad()" not in report_js
+    assert "\\u003c/script\\u003e\\u003cscript\\u003ebad()" in report_js
     home = check_presentation((tmp_path / "index.html").read_text(encoding="utf-8"))
     assert len(home.select('td[data-metric-direction="max"]')) == 36
     assert len(home.select('td[data-metric-direction="max"] .comparison-winner')) == 6

@@ -138,7 +138,7 @@ def check(root: Path) -> None:
             if (hashlib.sha256(contained_path(root, filename).read_bytes()).hexdigest() != asset['sha256']
                     or not guide.select_one('img[src="' + filename + '"]')):
                 raise ValueError('Bound error analysis illustration missing or changed')
-            if asset['name'] == 'overview-moli-1.1.10.png':
+            if asset.get('role') == 'overview':
                 overview_claims = asset.get('claims')
     summaries = json.loads((root / 'score-summaries.json').read_text(encoding='utf-8'))
     if (not overview_claims or overview_claims.get('scores_percent') != {
@@ -148,8 +148,10 @@ def check(root: Path) -> None:
     if correction_binding.exists() and not guide.select_one('#fixture-correction'):
         raise ValueError('Corrected case explanation missing')
     audit = guide.select_one('#content-audit')
+    # The bound pre-fix audit contains 604 concrete observations across all 545 pages.
+    audit_observation_count = 604
     if (not audit or '545/545' not in audit.get_text(' ', strip=True)
-            or '604' not in audit.get_text(' ', strip=True)
+            or str(audit_observation_count) not in audit.get_text(' ', strip=True)
             or '修复前候选输出' not in audit.get_text(' ', strip=True)):
         raise ValueError('Full content-audit scope, findings or limitation missing')
     for page in (home, guide):

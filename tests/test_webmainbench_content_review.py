@@ -26,7 +26,8 @@ class ContentReviewTests(unittest.TestCase):
             item = {'path': str(packet), 'sha256': sha(packet)}
             review = {'cases': [{'case_id': 'one', 'page_purpose': 'article',
                                  'expected_content': 'body', 'verdict': 'acceptable',
-                                 'coverage_evidence': ['beginning', 'ending'], 'issues': []}]}
+                                 'coverage_evidence': ['beginning', 'ending'],
+                                 'reference_assessment': 'reference covers the body', 'issues': []}]}
             write(work / 'reviews' / packet.name, review)
             with patch('scripts.review_webmainbench_content.subprocess.run') as call:
                 self.assertEqual(run_packet(item, work, 'model', 'codex'), review)
@@ -53,7 +54,17 @@ class ContentReviewTests(unittest.TestCase):
             review = {'cases': [{'case_id': 'one', 'page_purpose': 'article',
                                  'expected_content': 'body', 'verdict': 'defect',
                                  'coverage_evidence': ['beginning', 'ending'],
+                                 'reference_assessment': 'reference covers the body',
                                  'issues': [{'description': 'problem', 'source_locator': 'p',
                                              'output_quote': 'invented text'}]}]}
             with self.assertRaisesRegex(ValueError, 'not literal'):
                 validate_review(review, packet)
+
+    def test_review_requires_reference_assessment(self):
+        packet = {'cases': [{'case_id': 'one'}]}
+        review = {'cases': [{'case_id': 'one', 'page_purpose': 'article',
+                             'expected_content': 'body', 'verdict': 'acceptable',
+                             'coverage_evidence': ['beginning', 'ending'],
+                             'reference_assessment': '', 'issues': []}]}
+        with self.assertRaisesRegex(ValueError, 'source-grounded'):
+            validate_review(review, packet)

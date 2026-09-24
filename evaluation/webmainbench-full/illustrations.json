@@ -3,6 +3,7 @@
   "assets": [
     {
       "name": "overview-moli-1.1.10.png",
+      "role": "overview",
       "sha256": "d9487d0e761b9187e09fd934f63f10371e78738939b54d47221037130bae6c53",
       "generator": "ImageGen",
       "scope": "six methods after certified origin correction",
@@ -23,6 +24,7 @@
     },
     {
       "name": "error-mechanisms.png",
+      "role": "error-mechanisms",
       "sha256": "c53b86571b5c20976f9a54ccfe33d065111732399fceeb4a148c74c520d3d843",
       "generator": "ImageGen",
       "scope": "six methods after certified origin correction"

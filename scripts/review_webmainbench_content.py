@@ -109,7 +109,8 @@ def validate_review(result, packet):
     if len(cases) != len(expected) or {r['case_id'] for r in cases} != set(expected):
         raise ValueError('Review must cover its exact page inventory')
     for row in cases:
-        if not row['page_purpose'] or not row['expected_content'] or len(row['coverage_evidence']) < 2:
+        if (not row['page_purpose'] or not row['expected_content']
+                or not row.get('reference_assessment') or len(row['coverage_evidence']) < 2):
             raise ValueError('Review lacks source-grounded coverage observations')
         if row['verdict'] != 'acceptable' and not row['issues']:
             raise ValueError('Defect requires concrete evidence')
