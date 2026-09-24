@@ -6,7 +6,11 @@ import argparse
 import os
 from pathlib import Path
 
-from harness.trajectory_replay.catalog_contracts import validate_catalog_report_profile
+from harness.trajectory_replay.catalog_action_audit import validate_catalog_action_audit
+from harness.trajectory_replay.catalog_contracts import (
+    repository_root,
+    validate_catalog_report_profile,
+)
 from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
 
 
@@ -23,9 +27,39 @@ def main() -> None:
         default=Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval"))
         / "evidence/current",
     )
+    parser.add_argument(
+        "--action-overrides",
+        type=Path,
+        default=Path("evaluation/trajectory-replay/webarena-verified-full/action-overrides.json"),
+    )
+    parser.add_argument(
+        "--action-overrides-audit",
+        type=Path,
+        default=Path(
+            "evaluation/trajectory-replay/webarena-verified-full/action-overrides-audit.json"
+        ),
+    )
     args = parser.parse_args()
     verify_webarena_runtime_source()
     profile = validate_catalog_report_profile(args.profile, args.data_home)
+    root = repository_root(args.profile)
+    action_overrides = (
+        args.action_overrides
+        if args.action_overrides.is_absolute()
+        else root / args.action_overrides
+    )
+    action_overrides_audit = (
+        args.action_overrides_audit
+        if args.action_overrides_audit.is_absolute()
+        else root / args.action_overrides_audit
+    )
+    evidence_root = args.data_home / profile["evidence_root"]
+    validate_catalog_action_audit(
+        action_overrides_audit,
+        evidence_root / profile["accepted_catalog"]["path"],
+        evidence_root / profile["accepted_portable_suite"]["path"],
+        action_overrides,
+    )
     print(profile["publication"]["share_url"])
 
 

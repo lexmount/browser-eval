@@ -1,0 +1,134 @@
+{
+  "schema": "lex_webarena_replay_action_override_audit/1",
+  "catalog_sha256": "7d440e3f075e5d176c4a84588555fc539b34ee87db72c3c5d86fe7c082600dc1",
+  "portable_suite_sha256": "a53a10358cadc59ed6896ffee7c9aa1a8d3308d5a23c8279384f1dd1c079a594",
+  "evaluate_action_count": 791,
+  "function_body_findings": [
+    {
+      "task_id": 28,
+      "mode": "direct",
+      "action_index": 3,
+      "precondition_action_sha256": "8bde53ce9d3e142a8666c0454be9a7cadd89990b1d967f09c13fa858aff9de1a"
+    },
+    {
+      "task_id": 284,
+      "mode": "direct",
+      "action_index": 3,
+      "precondition_action_sha256": "81d1f17b0f4324eae2288a91e72e1ec5944454aa669b4ccf6ffd5cd41d2d7227"
+    },
+    {
+      "task_id": 464,
+      "mode": "direct",
+      "action_index": 3,
+      "precondition_action_sha256": "cde2b999aee833627b12ef6308d2863576b3113f121840fb465cefbb28b12298"
+    },
+    {
+      "task_id": 464,
+      "mode": "direct",
+      "action_index": 5,
+      "precondition_action_sha256": "34b3abca537d968a7863b498dbd1209eab3b681a94ee58f47d5beb3379c12f4d"
+    },
+    {
+      "task_id": 470,
+      "mode": "direct",
+      "action_index": 2,
+      "precondition_action_sha256": "5d5fb246799936030abcc1e6df87b0c5dd63225d79ad09efa50f86309d4ce022"
+    },
+    {
+      "task_id": 470,
+      "mode": "direct",
+      "action_index": 4,
+      "precondition_action_sha256": "cb0ec091ca536361e3010c0fd963c9a7a0db6282d066eebfe4c7e5439d4838e7"
+    },
+    {
+      "task_id": 475,
+      "mode": "direct",
+      "action_index": 3,
+      "precondition_action_sha256": "a1d771740b706d502e67b1b65b5f00336d15d53dfabdbdb01cb96df765ba9b2d"
+    },
+    {
+      "task_id": 475,
+      "mode": "direct",
+      "action_index": 4,
+      "precondition_action_sha256": "7380204d149036b699e85e0390f614ac8e0af042520d0636558b561b92cbe2bd"
+    },
+    {
+      "task_id": 506,
+      "mode": "direct",
+      "action_index": 10,
+      "precondition_action_sha256": "323eee9e3108f1c6338dc06089e409c059ac5b5e03d28b8b1c58dfcc0faa901f"
+    },
+    {
+      "task_id": 528,
+      "mode": "direct",
+      "action_index": 2,
+      "precondition_action_sha256": "e03ef9d946b19f0cb2d4a41add4ffd49f8a706ce7f0b2eb8520b77db09958eca"
+    },
+    {
+      "task_id": 531,
+      "mode": "direct",
+      "action_index": 2,
+      "precondition_action_sha256": "e03ef9d946b19f0cb2d4a41add4ffd49f8a706ce7f0b2eb8520b77db09958eca"
+    },
+    {
+      "task_id": 532,
+      "mode": "direct",
+      "action_index": 2,
+      "precondition_action_sha256": "e03ef9d946b19f0cb2d4a41add4ffd49f8a706ce7f0b2eb8520b77db09958eca"
+    },
+    {
+      "task_id": 576,
+      "mode": "direct",
+      "action_index": 4,
+      "precondition_action_sha256": "79a89255b630ffef60066fcea63381e419fc8bf33699c7cb30e1b5418c2eb6be"
+    },
+    {
+      "task_id": 576,
+      "mode": "direct",
+      "action_index": 6,
+      "precondition_action_sha256": "5ec0f3b20f6c43a1c447cf739b92e06a7df2e27eecb93b81c03cf32a839110a5"
+    },
+    {
+      "task_id": 576,
+      "mode": "direct",
+      "action_index": 7,
+      "precondition_action_sha256": "32b836cd6899d40670d28e285cd72adb324d575db525f9cff9fd5cef09b118fe"
+    },
+    {
+      "task_id": 576,
+      "mode": "direct",
+      "action_index": 9,
+      "precondition_action_sha256": "1b77cbf6041bdcb42c4b6f90831610a3cca4df22127432c8dfa561b46bc1dcb6"
+    },
+    {
+      "task_id": 676,
+      "mode": "direct",
+      "action_index": 2,
+      "precondition_action_sha256": "7ce56844a684a94f42b04667b2c9b3ac0c8ff9488beb0c710e2aee11868f4d6a"
+    },
+    {
+      "task_id": 676,
+      "mode": "direct",
+      "action_index": 4,
+      "precondition_action_sha256": "54eaf68c87c52061c70107527f0718e375ec4c142e61df61fee19c1b6099b353"
+    },
+    {
+      "task_id": 725,
+      "mode": "direct",
+      "action_index": 3,
+      "precondition_action_sha256": "e800c4f5df09041fbdedf98fc2e6d627541ab5ea05e84e93e9df0870ef90d16a"
+    },
+    {
+      "task_id": 727,
+      "mode": "direct",
+      "action_index": 3,
+      "precondition_action_sha256": "ef40323ab40edba820095dbb7e50c4fe63f4af071c4fee3e67c1074a20192e03"
+    },
+    {
+      "task_id": 728,
+      "mode": "direct",
+      "action_index": 3,
+      "precondition_action_sha256": "2b0eb9ceee5ccd8fb44b1567973933b1375a84ca0a696c2a0d56f5b6a5181b1b"
+    }
+  ]
+}
