@@ -20,12 +20,24 @@ from harness.trajectory_replay.catalog_runner import _recover_completed_attempts
 def test_task_ids_preserve_requested_official_order():
     assert _task_ids([3, 7, 11, 20], 7, 20) == [7, 11, 20]
     assert _task_ids([3, 7, 11, 20], None, None) == [3, 7, 11, 20]
+    assert _task_ids([3, 7, 11, 20], None, None, [7, 20]) == [7, 20]
 
 
 @pytest.mark.parametrize("bounds", [(-1, 1), (2, 1), (0, 812)])
 def test_task_ids_reject_out_of_catalog_range(bounds):
     with pytest.raises(ValueError, match="catalog"):
         _task_ids([0, 1, 2], *bounds)
+
+
+@pytest.mark.parametrize("selected", [[2, 1], [1, 1], [1, 4]])
+def test_task_ids_reject_invalid_explicit_repairs(selected):
+    with pytest.raises(ValueError, match="task IDs"):
+        _task_ids([0, 1, 2], None, None, selected)
+
+
+def test_task_ids_reject_mixed_range_and_explicit_selection():
+    with pytest.raises(ValueError, match="cannot be combined"):
+        _task_ids([0, 1, 2], 0, 2, [1])
 
 
 def _write(path: Path, value: object) -> str:

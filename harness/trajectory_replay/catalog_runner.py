@@ -35,9 +35,23 @@ def _append(path: Path, row: dict) -> None:
         os.fsync(target.fileno())
 
 
-def _task_ids(declared: list[int], task_from: int | None, task_to: int | None) -> list[int]:
+def _task_ids(
+    declared: list[int],
+    task_from: int | None,
+    task_to: int | None,
+    selected: list[int] | None = None,
+) -> list[int]:
     if not declared or len(set(declared)) != len(declared):
         raise ValueError("catalog task order is empty or contains duplicates")
+    if selected:
+        if task_from is not None or task_to is not None:
+            raise ValueError("explicit task IDs cannot be combined with a task range")
+        if len(set(selected)) != len(selected) or any(task_id not in declared for task_id in selected):
+            raise ValueError("explicit task IDs must be unique catalog members")
+        expected = [task_id for task_id in declared if task_id in set(selected)]
+        if selected != expected:
+            raise ValueError("explicit task IDs must follow catalog order")
+        return selected
     lower = declared[0] if task_from is None else task_from
     upper = declared[-1] if task_to is None else task_to
     if lower not in declared or upper not in declared:
@@ -88,6 +102,12 @@ def main() -> None:
     parser.add_argument("--action-timeout-ms", type=int, default=30_000)
     parser.add_argument("--task-from", type=int)
     parser.add_argument("--task-to", type=int)
+    parser.add_argument(
+        "--task-id",
+        type=int,
+        action="append",
+        help="replay only these catalog tasks, supplied once each in catalog order",
+    )
     args = parser.parse_args()
     if args.action_timeout_ms < 1:
         raise ValueError("action timeout must be positive")
@@ -103,7 +123,7 @@ def main() -> None:
     corrections = load_corrections()
     benchmark = remote_benchmark(sites)
     origins = {f"{urlsplit(url).scheme}://{urlsplit(url).netloc}" for url in sites.values()}
-    ids = _task_ids(list(catalog["task_ids"]), args.task_from, args.task_to)
+    ids = _task_ids(list(catalog["task_ids"]), args.task_from, args.task_to, args.task_id)
     os.umask(0o077)
     args.output.mkdir(parents=True, exist_ok=True)
     binding = {
