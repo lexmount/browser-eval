@@ -36,7 +36,9 @@ class ReportChangesTests(unittest.TestCase):
                     and 'wcxb_frozen_html_to_markdown' not in row.get('comparison_kinds', [])
                     and 'moli_historical_failure_retest' not in row.get('comparison_kinds', [])
                     and 'moli_process_tree_resource_profile' not in row.get('comparison_kinds', [])]
-        self.assertEqual(len(releases), 20)
+        self.assertEqual(len(releases), 21)
+        self.assertEqual(releases[0]['id'],
+                         '2026-09-24-dynamic-100-moli-119-local-audit')
         for row in releases:
             english = row['i18n']['en']
             for key in ('title', 'summary'):

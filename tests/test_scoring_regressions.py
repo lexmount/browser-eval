@@ -63,6 +63,7 @@ class ScoringRegressionTests(unittest.TestCase):
                 metrics = score_attempt(
                     row["case"], row["artifact"].encode(), ok=row["ok"],
                     metadata=row.get("metadata"), title=row.get("title"),
+                    final_url=row.get("final_url"),
                 )
                 verdict = task_passed(
                     row["ok"], metrics, row["case"].get("task_kind", "body")
@@ -78,9 +79,18 @@ class ScoringRegressionTests(unittest.TestCase):
                   "semantic_requirement_location", "supplemental_content_scope",
                   "blocked_page_detection", "completion_contract",
                   "layout_sensitive_reference_fact", "named_link_label_validity",
-                  "semantic_inline_boundaries", "markdown_relative_autolink_visibility"}
+                  "semantic_inline_boundaries", "markdown_relative_autolink_visibility",
+                  "stable_contract_body_conjunction", "rule_unresolved_exclusion",
+                  "body_region_structure_priority"}
+        paired.add("source_observed_record_threshold")
+        paired.add("dynamic_page_identity_alignment")
+        paired.add("dynamic_page_query_identity")
+        paired.add("declared_document_language_vs_visible_language")
+        paired.add("frozen_source_name_link_pair_membership")
         paired.add("markdown_table_separator_layout")
         paired.add("wikimedia_thumbnail_host_equivalence")
+        paired.add("source_owned_stable_text_scope")
+        paired.add("inline_emphasis_in_structured_fields")
         for root_cause in paired:
             self.assertEqual(root_modes.get(root_cause), {"false-positive", "false-negative"})
 

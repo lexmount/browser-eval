@@ -8,11 +8,13 @@ from harness.web_fetch.metrics import (
 
 class MetricsTest(unittest.TestCase):
     def test_only_pure_markdown_table_rules_are_layout(self):
-        divider = 'December 2007\n| :---- | | ---: | | --- |\n| Sun | Mon | Tue |'
+        divider = 'December 2007\n| Sun | Mon | Tue |\n| :---- | ---: | --- |'
         self.assertEqual(normalize_for_match(divider), 'december 2007 sun mon tue')
         # A mixed row is data, and a non-table prose separator is retained.
         self.assertEqual(normalize_for_match('Alpha\n| --- | BAD | --- |\nBeta'),
-                         'alpha --- bad --- beta')
+                         'alpha | --- | bad | --- | beta')
+        self.assertEqual(normalize_for_match('Company | Address | Contact'),
+                         'company | address | contact')
         self.assertEqual(normalize_for_match('Alpha\n---\nBeta'), 'alpha --- beta')
 
     def test_adjacent_markdown_links_keep_distinct_label_boundaries(self):

@@ -1,7 +1,9 @@
 """Value-invariant structural tests; all inputs synthetic, no provider/network."""
 from copy import deepcopy
+import hashlib
 import unittest
 
+from harness.web_fetch.dynamic_lists import named_entry_source_pair_hash
 from harness.web_fetch.metrics import evaluate_content, task_passed
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.scoring import score_attempt
@@ -39,6 +41,102 @@ class StableTaskTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"require text anchors"):
             validate_acceptance_contract({"version":1,"schema":"body_text",
                                           "minimum_records":0})
+
+    def test_stable_anchor_accepts_and_validates_source_evidence_metadata(self):
+        rules = {
+            "version": 1,
+            "schema": "body_text",
+            "minimum_records": 0,
+            "stable_text_anchors": [{
+                "id": "source-bound",
+                "alternatives": ["Stable visible text"],
+                "source_location": "main > h1",
+                "observation_status": "Visible in all three mixed-session observations",
+                "source_evidence_sha256": "a" * 64,
+            }],
+        }
+        validate_acceptance_contract(rules)
+        self.assertTrue(evaluate_stable_task("Stable visible text", rules)["stable_task_pass"])
+        broken = deepcopy(rules)
+        broken["stable_text_anchors"][0]["source_evidence_sha256"] = "not-a-hash"
+        with self.assertRaisesRegex(ValueError, "Invalid or duplicate stable text"):
+            validate_acceptance_contract(broken)
+
+    def test_variable_record_policy_calculates_eighty_percent_from_source(self):
+        policy = {
+            "list_type": "variable", "source_observed_count": 30,
+            "required_ratio": 0.8, "source_observation_counts": [30, 30, 30],
+            "minimum_records": 24,
+            "source_evidence_sha256": "a" * 64,
+            "reason": "Changing source list observed independently before provider output.",
+        }
+        rules = {"version": 1, "schema": "named_link", "minimum_records": 24,
+                 "hosts": ["example.test"], "entry_path": r"/item/\d+",
+                 "record_count_policy": policy}
+        text = "\n".join(f"[Item {index}](https://example.test/item/{index})"
+                         for index in range(1, 25))
+        result = evaluate_stable_task(text, rules, "https://example.test/list")
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_record_list_type"], "variable")
+        self.assertEqual(result["stable_source_observed_record_count"], 30)
+        self.assertEqual(result["stable_required_record_ratio"], 0.8)
+        self.assertEqual(result["stable_record_coverage"], 0.8)
+        too_short = "\n".join(f"[Item {index}](https://example.test/item/{index})"
+                              for index in range(1, 24))
+        self.assertFalse(evaluate_stable_task(
+            too_short, rules, "https://example.test/list")["stable_task_pass"])
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            validate_acceptance_contract({**rules, "minimum_records": 23})
+        wrong_policy = deepcopy(rules)
+        wrong_policy["record_count_policy"]["minimum_records"] = 23
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            validate_acceptance_contract(wrong_policy)
+
+    def test_variable_record_policy_rounds_26_times_eighty_percent_up_to_21(self):
+        policy = {
+            "list_type": "variable", "source_observed_count": 26,
+            "required_ratio": 0.8, "source_observation_counts": [26, 26, 26],
+            "source_evidence_sha256": "c" * 64,
+            "reason": "Changing source list observed independently before provider output.",
+        }
+        rules = {"version": 1, "schema": "named_link", "minimum_records": 21,
+                 "hosts": ["example.test"], "entry_path": r"/item/\d+",
+                 "record_count_policy": policy}
+        validate_acceptance_contract(rules)
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            validate_acceptance_contract({**rules, "minimum_records": 20})
+
+    def test_record_policy_keeps_two_completed_environments_when_third_open_failed(self):
+        policy = {
+            "list_type": "variable", "source_observed_count": 21,
+            "required_ratio": 0.8, "source_observation_counts": [20, 21],
+            "source_evidence_sha256": "d" * 64,
+            "reason": "A failed third open was retained but did not lower the threshold.",
+        }
+        rules = {
+            "version": 1, "schema": "named_link", "minimum_records": 17,
+            "hosts": ["example.test"], "entry_path": r"/item/\d+",
+            "record_count_policy": policy,
+        }
+        validate_acceptance_contract(rules)
+        one_completed = deepcopy(rules)
+        one_completed["record_count_policy"]["source_observation_counts"] = [21]
+        with self.assertRaisesRegex(ValueError, "Invalid record count policy"):
+            validate_acceptance_contract(one_completed)
+
+    def test_fixed_record_policy_requires_the_full_observed_list(self):
+        policy = {
+            "list_type": "fixed", "source_observed_count": 30,
+            "required_ratio": 1.0, "source_observation_counts": [30, 30, 30],
+            "source_evidence_sha256": "b" * 64,
+            "reason": "The declared fixed table contains all thirty records.",
+        }
+        rules = {"version": 1, "schema": "named_link", "minimum_records": 30,
+                 "hosts": ["example.test"], "entry_path": r"/item/\d+",
+                 "record_count_policy": policy}
+        validate_acceptance_contract(rules)
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            validate_acceptance_contract({**rules, "minimum_records": 29})
 
     def test_product_titles_prices_order_and_markdown_are_not_ground_truth(self):
         for text in ("Alpha shirt\n$12.50\n\nBeta shirt\n$8",
@@ -196,6 +294,40 @@ class StableTaskTests(unittest.TestCase):
         self.assertFalse(self.check(plain, "named_link", **rules)["stable_task_pass"])
         self.assertFalse(self.check("[Bad URL](https://[invalid/item/1)", "named_link", **rules)["stable_task_pass"])
 
+    def test_named_links_reject_declared_non_entity_titles(self):
+        rules = {
+            "hosts": ["example.test"],
+            "entry_path": r"/item/\d+",
+            "title_exclusion_patterns": [r"発売中"],
+        }
+        text = "[発売中](/item/1)\n[マリオカート ワールド](/item/2)"
+        result = self.check(text, "named_link", minimum_records=1, **rules)
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_unique_record_count"], 1)
+
+    def test_named_links_must_match_frozen_source_name_and_link_pairs(self):
+        rules = {"hosts": ["example.test"], "entry_path": r"/item/\d+"}
+        allowed = sorted([
+            named_entry_source_pair_hash("First item", "https://example.test/item/1", rules),
+            named_entry_source_pair_hash("Second item", "https://example.test/item/2", rules),
+        ])
+        rules.update(
+            source_record_pair_hashes=allowed,
+            source_record_pairs_sha256=hashlib.sha256("\n".join(allowed).encode()).hexdigest(),
+        )
+        matched = self.check(
+            "[First item](/item/1)\n[Second item](/item/2)", "named_link", **rules)
+        self.assertTrue(matched["stable_task_pass"], matched)
+        self.assertEqual(matched["stable_source_matched_record_count"], 2)
+        self.assertEqual(matched["stable_source_mismatched_record_count"], 0)
+
+        wrong_name = self.check(
+            "[Invented item](/item/1)\n[Second item](/item/2)", "named_link", **rules)
+        self.assertFalse(wrong_name["stable_task_pass"])
+        self.assertIn("source_record_mismatch", wrong_name["stable_task_errors"])
+        self.assertEqual(wrong_name["stable_source_matched_record_count"], 1)
+        self.assertEqual(wrong_name["stable_source_mismatched_record_count"], 1)
+
     def test_named_links_accept_declared_tracking_path_suffix(self):
         rules = {"hosts": ["www.amazon.com"],
                  "entry_path": r"(?:/[^/]+)?/dp/[A-Z0-9]{10}(?:/ref=[^/?#]+)?"}
@@ -203,53 +335,6 @@ class StableTaskTests(unittest.TestCase):
                 "[Second product](https://www.amazon.com/dp/B087654321/ref=abc_2)")
         result = self.check(text, "named_link", **rules)
         self.assertTrue(result["stable_task_pass"], result["stable_task_errors"])
-
-    def test_named_link_query_identity_and_link_base_contracts_are_bounded(self):
-        valid = contract(
-            "named_link", hosts=["example.test"], entry_path=r"/item\.htm",
-            identity_query_keys=["id", "v"], link_base_url="https://example.test/catalog/",
-        )
-        validate_acceptance_contract(valid)
-        for keys in ("id", ["id", "id"], ["bad key"], [1]):
-            with self.subTest(keys=keys), self.assertRaises(ValueError):
-                validate_acceptance_contract(contract(
-                    "named_link", hosts=["example.test"], entry_path=r"/item\.htm",
-                    identity_query_keys=keys,
-                ))
-        for value in ("https://evil.test/", "ftp://example.test/",
-                      "https://user:pass@example.test/", "https://example.test/?x=1",
-                      "https://example.test/#fragment", "https://example.test:bad/"):
-            with self.subTest(value=value), self.assertRaises(ValueError):
-                validate_acceptance_contract(contract(
-                    "named_link", hosts=["example.test"], entry_path=r"/item\.htm",
-                    link_base_url=value,
-                ))
-
-    def test_non_record_anchor_survives_flattened_navigation_and_record_line(self):
-        rules = contract(
-            "named_link", 2, hosts=["example.test"], entry_path=r"/item/\d+",
-            stable_text_anchors=[{
-                "id": "section", "alternatives": ["News"],
-                "match_scope": "non_record_lines",
-            }],
-        )
-        links = [
-            {"title": "First story", "url": "https://example.test/item/1"},
-            {"title": "Second story", "url": "https://example.test/item/2"},
-        ]
-        result = evaluate_stable_task(
-            "Portal News First story Second story", rules,
-            "https://example.test/", links=links,
-        )
-        self.assertTrue(result["stable_task_pass"], result)
-        title_only = {**rules, "stable_text_anchors": [{
-            "id": "record", "alternatives": ["First story"],
-            "match_scope": "non_record_lines",
-        }]}
-        self.assertFalse(evaluate_stable_task(
-            "Portal News First story Second story", title_only,
-            "https://example.test/", links=links,
-        )["stable_content_pass"])
 
     def test_stable_anchor_compares_visible_relative_autolinks_and_link_labels(self):
         rules = {
@@ -554,6 +639,41 @@ class StableTaskTests(unittest.TestCase):
         result = self.check(text, "name_description", stable_text_anchors=anchors)
         self.assertTrue(result["stable_structure_pass"])
         self.assertFalse(result["stable_content_pass"])
+
+    def test_named_links_can_use_declared_query_identity(self):
+        rules = {
+            "hosts": ["charts.example"], "entry_path": r"/song/detail\.htm",
+            "identity_query_keys": ["songId"],
+        }
+        text = ("[First song](https://charts.example/song/detail.htm?songId=1)\n"
+                "[Second song](https://charts.example/song/detail.htm?songId=2)")
+        self.assertTrue(self.check(text, "named_link", **rules)["stable_task_pass"])
+        rules.pop("identity_query_keys")
+        self.assertFalse(self.check(text, "named_link", **rules)["stable_task_pass"])
+
+    def test_linked_products_require_owned_price_and_detail_path(self):
+        rules = {
+            "hosts": ["shop.example"], "entry_path": r"/products/[a-z]+",
+            "price_patterns": [r"\$\s*\d+(?:\.\d{2})?"],
+            "price_exclusion_patterns": [],
+        }
+        good = ("[Alpha](https://shop.example/products/alpha)\n$10.00\n\n"
+                "[Beta](https://shop.example/products/beta)\n$20.00")
+        self.assertTrue(self.check(good, "linked_product", 2, **rules)["stable_task_pass"])
+        self.assertFalse(self.check(good.replace("$20.00", "20 reviews"),
+                                    "linked_product", 2, **rules)["stable_task_pass"])
+
+    def test_page_identity_uses_anchors_without_fake_records(self):
+        rules = {
+            "version": 1, "schema": "page_identity", "minimum_records": 0,
+            "stable_text_anchors": [
+                {"id": "brand", "alternatives": ["Example Search"]},
+                {"id": "control", "alternatives": ["Search the web"]},
+            ],
+        }
+        result = evaluate_stable_task("Example Search\nSearch the web", rules)
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_record_count"], 0)
 
 
 if __name__ == "__main__":

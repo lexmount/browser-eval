@@ -31,7 +31,7 @@ class EndToEndTest(unittest.TestCase):
             self.assertIn(records[1]['run_id'],analysis)
             self.assertIn('开始时间（UTC）',attempt)
             self.assertGreaterEqual(attempt.count('<pre data-kind='),3)
-            self.assertIn('打开完整调用记录',attempt)
+            self.assertIn('查看本次真实日志',attempt)
             for kind in ('reference', 'output', 'metadata'):
                 self.assertIn(f'<pre data-kind="{kind}">', attempt)
             self.assertTrue((report.parent/'review/index.html').exists())
