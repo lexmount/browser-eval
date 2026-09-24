@@ -19,6 +19,13 @@
   "acceptance_ledger_path": "final-ledger-clean-202-v1.json",
   "first_round_acceptance_ledger_sha256": "fd7d5190b44c202d0adec77d9a7748136b9ebc19a1723d04f7ae5a0ac96c41ec",
   "acceptance_ledger_sha256": "4c4eaa9f8b243562778c715cb25e70683b8be372fd544a8081b84a1d89ee7b8c",
+  "accepted_counts": {
+    "total": 812,
+    "pass": 812,
+    "unresolved": 0,
+    "physical_attempts": 854,
+    "excluded_duplicate_attempts": 0
+  },
   "report_manifest_path": "report-clean-202-v4/manifest.json",
   "report_manifest_sha256": "9ec556c80660e88c1bbfba4d641a0e67041dec49343274a5747be9f9cbab7f68",
   "report_archive_path": "report-clean-202-v4.zip",

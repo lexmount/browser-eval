@@ -4,7 +4,11 @@ import json
 
 import pytest
 
-from harness.trajectory_replay.full_catalog import validate_environment_preparation
+from harness.trajectory_replay.full_catalog import (
+    file_sha256,
+    validate_environment_preparation,
+    validate_full_report_profile,
+)
 
 
 def _files(tmp_path):
@@ -77,3 +81,86 @@ def test_environment_preparation_rejects_unbound_receipts(tmp_path, path, key, v
     target.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="declared deployment"):
         validate_environment_preparation(receipt, profile)
+
+
+def _write_json(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value), encoding="utf-8")
+    return path
+
+
+def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path):
+    repository = tmp_path / "repository"
+    (repository / "pyproject.toml").parent.mkdir(parents=True)
+    (repository / "pyproject.toml").write_text("[project]\nname='fixture'\n")
+    (repository / "uv.lock").write_text("")
+    dataset = _write_json(
+        repository / "evaluation/full/dataset.json",
+        {
+            "schema": "lex_webarena_verified_full_dataset/1",
+            "task_count": 812,
+            "task_id_range": [0, 811],
+        },
+    )
+    scope = _write_json(repository / "evaluation/full/scope.json", {"task_ids": list(range(812))})
+    data_home = tmp_path / "data"
+    evidence = data_home / "trajectory-replay/run"
+    counts = {
+        "total": 812,
+        "pass": 812,
+        "unresolved": 0,
+        "physical_attempts": 854,
+        "excluded_duplicate_attempts": 0,
+    }
+    ledger = _write_json(evidence / "ledger.json", {"counts": counts})
+    artifacts = {
+        "manifest.json": {},
+        "report.zip": {"fixture": True},
+        "suite.json": {"tasks": []},
+    }
+    for name, value in artifacts.items():
+        _write_json(evidence / name, value)
+    catalog = _write_json(
+        evidence / "catalog.json",
+        {"accepted_ledger_sha256": file_sha256(ledger)},
+    )
+    profile = _write_json(
+        repository / "evaluation/full/current-report.json",
+        {
+            "schema": "lex_webarena_verified_full_report_profile/1",
+            "dataset_path": "evaluation/full/dataset.json",
+            "dataset_sha256": file_sha256(dataset),
+            "scope_path": "evaluation/full/scope.json",
+            "scope_sha256": file_sha256(scope),
+            "evidence_root": "trajectory-replay/run",
+            "acceptance_ledger_path": "ledger.json",
+            "acceptance_ledger_sha256": file_sha256(ledger),
+            "accepted_counts": counts,
+            "report_manifest_path": "manifest.json",
+            "report_manifest_sha256": file_sha256(evidence / "manifest.json"),
+            "report_archive_path": "report.zip",
+            "report_archive_sha256": file_sha256(evidence / "report.zip"),
+            "accepted_catalog": {
+                "path": "catalog.json",
+                "sha256": file_sha256(catalog),
+            },
+            "accepted_portable_suite": {
+                "path": "suite.json",
+                "sha256": file_sha256(evidence / "suite.json"),
+            },
+            "publication": {
+                "host": "https://artifact.example",
+                "slug": "fixture",
+                "version_id": "v1",
+                "share_url": "https://artifact.example/v/fixture",
+            },
+        },
+    )
+
+    assert validate_full_report_profile(profile, data_home)["accepted_counts"] == counts
+
+    changed = json.loads(profile.read_text())
+    changed["accepted_counts"]["physical_attempts"] += 1
+    profile.write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match="acceptance population changed"):
+        validate_full_report_profile(profile, data_home)

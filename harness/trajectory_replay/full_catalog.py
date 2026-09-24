@@ -259,7 +259,16 @@ def validate_full_report_profile(profile_path: Path, data_home: Path) -> dict:
     """Validate the repository authority against its frozen local release artifacts."""
 
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
-    repository_root = Path(__file__).resolve().parents[2]
+    repository_root = next(
+        (
+            candidate
+            for candidate in profile_path.resolve().parents
+            if (candidate / "pyproject.toml").is_file() and (candidate / "uv.lock").is_file()
+        ),
+        None,
+    )
+    if repository_root is None:
+        raise ValueError("full report profile is outside a browser-eval repository")
     dataset_path = repository_root / str(profile.get("dataset_path") or "")
     scope_path = repository_root / str(profile.get("scope_path") or "")
     if (
@@ -311,13 +320,22 @@ def validate_full_report_profile(profile_path: Path, data_home: Path) -> dict:
         if target.is_symlink() or not target.is_file() or file_sha256(target) != expected:
             raise ValueError(f"{name} artifact changed")
     ledger = json.loads((root / artifacts["acceptance_ledger"][0]).read_text(encoding="utf-8"))
-    if ledger.get("counts") != {
-        "total": 812,
-        "pass": 812,
-        "unresolved": 0,
-        "physical_attempts": 854,
-        "excluded_duplicate_attempts": 0,
-    }:
+    accepted_counts = profile.get("accepted_counts")
+    if (
+        not isinstance(accepted_counts, dict)
+        or set(accepted_counts)
+        != {
+            "total",
+            "pass",
+            "unresolved",
+            "physical_attempts",
+            "excluded_duplicate_attempts",
+        }
+        or accepted_counts.get("total") != dataset["task_count"]
+        or accepted_counts.get("pass") != dataset["task_count"]
+        or accepted_counts.get("unresolved") != 0
+        or ledger.get("counts") != accepted_counts
+    ):
         raise ValueError("full report acceptance population changed")
     catalog = json.loads((root / artifacts["accepted_catalog"][0]).read_text(encoding="utf-8"))
     if catalog.get("accepted_ledger_sha256") != profile["acceptance_ledger_sha256"]:

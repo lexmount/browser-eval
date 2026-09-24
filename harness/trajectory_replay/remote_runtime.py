@@ -114,9 +114,7 @@ def rebind_remote_calls(
     """
     by_port = {port: site for site, ports in SITE_PORTS.items() for port in ports}
     by_port.update(READ_ONLY_PORTS)
-    by_source_origin = {
-        urlsplit(url).netloc: site for site, url in (source_sites or {}).items()
-    }
+    by_source_origin = {urlsplit(url).netloc: site for site, url in (source_sites or {}).items()}
 
     def rebind_url(value: str) -> str:
         parsed = urlsplit(value)
@@ -125,7 +123,7 @@ def rebind_remote_calls(
         site = by_source_origin.get(parsed.netloc)
         if site is None and parsed.hostname in trusted_source_hosts:
             site = by_port.get(parsed.port)
-        if site is None:
+        if site is None or site not in sites:
             return value
         target = urlsplit(sites[site])
         return urlunsplit(
@@ -163,8 +161,10 @@ def rebind_remote_calls(
         # URL-valued form inputs refer to the same fixture deployment as
         # navigation URLs. Do not rewrite prose or arbitrary external URLs.
         text = call.get("text")
-        if call.get("action") == "fill" and isinstance(text, str) and not any(
-            char.isspace() for char in text
+        if (
+            call.get("action") == "fill"
+            and isinstance(text, str)
+            and not any(char.isspace() for char in text)
         ):
             call["text"] = rebind_url(text)
         selector = call.get("selector")

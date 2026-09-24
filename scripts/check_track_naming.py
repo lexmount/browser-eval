@@ -16,7 +16,20 @@ EXCLUDED_ROOTS = {
     "evaluation/sources",
 }
 EXCLUDED_PARTS = {".pytest_cache", ".ruff_cache", ".venv", "__pycache__"}
-TEXT_SUFFIXES = {"", ".css", ".html", ".js", ".json", ".md", ".py", ".sh", ".toml", ".txt", ".yaml", ".yml"}
+TEXT_SUFFIXES = {
+    "",
+    ".css",
+    ".html",
+    ".js",
+    ".json",
+    ".md",
+    ".py",
+    ".sh",
+    ".toml",
+    ".txt",
+    ".yaml",
+    ".yml",
+}
 FORBIDDEN = (
     "browser_" + "agent",
     "browser-" + "agent",
@@ -27,14 +40,21 @@ FORBIDDEN = (
     "Browser-" + "agent",
     "Browser-" + "kernel",
 )
+FULL_REPLAY_ENTRYPOINTS = {
+    "scripts/audit_webarena_full_acceptance.py",
+    "scripts/check_webarena_full_release.py",
+    "scripts/consolidate_webarena_full_catalog.py",
+    "scripts/rebind_webarena_full_catalog.py",
+    "scripts/run_webarena_full_catalog.py",
+}
 
 
-def main() -> None:
+def repository_contract_findings(root: Path) -> list[str]:
     findings: list[str] = []
-    for path in ROOT.rglob("*"):
+    for path in root.rglob("*"):
         if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
             continue
-        relative = path.relative_to(ROOT)
+        relative = path.relative_to(root)
         name = relative.as_posix()
         if EXCLUDED_PARTS.intersection(relative.parts):
             continue
@@ -44,9 +64,32 @@ def main() -> None:
         for term in FORBIDDEN:
             if term in text:
                 findings.append(f"{name}: retired track name {term!r}")
+    full_replay_entrypoints = {
+        path.relative_to(root).as_posix() for path in (root / "scripts").glob("*webarena*full*.py")
+    }
+    if full_replay_entrypoints != FULL_REPLAY_ENTRYPOINTS:
+        findings.append(
+            "full WebArena replay entry points changed: "
+            f"unexpected={sorted(full_replay_entrypoints - FULL_REPLAY_ENTRYPOINTS)}, "
+            f"missing={sorted(FULL_REPLAY_ENTRYPOINTS - full_replay_entrypoints)}"
+        )
+    repair_programs = sorted(
+        path.relative_to(root).as_posix()
+        for path in (root / "scripts").glob("repair_webarena_*.py")
+    )
+    if repair_programs:
+        findings.append(
+            "case repair belongs in catalog data and the shared replay pipeline, not programs: "
+            + ", ".join(repair_programs)
+        )
+    return findings
+
+
+def main() -> None:
+    findings = repository_contract_findings(ROOT)
     if findings:
         raise SystemExit("\n".join(findings))
-    print("Track naming check passed")
+    print("Track contract checks passed")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ import re
 import tempfile
 import unittest
 
+from scripts.check_track_naming import repository_contract_findings
 from scripts.run_headless_benchmark import require_expected_provider_versions
 from harness.web_fetch.publication_target import current_publication_target, require_publication_site, require_publication_version
 
@@ -13,6 +14,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class RuntimeEntrypointTests(unittest.TestCase):
+    def test_full_replay_rejects_browser_specific_runners_and_case_repair_programs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            scripts = root / "scripts"
+            scripts.mkdir()
+            (scripts / "run_webarena_full_chromium.py").write_text("")
+            (scripts / "repair_webarena_case_42.py").write_text("")
+
+            findings = "\n".join(repository_contract_findings(root))
+
+            self.assertIn("run_webarena_full_chromium.py", findings)
+            self.assertIn("repair_webarena_case_42.py", findings)
+
     def test_repository_pins_python_and_uv(self) -> None:
         self.assertEqual((ROOT / ".python-version").read_text().strip(), "3.11")
         self.assertTrue((ROOT / "uv.lock").is_file())

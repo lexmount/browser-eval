@@ -258,6 +258,19 @@ def test_rebinds_absolute_urls_from_a_previous_deployment(tmp_path):
     assert rebound[1] == calls[1]
 
 
+def test_rebind_keeps_optional_source_site_when_target_omits_it(tmp_path):
+    sites = load_remote_sites(_site_map(tmp_path))
+    previous = {WebArenaSite.WIKIPEDIA: "http://old-wikipedia.example"}
+    calls = [
+        {
+            "action": "navigate",
+            "url": "http://old-wikipedia.example/wiki/Browser_automation",
+        }
+    ]
+
+    assert rebind_remote_calls(calls, sites, set(), previous) == calls
+
+
 def test_rebinds_site_urls_inside_evaluate_request_bodies(tmp_path):
     sites = load_remote_sites(_site_map(tmp_path))
     previous = {WebArenaSite.REDDIT: "http://old-reddit.example"}

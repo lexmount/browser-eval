@@ -128,12 +128,13 @@ def consolidate(
         old_digest = _json_sha256(
             rebind_remote_calls(actions, run_sites, set(TRUSTED_RECORDED_HOSTS), source_sites)
         )
-        progress_lines = (
-            (runs[run_digest] / "progress.jsonl").read_text(encoding="utf-8").splitlines()
-        )
-        progress = next(
-            json.loads(line) for line in progress_lines if json.loads(line)["task_id"] == task_id
-        )
+        progress_rows = [
+            json.loads(line)
+            for line in (runs[run_digest] / "progress.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+        ]
+        progress = next(row for row in progress_rows if row["task_id"] == task_id)
         if old_digest != progress["executed_actions_sha256"]:
             raise ValueError(f"task {task_id}: accepted actions differ from source inputs")
         # Older catalogs relied on the run's deployment map and did not list
