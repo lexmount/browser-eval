@@ -122,12 +122,15 @@ def consolidate(
         )
         if old_digest != progress["executed_actions_sha256"]:
             raise ValueError(f"task {task_id}: accepted actions differ from source inputs")
+        # Older catalogs relied on the run's deployment map and did not list
+        # their source origins. Carry those origins into the new binding.
+        rebind_sources = {**run_sites, **source_sites}
         row = dict(source_row)
         row["source_site_urls"] = {
-            site.value: url for site, url in source_sites.items()
+            site.value: url for site, url in rebind_sources.items()
         }
         row["bound_calls_sha256"] = _json_sha256(
-            rebind_remote_calls(actions, target_sites, set(TRUSTED_RECORDED_HOSTS), source_sites)
+            rebind_remote_calls(actions, target_sites, set(TRUSTED_RECORDED_HOSTS), rebind_sources)
         )
         row["accepted_progress_sha256"] = run_digest
         rows.append(row)

@@ -129,7 +129,11 @@ def test_remote_benchmark_matches_distinct_bodies_sent_to_one_endpoint(tmp_path)
                                     "text": json.dumps(dict(item.post_data)),
                                 },
                             },
-                            "response": {"status": item.response_status, "headers": [], "content": {}},
+                            "response": {
+                                "status": item.response_status,
+                                "headers": [],
+                                "content": {},
+                            },
                         }
                         for item in expected
                     ]
@@ -195,6 +199,23 @@ def test_rebinds_absolute_urls_from_a_previous_deployment(tmp_path):
 
     assert rebound[0]["url"] == "http://admin.example/admin/catalog/product/edit/id/110/"
     assert rebound[1] == calls[1]
+
+
+def test_rebinds_site_urls_inside_evaluate_request_bodies(tmp_path):
+    sites = load_remote_sites(_site_map(tmp_path))
+    previous = {WebArenaSite.REDDIT: "http://old-reddit.example"}
+    script = (
+        "async () => fetch('/api/submit', {body: "
+        "JSON.stringify({url:'http://old-reddit.example/f/space/123', "
+        "external:'https://unrelated.example/f/space/123'})})"
+    )
+    calls = [{"action": "evaluate", "script": script}]
+
+    rebound = rebind_remote_calls(calls, sites, set(), previous)
+
+    assert "http://reddit.example/f/space/123" in rebound[0]["script"]
+    assert "https://unrelated.example/f/space/123" in rebound[0]["script"]
+    assert calls[0]["script"] == script
 
 
 def test_rebind_url_form_input_without_rewriting_prose_or_external_links(tmp_path):

@@ -178,6 +178,18 @@ def rebind_remote_calls(
                 if isinstance(value, str):
                     rebound_target[key] = rebind_embedded_urls(value)
             call["target"] = rebound_target
+        script = call.get("script")
+        if call.get("action") == "evaluate" and isinstance(script, str):
+            # Some qualified actions submit site URLs inside a JavaScript
+            # request body. Rewrite only origins explicitly bound to a source
+            # deployment; leave the rest of the program intact.
+            for source_site, source_url in (source_sites or {}).items():
+                source_origin = urlsplit(source_url)
+                target_origin = urlsplit(sites[source_site])
+                old = f"{source_origin.scheme}://{source_origin.netloc}"
+                new = f"{target_origin.scheme}://{target_origin.netloc}"
+                script = script.replace(old, new)
+            call["script"] = script
         rebound.append(call)
     return rebound
 
