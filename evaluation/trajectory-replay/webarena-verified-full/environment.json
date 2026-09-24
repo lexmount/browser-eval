@@ -3,6 +3,7 @@
   "platform": "Rainbond",
   "region": "rainbond",
   "team": "ye7izl3p",
+  "browser_host_resolver_rules": "MAP *.dev.lexmount.net 10.2.62.142",
   "deployment": {
     "acceptance_app_id": 202,
     "source_app_id": 195,

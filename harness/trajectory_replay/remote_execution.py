@@ -97,7 +97,7 @@ def _wait_cdp(endpoint: str, process: subprocess.Popen) -> None:
 
 def _browser_command(args: argparse.Namespace, port: int, profile: str) -> list[str]:
     if args.engine == "chromium":
-        return [
+        command = [
             str(args.binary),
             "--headless=new",
             "--no-first-run",
@@ -110,6 +110,12 @@ def _browser_command(args: argparse.Namespace, port: int, profile: str) -> list[
             "--remote-debugging-address=127.0.0.1",
             "about:blank",
         ]
+        host_resolver_rules = getattr(args, "host_resolver_rules", None)
+        if host_resolver_rules:
+            if not isinstance(host_resolver_rules, str) or "\n" in host_resolver_rules:
+                raise ValueError("Chromium host resolver rules must be one line")
+            command.insert(-1, f"--host-resolver-rules={host_resolver_rules}")
+        return command
     return [
         str(args.binary),
         "serve",

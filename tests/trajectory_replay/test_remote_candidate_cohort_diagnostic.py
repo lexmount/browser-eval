@@ -146,6 +146,19 @@ def test_chromium_qualification_uses_a_separate_ephemeral_profile() -> None:
     assert moli[-2:] == ["--profile-dir", "/tmp/qualification-profile"]
 
 
+def test_chromium_can_bind_profile_declared_private_ingress() -> None:
+    chrome = _browser_command(
+        SimpleNamespace(
+            engine="chromium",
+            binary=Path("/opt/chrome"),
+            host_resolver_rules="MAP *.dev.lexmount.net 10.2.62.142",
+        ),
+        9222,
+        "/tmp/qualification-profile",
+    )
+    assert "--host-resolver-rules=MAP *.dev.lexmount.net 10.2.62.142" in chrome
+
+
 def test_formal_evidence_boundary_rejects_missing_or_changed_files(tmp_path: Path) -> None:
     import hashlib
 

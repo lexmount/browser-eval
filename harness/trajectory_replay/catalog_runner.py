@@ -120,6 +120,7 @@ def main() -> None:
         args.catalog, args.portable_suite, args.site_map
     )
     validate_environment_preparation(args.site_reset_receipt, args.environment_profile)
+    environment_profile = json.loads(args.environment_profile.read_text(encoding="utf-8"))
     corrections = load_corrections()
     benchmark = remote_benchmark(sites)
     origins = {f"{urlsplit(url).scheme}://{urlsplit(url).netloc}" for url in sites.values()}
@@ -171,7 +172,11 @@ def main() -> None:
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
     endpoint = f"http://127.0.0.1:{port}"
-    browser_args = argparse.Namespace(engine=args.engine, binary=args.binary)
+    browser_args = argparse.Namespace(
+        engine=args.engine,
+        binary=args.binary,
+        host_resolver_rules=environment_profile.get("browser_host_resolver_rules"),
+    )
     with tempfile.TemporaryDirectory(prefix="webarena-full-catalog-") as profile:
         process = subprocess.Popen(
             _browser_command(browser_args, port, profile),
