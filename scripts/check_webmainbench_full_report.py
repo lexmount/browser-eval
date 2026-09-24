@@ -203,7 +203,7 @@ def check(root: Path) -> None:
         "request_failures": sum(counts['请求失败'] for counts in diagnostic_counts.values()),
         "empty_outputs": sum(counts['空输出'] for counts in diagnostic_counts.values()),
         "error_pages": sum(counts['错误页'] for counts in diagnostic_counts.values())} != {
-            key: overview_claims[key] for key in
+            key: overview_claims.get(key) for key in
             ('machine_issues', 'request_failures', 'empty_outputs', 'error_pages')}:
         raise ValueError('Overview illustration issue claims differ from measured results')
     if reviewed != {item for item in failures if item[0] != 'moli-fixed'}:
