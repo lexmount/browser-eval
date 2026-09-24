@@ -1,0 +1,170 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-058-zh-stable-tdesign-table
+Evaluation URL: https://tdesign.tencent.com/vue-next/components/table
+Expected final URL: https://tdesign.tencent.com/vue-next/components/table
+Target language: zh-CN
+Target region: CN
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-9ffbd4162b66]
+Observed ordinary text: 加载状态的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-686d077b4a97]
+Observed ordinary text: 单元格超出省略的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-c57dc072d728]
+Observed ordinary text: 可分页的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-cde6febcebd9]
+Observed ordinary text: 可展开和收起的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-0986782696f1]
+Observed ordinary text: 可拖拽排序的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-221645a12e98]
+Observed ordinary text: 可排序的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-2c70225c25dc]
+Observed ordinary text: 可筛选的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-b0628df783ce]
+Observed ordinary text: 可编辑的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-03e30b5a037d]
+Observed ordinary text: 可自定义样式的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-a456929aa146]
+Observed ordinary text: 可表头吸顶/表尾吸顶的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-b4eacabaac52]
+Observed ordinary text: 可进行列配置的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-9aa19e9d5235]
+Observed ordinary text: 可选中行的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-bc3b8c7896b7]
+Observed ordinary text: 固定列的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-3e2e6d5c3c7d]
+Observed ordinary text: 固定表头/固定行的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-991361957539]
+Observed ordinary text: 固定表头和列的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-d4ac916b0296]
+Observed ordinary text: 基础表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-44098a854a6b]
+Observed ordinary text: 多级表头的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-c793e08f1881]
+Observed ordinary text: 带合并单元格的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-de62616c5438]
+Observed ordinary text: 懒加载的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-88df1630b4ed]
+Observed ordinary text: 树形结构的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-a40a0da44709]
+Observed ordinary text: 空表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-7f3d4216b3d2]
+Observed ordinary text: 自定义单元格的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-942ea525b81b]
+Observed ordinary text: 自定义表头的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-79e3f50b47fa]
+Observed ordinary text: 自定义表尾的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-15fa0e8d402f]
+Observed ordinary text: 虚拟滚动的表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-36d49364e612]
+Observed ordinary text: 行高亮表格
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66
+
+[phase1-stable-0c505e651b73]
+Observed ordinary text: 表格分类
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66

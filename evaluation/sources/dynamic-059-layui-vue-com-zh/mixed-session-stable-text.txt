@@ -1,0 +1,32 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-059-layui-vue-com-zh
+Evaluation URL: https://www.layui-vue.com/zh-CN/components/table
+Expected final URL: https://www.layui-vue.com/zh-CN/components/table
+Target language: zh-CN
+Target region: CN
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-9634fb0832be]
+Observed ordinary text: 参数
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6cf44e41e9578898890d21c81110fcff5b00a9fdecd6a880472dd3c2b916599b
+
+[phase1-stable-67a7b54f88ee]
+Observed ordinary text: 可选值
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6cf44e41e9578898890d21c81110fcff5b00a9fdecd6a880472dd3c2b916599b
+
+[phase1-stable-ba40014ff496]
+Observed ordinary text: 类型
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6cf44e41e9578898890d21c81110fcff5b00a9fdecd6a880472dd3c2b916599b
+
+[phase1-stable-306da767a461]
+Observed ordinary text: 默认值
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6cf44e41e9578898890d21c81110fcff5b00a9fdecd6a880472dd3c2b916599b

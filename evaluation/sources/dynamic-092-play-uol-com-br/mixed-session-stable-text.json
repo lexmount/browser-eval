@@ -1,0 +1,206 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-092-play-uol-com-br",
+  "url": "https://play.uol.com.br/",
+  "evaluation_url": "https://play.uol.com.br/",
+  "expected_final_url": "https://play.uol.com.br/",
+  "target_language": "pt-BR",
+  "target_region": "BR",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 26,
+  "anchors": [
+    {
+      "id": "phase1-stable-304b26190821",
+      "text": "(Capitais e Regiões Metropolitanas) ou",
+      "source_location": "footer > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-161b2a59def3",
+      "text": "(Demais localidades)",
+      "source_location": "footer > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-1c8fe48057fe",
+      "text": "+ Produtos UOL",
+      "source_location": "nav > dt",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-863184e46722",
+      "text": "Aceitamos",
+      "source_location": "footer > div",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-fe0addd70781",
+      "text": "Ajuda",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-fcd505a8b409",
+      "text": "Assine também pela nossa Central de Vendas:",
+      "source_location": "footer > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-11191907c846",
+      "text": "Atendimento",
+      "source_location": "nav > dt",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-6b628304a5f3",
+      "text": "Baixe o aplicativo",
+      "source_location": "nav > dt",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-1319c6b89afa",
+      "text": "Bate-papo UOL",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-8c6bc099534a",
+      "text": "Blog",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-dc7ababc44cc",
+      "text": "Catálogo",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-18fef0d4af24",
+      "text": "Como acessar",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-39d450456e10",
+      "text": "Conteúdo grátis",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-10e02614ba42",
+      "text": "Dúvidas",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-4105811890ae",
+      "text": "Entrar",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-2d5965ca6aa4",
+      "text": "O streaming do",
+      "source_location": "body > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-13558e3f9435",
+      "text": "Planos UOL Play disponíveis",
+      "source_location": "body > h2",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-8031caca047e",
+      "text": "Produtos UOL",
+      "source_location": "nav > dt",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-6ae4a12cb83f",
+      "text": "Programação ao vivo",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-c25de6a8b513",
+      "text": "SAC - Central de Atendimento",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-e259be76521f",
+      "text": "Termos de Uso",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-e8baf46354bb",
+      "text": "UOL - O melhor conteúdo. Todos os direitos reservados.",
+      "source_location": "footer > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-c59a7946e50f",
+      "text": "UOL Play",
+      "source_location": "body > h2",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-5b0505df8adf",
+      "text": "UOL Resolve",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-71b4f3a3748c",
+      "text": "com",
+      "source_location": "body > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    },
+    {
+      "id": "phase1-stable-840a8dcfeae9",
+      "text": "os",
+      "source_location": "body > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8"
+    }
+  ],
+  "projected_text_sha256": "f6697d3e0dabc3f97a878d7b112a91a5da766ad080da89cf78e9d8c803f77268"
+}

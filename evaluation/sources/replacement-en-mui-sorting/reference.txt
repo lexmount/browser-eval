@@ -1,0 +1,49 @@
+Data Grid - SortingEasily sort your rows based on one or several criteria.
+Sorting is enabled by default to the Data Grid users and works out of the box without any explicit configuration.
+Users can set a sorting rule simply by clicking on a column header.
+Following clicks change the column's sorting direction. You can see the applied direction on the header's arrow indicator.
+The Data Grid can only sort the rows according to one criterion at a time.
+To use multi-sorting, you need to upgrade to Pro plan or above.
+Multi-sorting The following demo lets you sort the rows according to several criteria at the same time.
+By default, users need to hold down the Ctrl or Shift (use ⌘ Command on macOS) key while clicking the column header.
+This lets users click on multiple column headers to add them as sorting criteria without needing to hold down modifier keys.
+initialState={initialState}
+multipleColumnsSortingMode="always"
+/>Press Enter to start editingPass sorting rules to the Data GridStructure of the modelThe sort model is a list of sorting items.
+Each item represents a sorting rule and is composed of several elements:
+sortingItem.field: the field on which the rule applies.
+sortingItem.sort: the direction of the sorting ('asc', 'desc', null or undefined). If null or undefined, the rule doesn't apply.
+Initialize the sort modelSorting is enabled by default to the user.
+But if you want to set an initial sorting order, simply provide the model to the initialState prop.
+sortModel: [{ field: 'rating', sort: 'desc' }],
+You can use the onSortModelChange prop to listen to changes in the sorting rules and update the prop accordingly.
+<DataGrid disableColumnSorting />
+To disable sorting on a column, set the sortable property of GridColDef to false.
+In the following demo, the user cannot sort the rating column from the UI.
+<DataGrid columns={[...columns, { field: 'rating', sortable: false }]} />
+In the following demo, the firstName column is not sortable by the default grid UI, but it is sorted programmatically by a custom built UI.
+AscendingDescendingNoneIDFirst nameLast nameAge6Melisandre1504AryaStark112CerseiLannister315DaenerysTargaryen7FerraraClifford449HarveyRoxie653JaimeLannister311JonSnow148RossiniFrances36Rows per page:1001–9 of 9 Edit in ChatJSTSShow codeCustom comparatorA comparator determines how two cell values should be sorted.
+Each column type comes with a default comparator method.
+You can re-use them by importing the following functions:
+gridStringOrNumberComparator (used by the string and singleSelect columns)
+gridNumberComparator (used by the number and boolean columns)
+gridDateComparator (used by the date and date-time columns)
+To extend or modify this behavior in a specific column, you can pass in a custom comparator, and override the sortComparator property of the GridColDef interface.
+Create a comparator from scratchIn the following demo, the "Created on" column sorting is based on the day of the month of the createdOn field.
+It is a fully custom sorting comparator.
+The sorting is based on isAdmin and then on name, if necessary. It re-uses the built-in sorting comparator.
+While this is sufficient for most use cases, it is possible to define an asymmetric comparator using the getSortComparator() function – it receives the sorting direction as an argument and returns a comparator function.
+In the demo below, the getSortComparator() function is used in the "Quantity" column to keep the null values at the bottom when sorting is applied (regardless of the sorting direction):
+const sortingOrder = ['asc', 'desc', null];
+In practice, when you click a column that is not sorted, it will sort ascending (asc).
+The next click will make it sort descending (desc). Another click will remove the sort (null), reverting to the order that the data was provided in.
+For all columnsThe default sort order can be overridden for all columns with the sortingOrder prop.
+In the following demo, columns are only sortable in descending or ascending order.
+const columns: GridColDef = [
+{ field: 'rating', sortingOrder: ['desc', 'asc', null] },
+sortingMode="server"
+onSortModelChange={handleSortModelChange}
+/>Press Enter to start editing
+You can combine server-side sorting with server-side filtering and server-side pagination to avoid fetching more data than needed, since it's already processed outside of the Data Grid.
+Only use this API as the last option. Give preference to the props to control the Data Grid.
+applySorting()Applies the current sort model to the rows.Signature:Copy(or ⌘C)applySorting: () => voidgetRowIdFromRowIndex()Gets the GridRowId of a row at a specific index. The index is based on the sorted but unfiltered row list.Signature:Copy(or ⌘C)getRowIdFromRowIndex: (index: number) => GridRowIdgetSortedRowIds()Returns all row ids sorted according to the active sort model.Signature:Copy(or ⌘C)getSortedRowIds: () => GridRowId[]getSortedRows()Returns all rows sorted according to the active sort model.Signature:Copy(or ⌘C)getSortedRows: () => GridRowModel[]getSortModel()Returns the sort model currently applied to the grid.Signature:Copy(or ⌘C)getSortModel: () => GridSortModelsetSortModel()Updates the sort model and triggers the sorting of rows.Signature:Copy(or ⌘C)setSortModel: (model: GridSortModel) => voidsortColumn()Sorts a column.Signature:Copy(or ⌘C)sortColumn: (field: GridColDef['field'], direction?: GridSortDirection, allowMultipleSorting?: boolean) => voidSelectorsgridSortModelSelectorGet the current sorting model.Signature:Copy(or ⌘C)gridSortModelSelector: (apiRef: GridApiRef) => GridSortModelExampleCopy(or ⌘C)const sortModel = gridSortModelSelector(apiRef);gridSortedRowEntriesSelectorGet the id and the model of the rows after the sorting process.Signature:Copy(or ⌘C)gridSortedRowEntriesSelector: (apiRef: GridApiRef) => GridRowEntry<GridValidRowModel>[]ExampleCopy(or ⌘C)const sortedRowEntries = gridSortedRowEntriesSelector(apiRef);gridSortedRowIdsSelectorGet the id of the rows after the sorting process.Signature:Copy(or ⌘C)gridSortedRowIdsSelector: (apiRef: GridApiRef) => GridRowId[]ExampleCopy(or ⌘C)const sortedRowIds = gridSortedRowIdsSelector(apiRef);More information about the selectors and how to use them on the dedicated page

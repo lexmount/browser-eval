@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-quotes-api",
+  "url": "https://quotes.toscrape.com/scroll",
+  "evaluation_url": "https://quotes.toscrape.com/scroll",
+  "expected_final_url": "https://quotes.toscrape.com/scroll",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 4,
+  "anchors": [
+    {
+      "id": "phase1-stable-5de180a1bdfb",
+      "text": "GoodReads.com",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "15f990abef27732613884e33994f133a305c5f645a7d31430d9dc73f59d17eae"
+    },
+    {
+      "id": "phase1-stable-42c6b818dcbc",
+      "text": "Made with",
+      "source_location": "footer > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "15f990abef27732613884e33994f133a305c5f645a7d31430d9dc73f59d17eae"
+    },
+    {
+      "id": "phase1-stable-3ad7e2873758",
+      "text": "Quotes by:",
+      "source_location": "footer > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "15f990abef27732613884e33994f133a305c5f645a7d31430d9dc73f59d17eae"
+    },
+    {
+      "id": "phase1-stable-a4809e673301",
+      "text": "Zyte",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "15f990abef27732613884e33994f133a305c5f645a7d31430d9dc73f59d17eae"
+    }
+  ],
+  "projected_text_sha256": "50867390d39c9646c7b304ce9d998342bd8c96dd2965cd2dd0436062dc283953"
+}

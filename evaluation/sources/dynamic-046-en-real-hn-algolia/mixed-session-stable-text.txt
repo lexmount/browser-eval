@@ -1,0 +1,44 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-046-en-real-hn-algolia
+Evaluation URL: https://hn.algolia.com/?dateRange=all&page=0&prefix=true&query=javascript&sort=byPopularity&type=story
+Expected final URL: https://hn.algolia.com/?dateRange=all&page=0&prefix=true&query=javascript&sort=byPopularity&type=story
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-1cc77e60fcee]
+Observed ordinary text: API Documentation
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: fe7838cb7c3edb1bacfe1546966f50a087773dfad2e15cc2053e19dd5162cacc
+
+[phase1-stable-4efca0d10c5f]
+Observed ordinary text: About
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: fe7838cb7c3edb1bacfe1546966f50a087773dfad2e15cc2053e19dd5162cacc
+
+[phase1-stable-f88a6765052b]
+Observed ordinary text: Cool Apps
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: fe7838cb7c3edb1bacfe1546966f50a087773dfad2e15cc2053e19dd5162cacc
+
+[phase1-stable-305adcd567aa]
+Observed ordinary text: Fork/Contribute
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: fe7838cb7c3edb1bacfe1546966f50a087773dfad2e15cc2053e19dd5162cacc
+
+[phase1-stable-b79cac926e0b]
+Observed ordinary text: Help
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: fe7838cb7c3edb1bacfe1546966f50a087773dfad2e15cc2053e19dd5162cacc
+
+[phase1-stable-818cd8d91aea]
+Observed ordinary text: Setting
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: fe7838cb7c3edb1bacfe1546966f50a087773dfad2e15cc2053e19dd5162cacc

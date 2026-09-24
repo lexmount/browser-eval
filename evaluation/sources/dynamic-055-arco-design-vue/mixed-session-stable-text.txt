@@ -1,0 +1,734 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-055-arco-design-vue
+Evaluation URL: https://arco.design/vue/component/table
+Expected final URL: https://arco.design/vue/component/table
+Target language: zh-CN
+Target region: CN
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-cf3c940cb9c2]
+Observed ordinary text: 1. 关于元素插槽的使用
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-d6c547dfbfd8]
+Observed ordinary text: 2. 关于数据中的
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-49f4b026fcea]
+Observed ordinary text: Arco Pro 最佳实践
+Webpage location: nav > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-36c0b36682b3]
+Observed ordinary text: ArcoMaterial 物料平台
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-1b3451f73979]
+Observed ordinary text: ArcoPro 中后台最佳实践
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-18777033ddfe]
+Observed ordinary text: DesignLab 设计系统配置平台
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-8d14f6e72de8]
+Observed ordinary text: Events
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-dbc468a14b60]
+Observed ordinary text: FAQ
+Webpage location: main > h2
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-8696622f3441]
+Observed ordinary text: Methods
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-b7ee6e7ec927]
+Observed ordinary text: Npm 命令
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-34a8a3cdbe53]
+Observed ordinary text: Powered by ArcoDesign
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-01fad993ff61]
+Observed ordinary text: React
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-4fd72c06bcff]
+Observed ordinary text: Slots
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-ffbd9a444b67]
+Observed ordinary text: TableFilterData
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-477f5ed300e2]
+Observed ordinary text: UED-火山引擎 & 架构前端
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-b111a2a2185c]
+Observed ordinary text: Vue
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-6070cd37e50f]
+Observed ordinary text: 上传 Upload
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-f00b68137fc0]
+Observed ordinary text: 下拉菜单 Dropdown
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-3f4568157a0c]
+Observed ordinary text: 伸缩框 ResizeBox
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-7583cdb8c53a]
+Observed ordinary text: 全局提示 Message
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-f290b3ba6975]
+Observed ordinary text: 全局配置 ConfigProvider
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-d2909f1647e7]
+Observed ordinary text: 其他
+Webpage location: nav > h4
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-b720d4a8d69f]
+Observed ordinary text: 分割线 Divider
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-28c2856aec92]
+Observed ordinary text: 分页 Pagination
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-a4014766f7a1]
+Observed ordinary text: 列表 List
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-0a3730967852]
+Observed ordinary text: 加载中 Spin
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-0967e263ea51]
+Observed ordinary text: 单选框 Radio
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-393e091236bd]
+Observed ordinary text: 卡片 Card
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-8b2106ca1371]
+Observed ordinary text: 反馈
+Webpage location: nav > h4
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-6b0eae94fe97]
+Observed ordinary text: 固钉 Affix
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-8e838a4f9733]
+Observed ordinary text: 国际化
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-a88b9f6d837a]
+Observed ordinary text: 图标 Figma 资源
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-892c6c8c4ac1]
+Observed ordinary text: 图标 Icon
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-9ca72c7f9a53]
+Observed ordinary text: 图片 Image
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-004cb9b8fa80]
+Observed ordinary text: 图片轮播 Carousel
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-b9d7564b5709]
+Observed ordinary text: 复选框 Checkbox
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-b19d27c30b66]
+Observed ordinary text: 头像 Avatar
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-572c9274596b]
+Observed ordinary text: 定制主题
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-60db0b99392e]
+Observed ordinary text: 对话框 Modal
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-e72622fe470d]
+Observed ordinary text: 导航
+Webpage location: nav > h4
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-faa2f2ed6735]
+Observed ordinary text: 布局
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-eaf491e193cd]
+Observed ordinary text: 布局 Layout
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-45a6d115fdfb]
+Observed ordinary text: 常见问题
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-bea3aba67766]
+Observed ordinary text: 开关 Switch
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-ef21d172859b]
+Observed ordinary text: 开发指南
+Webpage location: nav > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-d30033a63121]
+Observed ordinary text: 徽标 Badge
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-bfc47d6b4af9]
+Observed ordinary text: 快速上手
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-334c20e1a480]
+Observed ordinary text: 快速开始
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-3282445229bc]
+Observed ordinary text: 打包构建
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-38b4dc7f72ff]
+Observed ordinary text: 折叠列表 OverflowList
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-eb02d8ac0788]
+Observed ordinary text: 折叠面板 Collapse
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-05826ae87171]
+Observed ordinary text: 抽屉 Drawer
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-30bfd0ecd127]
+Observed ordinary text: 按钮 Button
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-8ebe6ffa28fc]
+Observed ordinary text: 排版 Typography
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-6ea5ea650c1b]
+Observed ordinary text: 接口和数据模拟
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-55b49b5381c3]
+Observed ordinary text: 描述列表 Descriptions
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-99c8118d0644]
+Observed ordinary text: 提及 Mention
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-731619194769]
+Observed ordinary text: 数值显示 Statistic
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-70a8aabd9302]
+Observed ordinary text: 数字输入框 InputNumber
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-7b0b7388ec0c]
+Observed ordinary text: 数据展示
+Webpage location: nav > h4
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-b3ae8f69808c]
+Observed ordinary text: 数据穿梭框 Transfer
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-56737a981ff6]
+Observed ordinary text: 数据输入
+Webpage location: nav > h4
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-51d40c7e7d86]
+Observed ordinary text: 文字气泡 Tooltip
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-e161204182f0]
+Observed ordinary text: 文本域 Textarea
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-ca7990c93e28]
+Observed ordinary text: 日历 Calendar
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-7f4a8a8b79f1]
+Observed ordinary text: 日期选择器 DatePicker
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-be601bc98055]
+Observed ordinary text: 时间轴 Timeline
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-82fcbd83651c]
+Observed ordinary text: 时间选择器 TimePicker
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-8ad47a9757f7]
+Observed ordinary text: 暗黑模式
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-de6811e73d40]
+Observed ordinary text: 更新日志
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-b434321f20ea]
+Observed ordinary text: 权限控制
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-9ca3de045bf0]
+Observed ordinary text: 栅格 Grid
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-0b94ad70411f]
+Observed ordinary text: 标签 Tag
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-a7d039da0e47]
+Observed ordinary text: 标签输入框 InputTag
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-7aee19f6acb7]
+Observed ordinary text: 标签页 Tabs
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-503b0fd68fcc]
+Observed ordinary text: 树 Tree
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-05e7447d556c]
+Observed ordinary text: 树选择 TreeSelect
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-e61ae3d5be57]
+Observed ordinary text: 步骤条 Steps
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-d8271c2014ba]
+Observed ordinary text: 气泡卡片 Popover
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-f4d3aa132860]
+Observed ordinary text: 气泡确认框 Popconfirm
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-ccd3b3238be0]
+Observed ordinary text: 水印 Watermark
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-1357e8d21a9f]
+Observed ordinary text: 滑动输入条 Slider
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-9834dc191b4e]
+Observed ordinary text: 滚动条 Scrollbar
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-3f627d9cdf55]
+Observed ordinary text: 状态管理-Pinia
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-0cc32f0a3922]
+Observed ordinary text: 状态管理-Vuex（已迁移）
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-a39216049ebc]
+Observed ordinary text: 生态产品
+Webpage location: footer > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-d5b44828a907]
+Observed ordinary text: 目录结构
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-9cf31fb34fb8]
+Observed ordinary text: 空状态 Empty
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-ded38a0f69ba]
+Observed ordinary text: 级联选择 Cascader
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-783d638053ea]
+Observed ordinary text: 组件
+Webpage location: nav > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-0e1eb46f6a81]
+Observed ordinary text: 组件库 Figma 资源
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-58eabbf1d0a2]
+Observed ordinary text: 结果页 Result
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-eeefa8694a31]
+Observed ordinary text: 自动补全 AutoComplete
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-5fb8167a3792]
+Observed ordinary text: 菜单 Menu
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-2fff8856ee4c]
+Observed ordinary text: 表单 Form
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-e30a8108f1cb]
+Observed ordinary text: 表格 Table
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-279bda097ca1]
+Observed ordinary text: 触发器 Trigger
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-96b36d72762d]
+Observed ordinary text: 警告提示 Alert
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-56c255e19858]
+Observed ordinary text: 设计
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-42ed0590b8cc]
+Observed ordinary text: 设计原则
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-ca99c7398d10]
+Observed ordinary text: 设计变量
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-5037d797e4a9]
+Observed ordinary text: 设计规范
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-1b98b029ce59]
+Observed ordinary text: 评分 Rate
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-1b0727430846]
+Observed ordinary text: 评论 Comment
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-daa6d02a55bc]
+Observed ordinary text: 资源
+Webpage location: footer > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-b56094723a36]
+Observed ordinary text: 路由和菜单
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-a1bdca5c6ccd]
+Observed ordinary text: 输入框 Input
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-e70691408831]
+Observed ordinary text: 返回顶部 BackTop
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-93d27573f279]
+Observed ordinary text: 进度条 Progress
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-1b24497522a9]
+Observed ordinary text: 选择器 Select
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-835b700e028c]
+Observed ordinary text: 通用
+Webpage location: nav > h4
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-ae63a2d05052]
+Observed ordinary text: 通知提醒框 Notification
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-4ac49d7cecbe]
+Observed ordinary text: 链接 Link
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-aaf37f4ab997]
+Observed ordinary text: 锚点 Anchor
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-bcdd10fac8af]
+Observed ordinary text: 间距 Space
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-db1badfc227f]
+Observed ordinary text: 面包屑 Breadcrumb
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-9cff1f0df1ff]
+Observed ordinary text: 面板分割 Split
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-d07777497efc]
+Observed ordinary text: 页头 PageHeader
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-3320e296de85]
+Observed ordinary text: 颜色选择器 ColorPicker
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-ede5a7e91b2c]
+Observed ordinary text: 验证码输入框 VerificationCode
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e
+
+[phase1-stable-658f505e3b37]
+Observed ordinary text: 骨架屏 Skeleton
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 8be7b3bfa8a905644fa077b6e43d469ed3cd75c0be8b865c4a7327abfb4cc17e

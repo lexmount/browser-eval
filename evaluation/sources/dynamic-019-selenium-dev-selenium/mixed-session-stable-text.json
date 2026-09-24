@@ -1,0 +1,101 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-019-selenium-dev-selenium",
+  "url": "https://www.selenium.dev/selenium/web/iframes.html",
+  "evaluation_url": "https://www.selenium.dev/selenium/web/iframes.html",
+  "expected_final_url": "https://www.selenium.dev/selenium/web/iframes.html",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 11,
+  "anchors": [
+    {
+      "id": "phase1-stable-5784609981a0",
+      "text": "This is the heading",
+      "source_location": "body > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5bd7d887c9a04e62ae568db1ad546a27dcb93bcf8f29f4b21f9466c537246b59"
+    },
+    {
+      "id": "phase1-stable-eb6cf05a0f1e",
+      "text": "There should be a form here:",
+      "source_location": "body > body > iframe https://www.selenium.dev/selenium/web/formPage.html",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5bd7d887c9a04e62ae568db1ad546a27dcb93bcf8f29f4b21f9466c537246b59"
+    },
+    {
+      "id": "phase1-stable-0022e19bcaab",
+      "text": "Here's a checkbox:",
+      "source_location": "body > form > iframe https://www.selenium.dev/selenium/web/formPage.html",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5bd7d887c9a04e62ae568db1ad546a27dcb93bcf8f29f4b21f9466c537246b59"
+    },
+    {
+      "id": "phase1-stable-6e5a59d4fd56",
+      "text": "Cheese",
+      "source_location": "body > form > iframe https://www.selenium.dev/selenium/web/formPage.html",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5bd7d887c9a04e62ae568db1ad546a27dcb93bcf8f29f4b21f9466c537246b59"
+    },
+    {
+      "id": "phase1-stable-3e28e93d84f4",
+      "text": "Peas",
+      "source_location": "body > form > iframe https://www.selenium.dev/selenium/web/formPage.html",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5bd7d887c9a04e62ae568db1ad546a27dcb93bcf8f29f4b21f9466c537246b59"
+    },
+    {
+      "id": "phase1-stable-606d5816af0b",
+      "text": "Cheese and peas",
+      "source_location": "body > form > iframe https://www.selenium.dev/selenium/web/formPage.html",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5bd7d887c9a04e62ae568db1ad546a27dcb93bcf8f29f4b21f9466c537246b59"
+    },
+    {
+      "id": "phase1-stable-246394c3af05",
+      "text": "Not a sausage",
+      "source_location": "body > form > iframe https://www.selenium.dev/selenium/web/formPage.html",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5bd7d887c9a04e62ae568db1ad546a27dcb93bcf8f29f4b21f9466c537246b59"
+    },
+    {
+      "id": "phase1-stable-ebb4b99a2fcd",
+      "text": "Not another sausage",
+      "source_location": "body > form > iframe https://www.selenium.dev/selenium/web/formPage.html",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5bd7d887c9a04e62ae568db1ad546a27dcb93bcf8f29f4b21f9466c537246b59"
+    },
+    {
+      "id": "phase1-stable-f7e1df1d3eed",
+      "text": "I like cheese",
+      "source_location": "body > p > iframe https://www.selenium.dev/selenium/web/formPage.html",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5bd7d887c9a04e62ae568db1ad546a27dcb93bcf8f29f4b21f9466c537246b59"
+    },
+    {
+      "id": "phase1-stable-6ff34e4758da",
+      "text": "Cumberland sausage",
+      "source_location": "body > form > iframe https://www.selenium.dev/selenium/web/formPage.html",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5bd7d887c9a04e62ae568db1ad546a27dcb93bcf8f29f4b21f9466c537246b59"
+    },
+    {
+      "id": "phase1-stable-0e66373f45dc",
+      "text": "Label",
+      "source_location": "body > label > iframe https://www.selenium.dev/selenium/web/formPage.html",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5bd7d887c9a04e62ae568db1ad546a27dcb93bcf8f29f4b21f9466c537246b59"
+    }
+  ],
+  "projected_text_sha256": "3b6b294c6a9c4b7ab1c29e1407ef20a3021706a322182f280188d1fe1509df3e"
+}

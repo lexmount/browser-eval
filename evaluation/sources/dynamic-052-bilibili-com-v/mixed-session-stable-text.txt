@@ -1,0 +1,50 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-052-bilibili-com-v
+Evaluation URL: https://www.bilibili.com/v/popular/all/
+Expected final URL: https://www.bilibili.com/v/popular/all/
+Target language: zh-CN
+Target region: CN
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[source-stable-5acb7efa8ac5]
+Observed ordinary text: bilibili
+Webpage location: body > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 0ce9486f6b205ddc2933e3f958b051e22b21154e80bcca7a0de2a8eaf81cf627
+
+[source-stable-c6fef6007ebd]
+Observed ordinary text: 综合热门
+Webpage location: body > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 152ed562cf57d9f037da7e20ddfa5d0addf2d092b7deefc47630245c08d0d246
+
+[source-stable-1f80d26fe864]
+Observed ordinary text: 热门规则
+Webpage location: body > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 0286768a6ffe270bee6debb68e53a81b08ec6804af76f6700837b785195732e6
+
+[source-stable-1ee95aa94712]
+Observed ordinary text: 排行榜
+Webpage location: body > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: dd05a58d45e0cad4e4b6680ae05214c7c8393a0019cfcaeed2fa5ccb7caa0c34
+
+[source-stable-dc0179998b33]
+Observed ordinary text: 帮助中心
+Webpage location: body > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 025ab66de41de821fce76f1d22afbe0a7133f3654a45c024a16b5cbe4b49765b
+
+[source-stable-9134428dcb7b]
+Observed ordinary text: 关于我们
+Webpage location: body > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 0ba4cea557b73122bc6f4bf64484be577de3a6d3461c6fe03e7bfa5724a743ad
+
+[source-stable-d3735a70484a]
+Observed ordinary text: 不良信息举报邮箱：help@bilibili.com
+Webpage location: body > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 40471115028e601a5f9f22d6ce0c3c6aaa040c5d39322dfb965d9b19f979fcff

@@ -1,0 +1,26 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-108-swagger-petstore3
+Evaluation URL: https://petstore3.swagger.io/
+Expected final URL: https://petstore3.swagger.io/
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-5e8dc5d4a0a8]
+Observed ordinary text: . In the third iteration of the pet store, we've switched to the design first approach! You can now help us improve the API whether it's by making changes to the definition itself or to the code. That way, with time, we can improve the API in general, and expose some of the new features in OAS3.
+Webpage location: body > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 4d6432d45aa1b57a95678c9b63138582aed6b1bc9d68477d21536d06cc64cce6
+
+[phase1-stable-b12572dc5e64]
+Observed ordinary text: Access to Petstore orders
+Webpage location: body > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 4d6432d45aa1b57a95678c9b63138582aed6b1bc9d68477d21536d06cc64cce6
+
+[phase1-stable-36f60419f871]
+Observed ordinary text: Everything about your Pets
+Webpage location: body > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 4d6432d45aa1b57a95678c9b63138582aed6b1bc9d68477d21536d06cc64cce6

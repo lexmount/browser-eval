@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-059-layui-vue-com-zh",
+  "url": "https://www.layui-vue.com/zh-CN/components/table",
+  "evaluation_url": "https://www.layui-vue.com/zh-CN/components/table",
+  "expected_final_url": "https://www.layui-vue.com/zh-CN/components/table",
+  "target_language": "zh-CN",
+  "target_region": "CN",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 4,
+  "anchors": [
+    {
+      "id": "phase1-stable-9634fb0832be",
+      "text": "参数",
+      "source_location": "body > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6cf44e41e9578898890d21c81110fcff5b00a9fdecd6a880472dd3c2b916599b"
+    },
+    {
+      "id": "phase1-stable-67a7b54f88ee",
+      "text": "可选值",
+      "source_location": "body > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6cf44e41e9578898890d21c81110fcff5b00a9fdecd6a880472dd3c2b916599b"
+    },
+    {
+      "id": "phase1-stable-ba40014ff496",
+      "text": "类型",
+      "source_location": "body > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6cf44e41e9578898890d21c81110fcff5b00a9fdecd6a880472dd3c2b916599b"
+    },
+    {
+      "id": "phase1-stable-306da767a461",
+      "text": "默认值",
+      "source_location": "body > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6cf44e41e9578898890d21c81110fcff5b00a9fdecd6a880472dd3c2b916599b"
+    }
+  ],
+  "projected_text_sha256": "5788d6615798815d1eb9c4708f141c6c58a1a86e0713c1f6c9d392f80f923f58"
+}

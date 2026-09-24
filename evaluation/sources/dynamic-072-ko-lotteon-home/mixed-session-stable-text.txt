@@ -1,0 +1,38 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-072-ko-lotteon-home
+Evaluation URL: https://www.lotteon.com/p/display/main/lotteon
+Expected final URL: https://www.lotteon.com/p/display/main/lotteon
+Target language: ko-KR
+Target region: KR
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[source-stable-8497eb60b73b]
+Observed ordinary text: 고객센터
+Webpage location: header > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 299fee5f71e1e6fe5114b59a3e65d32806d41bc243fdda330c60eecfe6e6b10c
+
+[source-stable-c7e724d5c495]
+Observed ordinary text: 이용약관
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 167fbfa7f0e597acf5bb1f65922e2a0221568d7ec4547740e709dd678031e797
+
+[source-stable-60b8167038c9]
+Observed ordinary text: 회사소개
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: d3a2b112428d908952224da2d74e763f8d2b57d835aeb1c1fdc0826d52f217fc
+
+[source-stable-4e4d166b8485]
+Observed ordinary text: 롯데쇼핑 주식회사
+Webpage location: footer > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 920499ee958b4a834a004e29f6f69e0fed9591ec8affb00ca427af9fb5551867
+
+[source-stable-422ed8013f17]
+Observed ordinary text: Copyright © LOTTESHOPPING Co., LTD. All rights reserved.
+Webpage location: footer > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: ec373c6f0b7889283ca4e1d6210359320d6e34622cdd486f25034730c5a01a51

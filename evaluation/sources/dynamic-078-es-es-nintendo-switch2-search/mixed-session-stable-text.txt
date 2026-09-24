@@ -1,0 +1,50 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-078-es-es-nintendo-switch2-search
+Evaluation URL: https://www.nintendo.com/es-es/Buscar/Buscar-299117.html?f=147394-87-126555
+Expected final URL: https://www.nintendo.com/es-es/Buscar/Buscar-299117.html?f=147394-87-126555
+Target language: es-ES
+Target region: ES
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[source-stable-7abbd677779f]
+Observed ordinary text: Nintendo Store
+Webpage location: body > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 598ae3c781d818eae040a8932e4d800d5baeb407de4cd0cf07d68cddf053e3b1
+
+[source-stable-32b40035b080]
+Observed ordinary text: Ayuda
+Webpage location: body > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: d689a5acd45113e8be4bfae64ba055afa9af379d2fe2ab68b22965ae33cb6632
+
+[source-stable-8472c8031762]
+Observed ordinary text: Información de la empresa
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1cc5740fd3477a04016b0ef63456ad8bdb727bf1a6d5c61fa95b5134541765a9
+
+[source-stable-5a3511882efd]
+Observed ordinary text: Política de privacidad de este sitio web
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: fa433fdc81c4135a47daf419812bec373b40cde99006a5ffa2a3a1923e0fcc24
+
+[source-stable-7bf153fbb17c]
+Observed ordinary text: Información legal
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a2b3ff08cacb0ad80db2d63d0bf43bb907dcd048e5df4c0d824f23731c3be0f0
+
+[source-stable-8a61ccde48da]
+Observed ordinary text: Declaración de accesibilidad
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 9abb62ec3d77f2916cff98eb78f983b2ee353903074248a63f301e6f46f16127
+
+[source-stable-f84a97718481]
+Observed ordinary text: Contactar
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5d815bfcce95c11059977b56a9cc2900800122fddf9ef7adead85a441869d167

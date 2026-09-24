@@ -1,0 +1,338 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-082-allocine-films
+Evaluation URL: https://www.allocine.fr/film/
+Expected final URL: https://www.allocine.fr/film/
+Target language: fr-FR
+Target region: FR
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-d1e4c3a197cd]
+Observed ordinary text: Actus ciné box office
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-51c69b5cdf61]
+Observed ordinary text: Actus sorties ciné
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-2c8969c708af]
+Observed ordinary text: AdoroCinema
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-1340b605a065]
+Observed ordinary text: Agenda des sorties
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-6b58dbd6a994]
+Observed ordinary text: Allemagne
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-716d394ada34]
+Observed ordinary text: AlloCiné sur mobile
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-dc60c89324fa]
+Observed ordinary text: AlloCiné à l'étranger
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-b04cce1e1fff]
+Observed ordinary text: BO de films
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-2af8fefc40d9]
+Observed ordinary text: Bandes annonces de films
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-fbb027287424]
+Observed ordinary text: Beyazperde
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-e0ebe0055f0c]
+Observed ordinary text: Box Office
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-25e1b8d61ae2]
+Observed ordinary text: Box Office US
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-cd6a58cdcadf]
+Observed ordinary text: Brésil
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-21e022b6805c]
+Observed ordinary text: CGU
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-966d76716eb8]
+Observed ordinary text: CGV
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-3decdec5b8fc]
+Observed ordinary text: Charte d'écriture
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-2b5c3d26721a]
+Observed ordinary text: Contact
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-180a2a1a7ee1]
+Observed ordinary text: Court métrages
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-cccb5714ec38]
+Observed ordinary text: Dernières bandes annonces
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-20627079b6d8]
+Observed ordinary text: Documentaires
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-d2c442ed072d]
+Observed ordinary text: Données Personnelles
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-249f72e9811a]
+Observed ordinary text: Espagne
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-4b9c598f9f60]
+Observed ordinary text: Festivals
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-ec181f19f4e9]
+Observed ordinary text: Films incontournables
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-467b5ff3c216]
+Observed ordinary text: Films pour enfants à l'affiche
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-32feb2c2221d]
+Observed ordinary text: Filmstarts
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-3d109ffba5ce]
+Observed ordinary text: Gérer Utiq
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-e76a576de89b]
+Observed ordinary text: Les indés
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-535fc0944c23]
+Observed ordinary text: Les services AlloCiné
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-96ba5b960701]
+Observed ordinary text: Meilleures comédies US
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-9a08f7b91091]
+Observed ordinary text: Meilleurs documentaires
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-b7dfbbb1575b]
+Observed ordinary text: Meilleurs films pour enfants
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-cb8ffb107e1e]
+Observed ordinary text: Meilleurs films selon la presse
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-995dccb4a432]
+Observed ordinary text: Mexique
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-69752f2313b2]
+Observed ordinary text: News
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-2db9721c572d]
+Observed ordinary text: Politique de cookies
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-bde1c68de013]
+Observed ordinary text: Prochaines sorties US
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-c1b333f6a73d]
+Observed ordinary text: Préférences cookies
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-665d353d7488]
+Observed ordinary text: Publicité
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-5419c14aa592]
+Observed ordinary text: Qui sommes-nous
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-0b2c13d1289c]
+Observed ordinary text: Recrutement
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-812dc29ecdb3]
+Observed ordinary text: Retrouvez tous les horaires et infos de votre cinéma sur le numéro AlloCiné :
+Webpage location: footer > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-7d2aa8914783]
+Observed ordinary text: Revue de presse
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-e95b60ddee87]
+Observed ordinary text: SensaCine
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-676fb879fa07]
+Observed ordinary text: Sensacine México
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-8a8b591b74c4]
+Observed ordinary text: Sorties ciné du mois
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-a951c5945635]
+Observed ordinary text: Streaming
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-299c898c12c6]
+Observed ordinary text: Suivez-nous
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-812f42b06e2b]
+Observed ordinary text: Séries
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-0e2130d4bdb9]
+Observed ordinary text: TVActu
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-88aa4ceabed3]
+Observed ordinary text: Top Box Office
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-2a3cdcc60b1f]
+Observed ordinary text: Toutes les videos de films
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-63ab821b2089]
+Observed ordinary text: Turquie
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-b7c5258e03c5]
+Observed ordinary text: Vidéos
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7
+
+[phase1-stable-abddaf04fbcf]
+Observed ordinary text: ©AlloCiné
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7

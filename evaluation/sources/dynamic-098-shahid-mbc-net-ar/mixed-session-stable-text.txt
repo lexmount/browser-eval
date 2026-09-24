@@ -1,0 +1,44 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-098-shahid-mbc-net-ar
+Evaluation URL: https://shahid.mbc.net/ar
+Expected final URL: https://shahid.mbc.net/ar
+Target language: ar-SA
+Target region: SA
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[source-stable-bfcf48307970]
+Observed ordinary text: الرئيسية
+Webpage location: header > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a57f44f04d90e5fed238e0b2ecec1ba943193b225aed98fab1c2930d2214c015
+
+[source-stable-598db56f2bc0]
+Observed ordinary text: تصفّح
+Webpage location: header > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 333a93c225e30c0c8852b22d4e29fdeac2d45b99d021b10cc1c86bf40883d274
+
+[source-stable-9fc3101a5422]
+Observed ordinary text: أفلام
+Webpage location: header > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 9ee953862b3ba7ea11a44bef6f3963e647b1ff387213cd34e5d965342d671d8d
+
+[source-stable-58c46735a798]
+Observed ordinary text: مسلسلات
+Webpage location: header > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: dc6b17e277930243e88b83fc5f17c1d2c1c9c64c54912a6d1bd58b118bc1b929
+
+[source-stable-84c5675c0252]
+Observed ordinary text: مباشر
+Webpage location: header > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: d82d8c822ff84b2ef8b9c11bd56c4480fdc904ca5f263e7e509a95bfbc0ed461
+
+[source-stable-beb869eecc12]
+Observed ordinary text: تسجيل الدخول
+Webpage location: header > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3b45eb67e3ae3e783f83ec9db54e5979c52208c471cf469f4df9f698fa05b41a

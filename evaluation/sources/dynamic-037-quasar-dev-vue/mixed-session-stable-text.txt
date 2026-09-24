@@ -1,0 +1,206 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-037-quasar-dev-vue
+Evaluation URL: https://quasar.dev/vue-components/virtual-scroll/
+Expected final URL: https://quasar.dev/vue-components/virtual-scroll/
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-b30b3a63451a]
+Observed ordinary text: (mg)
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-25830ee52535]
+Observed ordinary text: (val)
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-d3368cbffe23]
+Observed ordinary text: Accessibility
+Webpage location: main > h2
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-fe02680f2479]
+Observed ordinary text: Announcements
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-0e35f6e9742e]
+Observed ordinary text: Basic
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-636f0dc2dfb9]
+Observed ordinary text: Calcium
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-dad30556d662]
+Observed ordinary text: Calcium (%)
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-42b7dd56746d]
+Observed ordinary text: Calories
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-2c06fb68cd6e]
+Observed ordinary text: Carbs
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-693a2d91fa60]
+Observed ordinary text: Carbs (g)
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-a150ce221602]
+Observed ordinary text: Components
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-9f1fb3fe270d]
+Observed ordinary text: Dessert
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-77305d80d53b]
+Observed ordinary text: Dessert (100g serving)
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-88fcd42d7f4c]
+Observed ordinary text: Different templates
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-7af023c43013]
+Observed ordinary text: Docs
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-ddcdda5ac2be]
+Observed ordinary text: Fat
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-5f3823714b0e]
+Observed ordinary text: Fat (g)
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-39c3be1198a2]
+Observed ordinary text: Index
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-3cd687a64c92]
+Observed ordinary text: Iron (%)
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-92a31f1de3df]
+Observed ordinary text: Protein
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-99ba4bd57b57]
+Observed ordinary text: Protein (g)
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-92375f997ffe]
+Observed ordinary text: Roadmap
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-5cf9ef503bd2]
+Observed ordinary text: Scroll to position
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-cbd06db64d87]
+Observed ordinary text: Sodium
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-8dcabfc43a42]
+Observed ordinary text: Sodium (mg)
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-2a428eee422c]
+Observed ordinary text: Sponsors
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-fe2a4403d749]
+Observed ordinary text: Sync and async
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-74323e9a7871]
+Observed ordinary text: Table type
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-8d59829c1e15]
+Observed ordinary text: Usage
+Webpage location: main > h2
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-598202251921]
+Observed ordinary text: Utility classes
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-c80bfbcb60f8]
+Observed ordinary text: Video Tutorials
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-b30a70bb5cc5]
+Observed ordinary text: Virtual Scroll
+Webpage location: main > h1
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399
+
+[phase1-stable-5c518ee86fd9]
+Observed ordinary text: Why Quasar?
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399

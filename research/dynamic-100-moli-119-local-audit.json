@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "id": "dynamic-100-moli-119-local-audit-2026-09-24",
+  "date": "2026-09-24",
+  "status": "local_audit_complete",
+  "scope": {
+    "cases": 100,
+    "results": 100,
+    "passes": 44,
+    "failures": 56,
+    "provider": "moli-webfetch",
+    "provider_version": "moli 1.1.9"
+  },
+  "method": {
+    "route": "native_fetch",
+    "completion": "default_done",
+    "uniform_parameters": true,
+    "only_url_varies_by_case": true,
+    "provider_calls_during_merge_or_review": 0
+  },
+  "bindings": {
+    "input_dataset_sha256": "d181acdd31e51439df2d274fd8c6b3fdabd1aceb9f52c8a89d45fff50fb0437a",
+    "dataset_sha256": "fb9402e704dc2d401b5df95406d9d1fecb8005c82c598ea3f7882ea1ba56dda4",
+    "input_results_sha256": "01c04121f5cce4c206e48994d8ef18185b0e31ab69fcf01720df4c2aab5325ab",
+    "results_sha256": "9ae3c99e480c61680fe551ced2ceba16255d934d5b62ffb50fc469a0fe618a01",
+    "scoring_source_sha256": "85235497164490c555e0b32d823b7bff93581c11eb529a242e5192dc9509ac0f",
+    "rescore_source_sha256": "83267cec0b6499eef94de7ccffa6be32a254dbf87b7c5c4d83cb80ff32175144",
+    "moli_binary_sha256": "79699e50476118a7a5d1a36775f52d4106801fd5bc803727fd317501faa840cd"
+  },
+  "evidence_policy": {
+    "measured_outputs_in_git": false,
+    "debug_logs_in_git": false,
+    "generated_html_in_git": false,
+    "source_evidence_in_git": true,
+    "rebuild_from_persistent_evidence": true
+  },
+  "review": {
+    "supplement_cases_reviewed": 25,
+    "supplement_unresolved": 0,
+    "prior_75_review_retained": true,
+    "machine_failure_classification_reviewed": true,
+    "offline_rescore_verdict_changes": 0
+  }
+}

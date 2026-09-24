@@ -1,0 +1,38 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-023-en-mui-data-grid-pagination
+Evaluation URL: https://mui.com/x/react-data-grid/pagination/
+Expected final URL: https://mui.com/x/react-data-grid/pagination/
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[source-stable-68a83586ec50]
+Observed ordinary text: Data Grid - Pagination
+Webpage location: main > h1
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 162b4292d888af25b662ff6afd34bbccfb5c6527f21e7d3809f24da1f8d4521b
+
+[source-stable-628e026c1e00]
+Observed ordinary text: Pagination model
+Webpage location: main > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: e82c50ab1ea928c3054cc6de67bb4cd72f07049d1db77a02bfba13857f1c114c
+
+[source-stable-35f19d6c5820]
+Observed ordinary text: Rows per page:
+Webpage location: main > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: dd7d487c1ab8636d2b9f17a36176b4f02cb5182568a725853e7aeddabdbd08e4
+
+[source-stable-f66bbee7a96e]
+Observed ordinary text: MUI X
+Webpage location: nav > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 5ecd322c108e3f4e839693c7449496e40d45dc812b6db99ddcdf9fc7232d6080
+
+[source-stable-f87ff89ad4fc]
+Observed ordinary text: Data Grid
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 60b02c66910e13d0c193c09a4a96c73d2e5c215d38c4109b75aa8f3ae507b41d

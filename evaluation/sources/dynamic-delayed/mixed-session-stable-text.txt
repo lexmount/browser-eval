@@ -1,0 +1,38 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-delayed
+Evaluation URL: https://quotes.toscrape.com/js-delayed/?delay=3000
+Expected final URL: https://quotes.toscrape.com/js-delayed/?delay=3000
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-5de180a1bdfb]
+Observed ordinary text: GoodReads.com
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: ea4f585bdba54555d012b0d2c72798aa533363c114377b12e1916d1a78f16f3b
+
+[phase1-stable-42c6b818dcbc]
+Observed ordinary text: Made with
+Webpage location: footer > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: ea4f585bdba54555d012b0d2c72798aa533363c114377b12e1916d1a78f16f3b
+
+[phase1-stable-1ff57a29d7c9]
+Observed ordinary text: Next
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: ea4f585bdba54555d012b0d2c72798aa533363c114377b12e1916d1a78f16f3b
+
+[phase1-stable-3ad7e2873758]
+Observed ordinary text: Quotes by:
+Webpage location: footer > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: ea4f585bdba54555d012b0d2c72798aa533363c114377b12e1916d1a78f16f3b
+
+[phase1-stable-a4809e673301]
+Observed ordinary text: Zyte
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: ea4f585bdba54555d012b0d2c72798aa533363c114377b12e1916d1a78f16f3b

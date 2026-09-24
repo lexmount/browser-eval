@@ -1,0 +1,92 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-reviews-graphql
+Evaluation URL: https://web-scraping.dev/reviews
+Expected final URL: https://web-scraping.dev/reviews
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-f4137804fc55]
+Observed ordinary text: API Docs
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-8c6bc099534a]
+Observed ordinary text: Blog
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-baa4038e686a]
+Observed ordinary text: File Download
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-f911e414cf6b]
+Observed ordinary text: GitHub
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-1826fa683deb]
+Observed ordinary text: Latest Product Reviews
+Webpage location: body > h1
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-ecd806d3c25e]
+Observed ordinary text: MCP Tools
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-4edc8bfafc6b]
+Observed ordinary text: Products
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-84cb7871b741]
+Observed ordinary text: Reviews
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-6eab2d81e974]
+Observed ordinary text: ScrapFly
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-4db550cd9840]
+Observed ordinary text: Sitemap
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-d2825cb6bc91]
+Observed ordinary text: Testimonials
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-428821350e96]
+Observed ordinary text: login
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-c96b77e89c30]
+Observed ordinary text: made by
+Webpage location: footer > li
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85
+
+[phase1-stable-e4d28441c7bf]
+Observed ordinary text: web-scraping.dev
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 86ccae182d1c42ba01af87d23cccd8049375bc339f90382f85b3482758a00e85

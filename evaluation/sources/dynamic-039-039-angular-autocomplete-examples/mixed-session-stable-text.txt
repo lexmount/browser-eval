@@ -1,0 +1,86 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-039-039-angular-autocomplete-examples
+Evaluation URL: https://material.angular.dev/components/autocomplete/examples
+Expected final URL: https://material.angular.dev/components/autocomplete/examples
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-36b18e7d0100]
+Observed ordinary text: CDK
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49
+
+[phase1-stable-aecf6eda38b6]
+Observed ordinary text: Code licensed under an MIT-style License.
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49
+
+[phase1-stable-a150ce221602]
+Observed ordinary text: Components
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49
+
+[phase1-stable-b659837d83de]
+Observed ordinary text: Documentation licensed under CC BY 4.0.
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49
+
+[phase1-stable-f911e414cf6b]
+Observed ordinary text: GitHub
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49
+
+[phase1-stable-572cd72feb9a]
+Observed ordinary text: Guides
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49
+
+[phase1-stable-c70972e81503]
+Observed ordinary text: Learn Angular
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49
+
+[phase1-stable-616cb218a65b]
+Observed ordinary text: Material
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49
+
+[phase1-stable-c887f134c26e]
+Observed ordinary text: Skip to main content
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49
+
+[phase1-stable-14c2529eb449]
+Observed ordinary text: api
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49
+
+[phase1-stable-c590b3c924c3]
+Observed ordinary text: examples
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49
+
+[phase1-stable-bd445c462b7e]
+Observed ordinary text: overview
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49
+
+[phase1-stable-e2b1fb661125]
+Observed ordinary text: styling
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 29c6b7454cbe4ff2a3dca0aa7cd84408bf62d6af4e215912657211ff9d2cde49

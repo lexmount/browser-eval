@@ -1,0 +1,44 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-iframe
+Evaluation URL: https://www.scrapethissite.com/pages/frames/
+Expected final URL: https://www.scrapethissite.com/pages/frames/
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-dbc468a14b60]
+Observed ordinary text: FAQ
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a502519e9500886190c26d2c62be0c97959c46caba18f62fac9bb03a052c5dc8
+
+[phase1-stable-cb4ad503e340]
+Observed ordinary text: Lessons
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a502519e9500886190c26d2c62be0c97959c46caba18f62fac9bb03a052c5dc8
+
+[phase1-stable-9d6322c1f4d9]
+Observed ordinary text: Login
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a502519e9500886190c26d2c62be0c97959c46caba18f62fac9bb03a052c5dc8
+
+[phase1-stable-67fc62497e85]
+Observed ordinary text: Sandbox
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a502519e9500886190c26d2c62be0c97959c46caba18f62fac9bb03a052c5dc8
+
+[phase1-stable-6361e044c705]
+Observed ordinary text: Scrape This Site
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a502519e9500886190c26d2c62be0c97959c46caba18f62fac9bb03a052c5dc8
+
+[phase1-stable-5def3f545c6f]
+Observed ordinary text: Turtles All the Way Down: Frames & iFrames
+Webpage location: body > h1
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a502519e9500886190c26d2c62be0c97959c46caba18f62fac9bb03a052c5dc8

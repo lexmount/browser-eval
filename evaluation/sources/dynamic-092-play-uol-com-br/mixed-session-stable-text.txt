@@ -1,0 +1,164 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-092-play-uol-com-br
+Evaluation URL: https://play.uol.com.br/
+Expected final URL: https://play.uol.com.br/
+Target language: pt-BR
+Target region: BR
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-304b26190821]
+Observed ordinary text: (Capitais e Regiões Metropolitanas) ou
+Webpage location: footer > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-161b2a59def3]
+Observed ordinary text: (Demais localidades)
+Webpage location: footer > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-1c8fe48057fe]
+Observed ordinary text: + Produtos UOL
+Webpage location: nav > dt
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-863184e46722]
+Observed ordinary text: Aceitamos
+Webpage location: footer > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-fe0addd70781]
+Observed ordinary text: Ajuda
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-fcd505a8b409]
+Observed ordinary text: Assine também pela nossa Central de Vendas:
+Webpage location: footer > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-11191907c846]
+Observed ordinary text: Atendimento
+Webpage location: nav > dt
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-6b628304a5f3]
+Observed ordinary text: Baixe o aplicativo
+Webpage location: nav > dt
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-1319c6b89afa]
+Observed ordinary text: Bate-papo UOL
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-8c6bc099534a]
+Observed ordinary text: Blog
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-dc7ababc44cc]
+Observed ordinary text: Catálogo
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-18fef0d4af24]
+Observed ordinary text: Como acessar
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-39d450456e10]
+Observed ordinary text: Conteúdo grátis
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-10e02614ba42]
+Observed ordinary text: Dúvidas
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-4105811890ae]
+Observed ordinary text: Entrar
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-2d5965ca6aa4]
+Observed ordinary text: O streaming do
+Webpage location: body > h1
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-13558e3f9435]
+Observed ordinary text: Planos UOL Play disponíveis
+Webpage location: body > h2
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-8031caca047e]
+Observed ordinary text: Produtos UOL
+Webpage location: nav > dt
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-6ae4a12cb83f]
+Observed ordinary text: Programação ao vivo
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-c25de6a8b513]
+Observed ordinary text: SAC - Central de Atendimento
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-e259be76521f]
+Observed ordinary text: Termos de Uso
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-e8baf46354bb]
+Observed ordinary text: UOL - O melhor conteúdo. Todos os direitos reservados.
+Webpage location: footer > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-c59a7946e50f]
+Observed ordinary text: UOL Play
+Webpage location: body > h2
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-5b0505df8adf]
+Observed ordinary text: UOL Resolve
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-71b4f3a3748c]
+Observed ordinary text: com
+Webpage location: body > h1
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8
+
+[phase1-stable-840a8dcfeae9]
+Observed ordinary text: os
+Webpage location: body > h1
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 3588d13d8b414a370b4380dde628bbf665c876525b3fa11680e90a9597e948f8

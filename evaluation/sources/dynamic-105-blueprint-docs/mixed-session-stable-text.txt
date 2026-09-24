@@ -1,0 +1,26 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-105-blueprint-docs
+Evaluation URL: https://blueprintjs.com/docs/
+Expected final URL: https://blueprintjs.com/docs/
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-2cff9baabf56]
+Observed ordinary text: Import
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1c390cc3bc800961135f0aa35e4f16726f0e48a68a98fb650d887ff7a594c5d2
+
+[phase1-stable-569ca49f4aaf]
+Observed ordinary text: Install
+Webpage location: main > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1c390cc3bc800961135f0aa35e4f16726f0e48a68a98fb650d887ff7a594c5d2
+
+[phase1-stable-0eb95fb6244c]
+Observed ordinary text: Quick start
+Webpage location: main > h2
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1c390cc3bc800961135f0aa35e4f16726f0e48a68a98fb650d887ff7a594c5d2

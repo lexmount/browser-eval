@@ -1,0 +1,591 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-104-mui-data-grid",
+  "url": "https://mui.com/x/react-data-grid/",
+  "evaluation_url": "https://mui.com/x/react-data-grid/",
+  "expected_final_url": "https://mui.com/x/react-data-grid/",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 81,
+  "anchors": [
+    {
+      "id": "phase1-stable-0ad1b06f64f2",
+      "text": "AI Assistant",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-6faca510491c",
+      "text": "AI Assistant Panel",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-c8e5998f6a39",
+      "text": "API",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-4a4f593d713f",
+      "text": "API object",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-484ee9bb6e51",
+      "text": "API reference",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-d3368cbffe23",
+      "text": "Accessibility",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-c998e76868f8",
+      "text": "Advanced features",
+      "source_location": "nav > div",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-749cfaf9af6c",
+      "text": "Aggregation",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-4913a448e438",
+      "text": "Aggregation and row grouping",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-034ed95815f9",
+      "text": "Become a Diamond sponsor",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-8c6bc099534a",
+      "text": "Blog",
+      "source_location": "header > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-6e0aea0573b9",
+      "text": "Cells",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-f91cf6c6263d",
+      "text": "Charts",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-f5d68a7ff670",
+      "text": "Charts Panel",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-4f2d41d5d6a5",
+      "text": "Charts integration",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-460b3a7da007",
+      "text": "Chat",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-53aade77cd69",
+      "text": "Columns",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-fba49961d98f",
+      "text": "Columns Panel",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-a7b3dcb944d4",
+      "text": "Common concepts",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-a150ce221602",
+      "text": "Components",
+      "source_location": "nav > div",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-437aea62a5bd",
+      "text": "Contents",
+      "source_location": "nav > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-598f03ce59a6",
+      "text": "Copy and paste",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-aa440f51f861",
+      "text": "Custom subcomponents",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-db4fd5737890",
+      "text": "Customization",
+      "source_location": "nav > div",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-f87ff89ad4fc",
+      "text": "Data Grid",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-ddb7a77ffc10",
+      "text": "Date and Time Pickers",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-f61ec10d1385",
+      "text": "Demos",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-a9029e19d5b3",
+      "text": "Edit this page",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-fab4539d26e0",
+      "text": "Editing",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-8d14f6e72de8",
+      "text": "Events",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-3664895579f0",
+      "text": "Export",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-5697d03daef4",
+      "text": "Features",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-7bd9916ae93a",
+      "text": "Filter Panel",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-da12ab901ff9",
+      "text": "Filtering",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-88f1b19d966c",
+      "text": "Formula Bar",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-098baf95d843",
+      "text": "Formulas",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-b605350bc002",
+      "text": "Introduction",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-a511909161e1",
+      "text": "Layout",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-5d8c3e1b635e",
+      "text": "List view",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-031c2d79d71a",
+      "text": "Localization",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-f66bbee7a96e",
+      "text": "MUI X",
+      "source_location": "header > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-61cb5c9d6890",
+      "text": "MUI X Data Grid",
+      "source_location": "main > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-297aeadfeadf",
+      "text": "MUI stands in solidarity with Ukraine.",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-6d2085569a23",
+      "text": "Main features",
+      "source_location": "nav > div",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-cc149190687e",
+      "text": "Migration",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-18fdd549b2ed",
+      "text": "New",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-975c5697ac19",
+      "text": "Overlays",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-d4b1ea5708dd",
+      "text": "Overview",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-7b3f674b625e",
+      "text": "Pagination",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-442aded87a55",
+      "text": "Performance",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-7d99d9b6b0f4",
+      "text": "Pivot Panel",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-6391fcbd110a",
+      "text": "Pivoting",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-fb6f7c93e6bf",
+      "text": "Planned",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-ad62eadf2efb",
+      "text": "Premium version",
+      "source_location": "main > h3",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-324b134f57c7",
+      "text": "Preview",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-b8b681244343",
+      "text": "Pro version",
+      "source_location": "main > h3",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-c102e29d82ae",
+      "text": "Prompt Field",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-0f7cf4f26e3b",
+      "text": "Quick Filter",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-d3b2aefa7524",
+      "text": "Quickstart",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-e89b30aa1dc3",
+      "text": "Resources",
+      "source_location": "nav > div",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-7a17cd1756c5",
+      "text": "Row grouping",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-101f2ff3de22",
+      "text": "Rows",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-d3a27d96cd07",
+      "text": "Scheduler",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-9b97629352c7",
+      "text": "Scrolling",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-ca4067071fcf",
+      "text": "Selection",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-d8cc81c317e6",
+      "text": "Server-side data",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-cb24f7d40a81",
+      "text": "Sorting",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-a3b50c476732",
+      "text": "State",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-ee7da936b5cb",
+      "text": "Store",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-ceb9e275f38b",
+      "text": "Styling basics",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-dae4bcf2ba08",
+      "text": "Styling recipes",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-451aa51a0fb5",
+      "text": "Toolbar",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-5e0af8e28cb1",
+      "text": "Tree View",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-af9fbd60cd1d",
+      "text": "Tree data",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-8d9f66992dd4",
+      "text": "Tutorials",
+      "source_location": "nav > div",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-79c1cc4152d8",
+      "text": "Undo and redo",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-8d59829c1e15",
+      "text": "Usage",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-a8ec94ca1517",
+      "text": "Virtualization",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-c8f62fcc6b3a",
+      "text": "Was this page helpful?",
+      "source_location": "footer > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-d1de00cf6e09",
+      "text": "What's new in MUI X",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    },
+    {
+      "id": "phase1-stable-eecc28646fa3",
+      "text": "🚀 Material UI and MUI X v9 are out! Check out the announcement blogpost.",
+      "source_location": "header > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d326326d6f295d3c887d3bd5460a521e1f0fbd86d224f46e379954bfa6137548"
+    }
+  ],
+  "projected_text_sha256": "2b230b826268a7431fea2f94bf39eff12977034d4d27656ba6ff49cdedb31204"
+}

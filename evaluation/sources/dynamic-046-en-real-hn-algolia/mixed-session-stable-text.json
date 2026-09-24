@@ -1,0 +1,66 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-046-en-real-hn-algolia",
+  "url": "https://hn.algolia.com/?dateRange=all&page=0&prefix=true&query=javascript&sort=byPopularity&type=story",
+  "evaluation_url": "https://hn.algolia.com/?dateRange=all&page=0&prefix=true&query=javascript&sort=byPopularity&type=story",
+  "expected_final_url": "https://hn.algolia.com/?dateRange=all&page=0&prefix=true&query=javascript&sort=byPopularity&type=story",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 6,
+  "anchors": [
+    {
+      "id": "phase1-stable-1cc77e60fcee",
+      "text": "API Documentation",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "fe7838cb7c3edb1bacfe1546966f50a087773dfad2e15cc2053e19dd5162cacc"
+    },
+    {
+      "id": "phase1-stable-4efca0d10c5f",
+      "text": "About",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "fe7838cb7c3edb1bacfe1546966f50a087773dfad2e15cc2053e19dd5162cacc"
+    },
+    {
+      "id": "phase1-stable-f88a6765052b",
+      "text": "Cool Apps",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "fe7838cb7c3edb1bacfe1546966f50a087773dfad2e15cc2053e19dd5162cacc"
+    },
+    {
+      "id": "phase1-stable-305adcd567aa",
+      "text": "Fork/Contribute",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "fe7838cb7c3edb1bacfe1546966f50a087773dfad2e15cc2053e19dd5162cacc"
+    },
+    {
+      "id": "phase1-stable-b79cac926e0b",
+      "text": "Help",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "fe7838cb7c3edb1bacfe1546966f50a087773dfad2e15cc2053e19dd5162cacc"
+    },
+    {
+      "id": "phase1-stable-818cd8d91aea",
+      "text": "Setting",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "fe7838cb7c3edb1bacfe1546966f50a087773dfad2e15cc2053e19dd5162cacc"
+    }
+  ],
+  "projected_text_sha256": "6662585b36da81116c3922ecef1762a340285a1aeda5abf9356d842d31f854d9"
+}

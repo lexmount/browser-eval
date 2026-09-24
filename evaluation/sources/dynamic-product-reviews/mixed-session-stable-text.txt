@@ -1,0 +1,152 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-product-reviews
+Evaluation URL: https://web-scraping.dev/product/1
+Expected final URL: https://web-scraping.dev/product/1
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-f4137804fc55]
+Observed ordinary text: API Docs
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-8c6bc099534a]
+Observed ordinary text: Blog
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-c34e1dd5dcd1]
+Observed ordinary text: Box of Chocolate Candy
+Webpage location: nav > li
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-0faeff44803b]
+Observed ordinary text: Delivery Type
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-526e0087cc3f]
+Observed ordinary text: Description
+Webpage location: body > h4
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-5697d03daef4]
+Observed ordinary text: Features
+Webpage location: body > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-baa4038e686a]
+Observed ordinary text: File Download
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-f911e414cf6b]
+Observed ordinary text: GitHub
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-3a78695388b3]
+Observed ordinary text: Home
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-ecd806d3c25e]
+Observed ordinary text: MCP Tools
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-79f46fea97b6]
+Observed ordinary text: Package Dimension
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-78b16d2cd970]
+Observed ordinary text: Package Weight
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-3e784fc40cfb]
+Observed ordinary text: Packs
+Webpage location: body > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-4edc8bfafc6b]
+Observed ordinary text: Products
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-84cb7871b741]
+Observed ordinary text: Reviews
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-6eab2d81e974]
+Observed ordinary text: ScrapFly
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-fb7ebbeaa460]
+Observed ordinary text: Similar Products
+Webpage location: body > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-4db550cd9840]
+Observed ordinary text: Sitemap
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-d2825cb6bc91]
+Observed ordinary text: Testimonials
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-63d2643b059e]
+Observed ordinary text: Variants
+Webpage location: body > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-dd167905de0d]
+Observed ordinary text: Version
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-428821350e96]
+Observed ordinary text: login
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-c96b77e89c30]
+Observed ordinary text: made by
+Webpage location: footer > li
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46
+
+[phase1-stable-e4d28441c7bf]
+Observed ordinary text: web-scraping.dev
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: a570ac638df691d767e64e18f1c696cf94a689d791a68038ef59a0438aa41d46

@@ -1,0 +1,218 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-065-franceinfo-home
+Evaluation URL: https://www.francetvinfo.fr/
+Expected final URL: https://www.franceinfo.fr/
+Target language: fr-FR
+Target region: FR
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-5038ccc091fb]
+Observed ordinary text: Abonnement Newsletter
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-3f92aa1565f8]
+Observed ordinary text: Accessibilité (partiellement conforme)
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-bfb044043f3c]
+Observed ordinary text: Assistant vocal
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-adaf62f5658a]
+Observed ordinary text: CGU et mentions légales
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-046068f341bb]
+Observed ordinary text: Charte du Live
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-13f2940c8f75]
+Observed ordinary text: Charte déontologique
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-9fa4dc19b5a2]
+Observed ordinary text: Devenir annonceur
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-5517ff65c7e0]
+Observed ordinary text: Direct TV
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-423a5182eba3]
+Observed ordinary text: Direct radio
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-dd3ae33250cf]
+Observed ordinary text: En savoir plus
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-d211e68b4e7f]
+Observed ordinary text: Enquêtes
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-0d746cf91ccc]
+Observed ordinary text: France Télévisions utilise votre adresse e-mail pour vous adresser la newsletter “L’actu à 7h30” et elle est susceptible d'être personnalisée. En vous inscrivant à nos newsletters, vous consentez également à l’utilisation de pixels de suivi et de liens traçants.
+Webpage location: footer > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-8a88d3d0e036]
+Observed ordinary text: Guerre en Ukraine
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-b2d072387262]
+Observed ordinary text: Gérer mes traceurs
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-64103d3936a1]
+Observed ordinary text: L'actualité près de chez vous
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-91f373df63a8]
+Observed ordinary text: Le live
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-6993b22c091a]
+Observed ordinary text: Nos rubriques
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-edc8162fd46a]
+Observed ordinary text: Notre politique de confidentialité
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-9f38ae8098e2]
+Observed ordinary text: Nous contacter
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-c1db3ae032e5]
+Observed ordinary text: Plan du site
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-3f74bf663901]
+Observed ordinary text: Plan du site recherche
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-f873b7dcc8ea]
+Observed ordinary text: Politique de confidentialité
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-731e0170ecd5]
+Observed ordinary text: Qui sommes-nous ?
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-2dad7cd9c0f7]
+Observed ordinary text: Rechercher une actualité
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-0b2c13d1289c]
+Observed ordinary text: Recrutement
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-20a37959cad5]
+Observed ordinary text: Retrouvez aussi
+Webpage location: nav > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-6a94e62f71e2]
+Observed ordinary text: Suivez l'actualité en direct :
+Webpage location: nav > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-e79bdd660c3f]
+Observed ordinary text: Suivez-nous sur les réseaux sociaux :
+Webpage location: footer > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-fc0b7fb6e3ef]
+Observed ordinary text: Votre adresse e-mail
+Webpage location: footer > label
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-6be5d4196106]
+Observed ordinary text: franceinfo sur Facebook (Nouvelle fenêtre)
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-b6f5994d221c]
+Observed ordinary text: franceinfo sur Instagram (Nouvelle fenêtre)
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-f32e9ee03ec2]
+Observed ordinary text: franceinfo sur Tiktok (Nouvelle fenêtre)
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-79e4e20f2131]
+Observed ordinary text: franceinfo sur X, anciennement Twitter (Nouvelle fenêtre)
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-bdf5a6bce679]
+Observed ordinary text: franceinfo sur Youtube (Nouvelle fenêtre)
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671
+
+[phase1-stable-bcf412beec09]
+Observed ordinary text: toute l’actu dès 7h30
+Webpage location: footer > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671

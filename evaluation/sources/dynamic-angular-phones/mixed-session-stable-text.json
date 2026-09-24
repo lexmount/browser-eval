@@ -1,0 +1,297 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-angular-phones",
+  "url": "https://angular.github.io/angular-phonecat/step-12/app/",
+  "evaluation_url": "https://angular.github.io/angular-phonecat/step-12/app/",
+  "expected_final_url": "https://angular.github.io/angular-phonecat/step-12/app/#!/phones",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 39,
+  "anchors": [
+    {
+      "id": "phase1-stable-a1dda99226ca",
+      "text": "An experience to cheer about.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-600d511a349c",
+      "text": "Android Powered, Google Maps Navigation, 5 Customizable Home Screens",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-7eaf17e97b19",
+      "text": "Are you ready for everything life throws your way?",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-e7929a8ddb04",
+      "text": "DROID™ 2 Global by Motorola",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-a26145375804",
+      "text": "DROID™ Pro by Motorola",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-286c5a17d137",
+      "text": "Dell Streak 7",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-5bcafa3534b2",
+      "text": "Dell Venue",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-0359044619fd",
+      "text": "Fast just got faster with Nexus S. A pure Google experience, Nexus S is the first phone to run Gingerbread (Android 2.3), the fastest version of Android yet.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-2948f8699048",
+      "text": "Feel Free to Tab™. The Samsung Galaxy Tab™ brings you an ultra-mobile entertainment experience through its 7” display, high-power processor and Adobe® Flash® Player compatibility.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-f8d815a32a46",
+      "text": "Introducing Dell™ Streak 7. Share photos, videos and movies together. It’s small enough to carry around, big enough to gather around.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-36ecf4319e7c",
+      "text": "LG Axis",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-dbd8d76d23de",
+      "text": "MOTOROLA ATRIX 4G the world's most powerful smartphone.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-51ca004ac384",
+      "text": "MOTOROLA ATRIX™ 4G",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-834db5a663e2",
+      "text": "MOTOROLA BRAVO™ with MOTOBLUR™",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-497c38a8c507",
+      "text": "MOTOROLA XOOM™",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-3ac934ae85b9",
+      "text": "Motorola CHARM fits easily in your pocket or palm. Includes MOTOBLUR service.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-cd8666386eb8",
+      "text": "Motorola CHARM™ with MOTOBLUR™",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-80ab0e78e54d",
+      "text": "Motorola DEFY™ with MOTOBLUR™",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-f3dc3b2a6ebd",
+      "text": "Motorola XOOM™ with Wi-Fi",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-69923d69c555",
+      "text": "Nexus S",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-992eeee4b22a",
+      "text": "SANYO ZIO",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-92c62010af69",
+      "text": "Samsung Galaxy Tab™",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-edb36742c3ee",
+      "text": "Samsung Gem™",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-e56f26dc95fa",
+      "text": "Samsung Mesmerize™ a Galaxy S™ phone",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-864acbe6a408",
+      "text": "Samsung Showcase™ a Galaxy S™ phone",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-1ee272e23778",
+      "text": "Samsung Transform™",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-bd689c15b2ca",
+      "text": "Search:",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-27ab0062ef43",
+      "text": "Sort by:",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-b7cf4b2d23a0",
+      "text": "T-Mobile G2",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-8c647bcc7698",
+      "text": "T-Mobile myTouch 4G",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-ef1eacee2df7",
+      "text": "The Dell Venue; Your Personal Express Lane to Everything",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-7d4c194963ef",
+      "text": "The Samsung Gem™ brings you everything that you would expect and more from a touch display smart phone – more apps, more features and a more affordable price.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-0a2ce52104b7",
+      "text": "The Samsung Mesmerize™ delivers a cinema quality experience like you’ve never seen before. Its innovative 4” touch display technology provides rich picture brilliance,even outdoors",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-5c4673cb08a6",
+      "text": "The Samsung Showcase™ delivers a cinema quality experience like you’ve never seen before. Its innovative 4” touch display technology provides rich picture brilliance, even outdoors",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-3debabb49157",
+      "text": "The Samsung Transform™ brings you a fun way to customize your Android powered touch screen phone to just the way you like it through your favorite themed “Sprint ID Service Pack”.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-2f3ab5720bd6",
+      "text": "The Sanyo Zio by Kyocera is an Android smartphone with a combination of ultra-sleek styling, strong performance and unprecedented value.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-d043455b9777",
+      "text": "The T-Mobile G2 with Google is the first smartphone built for 4G speeds on T-Mobile's new network. Get the information you need, faster than you ever thought possible.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-44717ec92401",
+      "text": "The T-Mobile myTouch 4G is a premium smartphone designed to deliver blazing fast 4G speeds so that you can video chat from practically anywhere, with or without Wi-Fi.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    },
+    {
+      "id": "phase1-stable-b962a84da9b7",
+      "text": "The next generation of DOES.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "491dddf6456140fe6c01f0b724fae7e48d95d1769b70bc00b708ffb3bfa15d4b"
+    }
+  ],
+  "projected_text_sha256": "22053b15c1c26aee5aa3bbb94fd10b998cf27cf5603d3fb0795c331c24d6d2e7"
+}

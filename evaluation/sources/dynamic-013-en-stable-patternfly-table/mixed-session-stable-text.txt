@@ -1,0 +1,110 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-013-en-stable-patternfly-table
+Evaluation URL: https://www.patternfly.org/components/table/react-demos/compact/
+Expected final URL: https://www.patternfly.org/components/table/react-demos/compact/
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-98e33b0f3104]
+Observed ordinary text: Applications
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-66880d2d8216]
+Observed ordinary text: Authentication
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-593879218a5a]
+Observed ordinary text: Last Modified
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-15b61974b270]
+Observed ordinary text: Location
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-1a230c3bc0d0]
+Observed ordinary text: Main title
+Webpage location: main > h1
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-97006f1bdbda]
+Observed ordinary text: Network services
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-c611981fab98]
+Observed ordinary text: Policy
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-a9ddb2dd46ba]
+Observed ordinary text: Section home
+Webpage location: nav > li
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-a6ecc7cd9e42]
+Observed ordinary text: Section landing
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-13666ca7642b]
+Observed ordinary text: Section title
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-aef7de28d529]
+Observed ordinary text: Server
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-68d7beb6df59]
+Observed ordinary text: Servers
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-920e413c7d41]
+Observed ordinary text: Status
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-d01cb1076192]
+Observed ordinary text: System panel
+Webpage location: nav > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-3e42e385075b]
+Observed ordinary text: Threads
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-e7a241debad5]
+Observed ordinary text: URL
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e
+
+[phase1-stable-1377264ba3b0]
+Observed ordinary text: Workspaces
+Webpage location: main > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 413db1965503f36dc27bb61c11c5dbd35b02ca0e7aa1a3ab6d19ca501ebd173e

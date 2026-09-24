@@ -1,0 +1,86 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-041-en-stable-heroui-table
+Evaluation URL: https://www.heroui.com/docs/components/table
+Expected final URL: https://heroui.com/en/docs/react/components/table
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-ff8059dc6752]
+Observed ordinary text: Actions
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e
+
+[phase1-stable-bc837485ac4b]
+Observed ordinary text: Date Modified
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e
+
+[phase1-stable-969ccbd3cf63]
+Observed ordinary text: Email
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e
+
+[phase1-stable-d00eca1bae67]
+Observed ordinary text: Getting Started
+Webpage location: header > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e
+
+[phase1-stable-cc149190687e]
+Observed ordinary text: Migration
+Webpage location: header > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e
+
+[phase1-stable-dcd1d5223f73]
+Observed ordinary text: Name
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e
+
+[phase1-stable-d509e4938852]
+Observed ordinary text: Native
+Webpage location: header > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e
+
+[phase1-stable-b5658fc8edda]
+Observed ordinary text: On this page
+Webpage location: body > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e
+
+[phase1-stable-1a6f7cae06cc]
+Observed ordinary text: Releases
+Webpage location: header > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e
+
+[phase1-stable-14736a2eb9f4]
+Observed ordinary text: Role
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e
+
+[phase1-stable-920e413c7d41]
+Observed ordinary text: Status
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e
+
+[phase1-stable-2975104784a4]
+Observed ordinary text: Web
+Webpage location: header > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e
+
+[phase1-stable-28391d3bc64e]
+Observed ordinary text: of
+Webpage location: nav > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 1ba72546f5ad959dacfc918ea4505a6b842afbd0dc750623d10857f960128e6e

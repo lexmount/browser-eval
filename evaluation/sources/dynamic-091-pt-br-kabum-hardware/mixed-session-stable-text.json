@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-091-pt-br-kabum-hardware",
+  "url": "https://www.kabum.com.br/hardware",
+  "evaluation_url": "https://www.kabum.com.br/hardware",
+  "expected_final_url": "https://www.kabum.com.br/hardware",
+  "target_language": "pt-BR",
+  "target_region": "BR",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "c9d86235d08639debd35e8481afb8b5eaa52d0069f8fdedb0181bf41197c8170",
+  "curation_sha256": "d1420e286e55847d167fc7cce0870c5cd778deb1d153356a3f2170238011835b",
+  "anchor_count": 5,
+  "anchors": [
+    {
+      "id": "source-stable-d53b60f14c96",
+      "text": "KaBuM!",
+      "source_location": "aside > label",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "c96ca2a87861e8d31525db37f65f59f06aa3a4a9a4e03ea6556373a51886f506"
+    },
+    {
+      "id": "source-stable-7975300f01bc",
+      "text": "Hardware",
+      "source_location": "header > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "0cfb5767da51f72e7cd8f3421dd5b9393c1a88387e818747bd3781cdc5c721b6"
+    },
+    {
+      "id": "source-stable-1b8336da7ff1",
+      "text": "Hardware é no KaBuM!",
+      "source_location": "body > strong",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "4842649f620bbf8d3a9d1295da784925c4340961299ae99d7cae493b7aad0ac4"
+    },
+    {
+      "id": "source-stable-11191907c846",
+      "text": "Atendimento",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "80c580ca62d68f9d3fcec722a436fcd063af500e338ca6993780118065f4a69b"
+    },
+    {
+      "id": "source-stable-c51dea419442",
+      "text": "Políticas de Privacidade",
+      "source_location": "footer a[href=\"/privacidade\"]",
+      "observation_status": "Independent three-round footer wording; optional consent-dialog wording not required.",
+      "source_evidence_sha256": "d82ce85598ca5a4feb5d129130b6ead271eda421cd9aa0b540cb5b5be82b42ae"
+    }
+  ],
+  "projected_text_sha256": "3948608d53dbffff885d0330cb17d35896d4997b7dab3cc0e24e6ee080da641a"
+}

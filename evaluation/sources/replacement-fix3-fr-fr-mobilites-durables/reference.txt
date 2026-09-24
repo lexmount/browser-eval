@@ -1,0 +1,15 @@
+Bienvenue sur le tableau de bord des mobilités durables
+Le tableau de bord des mobilités durables est un outil au service des territoires qui a pour objectif de faciliter la prise de décision en matière de politiques publiques pour la mobilité durable.
+Il fournit un accès simple et rapide à des indicateurs territorialisés de mobilité en cohérence avec les objectifs locaux de transition écologique afin de permettre aux acteurs de la mobilité de suivre les politiques de décarbonation des transports mises en œuvre et d'identifier les leviers d’actions pouvant être mobilisés : report modal, mobilité partagée, verdissement du parc automobile, modération de la demande, etc.
+Il contribue ainsi à orienter les stratégies de mobilité à l'échelle territoriale sur une base d'indicateurs standardisés construits à partir de données publiques nationales.
+Découvrir les indicateurs de mobilité
+En savoir plus sur le tableau de bord
+Les atouts du tableau de bord
+Un accès simple et rapide à des indicateurs territorialisés opérationnels classés par thématiques.
+Des indicateurs standardisés offrant une vision comparative entre les territoires aux différentes échelles spatiales.
+Une mise à jour régulière des indicateurs avec un accès à l'historique pour un suivi de leur évolution au cours du temps.
+Des fiches méthodologiques fournissant un appui à la prise en main et à l'interprétation des indicateurs pour objectiver les résultats.
+Une page graphiques avancés associée à chaque indicateur pour des analyses plus approfondies avec des visualisations facilitant l'appropriation des indicateurs par les utilisateurs.
+À qui s'adresse le tableau de bord ?
+Le tableau de bord des mobilités durables s’adresse principalement aux services de l’Etat et des collectivités territoriales en charge des politiques de transport, ainsi qu'aux autorités organisatrices de la mobilité (AOM) afin de les accompagner dans le développement des mobilités durables et des dynamiques de partage et de réflexion au niveau local.
+Il s'adresse plus largement à tous les acteurs de la mobilité qui contribuent à une mobilité plus durable : agences d’urbanisme et de mobilité, opérateurs de transport, usagers…

@@ -1,0 +1,16 @@
+Example of Sorting in React Grid
+This sample demonstrates the Grid multi sorting feature. To sort two or more columns,
+hold the CTRL key and click the column header.
+
+Sorting feature enables us to order the data in a particular direction. It can be enabled by setting the
+allowSorting as true.
+To sort a Grid column simply click the column header. The icons (ascending) and (descending) specifies the sort direction of a column.
+By default, multi-sorting is enabled in Grid, to sort multiple column hold CTRL key and click the column header. To clear sort for a column, hold SHIFT key and click the column header.
+While using Grid in a touch device, you have an option for multi sorting in single tap on the grid header. By tapping on the grid header, it will show the toggle button in small popup with sort icon. Now tap the button to enable the multi sorting in single tap.
+In this demo, simply click the column header to sort a column. Also multiple sorting is enabled.
+Grid component features are segregated into individual feature-wise modules. To use Sorting feature, we need to inject Sort modeule into the services.
+
+More information on the paging feature configuration can be found in this
+documentation section.
+Looking for the full React Data Grid component overview, features, pricing, and documentation? Visit our
+React Data Grid component page.

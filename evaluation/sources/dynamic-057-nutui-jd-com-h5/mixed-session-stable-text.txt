@@ -1,0 +1,68 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-057-nutui-jd-com-h5
+Evaluation URL: https://nutui.jd.com/h5/vue/4x/
+Expected final URL: https://nutui.jd.com/h5/vue/4x/#/zh-CN/guide/intro
+Target language: zh-CN
+Target region: CN
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-a25c64ba89de]
+Observed ordinary text: NutUI
+Webpage location: body > h1
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 696458c729997154645f5277c1f65bd1ec803fa6d72ca7c6c9b65e1dbb408bd9
+
+[phase1-stable-8e64486d8308]
+Observed ordinary text: 共建指南
+Webpage location: body > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 696458c729997154645f5277c1f65bd1ec803fa6d72ca7c6c9b65e1dbb408bd9
+
+[phase1-stable-0ea9833cc02e]
+Observed ordinary text: 官方生态
+Webpage location: body > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 696458c729997154645f5277c1f65bd1ec803fa6d72ca7c6c9b65e1dbb408bd9
+
+[phase1-stable-ef9454bff0b4]
+Observed ordinary text: 开源协议
+Webpage location: body > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 696458c729997154645f5277c1f65bd1ec803fa6d72ca7c6c9b65e1dbb408bd9
+
+[phase1-stable-ed46aa986ebe]
+Observed ordinary text: 扫码体验
+Webpage location: body > h2
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 696458c729997154645f5277c1f65bd1ec803fa6d72ca7c6c9b65e1dbb408bd9
+
+[phase1-stable-dc2ba467fc7a]
+Observed ordinary text: 描述
+Webpage location: body > th
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 696458c729997154645f5277c1f65bd1ec803fa6d72ca7c6c9b65e1dbb408bd9
+
+[phase1-stable-ff5251814f00]
+Observed ordinary text: 核心人员
+Webpage location: body > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 696458c729997154645f5277c1f65bd1ec803fa6d72ca7c6c9b65e1dbb408bd9
+
+[phase1-stable-adcf64ba14be]
+Observed ordinary text: 特性
+Webpage location: body > h2
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 696458c729997154645f5277c1f65bd1ec803fa6d72ca7c6c9b65e1dbb408bd9
+
+[phase1-stable-01cca2c2836f]
+Observed ordinary text: 社区生态
+Webpage location: body > h3
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 696458c729997154645f5277c1f65bd1ec803fa6d72ca7c6c9b65e1dbb408bd9
+
+[phase1-stable-305378ddd2b8]
+Observed ordinary text: 链接
+Webpage location: body > h2
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 696458c729997154645f5277c1f65bd1ec803fa6d72ca7c6c9b65e1dbb408bd9

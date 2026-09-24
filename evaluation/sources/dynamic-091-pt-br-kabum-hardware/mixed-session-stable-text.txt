@@ -1,0 +1,38 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-091-pt-br-kabum-hardware
+Evaluation URL: https://www.kabum.com.br/hardware
+Expected final URL: https://www.kabum.com.br/hardware
+Target language: pt-BR
+Target region: BR
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[source-stable-d53b60f14c96]
+Observed ordinary text: KaBuM!
+Webpage location: aside > label
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: c96ca2a87861e8d31525db37f65f59f06aa3a4a9a4e03ea6556373a51886f506
+
+[source-stable-7975300f01bc]
+Observed ordinary text: Hardware
+Webpage location: header > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 0cfb5767da51f72e7cd8f3421dd5b9393c1a88387e818747bd3781cdc5c721b6
+
+[source-stable-1b8336da7ff1]
+Observed ordinary text: Hardware é no KaBuM!
+Webpage location: body > strong
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 4842649f620bbf8d3a9d1295da784925c4340961299ae99d7cae493b7aad0ac4
+
+[source-stable-11191907c846]
+Observed ordinary text: Atendimento
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 80c580ca62d68f9d3fcec722a436fcd063af500e338ca6993780118065f4a69b
+
+[source-stable-c51dea419442]
+Observed ordinary text: Políticas de Privacidade
+Webpage location: footer a[href="/privacidade"]
+Observation status: Independent three-round footer wording; optional consent-dialog wording not required.
+Source evidence SHA-256: d82ce85598ca5a4feb5d129130b6ead271eda421cd9aa0b540cb5b5be82b42ae

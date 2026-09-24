@@ -1,0 +1,38 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-068-ja-nintendo-switch2-software
+Evaluation URL: https://www.nintendo.com/jp/games/switch2/index.html
+Expected final URL: https://www.nintendo.com/jp/games/switch2/index.html
+Target language: ja-JP
+Target region: JP
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[source-stable-150a78cd0382]
+Observed ordinary text: Nintendo Switch 2 ソフト
+Webpage location: main > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 0d126dc047a9d27c107967e798d2be3b410e9eea29171b2e0da1cfc7ac59e717
+
+[source-stable-730d6c6d3f17]
+Observed ordinary text: Nintendo Switch 2 ソフトについて
+Webpage location: main > div
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 020a9cf995aa16f349567837ac2dc19d278ef70efa8e6ce4054f7b9d1246d2a5
+
+[source-stable-7abbd677779f]
+Observed ordinary text: Nintendo Store
+Webpage location: footer > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 58a21b2ed622f3f1a7ed9311f874501eaaeff389262420fff5ca94d5e776a507
+
+[source-stable-a6c63435d0be]
+Observed ordinary text: お問い合わせ
+Webpage location: footer > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 328db0104b2d343d2c12cc7e9f2742c9c24ca26cc2f409270039defb0f06b365
+
+[source-stable-c59b7166fdc3]
+Observed ordinary text: よくあるご質問
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 2cc0ab2922dd1e248a2ee8c614295f93a51ca33e529bffd41af18e375c8d7c6a

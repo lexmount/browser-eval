@@ -1,0 +1,94 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-027-ej2-syncfusion-com-react",
+  "url": "https://ej2.syncfusion.com/react/demos/grid/grouping/index.html",
+  "evaluation_url": "https://ej2.syncfusion.com/react/demos/grid/grouping/index.html",
+  "expected_final_url": "https://ej2.syncfusion.com/react/demos/grid/grouping/index.html",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 10,
+  "anchors": [
+    {
+      "id": "phase1-stable-170ee316128a",
+      "text": ". You can start editing by double-clicking a row or the toolbar `Edit` button. Once in edit mode, you have the ability to modify the values of the selected row. When saving the record, the Grid will refresh the specific edited row without affecting the expanded group state.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1fb031740ed9de3f13769110579acda9753244fa0bb9871966f8b2a762715810"
+    },
+    {
+      "id": "phase1-stable-4ed15d88fae1",
+      "text": "Columns can be grouped by simply dragging the column header and drop on the group drop area.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1fb031740ed9de3f13769110579acda9753244fa0bb9871966f8b2a762715810"
+    },
+    {
+      "id": "phase1-stable-057d4aea8a93",
+      "text": "Example of Grouping in React Grid",
+      "source_location": "body > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1fb031740ed9de3f13769110579acda9753244fa0bb9871966f8b2a762715810"
+    },
+    {
+      "id": "phase1-stable-9e7b6f352efb",
+      "text": "Grid component features are segregated into individual feature-wise modules. To use grouping and editing features, we need to inject",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1fb031740ed9de3f13769110579acda9753244fa0bb9871966f8b2a762715810"
+    },
+    {
+      "id": "phase1-stable-a0a69a5582df",
+      "text": "In this demo, editing options can be enabled by setting",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1fb031740ed9de3f13769110579acda9753244fa0bb9871966f8b2a762715810"
+    },
+    {
+      "id": "phase1-stable-35c0c3b851a2",
+      "text": "In this demo, to group a specify column, drag and drop the column in the group drop area.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1fb031740ed9de3f13769110579acda9753244fa0bb9871966f8b2a762715810"
+    },
+    {
+      "id": "phase1-stable-a851b0ebc680",
+      "text": "Looking for the full React Data Grid component overview, features, pricing, and documentation? Visit our",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1fb031740ed9de3f13769110579acda9753244fa0bb9871966f8b2a762715810"
+    },
+    {
+      "id": "phase1-stable-52b02dde5c4f",
+      "text": "More information on the grouping feature configuration can be found in this",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1fb031740ed9de3f13769110579acda9753244fa0bb9871966f8b2a762715810"
+    },
+    {
+      "id": "phase1-stable-8c3ea626804d",
+      "text": "The Grid control has options to group the records based on the required column. When grouping is applied, grouped records are organized into a hierarchical structure to facilitate easier expansion and collapse of records. To enable grouping, set",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1fb031740ed9de3f13769110579acda9753244fa0bb9871966f8b2a762715810"
+    },
+    {
+      "id": "phase1-stable-55d0020cfa1d",
+      "text": "This sample demonstrates grouping feature of the Grid component. In this sample, the Grid data is grouped against ShipCountry column. To group any other column simply drag the column header and drop on the group drop area.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1fb031740ed9de3f13769110579acda9753244fa0bb9871966f8b2a762715810"
+    }
+  ],
+  "projected_text_sha256": "f459297dbf67c83e5ebd0fcc16cbfd0d7827d17526b287bbe154e917f1577047"
+}

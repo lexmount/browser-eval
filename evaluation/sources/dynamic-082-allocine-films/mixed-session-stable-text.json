@@ -1,0 +1,409 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-082-allocine-films",
+  "url": "https://www.allocine.fr/film/",
+  "evaluation_url": "https://www.allocine.fr/film/",
+  "expected_final_url": "https://www.allocine.fr/film/",
+  "target_language": "fr-FR",
+  "target_region": "FR",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 55,
+  "anchors": [
+    {
+      "id": "phase1-stable-d1e4c3a197cd",
+      "text": "Actus ciné box office",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-51c69b5cdf61",
+      "text": "Actus sorties ciné",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-2c8969c708af",
+      "text": "AdoroCinema",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-1340b605a065",
+      "text": "Agenda des sorties",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-6b58dbd6a994",
+      "text": "Allemagne",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-716d394ada34",
+      "text": "AlloCiné sur mobile",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-dc60c89324fa",
+      "text": "AlloCiné à l'étranger",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-b04cce1e1fff",
+      "text": "BO de films",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-2af8fefc40d9",
+      "text": "Bandes annonces de films",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-fbb027287424",
+      "text": "Beyazperde",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-e0ebe0055f0c",
+      "text": "Box Office",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-25e1b8d61ae2",
+      "text": "Box Office US",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-cd6a58cdcadf",
+      "text": "Brésil",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-21e022b6805c",
+      "text": "CGU",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-966d76716eb8",
+      "text": "CGV",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-3decdec5b8fc",
+      "text": "Charte d'écriture",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-2b5c3d26721a",
+      "text": "Contact",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-180a2a1a7ee1",
+      "text": "Court métrages",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-cccb5714ec38",
+      "text": "Dernières bandes annonces",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-20627079b6d8",
+      "text": "Documentaires",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-d2c442ed072d",
+      "text": "Données Personnelles",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-249f72e9811a",
+      "text": "Espagne",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-4b9c598f9f60",
+      "text": "Festivals",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-ec181f19f4e9",
+      "text": "Films incontournables",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-467b5ff3c216",
+      "text": "Films pour enfants à l'affiche",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-32feb2c2221d",
+      "text": "Filmstarts",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-3d109ffba5ce",
+      "text": "Gérer Utiq",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-e76a576de89b",
+      "text": "Les indés",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-535fc0944c23",
+      "text": "Les services AlloCiné",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-96ba5b960701",
+      "text": "Meilleures comédies US",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-9a08f7b91091",
+      "text": "Meilleurs documentaires",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-b7dfbbb1575b",
+      "text": "Meilleurs films pour enfants",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-cb8ffb107e1e",
+      "text": "Meilleurs films selon la presse",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-995dccb4a432",
+      "text": "Mexique",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-69752f2313b2",
+      "text": "News",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-2db9721c572d",
+      "text": "Politique de cookies",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-bde1c68de013",
+      "text": "Prochaines sorties US",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-c1b333f6a73d",
+      "text": "Préférences cookies",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-665d353d7488",
+      "text": "Publicité",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-5419c14aa592",
+      "text": "Qui sommes-nous",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-0b2c13d1289c",
+      "text": "Recrutement",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-812dc29ecdb3",
+      "text": "Retrouvez tous les horaires et infos de votre cinéma sur le numéro AlloCiné :",
+      "source_location": "footer > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-7d2aa8914783",
+      "text": "Revue de presse",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-e95b60ddee87",
+      "text": "SensaCine",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-676fb879fa07",
+      "text": "Sensacine México",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-8a8b591b74c4",
+      "text": "Sorties ciné du mois",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-a951c5945635",
+      "text": "Streaming",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-299c898c12c6",
+      "text": "Suivez-nous",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-812f42b06e2b",
+      "text": "Séries",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-0e2130d4bdb9",
+      "text": "TVActu",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-88aa4ceabed3",
+      "text": "Top Box Office",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-2a3cdcc60b1f",
+      "text": "Toutes les videos de films",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-63ab821b2089",
+      "text": "Turquie",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-b7c5258e03c5",
+      "text": "Vidéos",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    },
+    {
+      "id": "phase1-stable-abddaf04fbcf",
+      "text": "©AlloCiné",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+    }
+  ],
+  "projected_text_sha256": "8ab263580acc18b2d7fd4c7504a36b46a4eacb08f65705da013ad2b550ef2d78"
+}

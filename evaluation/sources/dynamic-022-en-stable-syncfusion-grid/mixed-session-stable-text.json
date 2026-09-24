@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-022-en-stable-syncfusion-grid",
+  "url": "https://ej2.syncfusion.com/react/demos/grid/overview/",
+  "evaluation_url": "https://ej2.syncfusion.com/react/demos/grid/overview/",
+  "expected_final_url": "https://ej2.syncfusion.com/react/demos/grid/overview/",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 9,
+  "anchors": [
+    {
+      "id": "phase1-stable-b0d8d5f509bc",
+      "text": "Example of Overview in React Grid",
+      "source_location": "body > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea"
+    },
+    {
+      "id": "phase1-stable-7a9a246843fa",
+      "text": "In this demo, Grid features such as",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea"
+    },
+    {
+      "id": "phase1-stable-a851b0ebc680",
+      "text": "Looking for the full React Data Grid component overview, features, pricing, and documentation? Visit our",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea"
+    },
+    {
+      "id": "phase1-stable-2a8a1fd077fb",
+      "text": "More information on the Grid instantiation can be found in this",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea"
+    },
+    {
+      "id": "phase1-stable-f8a64261f102",
+      "text": "The Grid is used to display and manipulate tabular data with configuration options to control the way the data is presented and manipulated. It will pull the data from a data source, such as an array of JSON objects, OData web services, or",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea"
+    },
+    {
+      "id": "phase1-stable-67b5b9a61a04",
+      "text": "This sample demonstrates the overview of basic grid features with its performance metrics of large data. To change datasource count, select rows and columns count from dropdown.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea"
+    },
+    {
+      "id": "phase1-stable-06a8c3eb37ec",
+      "text": "You can follow the guidelines in this",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea"
+    },
+    {
+      "id": "phase1-stable-d1faf0ae843d",
+      "text": "binding data fields to columns. Also, displaying a column header to identify the field with support for grouped records.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea"
+    },
+    {
+      "id": "phase1-stable-a486556bc3c5",
+      "text": "etc... are used along with large data source.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea"
+    }
+  ],
+  "projected_text_sha256": "a9c5fcd5839ac7430ad8431fe32dbb91a701c25b2eb58097f8e2f6e4804211a3"
+}

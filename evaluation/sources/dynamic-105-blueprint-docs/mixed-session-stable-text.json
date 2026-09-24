@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-105-blueprint-docs",
+  "url": "https://blueprintjs.com/docs/",
+  "evaluation_url": "https://blueprintjs.com/docs/",
+  "expected_final_url": "https://blueprintjs.com/docs/",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 3,
+  "anchors": [
+    {
+      "id": "phase1-stable-2cff9baabf56",
+      "text": "Import",
+      "source_location": "main > h3",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1c390cc3bc800961135f0aa35e4f16726f0e48a68a98fb650d887ff7a594c5d2"
+    },
+    {
+      "id": "phase1-stable-569ca49f4aaf",
+      "text": "Install",
+      "source_location": "main > h3",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1c390cc3bc800961135f0aa35e4f16726f0e48a68a98fb650d887ff7a594c5d2"
+    },
+    {
+      "id": "phase1-stable-0eb95fb6244c",
+      "text": "Quick start",
+      "source_location": "main > h2",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "1c390cc3bc800961135f0aa35e4f16726f0e48a68a98fb650d887ff7a594c5d2"
+    }
+  ],
+  "projected_text_sha256": "cfc92f4dfb6945ae4d28dada89de7eb66bbb3e23a2cd4afbc4a86d7752468d47"
+}

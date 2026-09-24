@@ -1,0 +1,62 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-022-en-stable-syncfusion-grid
+Evaluation URL: https://ej2.syncfusion.com/react/demos/grid/overview/
+Expected final URL: https://ej2.syncfusion.com/react/demos/grid/overview/
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-b0d8d5f509bc]
+Observed ordinary text: Example of Overview in React Grid
+Webpage location: body > h1
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea
+
+[phase1-stable-7a9a246843fa]
+Observed ordinary text: In this demo, Grid features such as
+Webpage location: body > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea
+
+[phase1-stable-a851b0ebc680]
+Observed ordinary text: Looking for the full React Data Grid component overview, features, pricing, and documentation? Visit our
+Webpage location: body > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea
+
+[phase1-stable-2a8a1fd077fb]
+Observed ordinary text: More information on the Grid instantiation can be found in this
+Webpage location: body > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea
+
+[phase1-stable-f8a64261f102]
+Observed ordinary text: The Grid is used to display and manipulate tabular data with configuration options to control the way the data is presented and manipulated. It will pull the data from a data source, such as an array of JSON objects, OData web services, or
+Webpage location: body > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea
+
+[phase1-stable-67b5b9a61a04]
+Observed ordinary text: This sample demonstrates the overview of basic grid features with its performance metrics of large data. To change datasource count, select rows and columns count from dropdown.
+Webpage location: body > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea
+
+[phase1-stable-06a8c3eb37ec]
+Observed ordinary text: You can follow the guidelines in this
+Webpage location: body > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea
+
+[phase1-stable-d1faf0ae843d]
+Observed ordinary text: binding data fields to columns. Also, displaying a column header to identify the field with support for grouped records.
+Webpage location: body > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea
+
+[phase1-stable-a486556bc3c5]
+Observed ordinary text: etc... are used along with large data source.
+Webpage location: body > p
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 6e74e8b29d76c6302937d75542e62999c1854f90f6533073da2b180c4c25a1ea

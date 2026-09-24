@@ -1,0 +1,140 @@
+Independent mixed-session stable-text evidence
+Case: dynamic-020-webscraper-io-test
+Evaluation URL: https://webscraper.io/test-sites/e-commerce/ajax/computers/tablets
+Expected final URL: https://webscraper.io/test-sites/e-commerce/ajax/computers/tablets
+Target language: en-US
+Target region: US
+Observation protocol: at least one fresh anonymous environment and one existing normal session; alternate browser when necessary; language and region fixed; text differing between environments excluded.
+Provider output used: no
+
+[phase1-stable-b4b580a9ad8c]
+Observed ordinary text: About us
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-8c6bc099534a]
+Observed ordinary text: Blog
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-bfe85c938607]
+Observed ordinary text: Browser Extension Privacy Policy
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-ff8fd2c5656a]
+Observed ordinary text: Cloud login
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-7f2b87116dec]
+Observed ordinary text: Computers / Tablets
+Webpage location: main > h1
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-b450645debe2]
+Observed ordinary text: Contacts
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-c205924de0fe]
+Observed ordinary text: Documentation
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-395aeb955e2e]
+Observed ordinary text: Extension
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-4da7bd42ab80]
+Observed ordinary text: Forum
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-9d37bdcd1dd8]
+Observed ordinary text: Install extension
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-c608981d8d68]
+Observed ordinary text: Marketplace
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-9e6ee90e53fe]
+Observed ordinary text: Media kit
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-dfe95783edfe]
+Observed ordinary text: Pricing
+Webpage location: nav > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-920e413c7d41]
+Observed ordinary text: Status
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-6ebf8ce91d4f]
+Observed ordinary text: Test Sites
+Webpage location: main > h1
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-fb4cacaa4318]
+Observed ordinary text: Try it free for 7 days
+Webpage location: header > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-c80bfbcb60f8]
+Observed ordinary text: Video Tutorials
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-ecb18813f979]
+Observed ordinary text: Web Scraper Cloud
+Webpage location: header > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-2baf1fcc8c20]
+Observed ordinary text: Web Scraper browser extension
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-ce4a6e605b26]
+Observed ordinary text: Website Privacy Policy
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-c3175daf7906]
+Observed ordinary text: info@webscraper.io
+Webpage location: footer > a
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9
+
+[phase1-stable-bc3ab304009c]
+Observed ordinary text: replaces your complex scraping stack.
+Webpage location: header > span
+Observation status: 三次混合会话观察均可见（含全新匿名环境和已有正常会话）
+Source evidence SHA-256: 42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9

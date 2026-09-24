@@ -1,0 +1,9 @@
+Demandes soumises. Demandes validées. Demandes refusées.
+
+Durée de remplissage d’une nouvelle demande. 50% durent moins de. 80% durent moins de.
+
+Délai de première réponse à une demande. 50% au bout de. 80% au bout de.
+
+Délai de réponse définitive à une demande. 50% au bout de. 80% au bout de.
+
+Évolution des demandes en attente de réponse. Transcription.
