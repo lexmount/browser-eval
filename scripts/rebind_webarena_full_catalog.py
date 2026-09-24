@@ -13,7 +13,7 @@ from scripts.run_webarena_full_catalog import (
     TRUSTED_RECORDED_HOSTS,
     _hash,
     _load_inputs,
-    _source_sites,
+    _row_source_sites,
 )
 
 
@@ -39,7 +39,6 @@ def rebind_catalog(
         target["source_site_urls"] = {
             site.value: url for site, url in load_remote_sites(source_site_map_path).items()
         }
-    source_sites = _source_sites(target)
     target["rows"] = []
     revised = set(revised_task_ids or ())
     if revised and target["site_map_sha256"] != source["site_map_sha256"]:
@@ -53,10 +52,15 @@ def rebind_catalog(
             else row["source_actions"]
         )
         row["bound_calls_sha256"] = _json_sha256(
-            rebind_remote_calls(actions, sites, set(TRUSTED_RECORDED_HOSTS), source_sites)
+            rebind_remote_calls(
+                actions, sites, set(TRUSTED_RECORDED_HOSTS), _row_source_sites(target, row)
+            )
         )
         if task_id in revised:
-            if row["mode"] != "portable" or row["bound_calls_sha256"] == original["bound_calls_sha256"]:
+            if (
+                row["mode"] != "portable"
+                or row["bound_calls_sha256"] == original["bound_calls_sha256"]
+            ):
                 raise ValueError(f"task {task_id} has no revised portable actions")
             row["source_kind"] = "revised_portable_suite"
             row["source_path"] = str(suite_path.resolve())
@@ -91,7 +95,9 @@ def main() -> None:
         source_site_map_path=args.source_site_map,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    args.output.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     _load_inputs(args.output, args.portable_suite, args.site_map)
     print(json.dumps({"tasks": len(result["rows"]), "catalog_sha256": _hash(args.output)}))
 

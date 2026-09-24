@@ -6,8 +6,14 @@ from pathlib import Path
 
 import pytest
 
+from harness.trajectory_replay.remote_runtime import rebind_remote_calls
 from harness.trajectory_replay.webarena_replay import _json_sha256
-from scripts.run_webarena_full_catalog import _load_inputs, _task_ids
+from scripts.run_webarena_full_catalog import (
+    TRUSTED_RECORDED_HOSTS,
+    _load_inputs,
+    _row_source_sites,
+    _task_ids,
+)
 
 
 def test_task_ids_preserve_requested_official_order():
@@ -97,3 +103,22 @@ def test_full_catalog_requires_one_hash_bound_row_in_official_order(tmp_path: Pa
     _write(catalog_path, catalog)
     with pytest.raises(ValueError, match="recorded answers"):
         _load_inputs(catalog_path, suite_path, sites_path)
+
+
+def test_rows_can_rebind_accepted_actions_from_distinct_source_deployments() -> None:
+    from webarena_verified.types.task import WebArenaSite
+
+    target = {WebArenaSite.SHOPPING: "https://new-shop.example.test"}
+    actions = [{"action": "navigate", "url": "https://old-shop-a.example.test/product"}]
+    row = {"source_site_urls": {"shopping": "https://old-shop-a.example.test"}}
+    rebound = rebind_remote_calls(
+        actions, target, set(TRUSTED_RECORDED_HOSTS), _row_source_sites({}, row)
+    )
+    assert rebound[0]["url"] == "https://new-shop.example.test/product"
+
+    actions_b = [{"action": "navigate", "url": "https://old-shop-b.example.test/product"}]
+    row_b = {"source_site_urls": {"shopping": "https://old-shop-b.example.test"}}
+    rebound_b = rebind_remote_calls(
+        actions_b, target, set(TRUSTED_RECORDED_HOSTS), _row_source_sites({}, row_b)
+    )
+    assert rebound_b == rebound

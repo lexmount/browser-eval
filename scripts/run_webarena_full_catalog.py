@@ -84,6 +84,13 @@ def _source_sites(catalog: dict) -> dict[WebArenaSite, str]:
     return {WebArenaSite(key): value for key, value in raw.items()}
 
 
+def _row_source_sites(catalog: dict, row: dict) -> dict[WebArenaSite, str]:
+    override = row.get("source_site_urls")
+    if override is not None:
+        return _source_sites({"source_site_urls": override})
+    return _source_sites(catalog)
+
+
 def _load_inputs(catalog_path: Path, suite_path: Path, site_map_path: Path):
     catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     sites = load_remote_sites(site_map_path)
@@ -102,7 +109,6 @@ def _load_inputs(catalog_path: Path, suite_path: Path, site_map_path: Path):
     portable_ids = {row["task_id"] for row in rows if row.get("mode") == "portable"}
     if portable_ids != set(tasks):
         raise ValueError("portable suite differs from the catalog")
-    source_sites = _source_sites(catalog)
     for row in rows:
         task_id = row["task_id"]
         mode = row.get("mode")
@@ -118,7 +124,7 @@ def _load_inputs(catalog_path: Path, suite_path: Path, site_map_path: Path):
         else:
             raise ValueError(f"task {task_id}: unknown catalog mode")
         actions = rebind_remote_calls(
-            source_actions, sites, set(TRUSTED_RECORDED_HOSTS), source_sites
+            source_actions, sites, set(TRUSTED_RECORDED_HOSTS), _row_source_sites(catalog, row)
         )
         if _json_sha256(actions) != row.get("bound_calls_sha256"):
             raise ValueError(f"task {task_id}: bound actions changed")
@@ -151,7 +157,6 @@ def main() -> None:
     catalog, sites, portable_tasks = _load_inputs(
         args.catalog, args.portable_suite, args.site_map
     )
-    source_sites = _source_sites(catalog)
     benchmark = remote_benchmark(sites)
     origins = {f"{urlsplit(url).scheme}://{urlsplit(url).netloc}" for url in sites.values()}
     ids = _task_ids(args.task_from, args.task_to)
@@ -217,7 +222,8 @@ def main() -> None:
                 row = {
                     **frozen,
                     "actions": rebind_remote_calls(
-                        source_actions, sites, set(TRUSTED_RECORDED_HOSTS), source_sites
+                        source_actions, sites, set(TRUSTED_RECORDED_HOSTS),
+                        _row_source_sites(catalog, frozen),
                     ),
                     "readiness": list(frozen.get("readiness") or []),
                 }
