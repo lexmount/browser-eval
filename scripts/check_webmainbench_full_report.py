@@ -60,7 +60,7 @@ def check_moli_followup(root: Path, binding: dict) -> None:
         path = root / 'moli-followup' / (entry['case_id'] + '.txt')
         if hashlib.sha256(path.read_bytes()).hexdigest() != entry['output_sha256']:
             raise ValueError('Recovered Moli output changed: ' + entry['case_id'])
-        if not page.select_one('a[href="moli-followup/' + entry['case_id'] + '.txt"]'):
+        if not page.select_one('a[href="viewer/index.html?path=moli-followup/' + entry['case_id'] + '.txt"]'):
             raise ValueError('Recovered Moli output link missing: ' + entry['case_id'])
 
 

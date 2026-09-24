@@ -123,7 +123,7 @@ def test_moli_followup_gate_checks_values_links_and_output_bytes(tmp_path: Path)
         content = 'Recovered page: ' + case_id
         (tmp_path / 'moli-followup' / (case_id + '.txt')).write_text(content)
         recovered.append({'case_id': case_id, 'output_sha256': hashlib.sha256(content.encode()).hexdigest()})
-        links.append('<a href="moli-followup/' + case_id + '.txt">输出</a>')
+        links.append('<a href="viewer/index.html?path=moli-followup/' + case_id + '.txt">输出</a>')
     metrics = {name: {'baseline': 0.4, 'candidate': 0.5, 'baseline_n': 542,
                       'candidate_n': 544} for name in ('text_edit', 'code_edit', 'formula_edit', 'table_edit')}
     receipt = {'kind': 'webmainbench_moli_full_diagnostic_followup', 'case_count': 545,
