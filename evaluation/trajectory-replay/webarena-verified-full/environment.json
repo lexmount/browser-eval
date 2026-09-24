@@ -1,9 +1,14 @@
 {
-  "schema": "lex_webarena_verified_full_environment/1",
+  "schema": "lex_webarena_replay_environment/1",
   "platform": "Rainbond",
   "region": "rainbond",
   "team": "ye7izl3p",
-  "browser_host_resolver_rules": "MAP *.dev.lexmount.net 10.2.62.142",
+  "host_overrides": [
+    {
+      "pattern": "*.dev.lexmount.net",
+      "address": "10.2.62.142"
+    }
+  ],
   "deployment": {
     "acceptance_app_id": 202,
     "source_app_id": 195,

@@ -4,8 +4,10 @@
   "historical_browser_use_scores_immutable": true,
   "upstream": {
     "benchmark": "WebArena-Verified",
-    "package_version": "1.2.3",
-    "dataset_sha256": "d65275660814663375028e9017e1f929e3c38321041b125795e2713b52243d30"
+    "repository": "https://github.com/lexmount/webarena-verified.git",
+    "branch": "lex-main",
+    "revision": "ada543a9e9eddc80769f962c102576baa845ae0e",
+    "dataset_sha256": "7ab0ef7e61af98efc5e16ba2b4303ddc0b8f5b66b5c88c58cb76e89e9235b57a"
   },
   "corrections": [
     {

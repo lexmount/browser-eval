@@ -7,7 +7,8 @@ import hashlib
 import json
 from pathlib import Path
 
-from harness.trajectory_replay.full_catalog import (
+from harness.trajectory_replay.catalog_contracts import (
+    ACCEPTANCE_SCHEMAS,
     CATALOG_SCHEMA,
     TRUSTED_RECORDED_HOSTS,
     file_sha256,
@@ -17,6 +18,7 @@ from harness.trajectory_replay.full_catalog import (
 from harness.trajectory_replay.public_webarena.suite import load_suite
 from harness.trajectory_replay.remote_runtime import load_remote_sites, rebind_remote_calls
 from harness.trajectory_replay.webarena_replay import _json_sha256
+from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
 
 
 def _source_files(roots: list[Path], expected: set[str]) -> dict[str, Path]:
@@ -69,9 +71,10 @@ def consolidate(
     source_roots: list[Path],
     site_map_path: Path,
 ) -> tuple[dict, dict]:
+    verify_webarena_runtime_source()
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
     if (
-        ledger.get("schema") != "lex_webarena_full_acceptance_ledger/1"
+        ledger.get("schema") not in ACCEPTANCE_SCHEMAS
         or ledger.get("counts", {}).get("pass") != ledger.get("counts", {}).get("total")
         or ledger.get("counts", {}).get("unresolved") != 0
         or not ledger.get("rows")

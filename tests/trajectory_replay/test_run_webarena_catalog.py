@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.trajectory_replay.full_catalog import (
+from harness.trajectory_replay.catalog_contracts import (
     TRUSTED_RECORDED_HOSTS,
     completed_task_ids,
     load_catalog_inputs,

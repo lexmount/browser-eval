@@ -6,7 +6,8 @@ import argparse
 import os
 from pathlib import Path
 
-from harness.trajectory_replay.full_catalog import validate_full_report_profile
+from harness.trajectory_replay.catalog_contracts import validate_catalog_report_profile
+from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
 
 
 def main() -> None:
@@ -23,7 +24,8 @@ def main() -> None:
         / "evidence/current",
     )
     args = parser.parse_args()
-    profile = validate_full_report_profile(args.profile, args.data_home)
+    verify_webarena_runtime_source()
+    profile = validate_catalog_report_profile(args.profile, args.data_home)
     print(profile["publication"]["share_url"])
 
 

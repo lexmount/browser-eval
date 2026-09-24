@@ -8,14 +8,18 @@ from pathlib import Path
 
 from webarena_verified.types.task import WebArenaSite
 
-from harness.trajectory_replay.full_catalog import (
+from harness.trajectory_replay.catalog_contracts import (
+    ACCEPTANCE_SCHEMA,
+    EXECUTION_CONTRACT_RUN_SCHEMAS,
     RUN_SCHEMAS,
+    SCOPE_SCHEMAS,
     file_sha256,
     validate_passing_evaluation,
     verify_physical_evidence,
 )
 from harness.trajectory_replay.remote_runtime import remote_benchmark
 from harness.trajectory_replay.webarena_corrections import load_corrections
+from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
 
 
 def _read_run(directory: Path) -> tuple[dict, list[dict]]:
@@ -33,7 +37,7 @@ def _read_run(directory: Path) -> tuple[dict, list[dict]]:
         or binding.get("run_count_per_task") != 1
     ):
         raise ValueError(f"run order or protocol changed: {directory}")
-    if binding["schema"].endswith("/2"):
+    if binding["schema"] in EXECUTION_CONTRACT_RUN_SCHEMAS:
         required = {
             "engine",
             "backend",
@@ -96,14 +100,17 @@ def audit(
     excluded_duplicate_repair_tasks: set[int] | None = None,
     expected_backend: str = "browsertool",
 ) -> dict:
+    verify_webarena_runtime_source()
     scope = json.loads(scope_path.read_text(encoding="utf-8"))
     ids = scope.get("task_ids")
     data_checksum = str(scope.get("official_dataset_sha256") or "")
     if (
-        scope.get("schema") != "lex_webarena_verified_full_scope/1"
+        scope.get("schema") not in SCOPE_SCHEMAS
         or not isinstance(ids, list)
         or not ids
+        or any(not isinstance(task_id, int) for task_id in ids)
         or len(set(ids)) != len(ids)
+        or scope.get("task_count") != len(ids)
         or not data_checksum
     ):
         raise ValueError("the declared WebArena task scope changed")
@@ -166,7 +173,7 @@ def audit(
                 "runner_revision": binding["runner_revision"],
                 "task_ids": [row["task_id"] for row in rows],
             }
-            if binding["schema"].endswith("/2"):
+            if binding["schema"] in EXECUTION_CONTRACT_RUN_SCHEMAS:
                 run_record.update(
                     {
                         "engine": engine,
@@ -239,7 +246,7 @@ def audit(
         for task_id in ids
     ]
     result = {
-        "schema": "lex_webarena_full_acceptance_ledger/1",
+        "schema": ACCEPTANCE_SCHEMA,
         "scope_sha256": file_sha256(scope_path),
         "site_reset_receipt_sha256": sweep_contract[2],
         "site_preparation_receipt_sha256s": sorted(preparation_sha256s),
@@ -255,7 +262,7 @@ def audit(
         },
         "rows": rows,
     }
-    if schemas == {"lex_webarena_full_replay_run/2"}:
+    if schemas and schemas <= EXECUTION_CONTRACT_RUN_SCHEMAS:
         result["participant"] = {
             "engine": participant_contract[0],
             "backend": participant_contract[1],

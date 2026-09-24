@@ -17,6 +17,7 @@ from harness.trajectory_replay.remote_execution import (
     _task_type,
     _verify_result_evidence,
 )
+from harness.trajectory_replay.catalog_runner import _chromium_host_resolver_rules
 
 
 def _sites() -> dict[WebArenaSite, str]:
@@ -68,7 +69,7 @@ def test_retrieval_contract_uses_the_qualified_source_revision() -> None:
     assert _read_retrieval_contract(task_id, row, sites) == candidate
 
 
-def test_retrieval_contract_can_be_frozen_inside_a_full_catalog() -> None:
+def test_retrieval_contract_can_be_frozen_inside_a_catalog() -> None:
     task_id = 108
     candidate = json.loads(
         (
@@ -147,16 +148,41 @@ def test_chromium_qualification_uses_a_separate_ephemeral_profile() -> None:
 
 
 def test_chromium_can_bind_profile_declared_private_ingress() -> None:
+    rules = _chromium_host_resolver_rules(
+        {
+            "host_overrides": [
+                {"pattern": "*.dev.lexmount.net", "address": "10.2.62.142"}
+            ]
+        },
+        "chromium",
+    )
     chrome = _browser_command(
         SimpleNamespace(
             engine="chromium",
             binary=Path("/opt/chrome"),
-            host_resolver_rules="MAP *.dev.lexmount.net 10.2.62.142",
+            host_resolver_rules=rules,
         ),
         9222,
         "/tmp/qualification-profile",
     )
     assert "--host-resolver-rules=MAP *.dev.lexmount.net 10.2.62.142" in chrome
+
+
+def test_environment_host_overrides_are_not_compiled_for_other_engines() -> None:
+    profile = {
+        "host_overrides": [
+            {"pattern": "*.dev.lexmount.net", "address": "10.2.62.142"}
+        ]
+    }
+    assert _chromium_host_resolver_rules(profile, "moli") is None
+
+
+def test_chromium_still_reads_legacy_host_resolver_profile() -> None:
+    profile = {"browser_host_resolver_rules": "MAP legacy.example 127.0.0.1"}
+    assert (
+        _chromium_host_resolver_rules(profile, "chromium")
+        == "MAP legacy.example 127.0.0.1"
+    )
 
 
 def test_formal_evidence_boundary_rejects_missing_or_changed_files(tmp_path: Path) -> None:

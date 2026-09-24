@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from harness.trajectory_replay.full_catalog import (
+from harness.trajectory_replay.catalog_contracts import (
     TRUSTED_RECORDED_HOSTS,
     file_sha256,
     load_catalog_inputs,

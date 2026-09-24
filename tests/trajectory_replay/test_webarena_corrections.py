@@ -13,6 +13,7 @@ from webarena_verified.types.task import WebArenaSite
 from harness.browser_use.runner import _configure_benchmark
 from harness.trajectory_replay.remote_runtime import remote_benchmark
 from harness.trajectory_replay.webarena_corrections import (
+    DEFAULT_CORRECTIONS_PATH,
     CorrectedReplayContract,
     apply_correction,
     check_replay_assertions,
@@ -497,7 +498,9 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
     payload = json.loads(catalog.source_path.read_text(encoding="utf-8"))
     assert payload["historical_browser_use_scores_immutable"] is True
     assert "Replay" in payload["scope"]
-    assert catalog.upstream["package_version"] == "1.2.3"
+    assert catalog.upstream["repository"] == "https://github.com/lexmount/webarena-verified.git"
+    assert catalog.upstream["branch"] == "lex-main"
+    assert len(catalog.upstream["revision"]) == 40
     assert len(catalog.upstream["dataset_sha256"]) == 64
     assert set(catalog.record_sha256s) == set(catalog.records)
     assert len(set(catalog.record_sha256s.values())) == len(catalog.records)
@@ -571,11 +574,22 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
     ]
 
 
+def test_current_catalog_rejects_a_different_fork_revision(tmp_path) -> None:
+    payload = json.loads(DEFAULT_CORRECTIONS_PATH.read_text(encoding="utf-8"))
+    payload["upstream"]["revision"] = "b" * 40
+    changed = tmp_path / "task-corrections.json"
+    changed.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="different WebArena fork revision"):
+        load_corrections(changed)
+
+
 def test_448_scoring_revision_is_bound_to_correction_and_regressions(catalog) -> None:
     root = Path(__file__).resolve().parents[2]
     catalog = load_corrections(
         root
-        / "evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json"
+        / "evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json",
+        require_current_upstream=False,
     )
     receipt = json.loads(
         (root / "research/trajectory-replay-task448-scoring-revision.json").read_text(
@@ -623,10 +637,14 @@ def test_final_event_revision_binds_current_and_historical_catalogs(catalog):
     receipt = json.loads(
         (root / "research/trajectory-replay-task448-final-event-revision.json").read_text()
     )
-    predecessor = load_corrections(root / receipt["predecessor_catalog_path"])
+    predecessor = load_corrections(
+        root / receipt["predecessor_catalog_path"], require_current_upstream=False
+    )
     assert receipt["predecessor_correction_catalog_sha256"] == predecessor.source_sha256
     assert receipt["predecessor_correction_record_sha256"] == predecessor.record_sha256s[448]
-    revised = load_corrections(root / receipt["revised_catalog_path"])
+    revised = load_corrections(
+        root / receipt["revised_catalog_path"], require_current_upstream=False
+    )
     assert receipt["revised_correction_catalog_sha256"] == revised.source_sha256
     assert receipt["revised_correction_record_sha256"] == catalog.record_sha256s[448]
     assert receipt["regression_ids"] == catalog.records[448]["regression_ids"]
@@ -635,7 +653,9 @@ def test_final_event_revision_binds_current_and_historical_catalogs(catalog):
 
 def test_archived_catalog_reproduces_all_unchanged_task_contracts(benchmark, catalog):
     archived = load_corrections(
-        Path("evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json"))
+        Path("evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json"),
+        require_current_upstream=False,
+    )
     for task_id in corrected_task_ids(archived):
         previous = apply_correction(benchmark.get_task(task_id), archived)
         current = apply_correction(benchmark.get_task(task_id), catalog)
@@ -870,7 +890,9 @@ def test_448_official_evaluator_rejects_overwritten_correct_save(
 ) -> None:
     corrected = apply_correction(benchmark.get_task(448), catalog)
     predecessor = apply_correction(benchmark.get_task(448), load_corrections(
-        Path("evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json")))
+        Path("evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json"),
+        require_current_upstream=False,
+    ))
     target = "http://host.docker.internal:8023/-/profile"
 
     def entry(value: str) -> dict:

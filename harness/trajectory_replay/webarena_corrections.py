@@ -14,6 +14,7 @@ import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
+from importlib.resources import files
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any
@@ -22,6 +23,11 @@ from webarena_verified.core.evaluation.evaluators import EVALUATOR_REGISTRY
 from webarena_verified.core.utils.checksum import compute_data_file_checksum
 from webarena_verified.types.eval import TaskEvalContext, TaskEvalResult
 from webarena_verified.types.task import WebArenaVerifiedTask
+
+from harness.trajectory_replay.webarena_runtime_source import (
+    WEBARENA_VERIFIED_FORK_URL,
+    verify_webarena_runtime_source,
+)
 
 SCHEMA = "lex_webarena_replay_task_corrections/1"
 DEFAULT_CORRECTIONS_PATH = (
@@ -132,7 +138,11 @@ class CorrectedReplayContract:
     network_alternatives: Mapping[int, tuple[WebArenaVerifiedTask, ...]]
 
 
-def load_corrections(path: str | Path = DEFAULT_CORRECTIONS_PATH) -> CorrectionCatalog:
+def load_corrections(
+    path: str | Path = DEFAULT_CORRECTIONS_PATH,
+    *,
+    require_current_upstream: bool = True,
+) -> CorrectionCatalog:
     """Load and validate the replay-only correction catalog."""
 
     source_path = Path(path).expanduser().resolve()
@@ -142,9 +152,24 @@ def load_corrections(path: str | Path = DEFAULT_CORRECTIONS_PATH) -> CorrectionC
         raise ValueError(f"unsupported WebArena correction schema: {payload.get('schema')!r}")
     upstream = payload.get("upstream")
     if not isinstance(upstream, dict) or not all(
-        upstream.get(key) for key in ("benchmark", "package_version", "dataset_sha256")
+        upstream.get(key) for key in ("benchmark", "dataset_sha256")
     ):
         raise ValueError("correction catalog must identify its upstream benchmark and dataset")
+    if require_current_upstream:
+        identity = verify_webarena_runtime_source()
+        dataset_sha256 = hashlib.sha256(
+            files("webarena_verified")
+            .joinpath("assets/dataset/webarena-verified.json")
+            .read_bytes()
+        ).hexdigest()
+        if (
+            upstream.get("benchmark") != "WebArena-Verified"
+            or upstream.get("repository") != WEBARENA_VERIFIED_FORK_URL
+            or upstream.get("branch") != "lex-main"
+            or upstream.get("revision") != identity.revision
+            or upstream.get("dataset_sha256") != dataset_sha256
+        ):
+            raise ValueError("correction catalog targets a different WebArena fork revision")
     records: dict[int, Mapping[str, Any]] = {}
     record_sha256s: dict[int, str] = {}
     for record in payload.get("corrections") or []:

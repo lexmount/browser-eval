@@ -5,12 +5,20 @@ from pathlib import Path
 
 import pytest
 
-from harness.trajectory_replay.full_catalog import (
+from harness.trajectory_replay.catalog_contracts import (
+    ACCEPTANCE_SCHEMAS,
+    RUN_SCHEMAS,
     file_sha256,
     repository_root,
     validate_environment_preparation,
-    validate_full_report_profile,
+    validate_catalog_report_profile,
 )
+
+
+def test_current_contracts_keep_historical_run_and_acceptance_schemas_readable():
+    assert "lex_webarena_full_replay_run/1" in RUN_SCHEMAS
+    assert "lex_webarena_full_replay_run/2" in RUN_SCHEMAS
+    assert "lex_webarena_full_acceptance_ledger/1" in ACCEPTANCE_SCHEMAS
 
 
 def _files(tmp_path):
@@ -18,7 +26,7 @@ def _files(tmp_path):
     profile.write_text(
         json.dumps(
             {
-                "schema": "lex_webarena_verified_full_environment/1",
+                "schema": "lex_webarena_replay_environment/1",
                 "deployment": {
                     "acceptance_app_id": 202,
                     "source_app_id": 195,
@@ -64,6 +72,15 @@ def _files(tmp_path):
 
 def test_environment_preparation_is_bound_to_versioned_profile(tmp_path):
     receipt, profile = _files(tmp_path)
+    assert validate_environment_preparation(receipt, profile)["fresh_app_id"] == 202
+
+
+def test_environment_preparation_still_reads_legacy_profile_schema(tmp_path):
+    receipt, profile = _files(tmp_path)
+    payload = json.loads(profile.read_text(encoding="utf-8"))
+    payload["schema"] = "lex_webarena_verified_full_environment/1"
+    profile.write_text(json.dumps(payload), encoding="utf-8")
+
     assert validate_environment_preparation(receipt, profile)["fresh_app_id"] == 202
 
 
@@ -131,12 +148,14 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
         f"version = 1\n[[package]]\nname = 'webarena-verified'\n"
         f"source = {{ git = '{fork}?rev={revision}#{revision}' }}\n"
     )
+    task_ids = [4, 11, 23]
+    official_checksum = "official-data"
     dataset = _write_json(
         repository / "evaluation/full/dataset.json",
         {
-            "schema": "lex_webarena_verified_full_dataset/1",
-            "task_count": 812,
-            "task_id_range": [0, 811],
+            "schema": "lex_webarena_replay_dataset/1",
+            "official_dataset_sha256": official_checksum,
+            "task_count": len(task_ids),
             "evaluator_source": {
                 "repository": fork,
                 "branch": "lex-main",
@@ -144,17 +163,32 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
             },
         },
     )
-    scope = _write_json(repository / "evaluation/full/scope.json", {"task_ids": list(range(812))})
+    scope = _write_json(
+        repository / "evaluation/full/scope.json",
+        {
+            "schema": "lex_webarena_replay_scope/1",
+            "official_dataset_sha256": official_checksum,
+            "task_count": len(task_ids),
+            "task_ids": task_ids,
+        },
+    )
     data_home = tmp_path / "data"
     evidence = data_home / "trajectory-replay/run"
     counts = {
-        "total": 812,
-        "pass": 812,
+        "total": len(task_ids),
+        "pass": len(task_ids),
         "unresolved": 0,
         "physical_attempts": 854,
         "excluded_duplicate_attempts": 0,
     }
-    ledger = _write_json(evidence / "ledger.json", {"counts": counts})
+    ledger = _write_json(
+        evidence / "ledger.json",
+        {
+            "schema": "lex_trajectory_replay_catalog_acceptance/1",
+            "scope_sha256": file_sha256(scope),
+            "counts": counts,
+        },
+    )
     artifacts = {
         "manifest.json": {},
         "report.zip": {"fixture": True},
@@ -164,12 +198,16 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
         _write_json(evidence / name, value)
     catalog = _write_json(
         evidence / "catalog.json",
-        {"accepted_ledger_sha256": file_sha256(ledger)},
+        {
+            "schema": "lex_webarena_replay_catalog/1",
+            "task_ids": task_ids,
+            "accepted_ledger_sha256": file_sha256(ledger),
+        },
     )
     profile = _write_json(
         repository / "evaluation/full/current-report.json",
         {
-            "schema": "lex_webarena_verified_full_report_profile/1",
+            "schema": "lex_webarena_replay_report_profile/1",
             "dataset_path": "evaluation/full/dataset.json",
             "dataset_sha256": file_sha256(dataset),
             "scope_path": "evaluation/full/scope.json",
@@ -199,13 +237,13 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
         },
     )
 
-    assert validate_full_report_profile(profile, data_home)["accepted_counts"] == counts
+    assert validate_catalog_report_profile(profile, data_home)["accepted_counts"] == counts
 
     changed = json.loads(profile.read_text())
     changed["accepted_counts"]["physical_attempts"] += 1
     profile.write_text(json.dumps(changed))
     with pytest.raises(ValueError, match="acceptance population changed"):
-        validate_full_report_profile(profile, data_home)
+        validate_catalog_report_profile(profile, data_home)
 
     changed = json.loads(dataset.read_text())
     changed["evaluator_source"]["repository"] = "https://github.com/ServiceNow/webarena-verified.git"
@@ -215,4 +253,4 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
     changed_profile["dataset_sha256"] = file_sha256(dataset)
     profile.write_text(json.dumps(changed_profile))
     with pytest.raises(ValueError, match="dataset definition is invalid"):
-        validate_full_report_profile(profile, data_home)
+        validate_catalog_report_profile(profile, data_home)

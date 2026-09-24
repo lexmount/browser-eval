@@ -1,10 +1,9 @@
-"""Shared contracts for the full WebArena trajectory catalog and run evidence."""
+"""Shared contracts for WebArena trajectory catalogs and replay evidence."""
 
 from __future__ import annotations
 
 import json
 import tomllib
-from importlib.metadata import version
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -23,7 +22,29 @@ from harness.trajectory_replay.webarena_replay import _json_sha256
 
 CATALOG_SCHEMA = "lex_webarena_replay_catalog/1"
 CATALOG_SCHEMAS = frozenset({CATALOG_SCHEMA, "lex_webarena_full_replay_catalog/1"})
-RUN_SCHEMAS = frozenset({"lex_webarena_full_replay_run/1", "lex_webarena_full_replay_run/2"})
+DATASET_SCHEMA = "lex_webarena_replay_dataset/1"
+DATASET_SCHEMAS = frozenset({DATASET_SCHEMA, "lex_webarena_verified_full_dataset/1"})
+SCOPE_SCHEMA = "lex_webarena_replay_scope/1"
+SCOPE_SCHEMAS = frozenset({SCOPE_SCHEMA, "lex_webarena_verified_full_scope/1"})
+ENVIRONMENT_SCHEMA = "lex_webarena_replay_environment/1"
+ENVIRONMENT_SCHEMAS = frozenset(
+    {ENVIRONMENT_SCHEMA, "lex_webarena_verified_full_environment/1"}
+)
+REPORT_PROFILE_SCHEMA = "lex_webarena_replay_report_profile/1"
+REPORT_PROFILE_SCHEMAS = frozenset(
+    {REPORT_PROFILE_SCHEMA, "lex_webarena_verified_full_report_profile/1"}
+)
+RUN_SCHEMA = "lex_trajectory_replay_catalog_run/1"
+LEGACY_RUN_SCHEMAS = frozenset(
+    {"lex_webarena_full_replay_run/1", "lex_webarena_full_replay_run/2"}
+)
+RUN_SCHEMAS = frozenset({RUN_SCHEMA, *LEGACY_RUN_SCHEMAS})
+EXECUTION_CONTRACT_RUN_SCHEMAS = frozenset(
+    {RUN_SCHEMA, "lex_webarena_full_replay_run/2"}
+)
+ACCEPTANCE_SCHEMA = "lex_trajectory_replay_catalog_acceptance/1"
+LEGACY_ACCEPTANCE_SCHEMAS = frozenset({"lex_webarena_full_acceptance_ledger/1"})
+ACCEPTANCE_SCHEMAS = frozenset({ACCEPTANCE_SCHEMA, *LEGACY_ACCEPTANCE_SCHEMAS})
 TRUSTED_RECORDED_HOSTS = frozenset(
     {
         "onestopmarket.example.com",
@@ -195,7 +216,7 @@ def validate_environment_preparation(receipt_path: Path, environment_profile_pat
     images = profile.get("images") or {}
     mutable_sites = ("shopping", "shopping_admin", "reddit", "gitlab")
     if (
-        profile.get("schema") != "lex_webarena_verified_full_environment/1"
+        profile.get("schema") not in ENVIRONMENT_SCHEMAS
         or receipt.get("schema") != "lex_webarena_environment_preparation/1"
         or receipt.get("method") not in ENVIRONMENT_PREPARATION_METHODS
         or receipt.get("source_app_id") != deployment.get("source_app_id")
@@ -274,7 +295,6 @@ def validate_passing_evaluation(
         evaluation.get("task_id") != task_id
         or float(evaluation.get("score") or 0) != 1.0
         or str(evaluation.get("status") or "").lower() not in {"pass", "success"}
-        or evaluation.get("webarena_verified_version") != version("webarena-verified")
         or evaluation.get("webarena_verified_evaluator_checksum") != compute_evaluator_checksum()
         or evaluation.get("webarena_verified_data_checksum") != expected_data_checksum
         or actual_correction != expected_correction
@@ -288,7 +308,7 @@ def validate_passing_evaluation(
         raise ValueError(f"task {task_id} pass has stale or incomplete evaluator provenance")
 
 
-def validate_full_report_profile(profile_path: Path, data_home: Path) -> dict:
+def validate_catalog_report_profile(profile_path: Path, data_home: Path) -> dict:
     """Validate the repository authority against its frozen local release artifacts."""
 
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
@@ -296,14 +316,16 @@ def validate_full_report_profile(profile_path: Path, data_home: Path) -> dict:
     dataset_path = root / str(profile.get("dataset_path") or "")
     scope_path = root / str(profile.get("scope_path") or "")
     if (
-        profile.get("schema") != "lex_webarena_verified_full_report_profile/1"
+        profile.get("schema") not in REPORT_PROFILE_SCHEMAS
         or not dataset_path.is_file()
         or file_sha256(dataset_path) != profile.get("dataset_sha256")
         or not scope_path.is_file()
         or file_sha256(scope_path) != profile.get("scope_sha256")
     ):
-        raise ValueError("full report profile changed its versioned dataset binding")
+        raise ValueError("catalog report profile changed its versioned dataset binding")
     dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
+    scope = json.loads(scope_path.read_text(encoding="utf-8"))
+    task_ids = scope.get("task_ids")
     evaluator_source = dataset.get("evaluator_source") or {}
     project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
     dependency_source = (
@@ -320,9 +342,19 @@ def validate_full_report_profile(profile_path: Path, data_home: Path) -> dict:
     )
     locked_git = (locked_package.get("source") or {}).get("git", "")
     if (
-        dataset.get("schema") != "lex_webarena_verified_full_dataset/1"
-        or dataset.get("task_count") != 812
-        or dataset.get("task_id_range") != [0, 811]
+        dataset.get("schema") not in DATASET_SCHEMAS
+        or scope.get("schema") not in SCOPE_SCHEMAS
+        or not isinstance(task_ids, list)
+        or not task_ids
+        or any(not isinstance(task_id, int) for task_id in task_ids)
+        or len(set(task_ids)) != len(task_ids)
+        or scope.get("task_count") != len(task_ids)
+        or dataset.get("task_count") != len(task_ids)
+        or (
+            dataset.get("task_id_range") is not None
+            and dataset.get("task_id_range") != [min(task_ids), max(task_ids)]
+        )
+        or scope.get("official_dataset_sha256") != dataset.get("official_dataset_sha256")
         or "browser" in dataset
         or evaluator_source.get("repository") != WEBARENA_FORK_REPOSITORY
         or evaluator_source.get("branch") != WEBARENA_FORK_BRANCH
@@ -334,10 +366,10 @@ def validate_full_report_profile(profile_path: Path, data_home: Path) -> dict:
             f"#{evaluator_source.get('revision')}"
         )
     ):
-        raise ValueError("full WebArena dataset definition is invalid")
+        raise ValueError("WebArena catalog dataset definition is invalid")
     root = data_home / str(profile.get("evidence_root") or "")
     if root.is_symlink() or not root.is_dir() or data_home.resolve() not in root.resolve().parents:
-        raise ValueError("full report evidence root is missing or unsafe")
+        raise ValueError("catalog report evidence root is missing or unsafe")
     artifacts = {
         "acceptance_ledger": (
             profile.get("acceptance_ledger_path"),
@@ -379,16 +411,22 @@ def validate_full_report_profile(profile_path: Path, data_home: Path) -> dict:
             "physical_attempts",
             "excluded_duplicate_attempts",
         }
-        or accepted_counts.get("total") != dataset["task_count"]
-        or accepted_counts.get("pass") != dataset["task_count"]
+        or accepted_counts.get("total") != len(task_ids)
+        or accepted_counts.get("pass") != len(task_ids)
         or accepted_counts.get("unresolved") != 0
+        or ledger.get("schema") not in ACCEPTANCE_SCHEMAS
+        or ledger.get("scope_sha256") != profile.get("scope_sha256")
         or ledger.get("counts") != accepted_counts
     ):
-        raise ValueError("full report acceptance population changed")
+        raise ValueError("catalog report acceptance population changed")
     catalog = json.loads((root / artifacts["accepted_catalog"][0]).read_text(encoding="utf-8"))
-    if catalog.get("accepted_ledger_sha256") != profile["acceptance_ledger_sha256"]:
+    if (
+        catalog.get("schema") not in CATALOG_SCHEMAS
+        or catalog.get("task_ids") != task_ids
+        or catalog.get("accepted_ledger_sha256") != profile["acceptance_ledger_sha256"]
+    ):
         raise ValueError("accepted catalog is not bound to the current ledger")
     publication = profile.get("publication") or {}
     if not all(publication.get(key) for key in ("host", "slug", "version_id", "share_url")):
-        raise ValueError("full report publication target is incomplete")
+        raise ValueError("catalog report publication target is incomplete")
     return profile

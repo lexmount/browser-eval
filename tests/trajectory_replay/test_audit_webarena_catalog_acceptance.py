@@ -6,6 +6,12 @@ import pytest
 from harness.trajectory_replay import catalog_acceptance as acceptance
 
 
+@pytest.fixture(autouse=True)
+def _isolate_acceptance_contract_tests(monkeypatch):
+    monkeypatch.setattr(acceptance, "load_corrections", lambda: object())
+    monkeypatch.setattr(acceptance, "verify_webarena_runtime_source", lambda: None)
+
+
 def _run(
     tmp_path,
     name,
@@ -15,7 +21,7 @@ def _run(
     preparation="same-reset",
     backend="browsertool",
     catalog="catalog",
-    schema="lex_webarena_full_replay_run/1",
+    schema="lex_trajectory_replay_catalog_run/1",
     engine=None,
 ):
     directory = tmp_path / name
@@ -33,7 +39,10 @@ def _run(
         "runner_revision": "revision",
         "cowagent_revision": "cowagent",
     }
-    if schema.endswith("/2"):
+    if schema in {
+        "lex_trajectory_replay_catalog_run/1",
+        "lex_webarena_full_replay_run/2",
+    }:
         inputs.update(
             {
                 "engine": engine or "chromium",
@@ -61,14 +70,16 @@ def _run(
     return directory
 
 
-def _scope(tmp_path):
+def _scope(tmp_path, ids=None):
+    ids = list(range(812)) if ids is None else ids
     path = tmp_path / "scope.json"
     path.write_text(
         json.dumps(
             {
-                "schema": "lex_webarena_verified_full_scope/1",
+                "schema": "lex_webarena_replay_scope/1",
                 "official_dataset_sha256": "official-data",
-                "task_ids": list(range(812)),
+                "task_count": len(ids),
+                "task_ids": ids,
             }
         )
     )
@@ -77,6 +88,26 @@ def _scope(tmp_path):
 
 def _fake_verified(directory, row, **_kwargs):
     return (dict(row, progress_sha256="progress", evidence_sha256={}), True)
+
+
+def test_acceptance_still_reads_historical_run_schemas(tmp_path):
+    legacy_v1 = _run(
+        tmp_path,
+        "legacy-v1",
+        [4],
+        {},
+        schema="lex_webarena_full_replay_run/1",
+    )
+    legacy_v2 = _run(
+        tmp_path,
+        "legacy-v2",
+        [4],
+        {},
+        schema="lex_webarena_full_replay_run/2",
+    )
+
+    assert acceptance._read_run(legacy_v1)[0]["schema"].endswith("/1")
+    assert acceptance._read_run(legacy_v2)[0]["schema"].endswith("/2")
 
 
 def test_acceptance_keeps_one_ordered_sweep_and_only_repairs_a_failure(tmp_path, monkeypatch):
@@ -100,6 +131,20 @@ def test_acceptance_keeps_one_ordered_sweep_and_only_repairs_a_failure(tmp_path,
         "pass",
     ]
     assert len(ledger["rows"][67]["attempts"]) == 1
+    assert ledger["schema"] == "lex_trajectory_replay_catalog_acceptance/1"
+
+
+def test_acceptance_supports_a_noncontiguous_catalog_scope(tmp_path, monkeypatch):
+    monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
+    ids = [4, 11, 23]
+    scope = _scope(tmp_path, ids)
+    sweep = _run(tmp_path, "sweep", ids, {11: "fail"})
+    repair = _run(tmp_path, "repair", [11], {})
+
+    ledger = acceptance.audit(scope, [sweep], [repair])
+
+    assert [row["task_id"] for row in ledger["rows"]] == ids
+    assert ledger["counts"]["total"] == 3
 
 
 def test_acceptance_binds_repair_on_a_fresh_site_without_repeating_passes(tmp_path, monkeypatch):

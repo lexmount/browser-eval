@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 
@@ -83,6 +84,38 @@ def repository_contract_findings(root: Path) -> list[str]:
             "dataset size belongs in catalog data, not specialized entry points: "
             + ", ".join(specialized_replay_entrypoints)
         )
+    specialized_catalog_modules = sorted(
+        path.relative_to(root).as_posix()
+        for path in (root / "harness" / "trajectory_replay").glob("*full*catalog*.py")
+    )
+    if specialized_catalog_modules:
+        findings.append(
+            "catalog contracts belong in the shared pipeline, not full-dataset modules: "
+            + ", ".join(specialized_catalog_modules)
+        )
+    contracts_path = root / "harness" / "trajectory_replay" / "catalog_contracts.py"
+    schema_implementation_paths = [
+        *(root / "harness" / "trajectory_replay").glob("*.py"),
+        *(root / "scripts").glob("*.py"),
+    ]
+    legacy_schema_prefixes = (
+        "lex_webarena_" + "full_",
+        "lex_webarena_verified_" + "full_",
+    )
+    for path in schema_implementation_paths:
+        if path == contracts_path:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        if any(prefix in text for prefix in legacy_schema_prefixes):
+            findings.append(
+                f"{path.relative_to(root).as_posix()}: legacy full schemas are read-only contracts"
+            )
+    makefile = root / "Makefile"
+    if makefile.is_file() and re.search(
+        r"(?m)^[A-Za-z0-9_.-]*webarena-full[A-Za-z0-9_.-]*\s*:",
+        makefile.read_text(encoding="utf-8"),
+    ):
+        findings.append("Makefile: catalog release targets must not encode one dataset size")
     repair_programs = sorted(
         path.relative_to(root).as_posix()
         for path in (root / "scripts").glob("repair_webarena_*.py")

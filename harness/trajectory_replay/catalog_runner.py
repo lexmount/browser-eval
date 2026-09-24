@@ -13,7 +13,8 @@ import traceback
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from harness.trajectory_replay.full_catalog import (
+from harness.trajectory_replay.catalog_contracts import (
+    RUN_SCHEMA,
     TRUSTED_RECORDED_HOSTS,
     completed_task_ids,
     file_sha256,
@@ -26,6 +27,7 @@ from harness.trajectory_replay.full_catalog import (
 from harness.trajectory_replay.remote_execution import _browser_command, _run_task, _wait_cdp
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls, remote_benchmark
 from harness.trajectory_replay.webarena_corrections import load_corrections
+from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
 
 
 def _append(path: Path, row: dict) -> None:
@@ -103,6 +105,36 @@ def _load_task_selection(path: Path) -> list[int]:
     return task_ids
 
 
+def _chromium_host_resolver_rules(environment_profile: dict, engine: str) -> str | None:
+    """Compile deployment-neutral host overrides for Chromium, with legacy read support."""
+
+    if engine != "chromium":
+        return None
+    overrides = environment_profile.get("host_overrides")
+    if overrides is None:
+        legacy = environment_profile.get("browser_host_resolver_rules")
+        if legacy is not None and (not isinstance(legacy, str) or "\n" in legacy):
+            raise ValueError("legacy Chromium host resolver rules must be one line")
+        return legacy
+    if not isinstance(overrides, list) or not overrides:
+        raise ValueError("environment host overrides must be a nonempty list")
+    rules = []
+    for row in overrides:
+        pattern = row.get("pattern") if isinstance(row, dict) else None
+        address = row.get("address") if isinstance(row, dict) else None
+        if (
+            not isinstance(pattern, str)
+            or not pattern
+            or any(char in pattern for char in "\n,")
+            or not isinstance(address, str)
+            or not address
+            or any(char in address for char in "\n,")
+        ):
+            raise ValueError("environment host override is invalid")
+        rules.append(f"MAP {pattern} {address}")
+    return ", ".join(rules)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--catalog", type=Path, required=True)
@@ -130,6 +162,7 @@ def main() -> None:
         help="JSON selection for a large unresolved-only replay",
     )
     args = parser.parse_args()
+    verify_webarena_runtime_source()
     if args.action_timeout_ms < 1:
         raise ValueError("action timeout must be positive")
     if args.backend == "browsertool":
@@ -153,7 +186,7 @@ def main() -> None:
     args.output.mkdir(parents=True, exist_ok=True)
     root = repository_root(Path(__file__))
     binding = {
-        "schema": "lex_webarena_full_replay_run/2",
+        "schema": RUN_SCHEMA,
         "catalog_sha256": file_sha256(args.catalog),
         "portable_suite_sha256": file_sha256(args.portable_suite),
         "site_map_sha256": file_sha256(args.site_map),
@@ -204,9 +237,9 @@ def main() -> None:
     browser_args = argparse.Namespace(
         engine=args.engine,
         binary=args.binary,
-        host_resolver_rules=environment_profile.get("browser_host_resolver_rules"),
+        host_resolver_rules=_chromium_host_resolver_rules(environment_profile, args.engine),
     )
-    with tempfile.TemporaryDirectory(prefix="webarena-full-catalog-") as profile:
+    with tempfile.TemporaryDirectory(prefix="webarena-catalog-") as profile:
         process = subprocess.Popen(
             _browser_command(browser_args, port, profile),
             stdout=subprocess.DEVNULL,
