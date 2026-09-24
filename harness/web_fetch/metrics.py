@@ -329,13 +329,20 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
             or metrics.get('blocked_page')):
         return False
     if "stable_task_pass" in metrics:
-        return bool(ok and metrics["stable_task_pass"] and not metrics.get("forbidden_hits")
+        return bool(ok and metrics["stable_task_pass"]
+                    and metrics.get("body_coverage_pass") is not False
+                    and not metrics.get("forbidden_hits")
                     and not metrics.get("stable_blocked_page"))
     field = {'structure':'list_task_pass', 'resource':'resource_pass', 'file':'raw_file_pass'}.get(task_kind, 'content_pass')
     return bool(ok and metrics.get(field))
 
 
 def task_measured(metrics: dict, task_kind: str | None = None) -> bool:
+    if metrics.get('rule_review_status') == 'unresolved':
+        return False
+    if (metrics.get('page_identity_required')
+            and metrics.get('page_identity_status') != 'verified'):
+        return False
     kind = task_kind or metrics.get('task_kind', 'body')
     return kind != 'file' or isinstance(metrics.get('raw_file_pass'), bool)
 
@@ -348,27 +355,41 @@ def normalize_for_match(value: str) -> str:
     normalized = clean_reference_text(normalized)
     # Compare visible inline Markdown text, not formatting or link destinations.
     normalized = visible_markdown_links(normalized)
+    literal_pipe = '\ue000'
+    while literal_pipe in normalized:
+        literal_pipe += '\ue000'
+    normalized = normalized.replace(r'\|', literal_pipe)
     # Native Markdown emitters may escape punctuation in visible text. These
     # escapes are presentation syntax, not part of the page's wording.
     normalized = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', r'\1', normalized)
     normalized = re.sub(r'`([^`\n]+)`', r'\1', normalized)
     normalized = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', normalized)
-    # Markdown table pipes are layout boundaries, not readable cell content.
-    # Restrict this to rows with at least two pipes so an ordinary prose/code
-    # expression containing a single literal ``|`` is not silently rewritten.
+    # Only a header/divider pair establishes a Markdown table. Pipe counts
+    # alone also match footer separators and expressions such as a | b | c.
     table_rule = re.compile(r':?-{3,}:?')
+    lines = normalized.splitlines()
+    table_rows = set()
+    divider_rows = set()
+    for index in range(1, len(lines)):
+        cells = [cell.strip() for cell in lines[index].split('|') if cell.strip()]
+        if ('|' not in lines[index] or not cells
+                or not all(table_rule.fullmatch(cell) for cell in cells)
+                or '|' not in lines[index - 1]):
+            continue
+        divider_rows.add(index)
+        table_rows.update((index - 1, index))
+        cursor = index + 1
+        while cursor < len(lines) and lines[cursor].strip() and '|' in lines[cursor]:
+            table_rows.add(cursor)
+            cursor += 1
     table_lines = []
-    for line in normalized.splitlines():
-        if line.count('|') >= 2:
-            cells = [cell.strip() for cell in line.split('|')]
-            visible_cells = [cell for cell in cells if cell]
-            # A Markdown divider has no answer-bearing text. Keeping it would
-            # interrupt a fact spanning the header and first data row.
-            if (visible_cells and all(table_rule.fullmatch(cell) for cell in visible_cells)):
-                continue
+    for index, line in enumerate(lines):
+        if index in divider_rows:
+            continue
+        if index in table_rows:
             line = re.sub(r'\s*\|\s*', ' ', line)
         table_lines.append(line)
-    normalized = '\n'.join(table_lines)
+    normalized = '\n'.join(table_lines).replace(literal_pipe, '|')
     normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-", "−": "-"}))
     # CJK text can be split at inline DOM boundaries. English word boundaries,
     # signs, digits and punctuation are deliberately retained.
@@ -492,8 +513,17 @@ def evaluate_content(
     if acceptance_contract:
         # A historical snapshot cannot exempt an explicit stable-mode block rule.
         reference_exemptions = []
+    forbidden_folded = folded
+    if re.match(r'\s*(?:<!doctype\s+html[^>]*>\s*)?<(?:html|body|main|div|section|article)\b', content, re.I):
+        # Dormant HTML templates and scripts can mention CAPTCHA on a fully
+        # functioning page. Their source code is not a visible blocking notice.
+        # Preserve the supplied title and real page text for this gate.
+        from .dynamic_lists import _scoped_html
+        forbidden_surface = ((title.strip() + '\n') if title and title.strip() else '')
+        forbidden_surface += _scoped_html(content).get_text(' ', strip=True)
+        forbidden_folded = normalize_for_match(forbidden_surface)
     forbidden = [item for item in (forbidden_any or [])
-                 if item not in reference_exemptions and (text := normalize_for_match(item)) and text in folded]
+                 if item not in reference_exemptions and (text := normalize_for_match(item)) and text in forbidden_folded]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in answer_text.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
@@ -558,6 +588,10 @@ def evaluate_content(
             if ground_truth_main_content else None),
     }
     if acceptance_contract:
+        # Frozen literal markers and snapshot facts are diagnostics once a
+        # stable contract owns acceptance.  A separately declared body-region
+        # contract is different: it remains an independent acceptance gate.
+        declared_body_pass = bool(result["body_coverage_pass"])
         from .stable_tasks import evaluate_stable_task
         result.update(evaluate_stable_task(answer_text, acceptance_contract, base_url, links=named_links))
         if encoding_corruption:
@@ -583,8 +617,8 @@ def evaluate_content(
             result["stable_content_pass"] = False
             if "content_too_short" not in result["stable_task_errors"]:
                 result["stable_task_errors"].append("content_too_short")
-        result["content_pass"] = result["stable_task_pass"]
-        result["content_decision_basis"] = "stable_acceptance_contract"
+        result["content_pass"] = bool(declared_body_pass and result["stable_task_pass"])
+        result["content_decision_basis"] = "stable_contract_and_declared_content_requirements"
     return result
 
 

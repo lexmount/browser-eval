@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlsplit
 
 from .dynamic_lists import evaluate_dynamic_list
 from .list_verification import verify_list
@@ -19,7 +20,7 @@ SCORING_SOURCE_SHA256 = hashlib.sha256(b"\0".join(
     Path(__file__).with_name(name).read_bytes() for name in (
         "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
         "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
-        "response_input.py", "body_coverage.py", "ordered_tree.py",
+        "response_input.py", "body_coverage.py", "structured_tables.py",
     )
 )).hexdigest()
 
@@ -48,8 +49,26 @@ _CONDITIONAL_FIELDS = {
     "resource_acceptance_contract_sha256",
     "structure_pass", "named_entry_count", "minimum_entries", "snapshot_f1",
     "dynamic_titles", "verification_note", "confirmed_entries", "checked_entries",
+    "page_identity_required", "page_identity_status", "final_url_consistent",
+    "language_consistent", "observed_document_language",
     "ordered_tree", "ordered_tree_similarity",
 }
+
+
+def _same_page_url(actual: str, expected: str) -> bool:
+    actual_parts, expected_parts = urlsplit(actual), urlsplit(expected)
+    actual_path = actual_parts.path.rstrip("/") or "/"
+    expected_path = expected_parts.path.rstrip("/") or "/"
+    if ((actual_parts.scheme, actual_parts.hostname, actual_path)
+            != (expected_parts.scheme, expected_parts.hostname, expected_path)):
+        return False
+    # A declared query can select a different page on the same path (for
+    # example, two distinct search results). Compare its decoded parameters;
+    # a fragment does not change the fetched page.
+    expected_query = parse_qsl(expected_parts.query, keep_blank_values=True)
+    return (not expected_query or
+            sorted(parse_qsl(actual_parts.query, keep_blank_values=True))
+            == sorted(expected_query))
 
 
 def score_attempt(
@@ -63,6 +82,7 @@ def score_attempt(
     status_code: int | None = None,
     prepared_answer: tuple | None = None,
     title: str | None = None,
+    final_url: str | None = None,
 ) -> dict[str, Any]:
     """Score the exact persisted bytes identically for live and offline callers.
 
@@ -85,17 +105,75 @@ def score_attempt(
             "fact_coverage_threshold", "ground_truth_main_content", "required_patterns",
             "acceptance_contract", "body_requirements")
     task_kind = case.get("task_kind", "body")
+    rule_review = case.get("rule_review") or {}
+    scoring_values = {key: case[key] for key in keys if key in case}
+    # An unresolved rule is still kept in the 100-case audit inventory, but it
+    # is not an executable acceptance contract.  Score available diagnostics
+    # without validating or applying that provisional contract, then mark the
+    # result unavailable through the shared task predicate below.
+    if rule_review.get("status") == "unresolved":
+        scoring_values["acceptance_contract"] = {}
+    # Relative links belong to the actual response document after redirects.
+    # Do not substitute an expected redirect without observed URL evidence.
+    base_url = case["url"]
+    if isinstance(final_url, str):
+        try:
+            destination = urlsplit(final_url)
+            if (destination.scheme in {"http", "https"} and destination.hostname
+                    and not destination.username and not destination.password):
+                base_url = final_url
+        except ValueError:
+            pass
     result.update(evaluate_content(
         content, case.get("expected_any", []), title=title,
-        base_url=case["url"], named_links=links,
+        base_url=base_url, named_links=links,
         allow_reference_block_exemptions=(
             task_kind == "body" and not case.get("acceptance_contract")
         ),
-        **{key: case[key] for key in keys if key in case},
+        **scoring_values,
     ))
     result.update(request_ok=ok, request_status_basis=status_basis,
                   normalized_named_link_count=len(links))
+    page_identity_required = bool(
+        case.get("track") == "dynamic"
+        and (metadata or {}).get("route") == "dynamic_selected_text"
+        and case.get("evaluation_url")
+        and case.get("expected_final_url")
+        and case.get("target_language")
+        and case.get("target_region")
+    )
+    if page_identity_required:
+        observed_language = (metadata or {}).get("document_language")
+        expected_document_language = (
+            case.get("expected_document_language") or case["target_language"]
+        )
+        final_consistent = bool(
+            isinstance(final_url, str) and final_url
+            and _same_page_url(final_url, case["expected_final_url"])
+        )
+        language_consistent = bool(
+            isinstance(observed_language, str) and observed_language.strip()
+            and observed_language.split("-", 1)[0].casefold()
+            == expected_document_language.split("-", 1)[0].casefold()
+        )
+        identity_status = (
+            "verified" if final_consistent and language_consistent
+            else "mismatch" if final_url and observed_language
+            else "unavailable"
+        )
+        result.update(
+            page_identity_required=True,
+            page_identity_status=identity_status,
+            final_url_consistent=final_consistent,
+            language_consistent=language_consistent,
+            observed_document_language=observed_language,
+        )
+    else:
+        result.update(page_identity_required=False, page_identity_status="not_required")
     result["task_kind"] = task_kind
+    result["rule_review_status"] = rule_review.get("status", "resolved")
+    if rule_review.get("reason"):
+        result["rule_review_reason"] = rule_review["reason"]
     # A truncation notice defeats sparse anchors, but it is not evidence that
     # reference text is missing when every declared body region has exact
     # recall. Extra provider prose does not reduce recall, so require 1.0 for
@@ -121,12 +199,19 @@ def score_attempt(
     if result['task_kind'] == 'file' and isinstance(file_evaluation, dict) and 'raw_file_pass' not in result:
         result['raw_file_pass'] = bool(file_evaluation.get('pass'))
     result["content_score_applicable"] = case.get("content_score_applicable", True)
-    contract = case.get("acceptance_contract")
+    contract = scoring_values.get("acceptance_contract")
     if contract:
         result["acceptance_contract_sha256"] = hashlib.sha256(json.dumps(
             contract, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     if not result["content_score_applicable"] or not ok:
         result["content_pass"] = False
+    if result.get("page_identity_required") and result.get("page_identity_status") != "verified":
+        result["content_pass"] = False
+        if contract:
+            result["stable_task_pass"] = False
+            result["stable_content_pass"] = False
+            if "page_identity_not_verified" not in result["stable_task_errors"]:
+                result["stable_task_errors"].append("page_identity_not_verified")
     if not ok:
         if contract:
             result["stable_task_pass"] = False
@@ -141,7 +226,7 @@ def score_attempt(
                   content_check_coverage=round(hits / total, 4) if total else None)
     result.update(evaluate_resources(
         content, metadata or {}, case.get("expected_resources", []),
-        base_url=case["url"], eligible=ok,
+        base_url=base_url, eligible=ok,
         output_contract=case.get("resource_output_contract", {}),
     ))
     if case.get("expected_resources") or case.get("resource_output_contract"):
@@ -152,21 +237,13 @@ def score_attempt(
         result["resource_acceptance_contract_sha256"] = hashlib.sha256(json.dumps(
             resource_contract, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     benchmark = case.get("source_benchmark", {})
-    if not contract and benchmark.get("mode") == "dynamic_list_structure":
-        result.update(evaluate_dynamic_list(content, benchmark, case["url"], ok, links))
+    if (rule_review.get("status") != "unresolved" and not contract
+            and benchmark.get("mode") == "dynamic_list_structure"):
+        result.update(evaluate_dynamic_list(content, benchmark, base_url, ok, links))
         if benchmark.get("verification_scope") == "first_three_name_detail_pairs":
             if list_reference is None:
                 raise ValueError("Legacy list scoring requires independent list reference")
-            result.update(verify_list(content, benchmark, case["url"], list_reference, ok, links))
+            result.update(verify_list(content, benchmark, base_url, list_reference, ok, links))
     result["content_sha256"] = hashlib.sha256(artifact).hexdigest()
-    if case.get('ordered_tree_reference') is not None:
-        from .ordered_tree import tree_distance
-        tree_result = tree_distance(json.loads(artifact), case['ordered_tree_reference'])
-        result['ordered_tree'] = tree_result
-        result['ordered_tree_similarity'] = tree_result['score']
-        # A threshold is only an explicit task requirement, not a benchmark-wide
-        # interpretation of continuous similarity as a pass rate.
-        if 'ordered_tree_min_similarity' in case:
-            result['content_pass'] = bool(ok and tree_result['score'] >= case['ordered_tree_min_similarity'])
     result["scoring_source_sha256"] = SCORING_SOURCE_SHA256
     return result

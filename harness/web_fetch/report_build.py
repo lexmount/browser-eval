@@ -131,7 +131,8 @@ def build_public_benchmark_research(source: Path, output: Path, *, include_engli
     return output / 'index.html'
 
 
-def build_report(source: Path, output: Path, *, include_english: bool = False) -> Path:
+def build_report(source: Path, output: Path, *, include_english: bool = False,
+                 local_audit: bool = False) -> Path:
     source, output = source.resolve(), output.resolve()
     if source == output or output in source.parents:
         raise ValueError('Report output must not contain its evidence source')
@@ -141,13 +142,24 @@ def build_report(source: Path, output: Path, *, include_english: bool = False) -
     dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
     if dataset_probe.get('comparison', {}).get('kind') == 'webmainbench_frozen_html_to_markdown':
         return build_webmainbench_report(source, output, include_english=include_english)
-    require_selection_history(source)
+    if not local_audit:
+        require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
     records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
     validate_report_ids(dataset,records)
     cases = {c['id']:c for c in dataset['cases']}
     from .result_review import require_result_review
-    result_review = require_result_review(source, dataset, records)
+    if local_audit:
+        preview = json.loads(contained_path(source, 'local-preview.json').read_text())
+        for name in ('dataset.json', 'results.jsonl'):
+            expected = preview.get('bindings', {}).get(name)
+            actual = hashlib.sha256(contained_path(source, name).read_bytes()).hexdigest()
+            if expected != actual:
+                raise ValueError('Local audit binding mismatch: ' + name)
+        result_review = (json.loads(contained_path(source, 'result-review.json').read_text())
+                         if (source / 'result-review.json').is_file() else None)
+    else:
+        result_review = require_result_review(source, dataset, records)
     speed_entry=source/'speed-cohort'
     if speed_entry.is_symlink():
         raise ValueError('Speed cohort root must not be a symlink')
@@ -190,6 +202,11 @@ def build_report(source: Path, output: Path, *, include_english: bool = False) -
     for c in cases.values():
         annotation=c.get('source_benchmark',{}).get('stable_annotation',{})
         if annotation.get('anchor_evidence_sha256'):
+            if local_audit:
+                # The two historical dynamic cohorts retain their own source
+                # audit receipts.  Do not reinterpret those revisions with the
+                # newer origin/main release gate in a local merged view.
+                continue
             from copy import deepcopy
             from .stable_annotations import bind_annotation_evidence
             checked=deepcopy(c)
@@ -223,9 +240,10 @@ def build_report(source: Path, output: Path, *, include_english: bool = False) -
         raise ValueError('A report requires tasks and measured records')
     execution = source/'execution.json'
     manifests = json.loads(execution.read_text())['batches'] if execution.exists() else [json.loads((source/'manifest.json').read_text())]
-    require_verified_reference_checks(manifests, cases=dataset, records=records, source=source,
-        equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
-        'equivalent_reference_bytes_with_independent_batch_captures')
+    if not local_audit:
+        require_verified_reference_checks(manifests, cases=dataset, records=records, source=source,
+            equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
+            'equivalent_reference_bytes_with_independent_batch_captures')
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix='.report-build-', dir=output.parent))
     try:
@@ -280,7 +298,11 @@ def build_report(source: Path, output: Path, *, include_english: bool = False) -
             text=raw.read_text(encoding='utf-8',errors='replace')
             from .title_quality import add_title_quality
             add_title_quality(r, cases[r['case_id']], source)
-            r['diagnosis']=diagnose(r,cases[r['case_id']],text,source_checks.get(r['case_id']))
+            saved_diagnosis = r.get('diagnosis')
+            if local_audit and (saved_diagnosis or {}).get('classification_revision') == 'failure-classification-v2':
+                r['diagnosis'] = saved_diagnosis
+            else:
+                r['diagnosis']=diagnose(r,cases[r['case_id']],text,source_checks.get(r['case_id']))
             r['failure_category'] = failure_category(r, cases[r['case_id']])
         for folder in ['sources','list-references','reference-checks']:
             tree=contained_path(source,folder)
@@ -329,6 +351,12 @@ def build_report(source: Path, output: Path, *, include_english: bool = False) -
         (staging/'results.jsonl').write_bytes(contained_path(source,'results.jsonl').read_bytes())
         if result_review is not None:
             (staging/'result-review.json').write_text(json.dumps(result_review,ensure_ascii=False,indent=2)+'\n')
+        if local_audit:
+            shutil.copy2(source/'local-preview.json', staging/'local-preview.json')
+            if (source/'result-review-25.json').is_file():
+                shutil.copy2(source/'result-review-25.json', staging/'result-review-25.json')
+            if (source/'local-evidence').is_dir():
+                shutil.copytree(source/'local-evidence', staging/'local-evidence')
         copy_methodology_assets(staging)
         provenance=Path(__file__).resolve().parents[2]/'research/headless-implementation-provenance.json'
         if provenance.is_file():

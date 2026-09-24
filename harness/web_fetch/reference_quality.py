@@ -138,7 +138,10 @@ def markdown_links(text: str) -> list[MarkdownLink]:
         else:
             # A quoted Markdown title is metadata, not part of the URL. Layout
             # whitespace inside a destination is otherwise serialization noise.
-            titled = re.match(r"(?s)^(.*?)(?:\s+['\"](?:[^'\"]*)['\"])$", raw_destination)
+            # The opening and closing title delimiters must agree. Quotes
+            # inside metadata do not change the explicit link destination;
+            # serializers may also fail to escape a repeated delimiter.
+            titled = re.match(r"(?s)^(.*?)\s+(['\"])(.*)\2$", raw_destination)
             destination = re.sub(r"\s+", "", titled[1] if titled else raw_destination)
         links.append(MarkdownLink(raw_label, destination, image, index, destination_end + 1))
         index = destination_end + 1
