@@ -11,6 +11,30 @@ from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision, v
 
 
 class WebMainBenchReviewGuardsTests(unittest.TestCase):
+    def test_teds_review_rejects_evidence_present_on_one_side_only(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source, corrected = root / 'source', root / 'corrected'
+            source.mkdir()
+            corrected.mkdir()
+            dataset = json.dumps({'cases': [{'id': 'one'}]}).encode()
+            before = b'{"attempt_id":"a","metrics":{}}\n'
+            after = b'{"attempt_id":"a","metrics":{},"official_metrics":{}}\n'
+            for base in (source, corrected):
+                (base / 'dataset.json').write_bytes(dataset)
+            (source / 'results.jsonl').write_bytes(before)
+            (corrected / 'results.jsonl').write_bytes(after)
+            (corrected / 'original-results.jsonl').write_bytes(before)
+            (corrected / 'sample-manifest.json').write_text('{}')
+            receipt = {'provider_calls': 0, 'input_results_sha256': hashlib.sha256(before).hexdigest(),
+                       'output_results_sha256': hashlib.sha256(after).hexdigest(),
+                       'dataset_sha256': hashlib.sha256(dataset).hexdigest(),
+                       'source_code_sha256': {}, 'scope': {'providers': ['a']}}
+            (corrected / 'teds-correction.json').write_text(json.dumps(receipt))
+            with patch('scripts.review_webmainbench_teds_correction.valid_correction_provenance', return_value=True):
+                with self.assertRaisesRegex(ValueError, 'file presence: sample-manifest.json'):
+                    review(source, corrected)
+
     def test_revision_rejects_even_in_directory_symlinks(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

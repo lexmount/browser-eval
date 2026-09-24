@@ -1276,6 +1276,94 @@
   ],
   "releases": [
     {
+      "id": "webmainbench-545-six-method-origin-correction-20260924",
+      "date": "2026-09-24",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "title": "纠正原网址替换导致的假失败并恢复六方法分析图",
+      "summary": "狼人杀规则页保留原网址后，六种方法使用原受测版本完成认证补测并生成正文；六条新结果统一替换旧结果，修复版 Moli 正文交付由 544/545 更正为 545/545，当前机器问题由 29 条降至 25 条。恢复六方法结果图和错误机制图，主表、同页结果、错误归因与汇总分同步更新。",
+      "changes": [
+        [
+          "测试环境",
+          "localhost 替换触发页面跳回原站，隔离规则造成假失败。",
+          "保留原网址并继续使用冻结 HTML、阻断外部资源；六方法同页认证补测。",
+          "新增六次调用，其他 544 页不变；旧调用与原分保留。"
+        ],
+        [
+          "分析图",
+          "五方法图未随六方法报告更新，后续生成器未引用旧图。",
+          "以绑定哈希的六方法结果图及错误机制图重新接入解读页。",
+          "发布检查拒绝丢图或图片哈希不一致。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Correct origin substitution and restore six-method analysis figures",
+          "summary": "A certified six-method rerun preserves the original URL and frozen HTML. All six produce body text; fixed Moli now delivers 545/545 pages. The current matrix has 25 machine issues, and the main tables, same-case results, attribution, and aggregate scores are updated together.",
+          "changes": [
+            [
+              "Test environment",
+              "Replacing the origin with localhost triggered a redirect back to the live site, which the isolation rules then blocked as a false failure.",
+              "Preserve the original URL while continuing to serve frozen HTML and block external resources; rerun the same page for all six methods as one certified correction.",
+              "Add six calls while leaving the other 544 pages unchanged; retain the superseded calls and original scores."
+            ],
+            [
+              "Analysis figures",
+              "The five-method figures were not updated for the six-method report, and the later generator no longer referenced them.",
+              "Reconnect hash-bound six-method result and error-mechanism figures to the interpretation page.",
+              "The release gate rejects a missing figure or an illustration whose hash has changed."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "2026-09-24-webmainbench-target-body-population",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-24",
+      "title": "区分请求成功与目标正文",
+      "summary": "核心表和条件耗时改按实际生成目标正文的页面统计；浏览器错误页、空输出和请求失败不再计入正文页数。评分、原始输出和 3,270 条逻辑结果不变。",
+      "changes": [["正文与耗时口径", "进程成功退出会把 ERR_ACCESS_DENIED 等浏览器错误页计入“返回成功”，并进入成功页条件耗时。", "从已保存的逐页诊断生成目标正文标记；核心表、条件耗时和 Moli 修复前后对照共用该标记。", "Chrome 的错误页不再算目标正文；全部调用耗时、质量评分、重试成本和冻结证据保持不变。"]],
+      "i18n": {"en": {"title": "Separate successful requests from target-body delivery", "summary": "The core table and conditional latency now count pages that actually produced target body content. Browser error pages, empty output, and request failures are excluded. Scores, raw outputs, and all 3,270 logical results are unchanged.", "changes": [["Body and latency population", "A zero-exit process could count an ERR_ACCESS_DENIED browser page as a successful return and include it in conditional success latency.", "Derive target-body delivery from the retained per-page diagnosis and use it consistently in the core table, conditional latency, and Moli before/after comparison.", "The Chrome error page no longer counts as target body. All-call latency, quality scores, retry cost, and frozen evidence remain unchanged."]]}}
+    },
+    {
+      "id": "2026-09-24-webmainbench-six-versions-certified",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-24",
+      "title": "将修复版 Moli 纳入完整六方法比较",
+      "summary": "修复版 Moli 按同一批 545 页完成独立认证运行；主表、结果清单和同页对照均展示六种方法，共 3,270 条结果。",
+      "changes": [["六方法结果", "修复版先前只在附注页出现，主表与同页证据仍只有五种方法。", "将修复版作为独立第六方法纳入完整矩阵，两轮结果使用同一表格结构修正口径。", "逐页输出和失败可直接对照；修复版另日运行，其耗时不参加原五方法的速度标优。"]],
+      "i18n": {"en": {"title": "Include repaired Moli in the complete six-version comparison", "summary": "A separate certified run measured repaired Moli on the same 545 pages. The main table, result inventory, and same-case comparisons now include all six versions and 3,270 results.", "changes": [["Six-version results", "The repaired build previously appeared only on a follow-up page, outside the main result matrix.", "Include it as a sixth version, and apply the same corrected table-structure scoring to both complete cohorts.", "Page outputs and failures are directly inspectable; the later timing run is not ranked against the original five."]]}}
+    },
+    {
+      "id": "2026-09-24-webmainbench-moli-repair-545-followup",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-24",
+      "title": "补充 Moli 修复后的 545 页复测",
+      "summary": "同一批冻结输入上的 Moli 单方法复测由 542/545 页返回成功增至 544/545 页；两条解析器崩溃恢复，一条隔离环境阻断的跳转仍失败。",
+      "changes": [["修复复测", "原五方法报告只记录修复前的 Moli 结果，读者无法看到后续解析器修复的实际效果。", "单列 545 页复测、同口径四项原评分、恢复页面的完整输出与剩余失败。", "五方法认证结果和排名未改；恢复的 Autochina360 页仍夹杂大量无关链接，全文分 22.8%。不同时间的耗时和未经同一 TEDS 修正的综合分不作前后比较。"]],
+      "i18n": {"en": {"title": "Add the 545-page Moli repair follow-up", "summary": "In a Moli-only rerun of the same frozen pages, request success rose from 542/545 to 544/545. Two parser crashes recovered; one redirect blocked by the isolated fixture still failed.", "changes": [["Repair follow-up", "The five-method report only showed Moli before the parser repair.", "Present the full-page rerun, four original-scorer metrics, complete outputs for recovered pages, and the remaining failure.", "The certified five-method ranking is unchanged. The recovered Autochina360 output still contains many unrelated links and scores 22.8% on full text; timing across dates and aggregate scores without the same TEDS correction are not compared."]]}}
+    },
+    {
+      "id": "2026-09-23-webmainbench-error-attribution-and-case-comparison",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-23",
+      "title": "按方法定位机器问题并展示同页完整输出",
+      "summary": "机器问题图与解读页交叉列出错误类型、方法和可确认的归属。逐题对照页在同一处显示人工主内容答案与五种方法的完整输出，结果清单可按复核原因筛选。",
+      "changes": [["错误归属与逐题阅读", "汇总数不能直接显示每种错误发生在哪个方法，逐题页只列分数而需分别打开答案和输出。", "增加错误类型与方法矩阵、归属说明及原因筛选；同页显示参考答案和五种完整结果。", "545 题输入、2725 条结果、分数、耗时和已复核的 28 条机器问题均不变。"]],
+      "i18n": {"en": {"title": "Attribute machine issues by method and show complete same-page outputs", "summary": "The issue graphic and interpretation cross-tabulate error type, method, and evidenced attribution. Each case comparison displays the human main-content reference beside all five complete outputs, and the result inventory can filter by reviewed cause.", "changes": [["Issue attribution and case reading", "Aggregate counts did not show which method encountered each issue, and case pages listed scores without the reference and outputs in one view.", "Add an error-type-by-method matrix, attribution notes, and cause filtering; display the reference and five full outputs on each case page.", "The 545 inputs, 2,725 results, scores, timings, and 28 reviewed machine issues remain unchanged."]]}}
+    },
+    {
+      "id": "2026-09-23-webmainbench-complete-545-five-methods",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-23",
+      "title": "发布 WebMainBench 完整 545 题五方法对照",
+      "summary": "以同一批 545 个官方冻结 HTML 和人工参考，实测五种稳定版浏览器方法。新报告提供逐题输入、输出、评分、失败证据和已复核的机器问题分析。",
+      "changes": [["完整评测与评分", "先前公开报告只覆盖 200 题，无法代表完整数据集。官方 TEDS 实现还可能高估部分表格相似度。", "认证五种方法各 545 题，并用保留原始输出和官方分数的结构化树比较校正 TEDS；报告同时展示请求重试和失败分类。", "共 2725 个逻辑结果、2747 次实际调用；292 个 TEDS 分数校正。28 个机器问题已逐条复核，其余 2697 个结果未逐条人工复核。"]],
+      "i18n": {"en": {"title": "Publish the complete 545-case WebMainBench comparison", "summary": "Five stable browser methods were measured against the same 545 official frozen HTML inputs and human references. The new report exposes case inputs, outputs, scores, failure evidence, and reviewed machine-issue analysis.", "changes": [["Full evaluation and scoring", "The earlier public report covered only 200 cases, and the official TEDS implementation could overstate some table similarities.", "Certify 545 cases for each of five methods and correct TEDS with structured tree comparison while preserving raw outputs and official scores; show retries and failure classes.", "There are 2,725 logical results and 2,747 physical calls; 292 TEDS scores were corrected. All 28 machine issues were reviewed individually, while the other 2,697 results were not individually human reviewed."]]}}
+    },
+    {
       "id": "2026-09-20-wcxb-measured-mode-labels",
       "comparison_kinds": ["wcxb_frozen_html_to_markdown"],
       "date": "2026-09-20",

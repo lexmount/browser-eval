@@ -11,7 +11,9 @@ class ReportChangesTests(unittest.TestCase):
         from harness.web_fetch.report_changes import ROOT
         source = json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8'))
         releases = webmainbench_history(source)
-        self.assertEqual(len(releases), 15)
+        expected = [row for row in source['releases']
+                    if 'webmainbench_frozen_html_to_markdown' in row.get('comparison_kinds', [])]
+        self.assertEqual([row['id'] for row in releases], [row['id'] for row in expected])
         for english in (False, True):
             page = render_webmainbench_history(
                 {'releases': releases}, english,

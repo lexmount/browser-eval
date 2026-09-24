@@ -342,6 +342,15 @@ class HeadlessTests(unittest.TestCase):
             )
             self.assertEqual(command[command.index('--ca-cert') + 1], '/tmp/fixture-ca.pem')
 
+    def test_frozen_origin_proxy_is_passed_to_every_native_client(self):
+        for engine in ('moli', 'lightpanda', 'obscura'):
+            command = cli_command(
+                engine, '/' + engine, 'https://example.test/page', 1.5,
+                'markdown', http_proxy='http://127.0.0.1:8123',
+            )
+            flag = '--proxy' if engine == 'obscura' else '--http-proxy'
+            self.assertEqual(command[command.index(flag) + 1], 'http://127.0.0.1:8123')
+
     def test_obscura_https_fixture_uses_dedicated_ca_environment(self):
         from types import SimpleNamespace
         request = dict(

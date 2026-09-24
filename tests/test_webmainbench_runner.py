@@ -4,7 +4,7 @@ import json
 import tempfile
 from pathlib import Path
 
-from scripts.run_webmainbench_benchmark import DATASET_SHA256, fetch_record, load_selected_ids
+from scripts.run_webmainbench_benchmark import DATASET_SHA256, check_identity, fetch_record, load_selected_ids
 
 
 RECORD = {
@@ -27,6 +27,11 @@ class RaisingProvider:
 
 
 class WebMainBenchRunnerTests(unittest.TestCase):
+    def test_release_identity_must_match_declared_current_version(self):
+        check_identity("moli", {"reported_version": "moli 1.1.9"}, {"moli": "1.1.9"})
+        with self.assertRaisesRegex(ValueError, "expected version 1.1.9"):
+            check_identity("moli", {"reported_version": "moli 1.1.8"}, {"moli": "1.1.9"})
+
     def test_loads_and_binds_frozen_sample_manifest(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "sample.json"

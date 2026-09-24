@@ -104,6 +104,10 @@ def run(command: list[str]) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
+    if (argv or sys.argv[1:])[:1] == ["webmainbench-correction"]:
+        from scripts.certify_webmainbench_case_correction import main as correction_main
+        correction_main((argv or sys.argv[1:])[1:])
+        return
     if (argv or sys.argv[1:])[:1] == ["wcxb"]:
         run_wcxb((argv or sys.argv[1:])[1:])
         return
