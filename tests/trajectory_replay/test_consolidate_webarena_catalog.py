@@ -2,7 +2,10 @@ import hashlib
 
 import pytest
 
-from harness.trajectory_replay.catalog_consolidation import _verified_run_directories
+from harness.trajectory_replay.catalog_consolidation import (
+    _catalog_rows_by_id,
+    _verified_run_directories,
+)
 
 
 def test_consolidation_rejects_inputs_changed_after_acceptance(tmp_path):
@@ -33,3 +36,13 @@ def test_consolidation_rejects_duplicate_ledger_run_bindings(tmp_path):
     row = {"progress_sha256": "same", "inputs_sha256": "hash"}
     with pytest.raises(ValueError, match="duplicate run bindings"):
         _verified_run_directories({"runs": [row, row]}, tmp_path, set())
+
+
+def test_consolidation_indexes_non_contiguous_catalog_tasks_by_identity():
+    rows = [{"task_id": 7}, {"task_id": 20}]
+    assert _catalog_rows_by_id({"task_ids": [7, 20], "rows": rows}) == {7: rows[0], 20: rows[1]}
+
+
+def test_consolidation_rejects_catalog_identity_mismatch():
+    with pytest.raises(ValueError, match="declared order"):
+        _catalog_rows_by_id({"task_ids": [7, 20], "rows": [{"task_id": 7}, {"task_id": 7}]})

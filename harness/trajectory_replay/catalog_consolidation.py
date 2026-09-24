@@ -55,6 +55,14 @@ def _verified_run_directories(
     return runs
 
 
+def _catalog_rows_by_id(catalog: dict) -> dict[int, dict]:
+    rows = catalog.get("rows") or []
+    indexed = {row.get("task_id"): row for row in rows}
+    if len(indexed) != len(rows) or set(indexed) != set(catalog.get("task_ids") or []):
+        raise ValueError("source catalog task rows do not match its declared order")
+    return indexed
+
+
 def consolidate(
     ledger_path: Path,
     run_root: Path,
@@ -91,6 +99,7 @@ def consolidate(
         digest: json.loads(files[digest].read_text(encoding="utf-8"))
         for digest in {binding["catalog_sha256"] for binding in inputs.values()}
     }
+    catalog_rows = {digest: _catalog_rows_by_id(catalog) for digest, catalog in catalogs.items()}
     suites = {
         digest: {
             int(task.task_id.removeprefix("webarena-")): task
@@ -116,7 +125,10 @@ def consolidate(
         source_catalog = catalogs[binding["catalog_sha256"]]
         if source_catalog["site_map_sha256"] != binding["site_map_sha256"]:
             raise ValueError(f"task {task_id}: source deployment binding differs")
-        source_row = source_catalog["rows"][task_id]
+        try:
+            source_row = catalog_rows[binding["catalog_sha256"]][task_id]
+        except KeyError as exc:
+            raise ValueError(f"task {task_id}: accepted task is absent from source catalog") from exc
         if source_row["task_id"] != task_id or attempt["status"] != "pass":
             raise ValueError(f"task {task_id}: accepted source row differs")
         if source_row["mode"] == "portable":
