@@ -617,8 +617,19 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     if digest(failure_path) != failure_binding['sha256']:
         raise ValueError('Failure analysis differs from the compact review binding')
     failure_analysis = json.loads(failure_path.read_text(encoding='utf-8'))
+    correction_binding_path = profile_path.parent / 'case-correction-binding.json'
+    correction_root = None
+    corrected_keys = set()
+    if correction_binding_path.exists():
+        from .webmainbench_correction import validate as validate_case_correction
+        correction_binding = json.loads(correction_binding_path.read_text())
+        correction_root = data_home() / correction_binding['relative_path']
+        if digest(correction_root / 'certificate.json') != correction_binding['sha256']:
+            raise ValueError('Case correction differs from bound certificate')
+        _, corrected_rows, _ = validate_case_correction(correction_root, records, digest(source / 'results.jsonl'))
+        corrected_keys = {(r['provider'], r['case_id']) for r in corrected_rows}
     failures = {(row['provider'], row['case_id']) for row in records
-                if webmainbench_full_machine_issue(source, row)}
+                if webmainbench_full_machine_issue(source, row)} - corrected_keys
     reviewed = {(row['provider'], row['case_id']) for row in failure_analysis['reviewed_failures']}
     if (failure_analysis.get('kind') != 'webmainbench_full_failure_analysis_v1'
             or failure_analysis.get('cohort_certificate_sha256') != digest(source / 'cohort-certificate.json')
@@ -652,9 +663,20 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         shutil.copy2(content_path, staging / 'report-content.json')
         shutil.copy2(failure_path, staging / 'failure-analysis.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json', staging / 'provider-adoption.json')
+        summaries = json.loads((source / 'score-summaries.json').read_text(encoding='utf-8'))
+        if correction_root:
+            from .webmainbench_correction import apply as apply_case_correction
+            records, summaries = apply_case_correction(correction_root, staging, records, summaries)
+        illustration_binding = profile_path.parent / 'illustrations.json'
+        if illustration_binding.exists():
+            (staging / 'assets').mkdir(exist_ok=True)
+            for asset in json.loads(illustration_binding.read_text())['assets']:
+                asset_source = data_home() / 'report-assets/webmainbench-full' / asset['name']
+                if digest(asset_source) != asset['sha256']:
+                    raise ValueError('Report illustration changed: ' + asset['name'])
+                shutil.copy2(asset_source, staging / 'assets' / asset['name'])
         generate_webmainbench_full(staging, dataset, records,
-                                   json.loads((source / 'score-summaries.json').read_text(encoding='utf-8')),
-                                   display_profile)
+                                   summaries, display_profile)
         from scripts.check_webmainbench_full_report import check as check_webmainbench_full
         check_webmainbench_full(staging)
         if output.exists():

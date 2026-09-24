@@ -2757,6 +2757,14 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
     cloudflare_repositories = len({repo for repo, _ in cloudflare_matches})
     def prose(key):
         return esc(content[key])
+    correction_path = out / 'case-correction.json'
+    correction = json.loads(correction_path.read_text()) if correction_path.exists() else None
+    def illustration(name, caption):
+        if not (out / 'assets' / name).is_file():
+            return ''
+        return ('<figure data-report-illustration="' + name + '"><div style="overflow-x:auto"><a href="assets/' + name +
+                '"><img style="width:100%;min-width:800px;height:auto" loading="lazy" src="assets/' + name +
+                '" alt="' + esc(caption) + '"></a></div><figcaption>' + esc(caption) + '（窄屏可横向滚动，点击查看原图。）</figcaption></figure>')
     providers = profile["providers"]
     cases = {case["id"]: case for case in dataset["cases"]}
     grouped = defaultdict(dict)
@@ -2798,7 +2806,7 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
     js += """
 async function loadJson(path){let response=await fetch(path);if(!response.ok)throw Error('HTTP '+response.status);return response.json()}
 async function loadEvidence(path,node){try{let index=await loadJson('artifact-shard-index.json'),shardPath=index[path];if(!shardPath)throw Error('证据索引缺失');let shard=await loadJson(shardPath),hash=shard.artifacts[path],value=shard.blobs[hash];if(typeof value!=='string')throw Error('证据内容缺失');node.textContent=value;let raw=document.getElementById('evidence-raw');raw.href=URL.createObjectURL(new Blob([value],{type:'text/plain;charset=utf-8'}));raw.download=path.split('/').pop()}catch(error){node.textContent='无法读取证据：'+error.message}}
-async function renderResult(){let params=new URLSearchParams(location.search),provider=params.get('provider')||'',id=params.get('id')||'';let title=document.getElementById('result-title');if(!/^[a-z0-9-]+$/.test(provider)||!/^[A-Za-z0-9-]+$/.test(id)){title.textContent='无效结果地址';return}try{let index=await loadJson('result-shard-index.json'),key=provider+'|'+id,shardPath=index[key];if(!shardPath)throw Error('结果索引缺失');let shard=await loadJson(shardPath),row=shard.results[key];if(!row)throw Error('结果内容缺失');let names={moli:'Moli 1.1.9', 'moli-fixed':'Moli 1.1.9（修复后）',lightpanda:'Lightpanda',obscura:'Obscura',chromium:'Chrome',kitesurf:'Kitesurf'},name=names[provider]||provider;title.textContent=name+' · '+id;document.title=title.textContent+' · WebMainBench 545';document.getElementById('result-source').textContent=row.original_url;let failure=['请求失败','空输出','错误页'].includes(row.diagnosis),detail=document.querySelector('[data-report-detail]');detail.dataset.reportDetail=failure?'failed':'success';document.getElementById('result-summary').textContent='状态：'+(row.ok?'返回成功':'请求失败')+'；诊断：'+row.diagnosis+'；最终调用 '+row.elapsed_ms.toFixed(0)+' ms；物理调用 '+row.physical_attempt_count+' 次，含重试总耗时 '+row.total_elapsed_ms.toFixed(0)+' ms。';let section=document.getElementById('result-failure');section.hidden=!failure;if(failure){document.getElementById('result-stage').textContent='阶段：'+(row.error_type||row.diagnosis);document.getElementById('result-error').textContent='程序错误：'+(row.error_message||'无');document.getElementById('result-log').textContent=row.provider_metadata?.stderr||row.provider_metadata?.browser_stderr||'无日志';document.getElementById('result-cause').textContent='复核原因：'+(row.review?.cause||'未记录');document.getElementById('result-treatment').textContent='处理：'+(row.review?.treatment||'未记录').replace(/[。；]+$/,'')+'；状态：'+(row.review?.status||'未记录')}let labels=[['text_edit','全文'],['code_edit','代码'],['formula_edit','公式'],['table_edit','表格内容'],['table_TEDS','表格结构']],body=document.getElementById('result-metrics');for(let [metric,label] of labels){let tr=document.createElement('tr'),entry=row.metrics?.[metric]||{};for(let value of [label,(!entry.success||entry.score==null)?'—':(entry.score*100).toFixed(1)+'%',entry.success?'参与计分':'不参与计分']){let td=document.createElement('td');td.textContent=value;tr.append(td)}body.append(tr)}document.getElementById('result-case').href='cases/index.html?id='+id;document.getElementById('result-output').href='viewer/index.html?path='+encodeURIComponent(row.artifact_path);document.getElementById('result-reference').href='viewer/index.html?path=references/'+id+'.md';document.getElementById('result-source-link').href='viewer/index.html?path=sources/'+id+'.html.txt';let physical=shard.physical[id]||[],list=document.getElementById('result-physical-list');for(let [number,attempt] of physical.entries()){let li=document.createElement('li'),a=document.createElement('a');a.href='viewer/index.html?path='+encodeURIComponent(attempt.physical_artifact_path);a.textContent='第 '+(number+1)+' 次调用 · '+attempt.elapsed_ms.toFixed(0)+' ms';li.append(a);list.append(li)}document.getElementById('result-physical').hidden=!physical.length}catch(error){title.textContent='无法载入结果：'+error.message}}
+async function renderResult(){let params=new URLSearchParams(location.search),provider=params.get('provider')||'',id=params.get('id')||'';let title=document.getElementById('result-title');if(!/^[a-z0-9-]+$/.test(provider)||!/^[A-Za-z0-9-]+$/.test(id)){title.textContent='无效结果地址';return}try{let index=await loadJson('result-shard-index.json'),key=provider+'|'+id,shardPath=index[key];if(!shardPath)throw Error('结果索引缺失');let shard=await loadJson(shardPath),row=shard.results[key];if(!row)throw Error('结果内容缺失');let names={moli:'Moli 1.1.9', 'moli-fixed':'Moli 1.1.9（修复后）',lightpanda:'Lightpanda',obscura:'Obscura',chromium:'Chrome',kitesurf:'Kitesurf'},name=names[provider]||provider;title.textContent=name+' · '+id;document.title=title.textContent+' · WebMainBench 545';document.getElementById('result-source').textContent=row.original_url;let failure=['请求失败','空输出','错误页'].includes(row.diagnosis),detail=document.querySelector('[data-report-detail]');detail.dataset.reportDetail=failure?'failed':'success';document.getElementById('result-summary').textContent='状态：'+(row.ok?'返回成功':'请求失败')+'；诊断：'+row.diagnosis+'；最终调用 '+row.elapsed_ms.toFixed(0)+' ms；物理调用 '+row.physical_attempt_count+' 次，含重试总耗时 '+row.total_elapsed_ms.toFixed(0)+' ms。';let correction=document.getElementById('result-correction');correction.hidden=!row.supersedes_attempt_id;let section=document.getElementById('result-failure');section.hidden=!failure;if(failure){document.getElementById('result-stage').textContent='阶段：'+(row.error_type||row.diagnosis);document.getElementById('result-error').textContent='程序错误：'+(row.error_message||'无');document.getElementById('result-log').textContent=row.provider_metadata?.stderr||row.provider_metadata?.browser_stderr||'无日志';document.getElementById('result-cause').textContent='复核原因：'+(row.review?.cause||'未记录');document.getElementById('result-treatment').textContent='处理：'+(row.review?.treatment||'未记录').replace(/[。；]+$/,'')+'；状态：'+(row.review?.status||'未记录')}let labels=[['text_edit','全文'],['code_edit','代码'],['formula_edit','公式'],['table_edit','表格内容'],['table_TEDS','表格结构']],body=document.getElementById('result-metrics');for(let [metric,label] of labels){let tr=document.createElement('tr'),entry=row.metrics?.[metric]||{};for(let value of [label,(!entry.success||entry.score==null)?'—':(entry.score*100).toFixed(1)+'%',entry.success?'参与计分':'不参与计分']){let td=document.createElement('td');td.textContent=value;tr.append(td)}body.append(tr)}document.getElementById('result-case').href='cases/index.html?id='+id;document.getElementById('result-output').href='viewer/index.html?path='+encodeURIComponent(row.artifact_path);document.getElementById('result-reference').href='viewer/index.html?path=references/'+id+'.md';document.getElementById('result-source-link').href='viewer/index.html?path=sources/'+id+'.html.txt';let physical=shard.physical[id]||[],list=document.getElementById('result-physical-list');for(let [number,attempt] of physical.entries()){let li=document.createElement('li'),a=document.createElement('a');a.href='viewer/index.html?path='+encodeURIComponent(attempt.physical_artifact_path);a.textContent='第 '+(number+1)+' 次调用 · '+attempt.elapsed_ms.toFixed(0)+' ms';li.append(a);list.append(li)}document.getElementById('result-physical').hidden=!physical.length}catch(error){title.textContent='无法载入结果：'+error.message}}
 async function renderCase(){
   let id=new URLSearchParams(location.search).get('id')||'',slot=document.getElementById('case-id');
   if(!/^[A-Za-z0-9-]+$/.test(id)){slot.textContent='无效任务地址';return}
@@ -2992,6 +3000,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
     page("results/index.html", "逐项结果",
          '<div data-report-detail="pending"><section class="hero"><h1 id="result-title">正在载入结果…</h1><p class="source" id="result-source"></p></section>'
          '<section class="panel" data-result-summary><h2>结果摘要</h2><p id="result-summary"></p></section>'
+         '<p id="result-correction" hidden>本条为保留原网址后的认证补测结果，已替换旧环境下同一方法的结果。<a href="guide/index.html#fixture-correction">原因、六方法对照与旧调用记录</a></p>'
          '<section class="panel" data-failure-diagnosis id="result-failure" hidden><h2>错误与诊断</h2><p id="result-stage"></p><p id="result-error"></p><p id="result-cause"></p><p id="result-treatment"></p>'
          '<details id="result-logs"><summary>原始运行日志</summary><pre data-kind="error" id="result-log"></pre></details></section>'
          '<section><h2>五项质量指标</h2><div class="scroll"><table><thead><tr><th>指标</th><th>分数</th><th>状态</th></tr></thead><tbody id="result-metrics"></tbody></table></div></section>'
@@ -3026,6 +3035,14 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
         target = shard_name(attempt["provider"], case_id)
         shards[target]["physical"].setdefault(case_id, []).append(attempt)
         bound_artifact(attempt["physical_artifact_path"], attempt["output_sha256"], target)
+    for historical_name, path_key in [('superseded-case-results.jsonl', 'artifact_path'),
+                                      ('superseded-case-calls.jsonl', 'physical_artifact_path')]:
+        historical_path = out / historical_name
+        if historical_path.is_file():
+            for attempt in (json.loads(line) for line in historical_path.read_text().splitlines()):
+                case_id = attempt.get('case_id', attempt.get('track_id'))
+                target = shard_name(attempt['provider'], case_id)
+                bound_artifact(attempt[path_key], attempt['output_sha256'], target)
     for case in dataset["cases"]:
         case_id = case["id"]
         target = shard_name("source", case_id)
@@ -3095,6 +3112,20 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                      '<p class="note">修复版另一次全量运行；两版的耗时不是同一时间窗交叉测量。' +
                      anchor('six-method-binding.json', '两轮认证证据') + ' · ' +
                      anchor('https://github.com/lexmount/moli/pull/785', '修复代码与 CI') + '</p></section>')
+    correction_section = ''
+    if correction:
+        corrected_id = correction['preflight']['case_id']
+        correction_section = ('<section id="fixture-correction"><h2>狼人杀规则页：测试地址导致的假失败已纠正</h2>'
+            '<p>页面脚本会检查当前域名和路径。旧环境把地址替换为 localhost，触发跳回原站；隔离规则随后阻断访问。'
+            '修正后的环境保留原网址，由本地代理提供同一份冻结 HTML，继续阻断外部资源。六种方法使用原受测二进制完成同页认证补测，均返回正文。</p>'
+            + table(['方法', '补测正文字符数', '补测全文分', '证据'], [
+                '<tr><td>' + esc(labels[p]) + '</td><td>' + str(grouped[corrected_id][p]['output_chars']) +
+                '</td><td>' + percent(score(grouped[corrected_id][p], 'text_edit')) + '</td><td>' +
+                anchor('results/index.html?provider=' + p + '&id=' + corrected_id, '完整输出') + '</td></tr>' for p in providers]) +
+            '<p>这六条结果统一替换旧环境下的同页结果，其他 544 页不变。修复版 Moli 已生成正文 545/545；'
+            '历史 544/545 对应修正前的测试环境。旧调用额外耗时 ' + f"{correction['superseded_execution_ms']:,.0f}" +
+            ' ms 单独保留，不混入补测最终调用延迟。</p><p>' + anchor('case-correction.json', '认证与修订依据') + ' · ' +
+            anchor('superseded-case-results.jsonl', '被替换的六条历史结果') + '</p></section>')
     method_rows = []
     diagnostic_rows = []
     diagnostic_kinds = ("请求失败", "空输出", "错误页", "低全文相似度")
@@ -3131,7 +3162,9 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
          metric_table() + '<p class="note">' + prose('guide_scope') + '</p></section><section><h2>核对完整输出</h2><p>' + prose('guide_outputs') + '</p>' +
          anchor("analysis/index.html?kind=低全文相似度", "查看低全文分案例") +
          '</section><section><h2>可检查的一页</h2><p>' + prose('guide_example') + '</p><p>' + example_links + '</p>' +
-         '</section>' + fixed_section + '<section><h2>各方法的主要问题</h2>' +
+         '</section>' + illustration('overview.png', '545 页六方法结果与错误分布；分数与计分范围以表格为准。') + fixed_section + correction_section +
+         illustration('error-mechanisms.png', '浏览器实现、托管服务与共享测试环境的错误机制；点击查看原图。') +
+         '<section><h2>各方法的主要问题</h2>' +
          table(["方法", "目标正文", "自动诊断数", "本轮观察"], method_rows) +
          '<p class="note">' + prose('guide_method_scope') + '</p>' +
          table(["方法", *diagnostic_kinds], diagnostic_rows) + '</section><section><h2>错误类别</h2>' +
@@ -3147,6 +3180,8 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                       "execution.json", "dataset.json",
                       "results.jsonl", "original-results.jsonl", "physical-attempts.jsonl",
                       "score-summaries.json", "teds-correction-review.json", "report-content.json", "failure-analysis.json"]
+    if correction:
+        evidence_links += ['case-correction.json', 'superseded-case-results.jsonl', 'superseded-case-calls.jsonl']
     page("reproduce/index.html", "复现依据",
          '<section class="hero"><h1>复现依据</h1><p>' + prose('reproduce_lead') + '</p></section><p>' +
          " · ".join(anchor(name, name) for name in evidence_links) + "</p>")

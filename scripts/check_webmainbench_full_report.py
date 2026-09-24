@@ -93,6 +93,28 @@ def check(root: Path) -> None:
         raise ValueError("Incomplete WebMainBench report manifest")
     dataset = json.loads((root / "dataset.json").read_text(encoding="utf-8"))
     records = [json.loads(line) for line in (root / "results.jsonl").read_text(encoding="utf-8").splitlines()]
+    correction_binding = repo / 'evaluation/webmainbench-full/case-correction-binding.json'
+    if correction_binding.exists():
+        receipt = json.loads((root / 'case-correction.json').read_text())
+        if (receipt['preflight'] != receipt['postflight']
+                or receipt['current_results_sha256'] != hashlib.sha256((root / 'results.jsonl').read_bytes()).hexdigest()
+                or receipt['score_summaries_sha256'] != hashlib.sha256((root / 'score-summaries.json').read_bytes()).hexdigest()):
+            raise ValueError('Published case correction differs from its certified results')
+        selected = [r for r in records if r['case_id'] == receipt['preflight']['case_id']]
+        if len(selected) != 6 or any(not r.get('supersedes_attempt_id') for r in selected):
+            raise ValueError('Case correction missing a method')
+        original_certificate = {key: receipt[key] for key in ('kind', 'preflight', 'postflight', 'results_sha256', 'physical_sha256')}
+        certificate_bytes = (json.dumps(original_certificate, ensure_ascii=False, indent=2) + '\n').encode()
+        if hashlib.sha256(certificate_bytes).hexdigest() != json.loads(correction_binding.read_text())['sha256']:
+            raise ValueError('Case correction certificate differs from repository binding')
+        teds = json.loads((root / 'teds-correction.json').read_text())
+        if receipt['preflight']['parent_results_sha256'] != teds['output_results_sha256']:
+            raise ValueError('Case correction predecessor differs from certified TEDS evidence')
+        by_provider = {r['provider']: r for r in selected}
+        replacement_bytes = ''.join(json.dumps(by_provider[p], ensure_ascii=False) + '\n'
+                                    for p in receipt['preflight']['providers']).encode()
+        if hashlib.sha256(replacement_bytes).hexdigest() != receipt['results_sha256']:
+            raise ValueError('Corrected rows differ from certified calls')
     providers = dataset["coverage_plan"]["static_html"]
     case_ids = {row["id"] for row in dataset["cases"]}
     if len(case_ids) != 545 or len(records) != 3270 or len(providers) != 6:
@@ -108,6 +130,15 @@ def check(root: Path) -> None:
         raise ValueError("Published failure analysis contains duplicate or empty reviews")
     home = check_presentation((root / "index.html").read_text(encoding="utf-8"))
     guide = check_presentation((root / "guide/index.html").read_text(encoding="utf-8"))
+    illustrations = repo / 'evaluation/webmainbench-full/illustrations.json'
+    if illustrations.exists():
+        for asset in json.loads(illustrations.read_text())['assets']:
+            filename = 'assets/' + asset['name']
+            if (hashlib.sha256(contained_path(root, filename).read_bytes()).hexdigest() != asset['sha256']
+                    or not guide.select_one('img[src="' + filename + '"]')):
+                raise ValueError('Bound error analysis illustration missing or changed')
+    if correction_binding.exists() and not guide.select_one('#fixture-correction'):
+        raise ValueError('Corrected case explanation missing')
     for page in (home, guide):
         if len(page.select('td[data-metric-direction="max"]')) != 36:
             raise ValueError("Core metrics or winner controls missing")

@@ -1276,6 +1276,36 @@
   ],
   "releases": [
     {
+      "id": "webmainbench-545-six-method-origin-correction-20260924",
+      "date": "2026-09-24",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "title": "纠正原网址替换导致的假失败并恢复六方法分析图",
+      "summary": "狼人杀规则页保留原网址后，六种方法使用原受测版本完成认证补测并生成正文；六条新结果统一替换旧结果，修复版 Moli 正文交付由 544/545 更正为 545/545，当前机器问题由 29 条降至 25 条。恢复六方法结果图和错误机制图，主表、同页结果、错误归因与汇总分同步更新。",
+      "changes": [
+        [
+          "测试环境",
+          "localhost 替换触发页面跳回原站，隔离规则造成假失败。",
+          "保留原网址并继续使用冻结 HTML、阻断外部资源；六方法同页认证补测。",
+          "新增六次调用，其他 544 页不变；旧调用与原分保留。"
+        ],
+        [
+          "分析图",
+          "五方法图未随六方法报告更新，后续生成器未引用旧图。",
+          "以绑定哈希的六方法结果图及错误机制图重新接入解读页。",
+          "发布检查拒绝丢图或图片哈希不一致。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Correct origin substitution and restore six-method analysis figures",
+          "summary": "A certified six-method rerun preserves the original URL and frozen HTML. All six produce body text; fixed Moli now delivers 545/545 pages. The current matrix has 25 machine issues.",
+          "changes": []
+        }
+      }
+    },
+    {
       "id": "2026-09-24-webmainbench-target-body-population",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-24",
