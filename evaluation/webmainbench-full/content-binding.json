@@ -1,9 +1,5 @@
 {
   "schema_version": 1,
   "relative_path": "report-content.json",
-  "sha256": "95d2e1f6f1aa8db094ba61f1766d971c604bd394ee843314f7b5036c17a9dee0",
-  "infographic": "issue-matrix.png",
-  "infographic_sha256": "879c1af9af28a383a1ef6a0bf26e52655a4aaff28857f9d2dee3296f9d3b4dbf",
-  "infographic_mobile": "issue-matrix-mobile.png",
-  "infographic_mobile_sha256": "1d85914f7b4853050635962e1c459278c457a3682fa64b8fdd85027fec48a8c0"
+  "sha256": "8671c9830d305c1c02c5648a8ff755624fbd04ab7078cd9644b0a4cbca197a8c"
 }

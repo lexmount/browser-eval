@@ -580,7 +580,26 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         raise ValueError('Complete scoring certificate mismatch')
     dataset = json.loads((source / 'dataset.json').read_text(encoding='utf-8'))
     records = read_jsonl(source / 'results.jsonl')
-    providers = profile['providers']
+    six_binding = json.loads((source / 'six-method-binding.json').read_text(encoding='utf-8'))
+    fixed_profile_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/moli-fixed-report.json'
+    if (six_binding.get('kind') != 'webmainbench_six_version_full_scope_binding'
+            or six_binding.get('baseline_certificate_sha256') != digest(source / 'cohort-certificate.json')
+            or six_binding.get('fixed_profile_sha256') != digest(fixed_profile_path)
+            or six_binding.get('fixed_certificate_sha256') != digest(source / 'fixed-cohort-certificate.json')
+            or six_binding.get('fixed_scoring_certificate_sha256') != digest(source / 'fixed-scoring-certificate.json')
+            or six_binding.get('results_sha256') != digest(source / 'original-results.jsonl')):
+        raise ValueError('Six-version report evidence binding mismatch')
+    fixed_cert = json.loads((source / 'fixed-cohort-certificate.json').read_text(encoding='utf-8'))
+    fixed_profile = json.loads(fixed_profile_path.read_text(encoding='utf-8'))
+    if (fixed_cert.get('preflight') != fixed_cert.get('postflight')
+            or fixed_cert.get('profile_sha256') != digest(fixed_profile_path)
+            or fixed_cert.get('binary_source_commit') != fixed_profile['source_commit']
+            or fixed_cert.get('measured_binary_sha256') != fixed_profile['binary_sha256']
+            or six_binding.get('fixed_source_commit') != fixed_profile['source_commit']):
+        raise ValueError('Fixed Moli cohort was not certified')
+    providers = profile['providers'] + ['moli-fixed']
+    display_profile = {**profile, 'providers': providers,
+                       'versions': {**profile['versions'], 'moli-fixed': '1.1.9'}}
     cases = {case['id']: case for case in dataset['cases']}
     if (len(cases) != 545 or len(records) != 545 * len(providers)
             or {(row['provider'], row['case_id']) for row in records} !=
@@ -592,42 +611,6 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     content_path = data_home() / 'report-assets/webmainbench-full' / content_binding['relative_path']
     if digest(content_path) != content_binding['sha256']:
         raise ValueError('Report prose differs from the compact content binding')
-    followup_binding = json.loads((Path(__file__).resolve().parents[2] /
-        'evaluation/webmainbench-full/moli-followup-binding.json').read_text(encoding='utf-8'))
-    followup_path = data_home() / 'report-assets/webmainbench-full' / followup_binding['relative_path']
-    if followup_path.is_symlink() or digest(followup_path) != followup_binding['sha256']:
-        raise ValueError('Moli follow-up differs from the compact evidence binding')
-    followup = json.loads(followup_path.read_text(encoding='utf-8'))
-    candidate = data_home() / 'evidence' / followup_binding['candidate_evidence']
-    if candidate.is_symlink() or any(path.is_symlink() for path in candidate.rglob('*')):
-        raise ValueError('Symlinked Moli follow-up evidence is forbidden')
-    for name, key in (('results.jsonl', 'candidate_results_sha256'),
-                      ('scored-results.jsonl', 'candidate_scored_results_sha256'),
-                      ('physical-attempts.jsonl', 'candidate_physical_attempts_sha256'),
-                      ('execution.json', 'candidate_execution_sha256'),
-                      ('score-summary.json', 'candidate_score_summary_sha256')):
-        if digest(candidate / name) != followup[key]:
-            raise ValueError('Moli follow-up source changed: ' + name)
-    if digest(source / 'original-results.jsonl') != followup['baseline_original_results_sha256']:
-        raise ValueError('Moli follow-up baseline differs from certified cohort')
-    candidate_rows = read_jsonl(candidate / 'scored-results.jsonl')
-    candidate_physical = read_jsonl(candidate / 'physical-attempts.jsonl')
-    if (followup.get('kind') != 'webmainbench_moli_full_diagnostic_followup'
-            or followup.get('case_count') != 545 or len(candidate_rows) != 545
-            or len(candidate_physical) != followup['candidate_physical_calls']
-            or {row['track_id'] for row in candidate_rows} != cases.keys()
-            or any(row['provider'] != 'moli' or
-                   digest(contained_path(candidate, row['artifact_path'])) != row['output_sha256']
-                   for row in candidate_rows)
-            or sum(bool(row['ok']) for row in candidate_rows) != followup['candidate_successes']
-            or followup['source_sha256'] != profile['source_dataset_sha256']):
-        raise ValueError('Moli follow-up population or output integrity mismatch')
-    illustration_path = data_home() / 'report-assets/webmainbench-full' / content_binding['infographic']
-    if digest(illustration_path) != content_binding['infographic_sha256']:
-        raise ValueError('Report illustration differs from the compact asset binding')
-    mobile_illustration_path = data_home() / 'report-assets/webmainbench-full' / content_binding['infographic_mobile']
-    if digest(mobile_illustration_path) != content_binding['infographic_mobile_sha256']:
-        raise ValueError('Mobile report illustration differs from the compact asset binding')
     failure_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/failure-analysis-binding.json'
     failure_binding = json.loads(failure_binding_path.read_text(encoding='utf-8'))
     failure_path = data_home() / 'report-assets/webmainbench-full' / failure_binding['relative_path']
@@ -639,7 +622,8 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     reviewed = {(row['provider'], row['case_id']) for row in failure_analysis['reviewed_failures']}
     if (failure_analysis.get('kind') != 'webmainbench_full_failure_analysis_v1'
             or failure_analysis.get('cohort_certificate_sha256') != digest(source / 'cohort-certificate.json')
-            or reviewed != failures or len(reviewed) != len(failure_analysis['reviewed_failures'])
+            or reviewed != {item for item in failures if item[0] != 'moli-fixed'}
+            or len(reviewed) != len(failure_analysis['reviewed_failures'])
             or any(not all(isinstance(row.get(key), str) and row[key].strip()
                            for key in ('category_label', 'cause', 'treatment', 'status'))
                    for row in failure_analysis['reviewed_failures'])):
@@ -661,25 +645,16 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
                      'physical-attempts.jsonl', 'execution.json', 'score-summaries.json',
                      'cohort-certificate.json', 'current-report.json',
                      'scoring-certificate.json',
-                     'teds-correction.json', 'teds-correction-review.json'):
+                     'teds-correction.json', 'teds-correction-review.json',
+                     'six-method-binding.json', 'fixed-cohort-certificate.json',
+                     'fixed-scoring-certificate.json', 'moli-fixed-report.json'):
             shutil.copy2(source / name, staging / name)
         shutil.copy2(content_path, staging / 'report-content.json')
-        shutil.copy2(followup_path, staging / 'moli-followup.json')
-        (staging / 'moli-followup').mkdir()
-        for entry in followup['recovered']:
-            row = next(row for row in candidate_rows if row['track_id'] == entry['case_id'])
-            if row['output_sha256'] != entry['output_sha256'] or not row['ok']:
-                raise ValueError('Recovered Moli case differs from follow-up receipt')
-            shutil.copy2(contained_path(candidate, row['artifact_path']),
-                         staging / 'moli-followup' / (entry['case_id'] + '.txt'))
         shutil.copy2(failure_path, staging / 'failure-analysis.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json', staging / 'provider-adoption.json')
-        (staging / 'assets').mkdir(exist_ok=True)
-        shutil.copy2(illustration_path, staging / 'assets/infographic.png')
-        shutil.copy2(mobile_illustration_path, staging / 'assets/infographic-mobile.png')
         generate_webmainbench_full(staging, dataset, records,
                                    json.loads((source / 'score-summaries.json').read_text(encoding='utf-8')),
-                                   profile)
+                                   display_profile)
         from scripts.check_webmainbench_full_report import check as check_webmainbench_full
         check_webmainbench_full(staging)
         if output.exists():

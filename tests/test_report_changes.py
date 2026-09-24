@@ -14,7 +14,6 @@ class ReportChangesTests(unittest.TestCase):
         expected = [row for row in source['releases']
                     if 'webmainbench_frozen_html_to_markdown' in row.get('comparison_kinds', [])]
         self.assertEqual([row['id'] for row in releases], [row['id'] for row in expected])
-        self.assertEqual(releases[0]['id'], '2026-09-24-webmainbench-moli-repair-545-followup')
         for english in (False, True):
             page = render_webmainbench_history(
                 {'releases': releases}, english,

@@ -6,7 +6,10 @@ from collections import Counter, defaultdict
 import hashlib
 import json
 from pathlib import Path
+import sys
 from bs4 import BeautifulSoup
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts.report_presentation_contract import check_presentation
 from harness.web_fetch.safety import contained_path
@@ -30,52 +33,40 @@ def check_result_payload(row: dict, index: dict, artifact_index: dict, shards: d
         raise ValueError("Raw output absent or changed: " + artifact)
 
 
-def check_moli_followup(root: Path, binding: dict) -> None:
-    receipt_path = root / binding['relative_path']
-    if hashlib.sha256(receipt_path.read_bytes()).hexdigest() != binding['sha256']:
-        raise ValueError('Moli follow-up receipt changed')
-    receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
-    if (receipt.get('kind') != 'webmainbench_moli_full_diagnostic_followup'
-            or receipt.get('case_count') != 545
-            or receipt.get('baseline_successes') != 542
-            or receipt.get('candidate_successes') != 544
-            or len(receipt.get('recovered', [])) != 2
-            or len(receipt.get('remaining', [])) != 1):
-        raise ValueError('Moli follow-up population or outcomes changed')
-    home = BeautifulSoup((root / 'index.html').read_text(encoding='utf-8'), 'html.parser')
-    page = BeautifulSoup((root / 'moli-update/index.html').read_text(encoding='utf-8'), 'html.parser')
-    if (not home.select_one('a[href="moli-update/index.html"]')
-            or '542/545' not in page.get_text(' ', strip=True)
-            or '544/545' not in page.get_text(' ', strip=True)
-            or len(page.select('tr[data-followup-metric]')) != 4):
-        raise ValueError('Moli follow-up result is missing from report')
-    for metric, values in receipt['metrics_original_scorer'].items():
-        row = page.select_one('tr[data-followup-metric="' + metric + '"]')
-        if (row is None or f"{values['baseline'] * 100:.2f}%" not in row.get_text(' ', strip=True)
-                or f"{values['candidate'] * 100:.2f}%" not in row.get_text(' ', strip=True)
-                or str(values['baseline_n']) not in row.get_text(' ', strip=True)
-                or str(values['candidate_n']) not in row.get_text(' ', strip=True)):
-            raise ValueError('Moli follow-up score differs from bound evidence: ' + metric)
-    for entry in receipt['recovered']:
-        path = root / 'moli-followup' / (entry['case_id'] + '.txt')
-        if hashlib.sha256(path.read_bytes()).hexdigest() != entry['output_sha256']:
-            raise ValueError('Recovered Moli output changed: ' + entry['case_id'])
-        if not page.select_one('a[href="viewer/index.html?path=moli-followup/' + entry['case_id'] + '.txt"]'):
-            raise ValueError('Recovered Moli output link missing: ' + entry['case_id'])
+def check_diagnosis_inventory(analysis: BeautifulSoup) -> None:
+    dialog = analysis.select_one('dialog#diagnosis-dialog')
+    required = ('#diagnosis-title', '#diagnosis-stage', '#diagnosis-error',
+                '#diagnosis-log', '#diagnosis-cause', '#diagnosis-treatment',
+                '#diagnosis-result', '#diagnosis-output', '#diagnosis-case',
+                '#diagnosis-close')
+    if not dialog or any(dialog.select_one(selector) is None for selector in required):
+        raise ValueError('Failure diagnosis dialog lacks error, review or evidence targets')
+    for row in analysis.select('tr[data-result]'):
+        if (row.get('data-kind') != '未触发诊断'
+                and (not row.get('data-case-id') or row.select_one('button[data-diagnose]') is None)):
+            raise ValueError('Diagnostic result row cannot open its in-page diagnosis')
 
 
 def check(root: Path) -> None:
     repo = Path(__file__).resolve().parents[1]
     profile_path = repo / 'evaluation/webmainbench-full/current-report.json'
     target = json.loads((repo / 'evaluation/webmainbench-full/publication-target.json').read_text(encoding='utf-8'))
+    fixed_profile_path = repo / 'evaluation/webmainbench-full/moli-fixed-report.json'
     if (target.get('profile_sha256') != hashlib.sha256(profile_path.read_bytes()).hexdigest()
+            or target.get('moli_fixed_profile_sha256') != hashlib.sha256(fixed_profile_path.read_bytes()).hexdigest()
             or not str(target.get('expected_remote_version', '')).startswith('ver_')
             or not str(target.get('share_url', '')).startswith(str(target.get('host', '')).rstrip('/') + '/v/')
             or not target.get('site_slug')):
         raise ValueError('WebMainBench publication target is not bound to the certified profile')
-    followup_binding = json.loads((Path(__file__).resolve().parents[1] /
-        'evaluation/webmainbench-full/moli-followup-binding.json').read_text(encoding='utf-8'))
-    check_moli_followup(root, followup_binding)
+    six_binding = json.loads((root / 'six-method-binding.json').read_text(encoding='utf-8'))
+    fixed_profile = json.loads(fixed_profile_path.read_text(encoding='utf-8'))
+    if (six_binding.get('kind') != 'webmainbench_six_version_full_scope_binding'
+            or six_binding.get('logical_results') != 3270
+            or six_binding.get('fixed_profile_sha256') != hashlib.sha256(fixed_profile_path.read_bytes()).hexdigest()
+            or six_binding.get('fixed_source_commit') != fixed_profile.get('source_commit')
+            or six_binding.get('results_sha256') != hashlib.sha256((root / 'original-results.jsonl').read_bytes()).hexdigest()
+            or six_binding.get('fixed_certificate_sha256') != hashlib.sha256((root / 'fixed-cohort-certificate.json').read_bytes()).hexdigest()):
+        raise ValueError('Six-version report binding missing or changed')
     releases = json.loads((Path(__file__).resolve().parents[1] / 'research/report-changes.json').read_text(encoding='utf-8'))['releases']
     expected_releases = [item for item in releases if 'webmainbench_frozen_html_to_markdown' in item.get('comparison_kinds', [])]
     history = BeautifulSoup((root / 'history/index.html').read_text(encoding='utf-8'), 'html.parser')
@@ -87,9 +78,7 @@ def check(root: Path) -> None:
         raise ValueError('WebMainBench release history differs from structured records')
     binding_path = Path(__file__).resolve().parents[1] / "evaluation/webmainbench-full/content-binding.json"
     binding = json.loads(binding_path.read_text(encoding="utf-8"))
-    for path, expected in ((root / "report-content.json", binding["sha256"]),
-                           (root / "assets/infographic.png", binding["infographic_sha256"]),
-                           (root / "assets/infographic-mobile.png", binding["infographic_mobile_sha256"])):
+    for path, expected in ((root / "report-content.json", binding["sha256"]),):
         if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
             raise ValueError("Bound report asset changed: " + path.name)
     failure_binding = json.loads((Path(__file__).resolve().parents[1] / "evaluation/webmainbench-full/failure-analysis-binding.json").read_text(encoding="utf-8"))
@@ -99,14 +88,14 @@ def check(root: Path) -> None:
     failure_analysis = json.loads(failure_bytes)
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
     if manifest != {"schema_version": 1, "report": "webmainbench-545-full",
-                    "languages": ["zh"], "case_count": 545, "provider_count": 5,
-                    "result_count": 2725}:
+                    "languages": ["zh"], "case_count": 545, "provider_count": 6,
+                    "result_count": 3270}:
         raise ValueError("Incomplete WebMainBench report manifest")
     dataset = json.loads((root / "dataset.json").read_text(encoding="utf-8"))
     records = [json.loads(line) for line in (root / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     providers = dataset["coverage_plan"]["static_html"]
     case_ids = {row["id"] for row in dataset["cases"]}
-    if len(case_ids) != 545 or len(records) != 2725 or len(providers) != 5:
+    if len(case_ids) != 545 or len(records) != 3270 or len(providers) != 6:
         raise ValueError("Full matrix missing")
     expected = {(provider, case_id) for provider in providers for case_id in case_ids}
     if {(row["provider"], row["case_id"]) for row in records} != expected:
@@ -120,7 +109,7 @@ def check(root: Path) -> None:
     home = check_presentation((root / "index.html").read_text(encoding="utf-8"))
     guide = check_presentation((root / "guide/index.html").read_text(encoding="utf-8"))
     for page in (home, guide):
-        if len(page.select('td[data-metric-direction="max"]')) != 30:
+        if len(page.select('td[data-metric-direction="max"]')) != 36:
             raise ValueError("Core metrics or winner controls missing")
         if "545" not in page.get_text(" ", strip=True):
             raise ValueError("Complete population missing")
@@ -132,12 +121,9 @@ def check(root: Path) -> None:
                        "cases/index.html?id=" + first_case}
     if not example_targets.issubset({link.get("href") for link in guide.select("a[href]")}):
         raise ValueError("Interpretation example lacks source, reference or same-case result")
-    if not home.select_one('img[src="assets/infographic.png"]') or not (root / "assets/infographic.png").is_file():
-        raise ValueError("Bound infographic missing")
-    if not home.select_one('source[media="(max-width:650px)"][srcset="assets/infographic-mobile.png"]'):
-        raise ValueError("Mobile infographic route missing")
     analysis = BeautifulSoup((root / "analysis/index.html").read_text(encoding="utf-8"), "html.parser")
-    if (len(analysis.select("tr[data-result]")) != 2725 or not analysis.select_one("#kind")
+    check_diagnosis_inventory(analysis)
+    if (len(analysis.select("tr[data-result]")) != 3270 or not analysis.select_one("#kind")
             or not analysis.select_one("#cause")):
         raise ValueError("Result inventory incomplete")
     if not any(row.get("data-kind") != "未触发诊断" for row in analysis.select("tr[data-result]")):
@@ -155,7 +141,7 @@ def check(root: Path) -> None:
     artifact_index = json.loads((root / "artifact-shard-index.json").read_text(encoding="utf-8"))
     shard_paths = set(index.values()) | set(artifact_index.values())
     shards = {path: json.loads(contained_path(root, path).read_text(encoding="utf-8")) for path in shard_paths}
-    if len(index) != len(records) or len(shards) > 48:
+    if len(index) != len(records) or len(shards) > 56:
         raise ValueError("Complete result shard index missing or oversized")
     failures = set()
     diagnostic_counts = defaultdict(Counter)
@@ -167,8 +153,10 @@ def check(root: Path) -> None:
         output = shard["blobs"].get(shard["artifacts"].get(path), "")
         if not row["ok"] or not row["output_chars"] or ERROR_PAGE.search(output):
             failures.add((row["provider"], row["case_id"]))
-    if reviewed != failures:
-        raise ValueError("Published failure analysis scope is incomplete")
+    if reviewed != {item for item in failures if item[0] != 'moli-fixed'}:
+        raise ValueError("Published baseline failure analysis scope is incomplete")
+    if not any(row['provider'] == 'moli-fixed' for row in records):
+        raise ValueError('Fixed Moli is absent from the result inventory')
     cells = guide.select("td[data-diagnostic-provider][data-kind]")
     expected_cells = {(provider, kind) for provider in providers
                       for kind in ("请求失败", "空输出", "错误页", "低全文相似度")}

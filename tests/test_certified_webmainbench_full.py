@@ -1,11 +1,12 @@
 """Scenario checks for the full-cohort evidence boundary."""
 import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
 
-from scripts.run_certified_webmainbench_full import verify_shard
+from scripts.run_certified_webmainbench_full import verify_shard, verify_declared_binary, verify_source_checkout
 from scripts.assemble_webmainbench_full import public_value
 from scripts.score_certified_webmainbench_full import verify_score
 from scripts.score_webmainbench_results import aggregate
@@ -70,6 +71,30 @@ def test_changed_physical_output_cannot_be_certified(tmp_path):
     with pytest.raises(ValueError, match="physical artifact mismatch"):
         verify_shard(shard, "moli", {"one", "two"},
                      {"case_count": 2, "source_dataset_sha256": "source"})
+
+
+def test_declared_binary_is_checked_before_calls(tmp_path, monkeypatch):
+    binary = tmp_path / 'moli'
+    binary.write_bytes(b'fixed version')
+    binary.chmod(0o755)
+    monkeypatch.setenv('MOLI_BINARY', str(binary))
+    verify_declared_binary({'binary_sha256': _digest(b'fixed version')})
+    binary.write_bytes(b'old version')
+    with pytest.raises(ValueError, match='before provider calls'):
+        verify_declared_binary({'binary_sha256': _digest(b'fixed version')})
+
+
+def test_candidate_run_requires_declared_clean_source_commit(tmp_path):
+    subprocess.run(['git', 'init', '-q', str(tmp_path)], check=True)
+    (tmp_path / 'source.txt').write_text('fixed source')
+    subprocess.run(['git', '-C', str(tmp_path), 'add', 'source.txt'], check=True)
+    subprocess.run(['git', '-C', str(tmp_path), '-c', 'user.name=Test',
+                    '-c', 'user.email=test@example.com', 'commit', '-qm', 'fixture'], check=True)
+    commit = subprocess.check_output(['git', '-C', str(tmp_path), 'rev-parse', 'HEAD'], text=True).strip()
+    verify_source_checkout({'source_commit': commit}, tmp_path)
+    (tmp_path / 'source.txt').write_text('changed after build')
+    with pytest.raises(ValueError, match='clean commit'):
+        verify_source_checkout({'source_commit': commit}, tmp_path)
 
 
 def test_public_evidence_hides_local_build_path_without_losing_error():

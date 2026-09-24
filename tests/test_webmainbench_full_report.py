@@ -8,11 +8,11 @@ import pytest
 
 from harness.web_fetch.report import generate_webmainbench_full
 from scripts.report_presentation_contract import check_presentation
-from scripts.check_webmainbench_full_report import check_result_payload, check_moli_followup
+from scripts.check_webmainbench_full_report import check_diagnosis_inventory, check_result_payload
 
 
-def test_full_report_renders_five_way_details_and_failure_evidence(tmp_path: Path) -> None:
-    providers = ["moli", "lightpanda", "obscura", "chromium", "kitesurf"]
+def test_full_report_renders_six_way_details_and_failure_evidence(tmp_path: Path) -> None:
+    providers = ["moli", "lightpanda", "obscura", "chromium", "kitesurf", "moli-fixed"]
     case_id = "case-1"
     metrics = ("text_edit", "code_edit", "formula_edit", "table_edit", "table_TEDS")
     (tmp_path / "artifacts").mkdir()
@@ -69,6 +69,8 @@ def test_full_report_renders_five_way_details_and_failure_evidence(tmp_path: Pat
     content["review_scope_failure"] = "失败已复核"
     content["review_scope_pass"] = "成功未复核"
     content["kitesurf_version_note"] = "后端版本未披露"
+    content["fixed_quality"] = "成功结果仍需核对质量。"
+    content["fixed_mechanism"] = "修复解析器状态。"
     for provider in providers:
         content["guide_method_" + provider] = "逐项观察"
     (tmp_path / "report-content.json").write_text(json.dumps(content), encoding="utf-8")
@@ -80,7 +82,7 @@ def test_full_report_renders_five_way_details_and_failure_evidence(tmp_path: Pat
     generate_webmainbench_full(tmp_path, dataset, rows, summaries, profile)
     subprocess.run(["node", "--check", str(tmp_path / "assets/report.js")], check=True)
     home = check_presentation((tmp_path / "index.html").read_text(encoding="utf-8"))
-    assert len(home.select('td[data-metric-direction="max"]')) == 30
+    assert len(home.select('td[data-metric-direction="max"]')) == 36
     assert len(home.select('td[data-metric-direction="max"] .comparison-winner')) == 6
     detail = check_presentation((tmp_path / "results/index.html").read_text(encoding="utf-8"))
     assert detail.select_one('[data-failure-diagnosis]') is not None
@@ -89,9 +91,17 @@ def test_full_report_renders_five_way_details_and_failure_evidence(tmp_path: Pat
     assert comparison.select_one("#case-comparison") is not None
     assert comparison.select_one("#case-reference") is not None
     analysis = BeautifulSoup((tmp_path / "analysis/index.html").read_text(encoding="utf-8"), "html.parser")
-    assert len(analysis.select("tr[data-result]")) == 5
+    check_diagnosis_inventory(analysis)
+    assert len(analysis.select("tr[data-result]")) == 6
+    assert analysis.select_one('tr[data-provider="moli-fixed"]') is not None
     assert analysis.select_one("#cause") is not None
     assert analysis.select_one('tr[data-cause="Moli 解析器崩溃"]') is not None
+    missing_dialog = BeautifulSoup(str(analysis).replace('id="diagnosis-error"', 'id="missing-error"'), 'html.parser')
+    with pytest.raises(ValueError, match='diagnosis dialog'):
+        check_diagnosis_inventory(missing_dialog)
+    missing_button = BeautifulSoup(str(analysis).replace('data-diagnose=""', 'data-missing=""', 1), 'html.parser')
+    with pytest.raises(ValueError, match='cannot open'):
+        check_diagnosis_inventory(missing_button)
     assert json.loads((tmp_path / "report-manifest.json").read_text())["languages"] == ["zh"]
     home_html = (tmp_path / "index.html").read_text(encoding="utf-8")
     with pytest.raises(ValueError, match="extremum"):
@@ -106,44 +116,11 @@ def test_full_report_renders_five_way_details_and_failure_evidence(tmp_path: Pat
     assert not (tmp_path / "artifacts").exists()
     assert not (tmp_path / "sources").exists()
     assert not (tmp_path / "references").exists()
-    assert len(list((tmp_path / "shards").glob("*.json"))) == 6
+    assert len(list((tmp_path / "shards").glob("*.json"))) == 7
+    with pytest.raises(ValueError, match="Out-of-cohort"):
+        check_presentation(home_html.replace('data-metric-direction="neutral"',
+                                            'data-metric-direction="neutral"><strong class="comparison-winner">bad</strong><span', 1))
     with pytest.raises(ValueError, match="exact error"):
         check_presentation(detail_html.replace('data-report-detail="pending"', 'data-report-detail="failed"').replace('data-kind="error"', 'data-kind="other"'))
     with pytest.raises(ValueError, match="exactly one summary"):
         check_presentation(detail_html.replace('data-result-summary', 'data-no-summary'))
-
-
-def test_moli_followup_gate_checks_values_links_and_output_bytes(tmp_path: Path) -> None:
-    (tmp_path / 'moli-update').mkdir()
-    (tmp_path / 'moli-followup').mkdir()
-    cases = ['restored-one', 'restored-two']
-    recovered = []
-    links = []
-    for case_id in cases:
-        content = 'Recovered page: ' + case_id
-        (tmp_path / 'moli-followup' / (case_id + '.txt')).write_text(content)
-        recovered.append({'case_id': case_id, 'output_sha256': hashlib.sha256(content.encode()).hexdigest()})
-        links.append('<a href="viewer/index.html?path=moli-followup/' + case_id + '.txt">输出</a>')
-    metrics = {name: {'baseline': 0.4, 'candidate': 0.5, 'baseline_n': 542,
-                      'candidate_n': 544} for name in ('text_edit', 'code_edit', 'formula_edit', 'table_edit')}
-    receipt = {'kind': 'webmainbench_moli_full_diagnostic_followup', 'case_count': 545,
-               'baseline_successes': 542, 'candidate_successes': 544, 'recovered': recovered,
-               'remaining': [{'case_id': 'still-failed'}], 'metrics_original_scorer': metrics}
-    receipt_path = tmp_path / 'moli-followup.json'
-    receipt_path.write_text(json.dumps(receipt))
-    binding = {'relative_path': 'moli-followup.json',
-               'sha256': hashlib.sha256(receipt_path.read_bytes()).hexdigest()}
-    (tmp_path / 'index.html').write_text('<a href="moli-update/index.html">复测</a>')
-    rows = ''.join('<tr data-followup-metric="' + name + '"><td>40.00% 542</td><td>50.00% 544</td></tr>'
-                   for name in metrics)
-    page = '<p>542/545 → 544/545</p>' + rows + ''.join(links)
-    followup_page = tmp_path / 'moli-update/index.html'
-    followup_page.write_text(page)
-    check_moli_followup(tmp_path, binding)
-    followup_page.write_text(page.replace('50.00%', '51.00%', 1))
-    with pytest.raises(ValueError, match='score differs'):
-        check_moli_followup(tmp_path, binding)
-    followup_page.write_text(page)
-    (tmp_path / 'moli-followup/restored-one.txt').write_text('Changed output')
-    with pytest.raises(ValueError, match='output changed'):
-        check_moli_followup(tmp_path, binding)

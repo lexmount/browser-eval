@@ -1276,6 +1276,15 @@
   ],
   "releases": [
     {
+      "id": "2026-09-24-webmainbench-six-versions-certified",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "date": "2026-09-24",
+      "title": "将修复版 Moli 纳入完整六方法比较",
+      "summary": "修复版 Moli 按同一批 545 页完成独立认证运行；主表、结果清单和同页对照均展示六种方法，共 3,270 条结果。",
+      "changes": [["六方法结果", "修复版先前只在附注页出现，主表与同页证据仍只有五种方法。", "将修复版作为独立第六方法纳入完整矩阵，两轮结果使用同一表格结构修正口径。", "逐页输出和失败可直接对照；修复版另日运行，其耗时不参加原五方法的速度标优。"]],
+      "i18n": {"en": {"title": "Include repaired Moli in the complete six-version comparison", "summary": "A separate certified run measured repaired Moli on the same 545 pages. The main table, result inventory, and same-case comparisons now include all six versions and 3,270 results.", "changes": [["Six-version results", "The repaired build previously appeared only on a follow-up page, outside the main result matrix.", "Include it as a sixth version, and apply the same corrected table-structure scoring to both complete cohorts.", "Page outputs and failures are directly inspectable; the later timing run is not ranked against the original five."]]}}
+    },
+    {
       "id": "2026-09-24-webmainbench-moli-repair-545-followup",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
       "date": "2026-09-24",
