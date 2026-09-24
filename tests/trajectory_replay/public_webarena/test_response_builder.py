@@ -531,6 +531,7 @@ def test_response_builder_reports_permission_denied_only_from_insufficient_obser
         '{"scope_complete":true,"allowed":true,"access_levels":[null],"required_access_level":40}',
         '{"scope_complete":true,"allowed":false,"access_levels":[],"required_access_level":40}',
         '{"scope_complete":true,"allowed":false,"access_levels":[40],"required_access_level":40}',
+        '{"scope_complete":true,"allowed":false,"access_levels":[null,null],"required_access_level":40}',
     ],
 )
 def test_response_builder_permission_denied_fails_closed(evidence):
