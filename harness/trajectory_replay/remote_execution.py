@@ -11,6 +11,8 @@ import urllib.request
 import uuid
 from pathlib import Path
 
+from webarena_verified.types.task import WebArenaSite
+
 from harness.browser_use.har import CdpHarRecorder
 from harness.browser_use.runner import (
     _browser_tool_config,
@@ -148,6 +150,10 @@ def _read_retrieval_contract(
         }
         if embedded_contract.get("task_id") != task_id:
             raise ValueError(f"task {task_id}: retrieval contract identity mismatch")
+        source_sites = {
+            WebArenaSite(site): url
+            for site, url in (row.get("source_site_urls") or {}).items()
+        }
         rebound = rebind_remote_calls(
             embedded_calls,
             sites,
@@ -162,6 +168,7 @@ def _read_retrieval_contract(
                 "127.0.0.1",
                 "192.168.5.2",
             },
+            source_sites,
         )
         if _json_sha256(rebound) != row["bound_calls_sha256"]:
             raise ValueError(f"task {task_id}: retrieval actions differ from frozen bound calls")

@@ -93,6 +93,26 @@ def test_retrieval_contract_can_be_frozen_inside_a_full_catalog() -> None:
         _read_retrieval_contract(task_id, row, sites)
 
 
+def test_embedded_retrieval_contract_rebinds_its_recorded_deployment() -> None:
+    task_id = 243
+    sites = _sites()
+    source_sites = {WebArenaSite.GITLAB: "https://old-gitlab.example.test"}
+    calls = [{"action": "navigate", "url": "https://old-gitlab.example.test/owner/project"}]
+    contract = {"task_id": task_id}
+    rebound = rebind_remote_calls(calls, sites, set(), source_sites)
+    row = {
+        "source_actions": calls,
+        "source_site_urls": {site.value: url for site, url in source_sites.items()},
+        "retrieval_contract": contract,
+        "bound_calls_sha256": _json_sha256(rebound),
+    }
+    assert rebound[0]["url"] == "https://gitlab.example.test/owner/project"
+    assert _read_retrieval_contract(task_id, row, sites)["tool_calls"] == calls
+    row["source_site_urls"] = {"gitlab": "https://different-gitlab.example.test"}
+    with pytest.raises(ValueError, match="differ from frozen bound calls"):
+        _read_retrieval_contract(task_id, row, sites)
+
+
 def test_response_type_comes_from_task_contract() -> None:
     expected = SimpleNamespace(model_dump=lambda **kwargs: {"task_type": "MUTATE"})
     task = SimpleNamespace(
