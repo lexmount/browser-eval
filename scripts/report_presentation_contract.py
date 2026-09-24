@@ -10,8 +10,12 @@ def check_presentation(html):
         groups = defaultdict(list)
         for cell in table.select('td[data-metric-direction]'):
             direction = cell['data-metric-direction']
-            if direction not in ('min', 'max') or not cell.get('data-metric'):
+            if direction not in ('min', 'max', 'neutral') or not cell.get('data-metric'):
                 raise ValueError('Numeric comparison lacks metric identity or direction')
+            if direction == 'neutral':
+                if cell.select_one('.comparison-winner'):
+                    raise ValueError('Out-of-cohort value cannot be highlighted')
+                continue
             value = cell.get('data-sort')
             if value is None:
                 if cell.select_one('.comparison-winner'):

@@ -157,6 +157,7 @@ def cli_command(
     retrieval_plan=None,
     allow_private_network=False,
     ca_cert=None,
+    http_proxy=None,
 ):
     ms = str(max(1, math.ceil(timeout * 1000)))
     if output_mode not in {'html', 'markdown', 'document', 'file'}:
@@ -169,16 +170,23 @@ def cli_command(
         # rejects those responses before extraction can begin. Version 1.1.3
         # documents this behavior explicitly; 1.0.6 and 1.1.1 are bound to
         # release binaries and covered by route probes and end-to-end tests.
-        return [binary, 'fetch', '--timeout', ms, '--http-timeout', ms, url]
+        command = [binary, 'fetch']
+        if http_proxy:
+            command += ['--http-proxy', http_proxy]
+        return command + ['--timeout', ms, '--http-timeout', ms, url]
     if output_mode == 'markdown':
         completion = _cli_completion_arguments(engine, retrieval_plan)
         if engine == 'obscura':
             # Obscura's documented default is load plus an adaptive, at-most
             # five-second quiescence wait. Do not replace it with a fixed delay.
             prefix = [binary, '--allow-private-network'] if allow_private_network else [binary]
+            if http_proxy:
+                prefix += ['--proxy', http_proxy]
             return prefix + ['fetch', '--dump', 'markdown', *(completion or []), '--timeout',
                     str(math.ceil(timeout)), '--quiet', url]
         common = [binary, 'fetch', '--dump', 'markdown']
+        if http_proxy:
+            common += ['--http-proxy', http_proxy]
         common += completion or ['--wait-until', wait_until or 'done']
         if engine == 'moli':
             return common + (['--ca-cert', str(ca_cert)] if ca_cert else []) + ['--timeout', ms, '--http-timeout', ms, url]
@@ -187,6 +195,8 @@ def cli_command(
         raise ValueError('Not a native Markdown CLI engine: ' + engine)
     completion = _cli_completion_arguments(engine, retrieval_plan)
     common = [binary, 'fetch', '--dump', 'html']
+    if http_proxy:
+        common += ['--http-proxy' if engine in {'moli', 'lightpanda'} else '--proxy', http_proxy]
     common += completion or ['--wait-until', 'domcontentloaded']
     if engine == 'obscura':
         return common + ['--timeout', str(math.ceil(timeout)), '--quiet', url]
@@ -400,6 +410,7 @@ class HeadlessProvider(Provider):
                    'retrieval_plan': normalized_plan,
                    'allow_private_network': bool(self.config.get('allow_private_network')),
                    'ca_cert': self.config.get('ca_cert'),
+                   'http_proxy': self.config.get('http_proxy'),
                    'network_policy': self.config.get('network_policy', 'unrestricted'),
                    'endpoint': self.config.get('endpoint',
                    'wss://kitesurf.cloudflare.app/devtools/browser')}

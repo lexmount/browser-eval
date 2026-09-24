@@ -75,6 +75,7 @@ def fetch(request):
                 plan,
                 allow_private_network=bool(request.get('allow_private_network')),
                 ca_cert=request.get('ca_cert'),
+                http_proxy=request.get('http_proxy'),
             )
             environment = None
             if engine == 'obscura' and request.get('ca_cert'):
@@ -129,8 +130,11 @@ def fetch(request):
                 if engine == 'kitesurf':
                     browser = p.chromium.connect_over_cdp(request['endpoint'], timeout=timeout*1000)
                 else:
-                    browser = p.chromium.launch(executable_path=request['binary'], headless=True,
-                        args=request.get('browser_args') or [], timeout=timeout*1000)
+                    launch = dict(executable_path=request['binary'], headless=True,
+                                  args=request.get('browser_args') or [], timeout=timeout*1000)
+                    if request.get('http_proxy'):
+                        launch['proxy'] = {'server': request['http_proxy']}
+                    browser = p.chromium.launch(**launch)
                 try:
                     meta['browser_version'] = browser.version
                     # The benchmark fixture has a per-run CA, not a system-trusted
