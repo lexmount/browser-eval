@@ -65,6 +65,14 @@ def check_moli_followup(root: Path, binding: dict) -> None:
 
 
 def check(root: Path) -> None:
+    repo = Path(__file__).resolve().parents[1]
+    profile_path = repo / 'evaluation/webmainbench-full/current-report.json'
+    target = json.loads((repo / 'evaluation/webmainbench-full/publication-target.json').read_text(encoding='utf-8'))
+    if (target.get('profile_sha256') != hashlib.sha256(profile_path.read_bytes()).hexdigest()
+            or not str(target.get('expected_remote_version', '')).startswith('ver_')
+            or not str(target.get('share_url', '')).startswith(str(target.get('host', '')).rstrip('/') + '/v/')
+            or not target.get('site_slug')):
+        raise ValueError('WebMainBench publication target is not bound to the certified profile')
     followup_binding = json.loads((Path(__file__).resolve().parents[1] /
         'evaluation/webmainbench-full/moli-followup-binding.json').read_text(encoding='utf-8'))
     check_moli_followup(root, followup_binding)
