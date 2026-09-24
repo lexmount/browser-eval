@@ -87,6 +87,22 @@ def _recover_completed_attempts(output: Path, progress: Path, ids: list[int]) ->
     return done
 
 
+def _load_task_selection(path: Path) -> list[int]:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("task selection must be a regular file")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    task_ids = payload.get("task_ids") if isinstance(payload, dict) else None
+    if (
+        not isinstance(payload, dict)
+        or payload.get("schema") != "lex_webarena_replay_selection/1"
+        or not isinstance(task_ids, list)
+        or not task_ids
+        or any(type(task_id) is not int for task_id in task_ids)
+    ):
+        raise ValueError("task selection contract is invalid")
+    return task_ids
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--catalog", type=Path, required=True)
@@ -108,6 +124,11 @@ def main() -> None:
         action="append",
         help="replay only these catalog tasks, supplied once each in catalog order",
     )
+    parser.add_argument(
+        "--task-selection",
+        type=Path,
+        help="JSON selection for a large unresolved-only replay",
+    )
     args = parser.parse_args()
     if args.action_timeout_ms < 1:
         raise ValueError("action timeout must be positive")
@@ -124,7 +145,10 @@ def main() -> None:
     corrections = load_corrections()
     benchmark = remote_benchmark(sites)
     origins = {f"{urlsplit(url).scheme}://{urlsplit(url).netloc}" for url in sites.values()}
-    ids = _task_ids(list(catalog["task_ids"]), args.task_from, args.task_to, args.task_id)
+    if args.task_selection is not None and args.task_id:
+        raise ValueError("task selection file cannot be combined with explicit task IDs")
+    selected = _load_task_selection(args.task_selection) if args.task_selection else args.task_id
+    ids = _task_ids(list(catalog["task_ids"]), args.task_from, args.task_to, selected)
     os.umask(0o077)
     args.output.mkdir(parents=True, exist_ok=True)
     root = repository_root(Path(__file__))
@@ -156,6 +180,9 @@ def main() -> None:
         "execution_order": ids,
         "site_reset_between_tasks": False,
         "run_count_per_task": 1,
+        "task_selection_sha256": (
+            file_sha256(args.task_selection) if args.task_selection is not None else None
+        ),
     }
     binding_path = args.output / "inputs.json"
     if binding_path.exists():

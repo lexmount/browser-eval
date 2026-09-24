@@ -14,7 +14,11 @@ from harness.trajectory_replay.full_catalog import (
 )
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
 from harness.trajectory_replay.webarena_replay import _json_sha256
-from harness.trajectory_replay.catalog_runner import _recover_completed_attempts, _task_ids
+from harness.trajectory_replay.catalog_runner import (
+    _load_task_selection,
+    _recover_completed_attempts,
+    _task_ids,
+)
 
 
 def test_task_ids_preserve_requested_official_order():
@@ -38,6 +42,19 @@ def test_task_ids_reject_invalid_explicit_repairs(selected):
 def test_task_ids_reject_mixed_range_and_explicit_selection():
     with pytest.raises(ValueError, match="cannot be combined"):
         _task_ids([0, 1, 2], 0, 2, [1])
+
+
+def test_task_selection_is_schema_bound(tmp_path: Path):
+    selection = tmp_path / "selection.json"
+    selection.write_text(
+        json.dumps({"schema": "lex_webarena_replay_selection/1", "task_ids": [1, 7]}),
+        encoding="utf-8",
+    )
+    assert _load_task_selection(selection) == [1, 7]
+
+    selection.write_text(json.dumps({"task_ids": [1, 7]}), encoding="utf-8")
+    with pytest.raises(ValueError, match="contract"):
+        _load_task_selection(selection)
 
 
 def _write(path: Path, value: object) -> str:
