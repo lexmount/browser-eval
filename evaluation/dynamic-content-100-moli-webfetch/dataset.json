@@ -17,7 +17,7 @@
   "timeout_ms": 45000,
   "workers": 1,
   "retry_policy": "one physical call per case; no failure retries",
-  "approval_status": "source rules frozen; Moli v1.1.7 certified cohort and full review pending",
+  "approval_status": "source rules frozen; Moli 1.1.9 local audit complete; formal release certification pending",
   "comparison": {
     "kind": "single_provider_dynamic_native_fetch",
     "timeout_seconds": 45,
@@ -25,6 +25,7 @@
     "conversion": "Moli native Markdown; Moli default completion",
     "concurrency": "Moli calls are serial",
     "publication_state": "local_audit_only_not_for_release",
+    "local_audit_receipt": "research/dynamic-100-moli-119-local-audit.json",
     "cohorts": [
       {
         "name": "75-case native cohort",

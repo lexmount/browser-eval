@@ -150,14 +150,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     cases = {c['id']:c for c in dataset['cases']}
     from .result_review import require_result_review
     if local_audit:
-        preview = json.loads(contained_path(source, 'local-preview.json').read_text())
-        for name in ('dataset.json', 'results.jsonl'):
-            expected = preview.get('bindings', {}).get(name)
-            actual = hashlib.sha256(contained_path(source, name).read_bytes()).hexdigest()
-            if expected != actual:
-                raise ValueError('Local audit binding mismatch: ' + name)
-        result_review = (json.loads(contained_path(source, 'result-review.json').read_text())
-                         if (source / 'result-review.json').is_file() else None)
+        from .local_audit import require_local_audit
+        result_review = require_local_audit(source, dataset, records)
     else:
         result_review = require_result_review(source, dataset, records)
     speed_entry=source/'speed-cohort'

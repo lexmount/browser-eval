@@ -387,7 +387,8 @@ class ScoringTests(unittest.TestCase):
         expected = hashlib.sha256(b"\0".join((root / name).read_bytes() for name in (
             "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
             "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
-            "response_input.py", "body_coverage.py", "structured_tables.py"))).hexdigest()
+            "response_input.py", "body_coverage.py", "structured_tables.py",
+            "ordered_tree.py"))).hexdigest()
         self.assertEqual(SCORING_SOURCE_SHA256, expected)
         self.assertEqual(score_attempt(case(), b"Text", ok=True)["scoring_source_sha256"], expected)
 

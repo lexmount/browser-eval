@@ -1277,7 +1277,7 @@
   "releases": [
     {
       "id": "2026-09-24-dynamic-100-moli-119-local-audit",
-      "comparison_kinds": ["generic"],
+      "comparison_kinds": ["single_provider_dynamic_native_fetch"],
       "date": "2026-09-24",
       "title": "完成100例动态网站 Moli 1.1.9 本地审核版",
       "summary": "合并两个已保存的原生 Fetch 批次，以同一评分实现离线核对100例；结果为44例通过、56例未通过。没有新增Moli调用，原始调用时间、输出和日志继续保留在持久证据目录。",
