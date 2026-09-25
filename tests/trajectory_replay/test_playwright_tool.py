@@ -173,7 +173,7 @@ def test_snapshot_never_returns_old_document_when_navigation_does_not_settle():
 
     assert result.status == "error"
     assert "did not reach DOMContentLoaded" in result.result
-    assert events == ["visible", "aria", "load_state"]
+    assert events == ["load_state", "visible", "aria", "load_state"]
 
 
 def test_snapshot_does_not_hide_a_non_navigation_observation_error():

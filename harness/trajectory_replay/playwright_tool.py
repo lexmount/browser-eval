@@ -122,7 +122,14 @@ class PlaywrightReplayTool:
             if maximum is not None:
                 observation_deadline = min(observation_deadline, time.monotonic() + maximum / 1_000)
             while True:
-                self._publish_page_layout(self._page, remaining(1_000))
+                try:
+                    self._page.wait_for_load_state(
+                        "domcontentloaded",
+                        timeout=min(remaining(maximum), SNAPSHOT_NAVIGATION_SETTLE_TIMEOUT_MS),
+                    )
+                except Exception:
+                    pass
+                self._publish_page_layout(self._page, remaining(maximum))
                 locator = self._page.locator(selector).first
                 wait_ms = int((observation_deadline - time.monotonic()) * 1_000)
                 if wait_ms < 1:
