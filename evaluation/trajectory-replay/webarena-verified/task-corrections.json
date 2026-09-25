@@ -6,8 +6,8 @@
     "benchmark": "WebArena-Verified",
     "repository": "https://github.com/lexmount/webarena-verified.git",
     "branch": "lex-main",
-    "revision": "ecd7b9661021b944c52c58ac10f9783fc520e3e0",
-    "dataset_sha256": "fcaea886102299ef7a73f0dfb1273d9313185fb08b3f48bd738a76cc9c7a39a0"
+    "revision": "1925befb545c6433f7a7a5a77c473ce9e74eb468",
+    "dataset_sha256": "08c9f0d80d3b32779ab37ebab1c50183cf545b6443266a55b05445bff166dbb8"
   },
   "corrections": [
     {

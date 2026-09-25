@@ -224,7 +224,10 @@ def test_official_task_760_checks_the_hoboken_car_route(
         encoding="utf-8",
     )
     har = tmp_path / "network.har"
-    route = "/route/v1/driving/-75.442,40.651;-74.032,40.743"
+    route = (
+        "/route/v1/driving/"
+        "-75.44225386838299,40.651163100000005;-74.0323752,40.7433066"
+    )
     har.write_text(
         json.dumps(
                 {
@@ -286,7 +289,7 @@ def test_official_task_760_checks_the_hoboken_car_route(
         difficulty="simple",
         ground_truth={"expected_actions": []},
         source={"url": "https://example.test/760.trace.zip"},
-        evaluator={"kind": "webarena_verified", "task_id": 760, "revision": 5},
+        evaluator={"kind": "webarena_verified", "task_id": 760, "revision": 6},
         environment={"kind": "webarena_verified"},
     )
     evidence = TaskEvidence(
