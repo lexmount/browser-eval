@@ -36,16 +36,15 @@ def test_moli_layout_publication_uses_raw_cdp_and_detaches():
             events.append(("send", method, params))
             return {"data": "png-data"}
 
-        def detach(self):
-            events.append(("detach",))
-
     page = object()
     context = type(
         "Context",
         (),
-        {"new_cdp_session": lambda self, selected: (
-            events.append(("session", selected)) or Session()
-        )},
+        {
+            "new_cdp_session": lambda self, selected: (
+                events.append(("session", selected)) or Session()
+            )
+        },
     )()
 
     _unit_tool(page, context, engine="moli")._publish_page_layout(page)
@@ -53,7 +52,6 @@ def test_moli_layout_publication_uses_raw_cdp_and_detaches():
     assert events == [
         ("session", page),
         ("send", "Page.captureScreenshot", {"format": "png"}),
-        ("detach",),
     ]
 
 
@@ -70,15 +68,25 @@ def test_moli_layout_publication_fails_when_renderer_returns_no_image():
         def send(self, _method, _params):
             return {}
 
-        def detach(self):
-            pass
-
-    context = type(
-        "Context", (), {"new_cdp_session": lambda self, _page: Session()}
-    )()
+    context = type("Context", (), {"new_cdp_session": lambda self, _page: Session()})()
 
     with pytest.raises(RuntimeError, match="returned no screenshot data"):
         _unit_tool(object(), context, engine="moli")._publish_page_layout(object())
+
+
+def test_moli_layout_publication_obeys_its_budget():
+    class Session:
+        def send(self, _method, _params):
+            time.sleep(1)
+            return {"data": "too late"}
+
+    context = type("Context", (), {"new_cdp_session": lambda self, _page: Session()})()
+    started = time.monotonic()
+
+    with pytest.raises(TimeoutError, match="publication timed out"):
+        _unit_tool(object(), context, engine="moli")._publish_page_layout(object(), timeout_ms=20)
+
+    assert time.monotonic() - started < 0.2
 
 
 def test_snapshot_retries_native_observation_after_navigation_settles():

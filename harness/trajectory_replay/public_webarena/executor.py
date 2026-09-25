@@ -75,23 +75,15 @@ def _bounded_evaluate_observation(value: Any, requested_max_chars: Any = None) -
             pass
         else:
             structured = True
-    limit = (
-        TEXT_OBSERVATION_MAX_CHARS
-        if requested_max_chars is None
-        else int(requested_max_chars)
-    )
+    limit = TEXT_OBSERVATION_MAX_CHARS if requested_max_chars is None else int(requested_max_chars)
     if limit < 1:
         raise ValueError("observation max_chars must be positive")
     if structured:
         if requested_max_chars is not None and len(observation) > limit:
-            raise ValueError(
-                f"structured observation exceeds the {limit}-character evidence limit"
-            )
+            raise ValueError(f"structured observation exceeds the {limit}-character evidence limit")
         byte_length = len(observation.encode("utf-8"))
         if byte_length > STRUCTURED_OBSERVATION_MAX_BYTES:
-            raise ValueError(
-                "structured observation exceeds the 4194304-byte evidence limit"
-            )
+            raise ValueError("structured observation exceeds the 4194304-byte evidence limit")
         return observation
     return observation[:limit]
 
@@ -137,6 +129,36 @@ def _page_for_tab(page: Any, tab_index: int, timeout: int) -> Any:
     return context.pages[tab_index]
 
 
+def _prepare_geometry_action(
+    page: Any,
+    call: dict[str, Any],
+    action: str,
+    publish_layout: Callable[[], None],
+    remaining: Callable[[], int],
+    enabled: bool,
+) -> None:
+    """Wait for one actionable layout, then let Playwright dispatch exactly once."""
+
+    if not enabled:
+        return
+    require_enabled = action not in {"hover"}
+    while True:
+        publish_layout()
+        probe_call = {**call, "timeout_ms": remaining(), "target_timeout_ms": remaining()}
+        try:
+            locator = locator_for(page, probe_call, wait_for_target=False)
+        except ValueError as exc:
+            if "matched 0" not in str(exc):
+                raise
+        else:
+            if locator.is_visible() and (not require_enabled or locator.is_enabled()):
+                budget = remaining()
+                call["timeout_ms"] = budget
+                call["target_timeout_ms"] = min(int(call.get("target_timeout_ms", budget)), budget)
+                return
+        page.wait_for_timeout(min(100, remaining()))
+
+
 def execute_steps(
     page: Any,
     tool_calls: Iterable[dict[str, Any]],
@@ -144,7 +166,7 @@ def execute_steps(
     trace: list[dict[str, Any]] | None = None,
     outputs: dict[str, str] | None = None,
     page_observer: Callable[[Any], None] | None = None,
-    layout_observer: Callable[[Any], None] | None = None,
+    layout_observer: Callable[[Any, int], None] | None = None,
     task_timeout_ms: int | None = None,
     default_action_timeout_ms: int = 30_000,
 ) -> dict[str, str]:
@@ -169,15 +191,19 @@ def execute_steps(
                 )
             timeout = min(declared_timeout, remaining_ms)
         started = time.perf_counter()
-        navigate_deadline = started + timeout / 1_000
+        action_deadline = started + timeout / 1_000
 
-        def navigate_remaining(
-            action_deadline: float = navigate_deadline,
+        def action_remaining(
+            deadline: float = action_deadline,
+            action_name: str = action,
         ) -> int:
-            remaining = int((action_deadline - time.perf_counter()) * 1_000)
+            remaining = int((deadline - time.perf_counter()) * 1_000)
             if remaining < 1:
-                raise TimeoutError("navigate action budget exhausted")
+                raise TimeoutError(f"{action_name} action budget exhausted")
             return remaining
+
+        def operation_timeout(original_timeout: int = timeout) -> int:
+            return action_remaining() if layout_observer is not None else original_timeout
 
         locator_call = {**call, "timeout_ms": timeout}
         record = {
@@ -193,27 +219,38 @@ def execute_steps(
         try:
             validate_selector(call)
             tab_index = int(call.get("tab_index", 0))
-            action_page = _page_for_tab(
-                page, tab_index, navigate_remaining() if action == "navigate" else timeout
-            )
+            action_page = _page_for_tab(page, tab_index, action_remaining())
             if page_observer is not None:
                 page_observer(action_page)
-            if layout_observer is not None:
-                layout_observer(action_page)
+
+            def publish_layout(current_page: Any = action_page) -> None:
+                if layout_observer is not None:
+                    layout_observer(current_page, action_remaining())
+
             hidden_selector = call.get("wait_for_selector_hidden")
             if hidden_selector is not None:
                 if not isinstance(hidden_selector, str) or not hidden_selector:
                     raise ValueError("wait_for_selector_hidden must be a non-empty selector")
-                action_page.locator(hidden_selector).wait_for(
-                    state="hidden",
-                    timeout=navigate_remaining() if action == "navigate" else timeout,
-                )
+                if layout_observer is None:
+                    action_page.locator(hidden_selector).wait_for(state="hidden", timeout=timeout)
+                else:
+                    while True:
+                        publish_layout()
+                        try:
+                            action_page.locator(hidden_selector).wait_for(
+                                state="hidden", timeout=min(action_remaining(), 500)
+                            )
+                            break
+                        except Exception as exc:
+                            if "timeout" not in str(exc).lower():
+                                raise
+                            action_remaining()
             observation = ""
             if action == "navigate":
                 response = action_page.goto(
                     call["url"],
                     wait_until=call.get("wait_until", "domcontentloaded"),
-                    timeout=navigate_remaining(),
+                    timeout=action_remaining(),
                 )
                 # BrowserTool returns after DOMContentLoaded, then gives ordinary
                 # background requests a short chance to settle.  Network idle is
@@ -222,37 +259,45 @@ def execute_steps(
                 try:
                     action_page.wait_for_load_state(
                         "networkidle",
-                        timeout=min(navigate_remaining(), NAVIGATION_NETWORK_IDLE_TIMEOUT_MS),
+                        timeout=min(action_remaining(), NAVIGATION_NETWORK_IDLE_TIMEOUT_MS),
                     )
                 except Exception:
                     pass
                 try:
                     action_page.wait_for_timeout(
-                        min(navigate_remaining(), NAVIGATION_RENDER_GRACE_MS)
+                        min(action_remaining(), NAVIGATION_RENDER_GRACE_MS)
                     )
                 except TimeoutError:
                     pass
-                if layout_observer is not None:
-                    layout_observer(action_page)
+                publish_layout()
                 limit = int(call.get("max_chars", 40_000))
                 title = str(
                     action_page.locator("html").first.evaluate(
                         "element => element.ownerDocument.title",
                         None,
-                        timeout=navigate_remaining(),
+                        timeout=action_remaining(),
                     )
                     or ""
                 )
                 status = getattr(response, "status", "") if response is not None else ""
-                body = _body_text(action_page, navigate_remaining(), limit)
+                body = _body_text(action_page, action_remaining(), limit)
                 observation = (
                     f"Navigated to: {getattr(action_page, 'url', call['url'])}\n"
                     f"Title: {title}\nStatus: {status}\n\n--- Page Snapshot ---\n{body}"
                 )
             elif action == "click":
+                _prepare_geometry_action(
+                    action_page,
+                    locator_call,
+                    action,
+                    publish_layout,
+                    action_remaining,
+                    layout_observer is not None,
+                )
                 navigation = (
                     action_page.expect_navigation(
-                        wait_until=call.get("wait_until", "domcontentloaded"), timeout=timeout
+                        wait_until=call.get("wait_until", "domcontentloaded"),
+                        timeout=operation_timeout(),
                     )
                     if call.get("wait_for_navigation")
                     else nullcontext()
@@ -260,7 +305,7 @@ def execute_steps(
                 with navigation:
                     try:
                         locator_for(action_page, locator_call).click(
-                            timeout=timeout,
+                            timeout=operation_timeout(),
                             no_wait_after=bool(call.get("no_wait_after", False)),
                         )
                     except Exception as exc:
@@ -275,22 +320,47 @@ def execute_steps(
                         }
                 observation = "Clicked successfully."
             elif action == "double_click":
+                _prepare_geometry_action(
+                    action_page,
+                    locator_call,
+                    action,
+                    publish_layout,
+                    action_remaining,
+                    layout_observer is not None,
+                )
                 locator_for(action_page, locator_call).dblclick(
-                    timeout=timeout,
+                    timeout=operation_timeout(),
                     no_wait_after=bool(call.get("no_wait_after", False)),
                 )
                 observation = "Double-clicked successfully."
             elif action == "fill":
                 if (call.get("source") or {}).get("unresolved_external_input"):
                     raise ValueError("trajectory contains unresolved external input")
+                _prepare_geometry_action(
+                    action_page,
+                    locator_call,
+                    action,
+                    publish_layout,
+                    action_remaining,
+                    layout_observer is not None,
+                )
                 locator_for(action_page, locator_call).fill(
-                    str(call.get("text", "")), timeout=timeout
+                    str(call.get("text", "")), timeout=operation_timeout()
                 )
                 observation = "Filled text successfully."
             elif action == "select":
+                _prepare_geometry_action(
+                    action_page,
+                    locator_call,
+                    action,
+                    publish_layout,
+                    action_remaining,
+                    layout_observer is not None,
+                )
                 navigation = (
                     action_page.expect_navigation(
-                        wait_until=call.get("wait_until", "domcontentloaded"), timeout=timeout
+                        wait_until=call.get("wait_until", "domcontentloaded"),
+                        timeout=operation_timeout(),
                     )
                     if call.get("wait_for_navigation")
                     else nullcontext()
@@ -304,18 +374,42 @@ def execute_steps(
                     )
                     locator_for(action_page, locator_call).select_option(
                         selected,
-                        timeout=timeout,
+                        timeout=operation_timeout(),
                         no_wait_after=bool(call.get("no_wait_after", False)),
                     )
                 observation = f"Selected option {call.get('value', '')}."
             elif action == "check":
-                locator_for(action_page, locator_call).check(timeout=timeout)
+                _prepare_geometry_action(
+                    action_page,
+                    locator_call,
+                    action,
+                    publish_layout,
+                    action_remaining,
+                    layout_observer is not None,
+                )
+                locator_for(action_page, locator_call).check(timeout=operation_timeout())
                 observation = "Checked successfully."
             elif action == "uncheck":
-                locator_for(action_page, locator_call).uncheck(timeout=timeout)
+                _prepare_geometry_action(
+                    action_page,
+                    locator_call,
+                    action,
+                    publish_layout,
+                    action_remaining,
+                    layout_observer is not None,
+                )
+                locator_for(action_page, locator_call).uncheck(timeout=operation_timeout())
                 observation = "Unchecked successfully."
             elif action == "hover":
-                locator_for(action_page, locator_call).hover(timeout=timeout)
+                _prepare_geometry_action(
+                    action_page,
+                    locator_call,
+                    action,
+                    publish_layout,
+                    action_remaining,
+                    layout_observer is not None,
+                )
+                locator_for(action_page, locator_call).hover(timeout=operation_timeout())
                 observation = "Hovered successfully."
             elif action == "get_text":
                 locator = locator_for(action_page, locator_call)
@@ -362,6 +456,7 @@ def execute_steps(
                 )
                 action_deadline = time.monotonic() + wait_timeout / 1000
                 while True:
+                    publish_layout()
                     values = locator.evaluate(
                         TABLE_COLUMN_EXPRESSION,
                         options,
@@ -415,6 +510,7 @@ def execute_steps(
                     action_deadline = time.monotonic() + wait_timeout / 1000
                     observation = ""
                     while time.monotonic() < action_deadline:
+                        publish_layout()
                         observation = locator.inner_text(timeout=min(1_000, wait_timeout))
                         if re.search(wait_pattern, observation, flags=re.IGNORECASE):
                             break
@@ -422,6 +518,7 @@ def execute_steps(
                     else:
                         raise TimeoutError(f"{selector} did not match text regex {wait_pattern!r}")
                 else:
+                    publish_layout()
                     observation = locator.inner_text(timeout=timeout)
                 observation = observation[: int(call.get("max_chars", 40_000))]
             elif action == "evaluate":
@@ -450,9 +547,7 @@ def execute_steps(
                     }
                     observation = f"Navigated to: {action_page.url}"
                 else:
-                    observation = _bounded_evaluate_observation(
-                        value, call.get("max_chars")
-                    )
+                    observation = _bounded_evaluate_observation(value, call.get("max_chars"))
             elif action == "wait_for_url":
                 action_page.wait_for_url(
                     str(call["url"]),
@@ -477,6 +572,7 @@ def execute_steps(
                 action_page.go_forward(wait_until=call.get("wait_until", "commit"), timeout=timeout)
                 observation = f"Navigated forward to: {getattr(action_page, 'url', '')}"
             elif action == "scroll":
+                publish_layout()
                 direction = str(call.get("direction", "down"))
                 amount = int(call.get("amount", 700))
                 dx = amount if direction == "right" else -amount if direction == "left" else 0
@@ -486,9 +582,17 @@ def execute_steps(
             elif action == "press":
                 target = call.get("target") or call.get("selector")
                 if target:
+                    _prepare_geometry_action(
+                        action_page,
+                        locator_call,
+                        action,
+                        publish_layout,
+                        action_remaining,
+                        layout_observer is not None,
+                    )
                     locator_for(action_page, locator_call).press(
                         str(call["key"]),
-                        timeout=timeout,
+                        timeout=operation_timeout(),
                         no_wait_after=bool(call.get("no_wait_after", False)),
                     )
                 else:

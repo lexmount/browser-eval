@@ -19,6 +19,8 @@ class FakePage:
         self.url = "about:blank"
         self.mouse = self
         self.keyboard = self
+        self.visible = True
+        self.enabled = True
 
     def goto(self, url, **kwargs):
         self.calls.append(("navigate", url))
@@ -59,6 +61,14 @@ class FakePage:
 
             def click(self, **kwargs):
                 page.calls.append(("click", selector, kwargs))
+
+            def is_visible(self):
+                page.calls.append(("is_visible", selector))
+                return page.visible
+
+            def is_enabled(self):
+                page.calls.append(("is_enabled", selector))
+                return page.enabled
 
             def wait_for(self, **kwargs):
                 page.calls.append(("wait_for", selector, kwargs))
@@ -739,8 +749,9 @@ def test_page_observer_runs_before_the_measured_action():
 def test_layout_observer_runs_before_actions_and_after_navigation():
     page = FakePage()
 
-    def publish_layout(action_page):
+    def publish_layout(action_page, timeout_ms):
         assert action_page is page
+        assert timeout_ms > 0
         page.calls.append(("layout", page.url))
 
     execute_steps(
@@ -752,9 +763,10 @@ def test_layout_observer_runs_before_actions_and_after_navigation():
         layout_observer=publish_layout,
     )
 
-    assert page.calls[0] == ("layout", "about:blank")
     navigation = page.calls.index(("navigate", "https://example.com"))
-    assert page.calls[navigation + 3] == ("layout", "https://example.com")
+    first_layout = page.calls.index(("layout", "https://example.com"))
+    assert navigation < first_layout
+    assert ("layout", "about:blank") not in page.calls
     click = next(index for index, call in enumerate(page.calls) if call[0] == "click")
     action_layout = max(
         index
@@ -763,6 +775,29 @@ def test_layout_observer_runs_before_actions_and_after_navigation():
     )
     locator_resolution = page.calls.index(("first", "#target"))
     assert action_layout < locator_resolution < click
+
+
+def test_dynamic_geometry_is_refreshed_before_one_side_effect_dispatch():
+    page = FakePage()
+    page.visible = False
+    publications = 0
+
+    def publish_layout(action_page, timeout_ms):
+        nonlocal publications
+        assert action_page is page
+        assert timeout_ms > 0
+        publications += 1
+        if publications == 2:
+            page.visible = True
+
+    execute_steps(
+        page,
+        ({"action": "click", "selector": "#late"},),
+        layout_observer=publish_layout,
+    )
+
+    assert publications == 2
+    assert sum(call[0] == "click" for call in page.calls) == 1
 
 
 def test_history_steps_wait_for_commit_to_support_bfcache_restores():
