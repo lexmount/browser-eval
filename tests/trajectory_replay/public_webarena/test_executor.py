@@ -836,6 +836,26 @@ def test_dynamic_overlay_is_refreshed_before_one_side_effect_dispatch():
     assert sum(call[0] == "click" for call in page.calls) == 1
 
 
+def test_fill_select_and_press_keep_native_non_click_actionability():
+    page = FakePage()
+    page.trial_ready = False
+
+    execute_steps(
+        page,
+        (
+            {"action": "fill", "selector": "#field", "text": "value"},
+            {"action": "select", "selector": "#choice", "value": "one"},
+            {"action": "press", "selector": "#field", "key": "Enter"},
+        ),
+        layout_observer=lambda _page, _timeout: None,
+    )
+
+    assert not any(call[0].startswith("trial_") for call in page.calls)
+    assert sum(call[0] == "fill" for call in page.calls) == 1
+    assert sum(call[0] == "select" for call in page.calls) == 1
+    assert sum(call[0] == "press_target" for call in page.calls) == 1
+
+
 def test_history_steps_wait_for_commit_to_support_bfcache_restores():
     page = FakePage()
 

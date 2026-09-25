@@ -155,6 +155,13 @@ def _prepare_geometry_action(
             if ready and action == "fill":
                 ready = locator.is_editable()
             if ready:
+                if action in {"fill", "select", "press"}:
+                    budget = remaining()
+                    call["timeout_ms"] = budget
+                    call["target_timeout_ms"] = min(
+                        int(call.get("target_timeout_ms", budget)), budget
+                    )
+                    return
                 try:
                     trial_timeout = min(500, remaining())
                     if action == "hover":
