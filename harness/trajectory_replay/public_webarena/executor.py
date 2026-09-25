@@ -151,11 +151,18 @@ def _prepare_geometry_action(
             if "matched 0" not in str(exc):
                 raise
         else:
+            if action == "press":
+                budget = remaining()
+                call["timeout_ms"] = budget
+                call["target_timeout_ms"] = min(
+                    int(call.get("target_timeout_ms", budget)), budget
+                )
+                return
             ready = locator.is_visible() and (not require_enabled or locator.is_enabled())
             if ready and action == "fill":
                 ready = locator.is_editable()
             if ready:
-                if action in {"fill", "select", "press"}:
+                if action in {"fill", "select"}:
                     budget = remaining()
                     call["timeout_ms"] = budget
                     call["target_timeout_ms"] = min(

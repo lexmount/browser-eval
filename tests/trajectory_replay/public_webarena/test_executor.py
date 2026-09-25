@@ -856,6 +856,24 @@ def test_fill_select_and_press_keep_native_non_click_actionability():
     assert sum(call[0] == "press_target" for call in page.calls) == 1
 
 
+@pytest.mark.parametrize(("visible", "enabled"), ((False, True), (True, False)))
+def test_targeted_press_preserves_native_visibility_and_enabled_semantics(
+    visible, enabled
+):
+    page = FakePage()
+    page.visible = visible
+    page.enabled = enabled
+
+    execute_steps(
+        page,
+        ({"action": "press", "selector": "#field", "key": "Enter"},),
+        layout_observer=lambda _page, _timeout: None,
+    )
+
+    assert sum(call[0] == "press_target" for call in page.calls) == 1
+    assert not any(call[0] in {"is_visible", "is_enabled"} for call in page.calls)
+
+
 def test_history_steps_wait_for_commit_to_support_bfcache_restores():
     page = FakePage()
 
