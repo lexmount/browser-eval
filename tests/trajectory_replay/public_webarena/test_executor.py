@@ -736,6 +736,35 @@ def test_page_observer_runs_before_the_measured_action():
     assert page.calls[1] == ("navigate", "https://example.com")
 
 
+def test_layout_observer_runs_before_actions_and_after_navigation():
+    page = FakePage()
+
+    def publish_layout(action_page):
+        assert action_page is page
+        page.calls.append(("layout", page.url))
+
+    execute_steps(
+        page,
+        (
+            {"action": "navigate", "url": "https://example.com"},
+            {"action": "click", "selector": "#target"},
+        ),
+        layout_observer=publish_layout,
+    )
+
+    assert page.calls[0] == ("layout", "about:blank")
+    navigation = page.calls.index(("navigate", "https://example.com"))
+    assert page.calls[navigation + 3] == ("layout", "https://example.com")
+    click = next(index for index, call in enumerate(page.calls) if call[0] == "click")
+    action_layout = max(
+        index
+        for index, call in enumerate(page.calls[:click])
+        if call == ("layout", "https://example.com")
+    )
+    locator_resolution = page.calls.index(("first", "#target"))
+    assert action_layout < locator_resolution < click
+
+
 def test_history_steps_wait_for_commit_to_support_bfcache_restores():
     page = FakePage()
 

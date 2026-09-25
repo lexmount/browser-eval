@@ -299,6 +299,7 @@ def main() -> None:
                         ),
                         portable_action_timeout_ms=args.action_timeout_ms,
                         backend=args.backend,
+                        engine=args.engine,
                     )
                 except FileExistsError:
                     raise

@@ -144,6 +144,7 @@ def execute_steps(
     trace: list[dict[str, Any]] | None = None,
     outputs: dict[str, str] | None = None,
     page_observer: Callable[[Any], None] | None = None,
+    layout_observer: Callable[[Any], None] | None = None,
     task_timeout_ms: int | None = None,
     default_action_timeout_ms: int = 30_000,
 ) -> dict[str, str]:
@@ -197,6 +198,8 @@ def execute_steps(
             )
             if page_observer is not None:
                 page_observer(action_page)
+            if layout_observer is not None:
+                layout_observer(action_page)
             hidden_selector = call.get("wait_for_selector_hidden")
             if hidden_selector is not None:
                 if not isinstance(hidden_selector, str) or not hidden_selector:
@@ -229,6 +232,8 @@ def execute_steps(
                     )
                 except TimeoutError:
                     pass
+                if layout_observer is not None:
+                    layout_observer(action_page)
                 limit = int(call.get("max_chars", 40_000))
                 title = str(
                     action_page.locator("html").first.evaluate(

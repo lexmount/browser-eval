@@ -253,6 +253,71 @@ def test_login_context_closes_old_tabs_and_opens_official_start_url() -> None:
     assert primary.url == "http://official.test/start"
 
 
+def test_login_context_publishes_layout_before_admin_visibility_check() -> None:
+    events = []
+
+    class Page:
+        def close(self):
+            pass
+
+        def set_default_timeout(self, _value):
+            pass
+
+        def set_default_navigation_timeout(self, _value):
+            pass
+
+        def goto(self, url, **_kwargs):
+            events.append(("goto", url))
+
+        def evaluate(self, _script):
+            pass
+
+        def reload(self, **_kwargs):
+            events.append(("reload",))
+
+        def locator(self, selector):
+            class Locator:
+                def wait_for(self):
+                    events.append(("visible", selector))
+
+            return Locator()
+
+        def wait_for_timeout(self, _value):
+            pass
+
+    primary = Page()
+    login_page = Page()
+    context = SimpleNamespace(
+        pages=[primary],
+        clear_cookies=lambda: None,
+        set_extra_http_headers=lambda _headers: None,
+        new_page=lambda: login_page,
+    )
+    service = SimpleNamespace(
+        _context=context,
+        _page=primary,
+        _submit=lambda callback: callback(),
+        _publish_page_layout=lambda page: events.append(("layout", page)),
+    )
+    benchmark = SimpleNamespace(
+        config=SimpleNamespace(
+            get_environment=lambda _site: SimpleNamespace(
+                active_url="http://fixture.test/admin"
+            )
+        )
+    )
+
+    _login_context(
+        service,
+        (WebArenaSite.SHOPPING_ADMIN,),
+        benchmark,
+        ["http://fixture.test/start"],
+    )
+
+    assert events.index(("reload",)) < events.index(("layout", login_page))
+    assert events.index(("layout", login_page)) < events.index(("visible", ".page-title"))
+
+
 @pytest.mark.parametrize(
     "status,cookie,accepted",
     [(200, True, True), (302, True, False), (401, False, False), (200, False, False)],

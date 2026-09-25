@@ -581,6 +581,11 @@ def _login_context(
     start_urls: list[str],
     viewport_evidence: dict[str, Any] | None = None,
 ) -> int:
+    def publish_layout(page: Any) -> None:
+        publisher = getattr(service, "_publish_page_layout", None)
+        if publisher is not None:
+            publisher(page)
+
     def login() -> None:
         context = service._context
         assert context is not None
@@ -612,24 +617,30 @@ def _login_context(
                     page.goto(f"{base}/customer/account", wait_until="commit")
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")
+                    publish_layout(page)
                     page.locator(".block-dashboard-info, .box-information").first.wait_for()
                 elif site == WebArenaSite.SHOPPING_ADMIN:
                     page.goto(base, wait_until="commit")
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")
+                    publish_layout(page)
                     page.locator(".page-title").wait_for()
                 elif site == WebArenaSite.REDDIT:
                     _bootstrap_postmill_session(context, base)
                     page.goto(base, wait_until="commit")
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")
+                    publish_layout(page)
                     page.get_by_role("button", name=creds["username"], exact=True).wait_for()
                 elif site == WebArenaSite.GITLAB:
                     page.goto(f"{base}/users/sign_in", wait_until="commit")
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")
+                    publish_layout(page)
                     page.get_by_test_id("username-field").fill(creds["username"])
+                    publish_layout(page)
                     page.get_by_test_id("password-field").fill(creds["password"])
+                    publish_layout(page)
                     page.get_by_test_id("sign-in-button").click()
                     page.wait_for_url("**/", timeout=90_000)
                 elif site not in {WebArenaSite.MAP, WebArenaSite.WIKIPEDIA}:

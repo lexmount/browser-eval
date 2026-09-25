@@ -44,7 +44,10 @@ class PlaywrightReplayTool:
     preserving its compiled-ref behavior on either backend.
     """
 
-    def __init__(self, endpoint: str):
+    def __init__(self, endpoint: str, *, engine: str = "chromium"):
+        if engine not in {"chromium", "moli"}:
+            raise ValueError(f"unknown Playwright replay engine: {engine}")
+        self._engine = engine
         self._playwright = sync_playwright().start()
         self._browser = None
         self._context = None
@@ -65,6 +68,24 @@ class PlaywrightReplayTool:
     def _submit(self, callback):
         return callback()
 
+    def _publish_page_layout(self, page: Any) -> None:
+        """Publish Moli's current layout before Playwright consumes geometry.
+
+        Moli intentionally computes layout on demand.  A raw CDP screenshot is
+        the renderer boundary that publishes that layout without first asking
+        Playwright to perform the geometry checks which depend on it.
+        """
+
+        if getattr(self, "_engine", "chromium") != "moli":
+            return
+        session = self._context.new_cdp_session(page)
+        try:
+            result = session.send("Page.captureScreenshot", {"format": "png"})
+        finally:
+            session.detach()
+        if not isinstance(result, dict) or not result.get("data"):
+            raise RuntimeError("Moli layout publication returned no screenshot data")
+
     def _snapshot(self, selector: str, timeout: int) -> str:
         deadline = time.monotonic() + timeout / 1_000
 
@@ -75,6 +96,7 @@ class PlaywrightReplayTool:
             return value if maximum is None else min(value, maximum)
 
         def observe(maximum: int | None = None) -> str:
+            self._publish_page_layout(self._page)
             locator = self._page.locator(selector).first
             locator.wait_for(state="visible", timeout=remaining(maximum))
             return locator.aria_snapshot(timeout=remaining(maximum))
@@ -107,7 +129,12 @@ class PlaywrightReplayTool:
                 return ReplayResult("error", f"Snapshot failed: {exc}")
         records: list[dict[str, Any]] = []
         try:
-            execute_steps(self._page, [arguments], trace=records)
+            execute_steps(
+                self._page,
+                [arguments],
+                trace=records,
+                layout_observer=self._publish_page_layout,
+            )
         except Exception as exc:
             return ReplayResult("error", f"{type(exc).__name__}: {exc}")
         value = records[0]["output"]

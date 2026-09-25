@@ -18,13 +18,67 @@ from harness.trajectory_replay.remote_execution import _browser_command, _wait_c
 from harness.trajectory_replay.webarena_replay import _execute_replay_call
 
 
-def _unit_tool(page, context):
+def _unit_tool(page, context, *, engine="chromium"):
     from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
 
     tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
     tool._page = page
     tool._context = context
+    tool._engine = engine
     return tool
+
+
+def test_moli_layout_publication_uses_raw_cdp_and_detaches():
+    events = []
+
+    class Session:
+        def send(self, method, params):
+            events.append(("send", method, params))
+            return {"data": "png-data"}
+
+        def detach(self):
+            events.append(("detach",))
+
+    page = object()
+    context = type(
+        "Context",
+        (),
+        {"new_cdp_session": lambda self, selected: (
+            events.append(("session", selected)) or Session()
+        )},
+    )()
+
+    _unit_tool(page, context, engine="moli")._publish_page_layout(page)
+
+    assert events == [
+        ("session", page),
+        ("send", "Page.captureScreenshot", {"format": "png"}),
+        ("detach",),
+    ]
+
+
+def test_chromium_layout_publication_is_a_strict_noop():
+    class Context:
+        def new_cdp_session(self, _page):
+            raise AssertionError("Chromium must not receive Moli layout publication")
+
+    _unit_tool(object(), Context())._publish_page_layout(object())
+
+
+def test_moli_layout_publication_fails_when_renderer_returns_no_image():
+    class Session:
+        def send(self, _method, _params):
+            return {}
+
+        def detach(self):
+            pass
+
+    context = type(
+        "Context", (), {"new_cdp_session": lambda self, _page: Session()}
+    )()
+
+    with pytest.raises(RuntimeError, match="returned no screenshot data"):
+        _unit_tool(object(), context, engine="moli")._publish_page_layout(object())
 
 
 def test_snapshot_retries_native_observation_after_navigation_settles():
