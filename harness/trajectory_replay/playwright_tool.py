@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
-import signal
-import threading
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -71,6 +70,10 @@ class PlaywrightReplayTool:
     def _submit(self, callback):
         return callback()
 
+    @property
+    def layout_observer(self):
+        return self._publish_page_layout if self._engine == "moli" else None
+
     def _publish_page_layout(self, page: Any, timeout_ms: int = 5_000) -> None:
         """Publish Moli's current layout before Playwright consumes geometry.
 
@@ -83,10 +86,6 @@ class PlaywrightReplayTool:
             return
         if timeout_ms < 1:
             raise TimeoutError("Moli layout publication budget exhausted")
-        if threading.current_thread() is not threading.main_thread() or not hasattr(
-            signal, "setitimer"
-        ):
-            raise RuntimeError("bounded Moli layout publication requires the main POSIX thread")
         sessions = getattr(self, "_layout_sessions", None)
         if sessions is None:
             sessions = self._layout_sessions = {}
@@ -94,31 +93,18 @@ class PlaywrightReplayTool:
         if session is None:
             session = self._context.new_cdp_session(page)
             sessions[page] = session
-        previous_handler = signal.getsignal(signal.SIGALRM)
-        previous_timer = signal.getitimer(signal.ITIMER_REAL)
-        started = time.monotonic()
 
-        def expire(_signum, _frame):
-            raise TimeoutError("Moli layout publication timed out")
+        async def capture() -> dict[str, Any]:
+            return await asyncio.wait_for(
+                session._impl_obj.send("Page.captureScreenshot", {"format": "png"}),
+                timeout=timeout_ms / 1_000,
+            )
 
         try:
-            signal.signal(signal.SIGALRM, expire)
-            signal.setitimer(signal.ITIMER_REAL, timeout_ms / 1_000)
-            try:
-                result = session.send("Page.captureScreenshot", {"format": "png"})
-            except TimeoutError:
-                sessions.pop(page, None)
-                raise
-        finally:
-            signal.setitimer(signal.ITIMER_REAL, 0)
-            signal.signal(signal.SIGALRM, previous_handler)
-            if previous_timer[0] > 0:
-                elapsed = time.monotonic() - started
-                signal.setitimer(
-                    signal.ITIMER_REAL,
-                    max(0.001, previous_timer[0] - elapsed),
-                    previous_timer[1],
-                )
+            result = session._sync(capture())
+        except TimeoutError as exc:
+            sessions.pop(page, None)
+            raise TimeoutError("Moli layout publication timed out") from exc
         if not isinstance(result, dict) or not result.get("data"):
             raise RuntimeError("Moli layout publication returned no screenshot data")
 
@@ -186,7 +172,7 @@ class PlaywrightReplayTool:
                 self._page,
                 [arguments],
                 trace=records,
-                layout_observer=self._publish_page_layout,
+                layout_observer=self.layout_observer,
             )
         except Exception as exc:
             return ReplayResult("error", f"{type(exc).__name__}: {exc}")

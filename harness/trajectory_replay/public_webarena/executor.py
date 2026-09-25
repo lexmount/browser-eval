@@ -151,11 +151,26 @@ def _prepare_geometry_action(
             if "matched 0" not in str(exc):
                 raise
         else:
-            if locator.is_visible() and (not require_enabled or locator.is_enabled()):
-                budget = remaining()
-                call["timeout_ms"] = budget
-                call["target_timeout_ms"] = min(int(call.get("target_timeout_ms", budget)), budget)
-                return
+            ready = locator.is_visible() and (not require_enabled or locator.is_enabled())
+            if ready and action == "fill":
+                ready = locator.is_editable()
+            if ready:
+                try:
+                    trial_timeout = min(500, remaining())
+                    if action == "hover":
+                        locator.hover(timeout=trial_timeout, trial=True)
+                    else:
+                        locator.click(timeout=trial_timeout, trial=True)
+                except Exception as exc:
+                    if "timeout" not in str(exc).lower():
+                        raise
+                else:
+                    budget = remaining()
+                    call["timeout_ms"] = budget
+                    call["target_timeout_ms"] = min(
+                        int(call.get("target_timeout_ms", budget)), budget
+                    )
+                    return
         page.wait_for_timeout(min(100, remaining()))
 
 
@@ -219,7 +234,11 @@ def execute_steps(
         try:
             validate_selector(call)
             tab_index = int(call.get("tab_index", 0))
-            action_page = _page_for_tab(page, tab_index, action_remaining())
+            action_page = _page_for_tab(
+                page,
+                tab_index,
+                action_remaining() if layout_observer is not None else timeout,
+            )
             if page_observer is not None:
                 page_observer(action_page)
 
@@ -457,10 +476,14 @@ def execute_steps(
                 action_deadline = time.monotonic() + wait_timeout / 1000
                 while True:
                     publish_layout()
+                    evaluate_timeout = min(timeout, wait_timeout)
+                    if layout_observer is not None:
+                        loop_remaining = max(1, int((action_deadline - time.monotonic()) * 1_000))
+                        evaluate_timeout = min(action_remaining(), loop_remaining)
                     values = locator.evaluate(
                         TABLE_COLUMN_EXPRESSION,
                         options,
-                        timeout=min(timeout, wait_timeout),
+                        timeout=evaluate_timeout,
                     )
                     if wait_pattern is None or any(
                         re.search(str(wait_pattern), str(value), flags=re.IGNORECASE)
@@ -511,7 +534,13 @@ def execute_steps(
                     observation = ""
                     while time.monotonic() < action_deadline:
                         publish_layout()
-                        observation = locator.inner_text(timeout=min(1_000, wait_timeout))
+                        inner_timeout = min(1_000, wait_timeout)
+                        if layout_observer is not None:
+                            loop_remaining = max(
+                                1, int((action_deadline - time.monotonic()) * 1_000)
+                            )
+                            inner_timeout = min(inner_timeout, action_remaining(), loop_remaining)
+                        observation = locator.inner_text(timeout=inner_timeout)
                         if re.search(wait_pattern, observation, flags=re.IGNORECASE):
                             break
                         time.sleep(0.05)
@@ -519,7 +548,7 @@ def execute_steps(
                         raise TimeoutError(f"{selector} did not match text regex {wait_pattern!r}")
                 else:
                     publish_layout()
-                    observation = locator.inner_text(timeout=timeout)
+                    observation = locator.inner_text(timeout=operation_timeout())
                 observation = observation[: int(call.get("max_chars", 40_000))]
             elif action == "evaluate":
                 script = call.get("script")

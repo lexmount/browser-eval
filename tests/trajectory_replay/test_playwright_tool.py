@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import socket
 import subprocess
@@ -31,10 +32,16 @@ def _unit_tool(page, context, *, engine="chromium"):
 def test_moli_layout_publication_uses_raw_cdp_and_detaches():
     events = []
 
-    class Session:
-        def send(self, method, params):
+    class Impl:
+        async def send(self, method, params):
             events.append(("send", method, params))
             return {"data": "png-data"}
+
+    class Session:
+        _impl_obj = Impl()
+
+        def _sync(self, coroutine):
+            return asyncio.run(coroutine)
 
     page = object()
     context = type(
@@ -60,13 +67,21 @@ def test_chromium_layout_publication_is_a_strict_noop():
         def new_cdp_session(self, _page):
             raise AssertionError("Chromium must not receive Moli layout publication")
 
-    _unit_tool(object(), Context())._publish_page_layout(object())
+    tool = _unit_tool(object(), Context())
+    assert tool.layout_observer is None
+    tool._publish_page_layout(object())
 
 
 def test_moli_layout_publication_fails_when_renderer_returns_no_image():
-    class Session:
-        def send(self, _method, _params):
+    class Impl:
+        async def send(self, _method, _params):
             return {}
+
+    class Session:
+        _impl_obj = Impl()
+
+        def _sync(self, coroutine):
+            return asyncio.run(coroutine)
 
     context = type("Context", (), {"new_cdp_session": lambda self, _page: Session()})()
 
@@ -75,10 +90,16 @@ def test_moli_layout_publication_fails_when_renderer_returns_no_image():
 
 
 def test_moli_layout_publication_obeys_its_budget():
-    class Session:
-        def send(self, _method, _params):
-            time.sleep(1)
+    class Impl:
+        async def send(self, _method, _params):
+            await asyncio.sleep(1)
             return {"data": "too late"}
+
+    class Session:
+        _impl_obj = Impl()
+
+        def _sync(self, coroutine):
+            return asyncio.run(coroutine)
 
     context = type("Context", (), {"new_cdp_session": lambda self, _page: Session()})()
     started = time.monotonic()

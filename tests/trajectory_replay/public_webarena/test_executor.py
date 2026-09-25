@@ -21,6 +21,7 @@ class FakePage:
         self.keyboard = self
         self.visible = True
         self.enabled = True
+        self.trial_ready = True
 
     def goto(self, url, **kwargs):
         self.calls.append(("navigate", url))
@@ -60,7 +61,10 @@ class FakePage:
                 return self
 
             def click(self, **kwargs):
-                page.calls.append(("click", selector, kwargs))
+                kind = "trial_click" if kwargs.get("trial") else "click"
+                page.calls.append((kind, selector, kwargs))
+                if kwargs.get("trial") and not page.trial_ready:
+                    raise TimeoutError("trial timeout: element is covered by an overlay")
 
             def is_visible(self):
                 page.calls.append(("is_visible", selector))
@@ -69,6 +73,14 @@ class FakePage:
             def is_enabled(self):
                 page.calls.append(("is_enabled", selector))
                 return page.enabled
+
+            def is_editable(self):
+                page.calls.append(("is_editable", selector))
+                return page.enabled
+
+            def hover(self, **kwargs):
+                kind = "trial_hover" if kwargs.get("trial") else "hover"
+                page.calls.append((kind, selector, kwargs))
 
             def wait_for(self, **kwargs):
                 page.calls.append(("wait_for", selector, kwargs))
@@ -797,6 +809,30 @@ def test_dynamic_geometry_is_refreshed_before_one_side_effect_dispatch():
     )
 
     assert publications == 2
+    assert sum(call[0] == "click" for call in page.calls) == 1
+
+
+def test_dynamic_overlay_is_refreshed_before_one_side_effect_dispatch():
+    page = FakePage()
+    page.trial_ready = False
+    publications = 0
+
+    def publish_layout(action_page, timeout_ms):
+        nonlocal publications
+        assert action_page is page
+        assert timeout_ms > 0
+        publications += 1
+        if publications == 2:
+            page.trial_ready = True
+
+    execute_steps(
+        page,
+        ({"action": "click", "selector": "#covered"},),
+        layout_observer=publish_layout,
+    )
+
+    assert publications == 2
+    assert sum(call[0] == "trial_click" for call in page.calls) == 2
     assert sum(call[0] == "click" for call in page.calls) == 1
 
 
