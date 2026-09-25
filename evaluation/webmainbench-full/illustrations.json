@@ -2,19 +2,20 @@
   "schema_version": 1,
   "assets": [
     {
-      "name": "overview-moli-1.1.10.png",
+      "name": "seven-method-overview.png",
       "role": "overview",
-      "sha256": "d9487d0e761b9187e09fd934f63f10371e78738939b54d47221037130bae6c53",
+      "sha256": "e0cf08562ed934763470c323cba470bffff2fb9733ea56537ed1e22d1176de41",
       "generator": "ImageGen",
-      "scope": "six methods after certified origin correction",
+      "scope": "seven methods after certified origin correction",
       "claims": {
         "scores_percent": {
           "moli": "34.01",
           "lightpanda": "33.43",
-          "moli-fixed": "32.97",
           "kitesurf": "32.86",
           "chromium": "23.66",
-          "obscura": "22.36"
+          "obscura": "22.36",
+          "moli-pr785-fixed": "34.08",
+          "moli-content-fixed": "32.97"
         },
         "machine_issues": 25,
         "request_failures": 15,
@@ -23,11 +24,11 @@
       }
     },
     {
-      "name": "error-mechanisms.png",
-      "role": "error-mechanisms",
-      "sha256": "c53b86571b5c20976f9a54ccfe33d065111732399fceeb4a148c74c520d3d843",
+      "name": "moli-repair-mechanisms.png",
+      "role": "repair-mechanisms",
+      "sha256": "f02e5f08beccb6e3edb5deeb0b987527683b89c9fb1d6fab3925480d1d23a9e8",
       "generator": "ImageGen",
-      "scope": "six methods after certified origin correction"
+      "scope": "observed defect to shared cause, implementation layer and verification"
     }
   ]
 }

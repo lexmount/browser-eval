@@ -51,22 +51,31 @@ def check(root: Path) -> None:
     repo = Path(__file__).resolve().parents[1]
     profile_path = repo / 'evaluation/webmainbench-full/current-report.json'
     target = json.loads((repo / 'evaluation/webmainbench-full/publication-target.json').read_text(encoding='utf-8'))
-    fixed_profile_path = repo / 'evaluation/webmainbench-full/moli-fixed-report.json'
+    registry_path = repo / 'evaluation/webmainbench-full/moli-variants.json'
+    registry = json.loads(registry_path.read_text(encoding='utf-8'))
+    variants = registry['variants']
+    variant_ids = [item['provider'] for item in variants]
+    expected_variant_hashes = {
+        item['provider']: hashlib.sha256(
+            (repo / 'evaluation/webmainbench-full' / item['profile']).read_bytes()
+        ).hexdigest() for item in variants
+    }
     if (target.get('profile_sha256') != hashlib.sha256(profile_path.read_bytes()).hexdigest()
-            or target.get('moli_fixed_profile_sha256') != hashlib.sha256(fixed_profile_path.read_bytes()).hexdigest()
+            or target.get('variant_profile_sha256') != expected_variant_hashes
             or not str(target.get('expected_remote_version', '')).startswith('ver_')
             or not str(target.get('share_url', '')).startswith(str(target.get('host', '')).rstrip('/') + '/v/')
             or not target.get('site_slug')):
         raise ValueError('WebMainBench publication target is not bound to the certified profile')
-    six_binding = json.loads((root / 'six-method-binding.json').read_text(encoding='utf-8'))
-    fixed_profile = json.loads(fixed_profile_path.read_text(encoding='utf-8'))
-    if (six_binding.get('kind') != 'webmainbench_six_version_full_scope_binding'
-            or six_binding.get('logical_results') != 3270
-            or six_binding.get('fixed_profile_sha256') != hashlib.sha256(fixed_profile_path.read_bytes()).hexdigest()
-            or six_binding.get('fixed_source_commit') != fixed_profile.get('source_commit')
-            or six_binding.get('results_sha256') != hashlib.sha256((root / 'original-results.jsonl').read_bytes()).hexdigest()
-            or six_binding.get('fixed_certificate_sha256') != hashlib.sha256((root / 'fixed-cohort-certificate.json').read_bytes()).hexdigest()):
-        raise ValueError('Six-version report binding missing or changed')
+    seven_binding = json.loads((root / 'seven-method-binding.json').read_text(encoding='utf-8'))
+    teds_receipt = json.loads((root / 'teds-correction.json').read_text(encoding='utf-8'))
+    bound_variants = {item['provider']: item for item in seven_binding.get('variants', [])}
+    if (seven_binding.get('kind') != 'webmainbench_seven_method_full_scope_binding'
+            or seven_binding.get('logical_results') != 3815
+            or seven_binding.get('registry_sha256') != hashlib.sha256(registry_path.read_bytes()).hexdigest()
+            or seven_binding.get('results_sha256') != teds_receipt.get('input_results_sha256')
+            or any(bound_variants.get(item['provider'], {}).get('profile_sha256') != expected_variant_hashes[item['provider']]
+                   for item in variants)):
+        raise ValueError('Seven-method report binding missing or changed')
     releases = json.loads((Path(__file__).resolve().parents[1] / 'research/report-changes.json').read_text(encoding='utf-8'))['releases']
     expected_releases = [item for item in releases if 'webmainbench_frozen_html_to_markdown' in item.get('comparison_kinds', [])]
     history = BeautifulSoup((root / 'history/index.html').read_text(encoding='utf-8'), 'html.parser')
@@ -88,8 +97,8 @@ def check(root: Path) -> None:
     failure_analysis = json.loads(failure_bytes)
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
     if manifest != {"schema_version": 1, "report": "webmainbench-545-full",
-                    "languages": ["zh"], "case_count": 545, "provider_count": 6,
-                    "result_count": 3270}:
+                    "languages": ["zh"], "case_count": 545, "provider_count": 7,
+                    "result_count": 3815}:
         raise ValueError("Incomplete WebMainBench report manifest")
     dataset = json.loads((root / "dataset.json").read_text(encoding="utf-8"))
     records = [json.loads(line) for line in (root / "results.jsonl").read_text(encoding="utf-8").splitlines()]
@@ -101,7 +110,7 @@ def check(root: Path) -> None:
                 or receipt['score_summaries_sha256'] != hashlib.sha256((root / 'score-summaries.json').read_bytes()).hexdigest()):
             raise ValueError('Published case correction differs from its certified results')
         selected = [r for r in records if r['case_id'] == receipt['preflight']['case_id']]
-        if len(selected) != 6 or any(not r.get('supersedes_attempt_id') for r in selected):
+        if len(selected) != 7 or any(not r.get('supersedes_attempt_id') for r in selected):
             raise ValueError('Case correction missing a method')
         original_certificate = {key: receipt[key] for key in ('kind', 'preflight', 'postflight', 'results_sha256', 'physical_sha256')}
         certificate_bytes = (json.dumps(original_certificate, ensure_ascii=False, indent=2) + '\n').encode()
@@ -117,7 +126,7 @@ def check(root: Path) -> None:
             raise ValueError('Corrected rows differ from certified calls')
     providers = dataset["coverage_plan"]["static_html"]
     case_ids = {row["id"] for row in dataset["cases"]}
-    if len(case_ids) != 545 or len(records) != 3270 or len(providers) != 6:
+    if len(case_ids) != 545 or len(records) != 3815 or len(providers) != 7:
         raise ValueError("Full matrix missing")
     expected = {(provider, case_id) for provider in providers for case_id in case_ids}
     if {(row["provider"], row["case_id"]) for row in records} != expected:
@@ -143,7 +152,7 @@ def check(root: Path) -> None:
     summaries = json.loads((root / 'score-summaries.json').read_text(encoding='utf-8'))
     if (not overview_claims or overview_claims.get('scores_percent') != {
             provider: f"{summaries[provider]['official_aggregate']['scores']['overall'] * 100:.2f}"
-            for provider in ('moli', 'lightpanda', 'moli-fixed', 'kitesurf', 'chromium', 'obscura')}):
+            for provider in providers}):
         raise ValueError('Overview illustration score claims differ from measured results')
     if correction_binding.exists() and not guide.select_one('#fixture-correction'):
         raise ValueError('Corrected case explanation missing')
@@ -155,7 +164,7 @@ def check(root: Path) -> None:
             or '修复前候选输出' not in audit.get_text(' ', strip=True)):
         raise ValueError('Full content-audit scope, findings or limitation missing')
     for page in (home, guide):
-        if len(page.select('td[data-metric-direction="max"]')) != 36:
+        if len(page.select('td[data-metric-direction="max"]')) != len(providers) * 6:
             raise ValueError("Core metrics or winner controls missing")
         if "545" not in page.get_text(" ", strip=True):
             raise ValueError("Complete population missing")
@@ -169,7 +178,7 @@ def check(root: Path) -> None:
         raise ValueError("Interpretation example lacks source, reference or same-case result")
     analysis = BeautifulSoup((root / "analysis/index.html").read_text(encoding="utf-8"), "html.parser")
     check_diagnosis_inventory(analysis)
-    if (len(analysis.select("tr[data-result]")) != 3270 or not analysis.select_one("#kind")
+    if (len(analysis.select("tr[data-result]")) != 3815 or not analysis.select_one("#kind")
             or not analysis.select_one("#cause")):
         raise ValueError("Result inventory incomplete")
     if not any(row.get("data-kind") != "未触发诊断" for row in analysis.select("tr[data-result]")):
@@ -187,7 +196,7 @@ def check(root: Path) -> None:
     artifact_index = json.loads((root / "artifact-shard-index.json").read_text(encoding="utf-8"))
     shard_paths = set(index.values()) | set(artifact_index.values())
     shards = {path: json.loads(contained_path(root, path).read_text(encoding="utf-8")) for path in shard_paths}
-    if len(index) != len(records) or len(shards) > 56:
+    if len(index) != len(records) or len(shards) > 64:
         raise ValueError("Complete result shard index missing or oversized")
     failures = set()
     diagnostic_counts = defaultdict(Counter)
@@ -206,10 +215,10 @@ def check(root: Path) -> None:
             key: overview_claims.get(key) for key in
             ('machine_issues', 'request_failures', 'empty_outputs', 'error_pages')}:
         raise ValueError('Overview illustration issue claims differ from measured results')
-    if reviewed != {item for item in failures if item[0] != 'moli-fixed'}:
+    if reviewed != {item for item in failures if item[0] not in variant_ids}:
         raise ValueError("Published baseline failure analysis scope is incomplete")
-    if not any(row['provider'] == 'moli-fixed' for row in records):
-        raise ValueError('Fixed Moli is absent from the result inventory')
+    if not set(variant_ids).issubset({row['provider'] for row in records}):
+        raise ValueError('A Moli repair variant is absent from the result inventory')
     cells = guide.select("td[data-diagnostic-provider][data-kind]")
     expected_cells = {(provider, kind) for provider in providers
                       for kind in ("请求失败", "空输出", "错误页", "低全文相似度")}

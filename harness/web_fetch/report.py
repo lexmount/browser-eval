@@ -2933,7 +2933,8 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
     grouped = defaultdict(dict)
     for row in records:
         grouped[row["case_id"]][row["provider"]] = row
-    labels = {p: ("Moli " + profile["versions"][p] + "（修复后）" if p == "moli-fixed" else profile["versions"][p] if p == "chromium" else p.capitalize() +
+    variant_labels = profile.get("variant_labels", {})
+    labels = {p: (variant_labels[p] if p in variant_labels else profile["versions"][p] if p == "chromium" else p.capitalize() +
                   (" " + profile["versions"][p] if p != "kitesurf" else "")) for p in providers}
     measures = [("overall", "综合分"), ("text_edit", "全文"), ("code_edit", "代码"),
                 ("formula_edit", "公式"), ("table_edit", "表格内容"), ("table_TEDS", "表格结构")]
@@ -2969,7 +2970,7 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
     js += """
 async function loadJson(path){let response=await fetch(path);if(!response.ok)throw Error('HTTP '+response.status);return response.json()}
 async function loadEvidence(path,node){try{let index=await loadJson('artifact-shard-index.json'),shardPath=index[path];if(!shardPath)throw Error('证据索引缺失');let shard=await loadJson(shardPath),hash=shard.artifacts[path],value=shard.blobs[hash];if(typeof value!=='string')throw Error('证据内容缺失');node.textContent=value;let raw=document.getElementById('evidence-raw');raw.href=URL.createObjectURL(new Blob([value],{type:'text/plain;charset=utf-8'}));raw.download=path.split('/').pop()}catch(error){node.textContent='无法读取证据：'+error.message}}
-async function renderResult(){let params=new URLSearchParams(location.search),provider=params.get('provider')||'',id=params.get('id')||'';let title=document.getElementById('result-title');if(!/^[a-z0-9-]+$/.test(provider)||!/^[A-Za-z0-9-]+$/.test(id)){title.textContent='无效结果地址';return}try{let index=await loadJson('result-shard-index.json'),key=provider+'|'+id,shardPath=index[key];if(!shardPath)throw Error('结果索引缺失');let shard=await loadJson(shardPath),row=shard.results[key];if(!row)throw Error('结果内容缺失');let names={moli:__MOLI_LABEL_JSON__, 'moli-fixed':__MOLI_FIXED_LABEL_JSON__,lightpanda:'Lightpanda',obscura:'Obscura',chromium:'Chrome',kitesurf:'Kitesurf'},name=names[provider]||provider;title.textContent=name+' · '+id;document.title=title.textContent+' · WebMainBench 545';document.getElementById('result-source').textContent=row.original_url;let failure=['请求失败','空输出','错误页'].includes(row.diagnosis),detail=document.querySelector('[data-report-detail]');detail.dataset.reportDetail=failure?'failed':'success';document.getElementById('result-summary').textContent='状态：'+(row.ok?'返回成功':'请求失败')+'；诊断：'+row.diagnosis+'；最终调用 '+row.elapsed_ms.toFixed(0)+' ms；物理调用 '+row.physical_attempt_count+' 次，含重试总耗时 '+row.total_elapsed_ms.toFixed(0)+' ms。';let correction=document.getElementById('result-correction');correction.hidden=!row.supersedes_attempt_id;let section=document.getElementById('result-failure');section.hidden=!failure;if(failure){document.getElementById('result-stage').textContent='阶段：'+(row.error_type||row.diagnosis);document.getElementById('result-error').textContent='程序错误：'+(row.error_message||'无');document.getElementById('result-log').textContent=row.provider_metadata?.stderr||row.provider_metadata?.browser_stderr||'无日志';document.getElementById('result-cause').textContent='复核原因：'+(row.review?.cause||'未记录');document.getElementById('result-treatment').textContent='处理：'+(row.review?.treatment||'未记录').replace(/[。；]+$/,'')+'；状态：'+(row.review?.status||'未记录')}let labels=[['text_edit','全文'],['code_edit','代码'],['formula_edit','公式'],['table_edit','表格内容'],['table_TEDS','表格结构']],body=document.getElementById('result-metrics');for(let [metric,label] of labels){let tr=document.createElement('tr'),entry=row.metrics?.[metric]||{};for(let value of [label,(!entry.success||entry.score==null)?'—':(entry.score*100).toFixed(1)+'%',entry.success?'参与计分':'不参与计分']){let td=document.createElement('td');td.textContent=value;tr.append(td)}body.append(tr)}document.getElementById('result-case').href='cases/index.html?id='+id;document.getElementById('result-output').href='viewer/index.html?path='+encodeURIComponent(row.artifact_path);document.getElementById('result-reference').href='viewer/index.html?path=references/'+id+'.md';document.getElementById('result-source-link').href='viewer/index.html?path=sources/'+id+'.html.txt';let physical=shard.physical[id]||[],list=document.getElementById('result-physical-list');for(let [number,attempt] of physical.entries()){let li=document.createElement('li'),a=document.createElement('a');a.href='viewer/index.html?path='+encodeURIComponent(attempt.physical_artifact_path);a.textContent='第 '+(number+1)+' 次调用 · '+attempt.elapsed_ms.toFixed(0)+' ms';li.append(a);list.append(li)}document.getElementById('result-physical').hidden=!physical.length}catch(error){title.textContent='无法载入结果：'+error.message}}
+async function renderResult(){let params=new URLSearchParams(location.search),provider=params.get('provider')||'',id=params.get('id')||'';let title=document.getElementById('result-title');if(!/^[a-z0-9-]+$/.test(provider)||!/^[A-Za-z0-9-]+$/.test(id)){title.textContent='无效结果地址';return}try{let index=await loadJson('result-shard-index.json'),key=provider+'|'+id,shardPath=index[key];if(!shardPath)throw Error('结果索引缺失');let shard=await loadJson(shardPath),row=shard.results[key];if(!row)throw Error('结果内容缺失');let names=__PROVIDER_LABELS_JSON__,name=names[provider]||provider;title.textContent=name+' · '+id;document.title=title.textContent+' · WebMainBench 545';document.getElementById('result-source').textContent=row.original_url;let failure=['请求失败','空输出','错误页'].includes(row.diagnosis),detail=document.querySelector('[data-report-detail]');detail.dataset.reportDetail=failure?'failed':'success';document.getElementById('result-summary').textContent='状态：'+(row.ok?'返回成功':'请求失败')+'；诊断：'+row.diagnosis+'；最终调用 '+row.elapsed_ms.toFixed(0)+' ms；物理调用 '+row.physical_attempt_count+' 次，含重试总耗时 '+row.total_elapsed_ms.toFixed(0)+' ms。';let correction=document.getElementById('result-correction');correction.hidden=!row.supersedes_attempt_id;let section=document.getElementById('result-failure');section.hidden=!failure;if(failure){document.getElementById('result-stage').textContent='阶段：'+(row.error_type||row.diagnosis);document.getElementById('result-error').textContent='程序错误：'+(row.error_message||'无');document.getElementById('result-log').textContent=row.provider_metadata?.stderr||row.provider_metadata?.browser_stderr||'无日志';document.getElementById('result-cause').textContent='复核原因：'+(row.review?.cause||'未记录');document.getElementById('result-treatment').textContent='处理：'+(row.review?.treatment||'未记录').replace(/[。；]+$/,'')+'；状态：'+(row.review?.status||'未记录')}let labels=[['text_edit','全文'],['code_edit','代码'],['formula_edit','公式'],['table_edit','表格内容'],['table_TEDS','表格结构']],body=document.getElementById('result-metrics');for(let [metric,label] of labels){let tr=document.createElement('tr'),entry=row.metrics?.[metric]||{};for(let value of [label,(!entry.success||entry.score==null)?'—':(entry.score*100).toFixed(1)+'%',entry.success?'参与计分':'不参与计分']){let td=document.createElement('td');td.textContent=value;tr.append(td)}body.append(tr)}document.getElementById('result-case').href='cases/index.html?id='+id;document.getElementById('result-output').href='viewer/index.html?path='+encodeURIComponent(row.artifact_path);document.getElementById('result-reference').href='viewer/index.html?path=references/'+id+'.md';document.getElementById('result-source-link').href='viewer/index.html?path=sources/'+id+'.html.txt';let physical=shard.physical[id]||[],list=document.getElementById('result-physical-list');for(let [number,attempt] of physical.entries()){let li=document.createElement('li'),a=document.createElement('a');a.href='viewer/index.html?path='+encodeURIComponent(attempt.physical_artifact_path);a.textContent='第 '+(number+1)+' 次调用 · '+attempt.elapsed_ms.toFixed(0)+' ms';li.append(a);list.append(li)}document.getElementById('result-physical').hidden=!physical.length}catch(error){title.textContent='无法载入结果：'+error.message}}
 async function renderCase(){
   let id=new URLSearchParams(location.search).get('id')||'',slot=document.getElementById('case-id');
   if(!/^[A-Za-z0-9-]+$/.test(id)){slot.textContent='无效任务地址';return}
@@ -2981,7 +2982,7 @@ async function renderCase(){
     document.getElementById('case-source').href='viewer/index.html?path=sources/'+id+'.html.txt';
     document.getElementById('case-reference').href='viewer/index.html?path=references/'+id+'.md';
     let resultIndex=await loadJson('result-shard-index.json'),artifactIndex=await loadJson('artifact-shard-index.json');
-    let names={moli:__MOLI_LABEL_JSON__,'moli-fixed':__MOLI_FIXED_LABEL_JSON__,lightpanda:'Lightpanda',obscura:'Obscura',chromium:'Chrome',kitesurf:'Kitesurf'};
+    let names=__PROVIDER_LABELS_JSON__;
     let metrics=['overall','text_edit','code_edit','formula_edit','table_edit','table_TEDS'];
     let providers=dataset.coverage_plan.static_html,referencePath='references/'+id+'.md';
     let paths=[...new Set([...providers.map(p=>resultIndex[p+'|'+id]),artifactIndex[referencePath]])];
@@ -3020,11 +3021,9 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
         return (json.dumps(value, ensure_ascii=False)
                 .replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
                 .replace('\u2028', '\\u2028').replace('\u2029', '\\u2029'))
-    js = js.replace("__MOLI_LABEL_JSON__", js_string("Moli " + profile["versions"]["moli"]))
-    js = js.replace("__MOLI_FIXED_LABEL_JSON__", js_string(
-        "Moli " + profile["versions"]["moli-fixed"] + "（修复后）"))
+    js = js.replace("__PROVIDER_LABELS_JSON__", js_string(labels))
     js += """
-async function openDiagnosis(button){let tr=button.closest('tr[data-result]'),dialog=document.getElementById('diagnosis-dialog'),provider=tr?.dataset.provider,id=tr?.dataset.caseId;if(!dialog||!provider||!id)return;let put=(name,value)=>{document.getElementById('diagnosis-'+name).textContent=value};put('title','正在读取诊断…');put('error','');put('log','');put('cause','');put('treatment','');dialog.showModal();try{let index=await loadJson('result-shard-index.json'),key=provider+'|'+id,shard=await loadJson(index[key]),row=shard.results[key];if(!row)throw Error('结果证据缺失');put('title',id+' · '+row.diagnosis);put('stage',row.error_type?'失败阶段：'+row.error_type:'诊断类别：'+row.diagnosis);put('error','程序错误：'+(row.error_message||'无'));put('log',row.provider_metadata?.stderr||row.provider_metadata?.browser_stderr||row.error_message||'无日志');put('cause','复核原因：'+(row.review?.cause||'未独立复核'));put('treatment','处理：'+(row.review?.treatment||'未记录')+'；状态：'+(row.review?.status||'未记录'));document.getElementById('diagnosis-result').href='results/index.html?provider='+provider+'&id='+id;document.getElementById('diagnosis-output').href='viewer/index.html?path='+encodeURIComponent(row.artifact_path);document.getElementById('diagnosis-case').href='cases/index.html?id='+id}catch(error){put('title','诊断读取失败');put('error',error.message)}}
+async function openDiagnosis(button){let tr=button.closest('tr[data-result]'),dialog=document.getElementById('diagnosis-dialog'),provider=tr?.dataset.provider,id=tr?.dataset.caseId;if(!dialog||!provider||!id)return;let put=(name,value)=>{document.getElementById('diagnosis-'+name).textContent=value};put('title','正在读取诊断…');put('error','');put('log','');put('cause','');put('treatment','');dialog.showModal();try{let index=await loadJson('result-shard-index.json'),key=provider+'|'+id,shard=await loadJson(index[key]),row=shard.results[key];if(!row)throw Error('结果证据缺失');put('title',id+' · '+row.diagnosis);put('stage',row.error_type?'失败阶段：'+row.error_type:'诊断类别：'+row.diagnosis);put('error','程序错误：'+(row.error_message||'无'));put('log',row.provider_metadata?.stderr||row.provider_metadata?.browser_stderr||row.error_message||'无日志');put('cause','复核原因：'+(row.review?.cause||'未独立复核'));put('treatment','处理：'+(row.review?.treatment||'未记录').replace(/[。；]+$/,'')+'；状态：'+(row.review?.status||'未记录'));document.getElementById('diagnosis-result').href='results/index.html?provider='+provider+'&id='+id;document.getElementById('diagnosis-output').href='viewer/index.html?path='+encodeURIComponent(row.artifact_path);document.getElementById('diagnosis-case').href='cases/index.html?id='+id}catch(error){put('title','诊断读取失败');put('error',error.message)}}
 document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElementById('diagnosis-dialog');if(!dialog)return;document.getElementById('diagnosis-close').addEventListener('click',()=>dialog.close());document.addEventListener('click',event=>{let button=event.target.closest('button[data-diagnose]');if(button)openDiagnosis(button)})});
 """
     css += "code,#result-error{overflow-wrap:anywhere;word-break:break-word}dialog{width:min(760px,calc(100% - 24px));max-height:85vh;overflow:auto;border:1px solid #9aacc0;border-radius:12px;background:white;color:#172637;padding:22px}dialog::backdrop{background:#0b172bc9}body.dark dialog{background:#1c2b3b;color:#edf3fa;border-color:#61768b}dialog .actions{margin-top:16px}dialog pre{max-height:28vh}td button[data-diagnose]{font-size:14px;padding:2px 6px}"
@@ -3090,11 +3089,11 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
         for provider in providers:
             numbers = []
             for index, value in enumerate(values_by_provider[provider]):
-                eligible = [values_by_provider[other][index] for other in providers if other != "moli-fixed" and values_by_provider[other][index] is not None]
-                unique = provider != "moli-fixed" and value is not None and value == min(eligible) and eligible.count(value) == 1
+                eligible = [values_by_provider[other][index] for other in providers if other not in variant_labels and values_by_provider[other][index] is not None]
+                unique = provider not in variant_labels and value is not None and value == min(eligible) and eligible.count(value) == 1
                 marker = '<strong class="comparison-winner winner">' if unique else '<span>'
                 end = '</strong>' if unique else '</span>'
-                numbers.append('<td class="number" data-metric="success-latency-' + str(index) + '" data-metric-direction="' + ('neutral' if provider == 'moli-fixed' else 'min') + '"' +
+                numbers.append('<td class="number" data-metric="success-latency-' + str(index) + '" data-metric-direction="' + ('neutral' if provider in variant_labels else 'min') + '"' +
                                (' data-sort="' + str(value) + '"' if value is not None else '') + '>' + marker +
                                (f"{value:,.0f} ms" if value is not None else "—") + end + '</td>')
             rows.append("<tr><td>" + esc(labels[provider]) + "</td><td>" + str(len(successful_by_provider[provider])) + "/545</td>" + ''.join(numbers) + "</tr>")
@@ -3108,10 +3107,10 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
         for provider in providers:
             cells = []
             for index, number in enumerate(values[provider]):
-                column = [values[other][index] for other in providers if other != "moli-fixed"]
-                unique = provider != "moli-fixed" and number == min(column) and column.count(number) == 1
+                column = [values[other][index] for other in providers if other not in variant_labels]
+                unique = provider not in variant_labels and number == min(column) and column.count(number) == 1
                 marker = '<strong class="comparison-winner winner">' if unique else '<span>'
-                cells.append('<td class="number" data-metric="all-call-latency-' + str(index) + '" data-metric-direction="' + ('neutral' if provider == 'moli-fixed' else 'min') + '" data-sort="' +
+                cells.append('<td class="number" data-metric="all-call-latency-' + str(index) + '" data-metric-direction="' + ('neutral' if provider in variant_labels else 'min') + '" data-sort="' +
                              str(number) + '">' + marker + f'{number:,.0f} ms' + ('</strong>' if unique else '</span>') + '</td>')
             rows.append('<tr><td>' + esc(labels[provider]) + '</td><td>545/545</td>' + ''.join(cells) + '</tr>')
         return table(['方法', '全部逻辑调用', '均值', 'P50', 'P95'], rows)
@@ -3160,9 +3159,9 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
     page("analysis/index.html", "结果分析", '<section class="hero"><h1>逐项结果与问题定位</h1><p>' + prose('analysis_lead') + '</p></section>' +
          filters + '<p>当前显示 <strong id="count"></strong> 条。<span id="empty" hidden>当前条件无结果。</span></p>' +
          table(["任务", "方法", "诊断", "全文分", "最终调用", "同页"], result_rows) +
-         '<dialog id="diagnosis-dialog" aria-labelledby="diagnosis-title"><button type="button" id="diagnosis-close">关闭诊断</button><h2 id="diagnosis-title"></h2><p id="diagnosis-stage"></p><p id="diagnosis-error"></p><p id="diagnosis-cause"></p><p id="diagnosis-treatment"></p><details><summary>原始运行日志</summary><pre id="diagnosis-log"></pre></details><p class="actions"><a id="diagnosis-result">完整结果与调用记录</a><a id="diagnosis-output">原始输出</a><a id="diagnosis-case">同页六方法对照</a></p></dialog>')
+         '<dialog id="diagnosis-dialog" aria-labelledby="diagnosis-title"><button type="button" id="diagnosis-close">关闭诊断</button><h2 id="diagnosis-title"></h2><p id="diagnosis-stage"></p><p id="diagnosis-error"></p><p id="diagnosis-cause"></p><p id="diagnosis-treatment"></p><details><summary>原始运行日志</summary><pre id="diagnosis-log"></pre></details><p class="actions"><a id="diagnosis-result">完整结果与调用记录</a><a id="diagnosis-output">原始输出</a><a id="diagnosis-case">同页七方法对照</a></p></dialog>')
     page("cases/index.html", "同页比较",
-         '<section class="hero"><h1>人工答案与六种方法的完整输出</h1><p id="case-id"></p><p class="source" id="case-url"></p></section>'
+         '<section class="hero"><h1>人工答案与七种方法的完整输出</h1><p id="case-id"></p><p class="source" id="case-url"></p></section>'
          '<p class="actions"><a id="case-source">冻结网页</a><a id="case-reference">人工答案</a>' + anchor("dataset/index.html", "返回数据集") + '</p>'
          '<div class="scroll"><table><thead><tr><th>方法</th><th>诊断</th>' + ''.join('<th>' + esc(label) + '</th>' for _, label in measures) +
          '</tr></thead><tbody id="case-results"></tbody></table></div>'
@@ -3170,7 +3169,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
     page("results/index.html", "逐项结果",
          '<div data-report-detail="pending"><section class="hero"><h1 id="result-title">正在载入结果…</h1><p class="source" id="result-source"></p></section>'
          '<section class="panel" data-result-summary><h2>结果摘要</h2><p id="result-summary"></p></section>'
-         '<p id="result-correction" hidden>本条为保留原网址后的认证补测结果，已替换旧环境下同一方法的结果。<a href="guide/index.html#fixture-correction">原因、六方法对照与旧调用记录</a></p>'
+         '<p id="result-correction" hidden>本条为保留原网址后的认证补测结果，已替换旧环境下同一方法的结果。<a href="guide/index.html#fixture-correction">原因、七方法对照与旧调用记录</a></p>'
          '<section class="panel" data-failure-diagnosis id="result-failure" hidden><h2>错误与诊断</h2><p id="result-stage"></p><p id="result-error"></p><p id="result-cause"></p><p id="result-treatment"></p>'
          '<details id="result-logs"><summary>原始运行日志</summary><pre data-kind="error" id="result-log"></pre></details></section>'
          '<section><h2>五项质量指标</h2><div class="scroll"><table><thead><tr><th>指标</th><th>分数</th><th>状态</th></tr></thead><tbody id="result-metrics"></tbody></table></div></section>'
@@ -3253,7 +3252,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
         anchor("viewer/index.html?path=sources/" + example_id + ".html.txt", "冻结 HTML"),
         anchor("viewer/index.html?path=references/" + example_id + ".md", "人工答案"),
         anchor("viewer/index.html?path=" + example_row["artifact_path"], labels[providers[0]] + " 输出"),
-        anchor("cases/index.html?id=" + example_id, "六种方法同页比较"),
+        anchor("cases/index.html?id=" + example_id, "七种方法同页比较"),
     ])
     overall_scores = {provider: summaries[provider]["official_aggregate"]["scores"]["overall"]
                       for provider in providers}
@@ -3263,39 +3262,50 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                if len(leaders) == 1 else
                "本轮 545 页的综合分最高值为 " + percent(highest) + "，由 " +
                "、".join(labels[provider] for provider in leaders) + " 并列取得。")
-    old_moli, fixed_moli = summaries['moli'], summaries['moli-fixed']
-    changed_moli = [case_id for case_id in cases
-                    if target_body[grouped[case_id]['moli']['attempt_id']] !=
-                    target_body[grouped[case_id]['moli-fixed']['attempt_id']]]
+    variant_ids = [item['provider'] for item in profile.get('variants', [])]
+    if len(variant_ids) != 2:
+        raise ValueError('The complete report requires both independently measured Moli repair variants')
+    prior_moli, content_moli = variant_ids
+    changed_moli = [case_id for case_id in cases if len({
+        target_body[grouped[case_id][provider]['attempt_id']]
+        for provider in ('moli', prior_moli, content_moli)
+    }) > 1]
     changed_moli_rows = ["<tr><td>" + anchor("cases/index.html?id=" + case_id, case_id) +
                          "</td><td>" + ("有正文" if target_body[grouped[case_id]['moli']['attempt_id']] else "无正文") +
-                         "</td><td>" + ("有正文" if target_body[grouped[case_id]['moli-fixed']['attempt_id']] else "无正文") +
-                         "</td><td>" + anchor("results/index.html?provider=moli-fixed&id=" + case_id, "修复版输出与错误") +
+                         "</td><td>" + ("有正文" if target_body[grouped[case_id][prior_moli]['attempt_id']] else "无正文") +
+                         "</td><td>" + ("有正文" if target_body[grouped[case_id][content_moli]['attempt_id']] else "无正文") +
+                         "</td><td>" + anchor("cases/index.html?id=" + case_id, "查看三版输出") +
                          "</td></tr>" for case_id in changed_moli]
-    fixed_section = ('<section><h2>Moli 修复前后</h2><p>原版生成目标正文 ' +
-                     str(target_body_count('moli')) + '/545，修复版 ' +
-                     str(target_body_count('moli-fixed')) + '/545。经同一表格结构评分修正，综合分分别为 ' +
-                     f"{old_moli['official_aggregate']['scores']['overall'] * 100:.2f}%" + ' 和 ' +
-                     f"{fixed_moli['official_aggregate']['scores']['overall'] * 100:.2f}%" + '。' +
+    comparison_rows = []
+    for provider in ('moli', prior_moli, content_moli):
+        aggregate = summaries[provider]['official_aggregate']['scores']
+        comparison_rows.append('<tr><td>' + esc(labels[provider]) + '</td><td>' +
+                               str(target_body_count(provider)) + '/545</td>' + ''.join(
+                               '<td>' + f"{aggregate[metric] * 100:.2f}%" + '</td>'
+                               for metric, _ in measures) + '</tr>')
+    fixed_section = ('<section id="moli-repair-lineage"><h2>Moli 三个版本：两次修复各自保留</h2><p>' +
                      prose('fixed_quality') + '</p><p>' + prose('fixed_mechanism') + '</p>' +
-                     table(['任务', '原版正文', '修复版正文', '逐项证据'], changed_moli_rows) +
-                     '<p class="note">修复版另一次全量运行；两版的耗时不是同一时间窗交叉测量。' +
-                     anchor('six-method-binding.json', '两轮认证证据') + ' · ' +
-                     anchor('https://github.com/lexmount/moli/pull/814', '修复代码与 CI') + '</p></section>')
+                     table(['版本', '目标正文', *[label for _, label in measures]], comparison_rows) +
+                     (table(['任务', '原版正文', labels[prior_moli], labels[content_moli], '逐项证据'], changed_moli_rows)
+                      if changed_moli_rows else '') +
+                     '<p class="note">两个修复版均为独立的 545 页认证运行，运行日期不同，耗时不作版本快慢结论。' +
+                     anchor('seven-method-binding.json', '三轮证据绑定') + ' · ' +
+                     anchor('https://github.com/lexmount/moli/pull/785', 'PR785') + ' · ' +
+                     anchor('https://github.com/lexmount/moli/pull/814', 'PR814') + '</p></section>')
     correction_section = ''
     if correction:
         corrected_id = correction['preflight']['case_id']
         correction_section = ('<section id="fixture-correction"><h2>狼人杀规则页：测试地址导致的假失败已纠正</h2>'
             '<p>页面脚本会检查当前域名和路径。旧环境把地址替换为 localhost，触发跳回原站；隔离规则随后阻断访问。'
-            '修正后的环境保留原网址，由本地代理提供同一份冻结 HTML，继续阻断外部资源。六种方法使用原受测二进制完成同页认证补测，均返回正文。</p>'
+            '修正后的环境保留原网址，由本地代理提供同一份冻结 HTML，继续阻断外部资源。七种方法使用各自原受测二进制完成同页认证补测，均返回正文。</p>'
             + table(['方法', '补测正文字符数', '补测全文分', '证据'], [
                 '<tr><td>' + esc(labels[p]) + '</td><td>' + str(grouped[corrected_id][p]['output_chars']) +
                 '</td><td>' + percent(score(grouped[corrected_id][p], 'text_edit')) + '</td><td>' +
                 anchor('results/index.html?provider=' + p + '&id=' + corrected_id, '完整输出') + '</td></tr>' for p in providers]) +
-            '<p>这六条结果统一替换旧环境下的同页结果，其他 544 页不变。修复版 Moli 已生成正文 545/545；'
+            '<p>这七条结果统一替换旧环境下的同页结果，其他 544 页不变。两个修复版 Moli 均生成正文 545/545；'
             '历史 544/545 对应修正前的测试环境。旧调用额外耗时 ' + f"{correction['superseded_execution_ms']:,.0f}" +
             ' ms 单独保留，不混入补测最终调用延迟。</p><p>' + anchor('case-correction.json', '认证与修订依据') + ' · ' +
-            anchor('superseded-case-results.jsonl', '被替换的六条历史结果') + '</p></section>')
+            anchor('superseded-case-results.jsonl', '被替换的七条历史结果') + '</p></section>')
     method_rows = []
     diagnostic_rows = []
     diagnostic_kinds = ("请求失败", "空输出", "错误页", "低全文相似度")
@@ -3334,8 +3344,8 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
          '</section><section><h2>可检查的一页</h2><p>' + prose('guide_example') + '</p><p>' + example_links + '</p>' +
          '</section><section id="content-audit"><h2>545 页内容审计如何进入修复</h2><p>' + prose('audit_scope') +
          '</p><p>' + prose('audit_findings') + '</p><p>' + prose('audit_resolution') + '</p><p class="note">' +
-         prose('audit_limit') + '</p></section>' + illustration('overview-moli-1.1.10.png', '545 页六方法结果与错误分布；分数与计分范围以表格为准。') + fixed_section + correction_section +
-         illustration('error-mechanisms.png', '浏览器实现、托管服务与共享测试环境的错误机制；点击查看原图。') +
+         prose('audit_limit') + '</p></section>' + illustration('seven-method-overview.png', '545 页七方法结果、目标正文覆盖与两次 Moli 修复的关系；分数与计分范围以表格为准。') + fixed_section + correction_section +
+         illustration('moli-repair-mechanisms.png', '从内容缺陷、实现原因到修复层和输出变化的对应关系。') +
          '<section><h2>各方法的主要问题</h2>' +
          table(["方法", "目标正文", "自动诊断数", "本轮观察"], method_rows) +
          '<p class="note">' + prose('guide_method_scope') + '</p>' +
@@ -3348,9 +3358,12 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
          anchor('failure-analysis.json', '查看逐条失败原因与处理') +
          '</section><section><h2>结论</h2><p>' + prose('guide_conclusion') + '</p></section>')
     evidence_links = ["current-report.json", "cohort-certificate.json", "scoring-certificate.json",
-                      "moli-fixed-report.json", "fixed-cohort-certificate.json", "fixed-scoring-certificate.json", "six-method-binding.json",
+                      *[item['profile'] for item in profile.get('variants', [])],
+                      *[item['provider'] + "-cohort-certificate.json" for item in profile.get('variants', [])],
+                      *[item['provider'] + "-scoring-certificate.json" for item in profile.get('variants', [])],
+                      "seven-method-binding.json",
                       "execution.json", "dataset.json",
-                      "results.jsonl", "original-results.jsonl", "physical-attempts.jsonl",
+                      "results.jsonl", "physical-attempts.jsonl",
                       "score-summaries.json", "teds-correction-review.json", "report-content.json", "failure-analysis.json"]
     if correction:
         evidence_links += ['case-correction.json', 'superseded-case-results.jsonl', 'superseded-case-calls.jsonl']

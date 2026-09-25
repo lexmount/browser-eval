@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "variants": [
+    {
+      "provider": "moli-pr785-fixed",
+      "profile": "moli-pr785-fixed-report.json",
+      "evidence_alias": "moli-fixed",
+      "label": "Moli 1.1.9 · PR785 修复版",
+      "short_label": "PR785 修复版",
+      "role": "prior_repair",
+      "pull_request": "https://github.com/lexmount/moli/pull/785"
+    },
+    {
+      "provider": "moli-content-fixed",
+      "profile": "moli-content-fixed-report.json",
+      "evidence_alias": "moli-fixed",
+      "label": "Moli 1.1.10 · 内容修复版",
+      "short_label": "内容修复版",
+      "role": "content_repair",
+      "pull_request": "https://github.com/lexmount/moli/pull/814"
+    }
+  ]
+}

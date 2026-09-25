@@ -11,8 +11,9 @@ from scripts.report_presentation_contract import check_presentation
 from scripts.check_webmainbench_full_report import check_diagnosis_inventory, check_result_payload
 
 
-def test_full_report_renders_six_way_details_and_failure_evidence(tmp_path: Path) -> None:
-    providers = ["moli", "lightpanda", "obscura", "chromium", "kitesurf", "moli-fixed"]
+def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Path) -> None:
+    providers = ["moli", "lightpanda", "obscura", "chromium", "kitesurf",
+                 "moli-pr785-fixed", "moli-content-fixed"]
     case_id = "case-1"
     metrics = ("text_edit", "code_edit", "formula_edit", "table_edit", "table_TEDS")
     (tmp_path / "artifacts").mkdir()
@@ -57,9 +58,17 @@ def test_full_report_renders_six_way_details_and_failure_evidence(tmp_path: Path
     (tmp_path / "references").mkdir()
     (tmp_path / "references/case-1.md").write_text("answer")
     profile = {"providers": providers, "versions": {provider: "1.0" for provider in providers},
+               "variants": [
+                   {"provider": "moli-pr785-fixed", "profile": "moli-pr785-fixed-report.json"},
+                   {"provider": "moli-content-fixed", "profile": "moli-content-fixed-report.json"},
+               ],
+               "variant_labels": {
+                   "moli-pr785-fixed": "Moli 1.1.9 · PR785 修复版",
+                   "moli-content-fixed": "Moli 1.1.10 · 内容修复版",
+               },
                "source_dataset_sha256": "a" * 64, "official_scorer_commit": "b" * 40}
     profile["versions"]["moli"] = "1.0'</script><script>bad()"
-    profile["versions"]["moli-fixed"] = "1.1'</script><script>bad()"
+    profile["versions"]["moli-content-fixed"] = "1.1'</script><script>bad()"
     content_keys = ("home_title", "home_lead", "score_note", "latency_note", "all_latency_note", "diagnostic_note", "infographic_caption",
                     "dataset_lead", "analysis_lead", "method_lead", "method_input",
                     "method_scoring", "method_correction", "guide_lead", "guide_scope",
@@ -90,10 +99,10 @@ def test_full_report_renders_six_way_details_and_failure_evidence(tmp_path: Path
     assert "</script><script>bad()" not in report_js
     assert "\\u003c/script\\u003e\\u003cscript\\u003ebad()" in report_js
     home = check_presentation((tmp_path / "index.html").read_text(encoding="utf-8"))
-    assert len(home.select('td[data-metric-direction="max"]')) == 36
+    assert len(home.select('td[data-metric-direction="max"]')) == 42
     assert len(home.select('td[data-metric-direction="max"] .comparison-winner')) == 6
     assert home.select_one('td[data-target-body-provider="chromium"]').get_text(strip=True) == "0/545"
-    assert home.select_one('td[data-target-body-provider="moli-fixed"]').get_text(strip=True) == "1/545"
+    assert home.select_one('td[data-target-body-provider="moli-content-fixed"]').get_text(strip=True) == "1/545"
     assert "目标正文" in home.get_text()
     detail = check_presentation((tmp_path / "results/index.html").read_text(encoding="utf-8"))
     assert detail.select_one('[data-failure-diagnosis]') is not None
@@ -103,8 +112,8 @@ def test_full_report_renders_six_way_details_and_failure_evidence(tmp_path: Path
     assert comparison.select_one("#case-reference") is not None
     analysis = BeautifulSoup((tmp_path / "analysis/index.html").read_text(encoding="utf-8"), "html.parser")
     check_diagnosis_inventory(analysis)
-    assert len(analysis.select("tr[data-result]")) == 6
-    assert analysis.select_one('tr[data-provider="moli-fixed"]') is not None
+    assert len(analysis.select("tr[data-result]")) == 7
+    assert analysis.select_one('tr[data-provider="moli-content-fixed"]') is not None
     assert analysis.select_one("#cause") is not None
     assert analysis.select_one('tr[data-cause="Moli 解析器崩溃"]') is not None
     missing_dialog = BeautifulSoup(str(analysis).replace('id="diagnosis-error"', 'id="missing-error"'), 'html.parser')
@@ -127,7 +136,7 @@ def test_full_report_renders_six_way_details_and_failure_evidence(tmp_path: Path
     assert not (tmp_path / "artifacts").exists()
     assert not (tmp_path / "sources").exists()
     assert not (tmp_path / "references").exists()
-    assert len(list((tmp_path / "shards").glob("*.json"))) == 7
+    assert len(list((tmp_path / "shards").glob("*.json"))) == 8
     with pytest.raises(ValueError, match="Out-of-cohort"):
         check_presentation(home_html.replace('data-metric-direction="neutral"',
                                             'data-metric-direction="neutral"><strong class="comparison-winner">bad</strong><span', 1))

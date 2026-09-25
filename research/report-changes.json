@@ -1297,6 +1297,49 @@
       }}
     },
     {
+      "id": "webmainbench-545-seven-method-moli-lineage-20260925",
+      "date": "2026-09-25",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "title": "分开保留两次 Moli 修复并发布七方法结果",
+      "summary": "PR785 修复版和 1.1.10 内容修复版作为两个独立方法加入同一份 545 页报告，共 3,815 条结果。两版均生成目标正文 545/545；PR785 修复版综合分 34.08%，内容修复版综合分 32.97%，并提高表格内容、表格结构和公式分。",
+      "changes": [
+        [
+          "方法身份",
+          "内容修复版曾覆盖较早的 PR785 修复版，报告只能看到六种方法。",
+          "按源码提交、版本和二进制哈希拆分为 Moli 1.1.9 · PR785 修复版与 Moli 1.1.10 · 内容修复版，并将两套独立认证证据绑定为七方法矩阵。",
+          "原五方法结果保持不变；两种修复版各自保留完整输出与物理调用。"
+        ],
+        [
+          "结果解读",
+          "旧解读把两次修复合并为一个修复前后叙述。",
+          "新增三版 Moli 指标表和两张信息图，分别解释版本关系，以及症状、共同根因、修改层与核对方式。",
+          "内容修复版的结构和公式收益与代码分下降同时披露；跨日期耗时不作版本快慢结论。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Retain both Moli repairs as a seven-method comparison",
+          "summary": "The PR785 repair and the Moli 1.1.10 content repair are now separate methods in the same 545-page report, for 3,815 results. Both deliver target body text on 545/545 pages. The PR785 repair scores 34.08% overall; the content repair scores 32.97% while improving table content, table structure, and formula scores.",
+          "changes": [
+            [
+              "Method identity",
+              "The newer content repair had replaced the earlier PR785 repair, leaving only six visible methods.",
+              "Bind the Moli 1.1.9 PR785 repair and the Moli 1.1.10 content repair as distinct methods using their source commits, versions, binary hashes, and independent certificates.",
+              "The five baseline methods remain unchanged; both repair variants retain complete outputs and physical calls."
+            ],
+            [
+              "Interpretation",
+              "The prior explanation collapsed two different repairs into one before-and-after story.",
+              "Add a three-version Moli metric table and two information diagrams covering lineage and the path from symptoms through causes and implementation layers to verification.",
+              "The content repair's structure and formula gains are disclosed alongside its lower code score; cross-date latency is not used for version-speed claims."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "webmainbench-545-moli-110-content-audit-20260924",
       "date": "2026-09-24",
       "comparison_kinds": [
