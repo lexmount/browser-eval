@@ -4,6 +4,7 @@ import json
 import pytest
 
 from harness.trajectory_replay import catalog_acceptance as acceptance
+from harness.trajectory_replay.webarena_runtime_source import WEBARENA_VERIFIED_REVISION
 
 
 @pytest.fixture(autouse=True)
@@ -52,7 +53,11 @@ def _run(
                 "action_timeout_ms": 30_000,
                 "environment_profile_sha256": "environment",
                 "corrections_sha256": "corrections",
-                "evaluator_fixes_sha256": "fixes",
+                **(
+                    {"webarena_revision": WEBARENA_VERIFIED_REVISION}
+                    if schema == "lex_trajectory_replay_catalog_run/1"
+                    else {"evaluator_fixes_sha256": "fixes"}
+                ),
             }
         )
     (directory / "inputs.json").write_text(json.dumps(inputs))
@@ -132,6 +137,19 @@ def test_acceptance_still_reads_historical_run_schemas(tmp_path):
 
     assert acceptance._read_run(legacy_v1)[0]["schema"].endswith("/1")
     assert acceptance._read_run(legacy_v2)[0]["schema"].endswith("/2")
+
+
+def test_acceptance_rejects_different_current_webarena_revision(tmp_path, monkeypatch):
+    monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
+    scope = _scope(tmp_path, [7])
+    sweep = _run(tmp_path, "sweep", [7], {})
+    inputs = sweep / "inputs.json"
+    payload = json.loads(inputs.read_text())
+    payload["webarena_revision"] = "0" * 40
+    inputs.write_text(json.dumps(payload))
+
+    with pytest.raises(ValueError, match="different WebArena evaluator revision"):
+        acceptance.audit(scope, [sweep], [])
 
 
 def test_acceptance_requires_external_action_overrides_for_amended_run(tmp_path, monkeypatch):

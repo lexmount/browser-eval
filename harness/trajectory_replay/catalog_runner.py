@@ -167,7 +167,7 @@ def main() -> None:
         help="JSON selection for a large unresolved-only replay",
     )
     args = parser.parse_args()
-    verify_webarena_runtime_source()
+    webarena_runtime = verify_webarena_runtime_source()
     if args.action_timeout_ms < 1:
         raise ValueError("action timeout must be positive")
     if args.backend == "browsertool":
@@ -210,9 +210,7 @@ def main() -> None:
         "backend": args.backend,
         "action_timeout_ms": args.action_timeout_ms,
         "corrections_sha256": corrections.source_sha256,
-        "evaluator_fixes_sha256": file_sha256(
-            root / "harness/trajectory_replay/webarena_evaluator_fixes.py"
-        ),
+        "webarena_revision": webarena_runtime.revision,
         "runner_revision": subprocess.check_output(
             ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
         ).strip(),

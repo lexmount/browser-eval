@@ -4,9 +4,9 @@
   "evaluator_source": {
     "repository": "https://github.com/lexmount/webarena-verified.git",
     "branch": "lex-main",
-    "revision": "ada543a9e9eddc80769f962c102576baa845ae0e"
+    "revision": "ecd7b9661021b944c52c58ac10f9783fc520e3e0"
   },
-  "official_dataset_sha256": "7ab0ef7e61af98efc5e16ba2b4303ddc0b8f5b66b5c88c58cb76e89e9235b57a",
+  "official_dataset_sha256": "fcaea886102299ef7a73f0dfb1273d9313185fb08b3f48bd738a76cc9c7a39a0",
   "task_count": 812,
   "task_id_range": [0, 811],
   "execution_order": "ascending_official_task_id",

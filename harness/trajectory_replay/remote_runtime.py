@@ -18,9 +18,6 @@ from webarena_verified.types.config import EnvironmentConfig, WebArenaVerifiedCo
 from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.runner import SITE_CREDENTIALS, SITE_PORTS
-from harness.trajectory_replay.webarena_evaluator_fixes import (
-    install_webarena_evaluator_fixes,
-)
 
 READ_ONLY_PORTS = {8888: WebArenaSite.WIKIPEDIA, 3000: WebArenaSite.MAP}
 SUPPORTED_REMOTE_SITES = frozenset(SITE_PORTS) | frozenset(READ_ONLY_PORTS.values())
@@ -66,7 +63,6 @@ def load_remote_sites(path: Path) -> dict[WebArenaSite, str]:
 
 
 def remote_benchmark(sites: dict[WebArenaSite, str]) -> WebArenaVerified:
-    install_webarena_evaluator_fixes()
     return WebArenaVerified(
         config=WebArenaVerifiedConfig(
             environments={

@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
-import re
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -112,7 +111,7 @@ def _empty_har(path: Path) -> Path:
 
 @pytest.mark.parametrize(
     "task_id",
-    [9, 18, 32, 34, 35, 61, 90, 252, 265, 266, 267, 268, 363, 367, 383],
+    [9, 18, 32, 34, 35, 61, 90, 252, 363, 367, 383],
 )
 def test_live_map_reference_corrections_accept_bound_observation_and_reject_neighbor(
     tmp_path, route_benchmark, catalog, task_id
@@ -126,17 +125,7 @@ def test_live_map_reference_corrections_accept_bound_observation_and_reject_neig
         f"tr-{task_id}-reject-nearby-wrong-map-reference",
     ]
     response = receipt["observed_response"]
-    route_urls = {
-        265: "http://map.test/osrm/routed-car/route/v1/driving/-68.2177005318788,44.3494709082008;-71.05768162905511,42.360400999999996?overview=false",
-        266: "http://map.test/osrm/routed-car/route/v1/driving/-68.2177005318788,44.3494709082008;-70.25452991354058,43.659914650000005?overview=false",
-        267: "http://map.test/osrm/routed-car/route/v1/driving/-68.2177005318788,44.3494709082008;-68.76750570908236,44.803065340439595?overview=false",
-        268: "http://map.test/osrm/routed-bike/route/v1/driving/-68.2177005318788,44.3494709082008;-68.83153867121342,44.047897450225626?overview=false",
-    }
-    positive_har = (
-        _route_har(tmp_path / "positive.har", route_urls[task_id])
-        if task_id in route_urls
-        else _empty_har(tmp_path / "positive.har")
-    )
+    positive_har = _empty_har(tmp_path / "positive.har")
     positive = evaluate_corrected_contract(
         route_benchmark,
         contract,
@@ -145,16 +134,9 @@ def test_live_map_reference_corrections_accept_bound_observation_and_reject_neig
     )
     assert float(positive.score) == 1.0
 
-    if task_id in route_urls:
-        negative_har = _route_har(
-            tmp_path / "negative.har",
-            route_urls[task_id].replace("-68.2177005318788", "-67.2177005318788"),
-        )
-        negative_response = response
-    else:
-        negative_har = _empty_har(tmp_path / "negative.har")
-        negative_response = copy.deepcopy(response)
-        negative_response["retrieved_data"] = ["definitely wrong"]
+    negative_har = _empty_har(tmp_path / "negative.har")
+    negative_response = copy.deepcopy(response)
+    negative_response["retrieved_data"] = ["definitely wrong"]
     negative = evaluate_corrected_contract(
         route_benchmark,
         contract,
@@ -274,178 +256,6 @@ def test_live_gitlab_repository_post_accepts_observed_project_and_rejects_frozen
     assert score(negative_fields, "negative") == 0.0
 
 
-@pytest.mark.parametrize("task_id", [737, 738, 739, 740, 741, 759, 760])
-def test_osrm_route_order_corrections_accept_intent_direction_and_reject_reverse(
-    tmp_path, route_benchmark, catalog, task_id
-) -> None:
-    original = route_benchmark.get_task(task_id)
-    original_url = original.eval[1].model_dump(mode="json")["expected"]["url"]
-    match = re.search(
-        r"(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?);"
-        r"(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)",
-        original_url,
-    )
-    assert match is not None
-    destination_lon, destination_lat, origin_lon, origin_lat = match.groups()
-    intent_direction = (
-        f"http://map.test/osrm/routed-car/route/v1/driving/"
-        f"{origin_lon},{origin_lat};{destination_lon},{destination_lat}?steps=true"
-    )
-    reversed_direction = (
-        f"http://map.test/osrm/routed-car/route/v1/driving/"
-        f"{destination_lon},{destination_lat};{origin_lon},{origin_lat}?steps=true"
-    )
-    contract = apply_correction(original, catalog)
-    response = {"task_type": "navigate", "status": "SUCCESS", "retrieved_data": None}
-    positive = evaluate_corrected_contract(
-        route_benchmark,
-        contract,
-        agent_response=response,
-        network_trace=_route_har(tmp_path / "positive.har", intent_direction),
-    )
-    negative = evaluate_corrected_contract(
-        route_benchmark,
-        contract,
-        agent_response=response,
-        network_trace=_route_har(tmp_path / "negative.har", reversed_direction),
-    )
-    assert float(positive.score) == 1.0
-    assert float(negative.score) == 0.0
-
-
-@pytest.mark.parametrize(
-    ("task_id", "status"),
-    [(677, "processing"), (678, "canceled"), (679, "complete"), (680, "holded")],
-)
-def test_admin_order_filter_corrections_select_xhr_and_reject_stale_search(
-    tmp_path, route_benchmark, catalog, task_id, status
-) -> None:
-    original = route_benchmark.get_task(task_id)
-    contract = apply_correction(original, catalog)
-
-    def write_har(path: Path, search: str) -> Path:
-        route = (
-            "http://admin.test/mui/index/render/?namespace=sales_order_grid&"
-            f"search={search}&keywordUpdated=false&filters%5Bplaceholder%5D=true&"
-            f"filters%5Bstatus%5D={status}&isAjax=true"
-        )
-        payload = {
-            "log": {
-                "entries": [
-                    {
-                        "request": {
-                            "method": "GET",
-                            "url": "http://admin.test/sales/order/",
-                            "headers": [{"name": "accept", "value": "text/html"}],
-                        },
-                        "response": {"status": 200, "headers": [], "content": {}},
-                    },
-                    {
-                        "request": {
-                            "method": "GET",
-                            "url": route,
-                            "headers": [
-                                {"name": "referer", "value": "http://admin.test/sales/order/"}
-                            ],
-                        },
-                        "response": {"status": 200, "headers": [], "content": {}},
-                    },
-                ]
-            }
-        }
-        path.write_text(json.dumps(payload))
-        return path
-
-    response = {"task_type": "navigate", "status": "SUCCESS", "retrieved_data": None}
-    positive = evaluate_corrected_contract(
-        route_benchmark,
-        contract,
-        agent_response=response,
-        network_trace=write_har(tmp_path / "positive.har", ""),
-    )
-    negative = evaluate_corrected_contract(
-        route_benchmark,
-        contract,
-        agent_response=response,
-        network_trace=write_har(tmp_path / "negative.har", "300"),
-    )
-    assert float(positive.score) == 1.0
-    assert float(negative.score) == 0.0
-
-
-@pytest.mark.parametrize(
-    ("task_id", "member_ids"),
-    [(742, [5, 278]), (743, [5, 278]), (745, [2367, 43, 5]), (746, [2367, 43, 5])],
-)
-def test_multi_member_project_corrections_match_every_member_event(
-    tmp_path, route_benchmark, catalog, task_id, member_ids
-) -> None:
-    original = route_benchmark.get_task(task_id)
-    contract = apply_correction(original, catalog)
-
-    def write_har(path: Path, included_ids: list[int]) -> Path:
-        entries = [
-            {
-                "request": {
-                    "method": "GET",
-                    "url": "http://git.test/",
-                    "headers": [{"name": "accept", "value": "text/html"}],
-                },
-                "response": {"status": 200, "headers": [], "content": {}},
-            },
-            {
-                "request": {
-                    "method": "POST",
-                    "url": "http://git.test/api/v4/projects",
-                    "headers": [],
-                    "postData": {
-                        "mimeType": "application/json",
-                        "text": json.dumps(
-                            {
-                                "name": original.eval[1].expected.post_data["name"],
-                                "visibility": original.eval[1].expected.post_data["visibility"],
-                            }
-                        ),
-                    },
-                },
-                "response": {"status": 201, "headers": [], "content": {}},
-            }
-        ]
-        entries.extend(
-            {
-                "request": {
-                    "method": "POST",
-                    "url": "http://git.test/api/v4/projects/321/members",
-                    "headers": [],
-                    "postData": {
-                        "mimeType": "application/json",
-                        "text": json.dumps({"user_id": user_id, "access_level": 30}),
-                    },
-                },
-                "response": {"status": 201, "headers": [], "content": {}},
-            }
-            for user_id in included_ids
-        )
-        path.write_text(json.dumps({"log": {"entries": entries}}))
-        return path
-
-    response = {"task_type": "mutate", "status": "SUCCESS", "retrieved_data": None}
-    positive = evaluate_corrected_contract(
-        route_benchmark,
-        contract,
-        agent_response=response,
-        network_trace=write_har(tmp_path / "positive.har", member_ids),
-    )
-    negative = evaluate_corrected_contract(
-        route_benchmark,
-        contract,
-        agent_response=response,
-        network_trace=write_har(tmp_path / "negative.har", member_ids[1:]),
-    )
-    assert float(positive.score) == 1.0
-    assert float(negative.score) == 0.0
-
-
 def test_reddit_forum_slug_correction_accepts_deployed_route_and_rejects_label_url(
     tmp_path, route_benchmark, catalog
 ) -> None:
@@ -515,17 +325,12 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
         179,
         225,
         252,
-        265,
-        266,
-        267,
-        268,
         279,
         280,
         282,
         363,
         367,
         383,
-        423,
         429,
         430,
         448,
@@ -533,16 +338,7 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
         528,
         529,
         530,
-        547,
-        548,
-        549,
-        550,
-        566,
         599,
-        677,
-        678,
-        679,
-        680,
         682,
         683,
         689,
@@ -550,18 +346,6 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
         691,
         692,
         693,
-        699,
-        737,
-        738,
-        739,
-        740,
-        741,
-        742,
-        743,
-        745,
-        746,
-        759,
-        760,
     )
     assert catalog.records[448]["regression_ids"] == [
         "tr-448-302-success",
@@ -656,7 +440,7 @@ def test_archived_catalog_reproduces_all_unchanged_task_contracts(benchmark, cat
         Path("evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json"),
         require_current_upstream=False,
     )
-    for task_id in corrected_task_ids(archived):
+    for task_id in sorted(set(corrected_task_ids(archived)) & set(catalog.records)):
         previous = apply_correction(benchmark.get_task(task_id), archived)
         current = apply_correction(benchmark.get_task(task_id), catalog)
         if task_id in {280, 282, 448, 510}:
@@ -1111,27 +895,24 @@ def test_coupon_requests_use_exact_final_dom_state_without_submission(
     ).score == 1
 
 
-def test_547_removes_redundant_attribute_save_but_keeps_variation_save(benchmark, catalog) -> None:
-    applied = apply_correction(benchmark.get_task(547), catalog)
+def test_547_upstream_keeps_only_the_variation_save(benchmark, catalog) -> None:
+    assert 547 not in catalog.records
+    task = benchmark.get_task(547)
     network_urls = [
         item["expected"]["url"]
-        for item in (_dump_eval(applied, index) for index in range(1, len(applied.task.eval)))
+        for item in (item.model_dump(mode="json") for item in task.eval[1:])
     ]
     assert not any("product_attribute/save" in url for url in network_urls)
     assert any("catalog/product/save/id/1130" in url for url in network_urls)
-    assert applied.replay_assertions == ()
 
 
 def test_566_commit_path_matches_the_project_creation_contract(benchmark, catalog) -> None:
-    original = benchmark.get_task(566)
-    corrected = apply_correction(original, catalog)
-    original_project = original.eval[1].model_dump(mode="json")
-    original_commit = original.eval[2].model_dump(mode="json")
-    assert original_project["expected"]["post_data"]["project[path]"] == "do-it-myself"
-    assert original_commit["expected"]["url"].endswith(
-        "byteblaze%2Fdo-it-myself-with/repository/commits"
-    )
-    assert _dump_eval(corrected, 2)["expected"]["url"] == (
+    assert 566 not in catalog.records
+    task = benchmark.get_task(566)
+    project = task.eval[1].model_dump(mode="json")
+    commit = task.eval[2].model_dump(mode="json")
+    assert project["expected"]["post_data"]["project[path]"] == "do-it-myself"
+    assert commit["expected"]["url"] == (
         "__GITLAB__/api/v4/projects/byteblaze%2Fdo-it-myself/repository/commits"
     )
 
@@ -1147,8 +928,8 @@ def test_676_uses_upstream_filter_xhr_contract(benchmark, catalog) -> None:
 def test_699_checks_browser_form_array_fields_and_all_registered_customer_groups(
     benchmark, catalog
 ) -> None:
-    applied = apply_correction(benchmark.get_task(699), catalog)
-    evaluator = _dump_eval(applied, 1)
+    assert 699 not in catalog.records
+    evaluator = benchmark.get_task(699).eval[1].model_dump(mode="json")
     assert evaluator["post_data_schema"] is None
     assert evaluator["expected"]["post_data"] == {
         "name": "spring sale",

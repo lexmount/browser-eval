@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 WEBARENA_VERIFIED_DISTRIBUTION = "webarena-verified"
 WEBARENA_VERIFIED_MODULE = "webarena_verified"
 WEBARENA_VERIFIED_FORK_URL = "https://github.com/lexmount/webarena-verified.git"
-WEBARENA_VERIFIED_REVISION = "ada543a9e9eddc80769f962c102576baa845ae0e"
+WEBARENA_VERIFIED_REVISION = "ecd7b9661021b944c52c58ac10f9783fc520e3e0"
 
 
 @dataclass(frozen=True)

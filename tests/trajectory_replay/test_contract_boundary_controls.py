@@ -46,7 +46,10 @@ def scores(tmp_path, task_id, entries, catalog_path=ARCHIVED):
         else _configure_benchmark()
     )
     task = benchmark.get_task(task_id)
-    corrected = apply_correction(task, load_corrections(catalog_path))
+    catalog = load_corrections(
+        catalog_path,
+        require_current_upstream=Path(catalog_path) != ARCHIVED,
+    )
     path = tmp_path / f"synthetic-{task_id}.har"
     path.write_text(json.dumps({"log": {"version": "1.2", "creator": {"name": "counterexample", "version": "1"},
                                         "entries": entries}}))
@@ -55,26 +58,19 @@ def scores(tmp_path, task_id, entries, catalog_path=ARCHIVED):
         if task_id in {429, 430}
         else RESPONSE
     )
-    return (benchmark.evaluate_task(task_id=task_id, agent_response=response, network_trace=path).score,
-            evaluate_corrected_contract(benchmark, corrected, agent_response=response, network_trace=path).score)
+    official = benchmark.evaluate_task(
+        task_id=task_id, agent_response=response, network_trace=path
+    ).score
+    if task_id not in catalog.records:
+        return (official, official)
+    corrected = apply_correction(task, catalog)
+    return (
+        official,
+        evaluate_corrected_contract(
+            benchmark, corrected, agent_response=response, network_trace=path
+        ).score,
+    )
 
-
-@pytest.mark.parametrize("attributes,new_product,name,expected", [
-    ("Size: S, Color: Brown", 1, "Phoebe Zipper Sweatshirt", 1),
-    ("Size: L, Color: Brown", 1, "Phoebe Zipper Sweatshirt", 0),
-    ("Size: S, Color: Red", 1, "Phoebe Zipper Sweatshirt", 0),
-    ("Size: S, Color: Brown", 0, "Phoebe Zipper Sweatshirt", 0),
-    ("Size: S, Color: Brown", 1, "Different product", 0),
-    ("", 1, "Phoebe Zipper Sweatshirt", 0),
-], ids=["existing-brown-new-small-variation", "wrong-size", "wrong-color", "not-new", "wrong-product", "missing-attributes"])
-def test_archived_547_keeps_required_variation_fields(tmp_path, attributes, new_product, name, expected):
-    values = {"product[name]": name, "configurable-matrix-serialized": json.dumps([
-        {"newProduct": new_product, "attributes": attributes}
-    ])}
-    entries = [entry(ADMIN + "/catalog/product/save/id/1130/type/configurable/store/0/set/4/back/edit",
-                     data=values, status=302)]
-    # No global attribute-save request: the accepted equivalent reuses Brown.
-    assert scores(tmp_path, 547, entries) == (0, expected)
 
 
 @pytest.mark.parametrize("rows,expected", [
@@ -110,7 +106,7 @@ def test_current_548_reuses_existing_blue_and_preserves_seeded_name(tmp_path, ro
         548,
         events,
         Path("evaluation/trajectory-replay/webarena-verified/task-corrections.json"),
-    ) == (0, expected)
+    ) == (expected, expected)
 
 
 @pytest.mark.parametrize("task_id,new_label,attribute_id,rows,expected", [
@@ -172,7 +168,7 @@ def test_current_configurable_size_tasks_use_native_create_options(
         task_id,
         events,
         Path("evaluation/trajectory-replay/webarena-verified/task-corrections.json"),
-    ) == (0, expected)
+    ) == (expected, expected)
 
 
 @pytest.mark.parametrize("status,search,excluded,expected", [
@@ -204,7 +200,7 @@ def test_current_423_uses_native_filtered_mass_status(
         423,
         events,
         Path("evaluation/trajectory-replay/webarena-verified/task-corrections.json"),
-    ) == (0, expected)
+    ) == (expected, expected)
 
 
 @pytest.mark.parametrize("task_id,paths,expected", [
@@ -257,8 +253,8 @@ def test_current_510_restores_upstream_quantity_and_name(tmp_path, values, expec
 
 def test_510_revision_receipt_binds_rules_and_candidate():
     receipt = json.loads(Path('research/trajectory-replay-task510-quantity-revision.json').read_text())
-    before = load_corrections(receipt['predecessor_catalog_path'])
-    after = load_corrections(receipt['revised_catalog_path'])
+    before = load_corrections(receipt['predecessor_catalog_path'], require_current_upstream=False)
+    after = load_corrections(receipt['revised_catalog_path'], require_current_upstream=False)
     assert receipt['predecessor_correction_catalog_sha256'] == before.source_sha256
     assert receipt['predecessor_correction_record_sha256'] == before.record_sha256s[510]
     assert receipt['revised_correction_catalog_sha256'] == after.source_sha256

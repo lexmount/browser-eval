@@ -10,8 +10,8 @@ from harness.trajectory_replay.catalog_contracts import (
     RUN_SCHEMAS,
     file_sha256,
     repository_root,
-    validate_environment_preparation,
     validate_catalog_report_profile,
+    validate_environment_preparation,
 )
 
 
@@ -108,7 +108,7 @@ def test_environment_preparation_rejects_partial_component_restart(tmp_path):
 def test_repository_root_is_independent_of_current_working_directory():
     root = repository_root(Path(__file__))
     assert (root / "pyproject.toml").is_file()
-    assert (root / "harness/trajectory_replay/webarena_evaluator_fixes.py").is_file()
+    assert (root / "harness/trajectory_replay/webarena_runtime_source.py").is_file()
 
 
 @pytest.mark.parametrize(

@@ -205,10 +205,12 @@ def test_official_webarena_verified_evaluator_can_read_safe_flash_cookie(tmp_pat
 
 
 @pytest.mark.parametrize(
-    "directions_engine",
-    ["fossgis_osrm_car", "fossgis_osrm_bicycle"],
+    ("directions_engine", "expected_status"),
+    [("fossgis_osrm_car", "pass"), ("fossgis_osrm_bicycle", "fail")],
 )
-def test_official_task_760_has_navigate_get_xhr_evaluator_defect(tmp_path, directions_engine):
+def test_official_task_760_checks_the_hoboken_car_route(
+    tmp_path, directions_engine, expected_status
+):
     config = tmp_path / "config.json"
     config.write_text(
         json.dumps(
@@ -222,13 +224,32 @@ def test_official_task_760_has_navigate_get_xhr_evaluator_defect(tmp_path, direc
         encoding="utf-8",
     )
     har = tmp_path / "network.har"
-    route = "/route/v1/driving/-75.4716115,40.6022552;-74.4041622,40.0757384"
+    route = "/route/v1/driving/-75.442,40.651;-74.032,40.743"
     har.write_text(
         json.dumps(
-            {
-                "log": {
-                    "entries": [
-                        {
+                {
+                    "log": {
+                        "entries": [
+                            {
+                                "request": {
+                                    "method": "GET",
+                                    "url": "http://map.test/directions",
+                                    "headers": [
+                                        {"name": "Accept", "value": "text/html"},
+                                        {"name": "Sec-Fetch-Dest", "value": "document"},
+                                        {"name": "Sec-Fetch-Mode", "value": "navigate"},
+                                        {"name": "Sec-Fetch-User", "value": "?1"},
+                                    ],
+                                },
+                                "response": {
+                                    "status": 200,
+                                    "redirectURL": "",
+                                    "headers": [],
+                                    "cookies": [],
+                                    "content": {"mimeType": "text/html", "text": ""},
+                                },
+                            },
+                            {
                             "request": {
                                 "method": "GET",
                                 "url": f"http://map.test{route}",
@@ -265,7 +286,7 @@ def test_official_task_760_has_navigate_get_xhr_evaluator_defect(tmp_path, direc
         difficulty="simple",
         ground_truth={"expected_actions": []},
         source={"url": "https://example.test/760.trace.zip"},
-        evaluator={"kind": "webarena_verified", "task_id": 760, "revision": 2},
+        evaluator={"kind": "webarena_verified", "task_id": 760, "revision": 5},
         environment={"kind": "webarena_verified"},
     )
     evidence = TaskEvidence(
@@ -277,13 +298,10 @@ def test_official_task_760_has_navigate_get_xhr_evaluator_defect(tmp_path, direc
 
     result = WebArenaVerifiedEvaluator(config_path=config).evaluate(task, evidence)
 
-    # v1.2.3 selects only main-frame navigation events for every navigate+GET
-    # task, so it never considers this expected OSRM XHR for either engine.
-    assert result.status == "fail"
-    assert result.checks[1]["actual"] == []
+    assert result.status == expected_status
 
 
-def test_official_task_678_has_navigate_get_xhr_evaluator_defect(tmp_path):
+def test_official_task_678_checks_the_order_grid_xhr(tmp_path):
     config = tmp_path / "config.json"
     config.write_text(
         json.dumps(
@@ -302,10 +320,29 @@ def test_official_task_678_has_navigate_get_xhr_evaluator_defect(tmp_path):
     )
     har.write_text(
         json.dumps(
-            {
-                "log": {
-                    "entries": [
-                        {
+                {
+                    "log": {
+                        "entries": [
+                            {
+                                "request": {
+                                    "method": "GET",
+                                    "url": "http://shopping-admin.test/admin/sales/order/",
+                                    "headers": [
+                                        {"name": "Accept", "value": "text/html"},
+                                        {"name": "Sec-Fetch-Dest", "value": "document"},
+                                        {"name": "Sec-Fetch-Mode", "value": "navigate"},
+                                        {"name": "Sec-Fetch-User", "value": "?1"},
+                                    ],
+                                },
+                                "response": {
+                                    "status": 200,
+                                    "redirectURL": "",
+                                    "headers": [],
+                                    "cookies": [],
+                                    "content": {"mimeType": "text/html", "text": ""},
+                                },
+                            },
+                            {
                             "request": {
                                 "method": "GET",
                                 "url": f"http://shopping-admin.test/admin/mui/index/render/?{query}",
@@ -339,7 +376,7 @@ def test_official_task_678_has_navigate_get_xhr_evaluator_defect(tmp_path):
         difficulty="simple",
         ground_truth={"expected_actions": []},
         source={"url": "https://example.test/678.trace.zip"},
-        evaluator={"kind": "webarena_verified", "task_id": 678, "revision": 2},
+        evaluator={"kind": "webarena_verified", "task_id": 678, "revision": 3},
         environment={"kind": "webarena_verified"},
     )
     evidence = TaskEvidence(
@@ -351,8 +388,7 @@ def test_official_task_678_has_navigate_get_xhr_evaluator_defect(tmp_path):
 
     result = WebArenaVerifiedEvaluator(config_path=config).evaluate(task, evidence)
 
-    assert result.status == "fail"
-    assert result.checks[1]["actual"] == []
+    assert result.status == "pass"
 
 
 @pytest.mark.parametrize(
@@ -411,7 +447,7 @@ def test_official_task_811_compares_singleton_array_as_an_array(
         difficulty="simple",
         ground_truth={"expected_actions": []},
         source={"url": "https://example.test/811.trace.zip"},
-        evaluator={"kind": "webarena_verified", "task_id": 811, "revision": 2},
+        evaluator={"kind": "webarena_verified", "task_id": 811, "revision": 3},
         environment={"kind": "webarena_verified"},
     )
     evidence = TaskEvidence(

@@ -20,7 +20,10 @@ from harness.trajectory_replay.catalog_contracts import (
 )
 from harness.trajectory_replay.remote_runtime import remote_benchmark
 from harness.trajectory_replay.webarena_corrections import load_corrections
-from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
+from harness.trajectory_replay.webarena_runtime_source import (
+    WEBARENA_VERIFIED_REVISION,
+    verify_webarena_runtime_source,
+)
 
 
 def _read_run(directory: Path) -> tuple[dict, list[dict]]:
@@ -45,8 +48,13 @@ def _read_run(directory: Path) -> tuple[dict, list[dict]]:
             "action_timeout_ms",
             "environment_profile_sha256",
             "corrections_sha256",
-            "evaluator_fixes_sha256",
         }
+        evaluator_identity = (
+            "webarena_revision"
+            if binding["schema"] == "lex_trajectory_replay_catalog_run/1"
+            else "evaluator_fixes_sha256"
+        )
+        required.add(evaluator_identity)
         if not required <= set(binding):
             raise ValueError(f"run execution contract is incomplete: {directory}")
     return binding, rows
@@ -141,6 +149,11 @@ def audit(
     for kind, directories in (("segment", segment_dirs), ("repair", repair_dirs)):
         for directory in directories:
             binding, rows = _read_run(directory)
+            if (
+                binding["schema"] == "lex_trajectory_replay_catalog_run/1"
+                and binding["webarena_revision"] != WEBARENA_VERIFIED_REVISION
+            ):
+                raise ValueError("acceptance run used a different WebArena evaluator revision")
             if "action_overrides_sha256" in binding:
                 override_digest = binding["action_overrides_sha256"]
                 if override_digest not in override_sources:
@@ -169,7 +182,7 @@ def audit(
                 binding.get("cowagent_revision"),
                 binding.get("action_timeout_ms"),
                 binding.get("corrections_sha256"),
-                binding.get("evaluator_fixes_sha256"),
+                binding.get("webarena_revision") or binding.get("evaluator_fixes_sha256"),
                 binding.get("action_overrides_sha256"),
             )
             if kind == "segment":
@@ -196,9 +209,14 @@ def audit(
                         "environment_profile_sha256": binding["environment_profile_sha256"],
                         "action_timeout_ms": binding["action_timeout_ms"],
                         "corrections_sha256": binding["corrections_sha256"],
-                        "evaluator_fixes_sha256": binding["evaluator_fixes_sha256"],
                     }
                 )
+                evaluator_identity = (
+                    "webarena_revision"
+                    if binding["schema"] == "lex_trajectory_replay_catalog_run/1"
+                    else "evaluator_fixes_sha256"
+                )
+                run_record[evaluator_identity] = binding[evaluator_identity]
             if "action_overrides_sha256" in binding:
                 run_record["action_overrides_sha256"] = binding["action_overrides_sha256"]
             bindings.append(run_record)
