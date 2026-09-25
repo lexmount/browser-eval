@@ -193,7 +193,8 @@ def test_snapshot_hidden_selector_fails_before_observation():
     )
     assert result.status == "error"
     assert "remained hidden" in result.result
-    assert len(events) == 1
+    assert events
+    assert all(event[0] == "visible" for event in events)
 
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="uses the pinned macOS Chromium")

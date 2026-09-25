@@ -96,10 +96,29 @@ class PlaywrightReplayTool:
             return value if maximum is None else min(value, maximum)
 
         def observe(maximum: int | None = None) -> str:
-            self._publish_page_layout(self._page)
-            locator = self._page.locator(selector).first
-            locator.wait_for(state="visible", timeout=remaining(maximum))
-            return locator.aria_snapshot(timeout=remaining(maximum))
+            observation_deadline = deadline
+            if maximum is not None:
+                observation_deadline = min(
+                    observation_deadline, time.monotonic() + maximum / 1_000
+                )
+            while True:
+                self._publish_page_layout(self._page)
+                locator = self._page.locator(selector).first
+                wait_ms = int((observation_deadline - time.monotonic()) * 1_000)
+                if wait_ms < 1:
+                    raise TimeoutError("snapshot selector did not become visible")
+                try:
+                    locator.wait_for(state="visible", timeout=min(wait_ms, 1_000))
+                except Exception as exc:
+                    if _navigation_interrupted_snapshot(exc):
+                        raise
+                    if (
+                        "timeout" not in str(exc).lower()
+                        or time.monotonic() >= observation_deadline
+                    ):
+                        raise
+                    continue
+                return locator.aria_snapshot(timeout=remaining(maximum))
 
         try:
             return observe(SNAPSHOT_PRIMARY_TIMEOUT_MS)
