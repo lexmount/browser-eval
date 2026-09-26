@@ -869,6 +869,25 @@ def test_report_removes_macos_and_linux_local_paths() -> None:
         assert _clean(f"failure at {path}") == "failure at [local path removed]"
 
 
+def test_report_preserves_web_routes_that_resemble_linux_paths() -> None:
+    actions = [
+        {
+            "action": "navigate",
+            "url": "https://gitlab.example.test/root/project/-/issues",
+        }
+    ]
+    attempt = {
+        "participant_id": "moli",
+        "task_id": 317,
+        "action_count": 1,
+        "planned_actions": actions,
+        "planned_actions_sha256": _planned_actions_digest(actions),
+    }
+
+    assert _clean(actions) == actions
+    assert _validated_planned_actions(attempt) == actions
+
+
 def test_report_rejects_symlinked_evidence_parent(tmp_path: Path) -> None:
     evidence = tmp_path / "evidence.json"
     evidence.write_text("{}", encoding="utf-8")

@@ -32,6 +32,7 @@ from harness.trajectory_replay.webarena_review import (
 )
 
 LOCAL_PATH_RE = re.compile(r"/(?:Users|home|root|private|tmp|var|opt)/[^\s\"']+")
+WEB_URL_RE = re.compile(r"https?://[^\s\"']+")
 
 # This notice describes one retained historical cohort, not trajectory replay in
 # general.  Keying all three immutable inputs prevents a future requalified run
@@ -156,7 +157,14 @@ def _clean(value: Any) -> Any:
     if isinstance(value, list):
         return [_clean(item) for item in value]
     if isinstance(value, str):
-        value = LOCAL_PATH_RE.sub("[local path removed]", value)
+        url_spans = [match.span() for match in WEB_URL_RE.finditer(value)]
+
+        def redact_local_path(match: re.Match[str]) -> str:
+            if any(start <= match.start() and match.end() <= end for start, end in url_spans):
+                return match.group(0)
+            return "[local path removed]"
+
+        value = LOCAL_PATH_RE.sub(redact_local_path, value)
         value = re.sub(r"sk-[A-Za-z0-9_-]{12,}", "[secret removed]", value)
     return value
 
