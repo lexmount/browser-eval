@@ -69,6 +69,22 @@ def _task_ids(
     return declared[start : end + 1]
 
 
+def _task_origins(benchmark: object, task_id: int, sites: dict) -> set[str]:
+    """Return only the fixture origins declared by the current official task.
+
+    Browsers without ``Storage.clearDataForOrigin`` clear site storage by
+    visiting each supplied origin. Passing the whole deployment makes an
+    unrelated site outage invalidate every task in the cohort and does extra
+    cross-site work before each replay.
+    """
+
+    task = benchmark.get_task(task_id)
+    return {
+        f"{urlsplit(sites[site]).scheme}://{urlsplit(sites[site]).netloc}"
+        for site in task.sites
+    }
+
+
 def _recover_completed_attempts(output: Path, progress: Path, ids: list[int]) -> set[int]:
     """Commit a finished result left between task completion and progress append."""
 
@@ -194,7 +210,6 @@ def main() -> None:
     environment_profile = json.loads(args.environment_profile.read_text(encoding="utf-8"))
     corrections = load_corrections()
     benchmark = remote_benchmark(sites)
-    origins = {f"{urlsplit(url).scheme}://{urlsplit(url).netloc}" for url in sites.values()}
     if args.task_selection is not None and args.task_id:
         raise ValueError("task selection file cannot be combined with explicit task IDs")
     selected = _load_task_selection(args.task_selection) if args.task_selection else args.task_id
@@ -295,7 +310,7 @@ def main() -> None:
                         endpoint=endpoint,
                         output=args.output,
                         run_id=args.output.name,
-                        origins=origins,
+                        origins=_task_origins(benchmark, task_id, sites),
                         sites=sites,
                         catalog=corrections,
                         portable_task=(

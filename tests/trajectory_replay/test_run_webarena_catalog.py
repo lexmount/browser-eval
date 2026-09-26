@@ -22,6 +22,7 @@ from harness.trajectory_replay.catalog_runner import (
     _load_task_selection,
     _recover_completed_attempts,
     _task_ids,
+    _task_origins,
 )
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
 from harness.trajectory_replay.webarena_replay import _json_sha256
@@ -48,6 +49,31 @@ def test_task_ids_reject_invalid_explicit_repairs(selected):
 def test_task_ids_reject_mixed_range_and_explicit_selection():
     with pytest.raises(ValueError, match="cannot be combined"):
         _task_ids([0, 1, 2], 0, 2, [1])
+
+
+def test_task_origins_excludes_unrelated_deployments() -> None:
+    from webarena_verified.types.task import WebArenaSite
+
+    task = type(
+        "Task",
+        (),
+        {"sites": (WebArenaSite.GITLAB, WebArenaSite.WIKIPEDIA)},
+    )()
+    benchmark = type(
+        "Benchmark",
+        (),
+        {"get_task": lambda self, task_id: task},
+    )()
+    sites = {
+        WebArenaSite.GITLAB: "https://gitlab.example.test/root/path",
+        WebArenaSite.WIKIPEDIA: "http://wikipedia.example.test",
+        WebArenaSite.MAP: "http://unavailable-map.example.test",
+    }
+
+    assert _task_origins(benchmark, 17, sites) == {
+        "https://gitlab.example.test",
+        "http://wikipedia.example.test",
+    }
 
 
 def test_task_selection_is_schema_bound(tmp_path: Path):
