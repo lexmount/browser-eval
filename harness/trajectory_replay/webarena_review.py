@@ -23,9 +23,18 @@ def programmatic_failure(attempt: dict[str, Any]) -> dict[str, Any]:
     if attempt.get("process_status") != "pass":
         message = str(attempt.get("error") or "BrowserTool execution failed")
         match = re.search(r"RuntimeError: step (\d+) failed: ([^\n]+)", message)
+        stage = str(attempt.get("failure_stage") or "browser_tool_execution")
+        if stage not in {"browser_session_setup", "browser_tool_execution"}:
+            raise ValueError(f"unsupported process failure stage: {stage}")
         return {
-            "stage": "browser_tool_execution",
-            "step": int(match.group(1)) if match else None,
+            "stage": stage,
+            "step": (
+                int(attempt["failure_step"])
+                if attempt.get("failure_step") is not None
+                else int(match.group(1))
+                if match
+                else None
+            ),
             "message": match.group(2) if match else message.strip(),
         }
     if attempt.get("evaluator_status") != "pass":

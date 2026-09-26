@@ -45,6 +45,21 @@ def test_programmatic_failure_keeps_location_separate_from_root_cause() -> None:
     }
 
 
+def test_programmatic_failure_preserves_browser_session_setup_stage() -> None:
+    result = programmatic_failure(
+        {
+            "process_status": "fail",
+            "failure_stage": "browser_session_setup",
+            "error": "Traceback: _login_context failed before trajectory execution",
+        }
+    )
+    assert result == {
+        "stage": "browser_session_setup",
+        "step": None,
+        "message": "Traceback: _login_context failed before trajectory execution",
+    }
+
+
 @pytest.mark.parametrize("tamper", ["row", "digest", "symlink", "new-result"])
 def test_append_methods_keeps_old_diagnostics_bound_to_unchanged_results(tmp_path: Path, tamper) -> None:
     old_row = {"participant_id": "moli", "engine": "moli", "task_id": 1,

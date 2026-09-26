@@ -190,7 +190,7 @@ def test_catalog_results_keep_one_logical_result_and_valid_physical_history(
                 {"status": "pass", "setup_failure": True},
                 {
                     "status": "fail",
-                    "error": "Locator.click: element is outside of the viewport",
+                    "error": "Traceback in _login_context: element is outside of the viewport",
                     "evaluation": False,
                 },
             ],
@@ -216,6 +216,7 @@ def test_catalog_results_keep_one_logical_result_and_valid_physical_history(
     }
     assert lightpanda[0]["status"] == "pass"
     assert lightpanda[1]["process_status"] == "fail"
+    assert lightpanda[1]["failure_stage"] == "browser_session_setup"
     assert lightpanda[1]["evaluator_status"] == "not_run"
     assert lightpanda[1]["evidence"]["site_reset"]["sha256"] == file_sha256(
         site_reset

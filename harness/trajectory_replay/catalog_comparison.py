@@ -207,6 +207,13 @@ def _attempt(
     evaluation_exists = "evaluation" in evidence
     error = str(physical.get("error") or "")
     process_status = "fail" if error else "pass"
+    failure_stage = (
+        "browser_session_setup"
+        if error and "_login_context" in error
+        else "browser_tool_execution"
+        if error
+        else None
+    )
     evaluator_status = (
         "pass"
         if physical.get("status") == "pass"
@@ -250,6 +257,7 @@ def _attempt(
         "process_status": process_status,
         "evaluator_status": evaluator_status,
         "error": error,
+        **({"failure_stage": failure_stage} if failure_stage else {}),
         "binary_sha256": inputs["binary_sha256"],
         "cohort_receipt_sha256": progress_sha256,
         "evidence": evidence,
