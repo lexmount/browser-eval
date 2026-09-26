@@ -811,6 +811,8 @@ def _detail_page(
     stage_labels = {
         "browser_session_setup": ("浏览器会话初始化", "Browser session setup"),
         "browser_tool_execution": ("浏览器动作执行", "Browser action execution"),
+        "evidence_finalization": ("执行证据收尾", "Evidence finalization"),
+        "official_evaluator_execution": ("官方评测器执行", "Official evaluator execution"),
         "side_effect_not_observed": ("网络验收条件未满足", "Network acceptance not satisfied"),
         "official_evaluation": ("官方验收", "Official evaluation"),
         "pass": ("无", "None"),
@@ -1111,7 +1113,7 @@ if(inventory){
     if(!result)return;
     const detail=result.detail_url||'result/'+result.key+'.html';
     dialog.querySelector('[data-dialog-title]').textContent=result.browser+' · '+(zh?'任务':'Task')+' #'+result.task_id;
-    dialog.querySelector('[data-dialog-stage]').textContent=result.failure_stage==='browser_session_setup'?(zh?'浏览器会话初始化':'Browser session setup'):result.failure_stage==='browser_tool_execution'?(zh?'浏览器动作':'Browser action'):result.failure_stage==='side_effect_not_observed'?(zh?'网络验收条件未满足':'Network acceptance not satisfied'):result.failure_stage==='official_evaluation'?(zh?'官方验收':'Official evaluation'):(zh?'无':'None');
+    dialog.querySelector('[data-dialog-stage]').textContent=result.failure_stage==='browser_session_setup'?(zh?'浏览器会话初始化':'Browser session setup'):result.failure_stage==='browser_tool_execution'?(zh?'浏览器动作':'Browser action'):result.failure_stage==='evidence_finalization'?(zh?'执行证据收尾':'Evidence finalization'):result.failure_stage==='official_evaluator_execution'?(zh?'官方评测器执行':'Official evaluator execution'):result.failure_stage==='side_effect_not_observed'?(zh?'网络验收条件未满足':'Network acceptance not satisfied'):result.failure_stage==='official_evaluation'?(zh?'官方验收':'Official evaluation'):(zh?'无':'None');
     dialog.querySelector('[data-dialog-error]').textContent=zh?'正在读取完整证据…':'Loading complete evidence…';
     delete dialog.dataset.loaded;
     dialog.querySelector('[data-dialog-link]').href=detail;
@@ -1534,7 +1536,7 @@ def build_webarena_replay_report(
         )
         stage_rows = []
         for engine, method in methods.items():
-            for code, label_pair in (("browser_session_setup", ("浏览器会话初始化", "Browser session setup")), ("browser_tool_execution", ("浏览器动作", "Browser action")), ("side_effect_not_observed", ("网络验收条件未满足", "Network acceptance not satisfied")), ("official_evaluation", ("官方验收", "Official evaluation"))):
+            for code, label_pair in (("browser_session_setup", ("浏览器会话初始化", "Browser session setup")), ("browser_tool_execution", ("浏览器动作", "Browser action")), ("evidence_finalization", ("执行证据收尾", "Evidence finalization")), ("official_evaluator_execution", ("官方评测器执行", "Official evaluator execution")), ("side_effect_not_observed", ("网络验收条件未满足", "Network acceptance not satisfied")), ("official_evaluation", ("官方验收", "Official evaluation"))):
                 count = sum(row["participant_id"] == engine and row["status"] != "pass" and row["failure_stage"] == code for row in public_rows)
                 if count:
                     stage_rows.append(f'<tr><td>{_e(method["label"])}</td><td>{label_pair[0 if zh else 1]}</td><td>{count}</td><td><a href="results.html?participant={_e(engine)}&status=fail&stage={code}">{"下钻到失败结果" if zh else "Inspect failures"} →</a></td></tr>')
@@ -1613,12 +1615,12 @@ def build_webarena_replay_report(
         for row in public_rows:
             cause = row["cause_zh"] if zh else row["cause_en"]
             status = _verdict_label(row["status"], row.get("semantic_status"), lang)
-            stage_label = {"browser_session_setup": "浏览器会话初始化" if zh else "Browser session setup", "browser_tool_execution": "浏览器动作" if zh else "Browser action", "side_effect_not_observed": "网络验收条件未满足" if zh else "Network acceptance not satisfied", "official_evaluation": "官方验收" if zh else "Official evaluation", "pass": "—"}.get(row["failure_stage"], row["failure_stage"])
+            stage_label = {"browser_session_setup": "浏览器会话初始化" if zh else "Browser session setup", "browser_tool_execution": "浏览器动作" if zh else "Browser action", "evidence_finalization": "执行证据收尾" if zh else "Evidence finalization", "official_evaluator_execution": "官方评测器执行" if zh else "Official evaluator execution", "side_effect_not_observed": "网络验收条件未满足" if zh else "Network acceptance not satisfied", "official_evaluation": "官方验收" if zh else "Official evaluation", "pass": "—"}.get(row["failure_stage"], row["failure_stage"])
             detail_url = row.get("detail_url") or f'result/{row["key"]}.html'
             result_rows.append(f'<tr data-key="{row["key"]}" data-task="{row["task_id"]}" data-participant="{_e(row["participant_id"])}" data-status="{row["status"]}" data-site="{_e(row["sites"][0] if row["sites"] else "")}" data-stage="{_e(row["failure_stage"])}" data-cause="{_e(row["cause_zh"] or row["cause_en"])}"><td><a href="task/{row["task_id"]}.html">#{row["task_id"]}</a><button type="button" data-open-diagnosis>{"诊断" if zh else "Diagnose"}</button></td><td><a href="{_e(detail_url)}">{_e(row["browser"])}</a></td><td>{_e(row["sites"][0] if row["sites"] else "")}</td><td class="status-{row["status"]}">{status}</td><td>{row["completed_actions"]}/{row["action_count"]}</td><td>{_e(stage_label)}</td><td>{_e(cause) if cause else "—"}</td><td><a href="{_e(detail_url)}">{"证据页" if zh else "Evidence page"}</a></td></tr>')
         browser_options = "".join(f'<option value="{_e(key)}">{_e(item["label"])}</option>' for key, item in comparison_methods.items())
         site_options = "".join(f'<option value="{_e(site)}">{_e(site)}</option>' for site in sorted({s for row in public_rows for s in row["sites"]}))
-        stage_labels = {"browser_session_setup": ("浏览器会话初始化", "Browser session setup"), "browser_tool_execution": ("浏览器动作", "Browser action"), "side_effect_not_observed": ("网络验收条件未满足", "Network acceptance not satisfied"), "official_evaluation": ("官方验收", "Official evaluation")}
+        stage_labels = {"browser_session_setup": ("浏览器会话初始化", "Browser session setup"), "browser_tool_execution": ("浏览器动作", "Browser action"), "evidence_finalization": ("执行证据收尾", "Evidence finalization"), "official_evaluator_execution": ("官方评测器执行", "Official evaluator execution"), "side_effect_not_observed": ("网络验收条件未满足", "Network acceptance not satisfied"), "official_evaluation": ("官方验收", "Official evaluation")}
         present_stages = {row["failure_stage"] for row in public_rows if row["status"] == "fail"}
         stage_options = "".join(f'<option value="{code}">{_e(stage_labels[code][0 if zh else 1])}</option>' for code in stage_labels if code in present_stages)
         causes = {row["cause_zh"]: row["cause_zh"] if zh else row["cause_en"] for row in public_rows if row["cause_zh"]}
@@ -1747,7 +1749,7 @@ def build_webarena_replay_report(
             (
                 "失败证据复核" if zh else "Failure evidence review",
                 f"{reviewed_failure_count} 条最终失败结果。" if zh else f"{reviewed_failure_count} final failed outcomes.",
-                f"{sum(row['failure_stage'] == 'browser_session_setup' for row in public_rows)} 条浏览器会话初始化失败；{sum(row['failure_stage'] == 'browser_tool_execution' for row in public_rows)} 条动作执行失败；{sum(row['failure_stage'] == 'side_effect_not_observed' for row in public_rows)} 条网络验收失败。" if zh else f"{sum(row['failure_stage'] == 'browser_session_setup' for row in public_rows)} browser-session setup failures; {sum(row['failure_stage'] == 'browser_tool_execution' for row in public_rows)} browser-action failures; {sum(row['failure_stage'] == 'side_effect_not_observed' for row in public_rows)} network-acceptance failures.",
+                f"{sum(row['failure_stage'] == 'browser_session_setup' for row in public_rows)} 条浏览器会话初始化失败；{sum(row['failure_stage'] == 'browser_tool_execution' for row in public_rows)} 条动作执行失败；{sum(row['failure_stage'] == 'evidence_finalization' for row in public_rows)} 条证据收尾失败；{sum(row['failure_stage'] == 'official_evaluator_execution' for row in public_rows)} 条评测器执行失败；{sum(row['failure_stage'] == 'side_effect_not_observed' for row in public_rows)} 条网络验收失败。" if zh else f"{sum(row['failure_stage'] == 'browser_session_setup' for row in public_rows)} browser-session setup failures; {sum(row['failure_stage'] == 'browser_tool_execution' for row in public_rows)} browser-action failures; {sum(row['failure_stage'] == 'evidence_finalization' for row in public_rows)} evidence-finalization failures; {sum(row['failure_stage'] == 'official_evaluator_execution' for row in public_rows)} evaluator-execution failures; {sum(row['failure_stage'] == 'side_effect_not_observed' for row in public_rows)} network-acceptance failures.",
                 f"{reviewed_failure_count}/{reviewed_failure_count} 条绑定当前证据哈希；分别展示程序报错、动作位置、复核原因和处理状态，原始分数未改。" if zh else f"{reviewed_failure_count}/{reviewed_failure_count} reviews are bound to the current evidence hash. Program errors, action locators, reviewed causes and treatment states are separate; official scores did not change.",
                 "失败根因与处理状态见逐题结果详情。" if zh else "Failure causes and treatment status appear on each failed result page.",
             ),

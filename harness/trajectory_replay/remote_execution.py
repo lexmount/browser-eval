@@ -309,6 +309,7 @@ def _run_task(
     status = "fail"
     score = None
     error = ""
+    failure_stage = "browser_session_setup"
     service = None
     recorder_started = False
     try:
@@ -322,6 +323,7 @@ def _run_task(
         _login_context(service, tuple(official.sites), benchmark, start_urls, viewport)
         service._submit(lambda: recorder.start(service._context))
         recorder_started = True
+        failure_stage = "browser_tool_execution"
         if portable_task is not None:
             service._submit(
                 lambda: execute_steps(
@@ -414,6 +416,7 @@ def _run_task(
             [NETWORK_SETTLE_MS]
             + [int(action.get("network_settle_ms", 0)) for action in row["actions"]]
         )
+        failure_stage = "evidence_finalization"
         _finalize_network_recorder(service, recorder, har_path, settle_ms=settle_ms)
         recorder_started = False
         hashes["network_har"] = file_sha256(har_path)
@@ -448,6 +451,7 @@ def _run_task(
         if actual is None:
             status = "unsupported"
         else:
+            failure_stage = "official_evaluator_execution"
             evaluation_result = (
                 evaluate_corrected_contract(
                     benchmark, correction, agent_response=actual, network_trace=har_path
@@ -511,6 +515,7 @@ def _run_task(
         ),
         "duration_ms": round((time.perf_counter() - started) * 1000, 3),
         "error": error,
+        **({"failure_stage": failure_stage} if error else {}),
         "runtime_poisoned": bool(
             service is not None and not getattr(service, "failure_capture_available", True)
         ),

@@ -118,6 +118,11 @@ def _participant_fixture(
             "duration_ms": 10 + task_id,
             "executed_actions_sha256": _json_sha256([action]),
             "error": error,
+            **(
+                {"failure_stage": specification["failure_stage"]}
+                if specification.get("failure_stage")
+                else {}
+            ),
             "evidence_sha256": evidence,
         }
         progress = run / "progress.jsonl"
@@ -221,3 +226,41 @@ def test_catalog_results_keep_one_logical_result_and_valid_physical_history(
     assert lightpanda[1]["evidence"]["site_reset"]["sha256"] == file_sha256(
         site_reset
     )
+
+
+def test_catalog_results_preserve_runner_failure_stage(tmp_path: Path) -> None:
+    dataset = {
+        "trajectories": [
+            {
+                "task_id": 0,
+                "task": {"intent": "Task 0", "sites": ["wikipedia"]},
+                "evaluation_input": {"task_type": "NAVIGATE", "status": "SUCCESS"},
+                "tool_calls": [{"action": "navigate", "url": "https://example.test/0"}],
+            }
+        ]
+    }
+    site_reset = tmp_path / "site-reset.json"
+    _write(site_reset, {"status": "ready"})
+    participant = _participant_fixture(
+        tmp_path / "a",
+        participant_id="obscura",
+        engine="obscura",
+        rows=[
+            {
+                "status": "fail",
+                "error": "Evaluator crashed",
+                "evaluation": False,
+                "failure_stage": "official_evaluator_execution",
+            }
+        ],
+        site_reset=site_reset,
+    )
+    results = catalog_comparison.build_catalog_comparison_results(
+        dataset=dataset,
+        dataset_sha256="1" * 64,
+        profile_sha256="2" * 64,
+        scope_sha256="3" * 64,
+        site_map_sha256="4" * 64,
+        participants=[participant],
+    )
+    assert results["attempts"][0]["failure_stage"] == "official_evaluator_execution"

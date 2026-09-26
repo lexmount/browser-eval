@@ -207,13 +207,13 @@ def _attempt(
     evaluation_exists = "evaluation" in evidence
     error = str(physical.get("error") or "")
     process_status = "fail" if error else "pass"
-    failure_stage = (
-        "browser_session_setup"
-        if error and "_login_context" in error
-        else "browser_tool_execution"
-        if error
-        else None
-    )
+    failure_stage = physical.get("failure_stage")
+    if error and not failure_stage:
+        failure_stage = (
+            "browser_session_setup"
+            if "_login_context" in error
+            else "browser_tool_execution"
+        )
     evaluator_status = (
         "pass"
         if physical.get("status") == "pass"
