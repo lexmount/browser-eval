@@ -49,6 +49,7 @@ class PlaywrightReplayTool:
             raise ValueError(f"unknown Playwright replay engine: {engine}")
         self._engine = engine
         self._layout_sessions: dict[Any, Any] = {}
+        self._layout_connection_poisoned = False
         self._playwright = sync_playwright().start()
         self._browser = None
         self._context = None
@@ -72,6 +73,12 @@ class PlaywrightReplayTool:
     @property
     def layout_observer(self):
         return self._publish_page_layout if self._engine == "moli" else None
+
+    @property
+    def failure_capture_available(self) -> bool:
+        """Whether another renderer command can still complete reliably."""
+
+        return not self._layout_connection_poisoned
 
     def _publish_page_layout(self, page: Any, timeout_ms: int = 5_000) -> None:
         """Publish Moli's current layout before Playwright consumes geometry.
@@ -103,6 +110,10 @@ class PlaywrightReplayTool:
             result = session._sync(publish())
         except TimeoutError as exc:
             sessions.pop(page, None)
+            # The renderer still owns the timed-out CDP command.  Sending a
+            # screenshot or graceful close behind it can block forever, so let
+            # the catalog runner terminate the isolated browser process.
+            self._layout_connection_poisoned = True
             raise TimeoutError("Moli layout publication timed out") from exc
         if not isinstance(result, dict) or not isinstance(result.get("layoutViewport"), dict):
             raise RuntimeError("Moli layout publication returned no layout metrics")
@@ -188,6 +199,9 @@ class PlaywrightReplayTool:
         return ReplayResult("success", value)
 
     def close(self) -> None:
+        if getattr(self, "_layout_connection_poisoned", False):
+            self._playwright.stop()
+            return
         try:
             if self._context is not None:
                 self._context.close()

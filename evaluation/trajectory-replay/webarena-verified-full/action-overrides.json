@@ -34,6 +34,75 @@
       }
     },
     {
+      "task_id": 108,
+      "action_index": 7,
+      "precondition_action_sha256": "f92c92c01a99a141b96ee6d742e82704e9e71a2b48674827316d8607405ebeef",
+      "set": {
+        "force": true,
+        "selector": "button[data-action=\"grid-filter-expand\"]",
+        "wait_for_enabled": true
+      }
+    },
+    {
+      "task_id": 108,
+      "action_index": 9,
+      "precondition_action_sha256": "da89ecce172f5e67d58f46e208be3aca529c64044d55947e52847e3c45988237",
+      "set": {
+        "force": true,
+        "selector": "input[name=\"created_at[from]\"]"
+      }
+    },
+    {
+      "task_id": 108,
+      "action_index": 10,
+      "precondition_action_sha256": "bb75d4df58ca2c6906d9557515a9712afc8357e8a39787e715c0979b8a34c706",
+      "set": {
+        "force": true,
+        "selector": "input[name=\"created_at[to]\"]"
+      }
+    },
+    {
+      "task_id": 108,
+      "action_index": 11,
+      "precondition_action_sha256": "ed2a04b267f1549acc1561c5babdcdb3f97ecca0e90bf70ce0dd4af511f05cdd",
+      "set": {
+        "force": true,
+        "selector": "select[name=\"status\"]"
+      }
+    },
+    {
+      "task_id": 265,
+      "action_index": 6,
+      "precondition_action_sha256": "cb8d4d63d9e4ac4c4af190c414a567a465fa4ba1abf8ecf5c5ff77f4338269db",
+      "set": {
+        "script": "async()=>{const state=JSON.parse(window.name);const geocode=async q=>{const r=await fetch('/nominatim/search?format=json&addressdetails=1&limit=10&q='+encodeURIComponent(q));if(!r.ok)throw Error('geocode '+r.status);const rows=await r.json();if(!rows.length)throw Error('not found '+q);return rows};const park=(await geocode('Acadia National Park')).find(x=>x.osm_type==='relation');if(!park)throw Error('park relation missing');const r=await fetch('/osrm/routed-car/route/v1/driving/'+state.source.lon+','+state.source.lat+';'+state.park.lon+','+state.park.lat+'?overview=false'),x=await r.json();if(x.code!=='Ok'||!x.routes?.length)throw Error('no route');return [{relation_id:park.osm_id,distance:x.routes[0].distance+'m'}];}"
+      }
+    },
+    {
+      "task_id": 266,
+      "action_index": 6,
+      "precondition_action_sha256": "cb8d4d63d9e4ac4c4af190c414a567a465fa4ba1abf8ecf5c5ff77f4338269db",
+      "set": {
+        "script": "async()=>{const state=JSON.parse(window.name);const geocode=async q=>{const r=await fetch('/nominatim/search?format=json&addressdetails=1&limit=10&q='+encodeURIComponent(q));if(!r.ok)throw Error('geocode '+r.status);const rows=await r.json();if(!rows.length)throw Error('not found '+q);return rows};const park=(await geocode('Acadia National Park')).find(x=>x.osm_type==='relation');if(!park)throw Error('park relation missing');const r=await fetch('/osrm/routed-car/route/v1/driving/'+state.source.lon+','+state.source.lat+';'+state.park.lon+','+state.park.lat+'?overview=false'),x=await r.json();if(x.code!=='Ok'||!x.routes?.length)throw Error('no route');return [{relation_id:park.osm_id,distance:x.routes[0].distance+'m'}];}"
+      }
+    },
+    {
+      "task_id": 267,
+      "action_index": 6,
+      "precondition_action_sha256": "719319dc83757f9ebe281a8214b11973e824ae250a230941ba1e28bcddc86f04",
+      "set": {
+        "script": "async()=>{const state=JSON.parse(window.name);const geocode=async q=>{const r=await fetch('/nominatim/search?format=json&addressdetails=1&limit=10&q='+encodeURIComponent(q));if(!r.ok)throw Error('geocode '+r.status);const rows=await r.json();if(!rows.length)throw Error('not found '+q);return rows};const park=(await geocode('Acadia National Park')).find(x=>x.osm_type==='relation');if(!park)throw Error('park relation missing');const r=await fetch('/osrm/routed-car/route/v1/driving/'+state.source.lon+','+state.source.lat+';'+state.park.lon+','+state.park.lat+'?overview=false'),x=await r.json();if(x.code!=='Ok'||!x.routes?.length)throw Error('no route');return [{relation_id:park.osm_id,duration:x.routes[0].duration+'s'}];}"
+      }
+    },
+    {
+      "task_id": 268,
+      "action_index": 6,
+      "precondition_action_sha256": "96e385477d8f1c513ab9e9e998b004674284b36d49258ca6eab2c476101e61aa",
+      "set": {
+        "script": "async()=>{const state=JSON.parse(window.name);const geocode=async q=>{const r=await fetch('/nominatim/search?format=json&addressdetails=1&limit=10&q='+encodeURIComponent(q));if(!r.ok)throw Error('geocode '+r.status);const rows=await r.json();if(!rows.length)throw Error('not found '+q);return rows};const park=(await geocode('Acadia National Park')).find(x=>x.osm_type==='relation');if(!park)throw Error('park relation missing');document.cookie='_osm_directions_engine=fossgis_osrm_bicycle; path=/';const r=await fetch('/osrm/routed-bike/route/v1/driving/'+state.source.lon+','+state.source.lat+';'+state.park.lon+','+state.park.lat+'?overview=false'),x=await r.json();if(x.code!=='Ok'||!x.routes?.length)throw Error('no route');return [{relation_id:park.osm_id,duration:x.routes[0].duration+'s'}];}"
+      }
+    },
+    {
       "task_id": 284,
       "action_index": 3,
       "precondition_action_sha256": "81d1f17b0f4324eae2288a91e72e1ec5944454aa669b4ccf6ffd5cd41d2d7227",
@@ -78,7 +147,8 @@
       "action_index": 3,
       "precondition_action_sha256": "cde2b999aee833627b12ef6308d2863576b3113f121840fb465cefbb28b12298",
       "set": {
-        "script_mode": "function_body"
+        "script_mode": "function_body",
+        "script": "const deadline=Date.now()+45000;let title,viewModel;\nwhile(Date.now()<deadline){\n title=document.querySelector('[data-index=\"content\"] > .fieldset-wrapper-title');\n if(title&&typeof requirejs==='function'&&requirejs.defined('ko')){\n  viewModel=require('ko').contextFor(title)?.$data;\n  if(typeof viewModel?.toggleOpened==='function')break;\n }\n await new Promise(r=>setTimeout(r,100));\n}\nif(!title||typeof viewModel?.toggleOpened!=='function')throw new Error('Content accordion binding not ready');\nviewModel.toggleOpened();\nwhile(Date.now()<deadline){\n if(typeof viewModel.opened!=='function'||viewModel.opened())return true;\n await new Promise(r=>setTimeout(r,100));\n}\nthrow new Error('Content accordion did not open');"
       }
     },
     {
@@ -86,7 +156,17 @@
       "action_index": 5,
       "precondition_action_sha256": "34b3abca537d968a7863b498dbd1209eab3b681a94ee58f47d5beb3379c12f4d",
       "set": {
-        "script_mode": "function_body"
+        "script_mode": "function_body",
+        "script": "const deadline=Date.now()+45000;let field,source;\nwhile(Date.now()<deadline){\n const fields=[...document.querySelectorAll('textarea')].filter(el=>el.name==='short_description'||el.name==='product[short_description]');\n const form=typeof requirejs==='function'&&requirejs.defined('uiRegistry')?require('uiRegistry').get('product_form.product_form'):null;\n source=form?.source;\n if(fields.length===1&&typeof source?.set==='function'){field=fields[0];break;}\n if(fields.length>1)throw new Error('multiple live short_description fields');\n await new Promise(r=>setTimeout(r,100));\n}\nif(!field||typeof source?.set!=='function')throw new Error('short_description field or Magento data source not ready');\nconst value='<p>1 customer(s) love it!</p>';\nfield.value=value;field.dispatchEvent(new Event('input',{bubbles:true}));field.dispatchEvent(new Event('change',{bubbles:true}));\nsource.set('data.product.short_description',value);\nif(source.get('data.product.short_description')!==value)throw new Error('short_description data source mismatch');\nreturn value;"
+      }
+    },
+    {
+      "task_id": 464,
+      "action_index": 7,
+      "precondition_action_sha256": "063e4cf5b6b97b63e4583192fe888ca55f52099222911996d0fc88149fdc5a81",
+      "set": {
+        "selector": "div.message-success",
+        "wait_state": "attached"
       }
     },
     {
@@ -123,6 +203,14 @@
     },
     {
       "task_id": 506,
+      "action_index": 6,
+      "precondition_action_sha256": "94eb127ffa488f0647fe3039f82221411a80d382139eed75f92901a2bbf6e6a2",
+      "set": {
+        "wait_for_enabled": true
+      }
+    },
+    {
+      "task_id": 506,
       "action_index": 10,
       "precondition_action_sha256": "323eee9e3108f1c6338dc06089e409c059ac5b5e03d28b8b1c58dfcc0faa901f",
       "set": {
@@ -154,6 +242,62 @@
       }
     },
     {
+      "task_id": 547,
+      "action_index": 3,
+      "precondition_action_sha256": "dcaf408ccdc6d18c52884ec3c645305be542dbae9ca6b109d4bebbdabd1e4f70",
+      "set": {
+        "script": "(async()=>{const CFG={\"sizes\":[\"S\"],\"colors\":[\"Brown\"],\"newSize\":null,\"price\":\"59\",\"qty\":\"100\"};const wait=async(fn,label,ms=55000)=>{const end=Date.now()+ms;while(Date.now()<end){const v=fn();if(v)return v;await new Promise(r=>setTimeout(r,100));}throw Error(label)};const reg=require('uiRegistry');const modalName='product_form.product_form.configurableModal';\nconst modal=reg.get(modalName);\nif(!(modal?.state?.())){const button=await wait(()=>[...document.querySelectorAll('button')].find(e=>e.textContent.trim()==='Edit Configurations'&&!e.disabled),'wizard opener not ready');button.click();}\nawait wait(()=>reg.get('variation-steps-wizard')?.wizard?.index===0&&reg.get('variation-steps-wizard_step1'),'wizard did not open');\nreturn true;})()"
+      }
+    },
+    {
+      "task_id": 547,
+      "action_index": 5,
+      "precondition_action_sha256": "9047fb906326481eefb147ca82168692517336f7a5e821e36c2835dd71c7c3d1",
+      "set": {
+        "script": "(async()=>{const CFG={\"sizes\":[\"S\"],\"colors\":[\"Brown\"],\"newSize\":null,\"price\":\"59\",\"qty\":\"100\"};const wait=async(fn,label,ms=55000)=>{const end=Date.now()+ms;while(Date.now()<end){const v=fn();if(v)return v;await new Promise(r=>setTimeout(r,100));}throw Error(label)};const reg=require('uiRegistry');const root=await wait(()=>reg.get('variation-steps-wizard')?.wizard&&reg.get('variation-steps-wizard'),'wizard root missing');\nconst s1=await wait(()=>reg.get('variation-steps-wizard_step1'),'step1 missing');\nawait wait(()=>s1.multiselect?.()?.rows?.()?.length,'attribute rows not loaded');\nif(!s1.stepInitialized)s1.doSelectSavedAttributes();\nawait wait(()=>{const ids=s1.multiselect().selected();const ls=ids.map(id=>s1.attributesLabels[id]).sort();return ls.join(',')==='Color,Size'},'Color/Size not selected');\nroot.next();\nconst s2=await wait(()=>root.wizard.index===1&&reg.get('variation-steps-wizard_step2'),'step2 not active');\nawait wait(()=>{const a=s2.attributes?.();return a?.length===2&&a.every(x=>x.options?.()?.length)},'step2 models not loaded');\nreturn true;})()"
+      }
+    },
+    {
+      "task_id": 547,
+      "action_index": 7,
+      "precondition_action_sha256": "c8a9fb184fa1129a4bfb3b0bb6c75bb419442435f87f2d13b8f412e06a9d29c2",
+      "set": {
+        "script": "(async()=>{const CFG={\"sizes\":[\"S\"],\"colors\":[\"Brown\"],\"newSize\":null,\"price\":\"59\",\"qty\":\"100\"};const wait=async(fn,label,ms=55000)=>{const end=Date.now()+ms;while(Date.now()<end){const v=fn();if(v)return v;await new Promise(r=>setTimeout(r,100));}throw Error(label)};const reg=require('uiRegistry');const root=reg.get('variation-steps-wizard'),s2=reg.get('variation-steps-wizard_step2');\nconst attrs=s2.attributes(),byLabel=l=>attrs.find(a=>a.label===l),size=byLabel('Size'),color=byLabel('Color');\nif(!size||!color)throw Error('Size/Color model missing');\nlet created=null;\nif(CFG.newSize){created=size.options().find(o=>o.label===CFG.newSize);if(!created){s2.createOption.call(size);created=size.options().find(o=>o.is_new&&o.label==='');if(!created)throw Error('new size model missing');created.label=CFG.newSize;s2.saveOption.call(size,created);}}\nconst choose=(a,wanted)=>{const opts=a.options().filter(o=>wanted.includes(o.label));if(opts.length!==wanted.length)throw Error(a.label+' options missing');a.chosenOptions(opts.map(o=>o.id));};\nchoose(size,CFG.sizes);choose(color,CFG.colors);\nconst labels=a=>a.chosenOptions().map(id=>a.options().find(o=>o.id===id)?.label).filter(Boolean).sort();\nif(labels(size).join('|')!==[...CFG.sizes].sort().join('|')||labels(color).join('|')!==[...CFG.colors].sort().join('|'))throw Error('selection mismatch');\nroot.next();await wait(()=>root.wizard.index===2,'step2 force rejected');\nif(created)await wait(()=>{if(s2.notificationMessage?.error)throw Error(s2.notificationMessage.text);return created.is_new===false&&created.value&&created.value!==0},'new option save did not finish');\nreturn true;})()"
+      }
+    },
+    {
+      "task_id": 547,
+      "action_index": 9,
+      "precondition_action_sha256": "473f9ae63cbbac8db7c63e2b1f6963f6930e371e8e5c2be3d7c7595e648f097e",
+      "set": {
+        "script": "(()=>true)()"
+      }
+    },
+    {
+      "task_id": 547,
+      "action_index": 11,
+      "precondition_action_sha256": "67c3284605e6a0958e4b885293f63fb2ef59589827d7132756c21f474288ae36",
+      "set": {
+        "script": "(async()=>{const CFG={\"sizes\":[\"S\"],\"colors\":[\"Brown\"],\"newSize\":null,\"price\":\"59\",\"qty\":\"100\"};const wait=async(fn,label,ms=55000)=>{const end=Date.now()+ms;while(Date.now()<end){const v=fn();if(v)return v;await new Promise(r=>setTimeout(r,100));}throw Error(label)};const reg=require('uiRegistry');const root=reg.get('variation-steps-wizard'),s3=await wait(()=>root.wizard.index===2&&reg.get('variation-steps-wizard_step3'),'step3 missing');\nconst sec=await wait(()=>s3.sections?.()?.price&&s3.sections?.()?.quantity&&s3.sections(),'bulk sections missing');\nsec.price.type('single');sec.price.value(CFG.price);sec.quantity.type('single');sec.quantity.value(CFG.qty);\nroot.next();\nconst s4=await wait(()=>root.wizard.index===3&&reg.get('variation-steps-wizard_step4'),'bulk validation/transition failed');\nconst expected=CFG.sizes.length*CFG.colors.length;\nawait wait(()=>s4.variations?.length===expected&&s4.variations.every(v=>v.options.every(o=>o.value&&o.value!==0)),'summary variations incomplete');\nreturn true;})()"
+      }
+    },
+    {
+      "task_id": 547,
+      "action_index": 13,
+      "precondition_action_sha256": "d9b26056fae8668fbedc2b89c697b7e12f2b293726554e2ed0a1eda44576c311",
+      "set": {
+        "script": "(async()=>{const CFG={\"sizes\":[\"S\"],\"colors\":[\"Brown\"],\"newSize\":null,\"price\":\"59\",\"qty\":\"100\"};const wait=async(fn,label,ms=55000)=>{const end=Date.now()+ms;while(Date.now()<end){const v=fn();if(v)return v;await new Promise(r=>setTimeout(r,100));}throw Error(label)};const reg=require('uiRegistry');const root=reg.get('variation-steps-wizard'),s4=reg.get('variation-steps-wizard_step4');\nif(root.wizard.index!==3||!s4?.variations?.length)throw Error('summary not ready');\nroot.next();\nconst vc=reg.get('product_form.product_form.configurableVariations'),modal=reg.get('product_form.product_form.configurableModal');\nconst expected=CFG.sizes.length*CFG.colors.length;\nconst arrayValue=v=>typeof v==='function'?v():v;\nawait wait(()=>{const vals=arrayValue(vc?.value),matrix=arrayValue(vc?.productMatrix),save=document.querySelector('#save-button');return modal?.state?.()===false&&Array.isArray(vals)&&vals.length===expected&&Array.isArray(matrix)&&matrix.length===expected&&vals.every(v=>v.options?.every(o=>o.value&&o.value!==0))&&save&&!save.disabled},'generated matrix/save gate not ready');\nreturn {generated:expected};})()"
+      }
+    },
+    {
+      "task_id": 547,
+      "action_index": 15,
+      "precondition_action_sha256": "e9578be134d951b653b4ba467531939e8b30593f1964755f42d53fcfbac864a7",
+      "set": {
+        "script": "(async()=>{const end=Date.now()+55000;while(Date.now()<end){const button=document.querySelector('#save-button');if(button&&!button.disabled){button.click();return true;}await new Promise(r=>setTimeout(r,100));}throw Error('parent Save button not ready');})()"
+      }
+    },
+    {
       "task_id": 576,
       "action_index": 4,
       "precondition_action_sha256": "79a89255b630ffef60066fcea63381e419fc8bf33699c7cb30e1b5418c2eb6be",
@@ -166,7 +310,8 @@
       "action_index": 6,
       "precondition_action_sha256": "5ec0f3b20f6c43a1c447cf739b92e06a7df2e27eecb93b81c03cf32a839110a5",
       "set": {
-        "script_mode": "function_body"
+        "script_mode": "function_body",
+        "script": "const deadline=Date.now()+30000;while(Date.now()<deadline){\n const text=[...document.querySelectorAll('*')].find(e=>e.children.length===0&&e.textContent.trim()==='abisubramanya27');\n const option=text?.closest('[role=option],button[role=menuitem],li,button')||text?.parentElement;\n if(option){option.click();return true;}\n await new Promise(r=>setTimeout(r,100));\n}\nthrow new Error('abisubramanya27 suggestion not ready');"
       }
     },
     {
@@ -182,7 +327,41 @@
       "action_index": 9,
       "precondition_action_sha256": "1b77cbf6041bdcb42c4b6f90831610a3cca4df22127432c8dfa561b46bc1dcb6",
       "set": {
-        "script_mode": "function_body"
+        "script_mode": "function_body",
+        "script": "const deadline=Date.now()+30000;while(Date.now()<deadline){\n const text=[...document.querySelectorAll('*')].find(e=>e.children.length===0&&e.textContent.trim()==='lahwaacz');\n const option=text?.closest('[role=option],button[role=menuitem],li,button')||text?.parentElement;\n if(option){option.click();return true;}\n await new Promise(r=>setTimeout(r,100));\n}\nthrow new Error('lahwaacz suggestion not ready');"
+      }
+    },
+    {
+      "task_id": 585,
+      "action_index": 6,
+      "precondition_action_sha256": "4d43b4e95011546d307551f31a8f406e3d0500b53c26024db11428a4d6617052",
+      "set": {
+        "force": true
+      }
+    },
+    {
+      "task_id": 585,
+      "action_index": 7,
+      "precondition_action_sha256": "4ac81f333fa6faf387587ffac02e4102ae13ef0f02981865f78450c87d95af80",
+      "set": {
+        "force": true
+      }
+    },
+    {
+      "task_id": 585,
+      "action_index": 8,
+      "precondition_action_sha256": "c8c18cc3c609171b5b9f7dc02d0289fceffa76054df204e0ad30469a18429585",
+      "set": {
+        "force": true
+      }
+    },
+    {
+      "task_id": 585,
+      "action_index": 9,
+      "precondition_action_sha256": "ccdab5942d0a9d856bd36c59b9760194ae05fecf7f4cadde868f1ae929f445ab",
+      "set": {
+        "force": true,
+        "selector": "button:has-text(\"Submit Review\")"
       }
     },
     {
@@ -198,7 +377,8 @@
       "action_index": 4,
       "precondition_action_sha256": "54eaf68c87c52061c70107527f0718e375ec4c142e61df61fee19c1b6099b353",
       "set": {
-        "script_mode": "function_body"
+        "script_mode": "function_body",
+        "script": "if(typeof requirejs!=='function'||!requirejs.defined('uiRegistry'))throw new Error('uiRegistry not ready');\nconst filters=[],providers=[];\nrequire('uiRegistry').get(item=>{\n  if(item.component==='Magento_Ui/js/grid/filters/filters'&&item.ns==='sales_order_grid')filters.push(item);\n  if(item.component==='Magento_Ui/js/grid/provider'&&item.params?.namespace==='sales_order_grid')providers.push(item);\n});\nif(filters.length!==1||providers.length!==1)throw new Error('expected one sales-order filter/provider pair');\nconst applied={placeholder:true,status:'fraud'};\nfilters[0].setData(applied,false);\nfilters[0].set('applied',applied);\nproviders[0].params={...providers[0].params,search:'',keywordUpdated:false,filters:applied};\nproviders[0].reload();\nreturn {namespace:'sales_order_grid',status:'fraud',component:filters[0].name};"
       }
     },
     {
@@ -223,38 +403,6 @@
       "precondition_action_sha256": "2b0eb9ceee5ccd8fb44b1567973933b1375a84ca0a696c2a0d56f5b6a5181b1b",
       "set": {
         "script_mode": "function_body"
-      }
-    },
-    {
-      "task_id": 265,
-      "action_index": 6,
-      "precondition_action_sha256": "cb8d4d63d9e4ac4c4af190c414a567a465fa4ba1abf8ecf5c5ff77f4338269db",
-      "set": {
-        "script": "async()=>{const state=JSON.parse(window.name);const geocode=async q=>{const r=await fetch('/nominatim/search?format=json&addressdetails=1&limit=10&q='+encodeURIComponent(q));if(!r.ok)throw Error('geocode '+r.status);const rows=await r.json();if(!rows.length)throw Error('not found '+q);return rows};const park=(await geocode('Acadia National Park')).find(x=>x.osm_type==='relation');if(!park)throw Error('park relation missing');const r=await fetch('/osrm/routed-car/route/v1/driving/'+state.source.lon+','+state.source.lat+';'+state.park.lon+','+state.park.lat+'?overview=false'),x=await r.json();if(x.code!=='Ok'||!x.routes?.length)throw Error('no route');return [{relation_id:park.osm_id,distance:x.routes[0].distance+'m'}];}"
-      }
-    },
-    {
-      "task_id": 266,
-      "action_index": 6,
-      "precondition_action_sha256": "cb8d4d63d9e4ac4c4af190c414a567a465fa4ba1abf8ecf5c5ff77f4338269db",
-      "set": {
-        "script": "async()=>{const state=JSON.parse(window.name);const geocode=async q=>{const r=await fetch('/nominatim/search?format=json&addressdetails=1&limit=10&q='+encodeURIComponent(q));if(!r.ok)throw Error('geocode '+r.status);const rows=await r.json();if(!rows.length)throw Error('not found '+q);return rows};const park=(await geocode('Acadia National Park')).find(x=>x.osm_type==='relation');if(!park)throw Error('park relation missing');const r=await fetch('/osrm/routed-car/route/v1/driving/'+state.source.lon+','+state.source.lat+';'+state.park.lon+','+state.park.lat+'?overview=false'),x=await r.json();if(x.code!=='Ok'||!x.routes?.length)throw Error('no route');return [{relation_id:park.osm_id,distance:x.routes[0].distance+'m'}];}"
-      }
-    },
-    {
-      "task_id": 267,
-      "action_index": 6,
-      "precondition_action_sha256": "719319dc83757f9ebe281a8214b11973e824ae250a230941ba1e28bcddc86f04",
-      "set": {
-        "script": "async()=>{const state=JSON.parse(window.name);const geocode=async q=>{const r=await fetch('/nominatim/search?format=json&addressdetails=1&limit=10&q='+encodeURIComponent(q));if(!r.ok)throw Error('geocode '+r.status);const rows=await r.json();if(!rows.length)throw Error('not found '+q);return rows};const park=(await geocode('Acadia National Park')).find(x=>x.osm_type==='relation');if(!park)throw Error('park relation missing');const r=await fetch('/osrm/routed-car/route/v1/driving/'+state.source.lon+','+state.source.lat+';'+state.park.lon+','+state.park.lat+'?overview=false'),x=await r.json();if(x.code!=='Ok'||!x.routes?.length)throw Error('no route');return [{relation_id:park.osm_id,duration:x.routes[0].duration+'s'}];}"
-      }
-    },
-    {
-      "task_id": 268,
-      "action_index": 6,
-      "precondition_action_sha256": "96e385477d8f1c513ab9e9e998b004674284b36d49258ca6eab2c476101e61aa",
-      "set": {
-        "script": "async()=>{const state=JSON.parse(window.name);const geocode=async q=>{const r=await fetch('/nominatim/search?format=json&addressdetails=1&limit=10&q='+encodeURIComponent(q));if(!r.ok)throw Error('geocode '+r.status);const rows=await r.json();if(!rows.length)throw Error('not found '+q);return rows};const park=(await geocode('Acadia National Park')).find(x=>x.osm_type==='relation');if(!park)throw Error('park relation missing');document.cookie='_osm_directions_engine=fossgis_osrm_bicycle; path=/';const r=await fetch('/osrm/routed-bike/route/v1/driving/'+state.source.lon+','+state.source.lat+';'+state.park.lon+','+state.park.lat+'?overview=false'),x=await r.json();if(x.code!=='Ok'||!x.routes?.length)throw Error('no route');return [{relation_id:park.osm_id,duration:x.routes[0].duration+'s'}];}"
       }
     }
   ]

@@ -114,6 +114,30 @@ def test_load_suite_requires_url_pattern_for_wait_for_url(tmp_path):
         load_suite(path)
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        {"action": "click", "selector": "a", "new_page": True},
+        {"action": "navigate", "url": "https://example.com", "new_page": "yes"},
+        {
+            "action": "navigate",
+            "url": "https://example.com",
+            "new_page": True,
+            "tab_index": 1,
+        },
+    ],
+)
+def test_load_suite_rejects_invalid_new_page_contract(tmp_path, call):
+    path = tmp_path / "tasks.json"
+    path.write_text(
+        json.dumps({"schema": "lex_browser_use_tasks/3", "tasks": [_task("bad", [call])]}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="new_page"):
+        load_suite(path)
+
+
 @pytest.mark.parametrize("duration", [{}, {"timeout": 0}, {"seconds": -1}, {"timeout": 1, "seconds": 1}])
 def test_load_suite_rejects_invalid_wait_duration(tmp_path, duration):
     path = tmp_path / "tasks.json"
@@ -123,6 +147,59 @@ def test_load_suite_rejects_invalid_wait_duration(tmp_path, duration):
     )
     with pytest.raises(ValueError, match="wait call 1"):
         load_suite(path)
+
+
+def test_load_suite_accepts_selector_wait_with_timeout(tmp_path):
+    path = tmp_path / "tasks.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "lex_browser_use_tasks/3",
+                "tasks": [
+                    _task(
+                        "ready",
+                        [
+                            {
+                                "action": "wait",
+                                "selector": "div.message-success:visible",
+                                "timeout": 30_000,
+                            }
+                        ],
+                    )
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert load_suite(path).tasks[0].tool_calls[0]["selector"].startswith("div.message")
+
+
+def test_load_suite_accepts_attached_selector_wait(tmp_path):
+    path = tmp_path / "tasks.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "lex_browser_use_tasks/3",
+                "tasks": [
+                    _task(
+                        "ready",
+                        [
+                            {
+                                "action": "wait",
+                                "selector": "div.message-success",
+                                "wait_state": "attached",
+                                "timeout": 30_000,
+                            }
+                        ],
+                    )
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert load_suite(path).tasks[0].tool_calls[0]["wait_state"] == "attached"
 
 
 @pytest.mark.parametrize("action", ["click", "fill", "select"])

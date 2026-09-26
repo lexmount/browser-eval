@@ -372,12 +372,15 @@ def _run_task(
                 }
             )
             if effective_status != "success":
-                try:
-                    records[-1]["failure_ui_state"] = _capture_failure_ui_state(service, action)
-                except Exception as observation_exc:
-                    records[-1]["failure_ui_state_error"] = (
-                        f"{type(observation_exc).__name__}: {observation_exc}"
-                    )[:300]
+                if getattr(service, "failure_capture_available", True):
+                    try:
+                        records[-1]["failure_ui_state"] = _capture_failure_ui_state(
+                            service, action
+                        )
+                    except Exception as observation_exc:
+                        records[-1]["failure_ui_state_error"] = (
+                            f"{type(observation_exc).__name__}: {observation_exc}"
+                        )[:300]
                 detail = observation_error or result
                 raise RuntimeError(f"step {index} failed: {detail}")
         if correction is not None and correction.replay_assertions:
@@ -446,13 +449,16 @@ def _run_task(
             )
     except Exception:
         error = traceback.format_exc()
-        if service is not None and recorder_started:
+        failure_capture_available = bool(
+            service is not None and getattr(service, "failure_capture_available", True)
+        )
+        if failure_capture_available and recorder_started:
             try:
                 service._submit(lambda: recorder.stop(service._context, har_path))
                 hashes["network_har"] = file_sha256(har_path)
             except Exception:
                 pass
-        if service is not None:
+        if failure_capture_available:
             try:
                 service._submit(
                     lambda: service._page.screenshot(path=str(task_dir / "failure.png"))
@@ -482,6 +488,9 @@ def _run_task(
         ),
         "duration_ms": round((time.perf_counter() - started) * 1000, 3),
         "error": error,
+        "runtime_poisoned": bool(
+            service is not None and not getattr(service, "failure_capture_available", True)
+        ),
         "evidence_sha256": hashes,
     }
     result_path = task_dir / "result.json"

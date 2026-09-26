@@ -39,7 +39,7 @@ def main() -> None:
         inputs_path = directory / "inputs.json"
         progress_path = directory / "progress.jsonl"
         inputs = json.loads(inputs_path.read_text(encoding="utf-8"))
-        if inputs.get("webarena_revision") != transition["from_revision"]:
+        if inputs.get("webarena_revision") not in transition["compatible_from_revisions"]:
             continue
         for row in map(json.loads, progress_path.read_text(encoding="utf-8").splitlines()):
             if row.get("status") != "pass":
@@ -48,9 +48,10 @@ def main() -> None:
             if evaluation_path is None:
                 raise ValueError(f"task {row['task_id']} pass lacks evaluation evidence")
             old = json.loads(evaluation_path.read_text(encoding="utf-8"))
-            if old.get("webarena_verified_evaluator_checksum") != transition[
-                "from_evaluator_checksum"
-            ]:
+            if old.get("webarena_verified_evaluator_checksum") not in {
+                transition["from_evaluator_checksum"],
+                transition["to_evaluator_checksum"],
+            }:
                 raise ValueError(f"task {row['task_id']} has an unexpected old evaluator")
             current, binding = reevaluate_pass(
                 directory / f"task-{row['task_id']}",
@@ -70,9 +71,12 @@ def main() -> None:
         "schema": RECEIPT_SCHEMA,
         "transition_sha256": json_sha256(transition),
         "from_revision": transition["from_revision"],
+        "compatible_from_revisions": transition["compatible_from_revisions"],
         "from_evaluator_checksum": transition["from_evaluator_checksum"],
+        "from_data_checksum": transition["from_data_checksum"],
         "to_revision": transition["to_revision"],
         "to_evaluator_checksum": transition["to_evaluator_checksum"],
+        "to_data_checksum": transition["to_data_checksum"],
         "row_count": len(rows),
         "rows": rows,
     }

@@ -2,43 +2,42 @@
   "schema": "lex_webarena_verified_full_report_profile/1",
   "benchmark": "WebArena-Verified",
   "split": "full-812",
-  "browser": "chromium",
+  "browser": "moli",
   "dataset_path": "evaluation/trajectory-replay/webarena-verified-full/dataset.json",
-  "dataset_sha256": "f498dd395561b1f8b31de75b226dccd0ea841cc6a5e2bb48c63d6fc375e9aefd",
+  "dataset_sha256": "34aac949a150c6fb742910b8caed8c364d2a05e9577c7f095e23c3f774925c37",
   "scope_path": "evaluation/trajectory-replay/webarena-verified-full/scope.json",
-  "scope_sha256": "91b93b44603d06cd84fa43e17296b41058a56e3288430fd53ec635ce5c8e81d5",
-  "evidence_root": "trajectory-replay/full-812-playwright-chromium-20260924",
+  "scope_sha256": "a209bc38d06e51dab3b32269be88ff5e9c30b8ccfebbac39ef56e20da4b994df",
+  "evidence_root": "trajectory-replay/full-812-playwright-moli-20260926",
   "accepted_catalog": {
-    "path": "accepted-catalog-playwright-final.json",
-    "sha256": "b4615b5a7eccec529a59ea0a83846c48073924108951ff2e04759963954304bb"
+    "path": "accepted-catalog-final.json",
+    "sha256": "7a4d780f35eec75c9fac75666dc75f25b9fb33aeabe754bda55857ed286702e0"
   },
   "accepted_portable_suite": {
-    "path": "accepted-suite-playwright-final.json",
-    "sha256": "a53a10358cadc59ed6896ffee7c9aa1a8d3308d5a23c8279384f1dd1c079a594"
+    "path": "accepted-suite-final.json",
+    "sha256": "7bbcf099ce13d9b0bce9652a32f24df8aef489dcaf3dac2702daed33decd062e"
   },
-  "acceptance_ledger_path": "acceptance-final.json",
-  "first_round_acceptance_ledger_sha256": "1102c5e0c981f30b456345e1ded6f0a91bb6b3cc1c46f7d49e7bd7a7f5050246",
-  "acceptance_ledger_sha256": "1019174762cc3c75cb5916cac0a7932ac782d49495729686c494419bda41ade2",
+  "acceptance_ledger_path": "acceptance-final-v20.json",
+  "acceptance_ledger_sha256": "83d4ff9ca2291d48647d453f85cf3c0c7d433731548ca694506f377831b0a46c",
   "accepted_counts": {
     "total": 812,
     "pass": 812,
     "unresolved": 0,
-    "physical_attempts": 1578,
+    "physical_attempts": 1024,
     "excluded_duplicate_attempts": 0
   },
-  "report_manifest_path": "report-playwright-final-v1/manifest.json",
-  "report_manifest_sha256": "9ad70dff61296dbd3491559f2d23e547c92fe81f55e6a301b4161af1d322b2c9",
-  "report_archive_path": "report-playwright-final-v1.zip",
-  "report_archive_sha256": "c27686e319c8cee6a07be99e3a413b6439400eeb7328625c69cb4566a39d8e3a",
+  "report_manifest_path": "report-moli-final-v1/manifest.json",
+  "report_manifest_sha256": "b0213c2f31d419a8aa7ad6e5a11b8576727ab9aa06458177fb0d3bbe85472a5a",
+  "report_archive_path": "report-moli-final-v1.zip",
+  "report_archive_sha256": "d43188f4c9c54b9d353acdac481eb680178814393f53a4f699206c5604da955a",
   "generated_languages": [
     "zh"
   ],
   "publication": {
     "service": "artifact-site",
     "host": "https://artifact-site.lexmount.cn",
-    "title": "WebArena-Verified 全量轨迹重放 · Chromium",
+    "title": "WebArena-Verified 全量轨迹重放 · Moli",
     "slug": "EFLrNgujgsVc",
-    "version_id": "ver_d4002213dd8547b89784ca3c96a48897",
+    "version_id": "ver_e65cd20b5a784e2d84381bf00e3df02e",
     "share_url": "https://artifact-site.lexmount.cn/v/4G8YKfQreobGLwg4fo-UJGohezNqgAEm"
   },
   "execution_backend": "playwright"

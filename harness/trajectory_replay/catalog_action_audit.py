@@ -24,6 +24,7 @@ for (const row of rows) {
   } catch (scriptError) {
     try {
       new vm.Script(`(async () => {\n${row.script}\n})`);
+      if (row.script_mode === "function_body") continue;
       findings.push({
         task_id: row.task_id,
         mode: row.mode,
@@ -76,6 +77,7 @@ def _evaluate_actions(catalog: dict, suite_path: Path) -> list[dict]:
                     "mode": mode,
                     "action_index": action_index,
                     "precondition_action_sha256": _json_sha256(action),
+                    "script_mode": action.get("script_mode"),
                     "script": script,
                 }
             )

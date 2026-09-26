@@ -21,9 +21,12 @@ def _receipt(transition):
         "schema": evaluator_transition.RECEIPT_SCHEMA,
         "transition_sha256": evaluator_transition.json_sha256(transition),
         "from_revision": transition["from_revision"],
+        "compatible_from_revisions": transition["compatible_from_revisions"],
         "from_evaluator_checksum": transition["from_evaluator_checksum"],
+        "from_data_checksum": transition["from_data_checksum"],
         "to_revision": transition["to_revision"],
         "to_evaluator_checksum": transition["to_evaluator_checksum"],
+        "to_data_checksum": transition["to_data_checksum"],
         "row_count": 1,
         "rows": [
             {

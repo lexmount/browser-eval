@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import hashlib
 import html
+import importlib.resources
 import json
 import math
 import re
 import shutil
 import statistics
+import zipfile
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urlsplit
 
+from harness.trajectory_replay.evaluator_transition import json_sha256, reevaluate_pass
 from harness.trajectory_replay.failure_matrix import failure_category_matrix
 from harness.trajectory_replay.interpretation import render_interpretation, standalone_document
 from harness.trajectory_replay.participants import (
@@ -21,6 +24,8 @@ from harness.trajectory_replay.participants import (
     participant_registry,
     resolve_participant_id,
 )
+from harness.trajectory_replay.remote_runtime import load_remote_sites, remote_benchmark
+from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_review import (
     load_validated_failure_review,
     programmatic_failure,
@@ -1623,7 +1628,7 @@ def build_webarena_replay_report(
             fail_links = []
             passed_engines = []
             failed_engines = []
-            for engine, method in comparison_methods.items():
+            for engine, _method in comparison_methods.items():
                 row = next((item for item in rows_by_task[task_id] if item["participant_id"] == engine), None)
                 if row is None:
                     raise ValueError(f"same-task method result is missing: {engine}/{task_id}")
@@ -1850,7 +1855,7 @@ def build_webarena_replay_report(
             content = page.read_text(encoding="utf-8")
             content = re.sub(
                 r'(<a class="language" href=")[^"]+(">)',
-                lambda match: match[1] + prefix + "en/index.html" + match[2],
+                lambda match, prefix=prefix: match[1] + prefix + "en/index.html" + match[2],
                 content,
             )
             page.write_text(content, encoding="utf-8")
@@ -1893,4 +1898,417 @@ def build_webarena_replay_report(
         if profile.get("measurement_notes") else {},
     }
     _write_json(output / "report-manifest.json", manifest)
+    return manifest
+
+
+# Full-catalog acceptance report
+CATALOG_REPORT_SCHEMA = "lex_webarena_full_acceptance_report/3"
+CATALOG_CONTRACTS_SCHEMA = "lex_webarena_full_contracts/1"
+
+CATALOG_REPORT_CSS = """
+:root{color-scheme:light dark;font:16px/1.6 system-ui,sans-serif}
+body{max-width:1120px;margin:auto;padding:22px;color:#14212b;background:#f7f9fb}
+nav{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:24px}a{color:#075fb5}a:focus-visible,input:focus-visible{outline:3px solid #f29221}
+h1{line-height:1.25}h2{margin-top:34px}.lead{font-size:1.15rem}.muted{color:#526273}
+.panel{background:white;border:1px solid #d9e2e8;border-radius:12px;padding:20px;margin:16px 0}
+.scroll{max-height:580px;overflow:auto;border:1px solid #d9e2e8;border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:650px;background:white}th,td{text-align:left;vertical-align:top;border-bottom:1px solid #e3e9ee;padding:9px 12px}th{position:sticky;top:0;background:#edf3f7;z-index:1}
+.ok{color:#08734a;font-weight:700}code,pre{font-family:ui-monospace,monospace;overflow-wrap:anywhere}pre{white-space:pre-wrap;max-height:550px;overflow:auto;background:#f0f4f7;padding:14px;border-radius:8px}
+input{font:inherit;padding:8px 12px;width:min(100%,420px);border:1px solid #8194a3;border-radius:7px}footer{margin:34px 0;color:#526273;font-size:.9rem}
+@media(max-width:650px){body{padding:12px}.panel{padding:14px}.scroll{max-height:65vh}th,td{padding:7px 9px}}
+@media(prefers-color-scheme:dark){body{color:#edf3f7;background:#111c25}.panel,table{background:#1b2b36;border-color:#37505f}th{background:#283b48}td{border-color:#37505f}a{color:#85c1ff}.muted,footer{color:#b2c0c9}pre{background:#13232e}input{color:#edf3f7;background:#1b2b36;border-color:#8194a3}}
+"""
+
+CATALOG_SITE_LABELS = {
+    "gitlab": "GitLab",
+    "map": "地图",
+    "reddit": "Reddit",
+    "shopping": "购物网站",
+    "shopping_admin": "购物后台",
+    "wikipedia": "维基百科",
+}
+
+
+def _catalog_file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _catalog_read_json(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _catalog_write_json(path: Path, value: Any) -> None:
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _catalog_percentile(values: list[float], proportion: float) -> float:
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * proportion
+    low, high = math.floor(position), math.ceil(position)
+    if low == high:
+        return ordered[low]
+    return ordered[low] * (high - position) + ordered[high] * (position - low)
+
+
+def _catalog_shell(title: str, body: str, participant: str) -> str:
+    nav = (
+        '<nav><a href="index.html">结果</a>'
+        '<a href="dataset.html">数据集</a>'
+        '<a href="method.html">方法与边界</a></nav>'
+    )
+    return (
+        '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1"><base href="/">'
+        f"<title>{html.escape(title)}</title><style>{CATALOG_REPORT_CSS}</style></head><body>{nav}{body}"
+        f"<footer>WebArena-Verified 全量轨迹重放 · {html.escape(participant)}</footer>"
+        "</body></html>"
+    )
+
+
+def _catalog_official_tasks() -> list[dict]:
+    dataset = importlib.resources.files("webarena_verified").joinpath(
+        "assets/dataset/webarena-verified.json"
+    )
+    tasks = json.loads(dataset.read_text(encoding="utf-8"))
+    if not isinstance(tasks, list):
+        raise ValueError("WebArena-Verified dataset is not a list")
+    return tasks
+
+
+def _catalog_progress_index(evidence_root: Path) -> tuple[dict[str, Path], dict[str, dict[int, dict]]]:
+    directories: dict[str, Path] = {}
+    rows_by_digest: dict[str, dict[int, dict]] = {}
+    for progress in evidence_root.glob("*/progress.jsonl"):
+        digest = _catalog_file_sha256(progress)
+        rows = [json.loads(line) for line in progress.read_text(encoding="utf-8").splitlines()]
+        directories[digest] = progress.parent
+        rows_by_digest[digest] = {int(row["task_id"]): row for row in rows}
+    return directories, rows_by_digest
+
+
+def build_catalog_acceptance_report(
+    *,
+    evidence_root: Path,
+    ledger_path: Path,
+    scope_path: Path,
+    catalog_path: Path,
+    suite_path: Path,
+    site_map_path: Path | None,
+    output: Path,
+    archive: Path,
+) -> dict:
+    """Build a Chinese-only report from a complete accepted catalog."""
+
+    if output.exists() or archive.exists():
+        raise FileExistsError("report output already exists")
+    ledger = _catalog_read_json(ledger_path)
+    scope = _catalog_read_json(scope_path)
+    catalog = _catalog_read_json(catalog_path)
+    suite = _catalog_read_json(suite_path)
+    official = _catalog_official_tasks()
+    task_ids = catalog.get("task_ids")
+    expected_data_checksum = scope.get("official_dataset_sha256")
+    if (
+        ledger.get("counts", {}).get("pass") != len(official)
+        or ledger.get("counts", {}).get("unresolved") != 0
+        or task_ids != list(range(len(official)))
+        or scope.get("task_ids") != task_ids
+        or not isinstance(expected_data_checksum, str)
+        or len(catalog.get("rows") or []) != len(official)
+    ):
+        raise ValueError("report inputs are not a complete accepted WebArena catalog")
+
+    participant_data = ledger.get("participant") or {}
+    task_count = len(official)
+    engine = str(participant_data.get("engine") or "unknown")
+    backend = str(participant_data.get("backend") or "unknown")
+    participant = f"{engine.capitalize()} / {backend.capitalize()}"
+    output.mkdir(parents=True)
+    (output / "case").mkdir()
+    (output / "evidence").mkdir()
+
+    directories, rows_by_digest = _catalog_progress_index(evidence_root)
+    benchmark = remote_benchmark(load_remote_sites(site_map_path)) if site_map_path else None
+    corrections = load_corrections() if site_map_path else None
+    accepted: dict[int, tuple[dict, dict, dict, Path]] = {}
+    for accepted_row in ledger["rows"]:
+        task_id = int(accepted_row["task_id"])
+        attempt = accepted_row["attempts"][-1]
+        digest = attempt["progress_sha256"]
+        try:
+            accepted[task_id] = (
+                accepted_row,
+                attempt,
+                rows_by_digest[digest][task_id],
+                directories[digest],
+            )
+        except KeyError as error:
+            raise ValueError(f"task {task_id} accepted evidence is missing") from error
+
+    suite_by_id = {
+        int(task["id"].removeprefix("webarena-")): task for task in suite["tasks"]
+    }
+    catalog_by_id = {int(row["task_id"]): row for row in catalog["rows"]}
+    contracts = []
+    durations = []
+    site_counts = {site: 0 for site in CATALOG_SITE_LABELS}
+    result_rows = []
+    first_statuses: dict[str, int] = {}
+    for accepted_row in ledger["rows"]:
+        status = accepted_row["attempts"][0]["status"]
+        first_statuses[status] = first_statuses.get(status, 0) + 1
+
+    for task_id, task in enumerate(official):
+        accepted_row, final_attempt, row, run_dir = accepted[task_id]
+        physical_attempt_count = sum(
+            item["status"] != "candidate_setup_failure" for item in accepted_row["attempts"]
+        )
+        seconds = float(row["duration_ms"]) / 1000
+        durations.append(seconds)
+        sites = [str(site) for site in task["sites"]]
+        for site in sites:
+            site_counts[site] += 1
+        site_text = "、".join(CATALOG_SITE_LABELS[site] for site in sites)
+        intent = str(task["intent"])
+        result_rows.append(
+            f'<tr data-search="{task_id} {html.escape(site_text)} {html.escape(intent)}">'
+            f'<td><a href="case/{task_id:03}.html">{task_id}</a></td>'
+            f"<td>{html.escape(site_text)}</td><td class=\"ok\">通过</td>"
+            f'<td>{len(accepted_row["attempts"])}</td><td>{seconds:.2f}</td></tr>'
+        )
+        task_dir = run_dir / f"task-{task_id}"
+        transition = final_attempt.get("evaluator_transition")
+        if transition is not None:
+            if benchmark is None or corrections is None:
+                raise ValueError("transitioned report evidence requires the bound site map")
+            evaluation, binding = reevaluate_pass(
+                task_dir,
+                task_id=task_id,
+                expected_data_checksum=expected_data_checksum,
+                benchmark=benchmark,
+                corrections=corrections,
+            )
+            if binding != transition or json_sha256(evaluation) != transition.get(
+                "current_evaluation_sha256"
+            ):
+                raise ValueError(f"task {task_id} transitioned evaluation changed")
+        else:
+            evaluation = _catalog_read_json(task_dir / "evaluation.json")
+        evidence = {
+            "schema": "lex_webarena_catalog_public_evidence/1",
+            "task_id": task_id,
+            "participant": {
+                "engine": engine,
+                "backend": backend,
+                "binary_sha256": final_attempt.get("binary_sha256"),
+            },
+            "result": {
+                key: row.get(key)
+                for key in (
+                    "status",
+                    "score",
+                    "action_count",
+                    "completed_actions",
+                    "duration_ms",
+                    "executed_actions_sha256",
+                )
+            },
+            "attempt_count": len(accepted_row["attempts"]),
+            "physical_attempt_count": physical_attempt_count,
+            "attempt_statuses": [item["status"] for item in accepted_row["attempts"]],
+            "evaluation": evaluation,
+            "evaluator_transition": transition,
+            "actual_response": _catalog_read_json(task_dir / "actual_response.json"),
+            "trace": _catalog_read_json(task_dir / "trace.json"),
+        }
+        _catalog_write_json(output / "evidence" / f"{task_id:03}.json", evidence)
+        case_body = (
+            f"<h1>第 {task_id} 题 · {html.escape(participant)} 通过</h1>"
+            f'<p class="lead">{html.escape(intent)}</p>'
+            '<section class="panel" data-report-detail="passed"><h2>官方判分</h2>'
+            f'<p class="ok">通过 · score 1.0</p><p>网站：{html.escape(site_text)}；'
+            f"最终执行耗时：{seconds:.2f} 秒；物理执行：{physical_attempt_count} 次。</p>"
+            f'<p>最终动作哈希：<code>{html.escape(str(row["executed_actions_sha256"]))}</code></p>'
+            '</section><section class="panel"><h2>执行证据</h2>'
+            f'<p><a href="evidence.html?task={task_id:03}">查看轨迹与官方评测结果</a> · '
+            f'<a href="evidence/{task_id:03}.json">下载 JSON</a></p></section>'
+        )
+        (output / "case" / f"{task_id:03}.html").write_text(
+            _catalog_shell(f"第 {task_id} 题结果", case_body, participant),
+            encoding="utf-8",
+        )
+        catalog_row = catalog_by_id[task_id]
+        fixed_actions = (
+            suite_by_id[task_id]["trajectory"]["actions"]
+            if catalog_row.get("mode") == "portable"
+            else catalog_row["source_actions"]
+        )
+        contracts.append(
+            {
+                "task_id": task_id,
+                "intent": intent,
+                "sites": sites,
+                "official_evaluators": task["eval"],
+                "trajectory_source": catalog_row.get("source_kind"),
+                "fixed_actions": fixed_actions,
+            }
+        )
+
+    site_html = "".join(
+        f"<tr><td>{CATALOG_SITE_LABELS[site]}</td><td>{count}</td></tr>"
+        for site, count in site_counts.items()
+    )
+    first_pass = first_statuses.get("pass", 0)
+    first_fail = first_statuses.get("fail", 0)
+    setup_failure = first_statuses.get("candidate_setup_failure", 0)
+    counts = ledger["counts"]
+    binary_count = len(ledger.get("binary_sha256s") or [])
+    initial_physical = first_pass + first_fail
+    index_body = f"""<h1>WebArena-Verified 全量轨迹重放</h1><p class="lead">{html.escape(participant)}：{task_count} / {task_count} 题至少一次获得官方 evaluator 通过（100%）。通过后不再执行该 case。</p>
+<section class="panel"><h2>核心结果</h2><div class="scroll"><table><thead><tr><th>浏览器引擎 / 执行后端</th><th>题数</th><th>通过</th><th>Mean</th><th>P50</th><th>P95</th></tr></thead><tbody><tr><td>{html.escape(participant)}</td><td>{task_count}</td><td>{counts["pass"]}</td><td>{statistics.mean(durations):.2f} 秒</td><td>{statistics.median(durations):.2f} 秒</td><td>{_catalog_percentile(durations,.95):.2f} 秒</td></tr></tbody></table></div><p class="muted">耗时统计使用每题最终通过调用。接受审计覆盖 {counts["physical_attempts"]:,} 次物理执行；通过后重复执行 {counts["excluded_duplicate_attempts"]} 次。</p></section>
+<section class="panel"><h2>执行收敛</h2><p>初始顺序扫描完成 {initial_physical} 次物理执行：{first_pass} 题通过，{first_fail} 题未通过；其余 {setup_failure} 题因执行环境中断记录为准备失败。恢复环境后继续按官方题号处理未通过项，并逐类修复轨迹、执行器、站点状态和已确认的评测问题，直至 {task_count} 题全部通过。</p><p>接受链包含 {len(ledger["runs"])} 个执行段和 {binary_count} 个修复版本。浏览器引擎、执行后端和站点映射保持一致；每次修复只进入尚未通过的 case。</p></section>
+<section class="panel"><h2>网站分布</h2><p>一题可涉及多个网站，计数之和可能大于 {task_count}。</p><div class="scroll"><table><thead><tr><th>网站</th><th>涉及题数</th></tr></thead><tbody>{site_html}</tbody></table></div></section>
+<section class="panel"><h2>逐题结果</h2><label for="find">筛选题号、网站或任务内容</label><p><input id="find" type="search" aria-label="筛选逐题结果"></p><div class="scroll"><table id="results"><thead><tr><th>题号</th><th>网站</th><th>最终判分</th><th>接受链记录数</th><th>最终耗时（秒）</th></tr></thead><tbody>{''.join(result_rows)}</tbody></table></div></section><script>const q=document.getElementById("find");q.addEventListener("input",()=>{{for(const row of document.querySelectorAll("#results tbody tr"))row.hidden=!row.dataset.search.toLowerCase().includes(q.value.toLowerCase())}})</script>"""
+    (output / "index.html").write_text(
+        _catalog_shell("全量轨迹重放结果", index_body, participant), encoding="utf-8"
+    )
+
+    method_body = f"""<h1>方法与边界</h1><section class="panel"><h2>执行方法</h2><p>评测集按官方题号 {task_ids[0]}–{task_ids[-1]} 排列。每题执行冻结轨迹，由 {html.escape(engine.capitalize())} 浏览器引擎通过 {html.escape(backend.capitalize())} 协议后端完成动作。接受标准是 WebArena-Verified 官方 evaluator 返回 score 1.0。</p><p>初始扫描中断后，后续执行只选择接受账本里尚未通过的题。最终接受账本绑定每个物理调用、二进制哈希、站点映射、轨迹、实际响应、网络证据和 evaluator 结果。</p></section><section class="panel"><h2>代码与评测边界</h2><p>确认属于评测集或 evaluator 的通用修复维护在 lexmount/webarena-verified 的 lex-main 分支；轨迹、执行器、站点绑定、证据聚合和报告维护在 browser-eval。评测答案和通过条件没有为浏览器适配而放宽。</p><p>旧 evaluator 版本下的通过证据通过固定实际响应和 HAR 离线重评，浏览器动作没有重跑。轨迹修复期间使用多个二进制版本，但每个版本均在接受账本中单独绑定。</p></section><section class="panel"><h2>结果范围</h2><p>该结果证明当前 {html.escape(participant)} 配置下 {task_count} 题各自至少成功一次。812-case 全量 split 与既有 90-case 抽样 split 数据独立；两者共享轨迹执行和 evaluator 基础模块，并分别绑定自己的证据与发布目标。</p></section>"""
+    (output / "method.html").write_text(
+        _catalog_shell("方法与边界", method_body, participant), encoding="utf-8"
+    )
+
+    _catalog_write_json(output / "dataset-contracts.json", {"schema": CATALOG_CONTRACTS_SCHEMA, "tasks": contracts})
+    dataset_rows = "".join(
+        f'<tr><td><a href="case/{task["task_id"]:03}.html">{task["task_id"]}</a></td>'
+        f'<td>{html.escape("、".join(CATALOG_SITE_LABELS[site] for site in task["sites"]))}</td>'
+        f'<td>{html.escape(task["intent"])}</td></tr>'
+        for task in contracts
+    )
+    dataset_body = f"""<h1>数据集与轨迹合同</h1><p class="lead">{task_count} 题按 WebArena-Verified 官方顺序冻结。此页只展示任务定义；判分和执行证据在逐题结果页。</p><section class="panel"><div class="scroll"><table><thead><tr><th>题号</th><th>网站</th><th>任务</th></tr></thead><tbody>{dataset_rows}</tbody></table></div><p><a href="dataset-contracts.json">下载完整任务、evaluator 与固定动作合同</a></p></section>"""
+    (output / "dataset.html").write_text(
+        _catalog_shell("数据集与轨迹合同", dataset_body, participant), encoding="utf-8"
+    )
+    (output / "contract.html").write_text(
+        _catalog_shell("评测合同", dataset_body, participant), encoding="utf-8"
+    )
+    viewer = """<h1>证据查看器</h1><p><a id="back" href="index.html">返回结果</a></p><pre id="payload" role="region" aria-label="完整执行证据">加载中…</pre><script>const id=new URLSearchParams(location.search).get("task");const ok=/^\\d{3}$/.test(id||"");if(ok){document.getElementById("back").href="case/"+id+".html";fetch("evidence/"+id+".json").then(r=>{if(!r.ok)throw Error("证据不存在");return r.json()}).then(x=>document.getElementById("payload").textContent=JSON.stringify(x,null,2)).catch(e=>document.getElementById("payload").textContent=String(e))}else document.getElementById("payload").textContent="无效的题号";</script>"""
+    (output / "evidence.html").write_text(
+        _catalog_shell("证据查看器", viewer, participant), encoding="utf-8"
+    )
+    notice = '<h1>English edition not generated</h1><p>This release is Chinese only.</p><p><a href="index.html">返回中文版</a></p>'
+    (output / "en").mkdir()
+    (output / "en" / "index.html").write_text(
+        _catalog_shell("English edition not generated", notice, participant),
+        encoding="utf-8",
+    )
+
+    manifest = {
+        "schema": CATALOG_REPORT_SCHEMA,
+        "generated_languages": ["zh"],
+        "participant": {"engine": engine, "backend": backend},
+        "ledger_sha256": _catalog_file_sha256(ledger_path),
+        "scope_sha256": _catalog_file_sha256(scope_path),
+        "catalog_sha256": _catalog_file_sha256(catalog_path),
+        "portable_suite_sha256": _catalog_file_sha256(suite_path),
+        "task_count": len(official),
+        "pass": counts["pass"],
+        "initial_physical_attempts": initial_physical,
+        "initial_pass": first_pass,
+        "initial_setup_failures": setup_failure,
+        "physical_attempts": counts["physical_attempts"],
+        "passed_case_reruns": counts["excluded_duplicate_attempts"],
+        "binary_count": binary_count,
+        "site_counts": site_counts,
+        "route_counts": {"case": len(official), "evidence_json": len(official)},
+    }
+    _catalog_write_json(output / "manifest.json", manifest)
+    with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
+        for path in sorted(output.rglob("*")):
+            if path.is_file():
+                bundle.write(path, path.relative_to(output))
+    validate_catalog_acceptance_report(output, archive)
+    return {
+        "output": str(output),
+        "archive": str(archive),
+        "manifest_sha256": _catalog_file_sha256(output / "manifest.json"),
+        "archive_sha256": _catalog_file_sha256(archive),
+        "archive_bytes": archive.stat().st_size,
+    }
+
+
+def validate_catalog_acceptance_report(
+    output: Path, archive: Path, *, profile: dict[str, Any] | None = None
+) -> dict:
+    """Validate the public boundary of a catalog report package."""
+
+    manifest = _catalog_read_json(output / "manifest.json")
+    task_count = int(manifest.get("task_count") or 0)
+    if (
+        manifest.get("schema") != CATALOG_REPORT_SCHEMA
+        or manifest.get("generated_languages") != ["zh"]
+        or manifest.get("pass") != task_count
+        or task_count <= 0
+        or len(list((output / "case").glob("*.html"))) != task_count
+        or len(list((output / "evidence").glob("*.json"))) != task_count
+    ):
+        raise ValueError("catalog report manifest or route inventory is invalid")
+    if profile is not None and (
+        manifest.get("participant")
+        != {
+            "engine": profile.get("browser"),
+            "backend": profile.get("execution_backend"),
+        }
+        or manifest.get("ledger_sha256") != profile.get("acceptance_ledger_sha256")
+        or manifest.get("catalog_sha256")
+        != (profile.get("accepted_catalog") or {}).get("sha256")
+        or manifest.get("portable_suite_sha256")
+        != (profile.get("accepted_portable_suite") or {}).get("sha256")
+        or manifest.get("task_count") != (profile.get("accepted_counts") or {}).get("total")
+        or manifest.get("physical_attempts")
+        != (profile.get("accepted_counts") or {}).get("physical_attempts")
+        or manifest.get("passed_case_reruns")
+        != (profile.get("accepted_counts") or {}).get("excluded_duplicate_attempts")
+    ):
+        raise ValueError("catalog report presentation changed its release binding")
+    missing = []
+    for path in output.rglob("*"):
+        if not path.is_file() or path.suffix not in {".html", ".json", ".css", ".js"}:
+            continue
+        text = path.read_text(encoding="utf-8")
+        if any(marker in text for marker in ("/Users/", "file://", "/private/tmp")):
+            raise ValueError(f"catalog report leaks a private path: {path}")
+        if path.suffix != ".html":
+            continue
+
+        for value in re.findall(
+            r'<(?:a|script|img|link)\b[^>]*\b(?:href|src)="([^"]+)"', text
+        ):
+            if value.startswith(("http:", "https:", "#", "data:", "javascript:")):
+                continue
+            relative = value.split("?", 1)[0].split("#", 1)[0]
+            if relative.startswith("/") or ".." in Path(relative).parts:
+                raise ValueError(f"catalog report contains an unsafe asset path: {value}")
+            if relative and not (output / relative).resolve().is_file():
+                missing.append((str(path.relative_to(output)), value))
+    if missing:
+        raise ValueError(f"catalog report has missing local links: {missing[:5]}")
+    index = (output / "index.html").read_text(encoding="utf-8")
+    method = (output / "method.html").read_text(encoding="utf-8")
+    if (
+        f'{task_count} / {task_count}' not in index
+        or f'{manifest["physical_attempts"]:,} 次物理执行' not in index
+        or "通过后不再执行" not in index
+        or "lexmount/webarena-verified" not in method
+        or "评测答案和通过条件没有为浏览器适配而放宽" not in method
+    ):
+        raise ValueError("catalog report presentation contract is incomplete")
+    with zipfile.ZipFile(archive) as bundle:
+        corrupt = bundle.testzip()
+        if corrupt is not None:
+            raise ValueError(f"catalog report archive is corrupt: {corrupt}")
     return manifest

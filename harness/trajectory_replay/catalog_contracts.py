@@ -37,7 +37,17 @@ LEGACY_RUN_SCHEMAS = frozenset({"lex_webarena_full_replay_run/1", "lex_webarena_
 RUN_SCHEMAS = frozenset({RUN_SCHEMA, *LEGACY_RUN_SCHEMAS})
 EXECUTION_CONTRACT_RUN_SCHEMAS = frozenset({RUN_SCHEMA, "lex_webarena_full_replay_run/2"})
 ACTION_OVERRIDES_SCHEMA = "lex_webarena_replay_action_overrides/1"
-_ACTION_OVERRIDE_FIELDS = frozenset({"script", "script_mode", "wait_for_selector_hidden"})
+_ACTION_OVERRIDE_FIELDS = frozenset(
+    {
+        "force",
+        "script",
+        "script_mode",
+        "selector",
+        "wait_state",
+        "wait_for_enabled",
+        "wait_for_selector_hidden",
+    }
+)
 _MAX_OVERRIDE_SCRIPT_BYTES = 64 * 1024
 ACCEPTANCE_SCHEMA = "lex_trajectory_replay_catalog_acceptance/1"
 LEGACY_ACCEPTANCE_SCHEMAS = frozenset({"lex_webarena_full_acceptance_ledger/1"})
@@ -152,6 +162,20 @@ def _validate_action_amendments(amendments: object) -> list[dict]:
         hidden = updates.get("wait_for_selector_hidden")
         if hidden is not None and (not isinstance(hidden, str) or not hidden):
             raise ValueError("action override hidden selector is invalid")
+        selector = updates.get("selector")
+        if selector is not None and (not isinstance(selector, str) or not selector.strip()):
+            raise ValueError("action override selector is invalid")
+        wait_state = updates.get("wait_state")
+        if wait_state is not None and wait_state not in {
+            "attached",
+            "detached",
+            "visible",
+            "hidden",
+        }:
+            raise ValueError("action override wait state is invalid")
+        for flag in ("force", "wait_for_enabled"):
+            if flag in updates and type(updates[flag]) is not bool:
+                raise ValueError(f"action override {flag} flag is invalid")
         identity = (task_id, action_index)
         if identity in identities:
             raise ValueError("action override amendments contain a duplicate action")
@@ -198,6 +222,23 @@ def apply_action_overrides(
             "action"
         ) != "evaluate":
             raise ValueError(f"task {task_id}: script fields require an evaluate action")
+        if {"force", "wait_for_enabled"} & set(amendment["set"]) and original.get(
+            "action"
+        ) not in {"click", "fill", "select"}:
+            raise ValueError(
+                f"task {task_id}: actionability fields require click, fill, or select"
+            )
+        if "selector" in amendment["set"] and original.get("action") not in {
+            "click",
+            "fill",
+            "select",
+            "wait",
+        }:
+            raise ValueError(
+                f"task {task_id}: selector override requires click, fill, select, or wait"
+            )
+        if "wait_state" in amendment["set"] and original.get("action") != "wait":
+            raise ValueError(f"task {task_id}: wait_state requires a wait action")
         result[index].update(amendment["set"])
     return result
 

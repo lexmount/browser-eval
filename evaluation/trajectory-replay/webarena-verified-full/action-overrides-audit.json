@@ -1,8 +1,8 @@
 {
   "schema": "lex_webarena_replay_action_override_audit/1",
-  "catalog_sha256": "b4615b5a7eccec529a59ea0a83846c48073924108951ff2e04759963954304bb",
-  "portable_suite_sha256": "a53a10358cadc59ed6896ffee7c9aa1a8d3308d5a23c8279384f1dd1c079a594",
-  "evaluate_action_count": 791,
+  "catalog_sha256": "7a4d780f35eec75c9fac75666dc75f25b9fb33aeabe754bda55857ed286702e0",
+  "portable_suite_sha256": "7bbcf099ce13d9b0bce9652a32f24df8aef489dcaf3dac2702daed33decd062e",
+  "evaluate_action_count": 804,
   "function_body_findings": [
     {
       "task_id": 28,

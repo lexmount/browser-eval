@@ -506,6 +506,125 @@ def test_moli_compiled_ref_waits_for_delayed_visible_target() -> None:
     assert events[-1][0] == "action"
 
 
+def test_moli_compiled_ref_force_uses_unique_stable_target_without_geometry_wait() -> None:
+    events = []
+
+    class Locator:
+        first = None
+
+        def __init__(self, selector) -> None:
+            self.first = self
+            self.selector = selector
+
+        def count(self):
+            events.append(("count", self.selector))
+            return 1 if not self.selector.endswith(":visible") else 0
+
+        def evaluate(self, script, *args):
+            events.append(("evaluate", self.selector, script, args))
+            return "Linux"
+
+    class Keyboard:
+        def press(self, key):
+            events.append(("press", key))
+
+        def insert_text(self, text):
+            events.append(("insert_text", text))
+
+    class Page:
+        keyboard = Keyboard()
+
+        def locator(self, selector):
+            return Locator(selector)
+
+    class Service:
+        _page = Page()
+        layout_observer = staticmethod(lambda _page, _timeout: events.append(("layout",)))
+
+        def _submit(self, callback):
+            return callback()
+
+    class Tool:
+        def _get_service(self):
+            return Service()
+
+    status, _ = _execute_replay_call(
+        Tool(),
+        {
+            "action": "fill",
+            "selector": "input[name='created_at[from]']:visible",
+            "text": "01/01/2023",
+            "force": True,
+            "replay_mode": "snapshot_ref_semantics",
+        },
+    )
+
+    assert status == "success"
+    assert ("count", "input[name='created_at[from]']:visible") not in events
+    assert ("insert_text", "01/01/2023") not in events
+    dispatches = [event for event in events if event[0] == "evaluate" and event[3]]
+    assert len(dispatches) == 1
+    assert "setter.call(element, expected)" in dispatches[0][2]
+    assert "dispatchEvent(new Event('input'" in dispatches[0][2]
+    assert dispatches[0][3] == ("01/01/2023",)
+
+
+def test_compiled_ref_wait_for_enabled_delays_single_click_dispatch() -> None:
+    states = iter(
+        (
+            {"connected": True, "disabled": True, "effectivelyDisabled": True, "ariaDisabled": None},
+            {"connected": True, "disabled": False, "effectivelyDisabled": False, "ariaDisabled": None},
+        )
+    )
+    events = []
+
+    class Locator:
+        first = None
+
+        def __init__(self) -> None:
+            self.first = self
+
+        def evaluate(self, script, *args):
+            if "element.click()" in script:
+                events.append("click")
+                return {}
+            events.append("probe")
+            return next(states)
+
+    class Page:
+        def locator(self, _selector):
+            return Locator()
+
+        def wait_for_timeout(self, timeout):
+            events.append(("wait", timeout))
+
+    class Service:
+        _page = Page()
+        layout_observer = None
+
+        def _submit(self, callback):
+            return callback()
+
+    class Tool:
+        def _get_service(self):
+            return Service()
+
+    status, _ = _execute_replay_call(
+        Tool(),
+        {
+            "action": "click",
+            "selector": "button.add-to-cart",
+            "wait_for_enabled": True,
+            "replay_mode": "snapshot_ref_semantics",
+        },
+    )
+
+    assert status == "success"
+    assert events.count("probe") == 2
+    assert events.count("click") == 1
+    assert ("wait", 100) in events
+
+
 @pytest.mark.parametrize(
     ("platform", "modifier"),
     [("Win32", "Control"), ("MacIntel", "Meta"), ("Linux x86_64", "Control")],

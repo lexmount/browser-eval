@@ -104,6 +104,57 @@ def test_action_overrides_apply_to_portable_and_direct_source_actions() -> None:
     assert "script_mode" not in evaluate
 
 
+def test_action_overrides_support_explicit_compiled_ref_readiness() -> None:
+    click = {
+        "action": "click",
+        "selector": "button:visible",
+        "replay_mode": "snapshot_ref_semantics",
+    }
+    fill = {
+        "action": "fill",
+        "selector": "input:visible",
+        "text": "value",
+        "replay_mode": "snapshot_ref_semantics",
+    }
+
+    actions = apply_action_overrides(
+        [click, fill],
+        [
+            _amendment(7, 1, click, {"wait_for_enabled": True}),
+            _amendment(7, 2, fill, {"selector": "input", "force": True}),
+        ],
+        task_id=7,
+    )
+
+    assert actions[0]["wait_for_enabled"] is True
+    assert actions[1]["selector"] == "input"
+    assert actions[1]["force"] is True
+
+
+def test_action_overrides_support_non_geometric_selector_wait_state() -> None:
+    wait = {
+        "action": "wait",
+        "selector": "div.message-success:visible",
+        "timeout": 30_000,
+    }
+
+    actions = apply_action_overrides(
+        [wait],
+        [
+            _amendment(
+                464,
+                1,
+                wait,
+                {"selector": "div.message-success", "wait_state": "attached"},
+            )
+        ],
+        task_id=464,
+    )
+
+    assert actions[0]["selector"] == "div.message-success"
+    assert actions[0]["wait_state"] == "attached"
+
+
 def test_action_overrides_reject_wrong_hash_unknown_field_and_bad_index() -> None:
     action = {"action": "evaluate", "script": "return true;"}
     wrong_hash = _amendment(9, 1, action, {"script_mode": "function_body"})

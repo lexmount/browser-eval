@@ -57,6 +57,18 @@ def test_static_audit_rejects_script_invalid_under_both_grammars(tmp_path: Path)
         scan_function_body_actions(catalog, suite)
 
 
+def test_static_audit_accepts_embedded_function_body_mode(tmp_path: Path):
+    catalog, suite = _write_inputs(tmp_path, ["const value = 1; return value;"])
+    payload = json.loads(catalog.read_text(encoding="utf-8"))
+    payload["rows"][0]["source_actions"][0]["script_mode"] = "function_body"
+    catalog.write_text(json.dumps(payload), encoding="utf-8")
+
+    audit = scan_function_body_actions(catalog, suite)
+
+    assert audit["evaluate_action_count"] == 1
+    assert audit["function_body_findings"] == []
+
+
 def _write_overrides(path: Path, audit: dict) -> None:
     path.write_text(
         json.dumps(
@@ -125,7 +137,7 @@ def test_versioned_override_data_matches_complete_812_action_audit():
     directory = root / "evaluation/trajectory-replay/webarena-verified-full"
     audit = json.loads((directory / "action-overrides-audit.json").read_text(encoding="utf-8"))
 
-    assert audit["evaluate_action_count"] == 791
+    assert audit["evaluate_action_count"] == 804
     assert len(audit["function_body_findings"]) == 21
     assert (
         len({(row["task_id"], row["action_index"]) for row in audit["function_body_findings"]})
@@ -145,15 +157,22 @@ def test_catalog_release_gate_runs_live_action_audit(monkeypatch, tmp_path: Path
         "validate_catalog_report_profile",
         lambda _profile, _data_home: {
             "evidence_root": "run",
-            "accepted_catalog": {"path": "catalog.json"},
-            "accepted_portable_suite": {"path": "suite.json"},
-            "publication": {"share_url": "https://artifact.example/report"},
+                "accepted_catalog": {"path": "catalog.json"},
+                "accepted_portable_suite": {"path": "suite.json"},
+                "report_manifest_path": "report/manifest.json",
+                "report_archive_path": "report.zip",
+                "publication": {"share_url": "https://artifact.example/report"},
         },
     )
     monkeypatch.setattr(
         catalog_release,
         "validate_catalog_action_audit",
         lambda *args: seen.setdefault("paths", args),
+    )
+    monkeypatch.setattr(
+        catalog_release,
+        "validate_catalog_acceptance_report",
+        lambda *args, **kwargs: seen.setdefault("report", (args, kwargs)),
     )
     monkeypatch.setattr(
         "sys.argv",
@@ -174,4 +193,8 @@ def test_catalog_release_gate_runs_live_action_audit(monkeypatch, tmp_path: Path
         data_home / "run/catalog.json",
         data_home / "run/suite.json",
         tmp_path / "evaluation/trajectory-replay/webarena-verified-full/action-overrides.json",
+    )
+    assert seen["report"][0] == (
+        data_home / "run/report",
+        data_home / "run/report.zip",
     )

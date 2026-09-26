@@ -75,10 +75,9 @@ def _action_overrides(tmp_path):
 
 
 @pytest.mark.parametrize("bound_hash", [None, "invalid", "a" * 64])
-def test_consolidation_requires_external_action_overrides_for_amended_runs(tmp_path, bound_hash):
+def test_consolidation_can_use_catalog_embedded_historical_overrides(tmp_path, bound_hash):
     inputs = {"run": {"action_overrides_sha256": bound_hash}}
-    with pytest.raises(ValueError, match="require their external action overrides"):
-        _load_bound_action_overrides(inputs, [])
+    assert _load_bound_action_overrides(inputs, []) == {}
 
 
 def test_consolidation_accepts_the_hash_bound_external_action_overrides(tmp_path):
@@ -105,14 +104,14 @@ def test_consolidation_maps_multiple_run_override_versions_by_digest(tmp_path):
     )
     assert set(sources) == {first_digest, second_digest}
 
-    with pytest.raises(ValueError, match="require their external action overrides"):
-        _load_bound_action_overrides(
-            {
-                "first": {"action_overrides_sha256": first_digest},
-                "second": {"action_overrides_sha256": second_digest},
-            },
-            [first],
-        )
+    partial = _load_bound_action_overrides(
+        {
+            "first": {"action_overrides_sha256": first_digest},
+            "second": {"action_overrides_sha256": second_digest},
+        },
+        [first],
+    )
+    assert set(partial) == {first_digest}
 
 
 def test_consolidation_rejects_run_and_catalog_override_hash_mismatch(tmp_path):

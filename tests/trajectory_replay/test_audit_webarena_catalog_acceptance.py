@@ -24,6 +24,7 @@ def _run(
     catalog="catalog",
     schema="lex_trajectory_replay_catalog_run/1",
     engine=None,
+    binary="same-chromium",
     action_overrides=None,
 ):
     directory = tmp_path / name
@@ -33,7 +34,7 @@ def _run(
         "execution_order": ids,
         "run_count_per_task": 1,
         "site_reset_receipt_sha256": preparation,
-        "binary_sha256": "same-chromium",
+        "binary_sha256": binary,
         "catalog_sha256": catalog,
         "portable_suite_sha256": "suite",
         "site_map_sha256": "sites",
@@ -139,8 +140,12 @@ def test_acceptance_still_reads_historical_run_schemas(tmp_path):
     assert acceptance._read_run(legacy_v2)[0]["schema"].endswith("/2")
 
 
-def test_acceptance_rejects_different_current_webarena_revision(tmp_path, monkeypatch):
-    monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
+def test_acceptance_defers_revision_compatibility_to_physical_evidence(tmp_path, monkeypatch):
+    def reject_unknown(_directory, _row, **kwargs):
+        assert kwargs["run_revision"] == "0" * 40
+        raise ValueError("pass lacks evaluator transition evidence")
+
+    monkeypatch.setattr(acceptance, "_verified_attempt", reject_unknown)
     scope = _scope(tmp_path, [7])
     sweep = _run(tmp_path, "sweep", [7], {})
     inputs = sweep / "inputs.json"
@@ -148,7 +153,7 @@ def test_acceptance_rejects_different_current_webarena_revision(tmp_path, monkey
     payload["webarena_revision"] = "0" * 40
     inputs.write_text(json.dumps(payload))
 
-    with pytest.raises(ValueError, match="different WebArena evaluator revision"):
+    with pytest.raises(ValueError, match="lacks evaluator transition evidence"):
         acceptance.audit(scope, [sweep], [])
 
 
@@ -195,18 +200,65 @@ def test_acceptance_requires_transition_authority_and_receipt_together(tmp_path)
         )
 
 
-def test_acceptance_requires_external_action_overrides_for_amended_run(tmp_path, monkeypatch):
+def test_acceptance_records_hash_bound_overrides_without_retaining_historical_file(
+    tmp_path, monkeypatch
+):
     monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
     path, digest = _action_overrides(tmp_path)
     scope = _scope(tmp_path, [7])
     sweep = _run(tmp_path, "sweep", [7], {}, action_overrides=digest)
 
-    with pytest.raises(ValueError, match="requires its external action overrides"):
-        acceptance.audit(scope, [sweep], [])
+    ledger = acceptance.audit(scope, [sweep], [])
+    assert ledger["action_overrides_sha256s"] == [digest]
 
     ledger = acceptance.audit(scope, [sweep], [], action_overrides_paths=[path])
     assert ledger["action_overrides_sha256s"] == [digest]
     assert ledger["runs"][0]["action_overrides_sha256"] == digest
+
+
+def test_acceptance_allows_binary_revisions_only_in_targeted_repairs(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
+    scope = _scope(tmp_path, [7, 8])
+    sweep = _run(tmp_path, "sweep", [7, 8], {8: "fail"})
+    repair = _run(tmp_path, "repair", [8], {}, binary="repaired-chromium")
+
+    ledger = acceptance.audit(scope, [sweep], [repair])
+
+    assert ledger["binary_sha256s"] == ["repaired-chromium", "same-chromium"]
+    assert ledger["participant"]["binary_sha256s"] == [
+        "repaired-chromium",
+        "same-chromium",
+    ]
+    assert "binary_sha256" not in ledger["participant"]
+
+
+def test_current_evaluation_rejects_an_unknown_declared_revision(tmp_path, monkeypatch):
+    task = tmp_path / "task-7"
+    task.mkdir()
+    evaluation = task / "evaluation.json"
+    evaluation.write_text(
+        json.dumps(
+            {
+                "webarena_verified_evaluator_checksum": "current-evaluator",
+                "webarena_verified_data_checksum": "current-data",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(acceptance, "verify_physical_evidence", lambda *_args: evaluation)
+    monkeypatch.setattr(acceptance, "compute_evaluator_checksum", lambda: "current-evaluator")
+
+    with pytest.raises(ValueError, match="current evaluation has a different revision"):
+        acceptance._verified_attempt(
+            tmp_path,
+            {"task_id": 7, "status": "pass", "action_count": 1},
+            expected_data_checksum="current-data",
+            benchmark=object(),
+            corrections=object(),
+            run_revision="0" * 40,
+        )
 
 
 def test_acceptance_keeps_one_ordered_sweep_and_only_repairs_a_failure(tmp_path, monkeypatch):
@@ -264,6 +316,7 @@ def test_acceptance_binds_repair_on_a_fresh_site_without_repeating_passes(tmp_pa
     [
         ({"preparation": "other"}, "ordered sweep changed its execution contract"),
         ({"catalog": "other"}, "ordered sweep changed its execution contract"),
+        ({"binary": "other"}, "ordered sweep changed its execution contract"),
         ({"backend": "playwright"}, "different execution backend"),
     ],
 )

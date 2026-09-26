@@ -30,11 +30,16 @@ def json_sha256(value: Any) -> str:
 
 def load_transition(path: Path) -> dict[str, Any]:
     transition = json.loads(path.read_text(encoding="utf-8"))
+    compatible = transition.get("compatible_from_revisions")
     if (
         transition.get("schema") != TRANSITION_SCHEMA
         or transition.get("repository") != WEBARENA_VERIFIED_FORK_URL
         or transition.get("to_revision") != WEBARENA_VERIFIED_REVISION
         or transition.get("to_evaluator_checksum") != compute_evaluator_checksum()
+        or not isinstance(compatible, list)
+        or transition.get("from_revision") not in compatible
+        or len(set(compatible)) != len(compatible)
+        or any(not isinstance(value, str) or len(value) != 40 for value in compatible)
         or any(
             not isinstance(transition.get(key), str) or len(transition[key]) != 40
             for key in ("from_revision", "to_revision")
@@ -43,7 +48,9 @@ def load_transition(path: Path) -> dict[str, Any]:
             not isinstance(transition.get(key), str) or len(transition[key]) != 64
             for key in (
                 "from_evaluator_checksum",
+                "from_data_checksum",
                 "to_evaluator_checksum",
+                "to_data_checksum",
                 "fork_diff_sha256",
             )
         )
@@ -125,9 +132,13 @@ def load_receipt(path: Path, transition: dict[str, Any]) -> dict[tuple[int, str]
         receipt.get("schema") != RECEIPT_SCHEMA
         or receipt.get("transition_sha256") != json_sha256(transition)
         or receipt.get("from_revision") != transition["from_revision"]
+        or receipt.get("compatible_from_revisions")
+        != transition["compatible_from_revisions"]
         or receipt.get("to_revision") != transition["to_revision"]
         or receipt.get("from_evaluator_checksum") != transition["from_evaluator_checksum"]
+        or receipt.get("from_data_checksum") != transition["from_data_checksum"]
         or receipt.get("to_evaluator_checksum") != transition["to_evaluator_checksum"]
+        or receipt.get("to_data_checksum") != transition["to_data_checksum"]
         or not isinstance(rows, list)
     ):
         raise ValueError("WebArena evaluator transition receipt is invalid")

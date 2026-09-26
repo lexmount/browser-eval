@@ -104,10 +104,27 @@ def test_moli_layout_publication_obeys_its_budget():
     context = type("Context", (), {"new_cdp_session": lambda self, _page: Session()})()
     started = time.monotonic()
 
+    tool = _unit_tool(object(), context, engine="moli")
     with pytest.raises(TimeoutError, match="publication timed out"):
-        _unit_tool(object(), context, engine="moli")._publish_page_layout(object(), timeout_ms=20)
+        tool._publish_page_layout(object(), timeout_ms=20)
 
     assert time.monotonic() - started < 0.2
+    assert tool.failure_capture_available is False
+
+
+def test_poisoned_layout_connection_skips_graceful_close():
+    class MustNotClose:
+        def close(self):
+            raise AssertionError("poisoned renderer connection must not receive another command")
+
+    tool = _unit_tool(object(), MustNotClose(), engine="moli")
+    tool._browser = MustNotClose()
+    stops = []
+    tool._playwright = type("Playwright", (), {"stop": lambda self: stops.append("stop")})()
+    tool._layout_connection_poisoned = True
+
+    tool.close()
+    assert stops == ["stop"]
 
 
 def test_snapshot_retries_native_observation_after_navigation_settles():

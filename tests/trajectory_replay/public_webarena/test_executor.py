@@ -202,6 +202,31 @@ def test_execute_steps_counts_only_declared_browser_operations():
     ]
 
 
+def test_navigate_can_create_a_new_page_and_publish_it_to_observers():
+    first = FakePage()
+    second = FakePage()
+
+    class Context:
+        pages = [first]
+
+        def new_page(self):
+            self.pages.append(second)
+            return second
+
+    first.context = Context()
+    observed = []
+
+    execute_steps(
+        first,
+        ({"action": "navigate", "url": "https://example.com/second", "new_page": True},),
+        page_observer=observed.append,
+    )
+
+    assert observed == [second]
+    assert first.calls == []
+    assert second.calls[0] == ("navigate", "https://example.com/second")
+
+
 def test_trace_has_one_record_per_declared_tool_call():
     trace = []
     execute_steps(
@@ -493,6 +518,49 @@ def test_action_can_wait_for_loading_mask_to_disappear_before_clicking():
     assert page.calls[:2] == [
         ("wait_for", ".loading-mask", {"state": "hidden", "timeout": 30000}),
         ("first", "button.filters"),
+    ]
+
+
+def test_wait_selector_uses_visible_readiness_instead_of_sleeping():
+    page = FakePage()
+
+    execute_steps(
+        page,
+        ({"action": "wait", "selector": "div.message-success:visible", "timeout": 12_000},),
+    )
+
+    assert page.calls == [
+        ("first", "div.message-success:visible"),
+        (
+            "wait_for",
+            "div.message-success:visible",
+            {"state": "visible", "timeout": 12_000},
+        ),
+    ]
+
+
+def test_wait_selector_can_use_attached_readiness_for_non_geometric_status_messages():
+    page = FakePage()
+
+    execute_steps(
+        page,
+        (
+            {
+                "action": "wait",
+                "selector": "div.message-success",
+                "wait_state": "attached",
+                "timeout": 12_000,
+            },
+        ),
+    )
+
+    assert page.calls == [
+        ("first", "div.message-success"),
+        (
+            "wait_for",
+            "div.message-success",
+            {"state": "attached", "timeout": 12_000},
+        ),
     ]
 
 

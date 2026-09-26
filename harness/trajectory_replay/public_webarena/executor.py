@@ -265,12 +265,18 @@ def execute_steps(
         records.append(record)
         try:
             validate_selector(call)
-            tab_index = int(call.get("tab_index", 0))
-            action_page = _page_for_tab(
-                page,
-                tab_index,
-                action_remaining() if layout_observer is not None else timeout,
-            )
+            if action == "navigate" and call.get("new_page"):
+                context = getattr(page, "context", None)
+                if context is None or not callable(getattr(context, "new_page", None)):
+                    raise RuntimeError("navigate new_page requires a browser context")
+                action_page = context.new_page()
+            else:
+                tab_index = int(call.get("tab_index", 0))
+                action_page = _page_for_tab(
+                    page,
+                    tab_index,
+                    action_remaining() if layout_observer is not None else timeout,
+                )
             if page_observer is not None:
                 page_observer(action_page)
 
@@ -629,15 +635,28 @@ def execute_steps(
                 )
                 observation = f"URL ready: {getattr(action_page, 'url', '')}"
             elif action == "wait":
-                requested_ms = (
-                    int(call["timeout"])
-                    if "timeout" in call
-                    else round(float(call["seconds"]) * 1000)
-                )
-                if requested_ms > timeout:
-                    raise TimeoutError("wait exceeds the remaining action budget")
-                action_page.wait_for_timeout(requested_ms)
-                observation = f"Waited {requested_ms} ms."
+                wait_selector = call.get("selector")
+                if wait_selector is not None:
+                    wait_timeout = min(timeout, int(call.get("timeout", timeout)))
+                    wait_state = str(call.get("wait_state", "visible"))
+                    if wait_state not in {"attached", "detached", "visible", "hidden"}:
+                        raise ValueError(
+                            "wait_state must be attached, detached, visible, or hidden"
+                        )
+                    action_page.locator(str(wait_selector)).first.wait_for(
+                        state=wait_state, timeout=wait_timeout
+                    )
+                    observation = f"Selector {wait_state}: {wait_selector}"
+                else:
+                    requested_ms = (
+                        int(call["timeout"])
+                        if "timeout" in call
+                        else round(float(call["seconds"]) * 1000)
+                    )
+                    if requested_ms > timeout:
+                        raise TimeoutError("wait exceeds the remaining action budget")
+                    action_page.wait_for_timeout(requested_ms)
+                    observation = f"Waited {requested_ms} ms."
             elif action == "back":
                 action_page.go_back(wait_until=call.get("wait_until", "commit"), timeout=timeout)
                 observation = f"Navigated back to: {getattr(action_page, 'url', '')}"

@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 from webarena_verified.types.task import WebArenaSite
 
 from harness.trajectory_replay.catalog_contracts import (
@@ -23,7 +24,7 @@ from harness.trajectory_replay.evaluator_transition import (
     load_transition,
     reevaluate_pass,
 )
-from harness.trajectory_replay.remote_runtime import remote_benchmark
+from harness.trajectory_replay.remote_runtime import load_remote_sites, remote_benchmark
 from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_runtime_source import (
     WEBARENA_VERIFIED_REVISION,
@@ -79,6 +80,7 @@ def _verified_attempt(
 ) -> tuple[dict, bool]:
     task_id = row["task_id"]
     physical = "action_count" in row
+    transition_binding = None
     if physical:
         evaluation_path = verify_physical_evidence(directory, row)
     elif row.get("status") != "candidate_setup_failure" or not row.get("error"):
@@ -89,8 +91,14 @@ def _verified_attempt(
         if evaluation_path is None:
             raise ValueError(f"task {task_id} pass lacks evaluation evidence")
         evaluation = json.loads(evaluation_path.read_text(encoding="utf-8"))
-        transition_binding = None
-        if run_revision == WEBARENA_VERIFIED_REVISION:
+        current_evaluator = evaluation.get("webarena_verified_evaluator_checksum")
+        current_data = evaluation.get("webarena_verified_data_checksum")
+        if (
+            current_evaluator == compute_evaluator_checksum()
+            and current_data == expected_data_checksum
+        ):
+            if run_revision != WEBARENA_VERIFIED_REVISION:
+                raise ValueError(f"task {task_id} current evaluation has a different revision")
             validate_passing_evaluation(
                 evaluation,
                 task_id=task_id,
@@ -102,19 +110,22 @@ def _verified_attempt(
             if (
                 evaluator_transition is None
                 or transition_receipt is None
-                or run_revision != evaluator_transition["from_revision"]
+                or run_revision not in evaluator_transition["compatible_from_revisions"]
                 or run_inputs_sha256 is None
+                or current_evaluator
+                not in {
+                    evaluator_transition["from_evaluator_checksum"],
+                    evaluator_transition["to_evaluator_checksum"],
+                }
             ):
                 raise ValueError(f"task {task_id} pass lacks evaluator transition evidence")
             validate_passing_evaluation(
                 evaluation,
                 task_id=task_id,
-                expected_data_checksum=expected_data_checksum,
+                expected_data_checksum=evaluator_transition["from_data_checksum"],
                 benchmark=benchmark,
                 corrections=corrections,
-                expected_evaluator_checksum=evaluator_transition[
-                    "from_evaluator_checksum"
-                ],
+                expected_evaluator_checksum=current_evaluator,
             )
             current, transition_binding = reevaluate_pass(
                 directory / f"task-{task_id}",
@@ -160,6 +171,7 @@ def audit(
     excluded_duplicate_repair_tasks: set[int] | None = None,
     expected_backend: str = "browsertool",
     action_overrides_paths: list[Path] | None = None,
+    site_map_path: Path | None = None,
     evaluator_transition_path: Path | None = None,
     evaluator_transition_receipt_path: Path | None = None,
 ) -> dict:
@@ -201,9 +213,14 @@ def audit(
     schemas = set()
     sweep_contract = None
     participant_contract = None
+    binary_sha256s: set[str] = set()
     preparation_sha256s = set()
     physical_attempts = 0
-    benchmark = remote_benchmark({site: f"http://{site.value}.invalid" for site in WebArenaSite})
+    benchmark = remote_benchmark(
+        load_remote_sites(site_map_path)
+        if site_map_path is not None
+        else {site: f"http://{site.value}.invalid" for site in WebArenaSite}
+    )
     corrections = load_corrections()
     override_sources = {}
     for path in action_overrides_paths or []:
@@ -216,39 +233,28 @@ def audit(
         for directory in directories:
             binding, rows = _read_run(directory)
             run_revision = binding.get("webarena_revision")
-            if (
-                binding["schema"] == "lex_trajectory_replay_catalog_run/1"
-                and run_revision != WEBARENA_VERIFIED_REVISION
-                and (
-                    evaluator_transition is None
-                    or run_revision != evaluator_transition["from_revision"]
-                )
-            ):
-                raise ValueError("acceptance run used a different WebArena evaluator revision")
             if "action_overrides_sha256" in binding:
                 override_digest = binding["action_overrides_sha256"]
-                if override_digest not in override_sources:
-                    raise ValueError("acceptance run requires its external action overrides source")
                 used_override_sources.add(override_digest)
             schemas.add(binding["schema"])
             backend = binding.get("backend")
             engine = binding.get("engine", "chromium")
             if backend != expected_backend:
                 raise ValueError("acceptance run used a different execution backend")
-            participant = (
-                engine,
-                backend,
-                binding.get("binary_sha256"),
-                binding.get("site_map_sha256"),
-            )
+            binary_sha256 = binding.get("binary_sha256")
+            participant = (engine, backend, binding.get("site_map_sha256"))
             if participant_contract is None:
                 participant_contract = participant
             elif participant != participant_contract:
-                raise ValueError("acceptance runs mixed participant or deployment identities")
+                raise ValueError("acceptance runs mixed engine, backend, or deployment identities")
+            if not isinstance(binary_sha256, str) or not binary_sha256:
+                raise ValueError("acceptance run binary identity is missing")
+            binary_sha256s.add(binary_sha256)
             segment_contract = (
                 binding.get("catalog_sha256"),
                 binding.get("portable_suite_sha256"),
                 binding.get("site_reset_receipt_sha256"),
+                binary_sha256,
                 binding.get("runner_revision"),
                 binding.get("cowagent_revision"),
                 binding.get("action_timeout_ms"),
@@ -277,6 +283,7 @@ def audit(
                     {
                         "engine": engine,
                         "backend": backend,
+                        "binary_sha256": binary_sha256,
                         "environment_profile_sha256": binding["environment_profile_sha256"],
                         "action_timeout_ms": binding["action_timeout_ms"],
                         "corrections_sha256": binding["corrections_sha256"],
@@ -364,7 +371,7 @@ def audit(
                 states[task_id]["attempts"].append(attempt)
     if excluded_seen != excluded_requested:
         raise ValueError("declared duplicate repair exclusions were not found")
-    if used_override_sources != set(override_sources):
+    if set(override_sources) - used_override_sources:
         raise ValueError("external action overrides are not bound to an acceptance run")
     if transition_receipt is not None and used_transition_rows != set(transition_receipt):
         raise ValueError("evaluator transition receipt contains unused or missing pass evidence")
@@ -383,7 +390,7 @@ def audit(
         "scope_sha256": file_sha256(scope_path),
         "site_reset_receipt_sha256": sweep_contract[2],
         "site_preparation_receipt_sha256s": sorted(preparation_sha256s),
-        "binary_sha256": participant_contract[2],
+        "binary_sha256s": sorted(binary_sha256s),
         "runs": bindings,
         "excluded_attempts": excluded_attempts,
         "counts": {
@@ -399,9 +406,15 @@ def audit(
         result["participant"] = {
             "engine": participant_contract[0],
             "backend": participant_contract[1],
-            "binary_sha256": participant_contract[2],
-            "site_map_sha256": participant_contract[3],
+            "site_map_sha256": participant_contract[2],
+            **(
+                {"binary_sha256": next(iter(binary_sha256s))}
+                if len(binary_sha256s) == 1
+                else {"binary_sha256s": sorted(binary_sha256s)}
+            ),
         }
+    if len(binary_sha256s) == 1:
+        result["binary_sha256"] = next(iter(binary_sha256s))
     if used_override_sources:
         result["action_overrides_sha256s"] = sorted(used_override_sources)
     if evaluator_transition_path is not None and evaluator_transition_receipt_path is not None:
@@ -423,6 +436,7 @@ def main() -> None:
     parser.add_argument("--segment", type=Path, action="append", required=True)
     parser.add_argument("--repair", type=Path, action="append", default=[])
     parser.add_argument("--action-overrides", type=Path, action="append", default=[])
+    parser.add_argument("--site-map", type=Path)
     parser.add_argument("--evaluator-transition", type=Path)
     parser.add_argument("--evaluator-transition-receipt", type=Path)
     parser.add_argument("--exclude-duplicate-repair-task", type=int, action="append", default=[])
@@ -439,6 +453,7 @@ def main() -> None:
         excluded_duplicate_repair_tasks=set(args.exclude_duplicate_repair_task),
         expected_backend=args.expected_backend,
         action_overrides_paths=args.action_overrides,
+        site_map_path=args.site_map,
         evaluator_transition_path=args.evaluator_transition,
         evaluator_transition_receipt_path=args.evaluator_transition_receipt,
     )

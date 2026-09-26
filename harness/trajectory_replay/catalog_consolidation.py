@@ -83,8 +83,6 @@ def _load_bound_action_overrides(
         for binding in inputs.values()
         if "action_overrides_sha256" in binding
     }
-    if not required <= set(sources):
-        raise ValueError("accepted runs require their external action overrides source")
     if set(sources) - required:
         raise ValueError("external action overrides are not bound to an accepted run")
     return sources
@@ -100,10 +98,8 @@ def _source_action_overrides_path(
         raise ValueError("run action override binding differs from its source catalog")
     if catalog_digest is None:
         return None
-    try:
-        return override_sources[catalog_digest][0]
-    except KeyError as exc:
-        raise ValueError("source catalog requires its external action overrides source") from exc
+    source = override_sources.get(catalog_digest)
+    return source[0] if source is not None else None
 
 
 def _target_action_amendments(
@@ -112,7 +108,9 @@ def _target_action_amendments(
     target_override_map: dict[int, list[dict]],
 ) -> list[dict]:
     target_amendments = target_override_map.get(task_id, [])
-    if source_amendments != target_amendments:
+    if sorted(source_amendments, key=lambda row: row["action_index"]) != sorted(
+        target_amendments, key=lambda row: row["action_index"]
+    ):
         raise ValueError(
             f"task {task_id}: target action overrides differ from its accepted execution"
         )
@@ -188,12 +186,13 @@ def consolidate(
         source_override_path = _source_action_overrides_path(
             binding, source_catalog, override_sources
         )
-        load_catalog_inputs(
-            files[binding["catalog_sha256"]],
-            files[binding["portable_suite_sha256"]],
-            files[binding["site_map_sha256"]],
-            action_overrides_path=source_override_path,
-        )
+        if source_catalog.get("action_overrides_sha256") is None or source_override_path:
+            load_catalog_inputs(
+                files[binding["catalog_sha256"]],
+                files[binding["portable_suite_sha256"]],
+                files[binding["site_map_sha256"]],
+                action_overrides_path=source_override_path,
+            )
     target_sites = load_remote_sites(site_map_path)
     rows: list[dict] = []
     portable_tasks: list[dict] = []

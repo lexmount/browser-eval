@@ -261,7 +261,7 @@ def main() -> None:
         )
         try:
             _wait_cdp(endpoint, process)
-            for frozen in pending:
+            for pending_index, frozen in enumerate(pending):
                 task_id = frozen["task_id"]
                 source_actions = (
                     list(portable_tasks[task_id].tool_calls)
@@ -321,6 +321,20 @@ def main() -> None:
                     ),
                     flush=True,
                 )
+                if outcome.get("runtime_poisoned") and pending_index + 1 < len(pending):
+                    process.terminate()
+                    try:
+                        process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait(timeout=10)
+                    process = subprocess.Popen(
+                        _browser_command(browser_args, port, profile),
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.STDOUT,
+                        start_new_session=True,
+                    )
+                    _wait_cdp(endpoint, process)
         finally:
             process.terminate()
             try:

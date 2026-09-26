@@ -11,6 +11,7 @@ from harness.trajectory_replay.catalog_contracts import (
     repository_root,
     validate_catalog_report_profile,
 )
+from harness.trajectory_replay.webarena_report import validate_catalog_acceptance_report
 from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
 
 
@@ -59,6 +60,11 @@ def main() -> None:
         evidence_root / profile["accepted_catalog"]["path"],
         evidence_root / profile["accepted_portable_suite"]["path"],
         action_overrides,
+    )
+    validate_catalog_acceptance_report(
+        evidence_root / Path(profile["report_manifest_path"]).parent,
+        evidence_root / profile["report_archive_path"],
+        profile=profile,
     )
     print(profile["publication"]["share_url"])
 

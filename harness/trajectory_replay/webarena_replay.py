@@ -149,12 +149,33 @@ def _execute_replay_call(
                 count = getattr(stable, "count", None)
                 if callable(count) and count() == 1:
                     locator = stable.first
-                    visible = page.locator(selector)
-                    while visible.count() != 1:
-                        page.wait_for_timeout(min(100, remaining()))
-                        layout_observer(page, remaining())
+                    if not bool(public_arguments.get("force", False)):
+                        visible = page.locator(selector)
+                        while visible.count() != 1:
+                            page.wait_for_timeout(min(100, remaining()))
+                            layout_observer(page, remaining())
             if locator is None:
                 locator = page.locator(selector).first
+            if public_arguments.get("wait_for_enabled"):
+                while True:
+                    state = locator.evaluate(
+                        """element => ({
+                            connected: element.isConnected,
+                            disabled: Boolean(element.disabled),
+                            effectivelyDisabled: element.matches(':disabled'),
+                            ariaDisabled: element.getAttribute('aria-disabled')
+                        })"""
+                    )
+                    if (
+                        state.get("connected")
+                        and not state.get("disabled")
+                        and not state.get("effectivelyDisabled")
+                        and state.get("ariaDisabled") != "true"
+                    ):
+                        break
+                    page.wait_for_timeout(min(100, remaining()))
+                    if layout_observer is not None:
+                        layout_observer(page, remaining())
             if action == "click":
                 if diagnostics is None:
                     locator.evaluate("element => element.click()")
@@ -175,22 +196,50 @@ def _execute_replay_call(
                     diagnostics["click_dispatch_state"] = state
                 page.wait_for_timeout(500)
             elif action == "fill":
-                platform = locator.evaluate(
-                    "element => { element.focus(); return navigator.platform; }"
-                )
-                modifier = (
-                    "Meta"
-                    if str(platform).startswith(("Mac", "iPhone", "iPad", "iPod"))
-                    else "Control"
-                )
-                page.keyboard.press(f"{modifier}+A")
-                page.keyboard.press("Backspace")
-                page.keyboard.insert_text(str(public_arguments.get("text", "")))
+                text = str(public_arguments.get("text", ""))
+                if public_arguments.get("force"):
+                    state = locator.evaluate(
+                        "(element, expected) => { "
+                        "const setter = Object.getOwnPropertyDescriptor("
+                        "Object.getPrototypeOf(element), 'value')?.set; "
+                        "if (!setter) throw new Error('target has no native value setter'); "
+                        "setter.call(element, expected); "
+                        "element.dispatchEvent(new Event('input', {bubbles: true})); "
+                        "element.dispatchEvent(new Event('change', {bubbles: true})); "
+                        "if (element.value !== expected) "
+                        "throw new Error('filled value was not committed'); "
+                        "return {value: element.value}; }",
+                        text,
+                    )
+                else:
+                    platform = locator.evaluate(
+                        "element => { element.focus(); return navigator.platform; }"
+                    )
+                    modifier = (
+                        "Meta"
+                        if str(platform).startswith(("Mac", "iPhone", "iPad", "iPod"))
+                        else "Control"
+                    )
+                    page.keyboard.press(f"{modifier}+A")
+                    page.keyboard.press("Backspace")
+                    page.keyboard.insert_text(text)
+                    state = locator.evaluate(
+                        "(element, expected) => { "
+                        "element.dispatchEvent(new Event('input', {bubbles: true})); "
+                        "element.dispatchEvent(new Event('change', {bubbles: true})); "
+                        "if (element.value !== expected) "
+                        "throw new Error('filled value was not committed'); "
+                        "return {value: element.value}; }",
+                        text,
+                    )
+                if diagnostics is not None:
+                    diagnostics["fill_dispatch_state"] = state
             else:
                 value = str(public_arguments.get("value", ""))
                 state = locator.evaluate(
                     "(element, value) => { if (element.tagName.toLowerCase() !== 'select') "
-                    "throw new Error('target is not a select element'); const before = element.value; "
+                    "throw new Error('target is not a select element'); "
+                    "const before = element.value; "
                     "element.value = value; if (element.value !== value) "
                     "throw new Error('select option value was not found'); "
                     "element.dispatchEvent(new Event('input', {bubbles: true})); "
