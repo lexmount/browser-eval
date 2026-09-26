@@ -43,11 +43,17 @@ def alias_row(row: dict, source_provider: str, provider: str) -> dict:
 def copy_alias_artifacts(source: Path, output: Path, rows: list[dict],
                          source_provider: str, provider: str) -> None:
     for row in rows:
+        expected_sha256 = row.get("output_sha256")
+        if not isinstance(expected_sha256, str) or not expected_sha256:
+            raise ValueError(
+                "Variant artifact is missing output_sha256: "
+                + str(row.get("attempt_id", "unknown attempt"))
+            )
         for key in ("artifact_path", "physical_artifact_path"):
             if key not in row:
                 continue
             original = contained_path(source, row[key])
-            if digest(original) != row["output_sha256"]:
+            if digest(original) != expected_sha256:
                 raise ValueError("Variant artifact changed: " + row[key])
             relative = row[key].replace(
                 f"artifacts/{source_provider}/", f"artifacts/{provider}/", 1

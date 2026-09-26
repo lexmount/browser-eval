@@ -28,8 +28,14 @@ def write_rows(path: Path, rows: list[dict]) -> None:
 
 def copy_artifact(root: Path, output: Path, row: dict, key: str,
                   source_provider: str | None = None, provider: str | None = None) -> None:
+    expected_sha256 = row.get("output_sha256")
+    if not isinstance(expected_sha256, str) or not expected_sha256:
+        raise ValueError(
+            "Correction artifact is missing output_sha256: "
+            + str(row.get("attempt_id", "unknown attempt"))
+        )
     source = contained_path(root, row[key])
-    if digest(source) != row["output_sha256"]:
+    if digest(source) != expected_sha256:
         raise ValueError("Correction artifact changed: " + row[key])
     relative = row[key]
     if source_provider and provider:

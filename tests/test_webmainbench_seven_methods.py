@@ -1,5 +1,9 @@
 """Behavioral controls for keeping both Moli repair cohorts distinct."""
-from scripts.assemble_webmainbench_seven_methods import alias_row, require_matrix
+from scripts.assemble_webmainbench_seven_methods import (
+    alias_row,
+    copy_alias_artifacts,
+    require_matrix,
+)
 
 import pytest
 
@@ -38,3 +42,14 @@ def test_seven_method_matrix_rejects_a_missing_or_duplicate_variant() -> None:
     duplicated[-1]["attempt_id"] = duplicated[0]["attempt_id"]
     with pytest.raises(ValueError, match="identity"):
         require_matrix(duplicated, providers, case_ids)
+
+
+def test_alias_copy_requires_a_bound_output_hash(tmp_path) -> None:
+    with pytest.raises(ValueError, match="missing output_sha256"):
+        copy_alias_artifacts(
+            tmp_path,
+            tmp_path / "out",
+            [{"attempt_id": "moli-fixed__case-1__p01", "physical_artifact_path": "x"}],
+            "moli-fixed",
+            "moli-content-fixed",
+        )
