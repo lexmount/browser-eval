@@ -21,6 +21,7 @@ from harness.trajectory_replay.catalog_contracts import (
 from harness.trajectory_replay.catalog_runner import (
     _load_task_selection,
     _recover_completed_attempts,
+    _run_with_setup_recovery,
     _task_ids,
     _task_origins,
 )
@@ -87,6 +88,114 @@ def test_task_selection_is_schema_bound(tmp_path: Path):
     selection.write_text(json.dumps({"task_ids": [1, 7]}), encoding="utf-8")
     with pytest.raises(ValueError, match="contract"):
         _load_task_selection(selection)
+
+
+class _FakeBrowserProcess:
+    def __init__(self, returncode: int | None = None):
+        self.returncode = returncode
+
+    def poll(self) -> int | None:
+        return self.returncode
+
+
+def test_dead_browser_restarts_before_next_task_without_replaying_result(
+    tmp_path: Path,
+) -> None:
+    process = _FakeBrowserProcess()
+    calls: list[int] = []
+    restarts: list[_FakeBrowserProcess] = []
+
+    def restart(current: _FakeBrowserProcess) -> _FakeBrowserProcess:
+        restarts.append(current)
+        return _FakeBrowserProcess()
+
+    def first_task() -> dict:
+        calls.append(1)
+        process.returncode = 1
+        return {"task_id": 1, "status": "fail"}
+
+    first, process = _run_with_setup_recovery(
+        task_id=1,
+        task_dir=tmp_path / "task-1",
+        process=process,
+        restart_browser=restart,
+        run_task=first_task,
+    )
+    second, process = _run_with_setup_recovery(
+        task_id=2,
+        task_dir=tmp_path / "task-2",
+        process=process,
+        restart_browser=restart,
+        run_task=lambda: calls.append(2) or {"task_id": 2, "status": "pass"},
+    )
+
+    assert first["status"] == "fail"
+    assert second["status"] == "pass"
+    assert calls == [1, 2]
+    assert len(restarts) == 1
+    assert process.poll() is None
+
+
+def test_setup_disconnect_restarts_and_executes_candidate_once(tmp_path: Path) -> None:
+    process = _FakeBrowserProcess()
+    calls = 0
+    restarts = 0
+
+    def restart(current: _FakeBrowserProcess) -> _FakeBrowserProcess:
+        nonlocal restarts
+        restarts += 1
+        return _FakeBrowserProcess()
+
+    def run_task() -> dict:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            process.returncode = 1
+            raise ConnectionError("browser closed before session setup")
+        return {"task_id": 7, "status": "fail"}
+
+    outcome, _ = _run_with_setup_recovery(
+        task_id=7,
+        task_dir=tmp_path / "task-7",
+        process=process,
+        restart_browser=restart,
+        run_task=run_task,
+    )
+
+    assert outcome == {"task_id": 7, "status": "fail"}
+    assert calls == 2
+    assert restarts == 1
+
+
+def test_existing_task_evidence_prevents_setup_retry(tmp_path: Path) -> None:
+    task_dir = tmp_path / "task-9"
+    process = _FakeBrowserProcess()
+    calls = 0
+    restarts = 0
+
+    def restart(current: _FakeBrowserProcess) -> _FakeBrowserProcess:
+        nonlocal restarts
+        restarts += 1
+        return _FakeBrowserProcess()
+
+    def run_task() -> dict:
+        nonlocal calls
+        calls += 1
+        task_dir.mkdir()
+        raise RuntimeError("unexpected failure after evidence began")
+
+    outcome, _ = _run_with_setup_recovery(
+        task_id=9,
+        task_dir=task_dir,
+        process=process,
+        restart_browser=restart,
+        run_task=run_task,
+    )
+
+    assert outcome["status"] == "candidate_setup_failure"
+    assert "unexpected failure" in outcome["error"]
+    assert calls == 1
+    assert restarts == 0
 
 
 def _write(path: Path, value: object) -> str:

@@ -155,6 +155,61 @@ def _chromium_host_resolver_rules(environment_profile: dict, engine: str) -> str
     return ", ".join(rules)
 
 
+def _stop_browser(process: subprocess.Popen) -> None:
+    if process.poll() is not None:
+        return
+    process.terminate()
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=10)
+
+
+def _run_with_setup_recovery(
+    *,
+    task_id: int,
+    task_dir: Path,
+    process: subprocess.Popen,
+    restart_browser,
+    run_task,
+) -> tuple[dict, subprocess.Popen]:
+    """Run one task, restarting only before physical evidence exists.
+
+    ``_run_task`` creates ``task_dir`` immediately before browser-session work and
+    catches all later execution failures into a committed result. An exception
+    with no task directory is therefore a setup failure that is safe to retry;
+    once the directory exists, retrying could duplicate a physical execution.
+    """
+
+    if process.poll() is not None:
+        process = restart_browser(process)
+    try:
+        return run_task(), process
+    except FileExistsError:
+        raise
+    except Exception:
+        first_error = traceback.format_exc()
+        if task_dir.exists():
+            return {
+                "task_id": task_id,
+                "status": "candidate_setup_failure",
+                "error": first_error,
+            }, process
+
+    process = restart_browser(process)
+    try:
+        return run_task(), process
+    except FileExistsError:
+        raise
+    except Exception:
+        return {
+            "task_id": task_id,
+            "status": "candidate_setup_failure",
+            "error": f"{first_error}\nsetup recovery failed:\n{traceback.format_exc()}",
+        }, process
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--catalog", type=Path, required=True)
@@ -272,14 +327,26 @@ def main() -> None:
         host_resolver_rules=_chromium_host_resolver_rules(environment_profile, args.engine),
     )
     with tempfile.TemporaryDirectory(prefix="webarena-catalog-") as profile:
-        process = subprocess.Popen(
-            _browser_command(browser_args, port, profile),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-        )
+        def start_browser() -> subprocess.Popen:
+            started = subprocess.Popen(
+                _browser_command(browser_args, port, profile),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+            try:
+                _wait_cdp(endpoint, started)
+            except Exception:
+                _stop_browser(started)
+                raise
+            return started
+
+        def restart_browser(current: subprocess.Popen) -> subprocess.Popen:
+            _stop_browser(current)
+            return start_browser()
+
+        process = start_browser()
         try:
-            _wait_cdp(endpoint, process)
             for pending_index, frozen in enumerate(pending):
                 task_id = frozen["task_id"]
                 source_actions = (
@@ -302,8 +369,12 @@ def main() -> None:
                     ),
                     "readiness": list(frozen.get("readiness") or []),
                 }
-                try:
-                    outcome = _run_task(
+                def run_task(
+                    task_id: int = task_id,
+                    row: dict = row,
+                    frozen: dict = frozen,
+                ) -> dict:
+                    return _run_task(
                         task_id=task_id,
                         row=row,
                         benchmark=benchmark,
@@ -320,14 +391,14 @@ def main() -> None:
                         backend=args.backend,
                         engine=args.engine,
                     )
-                except FileExistsError:
-                    raise
-                except Exception:
-                    outcome = {
-                        "task_id": task_id,
-                        "status": "candidate_setup_failure",
-                        "error": traceback.format_exc(),
-                    }
+
+                outcome, process = _run_with_setup_recovery(
+                    task_id=task_id,
+                    task_dir=args.output / f"task-{task_id}",
+                    process=process,
+                    restart_browser=restart_browser,
+                    run_task=run_task,
+                )
                 _append(progress, outcome)
                 print(
                     json.dumps(
@@ -340,26 +411,12 @@ def main() -> None:
                     ),
                     flush=True,
                 )
-                if outcome.get("runtime_poisoned") and pending_index + 1 < len(pending):
-                    process.terminate()
-                    try:
-                        process.wait(timeout=10)
-                    except subprocess.TimeoutExpired:
-                        process.kill()
-                        process.wait(timeout=10)
-                    process = subprocess.Popen(
-                        _browser_command(browser_args, port, profile),
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.STDOUT,
-                        start_new_session=True,
-                    )
-                    _wait_cdp(endpoint, process)
+                if (
+                    outcome.get("runtime_poisoned") or process.poll() is not None
+                ) and pending_index + 1 < len(pending):
+                    process = restart_browser(process)
         finally:
-            process.terminate()
-            try:
-                process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                process.kill()
+            _stop_browser(process)
 
 
 if __name__ == "__main__":
