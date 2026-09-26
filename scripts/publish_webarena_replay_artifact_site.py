@@ -157,6 +157,7 @@ def validate_package() -> dict:
         raise ValueError("missing validated replay package or attestation")
     attestation = json.loads(ATTESTATION.read_text(encoding="utf-8"))
     report = Path(str(attestation.get("report") or ""))
+    packaged_report = Path(str(attestation.get("packaged_report") or report))
     evidence = Path(str(attestation.get("evidence") or ""))
     profile = json.loads(PROFILE.read_text(encoding="utf-8"))
     dataset_path = _bound_dataset_path(profile)
@@ -170,6 +171,9 @@ def validate_package() -> dict:
         "schema": attestation.get("schema") == "lex_webarena_replay_publication_attestation/1",
         "archive": sha256(ARCHIVE) == attestation.get("archive_sha256"),
         "report": report.is_dir() and tree_sha256(report) == attestation.get("report_tree_sha256"),
+        "packaged_report": packaged_report.is_dir()
+        and tree_sha256(packaged_report)
+        == attestation.get("packaged_report_tree_sha256", attestation.get("report_tree_sha256")),
         "profile": sha256(PROFILE) == attestation.get("profile_sha256"),
         "dataset": sha256(dataset_path) == attestation.get("dataset_sha256"),
         "review": sha256(REVIEW) == attestation.get("review_sha256"),
@@ -599,4 +603,19 @@ def main(*, create: bool) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--create", action="store_true")
-    main(create=parser.parse_args().create)
+    parser.add_argument("--archive", type=Path, default=ARCHIVE)
+    parser.add_argument("--attestation", type=Path, default=ATTESTATION)
+    parser.add_argument("--receipt", type=Path, default=RECEIPT)
+    parser.add_argument("--profile", type=Path, default=PROFILE)
+    parser.add_argument("--review", type=Path, default=REVIEW)
+    parser.add_argument("--binding-journal", type=Path, default=BINDING_JOURNAL)
+    parser.add_argument("--operation-journal", type=Path, default=OPERATION_JOURNAL)
+    args = parser.parse_args()
+    ARCHIVE = args.archive
+    ATTESTATION = args.attestation
+    RECEIPT = args.receipt
+    PROFILE = args.profile
+    REVIEW = args.review
+    BINDING_JOURNAL = args.binding_journal
+    OPERATION_JOURNAL = args.operation_journal
+    main(create=args.create)

@@ -719,6 +719,18 @@ def _public_evidence(
     site_reset = _load_artifact((attempt.get("evidence") or {}).get("site_reset"))
     readiness = _load_artifact((attempt.get("evidence") or {}).get("readiness"))
     failed = programmatic_failure(attempt)
+    if failed["stage"] == "browser_tool_execution" and failed.get("step") is None:
+        failed_trace_step = next(
+            (
+                step.get("index")
+                for step in reversed(trace)
+                if step.get("status") in {"fail", "error"}
+                and isinstance(step.get("index"), int)
+            ),
+            None,
+        )
+        if failed_trace_step is not None:
+            failed = {**failed, "step": failed_trace_step}
     if failed["stage"] == "official_evaluation" and evaluation:
         missing_events = [
             result for result in evaluation.get("evaluators_results") or []
@@ -794,6 +806,7 @@ def _public_evidence(
         "supplemental_diagnostic": _supplemental_diagnostic(review, int(attempt["task_id"])),
         "screenshot": screenshot,
     }
+    public = _clean(public)
     _write_json(output / "data/evidence" / f"{key}.json", public)
     return public
 

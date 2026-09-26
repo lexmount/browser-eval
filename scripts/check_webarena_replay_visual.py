@@ -286,7 +286,10 @@ def check(report: Path, receipt: Path) -> None:
                         timeout=5_000,
                     )
                     assert route_page.locator("[data-step-actual]").inner_text()
-                    assert route_page.locator("[data-step-result]").inner_text()
+                    assert (
+                        route_page.locator("[data-step-result]").inner_text()
+                        or route_page.locator("[data-step-error]").inner_text()
+                    )
                     route_page.locator("[data-close-step]").click()
                     if (report / "interpretation.html").is_file():
                         route_page.locator("nav a[data-report-interpretation]").click()
@@ -336,7 +339,10 @@ def check(report: Path, receipt: Path) -> None:
                         dialog_box = modal_page.locator("#step-dialog").bounding_box()
                         assert dialog_box and dialog_box["x"] >= 0
                         assert dialog_box["x"] + dialog_box["width"] <= 390
-                        assert modal_page.locator("[data-step-result]").inner_text()
+                        assert (
+                            modal_page.locator("[data-step-result]").inner_text()
+                            or modal_page.locator("[data-step-error]").inner_text()
+                        )
                         modal_page.locator("#step-dialog").screenshot(
                             path=str(screenshot_dir / f"step-dialog-{language}.png")
                         )

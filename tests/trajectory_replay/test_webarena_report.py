@@ -41,6 +41,7 @@ from scripts.check_webarena_replay_report import (
     _check_formal_execution_scope,
     _check_legacy_retrieval_audit,
     _check_result_detail_semantics,
+    _contains_local_path_outside_web_url,
     _semantic_page_inventory,
 )
 from scripts.check_webarena_replay_report import (
@@ -317,6 +318,30 @@ def test_result_detail_gate_rejects_duplicate_summary_and_missing_failure_log() 
     with pytest.raises(ValueError, match="evaluation logs"):
         _check_result_detail_semantics(
             html, {"programmatic_failure": {"stage": "official_evaluation", "message": "Exact timeout"}}, "fail",
+        )
+    _check_result_detail_semantics(
+        html,
+        {
+            "programmatic_failure": {
+                "stage": "browser_tool_execution",
+                "step": None,
+                "message": "Exact timeout",
+            },
+            "trajectory": [],
+        },
+        "fail",
+    )
+    with pytest.raises(ValueError, match="evaluation logs"):
+        _check_result_detail_semantics(
+            html,
+            {
+                "programmatic_failure": {
+                    "stage": "browser_tool_execution",
+                    "step": None,
+                    "message": "Exact timeout",
+                }
+            },
+            "fail",
         )
 
 
@@ -869,6 +894,46 @@ def test_report_removes_macos_and_linux_local_paths() -> None:
         assert _clean(f"failure at {path}") == "failure at [local path removed]"
 
 
+def test_public_evidence_return_value_is_the_same_sanitized_value_written_to_disk(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    trace = tmp_path / "trace.json"
+    trace.write_text('[{"index": 1, "status": "fail"}]')
+    attempt = {
+        "participant_id": "browser",
+        "engine": "browser",
+        "task_id": 1,
+        "status": "fail",
+        "action_count": 1,
+        "completed_action_count": 0,
+        "duration_ms": 1,
+        "error": "failure at /Users/example/private/run.py",
+        "evidence": {
+            "trace": {
+                "path": str(trace),
+                "sha256": hashlib.sha256(trace.read_bytes()).hexdigest(),
+            }
+        },
+    }
+    monkeypatch.setattr(
+        "harness.trajectory_replay.webarena_report.programmatic_failure",
+        lambda _: {
+            "stage": "browser_tool_execution",
+            "step": 1,
+            "message": "failure at /Users/example/private/run.py",
+        },
+    )
+
+    public = _public_evidence(attempt, None, tmp_path)
+    written = json.loads(
+        (tmp_path / "data/evidence/browser-1.json").read_text(encoding="utf-8")
+    )
+
+    assert public == written
+    assert public["programmatic_failure"]["message"] == "failure at [local path removed]"
+    assert public["programmatic_failure"]["step"] == 1
+
+
 def test_report_preserves_web_routes_that_resemble_linux_paths() -> None:
     actions = [
         {
@@ -886,6 +951,15 @@ def test_report_preserves_web_routes_that_resemble_linux_paths() -> None:
 
     assert _clean(actions) == actions
     assert _validated_planned_actions(attempt) == actions
+
+
+def test_release_path_gate_ignores_web_routes_but_detects_machine_paths() -> None:
+    assert not _contains_local_path_outside_web_url(
+        "https://gitlab.example.test/root/project/-/issues"
+    )
+    assert _contains_local_path_outside_web_url(
+        "opened /root/private/result.json from https://example.test/root/public"
+    )
 
 
 def test_report_does_not_redact_secret_like_substrings_inside_words() -> None:

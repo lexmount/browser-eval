@@ -17,7 +17,15 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from bs4 import BeautifulSoup
 
 from harness.trajectory_replay.report_languages import language_roots, report_languages
-from harness.trajectory_replay.webarena_report import LOCAL_PATH_RE
+from harness.trajectory_replay.webarena_report import LOCAL_PATH_RE, WEB_URL_RE
+
+
+def _contains_local_path_outside_web_url(text: str) -> bool:
+    url_spans = [match.span() for match in WEB_URL_RE.finditer(text)]
+    return any(
+        not any(start <= match.start() and match.end() <= end for start, end in url_spans)
+        for match in LOCAL_PATH_RE.finditer(text)
+    )
 
 
 def _text_without_verified_embedded_images(text: str, image_digests: set[str]) -> str:
@@ -361,8 +369,10 @@ def _check_result_detail_semantics(text: str, evidence: dict, status: str) -> No
         or html.escape(str(failure["message"]), quote=True) not in text
         or (failure.get("stage") in {"official_evaluation", "side_effect_not_observed"}
             and not evidence.get("official_evaluation"))
-        or (failure.get("stage") == "browser_tool_execution"
-            and not evidence.get("trajectory"))
+        or (
+            failure.get("stage") == "browser_tool_execution"
+            and not isinstance(evidence.get("trajectory"), list)
+        )
     ):
         raise ValueError("failure detail lacks exact error or evaluation logs")
 
@@ -661,7 +671,9 @@ def check(report_dir: Path) -> dict[str, int]:
         for path in root.rglob("*")
         if path.is_file() and path.suffix in {".html", ".json", ".js", ".css"}
     )
-    if LOCAL_PATH_RE.search(distributable) or re.search(r"sk-[A-Za-z0-9_-]{12,}", distributable):
+    if _contains_local_path_outside_web_url(distributable) or re.search(
+        r"(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{12,}", distributable
+    ):
         raise ValueError("report contains a local path or credential-like token")
     css = (root / "assets/report.css").read_text(encoding="utf-8")
     if ".inventory{height:" not in css or "overflow:auto" not in css:
