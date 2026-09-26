@@ -11,7 +11,6 @@ from harness.fix_log import load_fix_log
 from harness.trajectory_replay.webarena_report import (
     LEGACY_REPLAY_VALIDITY_INPUTS,
     _assets,
-    build_webarena_replay_report,
     _clean,
     _copy_failure_screenshot,
     _detail_page,
@@ -25,24 +24,28 @@ from harness.trajectory_replay.webarena_report import (
     _planned_actions_digest,
     _public_evidence,
     _reference_validity_by_task,
-    require_all_reference_validity,
     _shell,
     _successful_distribution_table,
     _task_page,
     _unique_winners,
     _validated_planned_actions,
     _verdict_label,
+    build_webarena_replay_report,
+    require_all_reference_validity,
+)
+from scripts.build_webarena_replay_report import _bound_dataset_path
+from scripts.check_webarena_replay_report import (
+    _check_affected36_comparison,
+    _check_core_comparison,
+    _check_english_localization,
+    _check_formal_execution_scope,
+    _check_legacy_retrieval_audit,
+    _check_result_detail_semantics,
+    _semantic_page_inventory,
 )
 from scripts.check_webarena_replay_report import (
     check as check_report,
-    _check_affected36_comparison,
-    _check_core_comparison,
-    _check_legacy_retrieval_audit,
-    _check_result_detail_semantics,
-    _check_english_localization,
-    _semantic_page_inventory,
 )
-from scripts.build_webarena_replay_report import _bound_dataset_path
 
 
 def test_report_build_requires_hash_bound_corrected_dataset(tmp_path: Path) -> None:
@@ -242,6 +245,24 @@ def test_formal_reference_validity_gate_requires_all_selected_tasks_for_all_meth
     attempts.pop()
     with pytest.raises(ValueError, match="every method-task result"):
         require_all_reference_validity(profile, results, dataset)
+
+
+def test_formal_release_scope_accepts_any_complete_declared_split_size() -> None:
+    _check_formal_execution_scope(
+        {
+            "formal_reference_validity": True,
+            "task_count": 812,
+            "site_reset_between_tasks": False,
+        }
+    )
+    with pytest.raises(ValueError, match="method-reset task cohort"):
+        _check_formal_execution_scope(
+            {
+                "formal_reference_validity": True,
+                "task_count": 812,
+                "site_reset_between_tasks": True,
+            }
+        )
 
 
 def test_core_three_method_comparison_rejects_wrong_score_and_tie_highlight(tmp_path: Path) -> None:

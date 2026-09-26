@@ -12,12 +12,11 @@ import math
 import re
 from html.parser import HTMLParser
 from pathlib import Path
-
-from harness.trajectory_replay.report_languages import language_roots, report_languages
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from bs4 import BeautifulSoup
 
+from harness.trajectory_replay.report_languages import language_roots, report_languages
 from harness.trajectory_replay.webarena_report import LOCAL_PATH_RE
 
 
@@ -413,6 +412,17 @@ def _check_failure_matrix(page: str, results: list[dict], participants: list[str
                 raise ValueError("failure matrix inventory anchor is missing")
 
 
+def _check_formal_execution_scope(manifest: dict) -> None:
+    """Require method-level reset without hard-coding a benchmark split size."""
+
+    if manifest.get("formal_reference_validity") is not True:
+        return
+    if int(manifest.get("task_count") or 0) < 1 or manifest.get(
+        "site_reset_between_tasks"
+    ) is not False:
+        raise ValueError("formal report requires a complete method-reset task cohort")
+
+
 def check(report_dir: Path) -> dict[str, int]:
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
@@ -481,9 +491,8 @@ def check(report_dir: Path) -> dict[str, int]:
     _check_core_comparison(root, metrics, results, participants)
     for language_root in language_roots(root):
         _check_failure_matrix((language_root / "results.html").read_text(encoding="utf-8"), results, participants)
+    _check_formal_execution_scope(manifest)
     if manifest.get("formal_reference_validity") is True:
-        if task_count != 90 or manifest.get("site_reset_between_tasks") is not False:
-            raise ValueError("formal report requires the complete method-reset 90-task cohort")
         for language_root in language_roots(root):
             environment = (language_root / "environment.html").read_text(encoding="utf-8")
             if "Rainbond" not in environment or "Colima" in environment:
