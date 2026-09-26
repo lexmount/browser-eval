@@ -376,12 +376,21 @@ def _clear_browser_state(service: Any, origins: set[str]) -> None:
             raise RuntimeError("browser context is not ready for state reset")
         context.clear_cookies()
         context.clear_permissions()
-        cdp = context.new_cdp_session(page)
+        supports_network_reset_cdp = getattr(
+            service, "_supports_network_reset_cdp", True
+        )
+        supports_storage_cdp = getattr(service, "_supports_storage_cdp", True)
+        cdp = (
+            context.new_cdp_session(page)
+            if supports_network_reset_cdp or supports_storage_cdp
+            else None
+        )
         try:
-            cdp.send("Network.enable")
-            cdp.send("Network.clearBrowserCache")
-            cdp.send("Network.clearBrowserCookies")
-            if getattr(service, "_supports_storage_cdp", True):
+            if supports_network_reset_cdp:
+                cdp.send("Network.enable")
+                cdp.send("Network.clearBrowserCache")
+                cdp.send("Network.clearBrowserCookies")
+            if supports_storage_cdp:
                 for origin in sorted(origins):
                     cdp.send(
                         "Storage.clearDataForOrigin",
@@ -404,10 +413,11 @@ def _clear_browser_state(service: Any, origins: set[str]) -> None:
                         "}"
                     )
             page.goto("about:blank", wait_until="load", timeout=10_000)
-            if getattr(service, "_supports_storage_cdp", True):
+            if supports_storage_cdp:
                 cdp.send("Page.resetNavigationHistory")
         finally:
-            cdp.detach()
+            if cdp is not None:
+                cdp.detach()
 
     service._submit(clear)
 

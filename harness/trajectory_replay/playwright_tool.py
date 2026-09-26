@@ -49,7 +49,8 @@ class PlaywrightReplayTool:
             raise ValueError(f"unknown Playwright replay engine: {engine}")
         self._engine = engine
         self._supports_multiple_pages = engine != "lightpanda"
-        self._supports_storage_cdp = engine != "lightpanda"
+        self._supports_network_reset_cdp = engine != "obscura"
+        self._supports_storage_cdp = engine not in {"lightpanda", "obscura"}
         self._supports_context_request_cookie_sharing = engine != "lightpanda"
         self._layout_sessions: dict[Any, Any] = {}
         self._layout_connection_poisoned = False
