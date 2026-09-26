@@ -43,6 +43,9 @@ FORBIDDEN = (
 )
 CATALOG_REPLAY_ENTRYPOINTS = {
     "scripts/audit_webarena_catalog_acceptance.py",
+    "scripts/audit_webarena_catalog_actions.py",
+    "scripts/build_webarena_catalog_comparison_inputs.py",
+    "scripts/build_webarena_catalog_report.py",
     "scripts/check_webarena_catalog_release.py",
     "scripts/consolidate_webarena_catalog.py",
     "scripts/rebind_webarena_catalog.py",
