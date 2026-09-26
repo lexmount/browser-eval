@@ -37,7 +37,8 @@ LEGACY_RUN_SCHEMAS = frozenset({"lex_webarena_full_replay_run/1", "lex_webarena_
 RUN_SCHEMAS = frozenset({RUN_SCHEMA, *LEGACY_RUN_SCHEMAS})
 EXECUTION_CONTRACT_RUN_SCHEMAS = frozenset({RUN_SCHEMA, "lex_webarena_full_replay_run/2"})
 ACTION_OVERRIDES_SCHEMA = "lex_webarena_replay_action_overrides/1"
-_ACTION_OVERRIDE_FIELDS = frozenset({"script_mode", "wait_for_selector_hidden"})
+_ACTION_OVERRIDE_FIELDS = frozenset({"script", "script_mode", "wait_for_selector_hidden"})
+_MAX_OVERRIDE_SCRIPT_BYTES = 64 * 1024
 ACCEPTANCE_SCHEMA = "lex_trajectory_replay_catalog_acceptance/1"
 LEGACY_ACCEPTANCE_SCHEMAS = frozenset({"lex_webarena_full_acceptance_ledger/1"})
 ACCEPTANCE_SCHEMAS = frozenset({ACCEPTANCE_SCHEMA, *LEGACY_ACCEPTANCE_SCHEMAS})
@@ -141,6 +142,13 @@ def _validate_action_amendments(amendments: object) -> list[dict]:
             raise ValueError("action override amendment is invalid")
         if "script_mode" in updates and updates["script_mode"] != "function_body":
             raise ValueError("action override script_mode is invalid")
+        script = updates.get("script")
+        if script is not None and (
+            not isinstance(script, str)
+            or not script.strip()
+            or len(script.encode("utf-8")) > _MAX_OVERRIDE_SCRIPT_BYTES
+        ):
+            raise ValueError("action override script is invalid")
         hidden = updates.get("wait_for_selector_hidden")
         if hidden is not None and (not isinstance(hidden, str) or not hidden):
             raise ValueError("action override hidden selector is invalid")
@@ -186,8 +194,10 @@ def apply_action_overrides(
         original = actions[index]
         if _json_sha256(original) != amendment["precondition_action_sha256"]:
             raise ValueError(f"task {task_id}: action override precondition changed")
-        if "script_mode" in amendment["set"] and original.get("action") != "evaluate":
-            raise ValueError(f"task {task_id}: script_mode requires an evaluate action")
+        if {"script", "script_mode"} & set(amendment["set"]) and original.get(
+            "action"
+        ) != "evaluate":
+            raise ValueError(f"task {task_id}: script fields require an evaluate action")
         result[index].update(amendment["set"])
     return result
 
@@ -396,6 +406,7 @@ def validate_passing_evaluation(
     expected_data_checksum: str,
     benchmark: object,
     corrections: object,
+    expected_evaluator_checksum: str | None = None,
 ) -> None:
     """Require current official rules and the declared replay correction for a pass."""
 
@@ -418,7 +429,8 @@ def validate_passing_evaluation(
         evaluation.get("task_id") != task_id
         or float(evaluation.get("score") or 0) != 1.0
         or str(evaluation.get("status") or "").lower() not in {"pass", "success"}
-        or evaluation.get("webarena_verified_evaluator_checksum") != compute_evaluator_checksum()
+        or evaluation.get("webarena_verified_evaluator_checksum")
+        != (expected_evaluator_checksum or compute_evaluator_checksum())
         or evaluation.get("webarena_verified_data_checksum") != expected_data_checksum
         or actual_correction != expected_correction
         or tuple(row.get("evaluator_name") for row in evaluator_rows) != evaluator_names

@@ -224,6 +224,38 @@
       "set": {
         "script_mode": "function_body"
       }
+    },
+    {
+      "task_id": 265,
+      "action_index": 6,
+      "precondition_action_sha256": "cb8d4d63d9e4ac4c4af190c414a567a465fa4ba1abf8ecf5c5ff77f4338269db",
+      "set": {
+        "script": "async()=>{const state=JSON.parse(window.name);const geocode=async q=>{const r=await fetch('/nominatim/search?format=json&addressdetails=1&limit=10&q='+encodeURIComponent(q));if(!r.ok)throw Error('geocode '+r.status);const rows=await r.json();if(!rows.length)throw Error('not found '+q);return rows};const park=(await geocode('Acadia National Park')).find(x=>x.osm_type==='relation');if(!park)throw Error('park relation missing');const r=await fetch('/osrm/routed-car/route/v1/driving/'+state.source.lon+','+state.source.lat+';'+state.park.lon+','+state.park.lat+'?overview=false'),x=await r.json();if(x.code!=='Ok'||!x.routes?.length)throw Error('no route');return [{relation_id:park.osm_id,distance:x.routes[0].distance+'m'}];}"
+      }
+    },
+    {
+      "task_id": 266,
+      "action_index": 6,
+      "precondition_action_sha256": "cb8d4d63d9e4ac4c4af190c414a567a465fa4ba1abf8ecf5c5ff77f4338269db",
+      "set": {
+        "script": "async()=>{const state=JSON.parse(window.name);const geocode=async q=>{const r=await fetch('/nominatim/search?format=json&addressdetails=1&limit=10&q='+encodeURIComponent(q));if(!r.ok)throw Error('geocode '+r.status);const rows=await r.json();if(!rows.length)throw Error('not found '+q);return rows};const park=(await geocode('Acadia National Park')).find(x=>x.osm_type==='relation');if(!park)throw Error('park relation missing');const r=await fetch('/osrm/routed-car/route/v1/driving/'+state.source.lon+','+state.source.lat+';'+state.park.lon+','+state.park.lat+'?overview=false'),x=await r.json();if(x.code!=='Ok'||!x.routes?.length)throw Error('no route');return [{relation_id:park.osm_id,distance:x.routes[0].distance+'m'}];}"
+      }
+    },
+    {
+      "task_id": 267,
+      "action_index": 6,
+      "precondition_action_sha256": "719319dc83757f9ebe281a8214b11973e824ae250a230941ba1e28bcddc86f04",
+      "set": {
+        "script": "async()=>{const state=JSON.parse(window.name);const geocode=async q=>{const r=await fetch('/nominatim/search?format=json&addressdetails=1&limit=10&q='+encodeURIComponent(q));if(!r.ok)throw Error('geocode '+r.status);const rows=await r.json();if(!rows.length)throw Error('not found '+q);return rows};const park=(await geocode('Acadia National Park')).find(x=>x.osm_type==='relation');if(!park)throw Error('park relation missing');const r=await fetch('/osrm/routed-car/route/v1/driving/'+state.source.lon+','+state.source.lat+';'+state.park.lon+','+state.park.lat+'?overview=false'),x=await r.json();if(x.code!=='Ok'||!x.routes?.length)throw Error('no route');return [{relation_id:park.osm_id,duration:x.routes[0].duration+'s'}];}"
+      }
+    },
+    {
+      "task_id": 268,
+      "action_index": 6,
+      "precondition_action_sha256": "96e385477d8f1c513ab9e9e998b004674284b36d49258ca6eab2c476101e61aa",
+      "set": {
+        "script": "async()=>{const state=JSON.parse(window.name);const geocode=async q=>{const r=await fetch('/nominatim/search?format=json&addressdetails=1&limit=10&q='+encodeURIComponent(q));if(!r.ok)throw Error('geocode '+r.status);const rows=await r.json();if(!rows.length)throw Error('not found '+q);return rows};const park=(await geocode('Acadia National Park')).find(x=>x.osm_type==='relation');if(!park)throw Error('park relation missing');document.cookie='_osm_directions_engine=fossgis_osrm_bicycle; path=/';const r=await fetch('/osrm/routed-bike/route/v1/driving/'+state.source.lon+','+state.source.lat+';'+state.park.lon+','+state.park.lat+'?overview=false'),x=await r.json();if(x.code!=='Ok'||!x.routes?.length)throw Error('no route');return [{relation_id:park.osm_id,duration:x.routes[0].duration+'s'}];}"
+      }
     }
   ]
 }

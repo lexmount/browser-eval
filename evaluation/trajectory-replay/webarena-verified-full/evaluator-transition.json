@@ -1,0 +1,10 @@
+{
+  "schema": "lex_webarena_evaluator_transition/1",
+  "repository": "https://github.com/lexmount/webarena-verified.git",
+  "from_revision": "1925befb545c6433f7a7a5a77c473ce9e74eb468",
+  "from_evaluator_checksum": "0d463b93fda4f17b836456ac8c8e63525a597333b63118d2d195bc9ea32ee5a9",
+  "to_revision": "4c3b14e5cda91889f5ee883c8661bccd1d96c1af",
+  "to_evaluator_checksum": "7f6b1efd6ae2f88643f623a8ab4b1aeb107c0fa912b59f5ffd753de20337a226",
+  "fork_diff_sha256": "c1e88d74ba75c636cd9e4c876c0479ac0b185ebd1f8bdbc499236f48251f445c",
+  "compatibility_rule": "Every previously passing attempt must be re-evaluated from its hash-bound actual response and HAR and must still pass under the new evaluator. Browser actions are not repeated."
+}

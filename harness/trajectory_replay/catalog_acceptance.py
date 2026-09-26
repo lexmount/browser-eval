@@ -18,6 +18,11 @@ from harness.trajectory_replay.catalog_contracts import (
     validate_passing_evaluation,
     verify_physical_evidence,
 )
+from harness.trajectory_replay.evaluator_transition import (
+    load_receipt,
+    load_transition,
+    reevaluate_pass,
+)
 from harness.trajectory_replay.remote_runtime import remote_benchmark
 from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_runtime_source import (
@@ -67,6 +72,10 @@ def _verified_attempt(
     expected_data_checksum: str,
     benchmark: object,
     corrections: object,
+    run_inputs_sha256: str | None = None,
+    run_revision: str | None = None,
+    evaluator_transition: dict | None = None,
+    transition_receipt: dict[tuple[int, str], dict] | None = None,
 ) -> tuple[dict, bool]:
     task_id = row["task_id"]
     physical = "action_count" in row
@@ -80,13 +89,50 @@ def _verified_attempt(
         if evaluation_path is None:
             raise ValueError(f"task {task_id} pass lacks evaluation evidence")
         evaluation = json.loads(evaluation_path.read_text(encoding="utf-8"))
-        validate_passing_evaluation(
-            evaluation,
-            task_id=task_id,
-            expected_data_checksum=expected_data_checksum,
-            benchmark=benchmark,
-            corrections=corrections,
-        )
+        transition_binding = None
+        if run_revision == WEBARENA_VERIFIED_REVISION:
+            validate_passing_evaluation(
+                evaluation,
+                task_id=task_id,
+                expected_data_checksum=expected_data_checksum,
+                benchmark=benchmark,
+                corrections=corrections,
+            )
+        else:
+            if (
+                evaluator_transition is None
+                or transition_receipt is None
+                or run_revision != evaluator_transition["from_revision"]
+                or run_inputs_sha256 is None
+            ):
+                raise ValueError(f"task {task_id} pass lacks evaluator transition evidence")
+            validate_passing_evaluation(
+                evaluation,
+                task_id=task_id,
+                expected_data_checksum=expected_data_checksum,
+                benchmark=benchmark,
+                corrections=corrections,
+                expected_evaluator_checksum=evaluator_transition[
+                    "from_evaluator_checksum"
+                ],
+            )
+            current, transition_binding = reevaluate_pass(
+                directory / f"task-{task_id}",
+                task_id=task_id,
+                expected_data_checksum=expected_data_checksum,
+                benchmark=benchmark,
+                corrections=corrections,
+            )
+            del current
+            receipt_row = transition_receipt.get(
+                (task_id, transition_binding["old_evaluation_sha256"])
+            )
+            expected_receipt = {
+                "run_inputs_sha256": run_inputs_sha256,
+                **transition_binding,
+            }
+            if receipt_row != expected_receipt:
+                raise ValueError(f"task {task_id} evaluator transition receipt changed")
         if any(item.get("status") != "pass" for item in evaluation.get("replay_assertions") or []):
             raise ValueError(f"task {task_id} pass disagrees with replay assertions")
     return (
@@ -96,6 +142,11 @@ def _verified_attempt(
             "score": row.get("score"),
             "progress_sha256": file_sha256(directory / "progress.jsonl"),
             "evidence_sha256": row.get("evidence_sha256"),
+            **(
+                {"evaluator_transition": transition_binding}
+                if transition_binding is not None
+                else {}
+            ),
         },
         physical,
     )
@@ -109,8 +160,23 @@ def audit(
     excluded_duplicate_repair_tasks: set[int] | None = None,
     expected_backend: str = "browsertool",
     action_overrides_paths: list[Path] | None = None,
+    evaluator_transition_path: Path | None = None,
+    evaluator_transition_receipt_path: Path | None = None,
 ) -> dict:
     verify_webarena_runtime_source()
+    if (evaluator_transition_path is None) != (evaluator_transition_receipt_path is None):
+        raise ValueError("evaluator transition authority and receipt must be supplied together")
+    evaluator_transition = (
+        load_transition(evaluator_transition_path)
+        if evaluator_transition_path is not None
+        else None
+    )
+    transition_receipt = (
+        load_receipt(evaluator_transition_receipt_path, evaluator_transition)
+        if evaluator_transition_receipt_path is not None and evaluator_transition is not None
+        else None
+    )
+    used_transition_rows: set[tuple[int, str]] = set()
     scope = json.loads(scope_path.read_text(encoding="utf-8"))
     ids = scope.get("task_ids")
     data_checksum = str(scope.get("official_dataset_sha256") or "")
@@ -149,9 +215,14 @@ def audit(
     for kind, directories in (("segment", segment_dirs), ("repair", repair_dirs)):
         for directory in directories:
             binding, rows = _read_run(directory)
+            run_revision = binding.get("webarena_revision")
             if (
                 binding["schema"] == "lex_trajectory_replay_catalog_run/1"
-                and binding["webarena_revision"] != WEBARENA_VERIFIED_REVISION
+                and run_revision != WEBARENA_VERIFIED_REVISION
+                and (
+                    evaluator_transition is None
+                    or run_revision != evaluator_transition["from_revision"]
+                )
             ):
                 raise ValueError("acceptance run used a different WebArena evaluator revision")
             if "action_overrides_sha256" in binding:
@@ -220,6 +291,7 @@ def audit(
             if "action_overrides_sha256" in binding:
                 run_record["action_overrides_sha256"] = binding["action_overrides_sha256"]
             bindings.append(run_record)
+            run_inputs_sha256 = run_record["inputs_sha256"]
             for row in rows:
                 task_id = row["task_id"]
                 if kind == "segment":
@@ -239,7 +311,18 @@ def audit(
                         expected_data_checksum=data_checksum,
                         benchmark=benchmark,
                         corrections=corrections,
+                        run_inputs_sha256=run_inputs_sha256,
+                        run_revision=run_revision,
+                        evaluator_transition=evaluator_transition,
+                        transition_receipt=transition_receipt,
                     )
+                    if "evaluator_transition" in attempt:
+                        used_transition_rows.add(
+                            (
+                                task_id,
+                                attempt["evaluator_transition"]["old_evaluation_sha256"],
+                            )
+                        )
                     physical_attempts += int(physical)
                     excluded_attempts.append(
                         {
@@ -265,13 +348,26 @@ def audit(
                     expected_data_checksum=data_checksum,
                     benchmark=benchmark,
                     corrections=corrections,
+                    run_inputs_sha256=run_inputs_sha256,
+                    run_revision=run_revision,
+                    evaluator_transition=evaluator_transition,
+                    transition_receipt=transition_receipt,
                 )
+                if "evaluator_transition" in attempt:
+                    used_transition_rows.add(
+                        (
+                            task_id,
+                            attempt["evaluator_transition"]["old_evaluation_sha256"],
+                        )
+                    )
                 physical_attempts += int(physical)
                 states[task_id]["attempts"].append(attempt)
     if excluded_seen != excluded_requested:
         raise ValueError("declared duplicate repair exclusions were not found")
     if used_override_sources != set(override_sources):
         raise ValueError("external action overrides are not bound to an acceptance run")
+    if transition_receipt is not None and used_transition_rows != set(transition_receipt):
+        raise ValueError("evaluator transition receipt contains unused or missing pass evidence")
     if ordered_ids != ids:
         raise ValueError("acceptance sweep is incomplete or changed official order")
     rows = [
@@ -308,6 +404,12 @@ def audit(
         }
     if used_override_sources:
         result["action_overrides_sha256s"] = sorted(used_override_sources)
+    if evaluator_transition_path is not None and evaluator_transition_receipt_path is not None:
+        result["evaluator_transition"] = {
+            "authority_sha256": file_sha256(evaluator_transition_path),
+            "receipt_sha256": file_sha256(evaluator_transition_receipt_path),
+            "reevaluated_passes": len(used_transition_rows),
+        }
     return result
 
 
@@ -321,6 +423,8 @@ def main() -> None:
     parser.add_argument("--segment", type=Path, action="append", required=True)
     parser.add_argument("--repair", type=Path, action="append", default=[])
     parser.add_argument("--action-overrides", type=Path, action="append", default=[])
+    parser.add_argument("--evaluator-transition", type=Path)
+    parser.add_argument("--evaluator-transition-receipt", type=Path)
     parser.add_argument("--exclude-duplicate-repair-task", type=int, action="append", default=[])
     parser.add_argument(
         "--expected-backend", choices=("browsertool", "playwright"), default="browsertool"
@@ -335,6 +439,8 @@ def main() -> None:
         excluded_duplicate_repair_tasks=set(args.exclude_duplicate_repair_task),
         expected_backend=args.expected_backend,
         action_overrides_paths=args.action_overrides,
+        evaluator_transition_path=args.evaluator_transition,
+        evaluator_transition_receipt_path=args.evaluator_transition_receipt,
     )
     if args.require_all_pass and result["counts"]["unresolved"]:
         raise ValueError("the acceptance sweep has unresolved cases")

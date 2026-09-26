@@ -152,6 +152,49 @@ def test_acceptance_rejects_different_current_webarena_revision(tmp_path, monkey
         acceptance.audit(scope, [sweep], [])
 
 
+def test_acceptance_allows_declared_predecessor_only_with_paired_transition_receipt(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
+    transition = {
+        "from_revision": "0" * 40,
+        "to_revision": WEBARENA_VERIFIED_REVISION,
+    }
+    monkeypatch.setattr(acceptance, "load_transition", lambda _path: transition)
+    monkeypatch.setattr(acceptance, "load_receipt", lambda _path, _transition: {})
+    scope = _scope(tmp_path, [7])
+    sweep = _run(tmp_path, "sweep", [7], {7: "fail"})
+    inputs = sweep / "inputs.json"
+    payload = json.loads(inputs.read_text())
+    payload["webarena_revision"] = transition["from_revision"]
+    inputs.write_text(json.dumps(payload))
+    authority = tmp_path / "transition.json"
+    receipt = tmp_path / "receipt.json"
+    authority.write_text("{}")
+    receipt.write_text("{}")
+
+    ledger = acceptance.audit(
+        scope,
+        [sweep],
+        [],
+        evaluator_transition_path=authority,
+        evaluator_transition_receipt_path=receipt,
+    )
+
+    assert ledger["counts"]["unresolved"] == 1
+    assert ledger["evaluator_transition"]["reevaluated_passes"] == 0
+
+
+def test_acceptance_requires_transition_authority_and_receipt_together(tmp_path):
+    with pytest.raises(ValueError, match="must be supplied together"):
+        acceptance.audit(
+            _scope(tmp_path, [7]),
+            [],
+            [],
+            evaluator_transition_path=tmp_path / "transition.json",
+        )
+
+
 def test_acceptance_requires_external_action_overrides_for_amended_run(tmp_path, monkeypatch):
     monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
     path, digest = _action_overrides(tmp_path)

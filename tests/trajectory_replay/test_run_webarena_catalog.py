@@ -87,11 +87,19 @@ def test_action_overrides_apply_to_portable_and_direct_source_actions() -> None:
     )
     direct = apply_action_overrides(
         [evaluate],
-        [_amendment(8, 1, evaluate, {"script_mode": "function_body"})],
+        [
+            _amendment(
+                8,
+                1,
+                evaluate,
+                {"script": "return false;", "script_mode": "function_body"},
+            )
+        ],
         task_id=8,
     )
     assert portable[0]["wait_for_selector_hidden"] == ".loading-mask"
     assert direct[0]["script_mode"] == "function_body"
+    assert direct[0]["script"] == "return false;"
     assert "wait_for_selector_hidden" not in fill
     assert "script_mode" not in evaluate
 
@@ -109,6 +117,20 @@ def test_action_overrides_reject_wrong_hash_unknown_field_and_bad_index() -> Non
     with pytest.raises(ValueError, match="outside"):
         apply_action_overrides(
             [action], [_amendment(9, 2, action, {"script_mode": "function_body"})], task_id=9
+        )
+    fill = {"action": "fill", "text": "x"}
+    with pytest.raises(ValueError, match="script fields require an evaluate action"):
+        apply_action_overrides(
+            [fill], [_amendment(9, 1, fill, {"script": "return true;"})], task_id=9
+        )
+
+
+@pytest.mark.parametrize("script", ["", "   ", "x" * (64 * 1024 + 1)])
+def test_action_overrides_reject_invalid_replacement_scripts(script: str) -> None:
+    action = {"action": "evaluate", "script": "return true;"}
+    with pytest.raises(ValueError, match="script is invalid"):
+        apply_action_overrides(
+            [action], [_amendment(9, 1, action, {"script": script})], task_id=9
         )
 
 
@@ -358,6 +380,48 @@ def test_catalog_binding_embeds_override_provenance_and_hashes_amended_actions(
     _write(rebound_path, rebound)
     with pytest.raises(ValueError, match="rebind requires its external action overrides"):
         rebind_catalog(rebound_path, suite_path, sites_path)
+
+    revised_overrides_path = tmp_path / "revised-overrides.json"
+    _write(
+        revised_overrides_path,
+        {
+            "schema": "lex_webarena_replay_action_overrides/1",
+            "amendments": [
+                _amendment(0, 1, portable_action, {"wait_for_selector_hidden": ".loading-mask"}),
+                _amendment(1, 1, direct_action, {"script": "return false;"}),
+            ],
+        },
+    )
+    with pytest.raises(ValueError, match="differ from the predecessor"):
+        rebind_catalog(
+            rebound_path,
+            suite_path,
+            sites_path,
+            action_overrides_path=revised_overrides_path,
+        )
+    revised = rebind_catalog(
+        rebound_path,
+        suite_path,
+        sites_path,
+        action_overrides_path=revised_overrides_path,
+        revise_action_overrides=True,
+    )
+    assert revised["predecessor_catalog_sha256"] == file_sha256(rebound_path)
+    assert revised["action_overrides_sha256"] == file_sha256(revised_overrides_path)
+    assert revised["repairs"][-1] == {
+        "kind": "action_override_revision",
+        "predecessor_action_overrides_sha256": file_sha256(overrides_path),
+        "action_overrides_sha256": file_sha256(revised_overrides_path),
+        "task_ids": [0, 1],
+    }
+    revised_path = tmp_path / "revised-catalog.json"
+    _write(revised_path, revised)
+    load_catalog_inputs(
+        revised_path,
+        suite_path,
+        sites_path,
+        action_overrides_path=revised_overrides_path,
+    )
 
     wrong_overrides_path = tmp_path / "wrong-overrides.json"
     wrong_overrides = json.loads(overrides_path.read_text(encoding="utf-8"))

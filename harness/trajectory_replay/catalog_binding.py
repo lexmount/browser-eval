@@ -29,7 +29,10 @@ def rebind_catalog(
     revised_task_ids: set[int] | None = None,
     source_site_map_path: Path | None = None,
     action_overrides_path: Path | None = None,
+    revise_action_overrides: bool = False,
 ) -> dict:
+    if revise_action_overrides and action_overrides_path is None:
+        raise ValueError("action override revision requires an overrides source")
     source = json.loads(catalog_path.read_text(encoding="utf-8"))
     suite = load_suite(suite_path)
     tasks = {int(task.task_id.removeprefix("webarena-")): task for task in suite.tasks}
@@ -44,9 +47,13 @@ def rebind_catalog(
         has_existing_overrides = "action_overrides_sha256" in source or any(
             row.get("action_overrides") is not None for row in source.get("rows") or []
         )
-        if has_existing_overrides and existing_sha256 != override_sha256:
+        if (
+            has_existing_overrides
+            and existing_sha256 != override_sha256
+            and not revise_action_overrides
+        ):
             raise ValueError("action overrides differ from the predecessor catalog")
-        if has_existing_overrides:
+        if has_existing_overrides and existing_sha256 == override_sha256:
             embedded = {
                 row["task_id"]: amendments
                 for row in source.get("rows") or []
@@ -115,6 +122,17 @@ def rebind_catalog(
                 "suite_sha256": file_sha256(suite_path),
             }
         ]
+    if revise_action_overrides:
+        if not has_existing_overrides or existing_sha256 == target["action_overrides_sha256"]:
+            raise ValueError("action override revision must replace an existing source")
+        target["repairs"] = list(target.get("repairs") or []) + [
+            {
+                "kind": "action_override_revision",
+                "predecessor_action_overrides_sha256": existing_sha256,
+                "action_overrides_sha256": target["action_overrides_sha256"],
+                "task_ids": sorted(override_map),
+            }
+        ]
     return target
 
 
@@ -125,6 +143,7 @@ def main() -> None:
     parser.add_argument("--site-map", type=Path, required=True)
     parser.add_argument("--source-site-map", type=Path)
     parser.add_argument("--action-overrides", type=Path)
+    parser.add_argument("--revise-action-overrides", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--revised-task-id", type=int, action="append", default=[])
     args = parser.parse_args()
@@ -137,6 +156,7 @@ def main() -> None:
         revised_task_ids=set(args.revised_task_id),
         source_site_map_path=args.source_site_map,
         action_overrides_path=args.action_overrides,
+        revise_action_overrides=args.revise_action_overrides,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
