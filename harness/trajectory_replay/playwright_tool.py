@@ -13,7 +13,6 @@ from playwright.sync_api import sync_playwright
 from harness.browser_use.runner import BENCHMARK_VIEWPORT
 from harness.trajectory_replay.public_webarena.executor import execute_steps
 
-SNAPSHOT_PRIMARY_TIMEOUT_MS = 5_000
 SNAPSHOT_NAVIGATION_SETTLE_TIMEOUT_MS = 1_500
 SNAPSHOT_NAVIGATION_GRACE_MS = 300
 
@@ -77,9 +76,9 @@ class PlaywrightReplayTool:
     def _publish_page_layout(self, page: Any, timeout_ms: int = 5_000) -> None:
         """Publish Moli's current layout before Playwright consumes geometry.
 
-        Moli intentionally computes layout on demand.  A raw CDP screenshot is
-        the renderer boundary that publishes that layout without first asking
-        Playwright to perform the geometry checks which depend on it.
+        Moli keeps ordinary geometry reads side effect free. Its explicit CDP
+        extension publishes the same layout tree without paint, rasterization,
+        or screenshot encoding.
         """
 
         if getattr(self, "_engine", "chromium") != "moli":
@@ -94,19 +93,19 @@ class PlaywrightReplayTool:
             session = self._context.new_cdp_session(page)
             sessions[page] = session
 
-        async def capture() -> dict[str, Any]:
+        async def publish() -> dict[str, Any]:
             return await asyncio.wait_for(
-                session._impl_obj.send("Page.captureScreenshot", {"format": "png"}),
+                session._impl_obj.send("Page.getLayoutMetrics", {"publishLayout": True}),
                 timeout=timeout_ms / 1_000,
             )
 
         try:
-            result = session._sync(capture())
+            result = session._sync(publish())
         except TimeoutError as exc:
             sessions.pop(page, None)
             raise TimeoutError("Moli layout publication timed out") from exc
-        if not isinstance(result, dict) or not result.get("data"):
-            raise RuntimeError("Moli layout publication returned no screenshot data")
+        if not isinstance(result, dict) or not isinstance(result.get("layoutViewport"), dict):
+            raise RuntimeError("Moli layout publication returned no layout metrics")
 
     def _snapshot(self, selector: str, timeout: int) -> str:
         deadline = time.monotonic() + timeout / 1_000
@@ -129,7 +128,7 @@ class PlaywrightReplayTool:
                     )
                 except Exception:
                     pass
-                self._publish_page_layout(self._page, remaining(maximum))
+                self._publish_page_layout(self._page, remaining())
                 locator = self._page.locator(selector).first
                 wait_ms = int((observation_deadline - time.monotonic()) * 1_000)
                 if wait_ms < 1:
@@ -148,7 +147,7 @@ class PlaywrightReplayTool:
                 return locator.aria_snapshot(timeout=remaining(maximum))
 
         try:
-            return observe(SNAPSHOT_PRIMARY_TIMEOUT_MS)
+            return observe()
         except Exception as exc:
             if not _navigation_interrupted_snapshot(exc):
                 raise

@@ -29,13 +29,13 @@ def _unit_tool(page, context, *, engine="chromium"):
     return tool
 
 
-def test_moli_layout_publication_uses_raw_cdp_and_detaches():
+def test_moli_layout_publication_uses_explicit_geometry_only_cdp():
     events = []
 
     class Impl:
         async def send(self, method, params):
             events.append(("send", method, params))
-            return {"data": "png-data"}
+            return {"layoutViewport": {"clientWidth": 1280, "clientHeight": 720}}
 
     class Session:
         _impl_obj = Impl()
@@ -58,7 +58,7 @@ def test_moli_layout_publication_uses_raw_cdp_and_detaches():
 
     assert events == [
         ("session", page),
-        ("send", "Page.captureScreenshot", {"format": "png"}),
+        ("send", "Page.getLayoutMetrics", {"publishLayout": True}),
     ]
 
 
@@ -72,7 +72,7 @@ def test_chromium_layout_publication_is_a_strict_noop():
     tool._publish_page_layout(object())
 
 
-def test_moli_layout_publication_fails_when_renderer_returns_no_image():
+def test_moli_layout_publication_fails_when_renderer_returns_no_metrics():
     class Impl:
         async def send(self, _method, _params):
             return {}
@@ -85,7 +85,7 @@ def test_moli_layout_publication_fails_when_renderer_returns_no_image():
 
     context = type("Context", (), {"new_cdp_session": lambda self, _page: Session()})()
 
-    with pytest.raises(RuntimeError, match="returned no screenshot data"):
+    with pytest.raises(RuntimeError, match="returned no layout metrics"):
         _unit_tool(object(), context, engine="moli")._publish_page_layout(object())
 
 
@@ -93,7 +93,7 @@ def test_moli_layout_publication_obeys_its_budget():
     class Impl:
         async def send(self, _method, _params):
             await asyncio.sleep(1)
-            return {"data": "too late"}
+            return {"layoutViewport": {"clientWidth": 1280, "clientHeight": 720}}
 
     class Session:
         _impl_obj = Impl()

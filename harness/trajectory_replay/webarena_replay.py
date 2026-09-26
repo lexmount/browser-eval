@@ -131,7 +131,30 @@ def _execute_replay_call(
 
         def execute() -> None:
             page = service._page
-            locator = page.locator(selector).first
+            layout_observer = getattr(service, "layout_observer", None)
+            timeout_ms = int(public_arguments.get("timeout_ms", 60_000))
+            deadline = time.monotonic() + timeout_ms / 1000
+
+            def remaining() -> int:
+                budget = int((deadline - time.monotonic()) * 1000)
+                if budget < 1:
+                    raise TimeoutError("compiled snapshot-ref action timed out")
+                return budget
+
+            if layout_observer is not None:
+                layout_observer(page, remaining())
+            locator = None
+            if layout_observer is not None and selector.endswith(":visible"):
+                stable = page.locator(selector.removesuffix(":visible"))
+                count = getattr(stable, "count", None)
+                if callable(count) and count() == 1:
+                    locator = stable.first
+                    visible = page.locator(selector)
+                    while visible.count() != 1:
+                        page.wait_for_timeout(min(100, remaining()))
+                        layout_observer(page, remaining())
+            if locator is None:
+                locator = page.locator(selector).first
             if action == "click":
                 if diagnostics is None:
                     locator.evaluate("element => element.click()")
@@ -165,12 +188,19 @@ def _execute_replay_call(
                 page.keyboard.insert_text(str(public_arguments.get("text", "")))
             else:
                 value = str(public_arguments.get("value", ""))
-                locator.evaluate(
+                state = locator.evaluate(
                     "(element, value) => { if (element.tagName.toLowerCase() !== 'select') "
-                    "throw new Error('target is not a select element'); element.value = value; "
-                    "element.dispatchEvent(new Event('change', {bubbles: true})); }",
+                    "throw new Error('target is not a select element'); const before = element.value; "
+                    "element.value = value; if (element.value !== value) "
+                    "throw new Error('select option value was not found'); "
+                    "element.dispatchEvent(new Event('input', {bubbles: true})); "
+                    "element.dispatchEvent(new Event('change', {bubbles: true})); "
+                    "return {before, after: element.value, selectedText: "
+                    "element.selectedOptions[0]?.textContent ?? null}; }",
                     value,
                 )
+                if diagnostics is not None:
+                    diagnostics["select_dispatch_state"] = state
 
         service._submit(execute)
     except Exception as exc:

@@ -383,6 +383,9 @@ def test_compiled_snapshot_ref_click_preserves_dom_click_semantics(
         def __init__(self) -> None:
             self.first = self
 
+        def count(self):
+            return 1
+
         def evaluate(self, script, *args):
             events.append(("evaluate", script, args))
             return {"connected": True, "disabled": disabled,
@@ -398,6 +401,10 @@ def test_compiled_snapshot_ref_click_preserves_dom_click_semantics(
 
     class Service:
         _page = Page()
+
+        @property
+        def layout_observer(self):
+            return lambda page, timeout: events.append(("layout", page, timeout))
 
         def _submit(self, callback):
             return callback()
@@ -421,14 +428,82 @@ def test_compiled_snapshot_ref_click_preserves_dom_click_semantics(
     )
 
     assert status == "success"
-    assert events[0] == ("locator", "a[href='/next']:visible")
+    assert events[0][:2] == ("layout", Service._page)
+    assert 0 < events[0][2] <= 60_000
+    assert ("locator", "a[href='/next']") in events
     assert events[-1] == ("wait", 500)
-    evaluations = [event for event in events if event[0] == "evaluate"]
+    evaluations = [
+        event for event in events
+        if event[0] == "evaluate" and "getComputedStyle" not in event[1]
+    ]
     assert len(evaluations) == 1
     assert "element.click()" in evaluations[0][1]
     if collect_diagnostics:
         assert diagnostics["click_dispatch_state"]["disabled"] is disabled
         assert evaluations[0][1].index("disabled:") < evaluations[0][1].index("element.click()")
+
+
+def test_moli_compiled_ref_waits_for_delayed_visible_target() -> None:
+    visibility = iter((0, 1))
+    events = []
+
+    class Locator:
+        first = None
+
+        def __init__(self, selector) -> None:
+            self.first = self
+            self.selector = selector
+
+        def count(self):
+            value = next(visibility) if self.selector.endswith(":visible") else 1
+            events.append(("count", self.selector, value))
+            return value
+
+        def evaluate(self, script, *args):
+            events.append(("action", script, args))
+            return {"before": "12", "after": args[0], "selectedText": "Illinois"}
+
+    class Page:
+        def locator(self, selector):
+            events.append(("locator", selector))
+            return Locator(selector)
+
+        def wait_for_timeout(self, timeout):
+            events.append(("wait", timeout))
+
+    class Service:
+        _page = Page()
+
+        @property
+        def layout_observer(self):
+            return lambda page, timeout: events.append(("layout", page, timeout))
+
+        def _submit(self, callback):
+            return callback()
+
+    class Tool:
+        def _get_service(self):
+            return Service()
+
+    status, _ = _execute_replay_call(
+        Tool(),
+        {
+            "action": "select",
+            "selector": "select[name='region_id']:visible",
+            "value": "23",
+            "replay_mode": "snapshot_ref_semantics",
+        },
+    )
+
+    assert status == "success"
+    assert events[0][:2] == ("layout", Service._page)
+    assert 0 < events[0][2] <= 60_000
+    assert ("wait", 100) in events
+    assert [event for event in events if event[0] == "count" and event[1].endswith(":visible")] == [
+        ("count", "select[name='region_id']:visible", 0),
+        ("count", "select[name='region_id']:visible", 1),
+    ]
+    assert events[-1][0] == "action"
 
 
 @pytest.mark.parametrize(
@@ -446,9 +521,14 @@ def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics(
         def __init__(self) -> None:
             self.first = self
 
+        def count(self):
+            return 1
+
         def evaluate(self, script, *args):
             events.append(("evaluate", script, args))
-            return platform if "navigator.platform" in script else None
+            if "navigator.platform" in script:
+                return platform
+            return {"before": "closed", "after": args[0], "selectedText": "Open"}
 
     class Keyboard:
         def press(self, key):
@@ -467,6 +547,10 @@ def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics(
     class Service:
         _page = Page()
 
+        @property
+        def layout_observer(self):
+            return lambda page, timeout: events.append(("layout", page, timeout))
+
         def _submit(self, callback):
             return callback()
 
@@ -483,6 +567,7 @@ def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics(
             "replay_mode": "snapshot_ref_semantics",
         },
     )
+    diagnostics = {}
     select_status, _ = _execute_replay_call(
         Tool(),
         {
@@ -491,13 +576,26 @@ def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics(
             "value": "open",
             "replay_mode": "snapshot_ref_semantics",
         },
+        diagnostics=diagnostics,
     )
 
     assert fill_status == select_status == "success"
+    assert events[0][:2] == ("layout", Service._page)
+    layouts = [event for event in events if event[:2] == ("layout", Service._page)]
+    assert len(layouts) == 2
+    assert all(0 < event[2] <= 60_000 for event in layouts)
+    assert ("locator", "input[name='query']") in events
+    assert ("locator", "select[name='status']") in events
     assert events.index(("press", f"{modifier}+A")) < events.index(("press", "Backspace"))
     assert events.index(("press", "Backspace")) < events.index(("insert_text", "needle"))
     assert not any(event[0] == "evaluate" and "element.value = ''" in event[1] for event in events)
     assert any(event[0] == "evaluate" and event[2] == ("open",) for event in events)
+    assert diagnostics["select_dispatch_state"]["after"] == "open"
+    select_script = next(
+        event[1] for event in events if event[0] == "evaluate" and event[2] == ("open",)
+    )
+    assert select_script.index("new Event('input'") < select_script.index("new Event('change'")
+    assert "element.value !== value" in select_script
 
 
 def test_declared_wait_seconds_are_dispatched_as_browser_tool_milliseconds() -> None:
