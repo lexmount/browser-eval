@@ -13,6 +13,19 @@ from .participants import bind_participant, participant_registry, resolve_partic
 REVIEW_SCHEMA = "lex_webarena_trajectory_replay_failure_review/1"
 
 
+def _concise_process_error(message: str) -> str:
+    """Keep the final exception and tool call log, not mutable source excerpts."""
+
+    starts = [
+        match.start()
+        for match in re.finditer(
+            r"(?m)^(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*(?:Error|Exception): .+$",
+            message,
+        )
+    ]
+    return message[starts[-1] :].strip() if starts else message.strip()
+
+
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -40,7 +53,7 @@ def programmatic_failure(attempt: dict[str, Any]) -> dict[str, Any]:
                 if match
                 else None
             ),
-            "message": match.group(2) if match else message.strip(),
+            "message": match.group(2) if match else _concise_process_error(message),
         }
     if attempt.get("evaluator_status") != "pass":
         return {
