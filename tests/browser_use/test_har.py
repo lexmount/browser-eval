@@ -4,6 +4,59 @@ import json
 from harness.browser_use.har import CdpHarRecorder, _har_request, _har_response, _is_json_mime_type
 
 
+def test_navigation_response_fills_a_missing_cdp_document_event(tmp_path) -> None:
+    class Context:
+        pages = []
+
+        def on(self, *_args):
+            pass
+
+        def remove_listener(self, *_args):
+            pass
+
+    class Request:
+        method = "GET"
+        url = "http://map.example.test/"
+        headers = {"accept": "text/html"}
+        post_data = None
+
+    class Response:
+        request = Request()
+        status = 200
+        status_text = "OK"
+        headers = {"content-type": "text/html; charset=utf-8"}
+
+    context = Context()
+    recorder = CdpHarRecorder()
+    recorder.start(context)
+    recorder.record_navigation_response(Response())
+    path = tmp_path / "navigation.har"
+    recorder.stop(context, path)
+
+    entries = json.loads(path.read_text())["log"]["entries"]
+    assert entries == [
+        {
+            "request": {
+                "method": "GET",
+                "url": "http://map.example.test/",
+                "headers": [{"name": "accept", "value": "text/html"}],
+                "cookies": [],
+            },
+            "response": {
+                "status": 200,
+                "statusText": "OK",
+                "headers": [
+                    {"name": "content-type", "value": "text/html; charset=utf-8"}
+                ],
+                "cookies": [],
+                "redirectURL": "",
+                "content": {"mimeType": "text/html", "text": ""},
+            },
+            "_capture": {"state": "playwright-navigation-response"},
+        }
+    ]
+
+
 def test_capture_explicitly_retains_navigation_json_with_finite_limits(tmp_path) -> None:
     class Session:
         def __init__(self):

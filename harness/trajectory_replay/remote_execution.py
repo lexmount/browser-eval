@@ -309,6 +309,7 @@ def _run_task(
                     task_timeout_ms=300_000,
                     default_action_timeout_ms=portable_action_timeout_ms,
                     layout_observer=getattr(service, "layout_observer", None),
+                    navigation_response_observer=recorder.record_navigation_response,
                 )
             )
         for index, action in enumerate(() if portable_task is not None else row["actions"], 1):

@@ -8,6 +8,7 @@ import time
 from collections.abc import Callable, Iterable
 from contextlib import nullcontext
 from typing import Any
+from urllib.parse import urlsplit
 
 from .suite import validate_selector
 from .targets import locator_for
@@ -40,6 +41,22 @@ TEXT_OBSERVATION_MAX_CHARS = 40_000
 # BrowserTool returns complete JSON evaluate results.  Keep that retrieval
 # contract while placing a finite ceiling on one captured observation.
 STRUCTURED_OBSERVATION_MAX_BYTES = 4 * 1024 * 1024
+
+
+def _same_document_url(left: str, right: str) -> bool:
+    first = urlsplit(left)
+    second = urlsplit(right)
+    return (
+        first.scheme,
+        first.netloc,
+        first.path or "/",
+        first.query,
+    ) == (
+        second.scheme,
+        second.netloc,
+        second.path or "/",
+        second.query,
+    )
 
 
 def _completed_action_navigation_timeout(exc: Exception) -> bool:
@@ -196,6 +213,7 @@ def execute_steps(
     outputs: dict[str, str] | None = None,
     page_observer: Callable[[Any], None] | None = None,
     layout_observer: Callable[[Any, int], None] | None = None,
+    navigation_response_observer: Callable[[Any], None] | None = None,
     task_timeout_ms: int | None = None,
     default_action_timeout_ms: int = 30_000,
 ) -> dict[str, str]:
@@ -280,11 +298,23 @@ def execute_steps(
                             action_remaining()
             observation = ""
             if action == "navigate":
+                prior_url = str(getattr(action_page, "url", ""))
                 response = action_page.goto(
                     call["url"],
                     wait_until=call.get("wait_until", "domcontentloaded"),
                     timeout=action_remaining(),
                 )
+                if (
+                    response is None
+                    and prior_url
+                    and _same_document_url(prior_url, str(call["url"]))
+                ):
+                    response = action_page.reload(
+                        wait_until=call.get("wait_until", "domcontentloaded"),
+                        timeout=action_remaining(),
+                    )
+                if navigation_response_observer is not None:
+                    navigation_response_observer(response)
                 # BrowserTool returns after DOMContentLoaded, then gives ordinary
                 # background requests a short chance to settle.  Network idle is
                 # deliberately best effort: analytics or streaming requests must

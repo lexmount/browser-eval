@@ -130,6 +130,7 @@ class CdpHarRecorder:
         self._response_bodies: dict[tuple[int, str, int], dict[str, Any]] = {}
         self._response_body_errors: dict[tuple[int, str, int], str] = {}
         self._payload: str | None = None
+        self._playwright_navigations: list[dict[str, Any]] = []
         self._stopped = False
         self.errors: list[str] = []
 
@@ -138,6 +139,36 @@ class CdpHarRecorder:
         context.on("page", self._attach)
         for page in context.pages:
             self._attach(page)
+
+    def record_navigation_response(self, response: Any) -> None:
+        """Retain an observed page.goto response when CDP omits Document events."""
+
+        if response is None:
+            return
+        try:
+            request = response.request
+            raw_request = {
+                "method": str(request.method),
+                "url": str(request.url),
+                "headers": dict(request.headers),
+                "postData": request.post_data,
+                "__resource_type": "Document",
+            }
+            raw_response = {
+                "status": int(response.status),
+                "statusText": str(response.status_text),
+                "headers": dict(response.headers),
+                "mimeType": str(response.headers.get("content-type") or "").split(";", 1)[0],
+            }
+            self._playwright_navigations.append(
+                {
+                    "request": _har_request(raw_request),
+                    "response": _har_response(raw_response, None),
+                    "_capture": {"state": "playwright-navigation-response"},
+                }
+            )
+        except Exception as exc:
+            self.errors.append(f"Playwright navigation response capture failed: {exc}")
 
     def stop(self, context: Any, path: Path) -> None:
         if self._stopped:
@@ -311,6 +342,22 @@ class CdpHarRecorder:
                         # Retain raw evidence even if the supplied wall clock is invalid.
                         pass
                 entries.append(entry)
+            by_request = {
+                (entry["request"]["method"], entry["request"]["url"]): entry
+                for entry in entries
+            }
+            for fallback in self._playwright_navigations:
+                identity = (
+                    fallback["request"]["method"],
+                    fallback["request"]["url"],
+                )
+                existing = by_request.get(identity)
+                if existing is None:
+                    entries.append(fallback)
+                    by_request[identity] = fallback
+                elif existing["response"]["status"] == 0:
+                    existing["response"] = fallback["response"]
+                    existing["_capture"] = fallback["_capture"]
             for session in self._sessions:
                 try:
                     session.detach()

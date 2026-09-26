@@ -378,9 +378,48 @@ def test_navigation_network_idle_is_best_effort_and_keeps_render_grace():
             raise TimeoutError("page keeps a streaming request open")
 
     page = BusyPage()
-    execute_steps(page, ({"action": "navigate", "url": "https://example.com"},))
+    responses = []
+    execute_steps(
+        page,
+        ({"action": "navigate", "url": "https://example.com"},),
+        navigation_response_observer=responses.append,
+    )
     assert ("load_state", "networkidle", {"timeout": 1500}) in page.calls
     assert ("wait", 300) in page.calls
+    assert len(responses) == 1
+    assert responses[0].status == 200
+
+
+def test_same_document_navigation_without_response_reloads_for_network_evidence():
+    class SamePage(FakePage):
+        def __init__(self):
+            super().__init__()
+            self.url = "https://example.com/"
+
+        def goto(self, url, **kwargs):
+            self.calls.append(("navigate", url, kwargs))
+            self.url = url + "/"
+            return None
+
+        def reload(self, **kwargs):
+            self.calls.append(("reload", kwargs))
+
+            class Response:
+                status = 200
+
+            return Response()
+
+    page = SamePage()
+    responses = []
+    execute_steps(
+        page,
+        ({"action": "navigate", "url": "https://example.com"},),
+        navigation_response_observer=responses.append,
+    )
+
+    assert any(call[0] == "reload" for call in page.calls)
+    assert len(responses) == 1
+    assert responses[0].status == 200
 
 
 def test_form_submission_evaluate_continues_only_after_expected_navigation():
