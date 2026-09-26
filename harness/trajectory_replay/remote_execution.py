@@ -106,7 +106,7 @@ def _verify_result_evidence(output: Path, rows: list[dict]) -> None:
 def _wait_cdp(endpoint: str, process: subprocess.Popen) -> None:
     for _ in range(300):
         if process.poll() is not None:
-            raise RuntimeError(f"Moli exited before CDP was ready: {process.returncode}")
+            raise RuntimeError(f"browser exited before CDP was ready: {process.returncode}")
         try:
             with urllib.request.urlopen(endpoint + "/json/version", timeout=1) as response:
                 if response.status == 200:
@@ -137,18 +137,41 @@ def _browser_command(args: argparse.Namespace, port: int, profile: str) -> list[
                 raise ValueError("Chromium host resolver rules must be one line")
             command.insert(-1, f"--host-resolver-rules={host_resolver_rules}")
         return command
-    return [
-        str(args.binary),
-        "serve",
-        "--host",
-        "127.0.0.1",
-        "--port",
-        str(port),
-        "--layout",
-        "--font",
-        "--profile-dir",
-        profile,
-    ]
+    if args.engine == "moli":
+        return [
+            str(args.binary),
+            "serve",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(port),
+            "--layout",
+            "--font",
+            "--profile-dir",
+            profile,
+        ]
+    if args.engine == "lightpanda":
+        return [
+            str(args.binary),
+            "serve",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(port),
+        ]
+    if args.engine == "obscura":
+        return [
+            str(args.binary),
+            "serve",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(port),
+            "--storage-dir",
+            profile,
+            "--allow-private-network",
+        ]
+    raise ValueError(f"unknown local replay engine: {args.engine}")
 
 
 def _task_type(task: object) -> str:

@@ -210,6 +210,38 @@ def test_chromium_qualification_uses_a_separate_ephemeral_profile() -> None:
     assert moli[-2:] == ["--profile-dir", "/tmp/qualification-profile"]
 
 
+def test_comparison_browsers_use_their_native_cdp_serve_contracts() -> None:
+    lightpanda = _browser_command(
+        SimpleNamespace(engine="lightpanda", binary=Path("/opt/lightpanda")),
+        9222,
+        "/tmp/qualification-profile",
+    )
+    obscura = _browser_command(
+        SimpleNamespace(engine="obscura", binary=Path("/opt/obscura")),
+        9222,
+        "/tmp/qualification-profile",
+    )
+    assert lightpanda == [
+        "/opt/lightpanda",
+        "serve",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "9222",
+    ]
+    assert obscura == [
+        "/opt/obscura",
+        "serve",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "9222",
+        "--storage-dir",
+        "/tmp/qualification-profile",
+        "--allow-private-network",
+    ]
+
+
 def test_chromium_can_bind_profile_declared_private_ingress() -> None:
     rules = _chromium_host_resolver_rules(
         {

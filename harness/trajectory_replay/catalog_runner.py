@@ -148,7 +148,11 @@ def main() -> None:
     parser.add_argument("--site-reset-receipt", type=Path, required=True)
     parser.add_argument("--environment-profile", type=Path, required=True)
     parser.add_argument("--binary", type=Path, required=True)
-    parser.add_argument("--engine", choices=("chromium", "moli"), default="chromium")
+    parser.add_argument(
+        "--engine",
+        choices=("chromium", "moli", "lightpanda", "obscura"),
+        default="chromium",
+    )
     parser.add_argument("--backend", choices=("browsertool", "playwright"), default="browsertool")
     parser.add_argument("--cowagent", type=Path)
     parser.add_argument("--output", type=Path, required=True)

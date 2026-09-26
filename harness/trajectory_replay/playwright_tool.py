@@ -45,7 +45,7 @@ class PlaywrightReplayTool:
     """
 
     def __init__(self, endpoint: str, *, engine: str = "chromium"):
-        if engine not in {"chromium", "moli"}:
+        if engine not in {"chromium", "moli", "lightpanda", "obscura"}:
             raise ValueError(f"unknown Playwright replay engine: {engine}")
         self._engine = engine
         self._layout_sessions: dict[Any, Any] = {}
