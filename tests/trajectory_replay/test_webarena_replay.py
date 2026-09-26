@@ -10,6 +10,7 @@ from harness.trajectory_replay.webarena_replay import (
     RECEIPT_SCHEMA,
     _attempt_needs_retry,
     _capture_failure_ui_state,
+    _clear_browser_state,
     _click_was_dispatched_before_navigation_timeout,
     _embedded_observation_error,
     _execute_replay_call,
@@ -25,6 +26,55 @@ from harness.trajectory_replay.webarena_replay import (
     select_tasks,
     validate_qualification_dataset,
 )
+
+
+def test_clear_browser_state_uses_page_storage_for_sessions_without_storage_cdp() -> None:
+    events = []
+
+    class Session:
+        def send(self, method, params=None):
+            events.append(("cdp", method, params))
+
+        def detach(self):
+            events.append(("detach",))
+
+    class Page:
+        def goto(self, url, **_kwargs):
+            events.append(("goto", url))
+
+        def evaluate(self, script):
+            events.append(("evaluate", script))
+
+    page = Page()
+    context = type(
+        "Context",
+        (),
+        {
+            "clear_cookies": lambda self: events.append(("clear_cookies",)),
+            "clear_permissions": lambda self: events.append(("clear_permissions",)),
+            "new_cdp_session": lambda self, selected: Session(),
+        },
+    )()
+    service = type(
+        "Service",
+        (),
+        {
+            "_context": context,
+            "_page": page,
+            "_supports_storage_cdp": False,
+            "_submit": lambda self, callback: callback(),
+        },
+    )()
+
+    _clear_browser_state(service, {"http://b.test", "http://a.test"})
+
+    assert ("cdp", "Storage.clearDataForOrigin", None) not in events
+    assert [event for event in events if event[0] == "goto"] == [
+        ("goto", "http://a.test"),
+        ("goto", "http://b.test"),
+        ("goto", "about:blank"),
+    ]
+    assert sum(event[0] == "evaluate" for event in events) == 2
 
 
 def test_method_scoped_site_cohort_rejects_partial_resume() -> None:
@@ -572,8 +622,18 @@ def test_moli_compiled_ref_force_uses_unique_stable_target_without_geometry_wait
 def test_compiled_ref_wait_for_enabled_delays_single_click_dispatch() -> None:
     states = iter(
         (
-            {"connected": True, "disabled": True, "effectivelyDisabled": True, "ariaDisabled": None},
-            {"connected": True, "disabled": False, "effectivelyDisabled": False, "ariaDisabled": None},
+            {
+                "connected": True,
+                "disabled": True,
+                "effectivelyDisabled": True,
+                "ariaDisabled": None,
+            },
+            {
+                "connected": True,
+                "disabled": False,
+                "effectivelyDisabled": False,
+                "ariaDisabled": None,
+            },
         )
     )
     events = []

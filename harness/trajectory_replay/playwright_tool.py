@@ -48,6 +48,8 @@ class PlaywrightReplayTool:
         if engine not in {"chromium", "moli", "lightpanda", "obscura"}:
             raise ValueError(f"unknown Playwright replay engine: {engine}")
         self._engine = engine
+        self._supports_multiple_pages = engine != "lightpanda"
+        self._supports_storage_cdp = engine != "lightpanda"
         self._layout_sessions: dict[Any, Any] = {}
         self._layout_connection_poisoned = False
         self._playwright = sync_playwright().start()

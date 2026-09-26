@@ -86,6 +86,22 @@ def test_viewport_receipt_measures_primary_and_new_page_before_navigation() -> N
     assert evidence["observations"][-1]["phase"] == "after_login"
 
 
+def test_viewport_receipt_supports_a_declared_single_target_session() -> None:
+    service = _viewport_service()
+    service._supports_multiple_pages = False
+    service._context.new_page = lambda: (_ for _ in ()).throw(
+        AssertionError("single-target sessions must not create a child page")
+    )
+
+    evidence = _prepare_browser_viewport(service)
+
+    assert evidence["verified"] is True
+    assert evidence["page_model"] == "single_target"
+    assert [row["phase"] for row in evidence["observations"]] == [
+        "primary_before_navigation"
+    ]
+
+
 @pytest.mark.parametrize("width,height", [(780, 437), (1920, 1080), (1280, 720)])
 def test_viewport_readback_rejects_unapplied_configuration(width, height) -> None:
     with pytest.raises(RuntimeError, match="viewport mismatch"):
@@ -316,6 +332,67 @@ def test_login_context_publishes_layout_before_admin_visibility_check() -> None:
 
     assert events.index(("reload",)) < events.index(("layout", login_page))
     assert events.index(("layout", login_page)) < events.index(("visible", ".page-title"))
+
+
+def test_login_context_reuses_primary_page_for_single_target_session() -> None:
+    events = []
+
+    class Page:
+        def close(self):
+            raise AssertionError("the primary page must remain open")
+
+        def set_default_timeout(self, _value):
+            pass
+
+        def set_default_navigation_timeout(self, _value):
+            pass
+
+        def goto(self, url, **_kwargs):
+            events.append(("goto", url))
+
+        def evaluate(self, _script):
+            pass
+
+        def reload(self, **_kwargs):
+            events.append(("reload",))
+
+        def locator(self, selector):
+            return SimpleNamespace(wait_for=lambda: events.append(("visible", selector)))
+
+        def wait_for_timeout(self, _value):
+            pass
+
+    primary = Page()
+    context = SimpleNamespace(
+        pages=[primary],
+        clear_cookies=lambda: None,
+        set_extra_http_headers=lambda _headers: None,
+        new_page=lambda: (_ for _ in ()).throw(
+            AssertionError("single-target sessions must reuse the primary page")
+        ),
+    )
+    service = SimpleNamespace(
+        _context=context,
+        _page=primary,
+        _supports_multiple_pages=False,
+        _submit=lambda callback: callback(),
+    )
+    benchmark = SimpleNamespace(
+        config=SimpleNamespace(
+            get_environment=lambda _site: SimpleNamespace(
+                active_url="http://fixture.test/admin"
+            )
+        )
+    )
+
+    _login_context(
+        service,
+        (WebArenaSite.SHOPPING_ADMIN,),
+        benchmark,
+        ["http://fixture.test/start"],
+    )
+
+    assert events[-1] == ("goto", "http://fixture.test/start")
 
 
 @pytest.mark.parametrize(

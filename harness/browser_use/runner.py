@@ -526,12 +526,18 @@ def _prepare_browser_viewport(service: Any) -> dict[str, Any]:
         if not getattr(service, "_owns_cdp_context", False):
             raise RuntimeError("CowAgent lacks the required owned CDP context contract")
         _record_page_viewport(service._page, evidence, "primary_before_navigation")
-        # Verify inheritance using a blank child before any login/site script.
-        child = service._context.new_page()
-        try:
-            _record_page_viewport(child, evidence, "new_page_before_navigation")
-        finally:
-            child.close()
+        if getattr(service, "_supports_multiple_pages", True):
+            # Verify inheritance using a blank child before any login/site script.
+            child = service._context.new_page()
+            try:
+                _record_page_viewport(child, evidence, "new_page_before_navigation")
+            finally:
+                child.close()
+            evidence["page_model"] = "multiple_pages"
+        else:
+            # Some CDP implementations expose one target per browser session.
+            # The primary page still proves the requested viewport was applied.
+            evidence["page_model"] = "single_target"
         evidence["retained_external_context_count"] = sum(
             context != service._context for context in service._browser.contexts
         )
@@ -607,7 +613,8 @@ def _login_context(
         for site in sites:
             base = benchmark.config.get_environment(site).active_url
             creds = SITE_CREDENTIALS.get(site)
-            page = context.new_page()
+            reuse_primary = not getattr(service, "_supports_multiple_pages", True)
+            page = primary_page if reuse_primary else context.new_page()
             try:
                 if viewport_evidence is not None:
                     _record_page_viewport(page, viewport_evidence, "login_before_navigation")
@@ -647,7 +654,8 @@ def _login_context(
                     raise ValueError(f"unsupported WebArena login site: {site}")
                 page.wait_for_timeout(1_000)
             finally:
-                page.close()
+                if not reuse_primary:
+                    page.close()
         primary_page.set_default_timeout(60_000)
         primary_page.set_default_navigation_timeout(90_000)
         primary_page.goto(start_urls[0], wait_until="domcontentloaded")

@@ -381,13 +381,31 @@ def _clear_browser_state(service: Any, origins: set[str]) -> None:
             cdp.send("Network.enable")
             cdp.send("Network.clearBrowserCache")
             cdp.send("Network.clearBrowserCookies")
-            for origin in sorted(origins):
-                cdp.send(
-                    "Storage.clearDataForOrigin",
-                    {"origin": origin, "storageTypes": "all"},
-                )
+            if getattr(service, "_supports_storage_cdp", True):
+                for origin in sorted(origins):
+                    cdp.send(
+                        "Storage.clearDataForOrigin",
+                        {"origin": origin, "storageTypes": "all"},
+                    )
+            else:
+                for origin in sorted(origins):
+                    page.goto(origin, wait_until="domcontentloaded", timeout=30_000)
+                    page.evaluate(
+                        "async () => {"
+                        "localStorage.clear(); sessionStorage.clear();"
+                        "if ('caches' in globalThis) {"
+                        "for (const key of await caches.keys()) await caches.delete(key);"
+                        "}"
+                        "if ('indexedDB' in globalThis && indexedDB.databases) {"
+                        "for (const db of await indexedDB.databases()) {"
+                        "if (db.name) indexedDB.deleteDatabase(db.name);"
+                        "}"
+                        "}"
+                        "}"
+                    )
             page.goto("about:blank", wait_until="load", timeout=10_000)
-            cdp.send("Page.resetNavigationHistory")
+            if getattr(service, "_supports_storage_cdp", True):
+                cdp.send("Page.resetNavigationHistory")
         finally:
             cdp.detach()
 
