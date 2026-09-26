@@ -13,6 +13,7 @@ from harness.browser_use.runner import (
     QEMU_X86_64_HOST_PATH,
     SITE_AUTH_HEADERS,
     _allow_official_container_hostname,
+    _bootstrap_postmill_browser_session,
     _bootstrap_postmill_session,
     _browser_tool_config,
     _configure_benchmark,
@@ -422,6 +423,52 @@ def test_postmill_bootstrap_is_one_non_redirecting_cookie_request(status, cookie
     assert calls[0][1]["max_redirects"] == 0
     assert calls[0][1]["max_retries"] == 0
     assert calls[1] == "dispose"
+
+
+@pytest.mark.parametrize(
+    "status,redirected,cookie,accepted",
+    [
+        (200, False, True, True),
+        (302, False, True, False),
+        (200, True, True, False),
+        (200, False, False, False),
+    ],
+)
+def test_postmill_browser_bootstrap_uses_one_temporary_page_header(
+    status, redirected, cookie, accepted
+) -> None:
+    events = []
+    request = SimpleNamespace(redirected_from=object() if redirected else None)
+    response = SimpleNamespace(status=status, request=request)
+
+    class Page:
+        def set_extra_http_headers(self, headers):
+            events.append(("headers", headers))
+
+        def goto(self, url, **kwargs):
+            events.append(("goto", url, kwargs))
+            return response
+
+    context = SimpleNamespace(
+        cookies=lambda url: (
+            [{"name": "PHPSESSID", "value": "fixture-session"}] if cookie else []
+        )
+    )
+    page = Page()
+    if accepted:
+        _bootstrap_postmill_browser_session(context, page, "http://fixture.test")
+    else:
+        with pytest.raises(RuntimeError, match="Postmill browser bootstrap"):
+            _bootstrap_postmill_browser_session(context, page, "http://fixture.test")
+
+    assert events[0][0] == "headers"
+    assert set(events[0][1]) == {SITE_AUTH_HEADERS[WebArenaSite.REDDIT]}
+    assert events[1] == (
+        "goto",
+        "http://fixture.test",
+        {"wait_until": "commit", "timeout": 90_000},
+    )
+    assert events[2] == ("headers", {})
 
 
 @pytest.mark.parametrize("include_shopping", [False, True])

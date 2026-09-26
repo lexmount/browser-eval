@@ -580,6 +580,37 @@ def _bootstrap_postmill_session(context: Any, base_url: str) -> None:
         response.dispose()
 
 
+def _bootstrap_postmill_browser_session(context: Any, page: Any, base_url: str) -> None:
+    """Establish Postmill auth through the browser when API cookies are not shared."""
+
+    creds = SITE_CREDENTIALS[WebArenaSite.REDDIT]
+    page.set_extra_http_headers(
+        {
+            SITE_AUTH_HEADERS[WebArenaSite.REDDIT]: (
+                f"{creds['username']}:{creds['password']}"
+            )
+        }
+    )
+    try:
+        response = page.goto(base_url, wait_until="commit", timeout=90_000)
+    finally:
+        page.set_extra_http_headers({})
+    if (
+        response is None
+        or not 200 <= response.status < 300
+        or response.request.redirected_from is not None
+    ):
+        status = response.status if response is not None else "no response"
+        raise RuntimeError(
+            f"Postmill browser bootstrap requires a direct 2xx response; got {status}"
+        )
+    if not any(
+        cookie.get("name") == "PHPSESSID" and cookie.get("value")
+        for cookie in context.cookies(base_url)
+    ):
+        raise RuntimeError("Postmill browser bootstrap did not establish a session cookie")
+
+
 def _login_context(
     service: Any,
     sites: tuple[WebArenaSite, ...],
@@ -633,7 +664,10 @@ def _login_context(
                     publish_layout(page)
                     page.locator(".page-title").wait_for()
                 elif site == WebArenaSite.REDDIT:
-                    _bootstrap_postmill_session(context, base)
+                    if getattr(service, "_supports_context_request_cookie_sharing", True):
+                        _bootstrap_postmill_session(context, base)
+                    else:
+                        _bootstrap_postmill_browser_session(context, page, base)
                     page.goto(base, wait_until="commit")
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")

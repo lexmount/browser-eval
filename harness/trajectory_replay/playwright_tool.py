@@ -50,6 +50,7 @@ class PlaywrightReplayTool:
         self._engine = engine
         self._supports_multiple_pages = engine != "lightpanda"
         self._supports_storage_cdp = engine != "lightpanda"
+        self._supports_context_request_cookie_sharing = engine != "lightpanda"
         self._layout_sessions: dict[Any, Any] = {}
         self._layout_connection_poisoned = False
         self._playwright = sync_playwright().start()
