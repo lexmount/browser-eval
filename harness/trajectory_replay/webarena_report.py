@@ -165,7 +165,11 @@ def _clean(value: Any) -> Any:
             return "[local path removed]"
 
         value = LOCAL_PATH_RE.sub(redact_local_path, value)
-        value = re.sub(r"sk-[A-Za-z0-9_-]{12,}", "[secret removed]", value)
+        value = re.sub(
+            r"(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{12,}",
+            "[secret removed]",
+            value,
+        )
     return value
 
 

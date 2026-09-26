@@ -888,6 +888,13 @@ def test_report_preserves_web_routes_that_resemble_linux_paths() -> None:
     assert _validated_planned_actions(attempt) == actions
 
 
+def test_report_does_not_redact_secret_like_substrings_inside_words() -> None:
+    product = "https://shop.example.test/task-chairhome-office-chair.html"
+
+    assert _clean(product) == product
+    assert _clean("token=sk-secret_value_123456") == "token=[secret removed]"
+
+
 def test_report_rejects_symlinked_evidence_parent(tmp_path: Path) -> None:
     evidence = tmp_path / "evidence.json"
     evidence.write_text("{}", encoding="utf-8")
