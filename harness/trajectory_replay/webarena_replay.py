@@ -408,6 +408,8 @@ def _clear_browser_state(service: Any, origins: set[str]) -> None:
         page = service._page
         if context is None or page is None:
             raise RuntimeError("browser context is not ready for state reset")
+        if getattr(service, "_fresh_context_per_task", False):
+            return
         context.clear_cookies()
         context.clear_permissions()
         supports_network_reset_cdp = getattr(

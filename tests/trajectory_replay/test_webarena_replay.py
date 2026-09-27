@@ -77,6 +77,32 @@ def test_clear_browser_state_uses_page_storage_for_sessions_without_storage_cdp(
     assert sum(event[0] == "evaluate" for event in events) == 2
 
 
+def test_clear_browser_state_accepts_a_fresh_per_task_context_without_revisiting_sites() -> None:
+    class Context:
+        def clear_cookies(self):
+            raise AssertionError("a new context must not repeat storage cleanup")
+
+        def clear_permissions(self):
+            raise AssertionError("a new context must not repeat permission cleanup")
+
+    class Page:
+        def goto(self, *_args, **_kwargs):
+            raise AssertionError("a new context must not navigate through site origins")
+
+    service = type(
+        "Service",
+        (),
+        {
+            "_context": Context(),
+            "_page": Page(),
+            "_fresh_context_per_task": True,
+            "_submit": lambda self, callback: callback(),
+        },
+    )()
+
+    _clear_browser_state(service, {"http://example.test"})
+
+
 def test_clear_browser_state_avoids_unsupported_obscura_cdp_domains() -> None:
     events = []
 
