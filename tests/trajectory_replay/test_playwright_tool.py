@@ -14,14 +14,13 @@ from pathlib import Path
 import pytest
 
 from harness.browser_use.runner import _prepare_browser_viewport
+from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
 from harness.trajectory_replay.public_webarena.executor import execute_steps
 from harness.trajectory_replay.remote_execution import _browser_command, _wait_cdp
 from harness.trajectory_replay.webarena_replay import _execute_replay_call
 
 
 def _unit_tool(page, context, *, engine="chromium"):
-    from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
-
     tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
     tool._page = page
     tool._context = context
@@ -337,3 +336,24 @@ def test_playwright_backend_executes_portable_and_snapshot_ref_calls(tmp_path: P
     finally:
         process.terminate()
         process.wait(timeout=10)
+def test_playwright_session_setup_has_a_wall_clock_deadline(monkeypatch) -> None:
+    class SlowChromium:
+        def connect_over_cdp(self, *_args, **_kwargs):
+            time.sleep(0.2)
+
+    class SlowPlaywright:
+        chromium = SlowChromium()
+
+        def stop(self):
+            return None
+
+    class Starter:
+        def start(self):
+            return SlowPlaywright()
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.playwright_tool.sync_playwright", lambda: Starter()
+    )
+
+    with pytest.raises(TimeoutError, match="Playwright replay session setup"):
+        PlaywrightReplayTool("http://127.0.0.1:1", setup_timeout_seconds=0.01)

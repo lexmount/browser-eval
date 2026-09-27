@@ -12,9 +12,11 @@ from playwright.sync_api import sync_playwright
 
 from harness.browser_use.runner import BENCHMARK_VIEWPORT
 from harness.trajectory_replay.public_webarena.executor import execute_steps
+from harness.trajectory_replay.public_webarena.webarena_environment import wall_clock_timeout
 
 SNAPSHOT_NAVIGATION_SETTLE_TIMEOUT_MS = 1_500
 SNAPSHOT_NAVIGATION_GRACE_MS = 300
+SESSION_SETUP_TIMEOUT_SECONDS = 120
 
 
 def _navigation_interrupted_snapshot(exc: Exception) -> bool:
@@ -44,7 +46,13 @@ class PlaywrightReplayTool:
     preserving its compiled-ref behavior on either backend.
     """
 
-    def __init__(self, endpoint: str, *, engine: str = "chromium"):
+    def __init__(
+        self,
+        endpoint: str,
+        *,
+        engine: str = "chromium",
+        setup_timeout_seconds: float = SESSION_SETUP_TIMEOUT_SECONDS,
+    ):
         if engine not in {"chromium", "moli", "lightpanda", "obscura"}:
             raise ValueError(f"unknown Playwright replay engine: {engine}")
         self._engine = engine
@@ -59,11 +67,16 @@ class PlaywrightReplayTool:
         self._browser = None
         self._context = None
         try:
-            self._browser = self._playwright.chromium.connect_over_cdp(endpoint, timeout=90_000)
-            self._context = self._browser.new_context(
-                viewport=dict(BENCHMARK_VIEWPORT), locale="en-US"
-            )
-            self._page = self._context.new_page()
+            with wall_clock_timeout(
+                setup_timeout_seconds, operation="Playwright replay session setup"
+            ):
+                self._browser = self._playwright.chromium.connect_over_cdp(
+                    endpoint, timeout=90_000
+                )
+                self._context = self._browser.new_context(
+                    viewport=dict(BENCHMARK_VIEWPORT), locale="en-US"
+                )
+                self._page = self._context.new_page()
         except Exception:
             self.close()
             raise
