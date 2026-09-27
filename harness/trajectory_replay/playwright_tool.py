@@ -79,7 +79,21 @@ class PlaywrightReplayTool:
                 )
             self._page = self._context.new_page()
             if engine == "obscura":
-                self._page.set_viewport_size(dict(BENCHMARK_VIEWPORT))
+                viewport_session = self._context.new_cdp_session(self._page)
+                try:
+                    viewport_session.send(
+                        "Emulation.setDeviceMetricsOverride",
+                        {
+                            "mobile": False,
+                            **dict(BENCHMARK_VIEWPORT),
+                            "screenWidth": BENCHMARK_VIEWPORT["width"],
+                            "screenHeight": BENCHMARK_VIEWPORT["height"],
+                            "deviceScaleFactor": 1,
+                            "screenOrientation": {"angle": 0, "type": "landscapePrimary"},
+                        },
+                    )
+                finally:
+                    viewport_session.detach()
         except Exception:
             self.close()
             raise

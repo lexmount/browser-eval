@@ -349,14 +349,24 @@ def test_obscura_uses_the_fresh_process_default_context(monkeypatch) -> None:
             events.append("new_page")
             return Page()
 
+        def new_cdp_session(self, page):
+            events.append(("session", page))
+            return Session()
+
         def close(self):
             events.append("context_close")
 
     context = Context()
 
     class Page:
-        def set_viewport_size(self, viewport):
-            events.append(("viewport", viewport))
+        pass
+
+    class Session:
+        def send(self, method, params):
+            events.append(("send", method, params))
+
+        def detach(self):
+            events.append("detach")
 
     class Browser:
         contexts = [context]
@@ -390,9 +400,9 @@ def test_obscura_uses_the_fresh_process_default_context(monkeypatch) -> None:
     )
     assert tool._context is context
     assert tool._supports_multiple_pages is False
-    assert events == [
-        "connect",
-        "new_page",
-        ("viewport", {"width": 1280, "height": 900}),
-    ]
+    assert events[:3] == ["connect", "new_page", ("session", tool._page)]
+    assert events[3][0:2] == ("send", "Emulation.setDeviceMetricsOverride")
+    assert events[3][2]["width"] == 1280
+    assert events[3][2]["height"] == 900
+    assert events[4] == "detach"
     tool.close()
