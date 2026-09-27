@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+import re
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -17,6 +19,27 @@ from harness.trajectory_replay.public_webarena.executor import execute_steps
 
 SNAPSHOT_NAVIGATION_SETTLE_TIMEOUT_MS = 1_500
 SNAPSHOT_NAVIGATION_GRACE_MS = 300
+REQUEST_BODY_CAPTURE_BINDING = "__browserEvalCaptureRequestBody"
+REQUEST_BODY_CAPTURE_HEADER = "x-browser-eval-request-body-id"
+REQUEST_BODY_CAPTURE_LIMIT_BYTES = 20_000_000
+REQUEST_BODY_CAPTURE_MAX_PENDING = 256
+REQUEST_BODY_CAPTURE_TTL_SECONDS = 120.0
+_REQUEST_BODY_CAPTURE_ID = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z")
+
+
+def _http_origin(url: str) -> str:
+    parsed = urlsplit(url)
+    scheme = parsed.scheme.lower()
+    hostname = (parsed.hostname or "").lower()
+    if scheme not in {"http", "https"} or not hostname:
+        return ""
+    host = f"[{hostname}]" if ":" in hostname else hostname
+    port = parsed.port
+    if port is not None and not (
+        (scheme == "http" and port == 80) or (scheme == "https" and port == 443)
+    ):
+        host = f"{host}:{port}"
+    return f"{scheme}://{host}"
 
 
 def _navigation_interrupted_snapshot(exc: Exception) -> bool:
@@ -37,6 +60,123 @@ def _navigation_interrupted_snapshot(exc: Exception) -> bool:
 class ReplayResult:
     status: str
     result: str
+
+
+def _request_body_capture_script(origins: frozenset[str]) -> str:
+    """Capture selected fetch bodies before Kitesurf drops them from CDP."""
+
+    return f"""
+(() => {{
+  const origins = new Set({json.dumps(sorted(origins))});
+  const binding = {json.dumps(REQUEST_BODY_CAPTURE_BINDING)};
+  const header = {json.dumps(REQUEST_BODY_CAPTURE_HEADER)};
+  const limit = {REQUEST_BODY_CAPTURE_LIMIT_BYTES};
+  if (globalThis.__browserEvalRequestBodyCaptureInstalled) return;
+  globalThis.__browserEvalRequestBodyCaptureInstalled = true;
+  const prefix = `${{Date.now().toString(36)}}-${{Math.random().toString(36).slice(2)}}`;
+  let sequence = 0;
+
+  const selected = url => {{
+    try {{ return origins.has(new URL(url, document.baseURI).origin); }}
+    catch (_) {{ return false; }}
+  }};
+  const byteLength = text => {{
+    if (text.length > limit) {{
+      throw new Error('request body exceeds the capture limit');
+    }}
+    const size = new TextEncoder().encode(text).byteLength;
+    if (size > limit) {{
+      throw new Error('request body exceeds the capture limit');
+    }}
+    return size;
+  }};
+  const checkedText = text => {{
+    byteLength(text);
+    return text;
+  }};
+  const urlEncodedLength = text => {{
+    let size = 0;
+    for (const character of text) {{
+      size += /^[A-Za-z0-9*._-]$/.test(character) ? 1 : byteLength(character) * 3;
+      if (size > limit) throw new Error('request body exceeds the capture limit');
+    }}
+    return size;
+  }};
+  const encode = body => {{
+    if (typeof body === 'string') return {{kind: 'text', text: checkedText(body)}};
+    if (body instanceof URLSearchParams) {{
+      let count = 0;
+      let total = 0;
+      for (const pair of body.entries()) {{
+        if (count >= 10000) {{
+          throw new Error('request body has too many URLSearchParams fields');
+        }}
+        total += urlEncodedLength(String(pair[0]));
+        total += urlEncodedLength(String(pair[1]));
+        total += count === 0 ? 1 : 2;
+        if (total > limit) {{
+          throw new Error('request body exceeds the capture limit');
+        }}
+        count += 1;
+      }}
+      return {{kind: 'text', text: checkedText(body.toString())}};
+    }}
+    if (body instanceof FormData) {{
+      const entries = [];
+      let total = 0;
+      for (const pair of body.entries()) {{
+        if (entries.length >= 10000) {{
+          throw new Error('request body has too many FormData fields');
+        }}
+        const name = String(pair[0]);
+        const value = pair[1];
+        if (typeof value !== 'string') {{
+          throw new Error('request body capture does not support FormData files');
+        }}
+        total += byteLength(name);
+        total += byteLength(value);
+        if (total > limit) {{
+          throw new Error('request body exceeds the capture limit');
+        }}
+        entries.push({{name, value}});
+      }}
+      return {{kind: 'form-data', entries}};
+    }}
+    throw new Error(`unsupported request body ${{Object.prototype.toString.call(body)}}`);
+  }};
+  const capture = async (method, url, body) => {{
+    const absolute = new URL(url, document.baseURI).href;
+    if (body === undefined || body === null || !selected(absolute)) return null;
+    const requestId = `${{prefix}}-${{sequence += 1}}`;
+    await globalThis[binding]({{
+      requestId,
+      method: String(method || 'GET').toUpperCase(),
+      url: absolute,
+      body: encode(body),
+    }});
+    return requestId;
+  }};
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async function(input, init) {{
+    const options = init || {{}};
+    const method = options.method || (input && input.method) || 'GET';
+    const url = typeof input === 'string' ? input : String(input && input.url || input);
+    if (Object.prototype.hasOwnProperty.call(options, 'body')) {{
+      const requestId = await capture(method, url, options.body);
+      if (requestId !== null) {{
+        const inherited = input instanceof Request ? input.headers : undefined;
+        const headers = new Headers(options.headers || inherited);
+        headers.set(header, requestId);
+        return originalFetch.call(this, input, {{...options, headers}});
+      }}
+    }} else if (input instanceof Request && input.body !== null && selected(url)) {{
+      throw new Error('request body capture requires the body in fetch init');
+    }}
+    return originalFetch.call(this, input, init);
+  }};
+}})();
+"""
 
 
 class PlaywrightReplayTool:
@@ -67,6 +207,9 @@ class PlaywrightReplayTool:
             "kitesurf",
         }
         self.har_capture_transport = "playwright" if engine == "kitesurf" else "cdp"
+        self.har_request_transform = (
+            self.transform_playwright_har_request if engine == "kitesurf" else None
+        )
         self._layout_sessions: dict[Any, Any] = {}
         self._viewport_sessions: dict[Any, Any] = {}
         self._layout_connection_poisoned = False
@@ -77,6 +220,10 @@ class PlaywrightReplayTool:
         self.request_bridge_stats = {"requests": 0, "failures": 0}
         self._request_bridge_session = None
         self._request_bridge_origins: frozenset[str] = frozenset()
+        self._request_bridge_bodies: dict[str, dict[str, Any]] = {}
+        self._request_bridge_body_bytes = 0
+        self._request_bridge_har_bodies: dict[str, dict[str, Any]] = {}
+        self._request_bridge_har_body_bytes = 0
         try:
             connect_options: dict[str, Any] = {"timeout": 90_000}
             if headers is not None:
@@ -137,18 +284,25 @@ class PlaywrightReplayTool:
             for parsed in parsed_origins
         ):
             raise ValueError("request bridge origins must be bare HTTP(S) origins")
-        normalized = {
-            f"{parsed.scheme}://{parsed.netloc}" for parsed in parsed_origins
-        }
+        normalized = {_http_origin(origin) for origin in origins}
         if not normalized:
             return
         self._request_bridge_origins = frozenset(normalized)
+        self._request_bridge_bodies = {}
+        self._request_bridge_body_bytes = 0
+        self._request_bridge_har_bodies = {}
+        self._request_bridge_har_body_bytes = 0
         self._request_bridge_session = requests.Session()
         self._request_bridge_session.trust_env = False
+        self._context.expose_binding(
+            REQUEST_BODY_CAPTURE_BINDING, self._capture_request_body
+        )
+        self._context.add_init_script(
+            _request_body_capture_script(self._request_bridge_origins)
+        )
 
         def selected(url: str) -> bool:
-            parsed = urlsplit(url)
-            return f"{parsed.scheme}://{parsed.netloc}" in normalized
+            return _http_origin(url) in normalized
 
         def bridge(route) -> None:
             self.request_bridge_stats["requests"] += 1
@@ -168,16 +322,36 @@ class PlaywrightReplayTool:
                         "signature-agent",
                         "signature-input",
                         "transfer-encoding",
+                        REQUEST_BODY_CAPTURE_HEADER,
                     }
                 }
+                request_headers = request.all_headers()
+                capture_id = request_headers.get(REQUEST_BODY_CAPTURE_HEADER)
+                data = request.post_data_buffer
+                content_type = None
+                if capture_id is not None:
+                    data, content_type = self._request_bridge_body_for_route(
+                        capture_id, request.method, request.url
+                    )
+                    if content_type is not None:
+                        headers = {
+                            name: value
+                            for name, value in headers.items()
+                            if name.lower() != "content-type"
+                        }
+                        headers["content-type"] = content_type
                 response = self._request_bridge_session.request(
                     method=request.method,
                     url=request.url,
                     headers=headers,
-                    data=request.post_data_buffer,
+                    data=data,
                     allow_redirects=False,
                     timeout=60,
                 )
+                if capture_id is not None:
+                    self._record_request_bridge_redirect(
+                        capture_id, request.method, request.url, response
+                    )
                 self._sync_request_bridge_cookies(
                     str(response.url), response.cookies
                 )
@@ -208,11 +382,246 @@ class PlaywrightReplayTool:
 
         self._context.route(selected, bridge)
 
+    def transform_playwright_har_request(
+        self, method: str, url: str, headers: dict[str, Any]
+    ) -> tuple[dict[str, Any], str | None]:
+        """Restore a Kitesurf fetch body and remove its private correlation header."""
+
+        capture_id = next(
+            (
+                str(value)
+                for name, value in headers.items()
+                if str(name).lower() == REQUEST_BODY_CAPTURE_HEADER
+            ),
+            None,
+        )
+        cleaned = {
+            name: value
+            for name, value in headers.items()
+            if str(name).lower() != REQUEST_BODY_CAPTURE_HEADER
+        }
+        if capture_id is None:
+            return cleaned, None
+        record = self._request_bridge_har_bodies.get(capture_id)
+        if record is None:
+            return cleaned, None
+        normalized_url = urlsplit(url)._replace(fragment="").geturl()
+        request_key = (method.upper(), normalized_url)
+        if request_key not in record["allowed_requests"]:
+            raise RuntimeError("HAR request body does not match its routed request")
+        if request_key not in record["body_requests"]:
+            return cleaned, None
+        if record["content_type"] is not None:
+            cleaned = {
+                name: value
+                for name, value in cleaned.items()
+                if str(name).lower() != "content-type"
+            }
+            cleaned["content-type"] = record["content_type"]
+        return cleaned, record["post_data"]
+
+    def _request_bridge_body_for_route(
+        self, request_id: str, method: str, url: str
+    ) -> tuple[bytes | None, str | None]:
+        normalized_url = urlsplit(url)._replace(fragment="").geturl()
+        request_key = (method.upper(), normalized_url)
+        self._purge_captured_request_bodies()
+        if request_id in self._request_bridge_bodies:
+            captured = self._pop_captured_request_body(request_id, method, url)
+            data, content_type = self._decode_captured_request_body(
+                request_id, captured
+            )
+            if (
+                self._request_bridge_har_body_bytes + len(data)
+                > REQUEST_BODY_CAPTURE_LIMIT_BYTES
+            ):
+                raise RuntimeError("HAR request bodies exceed the total size limit")
+            self._request_bridge_har_bodies[request_id] = {
+                "post_data": data.decode("utf-8"),
+                "body_bytes": data,
+                "content_type": content_type,
+                "allowed_requests": {request_key},
+                "body_requests": {request_key},
+            }
+            self._request_bridge_har_body_bytes += len(data)
+            return data, content_type
+        record = self._request_bridge_har_bodies.get(request_id)
+        if record is None or request_key not in record["allowed_requests"]:
+            raise RuntimeError("request body capture ID is missing or expired")
+        if request_key not in record["body_requests"]:
+            return None, None
+        return record["body_bytes"], record["content_type"]
+
+    def _record_request_bridge_redirect(
+        self, request_id: str, method: str, url: str, response: Any
+    ) -> None:
+        record = self._request_bridge_har_bodies.get(request_id)
+        if record is None or int(response.status_code) not in {301, 302, 303, 307, 308}:
+            return
+        location = next(
+            (
+                str(value)
+                for name, value in response.headers.items()
+                if str(name).lower() == "location"
+            ),
+            "",
+        )
+        if not location:
+            return
+        current_method = method.upper()
+        status = int(response.status_code)
+        if status == 303 and current_method != "HEAD":
+            next_method = "GET"
+        elif status in {301, 302} and current_method == "POST":
+            next_method = "GET"
+        else:
+            next_method = current_method
+        next_url = urlsplit(urljoin(url, location))._replace(fragment="").geturl()
+        next_key = (next_method, next_url)
+        record["allowed_requests"].add(next_key)
+        current_key = (
+            current_method,
+            urlsplit(url)._replace(fragment="").geturl(),
+        )
+        if next_method == current_method and current_key in record["body_requests"]:
+            record["body_requests"].add(next_key)
+
+    def _capture_request_body(self, _source: Any, payload: Any) -> None:
+        if not isinstance(payload, dict):
+            raise ValueError("request body capture payload must be an object")
+        method = payload.get("method")
+        url = payload.get("url")
+        body = payload.get("body")
+        request_id = payload.get("requestId")
+        if (
+            not isinstance(request_id, str)
+            or _REQUEST_BODY_CAPTURE_ID.fullmatch(request_id) is None
+        ):
+            raise ValueError("request body capture has an invalid request ID")
+        if not isinstance(method, str) or not isinstance(url, str):
+            raise ValueError("request body capture is missing its method or URL")
+        method = method.upper()
+        parsed = urlsplit(url)
+        origin = _http_origin(url)
+        if origin not in self._request_bridge_origins:
+            raise ValueError("request body capture origin is not allowed")
+        if not isinstance(body, dict):
+            raise ValueError("request body capture is missing its body")
+        body_size = self._validate_captured_request_body(body)
+        normalized_url = parsed._replace(fragment="").geturl()
+        self._purge_captured_request_bodies()
+        if (
+            request_id in self._request_bridge_bodies
+            or request_id in self._request_bridge_har_bodies
+        ):
+            raise ValueError("request body capture reused a request ID")
+        if (
+            len(self._request_bridge_bodies) + len(self._request_bridge_har_bodies)
+            >= REQUEST_BODY_CAPTURE_MAX_PENDING
+        ):
+            raise RuntimeError("request body capture count exceeded its bound")
+        if (
+            self._request_bridge_body_bytes
+            + self._request_bridge_har_body_bytes
+            + body_size
+            > REQUEST_BODY_CAPTURE_LIMIT_BYTES
+        ):
+            raise RuntimeError("pending request bodies exceed the total size limit")
+        self._request_bridge_bodies[request_id] = {
+            "captured_at": time.monotonic(),
+            "method": method,
+            "url": normalized_url,
+            "body": body,
+            "size": body_size,
+        }
+        self._request_bridge_body_bytes += body_size
+
+    @staticmethod
+    def _validate_captured_request_body(body: dict[str, Any]) -> int:
+        kind = body.get("kind")
+        if kind == "text":
+            text = body.get("text")
+            if not isinstance(text, str):
+                raise ValueError("captured text body is invalid")
+            size = len(text.encode("utf-8"))
+            if size > REQUEST_BODY_CAPTURE_LIMIT_BYTES:
+                raise ValueError("captured text body exceeds the size limit")
+            return size
+        if kind == "form-data":
+            entries = body.get("entries")
+            if not isinstance(entries, list) or len(entries) > 10_000:
+                raise ValueError("captured form body is invalid")
+            total = 0
+            for entry in entries:
+                if not isinstance(entry, dict) or not isinstance(entry.get("name"), str):
+                    raise ValueError("captured form entry is invalid")
+                if "value" in entry:
+                    if not isinstance(entry["value"], str):
+                        raise ValueError("captured form value is invalid")
+                    total += len(entry["value"].encode("utf-8"))
+                else:
+                    raise ValueError("captured form files are unsupported")
+                total += len(entry["name"].encode("utf-8"))
+                if total > REQUEST_BODY_CAPTURE_LIMIT_BYTES:
+                    raise ValueError("captured form body exceeds the size limit")
+            return total
+        raise ValueError(f"unsupported captured request body: {body.get('type', kind)}")
+
+    def _purge_captured_request_bodies(self) -> None:
+        cutoff = time.monotonic() - REQUEST_BODY_CAPTURE_TTL_SECONDS
+        expired = [
+            request_id
+            for request_id, capture in self._request_bridge_bodies.items()
+            if capture["captured_at"] < cutoff
+        ]
+        for request_id in expired:
+            capture = self._request_bridge_bodies.pop(request_id)
+            self._request_bridge_body_bytes -= capture["size"]
+
+    def _pop_captured_request_body(
+        self, request_id: str, method: str, url: str
+    ) -> dict[str, Any]:
+        self._purge_captured_request_bodies()
+        parsed = urlsplit(url)
+        normalized_url = parsed._replace(fragment="").geturl()
+        capture = self._request_bridge_bodies.pop(request_id, None)
+        if capture is None:
+            raise RuntimeError("request body capture ID is missing or expired")
+        self._request_bridge_body_bytes -= capture["size"]
+        if capture["method"] != method.upper() or capture["url"] != normalized_url:
+            raise RuntimeError("request body capture does not match the routed request")
+        return capture["body"]
+
+    @staticmethod
+    def _decode_captured_request_body(
+        request_id: str, body: dict[str, Any]
+    ) -> tuple[bytes, str | None]:
+        kind = body["kind"]
+        if kind == "text":
+            return body["text"].encode("utf-8"), None
+        boundary = f"browser-eval-{hashlib.sha256(request_id.encode()).hexdigest()[:24]}"
+        chunks: list[bytes] = []
+        for entry in body["entries"]:
+            name = entry["name"]
+            if "\r" in name or "\n" in name:
+                raise ValueError("captured form field name contains a newline")
+            escaped_name = name.replace('"', "%22")
+            chunks.extend(
+                (
+                    f"--{boundary}\r\n".encode(),
+                    f'Content-Disposition: form-data; name="{escaped_name}"\r\n\r\n'.encode(),
+                    entry["value"].encode("utf-8"),
+                    b"\r\n",
+                )
+            )
+        chunks.append(f"--{boundary}--\r\n".encode())
+        return b"".join(chunks), f"multipart/form-data; boundary={boundary}"
+
     def _sync_request_bridge_cookies(
         self, response_url: str, response_cookies: Any
     ) -> None:
         parsed = urlsplit(response_url)
-        origin = f"{parsed.scheme}://{parsed.netloc}"
+        origin = _http_origin(response_url)
         if origin not in self._request_bridge_origins:
             raise RuntimeError("request bridge cookie response origin is not allowed")
         host = (parsed.hostname or "").lower()

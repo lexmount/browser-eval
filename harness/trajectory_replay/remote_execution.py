@@ -441,6 +441,7 @@ def _run_task(
     recorder = CdpHarRecorder(
         capture_transport=getattr(tool, "har_capture_transport", "cdp"),
         capture_new_pages=getattr(tool, "_supports_multiple_pages", True),
+        playwright_request_transform=getattr(tool, "har_request_transform", None),
     )
     task_dir = output / f"task-{task_id}"
     task_dir.mkdir(mode=0o700)

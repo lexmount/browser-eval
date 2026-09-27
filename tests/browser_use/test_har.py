@@ -23,6 +23,12 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(
     class Context(EventSource):
         pages = [page]
 
+        def expose_binding(self, _name, callback):
+            self.capture = callback
+
+        def add_init_script(self, _script):
+            pass
+
         def route(self, selector, handler):
             self.selector = selector
             self.route_handler = handler
@@ -30,9 +36,12 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(
     class Request:
         method = "POST"
         url = "http://private.example.test/save"
-        headers = {"content-type": "application/json"}
-        post_data = '{"enabled":true}'
-        post_data_buffer = b'{"enabled":true}'
+        headers = {
+            "content-type": "application/json",
+            "x-browser-eval-request-body-id": "capture-1",
+        }
+        post_data = None
+        post_data_buffer = None
         resource_type = "xhr"
         failure = None
 
@@ -91,7 +100,19 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(
     tool._page = page
     tool.request_bridge_stats = {"requests": 0, "failures": 0}
     tool._install_request_bridge({"http://private.example.test"})
-    recorder = CdpHarRecorder(capture_transport="playwright")
+    context.capture(
+        {},
+        {
+            "requestId": "capture-1",
+            "method": "POST",
+            "url": request.url,
+            "body": {"kind": "text", "text": '{"enabled":true}'},
+        },
+    )
+    recorder = CdpHarRecorder(
+        capture_transport="playwright",
+        playwright_request_transform=tool.transform_playwright_har_request,
+    )
     recorder.start(context)
 
     class Route:
@@ -116,6 +137,10 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(
     entries = json.loads(path.read_text())["log"]["entries"]
     assert len(entries) == 1
     assert entries[0]["request"]["postData"]["text"] == '{"enabled":true}'
+    assert all(
+        header["name"].lower() != "x-browser-eval-request-body-id"
+        for header in entries[0]["request"]["headers"]
+    )
     assert entries[0]["response"]["status"] == 201
     assert entries[0]["response"]["content"]["text"] == '{"saved":true}'
     assert tool.request_bridge_stats == {"requests": 1, "failures": 0}
@@ -139,6 +164,12 @@ def test_request_bridge_preserves_redirect_and_browser_generated_get(
 
     class Context(EventSource):
         pages = [page]
+
+        def expose_binding(self, _name, _callback):
+            pass
+
+        def add_init_script(self, _script):
+            pass
 
         def route(self, selector, handler):
             self.selector = selector

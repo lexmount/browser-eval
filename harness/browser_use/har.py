@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import json
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
 from http.cookies import SimpleCookie
 from pathlib import Path
@@ -117,11 +118,16 @@ class CdpHarRecorder:
         *,
         capture_transport: str = "cdp",
         capture_new_pages: bool = True,
+        playwright_request_transform: Callable[
+            [str, str, dict[str, Any]], tuple[dict[str, Any], str | None]
+        ]
+        | None = None,
     ) -> None:
         if capture_transport not in {"cdp", "playwright"}:
             raise ValueError(f"unknown HAR capture transport: {capture_transport}")
         self._capture_transport = capture_transport
         self._capture_new_pages = capture_new_pages
+        self._playwright_request_transform = playwright_request_transform
         self._context: Any = None
         self._sessions: list[Any] = []
         self._requests: dict[tuple[int, str], dict[str, Any]] = {}
@@ -424,12 +430,23 @@ class CdpHarRecorder:
                 "postData": request.post_data,
                 "__resource_type": str(request.resource_type).title(),
             }
+            self._transform_playwright_request(raw)
         except Exception as exc:
             self.errors.append(f"Playwright request capture failed: {exc}")
             return
         self._playwright_requests[key] = raw
         self._playwright_request_objects[key] = request
         self._playwright_request_order.append(key)
+
+    def _transform_playwright_request(self, raw: dict[str, Any]) -> None:
+        if self._playwright_request_transform is None:
+            return
+        headers, post_data = self._playwright_request_transform(
+            str(raw["method"]), str(raw["url"]), dict(raw.get("headers", {}))
+        )
+        raw["headers"] = headers
+        if post_data is not None:
+            raw["postData"] = post_data
 
     def _record_playwright_response(self, response: Any) -> None:
         try:
@@ -522,6 +539,7 @@ class CdpHarRecorder:
                 request = self._playwright_requests[key]
                 request_object = self._playwright_request_objects[key]
                 request["headers"] = self._playwright_headers(request_object)
+                self._transform_playwright_request(request)
                 observation = self._playwright_responses.get(key)
                 if observation is not None:
                     self._capture_playwright_body(key)

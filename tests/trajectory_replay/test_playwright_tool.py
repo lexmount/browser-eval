@@ -142,6 +142,12 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
     class Context:
         pages = [page]
 
+        def expose_binding(self, name, callback):
+            events.append(("binding", name, callback))
+
+        def add_init_script(self, script):
+            events.append(("init_script", script))
+
         def route(self, selector, handler):
             events.append(("route", selector, handler))
 
@@ -243,6 +249,11 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
     assert tool._supports_network_reset_cdp is False
     assert tool._supports_storage_cdp is False
     assert tool._native_login_form_submit is True
+    binding_event = next(event for event in events if event[0] == "binding")
+    assert binding_event[1] == "__browserEvalCaptureRequestBody"
+    assert "globalThis.fetch = async function" in next(
+        event[1] for event in events if event[0] == "init_script"
+    )
     route_event = next(event for event in events if event[0] == "route")
     predicate, handler = route_event[1:]
     assert predicate("http://private.test/path") is True
@@ -251,31 +262,43 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
     class Request:
         method = "POST"
         url = "http://private.test/save"
-        post_data_buffer = b'{"enabled":true}'
+        post_data_buffer = None
         resource_type = "xhr"
+
+        def __init__(self, capture_id):
+            self.capture_id = capture_id
 
         def all_headers(self):
             return {
                 "content-type": "application/json",
                 "content-length": "16",
                 "signature": "private-signature",
+                "x-browser-eval-request-body-id": self.capture_id,
             }
 
     class Route:
-        request = Request()
+        request = Request("capture-1")
 
         def fulfill(self, **kwargs):
             events.append(("bridge", "fulfill", kwargs))
 
+    captured_payload = {
+        "requestId": "capture-1",
+        "method": "POST",
+        "url": "http://private.test/save",
+        "body": {"kind": "text", "text": '{"enabled":true}'},
+    }
+    binding_event[2]({}, captured_payload)
     handler(Route())
     assert tool.request_bridge_stats == {"requests": 1, "failures": 0}
 
     class FailedRoute:
-        request = Request()
+        request = Request("capture-2")
 
         def abort(self, reason):
             events.append(("bridge", "abort", reason))
 
+    binding_event[2]({}, {**captured_payload, "requestId": "capture-2"})
     with pytest.raises(RuntimeError, match="local fetch failed"):
         handler(FailedRoute())
     assert tool.request_bridge_stats == {"requests": 2, "failures": 1}
@@ -289,6 +312,8 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
         ),
         ("browser_cdp", "Browser.getVersion"),
         ("browser_cdp", "detach"),
+        ("binding", "__browserEvalCaptureRequestBody", binding_event[2]),
+        ("init_script", next(event[1] for event in events if event[0] == "init_script")),
         ("route", predicate, handler),
         ("viewport", {"width": 1280, "height": 900}),
         ("goto", "about:blank", {"wait_until": "load", "timeout": 10_000}),
@@ -330,6 +355,287 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
         ("browser", "close"),
         ("playwright", "stop"),
     ]
+
+
+def test_kitesurf_request_bridge_rebuilds_captured_form_data(monkeypatch) -> None:
+    from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
+
+    class Context:
+        def expose_binding(self, _name, callback):
+            self.capture = callback
+
+        def add_init_script(self, script):
+            assert "body instanceof FormData" in script
+
+        def route(self, _selector, handler):
+            self.bridge = handler
+
+    context = Context()
+    calls = []
+
+    class Response:
+        status_code = 201
+        headers = {"content-type": "application/json"}
+        content = b"{}"
+        url = "http://private.test/upload"
+        cookies = []
+
+    class Session:
+        trust_env = True
+
+        def request(self, **kwargs):
+            calls.append(kwargs)
+            return Response()
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.playwright_tool.requests.Session", Session
+    )
+    tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
+    tool._context = context
+    tool.request_bridge_stats = {"requests": 0, "failures": 0}
+    tool._install_request_bridge({"http://private.test"})
+    context.capture(
+        {},
+        {
+            "requestId": "form-1",
+            "method": "POST",
+            "url": "http://private.test/upload",
+            "body": {
+                "kind": "form-data",
+                "entries": [
+                    {"name": "title", "value": "hello"},
+                ],
+            },
+        },
+    )
+
+    class Request:
+        method = "POST"
+        url = "http://private.test/upload"
+        post_data_buffer = None
+
+        def all_headers(self):
+            return {
+                "content-type": "multipart/form-data; boundary=browser-boundary",
+                "x-csrf-token": "csrf",
+                "x-browser-eval-request-body-id": "form-1",
+            }
+
+    class Route:
+        request = Request()
+
+        def fulfill(self, **_kwargs):
+            pass
+
+    context.bridge(Route())
+
+    assert len(calls) == 1
+    call = calls[0]
+    assert call["method"] == "POST"
+    assert call["url"] == "http://private.test/upload"
+    assert call["headers"]["x-csrf-token"] == "csrf"
+    assert call["headers"]["content-type"].startswith(
+        "multipart/form-data; boundary=browser-eval-"
+    )
+    assert b'name="title"\r\n\r\nhello\r\n' in call["data"]
+    assert call["data"].endswith(b"--\r\n")
+    assert call["allow_redirects"] is False
+    assert call["timeout"] == 60
+
+
+def test_kitesurf_request_capture_ids_prevent_same_url_body_reuse() -> None:
+    from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
+
+    tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
+    tool._request_bridge_origins = frozenset({"http://private.test"})
+    tool._request_bridge_bodies = {}
+    tool._request_bridge_body_bytes = 0
+    tool._request_bridge_har_bodies = {}
+    tool._request_bridge_har_body_bytes = 0
+    for request_id, value in (("aborted-1", "old"), ("sent-2", "new")):
+        tool._capture_request_body(
+            {},
+            {
+                "requestId": request_id,
+                "method": "POST",
+                "url": "http://private.test/save",
+                "body": {"kind": "text", "text": value},
+            },
+        )
+
+    assert tool._pop_captured_request_body(
+        "sent-2", "POST", "http://private.test/save"
+    ) == {"kind": "text", "text": "new"}
+    assert "aborted-1" in tool._request_bridge_bodies
+    with pytest.raises(RuntimeError, match="does not match"):
+        tool._pop_captured_request_body(
+            "aborted-1", "PUT", "http://private.test/save"
+        )
+
+
+def test_kitesurf_request_bridge_encodes_empty_form_data() -> None:
+    from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
+
+    data, content_type = PlaywrightReplayTool._decode_captured_request_body(
+        "empty-form", {"kind": "form-data", "entries": []}
+    )
+    boundary = content_type.removeprefix("multipart/form-data; boundary=")
+    assert data == f"--{boundary}--\r\n".encode()
+
+
+def test_kitesurf_request_body_id_survives_post_redirect_as_bodyless_get(
+    monkeypatch,
+) -> None:
+    from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
+
+    class Context:
+        def expose_binding(self, _name, callback):
+            self.capture = callback
+
+        def add_init_script(self, _script):
+            pass
+
+        def route(self, _selector, handler):
+            self.bridge = handler
+
+    context = Context()
+    calls = []
+
+    class Response:
+        cookies = []
+
+        def __init__(self, status, url, headers):
+            self.status_code = status
+            self.url = url
+            self.headers = headers
+            self.content = b""
+
+    class Session:
+        trust_env = True
+
+        def request(self, **kwargs):
+            calls.append(kwargs)
+            if kwargs["url"].endswith("/start"):
+                return Response(302, kwargs["url"], {"location": "/final"})
+            if kwargs["url"].endswith("/keep"):
+                return Response(307, kwargs["url"], {"location": "/kept"})
+            return Response(200, kwargs["url"], {"content-type": "text/plain"})
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.playwright_tool.requests.Session", Session
+    )
+    tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
+    tool._context = context
+    tool.request_bridge_stats = {"requests": 0, "failures": 0}
+    tool._install_request_bridge({"http://private.test"})
+    context.capture(
+        {},
+        {
+            "requestId": "redirect-1",
+            "method": "POST",
+            "url": "http://private.test/start",
+            "body": {"kind": "text", "text": "enabled=true"},
+        },
+    )
+
+    class Request:
+        post_data_buffer = None
+
+        def __init__(self, method, url):
+            self.method = method
+            self.url = url
+
+        def all_headers(self):
+            return {"x-browser-eval-request-body-id": "redirect-1"}
+
+    class Route:
+        def __init__(self, request):
+            self.request = request
+
+        def fulfill(self, **_kwargs):
+            pass
+
+    context.bridge(Route(Request("POST", "http://private.test/start")))
+    context.bridge(Route(Request("GET", "http://private.test/final")))
+
+    context.capture(
+        {},
+        {
+            "requestId": "redirect-2",
+            "method": "POST",
+            "url": "http://private.test/keep",
+            "body": {"kind": "text", "text": "kept=true"},
+        },
+    )
+
+    class KeptRequest(Request):
+        def all_headers(self):
+            return {"x-browser-eval-request-body-id": "redirect-2"}
+
+    context.bridge(Route(KeptRequest("POST", "http://private.test/keep")))
+    context.bridge(Route(KeptRequest("POST", "http://private.test/kept")))
+
+    assert [call["data"] for call in calls] == [
+        b"enabled=true",
+        None,
+        b"kept=true",
+        b"kept=true",
+    ]
+    original_headers, original_body = tool.transform_playwright_har_request(
+        "POST",
+        "http://private.test/start",
+        {"x-browser-eval-request-body-id": "redirect-1"},
+    )
+    redirect_headers, redirect_body = tool.transform_playwright_har_request(
+        "GET",
+        "http://private.test/final",
+        {"x-browser-eval-request-body-id": "redirect-1"},
+    )
+    assert original_headers == redirect_headers == {}
+    assert original_body == "enabled=true"
+    assert redirect_body is None
+    _, kept_body = tool.transform_playwright_har_request(
+        "POST",
+        "http://private.test/kept",
+        {"x-browser-eval-request-body-id": "redirect-2"},
+    )
+    assert kept_body == "kept=true"
+
+
+def test_kitesurf_request_capture_bounds_pending_and_retained_records(
+    monkeypatch,
+) -> None:
+    from harness.trajectory_replay import playwright_tool as module
+
+    tool = module.PlaywrightReplayTool.__new__(module.PlaywrightReplayTool)
+    tool._request_bridge_origins = frozenset({"http://private.test"})
+    tool._request_bridge_bodies = {}
+    tool._request_bridge_body_bytes = 0
+    tool._request_bridge_har_bodies = {"finished": {}}
+    tool._request_bridge_har_body_bytes = 0
+    monkeypatch.setattr(module, "REQUEST_BODY_CAPTURE_MAX_PENDING", 1)
+
+    with pytest.raises(RuntimeError, match="count exceeded"):
+        tool._capture_request_body(
+            {},
+            {
+                "requestId": "next",
+                "method": "POST",
+                "url": "http://private.test/save",
+                "body": {"kind": "text", "text": ""},
+            },
+        )
+    monkeypatch.setattr(module, "REQUEST_BODY_CAPTURE_MAX_PENDING", 2)
+    with pytest.raises(ValueError, match="reused"):
+        tool._capture_request_body(
+            {},
+            {
+                "requestId": "finished",
+                "method": "POST",
+                "url": "http://private.test/save",
+                "body": {"kind": "text", "text": ""},
+            },
+        )
 
 
 def test_kitesurf_login_form_is_submitted_by_local_bridge() -> None:
