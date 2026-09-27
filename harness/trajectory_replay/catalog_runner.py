@@ -9,6 +9,8 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 import traceback
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -26,7 +28,12 @@ from harness.trajectory_replay.catalog_contracts import (
     validate_environment_preparation,
     verify_physical_evidence,
 )
-from harness.trajectory_replay.remote_execution import _browser_command, _run_task, _wait_cdp
+from harness.trajectory_replay.remote_execution import (
+    _browser_command,
+    _run_task,
+    _wait_cdp,
+    finalize_timed_out_task,
+)
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls, remote_benchmark
 from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
@@ -173,6 +180,8 @@ def _run_with_setup_recovery(
     process: subprocess.Popen,
     restart_browser,
     run_task,
+    row: dict | None = None,
+    task_timeout_ms: int | None = None,
 ) -> tuple[dict, subprocess.Popen]:
     """Run one task, restarting only before physical evidence exists.
 
@@ -182,10 +191,55 @@ def _run_with_setup_recovery(
     once the directory exists, retrying could duplicate a physical execution.
     """
 
+    def run_once(current: subprocess.Popen) -> dict:
+        if row is None or task_timeout_ms is None:
+            return run_task()
+        state = {"finished": False, "timed_out": False}
+        lock = threading.Lock()
+
+        def expire() -> None:
+            with lock:
+                if state["finished"]:
+                    return
+                state["timed_out"] = True
+            _stop_browser(current)
+
+        started = time.monotonic()
+        timer = threading.Timer(task_timeout_ms / 1_000, expire)
+        timer.daemon = True
+        timer.start()
+        error: Exception | None = None
+        result: dict | None = None
+        try:
+            result = run_task()
+        except Exception as exc:
+            error = exc
+        finally:
+            with lock:
+                state["finished"] = True
+                timed_out = state["timed_out"]
+            timer.cancel()
+            timer.join()
+        if timed_out:
+            if not task_dir.is_dir():
+                raise TimeoutError(
+                    f"task {task_id} exceeded its {task_timeout_ms} ms budget before evidence began"
+                )
+            return finalize_timed_out_task(
+                task_dir,
+                row,
+                duration_ms=max(task_timeout_ms, int((time.monotonic() - started) * 1_000)),
+                task_timeout_ms=task_timeout_ms,
+            )
+        if error is not None:
+            raise error
+        assert result is not None
+        return result
+
     if process.poll() is not None:
         process = restart_browser(process)
     try:
-        return run_task(), process
+        return run_once(process), process
     except FileExistsError:
         raise
     except Exception:
@@ -199,7 +253,7 @@ def _run_with_setup_recovery(
 
     process = restart_browser(process)
     try:
-        return run_task(), process
+        return run_once(process), process
     except FileExistsError:
         raise
     except Exception:
@@ -228,6 +282,12 @@ def main() -> None:
     parser.add_argument("--cowagent", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--action-timeout-ms", type=int, default=30_000)
+    parser.add_argument(
+        "--task-timeout-ms",
+        type=int,
+        default=600_000,
+        help="external per-task watchdog budget; kills an unresponsive browser and continues",
+    )
     parser.add_argument("--task-from", type=int)
     parser.add_argument("--task-to", type=int)
     parser.add_argument(
@@ -245,6 +305,8 @@ def main() -> None:
     webarena_runtime = verify_webarena_runtime_source()
     if args.action_timeout_ms < 1:
         raise ValueError("action timeout must be positive")
+    if args.task_timeout_ms < 1:
+        raise ValueError("task timeout must be positive")
     if args.backend == "browsertool":
         if args.cowagent is None or not args.cowagent.is_dir():
             raise ValueError("BrowserTool backend requires --cowagent repository")
@@ -283,6 +345,7 @@ def main() -> None:
         "engine": args.engine,
         "backend": args.backend,
         "action_timeout_ms": args.action_timeout_ms,
+        "task_timeout_ms": args.task_timeout_ms,
         "corrections_sha256": corrections.source_sha256,
         "webarena_revision": webarena_runtime.revision,
         "runner_revision": subprocess.check_output(
@@ -348,9 +411,6 @@ def main() -> None:
         process = start_browser()
         try:
             for pending_index, frozen in enumerate(pending):
-                fresh_browser_process = args.backend == "playwright" and args.engine == "obscura"
-                if fresh_browser_process and pending_index:
-                    process = restart_browser(process)
                 task_id = frozen["task_id"]
                 source_actions = (
                     list(portable_tasks[task_id].tool_calls)
@@ -376,7 +436,6 @@ def main() -> None:
                     task_id: int = task_id,
                     row: dict = row,
                     frozen: dict = frozen,
-                    fresh_browser_process: bool = fresh_browser_process,
                 ) -> dict:
                     return _run_task(
                         task_id=task_id,
@@ -394,7 +453,6 @@ def main() -> None:
                         portable_action_timeout_ms=args.action_timeout_ms,
                         backend=args.backend,
                         engine=args.engine,
-                        fresh_browser_process=fresh_browser_process,
                     )
 
                 outcome, process = _run_with_setup_recovery(
@@ -403,6 +461,8 @@ def main() -> None:
                     process=process,
                     restart_browser=restart_browser,
                     run_task=run_task,
+                    row=row,
+                    task_timeout_ms=args.task_timeout_ms,
                 )
                 _append(progress, outcome)
                 print(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from contextlib import contextmanager
+from copy import deepcopy
 from unittest.mock import MagicMock
 
 import pytest
@@ -200,6 +201,19 @@ def test_execute_steps_counts_only_declared_browser_operations():
         ("first", "h1"),
         ("get_text", "h1"),
     ]
+
+
+def test_trace_observer_receives_running_and_terminal_action_states():
+    snapshots = []
+
+    execute_steps(
+        FakePage(),
+        ({"action": "get_text", "selector": "h1", "save_as": "heading"},),
+        trace_observer=lambda records: snapshots.append(deepcopy(records)),
+    )
+
+    assert [snapshot[-1]["status"] for snapshot in snapshots] == ["running", "pass"]
+    assert snapshots[-1][-1]["duration_ms"] is not None
 
 
 def test_navigate_can_create_a_new_page_and_publish_it_to_observers():

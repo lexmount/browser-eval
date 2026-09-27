@@ -48,6 +48,83 @@ from harness.trajectory_replay.webarena_replay import (
 NETWORK_SETTLE_MS = 2_000
 
 
+def finalize_timed_out_task(
+    task_dir: Path,
+    row: dict,
+    *,
+    duration_ms: int,
+    task_timeout_ms: int,
+) -> dict:
+    """Commit a browser runtime failure after an external process watchdog fires."""
+
+    partial_path = task_dir / ".trace.partial.json"
+    trace_path = task_dir / "trace.json"
+    records_path = partial_path if partial_path.is_file() else trace_path
+    records = (
+        json.loads(records_path.read_text(encoding="utf-8"))
+        if records_path.is_file()
+        else []
+    )
+    if records and records[-1].get("status") == "running":
+        active = records[-1]
+        active["status"] = "fail"
+        active["duration_ms"] = duration_ms
+        active["error"] = (
+            f"ExternalTaskTimeout: browser stopped responding during action "
+            f"{active.get('index')} ({active.get('action')}) and exceeded the "
+            f"{task_timeout_ms} ms task budget"
+        )
+    else:
+        records.append(
+            {
+                "index": None,
+                "action": "task_timeout",
+                "arguments": {},
+                "status": "fail",
+                "duration_ms": duration_ms,
+                "output": "",
+                "error": (
+                    "ExternalTaskTimeout: browser stopped responding before the active "
+                    f"action boundary was persisted and exceeded the {task_timeout_ms} ms "
+                    "task budget"
+                ),
+            }
+        )
+    message = records[-1]["error"]
+    hashes = {
+        "trace": _write(trace_path, records),
+        "readiness": _write(task_dir / "readiness.json", []),
+        "outputs": _write(task_dir / "outputs.json", {}),
+    }
+    partial_path.unlink(missing_ok=True)
+    result = {
+        "task_id": row["task_id"],
+        "status": "fail",
+        "score": None,
+        "action_count": len(row["actions"]),
+        "executed_actions_sha256": _json_sha256(row["actions"]),
+        "omitted_diagnostic_observer_sha256": row.get(
+            "omitted_diagnostic_observer_sha256"
+        ),
+        "completed_actions": sum(
+            record.get("status") in {"pass", "success"} for record in records
+        ),
+        "duration_ms": duration_ms,
+        "error": message,
+        "failure_stage": "browser_tool_execution",
+        "runtime_poisoned": True,
+        "evidence_sha256": hashes,
+    }
+    result_path = task_dir / "result.json"
+    temporary = task_dir / ".result.json.tmp"
+    temporary.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    temporary.chmod(0o600)
+    temporary.replace(result_path)
+    return result
+
+
 def _effective_retrieval_calls(task_id: int, row: dict, calls: list[dict]) -> list[dict]:
     """Apply the catalog's frozen amendments without changing contract source calls."""
 
@@ -284,7 +361,6 @@ def _run_task(
     portable_action_timeout_ms: int = 30_000,
     backend: str = "browsertool",
     engine: str = "chromium",
-    fresh_browser_process: bool = False,
 ) -> dict:
     official = benchmark.get_task(task_id)
     correction = apply_correction(official, catalog) if task_id in catalog.records else None
@@ -295,14 +371,13 @@ def _run_task(
     elif backend == "playwright":
         from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
 
-        tool = PlaywrightReplayTool(
-            endpoint, engine=engine, fresh_browser_process=fresh_browser_process
-        )
+        tool = PlaywrightReplayTool(endpoint, engine=engine)
     else:
         raise ValueError(f"unknown replay backend: {backend}")
     recorder = CdpHarRecorder()
     task_dir = output / f"task-{task_id}"
     task_dir.mkdir(mode=0o700)
+    partial_trace_path = task_dir / ".trace.partial.json"
     har_path = task_dir / "network.har"
     records: list[dict] = []
     portable_outputs: dict[str, str] = {}
@@ -328,6 +403,15 @@ def _run_task(
         recorder_started = True
         failure_stage = "browser_tool_execution"
         if portable_task is not None:
+            def persist_partial_trace(current_records: list[dict]) -> None:
+                temporary = partial_trace_path.with_suffix(".tmp")
+                temporary.write_text(
+                    json.dumps(current_records, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                temporary.chmod(0o600)
+                temporary.replace(partial_trace_path)
+
             service._submit(
                 lambda: execute_steps(
                     service._page,
@@ -338,6 +422,7 @@ def _run_task(
                     default_action_timeout_ms=portable_action_timeout_ms,
                     layout_observer=getattr(service, "layout_observer", None),
                     navigation_response_observer=recorder.record_navigation_response,
+                    trace_observer=persist_partial_trace,
                 )
             )
         for index, action in enumerate(() if portable_task is not None else row["actions"], 1):
@@ -502,6 +587,7 @@ def _run_task(
         except Exception as exc:
             error += f"\n{backend} close failed: {exc}"
     hashes["trace"] = _write(task_dir / "trace.json", records)
+    partial_trace_path.unlink(missing_ok=True)
     hashes["readiness"] = _write(task_dir / "readiness.json", readiness_records)
     if portable_task is not None:
         hashes["outputs"] = _write(task_dir / "outputs.json", portable_outputs)

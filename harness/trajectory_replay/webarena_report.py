@@ -856,7 +856,14 @@ def _detail_page(
             + (' aria-current="page"' if peer_key == key else '')
             + f'><span>{_e(peer["browser"])}</span><strong>{peer_status}</strong></a>'
         )
-    actual_by_index = {int(step["index"]): step for step in evidence["trajectory"]}
+    # A watchdog can preserve a task-level timeout when an older runner did not
+    # checkpoint the active action. Keep that evidence without pretending it
+    # belongs to a numbered trajectory step.
+    actual_by_index = {
+        index: step
+        for step in evidence["trajectory"]
+        if isinstance((index := step.get("index")), int) and not isinstance(index, bool)
+    }
     steps = []
     for number, planned in enumerate(attempt["planned_actions"], 1):
         actual = actual_by_index.get(number)
@@ -894,8 +901,14 @@ def _detail_page(
     )
     failure_panel = ""
     if attempt["status"] != "pass":
-        step_link = f'<a href="#step-{failed_index}">{"跳到失败动作" if zh else "Go to failed action"} #{failed_index}</a>' if failed_index else f'<a href="#step-{trigger_index}">{"查看触发动作" if zh else "Inspect trigger action"} #{trigger_index}</a>' if trigger_index else f'<a href="#trajectory">{"查看已完成动作" if zh else "View completed actions"}</a>'
-        action_locator = f'{failed_action} #{failed_index}' if failed_index else ((f'{("触发动作" if zh else "Trigger action")} #{trigger_index}; {("请求未满足验收条件" if zh else "request does not meet acceptance")}') if trigger_index else ("所有动作执行后" if zh else "After all actions"))
+        unknown_active_action = (
+            failed_index is None
+            and trigger_index is None
+            and int(attempt.get("completed_action_count") or 0)
+            < int(attempt.get("action_count") or 0)
+        )
+        step_link = f'<a href="#step-{failed_index}">{"跳到失败动作" if zh else "Go to failed action"} #{failed_index}</a>' if failed_index else f'<a href="#step-{trigger_index}">{"查看触发动作" if zh else "Inspect trigger action"} #{trigger_index}</a>' if trigger_index else f'<a href="#trajectory">{"查看已保存轨迹证据" if zh else "View saved trajectory evidence"}</a>'
+        action_locator = f'{failed_action} #{failed_index}' if failed_index else ((f'{("触发动作" if zh else "Trigger action")} #{trigger_index}; {("请求未满足验收条件" if zh else "request does not meet acceptance")}') if trigger_index else (("活动动作未记录" if zh else "Active action not recorded") if unknown_active_action else ("所有动作执行后" if zh else "After all actions")))
         expected_network = f'<h3>{"要求匹配的网络条件" if zh else "Required network match"}</h3><pre>{_e(json.dumps(failed["expected_network"], ensure_ascii=False, indent=2))}</pre>' if failed.get("expected_network") else ""
         failure_panel = f'''<section id="diagnosis"><h2>{"失败定位与处理" if zh else "Failure diagnosis and treatment"}</h2><div class="diagnosis-panel"><div class="diagnosis-facts"><div><span>{"失败环节" if zh else "Failure stage"}</span><strong>{_e(stage)}</strong></div><div><span>{"失败位置" if zh else "Failure location"}</span><strong>{_e(action_locator)}</strong></div><div><span>{"复核分类" if zh else "Reviewed category"}</span><strong>{_e(label)}</strong></div></div><h3>{"程序原始判定" if zh else "Exact programmatic finding"}</h3><pre>{_e(failed["message"])}</pre>{expected_network}<h3>{"复核判断与依据" if zh else "Reviewed cause and basis"}</h3><p>{_e(reason)}</p><p>{"处理方" if zh else "Owner"}: {_e(review.get(f"remediation_owner_{lang}", review.get("remediation_owner")) if review else "—")} · {"状态" if zh else "Status"}: {_e(review.get(f"remediation_status_{lang}", review.get("remediation_status")) if review else "—")}</p>{step_link}</div></section>'''
     failure_panel += _supplemental_diagnostic_html(evidence.get("supplemental_diagnostic"), lang)

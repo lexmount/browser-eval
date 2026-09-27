@@ -44,56 +44,27 @@ class PlaywrightReplayTool:
     preserving its compiled-ref behavior on either backend.
     """
 
-    def __init__(
-        self,
-        endpoint: str,
-        *,
-        engine: str = "chromium",
-        fresh_browser_process: bool = False,
-    ):
+    def __init__(self, endpoint: str, *, engine: str = "chromium"):
         if engine not in {"chromium", "moli", "lightpanda", "obscura"}:
             raise ValueError(f"unknown Playwright replay engine: {engine}")
-        if engine == "obscura" and not fresh_browser_process:
-            raise ValueError("Obscura replay requires a fresh browser process per task")
         self._engine = engine
         self._supports_multiple_pages = engine not in {"lightpanda", "obscura"}
         self._supports_network_reset_cdp = engine != "obscura"
         self._supports_storage_cdp = engine not in {"lightpanda", "obscura"}
-        self._fresh_context_per_task = engine != "obscura" or fresh_browser_process
+        self._fresh_context_per_task = True
         self._supports_context_request_cookie_sharing = engine != "lightpanda"
         self._layout_sessions: dict[Any, Any] = {}
+        self._viewport_sessions: dict[Any, Any] = {}
         self._layout_connection_poisoned = False
         self._playwright = sync_playwright().start()
         self._browser = None
         self._context = None
         try:
             self._browser = self._playwright.chromium.connect_over_cdp(endpoint, timeout=90_000)
-            if engine == "obscura":
-                contexts = self._browser.contexts
-                if len(contexts) != 1:
-                    raise RuntimeError("Obscura must expose exactly one default browser context")
-                self._context = contexts[0]
-            else:
-                self._context = self._browser.new_context(
-                    viewport=dict(BENCHMARK_VIEWPORT), locale="en-US"
-                )
+            self._context = self._browser.new_context(
+                viewport=dict(BENCHMARK_VIEWPORT), locale="en-US"
+            )
             self._page = self._context.new_page()
-            if engine == "obscura":
-                viewport_session = self._context.new_cdp_session(self._page)
-                try:
-                    viewport_session.send(
-                        "Emulation.setDeviceMetricsOverride",
-                        {
-                            "mobile": False,
-                            **dict(BENCHMARK_VIEWPORT),
-                            "screenWidth": BENCHMARK_VIEWPORT["width"],
-                            "screenHeight": BENCHMARK_VIEWPORT["height"],
-                            "deviceScaleFactor": 1,
-                            "screenOrientation": {"angle": 0, "type": "landscapePrimary"},
-                        },
-                    )
-                finally:
-                    viewport_session.detach()
         except Exception:
             self.close()
             raise
@@ -108,6 +79,41 @@ class PlaywrightReplayTool:
     @property
     def layout_observer(self):
         return self._publish_page_layout if self._engine == "moli" else None
+
+    @property
+    def viewport_observer(self):
+        if self._engine != "obscura":
+            return None
+        return self._observe_page_viewport
+
+    def _observe_page_viewport(self, page: Any) -> dict[str, int | float]:
+        """Read renderer state through CDP instead of echoing Playwright config."""
+
+        sessions = getattr(self, "_viewport_sessions", None)
+        if sessions is None:
+            sessions = self._viewport_sessions = {}
+        session = sessions.get(page)
+        if session is None:
+            session = self._context.new_cdp_session(page)
+            sessions[page] = session
+        metrics = session.send("Page.getLayoutMetrics")
+        viewport = metrics.get("cssVisualViewport") or metrics.get("visualViewport")
+        if not isinstance(viewport, dict):
+            raise RuntimeError("Obscura returned no observed visual viewport")
+        runtime = session.send(
+            "Runtime.evaluate",
+            {"expression": "devicePixelRatio", "returnByValue": True},
+        )
+        scale = (runtime.get("result") or {}).get("value")
+        width = viewport.get("clientWidth")
+        height = viewport.get("clientHeight")
+        if not all(isinstance(value, (int, float)) for value in (width, height, scale)):
+            raise RuntimeError("Obscura returned incomplete viewport metrics")
+        return {
+            "width": width,
+            "height": height,
+            "device_scale_factor": scale,
+        }
 
     @property
     def failure_capture_available(self) -> bool:

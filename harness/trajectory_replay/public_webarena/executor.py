@@ -214,6 +214,7 @@ def execute_steps(
     page_observer: Callable[[Any], None] | None = None,
     layout_observer: Callable[[Any, int], None] | None = None,
     navigation_response_observer: Callable[[Any], None] | None = None,
+    trace_observer: Callable[[list[dict[str, Any]]], None] | None = None,
     task_timeout_ms: int | None = None,
     default_action_timeout_ms: int = 30_000,
 ) -> dict[str, str]:
@@ -263,6 +264,8 @@ def execute_steps(
             "output": "",
         }
         records.append(record)
+        if trace_observer is not None:
+            trace_observer(records)
         try:
             validate_selector(call)
             if action == "navigate" and call.get("new_page"):
@@ -710,6 +713,8 @@ def execute_steps(
             raise
         finally:
             record["duration_ms"] = round((time.perf_counter() - started) * 1000, 3)
+            if trace_observer is not None:
+                trace_observer(records)
     return captured
 
 

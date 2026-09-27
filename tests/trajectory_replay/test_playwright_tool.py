@@ -14,18 +14,128 @@ from pathlib import Path
 import pytest
 
 from harness.browser_use.runner import _prepare_browser_viewport
-from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
 from harness.trajectory_replay.public_webarena.executor import execute_steps
 from harness.trajectory_replay.remote_execution import _browser_command, _wait_cdp
 from harness.trajectory_replay.webarena_replay import _execute_replay_call
 
 
 def _unit_tool(page, context, *, engine="chromium"):
+    from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
+
     tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
     tool._page = page
     tool._context = context
     tool._engine = engine
     return tool
+
+
+def test_obscura_viewport_verification_does_not_open_a_second_page(monkeypatch) -> None:
+    from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
+
+    class Page:
+        def evaluate(self, _script):
+            raise AssertionError("Obscura viewport verification must not execute page script")
+
+    page = Page()
+
+    class Context:
+        def __init__(self):
+            self.page_count = 0
+
+        def new_page(self):
+            self.page_count += 1
+            if self.page_count > 1:
+                raise AssertionError("Obscura viewport verification must reuse the primary page")
+            return page
+
+        def close(self):
+            pass
+
+        def new_cdp_session(self, selected):
+            assert selected is page
+
+            class Session:
+                def send(self, method, params=None):
+                    if method == "Page.getLayoutMetrics":
+                        return {
+                            "cssVisualViewport": {
+                                "clientWidth": 1280,
+                                "clientHeight": 900,
+                            }
+                        }
+                    assert method == "Runtime.evaluate"
+                    assert params == {
+                        "expression": "devicePixelRatio",
+                        "returnByValue": True,
+                    }
+                    return {"result": {"value": 1}}
+
+            return Session()
+
+    context = Context()
+
+    class Browser:
+        contexts = []
+
+        def new_context(self, **kwargs):
+            assert kwargs == {"viewport": {"width": 1280, "height": 900}, "locale": "en-US"}
+            return context
+
+        def close(self):
+            pass
+
+    class Playwright:
+        class Chromium:
+            def connect_over_cdp(self, *_args, **_kwargs):
+                return Browser()
+
+        chromium = Chromium()
+
+        def stop(self):
+            pass
+
+    class Starter:
+        def start(self):
+            return Playwright()
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.playwright_tool.sync_playwright", lambda: Starter()
+    )
+    tool = PlaywrightReplayTool("http://127.0.0.1:1", engine="obscura")
+    try:
+        viewport = _prepare_browser_viewport(tool)
+    finally:
+        tool.close()
+
+    assert context.page_count == 1
+    assert viewport["page_model"] == "single_target"
+    assert viewport["verified"] is True
+    assert viewport["observations"][0]["device_scale_factor"] == 1
+
+
+def test_obscura_viewport_verification_rejects_configured_but_unapplied_size() -> None:
+    class Session:
+        def send(self, method, _params=None):
+            if method == "Page.getLayoutMetrics":
+                return {
+                    "cssVisualViewport": {"clientWidth": 800, "clientHeight": 600}
+                }
+            return {"result": {"value": 1}}
+
+    page = type("Page", (), {"viewport_size": {"width": 1280, "height": 900}})()
+    context = type(
+        "Context",
+        (),
+        {"new_cdp_session": lambda self, selected: Session()},
+    )()
+    tool = _unit_tool(page, context, engine="obscura")
+    tool._owns_cdp_context = True
+    tool._supports_multiple_pages = False
+    tool._browser = type("Browser", (), {"contexts": [context]})()
+    tool._submit = lambda callback: callback()
+
+    with pytest.raises(RuntimeError, match="viewport mismatch"):
+        _prepare_browser_viewport(tool)
 
 
 def test_moli_layout_publication_uses_explicit_geometry_only_cdp():
@@ -336,73 +446,3 @@ def test_playwright_backend_executes_portable_and_snapshot_ref_calls(tmp_path: P
     finally:
         process.terminate()
         process.wait(timeout=10)
-def test_obscura_requires_process_isolation_before_using_its_default_context() -> None:
-    with pytest.raises(ValueError, match="fresh browser process per task"):
-        PlaywrightReplayTool("http://127.0.0.1:1", engine="obscura")
-
-
-def test_obscura_uses_the_fresh_process_default_context(monkeypatch) -> None:
-    events = []
-
-    class Context:
-        def new_page(self):
-            events.append("new_page")
-            return Page()
-
-        def new_cdp_session(self, page):
-            events.append(("session", page))
-            return Session()
-
-        def close(self):
-            events.append("context_close")
-
-    context = Context()
-
-    class Page:
-        pass
-
-    class Session:
-        def send(self, method, params):
-            events.append(("send", method, params))
-
-        def detach(self):
-            events.append("detach")
-
-    class Browser:
-        contexts = [context]
-
-        def new_context(self, **_kwargs):
-            raise AssertionError("Obscura context creation is unsupported")
-
-        def close(self):
-            events.append("browser_close")
-
-    class Chromium:
-        def connect_over_cdp(self, *_args, **_kwargs):
-            events.append("connect")
-            return Browser()
-
-    class Playwright:
-        chromium = Chromium()
-
-        def stop(self):
-            events.append("stop")
-
-    class Starter:
-        def start(self):
-            return Playwright()
-
-    monkeypatch.setattr(
-        "harness.trajectory_replay.playwright_tool.sync_playwright", lambda: Starter()
-    )
-    tool = PlaywrightReplayTool(
-        "http://127.0.0.1:1", engine="obscura", fresh_browser_process=True
-    )
-    assert tool._context is context
-    assert tool._supports_multiple_pages is False
-    assert events[:3] == ["connect", "new_page", ("session", tool._page)]
-    assert events[3][0:2] == ("send", "Emulation.setDeviceMetricsOverride")
-    assert events[3][2]["width"] == 1280
-    assert events[3][2]["height"] == 900
-    assert events[4] == "detach"
-    tool.close()

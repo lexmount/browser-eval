@@ -486,11 +486,20 @@ def _browser_tool_config(endpoint: str) -> dict[str, Any]:
     }
 
 
-def _record_page_viewport(page: Any, evidence: dict[str, Any], phase: str) -> None:
+def _record_page_viewport(
+    page: Any,
+    evidence: dict[str, Any],
+    phase: str,
+    observer: Any | None = None,
+) -> None:
     try:
-        observed = page.evaluate(
-            "() => ({width: innerWidth, height: innerHeight, "
-            "device_scale_factor: devicePixelRatio})"
+        observed = (
+            observer(page)
+            if observer is not None
+            else page.evaluate(
+                "() => ({width: innerWidth, height: innerHeight, "
+                "device_scale_factor: devicePixelRatio})"
+            )
         )
     except Exception:
         evidence["verified"] = False
@@ -507,8 +516,9 @@ def _verify_session_viewport(service: Any, evidence: dict[str, Any], phase: str)
         if not pages:
             evidence["verified"] = False
             raise RuntimeError("browser viewport cannot be verified without a live page")
+        observer = getattr(service, "viewport_observer", None)
         for page in pages:
-            _record_page_viewport(page, evidence, phase)
+            _record_page_viewport(page, evidence, phase, observer)
 
     service._submit(verify)
 
@@ -525,12 +535,17 @@ def _prepare_browser_viewport(service: Any) -> dict[str, Any]:
     def prepare() -> None:
         if not getattr(service, "_owns_cdp_context", False):
             raise RuntimeError("CowAgent lacks the required owned CDP context contract")
-        _record_page_viewport(service._page, evidence, "primary_before_navigation")
+        observer = getattr(service, "viewport_observer", None)
+        _record_page_viewport(
+            service._page, evidence, "primary_before_navigation", observer
+        )
         if getattr(service, "_supports_multiple_pages", True):
             # Verify inheritance using a blank child before any login/site script.
             child = service._context.new_page()
             try:
-                _record_page_viewport(child, evidence, "new_page_before_navigation")
+                _record_page_viewport(
+                    child, evidence, "new_page_before_navigation", observer
+                )
             finally:
                 child.close()
             evidence["page_model"] = "multiple_pages"
@@ -631,16 +646,18 @@ def _login_context(
         for existing_page in context.pages:
             if existing_page != primary_page:
                 existing_page.close()
-        context.clear_cookies()
-        context.set_extra_http_headers(
-            {
-                SITE_AUTH_HEADERS[site]: (
-                    f"{SITE_CREDENTIALS[site]['username']}:{SITE_CREDENTIALS[site]['password']}"
-                )
-                for site in sites
-                if site in SITE_AUTH_HEADERS and site != WebArenaSite.REDDIT
-            }
-        )
+        fresh_context = getattr(service, "_fresh_context_per_task", False)
+        if not fresh_context:
+            context.clear_cookies()
+        auth_headers = {
+            SITE_AUTH_HEADERS[site]: (
+                f"{SITE_CREDENTIALS[site]['username']}:{SITE_CREDENTIALS[site]['password']}"
+            )
+            for site in sites
+            if site in SITE_AUTH_HEADERS and site != WebArenaSite.REDDIT
+        }
+        if auth_headers or not fresh_context:
+            context.set_extra_http_headers(auth_headers)
         for site in sites:
             base = benchmark.config.get_environment(site).active_url
             creds = SITE_CREDENTIALS.get(site)
@@ -648,7 +665,12 @@ def _login_context(
             page = primary_page if reuse_primary else context.new_page()
             try:
                 if viewport_evidence is not None:
-                    _record_page_viewport(page, viewport_evidence, "login_before_navigation")
+                    _record_page_viewport(
+                        page,
+                        viewport_evidence,
+                        "login_before_navigation",
+                        getattr(service, "viewport_observer", None),
+                    )
                 page.set_default_timeout(60_000)
                 page.set_default_navigation_timeout(90_000)
                 if site == WebArenaSite.SHOPPING:

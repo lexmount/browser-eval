@@ -844,6 +844,58 @@ def test_replay_task_and_result_have_connected_drilldown() -> None:
     assert 'href="../evidence-viewer.html?file=data/evidence/moli-29.json"' in detail
 
 
+def test_detail_page_preserves_task_timeout_with_unknown_active_action() -> None:
+    task = {
+        "task_id": 90,
+        "task": {"intent": "Open the route", "sites": ["map"]},
+        "tool_calls": [{"action": "navigate", "url": "https://example.test"}],
+    }
+    attempt = {
+        "engine": "obscura",
+        "participant_id": "obscura-0.2.3",
+        "task_id": 90,
+        "status": "fail",
+        "completed_action_count": 0,
+        "action_count": 1,
+        "duration_ms": 590_000,
+        "resource": {},
+        "planned_actions": task["tool_calls"],
+    }
+    evidence = {
+        "programmatic_failure": {
+            "stage": "browser_tool_execution",
+            "step": None,
+            "trigger_step": None,
+            "message": "browser stopped responding",
+        },
+        "review": {
+            "label_zh": "浏览器运行时无响应",
+            "label_en": "Browser runtime became unresponsive",
+            "reason_zh": "活动动作边界未记录",
+            "reason_en": "The active action boundary was not recorded",
+            "remediation_owner": "Obscura",
+            "remediation_status": "recorded",
+        },
+        "trajectory": [
+            {
+                "index": None,
+                "action": "task_timeout",
+                "arguments": {},
+                "status": "fail",
+                "duration_ms": 590_000,
+                "error": "browser stopped responding",
+            }
+        ],
+        "screenshot": None,
+    }
+
+    detail = _detail_page("zh", attempt, task, {"label": "Obscura 0.2.3"}, evidence, [])
+
+    assert "活动动作未记录" in detail
+    assert "查看已保存轨迹证据" in detail
+    assert 'id="step-1"' in detail
+
+
 def test_unexecuted_qualified_step_stays_visible_and_is_not_called_an_action_error() -> None:
     task = {
         "task_id": 29,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 from pathlib import Path
 
 import pytest
@@ -25,6 +26,7 @@ from harness.trajectory_replay.catalog_runner import (
     _task_ids,
     _task_origins,
 )
+from harness.trajectory_replay.remote_execution import finalize_timed_out_task
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
 from harness.trajectory_replay.webarena_replay import _json_sha256
 
@@ -33,6 +35,95 @@ def test_task_ids_preserve_requested_official_order():
     assert _task_ids([3, 7, 11, 20], 7, 20) == [7, 11, 20]
     assert _task_ids([3, 7, 11, 20], None, None) == [3, 7, 11, 20]
     assert _task_ids([3, 7, 11, 20], None, None, [7, 20]) == [7, 20]
+
+
+def test_external_timeout_commits_the_active_action_and_hashes(tmp_path: Path) -> None:
+    task_dir = tmp_path / "task-7"
+    task_dir.mkdir()
+    (task_dir / ".trace.partial.json").write_text(
+        json.dumps(
+            [
+                {
+                    "index": 1,
+                    "action": "navigate",
+                    "arguments": {"action": "navigate", "url": "http://example.test/start"},
+                    "status": "pass",
+                    "duration_ms": 10,
+                    "output": "ok",
+                },
+                {
+                    "index": 2,
+                    "action": "navigate",
+                    "arguments": {"action": "navigate", "url": "http://example.test"},
+                    "status": "running",
+                    "duration_ms": None,
+                    "output": "",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    row = {
+        "task_id": 7,
+        "actions": [{"action": "navigate", "url": "http://example.test"}],
+        "omitted_diagnostic_observer_sha256": None,
+    }
+
+    result = finalize_timed_out_task(
+        task_dir, row, duration_ms=360_000, task_timeout_ms=300_000
+    )
+
+    trace = json.loads((task_dir / "trace.json").read_text(encoding="utf-8"))
+    assert trace[-1]["status"] == "fail"
+    assert "action 2 (navigate)" in trace[-1]["error"]
+    assert result["failure_stage"] == "browser_tool_execution"
+    assert result["completed_actions"] == 1
+    assert result["runtime_poisoned"] is True
+    assert not (task_dir / ".trace.partial.json").exists()
+    for kind, digest in result["evidence_sha256"].items():
+        filename = {
+            "trace": "trace.json",
+            "readiness": "readiness.json",
+            "outputs": "outputs.json",
+        }[kind]
+        assert file_sha256(task_dir / filename) == digest
+
+
+def test_external_timeout_counts_source_success_actions(tmp_path: Path) -> None:
+    task_dir = tmp_path / "task-8"
+    task_dir.mkdir()
+    (task_dir / ".trace.partial.json").write_text(
+        json.dumps(
+            [
+                {
+                    "index": 1,
+                    "action": "navigate",
+                    "arguments": {},
+                    "status": "success",
+                    "duration_ms": 10,
+                    "output": "ok",
+                },
+                {
+                    "index": 2,
+                    "action": "evaluate",
+                    "arguments": {},
+                    "status": "running",
+                    "duration_ms": None,
+                    "output": "",
+                },
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = finalize_timed_out_task(
+        task_dir,
+        {"task_id": 8, "actions": [{}, {}]},
+        duration_ms=300_000,
+        task_timeout_ms=300_000,
+    )
+
+    assert result["completed_actions"] == 1
 
 
 @pytest.mark.parametrize("bounds", [(-1, 1), (2, 1), (0, 812)])
@@ -93,9 +184,68 @@ def test_task_selection_is_schema_bound(tmp_path: Path):
 class _FakeBrowserProcess:
     def __init__(self, returncode: int | None = None):
         self.returncode = returncode
+        self.stopped = threading.Event()
 
     def poll(self) -> int | None:
         return self.returncode
+
+    def terminate(self) -> None:
+        self.returncode = -15
+        self.stopped.set()
+
+    def kill(self) -> None:
+        self.returncode = -9
+        self.stopped.set()
+
+    def wait(self, timeout: int | None = None) -> int:
+        assert self.stopped.wait(timeout)
+        assert self.returncode is not None
+        return self.returncode
+
+
+def test_task_watchdog_kills_browser_commits_timeout_and_returns(tmp_path: Path) -> None:
+    task_dir = tmp_path / "task-11"
+    process = _FakeBrowserProcess()
+    row = {
+        "task_id": 11,
+        "actions": [{"action": "evaluate", "script": "while(true){}"}],
+    }
+
+    def run_task() -> dict:
+        task_dir.mkdir()
+        (task_dir / ".trace.partial.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "index": 0,
+                        "action": "evaluate",
+                        "arguments": row["actions"][0],
+                        "status": "running",
+                        "duration_ms": None,
+                        "output": "",
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
+        assert process.stopped.wait(1)
+        return {"task_id": 11, "status": "fail", "error": "browser disconnected"}
+
+    outcome, returned_process = _run_with_setup_recovery(
+        task_id=11,
+        task_dir=task_dir,
+        process=process,
+        restart_browser=lambda _current: _FakeBrowserProcess(),
+        run_task=run_task,
+        row=row,
+        task_timeout_ms=20,
+    )
+
+    assert returned_process is process
+    assert outcome["runtime_poisoned"] is True
+    assert outcome["error"].startswith("ExternalTaskTimeout:")
+    assert json.loads((task_dir / "result.json").read_text()) == outcome
+    assert json.loads((task_dir / "trace.json").read_text())[-1]["status"] == "fail"
 
 
 def test_dead_browser_restarts_before_next_task_without_replaying_result(

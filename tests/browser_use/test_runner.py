@@ -396,6 +396,70 @@ def test_login_context_reuses_primary_page_for_single_target_session() -> None:
     assert events[-1] == ("goto", "http://fixture.test/start")
 
 
+def test_login_context_uses_service_viewport_observer_without_page_script() -> None:
+    class Page:
+        def evaluate(self, _script):
+            raise AssertionError("the service viewport observer must replace page evaluation")
+
+        def set_default_timeout(self, _value):
+            pass
+
+        def set_default_navigation_timeout(self, _value):
+            pass
+
+        def goto(self, _url, **_kwargs):
+            pass
+
+        def wait_for_timeout(self, _value):
+            pass
+
+    primary = Page()
+    context = SimpleNamespace(
+        pages=[primary],
+        clear_cookies=lambda: (_ for _ in ()).throw(
+            AssertionError("fresh contexts must not repeat cookie cleanup")
+        ),
+        set_extra_http_headers=lambda _headers: (_ for _ in ()).throw(
+            AssertionError("an empty authentication header set must not be written")
+        ),
+    )
+    service = SimpleNamespace(
+        _context=context,
+        _page=primary,
+        _supports_multiple_pages=False,
+        _fresh_context_per_task=True,
+        _submit=lambda callback: callback(),
+        viewport_observer=lambda page: {
+            "width": 1280,
+            "height": 900,
+            "device_scale_factor": 1,
+        },
+    )
+    benchmark = SimpleNamespace(
+        config=SimpleNamespace(
+            get_environment=lambda _site: SimpleNamespace(active_url="http://fixture.test")
+        )
+    )
+    evidence = {"observations": [], "verified": True}
+
+    _login_context(
+        service,
+        (WebArenaSite.MAP,),
+        benchmark,
+        ["http://fixture.test/start"],
+        evidence,
+    )
+
+    assert evidence["observations"] == [
+        {
+            "phase": "login_before_navigation",
+            "width": 1280,
+            "height": 900,
+            "device_scale_factor": 1,
+        }
+    ]
+
+
 @pytest.mark.parametrize(
     "status,cookie,accepted",
     [(200, True, True), (302, True, False), (401, False, False), (200, False, False)],
