@@ -404,6 +404,25 @@ class PlaywrightReplayTool:
             return None
         return self._observe_page_viewport
 
+    @property
+    def document_observer(self):
+        return self._observe_document if self._engine == "kitesurf" else None
+
+    def _observe_document(
+        self, page: Any, timeout_ms: int, limit: int
+    ) -> tuple[str, str]:
+        del timeout_ms
+        value = page.evaluate(
+            """limit => ({
+                title: document.title || '',
+                body: (document.body?.innerText || '').slice(0, limit),
+            })""",
+            limit,
+        )
+        if not isinstance(value, dict):
+            raise RuntimeError("Kitesurf document observation returned an invalid payload")
+        return str(value.get("title") or ""), str(value.get("body") or "")
+
     def _observe_page_viewport(self, page: Any) -> dict[str, int | float]:
         """Read renderer state through CDP instead of echoing Playwright config."""
 
@@ -549,6 +568,7 @@ class PlaywrightReplayTool:
                 [arguments],
                 trace=records,
                 layout_observer=self.layout_observer,
+                document_observer=self.document_observer,
             )
         except Exception as exc:
             return ReplayResult("error", f"{type(exc).__name__}: {exc}")

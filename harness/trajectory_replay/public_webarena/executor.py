@@ -214,6 +214,7 @@ def execute_steps(
     page_observer: Callable[[Any], None] | None = None,
     layout_observer: Callable[[Any, int], None] | None = None,
     navigation_response_observer: Callable[[Any], None] | None = None,
+    document_observer: Callable[[Any, int, int], tuple[str, str]] | None = None,
     trace_observer: Callable[[list[dict[str, Any]]], None] | None = None,
     task_timeout_ms: int | None = None,
     default_action_timeout_ms: int = 30_000,
@@ -343,16 +344,21 @@ def execute_steps(
                     pass
                 publish_layout()
                 limit = int(call.get("max_chars", 40_000))
-                title = str(
-                    action_page.locator("html").first.evaluate(
-                        "element => element.ownerDocument.title",
-                        None,
-                        timeout=action_remaining(),
+                if document_observer is None:
+                    title = str(
+                        action_page.locator("html").first.evaluate(
+                            "element => element.ownerDocument.title",
+                            None,
+                            timeout=action_remaining(),
+                        )
+                        or ""
                     )
-                    or ""
-                )
+                    body = _body_text(action_page, action_remaining(), limit)
+                else:
+                    title, body = document_observer(
+                        action_page, action_remaining(), limit
+                    )
                 status = getattr(response, "status", "") if response is not None else ""
-                body = _body_text(action_page, action_remaining(), limit)
                 observation = (
                     f"Navigated to: {getattr(action_page, 'url', call['url'])}\n"
                     f"Title: {title}\nStatus: {status}\n\n--- Page Snapshot ---\n{body}"

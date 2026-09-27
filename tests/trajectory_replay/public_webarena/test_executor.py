@@ -203,6 +203,25 @@ def test_execute_steps_counts_only_declared_browser_operations():
     ]
 
 
+def test_navigate_can_use_provider_document_observer_without_locators():
+    page = FakePage()
+    observed = []
+
+    output = execute_steps(
+        page,
+        ({"action": "navigate", "url": "https://example.com", "save_as": "page"},),
+        document_observer=lambda selected, timeout, limit: (
+            observed.append((selected, timeout, limit)) or ("Provider title", "Provider body")
+        ),
+    )
+
+    assert "Title: Provider title" in output["page"]
+    assert output["page"].endswith("Provider body")
+    assert observed[0][0] is page
+    assert observed[0][2] == 40_000
+    assert not any(call[0] in {"first", "get_property", "get_text"} for call in page.calls)
+
+
 def test_trace_observer_receives_running_and_terminal_action_states():
     snapshots = []
 

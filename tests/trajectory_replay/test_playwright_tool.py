@@ -600,6 +600,24 @@ def test_kitesurf_login_readiness_uses_dom_polling() -> None:
     ]
 
 
+def test_kitesurf_document_observer_uses_page_evaluate_without_locator() -> None:
+    class Page:
+        def evaluate(self, script, limit):
+            assert "document.body?.innerText" in script
+            assert limit == 123
+            return {"title": "Dashboard", "body": "Visible body"}
+
+        def locator(self, _selector):
+            raise AssertionError("Kitesurf document observation must not use Locator")
+
+    tool = _unit_tool(Page(), object(), engine="kitesurf")
+
+    assert tool.document_observer(tool._page, 1_000, 123) == (
+        "Dashboard",
+        "Visible body",
+    )
+
+
 def test_obscura_viewport_verification_rejects_configured_but_unapplied_size() -> None:
     class Session:
         def send(self, method, _params=None):

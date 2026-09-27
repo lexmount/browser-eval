@@ -502,6 +502,7 @@ def _run_task(
                     default_action_timeout_ms=portable_action_timeout_ms,
                     layout_observer=getattr(service, "layout_observer", None),
                     navigation_response_observer=recorder.record_navigation_response,
+                    document_observer=getattr(service, "document_observer", None),
                     trace_observer=persist_partial_trace,
                 )
             )
