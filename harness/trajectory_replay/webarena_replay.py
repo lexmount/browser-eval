@@ -65,6 +65,10 @@ _CLICK_DISPATCHED_NAVIGATION_TIMEOUT_MARKERS = (
     "waiting for scheduled navigations to finish",
 )
 
+_STATE_CLEAR_NAVIGATION_SETTLE_TIMEOUT_MS = 1_500
+_STATE_CLEAR_NAVIGATION_GRACE_MS = 300
+_STATE_CLEAR_MAX_ATTEMPTS = 3
+
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -366,6 +370,36 @@ def _rebind_calls(
     return rebound
 
 
+def _clear_page_storage(page: Any) -> None:
+    script = (
+        "async () => {"
+        "localStorage.clear(); sessionStorage.clear();"
+        "if ('caches' in globalThis) {"
+        "for (const key of await caches.keys()) await caches.delete(key);"
+        "}"
+        "if ('indexedDB' in globalThis && indexedDB.databases) {"
+        "for (const db of await indexedDB.databases()) {"
+        "if (db.name) indexedDB.deleteDatabase(db.name);"
+        "}"
+        "}"
+        "}"
+    )
+    for attempt in range(_STATE_CLEAR_MAX_ATTEMPTS):
+        try:
+            page.evaluate(script)
+            return
+        except Exception as exc:
+            if (
+                "execution context was destroyed" not in str(exc).lower()
+                or attempt + 1 == _STATE_CLEAR_MAX_ATTEMPTS
+            ):
+                raise
+            page.wait_for_load_state(
+                "domcontentloaded", timeout=_STATE_CLEAR_NAVIGATION_SETTLE_TIMEOUT_MS
+            )
+            page.wait_for_timeout(_STATE_CLEAR_NAVIGATION_GRACE_MS)
+
+
 def _clear_browser_state(service: Any, origins: set[str]) -> None:
     """Fail closed unless all persistent browser state is cleared before a task."""
 
@@ -399,19 +433,7 @@ def _clear_browser_state(service: Any, origins: set[str]) -> None:
             else:
                 for origin in sorted(origins):
                     page.goto(origin, wait_until="domcontentloaded", timeout=30_000)
-                    page.evaluate(
-                        "async () => {"
-                        "localStorage.clear(); sessionStorage.clear();"
-                        "if ('caches' in globalThis) {"
-                        "for (const key of await caches.keys()) await caches.delete(key);"
-                        "}"
-                        "if ('indexedDB' in globalThis && indexedDB.databases) {"
-                        "for (const db of await indexedDB.databases()) {"
-                        "if (db.name) indexedDB.deleteDatabase(db.name);"
-                        "}"
-                        "}"
-                        "}"
-                    )
+                    _clear_page_storage(page)
             page.goto("about:blank", wait_until="load", timeout=10_000)
             if supports_storage_cdp:
                 cdp.send("Page.resetNavigationHistory")

@@ -119,6 +119,55 @@ def test_clear_browser_state_avoids_unsupported_obscura_cdp_domains() -> None:
     assert sum(event[0] == "evaluate" for event in events) == 1
 
 
+def test_clear_browser_state_retries_storage_after_navigation_settles() -> None:
+    events = []
+
+    class Page:
+        def goto(self, url, **_kwargs):
+            events.append(("goto", url))
+
+        def evaluate(self, script):
+            events.append(("evaluate", script))
+            if sum(event[0] == "evaluate" for event in events) == 1:
+                raise RuntimeError(
+                    "Execution context was destroyed, most likely because of a navigation"
+                )
+
+        def wait_for_load_state(self, state, **kwargs):
+            events.append(("load_state", state, kwargs))
+
+        def wait_for_timeout(self, milliseconds):
+            events.append(("wait", milliseconds))
+
+    class Context:
+        def clear_cookies(self):
+            events.append(("clear_cookies",))
+
+        def clear_permissions(self):
+            events.append(("clear_permissions",))
+
+        def new_cdp_session(self, _page):
+            raise AssertionError("state reset must not open a CDP session")
+
+    service = type(
+        "Service",
+        (),
+        {
+            "_context": Context(),
+            "_page": Page(),
+            "_supports_network_reset_cdp": False,
+            "_supports_storage_cdp": False,
+            "_submit": lambda self, callback: callback(),
+        },
+    )()
+
+    _clear_browser_state(service, {"http://example.test"})
+
+    assert sum(event[0] == "evaluate" for event in events) == 2
+    assert any(event[:2] == ("load_state", "domcontentloaded") for event in events)
+    assert any(event[0] == "wait" for event in events)
+
+
 def test_method_scoped_site_cohort_rejects_partial_resume() -> None:
     with pytest.raises(ValueError, match="cannot resume after a partial method"):
         _reject_partial_method_resume([("moli", 1)], ["moli"], [1, 2])
