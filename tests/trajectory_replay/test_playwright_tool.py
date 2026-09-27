@@ -408,6 +408,10 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
     assert "globalThis.fetch = async function" in next(
         event[1] for event in events if event[0] == "init_script"
     )
+    init_script = next(event[1] for event in events if event[0] == "init_script")
+    assert "headers, body: ''" in init_script
+    assert "application/x-www-form-urlencoded;charset=UTF-8" in init_script
+    assert "text/plain;charset=UTF-8" in init_script
     route_event = next(event for event in events if event[0] == "route")
     predicate, handler = route_event[1:]
     assert predicate("http://private.test/path") is True
@@ -1502,6 +1506,346 @@ def test_kitesurf_native_form_capture_freezes_one_submission_snapshot() -> None:
     assert gets == [
         {"url": "http://capture.test/form", "resource_type": "document"},
         {"url": "http://capture.test/save", "resource_type": "document"},
+    ]
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="uses the pinned macOS Chromium")
+def test_kitesurf_fetch_capture_keeps_body_only_in_local_bridge() -> None:
+    binary = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+    if not binary.is_file():
+        pytest.skip("Chrome is unavailable")
+    from playwright.sync_api import sync_playwright
+
+    from harness.trajectory_replay.playwright_tool import (
+        REQUEST_BODY_CAPTURE_BINDING,
+        REQUEST_BODY_CAPTURE_HEADER,
+        _request_body_capture_script,
+    )
+
+    captures = []
+    posts = []
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(executable_path=str(binary), headless=True)
+        context = browser.new_context()
+        context.expose_binding(
+            REQUEST_BODY_CAPTURE_BINDING,
+            lambda _source, payload: captures.append(payload),
+        )
+        context.add_init_script(
+            _request_body_capture_script(frozenset({"http://capture.test"}))
+        )
+
+        def route_request(route):
+            request = route.request
+            if request.method == "POST":
+                posts.append(
+                    {
+                        "headers": request.all_headers(),
+                        "body": request.post_data,
+                    }
+                )
+                route.fulfill(status=200, content_type="application/json", body="{}")
+                return
+            route.fulfill(status=200, content_type="text/html", body="<p>ready</p>")
+
+        context.route("http://capture.test/**", route_request)
+        page = context.new_page()
+        page.goto("http://capture.test/")
+        status = page.evaluate(
+            """async () => (await fetch('/graphql', {
+                method: 'POST',
+                headers: {'content-type': 'application/json'},
+                body: JSON.stringify({page: 1}),
+            })).status"""
+        )
+        browser.close()
+
+    assert status == 200
+    assert len(captures) == 1
+    assert captures[0]["body"] == {"kind": "text", "text": '{"page":1}'}
+    assert len(posts) == 1
+    assert posts[0]["body"] is None
+    assert posts[0]["headers"]["content-type"] == "application/json"
+    assert posts[0]["headers"][REQUEST_BODY_CAPTURE_HEADER] == captures[0]["requestId"]
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="uses the pinned macOS Chromium")
+@pytest.mark.parametrize("method", ["GET", "HEAD"])
+def test_kitesurf_fetch_capture_rejects_get_and_head_bodies(method: str) -> None:
+    binary = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+    if not binary.is_file():
+        pytest.skip("Chrome is unavailable")
+    from playwright.sync_api import sync_playwright
+
+    from harness.trajectory_replay.playwright_tool import (
+        REQUEST_BODY_CAPTURE_BINDING,
+        _request_body_capture_script,
+    )
+
+    captures = []
+    requests = []
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(executable_path=str(binary), headless=True)
+        context = browser.new_context()
+        context.expose_binding(
+            REQUEST_BODY_CAPTURE_BINDING,
+            lambda _source, payload: captures.append(payload),
+        )
+        context.add_init_script(
+            _request_body_capture_script(frozenset({"http://capture.test"}))
+        )
+
+        def route_request(route):
+            requests.append(route.request.url)
+            route.fulfill(status=200, content_type="text/html", body="<p>ready</p>")
+
+        context.route("http://capture.test/**", route_request)
+        page = context.new_page()
+        page.goto("http://capture.test/")
+        result = page.evaluate(
+            """async method => {
+                try {
+                    await fetch('/query', {method, body: 'invalid'});
+                    return 'resolved';
+                } catch (error) {
+                    return [error.name, error.message];
+                }
+            }""",
+            method,
+        )
+        browser.close()
+
+    assert result[0] == "TypeError"
+    assert "GET/HEAD" in result[1]
+    assert captures == []
+    assert requests == ["http://capture.test/"]
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="uses the pinned macOS Chromium")
+def test_kitesurf_fetch_capture_preserves_keepalive_body_limit() -> None:
+    binary = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+    if not binary.is_file():
+        pytest.skip("Chrome is unavailable")
+    from playwright.sync_api import sync_playwright
+
+    from harness.trajectory_replay.playwright_tool import (
+        REQUEST_BODY_CAPTURE_BINDING,
+        _request_body_capture_script,
+    )
+
+    captures = []
+    requests = []
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(executable_path=str(binary), headless=True)
+        context = browser.new_context()
+        context.expose_binding(
+            REQUEST_BODY_CAPTURE_BINDING,
+            lambda _source, payload: captures.append(payload),
+        )
+        context.add_init_script(
+            _request_body_capture_script(frozenset({"http://capture.test"}))
+        )
+
+        def route_request(route):
+            requests.append(
+                {
+                    "url": route.request.url,
+                    "method": route.request.method,
+                    "body": route.request.post_data,
+                }
+            )
+            route.fulfill(status=200, content_type="text/html", body="<p>ready</p>")
+
+        context.route("http://capture.test/**", route_request)
+        page = context.new_page()
+        page.goto("http://capture.test/")
+        result = page.evaluate(
+            """async () => {
+                const run = async body => {
+                    try {
+                        const response = await fetch('/save', {
+                            method: 'POST', keepalive: true, body,
+                        });
+                        return ['resolved', response.status];
+                    } catch (error) {
+                        return [error.name, error.message];
+                    }
+                };
+                const emptyForm = new FormData();
+                emptyForm.set('value', '');
+                const multipartOverhead = (
+                    await new Request('/save', {method: 'POST', body: emptyForm})
+                        .arrayBuffer()
+                ).byteLength;
+                const oversizedForm = new FormData();
+                oversizedForm.set('value', 'x'.repeat(65537 - multipartOverhead));
+                return [
+                    await run('x'.repeat(65536)),
+                    await run('x'.repeat(65537)),
+                    await run(oversizedForm),
+                ];
+            }"""
+        )
+        browser.close()
+
+    assert result[0] == ["resolved", 200]
+    assert result[1][0] == "TypeError"
+    assert result[2][0] == "TypeError"
+    assert len(captures) == 1
+    assert len(captures[0]["body"]["text"]) == 65536
+    assert requests == [
+        {"url": "http://capture.test/", "method": "GET", "body": None},
+        {"url": "http://capture.test/save", "method": "POST", "body": None},
+    ]
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="uses the pinned macOS Chromium")
+def test_kitesurf_fetch_capture_shares_and_releases_keepalive_budget() -> None:
+    binary = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+    if not binary.is_file():
+        pytest.skip("Chrome is unavailable")
+    from playwright.sync_api import sync_playwright
+
+    from harness.trajectory_replay.playwright_tool import (
+        REQUEST_BODY_CAPTURE_BINDING,
+        _request_body_capture_script,
+    )
+
+    captures = []
+    held_routes = []
+    requested_urls = []
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(executable_path=str(binary), headless=True)
+        context = browser.new_context()
+        context.expose_binding(
+            REQUEST_BODY_CAPTURE_BINDING,
+            lambda _source, payload: captures.append(payload),
+        )
+        context.add_init_script(
+            _request_body_capture_script(frozenset({"http://capture.test"}))
+        )
+
+        def route_request(route):
+            requested_urls.append(route.request.url)
+            if route.request.url.endswith("/hold"):
+                held_routes.append(route)
+                return
+            route.fulfill(
+                status=200,
+                headers={"access-control-allow-origin": "*"},
+                content_type="text/html",
+                body="<p>ready</p>",
+            )
+
+        context.route("**/*", route_request)
+        page = context.new_page()
+        page.goto("http://capture.test/")
+
+        for first, second in (
+            ("http://outside.test/hold", "http://capture.test/rejected"),
+            ("http://capture.test/hold", "http://outside.test/rejected"),
+        ):
+            result = page.evaluate(
+                """async ([first, second]) => {
+                    window.pendingKeepalive = fetch(first, {
+                        method: 'POST', keepalive: true, body: 'x'.repeat(40000),
+                    }).then(() => 'resolved', error => error.name);
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                    try {
+                        await fetch(second, {
+                            method: 'POST', keepalive: true, body: 'x'.repeat(40000),
+                        });
+                        return 'resolved';
+                    } catch (error) {
+                        return error.name;
+                    }
+                }""",
+                [first, second],
+            )
+            assert result == "TypeError"
+            assert held_routes
+            held_routes.pop(0).abort("failed")
+            assert page.evaluate("window.pendingKeepalive") == "TypeError"
+            assert (
+                page.evaluate(
+                    """async () => (await fetch('/recovered', {
+                        method: 'POST', keepalive: true, body: 'x'.repeat(40000),
+                    })).status"""
+                )
+                == 200
+            )
+
+        browser.close()
+
+    assert held_routes == []
+    assert "http://capture.test/rejected" not in requested_urls
+    assert "http://outside.test/rejected" not in requested_urls
+    assert requested_urls.count("http://capture.test/recovered") == 2
+    assert len(captures) == 3
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="uses the pinned macOS Chromium")
+def test_kitesurf_fetch_capture_allows_replacement_body_for_used_request() -> None:
+    binary = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+    if not binary.is_file():
+        pytest.skip("Chrome is unavailable")
+    from playwright.sync_api import sync_playwright
+
+    from harness.trajectory_replay.playwright_tool import (
+        REQUEST_BODY_CAPTURE_BINDING,
+        _request_body_capture_script,
+    )
+
+    captures = []
+    posts = []
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(executable_path=str(binary), headless=True)
+        context = browser.new_context()
+        context.expose_binding(
+            REQUEST_BODY_CAPTURE_BINDING,
+            lambda _source, payload: captures.append(payload),
+        )
+        context.add_init_script(
+            _request_body_capture_script(frozenset({"http://capture.test"}))
+        )
+
+        def route_request(route):
+            if route.request.method == "POST":
+                posts.append((route.request.url, route.request.post_data))
+            route.fulfill(
+                status=200,
+                headers={"access-control-allow-origin": "*"},
+                content_type="text/html",
+                body="<p>ready</p>",
+            )
+
+        context.route("**/*", route_request)
+        page = context.new_page()
+        page.goto("http://capture.test/")
+        results = page.evaluate(
+            """async () => {
+                const replace = async url => {
+                    const request = new Request(url, {method: 'POST', body: 'old'});
+                    await request.text();
+                    try {
+                        return ['ok', (await fetch(request, {body: 'new'})).status];
+                    } catch (error) {
+                        return [error.name, error.message];
+                    }
+                };
+                return [
+                    await replace('http://capture.test/selected'),
+                    await replace('http://outside.test/native'),
+                ];
+            }"""
+        )
+        browser.close()
+
+    assert results == [["ok", 200], ["ok", 200]]
+    assert captures[0]["body"] == {"kind": "text", "text": "new"}
+    assert posts == [
+        ("http://capture.test/selected", None),
+        ("http://outside.test/native", "new"),
     ]
 
 

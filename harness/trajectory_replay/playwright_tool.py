@@ -155,6 +155,7 @@ def _request_body_capture_script(origins: frozenset[str]) -> str:
   globalThis.__browserEvalRequestBodyCaptureInstalled = true;
   const prefix = `${{Date.now().toString(36)}}-${{Math.random().toString(36).slice(2)}}`;
   let sequence = 0;
+  let keepaliveBodyBytes = 0;
 
   const selected = url => {{
     try {{ return origins.has(new URL(url, document.baseURI).origin); }}
@@ -252,18 +253,57 @@ def _request_body_capture_script(origins: frozenset[str]) -> str:
     const options = init || {{}};
     const method = options.method || (input && input.method) || 'GET';
     const url = typeof input === 'string' ? input : String(input && input.url || input);
-    if (Object.prototype.hasOwnProperty.call(options, 'body')) {{
-      const requestId = await capture(method, url, options.body);
-      if (requestId !== null) {{
-        const inherited = input instanceof Request ? input.headers : undefined;
-        const headers = new Headers(options.headers || inherited);
-        headers.set(header, requestId);
-        return originalFetch.call(this, input, {{...options, headers}});
+    const hasInitBody = Object.prototype.hasOwnProperty.call(options, 'body');
+    const hasBody = hasInitBody
+      ? options.body !== undefined && options.body !== null
+      : input instanceof Request && input.body !== null;
+    if (hasInitBody) {{
+      const normalizedMethod = String(method).toUpperCase();
+      if (
+        hasBody
+        && (normalizedMethod === 'GET' || normalizedMethod === 'HEAD')
+      ) {{
+        throw new TypeError('Request with GET/HEAD method cannot have body.');
       }}
-    }} else if (input instanceof Request && input.body !== null && selected(url)) {{
-      throw new Error('request body capture requires the body in fetch init');
     }}
-    return originalFetch.call(this, input, init);
+    let keepaliveSize = 0;
+    const effectiveKeepalive = Object.prototype.hasOwnProperty.call(options, 'keepalive')
+      ? Boolean(options.keepalive)
+      : input instanceof Request && input.keepalive;
+    if (hasBody && effectiveKeepalive) {{
+      const absolute = new URL(url, document.baseURI).href;
+      const probe = hasInitBody
+        ? new Request(input instanceof Request ? input : absolute, options)
+        : input.clone();
+      keepaliveSize = (await probe.clone().arrayBuffer()).byteLength;
+      if (keepaliveBodyBytes + keepaliveSize > 65536) {{
+        throw new TypeError('Failed to fetch');
+      }}
+      keepaliveBodyBytes += keepaliveSize;
+    }}
+    try {{
+      if (hasInitBody) {{
+        const requestId = await capture(method, url, options.body);
+        if (requestId !== null) {{
+          const inherited = input instanceof Request ? input.headers : undefined;
+          const headers = new Headers(options.headers || inherited);
+          if (!headers.has('content-type')) {{
+            if (options.body instanceof URLSearchParams) {{
+              headers.set('content-type', 'application/x-www-form-urlencoded;charset=UTF-8');
+            }} else if (typeof options.body === 'string') {{
+              headers.set('content-type', 'text/plain;charset=UTF-8');
+            }}
+          }}
+          headers.set(header, requestId);
+          return await originalFetch.call(this, input, {{...options, headers, body: ''}});
+        }}
+      }} else if (input instanceof Request && input.body !== null && selected(url)) {{
+        throw new Error('request body capture requires the body in fetch init');
+      }}
+      return await originalFetch.call(this, input, init);
+    }} finally {{
+      keepaliveBodyBytes -= keepaliveSize;
+    }}
   }};
 
   const originalSubmit = HTMLFormElement.prototype.submit;
