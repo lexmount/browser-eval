@@ -24,6 +24,7 @@ from harness.trajectory_replay.catalog_runner import (
     _kitesurf_cdp_config,
     _load_task_selection,
     _recover_completed_attempts,
+    _request_bridge_options,
     _run_remote_with_setup_recovery,
     _run_with_setup_recovery,
     _task_ids,
@@ -48,6 +49,21 @@ _REMOTE_ENDPOINT = (
     "wss://api.cloudflare.com/client/v4/accounts/private-account/"
     "browser-run/devtools/browser?browser=kitesurf"
 )
+
+
+def test_catalog_runner_selects_profile_host_overrides_only_for_kitesurf() -> None:
+    origins = {"http://shop.test"}
+    overrides = [{"pattern": "*.dev.lexmount.net", "address": "10.2.62.142"}]
+    profile = {"host_overrides": overrides}
+
+    assert _request_bridge_options(profile, "kitesurf", origins) == {
+        "request_bridge_origins": origins,
+        "request_bridge_host_overrides": overrides,
+    }
+    assert _request_bridge_options(profile, "chromium", origins) == {
+        "request_bridge_origins": None,
+        "request_bridge_host_overrides": None,
+    }
 _REMOTE_HEADERS = {"Authorization": "Bearer private-token"}
 
 
@@ -1008,6 +1024,58 @@ def test_rows_can_rebind_accepted_actions_from_distinct_source_deployments() -> 
         actions_b, target, set(TRUSTED_RECORDED_HOSTS), row_source_sites({}, row_b)
     )
     assert rebound_b == rebound
+
+
+def test_remote_task_passes_host_overrides_to_playwright_tool(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    from harness.trajectory_replay import playwright_tool, remote_execution
+
+    observed = {}
+
+    class StopConstruction(Exception):
+        pass
+
+    class Tool:
+        def __init__(self, endpoint, **kwargs):
+            observed.update({"endpoint": endpoint, **kwargs})
+            raise StopConstruction
+
+    class Benchmark:
+        def get_task(self, task_id):
+            assert task_id == 281
+            return object()
+
+    class Catalog:
+        records = {}
+
+    monkeypatch.setattr(playwright_tool, "PlaywrightReplayTool", Tool)
+    overrides = [{"pattern": "*.dev.lexmount.net", "address": "10.2.62.142"}]
+    with pytest.raises(StopConstruction):
+        remote_execution._run_task(
+            task_id=281,
+            row={},
+            benchmark=Benchmark(),
+            endpoint=_REMOTE_ENDPOINT,
+            output=tmp_path,
+            run_id="host-override",
+            origins=set(),
+            sites={},
+            catalog=Catalog(),
+            backend="playwright",
+            engine="kitesurf",
+            cdp_headers={"Authorization": "Bearer secret"},
+            request_bridge_origins={"http://shop.test"},
+            request_bridge_host_overrides=overrides,
+        )
+
+    assert observed == {
+        "endpoint": _REMOTE_ENDPOINT,
+        "engine": "kitesurf",
+        "headers": {"Authorization": "Bearer secret"},
+        "request_bridge_origins": {"http://shop.test"},
+        "request_bridge_host_overrides": overrides,
+    }
 
 
 def test_progress_must_be_a_strict_execution_prefix(tmp_path: Path) -> None:

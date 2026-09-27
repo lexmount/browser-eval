@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import hashlib
+import ipaddress
 import json
 import re
 import time
@@ -14,6 +15,7 @@ from urllib.parse import urljoin, urlsplit
 
 import requests
 from playwright.sync_api import sync_playwright
+from requests.adapters import HTTPAdapter
 
 from harness.browser_use.runner import BENCHMARK_VIEWPORT
 from harness.trajectory_replay.public_webarena.executor import execute_steps
@@ -27,6 +29,81 @@ REQUEST_BODY_CAPTURE_LIMIT_BYTES = 20_000_000
 REQUEST_BODY_CAPTURE_MAX_PENDING = 256
 REQUEST_BODY_CAPTURE_TTL_SECONDS = 120.0
 _REQUEST_BODY_CAPTURE_ID = re.compile(r"[A-Za-z0-9._:-]{1,128}\Z")
+
+
+class _HostOverrideAdapter(HTTPAdapter):
+    """Connect selected HTTP hosts to a pinned address without changing URL identity."""
+
+    def __init__(self, overrides: tuple[tuple[str, str], ...]):
+        super().__init__()
+        self._overrides = overrides
+
+    def _address_for(self, hostname: str) -> str | None:
+        hostname = hostname.lower()
+        for pattern, address in self._overrides:
+            if hostname == pattern or (
+                pattern.startswith("*.") and hostname.endswith(pattern[1:])
+            ):
+                return address
+        return None
+
+    def get_connection_with_tls_context(
+        self,
+        request: Any,
+        verify: bool | str,
+        proxies: dict[str, str] | None = None,
+        cert: Any = None,
+    ) -> Any:
+        parsed = urlsplit(request.url)
+        address = self._address_for(parsed.hostname or "")
+        if address is None:
+            return super().get_connection_with_tls_context(
+                request, verify, proxies=proxies, cert=cert
+            )
+        if parsed.scheme != "http":
+            raise ValueError("request bridge host overrides support HTTP origins only")
+        request.headers["Host"] = parsed.netloc
+        return self.poolmanager.connection_from_host(
+            scheme="http",
+            host=address,
+            port=parsed.port or 80,
+        )
+
+
+def _validated_host_overrides(
+    overrides: list[dict[str, str]] | None,
+) -> tuple[tuple[str, str], ...]:
+    normalized: list[tuple[str, str]] = []
+    for row in overrides or []:
+        pattern = row.get("pattern") if isinstance(row, dict) else None
+        address = row.get("address") if isinstance(row, dict) else None
+        if (
+            not isinstance(pattern, str)
+            or not isinstance(address, str)
+            or not pattern
+            or pattern != pattern.lower()
+            or pattern.count("*") > 1
+            or ("*" in pattern and not pattern.startswith("*."))
+            or any(char in pattern for char in "/:,\n\r\t ")
+        ):
+            raise ValueError("request bridge host override pattern is invalid")
+        try:
+            ipaddress.ip_address(address)
+        except ValueError:
+            raise ValueError("request bridge host override address is invalid") from None
+        normalized.append((pattern, address))
+    if len({pattern for pattern, _ in normalized}) != len(normalized):
+        raise ValueError("request bridge host override pattern is duplicated")
+    return tuple(
+        sorted(
+            normalized,
+            key=lambda item: (
+                item[0].startswith("*."),
+                -len(item[0]),
+                item[0],
+            ),
+        )
+    )
 
 
 def _http_origin(url: str) -> str:
@@ -245,6 +322,7 @@ class PlaywrightReplayTool:
         engine: str = "chromium",
         headers: dict[str, str] | None = None,
         request_bridge_origins: set[str] | None = None,
+        request_bridge_host_overrides: list[dict[str, str]] | None = None,
     ):
         if engine not in {"chromium", "moli", "lightpanda", "obscura", "kitesurf"}:
             raise ValueError(f"unknown Playwright replay engine: {engine}")
@@ -306,7 +384,10 @@ class PlaywrightReplayTool:
                 if len(self._context.pages) != 1:
                     raise RuntimeError("Kitesurf did not expose exactly one default page")
                 self._page = self._context.pages[0]
-                self._install_request_bridge(request_bridge_origins or set())
+                self._install_request_bridge(
+                    request_bridge_origins or set(),
+                    request_bridge_host_overrides,
+                )
                 self._page.set_viewport_size(dict(BENCHMARK_VIEWPORT))
                 # Kitesurf applies emulation to the next document; its initial
                 # provider-owned about:blank retains the service default height.
@@ -321,7 +402,11 @@ class PlaywrightReplayTool:
             raise
         self._owns_cdp_context = True
 
-    def _install_request_bridge(self, origins: set[str]) -> None:
+    def _install_request_bridge(
+        self,
+        origins: set[str],
+        host_overrides: list[dict[str, str]] | None = None,
+    ) -> None:
         """Fetch selected private origins from the local Playwright driver."""
 
         parsed_origins = [urlsplit(origin) for origin in origins]
@@ -346,6 +431,12 @@ class PlaywrightReplayTool:
         self._request_bridge_har_body_bytes = 0
         self._request_bridge_session = requests.Session()
         self._request_bridge_session.trust_env = False
+        normalized_overrides = _validated_host_overrides(host_overrides)
+        if normalized_overrides:
+            for scheme in ("http://", "https://"):
+                self._request_bridge_session.mount(
+                    scheme, _HostOverrideAdapter(normalized_overrides)
+                )
         self._context.expose_binding(
             REQUEST_BODY_CAPTURE_BINDING, self._capture_request_body
         )

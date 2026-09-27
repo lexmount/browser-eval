@@ -405,6 +405,7 @@ def _run_task(
     cdp_headers: dict[str, str] | None = None,
     expected_runtime_metadata: dict[str, str] | None = None,
     request_bridge_origins: set[str] | None = None,
+    request_bridge_host_overrides: list[dict[str, str]] | None = None,
     task_timeout_ms: int = 300_000,
 ) -> dict:
     if task_timeout_ms < 1:
@@ -425,6 +426,7 @@ def _run_task(
             engine=engine,
             headers=cdp_headers,
             request_bridge_origins=request_bridge_origins,
+            request_bridge_host_overrides=request_bridge_host_overrides,
         )
     else:
         raise ValueError(f"unknown replay backend: {backend}")

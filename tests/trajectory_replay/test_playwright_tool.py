@@ -4,19 +4,173 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import http.server
 import json
 import socket
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
 import pytest
+import requests
 
 from harness.browser_use.runner import _prepare_browser_viewport
 from harness.trajectory_replay.public_webarena.executor import execute_steps
 from harness.trajectory_replay.remote_execution import _browser_command, _wait_cdp
 from harness.trajectory_replay.webarena_replay import _execute_replay_call
+
+
+def test_request_bridge_host_override_preserves_logical_http_identity() -> None:
+    from harness.trajectory_replay.playwright_tool import _HostOverrideAdapter
+
+    adapter = _HostOverrideAdapter(
+        (("*.dev.lexmount.net", "10.2.62.142"),)
+    )
+    calls = []
+
+    class PoolManager:
+        def connection_from_host(self, **kwargs):
+            calls.append(kwargs)
+            return "pool"
+
+    adapter.poolmanager = PoolManager()
+    prepared = requests.Session().prepare_request(
+        requests.Request(
+            "POST",
+            "http://webarena-shopping.dev.lexmount.net:8080/graphql",
+        )
+    )
+
+    assert adapter.get_connection_with_tls_context(prepared, True) == "pool"
+    assert prepared.url == "http://webarena-shopping.dev.lexmount.net:8080/graphql"
+    assert prepared.headers["Host"] == "webarena-shopping.dev.lexmount.net:8080"
+    assert calls == [{"scheme": "http", "host": "10.2.62.142", "port": 8080}]
+
+    https = requests.Session().prepare_request(
+        requests.Request("GET", "https://webarena-shopping.dev.lexmount.net/")
+    )
+    with pytest.raises(ValueError, match="HTTP origins only"):
+        adapter.get_connection_with_tls_context(https, True)
+
+
+def test_request_bridge_installation_routes_matching_https_to_fail_closed() -> None:
+    from harness.trajectory_replay.playwright_tool import (
+        PlaywrightReplayTool,
+        _HostOverrideAdapter,
+    )
+
+    class Context:
+        def expose_binding(self, *_args):
+            pass
+
+        def add_init_script(self, *_args):
+            pass
+
+        def route(self, *_args):
+            pass
+
+    tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
+    tool._context = Context()
+    tool.request_bridge_stats = {"requests": 0, "failures": 0}
+    tool._install_request_bridge(
+        {"https://shop.test"},
+        [{"pattern": "shop.test", "address": "127.0.0.1"}],
+    )
+    try:
+        assert isinstance(
+            tool._request_bridge_session.adapters["https://"],
+            _HostOverrideAdapter,
+        )
+        with pytest.raises(ValueError, match="HTTP origins only"):
+            tool._request_bridge_session.get("https://shop.test/", timeout=1)
+    finally:
+        tool._request_bridge_session.close()
+
+
+def test_request_bridge_host_override_routes_bytes_and_keeps_cookie_domain() -> None:
+    from harness.trajectory_replay.playwright_tool import _HostOverrideAdapter
+
+    observed = []
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            observed.append((self.path, self.headers["Host"]))
+            self.send_response(200)
+            self.send_header("Set-Cookie", "sid=value; Domain=shop.test; Path=/")
+            self.end_headers()
+            self.wfile.write(b"ok")
+
+        def log_message(self, *_args):
+            pass
+
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        session = requests.Session()
+        session.trust_env = False
+        session.mount(
+            "http://",
+            _HostOverrideAdapter((("shop.test", "127.0.0.1"),)),
+        )
+        response = session.get(
+            f"http://shop.test:{server.server_port}/resource", timeout=5
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+    assert response.status_code == 200
+    assert response.url == f"http://shop.test:{server.server_port}/resource"
+    assert response.cookies.get("sid", domain=".shop.test", path="/") == "value"
+    assert observed == [("/resource", f"shop.test:{server.server_port}")]
+
+
+def test_request_bridge_host_override_prefers_exact_then_specific_wildcard() -> None:
+    from harness.trajectory_replay.playwright_tool import (
+        _HostOverrideAdapter,
+        _validated_host_overrides,
+    )
+
+    adapter = _HostOverrideAdapter(
+        _validated_host_overrides(
+            [
+                {"pattern": "*.dev.lexmount.net", "address": "10.0.0.1"},
+                {"pattern": "*.sub.dev.lexmount.net", "address": "10.0.0.2"},
+                {"pattern": "shop.sub.dev.lexmount.net", "address": "10.0.0.3"},
+            ]
+        )
+    )
+
+    assert adapter._address_for("shop.sub.dev.lexmount.net") == "10.0.0.3"
+    assert adapter._address_for("other.sub.dev.lexmount.net") == "10.0.0.2"
+    assert adapter._address_for("other.dev.lexmount.net") == "10.0.0.1"
+
+
+@pytest.mark.parametrize(
+    "overrides, message",
+    [
+        ([{"pattern": "shop.*.test", "address": "10.2.62.142"}], "pattern"),
+        ([{"pattern": "*.dev.lexmount.net", "address": "internal.test"}], "address"),
+        (
+            [
+                {"pattern": "*.dev.lexmount.net", "address": "10.2.62.142"},
+                {"pattern": "*.dev.lexmount.net", "address": "10.2.62.143"},
+            ],
+            "duplicated",
+        ),
+    ],
+)
+def test_request_bridge_host_override_rejects_ambiguous_inputs(
+    overrides, message
+) -> None:
+    from harness.trajectory_replay.playwright_tool import _validated_host_overrides
+
+    with pytest.raises(ValueError, match=message):
+        _validated_host_overrides(overrides)
 
 
 def _unit_tool(page, context, *, engine="chromium"):

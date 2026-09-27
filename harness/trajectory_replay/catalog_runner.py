@@ -229,6 +229,24 @@ def _chromium_host_resolver_rules(environment_profile: dict, engine: str) -> str
     return ", ".join(rules)
 
 
+def _request_bridge_options(
+    environment_profile: dict,
+    engine: str,
+    task_origins: set[str],
+) -> dict[str, object]:
+    """Bind Kitesurf's local bridge to the deployment's declared host routing."""
+
+    if engine != "kitesurf":
+        return {
+            "request_bridge_origins": None,
+            "request_bridge_host_overrides": None,
+        }
+    return {
+        "request_bridge_origins": task_origins,
+        "request_bridge_host_overrides": environment_profile.get("host_overrides") or [],
+    }
+
+
 def _stop_browser(process: subprocess.Popen) -> None:
     if process.poll() is not None:
         return
@@ -650,9 +668,7 @@ def main() -> None:
                 if remote_binding is not None
                 else None
             ),
-            request_bridge_origins=(
-                task_origins if args.engine == "kitesurf" else None
-            ),
+            **_request_bridge_options(environment_profile, args.engine, task_origins),
             task_timeout_ms=args.task_timeout_ms,
         )
 
