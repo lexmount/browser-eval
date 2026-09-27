@@ -27,6 +27,7 @@ from harness.trajectory_replay.evaluator_transition import (
 from harness.trajectory_replay.remote_runtime import load_remote_sites, remote_benchmark
 from harness.trajectory_replay.runtime_identity import (
     assert_observed_runtime,
+    request_bridge_identity,
     runtime_identity,
 )
 from harness.trajectory_replay.webarena_corrections import load_corrections
@@ -257,6 +258,7 @@ def audit(
             if backend != expected_backend:
                 raise ValueError("acceptance run used a different execution backend")
             runtime_identity_key, runtime_binding = runtime_identity(binding)
+            request_bridge = request_bridge_identity(binding)
             binary_sha256 = runtime_binding.get("binary_sha256")
             remote_browser = runtime_binding.get("remote_browser")
             participant = (
@@ -267,6 +269,11 @@ def audit(
                     json.dumps(remote_browser, sort_keys=True, separators=(",", ":"))
                     if remote_browser is not None
                     else None
+                ),
+                json.dumps(
+                    request_bridge,
+                    sort_keys=True,
+                    separators=(",", ":"),
                 ),
             )
             if participant_contract is None:
@@ -288,6 +295,7 @@ def audit(
                 binding.get("corrections_sha256"),
                 binding.get("webarena_revision") or binding.get("evaluator_fixes_sha256"),
                 binding.get("action_overrides_sha256"),
+                request_bridge,
             )
             if kind == "segment":
                 if sweep_contract is None:
@@ -316,6 +324,8 @@ def audit(
                     }
                 )
                 run_record.update(runtime_binding)
+                if request_bridge is not None:
+                    run_record["request_bridge"] = request_bridge
                 evaluator_identity = (
                     "webarena_revision"
                     if binding["schema"] == "lex_trajectory_replay_catalog_run/1"
@@ -444,6 +454,11 @@ def audit(
                 else {
                     "remote_browser": next(iter(remote_browser_identities.values()))
                 }
+            ),
+            **(
+                {"request_bridge": json.loads(participant_contract[4])}
+                if participant_contract[4] != "null"
+                else {}
             ),
         }
     if len(binary_sha256s) == 1:

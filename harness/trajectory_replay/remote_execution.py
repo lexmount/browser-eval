@@ -404,6 +404,7 @@ def _run_task(
     engine: str = "chromium",
     cdp_headers: dict[str, str] | None = None,
     expected_runtime_metadata: dict[str, str] | None = None,
+    request_bridge_origins: set[str] | None = None,
     task_timeout_ms: int = 300_000,
 ) -> dict:
     if task_timeout_ms < 1:
@@ -419,7 +420,12 @@ def _run_task(
     elif backend == "playwright":
         from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
 
-        tool = PlaywrightReplayTool(endpoint, engine=engine, headers=cdp_headers)
+        tool = PlaywrightReplayTool(
+            endpoint,
+            engine=engine,
+            headers=cdp_headers,
+            request_bridge_origins=request_bridge_origins,
+        )
     else:
         raise ValueError(f"unknown replay backend: {backend}")
     if (
@@ -697,6 +703,11 @@ def _run_task(
         **(
             {"runtime_metadata": tool.runtime_metadata}
             if getattr(tool, "runtime_metadata", None) is not None
+            else {}
+        ),
+        **(
+            {"request_bridge_stats": tool.request_bridge_stats}
+            if request_bridge_origins
             else {}
         ),
         "evidence_sha256": hashes,

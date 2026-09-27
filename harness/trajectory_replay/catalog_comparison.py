@@ -18,6 +18,7 @@ from harness.trajectory_replay.catalog_contracts import (
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls, remote_benchmark
 from harness.trajectory_replay.runtime_identity import (
     assert_observed_runtime,
+    request_bridge_identity,
     runtime_identities,
     runtime_identity,
 )
@@ -177,6 +178,7 @@ def _attempt(
     progress_index: dict[str, tuple[Path, dict[int, dict[str, Any]]]],
     site_resets: dict[str, dict[str, str]],
     ledger_runtimes: dict[str, dict[str, object]],
+    ledger_request_bridge: dict[str, object] | None,
 ) -> dict[str, Any] | None:
     if summary.get("status") == "candidate_setup_failure":
         return None
@@ -194,6 +196,8 @@ def _attempt(
     inputs = _read(inputs_path)
     if inputs.get("engine") != participant["engine"]:
         raise ValueError(f"task {task_id}: physical browser identity changed")
+    if request_bridge_identity(inputs) != ledger_request_bridge:
+        raise ValueError(f"task {task_id}: physical request bridge identity changed")
     identity_key, physical_runtime = runtime_identity(inputs)
     if ledger_runtimes.get(identity_key) != physical_runtime:
         raise ValueError(f"task {task_id}: physical browser runtime identity changed")
@@ -275,6 +279,11 @@ def _attempt(
         "binary_sha256": binary_sha256,
         **({"remote_browser": remote_browser} if remote_browser is not None else {}),
         **(
+            {"request_bridge": inputs["request_bridge"]}
+            if inputs.get("request_bridge") is not None
+            else {}
+        ),
+        **(
             {"runtime_metadata": physical["runtime_metadata"]}
             if isinstance(physical.get("runtime_metadata"), dict)
             else {}
@@ -314,6 +323,7 @@ def build_catalog_comparison_results(
         if ledger_participant.get("engine") != participant["engine"]:
             raise ValueError(f"{participant_id}: acceptance ledger browser identity changed")
         ledger_runtimes = runtime_identities(ledger_participant)
+        ledger_request_bridge = request_bridge_identity(ledger_participant)
         index = _progress_index(evidence_root)
         site_resets = _site_reset_index(evidence_root)
         if ledger.get("site_reset_receipt_sha256") not in site_resets:
@@ -329,6 +339,7 @@ def build_catalog_comparison_results(
                     progress_index=index,
                     site_resets=site_resets,
                     ledger_runtimes=ledger_runtimes,
+                    ledger_request_bridge=ledger_request_bridge,
                 )
                 if row is not None:
                     physical_for_task.append(row)

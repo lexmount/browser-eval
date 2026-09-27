@@ -2,6 +2,87 @@ import base64
 import json
 
 from harness.browser_use.har import CdpHarRecorder, _har_request, _har_response, _is_json_mime_type
+from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
+
+
+def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(tmp_path) -> None:
+    class EventSource:
+        def __init__(self):
+            self.handlers = {}
+
+        def on(self, event, callback):
+            self.handlers[event] = callback
+
+        def remove_listener(self, *_args):
+            pass
+
+    page = EventSource()
+
+    class Context(EventSource):
+        pages = [page]
+
+        def route(self, selector, handler):
+            self.selector = selector
+            self.route_handler = handler
+
+    class Request:
+        method = "POST"
+        url = "http://private.example.test/save"
+        headers = {"content-type": "application/json"}
+        post_data = '{"enabled":true}'
+        resource_type = "xhr"
+        failure = None
+
+        def all_headers(self):
+            return dict(self.headers)
+
+    request = Request()
+
+    class Response:
+        status = 201
+        status_text = "Created"
+        headers = {"content-type": "application/json"}
+
+        def __init__(self):
+            self.request = request
+
+        def all_headers(self):
+            return dict(self.headers)
+
+        def body(self):
+            return b'{"saved":true}'
+
+    response = Response()
+    context = Context()
+    tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
+    tool._context = context
+    tool.request_bridge_stats = {"requests": 0, "failures": 0}
+    tool._install_request_bridge({"http://private.example.test"})
+    recorder = CdpHarRecorder(capture_transport="playwright")
+    recorder.start(context)
+
+    class Route:
+        def fetch(self, **_kwargs):
+            return response
+
+        def fulfill(self, **kwargs):
+            assert kwargs == {"response": response}
+            page.handlers["request"](request)
+            page.handlers["response"](response)
+            page.handlers["requestfinished"](request)
+
+    assert context.selector(request.url) is True
+    context.route_handler(Route())
+    path = tmp_path / "bridged.har"
+    recorder.stop(context, path)
+
+    entries = json.loads(path.read_text())["log"]["entries"]
+    assert len(entries) == 1
+    assert entries[0]["request"]["postData"]["text"] == '{"enabled":true}'
+    assert entries[0]["response"]["status"] == 201
+    assert entries[0]["response"]["content"]["text"] == '{"saved":true}'
+    assert tool.request_bridge_stats == {"requests": 1, "failures": 0}
+    assert recorder.errors == []
 
 
 def test_playwright_transport_records_mutation_and_json_body_without_cdp_session(

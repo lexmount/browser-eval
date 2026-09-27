@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from typing import Any
+from urllib.parse import urlsplit
 
 REMOTE_RUNTIME_FIELDS = (
     "protocolVersion",
@@ -13,6 +14,40 @@ REMOTE_RUNTIME_FIELDS = (
     "userAgent",
     "jsVersion",
 )
+
+
+def request_bridge_identity(binding: dict[str, Any]) -> dict[str, object] | None:
+    bridge = binding.get("request_bridge")
+    engine = binding.get("engine")
+    if bridge is None:
+        if engine == "kitesurf":
+            raise ValueError("Kitesurf run is missing its request bridge identity")
+        return None
+    if engine is not None and engine != "kitesurf":
+        raise ValueError("request bridge is only valid for Kitesurf runs")
+    origins = bridge.get("origins") if isinstance(bridge, dict) else None
+    if (
+        not isinstance(bridge, dict)
+        or bridge.get("kind") != "playwright_route_fetch/1"
+        or not isinstance(origins, list)
+        or not origins
+        or origins != sorted(set(origins))
+    ):
+        raise ValueError("run request bridge identity is invalid")
+    for origin in origins:
+        parsed = urlsplit(origin) if isinstance(origin, str) else None
+        if (
+            parsed is None
+            or parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or parsed.path not in {"", "/"}
+            or parsed.query
+            or parsed.fragment
+            or parsed.username is not None
+            or parsed.password is not None
+        ):
+            raise ValueError("run request bridge origin is invalid")
+    return bridge
 
 
 def runtime_identity(binding: dict[str, Any]) -> tuple[str, dict[str, object]]:

@@ -148,6 +148,35 @@ def test_acceptance_rejects_observed_hosted_version_drift() -> None:
         )
 
 
+def test_request_bridge_identity_is_credential_free_and_canonical() -> None:
+    bridge = {
+        "kind": "playwright_route_fetch/1",
+        "origins": ["http://a.example.test", "https://b.example.test"],
+    }
+    assert acceptance.request_bridge_identity(
+        {"engine": "kitesurf", "request_bridge": bridge}
+    ) == bridge
+
+    with pytest.raises(ValueError, match="missing its request bridge"):
+        acceptance.request_bridge_identity({"engine": "kitesurf"})
+
+    with pytest.raises(ValueError, match="only valid for Kitesurf"):
+        acceptance.request_bridge_identity(
+            {"engine": "chromium", "request_bridge": bridge}
+        )
+
+    with pytest.raises(ValueError, match="origin is invalid"):
+        acceptance.request_bridge_identity(
+            {
+                "engine": "kitesurf",
+                "request_bridge": {
+                    "kind": "playwright_route_fetch/1",
+                    "origins": ["http://user:password@a.example.test"],
+                }
+            }
+        )
+
+
 def _scope(tmp_path, ids=None):
     ids = list(range(812)) if ids is None else ids
     path = tmp_path / "scope.json"

@@ -572,6 +572,15 @@ def main() -> None:
     }
     if remote_binding is not None:
         binding["remote_browser"] = remote_binding
+        binding["request_bridge"] = {
+            "kind": "playwright_route_fetch/1",
+            "origins": sorted(
+                {
+                    f"{urlsplit(url).scheme}://{urlsplit(url).netloc}"
+                    for url in sites.values()
+                }
+            ),
+        }
     if args.action_overrides is not None:
         binding["action_overrides_sha256"] = file_sha256(args.action_overrides)
     binding_path = args.output / "inputs.json"
@@ -618,6 +627,7 @@ def main() -> None:
         cdp_headers: dict[str, str] | None = None,
     ) -> dict:
         task_id = frozen["task_id"]
+        task_origins = _task_origins(benchmark, task_id, sites)
         return _run_task(
             task_id=task_id,
             row=row,
@@ -625,7 +635,7 @@ def main() -> None:
             endpoint=endpoint,
             output=args.output,
             run_id=args.output.name,
-            origins=_task_origins(benchmark, task_id, sites),
+            origins=task_origins,
             sites=sites,
             catalog=corrections,
             portable_task=(
@@ -639,6 +649,9 @@ def main() -> None:
                 remote_binding["runtime_metadata"]
                 if remote_binding is not None
                 else None
+            ),
+            request_bridge_origins=(
+                task_origins if args.engine == "kitesurf" else None
             ),
             task_timeout_ms=args.task_timeout_ms,
         )

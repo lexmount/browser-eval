@@ -33,6 +33,10 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
         "account_id_sha256": "a" * 64,
         "runtime_metadata": runtime_metadata,
     }
+    request_bridge = {
+        "kind": "playwright_route_fetch/1",
+        "origins": ["http://private.example.test"],
+    }
     current_evaluation = {"score": 1.0, "status": "pass", "evaluator": "current"}
     transition = {
         "task_id": 0,
@@ -88,6 +92,7 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
                     if hosted
                     else {"binary_sha256": "b" * 64}
                 ),
+                **({"request_bridge": request_bridge} if hosted else {}),
             },
             "binary_sha256s": [] if hosted else ["b" * 64],
             **({"remote_browsers": [remote_browser]} if hosted else {}),
@@ -179,8 +184,12 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
     if hosted:
         assert public["participant"]["remote_browser"] == remote_browser
         assert public["participant"]["runtime_metadata"] == runtime_metadata
+        assert public["participant"]["request_bridge"] == request_bridge
         assert "1 个浏览器运行时身份" in (output / "index.html").read_text()
         assert "Browser.getVersion" in (output / "method.html").read_text()
+        assert "Playwright request bridge" in (output / "method.html").read_text()
+        manifest = json.loads((output / "manifest.json").read_text())
+        assert manifest["participant"]["request_bridge"] == request_bridge
     else:
         assert public["participant"]["binary_sha256"] == "b" * 64
     assert public["evaluation"] == current_evaluation
@@ -188,6 +197,7 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
     profile = {
         "browser": "kitesurf" if hosted else "moli",
         "execution_backend": "playwright",
+        **({"request_bridge": request_bridge} if hosted else {}),
         "acceptance_ledger_sha256": webarena_report._catalog_file_sha256(ledger),
         "accepted_catalog": {"sha256": webarena_report._catalog_file_sha256(catalog)},
         "accepted_portable_suite": {

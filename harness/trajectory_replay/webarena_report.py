@@ -25,6 +25,7 @@ from harness.trajectory_replay.participants import (
     resolve_participant_id,
 )
 from harness.trajectory_replay.remote_runtime import load_remote_sites, remote_benchmark
+from harness.trajectory_replay.runtime_identity import request_bridge_identity
 from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_review import (
     load_validated_failure_review,
@@ -2067,6 +2068,7 @@ def build_catalog_acceptance_report(
     task_count = len(official)
     engine = str(participant_data.get("engine") or "unknown")
     backend = str(participant_data.get("backend") or "unknown")
+    request_bridge = request_bridge_identity(participant_data)
     participant = f"{engine.capitalize()} / {backend.capitalize()}"
     output.mkdir(parents=True)
     (output / "case").mkdir()
@@ -2153,6 +2155,11 @@ def build_catalog_acceptance_report(
                             "remote_browser"
                         ),
                         "runtime_metadata": final_attempt.get("runtime_metadata"),
+                        **(
+                            {"request_bridge": request_bridge}
+                            if request_bridge is not None
+                            else {}
+                        ),
                     }
                 ),
             },
@@ -2240,7 +2247,12 @@ def build_catalog_acceptance_report(
         if hosted_runtime
         else "轨迹修复期间使用多个二进制版本，但每个版本均在接受账本中单独绑定。"
     )
-    method_body = f"""<h1>方法与边界</h1><section class="panel"><h2>执行方法</h2><p>评测集按官方题号 {task_ids[0]}–{task_ids[-1]} 排列。每题执行冻结轨迹，由 {html.escape(engine.capitalize())} 浏览器引擎通过 {html.escape(backend.capitalize())} 协议后端完成动作。接受标准是 WebArena-Verified 官方 evaluator 返回 score 1.0。</p><p>初始扫描中断后，后续执行只选择接受账本里尚未通过的题。最终接受账本绑定每个物理调用、{runtime_method}、站点映射、轨迹、实际响应、网络证据和 evaluator 结果。</p></section><section class="panel"><h2>代码与评测边界</h2><p>确认属于评测集或 evaluator 的通用修复维护在 lexmount/webarena-verified 的 lex-main 分支；轨迹、执行器、站点绑定、证据聚合和报告维护在 browser-eval。评测答案和通过条件没有为浏览器适配而放宽。</p><p>旧 evaluator 版本下的通过证据通过固定实际响应和 HAR 离线重评，浏览器动作没有重跑。{revision_method}</p></section><section class="panel"><h2>结果范围</h2><p>该结果证明当前 {html.escape(participant)} 配置下 {task_count} 题各自至少成功一次。812-case 全量 split 与既有 90-case 抽样 split 数据独立；两者共享轨迹执行和 evaluator 基础模块，并分别绑定自己的证据与发布目标。</p></section>"""
+    bridge_method = (
+        f"Kitesurf 远端浏览器无法直接访问私网 Rainbond 地址；本轮用 Playwright request bridge 从执行机访问账本绑定的 {len(request_bridge['origins'])} 个站点 origin，并以原 URL、请求方法、请求头和请求体回填响应。桥接身份随每个执行段和公开证据保存。"
+        if request_bridge is not None
+        else ""
+    )
+    method_body = f"""<h1>方法与边界</h1><section class="panel"><h2>执行方法</h2><p>评测集按官方题号 {task_ids[0]}–{task_ids[-1]} 排列。每题执行冻结轨迹，由 {html.escape(engine.capitalize())} 浏览器引擎通过 {html.escape(backend.capitalize())} 协议后端完成动作。接受标准是 WebArena-Verified 官方 evaluator 返回 score 1.0。</p><p>初始扫描中断后，后续执行只选择接受账本里尚未通过的题。最终接受账本绑定每个物理调用、{runtime_method}、站点映射、轨迹、实际响应、网络证据和 evaluator 结果。</p>{f'<p>{html.escape(bridge_method)}</p>' if bridge_method else ''}</section><section class="panel"><h2>代码与评测边界</h2><p>确认属于评测集或 evaluator 的通用修复维护在 lexmount/webarena-verified 的 lex-main 分支；轨迹、执行器、站点绑定、证据聚合和报告维护在 browser-eval。评测答案和通过条件没有为浏览器适配而放宽。</p><p>旧 evaluator 版本下的通过证据通过固定实际响应和 HAR 离线重评，浏览器动作没有重跑。{revision_method}</p></section><section class="panel"><h2>结果范围</h2><p>该结果证明当前 {html.escape(participant)} 配置下 {task_count} 题各自至少成功一次。812-case 全量 split 与既有 90-case 抽样 split 数据独立；两者共享轨迹执行和 evaluator 基础模块，并分别绑定自己的证据与发布目标。</p></section>"""
     (output / "method.html").write_text(
         _catalog_shell("方法与边界", method_body, participant), encoding="utf-8"
     )
@@ -2273,7 +2285,15 @@ def build_catalog_acceptance_report(
     manifest = {
         "schema": CATALOG_REPORT_SCHEMA,
         "generated_languages": ["zh"],
-        "participant": {"engine": engine, "backend": backend},
+        "participant": {
+            "engine": engine,
+            "backend": backend,
+            **(
+                {"request_bridge": request_bridge}
+                if request_bridge is not None
+                else {}
+            ),
+        },
         "ledger_sha256": _catalog_file_sha256(ledger_path),
         "scope_sha256": _catalog_file_sha256(scope_path),
         "catalog_sha256": _catalog_file_sha256(catalog_path),
@@ -2320,12 +2340,21 @@ def validate_catalog_acceptance_report(
         or len(list((output / "evidence").glob("*.json"))) != task_count
     ):
         raise ValueError("catalog report manifest or route inventory is invalid")
-    if profile is not None and (
-        manifest.get("participant")
-        != {
+    expected_participant = (
+        {
             "engine": profile.get("browser"),
             "backend": profile.get("execution_backend"),
+            **(
+                {"request_bridge": profile["request_bridge"]}
+                if profile.get("request_bridge") is not None
+                else {}
+            ),
         }
+        if profile is not None
+        else None
+    )
+    if profile is not None and (
+        manifest.get("participant") != expected_participant
         or manifest.get("ledger_sha256") != profile.get("acceptance_ledger_sha256")
         or manifest.get("catalog_sha256")
         != (profile.get("accepted_catalog") or {}).get("sha256")

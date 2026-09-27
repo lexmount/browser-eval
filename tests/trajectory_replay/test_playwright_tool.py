@@ -135,6 +135,9 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
     class Context:
         pages = [page]
 
+        def route(self, selector, handler):
+            events.append(("route", selector, handler))
+
         def new_cdp_session(self, _page):
             raise AssertionError("Kitesurf must not attach a second CDP session")
 
@@ -154,6 +157,8 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
                         "protocolVersion": "1.3",
                         "product": "Chrome/145.0.0.0",
                         "revision": "@kitesurf",
+                        "userAgent": "Kitesurf",
+                        "jsVersion": "14.5",
                     }
 
                 def detach(self):
@@ -189,16 +194,48 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
         "wss://provider.example/cdp",
         engine="kitesurf",
         headers={"Authorization": "Bearer secret"},
+        request_bridge_origins={"http://private.test"},
     )
     assert tool.har_capture_transport == "playwright"
     assert tool.runtime_metadata == {
         "protocolVersion": "1.3",
         "product": "Chrome/145.0.0.0",
         "revision": "@kitesurf",
+        "userAgent": "Kitesurf",
+        "jsVersion": "14.5",
     }
     assert tool._supports_multiple_pages is False
     assert tool._supports_network_reset_cdp is False
     assert tool._supports_storage_cdp is False
+    route_event = next(event for event in events if event[0] == "route")
+    predicate, handler = route_event[1:]
+    assert predicate("http://private.test/path") is True
+    assert predicate("https://public.test/path") is False
+
+    response = object()
+
+    class Route:
+        def fetch(self, **kwargs):
+            events.append(("bridge", "fetch", kwargs))
+            return response
+
+        def fulfill(self, **kwargs):
+            events.append(("bridge", "fulfill", kwargs))
+
+    handler(Route())
+    assert tool.request_bridge_stats == {"requests": 1, "failures": 0}
+
+    class FailedRoute:
+        def fetch(self, **kwargs):
+            events.append(("bridge", "failed-fetch", kwargs))
+            raise RuntimeError("local fetch failed")
+
+        def abort(self, reason):
+            events.append(("bridge", "abort", reason))
+
+    with pytest.raises(RuntimeError, match="local fetch failed"):
+        handler(FailedRoute())
+    assert tool.request_bridge_stats == {"requests": 2, "failures": 1}
     tool.close()
 
     assert events == [
@@ -209,8 +246,13 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
         ),
         ("browser_cdp", "Browser.getVersion"),
         ("browser_cdp", "detach"),
+        ("route", predicate, handler),
         ("viewport", {"width": 1280, "height": 900}),
         ("goto", "about:blank", {"wait_until": "load", "timeout": 10_000}),
+        ("bridge", "fetch", {"timeout": 60_000, "max_redirects": 0}),
+        ("bridge", "fulfill", {"response": response}),
+        ("bridge", "failed-fetch", {"timeout": 60_000, "max_redirects": 0}),
+        ("bridge", "abort", "failed"),
         ("browser", "close"),
         ("playwright", "stop"),
     ]

@@ -85,6 +85,7 @@ def _participant_fixture(
     rows: list[dict],
     site_reset: Path,
     remote_browser: dict | None = None,
+    request_bridge: dict | None = None,
 ) -> dict:
     local_site_reset = root / "site-reset.json"
     _write(local_site_reset, json.loads(site_reset.read_text(encoding="utf-8")))
@@ -148,6 +149,11 @@ def _participant_fixture(
                     if remote_browser is not None
                     else {}
                 ),
+                **(
+                    {"request_bridge": request_bridge}
+                    if request_bridge is not None
+                    else {}
+                ),
                 "site_reset_receipt_sha256": file_sha256(local_site_reset),
             },
         )
@@ -170,6 +176,11 @@ def _participant_fixture(
                     {"remote_browser": remote_browser}
                     if remote_browser is not None
                     else {"binary_sha256": participant_id[0] * 64}
+                ),
+                **(
+                    {"request_bridge": request_bridge}
+                    if request_bridge is not None
+                    else {}
                 ),
             },
             "site_reset_receipt_sha256": file_sha256(local_site_reset),
@@ -201,6 +212,13 @@ def _kitesurf_identity() -> dict:
     }
 
 
+def _kitesurf_request_bridge() -> dict:
+    return {
+        "kind": "playwright_route_fetch/1",
+        "origins": ["http://private.example.test"],
+    }
+
+
 def test_catalog_results_reject_hosted_runtime_version_drift(tmp_path: Path) -> None:
     dataset = {
         "trajectories": [
@@ -223,6 +241,7 @@ def test_catalog_results_reject_hosted_runtime_version_drift(tmp_path: Path) -> 
         rows=[{"status": "pass"}],
         site_reset=reset,
         remote_browser=_kitesurf_identity(),
+        request_bridge=_kitesurf_request_bridge(),
     )
     progress = tmp_path / "remote" / "kitesurf-0" / "progress.jsonl"
     physical = json.loads(progress.read_text(encoding="utf-8"))
@@ -234,6 +253,47 @@ def test_catalog_results_reject_hosted_runtime_version_drift(tmp_path: Path) -> 
     ledger.write_text(json.dumps(payload) + "\n", encoding="utf-8")
 
     with pytest.raises(ValueError, match="observed remote browser version changed"):
+        catalog_comparison.build_catalog_comparison_results(
+            dataset=dataset,
+            dataset_sha256="1" * 64,
+            profile_sha256="2" * 64,
+            scope_sha256="3" * 64,
+            site_map_sha256="4" * 64,
+            participants=[participant],
+        )
+
+
+def test_catalog_results_reject_request_bridge_drift(tmp_path: Path) -> None:
+    dataset = {
+        "trajectories": [
+            {
+                "task_id": 0,
+                "task": {"intent": "Task 0", "sites": ["wikipedia"]},
+                "evaluation_input": {"task_type": "NAVIGATE", "status": "SUCCESS"},
+                "tool_calls": [
+                    {"action": "navigate", "url": "https://example.test/0"}
+                ],
+            }
+        ]
+    }
+    reset = tmp_path / "site-reset.json"
+    _write(reset, {"status": "ready"})
+    bridge = _kitesurf_request_bridge()
+    participant = _participant_fixture(
+        tmp_path / "remote",
+        participant_id="kitesurf",
+        engine="kitesurf",
+        rows=[{"status": "pass"}],
+        site_reset=reset,
+        remote_browser=_kitesurf_identity(),
+        request_bridge=bridge,
+    )
+    inputs = tmp_path / "remote" / "kitesurf-0" / "inputs.json"
+    payload = json.loads(inputs.read_text(encoding="utf-8"))
+    payload["request_bridge"]["origins"] = ["http://other.example.test"]
+    inputs.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="physical request bridge identity changed"):
         catalog_comparison.build_catalog_comparison_results(
             dataset=dataset,
             dataset_sha256="1" * 64,

@@ -7,6 +7,7 @@ import json
 import time
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import urlsplit
 
 from playwright.sync_api import sync_playwright
 
@@ -50,6 +51,7 @@ class PlaywrightReplayTool:
         *,
         engine: str = "chromium",
         headers: dict[str, str] | None = None,
+        request_bridge_origins: set[str] | None = None,
     ):
         if engine not in {"chromium", "moli", "lightpanda", "obscura", "kitesurf"}:
             raise ValueError(f"unknown Playwright replay engine: {engine}")
@@ -70,6 +72,7 @@ class PlaywrightReplayTool:
         self._browser = None
         self._context = None
         self.runtime_metadata: dict[str, Any] | None = None
+        self.request_bridge_stats = {"requests": 0, "failures": 0}
         try:
             connect_options: dict[str, Any] = {"timeout": 90_000}
             if headers is not None:
@@ -100,6 +103,7 @@ class PlaywrightReplayTool:
                 if len(self._context.pages) != 1:
                     raise RuntimeError("Kitesurf did not expose exactly one default page")
                 self._page = self._context.pages[0]
+                self._install_request_bridge(request_bridge_origins or set())
                 self._page.set_viewport_size(dict(BENCHMARK_VIEWPORT))
                 # Kitesurf applies emulation to the next document; its initial
                 # provider-owned about:blank retains the service default height.
@@ -113,6 +117,46 @@ class PlaywrightReplayTool:
             self.close()
             raise
         self._owns_cdp_context = True
+
+    def _install_request_bridge(self, origins: set[str]) -> None:
+        """Fetch selected private origins from the local Playwright driver."""
+
+        parsed_origins = [urlsplit(origin) for origin in origins]
+        if any(
+            parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or parsed.path not in {"", "/"}
+            or parsed.query
+            or parsed.fragment
+            or parsed.username is not None
+            or parsed.password is not None
+            for parsed in parsed_origins
+        ):
+            raise ValueError("request bridge origins must be bare HTTP(S) origins")
+        normalized = {
+            f"{parsed.scheme}://{parsed.netloc}" for parsed in parsed_origins
+        }
+        if not normalized:
+            return
+
+        def selected(url: str) -> bool:
+            parsed = urlsplit(url)
+            return f"{parsed.scheme}://{parsed.netloc}" in normalized
+
+        def bridge(route) -> None:
+            self.request_bridge_stats["requests"] += 1
+            try:
+                response = route.fetch(timeout=60_000, max_redirects=0)
+                route.fulfill(response=response)
+            except Exception:
+                self.request_bridge_stats["failures"] += 1
+                try:
+                    route.abort("failed")
+                except Exception:
+                    pass
+                raise
+
+        self._context.route(selected, bridge)
 
     def _get_service(self) -> PlaywrightReplayTool:
         return self
