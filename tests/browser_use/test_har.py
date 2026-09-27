@@ -4,6 +4,149 @@ import json
 from harness.browser_use.har import CdpHarRecorder, _har_request, _har_response, _is_json_mime_type
 
 
+def test_playwright_transport_records_mutation_and_json_body_without_cdp_session(
+    tmp_path,
+) -> None:
+    class EventSource:
+        def __init__(self):
+            self.handlers = {}
+            self.removed = []
+
+        def on(self, event, callback):
+            self.handlers[event] = callback
+
+        def remove_listener(self, event, callback):
+            assert self.handlers[event] == callback
+            self.removed.append(event)
+
+    page = EventSource()
+
+    class Context(EventSource):
+        pages = [page]
+
+        def new_cdp_session(self, _page):
+            raise AssertionError("Playwright capture must not attach a second CDP session")
+
+    class Request:
+        method = "POST"
+        url = "http://example.test/save"
+        headers = {"content-type": "application/json"}
+        post_data = '{"enabled":true}'
+        resource_type = "xhr"
+        failure = None
+
+        def all_headers(self):
+            return dict(self.headers)
+
+    class Response:
+        request = Request()
+        status = 200
+        status_text = "OK"
+        headers = {"content-type": "application/json; charset=utf-8"}
+
+        def all_headers(self):
+            return dict(self.headers)
+
+        def body(self):
+            return b'{"saved":true}'
+
+    context = Context()
+    recorder = CdpHarRecorder(capture_transport="playwright")
+    recorder.start(context)
+    response = Response()
+    page.handlers["request"](response.request)
+    page.handlers["response"](response)
+    page.handlers["requestfinished"](response.request)
+    path = tmp_path / "playwright.har"
+    recorder.stop(context, path)
+
+    entries = json.loads(path.read_text())["log"]["entries"]
+    assert entries == [
+        {
+            "request": {
+                "method": "POST",
+                "url": "http://example.test/save",
+                "headers": [
+                    {"name": "content-type", "value": "application/json"}
+                ],
+                "cookies": [],
+                "postData": {
+                    "mimeType": "application/json",
+                    "text": '{"enabled":true}',
+                },
+            },
+            "response": {
+                "status": 200,
+                "statusText": "OK",
+                "headers": [
+                    {
+                        "name": "content-type",
+                        "value": "application/json; charset=utf-8",
+                    }
+                ],
+                "cookies": [],
+                "redirectURL": "",
+                "content": {
+                    "mimeType": "application/json",
+                    "text": '{"saved":true}',
+                },
+            },
+        }
+    ]
+    assert recorder.errors == []
+    assert context.removed == ["page"]
+    assert set(page.removed) == {
+        "request",
+        "response",
+        "requestfinished",
+        "requestfailed",
+    }
+
+
+def test_playwright_transport_keeps_failed_request_as_status_zero(tmp_path) -> None:
+    class EventSource:
+        def __init__(self):
+            self.handlers = {}
+
+        def on(self, event, callback):
+            self.handlers[event] = callback
+
+        def remove_listener(self, *_args):
+            pass
+
+    page = EventSource()
+
+    class Context(EventSource):
+        pages = [page]
+
+    class Request:
+        method = "GET"
+        url = "http://example.test/unavailable"
+        headers = {}
+        post_data = None
+        resource_type = "document"
+        failure = "net::ERR_CONNECTION_REFUSED"
+
+        def all_headers(self):
+            return {}
+
+    context = Context()
+    recorder = CdpHarRecorder(capture_transport="playwright")
+    recorder.start(context)
+    request = Request()
+    page.handlers["request"](request)
+    page.handlers["requestfailed"](request)
+    path = tmp_path / "failed.har"
+    recorder.stop(context, path)
+
+    entry = json.loads(path.read_text())["log"]["entries"][0]
+    assert entry["response"]["status"] == 0
+    assert entry["_capture"] == {
+        "state": "failed",
+        "errorText": "net::ERR_CONNECTION_REFUSED",
+    }
+
+
 def test_navigation_response_fills_a_missing_cdp_document_event(tmp_path) -> None:
     class Context:
         pages = []

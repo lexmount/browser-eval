@@ -79,6 +79,75 @@ def _run(
     return directory
 
 
+def test_remote_runtime_identity_is_bound_without_a_binary_or_credentials() -> None:
+    remote = {
+        "provider": "cloudflare-browser-run",
+        "browser": "kitesurf",
+        "protocol": "cdp",
+        "endpoint_contract": "wss://example/{account_id}?browser=kitesurf",
+        "account_id_sha256": "a" * 64,
+        "runtime_metadata": {
+            "protocolVersion": "1.3",
+            "product": "Chrome/145.0.0.0",
+            "revision": "@kitesurf",
+            "userAgent": "Kitesurf",
+            "jsVersion": "14.5",
+        },
+    }
+    identity, public = acceptance.runtime_identity(
+        {"binary_sha256": None, "remote_browser": remote}
+    )
+    assert identity.startswith("remote:")
+    assert public == {"remote_browser": remote}
+
+
+def test_remote_runtime_identity_rejects_persisted_credentials() -> None:
+    with pytest.raises(ValueError, match="contains credentials"):
+        acceptance.runtime_identity(
+            {
+                "binary_sha256": None,
+                "remote_browser": {
+                    "provider": "cloudflare-browser-run",
+                    "browser": "kitesurf",
+                    "protocol": "cdp",
+                    "endpoint_contract": "wss://example/{account_id}",
+                    "account_id_sha256": "a" * 64,
+                    "runtime_metadata": {
+                        "protocolVersion": "1.3",
+                        "product": "Chrome/145.0.0.0",
+                        "revision": "@kitesurf",
+                        "userAgent": "Kitesurf",
+                        "jsVersion": "14.5",
+                    },
+                    "Authorization": "Bearer private",
+                },
+            }
+        )
+
+
+def test_acceptance_rejects_observed_hosted_version_drift() -> None:
+    remote = {
+        "provider": "cloudflare-browser-run",
+        "browser": "kitesurf",
+        "protocol": "cdp",
+        "endpoint_contract": "wss://example/{account_id}?browser=kitesurf",
+        "account_id_sha256": "a" * 64,
+        "runtime_metadata": {
+            "protocolVersion": "1.3",
+            "product": "Chrome/145.0.0.0",
+            "revision": "@kitesurf",
+            "userAgent": "Kitesurf",
+            "jsVersion": "14.5",
+        },
+    }
+    observed = {**remote["runtime_metadata"], "product": "Chrome/146.0.0.0"}
+
+    with pytest.raises(ValueError, match="observed remote browser version changed"):
+        acceptance.assert_observed_runtime(
+            {"remote_browser": remote}, observed, task_id=7
+        )
+
+
 def _scope(tmp_path, ids=None):
     ids = list(range(812)) if ids is None else ids
     path = tmp_path / "scope.json"

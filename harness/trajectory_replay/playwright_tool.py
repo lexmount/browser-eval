@@ -44,27 +44,71 @@ class PlaywrightReplayTool:
     preserving its compiled-ref behavior on either backend.
     """
 
-    def __init__(self, endpoint: str, *, engine: str = "chromium"):
-        if engine not in {"chromium", "moli", "lightpanda", "obscura"}:
+    def __init__(
+        self,
+        endpoint: str,
+        *,
+        engine: str = "chromium",
+        headers: dict[str, str] | None = None,
+    ):
+        if engine not in {"chromium", "moli", "lightpanda", "obscura", "kitesurf"}:
             raise ValueError(f"unknown Playwright replay engine: {engine}")
         self._engine = engine
-        self._supports_multiple_pages = engine not in {"lightpanda", "obscura"}
-        self._supports_network_reset_cdp = engine != "obscura"
-        self._supports_storage_cdp = engine not in {"lightpanda", "obscura"}
+        self._supports_multiple_pages = engine not in {"lightpanda", "obscura", "kitesurf"}
+        self._supports_network_reset_cdp = engine not in {"obscura", "kitesurf"}
+        self._supports_storage_cdp = engine not in {"lightpanda", "obscura", "kitesurf"}
         self._fresh_context_per_task = True
-        self._supports_context_request_cookie_sharing = engine != "lightpanda"
+        self._supports_context_request_cookie_sharing = engine not in {
+            "lightpanda",
+            "kitesurf",
+        }
+        self.har_capture_transport = "playwright" if engine == "kitesurf" else "cdp"
         self._layout_sessions: dict[Any, Any] = {}
         self._viewport_sessions: dict[Any, Any] = {}
         self._layout_connection_poisoned = False
         self._playwright = sync_playwright().start()
         self._browser = None
         self._context = None
+        self.runtime_metadata: dict[str, Any] | None = None
         try:
-            self._browser = self._playwright.chromium.connect_over_cdp(endpoint, timeout=90_000)
-            self._context = self._browser.new_context(
-                viewport=dict(BENCHMARK_VIEWPORT), locale="en-US"
+            connect_options: dict[str, Any] = {"timeout": 90_000}
+            if headers is not None:
+                connect_options["headers"] = dict(headers)
+            self._browser = self._playwright.chromium.connect_over_cdp(
+                endpoint, **connect_options
             )
-            self._page = self._context.new_page()
+            if engine == "kitesurf":
+                browser_session = self._browser.new_browser_cdp_session()
+                try:
+                    version = browser_session.send("Browser.getVersion")
+                finally:
+                    browser_session.detach()
+                self.runtime_metadata = {
+                    key: version.get(key)
+                    for key in (
+                        "protocolVersion",
+                        "product",
+                        "revision",
+                        "userAgent",
+                        "jsVersion",
+                    )
+                    if version.get(key) is not None
+                }
+                if len(self._browser.contexts) != 1:
+                    raise RuntimeError("Kitesurf did not expose exactly one default context")
+                self._context = self._browser.contexts[0]
+                if len(self._context.pages) != 1:
+                    raise RuntimeError("Kitesurf did not expose exactly one default page")
+                self._page = self._context.pages[0]
+                self._page.set_viewport_size(dict(BENCHMARK_VIEWPORT))
+                # Kitesurf applies emulation to the next document; its initial
+                # provider-owned about:blank retains the service default height.
+                self._page.goto("about:blank", wait_until="load", timeout=10_000)
+            else:
+                self._context = self._browser.new_context(
+                    viewport=dict(BENCHMARK_VIEWPORT), locale="en-US"
+                )
+                self._page = self._context.new_page()
         except Exception:
             self.close()
             raise
@@ -244,7 +288,7 @@ class PlaywrightReplayTool:
             self._playwright.stop()
             return
         try:
-            if self._context is not None:
+            if self._context is not None and self._engine != "kitesurf":
                 self._context.close()
         finally:
             try:

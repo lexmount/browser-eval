@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import multiprocessing
 import os
 import socket
 import subprocess
@@ -13,7 +15,7 @@ import threading
 import time
 import traceback
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 from harness.trajectory_replay.catalog_contracts import (
     RUN_SCHEMA,
@@ -33,6 +35,7 @@ from harness.trajectory_replay.remote_execution import (
     _run_task,
     _wait_cdp,
     finalize_timed_out_task,
+    sanitize_remote_text,
 )
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls, remote_benchmark
 from harness.trajectory_replay.webarena_corrections import load_corrections
@@ -130,6 +133,70 @@ def _load_task_selection(path: Path) -> list[int]:
     ):
         raise ValueError("task selection contract is invalid")
     return task_ids
+
+
+def _load_env_values(path: Path) -> dict[str, str]:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("credential environment file must be a regular file")
+    values: dict[str, str] = {}
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        values[name.strip()] = value.strip().strip("\"'")
+    return values
+
+
+def _kitesurf_cdp_config(
+    path: Path,
+) -> tuple[str, dict[str, str], dict[str, object]]:
+    values = _load_env_values(path)
+    account_id = values.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
+    api_token = values.get("CLOUDFLARE_API_TOKEN", "").strip()
+    if not account_id or not api_token:
+        raise ValueError(
+            "Kitesurf requires CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN"
+        )
+    endpoint = (
+        "wss://api.cloudflare.com/client/v4/accounts/"
+        f"{quote(account_id, safe='')}"
+        "/browser-run/devtools/browser?browser=kitesurf"
+    )
+    headers = {"Authorization": f"Bearer {api_token}"}
+    public_binding = {
+        "provider": "cloudflare-browser-run",
+        "browser": "kitesurf",
+        "protocol": "cdp",
+        "endpoint_contract": (
+            "wss://api.cloudflare.com/client/v4/accounts/{account_id}/"
+            "browser-run/devtools/browser?browser=kitesurf"
+        ),
+        "account_id_sha256": hashlib.sha256(account_id.encode()).hexdigest(),
+    }
+    return endpoint, headers, public_binding
+
+
+def _probe_kitesurf_runtime(
+    endpoint: str, headers: dict[str, str], *, timeout_ms: int = 120_000
+) -> dict[str, str]:
+    """Freeze the hosted product/version identity before any task evidence exists."""
+
+    def probe() -> dict[str, str]:
+        from harness.trajectory_replay.playwright_tool import (  # noqa: PLC0415
+            PlaywrightReplayTool,
+        )
+
+        tool = PlaywrightReplayTool(endpoint, engine="kitesurf", headers=headers)
+        try:
+            metadata = tool.runtime_metadata
+            if not isinstance(metadata, dict):
+                raise RuntimeError("Kitesurf did not expose Browser.getVersion metadata")
+            return metadata
+        finally:
+            tool.close()
+
+    return _run_forked_with_watchdog(probe, timeout_ms=timeout_ms)
 
 
 def _chromium_host_resolver_rules(environment_profile: dict, engine: str) -> str | None:
@@ -236,10 +303,36 @@ def _run_with_setup_recovery(
         assert result is not None
         return result
 
-    if process.poll() is not None:
-        process = restart_browser(process)
+    runtime = {"process": process}
+
+    def execute() -> dict:
+        current = runtime["process"]
+        if current.poll() is not None:
+            current = restart_browser(current)
+            runtime["process"] = current
+        return run_once(current)
+
+    def recover() -> None:
+        runtime["process"] = restart_browser(runtime["process"])
+
+    return (
+        _run_with_pre_evidence_recovery(
+            task_id=task_id,
+            task_dir=task_dir,
+            run_once=execute,
+            recover=recover,
+        ),
+        runtime["process"],
+    )
+
+
+def _run_with_pre_evidence_recovery(
+    *, task_id: int, task_dir: Path, run_once, recover
+) -> dict:
+    """Retry once only when setup failed before any physical evidence existed."""
+
     try:
-        return run_once(process), process
+        return run_once()
     except FileExistsError:
         raise
     except Exception:
@@ -249,11 +342,10 @@ def _run_with_setup_recovery(
                 "task_id": task_id,
                 "status": "candidate_setup_failure",
                 "error": first_error,
-            }, process
-
-    process = restart_browser(process)
+            }
+    recover()
     try:
-        return run_once(process), process
+        return run_once()
     except FileExistsError:
         raise
     except Exception:
@@ -261,7 +353,89 @@ def _run_with_setup_recovery(
             "task_id": task_id,
             "status": "candidate_setup_failure",
             "error": f"{first_error}\nsetup recovery failed:\n{traceback.format_exc()}",
-        }, process
+        }
+
+
+def _fork_worker(sender, run_task) -> None:
+    try:
+        sender.send(("result", run_task()))
+    except BaseException:
+        sender.send(("error", traceback.format_exc()))
+    finally:
+        sender.close()
+
+
+def _run_forked_with_watchdog(run_task, *, timeout_ms: int) -> dict:
+    """Run one hosted-browser operation behind a killable process boundary."""
+
+    if "fork" not in multiprocessing.get_all_start_methods():
+        raise RuntimeError("hosted browser replay requires a POSIX fork process boundary")
+    context = multiprocessing.get_context("fork")
+    receiver, sender = context.Pipe(duplex=False)
+    worker = context.Process(target=_fork_worker, args=(sender, run_task), daemon=False)
+    worker.start()
+    sender.close()
+    try:
+        if not receiver.poll(timeout_ms / 1_000):
+            worker.terminate()
+            worker.join(timeout=10)
+            if worker.is_alive():
+                worker.kill()
+                worker.join(timeout=10)
+            raise TimeoutError(f"hosted browser operation exceeded {timeout_ms} ms")
+        kind, payload = receiver.recv()
+        worker.join(timeout=10)
+        if worker.is_alive():
+            worker.kill()
+            worker.join(timeout=10)
+            raise RuntimeError("hosted browser worker did not exit after returning a result")
+        if kind == "error":
+            raise RuntimeError(payload)
+        if worker.exitcode != 0:
+            raise RuntimeError(f"hosted browser worker exited with code {worker.exitcode}")
+        return payload
+    finally:
+        receiver.close()
+
+
+def _run_remote_with_setup_recovery(
+    *,
+    task_id: int,
+    task_dir: Path,
+    row: dict,
+    task_timeout_ms: int,
+    runtime_metadata: dict[str, str],
+    remote_endpoint: str,
+    remote_headers: dict[str, str],
+    run_task,
+) -> dict:
+    """Run a hosted task with the shared setup retry and a whole-task watchdog."""
+
+    def run_once() -> dict:
+        started = time.monotonic()
+        try:
+            return _run_forked_with_watchdog(run_task, timeout_ms=task_timeout_ms)
+        except TimeoutError:
+            if not task_dir.is_dir():
+                raise
+            return finalize_timed_out_task(
+                task_dir,
+                row,
+                duration_ms=max(
+                    task_timeout_ms, int((time.monotonic() - started) * 1_000)
+                ),
+                task_timeout_ms=task_timeout_ms,
+                runtime_metadata=runtime_metadata,
+                remote_endpoint=remote_endpoint,
+                remote_headers=remote_headers,
+            )
+
+    return _run_with_pre_evidence_recovery(
+        task_id=task_id,
+        task_dir=task_dir,
+        run_once=run_once,
+        recover=lambda: None,
+    )
 
 
 def main() -> None:
@@ -272,11 +446,17 @@ def main() -> None:
     parser.add_argument("--site-map", type=Path, required=True)
     parser.add_argument("--site-reset-receipt", type=Path, required=True)
     parser.add_argument("--environment-profile", type=Path, required=True)
-    parser.add_argument("--binary", type=Path, required=True)
+    parser.add_argument("--binary", type=Path)
     parser.add_argument(
         "--engine",
-        choices=("chromium", "moli", "lightpanda", "obscura"),
+        choices=("chromium", "moli", "lightpanda", "obscura", "kitesurf"),
         default="chromium",
+    )
+    parser.add_argument(
+        "--credential-env-file",
+        type=Path,
+        default=repository_root(Path(__file__)) / ".env",
+        help="local credential source for a remote browser; values are never persisted",
     )
     parser.add_argument("--backend", choices=("browsertool", "playwright"), default="browsertool")
     parser.add_argument("--cowagent", type=Path)
@@ -286,7 +466,10 @@ def main() -> None:
         "--task-timeout-ms",
         type=int,
         default=600_000,
-        help="external per-task watchdog budget; kills an unresponsive browser and continues",
+        help=(
+            "per-task execution budget; local engines additionally terminate an "
+            "unresponsive browser process"
+        ),
     )
     parser.add_argument("--task-from", type=int)
     parser.add_argument("--task-to", type=int)
@@ -307,6 +490,28 @@ def main() -> None:
         raise ValueError("action timeout must be positive")
     if args.task_timeout_ms < 1:
         raise ValueError("task timeout must be positive")
+    if args.engine == "kitesurf":
+        if args.backend != "playwright":
+            raise ValueError("Kitesurf trajectory replay requires the Playwright backend")
+        if args.binary is not None:
+            raise ValueError("Kitesurf is remote and does not accept --binary")
+        remote_endpoint, remote_headers, remote_binding = _kitesurf_cdp_config(
+            args.credential_env_file.expanduser()
+        )
+        try:
+            remote_binding["runtime_metadata"] = _probe_kitesurf_runtime(
+                remote_endpoint, remote_headers
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                sanitize_remote_text(str(exc), remote_endpoint, remote_headers)
+            ) from None
+    else:
+        if args.binary is None:
+            raise ValueError("local replay engines require a browser --binary")
+        remote_endpoint = None
+        remote_headers = None
+        remote_binding = None
     if args.backend == "browsertool":
         if args.cowagent is None or not args.cowagent.is_dir():
             raise ValueError("BrowserTool backend requires --cowagent repository")
@@ -341,7 +546,7 @@ def main() -> None:
         "site_map_sha256": file_sha256(args.site_map),
         "site_reset_receipt_sha256": file_sha256(args.site_reset_receipt),
         "environment_profile_sha256": file_sha256(args.environment_profile),
-        "binary_sha256": file_sha256(args.binary),
+        "binary_sha256": file_sha256(args.binary) if args.binary is not None else None,
         "engine": args.engine,
         "backend": args.backend,
         "action_timeout_ms": args.action_timeout_ms,
@@ -365,6 +570,8 @@ def main() -> None:
             file_sha256(args.task_selection) if args.task_selection is not None else None
         ),
     }
+    if remote_binding is not None:
+        binding["remote_browser"] = remote_binding
     if args.action_overrides is not None:
         binding["action_overrides_sha256"] = file_sha256(args.action_overrides)
     binding_path = args.output / "inputs.json"
@@ -380,6 +587,101 @@ def main() -> None:
     ]
     if not pending:
         return
+
+    def bound_row(frozen: dict) -> dict:
+        task_id = frozen["task_id"]
+        source_actions = (
+            list(portable_tasks[task_id].tool_calls)
+            if frozen["mode"] == "portable"
+            else frozen["source_actions"]
+        )
+        source_actions = apply_action_overrides(
+            source_actions,
+            catalog_action_overrides(catalog, frozen),
+            task_id=task_id,
+        )
+        return {
+            **frozen,
+            "actions": rebind_remote_calls(
+                source_actions,
+                sites,
+                set(TRUSTED_RECORDED_HOSTS),
+                row_source_sites(catalog, frozen),
+            ),
+            "readiness": list(frozen.get("readiness") or []),
+        }
+
+    def execute_task(
+        frozen: dict,
+        row: dict,
+        endpoint: str,
+        cdp_headers: dict[str, str] | None = None,
+    ) -> dict:
+        task_id = frozen["task_id"]
+        return _run_task(
+            task_id=task_id,
+            row=row,
+            benchmark=benchmark,
+            endpoint=endpoint,
+            output=args.output,
+            run_id=args.output.name,
+            origins=_task_origins(benchmark, task_id, sites),
+            sites=sites,
+            catalog=corrections,
+            portable_task=(
+                portable_tasks[task_id] if frozen["mode"] == "portable" else None
+            ),
+            portable_action_timeout_ms=args.action_timeout_ms,
+            backend=args.backend,
+            engine=args.engine,
+            cdp_headers=cdp_headers,
+            expected_runtime_metadata=(
+                remote_binding["runtime_metadata"]
+                if remote_binding is not None
+                else None
+            ),
+            task_timeout_ms=args.task_timeout_ms,
+        )
+
+    def record_outcome(outcome: dict) -> None:
+        _append(progress, outcome)
+        print(
+            json.dumps(
+                {
+                    key: value
+                    for key, value in outcome.items()
+                    if key not in {"error", "evidence_sha256"}
+                },
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
+
+    if remote_endpoint is not None:
+        assert remote_headers is not None
+        for frozen in pending:
+            task_id = frozen["task_id"]
+            row = bound_row(frozen)
+            task_dir = args.output / f"task-{task_id}"
+            outcome = _run_remote_with_setup_recovery(
+                task_id=task_id,
+                task_dir=task_dir,
+                row=row,
+                task_timeout_ms=args.task_timeout_ms,
+                runtime_metadata=remote_binding["runtime_metadata"],
+                remote_endpoint=remote_endpoint,
+                remote_headers=remote_headers,
+                run_task=lambda frozen=frozen, row=row: execute_task(
+                    frozen, row, remote_endpoint, remote_headers
+                ),
+            )
+            if outcome.get("error"):
+                outcome["error"] = sanitize_remote_text(
+                    str(outcome["error"]), remote_endpoint, remote_headers
+                )
+            record_outcome(outcome)
+        return
+
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
@@ -412,48 +714,12 @@ def main() -> None:
         try:
             for pending_index, frozen in enumerate(pending):
                 task_id = frozen["task_id"]
-                source_actions = (
-                    list(portable_tasks[task_id].tool_calls)
-                    if frozen["mode"] == "portable"
-                    else frozen["source_actions"]
-                )
-                source_actions = apply_action_overrides(
-                    source_actions,
-                    catalog_action_overrides(catalog, frozen),
-                    task_id=task_id,
-                )
-                row = {
-                    **frozen,
-                    "actions": rebind_remote_calls(
-                        source_actions,
-                        sites,
-                        set(TRUSTED_RECORDED_HOSTS),
-                        row_source_sites(catalog, frozen),
-                    ),
-                    "readiness": list(frozen.get("readiness") or []),
-                }
+                row = bound_row(frozen)
                 def run_task(
-                    task_id: int = task_id,
                     row: dict = row,
                     frozen: dict = frozen,
                 ) -> dict:
-                    return _run_task(
-                        task_id=task_id,
-                        row=row,
-                        benchmark=benchmark,
-                        endpoint=endpoint,
-                        output=args.output,
-                        run_id=args.output.name,
-                        origins=_task_origins(benchmark, task_id, sites),
-                        sites=sites,
-                        catalog=corrections,
-                        portable_task=(
-                            portable_tasks[task_id] if frozen["mode"] == "portable" else None
-                        ),
-                        portable_action_timeout_ms=args.action_timeout_ms,
-                        backend=args.backend,
-                        engine=args.engine,
-                    )
+                    return execute_task(frozen, row, endpoint)
 
                 outcome, process = _run_with_setup_recovery(
                     task_id=task_id,
@@ -464,18 +730,7 @@ def main() -> None:
                     row=row,
                     task_timeout_ms=args.task_timeout_ms,
                 )
-                _append(progress, outcome)
-                print(
-                    json.dumps(
-                        {
-                            key: value
-                            for key, value in outcome.items()
-                            if key not in {"error", "evidence_sha256"}
-                        },
-                        ensure_ascii=False,
-                    ),
-                    flush=True,
-                )
+                record_outcome(outcome)
                 if (
                     outcome.get("runtime_poisoned") or process.poll() is not None
                 ) and pending_index + 1 < len(pending):

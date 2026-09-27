@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from harness.trajectory_replay import catalog_comparison
 from harness.trajectory_replay.catalog_contracts import file_sha256
 from harness.trajectory_replay.webarena_replay import _json_sha256
@@ -82,6 +84,7 @@ def _participant_fixture(
     engine: str,
     rows: list[dict],
     site_reset: Path,
+    remote_browser: dict | None = None,
 ) -> dict:
     local_site_reset = root / "site-reset.json"
     _write(local_site_reset, json.loads(site_reset.read_text(encoding="utf-8")))
@@ -124,6 +127,11 @@ def _participant_fixture(
                 else {}
             ),
             "evidence_sha256": evidence,
+            **(
+                {"runtime_metadata": remote_browser["runtime_metadata"]}
+                if remote_browser is not None
+                else {}
+            ),
         }
         progress = run / "progress.jsonl"
         progress.parent.mkdir(parents=True, exist_ok=True)
@@ -132,7 +140,14 @@ def _participant_fixture(
             run / "inputs.json",
             {
                 "engine": engine,
-                "binary_sha256": participant_id[0] * 64,
+                "binary_sha256": (
+                    None if remote_browser is not None else participant_id[0] * 64
+                ),
+                **(
+                    {"remote_browser": remote_browser}
+                    if remote_browser is not None
+                    else {}
+                ),
                 "site_reset_receipt_sha256": file_sha256(local_site_reset),
             },
         )
@@ -148,7 +163,15 @@ def _participant_fixture(
     _write(
         ledger,
         {
-            "participant": {"engine": engine, "backend": "playwright"},
+            "participant": {
+                "engine": engine,
+                "backend": "playwright",
+                **(
+                    {"remote_browser": remote_browser}
+                    if remote_browser is not None
+                    else {"binary_sha256": participant_id[0] * 64}
+                ),
+            },
             "site_reset_receipt_sha256": file_sha256(local_site_reset),
             "rows": ledger_rows,
         },
@@ -158,6 +181,119 @@ def _participant_fixture(
         "engine": engine,
         "ledger_path": str(ledger),
         "evidence_root": str(root),
+    }
+
+
+def _kitesurf_identity() -> dict:
+    return {
+        "provider": "cloudflare-browser-run",
+        "browser": "kitesurf",
+        "protocol": "cdp",
+        "endpoint_contract": "wss://example/{account_id}?browser=kitesurf",
+        "account_id_sha256": "a" * 64,
+        "runtime_metadata": {
+            "protocolVersion": "1.3",
+            "product": "Chrome/145.0.0.0",
+            "revision": "@kitesurf",
+            "userAgent": "Kitesurf",
+            "jsVersion": "14.5",
+        },
+    }
+
+
+def test_catalog_results_reject_hosted_runtime_version_drift(tmp_path: Path) -> None:
+    dataset = {
+        "trajectories": [
+            {
+                "task_id": 0,
+                "task": {"intent": "Task 0", "sites": ["wikipedia"]},
+                "evaluation_input": {"task_type": "NAVIGATE", "status": "SUCCESS"},
+                "tool_calls": [
+                    {"action": "navigate", "url": "https://example.test/0"}
+                ],
+            }
+        ]
+    }
+    reset = tmp_path / "site-reset.json"
+    _write(reset, {"status": "ready"})
+    participant = _participant_fixture(
+        tmp_path / "remote",
+        participant_id="kitesurf",
+        engine="kitesurf",
+        rows=[{"status": "pass"}],
+        site_reset=reset,
+        remote_browser=_kitesurf_identity(),
+    )
+    progress = tmp_path / "remote" / "kitesurf-0" / "progress.jsonl"
+    physical = json.loads(progress.read_text(encoding="utf-8"))
+    physical["runtime_metadata"]["product"] = "Chrome/146.0.0.0"
+    progress.write_text(json.dumps(physical) + "\n", encoding="utf-8")
+    ledger = Path(participant["ledger_path"])
+    payload = json.loads(ledger.read_text(encoding="utf-8"))
+    payload["rows"][0]["attempts"][0]["progress_sha256"] = file_sha256(progress)
+    ledger.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="observed remote browser version changed"):
+        catalog_comparison.build_catalog_comparison_results(
+            dataset=dataset,
+            dataset_sha256="1" * 64,
+            profile_sha256="2" * 64,
+            scope_sha256="3" * 64,
+            site_map_sha256="4" * 64,
+            participants=[participant],
+        )
+
+
+def test_catalog_results_accept_each_binary_in_bound_repair_chain(tmp_path: Path) -> None:
+    dataset = {
+        "trajectories": [
+            {
+                "task_id": task_id,
+                "task": {"intent": f"Task {task_id}", "sites": ["wikipedia"]},
+                "evaluation_input": {"task_type": "NAVIGATE", "status": "SUCCESS"},
+                "tool_calls": [
+                    {
+                        "action": "navigate",
+                        "url": f"https://example.test/{task_id}",
+                    }
+                ],
+            }
+            for task_id in range(2)
+        ]
+    }
+    reset = tmp_path / "site-reset.json"
+    _write(reset, {"status": "ready"})
+    participant = _participant_fixture(
+        tmp_path / "moli",
+        participant_id="moli",
+        engine="moli",
+        rows=[{"status": "pass"}, {"status": "pass"}],
+        site_reset=reset,
+    )
+    first_binary = "m" * 64
+    second_binary = "b" * 64
+    second_inputs = tmp_path / "moli" / "moli-1" / "inputs.json"
+    inputs = json.loads(second_inputs.read_text(encoding="utf-8"))
+    inputs["binary_sha256"] = second_binary
+    second_inputs.write_text(json.dumps(inputs) + "\n", encoding="utf-8")
+    ledger = Path(participant["ledger_path"])
+    payload = json.loads(ledger.read_text(encoding="utf-8"))
+    payload["participant"].pop("binary_sha256")
+    payload["participant"]["binary_sha256s"] = [first_binary, second_binary]
+    ledger.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+
+    results = catalog_comparison.build_catalog_comparison_results(
+        dataset=dataset,
+        dataset_sha256="1" * 64,
+        profile_sha256="2" * 64,
+        scope_sha256="3" * 64,
+        site_map_sha256="4" * 64,
+        participants=[participant],
+    )
+
+    assert {row["binary_sha256"] for row in results["attempts"]} == {
+        first_binary,
+        second_binary,
     }
 
 

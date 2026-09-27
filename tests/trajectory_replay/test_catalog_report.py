@@ -14,9 +14,25 @@ def _write_json(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value) + "\n", encoding="utf-8")
 
 
+@pytest.mark.parametrize("hosted", [False, True])
 def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
-    monkeypatch, tmp_path: Path
+    monkeypatch, tmp_path: Path, hosted: bool
 ) -> None:
+    runtime_metadata = {
+        "protocolVersion": "1.3",
+        "product": "Chrome/145.0.0.0",
+        "revision": "@kitesurf",
+        "userAgent": "Kitesurf",
+        "jsVersion": "14.5",
+    }
+    remote_browser = {
+        "provider": "cloudflare-browser-run",
+        "browser": "kitesurf",
+        "protocol": "cdp",
+        "endpoint_contract": "wss://example/{account_id}?browser=kitesurf",
+        "account_id_sha256": "a" * 64,
+        "runtime_metadata": runtime_metadata,
+    }
     current_evaluation = {"score": 1.0, "status": "pass", "evaluator": "current"}
     transition = {
         "task_id": 0,
@@ -39,6 +55,7 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
                 "action_count": 1,
                 "completed_actions": 1,
                 "executed_actions_sha256": "a" * 64,
+                **({"runtime_metadata": runtime_metadata} if hosted else {}),
             }
         )
         + "\n",
@@ -63,8 +80,17 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
                 "physical_attempts": 1,
                 "excluded_duplicate_attempts": 0,
             },
-            "participant": {"engine": "moli", "backend": "playwright"},
-            "binary_sha256s": ["b" * 64],
+            "participant": {
+                "engine": "kitesurf" if hosted else "moli",
+                "backend": "playwright",
+                **(
+                    {"remote_browser": remote_browser}
+                    if hosted
+                    else {"binary_sha256": "b" * 64}
+                ),
+            },
+            "binary_sha256s": [] if hosted else ["b" * 64],
+            **({"remote_browsers": [remote_browser]} if hosted else {}),
             "runs": [{"kind": "segment"}, {"kind": "repair"}],
             "rows": [
                 {
@@ -77,7 +103,11 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
                         {
                             "status": "pass",
                             "progress_sha256": digest,
-                            "binary_sha256": "b" * 64,
+                            **(
+                                {"runtime_metadata": runtime_metadata}
+                                if hosted
+                                else {"binary_sha256": "b" * 64}
+                            ),
                             "evaluator_transition": transition,
                         },
                     ],
@@ -146,11 +176,17 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
     assert '<base href="/">' in (output / "case/000.html").read_text(encoding="utf-8")
     public = json.loads((output / "evidence/000.json").read_text())
     assert public["physical_attempt_count"] == 1
-    assert public["participant"]["binary_sha256"] == "b" * 64
+    if hosted:
+        assert public["participant"]["remote_browser"] == remote_browser
+        assert public["participant"]["runtime_metadata"] == runtime_metadata
+        assert "1 个浏览器运行时身份" in (output / "index.html").read_text()
+        assert "Browser.getVersion" in (output / "method.html").read_text()
+    else:
+        assert public["participant"]["binary_sha256"] == "b" * 64
     assert public["evaluation"] == current_evaluation
     assert public["evaluator_transition"] == transition
     profile = {
-        "browser": "moli",
+        "browser": "kitesurf" if hosted else "moli",
         "execution_backend": "playwright",
         "acceptance_ledger_sha256": webarena_report._catalog_file_sha256(ledger),
         "accepted_catalog": {"sha256": webarena_report._catalog_file_sha256(catalog)},

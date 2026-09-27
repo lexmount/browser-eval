@@ -48,12 +48,44 @@ from harness.trajectory_replay.webarena_replay import (
 NETWORK_SETTLE_MS = 2_000
 
 
+def sanitize_remote_text(
+    message: str, endpoint: str, headers: dict[str, str] | None
+) -> str:
+    """Remove hosted-browser account and credentials before evidence is persisted."""
+
+    sanitized = message.replace(endpoint, "<remote-cdp-endpoint>")
+    sanitized = sanitized.replace(endpoint.split("?", 1)[0], "<remote-cdp-endpoint>")
+    for value in (headers or {}).values():
+        sanitized = sanitized.replace(value, "<remote-cdp-credential>")
+        if " " in value:
+            sanitized = sanitized.replace(
+                value.split(" ", 1)[1], "<remote-cdp-credential>"
+            )
+    return sanitized
+
+
+def _sanitize_remote_payload(value: object, endpoint: str, headers: dict[str, str]) -> object:
+    if isinstance(value, str):
+        return sanitize_remote_text(value, endpoint, headers)
+    if isinstance(value, list):
+        return [_sanitize_remote_payload(item, endpoint, headers) for item in value]
+    if isinstance(value, dict):
+        return {
+            key: _sanitize_remote_payload(item, endpoint, headers)
+            for key, item in value.items()
+        }
+    return value
+
+
 def finalize_timed_out_task(
     task_dir: Path,
     row: dict,
     *,
     duration_ms: int,
     task_timeout_ms: int,
+    runtime_metadata: dict[str, str] | None = None,
+    remote_endpoint: str | None = None,
+    remote_headers: dict[str, str] | None = None,
 ) -> dict:
     """Commit a browser runtime failure after an external process watchdog fires."""
 
@@ -90,6 +122,10 @@ def finalize_timed_out_task(
                 ),
             }
         )
+    if remote_endpoint is not None and remote_headers is not None:
+        records = _sanitize_remote_payload(  # type: ignore[assignment]
+            records, remote_endpoint, remote_headers
+        )
     message = records[-1]["error"]
     hashes = {
         "trace": _write(trace_path, records),
@@ -113,6 +149,11 @@ def finalize_timed_out_task(
         "error": message,
         "failure_stage": "browser_tool_execution",
         "runtime_poisoned": True,
+        **(
+            {"runtime_metadata": runtime_metadata}
+            if runtime_metadata is not None
+            else {}
+        ),
         "evidence_sha256": hashes,
     }
     result_path = task_dir / "result.json"
@@ -361,20 +402,40 @@ def _run_task(
     portable_action_timeout_ms: int = 30_000,
     backend: str = "browsertool",
     engine: str = "chromium",
+    cdp_headers: dict[str, str] | None = None,
+    expected_runtime_metadata: dict[str, str] | None = None,
+    task_timeout_ms: int = 300_000,
 ) -> dict:
+    if task_timeout_ms < 1:
+        raise ValueError("task_timeout_ms must be positive")
     official = benchmark.get_task(task_id)
     correction = apply_correction(official, catalog) if task_id in catalog.records else None
     if backend == "browsertool":
+        if cdp_headers:
+            raise ValueError("BrowserTool replay does not support remote CDP headers")
         from agent.tools.browser.browser_tool import BrowserTool  # noqa: PLC0415
 
         tool = BrowserTool(config=_browser_tool_config(endpoint))
     elif backend == "playwright":
         from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
 
-        tool = PlaywrightReplayTool(endpoint, engine=engine)
+        tool = PlaywrightReplayTool(endpoint, engine=engine, headers=cdp_headers)
     else:
         raise ValueError(f"unknown replay backend: {backend}")
-    recorder = CdpHarRecorder()
+    if (
+        expected_runtime_metadata is not None
+        and getattr(tool, "runtime_metadata", None) != expected_runtime_metadata
+    ):
+        observed = getattr(tool, "runtime_metadata", None)
+        tool.close()
+        raise RuntimeError(
+            "hosted browser version changed before task execution: "
+            f"expected {expected_runtime_metadata!r}, observed {observed!r}"
+        )
+    recorder = CdpHarRecorder(
+        capture_transport=getattr(tool, "har_capture_transport", "cdp"),
+        capture_new_pages=getattr(tool, "_supports_multiple_pages", True),
+    )
     task_dir = output / f"task-{task_id}"
     task_dir.mkdir(mode=0o700)
     partial_trace_path = task_dir / ".trace.partial.json"
@@ -384,6 +445,19 @@ def _run_task(
     readiness_records: list[dict] = []
     hashes: dict[str, str] = {}
     started = time.perf_counter()
+    deadline = started + task_timeout_ms / 1_000
+
+    def remaining_task_ms() -> int:
+        remaining_ms = int((deadline - time.perf_counter()) * 1_000)
+        if remaining_ms < 1:
+            raise TimeoutError(f"task exceeded its {task_timeout_ms} ms execution budget")
+        return remaining_ms
+
+    def bounded_call(call: dict) -> dict:
+        remaining_ms = remaining_task_ms()
+        declared = int(call.get("timeout_ms", portable_action_timeout_ms))
+        return {**call, "timeout_ms": min(declared, remaining_ms)}
+
     status = "fail"
     score = None
     error = ""
@@ -399,7 +473,7 @@ def _run_task(
             benchmark.config.render_url(list(official.start_urls), list(official.sites))
         )
         _login_context(service, tuple(official.sites), benchmark, start_urls, viewport)
-        service._submit(lambda: recorder.start(service._context))
+        service._submit(lambda: recorder.start(service._context, service._page))
         recorder_started = True
         failure_stage = "browser_tool_execution"
         if portable_task is not None:
@@ -418,7 +492,7 @@ def _run_task(
                     row["actions"],
                     trace=records,
                     outputs=portable_outputs,
-                    task_timeout_ms=300_000,
+                    task_timeout_ms=remaining_task_ms(),
                     default_action_timeout_ms=portable_action_timeout_ms,
                     layout_observer=getattr(service, "layout_observer", None),
                     navigation_response_observer=recorder.record_navigation_response,
@@ -428,7 +502,8 @@ def _run_task(
         for index, action in enumerate(() if portable_task is not None else row["actions"], 1):
             for readiness in row["readiness"]:
                 if readiness["before_action"] == index:
-                    ready_status, ready_result = _execute_replay_call(tool, readiness["input"])
+                    readiness_input = bounded_call(readiness["input"])
+                    ready_status, ready_result = _execute_replay_call(tool, readiness_input)
                     ready_effective_status, ready_observation_error = _replay_step_status(
                         readiness["input"], ready_status, ready_result, dispatched=False
                     )
@@ -453,7 +528,9 @@ def _run_task(
                         raise RuntimeError(f"readiness before step {index} failed: {detail}")
             call_started = time.perf_counter()
             diagnostics = {}
-            result_status, result = _execute_replay_call(tool, action, diagnostics=diagnostics)
+            result_status, result = _execute_replay_call(
+                tool, bounded_call(action), diagnostics=diagnostics
+            )
             dispatched = _click_was_dispatched_before_navigation_timeout(
                 action, result_status, result
             )
@@ -586,6 +663,15 @@ def _run_task(
             tool.close()
         except Exception as exc:
             error += f"\n{backend} close failed: {exc}"
+    if cdp_headers:
+        error = sanitize_remote_text(error, endpoint, cdp_headers)
+        records = _sanitize_remote_payload(records, endpoint, cdp_headers)  # type: ignore[assignment]
+        readiness_records = _sanitize_remote_payload(  # type: ignore[assignment]
+            readiness_records, endpoint, cdp_headers
+        )
+        portable_outputs = _sanitize_remote_payload(  # type: ignore[assignment]
+            portable_outputs, endpoint, cdp_headers
+        )
     hashes["trace"] = _write(task_dir / "trace.json", records)
     partial_trace_path.unlink(missing_ok=True)
     hashes["readiness"] = _write(task_dir / "readiness.json", readiness_records)
@@ -607,6 +693,11 @@ def _run_task(
         **({"failure_stage": failure_stage} if error else {}),
         "runtime_poisoned": bool(
             service is not None and not getattr(service, "failure_capture_available", True)
+        ),
+        **(
+            {"runtime_metadata": tool.runtime_metadata}
+            if getattr(tool, "runtime_metadata", None) is not None
+            else {}
         ),
         "evidence_sha256": hashes,
     }

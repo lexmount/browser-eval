@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -20,21 +21,89 @@ from harness.trajectory_replay.catalog_contracts import (
     row_source_sites,
 )
 from harness.trajectory_replay.catalog_runner import (
+    _kitesurf_cdp_config,
     _load_task_selection,
     _recover_completed_attempts,
+    _run_remote_with_setup_recovery,
     _run_with_setup_recovery,
     _task_ids,
     _task_origins,
 )
-from harness.trajectory_replay.remote_execution import finalize_timed_out_task
+from harness.trajectory_replay.remote_execution import (
+    _sanitize_remote_payload,
+    finalize_timed_out_task,
+    sanitize_remote_text,
+)
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
 from harness.trajectory_replay.webarena_replay import _json_sha256
+
+_REMOTE_RUNTIME = {
+    "protocolVersion": "1.3",
+    "product": "Chrome/145.0.0.0",
+    "revision": "@kitesurf",
+    "userAgent": "Kitesurf",
+    "jsVersion": "14.5",
+}
+_REMOTE_ENDPOINT = (
+    "wss://api.cloudflare.com/client/v4/accounts/private-account/"
+    "browser-run/devtools/browser?browser=kitesurf"
+)
+_REMOTE_HEADERS = {"Authorization": "Bearer private-token"}
 
 
 def test_task_ids_preserve_requested_official_order():
     assert _task_ids([3, 7, 11, 20], 7, 20) == [7, 11, 20]
     assert _task_ids([3, 7, 11, 20], None, None) == [3, 7, 11, 20]
     assert _task_ids([3, 7, 11, 20], None, None, [7, 20]) == [7, 20]
+
+
+def test_kitesurf_cdp_config_uses_official_endpoint_without_persisting_token(
+    tmp_path: Path,
+) -> None:
+    credentials = tmp_path / ".env"
+    credentials.write_text(
+        "CLOUDFLARE_ACCOUNT_ID=account/id\nCLOUDFLARE_API_TOKEN=private-token\n",
+        encoding="utf-8",
+    )
+
+    endpoint, headers, binding = _kitesurf_cdp_config(credentials)
+
+    assert endpoint == (
+        "wss://api.cloudflare.com/client/v4/accounts/account%2Fid/"
+        "browser-run/devtools/browser?browser=kitesurf"
+    )
+    assert headers == {"Authorization": "Bearer private-token"}
+    serialized = json.dumps(binding)
+    assert binding["browser"] == "kitesurf"
+    assert binding["protocol"] == "cdp"
+    assert "private-token" not in serialized
+    assert "account/id" not in serialized
+
+
+def test_remote_errors_redact_endpoint_account_and_token() -> None:
+    sanitized = sanitize_remote_text(
+        f"connect {_REMOTE_ENDPOINT} with Bearer private-token failed",
+        _REMOTE_ENDPOINT,
+        _REMOTE_HEADERS,
+    )
+    assert "private-account" not in sanitized
+    assert "private-token" not in sanitized
+    assert sanitized.count("<remote-cdp-credential>") == 1
+    evidence = _sanitize_remote_payload(
+        {
+            "trace": [
+                {
+                    "error": f"connect {_REMOTE_ENDPOINT}",
+                    "result": "Authorization: Bearer private-token",
+                }
+            ]
+        },
+        _REMOTE_ENDPOINT,
+        _REMOTE_HEADERS,
+    )
+    serialized = json.dumps(evidence)
+    assert "private-account" not in serialized
+    assert "private-token" not in serialized
 
 
 def test_external_timeout_commits_the_active_action_and_hashes(tmp_path: Path) -> None:
@@ -87,6 +156,117 @@ def test_external_timeout_commits_the_active_action_and_hashes(tmp_path: Path) -
             "outputs": "outputs.json",
         }[kind]
         assert file_sha256(task_dir / filename) == digest
+
+
+def test_remote_setup_recovery_never_repeats_after_evidence_exists(tmp_path: Path) -> None:
+    task_dir = tmp_path / "task-7"
+    calls = tmp_path / "calls"
+
+    def run_task():
+        with calls.open("a", encoding="utf-8") as target:
+            target.write("call\n")
+        task_dir.mkdir()
+        raise RuntimeError("browser action failed")
+
+    result = _run_remote_with_setup_recovery(
+        task_id=7,
+        task_dir=task_dir,
+        row={"task_id": 7, "actions": []},
+        task_timeout_ms=1_000,
+        runtime_metadata=_REMOTE_RUNTIME,
+        remote_endpoint=_REMOTE_ENDPOINT,
+        remote_headers=_REMOTE_HEADERS,
+        run_task=run_task,
+    )
+
+    assert calls.read_text(encoding="utf-8").splitlines() == ["call"]
+    assert result["status"] == "candidate_setup_failure"
+    assert "browser action failed" in result["error"]
+
+
+def test_remote_setup_recovery_retries_connection_before_evidence(tmp_path: Path) -> None:
+    task_dir = tmp_path / "task-8"
+    calls = tmp_path / "calls"
+
+    def run_task():
+        count = len(calls.read_text(encoding="utf-8").splitlines()) if calls.exists() else 0
+        with calls.open("a", encoding="utf-8") as target:
+            target.write("call\n")
+        if count == 0:
+            raise ConnectionError("provider handshake failed")
+        return {"task_id": 8, "status": "fail"}
+
+    result = _run_remote_with_setup_recovery(
+        task_id=8,
+        task_dir=task_dir,
+        row={"task_id": 8, "actions": []},
+        task_timeout_ms=1_000,
+        runtime_metadata=_REMOTE_RUNTIME,
+        remote_endpoint=_REMOTE_ENDPOINT,
+        remote_headers=_REMOTE_HEADERS,
+        run_task=run_task,
+    )
+
+    assert calls.read_text(encoding="utf-8").splitlines() == ["call", "call"]
+    assert result == {"task_id": 8, "status": "fail"}
+
+
+def test_remote_watchdog_commits_timeout_and_returns(tmp_path: Path) -> None:
+    task_dir = tmp_path / "task-9"
+    row = {
+        "task_id": 9,
+        "actions": [{"action": "evaluate", "script": "while(true){}"}],
+    }
+
+    def run_task():
+        task_dir.mkdir()
+        (task_dir / ".trace.partial.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "index": 0,
+                        "action": "navigate",
+                        "arguments": {},
+                        "status": "success",
+                        "duration_ms": 1,
+                        "output": (
+                            f"connect {_REMOTE_ENDPOINT} with "
+                            "Authorization: Bearer private-token"
+                        ),
+                    },
+                    {
+                        "index": 1,
+                        "action": "evaluate",
+                        "arguments": row["actions"][0],
+                        "status": "running",
+                        "duration_ms": None,
+                        "output": "",
+                    }
+                ]
+            ),
+            encoding="utf-8",
+        )
+        time.sleep(10)
+
+    outcome = _run_remote_with_setup_recovery(
+        task_id=9,
+        task_dir=task_dir,
+        row=row,
+        task_timeout_ms=50,
+        runtime_metadata=_REMOTE_RUNTIME,
+        remote_endpoint=_REMOTE_ENDPOINT,
+        remote_headers=_REMOTE_HEADERS,
+        run_task=run_task,
+    )
+
+    assert outcome["status"] == "fail"
+    assert outcome["runtime_poisoned"] is True
+    assert outcome["runtime_metadata"] == _REMOTE_RUNTIME
+    assert outcome["error"].startswith("ExternalTaskTimeout:")
+    assert json.loads((task_dir / "result.json").read_text()) == outcome
+    trace_text = (task_dir / "trace.json").read_text(encoding="utf-8")
+    assert "private-account" not in trace_text
+    assert "private-token" not in trace_text
 
 
 def test_external_timeout_counts_source_success_actions(tmp_path: Path) -> None:

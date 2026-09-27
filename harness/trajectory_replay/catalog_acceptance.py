@@ -25,6 +25,10 @@ from harness.trajectory_replay.evaluator_transition import (
     reevaluate_pass,
 )
 from harness.trajectory_replay.remote_runtime import load_remote_sites, remote_benchmark
+from harness.trajectory_replay.runtime_identity import (
+    assert_observed_runtime,
+    runtime_identity,
+)
 from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_runtime_source import (
     WEBARENA_VERIFIED_REVISION,
@@ -77,9 +81,14 @@ def _verified_attempt(
     run_revision: str | None = None,
     evaluator_transition: dict | None = None,
     transition_receipt: dict[tuple[int, str], dict] | None = None,
+    runtime_binding: dict[str, object] | None = None,
 ) -> tuple[dict, bool]:
     task_id = row["task_id"]
     physical = "action_count" in row
+    if physical and runtime_binding is not None:
+        assert_observed_runtime(
+            runtime_binding, row.get("runtime_metadata"), task_id=task_id
+        )
     transition_binding = None
     if physical:
         evaluation_path = verify_physical_evidence(directory, row)
@@ -154,6 +163,11 @@ def _verified_attempt(
             "progress_sha256": file_sha256(directory / "progress.jsonl"),
             "evidence_sha256": row.get("evidence_sha256"),
             **(
+                {"runtime_metadata": row["runtime_metadata"]}
+                if isinstance(row.get("runtime_metadata"), dict)
+                else {}
+            ),
+            **(
                 {"evaluator_transition": transition_binding}
                 if transition_binding is not None
                 else {}
@@ -214,6 +228,7 @@ def audit(
     sweep_contract = None
     participant_contract = None
     binary_sha256s: set[str] = set()
+    remote_browser_identities: dict[str, dict[str, object]] = {}
     preparation_sha256s = set()
     physical_attempts = 0
     benchmark = remote_benchmark(
@@ -241,20 +256,32 @@ def audit(
             engine = binding.get("engine", "chromium")
             if backend != expected_backend:
                 raise ValueError("acceptance run used a different execution backend")
-            binary_sha256 = binding.get("binary_sha256")
-            participant = (engine, backend, binding.get("site_map_sha256"))
+            runtime_identity_key, runtime_binding = runtime_identity(binding)
+            binary_sha256 = runtime_binding.get("binary_sha256")
+            remote_browser = runtime_binding.get("remote_browser")
+            participant = (
+                engine,
+                backend,
+                binding.get("site_map_sha256"),
+                (
+                    json.dumps(remote_browser, sort_keys=True, separators=(",", ":"))
+                    if remote_browser is not None
+                    else None
+                ),
+            )
             if participant_contract is None:
                 participant_contract = participant
             elif participant != participant_contract:
                 raise ValueError("acceptance runs mixed engine, backend, or deployment identities")
-            if not isinstance(binary_sha256, str) or not binary_sha256:
-                raise ValueError("acceptance run binary identity is missing")
-            binary_sha256s.add(binary_sha256)
+            if isinstance(binary_sha256, str):
+                binary_sha256s.add(binary_sha256)
+            elif isinstance(remote_browser, dict):
+                remote_browser_identities[runtime_identity_key] = remote_browser
             segment_contract = (
                 binding.get("catalog_sha256"),
                 binding.get("portable_suite_sha256"),
                 binding.get("site_reset_receipt_sha256"),
-                binary_sha256,
+                runtime_identity_key,
                 binding.get("runner_revision"),
                 binding.get("cowagent_revision"),
                 binding.get("action_timeout_ms"),
@@ -283,12 +310,12 @@ def audit(
                     {
                         "engine": engine,
                         "backend": backend,
-                        "binary_sha256": binary_sha256,
                         "environment_profile_sha256": binding["environment_profile_sha256"],
                         "action_timeout_ms": binding["action_timeout_ms"],
                         "corrections_sha256": binding["corrections_sha256"],
                     }
                 )
+                run_record.update(runtime_binding)
                 evaluator_identity = (
                     "webarena_revision"
                     if binding["schema"] == "lex_trajectory_replay_catalog_run/1"
@@ -322,6 +349,7 @@ def audit(
                         run_revision=run_revision,
                         evaluator_transition=evaluator_transition,
                         transition_receipt=transition_receipt,
+                        runtime_binding=runtime_binding,
                     )
                     if "evaluator_transition" in attempt:
                         used_transition_rows.add(
@@ -359,6 +387,7 @@ def audit(
                     run_revision=run_revision,
                     evaluator_transition=evaluator_transition,
                     transition_receipt=transition_receipt,
+                    runtime_binding=runtime_binding,
                 )
                 if "evaluator_transition" in attempt:
                     used_transition_rows.add(
@@ -411,10 +440,16 @@ def audit(
                 {"binary_sha256": next(iter(binary_sha256s))}
                 if len(binary_sha256s) == 1
                 else {"binary_sha256s": sorted(binary_sha256s)}
+                if binary_sha256s
+                else {
+                    "remote_browser": next(iter(remote_browser_identities.values()))
+                }
             ),
         }
     if len(binary_sha256s) == 1:
         result["binary_sha256"] = next(iter(binary_sha256s))
+    if remote_browser_identities:
+        result["remote_browsers"] = list(remote_browser_identities.values())
     if used_override_sources:
         result["action_overrides_sha256s"] = sorted(used_override_sources)
     if evaluator_transition_path is not None and evaluator_transition_receipt_path is not None:

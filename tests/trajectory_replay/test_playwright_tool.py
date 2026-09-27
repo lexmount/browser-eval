@@ -113,6 +113,109 @@ def test_obscura_viewport_verification_does_not_open_a_second_page(monkeypatch) 
     assert viewport["observations"][0]["device_scale_factor"] == 1
 
 
+def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
+    monkeypatch,
+) -> None:
+    from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
+
+    events = []
+
+    class Page:
+        def set_viewport_size(self, viewport):
+            events.append(("viewport", viewport))
+
+        def goto(self, url, **kwargs):
+            events.append(("goto", url, kwargs))
+
+        def evaluate(self, _script):
+            return {"width": 1280, "height": 900, "device_scale_factor": 1}
+
+    page = Page()
+
+    class Context:
+        pages = [page]
+
+        def new_cdp_session(self, _page):
+            raise AssertionError("Kitesurf must not attach a second CDP session")
+
+        def close(self):
+            raise AssertionError("Kitesurf default context must not be closed separately")
+
+    context = Context()
+
+    class Browser:
+        contexts = [context]
+
+        def new_browser_cdp_session(self):
+            class Session:
+                def send(self, method):
+                    events.append(("browser_cdp", method))
+                    return {
+                        "protocolVersion": "1.3",
+                        "product": "Chrome/145.0.0.0",
+                        "revision": "@kitesurf",
+                    }
+
+                def detach(self):
+                    events.append(("browser_cdp", "detach"))
+
+            return Session()
+
+        def new_context(self, **_kwargs):
+            raise AssertionError("Kitesurf must reuse its provider-owned default context")
+
+        def close(self):
+            events.append(("browser", "close"))
+
+    class Playwright:
+        class Chromium:
+            def connect_over_cdp(self, endpoint, **kwargs):
+                events.append(("connect", endpoint, kwargs))
+                return Browser()
+
+        chromium = Chromium()
+
+        def stop(self):
+            events.append(("playwright", "stop"))
+
+    class Starter:
+        def start(self):
+            return Playwright()
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.playwright_tool.sync_playwright", lambda: Starter()
+    )
+    tool = PlaywrightReplayTool(
+        "wss://provider.example/cdp",
+        engine="kitesurf",
+        headers={"Authorization": "Bearer secret"},
+    )
+    assert tool.har_capture_transport == "playwright"
+    assert tool.runtime_metadata == {
+        "protocolVersion": "1.3",
+        "product": "Chrome/145.0.0.0",
+        "revision": "@kitesurf",
+    }
+    assert tool._supports_multiple_pages is False
+    assert tool._supports_network_reset_cdp is False
+    assert tool._supports_storage_cdp is False
+    tool.close()
+
+    assert events == [
+        (
+            "connect",
+            "wss://provider.example/cdp",
+            {"timeout": 90_000, "headers": {"Authorization": "Bearer secret"}},
+        ),
+        ("browser_cdp", "Browser.getVersion"),
+        ("browser_cdp", "detach"),
+        ("viewport", {"width": 1280, "height": 900}),
+        ("goto", "about:blank", {"wait_until": "load", "timeout": 10_000}),
+        ("browser", "close"),
+        ("playwright", "stop"),
+    ]
+
+
 def test_obscura_viewport_verification_rejects_configured_but_unapplied_size() -> None:
     class Session:
         def send(self, method, _params=None):

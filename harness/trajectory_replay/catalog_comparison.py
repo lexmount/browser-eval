@@ -16,6 +16,11 @@ from harness.trajectory_replay.catalog_contracts import (
     row_source_sites,
 )
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls, remote_benchmark
+from harness.trajectory_replay.runtime_identity import (
+    assert_observed_runtime,
+    runtime_identities,
+    runtime_identity,
+)
 from harness.trajectory_replay.webarena_corrections import apply_correction, load_corrections
 from harness.trajectory_replay.webarena_replay import _json_sha256
 
@@ -171,6 +176,7 @@ def _attempt(
     summary: dict[str, Any],
     progress_index: dict[str, tuple[Path, dict[int, dict[str, Any]]]],
     site_resets: dict[str, dict[str, str]],
+    ledger_runtimes: dict[str, dict[str, object]],
 ) -> dict[str, Any] | None:
     if summary.get("status") == "candidate_setup_failure":
         return None
@@ -188,6 +194,14 @@ def _attempt(
     inputs = _read(inputs_path)
     if inputs.get("engine") != participant["engine"]:
         raise ValueError(f"task {task_id}: physical browser identity changed")
+    identity_key, physical_runtime = runtime_identity(inputs)
+    if ledger_runtimes.get(identity_key) != physical_runtime:
+        raise ValueError(f"task {task_id}: physical browser runtime identity changed")
+    assert_observed_runtime(
+        physical_runtime, physical.get("runtime_metadata"), task_id=task_id
+    )
+    binary_sha256 = physical_runtime.get("binary_sha256")
+    remote_browser = physical_runtime.get("remote_browser")
     actions = task["tool_calls"]
     uses_current_actions = (
         physical.get("executed_actions_sha256") == _json_sha256(actions)
@@ -258,7 +272,13 @@ def _attempt(
         "evaluator_status": evaluator_status,
         "error": error,
         **({"failure_stage": failure_stage} if failure_stage else {}),
-        "binary_sha256": inputs["binary_sha256"],
+        "binary_sha256": binary_sha256,
+        **({"remote_browser": remote_browser} if remote_browser is not None else {}),
+        **(
+            {"runtime_metadata": physical["runtime_metadata"]}
+            if isinstance(physical.get("runtime_metadata"), dict)
+            else {}
+        ),
         "cohort_receipt_sha256": progress_sha256,
         "evidence": evidence,
         "reference_validity": reference_validity,
@@ -290,8 +310,10 @@ def build_catalog_comparison_results(
         ledger = _read(ledger_path)
         if [int(row["task_id"]) for row in ledger.get("rows") or []] != list(tasks):
             raise ValueError(f"{participant_id}: acceptance ledger task order changed")
-        if (ledger.get("participant") or {}).get("engine") != participant["engine"]:
+        ledger_participant = ledger.get("participant") or {}
+        if ledger_participant.get("engine") != participant["engine"]:
             raise ValueError(f"{participant_id}: acceptance ledger browser identity changed")
+        ledger_runtimes = runtime_identities(ledger_participant)
         index = _progress_index(evidence_root)
         site_resets = _site_reset_index(evidence_root)
         if ledger.get("site_reset_receipt_sha256") not in site_resets:
@@ -306,6 +328,7 @@ def build_catalog_comparison_results(
                     summary={"task_id": task_id, **summary},
                     progress_index=index,
                     site_resets=site_resets,
+                    ledger_runtimes=ledger_runtimes,
                 )
                 if row is not None:
                     physical_for_task.append(row)
