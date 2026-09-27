@@ -347,12 +347,16 @@ def test_obscura_uses_the_fresh_process_default_context(monkeypatch) -> None:
     class Context:
         def new_page(self):
             events.append("new_page")
-            return object()
+            return Page()
 
         def close(self):
             events.append("context_close")
 
     context = Context()
+
+    class Page:
+        def set_viewport_size(self, viewport):
+            events.append(("viewport", viewport))
 
     class Browser:
         contexts = [context]
@@ -385,5 +389,10 @@ def test_obscura_uses_the_fresh_process_default_context(monkeypatch) -> None:
         "http://127.0.0.1:1", engine="obscura", fresh_browser_process=True
     )
     assert tool._context is context
-    assert events == ["connect", "new_page"]
+    assert tool._supports_multiple_pages is False
+    assert events == [
+        "connect",
+        "new_page",
+        ("viewport", {"width": 1280, "height": 900}),
+    ]
     tool.close()

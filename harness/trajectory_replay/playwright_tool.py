@@ -56,7 +56,7 @@ class PlaywrightReplayTool:
         if engine == "obscura" and not fresh_browser_process:
             raise ValueError("Obscura replay requires a fresh browser process per task")
         self._engine = engine
-        self._supports_multiple_pages = engine != "lightpanda"
+        self._supports_multiple_pages = engine not in {"lightpanda", "obscura"}
         self._supports_network_reset_cdp = engine != "obscura"
         self._supports_storage_cdp = engine not in {"lightpanda", "obscura"}
         self._fresh_context_per_task = engine != "obscura" or fresh_browser_process
@@ -78,6 +78,8 @@ class PlaywrightReplayTool:
                     viewport=dict(BENCHMARK_VIEWPORT), locale="en-US"
                 )
             self._page = self._context.new_page()
+            if engine == "obscura":
+                self._page.set_viewport_size(dict(BENCHMARK_VIEWPORT))
         except Exception:
             self.close()
             raise
