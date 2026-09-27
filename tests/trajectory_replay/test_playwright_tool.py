@@ -101,6 +101,7 @@ def test_obscura_viewport_verification_does_not_open_a_second_page(monkeypatch) 
     monkeypatch.setattr(
         "harness.trajectory_replay.playwright_tool.sync_playwright", lambda: Starter()
     )
+
     tool = PlaywrightReplayTool("http://127.0.0.1:1", engine="obscura")
     try:
         viewport = _prepare_browser_viewport(tool)
@@ -121,6 +122,12 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
     events = []
 
     class Page:
+        url = "about:blank"
+
+        def on(self, event, handler):
+            self.handlers = getattr(self, "handlers", {})
+            self.handlers[event] = handler
+
         def set_viewport_size(self, viewport):
             events.append(("viewport", viewport))
 
@@ -190,6 +197,34 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
     monkeypatch.setattr(
         "harness.trajectory_replay.playwright_tool.sync_playwright", lambda: Starter()
     )
+
+    class BridgeResponse:
+        status_code = 201
+        headers = {"content-type": "application/json", "content-length": "14"}
+        content = b'{"saved":true}'
+        url = "http://private.test/save"
+        cookies = []
+
+    class BridgeSession:
+        trust_env = True
+
+        def __init__(self):
+            self.calls = 0
+            self.cookies = []
+
+        def request(self, **kwargs):
+            self.calls += 1
+            events.append(("bridge", "request", kwargs))
+            if self.calls == 2:
+                raise RuntimeError("local fetch failed")
+            return BridgeResponse()
+
+        def close(self):
+            events.append(("bridge", "close"))
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.playwright_tool.requests.Session", BridgeSession
+    )
     tool = PlaywrightReplayTool(
         "wss://provider.example/cdp",
         engine="kitesurf",
@@ -207,17 +242,27 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
     assert tool._supports_multiple_pages is False
     assert tool._supports_network_reset_cdp is False
     assert tool._supports_storage_cdp is False
+    assert tool._native_login_form_submit is True
     route_event = next(event for event in events if event[0] == "route")
     predicate, handler = route_event[1:]
     assert predicate("http://private.test/path") is True
     assert predicate("https://public.test/path") is False
 
-    response = object()
+    class Request:
+        method = "POST"
+        url = "http://private.test/save"
+        post_data_buffer = b'{"enabled":true}'
+        resource_type = "xhr"
+
+        def all_headers(self):
+            return {
+                "content-type": "application/json",
+                "content-length": "16",
+                "signature": "private-signature",
+            }
 
     class Route:
-        def fetch(self, **kwargs):
-            events.append(("bridge", "fetch", kwargs))
-            return response
+        request = Request()
 
         def fulfill(self, **kwargs):
             events.append(("bridge", "fulfill", kwargs))
@@ -226,9 +271,7 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
     assert tool.request_bridge_stats == {"requests": 1, "failures": 0}
 
     class FailedRoute:
-        def fetch(self, **kwargs):
-            events.append(("bridge", "failed-fetch", kwargs))
-            raise RuntimeError("local fetch failed")
+        request = Request()
 
         def abort(self, reason):
             events.append(("bridge", "abort", reason))
@@ -249,12 +292,311 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
         ("route", predicate, handler),
         ("viewport", {"width": 1280, "height": 900}),
         ("goto", "about:blank", {"wait_until": "load", "timeout": 10_000}),
-        ("bridge", "fetch", {"timeout": 60_000, "max_redirects": 0}),
-        ("bridge", "fulfill", {"response": response}),
-        ("bridge", "failed-fetch", {"timeout": 60_000, "max_redirects": 0}),
+        (
+            "bridge",
+            "request",
+            {
+                "method": "POST",
+                "url": "http://private.test/save",
+                "headers": {"content-type": "application/json"},
+                "data": b'{"enabled":true}',
+                "allow_redirects": False,
+                "timeout": 60,
+            },
+        ),
+        (
+            "bridge",
+            "fulfill",
+            {
+                "status": 201,
+                "headers": {"content-type": "application/json"},
+                "body": b'{"saved":true}',
+            },
+        ),
+        (
+            "bridge",
+            "request",
+            {
+                "method": "POST",
+                "url": "http://private.test/save",
+                "headers": {"content-type": "application/json"},
+                "data": b'{"enabled":true}',
+                "allow_redirects": False,
+                "timeout": 60,
+            },
+        ),
         ("bridge", "abort", "failed"),
+        ("bridge", "close"),
         ("browser", "close"),
         ("playwright", "stop"),
+    ]
+
+
+def test_kitesurf_login_form_is_submitted_by_local_bridge() -> None:
+    events = []
+
+    class Submitter:
+        def evaluate(self, script):
+            assert "new FormData(form)" in script
+            return {
+                "action": "http://gitlab.test/users/sign_in",
+                "method": "post",
+                "fields": [
+                    ["user[login]", "alice"],
+                    ["user[password]", "secret"],
+                    ["authenticity_token", "csrf"],
+                ],
+            }
+
+    class RedirectResponse:
+        status_code = 302
+        url = "http://gitlab.test/users/sign_in"
+        headers = {"location": "/"}
+        cookies = []
+
+    class FinalResponse:
+        status_code = 200
+        url = "http://gitlab.test/"
+        headers = {}
+        cookies = []
+
+    class Session:
+        responses = iter((RedirectResponse(), FinalResponse()))
+
+        def request(self, **kwargs):
+            events.append(("request", kwargs))
+            return next(self.responses)
+
+    class Page:
+        url = "http://gitlab.test/users/sign_in"
+
+        def goto(self, url, **kwargs):
+            events.append(("goto", url, kwargs))
+
+    tool = _unit_tool(Page(), object(), engine="kitesurf")
+    tool._request_bridge_session = Session()
+    tool._sync_request_bridge_cookies = lambda url, cookies: events.append(
+        ("cookies", url, list(cookies))
+    )
+
+    final_url = tool._submit_login_form(tool._page, Submitter())
+
+    assert final_url == "http://gitlab.test/"
+    assert events == [
+        (
+            "request",
+            {
+                "method": "post",
+                "url": "http://gitlab.test/users/sign_in",
+                "headers": {"referer": "http://gitlab.test/users/sign_in"},
+                "allow_redirects": False,
+                "timeout": 60,
+                "data": [
+                    ["user[login]", "alice"],
+                    ["user[password]", "secret"],
+                    ["authenticity_token", "csrf"],
+                ],
+            },
+        ),
+        ("cookies", "http://gitlab.test/users/sign_in", []),
+        (
+            "request",
+            {
+                "method": "get",
+                "url": "http://gitlab.test/",
+                "headers": {"referer": "http://gitlab.test/users/sign_in"},
+                "allow_redirects": False,
+                "timeout": 60,
+            },
+        ),
+        ("cookies", "http://gitlab.test/", []),
+        (
+            "goto",
+            "http://gitlab.test/",
+            {"wait_until": "domcontentloaded", "timeout": 90_000},
+        ),
+    ]
+
+
+def test_request_bridge_cookie_sync_preserves_host_only_scope() -> None:
+    added = []
+    context = type("Context", (), {"add_cookies": lambda self, rows: added.extend(rows)})()
+    tool = _unit_tool(object(), context, engine="kitesurf")
+    tool._request_bridge_origins = frozenset({"http://shop.test"})
+    cookie = type(
+        "Cookie",
+        (),
+        {
+            "name": "session",
+            "value": "one",
+            "path": "/",
+            "secure": False,
+            "expires": None,
+            "domain": "shop.test",
+            "domain_specified": False,
+            "_rest": {"HttpOnly": None, "SameSite": "Lax"},
+        },
+    )()
+
+    tool._sync_request_bridge_cookies("http://shop.test/account", [cookie])
+
+    assert added == [
+        {
+            "name": "session",
+            "value": "one",
+            "url": "http://shop.test/",
+            "secure": False,
+            "httpOnly": True,
+            "sameSite": "Lax",
+        }
+    ]
+
+
+def test_request_bridge_cookie_sync_rejects_nonroot_host_only_path() -> None:
+    tool = _unit_tool(
+        object(), type("Context", (), {"add_cookies": lambda *_args: None})(), engine="kitesurf"
+    )
+    tool._request_bridge_origins = frozenset({"http://shop.test"})
+    cookie = type(
+        "Cookie",
+        (),
+        {
+            "name": "session",
+            "value": "one",
+            "path": "/account",
+            "secure": False,
+            "expires": None,
+            "domain": "shop.test",
+            "domain_specified": False,
+            "_rest": {},
+        },
+    )()
+
+    with pytest.raises(RuntimeError, match="non-root host-only cookie path"):
+        tool._sync_request_bridge_cookies("http://shop.test/account", [cookie])
+
+
+def test_request_bridge_cookie_sync_preserves_explicit_domain_scope() -> None:
+    added = []
+    context = type("Context", (), {"add_cookies": lambda self, rows: added.extend(rows)})()
+    tool = _unit_tool(object(), context, engine="kitesurf")
+    tool._request_bridge_origins = frozenset({"https://admin.shop.test"})
+    cookie = type(
+        "Cookie",
+        (),
+        {
+            "name": "admin",
+            "value": "two",
+            "path": "/",
+            "secure": True,
+            "expires": 1_900_000_000,
+            "domain": ".shop.test",
+            "domain_specified": True,
+            "_rest": {},
+        },
+    )()
+
+    tool._sync_request_bridge_cookies("https://admin.shop.test/", [cookie])
+
+    assert added == [
+        {
+            "name": "admin",
+            "value": "two",
+            "domain": ".shop.test",
+            "path": "/",
+            "secure": True,
+            "httpOnly": False,
+            "expires": 1_900_000_000.0,
+        }
+    ]
+
+
+def test_request_bridge_cookie_sync_rejects_cross_origin_response() -> None:
+    tool = _unit_tool(object(), object(), engine="kitesurf")
+    tool._request_bridge_origins = frozenset({"http://shop.test"})
+
+    with pytest.raises(RuntimeError, match="origin is not allowed"):
+        tool._sync_request_bridge_cookies("http://metadata.invalid/", [])
+
+
+def test_login_form_bridge_rejects_cross_origin_redirect_before_fetch() -> None:
+    calls = []
+
+    class Redirect:
+        status_code = 302
+        url = "http://gitlab.test/users/sign_in"
+        headers = {"location": "http://metadata.invalid/latest"}
+        cookies = []
+
+    class Session:
+        def request(self, **kwargs):
+            calls.append(kwargs)
+            if len(calls) > 1:
+                raise AssertionError("cross-origin redirect must not be fetched")
+            return Redirect()
+
+    tool = _unit_tool(object(), object(), engine="kitesurf")
+    tool._request_bridge_session = Session()
+    tool._sync_request_bridge_cookies = lambda *_args: None
+
+    with pytest.raises(RuntimeError, match="cross-origin redirect"):
+        tool._request_login_form(
+            source_origin="http://gitlab.test",
+            method="post",
+            url="http://gitlab.test/users/sign_in",
+            fields=[["user[login]", "alice"]],
+            referer="http://gitlab.test/users/sign_in",
+        )
+
+    assert len(calls) == 1
+
+
+def test_bridge_close_failure_still_closes_browser_and_playwright() -> None:
+    events = []
+
+    class BridgeSession:
+        def close(self):
+            events.append("bridge")
+            raise RuntimeError("bridge close failed")
+
+    tool = _unit_tool(object(), object(), engine="kitesurf")
+    tool._request_bridge_session = BridgeSession()
+    tool._layout_connection_poisoned = False
+    tool._browser = type("Browser", (), {"close": lambda self: events.append("browser")})()
+    tool._playwright = type(
+        "Playwright", (), {"stop": lambda self: events.append("playwright")}
+    )()
+
+    with pytest.raises(RuntimeError, match="bridge close failed"):
+        tool.close()
+
+    assert events == ["bridge", "browser", "playwright"]
+
+
+def test_kitesurf_login_readiness_uses_dom_polling() -> None:
+    events = []
+
+    class Page:
+        def evaluate(self, script, argument):
+            events.append(("evaluate", argument))
+            assert "document.querySelectorAll(selector)" in script
+            return sum(event[0] == "evaluate" for event in events) == 2
+
+        def wait_for_timeout(self, timeout):
+            events.append(("wait", timeout))
+
+        def locator(self, _selector):
+            raise AssertionError("Kitesurf readiness must not use Locator.wait_for")
+
+    tool = _unit_tool(Page(), object(), engine="kitesurf")
+    tool._wait_for_login_ready(
+        tool._page, "button", exact_text="alice", timeout_ms=1_000
+    )
+
+    assert events == [
+        ("evaluate", {"selector": "button", "exactText": "alice"}),
+        ("wait", 100),
+        ("evaluate", {"selector": "button", "exactText": "alice"}),
     ]
 
 

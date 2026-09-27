@@ -7,8 +7,9 @@ import json
 import time
 from dataclasses import dataclass
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
+import requests
 from playwright.sync_api import sync_playwright
 
 from harness.browser_use.runner import BENCHMARK_VIEWPORT
@@ -59,6 +60,7 @@ class PlaywrightReplayTool:
         self._supports_multiple_pages = engine not in {"lightpanda", "obscura", "kitesurf"}
         self._supports_network_reset_cdp = engine not in {"obscura", "kitesurf"}
         self._supports_storage_cdp = engine not in {"lightpanda", "obscura", "kitesurf"}
+        self._native_login_form_submit = engine == "kitesurf"
         self._fresh_context_per_task = True
         self._supports_context_request_cookie_sharing = engine not in {
             "lightpanda",
@@ -73,6 +75,8 @@ class PlaywrightReplayTool:
         self._context = None
         self.runtime_metadata: dict[str, Any] | None = None
         self.request_bridge_stats = {"requests": 0, "failures": 0}
+        self._request_bridge_session = None
+        self._request_bridge_origins: frozenset[str] = frozenset()
         try:
             connect_options: dict[str, Any] = {"timeout": 90_000}
             if headers is not None:
@@ -138,6 +142,9 @@ class PlaywrightReplayTool:
         }
         if not normalized:
             return
+        self._request_bridge_origins = frozenset(normalized)
+        self._request_bridge_session = requests.Session()
+        self._request_bridge_session.trust_env = False
 
         def selected(url: str) -> bool:
             parsed = urlsplit(url)
@@ -146,8 +153,51 @@ class PlaywrightReplayTool:
         def bridge(route) -> None:
             self.request_bridge_stats["requests"] += 1
             try:
-                response = route.fetch(timeout=60_000, max_redirects=0)
-                route.fulfill(response=response)
+                request = route.request
+                headers = {
+                    name: value
+                    for name, value in request.all_headers().items()
+                    if name.lower()
+                    not in {
+                        "accept-encoding",
+                        "connection",
+                        "content-length",
+                        "host",
+                        "proxy-connection",
+                        "signature",
+                        "signature-agent",
+                        "signature-input",
+                        "transfer-encoding",
+                    }
+                }
+                response = self._request_bridge_session.request(
+                    method=request.method,
+                    url=request.url,
+                    headers=headers,
+                    data=request.post_data_buffer,
+                    allow_redirects=False,
+                    timeout=60,
+                )
+                self._sync_request_bridge_cookies(
+                    str(response.url), response.cookies
+                )
+                response_headers = {
+                    name: value
+                    for name, value in response.headers.items()
+                    if name.lower()
+                    not in {
+                        "connection",
+                        "content-encoding",
+                        "content-length",
+                        "set-cookie",
+                        "transfer-encoding",
+                    }
+                }
+                route.fulfill(
+                    status=response.status_code,
+                    headers=response_headers,
+                    body=response.content,
+                )
             except Exception:
                 self.request_bridge_stats["failures"] += 1
                 try:
@@ -157,6 +207,186 @@ class PlaywrightReplayTool:
                 raise
 
         self._context.route(selected, bridge)
+
+    def _sync_request_bridge_cookies(
+        self, response_url: str, response_cookies: Any
+    ) -> None:
+        parsed = urlsplit(response_url)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+        if origin not in self._request_bridge_origins:
+            raise RuntimeError("request bridge cookie response origin is not allowed")
+        host = (parsed.hostname or "").lower()
+        cookies = []
+        for cookie in response_cookies:
+            item: dict[str, Any] = {
+                "name": cookie.name,
+                "value": cookie.value,
+                "secure": bool(cookie.secure),
+                "httpOnly": any(
+                    str(name).lower() == "httponly" for name in cookie._rest
+                ),
+            }
+            if cookie.domain_specified:
+                cookie_domain = str(cookie.domain).lstrip(".").lower()
+                if host != cookie_domain and not host.endswith(f".{cookie_domain}"):
+                    raise RuntimeError("request bridge rejected an invalid cookie domain")
+                item["domain"] = cookie.domain
+                item["path"] = cookie.path or "/"
+            else:
+                if (cookie.path or "/") != "/":
+                    raise RuntimeError(
+                        "request bridge cannot preserve a non-root host-only cookie path"
+                    )
+                item["url"] = f"{origin}/"
+            if cookie.expires is not None:
+                item["expires"] = float(cookie.expires)
+            same_site = next(
+                (
+                    value
+                    for name, value in cookie._rest.items()
+                    if str(name).lower() == "samesite"
+                ),
+                None,
+            )
+            if isinstance(same_site, str) and same_site.capitalize() in {
+                "Strict",
+                "Lax",
+                "None",
+            }:
+                item["sameSite"] = same_site.capitalize()
+            cookies.append(item)
+        if cookies:
+            self._context.add_cookies(cookies)
+
+    def _request_login_form(
+        self,
+        *,
+        source_origin: str,
+        method: str,
+        url: str,
+        fields: list[Any],
+        referer: str,
+    ) -> Any:
+        current_method = method
+        current_url = url
+        current_fields: list[Any] | None = fields
+        current_referer = referer
+        for _ in range(11):
+            parsed = urlsplit(current_url)
+            if f"{parsed.scheme}://{parsed.netloc}" != source_origin:
+                raise RuntimeError("login form bridge rejected a cross-origin redirect")
+            kwargs: dict[str, Any] = {
+                "method": current_method,
+                "url": current_url,
+                "headers": {"referer": current_referer},
+                "allow_redirects": False,
+                "timeout": 60,
+            }
+            if current_fields is not None:
+                kwargs["params" if current_method == "get" else "data"] = current_fields
+            response = self._request_bridge_session.request(**kwargs)
+            self._sync_request_bridge_cookies(str(response.url), response.cookies)
+            if response.status_code not in {301, 302, 303, 307, 308}:
+                return response
+            location = response.headers.get("location")
+            if not location:
+                raise RuntimeError("login form bridge redirect has no location")
+            current_referer = str(response.url)
+            current_url = urljoin(str(response.url), location)
+            if response.status_code == 303 or (
+                response.status_code in {301, 302} and current_method == "post"
+            ):
+                current_method = "get"
+                current_fields = None
+        raise RuntimeError("login form bridge exceeded ten redirects")
+
+    def _submit_login_form(self, page: Any, submitter: Any) -> str:
+        form = submitter.evaluate(
+            """element => {
+                const form = element.form;
+                if (!form) throw new Error('login submitter has no form');
+                const fields = Array.from(new FormData(form), ([name, value]) => [
+                    name,
+                    typeof value === 'string' ? value : value.name,
+                ]);
+                if (element.name) fields.push([element.name, element.value || '']);
+                return {action: form.action, method: form.method || 'get', fields};
+            }"""
+        )
+        action = str(form.get("action") or "")
+        method = str(form.get("method") or "get").lower()
+        fields = form.get("fields")
+        source = urlsplit(page.url)
+        source_origin = f"{source.scheme}://{source.netloc}"
+        target = urlsplit(action)
+        if (
+            method not in {"get", "post"}
+            or not isinstance(fields, list)
+            or target.scheme != source.scheme
+            or target.netloc != source.netloc
+        ):
+            raise RuntimeError("login form bridge rejected an invalid submission")
+        response = self._request_login_form(
+            source_origin=source_origin,
+            method=method,
+            url=action,
+            fields=fields,
+            referer=page.url,
+        )
+        final = urlsplit(str(response.url))
+        if (
+            not 200 <= response.status_code < 300
+            or final.scheme != source.scheme
+            or final.netloc != source.netloc
+        ):
+            raise RuntimeError(
+                f"login form bridge returned invalid status or origin: {response.status_code}"
+            )
+        page.goto(str(response.url), wait_until="domcontentloaded", timeout=90_000)
+        return str(response.url)
+
+    def _wait_for_login_ready(
+        self,
+        page: Any,
+        selector: str,
+        *,
+        exact_text: str | None = None,
+        timeout_ms: int = 60_000,
+    ) -> None:
+        """Wait for a login marker without Kitesurf's broken Locator visibility path."""
+
+        if self._engine != "kitesurf":
+            if exact_text is not None:
+                page.get_by_role(
+                    "button", name=exact_text, exact=True
+                ).wait_for(timeout=timeout_ms)
+                return
+            locator = page.locator(selector)
+            if "," in selector:
+                locator = locator.first
+            locator.wait_for(timeout=timeout_ms)
+            return
+        deadline = time.monotonic() + timeout_ms / 1_000
+        while True:
+            ready = page.evaluate(
+                """({selector, exactText}) => Array.from(
+                    document.querySelectorAll(selector)
+                ).some(element => {
+                    if (exactText !== null && element.textContent.trim() !== exactText) {
+                        return false;
+                    }
+                    const style = getComputedStyle(element);
+                    const rect = element.getBoundingClientRect();
+                    return style.visibility !== 'hidden' && style.display !== 'none'
+                        && rect.width > 0 && rect.height > 0;
+                })""",
+                {"selector": selector, "exactText": exact_text},
+            )
+            if ready:
+                return
+            if time.monotonic() >= deadline:
+                raise TimeoutError(f"login readiness marker did not appear: {selector}")
+            page.wait_for_timeout(100)
 
     def _get_service(self) -> PlaywrightReplayTool:
         return self
@@ -328,15 +558,31 @@ class PlaywrightReplayTool:
         return ReplayResult("success", value)
 
     def close(self) -> None:
-        if getattr(self, "_layout_connection_poisoned", False):
-            self._playwright.stop()
-            return
-        try:
-            if self._context is not None and self._engine != "kitesurf":
-                self._context.close()
-        finally:
+        bridge_close_errors: list[BaseException] = []
+        if getattr(self, "_request_bridge_session", None) is not None:
             try:
-                if self._browser is not None:
-                    self._browser.close()
-            finally:
-                self._playwright.stop()
+                unroute_all = getattr(self._context, "unroute_all", None)
+                if unroute_all is not None:
+                    unroute_all(behavior="wait")
+            except BaseException as exc:
+                bridge_close_errors.append(exc)
+            try:
+                self._request_bridge_session.close()
+            except BaseException as exc:
+                bridge_close_errors.append(exc)
+        try:
+            if not getattr(self, "_layout_connection_poisoned", False):
+                try:
+                    if self._context is not None and self._engine != "kitesurf":
+                        self._context.close()
+                finally:
+                    if self._browser is not None:
+                        self._browser.close()
+        except BaseException as exc:
+            for bridge_error in bridge_close_errors:
+                exc.add_note(f"request bridge close also failed: {bridge_error}")
+            raise
+        finally:
+            self._playwright.stop()
+        if bridge_close_errors:
+            raise bridge_close_errors[0]

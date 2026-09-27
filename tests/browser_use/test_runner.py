@@ -396,6 +396,88 @@ def test_login_context_reuses_primary_page_for_single_target_session() -> None:
     assert events[-1] == ("goto", "http://fixture.test/start")
 
 
+def test_login_context_can_use_native_provider_login_submit() -> None:
+    events = []
+
+    class Locator:
+        def __init__(self, test_id):
+            self.test_id = test_id
+
+        def fill(self, value):
+            events.append(("fill", self.test_id, value))
+
+        def click(self, **kwargs):
+            events.append(("click", self.test_id, kwargs))
+
+        def evaluate(self, script):
+            events.append(("evaluate", self.test_id, script))
+
+    class Page:
+        def close(self):
+            raise AssertionError("the primary page must remain open")
+
+        def set_default_timeout(self, _value):
+            pass
+
+        def set_default_navigation_timeout(self, _value):
+            pass
+
+        def goto(self, url, **_kwargs):
+            events.append(("goto", url))
+
+        def evaluate(self, _script):
+            pass
+
+        def reload(self, **_kwargs):
+            pass
+
+        def get_by_test_id(self, test_id):
+            return Locator(test_id)
+
+        def wait_for_url(self, pattern, **_kwargs):
+            events.append(("wait_for_url", pattern))
+
+        def wait_for_timeout(self, _value):
+            pass
+
+    primary = Page()
+    context = SimpleNamespace(
+        pages=[primary],
+        clear_cookies=lambda: None,
+        set_extra_http_headers=lambda _headers: None,
+        new_page=lambda: (_ for _ in ()).throw(
+            AssertionError("single-target sessions must reuse the primary page")
+        ),
+    )
+    service = SimpleNamespace(
+        _context=context,
+        _page=primary,
+        _supports_multiple_pages=False,
+        _native_login_form_submit=True,
+        _submit_login_form=lambda page, submitter: events.append(
+            ("submit_login_form", page is primary, submitter.test_id)
+        ),
+        _submit=lambda callback: callback(),
+    )
+    benchmark = SimpleNamespace(
+        config=SimpleNamespace(
+            get_environment=lambda _site: SimpleNamespace(
+                active_url="http://fixture.test"
+            )
+        )
+    )
+
+    _login_context(
+        service,
+        (WebArenaSite.GITLAB,),
+        benchmark,
+        ["http://fixture.test/start"],
+    )
+
+    assert ("submit_login_form", True, "sign-in-button") in events
+    assert events[-1] == ("goto", "http://fixture.test/start")
+
+
 def test_login_context_uses_service_viewport_observer_without_page_script() -> None:
     class Page:
         def evaluate(self, _script):

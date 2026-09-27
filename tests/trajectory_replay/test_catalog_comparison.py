@@ -214,7 +214,7 @@ def _kitesurf_identity() -> dict:
 
 def _kitesurf_request_bridge() -> dict:
     return {
-        "kind": "playwright_route_fetch/1",
+        "kind": "local_http_fulfill/1",
         "origins": ["http://private.example.test"],
     }
 

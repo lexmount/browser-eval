@@ -34,7 +34,7 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
         "runtime_metadata": runtime_metadata,
     }
     request_bridge = {
-        "kind": "playwright_route_fetch/1",
+        "kind": "local_http_fulfill/1",
         "origins": ["http://private.example.test"],
     }
     current_evaluation = {"score": 1.0, "status": "pass", "evaluator": "current"}

@@ -5,7 +5,9 @@ from harness.browser_use.har import CdpHarRecorder, _har_request, _har_response,
 from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
 
 
-def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(tmp_path) -> None:
+def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(
+    tmp_path, monkeypatch
+) -> None:
     class EventSource:
         def __init__(self):
             self.handlers = {}
@@ -30,6 +32,7 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(tmp_path
         url = "http://private.example.test/save"
         headers = {"content-type": "application/json"}
         post_data = '{"enabled":true}'
+        post_data_buffer = b'{"enabled":true}'
         resource_type = "xhr"
         failure = None
 
@@ -38,7 +41,7 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(tmp_path
 
     request = Request()
 
-    class Response:
+    class HarResponse:
         status = 201
         status_text = "Created"
         headers = {"content-type": "application/json"}
@@ -52,23 +55,57 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(tmp_path
         def body(self):
             return b'{"saved":true}'
 
-    response = Response()
+    har_response = HarResponse()
+
+    class BridgeResponse:
+        status_code = 201
+        headers = {"content-type": "application/json", "content-length": "14"}
+        content = b'{"saved":true}'
+        url = request.url
+        cookies = []
+
+    class BridgeSession:
+        trust_env = True
+        cookies = []
+
+        def request(self, **kwargs):
+            assert kwargs == {
+                "method": "POST",
+                "url": request.url,
+                "headers": {"content-type": "application/json"},
+                "data": b'{"enabled":true}',
+                "allow_redirects": False,
+                "timeout": 60,
+            }
+            return BridgeResponse()
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.playwright_tool.requests.Session", BridgeSession
+    )
     context = Context()
     tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
     tool._context = context
+    tool._page = page
     tool.request_bridge_stats = {"requests": 0, "failures": 0}
     tool._install_request_bridge({"http://private.example.test"})
     recorder = CdpHarRecorder(capture_transport="playwright")
     recorder.start(context)
 
     class Route:
-        def fetch(self, **_kwargs):
-            return response
+        def __init__(self):
+            self.request = request
 
         def fulfill(self, **kwargs):
-            assert kwargs == {"response": response}
+            assert kwargs == {
+                "status": 201,
+                "headers": {"content-type": "application/json"},
+                "body": b'{"saved":true}',
+            }
             page.handlers["request"](request)
-            page.handlers["response"](response)
+            page.handlers["response"](har_response)
             page.handlers["requestfinished"](request)
 
     assert context.selector(request.url) is True
@@ -83,6 +120,131 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(tmp_path
     assert entries[0]["response"]["content"]["text"] == '{"saved":true}'
     assert tool.request_bridge_stats == {"requests": 1, "failures": 0}
     assert recorder.errors == []
+
+
+def test_request_bridge_preserves_redirect_and_browser_generated_get(
+    tmp_path, monkeypatch
+) -> None:
+    class EventSource:
+        def __init__(self):
+            self.handlers = {}
+
+        def on(self, event, callback):
+            self.handlers[event] = callback
+
+        def remove_listener(self, *_args):
+            pass
+
+    page = EventSource()
+
+    class Context(EventSource):
+        pages = [page]
+
+        def route(self, selector, handler):
+            self.selector = selector
+            self.route_handler = handler
+
+    class Request:
+        headers = {}
+        post_data = None
+        post_data_buffer = None
+        resource_type = "document"
+        failure = None
+
+        def __init__(self, method, url):
+            self.method = method
+            self.url = url
+
+        def all_headers(self):
+            return {}
+
+    first_request = Request("POST", "http://private.example.test/start")
+    second_request = Request("GET", "http://private.example.test/target")
+
+    class BridgeResponse:
+        cookies = []
+
+        def __init__(self, request):
+            self.url = request.url
+            if request is first_request:
+                self.status_code = 302
+                self.headers = {"location": "/target", "content-length": "0"}
+                self.content = b""
+            else:
+                self.status_code = 200
+                self.headers = {"content-type": "text/html"}
+                self.content = b"<title>Target</title>"
+
+    class BridgeSession:
+        trust_env = True
+
+        def request(self, **kwargs):
+            assert kwargs["allow_redirects"] is False
+            request = first_request if kwargs["url"].endswith("/start") else second_request
+            return BridgeResponse(request)
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.playwright_tool.requests.Session", BridgeSession
+    )
+    context = Context()
+    tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
+    tool._context = context
+    tool._page = page
+    tool.request_bridge_stats = {"requests": 0, "failures": 0}
+    tool._install_request_bridge({"http://private.example.test"})
+    recorder = CdpHarRecorder(capture_transport="playwright")
+    recorder.start(context)
+
+    class HarResponse:
+        status_text = ""
+
+        def __init__(self, request, status, headers, body):
+            self.request = request
+            self.status = status
+            self.headers = headers
+            self._body = body
+
+        def all_headers(self):
+            return dict(self.headers)
+
+        def body(self):
+            return self._body
+
+    fulfilled = []
+
+    class Route:
+        def __init__(self, request):
+            self.request = request
+
+        def fulfill(self, **kwargs):
+            fulfilled.append(kwargs)
+            page.handlers["request"](self.request)
+            page.handlers["response"](
+                HarResponse(
+                    self.request,
+                    kwargs["status"],
+                    kwargs["headers"],
+                    kwargs["body"],
+                )
+            )
+            page.handlers["requestfinished"](self.request)
+
+    context.route_handler(Route(first_request))
+    context.route_handler(Route(second_request))
+    path = tmp_path / "redirect.har"
+    recorder.stop(context, path)
+
+    entries = json.loads(path.read_text())["log"]["entries"]
+    assert [(row["request"]["method"], row["request"]["url"]) for row in entries] == [
+        ("POST", first_request.url),
+        ("GET", second_request.url),
+    ]
+    assert [row["response"]["status"] for row in entries] == [302, 200]
+    assert fulfilled[0]["headers"]["location"] == "/target"
+    assert tool.request_bridge_stats == {"requests": 2, "failures": 0}
 
 
 def test_playwright_transport_records_mutation_and_json_body_without_cdp_session(

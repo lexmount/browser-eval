@@ -150,7 +150,7 @@ def test_acceptance_rejects_observed_hosted_version_drift() -> None:
 
 def test_request_bridge_identity_is_credential_free_and_canonical() -> None:
     bridge = {
-        "kind": "playwright_route_fetch/1",
+        "kind": "local_http_fulfill/1",
         "origins": ["http://a.example.test", "https://b.example.test"],
     }
     assert acceptance.request_bridge_identity(
@@ -170,7 +170,7 @@ def test_request_bridge_identity_is_credential_free_and_canonical() -> None:
             {
                 "engine": "kitesurf",
                 "request_bridge": {
-                    "kind": "playwright_route_fetch/1",
+                    "kind": "local_http_fulfill/1",
                     "origins": ["http://user:password@a.example.test"],
                 }
             }

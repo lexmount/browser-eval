@@ -52,6 +52,8 @@ _MAX_OVERRIDE_SCRIPT_BYTES = 64 * 1024
 ACCEPTANCE_SCHEMA = "lex_trajectory_replay_catalog_acceptance/1"
 LEGACY_ACCEPTANCE_SCHEMAS = frozenset({"lex_webarena_full_acceptance_ledger/1"})
 ACCEPTANCE_SCHEMAS = frozenset({ACCEPTANCE_SCHEMA, *LEGACY_ACCEPTANCE_SCHEMAS})
+LEGACY_CATALOG_REPORT_SCHEMA = "lex_webarena_full_acceptance_report/3"
+LEGACY_CATALOG_CONTRACTS_SCHEMA = "lex_webarena_full_contracts/1"
 TRUSTED_RECORDED_HOSTS = frozenset(
     {
         "onestopmarket.example.com",

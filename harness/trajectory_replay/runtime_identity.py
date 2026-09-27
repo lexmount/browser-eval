@@ -28,7 +28,7 @@ def request_bridge_identity(binding: dict[str, Any]) -> dict[str, object] | None
     origins = bridge.get("origins") if isinstance(bridge, dict) else None
     if (
         not isinstance(bridge, dict)
-        or bridge.get("kind") != "playwright_route_fetch/1"
+        or bridge.get("kind") != "local_http_fulfill/1"
         or not isinstance(origins, list)
         or not origins
         or origins != sorted(set(origins))

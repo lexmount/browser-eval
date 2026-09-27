@@ -573,7 +573,7 @@ def main() -> None:
     if remote_binding is not None:
         binding["remote_browser"] = remote_binding
         binding["request_bridge"] = {
-            "kind": "playwright_route_fetch/1",
+            "kind": "local_http_fulfill/1",
             "origins": sorted(
                 {
                     f"{urlsplit(url).scheme}://{urlsplit(url).netloc}"

@@ -16,6 +16,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urlsplit
 
+from harness.trajectory_replay.catalog_contracts import (
+    LEGACY_CATALOG_CONTRACTS_SCHEMA,
+    LEGACY_CATALOG_REPORT_SCHEMA,
+)
 from harness.trajectory_replay.evaluator_transition import json_sha256, reevaluate_pass
 from harness.trajectory_replay.failure_matrix import failure_category_matrix
 from harness.trajectory_replay.interpretation import render_interpretation, standalone_document
@@ -1943,10 +1947,6 @@ def build_webarena_replay_report(
     return manifest
 
 
-# Full-catalog acceptance report
-CATALOG_REPORT_SCHEMA = "lex_webarena_full_acceptance_report/3"
-CATALOG_CONTRACTS_SCHEMA = "lex_webarena_full_contracts/1"
-
 CATALOG_REPORT_CSS = """
 :root{color-scheme:light dark;font:16px/1.6 system-ui,sans-serif}
 body{max-width:1120px;margin:auto;padding:22px;color:#14212b;background:#f7f9fb}
@@ -2257,7 +2257,10 @@ def build_catalog_acceptance_report(
         _catalog_shell("方法与边界", method_body, participant), encoding="utf-8"
     )
 
-    _catalog_write_json(output / "dataset-contracts.json", {"schema": CATALOG_CONTRACTS_SCHEMA, "tasks": contracts})
+    _catalog_write_json(
+        output / "dataset-contracts.json",
+        {"schema": LEGACY_CATALOG_CONTRACTS_SCHEMA, "tasks": contracts},
+    )
     dataset_rows = "".join(
         f'<tr><td><a href="case/{task["task_id"]:03}.html">{task["task_id"]}</a></td>'
         f'<td>{html.escape("、".join(CATALOG_SITE_LABELS[site] for site in task["sites"]))}</td>'
@@ -2283,7 +2286,7 @@ def build_catalog_acceptance_report(
     )
 
     manifest = {
-        "schema": CATALOG_REPORT_SCHEMA,
+        "schema": LEGACY_CATALOG_REPORT_SCHEMA,
         "generated_languages": ["zh"],
         "participant": {
             "engine": engine,
@@ -2332,7 +2335,7 @@ def validate_catalog_acceptance_report(
     manifest = _catalog_read_json(output / "manifest.json")
     task_count = int(manifest.get("task_count") or 0)
     if (
-        manifest.get("schema") != CATALOG_REPORT_SCHEMA
+        manifest.get("schema") != LEGACY_CATALOG_REPORT_SCHEMA
         or manifest.get("generated_languages") != ["zh"]
         or manifest.get("pass") != task_count
         or task_count <= 0

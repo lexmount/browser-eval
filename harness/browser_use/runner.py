@@ -638,6 +638,21 @@ def _login_context(
         if publisher is not None:
             publisher(page)
 
+    def wait_for_login_ready(
+        page: Any, selector: str, *, exact_text: str | None = None
+    ) -> None:
+        waiter = getattr(service, "_wait_for_login_ready", None)
+        if waiter is not None:
+            waiter(page, selector, exact_text=exact_text)
+            return
+        if exact_text is not None:
+            page.get_by_role("button", name=exact_text, exact=True).wait_for()
+            return
+        locator = page.locator(selector)
+        if "," in selector:
+            locator = locator.first
+        locator.wait_for()
+
     def login() -> None:
         context = service._context
         assert context is not None
@@ -678,13 +693,15 @@ def _login_context(
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")
                     publish_layout(page)
-                    page.locator(".block-dashboard-info, .box-information").first.wait_for()
+                    wait_for_login_ready(
+                        page, ".block-dashboard-info, .box-information"
+                    )
                 elif site == WebArenaSite.SHOPPING_ADMIN:
                     page.goto(base, wait_until="commit")
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")
                     publish_layout(page)
-                    page.locator(".page-title").wait_for()
+                    wait_for_login_ready(page, ".page-title")
                 elif site == WebArenaSite.REDDIT:
                     if getattr(service, "_supports_context_request_cookie_sharing", True):
                         _bootstrap_postmill_session(context, base)
@@ -694,7 +711,9 @@ def _login_context(
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")
                     publish_layout(page)
-                    page.get_by_role("button", name=creds["username"], exact=True).wait_for()
+                    wait_for_login_ready(
+                        page, "button", exact_text=creds["username"]
+                    )
                 elif site == WebArenaSite.GITLAB:
                     page.goto(f"{base}/users/sign_in", wait_until="commit")
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
@@ -704,7 +723,11 @@ def _login_context(
                     publish_layout(page)
                     page.get_by_test_id("password-field").fill(creds["password"])
                     publish_layout(page)
-                    page.get_by_test_id("sign-in-button").click()
+                    sign_in = page.get_by_test_id("sign-in-button")
+                    if getattr(service, "_native_login_form_submit", False):
+                        service._submit_login_form(page, sign_in)
+                    else:
+                        sign_in.click()
                     page.wait_for_url("**/", timeout=90_000)
                 elif site not in {WebArenaSite.MAP, WebArenaSite.WIKIPEDIA}:
                     raise ValueError(f"unsupported WebArena login site: {site}")
