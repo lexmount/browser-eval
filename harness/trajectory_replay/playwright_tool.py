@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import json
 import re
@@ -21,6 +22,7 @@ SNAPSHOT_NAVIGATION_SETTLE_TIMEOUT_MS = 1_500
 SNAPSHOT_NAVIGATION_GRACE_MS = 300
 REQUEST_BODY_CAPTURE_BINDING = "__browserEvalCaptureRequestBody"
 REQUEST_BODY_CAPTURE_HEADER = "x-browser-eval-request-body-id"
+NATIVE_FORM_REDIRECT_HEADER = "x-browser-eval-native-form-location"
 REQUEST_BODY_CAPTURE_LIMIT_BYTES = 20_000_000
 REQUEST_BODY_CAPTURE_MAX_PENDING = 256
 REQUEST_BODY_CAPTURE_TTL_SECONDS = 120.0
@@ -70,6 +72,7 @@ def _request_body_capture_script(origins: frozenset[str]) -> str:
   const origins = new Set({json.dumps(sorted(origins))});
   const binding = {json.dumps(REQUEST_BODY_CAPTURE_BINDING)};
   const header = {json.dumps(REQUEST_BODY_CAPTURE_HEADER)};
+  const nativeRedirectHeader = {json.dumps(NATIVE_FORM_REDIRECT_HEADER)};
   const limit = {REQUEST_BODY_CAPTURE_LIMIT_BYTES};
   if (globalThis.__browserEvalRequestBodyCaptureInstalled) return;
   globalThis.__browserEvalRequestBodyCaptureInstalled = true;
@@ -130,21 +133,30 @@ def _request_body_capture_script(origins: frozenset[str]) -> str:
         }}
         const name = String(pair[0]);
         const value = pair[1];
-        if (typeof value !== 'string') {{
-          throw new Error('request body capture does not support FormData files');
-        }}
         total += byteLength(name);
-        total += byteLength(value);
+        if (typeof value === 'string') {{
+          total += byteLength(value);
+          entries.push({{name, value}});
+        }} else {{
+          if (!(value instanceof File) || value.size !== 0) {{
+            throw new Error('request body capture supports only empty FormData files');
+          }}
+          total += byteLength(value.name);
+          total += byteLength(value.type);
+          entries.push({{
+            name,
+            file: {{name: value.name, type: value.type, base64: ''}},
+          }});
+        }}
         if (total > limit) {{
           throw new Error('request body exceeds the capture limit');
         }}
-        entries.push({{name, value}});
       }}
       return {{kind: 'form-data', entries}};
     }}
     throw new Error(`unsupported request body ${{Object.prototype.toString.call(body)}}`);
   }};
-  const capture = async (method, url, body) => {{
+  const capture = async (method, url, body, source = 'fetch') => {{
     const absolute = new URL(url, document.baseURI).href;
     if (body === undefined || body === null || !selected(absolute)) return null;
     const requestId = `${{prefix}}-${{sequence += 1}}`;
@@ -153,6 +165,7 @@ def _request_body_capture_script(origins: frozenset[str]) -> str:
       method: String(method || 'GET').toUpperCase(),
       url: absolute,
       body: encode(body),
+      source,
     }});
     return requestId;
   }};
@@ -174,6 +187,45 @@ def _request_body_capture_script(origins: frozenset[str]) -> str:
       throw new Error('request body capture requires the body in fetch init');
     }}
     return originalFetch.call(this, input, init);
+  }};
+
+  const originalSubmit = HTMLFormElement.prototype.submit;
+  HTMLFormElement.prototype.submit = function() {{
+    const method = String(this.method || 'get').toUpperCase();
+    const url = this.action || document.URL;
+    if (method !== 'POST' || !selected(url) || (this.target && this.target !== '_self')) {{
+      return originalSubmit.call(this);
+    }}
+    const enctype = String(this.enctype || 'application/x-www-form-urlencoded').toLowerCase();
+    const formData = new FormData(this);
+    let body;
+    if (enctype === 'application/x-www-form-urlencoded') {{
+      body = new URLSearchParams();
+      for (const [name, value] of formData.entries()) {{
+        const normalizedName = String(name).replace(/\\r\\n|\\r|\\n/g, '\\r\\n');
+        const rawValue = typeof value === 'string' ? value : value.name;
+        body.append(normalizedName, String(rawValue).replace(/\\r\\n|\\r|\\n/g, '\\r\\n'));
+      }}
+    }} else if (enctype === 'multipart/form-data') {{
+      body = formData;
+    }} else {{
+      throw new Error(`unsupported native form enctype ${{enctype}}`);
+    }}
+    void (async () => {{
+      const requestId = await capture(method, url, body, 'native-form');
+      const headers = new Headers();
+      headers.set(header, requestId);
+      const response = await originalFetch(url, {{
+        method,
+        credentials: 'same-origin',
+        body,
+        headers,
+        redirect: 'manual',
+      }});
+      const redirect = response.headers.get(nativeRedirectHeader);
+      if (!redirect) throw new Error('native form bridge returned no supported redirect');
+      location.assign(redirect);
+    }})();
   }};
 }})();
 """
@@ -352,6 +404,12 @@ class PlaywrightReplayTool:
                     self._record_request_bridge_redirect(
                         capture_id, request.method, request.url, response
                     )
+                    self._record_request_bridge_response(
+                        capture_id,
+                        request.method,
+                        request.url,
+                        response,
+                    )
                 self._sync_request_bridge_cookies(
                     str(response.url), response.cookies
                 )
@@ -367,11 +425,22 @@ class PlaywrightReplayTool:
                         "transfer-encoding",
                     }
                 }
-                route.fulfill(
-                    status=response.status_code,
-                    headers=response_headers,
-                    body=response.content,
-                )
+                source = self._request_bridge_har_bodies.get(
+                    capture_id or "", {}
+                ).get("source")
+                if source == "native-form":
+                    redirect_url = self._native_form_redirect_url(request.url, response)
+                    route.fulfill(
+                        status=200,
+                        headers={NATIVE_FORM_REDIRECT_HEADER: redirect_url},
+                        body=b"",
+                    )
+                else:
+                    route.fulfill(
+                        status=response.status_code,
+                        headers=response_headers,
+                        body=response.content,
+                    )
             except Exception:
                 self.request_bridge_stats["failures"] += 1
                 try:
@@ -384,7 +453,7 @@ class PlaywrightReplayTool:
 
     def transform_playwright_har_request(
         self, method: str, url: str, headers: dict[str, Any]
-    ) -> tuple[dict[str, Any], str | None]:
+    ) -> tuple[dict[str, Any], str | None, dict[str, Any] | None]:
         """Restore a Kitesurf fetch body and remove its private correlation header."""
 
         capture_id = next(
@@ -400,17 +469,16 @@ class PlaywrightReplayTool:
             for name, value in headers.items()
             if str(name).lower() != REQUEST_BODY_CAPTURE_HEADER
         }
-        if capture_id is None:
-            return cleaned, None
-        record = self._request_bridge_har_bodies.get(capture_id)
-        if record is None:
-            return cleaned, None
         normalized_url = urlsplit(url)._replace(fragment="").geturl()
         request_key = (method.upper(), normalized_url)
+        record = self._request_bridge_har_bodies.get(capture_id or "")
+        if record is None:
+            return cleaned, None, None
         if request_key not in record["allowed_requests"]:
             raise RuntimeError("HAR request body does not match its routed request")
+        response_transform = record.get("response_transforms", {}).get(request_key)
         if request_key not in record["body_requests"]:
-            return cleaned, None
+            return cleaned, None, response_transform
         if record["content_type"] is not None:
             cleaned = {
                 name: value
@@ -418,7 +486,7 @@ class PlaywrightReplayTool:
                 if str(name).lower() != "content-type"
             }
             cleaned["content-type"] = record["content_type"]
-        return cleaned, record["post_data"]
+        return cleaned, record["post_data"], response_transform
 
     def _request_bridge_body_for_route(
         self, request_id: str, method: str, url: str
@@ -427,6 +495,7 @@ class PlaywrightReplayTool:
         request_key = (method.upper(), normalized_url)
         self._purge_captured_request_bodies()
         if request_id in self._request_bridge_bodies:
+            source = self._request_bridge_bodies[request_id].get("source", "fetch")
             captured = self._pop_captured_request_body(request_id, method, url)
             data, content_type = self._decode_captured_request_body(
                 request_id, captured
@@ -442,6 +511,8 @@ class PlaywrightReplayTool:
                 "content_type": content_type,
                 "allowed_requests": {request_key},
                 "body_requests": {request_key},
+                "source": source,
+                "response_transforms": {},
             }
             self._request_bridge_har_body_bytes += len(data)
             return data, content_type
@@ -451,6 +522,64 @@ class PlaywrightReplayTool:
         if request_key not in record["body_requests"]:
             return None, None
         return record["body_bytes"], record["content_type"]
+
+    def _record_request_bridge_response(
+        self, request_id: str, method: str, url: str, response: Any
+    ) -> None:
+        record = self._request_bridge_har_bodies.get(request_id)
+        if record is None:
+            return
+        raw_cookie = next(
+            (
+                str(value)
+                for name, value in response.headers.items()
+                if str(name).lower() == "set-cookie" and "mage-messages=" in str(value)
+            ),
+            "",
+        )
+        request_key = (
+            method.upper(),
+            urlsplit(url)._replace(fragment="").geturl(),
+        )
+        if request_key not in record["allowed_requests"]:
+            raise RuntimeError("response evidence does not match its routed request")
+        transform: dict[str, Any] = {}
+        if raw_cookie:
+            transform["extra_headers"] = {"set-cookie": raw_cookie}
+        if record.get("source") == "native-form":
+            transform.update(
+                {
+                    "status": int(response.status_code),
+                    "statusText": str(getattr(response, "reason", "") or ""),
+                    "headers": {
+                        str(name): str(value)
+                        for name, value in response.headers.items()
+                        if str(name).lower()
+                        not in {
+                            "connection",
+                            "content-encoding",
+                            "content-length",
+                            "set-cookie",
+                            "transfer-encoding",
+                        }
+                    },
+                }
+            )
+        if transform:
+            record["response_transforms"][request_key] = transform
+
+    def _native_form_redirect_url(self, request_url: str, response: Any) -> str:
+        if int(response.status_code) not in {302, 303}:
+            raise RuntimeError(
+                f"native form bridge requires a 302/303 redirect; got {response.status_code}"
+            )
+        location = response.headers.get("location")
+        if not location:
+            raise RuntimeError("native form bridge redirect has no location")
+        target = urljoin(request_url, str(location))
+        if _http_origin(target) != _http_origin(request_url):
+            raise RuntimeError("native form bridge rejected a cross-origin redirect")
+        return target
 
     def _record_request_bridge_redirect(
         self, request_id: str, method: str, url: str, response: Any
@@ -492,6 +621,7 @@ class PlaywrightReplayTool:
         method = payload.get("method")
         url = payload.get("url")
         body = payload.get("body")
+        source = payload.get("source", "fetch")
         request_id = payload.get("requestId")
         if (
             not isinstance(request_id, str)
@@ -507,6 +637,8 @@ class PlaywrightReplayTool:
             raise ValueError("request body capture origin is not allowed")
         if not isinstance(body, dict):
             raise ValueError("request body capture is missing its body")
+        if source not in {"fetch", "native-form"}:
+            raise ValueError("request body capture has an invalid source")
         body_size = self._validate_captured_request_body(body)
         normalized_url = parsed._replace(fragment="").geturl()
         self._purge_captured_request_bodies()
@@ -533,6 +665,7 @@ class PlaywrightReplayTool:
             "url": normalized_url,
             "body": body,
             "size": body_size,
+            "source": source,
         }
         self._request_bridge_body_bytes += body_size
 
@@ -559,8 +692,19 @@ class PlaywrightReplayTool:
                     if not isinstance(entry["value"], str):
                         raise ValueError("captured form value is invalid")
                     total += len(entry["value"].encode("utf-8"))
+                elif "file" in entry:
+                    file = entry["file"]
+                    if (
+                        not isinstance(file, dict)
+                        or not isinstance(file.get("name"), str)
+                        or not isinstance(file.get("type"), str)
+                        or file.get("base64") != ""
+                    ):
+                        raise ValueError("captured form supports only empty files")
+                    total += len(file["name"].encode("utf-8"))
+                    total += len(file["type"].encode("utf-8"))
                 else:
-                    raise ValueError("captured form files are unsupported")
+                    raise ValueError("captured form entry has no value")
                 total += len(entry["name"].encode("utf-8"))
                 if total > REQUEST_BODY_CAPTURE_LIMIT_BYTES:
                     raise ValueError("captured form body exceeds the size limit")
@@ -606,14 +750,24 @@ class PlaywrightReplayTool:
             if "\r" in name or "\n" in name:
                 raise ValueError("captured form field name contains a newline")
             escaped_name = name.replace('"', "%22")
-            chunks.extend(
-                (
-                    f"--{boundary}\r\n".encode(),
-                    f'Content-Disposition: form-data; name="{escaped_name}"\r\n\r\n'.encode(),
-                    entry["value"].encode("utf-8"),
-                    b"\r\n",
-                )
-            )
+            disposition = f'Content-Disposition: form-data; name="{escaped_name}"'
+            content = b""
+            content_type = ""
+            if "value" in entry:
+                content = entry["value"].encode("utf-8")
+            else:
+                file = entry["file"]
+                filename = file["name"]
+                if "\r" in filename or "\n" in filename:
+                    raise ValueError("captured form filename contains a newline")
+                escaped_filename = filename.replace('"', "%22")
+                disposition += f'; filename="{escaped_filename}"'
+                content_type = file["type"] or "application/octet-stream"
+                content = base64.b64decode(file["base64"], validate=True)
+            chunks.extend((f"--{boundary}\r\n".encode(), disposition.encode(), b"\r\n"))
+            if content_type:
+                chunks.extend((f"Content-Type: {content_type}\r\n".encode(),))
+            chunks.extend((b"\r\n", content, b"\r\n"))
         chunks.append(f"--{boundary}--\r\n".encode())
         return b"".join(chunks), f"multipart/form-data; boundary={boundary}"
 

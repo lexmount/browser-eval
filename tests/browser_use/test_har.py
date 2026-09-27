@@ -68,7 +68,14 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(
 
     class BridgeResponse:
         status_code = 201
-        headers = {"content-type": "application/json", "content-length": "14"}
+        headers = {
+            "content-type": "application/json",
+            "content-length": "14",
+            "set-cookie": (
+                "PHPSESSID=private; Path=/\r\n"
+                "mage-messages=product%20added; Path=/"
+            ),
+        }
         content = b'{"saved":true}'
         url = request.url
         cookies = []
@@ -143,8 +150,101 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(
     )
     assert entries[0]["response"]["status"] == 201
     assert entries[0]["response"]["content"]["text"] == '{"saved":true}'
+    assert entries[0]["response"]["cookies"] == [
+        {"name": "mage-messages", "value": "product%20added"}
+    ]
+    assert "private" not in json.dumps(entries[0]["response"])
     assert tool.request_bridge_stats == {"requests": 1, "failures": 0}
     assert recorder.errors == []
+
+
+def test_native_form_har_restores_real_redirect_and_safe_cookie(tmp_path) -> None:
+    class Request:
+        method = "POST"
+        url = "http://shop.test/wishlist/index/add/"
+        headers = {
+            "content-type": "application/x-www-form-urlencoded",
+            "x-browser-eval-request-body-id": "native-1",
+        }
+        post_data = None
+
+        def all_headers(self):
+            return dict(self.headers)
+
+    request = Request()
+
+    class Response:
+        status = 200
+        status_text = "OK"
+        headers = {"x-browser-eval-native-form-location": "http://shop.test/wishlist/"}
+
+        def all_headers(self):
+            return dict(self.headers)
+
+        def body(self):
+            return b""
+
+    response = Response()
+    response.request = request
+
+    def transform(method, url, headers):
+        assert (method, url) == (request.method, request.url)
+        assert headers["x-browser-eval-request-body-id"] == "native-1"
+        return (
+            {"content-type": "application/x-www-form-urlencoded"},
+            "product=42",
+            {
+                "status": 302,
+                "statusText": "Found",
+                "headers": {"location": "/wishlist/"},
+                "extra_headers": {
+                    "set-cookie": (
+                        "PHPSESSID=private; Path=/\r\n"
+                        "mage-messages=product%20added; Path=/"
+                    )
+                },
+            },
+        )
+
+    recorder = CdpHarRecorder(
+        capture_transport="playwright",
+        capture_new_pages=False,
+        playwright_request_transform=transform,
+    )
+    key = id(request)
+    recorder._playwright_requests[key] = {
+        "method": request.method,
+        "url": request.url,
+        "headers": dict(request.headers),
+        "postData": None,
+        "__resource_type": "Fetch",
+    }
+    recorder._playwright_request_objects[key] = request
+    recorder._playwright_request_order.append(key)
+    recorder._playwright_responses[key] = (
+        response,
+        {
+            "status": response.status,
+            "statusText": response.status_text,
+            "headers": dict(response.headers),
+            "mimeType": "",
+        },
+    )
+
+    path = tmp_path / "native-form.har"
+    recorder.stop(object(), path)
+    entry = json.loads(path.read_text())["log"]["entries"][0]
+
+    assert entry["request"]["postData"]["text"] == "product=42"
+    assert entry["response"]["status"] == 302
+    assert entry["response"]["statusText"] == "Found"
+    assert entry["response"]["redirectURL"] == "/wishlist/"
+    assert entry["response"]["cookies"] == [
+        {"name": "mage-messages", "value": "product%20added"}
+    ]
+    serialized = json.dumps(entry)
+    assert "x-browser-eval-native-form-location" not in serialized
+    assert "PHPSESSID" not in serialized
 
 
 def test_request_bridge_preserves_redirect_and_browser_generated_get(

@@ -404,6 +404,14 @@ def test_kitesurf_request_bridge_rebuilds_captured_form_data(monkeypatch) -> Non
                 "kind": "form-data",
                 "entries": [
                     {"name": "title", "value": "hello"},
+                    {
+                        "name": "image",
+                        "file": {
+                            "name": "",
+                            "type": "application/octet-stream",
+                            "base64": "",
+                        },
+                    },
                 ],
             },
         },
@@ -438,6 +446,10 @@ def test_kitesurf_request_bridge_rebuilds_captured_form_data(monkeypatch) -> Non
         "multipart/form-data; boundary=browser-eval-"
     )
     assert b'name="title"\r\n\r\nhello\r\n' in call["data"]
+    assert (
+        b'name="image"; filename=""\r\nContent-Type: application/octet-stream\r\n\r\n\r\n'
+        in call["data"]
+    )
     assert call["data"].endswith(b"--\r\n")
     assert call["allow_redirects"] is False
     assert call["timeout"] == 60
@@ -471,6 +483,88 @@ def test_kitesurf_request_capture_ids_prevent_same_url_body_reuse() -> None:
         tool._pop_captured_request_body(
             "aborted-1", "PUT", "http://private.test/save"
         )
+
+
+def test_kitesurf_native_form_body_uses_capture_id(monkeypatch) -> None:
+    from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
+
+    class Context:
+        def expose_binding(self, _name, callback):
+            self.capture = callback
+
+        def add_init_script(self, script):
+            assert "HTMLFormElement.prototype.submit" in script
+
+        def route(self, _selector, handler):
+            self.bridge = handler
+
+    context = Context()
+    calls = []
+
+    class Response:
+        status_code = 302
+        headers = {"location": "/issues/1"}
+        content = b""
+        url = "http://private.test/issues"
+        cookies = []
+
+    class Session:
+        trust_env = True
+
+        def request(self, **kwargs):
+            calls.append(kwargs)
+            return Response()
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.playwright_tool.requests.Session", Session
+    )
+    tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
+    tool._context = context
+    tool.request_bridge_stats = {"requests": 0, "failures": 0}
+    tool._install_request_bridge({"http://private.test"})
+    context.capture(
+        {},
+        {
+            "requestId": "native-form-1",
+            "method": "POST",
+            "url": "http://private.test/issues",
+            "source": "native-form",
+            "body": {"kind": "text", "text": "issue%5Btitle%5D=hello"},
+        },
+    )
+
+    class Request:
+        method = "POST"
+        url = "http://private.test/issues"
+        post_data_buffer = None
+
+        def all_headers(self):
+            return {
+                "content-type": "application/x-www-form-urlencoded",
+                "x-browser-eval-request-body-id": "native-form-1",
+            }
+
+    class Route:
+        request = Request()
+
+        def fulfill(self, **_kwargs):
+            pass
+
+    context.bridge(Route())
+
+    assert calls[0]["data"] == b"issue%5Btitle%5D=hello"
+    headers, body, response_headers = tool.transform_playwright_har_request(
+        "POST",
+        "http://private.test/issues",
+        {"x-browser-eval-request-body-id": "native-form-1"},
+    )
+    assert headers == {}
+    assert body == "issue%5Btitle%5D=hello"
+    assert response_headers == {
+        "status": 302,
+        "statusText": "",
+        "headers": {"location": "/issues/1"},
+    }
 
 
 def test_kitesurf_request_bridge_encodes_empty_form_data() -> None:
@@ -581,12 +675,12 @@ def test_kitesurf_request_body_id_survives_post_redirect_as_bodyless_get(
         b"kept=true",
         b"kept=true",
     ]
-    original_headers, original_body = tool.transform_playwright_har_request(
+    original_headers, original_body, _ = tool.transform_playwright_har_request(
         "POST",
         "http://private.test/start",
         {"x-browser-eval-request-body-id": "redirect-1"},
     )
-    redirect_headers, redirect_body = tool.transform_playwright_har_request(
+    redirect_headers, redirect_body, _ = tool.transform_playwright_har_request(
         "GET",
         "http://private.test/final",
         {"x-browser-eval-request-body-id": "redirect-1"},
@@ -594,7 +688,7 @@ def test_kitesurf_request_body_id_survives_post_redirect_as_bodyless_get(
     assert original_headers == redirect_headers == {}
     assert original_body == "enabled=true"
     assert redirect_body is None
-    _, kept_body = tool.transform_playwright_har_request(
+    _, kept_body, _ = tool.transform_playwright_har_request(
         "POST",
         "http://private.test/kept",
         {"x-browser-eval-request-body-id": "redirect-2"},
@@ -1161,6 +1255,100 @@ def test_snapshot_hidden_selector_fails_before_observation():
     assert "remained hidden" in result.result
     assert events
     assert all(event[0] == "visible" for event in events)
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="uses the pinned macOS Chromium")
+def test_kitesurf_native_form_capture_freezes_one_submission_snapshot() -> None:
+    binary = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+    if not binary.is_file():
+        pytest.skip("Chrome is unavailable")
+    from playwright.sync_api import sync_playwright
+
+    from harness.trajectory_replay.playwright_tool import (
+        NATIVE_FORM_REDIRECT_HEADER,
+        REQUEST_BODY_CAPTURE_BINDING,
+        REQUEST_BODY_CAPTURE_HEADER,
+        _request_body_capture_script,
+    )
+
+    captures = []
+    posts = []
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(executable_path=str(binary), headless=True)
+        context = browser.new_context()
+        context.expose_binding(
+            REQUEST_BODY_CAPTURE_BINDING,
+            lambda _source, payload: captures.append(payload),
+        )
+        context.add_init_script(_request_body_capture_script(frozenset({"http://capture.test"})))
+
+        gets = []
+
+        def route_request(route):
+            request = route.request
+            if request.method == "POST":
+                posts.append(
+                    {
+                        "url": request.url,
+                        "headers": request.all_headers(),
+                        "body": request.post_data,
+                    }
+                )
+                route.fulfill(
+                    status=200,
+                    headers={NATIVE_FORM_REDIRECT_HEADER: "http://capture.test/save"},
+                    body="",
+                )
+                return
+            gets.append({"url": request.url, "resource_type": request.resource_type})
+            if request.url.endswith("/form"):
+                route.fulfill(
+                    status=200,
+                    content_type="text/html",
+                    body=(
+                        '<form action="/save" method="post">'
+                        '<textarea name="note"></textarea>'
+                        '<input name="x" value="one">'
+                        "</form>"
+                    ),
+                )
+                return
+            route.fulfill(status=200, content_type="text/html", body='<p id="done">done</p>')
+
+        context.route("http://capture.test/**", route_request)
+        page = context.new_page()
+        page.goto("http://capture.test/form")
+        page.evaluate(
+            """() => {
+                const form = document.querySelector('form');
+                let count = 0;
+                form.addEventListener('formdata', event => {
+                    event.formData.append('nonce', String(++count));
+                });
+                form.elements.note.value = 'a\\nb';
+                form.submit();
+                form.action = '/other';
+                form.elements.x.value = 'two';
+                form.remove();
+            }"""
+        )
+        page.wait_for_url("http://capture.test/save")
+        browser.close()
+
+    assert len(captures) == 1
+    assert captures[0]["url"] == "http://capture.test/save"
+    assert captures[0]["body"] == {
+        "kind": "text",
+        "text": "note=a%0D%0Ab&x=one&nonce=1",
+    }
+    assert len(posts) == 1
+    assert posts[0]["url"] == "http://capture.test/save"
+    assert posts[0]["body"] == "note=a%0D%0Ab&x=one&nonce=1"
+    assert posts[0]["headers"][REQUEST_BODY_CAPTURE_HEADER] == captures[0]["requestId"]
+    assert gets == [
+        {"url": "http://capture.test/form", "resource_type": "document"},
+        {"url": "http://capture.test/save", "resource_type": "document"},
+    ]
 
 
 @pytest.mark.skipif(sys.platform != "darwin", reason="uses the pinned macOS Chromium")

@@ -119,7 +119,8 @@ class CdpHarRecorder:
         capture_transport: str = "cdp",
         capture_new_pages: bool = True,
         playwright_request_transform: Callable[
-            [str, str, dict[str, Any]], tuple[dict[str, Any], str | None]
+            [str, str, dict[str, Any]],
+            tuple[dict[str, Any], str | None, dict[str, Any] | None],
         ]
         | None = None,
     ) -> None:
@@ -441,10 +442,11 @@ class CdpHarRecorder:
     def _transform_playwright_request(self, raw: dict[str, Any]) -> None:
         if self._playwright_request_transform is None:
             return
-        headers, post_data = self._playwright_request_transform(
+        headers, post_data, response_transform = self._playwright_request_transform(
             str(raw["method"]), str(raw["url"]), dict(raw.get("headers", {}))
         )
         raw["headers"] = headers
+        raw["__response_transform"] = response_transform
         if post_data is not None:
             raw["postData"] = post_data
 
@@ -545,6 +547,10 @@ class CdpHarRecorder:
                     self._capture_playwright_body(key)
                     response_object, raw_response = observation
                     raw_response["headers"] = self._playwright_headers(response_object)
+                    response_transform = request.get("__response_transform") or {}
+                    for field in ("status", "statusText", "headers"):
+                        if field in response_transform:
+                            raw_response[field] = response_transform[field]
                     raw_response["mimeType"] = next(
                         (
                             str(value).split(";", 1)[0].strip()
@@ -556,7 +562,8 @@ class CdpHarRecorder:
                     response = _har_response(
                         raw_response,
                         self._playwright_bodies.get(key),
-                        raw_response.get("headers"),
+                        response_transform.get("extra_headers")
+                        or raw_response.get("headers"),
                     )
                 else:
                     response = {
