@@ -284,6 +284,7 @@ def _run_task(
     portable_action_timeout_ms: int = 30_000,
     backend: str = "browsertool",
     engine: str = "chromium",
+    fresh_browser_process: bool = False,
 ) -> dict:
     official = benchmark.get_task(task_id)
     correction = apply_correction(official, catalog) if task_id in catalog.records else None
@@ -294,7 +295,9 @@ def _run_task(
     elif backend == "playwright":
         from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
 
-        tool = PlaywrightReplayTool(endpoint, engine=engine)
+        tool = PlaywrightReplayTool(
+            endpoint, engine=engine, fresh_browser_process=fresh_browser_process
+        )
     else:
         raise ValueError(f"unknown replay backend: {backend}")
     recorder = CdpHarRecorder()

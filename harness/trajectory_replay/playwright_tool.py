@@ -12,11 +12,9 @@ from playwright.sync_api import sync_playwright
 
 from harness.browser_use.runner import BENCHMARK_VIEWPORT
 from harness.trajectory_replay.public_webarena.executor import execute_steps
-from harness.trajectory_replay.public_webarena.webarena_environment import wall_clock_timeout
 
 SNAPSHOT_NAVIGATION_SETTLE_TIMEOUT_MS = 1_500
 SNAPSHOT_NAVIGATION_GRACE_MS = 300
-SESSION_SETUP_TIMEOUT_SECONDS = 120
 
 
 def _navigation_interrupted_snapshot(exc: Exception) -> bool:
@@ -51,15 +49,17 @@ class PlaywrightReplayTool:
         endpoint: str,
         *,
         engine: str = "chromium",
-        setup_timeout_seconds: float = SESSION_SETUP_TIMEOUT_SECONDS,
+        fresh_browser_process: bool = False,
     ):
         if engine not in {"chromium", "moli", "lightpanda", "obscura"}:
             raise ValueError(f"unknown Playwright replay engine: {engine}")
+        if engine == "obscura" and not fresh_browser_process:
+            raise ValueError("Obscura replay requires a fresh browser process per task")
         self._engine = engine
         self._supports_multiple_pages = engine != "lightpanda"
         self._supports_network_reset_cdp = engine != "obscura"
         self._supports_storage_cdp = engine not in {"lightpanda", "obscura"}
-        self._fresh_context_per_task = True
+        self._fresh_context_per_task = engine != "obscura" or fresh_browser_process
         self._supports_context_request_cookie_sharing = engine != "lightpanda"
         self._layout_sessions: dict[Any, Any] = {}
         self._layout_connection_poisoned = False
@@ -67,16 +67,17 @@ class PlaywrightReplayTool:
         self._browser = None
         self._context = None
         try:
-            with wall_clock_timeout(
-                setup_timeout_seconds, operation="Playwright replay session setup"
-            ):
-                self._browser = self._playwright.chromium.connect_over_cdp(
-                    endpoint, timeout=90_000
-                )
+            self._browser = self._playwright.chromium.connect_over_cdp(endpoint, timeout=90_000)
+            if engine == "obscura":
+                contexts = self._browser.contexts
+                if len(contexts) != 1:
+                    raise RuntimeError("Obscura must expose exactly one default browser context")
+                self._context = contexts[0]
+            else:
                 self._context = self._browser.new_context(
                     viewport=dict(BENCHMARK_VIEWPORT), locale="en-US"
                 )
-                self._page = self._context.new_page()
+            self._page = self._context.new_page()
         except Exception:
             self.close()
             raise

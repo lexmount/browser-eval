@@ -336,24 +336,54 @@ def test_playwright_backend_executes_portable_and_snapshot_ref_calls(tmp_path: P
     finally:
         process.terminate()
         process.wait(timeout=10)
-def test_playwright_session_setup_has_a_wall_clock_deadline(monkeypatch) -> None:
-    class SlowChromium:
-        def connect_over_cdp(self, *_args, **_kwargs):
-            time.sleep(0.2)
+def test_obscura_requires_process_isolation_before_using_its_default_context() -> None:
+    with pytest.raises(ValueError, match="fresh browser process per task"):
+        PlaywrightReplayTool("http://127.0.0.1:1", engine="obscura")
 
-    class SlowPlaywright:
-        chromium = SlowChromium()
+
+def test_obscura_uses_the_fresh_process_default_context(monkeypatch) -> None:
+    events = []
+
+    class Context:
+        def new_page(self):
+            events.append("new_page")
+            return object()
+
+        def close(self):
+            events.append("context_close")
+
+    context = Context()
+
+    class Browser:
+        contexts = [context]
+
+        def new_context(self, **_kwargs):
+            raise AssertionError("Obscura context creation is unsupported")
+
+        def close(self):
+            events.append("browser_close")
+
+    class Chromium:
+        def connect_over_cdp(self, *_args, **_kwargs):
+            events.append("connect")
+            return Browser()
+
+    class Playwright:
+        chromium = Chromium()
 
         def stop(self):
-            return None
+            events.append("stop")
 
     class Starter:
         def start(self):
-            return SlowPlaywright()
+            return Playwright()
 
     monkeypatch.setattr(
         "harness.trajectory_replay.playwright_tool.sync_playwright", lambda: Starter()
     )
-
-    with pytest.raises(TimeoutError, match="Playwright replay session setup"):
-        PlaywrightReplayTool("http://127.0.0.1:1", setup_timeout_seconds=0.01)
+    tool = PlaywrightReplayTool(
+        "http://127.0.0.1:1", engine="obscura", fresh_browser_process=True
+    )
+    assert tool._context is context
+    assert events == ["connect", "new_page"]
+    tool.close()

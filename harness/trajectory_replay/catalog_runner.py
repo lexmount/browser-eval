@@ -348,6 +348,9 @@ def main() -> None:
         process = start_browser()
         try:
             for pending_index, frozen in enumerate(pending):
+                fresh_browser_process = args.backend == "playwright" and args.engine == "obscura"
+                if fresh_browser_process and pending_index:
+                    process = restart_browser(process)
                 task_id = frozen["task_id"]
                 source_actions = (
                     list(portable_tasks[task_id].tool_calls)
@@ -373,6 +376,7 @@ def main() -> None:
                     task_id: int = task_id,
                     row: dict = row,
                     frozen: dict = frozen,
+                    fresh_browser_process: bool = fresh_browser_process,
                 ) -> dict:
                     return _run_task(
                         task_id=task_id,
@@ -390,6 +394,7 @@ def main() -> None:
                         portable_action_timeout_ms=args.action_timeout_ms,
                         backend=args.backend,
                         engine=args.engine,
+                        fresh_browser_process=fresh_browser_process,
                     )
 
                 outcome, process = _run_with_setup_recovery(
