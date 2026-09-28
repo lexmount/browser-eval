@@ -529,7 +529,7 @@ def check(report_dir: Path) -> dict[str, int]:
     if metrics.get("affected36_methods"):
         raise ValueError("report must not contain a diagnostic-only comparison")
     if any((root / route).exists() for route in ("diagnostics.html", "fixes.html", "data/diagnostic-closure.json")):
-        raise ValueError("three-method report contains a separate diagnostic appendix")
+        raise ValueError("replay report contains a separate diagnostic appendix")
     failures = [item for item in results if item["status"] != "pass"]
     if manifest["failed_results"] != len(failures) or manifest["reviewed_failures"] != len(
         failures

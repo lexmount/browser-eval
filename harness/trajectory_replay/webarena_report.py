@@ -227,7 +227,7 @@ def _reference_validity_by_task(attempts: list[dict[str, Any]]) -> dict[int, str
 def require_all_reference_validity(
     profile: dict[str, Any], results: dict[str, Any], dataset: dict[str, Any]
 ) -> None:
-    """Reject a formal three-method release with any unverified task reference."""
+    """Reject a formal replay release with any unverified task reference."""
 
     if (profile.get("scoring") or {}).get("require_all_reference_validity") is not True:
         return

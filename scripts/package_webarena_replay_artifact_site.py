@@ -97,7 +97,7 @@ def package(
     ):
         raise ValueError("report and publication inputs refer to different result or dataset bytes")
     if report_manifest.get("diagnostic_closure_sha256"):
-        raise ValueError("diagnostic-only appendices cannot enter the three-method release")
+        raise ValueError("diagnostic-only appendices cannot enter the replay release")
     if packaged != report:
         compact = validate_compact_report(packaged, max_files=MAX_FILES)
         if compact["task_routes"] != report_manifest["task_count"] or compact[

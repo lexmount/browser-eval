@@ -33,7 +33,7 @@ def _bound_dataset_path(profile: dict) -> Path:
     path_value = dataset.get("path")
     digest = dataset.get("sha256")
     if not isinstance(path_value, str) or not path_value or not isinstance(digest, str):
-        raise ValueError("three-method report profile requires a bound corrected dataset")
+        raise ValueError("replay report profile requires a bound corrected dataset")
     path = Path(path_value)
     return _verified_dataset_path(path, digest)
 
