@@ -1,0 +1,3620 @@
+{
+  "schema_version": 1,
+  "kind": "scoring_revision_receipt",
+  "id": "dynamic-100-moli-119-scoring-revision-2026-09-24",
+  "purpose": "Bind every shared-scoring correction to executable positive and negative controls for this local audit dataset.",
+  "dataset_id": "dynamic-qualified-100-moli-native-local-audit-20260924",
+  "dataset_sha256": "2a149a7003a43ee4746bf1d11669154506a96172ddfe51f7abb9b2d547fba8b3",
+  "provider_calls": 0,
+  "bindings": {
+    "scoring_source_sha256": "0df7dc9f52f335df1a26b3958ae30fc88c6e073b5b0a3df4e9867e52cbe68647",
+    "scoring_regressions_sha256": "37653e59ea4b3036ff43cfad2dce89432d8d2f5fddd014c0037159978c1c0706",
+    "preexisting_controls_sha256": "5d4b6ba3064390dd17e033efcb7c0df06ff2f4e3130da05d2a5789b3b0889131",
+    "revision_controls_sha256": "9cf407273ce156570d24d3d022ee22c1a7bd1ef4fd778bd93da9db3e0419bfc2"
+  },
+  "scope": {
+    "preexisting_controls": 71,
+    "revision_controls": 475,
+    "root_causes": 96,
+    "paired_error_directions": true
+  },
+  "preexisting_control_ids": [
+    "ordered-tree-identical-nested-content-is-perfect",
+    "ordered-tree-missing-children-cannot-be-perfect",
+    "wikimedia-thumbnail-host-migration-keeps-same-asset",
+    "wikimedia-thumbnail-host-migration-does-not-hide-wrong-asset",
+    "wikimedia-thumb-host-cannot-claim-original-file",
+    "markdown-table-rule-does-not-break-visible-calendar-fact",
+    "markdown-table-rule-cannot-hide-wrong-calendar-fact",
+    "answer-title-supplies-required-fact",
+    "answer-title-does-not-inflate-body-length",
+    "balanced-multiline-markdown-keeps-visible-label",
+    "explicit-named-links-form-records",
+    "prefix-field-belongs-to-following-product-card",
+    "prefix-field-cannot-repair-previous-product-card",
+    "separate-names-and-bare-urls-are-not-records",
+    "complete-distributed-body-passes",
+    "short-prefix-cannot-pass-full-body-task",
+    "overlapping-body-regions-use-global-capacity",
+    "one-body-fragment-instance-cannot-fill-two-regions",
+    "declared-truncation-cannot-pass-full-body-task",
+    "ordinary-truncation-prose-does-not-fail-body-task",
+    "exact-body-regions-survive-declared-truncation-notice",
+    "reference-captcha-heading-is-legitimate-body-text",
+    "standalone-captcha-without-reference-remains-blocked",
+    "complete-records-with-declared-excluded-ui-fail",
+    "target-only-records-pass-declared-exclusions",
+    "glued-quote-fields-cannot-borrow-boundaries",
+    "nested-linked-image-is-explicit-resource",
+    "input-url-echo-is-not-resource-discovery",
+    "same-entity-tracking-links-do-not-inflate-count",
+    "distinct-entity-links-meet-count",
+    "successful-empty-response-is-not-task-success",
+    "reference-scope-retains-main-content",
+    "reference-scope-excludes-site-chrome",
+    "complete-declared-record-passes-contract",
+    "incomplete-record-fails-declared-contract",
+    "target-only-image-answer-rejects-unexpected-image",
+    "target-only-image-answer-accepts-declared-alias",
+    "semantic-title-may-follow-answer-preamble",
+    "semantic-title-remains-required",
+    "complete-records-allow-supplemental-ui",
+    "supplemental-ui-cannot-repair-incomplete-records",
+    "quote-pagination-stays-outside-tags",
+    "pagination-cannot-supply-a-missing-tag",
+    "known-challenge-headings-block-complete-records",
+    "challenge-phrase-in-prose-is-not-a-block-page",
+    "unsplash-bot-heading-blocks-complete-records",
+    "complete-dynamic-products-pass-output-contract",
+    "empty-placeholder-products-fail-output-contract",
+    "semantic-reference-fact-survives-visual-line-wrap",
+    "nearby-purchase-navigation-cannot-replace-semantic-fact",
+    "chinese-gate-heading-blocks-complete-records",
+    "chinese-gate-phrase-in-prose-is-not-block-page",
+    "route-and-action-labels-are-not-named-records",
+    "real-title-labels-remain-named-records",
+    "semantic-facts-survive-inline-markdown-boundaries",
+    "one-semantic-fragment-cannot-replace-the-other",
+    "markdown-emphasized-forbidden-status-heading-is-blocked",
+    "relative-autolinks-and-markdown-labels-preserve-visible-anchor",
+    "missing-relative-link-text-cannot-borrow-visible-anchor",
+    "task-generic-card-labels-do-not-count-as-entity-names",
+    "task-name-exclusions-preserve-real-entity-titles",
+    "volatile-body-change-preserves-stable-anchor-pass",
+    "volatile-body-content-cannot-replace-stable-page-identity",
+    "stable-contract-short-summary-cannot-bypass-minimum-body-length",
+    "stable-contract-complete-body-still-passes-minimum-body-length",
+    "document-headings-cannot-replace-declared-table-and-note-content",
+    "document-content-landmarks-pass-with-complete-table-and-note-content",
+    "markdown-table-cells-match-readable-content-landmarks",
+    "single-literal-pipe-is-not-a-table-boundary",
+    "script-state-anchor-is-not-readable-body",
+    "readable-javascript-article-with-code-still-passes"
+  ],
+  "revision_controls": [
+    {
+      "id": "amazon-tracking-suffix-remains-a-product-detail",
+      "root_cause": "amazon_product_tracking_path_suffix",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "amazon-non-ref-suffix-is-not-a-product-detail",
+      "root_cause": "amazon_product_tracking_path_suffix",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-target-placeholder-cannot-pass",
+      "root_cause": "unrendered_dynamic_target_placeholder",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completed-dynamic-target-can-pass",
+      "root_cause": "unrendered_dynamic_target_placeholder",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "github-route-links-are-not-repositories",
+      "root_cause": "github_route_as_repository",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "github-owner-repository-links-are-records",
+      "root_cause": "github_route_as_repository",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "stable-contract-cannot-bypass-incomplete-body",
+      "root_cause": "stable_contract_body_conjunction",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "stable-contract-and-complete-body-can-pass-together",
+      "root_cause": "stable_contract_body_conjunction",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "unresolved-rule-cannot-be-counted-as-provider-pass",
+      "root_cause": "rule_unresolved_exclusion",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "resolved-rule-remains-eligible-for-provider-pass",
+      "root_cause": "rule_unresolved_exclusion",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "structured-regions-reject-a-missing-ending-section",
+      "root_cause": "body_region_structure_priority",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "structured-regions-accept-the-complete-body",
+      "root_cause": "body_region_structure_priority",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "variable-list-23-of-30-does-not-meet-80-percent-source-threshold",
+      "root_cause": "source_observed_record_threshold",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "variable-list-24-of-30-meets-source-threshold-without-claiming-completeness",
+      "root_cause": "source_observed_record_threshold",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-final-page-mismatch-cannot-be-counted-as-a-pass",
+      "root_cause": "dynamic_page_identity_alignment",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-matching-final-page-and-language-remain-eligible",
+      "root_cause": "dynamic_page_identity_alignment",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-search-query-mismatch-is-a-different-page",
+      "root_cause": "dynamic_page_query_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-matching-search-query-remains-eligible",
+      "root_cause": "dynamic_page_query_identity",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-source-document-language-mismatch-is-not-verified",
+      "root_cause": "declared_document_language_vs_visible_language",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-arabic-visible-text-with-english-html-lang-remains-eligible",
+      "root_cause": "declared_document_language_vs_visible_language",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "name-link-count-cannot-credit-an-invented-name-for-a-real-url",
+      "root_cause": "frozen_source_name_link_pair_membership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "name-link-count-credits-two-independently-observed-name-url-pairs",
+      "root_cause": "frozen_source_name_link_pair_membership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "volatile-body-stable-text-does-not-freeze-current-members",
+      "root_cause": "volatile_body_snapshot_used_as_invariant_answer",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "volatile-body-stable-text-still-rejects-missing-page-identity",
+      "root_cause": "volatile_body_snapshot_used_as_invariant_answer",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "normal-theme-control-is-not-a-block-page-marker",
+      "root_cause": "normal_page_control_misclassified_as_forbidden_content",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "removing-normal-theme-control-does-not-hide-real-block-page",
+      "root_cause": "normal_page_control_misclassified_as_forbidden_content",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "literal-footer-pipe-remains-matchable",
+      "root_cause": "multi_pipe_prose_misclassified_as_markdown_table",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "multiple-literal-pipes-preserve-operators",
+      "root_cause": "multi_pipe_prose_misclassified_as_markdown_table",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "escaped-table-pipe-keeps-literal-expression",
+      "root_cause": "multi_pipe_prose_misclassified_as_markdown_table",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "escaped-table-pipe-cannot-be-removed",
+      "root_cause": "multi_pipe_prose_misclassified_as_markdown_table",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-membership-new-entities-accepted",
+      "root_cause": "dynamic_list_membership_not_identity",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-membership-wrong-path-rejected",
+      "root_cause": "dynamic_list_membership_not_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-membership-empty-title-rejected",
+      "root_cause": "dynamic_list_membership_not_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-membership-short-list-rejected",
+      "root_cause": "dynamic_list_membership_not_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-membership-duplicate-not-extra-item",
+      "root_cause": "dynamic_list_membership_not_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "quake-complete-visible-cards",
+      "root_cause": "earthquake_record_field_ownership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "quake-complete-markdown-cards",
+      "root_cause": "earthquake_record_field_ownership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "quake-table-fields",
+      "root_cause": "earthquake_record_field_ownership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "quake-dates-alone",
+      "root_cause": "earthquake_record_field_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "quake-missing-depth",
+      "root_cause": "earthquake_record_field_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "quake-split-card-must-not-borrow",
+      "root_cause": "earthquake_record_field_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "quake-duplicate-not-extra-event",
+      "root_cause": "earthquake_record_field_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "quake-invalid-calendar",
+      "root_cause": "earthquake_record_field_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "body-single-source-occurrence-not-duplicated",
+      "root_cause": "collector_parent_child_text_duplication",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "body-missing-source-paragraph-rejected",
+      "root_cause": "collector_parent_child_text_duplication",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "body-real-repeated-occurrences-preserved",
+      "root_cause": "collector_parent_child_text_duplication",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scoped-list-new-short-names",
+      "root_cause": "declared_list_scope_and_nonempty_names",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "scoped-list-sidebar-not-main",
+      "root_cause": "declared_list_scope_and_nonempty_names",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scoped-list-html-valid",
+      "root_cause": "declared_list_scope_and_nonempty_names",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "scoped-list-html-sidebar",
+      "root_cause": "declared_list_scope_and_nonempty_names",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scoped-list-empty-name",
+      "root_cause": "declared_list_scope_and_nonempty_names",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scoped-list-absent-heading",
+      "root_cause": "declared_list_scope_and_nonempty_names",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scoped-list-hidden-html",
+      "root_cause": "declared_list_scope_and_nonempty_names",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "owned-sibling-title-detail-link",
+      "root_cause": "same_card_title_detail_pairing",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "owned-sibling-does-not-cross-card",
+      "root_cause": "same_card_title_detail_pairing",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "owned-sibling-ambiguous-link",
+      "root_cause": "same_card_title_detail_pairing",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "owned-sibling-hidden-title",
+      "root_cause": "same_card_title_detail_pairing",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "song-detail-literal-dot-not-wildcard",
+      "root_cause": "same_card_title_detail_pairing",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "owned-title-equivalent-markdown",
+      "root_cause": "same_card_title_detail_pairing",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "product-owned-price-visible",
+      "root_cause": "source_declared_price_availability",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "product-explicit-source-price-unavailable",
+      "root_cause": "source_declared_price_availability",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "product-price-simply-missing",
+      "root_cause": "source_declared_price_availability",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "product-price-cannot-borrow-from-neighbor",
+      "root_cause": "source_declared_price_availability",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "product-unavailable-cannot-borrow",
+      "root_cause": "source_declared_price_availability",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "product-price-markdown-equivalent",
+      "root_cause": "source_declared_price_availability",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "product-unavailable-markdown-equivalent",
+      "root_cause": "source_declared_price_availability",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "currency-whitespace-accepts-source-format",
+      "root_cause": "overescaped_source_field_patterns",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "currency-whitespace-rejects-non-field",
+      "root_cause": "overescaped_source_field_patterns",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "counter-word-boundaries-accepts-source-format",
+      "root_cause": "overescaped_source_field_patterns",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "counter-word-boundaries-rejects-non-field",
+      "root_cause": "overescaped_source_field_patterns",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "api-summary-reference-complete",
+      "root_cause": "api_operation_reference_omission",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "api-paths-alone-not-summaries",
+      "root_cause": "api_operation_reference_omission",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "api-missing-operation-summary",
+      "root_cause": "api_operation_reference_omission",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-real-row-shape",
+      "root_cause": "table_record_field_ownership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "table-date-list-not-records",
+      "root_cause": "table_record_field_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-missing-cell-not-complete",
+      "root_cause": "table_record_field_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-invalid-calendar-not-complete",
+      "root_cause": "table_record_field_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-duplicate-id-not-extra-record",
+      "root_cause": "table_record_field_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-other-section-cannot-fill",
+      "root_cause": "table_record_field_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-markdown-row-ownership",
+      "root_cause": "table_record_field_ownership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "body-reference-excludes-icon-font-name",
+      "root_cause": "body_reference_nontext_controls",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "body-icon-label-is-not-real-body",
+      "root_cause": "body_reference_nontext_controls",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scoped-visible-news-title",
+      "root_cause": "scoped_visible_record_names",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "scoped-hidden-news-ancestor",
+      "root_cause": "scoped_visible_record_names",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scoped-hidden-news-own-style",
+      "root_cause": "scoped_visible_record_names",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scoped-news-image-alt-is-not-title",
+      "root_cause": "scoped_visible_record_names",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scoped-news-hidden-copy-not-extra-record",
+      "root_cause": "scoped_visible_record_names",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "first-news-before-sidebar",
+      "root_cause": "declared_list_scope_and_nonempty_names",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "sidebar-cannot-fill-first-news",
+      "root_cause": "declared_list_scope_and_nonempty_names",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "news-hotissue-route-is-valid",
+      "root_cause": "observed_article_route_aliases",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "news-extra-route-component-is-invalid",
+      "root_cause": "observed_article_route_aliases",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "news-alias-is-one-article",
+      "root_cause": "observed_article_route_aliases",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "ordinary-label-not-screenreader-caption",
+      "root_cause": "screenreader_only_reference",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "unrelated-assistive-caption-does-not-replace-visible-label",
+      "root_cause": "screenreader_only_reference",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "visible-label-does-not-replace-news",
+      "root_cause": "screenreader_only_reference",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "visible-title-with-aria-hidden-still-counts",
+      "root_cause": "aria_metadata_is_not_visual_visibility",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "aria-hidden-title-with-display-none-does-not-count",
+      "root_cause": "aria_metadata_is_not_visual_visibility",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "loaded-page-articles-html",
+      "root_cause": "initial_loaded_page_article_scope",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "loaded-page-articles-markdown",
+      "root_cause": "initial_loaded_page_article_scope",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "loaded-carousel-records-count",
+      "root_cause": "initial_loaded_page_article_scope",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "category-label-is-not-article-name",
+      "root_cause": "initial_loaded_page_article_scope",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "same-article-repeat-cannot-fill-page-count",
+      "root_cause": "initial_loaded_page_article_scope",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "page-article-wrong-path-cannot-fill-count",
+      "root_cause": "initial_loaded_page_article_scope",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "redirected-relative-article-uses-response-origin",
+      "root_cause": "redirected_document_link_base",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "wrong-redirect-cannot-borrow-original-origin",
+      "root_cause": "redirected_document_link_base",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "first-scroller-new-items-pass",
+      "root_cause": "virtual_list_rows_not_toolbar_or_other_examples",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "scroller-controls-not-required-body",
+      "root_cause": "virtual_list_rows_not_toolbar_or_other_examples",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "other-scroller-cannot-fill-first",
+      "root_cause": "virtual_list_rows_not_toolbar_or_other_examples",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scroller-description-alone-fails",
+      "root_cause": "virtual_list_rows_not_toolbar_or_other_examples",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scroller-duplicate-item-fails",
+      "root_cause": "virtual_list_rows_not_toolbar_or_other_examples",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scroller-missing-description-fails",
+      "root_cause": "virtual_list_rows_not_toolbar_or_other_examples",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "scroller-malformed-label-fails",
+      "root_cause": "virtual_list_rows_not_toolbar_or_other_examples",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "html-code-example-does-not-change-plain-table-format",
+      "root_cause": "embedded_examples_are_not_document_format",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "fenced-example-cannot-fill-live-rows",
+      "root_cause": "embedded_examples_are_not_document_format",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "whole-fenced-data-answer-remains-valid",
+      "root_cause": "embedded_examples_are_not_document_format",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "fixed-demo-seven-of-eight-missing-0",
+      "root_cause": "short_repeated_demo_body_uses_record_coverage",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "fixed-demo-seven-of-eight-missing-4",
+      "root_cause": "short_repeated_demo_body_uses_record_coverage",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "fixed-demo-seven-of-eight-missing-7",
+      "root_cause": "short_repeated_demo_body_uses_record_coverage",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "fixed-demo-wrong-initial-indices",
+      "root_cause": "short_repeated_demo_body_uses_record_coverage",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "fixed-demo-toolbar-only",
+      "root_cause": "short_repeated_demo_body_uses_record_coverage",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "fixed-demo-six-is-below-eighty-percent",
+      "root_cause": "short_repeated_demo_body_uses_record_coverage",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-token-and-auxiliary-leading-zero-postal",
+      "root_cause": "typed_table_values_and_auxiliary_text",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "table-token-and-auxiliary-auxiliary-label",
+      "root_cause": "typed_table_values_and_auxiliary_text",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "table-token-and-auxiliary-invalid-postal",
+      "root_cause": "typed_table_values_and_auxiliary_text",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-token-and-auxiliary-missing-email",
+      "root_cause": "typed_table_values_and_auxiliary_text",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-token-and-auxiliary-duplicate-identity",
+      "root_cause": "typed_table_values_and_auxiliary_text",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-token-and-auxiliary-hidden-email-cannot-fill",
+      "root_cause": "typed_table_values_and_auxiliary_text",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-token-and-auxiliary-later-table-cannot-fill",
+      "root_cause": "typed_table_values_and_auxiliary_text",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-token-and-auxiliary-changed-realistic-values",
+      "root_cause": "typed_table_values_and_auxiliary_text",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "table-multiline-complete",
+      "root_cause": "multiline_table_row_boundaries",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "table-multiline-missing-field",
+      "root_cause": "multiline_table_row_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-multiline-cannot-cross-row",
+      "root_cause": "multiline_table_row_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-multiline-other-example",
+      "root_cause": "multiline_table_row_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-multiline-mixed-format",
+      "root_cause": "multiline_table_row_boundaries",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "rsuite-complete-record-sixteen-complete",
+      "root_cause": "volatile_demo_people_not_frozen_body",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "rsuite-complete-record-fifteen-incomplete",
+      "root_cause": "volatile_demo_people_not_frozen_body",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "rsuite-complete-record-missing-email",
+      "root_cause": "volatile_demo_people_not_frozen_body",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "rsuite-complete-record-duplicate",
+      "root_cause": "volatile_demo_people_not_frozen_body",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "rsuite-complete-record-invalid-postcode",
+      "root_cause": "volatile_demo_people_not_frozen_body",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "rsuite-complete-record-markdown",
+      "root_cause": "volatile_demo_people_not_frozen_body",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "rsuite-complete-record-only-headers",
+      "root_cause": "volatile_demo_people_not_frozen_body",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-ordinal-date-real-date",
+      "root_cause": "calendar_validity_for_table_dates",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "table-ordinal-date-leap-date",
+      "root_cause": "calendar_validity_for_table_dates",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "table-ordinal-date-impossible-day",
+      "root_cause": "calendar_validity_for_table_dates",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-ordinal-date-non-leap-date",
+      "root_cause": "calendar_validity_for_table_dates",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-ordinal-date-wrong-ordinal",
+      "root_cause": "calendar_validity_for_table_dates",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "eui-complete-record-eight-complete",
+      "root_cause": "volatile_eui_people_and_invisible_reference",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "eui-complete-record-seven-below80",
+      "root_cause": "volatile_eui_people_and_invisible_reference",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "eui-complete-record-impossible-date",
+      "root_cause": "volatile_eui_people_and_invisible_reference",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "eui-complete-record-missing-status",
+      "root_cause": "volatile_eui_people_and_invisible_reference",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "eui-complete-record-duplicates",
+      "root_cause": "volatile_eui_people_and_invisible_reference",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "eui-complete-record-cannot-borrow-neighbor",
+      "root_cause": "volatile_eui_people_and_invisible_reference",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "eui-complete-record-markdown",
+      "root_cause": "volatile_eui_people_and_invisible_reference",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "eui-complete-record-html",
+      "root_cause": "volatile_eui_people_and_invisible_reference",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "eui-complete-record-later-table",
+      "root_cause": "volatile_eui_people_and_invisible_reference",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "fixed-demo-product-complete",
+      "root_cause": "fixed_demo_product_field_correspondence",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "fixed-demo-product-seven",
+      "root_cause": "fixed_demo_product_field_correspondence",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "fixed-demo-product-six",
+      "root_cause": "fixed_demo_product_field_correspondence",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "fixed-demo-product-missing-prices",
+      "root_cause": "fixed_demo_product_field_correspondence",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "fixed-demo-product-wrong-prices",
+      "root_cause": "fixed_demo_product_field_correspondence",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "fixed-demo-product-wrong-statuses",
+      "root_cause": "fixed_demo_product_field_correspondence",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "fixed-demo-product-equivalent-currency",
+      "root_cause": "fixed_demo_product_field_correspondence",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "fixed-demo-product-markdown-stars",
+      "root_cause": "fixed_demo_product_field_correspondence",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "fixed-demo-product-duplicates",
+      "root_cause": "fixed_demo_product_field_correspondence",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nintendo-scoped-games-jp-new-games",
+      "root_cause": "nintendo_real_card_routes_not_historical_membership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "nintendo-scoped-games-jp-markdown",
+      "root_cause": "nintendo_real_card_routes_not_historical_membership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "nintendo-scoped-games-jp-empty-title",
+      "root_cause": "nintendo_real_card_routes_not_historical_membership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nintendo-scoped-games-jp-duplicates",
+      "root_cause": "nintendo_real_card_routes_not_historical_membership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nintendo-scoped-games-jp-navigation-only",
+      "root_cause": "nintendo_real_card_routes_not_historical_membership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nintendo-scoped-games-jp-unrelated-path",
+      "root_cause": "nintendo_real_card_routes_not_historical_membership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nintendo-scoped-games-es-new-games",
+      "root_cause": "nintendo_real_card_routes_not_historical_membership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "nintendo-scoped-games-es-markdown",
+      "root_cause": "nintendo_real_card_routes_not_historical_membership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "nintendo-scoped-games-es-empty-title",
+      "root_cause": "nintendo_real_card_routes_not_historical_membership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nintendo-scoped-games-es-duplicates",
+      "root_cause": "nintendo_real_card_routes_not_historical_membership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nintendo-scoped-games-es-navigation-only",
+      "root_cause": "nintendo_real_card_routes_not_historical_membership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nintendo-scoped-games-es-unrelated-path",
+      "root_cause": "nintendo_real_card_routes_not_historical_membership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "forbidden-html-surface-dormant-template",
+      "root_cause": "dormant_html_templates_not_blocking_notices",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "forbidden-html-surface-visible-challenge",
+      "root_cause": "dormant_html_templates_not_blocking_notices",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "forbidden-html-surface-explicitly-hidden",
+      "root_cause": "dormant_html_templates_not_blocking_notices",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "forbidden-html-surface-actual-denial",
+      "root_cause": "dormant_html_templates_not_blocking_notices",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "forbidden-html-surface-plain-challenge",
+      "root_cause": "dormant_html_templates_not_blocking_notices",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nintendo-markdown-section-actual-game-section",
+      "root_cause": "game_card_announcements_not_navigation_news",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "nintendo-markdown-section-navigation-news-only",
+      "root_cause": "game_card_announcements_not_navigation_news",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nintendo-markdown-section-links-after-game-section",
+      "root_cause": "game_card_announcements_not_navigation_news",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nintendo-markdown-section-bullet-heading",
+      "root_cause": "game_card_announcements_not_navigation_news",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-026-bilibili-rank-markdown-scope-inside",
+      "root_cause": "rank_markdown_scope_excludes_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-026-bilibili-rank-markdown-scope-navigation-only",
+      "root_cause": "rank_markdown_scope_excludes_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-026-bilibili-rank-markdown-scope-footer-only",
+      "root_cause": "rank_markdown_scope_excludes_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-048-en-github-trending-developers-markdown-scope-inside",
+      "root_cause": "rank_markdown_scope_excludes_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-048-en-github-trending-developers-markdown-scope-navigation-only",
+      "root_cause": "rank_markdown_scope_excludes_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-048-en-github-trending-developers-markdown-scope-footer-only",
+      "root_cause": "rank_markdown_scope_excludes_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-044-en-real-github-trending-markdown-scope-inside",
+      "root_cause": "rank_markdown_scope_excludes_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-044-en-real-github-trending-markdown-scope-navigation-only",
+      "root_cause": "rank_markdown_scope_excludes_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-044-en-real-github-trending-markdown-scope-footer-only",
+      "root_cause": "rank_markdown_scope_excludes_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "auxiliary-video-links-two-main-plus-popup",
+      "root_cause": "hidden_related_video_popup_not_main_rank",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "auxiliary-video-links-popup-cannot-fill",
+      "root_cause": "hidden_related_video_popup_not_main_rank",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "auxiliary-video-links-normal-two-main",
+      "root_cause": "hidden_related_video_popup_not_main_rank",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "markdown-title-metadata-inner-double",
+      "root_cause": "quoted_title_metadata_not_link_destination",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "markdown-title-metadata-inner-apostrophe",
+      "root_cause": "quoted_title_metadata_not_link_destination",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "markdown-title-metadata-wrong-path",
+      "root_cause": "quoted_title_metadata_not_link_destination",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "markdown-title-metadata-bare-url",
+      "root_cause": "quoted_title_metadata_not_link_destination",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "adjacent-song-pair-escaped-markdown-complete",
+      "root_cause": "adjacent_markdown_links_same_song_identity",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "adjacent-song-pair-mismatched-identity",
+      "root_cause": "adjacent_markdown_links_same_song_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "same-row-song-pair-complete",
+      "root_cause": "visible_song_name_and_detail_link_same_row_identity",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "same-row-song-pair-mismatched-id",
+      "root_cause": "visible_song_name_and_detail_link_same_row_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "same-row-song-pair-cross-row",
+      "root_cause": "visible_song_name_and_detail_link_same_row_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "same-row-song-pair-duplicates",
+      "root_cause": "visible_song_name_and_detail_link_same_row_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "same-row-song-pair-empty-name",
+      "root_cause": "visible_song_name_and_detail_link_same_row_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "same-row-song-pair-direct-named-links",
+      "root_cause": "visible_song_name_and_detail_link_same_row_identity",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-052-bilibili-com-v-footer-scope-inside",
+      "root_cause": "footer_links_not_dynamic_list_records",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-052-bilibili-com-v-footer-scope-footer-only",
+      "root_cause": "footer_links_not_dynamic_list_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-052-bilibili-com-v-footer-scope-navigation-only",
+      "root_cause": "footer_links_not_dynamic_list_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-052-bilibili-com-v-footer-scope-no-footer",
+      "root_cause": "footer_links_not_dynamic_list_records",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-063-s-weibo-com-top-footer-scope-inside",
+      "root_cause": "footer_links_not_dynamic_list_records",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-063-s-weibo-com-top-footer-scope-footer-only",
+      "root_cause": "footer_links_not_dynamic_list_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-063-s-weibo-com-top-footer-scope-navigation-only",
+      "root_cause": "footer_links_not_dynamic_list_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-063-s-weibo-com-top-footer-scope-no-footer",
+      "root_cause": "footer_links_not_dynamic_list_records",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "arabic-currency-visible-format-prefix",
+      "root_cause": "arabic_currency_order_and_direction_marks",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "arabic-currency-visible-format-suffix",
+      "root_cause": "arabic_currency_order_and_direction_marks",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "arabic-currency-visible-format-direction-marks",
+      "root_cause": "arabic_currency_order_and_direction_marks",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "arabic-currency-visible-format-prefix-direction",
+      "root_cause": "arabic_currency_order_and_direction_marks",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "arabic-currency-visible-format-four-only",
+      "root_cause": "arabic_currency_order_and_direction_marks",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "arabic-currency-visible-format-unrelated-digits",
+      "root_cause": "arabic_currency_order_and_direction_marks",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "arabic-currency-visible-format-currency-only",
+      "root_cause": "arabic_currency_order_and_direction_marks",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-014-en-stable-rsuite-table-blank-lines-complete",
+      "root_cause": "table_multiline_whitespace_and_scope_boundaries",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-014-en-stable-rsuite-table-blank-lines-missing-field",
+      "root_cause": "table_multiline_whitespace_and_scope_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-014-en-stable-rsuite-table-blank-lines-duplicated",
+      "root_cause": "table_multiline_whitespace_and_scope_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-014-en-stable-rsuite-table-blank-lines-one-record",
+      "root_cause": "table_multiline_whitespace_and_scope_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-025-025-tabulator-vertical-virtual-dom-blank-lines-complete",
+      "root_cause": "table_multiline_whitespace_and_scope_boundaries",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-025-025-tabulator-vertical-virtual-dom-blank-lines-missing-field",
+      "root_cause": "table_multiline_whitespace_and_scope_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-025-025-tabulator-vertical-virtual-dom-blank-lines-duplicated",
+      "root_cause": "table_multiline_whitespace_and_scope_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-025-025-tabulator-vertical-virtual-dom-blank-lines-one-record",
+      "root_cause": "table_multiline_whitespace_and_scope_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-loading-label-outside-target-not-global-failure",
+      "root_cause": "unrelated_example_loading_not_target_failure",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "table-target-loading-without-records-rejected",
+      "root_cause": "unrelated_example_loading_not_target_failure",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "heading-only-body-region-image-between-headings",
+      "root_cause": "separate_headings_not_contiguous_body_fragment",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "heading-only-body-region-missing-heading",
+      "root_cause": "separate_headings_not_contiguous_body_fragment",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "heading-only-body-region-headings-only",
+      "root_cause": "separate_headings_not_contiguous_body_fragment",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "detail-url-unreserved-encoding-unreserved-encoded",
+      "root_cause": "unreserved_url_encoding_preserves_detail_identity",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "detail-url-unreserved-encoding-encoded-duplicate",
+      "root_cause": "unreserved_url_encoding_preserves_detail_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "detail-url-unreserved-encoding-reserved-separator",
+      "root_cause": "unreserved_url_encoding_preserves_detail_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "detail-url-unreserved-encoding-empty-name",
+      "root_cause": "unreserved_url_encoding_preserves_detail_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "detail-url-unreserved-encoding-wrong-detail-path",
+      "root_cause": "unreserved_url_encoding_preserves_detail_identity",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "named-link-separated-list-comma-list",
+      "root_cause": "punctuation_separated_explicit_named_links",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "named-link-separated-list-semicolon-list",
+      "root_cause": "punctuation_separated_explicit_named_links",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "named-link-separated-list-prose-recommendation",
+      "root_cause": "punctuation_separated_explicit_named_links",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "named-link-separated-list-prose-between-links",
+      "root_cause": "punctuation_separated_explicit_named_links",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "joyn-movie-ownership-fresh-movies",
+      "root_cause": "movie_records_not_genre_navigation_or_placeholder",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "joyn-movie-ownership-genres-only",
+      "root_cause": "movie_records_not_genre_navigation_or_placeholder",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "joyn-movie-ownership-duplicated-movie",
+      "root_cause": "movie_records_not_genre_navigation_or_placeholder",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "joyn-movie-ownership-empty-name",
+      "root_cause": "movie_records_not_genre_navigation_or_placeholder",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "joyn-movie-ownership-html-placeholders",
+      "root_cause": "movie_records_not_genre_navigation_or_placeholder",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "prosieben-owned-content-fresh-content",
+      "root_cause": "content_cards_not_placeholder_or_editorial_links",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "prosieben-owned-content-editorial-only",
+      "root_cause": "content_cards_not_placeholder_or_editorial_links",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "prosieben-owned-content-missing-list-region",
+      "root_cause": "content_cards_not_placeholder_or_editorial_links",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "prosieben-owned-content-genres",
+      "root_cause": "content_cards_not_placeholder_or_editorial_links",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "prosieben-owned-content-placeholder-html",
+      "root_cause": "content_cards_not_placeholder_or_editorial_links",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "francetv-content-cards-real-content-paths",
+      "root_cause": "content_card_routes_not_partial_channel_allowlist",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "francetv-content-cards-root-navigation",
+      "root_cause": "content_card_routes_not_partial_channel_allowlist",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "francetv-content-cards-empty-name",
+      "root_cause": "content_card_routes_not_partial_channel_allowlist",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "francetv-content-cards-foreign-host",
+      "root_cause": "content_card_routes_not_partial_channel_allowlist",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "francetv-content-cards-same-id-twice",
+      "root_cause": "content_card_routes_not_partial_channel_allowlist",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "rtve-title-scope-new-programme-and-episode",
+      "root_cause": "programme_title_links_not_action_buttons",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "rtve-title-scope-buttons-only",
+      "root_cause": "programme_title_links_not_action_buttons",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "rtve-title-scope-duplicate-id",
+      "root_cause": "programme_title_links_not_action_buttons",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "rtve-title-scope-empty-title",
+      "root_cause": "programme_title_links_not_action_buttons",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "rtve-title-scope-audio-not-video",
+      "root_cause": "programme_title_links_not_action_buttons",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "rtve-title-scope-html-owned-programme-and-episode",
+      "root_cause": "programme_title_links_not_action_buttons",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "anchor-owned-links-md-independent-nav",
+      "root_cause": "record_title_masking_erases_independent_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "anchor-owned-links-md-record-only",
+      "root_cause": "record_title_masking_erases_independent_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "anchor-owned-links-md-repeated-record",
+      "root_cause": "record_title_masking_erases_independent_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "anchor-owned-links-html-independent-nav",
+      "root_cause": "record_title_masking_erases_independent_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "anchor-owned-links-html-record-only",
+      "root_cause": "record_title_masking_erases_independent_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "anchor-owned-links-html-hidden-nav",
+      "root_cause": "record_title_masking_erases_independent_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "anchor-owned-links-md-same-line-nav",
+      "root_cause": "record_title_masking_erases_independent_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "anchor-owned-links-non-http-navigation",
+      "root_cause": "record_title_masking_erases_independent_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "nullable-table-faithful-empty",
+      "root_cause": "declared_empty_table_cells_are_real_values",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "nullable-table-wrong-empty",
+      "root_cause": "declared_empty_table_cells_are_real_values",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nullable-table-invented-age",
+      "root_cause": "declared_empty_table_cells_are_real_values",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nullable-table-missing-cell",
+      "root_cause": "declared_empty_table_cells_are_real_values",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nullable-table-mixed-row",
+      "root_cause": "declared_empty_table_cells_are_real_values",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "documentation-prose-and-grid",
+      "root_cause": "documentation_prose_and_grid_are_separate_requirements",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "documentation-prose-without-grid",
+      "root_cause": "documentation_prose_and_grid_are_separate_requirements",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "documentation-grid-without-prose",
+      "root_cause": "documentation_prose_and_grid_are_separate_requirements",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "consent-alongside-real-documentation",
+      "root_cause": "cookie_preferences_not_blocked_documentation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "consent-only-is-not-documentation",
+      "root_cause": "cookie_preferences_not_blocked_documentation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "consent-does-not-hide-access-denied",
+      "root_cause": "cookie_preferences_not_blocked_documentation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "mui-rowheader-full-name-counts",
+      "root_cause": "documentation_prose_and_grid_are_separate_requirements",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "mui-missing-rowheader-full-name",
+      "root_cause": "documentation_prose_and_grid_are_separate_requirements",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "html-anchor-entity-named-space",
+      "root_cause": "html_entity_space_is_visible_whitespace",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "html-anchor-entity-numeric-space",
+      "root_cause": "html_entity_space_is_visible_whitespace",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "html-anchor-entity-wrong-heading",
+      "root_cause": "html_entity_space_is_visible_whitespace",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "html-anchor-entity-literal-entity",
+      "root_cause": "html_entity_space_is_visible_whitespace",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-source-duplicate-faithful",
+      "root_cause": "source_identical_table_duplicates_count_once",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "table-source-duplicate-not-extra-record",
+      "root_cause": "source_identical_table_duplicates_count_once",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-conflicting-identity-not-deduplicated",
+      "root_cause": "source_identical_table_duplicates_count_once",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "usage-demo-body-and-owned-rows",
+      "root_cause": "usage_demo_rows_not_api_component_table",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "usage-prose-alone-not-enough",
+      "root_cause": "usage_demo_rows_not_api_component_table",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "usage-api-table-not-demo",
+      "root_cause": "usage_demo_rows_not_api_component_table",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "usage-mixed-fields-rejected",
+      "root_cause": "usage_demo_rows_not_api_component_table",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "amazonmx-owned-card-fresh-products",
+      "root_cause": "same_card_title_detail_pairing",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "amazonmx-owned-card-image-only",
+      "root_cause": "same_card_title_detail_pairing",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "amazonmx-owned-card-duplicate-asin",
+      "root_cause": "same_card_title_detail_pairing",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "amazonmx-owned-card-wrong-host",
+      "root_cause": "same_card_title_detail_pairing",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "falabella-product-scope-owned-title-detail",
+      "root_cause": "product_records_not_shop_navigation_or_empty_destinations",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "falabella-product-scope-no-valid-product-destination",
+      "root_cause": "product_records_not_shop_navigation_or_empty_destinations",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "falabella-product-scope-outside-product-card",
+      "root_cause": "product_records_not_shop_navigation_or_empty_destinations",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "falabella-product-scope-missing-title",
+      "root_cause": "product_records_not_shop_navigation_or_empty_destinations",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "lotteon-product-scope-owned-title-detail",
+      "root_cause": "product_records_not_shop_navigation_or_empty_destinations",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "lotteon-product-scope-no-valid-product-destination",
+      "root_cause": "product_records_not_shop_navigation_or_empty_destinations",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "lotteon-product-scope-outside-product-card",
+      "root_cause": "product_records_not_shop_navigation_or_empty_destinations",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "lotteon-product-scope-missing-title",
+      "root_cause": "product_records_not_shop_navigation_or_empty_destinations",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-088-terra-home-new-stories",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-088-terra-home-navigation-only",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-088-terra-home-duplicate-story",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-093-pt-real-terra-noticias-new-stories",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-093-pt-real-terra-noticias-navigation-only",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-093-pt-real-terra-noticias-duplicate-story",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-096-ar-real-cnn-world-new-stories",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic-096-ar-real-cnn-world-navigation-only",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic-096-ar-real-cnn-world-duplicate-story",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "cnnbrasil-qualified-routes-new-election-and-blog",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "cnnbrasil-qualified-routes-new-science-and-education",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "cnnbrasil-qualified-routes-category-navigation",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "cnnbrasil-qualified-routes-blog-author-index",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "cnnbrasil-qualified-routes-scoreboard-only",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "cnnbrasil-qualified-routes-election-tools",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "cnnbrasil-qualified-routes-duplicate-article",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "naver-politics-owned-visible-visible-owned-cards",
+      "root_cause": "initial_visible_news_scope_excludes_collapsed_cards",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "naver-politics-owned-visible-hidden-expansion-not-denominator",
+      "root_cause": "initial_visible_news_scope_excludes_collapsed_cards",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "naver-politics-owned-visible-empty-title",
+      "root_cause": "initial_visible_news_scope_excludes_collapsed_cards",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "naver-politics-owned-visible-sidebar-not-main",
+      "root_cause": "initial_visible_news_scope_excludes_collapsed_cards",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "naver-politics-owned-visible-fresh-markdown",
+      "root_cause": "initial_visible_news_scope_excludes_collapsed_cards",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "naver-politics-owned-visible-repeated-id",
+      "root_cause": "initial_visible_news_scope_excludes_collapsed_cards",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "owned-anchor-card-anchor-is-card",
+      "root_cause": "card_anchor_owns_visible_title_and_destination",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "owned-anchor-card-empty-title-with-price",
+      "root_cause": "card_anchor_owns_visible_title_and_destination",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "owned-anchor-card-price-only",
+      "root_cause": "card_anchor_owns_visible_title_and_destination",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "owned-anchor-card-duplicate-id",
+      "root_cause": "card_anchor_owns_visible_title_and_destination",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "owned-anchor-card-fresh-markdown",
+      "root_cause": "card_anchor_owns_visible_title_and_destination",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "kabum-privacy-footer-without-consent",
+      "root_cause": "optional_consent_label_not_required_footer_text",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "kabum-privacy-privacy-only",
+      "root_cause": "optional_consent_label_not_required_footer_text",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "kabum-privacy-product-cannot-impersonate-footer",
+      "root_cause": "optional_consent_label_not_required_footer_text",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "kooora-news-scope-new-news-cards",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "kooora-news-scope-teams-and-players",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "kooora-news-scope-category-index",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "kooora-news-scope-collapsed-card",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "kooora-news-scope-same-id-new-slug",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "kooora-news-scope-fresh-listicle",
+      "root_cause": "news_detail_routes_not_category_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "quake-joined-location-time",
+      "root_cause": "earthquake_inline_location_timestamp",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "quake-joined-missing-depth",
+      "root_cause": "earthquake_inline_location_timestamp",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "quake-joined-invalid-time",
+      "root_cause": "earthquake_inline_location_timestamp",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "quake-joined-duplicate-record",
+      "root_cause": "earthquake_inline_location_timestamp",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-037-complete",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic22-037-below80",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-037-duplicate",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-037-wrong-scope",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-030-complete",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic22-030-below80",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-030-duplicate",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-030-wrong-scope",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-032-complete",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic22-032-below80",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-032-duplicate",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-032-wrong-scope",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-098-complete",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic22-098-below80",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-098-duplicate",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-098-wrong-scope",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-061-complete",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic22-061-below80",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-061-duplicate",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-061-wrong-scope",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-037-prefetch-only",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-030-prefetch-only",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-032-prefetch-only",
+      "root_cause": "dynamic_initial_scope_and_owned_records",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-copy-marker-complete",
+      "root_cause": "table_auxiliary_copy_markers",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "table-copy-marker-bad-date",
+      "root_cause": "table_auxiliary_copy_markers",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-copy-marker-missing-field",
+      "root_cause": "table_auxiliary_copy_markers",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-copy-marker-literal-arrow",
+      "root_cause": "table_auxiliary_copy_markers",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-compact-cell-joined",
+      "root_cause": "adjacent_cell_elements_and_empty_column_preservation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "table-compact-cell-wrong-id",
+      "root_cause": "adjacent_cell_elements_and_empty_column_preservation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "table-compact-cell-wrong-price",
+      "root_cause": "adjacent_cell_elements_and_empty_column_preservation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dynamic22-037-next-section-excluded",
+      "root_cause": "adjacent_virtual_demo_scope_boundary",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "dynamic22-037-next-section-cannot-fill",
+      "root_cause": "adjacent_virtual_demo_scope_boundary",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "named-visible-text-visible-title",
+      "root_cause": "image_alt_is_not_visible_record_name",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "named-visible-text-image-only",
+      "root_cause": "image_alt_is_not_visible_record_name",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "named-visible-text-image-plus-action",
+      "root_cause": "image_alt_is_not_visible_record_name",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "joyn-completed-window-67",
+      "root_cause": "premature_partial_dynamic_collection_denominator",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "joyn-completed-window-27",
+      "root_cause": "premature_partial_dynamic_collection_denominator",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "nintendo-owned-software-20",
+      "root_cause": "adjacent_search_result_regions",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "nintendo-owned-software-2",
+      "root_cause": "adjacent_search_result_regions",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-062-1",
+      "root_cause": "dynamic_membership_must_not_be_frozen",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-062-2",
+      "root_cause": "dynamic_membership_must_not_be_frozen",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-067-3",
+      "root_cause": "dynamic_membership_must_not_be_frozen",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-067-4",
+      "root_cause": "dynamic_membership_must_not_be_frozen",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-045-5",
+      "root_cause": "dynamic_membership_must_not_be_frozen",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-045-6",
+      "root_cause": "dynamic_membership_must_not_be_frozen",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-095-7",
+      "root_cause": "dynamic_membership_must_not_be_frozen",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-095-8",
+      "root_cause": "dynamic_membership_must_not_be_frozen",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-011-9",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-011-10",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-011-11",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-011-12",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-024-13",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-024-14",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-024-15",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-024-16",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-029-17",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-029-18",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-029-19",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-029-20",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-038-21",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-038-22",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-038-23",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-038-24",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-041-25",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-041-26",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-041-27",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-041-28",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-058-29",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-058-30",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-058-31",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-058-32",
+      "root_cause": "table_fields_and_example_boundaries",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-016-33",
+      "root_cause": "independent_body_scope_omission_or_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-016-34",
+      "root_cause": "independent_body_scope_omission_or_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-039-35",
+      "root_cause": "independent_body_scope_omission_or_navigation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-039-36",
+      "root_cause": "independent_body_scope_omission_or_navigation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-visible-html-image-only",
+      "root_cause": "image_metadata_is_not_visible_record_name",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-visible-html-visible-name",
+      "root_cause": "image_metadata_is_not_visible_record_name",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-nested-anchor-keep-navigation",
+      "root_cause": "decomposed_descendant_anchor_in_nonrecord_text",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-nested-anchor-record-is-not-navigation",
+      "root_cause": "decomposed_descendant_anchor_in_nonrecord_text",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-tree-separated",
+      "root_cause": "separate_visible_nodes_not_cross_node_ngrams",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-tree-missing-node",
+      "root_cause": "separate_visible_nodes_not_cross_node_ngrams",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-inline-html-real-markdown",
+      "root_cause": "inline_html_documentation_is_not_a_rendered_table",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-inline-html-example-only",
+      "root_cause": "inline_html_documentation_is_not_a_rendered_table",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-list-boundary-045-inside",
+      "root_cause": "markdown_section_ownership_matches_source_scope",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-list-boundary-045-outside",
+      "root_cause": "markdown_section_ownership_matches_source_scope",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-list-boundary-067-inside",
+      "root_cause": "markdown_section_ownership_matches_source_scope",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-list-boundary-067-outside",
+      "root_cause": "markdown_section_ownership_matches_source_scope",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "completion100-list-boundary-062-inside",
+      "root_cause": "markdown_section_ownership_matches_source_scope",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "completion100-list-boundary-062-outside",
+      "root_cause": "markdown_section_ownership_matches_source_scope",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-caption-md",
+      "root_cause": "linked_card_caption_ownership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "remaining7-caption-only-not-title",
+      "root_cause": "linked_card_caption_ownership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "remaining7-bare-title",
+      "root_cause": "linked_card_caption_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-missing-caption",
+      "root_cause": "linked_card_caption_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-duplicate-caption-card",
+      "root_cause": "linked_card_caption_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-wrong-caption-link",
+      "root_cause": "linked_card_caption_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-outside-card-scope",
+      "root_cause": "linked_card_caption_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-image-caption-only",
+      "root_cause": "linked_card_caption_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-caption-html",
+      "root_cause": "linked_card_caption_ownership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "remaining7-caption-html-missing",
+      "root_cause": "linked_card_caption_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-plan-md",
+      "root_cause": "same_card_name_price_ownership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "remaining7-plan-html",
+      "root_cause": "same_card_name_price_ownership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "remaining7-plan-missing-price",
+      "root_cause": "same_card_name_price_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-plan-duplicate",
+      "root_cause": "same_card_name_price_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-plan-cross-card",
+      "root_cause": "same_card_name_price_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-plan-html-missing",
+      "root_cause": "same_card_name_price_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-plan-no-names",
+      "root_cause": "same_card_name_price_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-bound-body-complete",
+      "root_cause": "volatile_body_requires_bound_source",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "remaining7-bound-body-missing-programme",
+      "root_cause": "volatile_body_requires_bound_source",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "remaining7-featured-card",
+      "root_cause": "linked_card_caption_ownership",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "remaining7-plain-navigation",
+      "root_cause": "linked_card_caption_ownership",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "record-owned-stable-author-text-visible",
+      "root_cause": "source_owned_stable_text_scope",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "record-owned-stable-author-text-absent",
+      "root_cause": "source_owned_stable_text_scope",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "inline-emphasis-preserves-visible-product-fields",
+      "root_cause": "inline_emphasis_in_structured_fields",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "inline-emphasis-cannot-supply-missing-shipping",
+      "root_cause": "inline_emphasis_in_structured_fields",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "ambiguous-query-candidate-does-not-discard-valid-sibling",
+      "root_cause": "ambiguous_query_candidate_scope",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "ambiguous-query-candidate-alone-cannot-form-record",
+      "root_cause": "ambiguous_query_candidate_scope",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "dense-flattened-link-collection-remains-a-list",
+      "root_cause": "flattened_markdown_collection_classification",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "prose-with-three-links-remains-prose",
+      "root_cause": "flattened_markdown_collection_classification",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "redirected-relative-markdown-uses-response-origin",
+      "root_cause": "redirected_markdown_link_base",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "wrong-redirect-cannot-authorize-relative-markdown",
+      "root_cause": "redirected_markdown_link_base",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "malformed-link-is-reported-without-erasing-valid-sibling",
+      "root_cause": "candidate_local_malformed_link_validation",
+      "failure_mode": "false-positive"
+    },
+    {
+      "id": "well-formed-link-is-not-marked-as-malformed",
+      "root_cause": "candidate_local_malformed_link_validation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "linked-product-invalid-identity-does-not-discard-valid-sibling",
+      "root_cause": "linked_product_candidate_identity_isolation",
+      "failure_mode": "false-negative"
+    },
+    {
+      "id": "linked-product-invalid-identity-alone-cannot-form-record",
+      "root_cause": "linked_product_candidate_identity_isolation",
+      "failure_mode": "false-positive"
+    }
+  ],
+  "root_causes": [
+    {
+      "id": "adjacent_cell_elements_and_empty_column_preservation",
+      "false_positive_ids": [
+        "table-compact-cell-wrong-id",
+        "table-compact-cell-wrong-price"
+      ],
+      "false_negative_ids": [
+        "table-compact-cell-joined"
+      ]
+    },
+    {
+      "id": "adjacent_markdown_links_same_song_identity",
+      "false_positive_ids": [
+        "adjacent-song-pair-mismatched-identity"
+      ],
+      "false_negative_ids": [
+        "adjacent-song-pair-escaped-markdown-complete"
+      ]
+    },
+    {
+      "id": "adjacent_search_result_regions",
+      "false_positive_ids": [
+        "nintendo-owned-software-2"
+      ],
+      "false_negative_ids": [
+        "nintendo-owned-software-20"
+      ]
+    },
+    {
+      "id": "adjacent_virtual_demo_scope_boundary",
+      "false_positive_ids": [
+        "dynamic22-037-next-section-cannot-fill"
+      ],
+      "false_negative_ids": [
+        "dynamic22-037-next-section-excluded"
+      ]
+    },
+    {
+      "id": "amazon_product_tracking_path_suffix",
+      "false_positive_ids": [
+        "amazon-non-ref-suffix-is-not-a-product-detail"
+      ],
+      "false_negative_ids": [
+        "amazon-tracking-suffix-remains-a-product-detail"
+      ]
+    },
+    {
+      "id": "ambiguous_query_candidate_scope",
+      "false_positive_ids": [
+        "ambiguous-query-candidate-alone-cannot-form-record"
+      ],
+      "false_negative_ids": [
+        "ambiguous-query-candidate-does-not-discard-valid-sibling"
+      ]
+    },
+    {
+      "id": "api_operation_reference_omission",
+      "false_positive_ids": [
+        "api-missing-operation-summary",
+        "api-paths-alone-not-summaries"
+      ],
+      "false_negative_ids": [
+        "api-summary-reference-complete"
+      ]
+    },
+    {
+      "id": "arabic_currency_order_and_direction_marks",
+      "false_positive_ids": [
+        "arabic-currency-visible-format-currency-only",
+        "arabic-currency-visible-format-four-only",
+        "arabic-currency-visible-format-unrelated-digits"
+      ],
+      "false_negative_ids": [
+        "arabic-currency-visible-format-direction-marks",
+        "arabic-currency-visible-format-prefix",
+        "arabic-currency-visible-format-prefix-direction",
+        "arabic-currency-visible-format-suffix"
+      ]
+    },
+    {
+      "id": "aria_metadata_is_not_visual_visibility",
+      "false_positive_ids": [
+        "aria-hidden-title-with-display-none-does-not-count"
+      ],
+      "false_negative_ids": [
+        "visible-title-with-aria-hidden-still-counts"
+      ]
+    },
+    {
+      "id": "body_reference_nontext_controls",
+      "false_positive_ids": [
+        "body-icon-label-is-not-real-body"
+      ],
+      "false_negative_ids": [
+        "body-reference-excludes-icon-font-name"
+      ]
+    },
+    {
+      "id": "body_region_structure_priority",
+      "false_positive_ids": [
+        "structured-regions-reject-a-missing-ending-section"
+      ],
+      "false_negative_ids": [
+        "structured-regions-accept-the-complete-body"
+      ]
+    },
+    {
+      "id": "calendar_validity_for_table_dates",
+      "false_positive_ids": [
+        "table-ordinal-date-impossible-day",
+        "table-ordinal-date-non-leap-date",
+        "table-ordinal-date-wrong-ordinal"
+      ],
+      "false_negative_ids": [
+        "table-ordinal-date-leap-date",
+        "table-ordinal-date-real-date"
+      ]
+    },
+    {
+      "id": "candidate_local_malformed_link_validation",
+      "false_positive_ids": [
+        "malformed-link-is-reported-without-erasing-valid-sibling"
+      ],
+      "false_negative_ids": [
+        "well-formed-link-is-not-marked-as-malformed"
+      ]
+    },
+    {
+      "id": "card_anchor_owns_visible_title_and_destination",
+      "false_positive_ids": [
+        "owned-anchor-card-duplicate-id",
+        "owned-anchor-card-empty-title-with-price",
+        "owned-anchor-card-price-only"
+      ],
+      "false_negative_ids": [
+        "owned-anchor-card-anchor-is-card",
+        "owned-anchor-card-fresh-markdown"
+      ]
+    },
+    {
+      "id": "collector_parent_child_text_duplication",
+      "false_positive_ids": [
+        "body-missing-source-paragraph-rejected",
+        "body-real-repeated-occurrences-preserved"
+      ],
+      "false_negative_ids": [
+        "body-single-source-occurrence-not-duplicated"
+      ]
+    },
+    {
+      "id": "content_card_routes_not_partial_channel_allowlist",
+      "false_positive_ids": [
+        "francetv-content-cards-empty-name",
+        "francetv-content-cards-foreign-host",
+        "francetv-content-cards-root-navigation",
+        "francetv-content-cards-same-id-twice"
+      ],
+      "false_negative_ids": [
+        "francetv-content-cards-real-content-paths"
+      ]
+    },
+    {
+      "id": "content_cards_not_placeholder_or_editorial_links",
+      "false_positive_ids": [
+        "prosieben-owned-content-editorial-only",
+        "prosieben-owned-content-genres",
+        "prosieben-owned-content-missing-list-region",
+        "prosieben-owned-content-placeholder-html"
+      ],
+      "false_negative_ids": [
+        "prosieben-owned-content-fresh-content"
+      ]
+    },
+    {
+      "id": "cookie_preferences_not_blocked_documentation",
+      "false_positive_ids": [
+        "consent-does-not-hide-access-denied",
+        "consent-only-is-not-documentation"
+      ],
+      "false_negative_ids": [
+        "consent-alongside-real-documentation"
+      ]
+    },
+    {
+      "id": "declared_document_language_vs_visible_language",
+      "false_positive_ids": [
+        "dynamic-source-document-language-mismatch-is-not-verified"
+      ],
+      "false_negative_ids": [
+        "dynamic-arabic-visible-text-with-english-html-lang-remains-eligible"
+      ]
+    },
+    {
+      "id": "declared_empty_table_cells_are_real_values",
+      "false_positive_ids": [
+        "nullable-table-invented-age",
+        "nullable-table-missing-cell",
+        "nullable-table-mixed-row",
+        "nullable-table-wrong-empty"
+      ],
+      "false_negative_ids": [
+        "nullable-table-faithful-empty"
+      ]
+    },
+    {
+      "id": "declared_list_scope_and_nonempty_names",
+      "false_positive_ids": [
+        "scoped-list-absent-heading",
+        "scoped-list-empty-name",
+        "scoped-list-hidden-html",
+        "scoped-list-html-sidebar",
+        "scoped-list-sidebar-not-main",
+        "sidebar-cannot-fill-first-news"
+      ],
+      "false_negative_ids": [
+        "first-news-before-sidebar",
+        "scoped-list-html-valid",
+        "scoped-list-new-short-names"
+      ]
+    },
+    {
+      "id": "decomposed_descendant_anchor_in_nonrecord_text",
+      "false_positive_ids": [
+        "completion100-nested-anchor-record-is-not-navigation"
+      ],
+      "false_negative_ids": [
+        "completion100-nested-anchor-keep-navigation"
+      ]
+    },
+    {
+      "id": "documentation_prose_and_grid_are_separate_requirements",
+      "false_positive_ids": [
+        "documentation-grid-without-prose",
+        "documentation-prose-without-grid",
+        "mui-missing-rowheader-full-name"
+      ],
+      "false_negative_ids": [
+        "documentation-prose-and-grid",
+        "mui-rowheader-full-name-counts"
+      ]
+    },
+    {
+      "id": "dormant_html_templates_not_blocking_notices",
+      "false_positive_ids": [
+        "forbidden-html-surface-actual-denial",
+        "forbidden-html-surface-plain-challenge",
+        "forbidden-html-surface-visible-challenge"
+      ],
+      "false_negative_ids": [
+        "forbidden-html-surface-dormant-template",
+        "forbidden-html-surface-explicitly-hidden"
+      ]
+    },
+    {
+      "id": "dynamic_initial_scope_and_owned_records",
+      "false_positive_ids": [
+        "dynamic22-030-below80",
+        "dynamic22-030-duplicate",
+        "dynamic22-030-prefetch-only",
+        "dynamic22-030-wrong-scope",
+        "dynamic22-032-below80",
+        "dynamic22-032-duplicate",
+        "dynamic22-032-prefetch-only",
+        "dynamic22-032-wrong-scope",
+        "dynamic22-037-below80",
+        "dynamic22-037-duplicate",
+        "dynamic22-037-prefetch-only",
+        "dynamic22-037-wrong-scope",
+        "dynamic22-061-below80",
+        "dynamic22-061-duplicate",
+        "dynamic22-061-wrong-scope",
+        "dynamic22-098-below80",
+        "dynamic22-098-duplicate",
+        "dynamic22-098-wrong-scope"
+      ],
+      "false_negative_ids": [
+        "dynamic22-030-complete",
+        "dynamic22-032-complete",
+        "dynamic22-037-complete",
+        "dynamic22-061-complete",
+        "dynamic22-098-complete"
+      ]
+    },
+    {
+      "id": "dynamic_list_membership_not_identity",
+      "false_positive_ids": [
+        "dynamic-membership-duplicate-not-extra-item",
+        "dynamic-membership-empty-title-rejected",
+        "dynamic-membership-short-list-rejected",
+        "dynamic-membership-wrong-path-rejected"
+      ],
+      "false_negative_ids": [
+        "dynamic-membership-new-entities-accepted"
+      ]
+    },
+    {
+      "id": "dynamic_membership_must_not_be_frozen",
+      "false_positive_ids": [
+        "completion100-045-6",
+        "completion100-062-2",
+        "completion100-067-4",
+        "completion100-095-8"
+      ],
+      "false_negative_ids": [
+        "completion100-045-5",
+        "completion100-062-1",
+        "completion100-067-3",
+        "completion100-095-7"
+      ]
+    },
+    {
+      "id": "dynamic_page_identity_alignment",
+      "false_positive_ids": [
+        "dynamic-final-page-mismatch-cannot-be-counted-as-a-pass"
+      ],
+      "false_negative_ids": [
+        "dynamic-matching-final-page-and-language-remain-eligible"
+      ]
+    },
+    {
+      "id": "dynamic_page_query_identity",
+      "false_positive_ids": [
+        "dynamic-search-query-mismatch-is-a-different-page"
+      ],
+      "false_negative_ids": [
+        "dynamic-matching-search-query-remains-eligible"
+      ]
+    },
+    {
+      "id": "earthquake_inline_location_timestamp",
+      "false_positive_ids": [
+        "quake-joined-duplicate-record",
+        "quake-joined-invalid-time",
+        "quake-joined-missing-depth"
+      ],
+      "false_negative_ids": [
+        "quake-joined-location-time"
+      ]
+    },
+    {
+      "id": "earthquake_record_field_ownership",
+      "false_positive_ids": [
+        "quake-dates-alone",
+        "quake-duplicate-not-extra-event",
+        "quake-invalid-calendar",
+        "quake-missing-depth",
+        "quake-split-card-must-not-borrow"
+      ],
+      "false_negative_ids": [
+        "quake-complete-markdown-cards",
+        "quake-complete-visible-cards",
+        "quake-table-fields"
+      ]
+    },
+    {
+      "id": "embedded_examples_are_not_document_format",
+      "false_positive_ids": [
+        "fenced-example-cannot-fill-live-rows"
+      ],
+      "false_negative_ids": [
+        "html-code-example-does-not-change-plain-table-format",
+        "whole-fenced-data-answer-remains-valid"
+      ]
+    },
+    {
+      "id": "fixed_demo_product_field_correspondence",
+      "false_positive_ids": [
+        "fixed-demo-product-duplicates",
+        "fixed-demo-product-missing-prices",
+        "fixed-demo-product-six",
+        "fixed-demo-product-wrong-prices",
+        "fixed-demo-product-wrong-statuses"
+      ],
+      "false_negative_ids": [
+        "fixed-demo-product-complete",
+        "fixed-demo-product-equivalent-currency",
+        "fixed-demo-product-markdown-stars",
+        "fixed-demo-product-seven"
+      ]
+    },
+    {
+      "id": "flattened_markdown_collection_classification",
+      "false_positive_ids": [
+        "prose-with-three-links-remains-prose"
+      ],
+      "false_negative_ids": [
+        "dense-flattened-link-collection-remains-a-list"
+      ]
+    },
+    {
+      "id": "footer_links_not_dynamic_list_records",
+      "false_positive_ids": [
+        "dynamic-052-bilibili-com-v-footer-scope-footer-only",
+        "dynamic-052-bilibili-com-v-footer-scope-navigation-only",
+        "dynamic-063-s-weibo-com-top-footer-scope-footer-only",
+        "dynamic-063-s-weibo-com-top-footer-scope-navigation-only"
+      ],
+      "false_negative_ids": [
+        "dynamic-052-bilibili-com-v-footer-scope-inside",
+        "dynamic-052-bilibili-com-v-footer-scope-no-footer",
+        "dynamic-063-s-weibo-com-top-footer-scope-inside",
+        "dynamic-063-s-weibo-com-top-footer-scope-no-footer"
+      ]
+    },
+    {
+      "id": "frozen_source_name_link_pair_membership",
+      "false_positive_ids": [
+        "name-link-count-cannot-credit-an-invented-name-for-a-real-url"
+      ],
+      "false_negative_ids": [
+        "name-link-count-credits-two-independently-observed-name-url-pairs"
+      ]
+    },
+    {
+      "id": "game_card_announcements_not_navigation_news",
+      "false_positive_ids": [
+        "nintendo-markdown-section-links-after-game-section",
+        "nintendo-markdown-section-navigation-news-only"
+      ],
+      "false_negative_ids": [
+        "nintendo-markdown-section-actual-game-section",
+        "nintendo-markdown-section-bullet-heading"
+      ]
+    },
+    {
+      "id": "github_route_as_repository",
+      "false_positive_ids": [
+        "github-route-links-are-not-repositories"
+      ],
+      "false_negative_ids": [
+        "github-owner-repository-links-are-records"
+      ]
+    },
+    {
+      "id": "hidden_related_video_popup_not_main_rank",
+      "false_positive_ids": [
+        "auxiliary-video-links-popup-cannot-fill"
+      ],
+      "false_negative_ids": [
+        "auxiliary-video-links-normal-two-main",
+        "auxiliary-video-links-two-main-plus-popup"
+      ]
+    },
+    {
+      "id": "html_entity_space_is_visible_whitespace",
+      "false_positive_ids": [
+        "html-anchor-entity-literal-entity",
+        "html-anchor-entity-wrong-heading"
+      ],
+      "false_negative_ids": [
+        "html-anchor-entity-named-space",
+        "html-anchor-entity-numeric-space"
+      ]
+    },
+    {
+      "id": "image_alt_is_not_visible_record_name",
+      "false_positive_ids": [
+        "named-visible-text-image-only",
+        "named-visible-text-image-plus-action"
+      ],
+      "false_negative_ids": [
+        "named-visible-text-visible-title"
+      ]
+    },
+    {
+      "id": "image_metadata_is_not_visible_record_name",
+      "false_positive_ids": [
+        "completion100-visible-html-image-only"
+      ],
+      "false_negative_ids": [
+        "completion100-visible-html-visible-name"
+      ]
+    },
+    {
+      "id": "independent_body_scope_omission_or_navigation",
+      "false_positive_ids": [
+        "completion100-016-34",
+        "completion100-039-36"
+      ],
+      "false_negative_ids": [
+        "completion100-016-33",
+        "completion100-039-35"
+      ]
+    },
+    {
+      "id": "initial_loaded_page_article_scope",
+      "false_positive_ids": [
+        "category-label-is-not-article-name",
+        "page-article-wrong-path-cannot-fill-count",
+        "same-article-repeat-cannot-fill-page-count"
+      ],
+      "false_negative_ids": [
+        "loaded-carousel-records-count",
+        "loaded-page-articles-html",
+        "loaded-page-articles-markdown"
+      ]
+    },
+    {
+      "id": "initial_visible_news_scope_excludes_collapsed_cards",
+      "false_positive_ids": [
+        "naver-politics-owned-visible-empty-title",
+        "naver-politics-owned-visible-hidden-expansion-not-denominator",
+        "naver-politics-owned-visible-repeated-id",
+        "naver-politics-owned-visible-sidebar-not-main"
+      ],
+      "false_negative_ids": [
+        "naver-politics-owned-visible-fresh-markdown",
+        "naver-politics-owned-visible-visible-owned-cards"
+      ]
+    },
+    {
+      "id": "inline_emphasis_in_structured_fields",
+      "false_positive_ids": [
+        "inline-emphasis-cannot-supply-missing-shipping"
+      ],
+      "false_negative_ids": [
+        "inline-emphasis-preserves-visible-product-fields"
+      ]
+    },
+    {
+      "id": "inline_html_documentation_is_not_a_rendered_table",
+      "false_positive_ids": [
+        "completion100-inline-html-example-only"
+      ],
+      "false_negative_ids": [
+        "completion100-inline-html-real-markdown"
+      ]
+    },
+    {
+      "id": "linked_card_caption_ownership",
+      "false_positive_ids": [
+        "remaining7-bare-title",
+        "remaining7-caption-html-missing",
+        "remaining7-duplicate-caption-card",
+        "remaining7-image-caption-only",
+        "remaining7-missing-caption",
+        "remaining7-outside-card-scope",
+        "remaining7-plain-navigation",
+        "remaining7-wrong-caption-link"
+      ],
+      "false_negative_ids": [
+        "remaining7-caption-html",
+        "remaining7-caption-md",
+        "remaining7-caption-only-not-title",
+        "remaining7-featured-card"
+      ]
+    },
+    {
+      "id": "linked_product_candidate_identity_isolation",
+      "false_positive_ids": [
+        "linked-product-invalid-identity-alone-cannot-form-record"
+      ],
+      "false_negative_ids": [
+        "linked-product-invalid-identity-does-not-discard-valid-sibling"
+      ]
+    },
+    {
+      "id": "markdown_section_ownership_matches_source_scope",
+      "false_positive_ids": [
+        "completion100-list-boundary-045-outside",
+        "completion100-list-boundary-062-outside",
+        "completion100-list-boundary-067-outside"
+      ],
+      "false_negative_ids": [
+        "completion100-list-boundary-045-inside",
+        "completion100-list-boundary-062-inside",
+        "completion100-list-boundary-067-inside"
+      ]
+    },
+    {
+      "id": "movie_records_not_genre_navigation_or_placeholder",
+      "false_positive_ids": [
+        "joyn-movie-ownership-duplicated-movie",
+        "joyn-movie-ownership-empty-name",
+        "joyn-movie-ownership-genres-only",
+        "joyn-movie-ownership-html-placeholders"
+      ],
+      "false_negative_ids": [
+        "joyn-movie-ownership-fresh-movies"
+      ]
+    },
+    {
+      "id": "multi_pipe_prose_misclassified_as_markdown_table",
+      "false_positive_ids": [
+        "escaped-table-pipe-cannot-be-removed",
+        "multiple-literal-pipes-preserve-operators"
+      ],
+      "false_negative_ids": [
+        "escaped-table-pipe-keeps-literal-expression",
+        "literal-footer-pipe-remains-matchable"
+      ]
+    },
+    {
+      "id": "multiline_table_row_boundaries",
+      "false_positive_ids": [
+        "table-multiline-cannot-cross-row",
+        "table-multiline-missing-field",
+        "table-multiline-other-example"
+      ],
+      "false_negative_ids": [
+        "table-multiline-complete",
+        "table-multiline-mixed-format"
+      ]
+    },
+    {
+      "id": "news_detail_routes_not_category_navigation",
+      "false_positive_ids": [
+        "cnnbrasil-qualified-routes-blog-author-index",
+        "cnnbrasil-qualified-routes-category-navigation",
+        "cnnbrasil-qualified-routes-duplicate-article",
+        "cnnbrasil-qualified-routes-election-tools",
+        "cnnbrasil-qualified-routes-scoreboard-only",
+        "dynamic-088-terra-home-duplicate-story",
+        "dynamic-088-terra-home-navigation-only",
+        "dynamic-093-pt-real-terra-noticias-duplicate-story",
+        "dynamic-093-pt-real-terra-noticias-navigation-only",
+        "dynamic-096-ar-real-cnn-world-duplicate-story",
+        "dynamic-096-ar-real-cnn-world-navigation-only",
+        "kooora-news-scope-category-index",
+        "kooora-news-scope-collapsed-card",
+        "kooora-news-scope-same-id-new-slug",
+        "kooora-news-scope-teams-and-players"
+      ],
+      "false_negative_ids": [
+        "cnnbrasil-qualified-routes-new-election-and-blog",
+        "cnnbrasil-qualified-routes-new-science-and-education",
+        "dynamic-088-terra-home-new-stories",
+        "dynamic-093-pt-real-terra-noticias-new-stories",
+        "dynamic-096-ar-real-cnn-world-new-stories",
+        "kooora-news-scope-fresh-listicle",
+        "kooora-news-scope-new-news-cards"
+      ]
+    },
+    {
+      "id": "nintendo_real_card_routes_not_historical_membership",
+      "false_positive_ids": [
+        "nintendo-scoped-games-es-duplicates",
+        "nintendo-scoped-games-es-empty-title",
+        "nintendo-scoped-games-es-navigation-only",
+        "nintendo-scoped-games-es-unrelated-path",
+        "nintendo-scoped-games-jp-duplicates",
+        "nintendo-scoped-games-jp-empty-title",
+        "nintendo-scoped-games-jp-navigation-only",
+        "nintendo-scoped-games-jp-unrelated-path"
+      ],
+      "false_negative_ids": [
+        "nintendo-scoped-games-es-markdown",
+        "nintendo-scoped-games-es-new-games",
+        "nintendo-scoped-games-jp-markdown",
+        "nintendo-scoped-games-jp-new-games"
+      ]
+    },
+    {
+      "id": "normal_page_control_misclassified_as_forbidden_content",
+      "false_positive_ids": [
+        "removing-normal-theme-control-does-not-hide-real-block-page"
+      ],
+      "false_negative_ids": [
+        "normal-theme-control-is-not-a-block-page-marker"
+      ]
+    },
+    {
+      "id": "observed_article_route_aliases",
+      "false_positive_ids": [
+        "news-alias-is-one-article",
+        "news-extra-route-component-is-invalid"
+      ],
+      "false_negative_ids": [
+        "news-hotissue-route-is-valid"
+      ]
+    },
+    {
+      "id": "optional_consent_label_not_required_footer_text",
+      "false_positive_ids": [
+        "kabum-privacy-privacy-only",
+        "kabum-privacy-product-cannot-impersonate-footer"
+      ],
+      "false_negative_ids": [
+        "kabum-privacy-footer-without-consent"
+      ]
+    },
+    {
+      "id": "overescaped_source_field_patterns",
+      "false_positive_ids": [
+        "counter-word-boundaries-rejects-non-field",
+        "currency-whitespace-rejects-non-field"
+      ],
+      "false_negative_ids": [
+        "counter-word-boundaries-accepts-source-format",
+        "currency-whitespace-accepts-source-format"
+      ]
+    },
+    {
+      "id": "premature_partial_dynamic_collection_denominator",
+      "false_positive_ids": [
+        "joyn-completed-window-27"
+      ],
+      "false_negative_ids": [
+        "joyn-completed-window-67"
+      ]
+    },
+    {
+      "id": "product_records_not_shop_navigation_or_empty_destinations",
+      "false_positive_ids": [
+        "falabella-product-scope-missing-title",
+        "falabella-product-scope-no-valid-product-destination",
+        "falabella-product-scope-outside-product-card",
+        "lotteon-product-scope-missing-title",
+        "lotteon-product-scope-no-valid-product-destination",
+        "lotteon-product-scope-outside-product-card"
+      ],
+      "false_negative_ids": [
+        "falabella-product-scope-owned-title-detail",
+        "lotteon-product-scope-owned-title-detail"
+      ]
+    },
+    {
+      "id": "programme_title_links_not_action_buttons",
+      "false_positive_ids": [
+        "rtve-title-scope-audio-not-video",
+        "rtve-title-scope-buttons-only",
+        "rtve-title-scope-duplicate-id",
+        "rtve-title-scope-empty-title"
+      ],
+      "false_negative_ids": [
+        "rtve-title-scope-html-owned-programme-and-episode",
+        "rtve-title-scope-new-programme-and-episode"
+      ]
+    },
+    {
+      "id": "punctuation_separated_explicit_named_links",
+      "false_positive_ids": [
+        "named-link-separated-list-prose-between-links",
+        "named-link-separated-list-prose-recommendation"
+      ],
+      "false_negative_ids": [
+        "named-link-separated-list-comma-list",
+        "named-link-separated-list-semicolon-list"
+      ]
+    },
+    {
+      "id": "quoted_title_metadata_not_link_destination",
+      "false_positive_ids": [
+        "markdown-title-metadata-bare-url",
+        "markdown-title-metadata-wrong-path"
+      ],
+      "false_negative_ids": [
+        "markdown-title-metadata-inner-apostrophe",
+        "markdown-title-metadata-inner-double"
+      ]
+    },
+    {
+      "id": "rank_markdown_scope_excludes_navigation",
+      "false_positive_ids": [
+        "dynamic-026-bilibili-rank-markdown-scope-footer-only",
+        "dynamic-026-bilibili-rank-markdown-scope-navigation-only",
+        "dynamic-044-en-real-github-trending-markdown-scope-footer-only",
+        "dynamic-044-en-real-github-trending-markdown-scope-navigation-only",
+        "dynamic-048-en-github-trending-developers-markdown-scope-footer-only",
+        "dynamic-048-en-github-trending-developers-markdown-scope-navigation-only"
+      ],
+      "false_negative_ids": [
+        "dynamic-026-bilibili-rank-markdown-scope-inside",
+        "dynamic-044-en-real-github-trending-markdown-scope-inside",
+        "dynamic-048-en-github-trending-developers-markdown-scope-inside"
+      ]
+    },
+    {
+      "id": "record_title_masking_erases_independent_navigation",
+      "false_positive_ids": [
+        "anchor-owned-links-html-hidden-nav",
+        "anchor-owned-links-html-record-only",
+        "anchor-owned-links-md-record-only",
+        "anchor-owned-links-md-repeated-record"
+      ],
+      "false_negative_ids": [
+        "anchor-owned-links-html-independent-nav",
+        "anchor-owned-links-md-independent-nav",
+        "anchor-owned-links-md-same-line-nav",
+        "anchor-owned-links-non-http-navigation"
+      ]
+    },
+    {
+      "id": "redirected_document_link_base",
+      "false_positive_ids": [
+        "wrong-redirect-cannot-borrow-original-origin"
+      ],
+      "false_negative_ids": [
+        "redirected-relative-article-uses-response-origin"
+      ]
+    },
+    {
+      "id": "redirected_markdown_link_base",
+      "false_positive_ids": [
+        "wrong-redirect-cannot-authorize-relative-markdown"
+      ],
+      "false_negative_ids": [
+        "redirected-relative-markdown-uses-response-origin"
+      ]
+    },
+    {
+      "id": "rule_unresolved_exclusion",
+      "false_positive_ids": [
+        "unresolved-rule-cannot-be-counted-as-provider-pass"
+      ],
+      "false_negative_ids": [
+        "resolved-rule-remains-eligible-for-provider-pass"
+      ]
+    },
+    {
+      "id": "same_card_name_price_ownership",
+      "false_positive_ids": [
+        "remaining7-plan-cross-card",
+        "remaining7-plan-duplicate",
+        "remaining7-plan-html-missing",
+        "remaining7-plan-missing-price",
+        "remaining7-plan-no-names"
+      ],
+      "false_negative_ids": [
+        "remaining7-plan-html",
+        "remaining7-plan-md"
+      ]
+    },
+    {
+      "id": "same_card_title_detail_pairing",
+      "false_positive_ids": [
+        "amazonmx-owned-card-duplicate-asin",
+        "amazonmx-owned-card-image-only",
+        "amazonmx-owned-card-wrong-host",
+        "owned-sibling-ambiguous-link",
+        "owned-sibling-does-not-cross-card",
+        "owned-sibling-hidden-title",
+        "song-detail-literal-dot-not-wildcard"
+      ],
+      "false_negative_ids": [
+        "amazonmx-owned-card-fresh-products",
+        "owned-sibling-title-detail-link",
+        "owned-title-equivalent-markdown"
+      ]
+    },
+    {
+      "id": "scoped_visible_record_names",
+      "false_positive_ids": [
+        "scoped-hidden-news-ancestor",
+        "scoped-hidden-news-own-style",
+        "scoped-news-hidden-copy-not-extra-record",
+        "scoped-news-image-alt-is-not-title"
+      ],
+      "false_negative_ids": [
+        "scoped-visible-news-title"
+      ]
+    },
+    {
+      "id": "screenreader_only_reference",
+      "false_positive_ids": [
+        "unrelated-assistive-caption-does-not-replace-visible-label",
+        "visible-label-does-not-replace-news"
+      ],
+      "false_negative_ids": [
+        "ordinary-label-not-screenreader-caption"
+      ]
+    },
+    {
+      "id": "separate_headings_not_contiguous_body_fragment",
+      "false_positive_ids": [
+        "heading-only-body-region-headings-only",
+        "heading-only-body-region-missing-heading"
+      ],
+      "false_negative_ids": [
+        "heading-only-body-region-image-between-headings"
+      ]
+    },
+    {
+      "id": "separate_visible_nodes_not_cross_node_ngrams",
+      "false_positive_ids": [
+        "completion100-tree-missing-node"
+      ],
+      "false_negative_ids": [
+        "completion100-tree-separated"
+      ]
+    },
+    {
+      "id": "short_repeated_demo_body_uses_record_coverage",
+      "false_positive_ids": [
+        "fixed-demo-six-is-below-eighty-percent",
+        "fixed-demo-toolbar-only",
+        "fixed-demo-wrong-initial-indices"
+      ],
+      "false_negative_ids": [
+        "fixed-demo-seven-of-eight-missing-0",
+        "fixed-demo-seven-of-eight-missing-4",
+        "fixed-demo-seven-of-eight-missing-7"
+      ]
+    },
+    {
+      "id": "source_declared_price_availability",
+      "false_positive_ids": [
+        "product-price-cannot-borrow-from-neighbor",
+        "product-price-simply-missing",
+        "product-unavailable-cannot-borrow"
+      ],
+      "false_negative_ids": [
+        "product-explicit-source-price-unavailable",
+        "product-owned-price-visible",
+        "product-price-markdown-equivalent",
+        "product-unavailable-markdown-equivalent"
+      ]
+    },
+    {
+      "id": "source_identical_table_duplicates_count_once",
+      "false_positive_ids": [
+        "table-conflicting-identity-not-deduplicated",
+        "table-source-duplicate-not-extra-record"
+      ],
+      "false_negative_ids": [
+        "table-source-duplicate-faithful"
+      ]
+    },
+    {
+      "id": "source_observed_record_threshold",
+      "false_positive_ids": [
+        "variable-list-23-of-30-does-not-meet-80-percent-source-threshold"
+      ],
+      "false_negative_ids": [
+        "variable-list-24-of-30-meets-source-threshold-without-claiming-completeness"
+      ]
+    },
+    {
+      "id": "source_owned_stable_text_scope",
+      "false_positive_ids": [
+        "record-owned-stable-author-text-absent"
+      ],
+      "false_negative_ids": [
+        "record-owned-stable-author-text-visible"
+      ]
+    },
+    {
+      "id": "stable_contract_body_conjunction",
+      "false_positive_ids": [
+        "stable-contract-cannot-bypass-incomplete-body"
+      ],
+      "false_negative_ids": [
+        "stable-contract-and-complete-body-can-pass-together"
+      ]
+    },
+    {
+      "id": "table_auxiliary_copy_markers",
+      "false_positive_ids": [
+        "table-copy-marker-bad-date",
+        "table-copy-marker-literal-arrow",
+        "table-copy-marker-missing-field"
+      ],
+      "false_negative_ids": [
+        "table-copy-marker-complete"
+      ]
+    },
+    {
+      "id": "table_fields_and_example_boundaries",
+      "false_positive_ids": [
+        "completion100-011-10",
+        "completion100-011-11",
+        "completion100-011-12",
+        "completion100-024-14",
+        "completion100-024-15",
+        "completion100-024-16",
+        "completion100-029-18",
+        "completion100-029-19",
+        "completion100-029-20",
+        "completion100-038-22",
+        "completion100-038-23",
+        "completion100-038-24",
+        "completion100-041-26",
+        "completion100-041-27",
+        "completion100-041-28",
+        "completion100-058-30",
+        "completion100-058-31",
+        "completion100-058-32"
+      ],
+      "false_negative_ids": [
+        "completion100-011-9",
+        "completion100-024-13",
+        "completion100-029-17",
+        "completion100-038-21",
+        "completion100-041-25",
+        "completion100-058-29"
+      ]
+    },
+    {
+      "id": "table_multiline_whitespace_and_scope_boundaries",
+      "false_positive_ids": [
+        "dynamic-014-en-stable-rsuite-table-blank-lines-duplicated",
+        "dynamic-014-en-stable-rsuite-table-blank-lines-missing-field",
+        "dynamic-014-en-stable-rsuite-table-blank-lines-one-record",
+        "dynamic-025-025-tabulator-vertical-virtual-dom-blank-lines-duplicated",
+        "dynamic-025-025-tabulator-vertical-virtual-dom-blank-lines-missing-field",
+        "dynamic-025-025-tabulator-vertical-virtual-dom-blank-lines-one-record"
+      ],
+      "false_negative_ids": [
+        "dynamic-014-en-stable-rsuite-table-blank-lines-complete",
+        "dynamic-025-025-tabulator-vertical-virtual-dom-blank-lines-complete"
+      ]
+    },
+    {
+      "id": "table_record_field_ownership",
+      "false_positive_ids": [
+        "table-date-list-not-records",
+        "table-duplicate-id-not-extra-record",
+        "table-invalid-calendar-not-complete",
+        "table-missing-cell-not-complete",
+        "table-other-section-cannot-fill"
+      ],
+      "false_negative_ids": [
+        "table-markdown-row-ownership",
+        "table-real-row-shape"
+      ]
+    },
+    {
+      "id": "typed_table_values_and_auxiliary_text",
+      "false_positive_ids": [
+        "table-token-and-auxiliary-duplicate-identity",
+        "table-token-and-auxiliary-hidden-email-cannot-fill",
+        "table-token-and-auxiliary-invalid-postal",
+        "table-token-and-auxiliary-later-table-cannot-fill",
+        "table-token-and-auxiliary-missing-email"
+      ],
+      "false_negative_ids": [
+        "table-token-and-auxiliary-auxiliary-label",
+        "table-token-and-auxiliary-changed-realistic-values",
+        "table-token-and-auxiliary-leading-zero-postal"
+      ]
+    },
+    {
+      "id": "unrelated_example_loading_not_target_failure",
+      "false_positive_ids": [
+        "table-target-loading-without-records-rejected"
+      ],
+      "false_negative_ids": [
+        "table-loading-label-outside-target-not-global-failure"
+      ]
+    },
+    {
+      "id": "unrendered_dynamic_target_placeholder",
+      "false_positive_ids": [
+        "dynamic-target-placeholder-cannot-pass"
+      ],
+      "false_negative_ids": [
+        "completed-dynamic-target-can-pass"
+      ]
+    },
+    {
+      "id": "unreserved_url_encoding_preserves_detail_identity",
+      "false_positive_ids": [
+        "detail-url-unreserved-encoding-empty-name",
+        "detail-url-unreserved-encoding-encoded-duplicate",
+        "detail-url-unreserved-encoding-reserved-separator",
+        "detail-url-unreserved-encoding-wrong-detail-path"
+      ],
+      "false_negative_ids": [
+        "detail-url-unreserved-encoding-unreserved-encoded"
+      ]
+    },
+    {
+      "id": "usage_demo_rows_not_api_component_table",
+      "false_positive_ids": [
+        "usage-api-table-not-demo",
+        "usage-mixed-fields-rejected",
+        "usage-prose-alone-not-enough"
+      ],
+      "false_negative_ids": [
+        "usage-demo-body-and-owned-rows"
+      ]
+    },
+    {
+      "id": "virtual_list_rows_not_toolbar_or_other_examples",
+      "false_positive_ids": [
+        "other-scroller-cannot-fill-first",
+        "scroller-description-alone-fails",
+        "scroller-duplicate-item-fails",
+        "scroller-malformed-label-fails",
+        "scroller-missing-description-fails"
+      ],
+      "false_negative_ids": [
+        "first-scroller-new-items-pass",
+        "scroller-controls-not-required-body"
+      ]
+    },
+    {
+      "id": "visible_song_name_and_detail_link_same_row_identity",
+      "false_positive_ids": [
+        "same-row-song-pair-cross-row",
+        "same-row-song-pair-duplicates",
+        "same-row-song-pair-empty-name",
+        "same-row-song-pair-mismatched-id"
+      ],
+      "false_negative_ids": [
+        "same-row-song-pair-complete",
+        "same-row-song-pair-direct-named-links"
+      ]
+    },
+    {
+      "id": "volatile_body_requires_bound_source",
+      "false_positive_ids": [
+        "remaining7-bound-body-missing-programme"
+      ],
+      "false_negative_ids": [
+        "remaining7-bound-body-complete"
+      ]
+    },
+    {
+      "id": "volatile_body_snapshot_used_as_invariant_answer",
+      "false_positive_ids": [
+        "volatile-body-stable-text-still-rejects-missing-page-identity"
+      ],
+      "false_negative_ids": [
+        "volatile-body-stable-text-does-not-freeze-current-members"
+      ]
+    },
+    {
+      "id": "volatile_demo_people_not_frozen_body",
+      "false_positive_ids": [
+        "rsuite-complete-record-duplicate",
+        "rsuite-complete-record-fifteen-incomplete",
+        "rsuite-complete-record-invalid-postcode",
+        "rsuite-complete-record-missing-email",
+        "rsuite-complete-record-only-headers"
+      ],
+      "false_negative_ids": [
+        "rsuite-complete-record-markdown",
+        "rsuite-complete-record-sixteen-complete"
+      ]
+    },
+    {
+      "id": "volatile_eui_people_and_invisible_reference",
+      "false_positive_ids": [
+        "eui-complete-record-cannot-borrow-neighbor",
+        "eui-complete-record-duplicates",
+        "eui-complete-record-impossible-date",
+        "eui-complete-record-later-table",
+        "eui-complete-record-missing-status",
+        "eui-complete-record-seven-below80"
+      ],
+      "false_negative_ids": [
+        "eui-complete-record-eight-complete",
+        "eui-complete-record-html",
+        "eui-complete-record-markdown"
+      ]
+    }
+  ]
+}

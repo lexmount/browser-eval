@@ -1,0 +1,101 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-react-cart",
+  "url": "https://react-shopping-cart-67954.firebaseapp.com/",
+  "evaluation_url": "https://react-shopping-cart-67954.firebaseapp.com/",
+  "expected_final_url": "https://react-shopping-cart-67954.firebaseapp.com/",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 11,
+  "anchors": [
+    {
+      "id": "phase1-stable-adb1f5053838",
+      "text": "Hi! I'm Jeremy Akeze from Doghouse IT Recruitment and I'm looking for skilled Software Engineers like you. If you wish to move abroad,",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "aa14d7cf9c1160355768e5ec27335142bdd016d79a602c8ce8b397b73a388489"
+    },
+    {
+      "id": "phase1-stable-bd17dd2ab0de",
+      "text": "Leave a star on Github if this repository was useful :)",
+      "source_location": "main > small",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "aa14d7cf9c1160355768e5ec27335142bdd016d79a602c8ce8b397b73a388489"
+    },
+    {
+      "id": "phase1-stable-a5713dc015b2",
+      "text": "ML",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "aa14d7cf9c1160355768e5ec27335142bdd016d79a602c8ce8b397b73a388489"
+    },
+    {
+      "id": "phase1-stable-d2fb42adc368",
+      "text": "Product(s) found",
+      "source_location": "main > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "aa14d7cf9c1160355768e5ec27335142bdd016d79a602c8ce8b397b73a388489"
+    },
+    {
+      "id": "phase1-stable-ba9fa7e5cf12",
+      "text": "Sizes:",
+      "source_location": "main > h4",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "aa14d7cf9c1160355768e5ec27335142bdd016d79a602c8ce8b397b73a388489"
+    },
+    {
+      "id": "phase1-stable-e357d396871d",
+      "text": "Star",
+      "source_location": "main > small",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "aa14d7cf9c1160355768e5ec27335142bdd016d79a602c8ce8b397b73a388489"
+    },
+    {
+      "id": "phase1-stable-fe2fcb0cffa5",
+      "text": "Work in the Netherlands",
+      "source_location": "body > h4",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "aa14d7cf9c1160355768e5ec27335142bdd016d79a602c8ce8b397b73a388489"
+    },
+    {
+      "id": "phase1-stable-f365705bb061",
+      "text": "XL",
+      "source_location": "main > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "aa14d7cf9c1160355768e5ec27335142bdd016d79a602c8ce8b397b73a388489"
+    },
+    {
+      "id": "phase1-stable-4e12aed95e4c",
+      "text": "XS",
+      "source_location": "main > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "aa14d7cf9c1160355768e5ec27335142bdd016d79a602c8ce8b397b73a388489"
+    },
+    {
+      "id": "phase1-stable-0a783b9b8a7d",
+      "text": "XXL",
+      "source_location": "main > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "aa14d7cf9c1160355768e5ec27335142bdd016d79a602c8ce8b397b73a388489"
+    },
+    {
+      "id": "phase1-stable-fa5e18fc0b6c",
+      "text": "follow me on Linkedin.",
+      "source_location": "body > b",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "aa14d7cf9c1160355768e5ec27335142bdd016d79a602c8ce8b397b73a388489"
+    }
+  ],
+  "projected_text_sha256": "9360327306e45bfd26ac06c8a6391b315f8031a7a1a608fbd7a9c41e0a8d0cd6"
+}

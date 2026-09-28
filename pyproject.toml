@@ -3,7 +3,9 @@ name = "browser-harness-eval"
 version = "0.1.0"
 description = "Reproducible browser service evaluation harness"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+  "beautifulsoup4>=4.12,<5",
+]
 
 [project.scripts]
 browser-harness-eval = "harness.web_fetch.cli:main"

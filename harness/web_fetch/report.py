@@ -10,7 +10,7 @@ from collections import Counter,defaultdict
 from pathlib import Path
 from urllib.parse import urlsplit,urlencode
 from .metrics import percentile, task_passed, task_measured
-from .methods import method_info
+from .methods import ROUTE_LABELS, method_info, method_page_model
 from .accounts import report_access_registry
 from .report_interfaces import HEADLESS_ACCESS
 from .report_methods import PROFILES, adoption_counts
@@ -373,13 +373,6 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
    preview_section=f'<section class="panel" id="preview"><h2>{"冻结 HTML 阅读视图" if lang=="zh" else "Frozen HTML reading view"}</h2><p>{preview_note} <a href="{raw_input}">{"下载完整输入与证据 JSON" if lang=="zh" else "Download complete input and evidence JSON"}</a></p>{preview}</section>'
    body=f'<div class="hero"><h1>{esc(case)} · {esc(type_label(lang,gt["page_type"]))}</h1><p class="source"><a href="{href(lang,"cases/"+case+".html#preview")}" title="{"阅读冻结 HTML" if lang=="zh" else "Read frozen HTML"}">{esc(group[providers[0]]["original_url"])}</a></p></div>{qualification}<section><h2>{esc(x["summary"])}</h2><div class="scroll"><table><thead><tr>'+''.join(f'<th>{esc(x[k])}</th>' for k in ('provider','precision','recall','f1'))+f'<th>{"应包含命中" if lang=="zh" else "Required hits"}</th><th>{"应排除误命中" if lang=="zh" else "Forbidden hits"}</th><th>{esc(x["diagnosis"])}</th></tr></thead><tbody>'+same+f'</tbody></table></div></section>{preview_section}<section class="panel" id="reference"><h2>{esc(x["reference"])}</h2><p><a href="{evidence_path}">{"完整证据 JSON" if lang=="zh" else "Complete evidence JSON"}</a> · <a href="{source_link}">{esc(x["source"])} HTML.gz</a></p><details data-output><summary>{"冻结 HTML 输入" if lang=="zh" else "Frozen HTML input"}</summary><pre data-src="{evidence_path}"></pre></details><pre>{esc(readable_output(reference))}</pre></section>'+''.join(panels)
    page(lang,f'cases/{case}.html',case,body)
-ROUTE_LABELS={
- 'cloudflare_native_markdown':'Cloudflare Browser Run /markdown 直接返回 Markdown',
- 'lightpanda_native_markdown':'Lightpanda CLI 直接返回 Markdown',
- 'obscura_native_markdown':'Obscura CLI 直接返回 Markdown',
- 'moli_native_markdown':'Moli CLI 直接返回 Markdown',
- 'node-html-markdown':'Chromium 渲染 DOM → node-html-markdown 2.0.0',
-}
 def provider_label(name):return PROVIDER_LABELS.get(name,name)
 def active_tracks(cases):
  return [(key,label) for key,label in TRACKS.items() if any(c.get('track','web')==key for c in cases.values())]
@@ -390,21 +383,16 @@ def is_headless_cohort(records):
  return bool(records) and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records)
 
 def provider_configuration(name,records,info):
- """Describe only the route evidenced for this provider."""
- provider_type=records[0].get('provider_type') if records else ''
- if provider_type in {'headless_html','headless_markdown'}:
-  metadata=[r.get('provider_metadata',{}) for r in records]
-  extractors=sorted({ROUTE_LABELS.get(m.get('extractor'),m.get('extractor')) for m in metadata if m.get('extractor')})
-  contracts=sorted({str(m.get('output_contract')) for m in metadata if m.get('output_contract')})
-  route='；'.join(extractors) or info['endpoint']
-  output='、'.join(contracts) or info['output']
-  return f'本轮记录的交付路线：{route}；输出契约：{output}。未启用额外的理解模型或付费后备方法。'
- resource_routes={
-  'firecrawl':'正文与资源题请求 Markdown、links、images；原文件题改用唯一 rawBase64 格式并验收解码字节。动态顶层选择器使用 wait action，数量与 iframe 条件明确标为未完整执行。',
-  'tavily_extract':'本轮请求 Markdown；图片资源仅来自同一 Extract 响应的 images 字段。',
-  'exa_contents':'本轮请求正文文本；资源链接仅来自同一 Contents 响应的 extras 字段。',
- }
- return resource_routes.get(provider_type,'本轮使用该方法的默认正文或文件交付路线。')+' 未启用额外的理解模型或付费后备方法。'
+ """Compatibility accessor for the generic method-page model."""
+ return method_page_model(name,provider_label(name),records)['configuration']
+
+def provider_page_body(name,records,cases,headers,tracks):
+ """Render one method page from generic result records and method metadata."""
+ model=method_page_model(name,provider_label(name),records)
+ controls=filter_controls([('track','类型',tracks),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(records,cases))
+ body=hero(esc(model['title']),esc(model['contract']))+section('本轮配置',f'<p><code>{esc(model["endpoint"])}</code></p><p>{esc(model["freshness"])}</p><p>{esc(model["configuration"])}</p>')
+ body+=section('方法资料','<p class="actions">'+link('../adoption/index.html#'+model['pricing_anchor'],'价格与计费 →')+link('../adoption/index.html#interface-'+name,'接口与示例 →')+'</p>')
+ return body+section(f'{len(records)} 条执行记录',controls+table(headers,[attempt_row(r,cases[r['case_id']]) for r in records],'filtered-table'))
 JS=r'''function readTheme(){try{return localStorage.getItem('webfetch-theme')}catch{return 'light'}}
 function saveTheme(t){try{localStorage.setItem('webfetch-theme',t)}catch{}}
 
@@ -561,68 +549,104 @@ def empty_output_reason(record,case,output):
   return '最终输出确实为空。上游请求有响应，但适配器没有得到可提取的正文。'
  return '最终输出确实为空；本次历史记录没有保存更具体的原因，不能据此推断是服务端、网络还是适配器问题。'
 
-def call_log_dialog(out,record,case,output):
- """Render one honest drill-down view from a native log or legacy result fields."""
+def _reader_log_excerpt(text):
+ """Select real log lines for the reader while preserving original line numbers."""
+ lines=text.splitlines();selected=set()
+ if lines:selected.add(0)
+ diagnostic=re.compile(r'error|warn|fail|timeout|timed out|panic|denied|challenge',re.I)
+ lifecycle=re.compile(r'fetch request complete|final_url=|document_to_markdown|extract|completed.*fetch|finished.*fetch',re.I)
+ for index,line in enumerate(lines):
+  if diagnostic.search(line):selected.update(range(max(0,index-1),min(len(lines),index+2)))
+  elif lifecycle.search(line) and len(selected)<12:selected.add(index)
+  if len(selected)>=18:break
+ if not selected:selected.update(range(min(12,len(lines))))
+ return '\n'.join(f'{index+1:>6}  {lines[index]}' for index in sorted(selected)[:18])
+
+def run_log_section(out,record,output):
+ """Render the approved summary → fields → real-log drill-down."""
  metadata=record.get('provider_metadata') or {}
- public_metadata=public_provider_metadata(metadata)
- logs=[]
- for label,binding in call_log_bindings(record):
+ bindings=call_log_bindings(record);logs=[]
+ for label,binding in bindings:
   path=contained_path(out,binding['path'])
   if not path.is_file():continue
-  log_bytes=path.read_bytes();observed=hashlib.sha256(log_bytes).hexdigest()
+  raw=path.read_bytes();observed=hashlib.sha256(raw).hexdigest()
   if binding.get('sha256') and binding['sha256']!=observed:raise ValueError(f'Call log hash mismatch: {record["attempt_id"]}')
-  if binding.get('bytes') is not None and binding['bytes']!=len(log_bytes):raise ValueError(f'Call log size mismatch: {record["attempt_id"]}')
-  text=readable_output(log_bytes.decode('utf-8',errors='replace'))
-  try:payload=json.loads(log_bytes)
+  if binding.get('bytes') is not None and binding['bytes']!=len(raw):raise ValueError(f'Call log size mismatch: {record["attempt_id"]}')
+  try:payload=json.loads(raw)
   except (UnicodeDecodeError,json.JSONDecodeError):payload={}
-  logs.append({'label':label,'path':binding['path'],'text':text,'sha256':observed,
-               'bound':bool(binding.get('sha256')),'payload':payload})
- if logs:
-  native=(f'{len(logs)} 个物理调用日志已保存并通过 SHA-256 校验。' if all(item['bound'] for item in logs) else
-          '事件日志文件可以读取，但至少一条记录未声明其 SHA-256；页面会展示内容，但不能证明全部日志均与运行记录绑定。')
- elif call_log_bindings(record):
-  native='记录声明了事件日志，但公开证据中没有可读取文件；下面仅展示可核验的结果字段。'
- else:
-  native='这次历史运行没有保存统一事件日志。下面由最终输出、结果字段和公开适配器元数据合成，不能还原未记录的逐行过程。'
- final_log=logs[-1]['payload'] if logs else {}
- log_error=final_log.get('error') if isinstance(final_log.get('error'),dict) else {}
- log_process=final_log.get('process') if isinstance(final_log.get('process'),dict) else {}
- error_type=record.get('error_type') or log_error.get('type') or '—（未记录）'
- error_message=(record.get('error_message') or log_error.get('message') or log_process.get('stderr') or
-                ('无报错；请求记录为成功。' if record.get('ok') else '请求失败，但历史记录未保存错误文字。'))
- error_class=' call-log-error' if record.get('error_type') or record.get('error_message') or not record.get('ok') else ''
- if output:
-  output_html=f'<pre data-kind="call-output">{esc(readable_output(output))}</pre>'
- else:
-  output_html=f'<div class="call-log-empty">{esc(empty_output_reason(record,case,output))}</div>'
- log_request=final_log.get('request') if isinstance(final_log.get('request'),dict) else {}
- route=(log_request.get('route') or metadata.get('route') or metadata.get('extractor') or
-        metadata.get('output_contract') or '—（未记录）')
- status=('成功' if record.get('ok') else '失败')+' · HTTP '+(str(record.get('status_code')) if record.get('status_code') is not None else '未提供')
- retry=metadata.get('retry')
- retry_count=(len(retry.get('attempts',[])) if isinstance(retry,dict) else
-              record.get('physical_attempt_count') or 1)
- log_section=('' if not logs else '<div class="call-log-section"><h3>原生事件日志</h3>'+''.join(
-              f'<details open><summary>{esc(item["label"])}</summary><p class="source-note">SHA-256：<code class="break">{esc(item["sha256"])}</code></p><pre data-kind="call-log">{esc(item["text"])}</pre></details>'
-              for item in logs)+'</div>')
- retry_section=('<p>本次没有登记重试；只保留一个物理调用。</p>' if not retry else
-                f'<pre data-kind="call-retry">{esc(json.dumps(public_provider_metadata(retry),ensure_ascii=False,indent=2))}</pre>')
- private_note=('原始供应商响应信封仅在内部证据中保留，不进入公开弹窗或发布包。'
-               if metadata.get('raw_response_path') or metadata.get('private_artifacts') else
-               '没有登记仅限内部保存的原始响应信封。')
- facts=[('请求路线',route),('请求状态',status),('总耗时',ms(record.get('elapsed_ms'))),
-        ('开始时间',record.get('started_at') or '—（未记录）'),('完成时间',record.get('completed_at') or '—（未记录）'),
-        ('物理调用',str(retry_count))]
- fact_html=''.join(f'<div class="call-log-fact"><b>{esc(label)}</b><span>{esc(value)}</span></div>' for label,value in facts)
- return (f'<dialog class="call-log-dialog" id="call-log-dialog" aria-labelledby="call-log-title"><div class="call-log-shell">'
-         f'<header class="call-log-head"><div><h2 id="call-log-title">调用记录</h2><p><code>{esc(record.get("run_id") or execution_id(record))}</code></p></div><button type="button" class="call-log-close" data-call-log-close data-i18n-attrs aria-label="关闭调用记录">关闭</button></header>'
-         f'<div class="call-log-body"><p class="callout call-log-availability"><b>日志可用性：</b>{esc(native)}</p>'
-         f'<div class="call-log-priority"><article class="call-log-card"><h3>最后输出</h3>{output_html}</article>'
-         f'<article class="call-log-card{error_class}"><h3>最后报错</h3><p><b>{esc(error_type)}</b></p><p>{esc(error_message)}</p></article></div>'
-         f'<div class="call-log-facts">{fact_html}</div>{log_section}'
-         f'<div class="call-log-section"><h3>重试与物理调用</h3>{retry_section}</div>'
-         f'<div class="call-log-section"><details><summary>查看公开适配器字段</summary><pre data-kind="call-metadata">{esc(json.dumps(public_metadata,ensure_ascii=False,indent=2))}</pre></details><p class="call-log-private">{esc(private_note)}</p></div>'
-         '</div></div></dialog>')
+  logs.append({'label':label,'path':binding['path'],'sha256':observed,
+               'bytes':len(raw),'payload':payload})
+ payload=logs[-1]['payload'] if logs else {}
+ process=payload.get('process') if isinstance(payload.get('process'),dict) else {}
+ timing=payload.get('timing') if isinstance(payload.get('timing'),dict) else {}
+ artifact_relative=record.get('artifact_path')
+ artifact=contained_path(out,artifact_relative) if artifact_relative else None
+ output_data=artifact.read_bytes() if artifact and artifact.is_file() else output.encode('utf-8')
+ output_bytes=len(output_data)
+ stderr_total=0;any_stderr=False;any_truncated=False;diagnostics=[]
+ for index,log in enumerate(logs,1):
+  log_process=(log['payload'].get('process')
+               if isinstance(log['payload'].get('process'),dict) else {})
+  stderr_text=readable_output(str(log_process.get('stderr') or ''))
+  stderr_data=stderr_text.encode('utf-8');stderr_total+=len(stderr_data)
+  truncated=bool(log_process.get('stderr_truncated') or metadata.get('stderr_truncated'))
+  any_stderr=any_stderr or bool(stderr_data);any_truncated=any_truncated or truncated
+  suffix='' if len(logs)==1 else f'-physical-{index:03d}'
+  stderr_path=(f'public-logs/{record["provider"]}/{record["case_id"]}/'
+               f'run-{int(record.get("run") or 1):03d}{suffix}.stderr.log')
+  raw_download=(f'<a href="../{esc(log["path"])}" download>下载调用日志 JSON</a> · '
+                f'<code class="break">JSON SHA-256：{esc(log["sha256"])}</code>')
+  if stderr_data:
+   target=contained_path(out,stderr_path);target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(stderr_data)
+   stderr_sha=hashlib.sha256(stderr_data).hexdigest()
+   rows=''.join(f'<li value="{int(match.group(1))}"><code>{esc(match.group(2))}</code></li>'
+                for line in _reader_log_excerpt(stderr_text).splitlines()
+                if (match:=re.match(r'\s*(\d+)\s{2}(.*)',line)))
+   completeness=('这份公开日志是现有调用记录中保存的前段内容，原始记录注明其已截断。' if truncated else
+                 '以下内容逐行摘自这次物理调用已保存的完整 stderr / debug 日志。')
+   body=(f'<p class="source-note">{completeness} 行号对应下载文件；人工说明不写入日志框。</p>'
+         +(f'<ol class="log-lines">{rows}</ol>' if rows else '')
+         +f'<p><a class="log-download" href="../{esc(stderr_path)}" download>下载已保存的公开日志</a> · '
+          f'<code class="break">公开 SHA-256：{esc(stderr_sha)}</code><br>{raw_download}</p>')
+  else:
+   body=(f'<p class="source-note">这次物理调用没有保存可展示的 stderr / debug 日志；'
+         f'不会补造不存在的日志。</p><p>{raw_download}</p>')
+  diagnostics.append(f'<article><h3>{esc(log["label"])}</h3>{body}</article>')
+ complete_label=('是' if any_stderr and not any_truncated else
+                 '否（至少一份公开日志已截断）' if any_stderr else '不适用（没有保存 debug 日志）')
+ version=(metadata.get('reported_version') or metadata.get('binary_version') or
+          metadata.get('moli_version') or metadata.get('version') or '—')
+ command=metadata.get('command_args') or metadata.get('command') or '—（调用记录未保存可展示的完整命令）'
+ if isinstance(command,list):command=' '.join(str(item) for item in command)
+ status='成功' if record.get('ok') else '失败'
+ result_note=('这次调用正常形成了可评分输出。' if record.get('ok') else
+              '这次调用没有形成可通过的评分输出。')
+ top_log_size=(f'{stderr_total:,} 字节' + ('（至少一份已截断）' if any_truncated else '')
+               if any_stderr else '0 字节')
+ fields=(f'<dt>调用状态</dt><dd>{status}</dd><dt>耗时</dt><dd>{ms(record.get("elapsed_ms"))}</dd>'
+         f'<dt>退出码</dt><dd>{esc(process.get("exit_code",metadata.get("exit_code","—")))}</dd>'
+         f'<dt>Markdown 输出</dt><dd>{output_bytes:,} 字节</dd><dt>运行日志</dt><dd>{top_log_size}</dd>'
+         f'<dt>日志是否完整</dt><dd>{complete_label}</dd><dt>运行 ID</dt><dd>{esc(record.get("run_id") or execution_id(record) or "—")}</dd>'
+         f'<dt>Moli 版本</dt><dd>{esc(version)}</dd>')
+ full_fields=(f'<dt>开始时间</dt><dd>{esc(record.get("started_at") or timing.get("started_at") or "—")}</dd>'
+              f'<dt>结束时间</dt><dd>{esc(record.get("completed_at") or timing.get("completed_at") or "—")}</dd>'
+              f'<dt>日志级别</dt><dd>{esc(metadata.get("log_level") or ("已保存 stderr（级别未记录）" if any_stderr else "未开启 debug"))}</dd>'
+              f'<dt>公开日志</dt><dd>{top_log_size}</dd><dt>公开日志脱敏</dt><dd>否</dd>'
+              f'<dt>Moli SHA-256</dt><dd>{esc(metadata.get("binary_sha256") or "—")}</dd>'
+              f'<dt>正式命令</dt><dd>{esc(command)}</dd>')
+ diagnostic=''.join(diagnostics) if diagnostics else '<p class="source-note">这次历史调用没有保存可展示的 stderr / debug 日志；不会补造不存在的日志。</p>'
+ raw_record=' · '.join(f'<a href="../{esc(log["path"])}" download>下载{esc(log["label"])}记录</a>' for log in logs)
+ if artifact_relative:
+  if raw_record:raw_record+=' · '
+  raw_record+=f'<a href="../{esc(artifact_relative)}" download>下载本次保存的原始输出</a>'
+ if not raw_record:raw_record='这次历史调用没有可下载的原始记录'
+ return (f'<section class="section" id="run-log"><div class="wrap"><h2>运行日志与证据</h2>'
+         f'<dl class="diagnostic-fields">{fields}</dl>'
+         f'<details class="technical-details"><summary>查看完整运行字段</summary><dl class="diagnostic-fields">{full_fields}</dl></details>'
+         f'<p class="log-summary"><b>结论说明：</b>{result_note}</p>'
+         f'<details class="diagnostic-log"><summary>查看本次真实日志</summary><div class="diagnostic-log-body">{diagnostic}</div></details>'
+         f'</div></section><section class="section"><div class="wrap"><h2>原始运行证据</h2>'
+         f'<p>{raw_record}。运行记录保留请求状态、耗时和证据路径；原始输出保持调用后保存的字节。</p></div></section>')
 def pct(n):return '—' if n is None else f'{n*100:.1f}%'
 def ms(n):return '—' if n is None else f'{n:,.0f} ms'
 def link(url,label):return f'<a href="{esc(safe_href(url))}">{esc(label)}</a>'
@@ -636,6 +660,20 @@ def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header='�
  sort_attrs=(f' data-col="{default_sort[0]}" data-dir="{default_sort[1]}"' if default_sort else '')
  return metric_legend(headers if metrics is None else metrics)+f'<div class="table-wrap"><table class="{cls}"'+(f' id="{id}"' if id else '')+sort_attrs+f'><thead><tr>{head}</tr></thead><tbody'+(' id="rows"' if id=='filtered-table' else '')+f'>{body}</tbody></table></div>'
 EXTRA+='\n.change-log section{padding:24px 0}.change-log h2{font-size:24px}.change-log p{margin:10px 0;line-height:1.75}.change-log summary{font-weight:650;color:var(--accent)}.change-log .table-wrap{overflow-x:auto}\n'
+EXTRA+='''
+.anchor-grid[data-scroll-after="5"],.answer-list[data-scroll-after="5"],.record-scroll{max-height:620px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:6px}
+.region-pair pre{max-height:360px;overflow:auto;scrollbar-gutter:stable}
+.diagnostic-log{margin-top:18px;padding:0;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.diagnostic-log>summary{cursor:pointer;padding:14px 16px;font-weight:800;color:var(--accent)}
+.diagnostic-log-body{padding:0 16px 16px}.diagnostic-log article{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.diagnostic-log h3{margin:0 0 10px}.diagnostic-log pre,.log-lines{max-height:360px;overflow:auto;border:1px solid #263746;border-radius:10px;background:#071722;color:#e6edf3;font:12px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.diagnostic-log pre{padding:15px}.log-lines{margin:12px 0 14px;padding:15px 16px 15px 52px;white-space:pre-wrap;overflow-wrap:anywhere}.log-lines li::marker{color:#8292a2}.log-lines code{color:inherit;background:transparent}
+.log-download{display:inline-block;padding:8px 12px;border-radius:8px;background:var(--accent);color:#fff!important;font-weight:850;text-decoration:none}.log-download:hover{text-decoration:underline}.log-download:focus-visible{outline:3px solid #428bff;outline-offset:3px}
+.diagnostic-fields{display:grid;grid-template-columns:minmax(150px,.45fr) 1fr;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden}.diagnostic-fields dt,.diagnostic-fields dd{margin:0;padding:10px 12px;border-bottom:1px solid var(--line)}.diagnostic-fields dt{font-weight:750;background:var(--panel2)}.diagnostic-fields dd{overflow-wrap:anywhere}.diagnostic-fields dt:last-of-type,.diagnostic-fields dd:last-of-type{border-bottom:0}
+.log-summary{padding:13px 15px;border-radius:10px;background:var(--accent-soft);line-height:1.65}
+@media(max-width:700px){.anchor-grid[data-scroll-after="5"],.answer-list[data-scroll-after="5"],.record-scroll{max-height:480px}.region-pair pre{max-height:320px}}
+@media(max-width:640px){.diagnostic-fields{grid-template-columns:1fr}.diagnostic-fields dt{border-bottom:0}.log-lines{padding-left:44px}}
+'''
 
 _RELIABILITY_BANNER=''
 _ENGLISH_GENERATED=False
@@ -837,6 +875,11 @@ def review_summary(out, prefix=''):
  if not path.is_file():return ''
  audit=json.loads(path.read_text())
  scope=audit.get('review_protocol',{}).get('scope','all')
+ if scope=='supplement-25-local-audit':
+  return (f'<p class="callout success"><b>新增25例结果审核 '
+          f'{audit.get("reviewed_attempts",0):,}/{audit.get("expected_attempts",0):,}；'
+          f'未决 {audit.get("unresolved",0)}；75例沿用既有审核记录</b>。'
+          f' {link(prefix+"review/index.html","查看核验轮次 →")}</p>')
  subject='机器失败' if scope=='machine-failures' else '全量'
  return (f'<p class="callout success"><b>独立核验：{subject} '
          f'{audit.get("reviewed_attempts",0):,}/{audit.get("expected_attempts",0):,}；'
@@ -874,6 +917,100 @@ def _best_evidence_excerpt(expected, output):
   if score>best_score:best,best_score=chunk,score
  return best if best_score>=min(.25,3/max(1,sum(wanted.values()))) else ''
 
+def _exact_evidence_lines(expected, output):
+ """Return complete output lines containing the normalized expected text."""
+ from .metrics import normalize_for_match
+ normalized_expected=normalize_for_match(expected)
+ selected=[]
+ for raw in output.splitlines():
+  line=raw.strip()
+  if not line:continue
+  normalized_line=normalize_for_match(line)
+  if normalized_expected and normalized_expected in normalized_line:
+   if line not in selected:selected.append(line)
+ return '\n\n'.join(selected)
+
+def _diagnostic_log_excerpt(text):
+ """Keep exact retained log lines around reader-relevant diagnostics."""
+ pattern=re.compile(r'error|warn|fail|timeout|timed out|panic|denied|challenge',re.I)
+ lines=text.splitlines();selected=set()
+ for index,line in enumerate(lines):
+  if pattern.search(line):selected.update(range(max(0,index-1),min(len(lines),index+2)))
+  if len(selected)>=36:break
+ if not selected:selected.update(range(min(12,len(lines))))
+ return '\n'.join(f'{index+1:>6}  {lines[index]}' for index in sorted(selected))
+
+def _call_log_excerpt(item):
+ """Prefer exact structured diagnostics while retaining plain legacy logs."""
+ payload=item['payload']
+ if not payload:return _diagnostic_log_excerpt(item['text'])
+ parts=[]
+ error=payload.get('error') if isinstance(payload.get('error'),dict) else {}
+ process=payload.get('process') if isinstance(payload.get('process'),dict) else {}
+ events=payload.get('events') if isinstance(payload.get('events'),list) else []
+ if error.get('type') or error.get('message'):
+  parts.append('error: '+str(error.get('type') or '—')+' · '+str(error.get('message') or '—'))
+ if process.get('stderr'):
+  parts.append('stderr:\n'+str(process['stderr']))
+ elif process.get('stdout'):
+  parts.append('stdout:\n'+str(process['stdout']))
+ for event in events:
+  if isinstance(event,dict) and (event.get('error_type') or event.get('stage')):
+   parts.append('event: '+json.dumps(event,ensure_ascii=False,sort_keys=True))
+ return _diagnostic_log_excerpt('\n'.join(parts) if parts else item['text'])
+
+def _body_region_evidence(content,contract):
+ """Map canonical scorer allocations to complete lines without changing scoring output."""
+ from math import ceil
+ from .body_coverage import _global_region_allocation,compact_ngrams,tokens
+ version=contract['version'];size=6 if version==3 else 3
+ units=tokens(content) if version==1 else compact_ngrams(content,size)
+ predicted=Counter(units);expected={}
+ for region in contract['regions']:
+  values=(region['text'].split() if version==1 else compact_ngrams(region['text'],size))
+  expected[region['id']]=Counter(values)
+ if version==3:
+  floor=contract['minimum_floor'];target=contract['minimum_coverage']
+  floors={identifier:ceil(floor*sum(row.values())-1e-12) for identifier,row in expected.items()}
+  targets={identifier:ceil(target*sum(row.values())-1e-12) for identifier,row in expected.items()}
+  assigned,_=_global_region_allocation(
+   predicted,expected,floors,targets,contract['minimum_region_passes'])
+ else:
+  assigned={identifier:predicted & row for identifier,row in expected.items()}
+ lines=[raw.strip() for raw in content.splitlines() if raw.strip()]
+ evidence_lines={identifier:set() for identifier in assigned}
+ if version==1:
+  occurrences=defaultdict(list);flattened=[]
+  for line_index,line in enumerate(lines):
+   for unit in tokens(line):
+    flattened.append(unit);occurrences[unit].append((line_index,))
+  if flattened!=tokens(content):
+   raise ValueError('Body token evidence differs from scorer normalization')
+  for identifier,row in assigned.items():
+   for unit,count in row.items():
+    for location in occurrences[unit][:count]:evidence_lines[identifier].update(location)
+ else:
+  compact_lines=[compact_ngrams(line,1) for line in lines]
+  flattened=[character for line in compact_lines for character in line]
+  if flattened!=compact_ngrams(content,1):
+   raise ValueError('Body fragment evidence differs from scorer normalization')
+  character_lines=[]
+  for line_index,line in enumerate(compact_lines):character_lines.extend([line_index]*len(line))
+  occurrences=defaultdict(list)
+  for index,unit in enumerate(compact_ngrams(content,size)):
+   occurrences[unit].append(tuple(dict.fromkeys(character_lines[index:index+size])))
+  offsets=Counter()
+  for identifier in sorted(assigned):
+   for unit,count in assigned[identifier].items():
+    start=offsets[unit] if version==3 else 0
+    selected=occurrences[unit][start:start+count]
+    if len(selected)!=count:raise ValueError('Body evidence allocation exceeds scorer units')
+    for location in selected:evidence_lines[identifier].update(location)
+    if version==3:offsets[unit]+=count
+ evidence={identifier:[lines[index] for index in sorted(indices)]
+           for identifier,indices in evidence_lines.items()}
+ return evidence,{identifier:sum(row.values()) for identifier,row in assigned.items()}
+
 def _position_label(index,total):
  names=['开头','前部','中部','后部','结尾'] if total==5 else [f'位置 {i+1}' for i in range(total)]
  start=round(index*100/total);end=round((index+1)*100/total)
@@ -884,10 +1021,19 @@ def body_region_rows(case, metrics, output):
  contract=case.get('body_requirements') or {}
  if not contract:return [],''
  recalculated={x['id']:x for x in evaluate_body_requirements(output,contract)['body_region_results']}
+ saved_regions=metrics.get('body_region_results',[])
+ if saved_regions and all('matched_output_passages' in item for item in saved_regions):
+  evidence={item['id']:[passage.get('text','') for passage in item.get('matched_output_passages',[]) if passage.get('text')]
+            for item in saved_regions}
+  evidence_counts={item['id']:item.get('matched_units',item.get('matched_tokens',0)) for item in saved_regions}
+ else:
+  evidence,evidence_counts=_body_region_evidence(output,contract)
  regions={x['id']:x for x in contract['regions']}
  rows=[];cards=[];total=len(regions)
  for index,item in enumerate(metrics.get('body_region_results',[]),1):
   actual={**recalculated.get(item['id'],{}),**item}
+  if evidence_counts.get(item['id'])!=recalculated.get(item['id'],{}).get('matched_units'):
+   raise ValueError('Body evidence allocation differs from scorer: '+item['id'])
   expected=regions.get(item['id'],{}).get('text','')
   expected_count=actual.get('expected_units',actual.get('expected_tokens',len(expected.split())))
   matched=actual.get('matched_units',actual.get('matched_tokens',round(actual['coverage']*expected_count)))
@@ -897,10 +1043,10 @@ def body_region_rows(case, metrics, output):
   css='pass' if passed else 'fail'
   rows.append(('',cell(esc(label))+cell(f'{expected_count:,}')+cell(f'{matched:,}')+
                cell(pct(actual['coverage']))+cell(esc(judgement))))
-  excerpt=_best_evidence_excerpt(expected,output)
-  actual_html=(f'<pre data-kind="region-output">{esc(excerpt)}</pre>' if excerpt else
-               '<p class="empty">没有可供人工定位的连续文字样例；机器覆盖率仍按上方完整实际返回计算。</p>')
-  cards.append(f'<article class="region-card {css}" id="region-{index}"><div class="region-head"><div><h3>{index}. {esc(label)}</h3><p>这一段标准答案产生 {expected_count:,} 个连续六字符片段；在上方完整实际返回（{len(output):,} 字符）中命中 {matched:,} 个，所以覆盖率为 {matched:,} ÷ {expected_count:,} = {pct(actual["coverage"])}。目标 {pct(actual["minimum"])}，硬下限 {pct(actual.get("floor",actual["minimum"]))}。</p></div><span class="verdict-badge">{esc(judgement)}</span></div><div class="region-pair"><div><b>这一位置的完整标准正文</b><pre data-kind="reference">{esc(expected)}</pre></div><div><b>实际输出中的定位样例（仅供人工查看）</b><p class="source-note">这是从完整实际返回中选出的一小段，便于确认文字确实出现；它不是覆盖率计算所使用的全部实际输出。</p>{actual_html}</div></div></article>')
+  passage='\n\n'.join(evidence.get(item['id'],[]))
+  actual_html=(f'<pre data-kind="region-output">{esc(passage)}</pre>' if passage else
+               '<p class="empty">评分器没有向这一段分配可展示的实际返回文字。</p>')
+  cards.append(f'<article class="region-card {css}" id="region-{index}"><div class="region-head"><div><h3>{index}. {esc(label)}</h3><p>本段覆盖率为 {pct(actual["coverage"])}。每段至少达到 {pct(actual.get("floor",actual["minimum"]))}；达到 {pct(actual["minimum"])} 时算作主要完整段落。</p></div><span class="verdict-badge">{esc(judgement)}</span></div><div class="region-pair"><div><b>这一位置的完整标准正文</b><pre data-kind="reference">{esc(expected)}</pre></div><div><b>参与本段计分的完整实际返回行</b>{actual_html}</div></div></article>')
  return rows,cards
 
 def stable_answer_panel(contract):
@@ -914,7 +1060,10 @@ def stable_answer_panel(contract):
  maximum=contract.get('maximum_records')
  count=(f'至少 {minimum} 条完整且不重复的记录' if maximum is None else
         f'{minimum}–{maximum} 条完整且不重复的记录')
- return f'<div class="answer-list"><div class="answer-item"><b>结构要求</b><blockquote>{esc(count)}</blockquote></div>{"".join(items)}</div>'
+ scroll=' data-scroll-after="5"' if len(anchors)>5 else ''
+ note=(f'<p class="source-note">共 {len(anchors)} 组稳定文字，全部属于标准答案；当前区域显示约 5 组高度，向下滚动查看全部。</p>'
+       if len(anchors)>5 else '')
+ return note+f'<div class="answer-list"{scroll}><div class="answer-item"><b>结构要求</b><blockquote>{esc(count)}</blockquote></div>{"".join(items)}</div>'
 
 def _stable_field_comparison(metrics,item):
  """Find the closest parsed record for a structured anchor, for display only."""
@@ -963,9 +1112,12 @@ def stable_anchor_evidence(metrics,output):
   alternatives=item.get('alternatives',[]);expected='\n或\n'.join(alternatives)
   excerpt=''
   for alternative in alternatives:
-   candidate=_best_evidence_excerpt(alternative,output)
+   candidate=_exact_evidence_lines(alternative,output)
    if candidate:excerpt=candidate;break
   passed=bool(item.get('pass'));css='pass' if passed else 'fail'
+  if passed and not excerpt:
+   matched=[value for value in item.get('matched',[]) if value]
+   excerpt='\n'.join(matched)
   comparison=_stable_field_comparison(metrics,item) if not passed else None
   field_detail='';badge='命中' if passed else '未命中'
   if comparison:
@@ -981,7 +1133,11 @@ def stable_anchor_evidence(metrics,output):
    badge='字段边界不合格'
   actual=(f'<p>{esc(excerpt)}</p>' if excerpt else '<p class="empty">实际返回中未找到可供定位的连续原文。</p>')
   cards.append(f'<article class="anchor-card {css}"><div class="anchor-head"><h3>稳定文字 {index}</h3><span class="verdict-badge">{badge}</span></div><div class="evidence-pair"><div class="evidence-sample"><b>标准答案</b><p>{esc(expected)}</p></div><div class="evidence-sample"><b>实际返回证据</b>{actual}</div></div>{field_detail}</article>')
- return '<div class="anchor-grid">'+''.join(cards)+'</div>' if cards else ''
+ if not cards:return ''
+ note=(f'<p class="source-note">共 {len(cards)} 项稳定文字判定，全部参与评分；当前区域显示约 5 项高度，向下滚动查看全部。</p>'
+       if len(cards)>5 else '')
+ scroll=' data-scroll-after="5"' if len(cards)>5 else ''
+ return note+f'<div class="anchor-grid"{scroll}>'+''.join(cards)+'</div>'
 
 def failure_category(r,c):
  if not measured(r,c):return '未测：缺少验收证据'
@@ -1072,7 +1228,9 @@ def stable_checks(m):
   checks.append(('',cell(f'页面模式 {i}')+cell(esc(x['pattern']))+cell('通过' if x['pass'] else '未通过')+cell('—')))
  content=table(['稳定内容核对点','目标','判定','实际命中'],checks) if checks else '<p>本例未设置稳定文字核对点，不作文字内容已核验的结论。</p>'
  records=[('',cell(esc(json.dumps(x.get('fields',{}),ensure_ascii=False)))+cell('通过' if x.get('valid') else '未通过')+cell(esc('；'.join(x.get('errors',[])) or '—'))) for x in m.get('stable_records',[])]
- return content+table(['条目字段','结构判定','原因'],records)+('<p>未通过原因：'+esc(stable_failure_summary(m))+'。</p>' if m.get('stable_task_errors') else '')
+ record_table=table(['条目字段','结构判定','原因'],records)
+ if len(records)>5:record_table=f'<div class="record-scroll" data-scroll-after="5">{record_table}</div>'
+ return content+record_table+('<p>未通过原因：'+esc(stable_failure_summary(m))+'。</p>' if m.get('stable_task_errors') else '')
 
 def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
  from .report_components import comparable_body_reference
@@ -1329,6 +1487,11 @@ def attempt_row(r,c,base='../'):
  values+=cell(f'<code class="tiny break">{esc(r.get("run_id") or execution_id(r))}</code>')
  return case_attrs(r,c),values
 
+def local_audit_banner(dataset):
+ if dataset.get('comparison',{}).get('publication_state')!='local_audit_only_not_for_release':
+  return ''
+ return '<div class="wrap callout"><strong>本地审核版</strong><p>本页合并两个不同日期的 Moli 调用批次，保留每例的真实调用时间。本次仅更换报告展示代码，没有新增 Moli 调用，也不代表正式发布。</p></div>'
+
 def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False):
  global _RELIABILITY_BANNER,_ENGLISH_GENERATED
  _ENGLISH_GENERATED=include_english
@@ -1356,6 +1519,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  for track,label in tracks:
   cards+=overview_card(records,cases,track,label,names)
  home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类分榜与一个综合通过率总榜。')
+ home+=local_audit_banner(dataset)
  from .report_explainer import article_title,render_explainer
  TITLE=article_title(records)
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
@@ -1403,7 +1567,13 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    rules=stable_contract_details(c)
   source_record=link('../sources/'+c['id']+'/evidence.json','获取记录') if (out/'sources'/c['id']/'evidence.json').exists() else '未保存源页快照'
   if c.get('track')=='dynamic':
-   source_record+=' · '+link('../sources/'+c['id']+'/initial.html.txt','初始 HTML')+' · '+link('../sources/'+c['id']+'/rendered.txt','渲染正文')+' · '+link('../sources/'+c['id']+'/render-audit.json','配对证据校验')
+   projected=c.get('stable_text_evidence') or {}
+   if projected:
+    source_record+=' · '+link('../'+projected['path'],'独立可见文字')+' · '+link('../'+projected['manifest_path'],'来源校验记录')
+   elif (out/'sources'/c['id']/'mixed-session-stable-text.json').is_file():
+    source_record+=' · '+link('../sources/'+c['id']+'/mixed-session-stable-text.json','独立可见文字与来源校验记录')
+   elif all((out/'sources'/c['id']/name).is_file() for name in ('initial.html.txt','rendered.txt','render-audit.json')):
+    source_record+=' · '+link('../sources/'+c['id']+'/initial.html.txt','初始 HTML')+' · '+link('../sources/'+c['id']+'/rendered.txt','渲染正文')+' · '+link('../sources/'+c['id']+'/render-audit.json','配对证据校验')
    observed=sorted({r['provider'] for r in bycase[c['id']]})
    status_note+='<p class="source-note">动态网站正文已测方法：'+esc('、'.join(observed))+'。未测方法不计为失败。</p>'
   body=hero(esc(c['name']),'<strong>任务 ID：<code>'+esc(c['id'])+'</code></strong><br>'+esc(task_instruction(c)))+section('标准答案与来源',status_note+f'<p>{link(c["url"],"打开任务源页 ↗")} · {link("../references/"+c["id"]+".txt","下载标准答案")} · {source_record}</p><div class="evidence-pane"><header><h3>本任务的标准答案 / 目标结果</h3><p>下方直接展示用于判定的完整内容；长内容可在栏内滚动。</p></header><div class="pane-body"><pre data-kind="reference">{esc(ref)}</pre></div></div><details class="technical-details"><summary>查看来源记录</summary><p>{esc(v.get("method"))} · {esc(v.get("checked_at"))}</p><p>{esc(v.get("note"))}</p></details>')
@@ -1429,13 +1599,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   body+=section('全部方法执行结果',table(['方法']+headers[1:],[(attrs,values.replace(esc(c['name']),esc(provider_label(r['provider'])),1)) for r in bycase[c['id']] for attrs,values in [attempt_row(r,c)]]))
   write(out,'datasets/'+c['id']+'.html',c['name'],body)
  for name,rs in byprovider.items():
-  info=method_info(rs[0]['provider_type'])
-  controls=filter_controls([('track','类型',tracks),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(rs,cases))
-  body=hero(esc(provider_label(name)),esc(info['contract']))+section('本轮配置',f'<p><code>{esc(info["endpoint"])}</code></p><p>{esc(info["freshness"])}</p><p>{esc(provider_configuration(name,rs,info))}</p>')
-  price_anchor='pricing-'+name if name in {'firecrawl','tavily','exa','cloudflare-markdown'} else 'method-guide-pricing'
-  body+=section('方法资料','<p class="actions">'+link('../adoption/index.html#'+price_anchor,'价格与计费 →')+link('../adoption/index.html#interface-'+name,'接口与示例 →')+'</p>')
-  body+=section(f'{len(rs)} 条执行记录',controls+table(headers,[attempt_row(r,cases[r['case_id']]) for r in rs],'filtered-table'))
-  write(out,'providers/'+name+'.html',name,body)
+  write(out,'providers/'+name+'.html',name,provider_page_body(name,rs,cases,headers,tracks))
  for r in records:
   c=cases[r['case_id']];m=r['metrics'];ref=c.get('ground_truth_main_content') or c.get('reference_answer') or '检查下列目标资源。'
   output=contained_path(out,r['artifact_path']).read_text(encoding='utf-8',errors='replace')
@@ -1530,7 +1694,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   summary+=('<p class="actions"><a href="#evidence-reference">查看判定使用的标准答案</a>'
             '<a href="#evidence-output">查看本次完整实际返回</a>'
             '<a href="#decision">查看逐项判定</a>'
-            '<button type="button" class="call-log-button" data-call-log-open="call-log-dialog" aria-haspopup="dialog">打开完整调用记录</button></p>')
+            '<a href="#run-log">查看运行日志与证据</a></p>')
   if r.get('diagnosis') and not passed:
    d=r['diagnosis'];s=d.get('independent_source_check') or {}
    quote_issue=_quote_field_issue(m)
@@ -1620,20 +1784,19 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    region_rows,region_cards=body_region_rows(c,m,output);rules=c.get('body_requirements',{})
    required=rules.get('minimum_region_passes',len(rules.get('regions',[])))
    region_count=len(rules.get('regions',[]))
-   region_intro=(f'<div class="decision-lead"><b>这项分数怎样计算：</b>评分使用上方完整标准答案和完整实际返回，不使用下面展示的短定位样例。'
-                 '两边先统一大小写和常见排版差异，去掉 Markdown 链接地址、空白及标点，再切成连续六字符片段。'
-                 f'标准答案按前后位置分成 {region_count} 份；每份覆盖率 = 在完整实际返回中找到的片段数 ÷ 该份标准片段总数。'
-                 f'本任务要求每个位置至少达到 {pct(rules.get("minimum_floor",rules.get("minimum_coverage")))}，且至少 {required}/{region_count} 个位置达到 {pct(rules.get("minimum_coverage"))}。'
-                 '所有位置同时做全局容量分配，且同一个实际片段实例只能计入一个位置；因此重复文字不会被多次借用，位置排列顺序也不会改变判定。全文完整度、纯净度和 F1 仍按完整文本另行计算。</div>')
+   region_intro=(f'<div class="decision-lead"><b>正文判定：</b>本例分为 {region_count} 段。'
+                 f'每段至少达到 {pct(rules.get("minimum_floor",rules.get("minimum_coverage")))}，'
+                 f'其中至少 {required} 段达到 {pct(rules.get("minimum_coverage"))}。'
+                 '先看下表；需要核对原文时，再展开下面的左右对照。</div>')
    body+=section('正文是否抓全',region_intro+table(['标准答案位置','标准片段数','命中片段数','覆盖率','判定'],region_rows,metrics=[])+
-                 '<details class="technical-details"><summary>查看各位置的完整标准正文和人工定位样例</summary>'+''.join(region_cards)+'</details>','body-coverage')
+                 '<details class="technical-details"><summary>查看各段完整标准正文和计分行</summary>'+''.join(region_cards)+'</details>','body-coverage')
   if title_details:body+=section('标题文字质量',title_details)
   runtime=('<details class="technical-details"><summary>查看完整运行、哈希与评分字段</summary>'
            +metric_legend(detail_metrics)+table(['项目','值'],rows,metrics=[])+
            f'<details><summary>接口返回的公开附加字段</summary><pre data-kind="metadata">{esc(json.dumps(public_provider_metadata(r.get("provider_metadata",{})),ensure_ascii=False,indent=2))}</pre></details></details>'
            f'<p class="actions">{link(c["url"],"打开源页 ↗")}{link("../datasets/"+c["id"]+".html","查看该任务的全部方法")}</p>')
   body+=section('运行与评分信息',runtime,'run-info')
-  body+=call_log_dialog(out,r,c,output)
+  body+=run_log_section(out,r,output)
   if r.get('provider_metadata',{}).get('rendered_html_path'):
    body+=section('浏览器 HTML 证据','<p>'+link('../'+r['provider_metadata']['rendered_html_path'],'下载转换前的完整 DOM HTML')+'</p>')
   if r.get('provider_metadata',{}).get('raw_stdout_path'):

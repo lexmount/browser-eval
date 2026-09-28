@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-products-api",
+  "url": "https://www.scrapingcourse.com/javascript-rendering",
+  "evaluation_url": "https://www.scrapingcourse.com/javascript-rendering",
+  "expected_final_url": "https://www.scrapingcourse.com/javascript-rendering",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 4,
+  "anchors": [
+    {
+      "id": "phase1-stable-27cf1792f7bb",
+      "text": "Challenge",
+      "source_location": "main > h2",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d1c14634757d290ba14f5aab7c395dcb6f4411ef4db6905b3a222fd9421b1318"
+    },
+    {
+      "id": "phase1-stable-2096cefba06a",
+      "text": "Course",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d1c14634757d290ba14f5aab7c395dcb6f4411ef4db6905b3a222fd9421b1318"
+    },
+    {
+      "id": "phase1-stable-ab53b7f52469",
+      "text": "JS Rendering",
+      "source_location": "main > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d1c14634757d290ba14f5aab7c395dcb6f4411ef4db6905b3a222fd9421b1318"
+    },
+    {
+      "id": "phase1-stable-cf38d8fe149e",
+      "text": "Scraping",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "d1c14634757d290ba14f5aab7c395dcb6f4411ef4db6905b3a222fd9421b1318"
+    }
+  ],
+  "projected_text_sha256": "fc3878e9b6c5e9e37e35373589e3992464c2394636d19aec89c660ef2cf6e427"
+}

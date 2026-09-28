@@ -1,0 +1,59 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-023-en-mui-data-grid-pagination",
+  "url": "https://mui.com/x/react-data-grid/pagination/",
+  "evaluation_url": "https://mui.com/x/react-data-grid/pagination/",
+  "expected_final_url": "https://mui.com/x/react-data-grid/pagination/",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "c9d86235d08639debd35e8481afb8b5eaa52d0069f8fdedb0181bf41197c8170",
+  "curation_sha256": "d1420e286e55847d167fc7cce0870c5cd778deb1d153356a3f2170238011835b",
+  "anchor_count": 5,
+  "anchors": [
+    {
+      "id": "source-stable-68a83586ec50",
+      "text": "Data Grid - Pagination",
+      "source_location": "main > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "162b4292d888af25b662ff6afd34bbccfb5c6527f21e7d3809f24da1f8d4521b"
+    },
+    {
+      "id": "source-stable-628e026c1e00",
+      "text": "Pagination model",
+      "source_location": "main > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "e82c50ab1ea928c3054cc6de67bb4cd72f07049d1db77a02bfba13857f1c114c"
+    },
+    {
+      "id": "source-stable-35f19d6c5820",
+      "text": "Rows per page:",
+      "source_location": "main > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "dd7d487c1ab8636d2b9f17a36176b4f02cb5182568a725853e7aeddabdbd08e4"
+    },
+    {
+      "id": "source-stable-f66bbee7a96e",
+      "text": "MUI X",
+      "source_location": "nav > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "5ecd322c108e3f4e839693c7449496e40d45dc812b6db99ddcdf9fc7232d6080"
+    },
+    {
+      "id": "source-stable-f87ff89ad4fc",
+      "text": "Data Grid",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "60b02c66910e13d0c193c09a4a96c73d2e5c215d38c4109b75aa8f3ae507b41d"
+    }
+  ],
+  "projected_text_sha256": "e8bf14fae2fb17037d5a893b5e95df7bb14016e0f20bdf7390a4575eaca72d23"
+}

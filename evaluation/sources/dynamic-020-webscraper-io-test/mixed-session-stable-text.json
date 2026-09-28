@@ -1,0 +1,178 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-020-webscraper-io-test",
+  "url": "https://webscraper.io/test-sites/e-commerce/ajax/computers/tablets",
+  "evaluation_url": "https://webscraper.io/test-sites/e-commerce/ajax/computers/tablets",
+  "expected_final_url": "https://webscraper.io/test-sites/e-commerce/ajax/computers/tablets",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 22,
+  "anchors": [
+    {
+      "id": "phase1-stable-b4b580a9ad8c",
+      "text": "About us",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-8c6bc099534a",
+      "text": "Blog",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-bfe85c938607",
+      "text": "Browser Extension Privacy Policy",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-ff8fd2c5656a",
+      "text": "Cloud login",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-7f2b87116dec",
+      "text": "Computers / Tablets",
+      "source_location": "main > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-b450645debe2",
+      "text": "Contacts",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-c205924de0fe",
+      "text": "Documentation",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-395aeb955e2e",
+      "text": "Extension",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-4da7bd42ab80",
+      "text": "Forum",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-9d37bdcd1dd8",
+      "text": "Install extension",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-c608981d8d68",
+      "text": "Marketplace",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-9e6ee90e53fe",
+      "text": "Media kit",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-dfe95783edfe",
+      "text": "Pricing",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-920e413c7d41",
+      "text": "Status",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-6ebf8ce91d4f",
+      "text": "Test Sites",
+      "source_location": "main > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-fb4cacaa4318",
+      "text": "Try it free for 7 days",
+      "source_location": "header > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-c80bfbcb60f8",
+      "text": "Video Tutorials",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-ecb18813f979",
+      "text": "Web Scraper Cloud",
+      "source_location": "header > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-2baf1fcc8c20",
+      "text": "Web Scraper browser extension",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-ce4a6e605b26",
+      "text": "Website Privacy Policy",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-c3175daf7906",
+      "text": "info@webscraper.io",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    },
+    {
+      "id": "phase1-stable-bc3ab304009c",
+      "text": "replaces your complex scraping stack.",
+      "source_location": "header > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "42ce0b450d76c2058e27a4ecb8e8cd1b1f3205616d29d9c533605b002a2d6fa9"
+    }
+  ],
+  "projected_text_sha256": "c267fe184dcf774da6d82940f393c0f378c691dd0625037b955dc5b92b13c08d"
+}

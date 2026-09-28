@@ -1,5 +1,7 @@
 import unittest
-from harness.web_fetch.dynamic_lists import evaluate_dynamic_list, extract_named_entries
+from harness.web_fetch.dynamic_lists import (
+    evaluate_dynamic_list, extract_linked_products, extract_named_entries,
+)
 
 
 class DynamicListTests(unittest.TestCase):
@@ -37,9 +39,47 @@ class DynamicListTests(unittest.TestCase):
             "[Two](https://example.com/item.htm?v=2)",
             "[Missing](https://example.com/item.htm?tracking=c)",
             "[Ambiguous](https://example.com/item.htm?id=3&id=4)",
+            "[Malformed](http://[broken)",
         ])
         entries = extract_named_entries(content, contract, "https://example.com/")
         self.assertEqual({entry["title"] for entry in entries}, {"One again", "Two"})
+
+    def test_malformed_candidate_is_reported_without_discarding_valid_siblings(self):
+        diagnostics = []
+        entries = extract_named_entries(
+            "[Broken](https://[invalid/item/1)\n[Valid](/item/2)",
+            self.contract,
+            "https://example.com/",
+            diagnostics=diagnostics,
+        )
+        self.assertEqual(entries, [{"url": "https://example.com/item/2", "title": "Valid"}])
+        self.assertEqual(diagnostics, ["invalid_link_output"])
+
+    def test_scoped_product_parser_reuses_validated_query_identity(self):
+        contract = {
+            "hosts": ["example.com"], "entry_path": r"/product",
+            "identity_query_keys": ["id"],
+            "price_patterns": [r"\$\d+\.\d{2}"],
+            "price_exclusion_patterns": [],
+            "entry_scope": {
+                "html_selector": ".product", "title_selector": ".name",
+                "link_selector": "a.detail", "price_selector": ".price",
+            },
+        }
+        content = (
+            '<div class="product"><h2 class="name">Invalid</h2>'
+            '<a class="detail" href="/product">Details</a>'
+            '<span class="price">$10.00</span></div>'
+            '<div class="product"><h2 class="name">Valid</h2>'
+            '<a class="detail" href="/product?id=2">Details</a>'
+            '<span class="price">$20.00</span></div>'
+        )
+        self.assertEqual(extract_linked_products(
+            content, contract, "https://example.com/catalog",
+        ), [{
+            "url": "https://example.com/product?id=2",
+            "title": "Valid", "price": "$20.00",
+        }])
 
     def test_declared_link_base_resolves_relative_links_without_expanding_hosts(self):
         contract = {
@@ -52,11 +92,8 @@ class DynamicListTests(unittest.TestCase):
             '<a href="item/1">Story</a>', contract, "https://redirect.example.net/start"
         )
         self.assertEqual(entries, [{"url": "https://www.example.com/news/item/1", "title": "Story"}])
-
-        markdown = extract_named_entries(
-            '[Story](item/1)', contract, "https://redirect.example.net/start"
-        )
-        self.assertEqual(markdown, entries)
+        self.assertEqual(extract_named_entries(
+            '[Story](item/1)', contract, "https://redirect.example.net/start"), entries)
         self.assertEqual(extract_named_entries(
             '[Other](https://outside.example/news/item/2)', contract,
             "https://redirect.example.net/start"), [])
@@ -118,7 +155,7 @@ class DynamicListTests(unittest.TestCase):
         )
 
     def test_html_and_plain_text(self):
-        self.assertTrue(
+        self.assertFalse(
             self.check("".join(f'<a href="/item/{i}"><img alt="Title {i}"></a>' for i in range(3)))[
                 "structure_pass"
             ]
@@ -140,7 +177,11 @@ class DynamicListTests(unittest.TestCase):
         text = "\n".join(
             f"[![New title {i}](https://img.test/{i}.png) TV](/item/{i})" for i in range(3)
         )
-        self.assertTrue(self.check(text)["structure_pass"])
+        self.assertFalse(self.check(text)["structure_pass"])
+        visible_names = "\n".join(
+            f"[![Poster](https://img.test/{i}.png) Title {i}](/item/{i})" for i in range(3)
+        )
+        self.assertTrue(self.check(visible_names)["structure_pass"])
         image_only = "\n".join(
             f"[![New title {i}](https://img.test/{i}.png)](/item/{i})" for i in range(3)
         )

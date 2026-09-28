@@ -387,7 +387,8 @@ class ScoringTests(unittest.TestCase):
         expected = hashlib.sha256(b"\0".join((root / name).read_bytes() for name in (
             "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
             "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
-            "response_input.py", "body_coverage.py", "ordered_tree.py"))).hexdigest()
+            "response_input.py", "body_coverage.py", "structured_tables.py",
+            "ordered_tree.py"))).hexdigest()
         self.assertEqual(SCORING_SOURCE_SHA256, expected)
         self.assertEqual(score_attempt(case(), b"Text", ok=True)["scoring_source_sha256"], expected)
 
@@ -410,6 +411,11 @@ class ScoringPipelineTests(unittest.TestCase):
             case(id="failed", ground_truth_main_content="Alpha", required_facts=[{"alternatives": ["Alpha"]}]),
             case(id="legacy", task_kind="structure", source_benchmark=legacy_benchmark()),
             case(id="unverified", task_kind="structure", source_benchmark=legacy_benchmark()),
+            case(id="redirected", track="dynamic", task_kind="structure",
+                 acceptance_contract={"version": 1, "schema": "named_link",
+                                      "minimum_records": 1,
+                                      "hosts": ["new.example.test"],
+                                      "entry_path": r"/news/item/\d+"}),
         ]
         self.dataset = {"id": "test", "tool": "web_fetch", "cases": [asdict(c) for c in self.cases]}
         self.path = self.root / "dataset.json"
@@ -421,12 +427,14 @@ class ScoringPipelineTests(unittest.TestCase):
         texts = {"web": "Alpha\r\n", "dynamic": "Catalog\nCategory filter\n" + LINKS,
                  "challenge": "Catalog\n" + LINKS, "document": "Actual document",
                  "resource": "", "file": "This is not verified file bytes", "failed": "Alpha",
-                 "legacy": LINKS, "unverified": LINKS.replace("Alpha", "Different")}
+                 "legacy": LINKS, "unverified": LINKS.replace("Alpha", "Different"),
+                 "redirected": "[Redirected story](item/1)"}
         self.provider = Mock()
         self.provider.name, self.provider.type, self.provider.min_interval_seconds = "p", "fixture", 0
         self.provider.validate.return_value = []
         self.provider.fetch.side_effect = lambda c, timeout: ProviderResult(
             ok=c.id != "failed", content=texts[c.id], status_code=200 if c.id != "failed" else 502,
+            final_url=("https://new.example.test/news/" if c.id == "redirected" else c.url),
             error_type="synthetic_failure" if c.id == "failed" else None,
             metadata={"images": [{"src": "/image.png"}], "request_id": "original-" + c.id})
 
@@ -467,6 +475,9 @@ class ScoringPipelineTests(unittest.TestCase):
             self.assertEqual((self.run / after["artifact_path"]).read_bytes(), artifacts[after["artifact_path"]])
         self.assertEqual((self.run / "manifest.json").read_bytes(), manifest)
         self.assertEqual(self.provider.fetch.call_count, len(self.cases))
+        redirected=next(row for row in current if row['case_id']=='redirected')
+        self.assertEqual(redirected['final_url'],'https://new.example.test/news/')
+        self.assertTrue(redirected['metrics']['stable_task_pass'])
         by_id = {r["case_id"]: r for r in current}
         self.assertTrue(task_passed(True, by_id["resource"]["metrics"]))
         self.assertFalse(task_passed(True, by_id["file"]["metrics"]))

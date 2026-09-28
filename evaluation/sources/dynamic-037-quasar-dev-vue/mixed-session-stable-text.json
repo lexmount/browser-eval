@@ -1,0 +1,255 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-037-quasar-dev-vue",
+  "url": "https://quasar.dev/vue-components/virtual-scroll/",
+  "evaluation_url": "https://quasar.dev/vue-components/virtual-scroll/",
+  "expected_final_url": "https://quasar.dev/vue-components/virtual-scroll/",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 33,
+  "anchors": [
+    {
+      "id": "phase1-stable-b30b3a63451a",
+      "text": "(mg)",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-25830ee52535",
+      "text": "(val)",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-d3368cbffe23",
+      "text": "Accessibility",
+      "source_location": "main > h2",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-fe02680f2479",
+      "text": "Announcements",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-0e35f6e9742e",
+      "text": "Basic",
+      "source_location": "main > h3",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-636f0dc2dfb9",
+      "text": "Calcium",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-dad30556d662",
+      "text": "Calcium (%)",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-42b7dd56746d",
+      "text": "Calories",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-2c06fb68cd6e",
+      "text": "Carbs",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-693a2d91fa60",
+      "text": "Carbs (g)",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-a150ce221602",
+      "text": "Components",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-9f1fb3fe270d",
+      "text": "Dessert",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-77305d80d53b",
+      "text": "Dessert (100g serving)",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-88fcd42d7f4c",
+      "text": "Different templates",
+      "source_location": "main > h3",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-7af023c43013",
+      "text": "Docs",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-ddcdda5ac2be",
+      "text": "Fat",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-5f3823714b0e",
+      "text": "Fat (g)",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-39c3be1198a2",
+      "text": "Index",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-3cd687a64c92",
+      "text": "Iron (%)",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-92a31f1de3df",
+      "text": "Protein",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-99ba4bd57b57",
+      "text": "Protein (g)",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-92375f997ffe",
+      "text": "Roadmap",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-5cf9ef503bd2",
+      "text": "Scroll to position",
+      "source_location": "main > h3",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-cbd06db64d87",
+      "text": "Sodium",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-8dcabfc43a42",
+      "text": "Sodium (mg)",
+      "source_location": "main > th",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-2a428eee422c",
+      "text": "Sponsors",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-fe2a4403d749",
+      "text": "Sync and async",
+      "source_location": "main > h3",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-74323e9a7871",
+      "text": "Table type",
+      "source_location": "main > h3",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-8d59829c1e15",
+      "text": "Usage",
+      "source_location": "main > h2",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-598202251921",
+      "text": "Utility classes",
+      "source_location": "main > h3",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-c80bfbcb60f8",
+      "text": "Video Tutorials",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-b30a70bb5cc5",
+      "text": "Virtual Scroll",
+      "source_location": "main > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    },
+    {
+      "id": "phase1-stable-5c518ee86fd9",
+      "text": "Why Quasar?",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "cbc27e8540482a90005a920c8222f2f48aeb14d22c50011f99940b347d88f399"
+    }
+  ],
+  "projected_text_sha256": "2bd5b89f04300b0c1ec5d3ce818313a39fec08dd1dbf99eeb74e8083cc2559ef"
+}

@@ -1,0 +1,136 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-095-joyn-home",
+  "url": "https://www.joyn.de/",
+  "evaluation_url": "https://www.joyn.de/",
+  "expected_final_url": "https://www.joyn.de/",
+  "target_language": "de-DE",
+  "target_region": "DE",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 16,
+  "anchors": [
+    {
+      "id": "phase1-stable-4ddbd44883dc",
+      "text": ":newstime",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-ef0fe873bb68",
+      "text": "AGB",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-cc8966198ef1",
+      "text": "Abo hier kündigen",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-4e0b1087084f",
+      "text": "Barrierefreiheit",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-2cb5567361ee",
+      "text": "Behind the Screens",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-4a109cc49467",
+      "text": "Compliance",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-f624fcf0dcbb",
+      "text": "Datenschutz",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-b8a6051923e6",
+      "text": "Impressum",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-b717d678c650",
+      "text": "Jugendschutz",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-10fe32257a7d",
+      "text": "Karriere",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-325eecf9d301",
+      "text": "Kontakt",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-d3074b289ce4",
+      "text": "Produktplatzierungen",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-0235738e2fb8",
+      "text": "Tech blog",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-d3d70af6fa09",
+      "text": "Transparenzhinweise",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-34abbfd493b7",
+      "text": "Vertrag widerrufen",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    },
+    {
+      "id": "phase1-stable-789ae56d4069",
+      "text": "Über Joyn",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b18331ec91667612a33ea89baa5066f6d22b31aac0c702e6dca83aa4aa8a7c24"
+    }
+  ],
+  "projected_text_sha256": "62dc3e1a7ce6e6de33bacc093d7ffc7331d749540d50990951d50be4657f9c9a"
+}

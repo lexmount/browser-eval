@@ -1,0 +1,213 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-058-zh-stable-tdesign-table",
+  "url": "https://tdesign.tencent.com/vue-next/components/table",
+  "evaluation_url": "https://tdesign.tencent.com/vue-next/components/table",
+  "expected_final_url": "https://tdesign.tencent.com/vue-next/components/table",
+  "target_language": "zh-CN",
+  "target_region": "CN",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 27,
+  "anchors": [
+    {
+      "id": "phase1-stable-9ffbd4162b66",
+      "text": "加载状态的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-686d077b4a97",
+      "text": "单元格超出省略的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-c57dc072d728",
+      "text": "可分页的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-cde6febcebd9",
+      "text": "可展开和收起的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-0986782696f1",
+      "text": "可拖拽排序的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-221645a12e98",
+      "text": "可排序的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-2c70225c25dc",
+      "text": "可筛选的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-b0628df783ce",
+      "text": "可编辑的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-03e30b5a037d",
+      "text": "可自定义样式的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-a456929aa146",
+      "text": "可表头吸顶/表尾吸顶的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-b4eacabaac52",
+      "text": "可进行列配置的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-9aa19e9d5235",
+      "text": "可选中行的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-bc3b8c7896b7",
+      "text": "固定列的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-3e2e6d5c3c7d",
+      "text": "固定表头/固定行的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-991361957539",
+      "text": "固定表头和列的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-d4ac916b0296",
+      "text": "基础表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-44098a854a6b",
+      "text": "多级表头的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-c793e08f1881",
+      "text": "带合并单元格的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-de62616c5438",
+      "text": "懒加载的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-88df1630b4ed",
+      "text": "树形结构的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-a40a0da44709",
+      "text": "空表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-7f3d4216b3d2",
+      "text": "自定义单元格的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-942ea525b81b",
+      "text": "自定义表头的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-79e3f50b47fa",
+      "text": "自定义表尾的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-15fa0e8d402f",
+      "text": "虚拟滚动的表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-36d49364e612",
+      "text": "行高亮表格",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    },
+    {
+      "id": "phase1-stable-0c505e651b73",
+      "text": "表格分类",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "a9a7360bea8fc6033c0981bb2e32e90ecd454f2a3a4117891bdb2b04b9d73b66"
+    }
+  ],
+  "projected_text_sha256": "3b248150dc3f41dc7330bfddc2ab19019f430b3b319c358a2f221c94f8e97813"
+}

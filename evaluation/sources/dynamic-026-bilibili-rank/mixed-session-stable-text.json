@@ -1,0 +1,94 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-026-bilibili-rank",
+  "url": "https://www.bilibili.com/v/popular/rank/all",
+  "evaluation_url": "https://www.bilibili.com/v/popular/rank/all",
+  "expected_final_url": "https://www.bilibili.com/v/popular/rank/all",
+  "target_language": "zh-CN",
+  "target_region": "CN",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 10,
+  "anchors": [
+    {
+      "id": "phase1-stable-190a1f098139",
+      "text": "上海互联网举报中心 |",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6d0c0920955c5f47defd4f79211a2d16c92f4d789f907827407f9009b7f70b69"
+    },
+    {
+      "id": "phase1-stable-d3735a70484a",
+      "text": "不良信息举报邮箱：help@bilibili.com",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6d0c0920955c5f47defd4f79211a2d16c92f4d789f907827407f9009b7f70b69"
+    },
+    {
+      "id": "phase1-stable-ed4ca4890d26",
+      "text": "中国互联网违法和不良信息举报中心",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6d0c0920955c5f47defd4f79211a2d16c92f4d789f907827407f9009b7f70b69"
+    },
+    {
+      "id": "phase1-stable-d748abad4c22",
+      "text": "亲爱的市民朋友，上海警方反诈劝阻电话\"96110\"系专门针对避免您财产被骗受损而设，请您一旦收到来电，立即接听。",
+      "source_location": "body > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6d0c0920955c5f47defd4f79211a2d16c92f4d789f907827407f9009b7f70b69"
+    },
+    {
+      "id": "phase1-stable-e4fa8b48b1b2",
+      "text": "儿童色情信息举报专区 |",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6d0c0920955c5f47defd4f79211a2d16c92f4d789f907827407f9009b7f70b69"
+    },
+    {
+      "id": "phase1-stable-3f8db0ffaeee",
+      "text": "公司名称：上海宽娱数码科技有限公司 |",
+      "source_location": "body > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6d0c0920955c5f47defd4f79211a2d16c92f4d789f907827407f9009b7f70b69"
+    },
+    {
+      "id": "phase1-stable-757ee78b643b",
+      "text": "公司地址：上海市杨浦区政立路489号 |",
+      "source_location": "body > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6d0c0920955c5f47defd4f79211a2d16c92f4d789f907827407f9009b7f70b69"
+    },
+    {
+      "id": "phase1-stable-b6df5a522f9d",
+      "text": "扫黄打非举报",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6d0c0920955c5f47defd4f79211a2d16c92f4d789f907827407f9009b7f70b69"
+    },
+    {
+      "id": "phase1-stable-224ddd990ac4",
+      "text": "涉未成年举报邮箱：teenprotect@bilibili.com",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6d0c0920955c5f47defd4f79211a2d16c92f4d789f907827407f9009b7f70b69"
+    },
+    {
+      "id": "phase1-stable-c579030df299",
+      "text": "网上有害信息举报专区：",
+      "source_location": "body > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "6d0c0920955c5f47defd4f79211a2d16c92f4d789f907827407f9009b7f70b69"
+    }
+  ],
+  "projected_text_sha256": "99e97ad0a8d7cbaedaacf329343e27251aec9afc0f666b7385bc27943e736ad8"
+}

@@ -20,11 +20,23 @@ if __name__ == '__main__':
     parser.add_argument('--output',type=Path)
     parser.add_argument('--include-english',action='store_true',
                         help='also generate the English report; Chinese-only is the default')
+    parser.add_argument('--local-audit',action='store_true',
+                        help='build an explicitly local, non-publishable audit report from bound evidence')
     parser.add_argument('--wcxb-source',type=Path)
     parser.add_argument('--wcxb-sample',type=Path)
     parser.add_argument('--wcxb',action='store_true',help='Build the independently bound WCXB report')
     parser.add_argument('--webmainbench-full',action='store_true',help='Build the separately certified complete 545-case report')
     args=parser.parse_args()
+    if args.local_audit:
+        if not args.evidence or not args.output:
+            parser.error('--local-audit requires both --evidence and --output')
+        if args.profile or args.wcxb or args.webmainbench_full or args.public_benchmark_research:
+            parser.error('--local-audit cannot be combined with a release profile, WCXB, WebMainBench, or public benchmark research')
+        evidence=require_evidence(args.evidence)
+        print(build_report(evidence,args.output,
+                           include_english=args.include_english,
+                           local_audit=True))
+        raise SystemExit(0)
     if sum(bool(value) for value in (args.profile, args.wcxb, args.webmainbench_full)) > 1:
         parser.error('--profile, --wcxb and --webmainbench-full are mutually exclusive')
     if args.webmainbench_full:

@@ -37,7 +37,8 @@ class ReportChangesTests(unittest.TestCase):
                     and 'public_benchmark_research' not in row.get('comparison_kinds', [])
                     and 'wcxb_frozen_html_to_markdown' not in row.get('comparison_kinds', [])
                     and 'moli_historical_failure_retest' not in row.get('comparison_kinds', [])
-                    and 'moli_process_tree_resource_profile' not in row.get('comparison_kinds', [])]
+                    and 'moli_process_tree_resource_profile' not in row.get('comparison_kinds', [])
+                    and 'single_provider_dynamic_native_fetch' not in row.get('comparison_kinds', [])]
         self.assertEqual(len(releases), 20)
         for row in releases:
             english = row['i18n']['en']
@@ -47,6 +48,16 @@ class ReportChangesTests(unittest.TestCase):
             for source, target in zip(row['changes'], english['changes'], strict=True):
                 for zh, en in zip(source, target, strict=True):
                     self.assertEqual(translate_text(zh), en, row['id'])
+
+    def test_dynamic_local_audit_release_is_selected_only_for_its_cohort(self):
+        from harness.web_fetch.report_changes import ROOT, select_cohort_history
+        data = json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8'))
+        dynamic = select_cohort_history(
+            data, {'comparison': {'kind': 'single_provider_dynamic_native_fetch'}}, [])
+        generic = select_cohort_history(data, {'comparison': {'kind': 'generic'}}, [])
+        release_id = '2026-09-24-dynamic-100-moli-119-local-audit'
+        self.assertIn(release_id, {row['id'] for row in dynamic['releases']})
+        self.assertNotIn(release_id, {row['id'] for row in generic['releases']})
 
     def test_current_web_fetch_release_binds_score_revision_and_exact_rerun_scope(self):
         from harness.web_fetch.report_changes import ROOT, select_cohort_history

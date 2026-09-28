@@ -87,7 +87,7 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False,
         before = succeeded(r, c)
         # Status and artifact normalization are shared with live execution.
         r['metrics'] = score_attempt(c, raw, ok=bool(r['ok']), status_code=r.get('status_code'),
-            title=r.get('title'),
+            title=r.get('title'), final_url=r.get('final_url'),
             metadata=r.get('provider_metadata', {}), previous_metrics=r['metrics'],
             list_reference=load_list_reference(c, source))
         apply_request_status(r)

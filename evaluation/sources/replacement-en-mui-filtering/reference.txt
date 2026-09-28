@@ -1,0 +1,50 @@
+By opening the column menu and clicking the Filter menu item.
+By clicking the Filters button in the Data Grid toolbar (if enabled).
+Each column type has its own filter operators.
+The demo below lets you explore all the operators for each built-in column type.
+See the dedicated section to learn how to create your own custom filter operator.
+The Data Grid can only filter rows according to one criterion at a time.
+To use multi-filters, you need to upgrade to the Pro plan or above.
+Pass filters to the Data GridStructure of the modelThe full typing details can be found on the GridFilterModel API page.
+The filter model is composed of a list of items and a logicOperator:
+The itemsA filter item represents a filtering rule and is composed of several elements:
+filterItem.field: the field on which the rule applies.
+filterItem.value: the value to look for.
+filterItem.operator: name of the operator method to use (for example contains), matches the value key of the operator object.
+filterItem.id (): required when multiple filter items are used.
+Some operators do not need any value (for instance the isEmpty operator of the string column).
+The logicOperator The logicOperator tells the Data Grid if a row should satisfy all (AND) filter items or at least one (OR) in order to be considered valid.
+// Example 1: get rows with rating > 4 OR isAdmin = true
+const filterModel: GridFilterModel = {
+{ id: 1, field: 'rating', operator: '>', value: '4' },
+{ id: 2, field: 'isAdmin', operator: 'is', value: 'true' },
+logicOperator: GridLogicOperator.Or,
+// Example 2: get rows with rating > 4 AND isAdmin = true
+const filterModel: GridFilterModel = {
+{ id: 1, field: 'rating', operator: '>', value: '4' },
+{ id: 2, field: 'isAdmin', operator: 'is', value: 'true' },
+logicOperator: GridLogicOperator.And,
+If no logicOperator is provided, the Data Grid will use GridLogicOperator.And by default. When the operator is left unchanged in the UI, onFilterModelChange can still omit it, so treat an undefined value as GridLogicOperator.And.
+Initialize the filtersTo initialize the filters without controlling them, provide the model to the initialState prop.
+items: [{ field: 'rating', operator: '>', value: '2.5' }],
+You can use the onFilterModelChange prop to listen to changes to the filters and update the prop accordingly.
+items: [{ field: 'rating', operator: '>', value: '2.5' }],
+<DataGrid disableColumnFilter />
+In the example below, the rating column cannot be filtered.
+<DataGrid columns={[...columns, { field: 'rating', filterable: false }]} />
+{ field: 'name', filterable: false },
+items: [{ field: 'name', operator: 'contains', value: 'a' }],
+This can lead to a poor experience when users expect them to be treated as equivalent.
+If your dataset includes diacritics that need to be ignored, you can pass the ignoreDiacritics prop to the Data Grid:
+<DataGrid ignoreDiacritics />
+The ignoreDiacritics prop affects all columns and filter types, including standard filters, quick filters, and header filters.
+apiRefThe Data Grid exposes a set of methods via the apiRef object that are used internally in the implementation of the filtering feature.
+The reference below describes the relevant functions.
+See API object for more details.
+This API should only be used as a last resort when the Data Grid's built-in props aren't sufficient for your specific use case.
+deleteFilterItem()Deletes a GridFilterItem.Signature:Copy(or ⌘C)deleteFilterItem: (item: GridFilterItem) => voidgetFilterState()Returns the filter state for the given filter model without applying it to the Data Grid.Signature:Copy(or ⌘C)getFilterState: (filterModel: GridFilterModel) => GridStateCommunity['filter']hideFilterPanel()Hides the filter panel.Signature:Copy(or ⌘C)hideFilterPanel: () => voidignoreDiacritics()Returns the value of the ignoreDiacritics prop.Signature:Copy(or ⌘C)ignoreDiacritics: DataGridProcessedProps['ignoreDiacritics']setFilterLogicOperator()Changes the GridLogicOperator used to connect the filters.Signature:Copy(or ⌘C)setFilterLogicOperator: (operator: GridLogicOperator) => voidsetFilterModel()Sets the filter model to the one given by model.Signature:Copy(or ⌘C)setFilterModel: (model: GridFilterModel, reason?: GridControlledStateReasonLookup['filter']) => voidsetQuickFilterValues()Set the quick filter values to the one given by valuesSignature:Copy(or ⌘C)setQuickFilterValues: (values: any[]) => voidshowFilterPanel()Shows the filter panel. If targetColumnField is given, a filter for this field is also added.Signature:Copy(or ⌘C)showFilterPanel: (targetColumnField?: string, panelId?: string, labelId?: string) => voidupsertFilterItem()Updates or inserts a GridFilterItem.Signature:Copy(or ⌘C)upsertFilterItem: (item: GridFilterItem) => voidupsertFilterItems()Updates or inserts many GridFilterItem.Signature:Copy(or ⌘C)upsertFilterItems: (items: GridFilterItem[]) => voidSelectorsgridExpandedRowCountSelectorGet the amount of rows accessible after the filtering process.Signature:Copy(or ⌘C)gridExpandedRowCountSelector: (apiRef: GridApiRef) => numberExampleCopy(or ⌘C)const expandedRowCount = gridExpandedRowCountSelector(apiRef);gridExpandedSortedRowEntriesSelectorGet the id and the model of the rows accessible after the filtering process.
+Does not contain the collapsed children.Signature:Copy(or ⌘C)gridExpandedSortedRowEntriesSelector: (apiRef: GridApiRef) => GridRowEntry<GridValidRowModel>[]ExampleCopy(or ⌘C)const expandedSortedRowEntries = gridExpandedSortedRowEntriesSelector(apiRef);gridExpandedSortedRowIdsSelectorGet the id of the rows accessible after the filtering process.
+Does not contain the collapsed children.Signature:Copy(or ⌘C)gridExpandedSortedRowIdsSelector: (apiRef: GridApiRef) => GridRowId[]ExampleCopy(or ⌘C)const expandedSortedRowIds = gridExpandedSortedRowIdsSelector(apiRef);gridFilterModelSelectorGet the current filter model.Signature:Copy(or ⌘C)gridFilterModelSelector: (apiRef: GridApiRef) => GridFilterModelExampleCopy(or ⌘C)const filterModel = gridFilterModelSelector(apiRef);gridFilteredDescendantRowCountSelectorGet the amount of descendant rows accessible after the filtering process.Signature:Copy(or ⌘C)gridFilteredDescendantRowCountSelector: (apiRef: GridApiRef) => numberExampleCopy(or ⌘C)const filteredDescendantRowCount = gridFilteredDescendantRowCountSelector(apiRef);gridFilteredRowCountSelectorGet the amount of rows accessible after the filtering process.
+Includes top level and descendant rows.Signature:Copy(or ⌘C)gridFilteredRowCountSelector: (apiRef: GridApiRef) => numberExampleCopy(or ⌘C)const filteredRowCount = gridFilteredRowCountSelector(apiRef);gridFilteredSortedRowEntriesSelectorGet the id and the model of the rows accessible after the filtering process.
+Contains the collapsed children.Signature:Copy(or ⌘C)gridFilteredSortedRowEntriesSelector: (apiRef: GridApiRef) => GridRowEntry<GridValidRowModel>[]ExampleCopy(or ⌘C)const filteredSortedRowEntries = gridFilteredSortedRowEntriesSelector(apiRef);gridFilteredSortedRowIdsSelectorGet the id of the rows accessible after the filtering process.
+Contains the collapsed children.Signature:Copy(or ⌘C)gridFilteredSortedRowIdsSelector: (apiRef: GridApiRef) => GridRowId[]ExampleCopy(or ⌘C)const filteredSortedRowIds = gridFilteredSortedRowIdsSelector(apiRef);gridFilteredSortedTopLevelRowEntriesSelectorGet the id and the model of the top level rows accessible after the filtering process.Signature:Copy(or ⌘C)gridFilteredSortedTopLevelRowEntriesSelector: (apiRef: GridApiRef) => GridRowEntry<GridValidRowModel>[]ExampleCopy(or ⌘C)const filteredSortedTopLevelRowEntries = gridFilteredSortedTopLevelRowEntriesSelector(apiRef);gridFilteredTopLevelRowCountSelectorGet the amount of top level rows accessible after the filtering process.Signature:Copy(or ⌘C)gridFilteredTopLevelRowCountSelector: (apiRef: GridApiRef) => numberExampleCopy(or ⌘C)const filteredTopLevelRowCount = gridFilteredTopLevelRowCountSelector(apiRef);gridQuickFilterValuesSelectorGet the current quick filter values.Signature:Copy(or ⌘C)gridQuickFilterValuesSelector: (apiRef: GridApiRef) => any[] | undefinedExampleCopy(or ⌘C)const quickFilterValues = gridQuickFilterValuesSelector(apiRef);More information about the selectors and how to use them on the dedicated page

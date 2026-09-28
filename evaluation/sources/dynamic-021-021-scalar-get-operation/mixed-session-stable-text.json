@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-021-021-scalar-get-operation",
+  "url": "https://sandbox.scalar.com/#GET/",
+  "evaluation_url": "https://sandbox.scalar.com/#GET/",
+  "expected_final_url": "https://sandbox.scalar.com/#GET/description/introduction",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 7,
+  "anchors": [
+    {
+      "id": "phase1-stable-14e30cd163c7",
+      "text": "GET",
+      "source_location": "aside > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b257fbdf954b925bcc4c301c5f03c242697c229c3e4613c1af1adc2c7587a7e7"
+    },
+    {
+      "id": "phase1-stable-a26d3b9906d2",
+      "text": "HTTP Method:",
+      "source_location": "aside > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b257fbdf954b925bcc4c301c5f03c242697c229c3e4613c1af1adc2c7587a7e7"
+    },
+    {
+      "id": "phase1-stable-a591a6d40bf4",
+      "text": "Hello World",
+      "source_location": "main > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b257fbdf954b925bcc4c301c5f03c242697c229c3e4613c1af1adc2c7587a7e7"
+    },
+    {
+      "id": "phase1-stable-b605350bc002",
+      "text": "Introduction",
+      "source_location": "aside > div",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b257fbdf954b925bcc4c301c5f03c242697c229c3e4613c1af1adc2c7587a7e7"
+    },
+    {
+      "id": "phase1-stable-49fdd12b2570",
+      "text": "Open API Client",
+      "source_location": "aside > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b257fbdf954b925bcc4c301c5f03c242697c229c3e4613c1af1adc2c7587a7e7"
+    },
+    {
+      "id": "phase1-stable-ac696b76a0a2",
+      "text": "Powered by Scalar",
+      "source_location": "aside > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b257fbdf954b925bcc4c301c5f03c242697c229c3e4613c1af1adc2c7587a7e7"
+    },
+    {
+      "id": "phase1-stable-67fc62497e85",
+      "text": "Sandbox",
+      "source_location": "header > div",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b257fbdf954b925bcc4c301c5f03c242697c229c3e4613c1af1adc2c7587a7e7"
+    }
+  ],
+  "projected_text_sha256": "bc98d9ef3bb7fee3f530153c3397f146297653334363941e49345e84da3adfa5"
+}

@@ -6,16 +6,20 @@ Passing establishes the declared output structure, not factual source fidelity.
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
+import hashlib
+import math
 import re
 import unicodedata
 from urllib.parse import urlsplit
 
-from .dynamic_lists import extract_named_entries
+from .dynamic_lists import extract_named_entries, named_entry_source_pair_hash
 from .reference_quality import clean_reference_text
 
 
 SCHEMA_FIELDS = {
+    "table_row": (),
+    "earthquake": ("magnitude", "location", "time", "depth"),
     "body_text": (),
     "quote": ("quote", "author", "tags"),
     "product": ("name", "price"),
@@ -25,13 +29,18 @@ SCHEMA_FIELDS = {
     "api_operation": ("method", "path", "summary"),
     "taxonomy_family": ("family",),
     "named_link": ("title", "url"),
+    "linked_product": ("title", "url", "price"),
+    "page_identity": (),
 }
 UNIQUE_FIELDS = {
+    "table_row": (),
+    "earthquake": ("time", "location"),
     "body_text": (),
     "quote": ("quote",), "product": ("name",),
     "catalog_product": ("title", "description"), "review": ("date", "text"),
     "name_description": ("name",), "api_operation": ("method", "path"),
     "taxonomy_family": ("family",), "named_link": ("url",),
+    "linked_product": ("url",), "page_identity": (),
 }
 _AMOUNT = r"(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?"
 _MONEY = rf"(?:[$£€¥]\s*{_AMOUNT}|(?:USD|EUR|GBP|CNY)\s+{_AMOUNT}|{_AMOUNT}\s+(?:USD|EUR|GBP|CNY))"
@@ -39,6 +48,7 @@ _METHOD = r"(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT)"
 _REVIEW_COUNT = r"\d+\s+reviews?"
 _PLACEHOLDER = re.compile(r"(?:n/?a|none|null|undefined|unknown|tbd|loading[. …]*|[-—]+|add to cart|read more|view details|description|name|title)", re.I)
 _LABELS = {"quote": "quote", "author": "(?:author|by)", "tags": "tags",
+    "magnitude": "magnitude", "location": "location", "time": "time", "depth": "depth",
     "name": "name", "title": "title", "price": "price", "description": "description",
     "reviews": "reviews", "date": "date", "text": "(?:text|review)", "method": "method",
     "path": "path", "summary": "summary", "family": "family", "financing": "financing", "shipping": "shipping"}
@@ -106,7 +116,7 @@ def _unwrap_links(text, schema):
                 # preserves that element boundary; do not apply this to links
                 # embedded in a single word such as ``pre[fix]``.
                 output.append(" ")
-            if schema in {"product", "catalog_product"} and "\n" in text[start + 1:end]:
+            if schema in {"product", "catalog_product", "earthquake"} and "\n" in text[start + 1:end]:
                 label = f"\n{_CARD_BOUNDARY}\n{label}\n{_CARD_BOUNDARY}\n"
             elif schema == "name_description" and (re.fullmatch(r"\s*(?:[-*+]|\d+[.)])\s*", prefix)
                     or re.fullmatch(rf"\s*(?:[-*+]|\d+[.)])\s*{_CARD_BOUNDARY}\s*", prefix)
@@ -123,6 +133,11 @@ def _unwrap_links(text, schema):
 
 def _visible(text, schema=None):
     text = clean_reference_text(text)
+    if re.search(r'<(?:html|body|main|div|section|article|p|h[1-6])\b', text, re.I):
+        from html import unescape
+        # Decode one HTML entity layer, as a browser does. In particular a
+        # rendered nonbreaking space must not become the literal token "nbsp".
+        text = unescape(text)
     # Extractors represent Markdown hard breaks using one or two backslashes.
     text = re.sub(r"\\{1,2}[ \t]*(?=\n)", "", text)
     text = _unwrap_links(text, schema)
@@ -149,7 +164,12 @@ def _line(text):
 
 
 def _field(text, name):
-    return re.sub(rf"^(?:{_LABELS.get(name, name)})\s*:\s*", "", text, flags=re.I).strip()
+    # Formatting tags sometimes survive a Markdown dump inside a visible
+    # scalar value (for example, ``or 9 x<strong>$1.21</strong>``). They do
+    # not change the field's displayed text. Strip only simple inline emphasis
+    # tags; keep every other tag/field boundary available for validation.
+    visible = re.sub(r"</?(?:strong|b|em|i)>", "", text, flags=re.I)
+    return re.sub(rf"^(?:{_LABELS.get(name, name)})\s*:\s*", "", visible, flags=re.I).strip()
 
 
 def _text(value, minimum=2):
@@ -163,6 +183,22 @@ def _valid_field(name, value):
         return False
     if name == "price":
         return bool(re.fullmatch(_MONEY, value, re.I))
+    if name == "magnitude":
+        return bool(re.fullmatch(r"-?\d{1,2}(?:\.\d+)?", value))
+    if name == "depth":
+        return bool(re.fullmatch(r"-?\d+(?:\.\d+)?\s*km", value, re.I))
+    if name == "time":
+        # Accept source-local UTC offsets and ISO timestamps without freezing
+        # a date. A date alone is not an event timestamp.
+        normalized = re.sub(r"\s*\(UTC([+-]\d{2}:\d{2})\)$", r"\1", value)
+        normalized = re.sub(r"\s*\(UTC\)$", "+00:00", normalized)
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?", normalized):
+            return False
+        try:
+            datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+            return True
+        except ValueError:
+            return False
     if name == "reviews":
         return bool(re.fullmatch(r"\d+(?:\s*reviews?)?", value, re.I))
     if name == "date":
@@ -431,12 +467,50 @@ def _descriptions(text):
     return records
 
 
+def _earthquakes(text):
+    """Read contiguous magnitude/location/time/depth cards, never bag-of-fields.
+
+    Four-line ordering is independently observed on the source list. Explicit
+    Markdown card/link boundaries cannot be crossed to repair a missing field.
+    Tables are handled separately with column ownership.
+    """
+    records = []
+    for block in text.split(_CARD_BOUNDARY):
+        lines = [_line(line) for line in block.splitlines() if line.strip()]
+        # Inline custom elements can serialize location and timestamp on one
+        # line. Split only a complete trailing timestamp, within this card.
+        separated = []
+        for line in lines:
+            joined = re.fullmatch(
+                r"(.+?)(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}"
+                r"(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}|\s*\(UTC(?:[+-]\d{2}:\d{2})?\))?)",
+                line,
+            )
+            if joined and _valid_field("time", joined[2]) and _text(joined[1]):
+                separated.extend((joined[1].strip(), joined[2]))
+            else:
+                separated.append(line)
+        lines = separated
+        for i, line in enumerate(lines):
+            magnitude = _field(line, "magnitude")
+            if not _valid_field("magnitude", magnitude):
+                continue
+            fields = {"magnitude": magnitude}
+            for offset, name in enumerate(("location", "time", "depth"), 1):
+                if i + offset < len(lines):
+                    fields[name] = _field(lines[i + offset], name)
+            records.append(_record(fields, "earthquake"))
+    return records
+
+
 def _parse_records(visible, schema):
     raw_lines = visible.splitlines()
     records, occupied = _table_records(raw_lines, schema)
     remainder = "\n".join(line if i not in occupied else "" for i, line in enumerate(raw_lines))
     lines = [_line(line) for line in remainder.splitlines() if line.strip()]
-    if schema in {"product", "catalog_product"}:
+    if schema == "earthquake":
+        records.extend(_earthquakes(remainder))
+    elif schema in {"product", "catalog_product"}:
         records.extend(_product_records(remainder, schema))
     elif schema == "quote":
         records.extend(_quotes(lines))
@@ -458,14 +532,53 @@ def _parse_records(visible, schema):
     return records
 
 
-def _anchor_matches(anchor, records, visible, schema):
+def _non_record_visible(content, contract, records, base_url):
+    """Remove owned record links, without erasing identical navigation text."""
+    from urllib.parse import urljoin
+    from .dynamic_lists import named_entry_identity, _scoped_html
+    from .reference_quality import markdown_links
+
+    identities = {named_entry_identity(r['fields']['url'], contract)
+                  for r in records if r.get('valid') and r.get('fields', {}).get('url')}
+
+    def is_record(url):
+        try:
+            absolute = urljoin(base_url, url)
+            if urlsplit(absolute).scheme not in {'http', 'https'} or not urlsplit(absolute).hostname:
+                return False
+            return named_entry_identity(absolute, contract) in identities
+        except ValueError:
+            return False
+
+    if re.search(r'<(?:html|body|main|div|section|article|a|p)\b', content, re.I):
+        soup = _scoped_html(content)
+        for node in list(soup.select('a[href]')):
+            if node.parent is None or node.attrs is None:
+                continue
+            if is_record(node['href']):
+                node.decompose()
+        return _visible(str(soup))
+    links = markdown_links(content)
+    if links:
+        for link in reversed(links):
+            if is_record(link.destination):
+                content = content[:link.start] + ' ' + content[link.end:]
+        return _visible(content)
+    # Plain text has no URL ownership; retain the conservative fallback.
+    return None
+
+
+def _anchor_matches(anchor, records, visible, schema, non_record_visible=None):
     from .metrics import fact_in_text, normalize_for_match
     if anchor.get('match_scope') == 'non_record_lines':
+        if non_record_visible is not None:
+            folded = normalize_for_match(non_record_visible)
+            return [value for value in anchor['alternatives']
+                    if fact_in_text(folded, normalize_for_match(_visible(value)))]
         # A known record label cannot stand in for page context. This is a
         # conservative ownership rule, not a claim of recovered DOM ownership.
-        # Some converters flatten a navigation row and record links onto one
-        # physical line. Mask only the independently parsed record titles so
-        # genuine page labels on that line remain available to the anchor.
+        # Flattened page output can put headings and records on one physical
+        # line, so mask parsed record titles instead of discarding that line.
         titles = [normalize_for_match(r['fields']['title']) for r in records if r.get('valid') and r.get('fields',{}).get('title')]
         folded = normalize_for_match(visible)
         for title in sorted(set(titles), key=len, reverse=True):
@@ -503,8 +616,13 @@ def validate_acceptance_contract(contract: dict) -> None:
             or contract.get("version") != 1 or not isinstance(contract.get("schema"), str)
             or contract.get("schema") not in SCHEMA_FIELDS):
         raise ValueError("Unsupported stable acceptance contract")
-    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "field_minimum_records", "record_name_exclusions", "identity_query_keys", "link_base_url"}:
+    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "entry_scope", "name_validation", "identity_query_keys", "field_minimum_records", "record_name_exclusions", "title_exclusion_patterns", "price_patterns", "price_exclusion_patterns", "price_unavailable_patterns", "record_count_policy", "source_record_pair_hashes", "source_record_pairs_sha256", "table_columns", "record_identity_fields", "table_scope", "duplicate_policy", "link_base_url"}:
         raise ValueError("Unknown stable acceptance contract fields")
+    if contract['schema'] == 'table_row':
+        from .structured_tables import validate_table
+        validate_table(contract)
+    elif any(key in contract for key in ('table_columns', 'record_identity_fields', 'table_scope')):
+        raise ValueError('Table declarations apply only to table-row contracts')
     field_counts = contract.get('field_minimum_records', {})
     if not isinstance(field_counts, dict) or any(k not in _LABELS or type(v) is not int or v < 1 for k,v in field_counts.items()):
         raise ValueError('Invalid required field counts')
@@ -512,8 +630,46 @@ def validate_acceptance_contract(contract: dict) -> None:
     if contract["schema"] == "body_text":
         if minimum != 0 or maximum not in {None, 0} or field_counts:
             raise ValueError("Stable body-text contracts do not declare records")
+    elif contract["schema"] == "page_identity":
+        if minimum != 0 or maximum not in {None, 0} or field_counts:
+            raise ValueError("Page identity contracts do not declare records")
     elif type(minimum) is not int or minimum < 1 or maximum is not None and (type(maximum) is not int or maximum < minimum):
         raise ValueError("Stable contract requires positive bounded record counts")
+    if 'duplicate_policy' in contract and (contract['schema'] != 'table_row'
+            or contract['duplicate_policy'] != 'deduplicate_identical'):
+        raise ValueError('Invalid duplicate policy')
+    count_policy = contract.get("record_count_policy")
+    if count_policy is not None:
+        allowed_policy_fields = {
+            "list_type", "source_observed_count", "required_ratio",
+            "minimum_records", "source_observation_counts",
+            "source_evidence_sha256", "reason",
+        }
+        required_policy_fields = allowed_policy_fields - {"minimum_records"}
+        if (contract["schema"] in {"body_text", "page_identity"}
+                or not isinstance(count_policy, dict)
+                or not required_policy_fields <= set(count_policy) <= allowed_policy_fields
+                or count_policy.get("list_type") not in {"fixed", "variable"}
+                or type(count_policy.get("source_observed_count")) is not int
+                or count_policy["source_observed_count"] < 1
+                or type(count_policy.get("required_ratio")) not in {int, float}
+                or not 0 < count_policy["required_ratio"] <= 1
+                or not isinstance(count_policy.get("source_observation_counts"), list)
+                or len(count_policy["source_observation_counts"]) < 2
+                or any(type(value) is not int or value < 1
+                       for value in count_policy["source_observation_counts"])
+                or not isinstance(count_policy.get("source_evidence_sha256"), str)
+                or not re.fullmatch(r"[0-9a-f]{64}", count_policy["source_evidence_sha256"])
+                or not isinstance(count_policy.get("reason"), str)
+                or not count_policy["reason"].strip()):
+            raise ValueError("Invalid record count policy")
+        expected_ratio = 1.0 if count_policy["list_type"] == "fixed" else 0.8
+        expected_minimum = math.ceil(
+            count_policy["source_observed_count"] * count_policy["required_ratio"])
+        if (count_policy["required_ratio"] != expected_ratio
+                or minimum != expected_minimum
+                or count_policy.get("minimum_records", minimum) != minimum):
+            raise ValueError("Record minimum does not match the frozen source policy")
     patterns = contract.get("page_patterns", [])
     if not isinstance(patterns, list) or any(not isinstance(p, str) or not p for p in patterns):
         raise ValueError("Invalid stable page patterns")
@@ -523,8 +679,20 @@ def validate_acceptance_contract(contract: dict) -> None:
     ids = set()
     for anchor in anchors:
         if (not isinstance(anchor, dict) or not {"id", "alternatives"} <= set(anchor)
-                or set(anchor) - {"id", "alternatives", "match_scope"}
+                or set(anchor) - {
+                    "id", "alternatives", "match_scope", "source_location",
+                    "observation_status", "source_evidence_sha256",
+                }
                 or ('match_scope' in anchor and (anchor['match_scope'] != 'non_record_lines' or contract['schema'] != 'named_link'))
+                or ('source_location' in anchor and (
+                    not isinstance(anchor['source_location'], str)
+                    or not anchor['source_location'].strip()))
+                or ('observation_status' in anchor and (
+                    not isinstance(anchor['observation_status'], str)
+                    or not anchor['observation_status'].strip()))
+                or ('source_evidence_sha256' in anchor and (
+                    not isinstance(anchor['source_evidence_sha256'], str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", anchor['source_evidence_sha256'])))
                 or not isinstance(anchor.get("id"), str) or not anchor["id"].strip() or anchor["id"] in ids
                 or not isinstance(anchor.get("alternatives"), list) or not anchor["alternatives"]
                 or any(not isinstance(value, str) or not _visible(value).strip() for value in anchor["alternatives"])):
@@ -532,46 +700,122 @@ def validate_acceptance_contract(contract: dict) -> None:
         ids.add(anchor["id"])
     if contract["schema"] == "body_text" and not anchors and not patterns:
         raise ValueError("Stable body-text contracts require text anchors or page patterns")
-    if contract["schema"] == "named_link":
+    if contract["schema"] in {"named_link", "linked_product"}:
         hosts = contract.get("hosts")
-        identity_query_keys = contract.get("identity_query_keys", [])
         if (not isinstance(hosts, list) or not hosts
                 or any(not isinstance(host, str) or not re.fullmatch(r"[a-z0-9]+(?:[.-][a-z0-9]+)*", host) for host in hosts)
-                or not isinstance(contract.get("entry_path"), str) or not contract["entry_path"]
-                or not isinstance(identity_query_keys, list)
-                or len(identity_query_keys) != len(set(identity_query_keys))
-                or any(not isinstance(key, str) or not re.fullmatch(r"[A-Za-z0-9_.~-]+", key)
-                       for key in identity_query_keys)):
-            raise ValueError("Named links require allowed hosts and detail path pattern")
+                or not isinstance(contract.get("entry_path"), str) or not contract["entry_path"]):
+            raise ValueError("Linked records require allowed hosts and detail path pattern")
+        if contract.get("name_validation", "descriptive") not in {"descriptive", "nonempty"}:
+            raise ValueError("Invalid record name validation policy")
+        scope = contract.get("entry_scope")
+        if scope is not None:
+            if (not isinstance(scope, dict) or not scope.get("html_selector")
+                    or set(scope) - {"html_selector", "start_pattern", "end_pattern", "title_selector", "link_selector", "price_selector", "auxiliary_links_end_pattern", "markdown_title_identity_pattern", "markdown_detail_identity_pattern", "markdown_label_pattern"}
+                    or any(not isinstance(v, str) or not v.strip() for v in scope.values())
+                    or (("title_selector" in scope) != ("link_selector" in scope))):
+                raise ValueError("Invalid linked record section scope")
+            import soupsieve
+            soupsieve.compile(scope["html_selector"])
+            for key in ("title_selector", "link_selector", "price_selector"):
+                if key in scope:
+                    soupsieve.compile(scope[key])
+            for key in ("start_pattern", "end_pattern", "auxiliary_links_end_pattern"):
+                if key in scope:
+                    compiled = re.compile(scope[key], re.M)
+                    if compiled.search(""):
+                        raise ValueError("Record section boundary cannot match empty text")
+            pair_keys = ("markdown_title_identity_pattern", "markdown_detail_identity_pattern")
+            if 'markdown_label_pattern' in scope:
+                pattern = re.compile(scope['markdown_label_pattern'])
+                if 'label' not in pattern.groupindex or pattern.search(''):
+                    raise ValueError('Markdown card label requires a nonempty named label capture')
+            if any(key in scope for key in pair_keys):
+                if not all(key in scope for key in pair_keys):
+                    raise ValueError("Markdown row identity patterns must be paired")
+                for key in pair_keys:
+                    pattern = re.compile(scope[key])
+                    if pattern.groups != 1 or pattern.search(""):
+                        raise ValueError("Markdown row identity requires one nonempty capture")
+        pair_hashes = contract.get("source_record_pair_hashes")
+        pair_set_sha256 = contract.get("source_record_pairs_sha256")
+        if pair_hashes is not None or pair_set_sha256 is not None:
+            if (not isinstance(pair_hashes, list) or not pair_hashes
+                    or pair_hashes != sorted(set(pair_hashes))
+                    or any(not isinstance(value, str)
+                           or not re.fullmatch(r"[0-9a-f]{64}", value)
+                           for value in pair_hashes)
+                    or not isinstance(pair_set_sha256, str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", pair_set_sha256)
+                    or hashlib.sha256("\n".join(pair_hashes).encode()).hexdigest()
+                    != pair_set_sha256):
+                raise ValueError("Invalid frozen source name-link pairs")
         if contract.get('entry_context', 'list_or_card') != 'list_or_card':
             raise ValueError('Named-link entry context must be list_or_card')
+        patterns = [*patterns, contract["entry_path"]]
+    if contract["schema"] == "named_link":
         exclusions = contract.get('record_name_exclusions', [])
         if (not isinstance(exclusions, list)
                 or any(not isinstance(value, str) or not _key(value) for value in exclusions)
                 or len({_key(value) for value in exclusions}) != len(exclusions)):
             raise ValueError('Invalid or duplicate record-name exclusions')
-        patterns = [*patterns, contract["entry_path"]]
         identity_pattern = contract.get('entry_identity_pattern')
         if identity_pattern is not None:
             if not isinstance(identity_pattern, str) or not identity_pattern:
                 raise ValueError('Invalid named-link identity pattern')
             patterns.append(identity_pattern)
+        title_exclusions = contract.get('title_exclusion_patterns', [])
+        if (not isinstance(title_exclusions, list)
+                or any(not isinstance(pattern, str) or not pattern
+                       for pattern in title_exclusions)):
+            raise ValueError('Invalid named-link title exclusion patterns')
+        patterns.extend(title_exclusions)
         if "link_base_url" in contract:
             value = contract["link_base_url"]
             try:
                 base = urlsplit(value) if isinstance(value, str) else None
-                valid = (base and base.scheme in {"http", "https"} and base.hostname in hosts
-                         and not base.username and not base.password and not base.query
-                         and not base.fragment and not any(char.isspace() for char in value))
+                valid = (base and base.scheme in {"http", "https"}
+                         and base.hostname in hosts and not base.username
+                         and not base.password and not base.query
+                         and not base.fragment
+                         and not any(char.isspace() for char in value))
                 if base:
                     base.port
             except ValueError:
                 valid = False
             if not valid:
                 raise ValueError("Link base must be an observed HTTP(S) URL on an allowed host")
-    elif any(key in contract for key in ("hosts", "entry_path", "record_name_exclusions",
-                                         "identity_query_keys", "link_base_url")):
-        raise ValueError("Host/path contracts apply only to named_link records")
+    elif contract["schema"] not in {"linked_product"} and (
+            "hosts" in contract or "entry_path" in contract
+            or "record_name_exclusions" in contract
+            or "title_exclusion_patterns" in contract
+            or "identity_query_keys" in contract or "link_base_url" in contract):
+        raise ValueError("Host/path contracts apply only to linked records")
+    query_keys = contract.get("identity_query_keys", [])
+    if (not isinstance(query_keys, list)
+            or any(not isinstance(key, str) or not re.fullmatch(r"[A-Za-z0-9_.~-]+", key)
+                   for key in query_keys)):
+        raise ValueError("Invalid linked-record identity query keys")
+    if query_keys and contract["schema"] not in {"named_link", "linked_product"}:
+        raise ValueError("Identity query keys apply only to linked records")
+    if contract["schema"] == "linked_product":
+        price_patterns = contract.get("price_patterns")
+        price_exclusions = contract.get("price_exclusion_patterns", [])
+        if (not isinstance(price_patterns, list) or not price_patterns
+                or any(not isinstance(pattern, str) or not pattern for pattern in price_patterns)
+                or not isinstance(price_exclusions, list)
+                or any(not isinstance(pattern, str) or not pattern for pattern in price_exclusions)):
+            raise ValueError("Linked products require explicit price and exclusion patterns")
+        unavailable = contract.get("price_unavailable_patterns", [])
+        if (not isinstance(unavailable, list)
+                or any(not isinstance(p, str) or not p.strip() or re.compile(p).search("")
+                       for p in unavailable)):
+            raise ValueError("Invalid explicit price-unavailability patterns")
+        patterns = [*patterns, *price_patterns, *price_exclusions, *unavailable]
+    elif any(k in contract for k in ("price_patterns", "price_exclusion_patterns", "price_unavailable_patterns")):
+        raise ValueError("Price patterns apply only to linked products")
+    if contract["schema"] == "page_identity" and not anchors:
+        raise ValueError("Page identity contracts require stable text anchors")
     try:
         for pattern in patterns:
             compiled = re.compile(pattern)
@@ -594,6 +838,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     """
     validate_acceptance_contract(contract)
     schema = contract["schema"]
+    count_policy = contract.get("record_count_policy")
     minimum, maximum = contract["minimum_records"], contract.get("maximum_records")
     patterns = contract.get("page_patterns", [])
     visible = _visible(content, schema)
@@ -604,37 +849,79 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     if blocked_page:
         content_errors.append("blocked_page")
     errors = []
-    if schema == "named_link":
+    if schema in {"named_link", "linked_product"}:
+        link_diagnostics = []
         try:
-            entries = extract_named_entries(content, contract, base_url, links)
+            if schema == "linked_product":
+                from .dynamic_lists import extract_linked_products
+                entries = extract_linked_products(
+                    content, contract, base_url, diagnostics=link_diagnostics,
+                )
+            else:
+                entries = extract_named_entries(
+                    content, contract, base_url, links, link_diagnostics,
+                )
         except ValueError:
             # Malformed returned URLs are output validation failures, not
             # malformed contracts and not exceptions that abort a whole run.
             entries = []
             errors.append("invalid_link_output")
-        excluded_names = {_key(value) for value in contract.get("record_name_exclusions", [])}
+        errors.extend(error for error in link_diagnostics if error not in errors)
+        excluded_names = ({_key(value) for value in contract.get("record_name_exclusions", [])}
+                          if schema == "named_link" else set())
         excluded_entries = [entry for entry in entries if _key(entry["title"]) in excluded_names]
         entries = [entry for entry in entries if _key(entry["title"]) not in excluded_names]
+        source_pair_hashes = set(contract.get("source_record_pair_hashes", []))
+        source_mismatches = []
+        if source_pair_hashes:
+            matched_entries = []
+            for entry in entries:
+                pair_hash = named_entry_source_pair_hash(
+                    entry["title"], entry["url"], contract)
+                if pair_hash in source_pair_hashes:
+                    matched_entries.append(entry)
+                else:
+                    source_mismatches.append({"title": entry["title"], "url": entry["url"],
+                                              "pair_sha256": pair_hash})
+            entries = matched_entries
+            if source_mismatches:
+                errors.append("source_record_mismatch")
         records = []
         for entry in entries:
             parts = urlsplit(entry["url"])
-            if parts.scheme not in {"http", "https"} or parts.username or parts.password:
+            if (parts.scheme not in {"http", "https"} or not parts.hostname
+                    or parts.username or parts.password):
                 continue
             records.append({"fields": entry, "valid": True, "errors": []})
     else:
         excluded_entries = []
-        records = [] if schema == "body_text" else _parse_records(visible, schema)
+        source_mismatches = []
+        if schema == 'table_row':
+            from .structured_tables import parse_table_records
+            records = parse_table_records(content, visible, contract)
+        else:
+            records = [] if schema in {"body_text", "page_identity"} else _parse_records(visible, schema)
     anchors = []
+    non_record_visible = None
+    if schema == 'named_link' and any(a.get('match_scope') == 'non_record_lines'
+                                      for a in contract.get('stable_text_anchors', [])):
+        non_record_visible = _non_record_visible(content, contract, records, base_url)
     for anchor in contract.get("stable_text_anchors", []):
-        matched = _anchor_matches(anchor, records, visible, schema)
+        matched = _anchor_matches(anchor, records, visible, schema, non_record_visible)
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
     content_errors += ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
     complete = [r for r in records if r["valid"]]
-    unique = {tuple(_key(r["fields"][field]) for field in UNIQUE_FIELDS[schema]) for r in complete}
+    identity_fields = contract["record_identity_fields"] if schema == "table_row" else UNIQUE_FIELDS[schema]
+    compact_fields = {c['name'] for c in contract.get('table_columns', [])
+                      if c.get('compact_whitespace')}
+    def identity_key(record, field):
+        value = _key(record['fields'][field])
+        return re.sub(r'\s+', '', value) if field in compact_fields else value
+    unique = {tuple(identity_key(r, field) for field in identity_fields) for r in complete}
     record_warnings = []
     field_checks = []
     for field, count in contract.get('field_minimum_records', {}).items():
-        identities = {tuple(_key(r['fields'][key]) for key in UNIQUE_FIELDS[schema])
+        identities = {tuple(_key(r['fields'][key]) for key in identity_fields)
                       for r in complete if _valid_field(field, r['fields'].get(field))}
         field_checks.append({'field': field, 'count': len(identities), 'minimum': count, 'pass': len(identities) >= count})
         if len(identities) < count:
@@ -647,7 +934,16 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         # visible, while requiring N complete unique records independently.
         record_warnings.append("ignored_incomplete_candidates")
     if len(unique) != len(complete):
-        errors.append("duplicate_records")
+        grouped = {}
+        for record in complete:
+            identity = tuple(identity_key(record, field) for field in identity_fields)
+            grouped.setdefault(identity, set()).add(tuple(
+                (field, _key(value)) for field, value in sorted(record['fields'].items())))
+        if (contract.get('duplicate_policy') == 'deduplicate_identical'
+                and all(len(values) == 1 for values in grouped.values())):
+            record_warnings.append('identical_records_counted_once')
+        else:
+            errors.append("duplicate_records")
     if len(unique) < minimum:
         errors.append("too_few_complete_records")
     if maximum is not None and len(unique) > maximum:
@@ -667,8 +963,18 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             "stable_text_scope": "declared_text_groups" if anchors else "not_annotated",
             "stable_record_count": len(records), "stable_complete_record_count": len(complete),
             "stable_unique_record_count": len(unique), "stable_minimum_records": minimum,
+            "stable_record_list_type": count_policy.get("list_type") if count_policy else None,
+            "stable_source_observed_record_count": count_policy.get("source_observed_count") if count_policy else None,
+            "stable_required_record_ratio": count_policy.get("required_ratio") if count_policy else None,
+            "stable_record_coverage": (len(unique) / count_policy["source_observed_count"]
+                                       if count_policy else None),
             "stable_maximum_records": maximum, "stable_task_errors": errors, "stable_records": records,
             "stable_excluded_record_names": [entry["title"] for entry in excluded_entries],
             "stable_record_warnings": record_warnings,
+            "stable_source_matched_record_count": (len(records)
+                                                     if contract.get("source_record_pair_hashes")
+                                                     else None),
+            "stable_source_mismatched_record_count": len(source_mismatches),
+            "stable_source_mismatched_records": source_mismatches[:20],
             "factual_correctness": None,
             "stable_verification_scope": "Mechanical field/group/count checks; source fidelity and factual values are not verified"}

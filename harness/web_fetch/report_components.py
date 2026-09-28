@@ -68,7 +68,7 @@ def metric_legend(headers):
     entries=[(h,METRIC_DEFINITIONS[h]) for h in headers if h in METRIC_DEFINITIONS]
     if not entries:return ''
     missing='“—”表示未进行可归属的专用采用统计；0 表示本样本未命中。' if '命中仓库数' in headers else '“—”表示不适用、缺少参考或没有可计算的样本，不等于 0。'
-    return '<div class="metric-help" aria-label="本表指标说明"><dl>'+''.join('<div><dt>'+escape(k)+'</dt><dd>'+escape(v)+'</dd></div>' for k,v in entries)+'</dl><p class="source-note">'+missing+'</p></div>'
+    return '<div class="metric-help" aria-label="本表指标说明" data-i18n-attrs="aria-label"><dl>'+''.join('<div><dt>'+escape(k)+'</dt><dd>'+escape(v)+'</dd></div>' for k,v in entries)+'</dl><p class="source-note">'+missing+'</p></div>'
 
 
 TRACK_CONTEXT = {
@@ -224,11 +224,18 @@ def list_rule_description(c):
 
 
 SCHEMA_LABELS = {
+    'table_row':'表格行',
+    'earthquake':'地震条目',
     'quote':'引文列表', 'product':'商品列表', 'catalog_product':'商品目录',
     'review':'评论列表', 'name_description':'名称与说明', 'api_operation':'接口摘要',
     'taxonomy_family':'科名列表', 'named_link':'具名详情入口',
+    'linked_product':'具名商品详情', 'page_identity':'页面身份',
 }
 FIELD_REQUIREMENTS = {
+    'magnitude':('震级','有效的数字震级，不固定某次地震的数值。'),
+    'location':('地点','同一地震条目的非空地点文字，不能是占位内容。'),
+    'time':('发生时间','包含有效日期和时分秒；支持 ISO 时间及页面显示的 UTC 偏移。'),
+    'depth':('深度','同一地震条目中带 km 单位的数值。'),
     'quote':('引文','至少 3 个字符，含文字，不能只是网址、金额或占位内容。'),
     'author':('作者','至少 2 个字符，含文字，不能是占位内容。'),
     'tags':('标签','非空文字，至少 2 个字符，不能是占位内容。'),
@@ -255,7 +262,18 @@ def task_instruction(c):
             return '读取这个最小文档的全部可见正文。该样本只检查能否取得短文档文字，不代表多页、表格或附录能力。'
         return c.get('task_prompt', '')
     from .stable_tasks import SCHEMA_FIELDS
+    if contract['schema'] == 'page_identity':
+        return '核对声明的页面、栏目或查询身份；不以变化中的条目名单作为固定答案。'
+    if contract['schema'] == 'body_text':
+        instruction = '提取页面声明范围内的正文。'
+        if contract.get('stable_text_anchors') or contract.get('page_patterns'):
+            instruction += '同时核对下方列明的稳定文字与页面要求。'
+        if c.get('body_requirements'):
+            instruction += '正文还须达到下方各区域的覆盖要求。'
+        return instruction
     fields = '、'.join(FIELD_REQUIREMENTS[f][0] for f in SCHEMA_FIELDS[contract['schema']])
+    if contract['schema'] == 'table_row':
+        fields = '、'.join(col['label'] for col in contract.get('table_columns', []))
     instruction = f'取得至少 {contract["minimum_records"]} 条完整、不重复的记录，每条包含{fields}。'
     if contract.get('stable_text_anchors') or contract.get('page_patterns'):
         instruction += '同时核对下方列明的稳定文字与页面要求。'
@@ -267,6 +285,8 @@ def stable_rule_description(c):
     if contract['schema'] == 'body_text':
         return ('页面正文按登记的稳定文字锚点核验；新闻、日期、轮播卡片、仓库状态等'
                 '易变内容不固定为答案。历史完整快照只作诊断，不进入全文质量汇总。')
+    if contract['schema'] == 'page_identity':
+        return '页面身份：所有独立登记的稳定文字组均须命中；不声明或虚构条目数量。'
     maximum = contract.get('maximum_records')
     limit = f'至少 {contract["minimum_records"]} 条' + (f'，最多 {maximum} 条' if maximum is not None else '')
     return (f'{SCHEMA_LABELS.get(contract["schema"], contract["schema"])}：{limit}完整且唯一的记录。'
@@ -280,20 +300,37 @@ def stable_contract_details(c):
     schema = contract['schema']
     fields = ''.join('<li><strong>'+escape(FIELD_REQUIREMENTS[f][0])+'</strong>：'+escape(FIELD_REQUIREMENTS[f][1])+'</li>' for f in SCHEMA_FIELDS[schema])
     unique = '＋'.join(FIELD_REQUIREMENTS[f][0] for f in UNIQUE_FIELDS[schema])
-    requirements = ('' if schema == 'body_text' else
+    if schema == 'table_row':
+        types = {
+            'text': '非空文字',
+            'token': '符合声明格式的非空字段',
+            'integer': '整数',
+            'number': '数值',
+            'currency_usd': '美元金额',
+            'date_dmy': '有效的日/月/年日期',
+            'date_ordinal_en': '有效的英文序数日期',
+        }
+        fields = ''.join('<li><strong>'+escape(col['label'])+'</strong>：'+escape(types[col['type']])+'</li>'
+                         for col in contract.get('table_columns', []))
+        labels = {col['name']: col['label'] for col in contract.get('table_columns', [])}
+        unique = '＋'.join(labels.get(key, key) for key in contract.get('record_identity_fields', []))
+    requirements = ('' if schema in {'body_text','page_identity'} else
         '<h3>必需字段与要求</h3><ul>'+fields+'</ul><p>各字段须属于同一条记录，不得跨条目拼接。按'+escape(unique)+'核对唯一性。</p>')
     if schema == 'name_description':
         requirements += '<p>说明不能仅重复名称。</p>'
     if schema in {'product','catalog_product'}:
         requirements += '<p>如返回分期或运费字段，分期须为正整数期数及货币金额；运费须为免费或货币金额。</p>'
-    if schema == 'named_link':
+    if schema in {'named_link','linked_product'}:
         requirements += '<p>允许域名：'+escape('、'.join(contract.get('hosts',[])))+'；详情路径：<code>'+escape(contract.get('entry_path',''))+'</code>。入口按域名与路径去重。</p>'
+    if schema == 'linked_product':
+        requirements += '<p>价格须在同一商品详情入口的声明范围内，并符合本例的币种与价格格式。</p>'
     patterns = ''.join('<li><code>'+escape(p)+'</code></li>' for p in contract.get('page_patterns', []))
     anchors = ''.join('<li>'+escape(a['id'])+'：'+escape(' / '.join(a['alternatives']))+('（不能由包含商品条目标题的文字行代替）' if a.get('match_scope')=='non_record_lines' else '')+'</li>'
                       for a in contract.get('stable_text_anchors', []))
     annotation = (c.get('mutable_body_policy',{}).get('stable_annotation',{})
                   or c.get('source_benchmark',{}).get('stable_annotation',{}))
-    evidence = annotation.get('anchor_evidence')
+    evidence = ((c.get('stable_text_evidence') or {}).get('path')
+                or annotation.get('anchor_evidence'))
     provenance = ('<p>独立文字依据：<a href="../'+escape(evidence,quote=True)+'">查看限定范围原文</a>。'
         '这些核对项验证文字是否保留，不证明整页正文完整，也不以榜单当前成员为答案。</p>') if evidence else ('<p>本例未登记稳定文字依据；文字核对覆盖不计算，已执行的列表规则与结果仍保留。</p>' if annotation else '')
     return ('<p>'+escape(stable_rule_description(c))+'</p>'+requirements

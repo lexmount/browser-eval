@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-108-swagger-petstore3",
+  "url": "https://petstore3.swagger.io/",
+  "evaluation_url": "https://petstore3.swagger.io/",
+  "expected_final_url": "https://petstore3.swagger.io/",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 3,
+  "anchors": [
+    {
+      "id": "phase1-stable-5e8dc5d4a0a8",
+      "text": ". In the third iteration of the pet store, we've switched to the design first approach! You can now help us improve the API whether it's by making changes to the definition itself or to the code. That way, with time, we can improve the API in general, and expose some of the new features in OAS3.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "4d6432d45aa1b57a95678c9b63138582aed6b1bc9d68477d21536d06cc64cce6"
+    },
+    {
+      "id": "phase1-stable-b12572dc5e64",
+      "text": "Access to Petstore orders",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "4d6432d45aa1b57a95678c9b63138582aed6b1bc9d68477d21536d06cc64cce6"
+    },
+    {
+      "id": "phase1-stable-36f60419f871",
+      "text": "Everything about your Pets",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "4d6432d45aa1b57a95678c9b63138582aed6b1bc9d68477d21536d06cc64cce6"
+    }
+  ],
+  "projected_text_sha256": "0a45c884c14a78cf9d142bc05a9fdfdb19bcb2608a3c32439a46f031b687f2db"
+}

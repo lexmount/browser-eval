@@ -21,6 +21,13 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertIn("$(UV) sync --frozen --all-extras", makefile)
         self.assertIn("sys.version_info[:2] == (3, 11)", makefile)
 
+    def test_common_scoring_dependency_is_in_the_base_environment(self) -> None:
+        project = (ROOT / "pyproject.toml").read_text()
+        base = project.split("[project]", 1)[1].split("[project.scripts]", 1)[0]
+        self.assertIn('beautifulsoup4', base)
+        makefile = (ROOT / "Makefile").read_text()
+        self.assertIn('tests/test_local_audit.py tests/test_dynamic_100_moli_119.py', makefile)
+
     def test_browser_use_routine_and_release_checks_are_separate(self) -> None:
         makefile = (ROOT / "Makefile").read_text()
         routine = makefile.split("browser-use-report-check:", 1)[1].split(

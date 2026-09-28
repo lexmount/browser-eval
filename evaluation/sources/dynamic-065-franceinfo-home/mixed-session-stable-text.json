@@ -1,0 +1,269 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-065-franceinfo-home",
+  "url": "https://www.francetvinfo.fr/",
+  "evaluation_url": "https://www.francetvinfo.fr/",
+  "expected_final_url": "https://www.franceinfo.fr/",
+  "target_language": "fr-FR",
+  "target_region": "FR",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 35,
+  "anchors": [
+    {
+      "id": "phase1-stable-5038ccc091fb",
+      "text": "Abonnement Newsletter",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-3f92aa1565f8",
+      "text": "Accessibilité (partiellement conforme)",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-bfb044043f3c",
+      "text": "Assistant vocal",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-adaf62f5658a",
+      "text": "CGU et mentions légales",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-046068f341bb",
+      "text": "Charte du Live",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-13f2940c8f75",
+      "text": "Charte déontologique",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-9fa4dc19b5a2",
+      "text": "Devenir annonceur",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-5517ff65c7e0",
+      "text": "Direct TV",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-423a5182eba3",
+      "text": "Direct radio",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-dd3ae33250cf",
+      "text": "En savoir plus",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-d211e68b4e7f",
+      "text": "Enquêtes",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-0d746cf91ccc",
+      "text": "France Télévisions utilise votre adresse e-mail pour vous adresser la newsletter “L’actu à 7h30” et elle est susceptible d'être personnalisée. En vous inscrivant à nos newsletters, vous consentez également à l’utilisation de pixels de suivi et de liens traçants.",
+      "source_location": "footer > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-8a88d3d0e036",
+      "text": "Guerre en Ukraine",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-b2d072387262",
+      "text": "Gérer mes traceurs",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-64103d3936a1",
+      "text": "L'actualité près de chez vous",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-91f373df63a8",
+      "text": "Le live",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-6993b22c091a",
+      "text": "Nos rubriques",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-edc8162fd46a",
+      "text": "Notre politique de confidentialité",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-9f38ae8098e2",
+      "text": "Nous contacter",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-c1db3ae032e5",
+      "text": "Plan du site",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-3f74bf663901",
+      "text": "Plan du site recherche",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-f873b7dcc8ea",
+      "text": "Politique de confidentialité",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-731e0170ecd5",
+      "text": "Qui sommes-nous ?",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-2dad7cd9c0f7",
+      "text": "Rechercher une actualité",
+      "source_location": "nav > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-0b2c13d1289c",
+      "text": "Recrutement",
+      "source_location": "nav > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-20a37959cad5",
+      "text": "Retrouvez aussi",
+      "source_location": "nav > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-6a94e62f71e2",
+      "text": "Suivez l'actualité en direct :",
+      "source_location": "nav > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-e79bdd660c3f",
+      "text": "Suivez-nous sur les réseaux sociaux :",
+      "source_location": "footer > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-fc0b7fb6e3ef",
+      "text": "Votre adresse e-mail",
+      "source_location": "footer > label",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-6be5d4196106",
+      "text": "franceinfo sur Facebook (Nouvelle fenêtre)",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-b6f5994d221c",
+      "text": "franceinfo sur Instagram (Nouvelle fenêtre)",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-f32e9ee03ec2",
+      "text": "franceinfo sur Tiktok (Nouvelle fenêtre)",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-79e4e20f2131",
+      "text": "franceinfo sur X, anciennement Twitter (Nouvelle fenêtre)",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-bdf5a6bce679",
+      "text": "franceinfo sur Youtube (Nouvelle fenêtre)",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    },
+    {
+      "id": "phase1-stable-bcf412beec09",
+      "text": "toute l’actu dès 7h30",
+      "source_location": "footer > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "473fa47f2fdc97aa9d928fe777e595eb1ba74e1735fe6e425937ea47a425d671"
+    }
+  ],
+  "projected_text_sha256": "04ddee5467d9e209c1c3a79f8bbf563d953bb08c65b376e5a36127f959dc39a6"
+}

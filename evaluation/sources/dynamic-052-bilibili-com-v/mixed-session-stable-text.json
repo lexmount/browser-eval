@@ -1,0 +1,73 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-052-bilibili-com-v",
+  "url": "https://www.bilibili.com/v/popular/all/",
+  "evaluation_url": "https://www.bilibili.com/v/popular/all/",
+  "expected_final_url": "https://www.bilibili.com/v/popular/all/",
+  "target_language": "zh-CN",
+  "target_region": "CN",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 7,
+  "anchors": [
+    {
+      "id": "source-stable-5acb7efa8ac5",
+      "text": "bilibili",
+      "source_location": "body > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "0ce9486f6b205ddc2933e3f958b051e22b21154e80bcca7a0de2a8eaf81cf627"
+    },
+    {
+      "id": "source-stable-c6fef6007ebd",
+      "text": "综合热门",
+      "source_location": "body > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "152ed562cf57d9f037da7e20ddfa5d0addf2d092b7deefc47630245c08d0d246"
+    },
+    {
+      "id": "source-stable-1f80d26fe864",
+      "text": "热门规则",
+      "source_location": "body > div",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "0286768a6ffe270bee6debb68e53a81b08ec6804af76f6700837b785195732e6"
+    },
+    {
+      "id": "source-stable-1ee95aa94712",
+      "text": "排行榜",
+      "source_location": "body > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "dd05a58d45e0cad4e4b6680ae05214c7c8393a0019cfcaeed2fa5ccb7caa0c34"
+    },
+    {
+      "id": "source-stable-dc0179998b33",
+      "text": "帮助中心",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "025ab66de41de821fce76f1d22afbe0a7133f3654a45c024a16b5cbe4b49765b"
+    },
+    {
+      "id": "source-stable-9134428dcb7b",
+      "text": "关于我们",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "0ba4cea557b73122bc6f4bf64484be577de3a6d3461c6fe03e7bfa5724a743ad"
+    },
+    {
+      "id": "source-stable-d3735a70484a",
+      "text": "不良信息举报邮箱：help@bilibili.com",
+      "source_location": "body > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "40471115028e601a5f9f22d6ce0c3c6aaa040c5d39322dfb965d9b19f979fcff"
+    }
+  ],
+  "projected_text_sha256": "21eb9ddb7f8637757689ddfc959030cfeb7e70dfdffa0a9e05dfda1ff69e7c43"
+}

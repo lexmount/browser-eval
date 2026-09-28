@@ -1,0 +1,94 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-028-ej2-syncfusion-com-react",
+  "url": "https://ej2.syncfusion.com/react/demos/grid/paging/",
+  "evaluation_url": "https://ej2.syncfusion.com/react/demos/grid/paging/",
+  "expected_final_url": "https://ej2.syncfusion.com/react/demos/grid/paging/",
+  "target_language": "en-US",
+  "target_region": "US",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "curation_sha256": "2bdd4b0d2efd277b39979eef7a596fc52d58ad19b76a9b401b69e6e43e510357",
+  "anchor_count": 10,
+  "anchors": [
+    {
+      "id": "phase1-stable-cfbf84ad6a58",
+      "text": "Changed default pager details information using the",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "ae83c240fca4bc4c3c2073652014050dd6180fad35401ca8835482c36c9f455d"
+    },
+    {
+      "id": "phase1-stable-d51e4e3d4ad9",
+      "text": "Example of Paging in React Grid",
+      "source_location": "body > h1",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "ae83c240fca4bc4c3c2073652014050dd6180fad35401ca8835482c36c9f455d"
+    },
+    {
+      "id": "phase1-stable-90b19870ca6a",
+      "text": "Grid component features are segregated into individual feature-wise modules. To use paging feature, we need to inject",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "ae83c240fca4bc4c3c2073652014050dd6180fad35401ca8835482c36c9f455d"
+    },
+    {
+      "id": "phase1-stable-ea70f0db3da9",
+      "text": "In this demo, the Grid is rendered with",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "ae83c240fca4bc4c3c2073652014050dd6180fad35401ca8835482c36c9f455d"
+    },
+    {
+      "id": "phase1-stable-a851b0ebc680",
+      "text": "Looking for the full React Data Grid component overview, features, pricing, and documentation? Visit our",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "ae83c240fca4bc4c3c2073652014050dd6180fad35401ca8835482c36c9f455d"
+    },
+    {
+      "id": "phase1-stable-317246fc7589",
+      "text": "More information on the paging feature configuration can be found in this",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "ae83c240fca4bc4c3c2073652014050dd6180fad35401ca8835482c36c9f455d"
+    },
+    {
+      "id": "phase1-stable-4a3d94ced073",
+      "text": "Paging allows you to display the contents of the Grid component in page segments. By default, paging is disabled. To enable paging, set",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "ae83c240fca4bc4c3c2073652014050dd6180fad35401ca8835482c36c9f455d"
+    },
+    {
+      "id": "phase1-stable-55ab079208b1",
+      "text": "The Pager component has been enhanced to be more responsive. It now includes the ability to automatically resize itself and dynamically show or hide pager items based on the width of the Grid.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "ae83c240fca4bc4c3c2073652014050dd6180fad35401ca8835482c36c9f455d"
+    },
+    {
+      "id": "phase1-stable-b5b1f36f01b3",
+      "text": "This sample demonstrates the Grid paging feature. In this sample, click the numeric items to navigate to particular page. You can also change the page size using the dropdown.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "ae83c240fca4bc4c3c2073652014050dd6180fad35401ca8835482c36c9f455d"
+    },
+    {
+      "id": "phase1-stable-e9f61e2b2e3d",
+      "text": "property enables a dropdown in pager which allows you to change the number of records in the Grid dynamically.",
+      "source_location": "body > p",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "ae83c240fca4bc4c3c2073652014050dd6180fad35401ca8835482c36c9f455d"
+    }
+  ],
+  "projected_text_sha256": "8641d57ff536218b2fd57d513cbf4bdb8215d87dcd5ad687877d27f16909c399"
+}

@@ -1,0 +1,87 @@
+{
+  "schema_version": 2,
+  "kind": "dynamic_100_mixed_session_stable_text_evidence",
+  "case_id": "dynamic-069-ja-nintendo-search",
+  "url": "https://www.nintendo.com/jp/search/index.html?q=Nintendo",
+  "evaluation_url": "https://www.nintendo.com/jp/search/index.html?q=Nintendo",
+  "expected_final_url": "https://www.nintendo.com/jp/search/index.html?q=Nintendo",
+  "target_language": "ja-JP",
+  "target_region": "JP",
+  "provider_output_used": false,
+  "observation_protocol": {
+    "fresh_anonymous_environment": true,
+    "existing_normal_session": true,
+    "alternate_browser_when_needed": true,
+    "language_and_region_fixed": true,
+    "environment_specific_text_excluded": true
+  },
+  "stable_summary_sha256": "c9d86235d08639debd35e8481afb8b5eaa52d0069f8fdedb0181bf41197c8170",
+  "curation_sha256": "d1420e286e55847d167fc7cce0870c5cd778deb1d153356a3f2170238011835b",
+  "anchor_count": 9,
+  "anchors": [
+    {
+      "id": "source-stable-8e5e7c7e5d1f",
+      "text": "ゲームソフトをさがす",
+      "source_location": "body > div",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "b26fe9f76278003503d5caa9de017de0c0b588fd38d72f194e8d2fa172616fde"
+    },
+    {
+      "id": "source-stable-d60fc45504db",
+      "text": "ページをさがす",
+      "source_location": "body > h3",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "0092b627d797a713b0b81f6effaee26575028b41d009d1ab1e1b75c8f2f437dc"
+    },
+    {
+      "id": "source-stable-150a78cd0382",
+      "text": "Nintendo Switch 2 ソフト",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "09f73515a1a3922f52b98ff3388d45daaec15c154d2cffa39cbac5c010ac4b40"
+    },
+    {
+      "id": "source-stable-2af4563383ae",
+      "text": "Nintendo Switchソフト",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "8a20104882b120d0eb378fea84681d55069c730f0c0b696fbdc1b4917b22e7a7"
+    },
+    {
+      "id": "source-stable-c59b7166fdc3",
+      "text": "よくあるご質問",
+      "source_location": "footer > a",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "3144539118f94ca78ddfa20586cdc55f7aac6d8d4550370dd140268e3ff9c257"
+    },
+    {
+      "id": "source-stable-6c694d000328",
+      "text": "サイトマップ",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "c91bb121d2ca1c3b09209feaeb6b63695ffdda636b4aba527570cf9b656027c1"
+    },
+    {
+      "id": "source-stable-a6c63435d0be",
+      "text": "お問い合わせ",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "e7458e8b7dbbaddc0a992a59663377afdd9fc09506e5bbed037aef26ac52a557"
+    },
+    {
+      "id": "source-stable-e326fdba7d34",
+      "text": "任天堂ウェブサイトポリシー",
+      "source_location": "footer > span",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "233969e0f8109211891445bdc3545d690c86b88cc2ea9221299d07ac5cc1ba15"
+    },
+    {
+      "id": "source-stable-f7aba3e52c83",
+      "text": "© Nintendo",
+      "source_location": "footer > div",
+      "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+      "source_evidence_sha256": "60ff4afcef5cda34868ad5a73f325bcabe34f1d4db9bc274c4cef1262c5f39b2"
+    }
+  ],
+  "projected_text_sha256": "cf2984e4ade7eedd70a34907f9fa36d4ba90ccf542d5001b78e50c0f2ec4de3d"
+}

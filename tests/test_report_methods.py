@@ -1,10 +1,38 @@
 import unittest
+from unittest.mock import patch
 from harness.web_fetch.report_methods import adoption_counts
 from harness.web_fetch.report_components import metric_legend,metric_guide
-from harness.web_fetch.methods import method_info
+from harness.web_fetch.methods import METHOD_REGISTRY, method_info, method_page_model
 from harness.web_fetch.report_i18n import translate_text
 
 class AdoptionTests(unittest.TestCase):
+ def test_method_page_model_resolves_moli_profile_before_rendering(self):
+  record={'provider_type':'moli_webfetch','provider_metadata':{
+      'reported_version':'moli 1.1.9','dump':'markdown',
+      'route':'dynamic_native_markdown','wait_until':'done',
+      'wait':{'strategy':'native_default_completion'}}}
+  model=method_page_model('moli-webfetch','Moli',[record]*100)
+  self.assertEqual(model['title'],'Moli · Moli 1.1.9')
+  self.assertEqual(model['endpoint'],'moli fetch --dump markdown --wait-until done URL')
+  self.assertIn('本轮 100 例',model['configuration'])
+  self.assertIn('默认 done',model['configuration'])
+
+ def test_future_method_page_is_registry_driven_without_renderer_changes(self):
+  method={'endpoint':'future fetch URL','contract':'URL → text','output':'text',
+          'freshness':'fresh process','leaderboard':'body',
+          'report':{'configuration':'Configured from registry.',
+                    'pricing_anchor':'pricing-future'}}
+  with patch.dict(METHOD_REGISTRY,{'future_method':method}):
+   model=method_page_model(
+       'future-provider','Future Provider',
+       [{'provider_type':'future_method','provider_metadata':{}}],
+   )
+  self.assertEqual(model,{
+      'title':'Future Provider','contract':'URL → text','endpoint':'future fetch URL',
+      'freshness':'fresh process','configuration':'Configured from registry.',
+      'pricing_anchor':'pricing-future',
+  })
+
  def test_tavily_method_reports_the_advanced_route_used_by_the_cohort(self):
   output=method_info('tavily_extract')['output']
   self.assertIn('advanced',output)

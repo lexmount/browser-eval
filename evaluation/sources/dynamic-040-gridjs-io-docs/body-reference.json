@@ -1,0 +1,36 @@
+{
+  "dynamic-040-gridjs-io-docs": {
+    "case_id": "dynamic-040-gridjs-io-docs",
+    "status": "success",
+    "independent": true,
+    "checked_at": "2026-09-18T13:38:16Z",
+    "url": "https://gridjs.io/docs/examples/hello-world",
+    "final_url": "https://gridjs.io/docs/examples/hello-world",
+    "document_language": "en",
+    "selector": "article",
+    "observation_method": "Codex in-app Chromium visible DOM inspection; provider output was not available",
+    "content_text": "Hello, World!\n\nYou can interact with the following editor!\n\nconst grid = new Grid({ columns: ['Name', 'Email', 'Phone Number'], data: [ ['John', 'john@example.com', '(353) 01 222 3333'], ['Mark', 'mark@gmail.com', '(01) 22 888 4444'] ] });\n\nName Email Phone Number\n\nJohn john@example.com (353) 01 222 3333\n\nMark mark@gmail.com (01) 22 888 4444\n\nOr you can update the config using updateConfig:\n\nconst grid = new Grid({ data: [ ['John', 'john@example.com', '(353) 01 222 3333'], ['Mark', 'mark@gmail.com', '(01) 22 888 4444'] ] }).updateConfig({ columns: ['Name', 'Email', 'Phone Number'], });\n\nName Email Phone Number\n\nJohn john@example.com (353) 01 222 3333\n\nMark mark@gmail.com (01) 22 888 4444",
+    "structured_blocks": [
+      {"tag": "h1", "text": "Hello, World!"},
+      {"tag": "p", "text": "You can interact with the following editor!"},
+      {"tag": "pre", "text": "const grid = new Grid({ columns: ['Name', 'Email', 'Phone Number'], data: [ ['John', 'john@example.com', '(353) 01 222 3333'], ['Mark', 'mark@gmail.com', '(01) 22 888 4444'] ] });"},
+      {"tag": "tr", "text": "Name Email Phone Number"},
+      {"tag": "tr", "text": "John john@example.com (353) 01 222 3333"},
+      {"tag": "tr", "text": "Mark mark@gmail.com (01) 22 888 4444"},
+      {"tag": "p", "text": "Or you can update the config using updateConfig:"},
+      {"tag": "pre", "text": "const grid = new Grid({ data: [ ['John', 'john@example.com', '(353) 01 222 3333'], ['Mark', 'mark@gmail.com', '(01) 22 888 4444'] ] }).updateConfig({ columns: ['Name', 'Email', 'Phone Number'], });"},
+      {"tag": "tr", "text": "Name Email Phone Number"},
+      {"tag": "tr", "text": "John john@example.com (353) 01 222 3333"},
+      {"tag": "tr", "text": "Mark mark@gmail.com (01) 22 888 4444"}
+    ],
+    "observer": {
+      "browser": "Codex in-app Chromium",
+      "session": "fresh independent tab"
+    },
+    "completion": {
+      "satisfied": true,
+      "timeout_ms": 60000,
+      "condition": "article visibly contains both live editors and both rendered result tables"
+    }
+  }
+}
