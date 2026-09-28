@@ -6,9 +6,9 @@
   "case_ids_sha256": "5c0cf5810602b70e8f7c1e16723e24a49c3ea207d54865df5c03c38f3d88ffd5",
   "source_dataset_sha256": "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e",
   "providers": ["moli"],
-  "versions": {"moli": "1.1.10"},
-  "binary_sha256": "8fb71de97b6310f577d8b4315c7417af77800c803b78d2faac5b0fbe3321d60d",
-  "source_commit": "39169d705902cad04d241ecff01fc692e4303edc",
+  "versions": {"moli": "1.1.11"},
+  "binary_sha256": "d8fe3a27ccd150500e481398c190cececa16f7bb00fec3289e09044d2bbeb3b7",
+  "source_commit": "4ff17c490bbdab40a4944d2c122c784211f24a82",
   "timeout_seconds": 45,
   "runs_per_case": 1,
   "concurrency": 1,
@@ -24,5 +24,5 @@
   },
   "publication_state": "pending",
   "require_independent_result_review": false,
-  "conversion": "Native Markdown from Moli fixed build"
+  "conversion": "Native Markdown from Moli PR #919 fixed build rebased onto main 80660fb6d"
 }
