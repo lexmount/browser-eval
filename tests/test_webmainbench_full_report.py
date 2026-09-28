@@ -104,6 +104,13 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     assert home.select_one('td[data-target-body-provider="chromium"]').get_text(strip=True) == "0/545"
     assert home.select_one('td[data-target-body-provider="moli-content-fixed"]').get_text(strip=True) == "1/545"
     assert "目标正文" in home.get_text()
+    guide = BeautifulSoup((tmp_path / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
+    lineage = guide.select_one("#moli-repair-lineage")
+    assert lineage is not None
+    assert lineage.find("a", href="https://github.com/lexmount/moli/pull/814").get_text(strip=True) == "PR814（实测来源）"
+    assert lineage.find("a", href="https://github.com/lexmount/moli/pull/919").get_text(strip=True) == "PR919（最新 main 实现）"
+    assert "仍绑定提交 39169d705" in lineage.get_text(" ", strip=True)
+    assert "未重新测量，不替换上表的冻结结果" in lineage.get_text(" ", strip=True)
     detail = check_presentation((tmp_path / "results/index.html").read_text(encoding="utf-8"))
     assert detail.select_one('[data-failure-diagnosis]') is not None
     comparison = BeautifulSoup((tmp_path / "cases/index.html").read_text(encoding="utf-8"), "html.parser")

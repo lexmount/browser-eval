@@ -3291,7 +3291,9 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                      '<p class="note">两个修复版均为独立的 545 页认证运行，运行日期不同，耗时不作版本快慢结论。' +
                      anchor('seven-method-binding.json', '三轮证据绑定') + ' · ' +
                      anchor('https://github.com/lexmount/moli/pull/785', 'PR785') + ' · ' +
-                     anchor('https://github.com/lexmount/moli/pull/814', 'PR814') + '</p></section>')
+                     anchor('https://github.com/lexmount/moli/pull/814', 'PR814（实测来源）') + ' · ' +
+                     anchor('https://github.com/lexmount/moli/pull/919', 'PR919（最新 main 实现）') +
+                     '</p><p class="note">上表内容修复版的分数仍绑定提交 <code>39169d705</code>。PR919 将同一修复移植到最新 main，未重新测量，不替换上表的冻结结果。</p></section>')
     correction_section = ''
     if correction:
         corrected_id = correction['preflight']['case_id']
