@@ -4,7 +4,7 @@
   "split": "full-812",
   "browser": "moli",
   "dataset_path": "evaluation/trajectory-replay/webarena-verified-full/dataset.json",
-  "dataset_sha256": "34aac949a150c6fb742910b8caed8c364d2a05e9577c7f095e23c3f774925c37",
+  "dataset_sha256": "74fd5a77dc652216628e2a4ff7b0b249045f10b8cc8a21dc710d3d05a591dde1",
   "scope_path": "evaluation/trajectory-replay/webarena-verified-full/scope.json",
   "scope_sha256": "a209bc38d06e51dab3b32269be88ff5e9c30b8ccfebbac39ef56e20da4b994df",
   "evidence_root": "trajectory-replay/full-812-playwright-moli-20260926",
