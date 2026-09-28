@@ -3074,7 +3074,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
             summary = summaries[provider]
             scores = summary["official_aggregate"]["scores"]
             denominators = summary["official_aggregate"]["denominators"]
-            method_detail = ('<small>实测提交 ' + content_fixed_commit[:9] + '；Moli 1.1.11</small>'
+            method_detail = ('<small>实测提交 ' + esc(content_fixed_commit[:9]) + '；Moli 1.1.11</small>'
                              if provider == 'moli-content-fixed' else '')
             cells = ['<td data-sort="' + esc(labels[provider]) + '">' + anchor("analysis/index.html?provider=" + provider, labels[provider]) + method_detail + "</td>"]
             for metric, _ in measures:

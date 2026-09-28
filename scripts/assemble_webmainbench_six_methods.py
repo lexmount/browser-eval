@@ -30,7 +30,7 @@ def assemble(baseline: Path, candidate: Path, output: Path, scorer: Path,
         raise ValueError("Composite evidence is immutable")
     base_profile_path = ROOT / "evaluation/webmainbench-full/current-report.json"
     fixed_profile_path = fixed_profile_path or (
-        ROOT / "evaluation/webmainbench-full/moli-fixed-report.json"
+        ROOT / "evaluation/webmainbench-full/moli-pr785-fixed-report.json"
     )
     base_profile = json.loads(base_profile_path.read_text())
     fixed_profile = json.loads(fixed_profile_path.read_text())
@@ -136,7 +136,7 @@ def main() -> None:
     parser.add_argument(
         "--fixed-profile",
         type=Path,
-        default=ROOT / "evaluation/webmainbench-full/moli-fixed-report.json",
+        default=ROOT / "evaluation/webmainbench-full/moli-pr785-fixed-report.json",
         help="Profile that certified the candidate cohort",
     )
     args = parser.parse_args()
