@@ -10,12 +10,67 @@ from scripts.correct_webmainbench_references import copy_contained_artifact
 from scripts.review_webmainbench_teds_correction import review
 from harness.web_fetch.webmainbench_diagnostics import (
     validate_reference_revision,
+    validate_webmainbench_scoring_revision,
     validate_teds_revision,
     validate_teds_revision_if_present,
 )
 
 
 class WebMainBenchReviewGuardsTests(unittest.TestCase):
+    def test_scoring_revision_keeps_provider_evidence_and_official_metrics(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            providers = [f'method-{index}' for index in range(7)]
+            before, after = [], []
+            for provider in providers:
+                for index in range(545):
+                    metrics = {
+                        name: {'score': 0.5, 'success': index < limit, 'details': {}}
+                        for name, limit in {
+                            'text_edit': 545, 'code_edit': 110, 'formula_edit': 119,
+                            'table_edit': 81, 'table_TEDS': 81,
+                        }.items()
+                    }
+                    original = {
+                        'attempt_id': f'{provider}:{index}', 'provider': provider,
+                        'case_id': str(index), 'output_sha256': 'fixed-output',
+                        'metrics': {'legacy': {'score': 0.1}},
+                        'official_metrics': {'legacy': {'score': 0.05}},
+                        'reference_sha256': 'old-reference', 'meta': {},
+                    }
+                    before.append(original)
+                    after.append({
+                        **original, 'metrics': metrics,
+                        'pre_scoring_correction_metrics': original['metrics'],
+                        'reference_sha256': 'corrected-reference',
+                        'meta': {'code': []},
+                    })
+            before_bytes = ''.join(json.dumps(row) + '\n' for row in before).encode()
+            after_bytes = ''.join(json.dumps(row) + '\n' for row in after).encode()
+            before_dataset, after_dataset = b'{"stage":"before"}\n', b'{"stage":"after"}\n'
+            (root / 'pre-scoring-correction-results.jsonl').write_bytes(before_bytes)
+            (root / 'results.jsonl').write_bytes(after_bytes)
+            (root / 'pre-scoring-correction-dataset.json').write_bytes(before_dataset)
+            (root / 'dataset.json').write_bytes(after_dataset)
+            receipt = {
+                'schema_version': 1,
+                'kind': 'webmainbench_shared_population_scoring_correction',
+                'provider_calls': 0, 'logical_results': len(after), 'providers': providers,
+                'input_results_sha256': hashlib.sha256(before_bytes).hexdigest(),
+                'output_results_sha256': hashlib.sha256(after_bytes).hexdigest(),
+                'input_dataset_sha256': hashlib.sha256(before_dataset).hexdigest(),
+                'output_dataset_sha256': hashlib.sha256(after_dataset).hexdigest(),
+            }
+            (root / 'scoring-correction.json').write_text(json.dumps(receipt))
+            validate_webmainbench_scoring_revision(root)
+            after[0]['official_metrics'] = {'changed': True}
+            after_bytes = ''.join(json.dumps(row) + '\n' for row in after).encode()
+            (root / 'results.jsonl').write_bytes(after_bytes)
+            receipt['output_results_sha256'] = hashlib.sha256(after_bytes).hexdigest()
+            (root / 'scoring-correction.json').write_text(json.dumps(receipt))
+            with self.assertRaisesRegex(ValueError, 'changed provider evidence'):
+                validate_webmainbench_scoring_revision(root)
+
     def test_reference_revision_copy_rejects_source_and_destination_escape(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

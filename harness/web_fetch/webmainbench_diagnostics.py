@@ -88,8 +88,14 @@ def validate_reference_revision(root):
     receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
     prior_results = contained_path(root, 'pre-reference-correction-results.jsonl')
     prior_dataset = contained_path(root, 'pre-reference-correction-dataset.json')
-    current_results = contained_path(root, 'results.jsonl')
-    current_dataset = contained_path(root, 'dataset.json')
+    # A later shared-population scoring correction retains the exact output of
+    # this stage as its immutable predecessor.
+    current_results = contained_path(
+        root, 'pre-scoring-correction-results.jsonl'
+        if (root / 'scoring-correction.json').is_file() else 'results.jsonl')
+    current_dataset = contained_path(
+        root, 'pre-scoring-correction-dataset.json'
+        if (root / 'scoring-correction.json').is_file() else 'dataset.json')
     if (receipt.get('schema_version') != 1
             or receipt.get('kind') != 'webmainbench_reference_correction_v1'
             or receipt.get('provider_calls') != 0
@@ -127,11 +133,60 @@ def validate_reference_revision(root):
     return receipt
 
 
+def validate_webmainbench_scoring_revision(root):
+    """Verify the zero-call shared-population correction and provider identity."""
+    receipt = json.loads(contained_path(root, 'scoring-correction.json').read_text())
+    before_results = contained_path(root, 'pre-scoring-correction-results.jsonl')
+    after_results = contained_path(root, 'results.jsonl')
+    before_dataset = contained_path(root, 'pre-scoring-correction-dataset.json')
+    after_dataset = contained_path(root, 'dataset.json')
+    if (receipt.get('schema_version') != 1
+            or receipt.get('kind') != 'webmainbench_shared_population_scoring_correction'
+            or receipt.get('provider_calls') != 0
+            or receipt.get('input_results_sha256') != hashlib.sha256(before_results.read_bytes()).hexdigest()
+            or receipt.get('output_results_sha256') != hashlib.sha256(after_results.read_bytes()).hexdigest()
+            or receipt.get('input_dataset_sha256') != hashlib.sha256(before_dataset.read_bytes()).hexdigest()
+            or receipt.get('output_dataset_sha256') != hashlib.sha256(after_dataset.read_bytes()).hexdigest()):
+        raise ValueError('Invalid WebMainBench shared-population correction binding')
+    before = [json.loads(line) for line in before_results.read_text().splitlines()]
+    after = [json.loads(line) for line in after_results.read_text().splitlines()]
+    if len(before) != len(after) or len(after) != receipt.get('logical_results'):
+        raise ValueError('WebMainBench scoring correction result scope mismatch')
+    allowed = {'metrics', 'meta', 'reference_sha256',
+               'pre_scoring_correction_metrics'}
+    for left, right in zip(before, after):
+        if (left['attempt_id'] != right['attempt_id']
+                or right.get('pre_scoring_correction_metrics') != left.get('metrics')
+                or {key: value for key, value in left.items() if key not in allowed}
+                != {key: value for key, value in right.items() if key not in allowed}):
+            raise ValueError('WebMainBench scoring correction changed provider evidence')
+    expected_denominators = {'text_edit': 545, 'code_edit': 110,
+                             'formula_edit': 119, 'table_edit': 81,
+                             'table_TEDS': 81}
+    providers = receipt.get('providers', [])
+    actual_providers = {row['provider'] for row in after}
+    if (not providers or len(providers) != len(set(providers))
+            or set(providers) != actual_providers):
+        raise ValueError('WebMainBench scoring correction provider scope mismatch')
+    for provider in providers:
+        rows = [row for row in after if row['provider'] == provider]
+        if len(rows) != expected_denominators['text_edit']:
+            raise ValueError('WebMainBench scoring correction provider matrix is incomplete')
+        counts = {name: sum(row['metrics'][name].get('success', False) for row in rows)
+                  for name in expected_denominators}
+        if counts != expected_denominators:
+            raise ValueError('WebMainBench methods do not share reference-defined denominators')
+    require_valid_teds_for_release(after)
+    return receipt
+
+
 def validate_teds_revision_if_present(root, records):
     """A revision marker or receipt requires the complete verified chain."""
     if (root / 'teds-correction.json').exists() or any('official_metrics' in row for row in records):
         result = validate_teds_revision(root)
         if (root / 'reference-correction.json').is_file():
             validate_reference_revision(root)
+        if (root / 'scoring-correction.json').is_file():
+            validate_webmainbench_scoring_revision(root)
         return result
     return None

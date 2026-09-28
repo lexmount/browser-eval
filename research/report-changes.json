@@ -1279,20 +1279,22 @@
       "id": "webmainbench-545-lexmain-reference-and-final-pr919-20260928",
       "date": "2026-09-28",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
-      "title": "修正 WebMainBench 参考与 TEDS，并完成 PR919 语义保真重测",
-      "summary": "Lexmount WebMainBench lexmain 修正 TEDS 有序树计算和一条隐藏编辑器副本参考；PR919 撤销会删除链接与表格关系的过宽转换规则后，以提交 17372ccca 完成 545 页认证重测。修复版生成目标正文 545/545，原网址与参考修正后的综合分为 33.11%。",
+      "title": "修正 WebMainBench 参考、专项计分范围与 TEDS",
+      "summary": "Lexmount WebMainBench lexmain 修正 TEDS 有序树计算、22 条参考或代码标注，并让七种方法在相同的参考定义专项页面上计分。PR919 提交 17372ccca 的 545 页认证输出保持不变；3,815 条结果离线重算后，修复版生成目标正文 545/545，综合分为 56.26%。",
       "changes": [
-        ["评测基准", "官方 TEDS 把序列化字符串交给 APTED；任务 f080fbec 的参考同时包含隐藏编辑器副本和可见正文。", "在 Lexmount WebMainBench lexmain 对显式有序树计算 TEDS，并以 HTML、旧参考和新参考哈希绑定单任务修正。", "TEDS 离线复算全部 3,815 条结果；参考离线复算该任务的七种方法。两项均为零 provider 调用。"],
+        ["评测基准", "官方 TEDS 把序列化字符串交给 APTED；任务 f080fbec 的参考包含隐藏编辑器副本，另有 21 条代码参考或标注与冻结页面不一致。", "在 Lexmount WebMainBench lexmain 对显式有序树计算 TEDS，按冻结页面修正参考与代码范围，并用哈希绑定每条数据修订。", "TEDS、参考和代码范围均对全部 3,815 条冻结结果离线复算，没有新增 provider 调用。"],
+        ["统一计分范围", "代码、公式和表格分母曾由每种方法的输出决定；漏输出、抽取失败或额外输出会让不同方法落入不同计分页集合。", "专项指标改用参考答案定义的公共页面范围；参考适用但方法遗漏或调用失败时计零，不含可评分参考的页面记为不适用。", "七种方法统一使用全文 545、代码 110、公式 119、表格内容和结构各 81 页。成对回归控制同时覆盖漏计和误计。"],
         ["实现复审", "上一候选把所有 pre 输出为围栏，并拆平任意含 pre 的表格；这提高代码提取分，却删除真实链接、行列和跨行关系。", "保留含链接的 pre 与语义表格；布局表继续按已有规则展开，同时修正祖先渐变、只读 DOM 查询和原始 fragment 优先级。", "相关行为测试通过；固定 release 二进制完成 545 页全量认证，545 次最终调用均成功。"],
-        ["分数解释", "上一候选综合分 35.87%、代码分 74.91%，包含已证实的信息损失。", "用最终输出重建七方法矩阵，再依次应用原网址、TEDS 和参考修正；原始输出和修正前分数继续保留。", "PR919 最终综合分 33.11%，代码 61.73%（99 页）、公式 20.69%、表格内容 25.37%、表格结构 16.71%，目标正文 545/545。"]
+        ["分数解释", "旧报告的 33.11% 来自方法相关分母和不完整代码提取，不能作为同范围七方法比较。", "保留每份 provider 输出与官方原分，另存修正前指标，再用统一参考范围和修正评分器生成当前指标。", "PR919 综合分 56.26%，代码 90.90%、公式 63.12%、表格内容 52.00%、表格结构 34.25%，目标正文 545/545。"]
       ],
       "i18n": {"en": {
-        "title": "Correct WebMainBench references and TEDS, then rerun the semantics-preserving PR919 build",
-        "summary": "Lexmount WebMainBench lexmain corrects ordered-tree TEDS and one hidden-editor duplicate reference. After PR919 removed overly broad conversions that discarded links and table relationships, commit 17372ccca completed the certified 545-page rerun. It delivers target body text for 545/545 pages and scores 33.11% after the origin and reference corrections.",
+        "title": "Correct WebMainBench references, component populations, and TEDS",
+        "summary": "Lexmount WebMainBench lexmain corrects ordered-tree TEDS, 22 reference or code annotations, and uses the same reference-defined component pages for all seven methods. The certified 545-page PR919 outputs at commit 17372ccca are unchanged. Offline rescoring of all 3,815 results yields 545/545 target bodies and a 56.26% overall score.",
         "changes": [
-          ["Evaluation basis", "Official TEDS passed a serialized string to APTED, while task f080fbec included both a hidden editor buffer and the visible article in its reference.", "Compute TEDS over the explicit ordered tree in Lexmount WebMainBench lexmain and bind the one-task correction to the HTML, old-reference, and new-reference hashes.", "TEDS is recomputed offline for all 3,815 results and the reference is rescored for seven methods on that task, with zero provider calls."],
+          ["Evaluation basis", "Official TEDS passed a serialized string to APTED; task f080fbec included a hidden editor buffer, and 21 other code references or annotations differed from the frozen page.", "Compute TEDS over the explicit ordered tree, correct references and code scope against the frozen pages, and hash-bind each data correction in Lexmount WebMainBench lexmain.", "TEDS, references, and code scope are recomputed over all 3,815 frozen results with zero provider calls."],
+          ["Shared scoring scope", "Code, formula, and table denominators previously depended on each method output, so omissions, extraction failures, and extra output changed the scored population.", "Use reference-defined component populations for every method. Missing output and failed calls score zero inside an applicable population; pages without a scorable reference are unavailable.", "All seven methods now use 545 text, 110 code, 119 formula, and 81 table-content and table-structure pages. Paired controls cover both error directions."],
           ["Implementation review", "The prior candidate fenced every pre element and flattened every table containing pre content, improving code extraction while deleting real links, rows, and spans.", "Preserve pre elements with links and semantic tables, retain existing layout-table handling, and correct ancestor gradients, read-only DOM lookups, and raw fragment priority.", "Scenario tests pass and the fixed release binary completes all 545 certified calls successfully."],
-          ["Score interpretation", "The prior candidate's 35.87% overall and 74.91% code scores included confirmed information loss.", "Rebuild the seven-method matrix from final output, then apply origin, TEDS, and reference corrections in order while retaining raw outputs and prior scores.", "Final PR919 scores are 33.11% overall, 61.73% code over 99 pages, 20.69% formula, 25.37% table content, and 16.71% table structure, with 545/545 target bodies."]
+          ["Score interpretation", "The former 33.11% value used method-dependent populations and incomplete code extraction, so it was not a same-scope seven-method comparison.", "Preserve each provider output and original official score, retain pre-correction metrics, and derive current metrics with the corrected scorer and shared reference scope.", "PR919 scores 56.26% overall, 90.90% code, 63.12% formula, 52.00% table content, and 34.25% table structure, with 545/545 target bodies."]
         ]
       }}
     },

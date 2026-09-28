@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "prediction-only-code-does-not-expand-population",
+      "root_cause": "method_defined_specialized_denominator",
+      "failure_mode": "false-positive",
+      "predicted": "use `invented()`",
+      "reference": "plain reference",
+      "meta": {"code": []},
+      "expected_success": false
+    },
+    {
+      "id": "missing-reference-scoped-code-scores-zero",
+      "root_cause": "method_defined_specialized_denominator",
+      "failure_mode": "false-negative",
+      "predicted": "plain prediction",
+      "reference": "use `expected()`",
+      "meta": {"code": ["inline"]},
+      "expected_success": true,
+      "expected_score": 0.0
+    },
+    {
+      "id": "raw-html-pre-is-scorable-code",
+      "root_cause": "code_representation_coverage",
+      "failure_mode": "false-negative",
+      "predicted": "<pre>one()\ntwo()</pre>",
+      "reference": "```\none()\ntwo()\n```",
+      "meta": {"code": ["interline"]},
+      "expected_success": true,
+      "expected_score": 1.0
+    },
+    {
+      "id": "layout-indented-prose-is-not-code",
+      "root_cause": "code_representation_coverage",
+      "failure_mode": "false-positive",
+      "predicted": "plain",
+      "reference": "Abstract\n\n         wrapped article prose on one line\n         and another prose line.\n",
+      "meta": {"code": []},
+      "expected_success": false
+    }
+  ]
+}

@@ -4,18 +4,18 @@
     {
       "name": "seven-method-overview.png",
       "role": "overview",
-      "sha256": "995457de9fffc5eb26e8ba94a6577fc1ac1b4065b43faa555b46fb669ce09efb",
+      "sha256": "0d1d818034b3a546e3bf239c0130ac06df244cde7387e27aa61b461a161dc98e",
       "generator": "deterministic HTML/CSS render",
-      "scope": "seven methods after certified origin correction",
+      "scope": "seven methods after certified origin, reference, TEDS and shared-population corrections",
       "claims": {
         "scores_percent": {
-          "moli": "33.80",
-          "lightpanda": "33.61",
-          "kitesurf": "32.64",
-          "chromium": "23.71",
-          "obscura": "22.25",
-          "moli-pr785-fixed": "33.87",
-          "moli-content-fixed": "33.11"
+          "moli": "48.79",
+          "lightpanda": "47.19",
+          "kitesurf": "45.71",
+          "chromium": "41.60",
+          "obscura": "39.13",
+          "moli-pr785-fixed": "49.01",
+          "moli-content-fixed": "56.26"
         },
         "machine_issues": 25,
         "request_failures": 15,

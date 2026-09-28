@@ -581,7 +581,10 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
 def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     """Build the separately bound complete 545-case report from certified evidence."""
     from scripts.run_certified_webmainbench_full import digest, read_jsonl
-    from .webmainbench_diagnostics import validate_reference_revision, validate_teds_revision
+    from .webmainbench_diagnostics import (
+        validate_reference_revision, validate_teds_revision,
+        validate_webmainbench_scoring_revision,
+    )
     if source.is_symlink() or any(path.is_symlink() for path in source.rglob('*')):
         raise ValueError('Symlinked report evidence is forbidden')
     profile_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/current-report.json'
@@ -648,6 +651,8 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     validate_teds_revision(source)
     if (source / 'reference-correction.json').is_file():
         validate_reference_revision(source)
+    if (source / 'scoring-correction.json').is_file():
+        validate_webmainbench_scoring_revision(source)
     content_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/content-binding.json'
     content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
     content_path = data_home() / 'report-assets/webmainbench-full' / content_binding['relative_path']
@@ -710,6 +715,9 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         if (source / 'reference-correction.json').is_file():
             shutil.copytree(source / 'reference-correction-source', staging / 'reference-correction-source')
             shutil.copy2(source / 'reference-correction.json', staging / 'reference-correction.json')
+        if (source / 'scoring-correction.json').is_file():
+            shutil.copytree(source / 'scoring-correction-source', staging / 'scoring-correction-source')
+            shutil.copy2(source / 'scoring-correction.json', staging / 'scoring-correction.json')
         for item in variants:
             provider = item['provider']
             bound = bound_variants[provider]
@@ -727,6 +735,9 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
                 validation_rows=raw_records,
                 expected_parent=digest(source / 'original-results.jsonl'),
             )
+            case_scoring_receipt = correction_root / 'scoring-correction.json'
+            if case_scoring_receipt.is_file():
+                shutil.copy2(case_scoring_receipt, staging / 'case-correction-scoring.json')
         illustration_binding = profile_path.parent / 'illustrations.json'
         if illustration_binding.exists():
             (staging / 'assets').mkdir(exist_ok=True)

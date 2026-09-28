@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "kind": "webmainbench_shared_population_scoring_correction_binding",
+  "receipt_sha256": "c8783d591580cc495ac4806675113f7b1f39572697d9d71955a1e980840b2ce9",
+  "scorer_commit": "85a482cc66045803eb04c72fd1efc423c6fa98f4",
+  "regression_registry_sha256": "ddd89c55e5791a94f3d9282dc3a56fbefed2cb72aad8b0fc43d5275a3bca7cd3",
+  "results_sha256": "c55abbfc6b17434e96f327dd71703c0cafc60aac60ad91d10a03a3538dd10481"
+}

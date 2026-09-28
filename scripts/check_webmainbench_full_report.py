@@ -43,15 +43,29 @@ def check_diagnosis_inventory(analysis: BeautifulSoup) -> None:
         raise ValueError('Failure diagnosis dialog lacks error, review or evidence targets')
     for row in analysis.select('tr[data-result]'):
         if (row.get('data-kind') != '未触发诊断'
-                and (not row.get('data-case-id') or row.select_one('button[data-diagnose]') is None)):
+                and (not row.get('data-case-id')
+                     or row.select_one('button[data-diagnose][onclick="openDiagnosis(this)"]') is None)):
             raise ValueError('Diagnostic result row cannot open its in-page diagnosis')
 
 
+def check_interaction_script(script: str) -> None:
+    required = ("dialog.addEventListener('close',()=>diagnosisFocus?.focus())",)
+    if any(fragment not in script for fragment in required):
+        raise ValueError('Report script lacks diagnosis focus restoration')
+
+
 def check_table_interaction(root: Path) -> None:
+    check_interaction_script((root / 'assets/report.js').read_text(encoding='utf-8'))
     home = BeautifulSoup((root / 'index.html').read_text(encoding='utf-8'), 'html.parser')
+    style_href = home.select_one('link[rel="stylesheet"]')
+    script_src = home.select_one('script[src]')
+    if (not style_href or not script_src
+            or '?v=' not in style_href.get('href', '')
+            or style_href['href'].split('?v=', 1)[1] != script_src.get('src', '').split('?v=', 1)[-1]):
+        raise ValueError('Report assets lack a shared cache-busting version')
     core = home.select_one('table#core-results')
     if (not core or len(core.select('tbody > tr')) != 7
-            or len(core.select('th[aria-sort="none"] > button[data-table-sort]')) != 8
+            or len(core.select('th[aria-sort="none"] > button[data-table-sort][onclick="sortReportTable(this)"]')) != 8
             or any(cell.get('data-sort') is None for cell in core.select('tbody > tr > td.number'))):
         raise ValueError('Core comparison lacks complete stable sorting semantics')
     if len(core.select('.comparison-winner')) != 6:
@@ -61,12 +75,12 @@ def check_table_interaction(root: Path) -> None:
     if (not dataset.select_one('#dataset-q') or not dataset.select_one('#dataset-language')
             or not dataset.select_one('#dataset-level') or not dataset.select_one('#dataset-count')
             or not dataset_table or len(dataset_table.select('tbody > tr[data-dataset]')) != 545
-            or len(dataset_table.select('button[data-table-sort]')) != 4):
+            or len(dataset_table.select('button[data-table-sort][onclick="sortReportTable(this)"]')) != 4):
         raise ValueError('Dataset inventory lacks complete search, filters or sorting')
     analysis = BeautifulSoup((root / 'analysis/index.html').read_text(encoding='utf-8'), 'html.parser')
     inventory = analysis.select_one('table#result-inventory')
     if (not inventory or len(inventory.select('tbody > tr[data-result]')) != 3815
-            or len(inventory.select('button[data-table-sort]')) != 5
+            or len(inventory.select('button[data-table-sort][onclick="sortReportTable(this)"]')) != 5
             or any(cell.get('data-sort') is None for cell in inventory.select('tbody > tr > td:nth-of-type(4), tbody > tr > td:nth-of-type(5)'))):
         raise ValueError('Result inventory lacks complete filters or stable sorting semantics')
 
@@ -92,6 +106,11 @@ def check(root: Path) -> None:
         raise ValueError('WebMainBench publication target is not bound to the certified profile')
     seven_binding = json.loads((root / 'seven-method-binding.json').read_text(encoding='utf-8'))
     teds_receipt = json.loads((root / 'teds-correction.json').read_text(encoding='utf-8'))
+    scoring_receipt_path = root / 'scoring-correction.json'
+    scoring_binding = json.loads(
+        (repo / 'evaluation/webmainbench-full/scoring-correction-binding.json').read_text(encoding='utf-8')
+    )
+    scoring_receipt = json.loads(scoring_receipt_path.read_text(encoding='utf-8'))
     bound_variants = {item['provider']: item for item in seven_binding.get('variants', [])}
     if (seven_binding.get('kind') != 'webmainbench_seven_method_full_scope_binding'
             or seven_binding.get('logical_results') != 3815
@@ -100,6 +119,19 @@ def check(root: Path) -> None:
             or any(bound_variants.get(item['provider'], {}).get('profile_sha256') != expected_variant_hashes[item['provider']]
                    for item in variants)):
         raise ValueError('Seven-method report binding missing or changed')
+    if (scoring_binding.get('kind') != 'webmainbench_shared_population_scoring_correction_binding'
+            or scoring_binding.get('receipt_sha256') != hashlib.sha256(scoring_receipt_path.read_bytes()).hexdigest()
+            or scoring_binding.get('scorer_commit') != scoring_receipt.get('scorer_commit')
+            or scoring_binding.get('regression_registry_sha256') != scoring_receipt.get('regression_registry_sha256')
+            or scoring_binding.get('results_sha256') != scoring_receipt.get('output_results_sha256')
+            or scoring_receipt.get('provider_calls') != 0):
+        raise ValueError('Shared-population scoring correction differs from repository binding')
+    home_html = (root / 'index.html').read_text(encoding='utf-8')
+    methodology_html = (root / 'methodology/index.html').read_text(encoding='utf-8')
+    if ('https://github.com/lexmount/WebMainBench/tree/lexmain' not in home_html
+            or scoring_receipt['scorer_commit'] not in methodology_html
+            or 'Lexmain 修正评分器提交' not in methodology_html):
+        raise ValueError('Public report does not identify the bound Lexmain scorer')
     releases = json.loads((Path(__file__).resolve().parents[1] / 'research/report-changes.json').read_text(encoding='utf-8'))['releases']
     expected_releases = [item for item in releases if 'webmainbench_frozen_html_to_markdown' in item.get('comparison_kinds', [])]
     history = BeautifulSoup((root / 'history/index.html').read_text(encoding='utf-8'), 'html.parser')
@@ -148,6 +180,12 @@ def check(root: Path) -> None:
                                     for p in receipt['preflight']['providers']).encode()
         if hashlib.sha256(replacement_bytes).hexdigest() != receipt['results_sha256']:
             raise ValueError('Corrected rows differ from certified calls')
+        case_scoring = json.loads((root / 'case-correction-scoring.json').read_text())
+        if (case_scoring.get('kind') != 'webmainbench_case_correction_scoring_revision'
+                or case_scoring.get('provider_calls') != 0
+                or case_scoring.get('scorer_commit') != scoring_receipt.get('scorer_commit')
+                or case_scoring.get('output_results_sha256') != receipt['results_sha256']):
+            raise ValueError('Corrected case does not use the report scoring revision')
     providers = dataset["coverage_plan"]["static_html"]
     case_ids = {row["id"] for row in dataset["cases"]}
     if len(case_ids) != 545 or len(records) != 3815 or len(providers) != 7:
@@ -174,6 +212,13 @@ def check(root: Path) -> None:
             if asset.get('role') == 'overview':
                 overview_claims = asset.get('claims')
     summaries = json.loads((root / 'score-summaries.json').read_text(encoding='utf-8'))
+    expected_denominators = {
+        'text_edit': 545, 'code_edit': 110, 'formula_edit': 119,
+        'table_edit': 81, 'table_TEDS': 81,
+    }
+    if any(summary['official_aggregate']['denominators'] != expected_denominators
+           for summary in summaries.values()):
+        raise ValueError('Report methods do not share the bound reference-defined populations')
     if (not overview_claims or overview_claims.get('scores_percent') != {
             provider: f"{summaries[provider]['official_aggregate']['scores']['overall'] * 100:.2f}"
             for provider in providers}):

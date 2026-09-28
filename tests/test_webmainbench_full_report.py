@@ -8,7 +8,11 @@ import pytest
 
 from harness.web_fetch.report import generate_webmainbench_full
 from scripts.report_presentation_contract import check_presentation
-from scripts.check_webmainbench_full_report import check_diagnosis_inventory, check_result_payload
+from scripts.check_webmainbench_full_report import (
+    check_diagnosis_inventory,
+    check_interaction_script,
+    check_result_payload,
+)
 
 
 def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Path) -> None:
@@ -97,9 +101,15 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     generate_webmainbench_full(tmp_path, dataset, rows, summaries, profile)
     subprocess.run(["node", "--check", str(tmp_path / "assets/report.js")], check=True)
     report_js = (tmp_path / "assets/report.js").read_text(encoding="utf-8")
+    check_interaction_script(report_js)
+    with pytest.raises(ValueError, match="focus restoration"):
+        check_interaction_script(report_js.replace("dialog.addEventListener('close',()=>diagnosisFocus?.focus())", "", 1))
     assert "</script><script>bad()" not in report_js
     assert "\\u003c/script\\u003e\\u003cscript\\u003ebad()" in report_js
     home = check_presentation((tmp_path / "index.html").read_text(encoding="utf-8"))
+    assert '?v=' in home.select_one('link[rel="stylesheet"]')['href']
+    assert home.select_one('link[rel="stylesheet"]')['href'].split('?v=', 1)[1] == home.select_one('script[src]')['src'].split('?v=', 1)[1]
+    assert home.find('a', href='https://github.com/lexmount/WebMainBench/tree/lexmain') is not None
     assert len(home.select('td[data-metric-direction="max"]')) == 42
     assert len(home.select('td[data-metric-direction="max"] .comparison-winner')) == 6
     assert home.select_one('td[data-target-body-provider="chromium"]').get_text(strip=True) == "0/545"
@@ -141,6 +151,9 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     missing_button = BeautifulSoup(str(analysis).replace('data-diagnose=""', 'data-missing=""', 1), 'html.parser')
     with pytest.raises(ValueError, match='cannot open'):
         check_diagnosis_inventory(missing_button)
+    missing_handler = BeautifulSoup(str(analysis).replace(' onclick="openDiagnosis(this)"', '', 1), 'html.parser')
+    with pytest.raises(ValueError, match='cannot open'):
+        check_diagnosis_inventory(missing_handler)
     assert json.loads((tmp_path / "report-manifest.json").read_text())["languages"] == ["zh"]
     home_html = (tmp_path / "index.html").read_text(encoding="utf-8")
     with pytest.raises(ValueError, match="extremum"):
