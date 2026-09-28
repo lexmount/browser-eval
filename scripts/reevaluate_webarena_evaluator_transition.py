@@ -19,13 +19,30 @@ from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
 
 
+def _old_evaluation_identity(value: str) -> tuple[int, str]:
+    task, separator, digest = value.partition("/")
+    if not separator or not task.isdecimal() or len(digest) != 64:
+        raise argparse.ArgumentTypeError("expected TASK_ID/SHA256")
+    try:
+        int(digest, 16)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("expected TASK_ID/SHA256") from exc
+    return int(task), digest
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--transition", type=Path, required=True)
     parser.add_argument("--scope", type=Path, required=True)
     parser.add_argument("--site-map", type=Path, required=True)
     parser.add_argument("--run", type=Path, action="append", required=True)
-    parser.add_argument("--exclude-task", type=int, action="append", default=[])
+    parser.add_argument(
+        "--exclude-old-evaluation",
+        type=_old_evaluation_identity,
+        action="append",
+        default=[],
+        metavar="TASK_ID/SHA256",
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
@@ -37,7 +54,7 @@ def main() -> None:
     corrections = load_corrections()
     rows = []
     identities = set()
-    excluded = set(args.exclude_task)
+    excluded = set(args.exclude_old_evaluation)
     observed_excluded = set()
     for directory in args.run:
         inputs_path = directory / "inputs.json"
@@ -53,9 +70,6 @@ def main() -> None:
         for row in map(json.loads, progress_path.read_text(encoding="utf-8").splitlines()):
             if row.get("status") != "pass":
                 continue
-            if row["task_id"] in excluded:
-                observed_excluded.add(row["task_id"])
-                continue
             evaluation_path = verify_physical_evidence(directory, row)
             if evaluation_path is None:
                 raise ValueError(f"task {row['task_id']} pass lacks evaluation evidence")
@@ -67,6 +81,10 @@ def main() -> None:
                 != source["data_checksum"]
             ):
                 raise ValueError(f"task {row['task_id']} has an unexpected old evaluator")
+            identity = (row["task_id"], file_sha256(evaluation_path))
+            if identity in excluded:
+                observed_excluded.add(identity)
+                continue
             current, binding = reevaluate_pass(
                 directory / f"task-{row['task_id']}",
                 task_id=row["task_id"],
@@ -101,7 +119,10 @@ def main() -> None:
         "to_evaluator_checksum": transition["to_evaluator_checksum"],
         "to_data_checksum": transition["to_data_checksum"],
         "row_count": len(rows),
-        "excluded_task_ids": sorted(excluded),
+        "excluded_old_evaluations": [
+            {"task_id": task_id, "old_evaluation_sha256": digest}
+            for task_id, digest in sorted(excluded)
+        ],
         "rows": rows,
     }
     if args.output.exists():

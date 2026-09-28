@@ -1303,14 +1303,14 @@ def build_webarena_replay_report(
     if (
         execution.get("method_parallelism") != 1
         or execution.get("task_parallelism") != 1
-        or type(execution.get("reset_before_every_task")) is not bool
+        or execution.get("reset_before_every_task") is not False
         or execution.get("reset_before_every_method") is not True
         or execution.get("teardown_between_methods") is not True
         or execution.get("retry_failed_task") is not False
     ):
-        raise ValueError("three-method report requires the declared common execution protocol")
+        raise ValueError("replay report requires the declared common execution protocol")
     if diagnostic_closure_path is not None:
-        raise ValueError("diagnostic-only cohorts cannot enter the three-method report")
+        raise ValueError("diagnostic-only cohorts cannot enter the replay report")
     validated = load_validated_failure_review(results_path, review_path, methods=profile["methods"])
     results = validated["results"]
     reviews = validated["by_result"]

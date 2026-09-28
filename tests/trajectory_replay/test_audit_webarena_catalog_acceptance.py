@@ -264,7 +264,7 @@ def test_acceptance_allows_declared_predecessor_only_with_paired_transition_rece
         "to_revision": WEBARENA_VERIFIED_REVISION,
     }
     monkeypatch.setattr(acceptance, "load_transition", lambda _path: transition)
-    monkeypatch.setattr(acceptance, "load_receipt", lambda _path, _transition: {})
+    monkeypatch.setattr(acceptance, "load_receipt", lambda _path, _transition: ({}, set()))
     scope = _scope(tmp_path, [7])
     sweep = _run(tmp_path, "sweep", [7], {7: "fail"})
     inputs = sweep / "inputs.json"
@@ -324,6 +324,87 @@ def test_acceptance_replaces_only_declared_changed_catalog_tasks(tmp_path, monke
 
     assert ledger["superseded_catalog_tasks"] == [8]
     assert len(ledger["rows"][1]["attempts"]) == 2
+
+
+def test_catalog_replacement_excludes_only_superseded_transition_evidence(
+    tmp_path, monkeypatch
+):
+    source = {
+        "kind": "revision",
+        "identity": "0" * 40,
+        "evaluator_checksum": "old-evaluator",
+        "data_checksum": "old-data",
+    }
+    transition = {"compatible_sources": [source]}
+    scope = _scope(tmp_path, [7])
+    sweep = _run(tmp_path, "sweep", [7], {})
+    replacement = _run(tmp_path, "replacement", [7], {}, catalog="new-catalog")
+    for directory, action in ((sweep, "old-actions"), (replacement, "new-actions")):
+        progress = directory / "progress.jsonl"
+        row = json.loads(progress.read_text())
+        row["executed_actions_sha256"] = action
+        progress.write_text(json.dumps(row) + "\n")
+    old_evaluation = sweep / "old-evaluation.json"
+    old_evaluation.write_text(
+        json.dumps(
+            {
+                "webarena_verified_evaluator_checksum": source["evaluator_checksum"],
+                "webarena_verified_data_checksum": source["data_checksum"],
+            }
+        )
+    )
+    replacement_evaluation = replacement / "replacement-evaluation.json"
+    replacement_evaluation.write_text("{}")
+    old_identity = (7, acceptance.file_sha256(old_evaluation))
+    replacement_identity = (7, acceptance.file_sha256(replacement_evaluation))
+    monkeypatch.setattr(acceptance, "load_transition", lambda _path: transition)
+    monkeypatch.setattr(
+        acceptance,
+        "load_receipt",
+        lambda _path, _transition: ({replacement_identity: {}}, {old_identity}),
+    )
+    monkeypatch.setattr(acceptance, "compatible_source", lambda *_args, **_kwargs: source)
+    monkeypatch.setattr(
+        acceptance,
+        "verify_physical_evidence",
+        lambda directory, _row: (
+            replacement_evaluation if directory == replacement else old_evaluation
+        ),
+    )
+    monkeypatch.setattr(acceptance, "_superseded_attempt", _fake_verified)
+
+    def verified(directory, row, **_kwargs):
+        assert directory == replacement
+        return (
+            {
+                **row,
+                "progress_sha256": "progress",
+                "evidence_sha256": {},
+                "evaluator_transition": {
+                    "old_evaluation_sha256": replacement_identity[1]
+                },
+            },
+            True,
+        )
+
+    monkeypatch.setattr(acceptance, "_verified_attempt", verified)
+    authority = tmp_path / "transition.json"
+    receipt = tmp_path / "receipt.json"
+    authority.write_text("{}")
+    receipt.write_text("{}")
+
+    ledger = acceptance.audit(
+        scope,
+        [sweep],
+        [],
+        replacement_dirs=[replacement],
+        superseded_catalog_tasks={7},
+        evaluator_transition_path=authority,
+        evaluator_transition_receipt_path=receipt,
+    )
+
+    assert ledger["counts"]["pass"] == 1
+    assert ledger["evaluator_transition"]["reevaluated_passes"] == 1
 
 
 def test_acceptance_rejects_replacement_with_unchanged_actions(tmp_path, monkeypatch):

@@ -20,7 +20,7 @@ from harness.trajectory_replay.webarena_runtime_source import (
 )
 
 TRANSITION_SCHEMA = "lex_webarena_evaluator_transition/1"
-RECEIPT_SCHEMA = "lex_webarena_evaluator_transition_receipt/1"
+RECEIPT_SCHEMA = "lex_webarena_evaluator_transition_receipt/2"
 SOURCE_KINDS = {"revision", "evaluator_fixes_sha256"}
 
 
@@ -172,10 +172,22 @@ def reevaluate_pass(
     }
 
 
-def load_receipt(path: Path, transition: dict[str, Any]) -> dict[tuple[int, str], dict[str, Any]]:
+def load_receipt(
+    path: Path, transition: dict[str, Any]
+) -> tuple[
+    dict[tuple[int, str], dict[str, Any]],
+    set[tuple[int, str]],
+]:
     receipt = json.loads(path.read_text(encoding="utf-8"))
     rows = receipt.get("rows") if isinstance(receipt, dict) else None
-    excluded = receipt.get("excluded_task_ids", []) if isinstance(receipt, dict) else None
+    excluded = (
+        receipt.get("excluded_old_evaluations", []) if isinstance(receipt, dict) else None
+    )
+    excluded_keys = [
+        (row.get("task_id"), row.get("old_evaluation_sha256"))
+        for row in excluded or []
+        if isinstance(row, dict)
+    ]
     if (
         receipt.get("schema") != RECEIPT_SCHEMA
         or receipt.get("transition_sha256") != json_sha256(transition)
@@ -190,8 +202,14 @@ def load_receipt(path: Path, transition: dict[str, Any]) -> dict[tuple[int, str]
         or receipt.get("to_data_checksum") != transition["to_data_checksum"]
         or not isinstance(rows, list)
         or not isinstance(excluded, list)
-        or excluded != sorted(set(excluded))
-        or any(type(task_id) is not int for task_id in excluded)
+        or len(excluded_keys) != len(excluded)
+        or excluded_keys != sorted(set(excluded_keys))
+        or any(
+            type(task_id) is not int
+            or not isinstance(evaluation_sha256, str)
+            or len(evaluation_sha256) != 64
+            for task_id, evaluation_sha256 in excluded_keys
+        )
     ):
         raise ValueError("WebArena evaluator transition receipt is invalid")
     indexed: dict[tuple[int, str], dict[str, Any]] = {}
@@ -218,4 +236,6 @@ def load_receipt(path: Path, transition: dict[str, Any]) -> dict[tuple[int, str]
         indexed[key] = row
     if receipt.get("row_count") != len(rows):
         raise ValueError("WebArena evaluator transition receipt count changed")
-    return indexed
+    if set(indexed) & set(excluded_keys):
+        raise ValueError("WebArena evaluator transition receipt includes excluded evidence")
+    return indexed, set(excluded_keys)

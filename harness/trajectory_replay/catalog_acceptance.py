@@ -245,22 +245,19 @@ def audit(
         if evaluator_transition_path is not None
         else None
     )
-    transition_receipt = (
-        load_receipt(evaluator_transition_receipt_path, evaluator_transition)
-        if evaluator_transition_receipt_path is not None and evaluator_transition is not None
-        else None
-    )
+    if evaluator_transition_receipt_path is not None and evaluator_transition is not None:
+        transition_receipt, transition_exclusions = load_receipt(
+            evaluator_transition_receipt_path, evaluator_transition
+        )
+    else:
+        transition_receipt = None
+        transition_exclusions: set[tuple[int, str]] = set()
     superseded_requested = set(superseded_catalog_tasks or ())
     replacement_dirs = list(replacement_dirs or ())
     if bool(superseded_requested) != bool(replacement_dirs):
         raise ValueError("catalog replacements require an exact superseded task scope")
-    if evaluator_transition_receipt_path is not None:
-        receipt_payload = json.loads(
-            evaluator_transition_receipt_path.read_text(encoding="utf-8")
-        )
-        if set(receipt_payload.get("excluded_task_ids") or ()) != superseded_requested:
-            raise ValueError("transition exclusions differ from catalog replacements")
     used_transition_rows: set[tuple[int, str]] = set()
+    expected_transition_exclusions: set[tuple[int, str]] = set()
     scope = json.loads(scope_path.read_text(encoding="utf-8"))
     ids = scope.get("task_ids")
     data_checksum = str(scope.get("official_dataset_sha256") or "")
@@ -444,6 +441,15 @@ def audit(
                         transition_receipt=transition_receipt,
                         runtime_binding=runtime_binding,
                     )
+                    if "evaluator_transition" in attempt:
+                        used_transition_rows.add(
+                            (
+                                task_id,
+                                attempt["evaluator_transition"][
+                                    "old_evaluation_sha256"
+                                ],
+                            )
+                        )
                     physical_attempts += int(physical)
                     states[task_id]["attempts"].append(attempt)
                     states[task_id]["action_sha256s"].append(
@@ -462,6 +468,35 @@ def audit(
                     attempt, physical = _superseded_attempt(
                         directory, row, runtime_binding=runtime_binding
                     )
+                    if row.get("status") == "pass" and evaluator_transition is not None:
+                        source = compatible_source(
+                            evaluator_transition,
+                            revision=run_revision,
+                            evaluator_fixes_sha256=run_evaluator_fixes_sha256,
+                        )
+                        if source is not None:
+                            evaluation_path = verify_physical_evidence(directory, row)
+                            if evaluation_path is None:
+                                raise ValueError(
+                                    f"task {task_id} pass lacks evaluation evidence"
+                                )
+                            evaluation = json.loads(
+                                evaluation_path.read_text(encoding="utf-8")
+                            )
+                            if (
+                                evaluation.get(
+                                    "webarena_verified_evaluator_checksum"
+                                )
+                                != source["evaluator_checksum"]
+                                or evaluation.get("webarena_verified_data_checksum")
+                                != source["data_checksum"]
+                            ):
+                                raise ValueError(
+                                    f"task {task_id} has an unexpected old evaluator"
+                                )
+                            expected_transition_exclusions.add(
+                                (task_id, file_sha256(evaluation_path))
+                            )
                     physical_attempts += int(physical)
                     states[task_id]["attempts"].append(attempt)
                     states[task_id]["action_sha256s"].append(
@@ -545,6 +580,8 @@ def audit(
         raise ValueError("declared duplicate repair exclusions were not found")
     if set(override_sources) - used_override_sources:
         raise ValueError("external action overrides are not bound to an acceptance run")
+    if transition_exclusions != expected_transition_exclusions:
+        raise ValueError("transition exclusions differ from superseded pass evidence")
     if transition_receipt is not None and used_transition_rows != set(transition_receipt):
         raise ValueError("evaluator transition receipt contains unused or missing pass evidence")
     if ordered_ids != ids:

@@ -29,7 +29,7 @@ def _receipt(transition):
         "to_evaluator_checksum": transition["to_evaluator_checksum"],
         "to_data_checksum": transition["to_data_checksum"],
         "row_count": 1,
-        "excluded_task_ids": [],
+        "excluded_old_evaluations": [],
         "rows": [
             {
                 "task_id": 7,
@@ -83,9 +83,25 @@ def test_transition_receipt_binds_each_old_evaluation_once(tmp_path):
     path = tmp_path / "receipt.json"
     path.write_text(json.dumps(receipt))
 
-    indexed = evaluator_transition.load_receipt(path, transition)
+    indexed, excluded = evaluator_transition.load_receipt(path, transition)
 
     assert indexed[(7, "1" * 64)]["current_evaluation_sha256"] == "4" * 64
+    assert excluded == set()
+
+
+def test_transition_receipt_excludes_only_the_bound_old_evaluation(tmp_path):
+    transition = _transition()
+    receipt = _receipt(transition)
+    receipt["excluded_old_evaluations"] = [
+        {"task_id": 7, "old_evaluation_sha256": "6" * 64}
+    ]
+    path = tmp_path / "receipt.json"
+    path.write_text(json.dumps(receipt))
+
+    indexed, excluded = evaluator_transition.load_receipt(path, transition)
+
+    assert set(indexed) == {(7, "1" * 64)}
+    assert excluded == {(7, "6" * 64)}
 
 
 @pytest.mark.parametrize("change", ["extra_row", "wrong_transition", "wrong_count"])

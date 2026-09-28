@@ -125,6 +125,27 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
         review_path=files["review.json"], profile_path=files["profile.json"],
         output_dir=output, include_english=True,
     )
+    invalid_profile = tmp_path / "reset-every-task-profile.json"
+    invalid_profile.write_text(
+        json.dumps(
+            {
+                **profile,
+                "execution": {
+                    **profile["execution"],
+                    "reset_before_every_task": True,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="common execution protocol"):
+        build_webarena_replay_report(
+            results_path=files["results.json"],
+            dataset_path=files["dataset.json"],
+            review_path=files["review.json"],
+            profile_path=invalid_profile,
+            output_dir=tmp_path / "invalid-report",
+        )
     assert manifest["participants"] == [item["id"] for item in methods]
     assert manifest["browser_count"] == 2
     assert manifest["method_count"] == len(methods)
