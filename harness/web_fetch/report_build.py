@@ -581,7 +581,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
 def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     """Build the separately bound complete 545-case report from certified evidence."""
     from scripts.run_certified_webmainbench_full import digest, read_jsonl
-    from .webmainbench_diagnostics import validate_teds_revision
+    from .webmainbench_diagnostics import validate_reference_revision, validate_teds_revision
     if source.is_symlink() or any(path.is_symlink() for path in source.rglob('*')):
         raise ValueError('Symlinked report evidence is forbidden')
     profile_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/current-report.json'
@@ -610,7 +610,9 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
             or seven_binding.get('registry_sha256') != digest(registry_path)
             or seven_binding.get('baseline_certificate_sha256') != digest(source / 'cohort-certificate.json')
             or seven_binding.get('results_sha256') != teds_receipt.get('input_results_sha256')
-            or teds_receipt.get('output_results_sha256') != digest(source / 'results.jsonl')
+            or teds_receipt.get('output_results_sha256') != digest(
+                source / ('pre-reference-correction-results.jsonl'
+                          if (source / 'reference-correction.json').is_file() else 'results.jsonl'))
             or seven_binding.get('logical_results') != 545 * (len(profile['providers']) + len(variants))):
         raise ValueError('Seven-method report evidence binding mismatch')
     versions = dict(profile['versions'])
@@ -644,6 +646,8 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
             {(provider, case_id) for provider in providers for case_id in cases}):
         raise ValueError('Full WebMainBench result matrix mismatch')
     validate_teds_revision(source)
+    if (source / 'reference-correction.json').is_file():
+        validate_reference_revision(source)
     content_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/content-binding.json'
     content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
     content_path = data_home() / 'report-assets/webmainbench-full' / content_binding['relative_path']
@@ -697,6 +701,11 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
                      'teds-correction.json', 'teds-correction-review.json',
                      'seven-method-binding.json'):
             shutil.copy2(source / name, staging / name)
+        if (source / 'reference-correction.json').is_file():
+            shutil.copytree(source / 'reference-correction-source', staging / 'reference-correction-source')
+            for name in ('reference-correction.json', 'pre-reference-correction-results.jsonl',
+                         'pre-reference-correction-dataset.json'):
+                shutil.copy2(source / name, staging / name)
         for item in variants:
             provider = item['provider']
             bound = bound_variants[provider]
