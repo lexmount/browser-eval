@@ -35,8 +35,16 @@ def validate_teds_revision(root):
         return hashlib.sha256(path.read_bytes()).hexdigest()
     receipt_path = contained_path(root, 'teds-correction.json')
     reference_receipt_path = root / 'reference-correction.json'
-    teds_output_path = (contained_path(root, 'pre-reference-correction-results.jsonl')
-                        if reference_receipt_path.is_file() else prior_results_path(root))
+    scoring_receipt_path = root / 'scoring-correction.json'
+    if reference_receipt_path.is_file():
+        teds_output_path = contained_path(root, 'pre-reference-correction-results.jsonl')
+        teds_dataset_path = contained_path(root, 'pre-reference-correction-dataset.json')
+    elif scoring_receipt_path.is_file():
+        teds_output_path = contained_path(root, 'pre-scoring-correction-results.jsonl')
+        teds_dataset_path = contained_path(root, 'pre-scoring-correction-dataset.json')
+    else:
+        teds_output_path = prior_results_path(root)
+        teds_dataset_path = contained_path(root, 'dataset.json')
     receipt = json.loads(receipt_path.read_text())
     review = json.loads(contained_path(root, 'teds-correction-review.json').read_text())
     if not valid_correction_provenance(receipt) or receipt.get('provider_calls') != 0:
@@ -48,9 +56,7 @@ def validate_teds_revision(root):
             or digest(teds_output_path) != receipt.get('output_results_sha256')
             or receipt['output_results_sha256'] != review.get('output_results_sha256')
             or digest(root / 'original-results.jsonl') != receipt.get('input_results_sha256')
-            or digest(root / ('pre-reference-correction-dataset.json'
-                              if reference_receipt_path.is_file() else 'dataset.json'))
-                != receipt.get('dataset_sha256')):
+            or digest(teds_dataset_path) != receipt.get('dataset_sha256')):
         raise ValueError('TEDS correction evidence hash mismatch')
     for path, expected in receipt['source_code_sha256'].items():
         if digest(contained_path(root / 'correction-source', path)) != expected:
@@ -62,9 +68,9 @@ def validate_teds_revision(root):
     if len({row['attempt_id'] for row in current}) != expected_count:
         raise ValueError('Duplicate corrected result')
     for before, after in zip(original, current):
-        if after.get('official_metrics') != before.get('metrics'):
+        if after.get('official_metrics') != before.get('official_metrics', before.get('metrics')):
             raise ValueError('Official metrics changed in correction')
-        left = {k: v for k, v in before.items() if k != 'metrics'}
+        left = {k: v for k, v in before.items() if k not in ('metrics', 'official_metrics')}
         right = {k: v for k, v in after.items() if k not in ('metrics', 'official_metrics')}
         if left != right:
             raise ValueError('Provider evidence changed in scoring correction')
@@ -161,7 +167,7 @@ def validate_webmainbench_scoring_revision(root):
                 != {key: value for key, value in right.items() if key not in allowed}):
             raise ValueError('WebMainBench scoring correction changed provider evidence')
     expected_denominators = {'text_edit': 545, 'code_edit': 110,
-                             'formula_edit': 119, 'table_edit': 81,
+                             'formula_edit': 113, 'table_edit': 81,
                              'table_TEDS': 81}
     providers = receipt.get('providers', [])
     actual_providers = {row['provider'] for row in after}

@@ -578,6 +578,17 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     return output / 'index.html'
 
 
+def public_webmainbench_scoring_projection(records: list[dict]) -> list[dict]:
+    """Omit private predecessor metrics while retaining certified replacement rows verbatim."""
+    projected = []
+    for record in records:
+        row = dict(record)
+        if not row.get('supersedes_attempt_id'):
+            row.pop('pre_scoring_correction_metrics', None)
+        projected.append(row)
+    return projected
+
+
 def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     """Build the separately bound complete 545-case report from certified evidence."""
     from scripts.run_certified_webmainbench_full import digest, read_jsonl
@@ -615,7 +626,10 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
             or seven_binding.get('results_sha256') != teds_receipt.get('input_results_sha256')
             or teds_receipt.get('output_results_sha256') != digest(
                 source / ('pre-reference-correction-results.jsonl'
-                          if (source / 'reference-correction.json').is_file() else 'results.jsonl'))
+                          if (source / 'reference-correction.json').is_file()
+                          else 'pre-scoring-correction-results.jsonl'
+                          if (source / 'scoring-correction.json').is_file()
+                          else 'results.jsonl'))
             or seven_binding.get('logical_results') != 545 * (len(profile['providers']) + len(variants))):
         raise ValueError('Seven-method report evidence binding mismatch')
     versions = dict(profile['versions'])
@@ -738,6 +752,18 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
             case_scoring_receipt = correction_root / 'scoring-correction.json'
             if case_scoring_receipt.is_file():
                 shutil.copy2(case_scoring_receipt, staging / 'case-correction-scoring.json')
+        records = public_webmainbench_scoring_projection(records)
+        (staging / 'results.jsonl').write_text(
+            ''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in records),
+            encoding='utf-8',
+        )
+        if correction_root:
+            case_receipt_path = staging / 'case-correction.json'
+            case_receipt = json.loads(case_receipt_path.read_text(encoding='utf-8'))
+            case_receipt['current_results_sha256'] = digest(staging / 'results.jsonl')
+            case_receipt_path.write_text(
+                json.dumps(case_receipt, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
+            )
         illustration_binding = profile_path.parent / 'illustrations.json'
         if illustration_binding.exists():
             (staging / 'assets').mkdir(exist_ok=True)

@@ -14,7 +14,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.safety import contained_path
-from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision
 from scripts.correct_webmainbench_references import (
     calculator,
     category,
@@ -93,38 +92,62 @@ def validate_controls(scorer) -> None:
 
 def revised_metrics(old: dict, scorer, predicted: str, reference: str,
                     meta: dict, ok: bool, reference_changed: bool = False) -> dict:
+    """Recompute every affected metric with the bound corrected scorer.
+
+    A failed provider call is represented by an empty prediction.  The scorer
+    decides metric applicability from the frozen reference metadata, so an
+    applicable failure remains a zero while an inapplicable metric remains
+    unavailable.  Text edit is reused only when its implementation and
+    reference are unchanged; corrected references are rescored.
+    """
+    candidate = predicted if ok else ""
     result = {}
-    if not ok:
-        result["text_edit"] = zero("text_edit", "text")
-    elif not reference_changed and old.get("text_edit", {}).get("success"):
+    if ok and not reference_changed and old.get("text_edit", {}).get("success"):
         result["text_edit"] = copy.deepcopy(old["text_edit"])
     else:
-        text = scorer.metrics["text_edit"].calculate(predicted, reference)
-        result["text_edit"] = metric_dict(text)
-
-    code = scorer.metrics["code_edit"].calculate(
-        predicted, reference, groundtruth_feature_scope=meta
+        result["text_edit"] = metric_dict(
+            scorer.metrics["text_edit"].calculate(candidate, reference)
+        )
+    for name in ("code_edit", "formula_edit"):
+        result[name] = metric_dict(scorer.metrics[name].calculate(
+            candidate,
+            reference,
+            predicted_content_list=None,
+            groundtruth_content_list=None,
+            groundtruth_feature_scope=meta,
+        ))
+    table_edit = scorer.metrics["table_edit"].calculate(
+        candidate,
+        reference,
+        predicted_content_list=None,
+        groundtruth_content_list=None,
+        groundtruth_feature_scope=meta,
     )
-    result["code_edit"] = metric_dict(code)
-
-    formula_metric = scorer.metrics["formula_edit"]
-    formula_available = bool(formula_metric._extract_formula_content(reference, None).strip())
-    table_metric = scorer.metrics["table_edit"]
-    table_available = bool(table_metric._extract_table_content(reference, None).strip())
-    for name, available, content_type in (
-        ("formula_edit", formula_available, "formula"),
-        ("table_edit", table_available, "table"),
-        ("table_TEDS", table_available, "table"),
-    ):
-        if not available:
-            result[name] = unavailable(name, "Groundtruth contains no " + content_type)
-        elif not ok:
-            result[name] = zero(name, content_type)
-        elif old.get(name, {}).get("success"):
-            result[name] = copy.deepcopy(old[name])
-        else:
-            raise ValueError(f"Prior scorer omitted reference-scoped {name}")
-
+    result["table_edit"] = metric_dict(table_edit)
+    result["table_TEDS"] = metric_dict(scorer.metrics["table_TEDS"].calculate(
+        candidate,
+        reference,
+        predicted_content_list=None,
+        groundtruth_content_list=None,
+        table_edit_result=table_edit,
+        groundtruth_feature_scope=meta,
+    ))
+    applicable = {
+        "code_edit": bool(meta.get("code")),
+        "formula_edit": bool(meta.get("equation")),
+        "table_edit": bool(meta.get("table")),
+        "table_TEDS": bool(meta.get("table")),
+    }
+    for name, is_applicable in applicable.items():
+        availability = result[name].get("details", {}).get("availability")
+        if (is_applicable and not result[name].get("success")
+                and availability not in {"reference_error", "reference_not_applicable"}):
+            error = result[name].get("error")
+            result[name] = zero(name, name.removesuffix("_edit").replace("_TEDS", ""))
+            result[name]["details"].update({
+                "prediction_source": "metric_error",
+                "scorer_error": error,
+            })
     successful = {name: value["score"] for name, value in result.items()
                   if value.get("success")}
     result["overall"] = {
@@ -140,11 +163,38 @@ def revised_metrics(old: dict, scorer, predicted: str, reference: str,
     return result
 
 
+def validate_population_binding(source: Path, source_dataset: dict,
+                                corrected_rows: list[dict], manifest: dict) -> None:
+    """Bind schema-v2 corrections to the complete ordered 545-row dataset."""
+    if manifest.get("schema_version") != 2:
+        raise ValueError("Invalid dataset correction manifest")
+    cases = {case["id"]: case for case in source_dataset.get("cases", [])}
+    original_rows = []
+    for corrected in corrected_rows:
+        case_id = corrected.get("track_id") or corrected.get("id")
+        if case_id not in cases:
+            raise ValueError("Corrected dataset contains an unknown case")
+        row = copy.deepcopy(corrected)
+        row["groundtruth_content"] = contained_path(
+            source, f"references/{case_id}.md"
+        ).read_text(encoding="utf-8")
+        row["meta"] = copy.deepcopy(cases[case_id].get("meta"))
+        original_rows.append(row)
+    for label, rows, binding in (
+        ("input", original_rows, manifest.get("input_population", {})),
+        ("output", corrected_rows, manifest.get("output_population", {})),
+    ):
+        ids = [row.get("track_id") or row.get("id") for row in rows]
+        if (len(rows) != binding.get("row_count") or len(ids) != len(set(ids))
+                or json_digest(ids) != binding.get("ordered_track_ids_sha256")
+                or json_digest(rows) != binding.get("rows_sha256")):
+            raise ValueError(f"Dataset correction {label} population binding mismatch")
+
+
 def apply(source: Path, corrected_dataset: Path, manifest_path: Path,
           scorer_repo: Path, scorer_commit: str, output: Path) -> dict:
     if output.exists():
         raise ValueError("Scoring correction output already exists")
-    validate_teds_revision(source)
     source_dataset = json.loads((source / "dataset.json").read_text(encoding="utf-8"))
     source_cases = {case["id"]: case for case in source_dataset["cases"]}
     corrected = {row["track_id"]: row for row in read_rows(corrected_dataset)}
@@ -152,8 +202,9 @@ def apply(source: Path, corrected_dataset: Path, manifest_path: Path,
         raise ValueError("Corrected dataset population differs")
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    validate_population_binding(source, source_dataset, list(corrected.values()), manifest)
     corrections = {row["track_id"]: row for row in manifest.get("corrections", [])}
-    if manifest.get("schema_version") != 1 or len(corrections) != len(manifest.get("corrections", [])):
+    if len(corrections) != len(manifest.get("corrections", [])):
         raise ValueError("Invalid dataset correction manifest")
     changed_references, changed_metadata = set(), set()
     for case_id, before in source_cases.items():
@@ -238,6 +289,8 @@ def apply(source: Path, corrected_dataset: Path, manifest_path: Path,
         summary["scorer"]["population"] = "shared reference-defined populations"
 
     shutil.copytree(source, output)
+    if not (output / "original-results.jsonl").exists():
+        shutil.copy2(source / "results.jsonl", output / "original-results.jsonl")
     shutil.copy2(source / "results.jsonl", output / "pre-scoring-correction-results.jsonl")
     shutil.copy2(source / "dataset.json", output / "pre-scoring-correction-dataset.json")
     results_path = output / "results.jsonl"
@@ -273,9 +326,11 @@ def apply(source: Path, corrected_dataset: Path, manifest_path: Path,
         "regression_ids": list(CONTROL_IDS),
         "regression_registry_sha256": digest(REGISTRY),
         "root_causes": [
+            "TEDS passed a serialized label to APTED and lacked a bounded exact-workspace path.",
             "Code extraction omitted inline and raw-HTML representations.",
             "Specialized metric denominators depended on each method's output.",
             "Extraction failures disappeared from metric aggregates.",
+            "The dataset correction manifest did not bind the complete ordered population.",
         ],
         "scorer_repository": "https://github.com/lexmount/WebMainBench",
         "scorer_commit": scorer_commit,

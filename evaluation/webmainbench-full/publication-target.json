@@ -3,10 +3,10 @@
   "profile_sha256": "8cbceaf9694e88e7c1ddbba3263573dcccf69b1ac89d7e9ea5aa098f2a3bab02",
   "variant_profile_sha256": {
     "moli-pr785-fixed": "db8e7fa408edf3dc2e19d2b0f35645448d0e1efd3ac86926d0bcc9e1a3fb3848",
-    "moli-content-fixed": "4e59e910c796da6bcfcb2039e3a58c311fac4b25a9928425003034a007afcaa0"
+    "moli-content-fixed": "ef6d4d8d21021fad74f3307e735bb0f8d10eb57671e13a4eea09453021ebc263"
   },
   "host": "https://artifact-site.lexmount.cn",
   "site_slug": "zrqPjO672dgg",
   "share_url": "https://artifact-site.lexmount.cn/v/Avz3qzo6EEujI0iln1LAzCUF93I47OEC",
-  "expected_remote_version": "ver_25dc4e9b95be4b07b3fb4fd11aed65c9"
+  "expected_remote_version": "ver_7a6eae309b6c457eb35609066ac09309"
 }

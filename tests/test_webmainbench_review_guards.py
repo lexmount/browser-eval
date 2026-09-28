@@ -8,6 +8,7 @@ from unittest.mock import patch
 from scripts.check_webmainbench_report import check_teds_warnings
 from scripts.correct_webmainbench_references import copy_contained_artifact
 from scripts.correct_webmainbench_scoring import copy_correction_sources
+from scripts.correct_webmainbench_teds import original_official_metrics
 from scripts.review_webmainbench_teds_correction import review
 from harness.web_fetch.webmainbench_diagnostics import (
     validate_reference_revision,
@@ -18,6 +19,15 @@ from harness.web_fetch.webmainbench_diagnostics import (
 
 
 class WebMainBenchReviewGuardsTests(unittest.TestCase):
+    def test_stacked_teds_correction_preserves_first_official_scores(self):
+        original = {'table_TEDS': {'score': 0.9}}
+        current = {'table_TEDS': {'score': 0.2}}
+        self.assertEqual(
+            original_official_metrics({'metrics': current, 'official_metrics': original}),
+            original,
+        )
+        self.assertEqual(original_official_metrics({'metrics': current}), current)
+
     def test_scoring_correction_source_copy_rejects_root_escape(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -46,7 +56,7 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
                     metrics = {
                         name: {'score': 0.5, 'success': index < limit, 'details': {}}
                         for name, limit in {
-                            'text_edit': 545, 'code_edit': 110, 'formula_edit': 119,
+                            'text_edit': 545, 'code_edit': 110, 'formula_edit': 113,
                             'table_edit': 81, 'table_TEDS': 81,
                         }.items()
                     }

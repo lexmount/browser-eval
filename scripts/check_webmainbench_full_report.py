@@ -215,7 +215,7 @@ def check(root: Path) -> None:
                 overview_claims = asset.get('claims')
     summaries = json.loads((root / 'score-summaries.json').read_text(encoding='utf-8'))
     expected_denominators = {
-        'text_edit': 545, 'code_edit': 110, 'formula_edit': 119,
+        'text_edit': 545, 'code_edit': 110, 'formula_edit': 113,
         'table_edit': 81, 'table_TEDS': 81,
     }
     if any(summary['official_aggregate']['denominators'] != expected_denominators

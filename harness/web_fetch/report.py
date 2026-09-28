@@ -3091,7 +3091,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
             cells.append('<td class="number" data-target-body-provider="' + provider + '" data-sort="' + str(target_body_count(provider)) + '">' +
                          str(target_body_count(provider)) + "/545</td>")
             rows.append("<tr>" + "".join(cells) + "</tr>")
-        return table(["方法"] + [label for _, label in measures] + ["目标正文"], rows,
+        return table(["方法"] + [label for _, label in measures] + ["成功生成正文"], rows,
                      ["text"] + ["number"] * len(measures) + ["number"], "core-results")
 
     def latency_table():
@@ -3115,7 +3115,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                                (' data-sort="' + str(value) + '"' if value is not None else '') + '>' + marker +
                                (f"{value:,.0f} ms" if value is not None else "—") + end + '</td>')
             rows.append("<tr><td>" + esc(labels[provider]) + "</td><td data-sort=\"" + str(len(successful_by_provider[provider])) + "\">" + str(len(successful_by_provider[provider])) + "/545</td>" + ''.join(numbers) + "</tr>")
-        return table(["方法", "目标正文页", "均值", "P50", "P95", "含重试总耗时"], rows,
+        return table(["方法", "成功生成正文", "均值", "P50", "P95", "含重试总耗时"], rows,
                      ["text", "number", "number", "number", "number", "number"])
 
     def all_call_latency_table():

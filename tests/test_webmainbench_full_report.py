@@ -7,12 +7,26 @@ from bs4 import BeautifulSoup
 import pytest
 
 from harness.web_fetch.report import generate_webmainbench_full
+from harness.web_fetch.report_build import public_webmainbench_scoring_projection
 from scripts.report_presentation_contract import check_presentation
 from scripts.check_webmainbench_full_report import (
     check_diagnosis_inventory,
     check_interaction_script,
     check_result_payload,
 )
+
+
+def test_public_report_omits_private_predecessor_scores_but_keeps_certified_replacement() -> None:
+    predecessor = {'text_edit': {'score': 0.1}}
+    rows = [
+        {'attempt_id': 'ordinary', 'pre_scoring_correction_metrics': predecessor},
+        {'attempt_id': 'replacement', 'supersedes_attempt_id': 'old',
+         'pre_scoring_correction_metrics': predecessor},
+    ]
+    projected = public_webmainbench_scoring_projection(rows)
+    assert 'pre_scoring_correction_metrics' not in projected[0]
+    assert projected[1]['pre_scoring_correction_metrics'] == predecessor
+    assert 'pre_scoring_correction_metrics' in rows[0]
 
 
 def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Path) -> None:
@@ -114,7 +128,7 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     assert len(home.select('td[data-metric-direction="max"] .comparison-winner')) == 6
     assert home.select_one('td[data-target-body-provider="chromium"]').get_text(strip=True) == "0/545"
     assert home.select_one('td[data-target-body-provider="moli-content-fixed"]').get_text(strip=True) == "1/545"
-    assert "目标正文" in home.get_text()
+    assert "成功生成正文" in home.get_text()
     core = home.select_one('table#core-results')
     assert len(core.select('tbody > tr')) == 7
     assert len(core.select('th[aria-sort="none"] > button[data-table-sort]')) == 8
