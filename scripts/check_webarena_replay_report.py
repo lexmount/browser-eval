@@ -455,6 +455,8 @@ def check(report_dir: Path) -> dict[str, int]:
     required_manifest_fields = (
         "task_count",
         "participant_count",
+        "browser_count",
+        "method_count",
         "participants",
         "logical_results",
         "failed_results",
@@ -468,10 +470,18 @@ def check(report_dir: Path) -> dict[str, int]:
     participants = manifest.get("participants") or []
     task_count = int(manifest.get("task_count") or 0)
     participant_count = int(manifest.get("participant_count") or 0)
+    browser_count = int(manifest.get("browser_count") or 0)
+    method_count = int(manifest.get("method_count") or 0)
+    participant_engines = {
+        str(row["participant_id"]): str(row["engine"]) for row in results
+    }
     expected_results = task_count * participant_count
     if (
         task_count < 1
         or participant_count < 2
+        or method_count != participant_count
+        or browser_count != len(set(participant_engines.values()))
+        or not 1 <= browser_count <= method_count
         or len(participants) != participant_count
         or len(set(participants)) != participant_count
         or "historical_participants" in manifest
@@ -482,6 +492,9 @@ def check(report_dir: Path) -> dict[str, int]:
         raise ValueError(
             "report must contain the complete manifest-declared participant-task matrix"
         )
+    home = (root / "index.html").read_text(encoding="utf-8")
+    if f"{browser_count} 款浏览器组成 {method_count} 种方法配置" not in home:
+        raise ValueError("report home does not state the browser and method populations")
     task_ids = {int(item["task_id"]) for item in results}
     result_keys = {(str(item["participant_id"]), int(item["task_id"])) for item in results}
     expected_keys = {(participant, task_id) for participant in participants for task_id in task_ids}

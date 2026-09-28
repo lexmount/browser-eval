@@ -175,6 +175,14 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     assert not (output / "en/results.html").exists()
     assert 'class="language" href="../en/index.html"' in (output / "result/chromium-29.html").read_text()
     assert check_report(output)["html_pages"] == 11 + extra_methods
+    manifest_path = output / "report-manifest.json"
+    changed = json.loads(manifest_path.read_text())
+    changed["browser_count"] += 1
+    manifest_path.write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match="complete manifest-declared"):
+        check_report(output)
+    changed["browser_count"] -= 1
+    manifest_path.write_text(json.dumps(changed))
     stale = output / "en/results.html"
     stale.write_text("stale English report")
     with pytest.raises(ValueError, match="stale English"):
