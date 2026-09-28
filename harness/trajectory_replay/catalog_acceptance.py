@@ -24,6 +24,7 @@ from harness.trajectory_replay.evaluator_transition import (
     load_receipt,
     load_transition,
     reevaluate_pass,
+    validate_source_pass,
 )
 from harness.trajectory_replay.remote_runtime import load_remote_sites, remote_benchmark
 from harness.trajectory_replay.runtime_identity import (
@@ -36,6 +37,26 @@ from harness.trajectory_replay.webarena_runtime_source import (
     WEBARENA_VERIFIED_REVISION,
     verify_webarena_runtime_source,
 )
+
+
+def _evaluator_identity_field(binding: dict) -> str:
+    """Return the evaluator identity used by a recorded run contract.
+
+    Catalog run schema /1 was emitted with both identities at different points in
+    its lifetime. Schema /2 removes that ambiguity for new runs while this reader
+    keeps both already-recorded /1 forms verifiable.
+    """
+    has_revision = "webarena_revision" in binding
+    has_fixes = "evaluator_fixes_sha256" in binding
+    if binding.get("schema") == "lex_trajectory_replay_catalog_run/2":
+        if not has_revision or has_fixes:
+            raise ValueError("catalog run /2 must bind exactly one WebArena revision")
+        return "webarena_revision"
+    if binding.get("schema") == "lex_trajectory_replay_catalog_run/1":
+        if has_revision == has_fixes:
+            raise ValueError("catalog run /1 must bind exactly one evaluator identity")
+        return "webarena_revision" if has_revision else "evaluator_fixes_sha256"
+    return "evaluator_fixes_sha256"
 
 
 def _read_run(directory: Path) -> tuple[dict, list[dict]]:
@@ -61,11 +82,7 @@ def _read_run(directory: Path) -> tuple[dict, list[dict]]:
             "environment_profile_sha256",
             "corrections_sha256",
         }
-        evaluator_identity = (
-            "webarena_revision"
-            if binding["schema"] == "lex_trajectory_replay_catalog_run/1"
-            else "evaluator_fixes_sha256"
-        )
+        evaluator_identity = _evaluator_identity_field(binding)
         required.add(evaluator_identity)
         if not required <= set(binding):
             raise ValueError(f"run execution contract is incomplete: {directory}")
@@ -83,7 +100,7 @@ def _verified_attempt(
     run_revision: str | None = None,
     run_evaluator_fixes_sha256: str | None = None,
     evaluator_transition: dict | None = None,
-    transition_receipt: dict[tuple[int, str], dict] | None = None,
+    transition_receipt: dict[tuple[int, str, str], dict] | None = None,
     runtime_binding: dict[str, object] | None = None,
 ) -> tuple[dict, bool]:
     task_id = row["task_id"]
@@ -137,14 +154,7 @@ def _verified_attempt(
                 or current_data != source["data_checksum"]
             ):
                 raise ValueError(f"task {task_id} pass lacks evaluator transition evidence")
-            validate_passing_evaluation(
-                evaluation,
-                task_id=task_id,
-                expected_data_checksum=source["data_checksum"],
-                benchmark=benchmark,
-                corrections=corrections,
-                expected_evaluator_checksum=source["evaluator_checksum"],
-            )
+            validate_source_pass(evaluation, task_id=task_id, source=source)
             current, transition_binding = reevaluate_pass(
                 directory / f"task-{task_id}",
                 task_id=task_id,
@@ -154,7 +164,11 @@ def _verified_attempt(
             )
             del current
             receipt_row = transition_receipt.get(
-                (task_id, transition_binding["old_evaluation_sha256"])
+                (
+                    task_id,
+                    transition_binding["old_evaluation_sha256"],
+                    run_inputs_sha256,
+                )
             )
             expected_receipt = {
                 "run_inputs_sha256": run_inputs_sha256,
@@ -251,13 +265,13 @@ def audit(
         )
     else:
         transition_receipt = None
-        transition_exclusions: set[tuple[int, str]] = set()
+        transition_exclusions: set[tuple[int, str, str]] = set()
     superseded_requested = set(superseded_catalog_tasks or ())
     replacement_dirs = list(replacement_dirs or ())
     if bool(superseded_requested) != bool(replacement_dirs):
         raise ValueError("catalog replacements require an exact superseded task scope")
-    used_transition_rows: set[tuple[int, str]] = set()
-    expected_transition_exclusions: set[tuple[int, str]] = set()
+    used_transition_rows: set[tuple[int, str, str]] = set()
+    expected_transition_exclusions: set[tuple[int, str, str]] = set()
     scope = json.loads(scope_path.read_text(encoding="utf-8"))
     ids = scope.get("task_ids")
     data_checksum = str(scope.get("official_dataset_sha256") or "")
@@ -391,11 +405,7 @@ def audit(
                 run_record.update(runtime_binding)
                 if request_bridge is not None:
                     run_record["request_bridge"] = request_bridge
-                evaluator_identity = (
-                    "webarena_revision"
-                    if binding["schema"] == "lex_trajectory_replay_catalog_run/1"
-                    else "evaluator_fixes_sha256"
-                )
+                evaluator_identity = _evaluator_identity_field(binding)
                 run_record[evaluator_identity] = binding[evaluator_identity]
             if "action_overrides_sha256" in binding:
                 run_record["action_overrides_sha256"] = binding["action_overrides_sha256"]
@@ -448,6 +458,7 @@ def audit(
                                 attempt["evaluator_transition"][
                                     "old_evaluation_sha256"
                                 ],
+                                run_inputs_sha256,
                             )
                         )
                     physical_attempts += int(physical)
@@ -495,7 +506,11 @@ def audit(
                                     f"task {task_id} has an unexpected old evaluator"
                                 )
                             expected_transition_exclusions.add(
-                                (task_id, file_sha256(evaluation_path))
+                                (
+                                    task_id,
+                                    file_sha256(evaluation_path),
+                                    run_inputs_sha256,
+                                )
                             )
                     physical_attempts += int(physical)
                     states[task_id]["attempts"].append(attempt)
@@ -530,6 +545,7 @@ def audit(
                             (
                                 task_id,
                                 attempt["evaluator_transition"]["old_evaluation_sha256"],
+                                run_inputs_sha256,
                             )
                         )
                     physical_attempts += int(physical)
@@ -569,6 +585,7 @@ def audit(
                         (
                             task_id,
                             attempt["evaluator_transition"]["old_evaluation_sha256"],
+                            run_inputs_sha256,
                         )
                     )
                 physical_attempts += int(physical)

@@ -33,10 +33,18 @@ REPORT_PROFILE_SCHEMAS = frozenset(
     {REPORT_PROFILE_SCHEMA, "lex_webarena_verified_full_report_profile/1"}
 )
 COMPARISON_RELEASE_SCHEMA = "lex_webarena_replay_comparison_release/1"
-RUN_SCHEMA = "lex_trajectory_replay_catalog_run/1"
-LEGACY_RUN_SCHEMAS = frozenset({"lex_webarena_full_replay_run/1", "lex_webarena_full_replay_run/2"})
+RUN_SCHEMA = "lex_trajectory_replay_catalog_run/2"
+LEGACY_RUN_SCHEMAS = frozenset(
+    {
+        "lex_trajectory_replay_catalog_run/1",
+        "lex_webarena_full_replay_run/1",
+        "lex_webarena_full_replay_run/2",
+    }
+)
 RUN_SCHEMAS = frozenset({RUN_SCHEMA, *LEGACY_RUN_SCHEMAS})
-EXECUTION_CONTRACT_RUN_SCHEMAS = frozenset({RUN_SCHEMA, "lex_webarena_full_replay_run/2"})
+EXECUTION_CONTRACT_RUN_SCHEMAS = frozenset(
+    {RUN_SCHEMA, "lex_trajectory_replay_catalog_run/1", "lex_webarena_full_replay_run/2"}
+)
 ACTION_OVERRIDES_SCHEMA = "lex_webarena_replay_action_overrides/1"
 _ACTION_OVERRIDE_FIELDS = frozenset(
     {

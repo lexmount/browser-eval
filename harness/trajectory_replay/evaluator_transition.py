@@ -20,8 +20,43 @@ from harness.trajectory_replay.webarena_runtime_source import (
 )
 
 TRANSITION_SCHEMA = "lex_webarena_evaluator_transition/1"
-RECEIPT_SCHEMA = "lex_webarena_evaluator_transition_receipt/2"
+RECEIPT_SCHEMA = "lex_webarena_evaluator_transition_receipt/3"
 SOURCE_KINDS = {"revision", "evaluator_fixes_sha256"}
+
+
+def validate_source_pass(
+    evaluation: dict[str, Any],
+    *,
+    task_id: int,
+    source: dict[str, str],
+) -> None:
+    """Validate immutable source-era provenance before current re-evaluation.
+
+    Source-era correction metadata cannot be compared with the current correction
+    catalog because accepted fixes may have moved upstream. The transition receipt
+    binds the exact old evaluation, response, HAR and current re-evaluation.
+    """
+    evaluator_rows = evaluation.get("evaluators_results") or []
+    correction_id = evaluation.get("contract_correction_id")
+    corrected_task = evaluation.get("corrected_task_sha256")
+    if (
+        evaluation.get("task_id") != task_id
+        or float(evaluation.get("score") or 0) != 1.0
+        or str(evaluation.get("status") or "").lower() not in {"pass", "success"}
+        or evaluation.get("webarena_verified_evaluator_checksum")
+        != source["evaluator_checksum"]
+        or evaluation.get("webarena_verified_data_checksum") != source["data_checksum"]
+        or not isinstance(evaluator_rows, list)
+        or not evaluator_rows
+        or any(
+            float(row.get("score") or 0) != 1.0
+            or str(row.get("status") or "").lower() not in {"pass", "success"}
+            for row in evaluator_rows
+        )
+        or ((correction_id is None) != (corrected_task is None))
+        or (corrected_task is not None and len(str(corrected_task)) != 64)
+    ):
+        raise ValueError(f"task {task_id} source pass has stale or incomplete provenance")
 
 
 def json_sha256(value: Any) -> str:
@@ -175,8 +210,8 @@ def reevaluate_pass(
 def load_receipt(
     path: Path, transition: dict[str, Any]
 ) -> tuple[
-    dict[tuple[int, str], dict[str, Any]],
-    set[tuple[int, str]],
+    dict[tuple[int, str, str], dict[str, Any]],
+    set[tuple[int, str, str]],
 ]:
     receipt = json.loads(path.read_text(encoding="utf-8"))
     rows = receipt.get("rows") if isinstance(receipt, dict) else None
@@ -184,7 +219,11 @@ def load_receipt(
         receipt.get("excluded_old_evaluations", []) if isinstance(receipt, dict) else None
     )
     excluded_keys = [
-        (row.get("task_id"), row.get("old_evaluation_sha256"))
+        (
+            row.get("task_id"),
+            row.get("old_evaluation_sha256"),
+            row.get("run_inputs_sha256"),
+        )
         for row in excluded or []
         if isinstance(row, dict)
     ]
@@ -208,13 +247,19 @@ def load_receipt(
             type(task_id) is not int
             or not isinstance(evaluation_sha256, str)
             or len(evaluation_sha256) != 64
-            for task_id, evaluation_sha256 in excluded_keys
+            or not isinstance(run_inputs_sha256, str)
+            or len(run_inputs_sha256) != 64
+            for task_id, evaluation_sha256, run_inputs_sha256 in excluded_keys
         )
     ):
         raise ValueError("WebArena evaluator transition receipt is invalid")
-    indexed: dict[tuple[int, str], dict[str, Any]] = {}
+    indexed: dict[tuple[int, str, str], dict[str, Any]] = {}
     for row in rows:
-        key = (row.get("task_id"), row.get("old_evaluation_sha256"))
+        key = (
+            row.get("task_id"),
+            row.get("old_evaluation_sha256"),
+            row.get("run_inputs_sha256"),
+        )
         if (
             type(key[0]) is not int
             or not isinstance(key[1], str)

@@ -22,7 +22,7 @@ def _run(
     preparation="same-reset",
     backend="browsertool",
     catalog="catalog",
-    schema="lex_trajectory_replay_catalog_run/1",
+    schema="lex_trajectory_replay_catalog_run/2",
     engine=None,
     binary="same-chromium",
     action_overrides=None,
@@ -46,6 +46,7 @@ def _run(
         inputs["action_overrides_sha256"] = action_overrides
     if schema in {
         "lex_trajectory_replay_catalog_run/1",
+        "lex_trajectory_replay_catalog_run/2",
         "lex_webarena_full_replay_run/2",
     }:
         inputs.update(
@@ -56,7 +57,10 @@ def _run(
                 "corrections_sha256": "corrections",
                 **(
                     {"webarena_revision": WEBARENA_VERIFIED_REVISION}
-                    if schema == "lex_trajectory_replay_catalog_run/1"
+                    if schema in {
+                        "lex_trajectory_replay_catalog_run/1",
+                        "lex_trajectory_replay_catalog_run/2",
+                    }
                     else {"evaluator_fixes_sha256": "fixes"}
                 ),
             }
@@ -255,6 +259,24 @@ def test_acceptance_defers_revision_compatibility_to_physical_evidence(tmp_path,
         acceptance.audit(scope, [sweep], [])
 
 
+def test_catalog_run_v1_with_legacy_evaluator_hash_remains_readable(tmp_path):
+    run = _run(
+        tmp_path,
+        "catalog-v1",
+        [7],
+        {},
+        schema="lex_trajectory_replay_catalog_run/1",
+    )
+    inputs = run / "inputs.json"
+    payload = json.loads(inputs.read_text())
+    payload["evaluator_fixes_sha256"] = payload.pop("webarena_revision")
+    inputs.write_text(json.dumps(payload))
+
+    binding, _rows = acceptance._read_run(run)
+
+    assert acceptance._evaluator_identity_field(binding) == "evaluator_fixes_sha256"
+
+
 def test_acceptance_allows_declared_predecessor_only_with_paired_transition_receipt(
     tmp_path, monkeypatch
 ):
@@ -354,9 +376,19 @@ def test_catalog_replacement_excludes_only_superseded_transition_evidence(
         )
     )
     replacement_evaluation = replacement / "replacement-evaluation.json"
-    replacement_evaluation.write_text("{}")
-    old_identity = (7, acceptance.file_sha256(old_evaluation))
-    replacement_identity = (7, acceptance.file_sha256(replacement_evaluation))
+    replacement_evaluation.write_bytes(old_evaluation.read_bytes())
+    old_identity = (
+        7,
+        acceptance.file_sha256(old_evaluation),
+        acceptance.file_sha256(sweep / "inputs.json"),
+    )
+    replacement_identity = (
+        7,
+        acceptance.file_sha256(replacement_evaluation),
+        acceptance.file_sha256(replacement / "inputs.json"),
+    )
+    assert old_identity[:2] == replacement_identity[:2]
+    assert old_identity != replacement_identity
     monkeypatch.setattr(acceptance, "load_transition", lambda _path: transition)
     monkeypatch.setattr(
         acceptance,

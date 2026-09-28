@@ -1,11 +1,54 @@
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
 import pytest
 
 from harness.trajectory_replay import evaluator_transition
+from scripts.reevaluate_webarena_evaluator_transition import _old_evaluation_identity
+
+
+def test_source_pass_allows_a_superseded_correction_bound_by_transition() -> None:
+    source = {
+        "evaluator_checksum": "a" * 64,
+        "data_checksum": "b" * 64,
+    }
+    evaluator_transition.validate_source_pass(
+        {
+            "task_id": 566,
+            "score": 1.0,
+            "status": "success",
+            "webarena_verified_evaluator_checksum": source["evaluator_checksum"],
+            "webarena_verified_data_checksum": source["data_checksum"],
+            "contract_correction_id": "superseded-upstream-fix",
+            "corrected_task_sha256": "c" * 64,
+            "evaluators_results": [{"score": 1.0, "status": "success"}],
+        },
+        task_id=566,
+        source=source,
+    )
+
+
+def test_source_pass_rejects_a_failed_evaluator_row() -> None:
+    source = {
+        "evaluator_checksum": "a" * 64,
+        "data_checksum": "b" * 64,
+    }
+    with pytest.raises(ValueError, match="source pass"):
+        evaluator_transition.validate_source_pass(
+            {
+                "task_id": 7,
+                "score": 1.0,
+                "status": "success",
+                "webarena_verified_evaluator_checksum": source["evaluator_checksum"],
+                "webarena_verified_data_checksum": source["data_checksum"],
+                "evaluators_results": [{"score": 0.0, "status": "failure"}],
+            },
+            task_id=7,
+            source=source,
+        )
 
 
 def _transition():
@@ -77,6 +120,19 @@ def test_transition_resolves_revision_and_legacy_evaluator_sources():
     )
 
 
+def test_transition_exclusion_cli_binds_evaluation_and_run():
+    assert _old_evaluation_identity(f"7/{'1' * 64}/{'2' * 64}") == (
+        7,
+        "1" * 64,
+        "2" * 64,
+    )
+    with pytest.raises(
+        argparse.ArgumentTypeError,
+        match="EVALUATION_SHA256/RUN_INPUTS_SHA256",
+    ):
+        _old_evaluation_identity(f"7/{'1' * 64}")
+
+
 def test_transition_receipt_binds_each_old_evaluation_once(tmp_path):
     transition = _transition()
     receipt = _receipt(transition)
@@ -85,7 +141,7 @@ def test_transition_receipt_binds_each_old_evaluation_once(tmp_path):
 
     indexed, excluded = evaluator_transition.load_receipt(path, transition)
 
-    assert indexed[(7, "1" * 64)]["current_evaluation_sha256"] == "4" * 64
+    assert indexed[(7, "1" * 64, "5" * 64)]["current_evaluation_sha256"] == "4" * 64
     assert excluded == set()
 
 
@@ -93,15 +149,42 @@ def test_transition_receipt_excludes_only_the_bound_old_evaluation(tmp_path):
     transition = _transition()
     receipt = _receipt(transition)
     receipt["excluded_old_evaluations"] = [
-        {"task_id": 7, "old_evaluation_sha256": "6" * 64}
+        {
+            "task_id": 7,
+            "old_evaluation_sha256": "1" * 64,
+            "run_inputs_sha256": "6" * 64,
+        }
     ]
     path = tmp_path / "receipt.json"
     path.write_text(json.dumps(receipt))
 
     indexed, excluded = evaluator_transition.load_receipt(path, transition)
 
-    assert set(indexed) == {(7, "1" * 64)}
-    assert excluded == {(7, "6" * 64)}
+    assert set(indexed) == {(7, "1" * 64, "5" * 64)}
+    assert excluded == {(7, "1" * 64, "6" * 64)}
+
+
+def test_transition_receipt_distinguishes_identical_evaluations_from_different_runs(
+    tmp_path,
+):
+    transition = _transition()
+    receipt = _receipt(transition)
+    replacement = {
+        **receipt["rows"][0],
+        "run_inputs_sha256": "6" * 64,
+    }
+    receipt["rows"].append(replacement)
+    receipt["row_count"] = 2
+    path = tmp_path / "receipt.json"
+    path.write_text(json.dumps(receipt))
+
+    indexed, excluded = evaluator_transition.load_receipt(path, transition)
+
+    assert set(indexed) == {
+        (7, "1" * 64, "5" * 64),
+        (7, "1" * 64, "6" * 64),
+    }
+    assert excluded == set()
 
 
 @pytest.mark.parametrize("change", ["extra_row", "wrong_transition", "wrong_count"])

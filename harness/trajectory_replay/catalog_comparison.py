@@ -160,7 +160,13 @@ def _progress_index(evidence_root: Path) -> dict[str, tuple[Path, dict[int, dict
 def _site_reset_index(evidence_root: Path) -> dict[str, dict[str, str]]:
     index = {}
     for path in evidence_root.rglob("*.json"):
-        if "reset" not in path.name.lower() or path.is_symlink() or path.parent.is_symlink():
+        name = path.name.lower()
+        if (
+            "reset" not in name
+            and "receipt" not in name
+            or path.is_symlink()
+            or path.parent.is_symlink()
+        ):
             continue
         digest = file_sha256(path)
         ref = _artifact(path, digest)

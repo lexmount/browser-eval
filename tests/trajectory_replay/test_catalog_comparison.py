@@ -17,6 +17,13 @@ def _write(path: Path, value: object) -> str:
     return file_sha256(path)
 
 
+def test_site_preparation_index_accepts_a_restart_receipt_name(tmp_path: Path) -> None:
+    receipt = tmp_path / "four-site-restart-receipt-v2.json"
+    digest = _write(receipt, {"schema": "lex_webarena_environment_preparation/1"})
+
+    assert catalog_comparison._site_reset_index(tmp_path)[digest]["path"] == str(receipt)
+
+
 def test_catalog_dataset_uses_the_executed_catalog_actions(monkeypatch, tmp_path: Path) -> None:
     actions = [{"action": "navigate", "url": "https://target.example/task"}]
     catalog = {

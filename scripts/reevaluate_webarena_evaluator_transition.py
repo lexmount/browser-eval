@@ -19,15 +19,22 @@ from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
 
 
-def _old_evaluation_identity(value: str) -> tuple[int, str]:
-    task, separator, digest = value.partition("/")
-    if not separator or not task.isdecimal() or len(digest) != 64:
-        raise argparse.ArgumentTypeError("expected TASK_ID/SHA256")
+def _old_evaluation_identity(value: str) -> tuple[int, str, str]:
+    parts = value.split("/")
+    if len(parts) != 3 or not parts[0].isdecimal() or any(
+        len(digest) != 64 for digest in parts[1:]
+    ):
+        raise argparse.ArgumentTypeError(
+            "expected TASK_ID/EVALUATION_SHA256/RUN_INPUTS_SHA256"
+        )
     try:
-        int(digest, 16)
+        int(parts[1], 16)
+        int(parts[2], 16)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError("expected TASK_ID/SHA256") from exc
-    return int(task), digest
+        raise argparse.ArgumentTypeError(
+            "expected TASK_ID/EVALUATION_SHA256/RUN_INPUTS_SHA256"
+        ) from exc
+    return int(parts[0]), parts[1], parts[2]
 
 
 def main() -> None:
@@ -41,7 +48,7 @@ def main() -> None:
         type=_old_evaluation_identity,
         action="append",
         default=[],
-        metavar="TASK_ID/SHA256",
+        metavar="TASK_ID/EVALUATION_SHA256/RUN_INPUTS_SHA256",
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -58,6 +65,7 @@ def main() -> None:
     observed_excluded = set()
     for directory in args.run:
         inputs_path = directory / "inputs.json"
+        run_inputs_sha256 = file_sha256(inputs_path)
         progress_path = directory / "progress.jsonl"
         inputs = json.loads(inputs_path.read_text(encoding="utf-8"))
         source = compatible_source(
@@ -81,7 +89,11 @@ def main() -> None:
                 != source["data_checksum"]
             ):
                 raise ValueError(f"task {row['task_id']} has an unexpected old evaluator")
-            identity = (row["task_id"], file_sha256(evaluation_path))
+            identity = (
+                row["task_id"],
+                file_sha256(evaluation_path),
+                run_inputs_sha256,
+            )
             if identity in excluded:
                 observed_excluded.add(identity)
                 continue
@@ -93,20 +105,30 @@ def main() -> None:
                 corrections=corrections,
             )
             del current
-            identity = (binding["task_id"], binding["old_evaluation_sha256"])
+            identity = (
+                binding["task_id"],
+                binding["old_evaluation_sha256"],
+                run_inputs_sha256,
+            )
             if identity in identities:
                 continue
             identities.add(identity)
             rows.append(
                 {
-                    "run_inputs_sha256": file_sha256(inputs_path),
+                    "run_inputs_sha256": run_inputs_sha256,
                     "source": source,
                     **binding,
                 }
             )
-    rows.sort(key=lambda row: (row["task_id"], row["old_evaluation_sha256"]))
+    rows.sort(
+        key=lambda row: (
+            row["task_id"],
+            row["old_evaluation_sha256"],
+            row["run_inputs_sha256"],
+        )
+    )
     if observed_excluded != excluded:
-        raise ValueError("excluded transition tasks were not found as old passes")
+        raise ValueError("excluded transition evaluations were not found as old passes")
     receipt = {
         "schema": RECEIPT_SCHEMA,
         "transition_sha256": json_sha256(transition),
@@ -120,8 +142,12 @@ def main() -> None:
         "to_data_checksum": transition["to_data_checksum"],
         "row_count": len(rows),
         "excluded_old_evaluations": [
-            {"task_id": task_id, "old_evaluation_sha256": digest}
-            for task_id, digest in sorted(excluded)
+            {
+                "task_id": task_id,
+                "old_evaluation_sha256": digest,
+                "run_inputs_sha256": run_inputs_sha256,
+            }
+            for task_id, digest, run_inputs_sha256 in sorted(excluded)
         ],
         "rows": rows,
     }

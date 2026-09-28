@@ -17,6 +17,7 @@ from harness.trajectory_replay.catalog_contracts import (
 
 
 def test_current_contracts_keep_historical_run_and_acceptance_schemas_readable():
+    assert "lex_trajectory_replay_catalog_run/1" in RUN_SCHEMAS
     assert "lex_webarena_full_replay_run/1" in RUN_SCHEMAS
     assert "lex_webarena_full_replay_run/2" in RUN_SCHEMAS
     assert "lex_webarena_full_acceptance_ledger/1" in ACCEPTANCE_SCHEMAS
