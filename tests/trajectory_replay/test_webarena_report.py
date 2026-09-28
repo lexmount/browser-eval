@@ -126,6 +126,8 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
         output_dir=output, include_english=True,
     )
     assert manifest["participants"] == [item["id"] for item in methods]
+    assert manifest["browser_count"] == 2
+    assert manifest["method_count"] == len(methods)
     assert manifest["logical_results"] == len(methods)
     assert manifest["routes"] == 20 + 2 * extra_methods
     assert "36/36" not in (output / "index.html").read_text()
