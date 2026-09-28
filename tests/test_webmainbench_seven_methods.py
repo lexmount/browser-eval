@@ -2,6 +2,7 @@
 from scripts.assemble_webmainbench_seven_methods import (
     alias_row,
     copy_alias_artifacts,
+    drop_inherited_teds_revision,
     require_matrix,
     require_provider_batch,
 )
@@ -65,3 +66,19 @@ def test_execution_requires_exactly_one_batch_for_each_variant() -> None:
         require_provider_batch({"batches": []}, "moli-fixed")
     with pytest.raises(ValueError, match="found 2"):
         require_provider_batch({"batches": [batch, dict(batch)]}, "moli-fixed")
+
+
+def test_new_matrix_drops_partial_scope_teds_receipts(tmp_path) -> None:
+    for name in ("teds-correction.json", "teds-correction-review.json",
+                 "original-results.jsonl", "keep.json"):
+        (tmp_path / name).write_text("frozen")
+    (tmp_path / "correction-source").mkdir()
+    (tmp_path / "correction-source/scorer.py").write_text("frozen")
+
+    drop_inherited_teds_revision(tmp_path)
+
+    assert (tmp_path / "keep.json").read_text() == "frozen"
+    assert not (tmp_path / "teds-correction.json").exists()
+    assert not (tmp_path / "teds-correction-review.json").exists()
+    assert not (tmp_path / "original-results.jsonl").exists()
+    assert not (tmp_path / "correction-source").exists()

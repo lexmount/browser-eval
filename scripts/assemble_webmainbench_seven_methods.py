@@ -83,6 +83,14 @@ def require_provider_batch(execution: dict, provider: str) -> dict:
     return copy.deepcopy(batches[0])
 
 
+def drop_inherited_teds_revision(output: Path) -> None:
+    """A newly assembled matrix needs one correction over its complete scope."""
+    for name in ("teds-correction.json", "teds-correction-review.json",
+                 "original-results.jsonl"):
+        (output / name).unlink(missing_ok=True)
+    shutil.rmtree(output / "correction-source", ignore_errors=True)
+
+
 def assemble(prior: Path, content: Path, output: Path) -> None:
     if output.exists():
         raise ValueError("Composite evidence is immutable")
@@ -101,6 +109,7 @@ def assemble(prior: Path, content: Path, output: Path) -> None:
         if old != new:
             raise ValueError("Shared baseline differs between repair cohorts: " + provider)
     shutil.copytree(prior, output)
+    drop_inherited_teds_revision(output)
     prior_alias = variants[0]
     content_alias = variants[1]
     historical = prior_alias["evidence_alias"]

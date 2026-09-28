@@ -4,8 +4,8 @@
     {
       "name": "seven-method-overview.png",
       "role": "overview",
-      "sha256": "e0cf08562ed934763470c323cba470bffff2fb9733ea56537ed1e22d1176de41",
-      "generator": "ImageGen",
+      "sha256": "57b5a47c401f328be8e7d54c568774a7799e767594200389a11e0ff36873505e",
+      "generator": "deterministic HTML/CSS render",
       "scope": "seven methods after certified origin correction",
       "claims": {
         "scores_percent": {
@@ -15,7 +15,7 @@
           "chromium": "23.66",
           "obscura": "22.36",
           "moli-pr785-fixed": "34.08",
-          "moli-content-fixed": "32.97"
+          "moli-content-fixed": "35.88"
         },
         "machine_issues": 25,
         "request_failures": 15,
@@ -26,8 +26,8 @@
     {
       "name": "moli-repair-mechanisms.png",
       "role": "repair-mechanisms",
-      "sha256": "f02e5f08beccb6e3edb5deeb0b987527683b89c9fb1d6fab3925480d1d23a9e8",
-      "generator": "ImageGen",
+      "sha256": "883d7d03ec1a83a9f6b7c170bfff54e62233c79a46d7bd009b7fb6916977ec6d",
+      "generator": "deterministic HTML/CSS render",
       "scope": "observed defect to shared cause, implementation layer and verification"
     }
   ]

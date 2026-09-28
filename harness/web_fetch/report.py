@@ -3074,7 +3074,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
             summary = summaries[provider]
             scores = summary["official_aggregate"]["scores"]
             denominators = summary["official_aggregate"]["denominators"]
-            method_detail = ('<small>实测提交 ' + content_fixed_commit[:9] + '；PR919 最新 main 未重测</small>'
+            method_detail = ('<small>实测提交 ' + content_fixed_commit[:9] + '；Moli 1.1.11</small>'
                              if provider == 'moli-content-fixed' else '')
             cells = ['<td data-sort="' + esc(labels[provider]) + '">' + anchor("analysis/index.html?provider=" + provider, labels[provider]) + method_detail + "</td>"]
             for metric, _ in measures:
@@ -3323,9 +3323,10 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                      '<p class="note">两个修复版均为独立的 545 页认证运行，运行日期不同，耗时不作版本快慢结论。' +
                      anchor('seven-method-binding.json', '三轮证据绑定') + ' · ' +
                      anchor('https://github.com/lexmount/moli/pull/785', 'PR785') + ' · ' +
-                     anchor('https://github.com/lexmount/moli/pull/814', 'PR814（实测来源）') + ' · ' +
-                     anchor('https://github.com/lexmount/moli/pull/919', 'PR919（最新 main 实现）') +
-                     '</p><p class="note">上表内容修复版的分数仍绑定提交 <code>39169d705</code>。PR919 将同一修复移植到最新 main，未重新测量，不替换上表的冻结结果。</p></section>')
+                     anchor('https://github.com/lexmount/moli/pull/814', 'PR814（历史前身）') + ' · ' +
+                     anchor('https://github.com/lexmount/moli/pull/919', 'PR919（本次实测来源）') +
+                     '</p><p class="note">上表内容修复版绑定 PR919 提交 <code>' + esc(content_fixed_commit[:9]) +
+                     '</code>：在最新 main 上完成 release 编译和 545 页认证运行。历史 PR814 结果保留在更新记录中，不混入本表。</p></section>')
     correction_section = ''
     if correction:
         corrected_id = correction['preflight']['case_id']

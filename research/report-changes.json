@@ -1276,6 +1276,61 @@
   ],
   "releases": [
     {
+      "id": "webmainbench-545-moli-pr919-final-20260928",
+      "date": "2026-09-28",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "title": "以最新 main 的 Moli 1.1.11 完成 PR919 七方法正式重测",
+      "summary": "PR919 rebase 到 Moli main 80660fb6 后，以提交 683b297e1 的固定 release 二进制完成 545 页认证运行。修复版生成目标正文 545/545，综合分 35.88% 为七方法最高；代码边界修复使代码分从旧内容修复结果的 61.11% 回升到 74.91%。报告保留七种方法的 3,815 条独立结果。",
+      "changes": [
+        [
+          "运行身份",
+          "旧报告的内容修复分数来自 PR814 提交 39169d705，不能代表 rebase 最新 main 后的 PR919。",
+          "将 PR919 正式 rebase 到 main 80660fb6，绑定源码提交 683b297e1、Moli 1.1.11 release 二进制哈希和完整认证证据。",
+          "PR919 作为独立方法完成 545 页调用；原五方法和 PR785 修复版证据保持不变。"
+        ],
+        [
+          "代码分回归",
+          "旧内容修复版的代码分为 61.11%，块级 pre 被转成行内代码，复杂表格回退成 HTML 后也无法被代码提取器识别。",
+          "统一将可见 pre 输出为 Markdown 围栏；仅对含 pre 的复杂表格按可见单元格顺序展开，并增加块级、嵌套、语言标注和复杂表格场景测试。",
+          "七个同类页面恢复可计分代码，最终代码分为 74.91%，计分页由前两版的 97 页增至 103 页。"
+        ],
+        [
+          "报告结论",
+          "报告曾把历史 PR814 结果写成当前修复版，并沿用 32.97% 综合分。",
+          "用最终七方法证据重算表格、极值、解读和两张分析图，保留官方原分与独立 TEDS 修正层。",
+          "PR919 修复版综合分 35.88%，表格内容 25.59%、TEDS 16.64%、公式 20.81%，目标正文 545/545。官方参考把隐藏编辑器副本当作代码的一页仍保留官方零分并披露限制。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Complete the formal seven-method rerun with Moli 1.1.11 on current main",
+          "summary": "After rebasing PR919 onto Moli main 80660fb6, commit 683b297e1 was built once in release mode and run across the certified 545-page cohort. The repair produces target body text for 545/545 pages and leads all seven methods at 35.88% overall. Markdown code-boundary repairs raise the code score from 61.11% to 74.91%.",
+          "changes": [
+            [
+              "Run identity",
+              "The prior content-repair score came from PR814 commit 39169d705 and could not represent PR919 after rebasing onto current main.",
+              "Rebase PR919 onto main 80660fb6 and bind source commit 683b297e1, the Moli 1.1.11 release binary hash, and the complete certified evidence.",
+              "PR919 completes all 545 calls as a distinct method; the five baseline methods and the PR785 repair remain unchanged."
+            ],
+            [
+              "Code-score regression",
+              "The earlier content repair scored 61.11% for code because block pre elements became inline code and complex-table HTML fallback was invisible to the code extractor.",
+              "Emit visible pre content as fenced Markdown and flatten only complex tables containing pre elements in visible cell order, with scenario tests.",
+              "Seven affected pages recover extractable code; the final score is 74.91%, with 103 scored pages versus 97 for the earlier Moli variants."
+            ],
+            [
+              "Report conclusion",
+              "The report had presented historical PR814 evidence as the current repair and retained the 32.97% overall score.",
+              "Recompute tables, unique extrema, interpretation, and both diagrams from final seven-method evidence while preserving official raw scores and the independent TEDS correction layer.",
+              "The PR919 repair leads at 35.88% overall, with 25.59% table content, 16.64% corrected TEDS, 20.81% formula, and 545/545 target bodies."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-09-24-dynamic-100-moli-119-local-audit",
       "comparison_kinds": ["single_provider_dynamic_native_fetch"],
       "date": "2026-09-24",

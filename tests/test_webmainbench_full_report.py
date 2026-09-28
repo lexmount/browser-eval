@@ -64,7 +64,7 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
                ],
                "variant_labels": {
                    "moli-pr785-fixed": "Moli 1.1.9 · PR785 修复版",
-                   "moli-content-fixed": "Moli 1.1.10 · 内容修复版",
+                   "moli-content-fixed": "Moli 1.1.11 · PR919 修复版",
                },
                "source_dataset_sha256": "a" * 64, "official_scorer_commit": "b" * 40}
     profile["versions"]["moli"] = "1.0'</script><script>bad()"
@@ -93,7 +93,7 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
         {"provider": "moli", "case_id": case_id, "category": "browser_exit", "category_label": "Moli 解析器崩溃",
          "cause": "Fixture failed", "treatment": "Investigate", "status": "open"}]}), encoding="utf-8")
     (tmp_path / "physical-attempts.jsonl").write_text("".join(json.dumps(row) + "\n" for row in physical), encoding="utf-8")
-    (tmp_path / "moli-content-fixed-report.json").write_text(json.dumps({"source_commit": "39169d705902cad04d241ecff01fc692e4303edc"}), encoding="utf-8")
+    (tmp_path / "moli-content-fixed-report.json").write_text(json.dumps({"source_commit": "683b297e1b99b5bbe27284dc8b5e657eaacf8996"}), encoding="utf-8")
     generate_webmainbench_full(tmp_path, dataset, rows, summaries, profile)
     subprocess.run(["node", "--check", str(tmp_path / "assets/report.js")], check=True)
     report_js = (tmp_path / "assets/report.js").read_text(encoding="utf-8")
@@ -108,14 +108,14 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     core = home.select_one('table#core-results')
     assert len(core.select('tbody > tr')) == 7
     assert len(core.select('th[aria-sort="none"] > button[data-table-sort]')) == 8
-    assert '实测提交 39169d705；PR919 最新 main 未重测' in core.get_text(' ', strip=True)
+    assert '实测提交 683b297e1；Moli 1.1.11' in core.get_text(' ', strip=True)
     guide = BeautifulSoup((tmp_path / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
     lineage = guide.select_one("#moli-repair-lineage")
     assert lineage is not None
-    assert lineage.find("a", href="https://github.com/lexmount/moli/pull/814").get_text(strip=True) == "PR814（实测来源）"
-    assert lineage.find("a", href="https://github.com/lexmount/moli/pull/919").get_text(strip=True) == "PR919（最新 main 实现）"
-    assert "仍绑定提交 39169d705" in lineage.get_text(" ", strip=True)
-    assert "未重新测量，不替换上表的冻结结果" in lineage.get_text(" ", strip=True)
+    assert lineage.find("a", href="https://github.com/lexmount/moli/pull/814").get_text(strip=True) == "PR814（历史前身）"
+    assert lineage.find("a", href="https://github.com/lexmount/moli/pull/919").get_text(strip=True) == "PR919（本次实测来源）"
+    assert "绑定 PR919 提交 683b297e1" in lineage.get_text(" ", strip=True)
+    assert "在最新 main 上完成 release 编译和 545 页认证运行" in lineage.get_text(" ", strip=True)
     detail = check_presentation((tmp_path / "results/index.html").read_text(encoding="utf-8"))
     assert detail.select_one('[data-failure-diagnosis]') is not None
     comparison = BeautifulSoup((tmp_path / "cases/index.html").read_text(encoding="utf-8"), "html.parser")
