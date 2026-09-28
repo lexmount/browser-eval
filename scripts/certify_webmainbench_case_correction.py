@@ -31,6 +31,15 @@ def write(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
 
 
+def copy_contained_artifact(source_root, source_relative, output_root, output_relative):
+    """Copy one evidence artifact without allowing either path to escape its root."""
+    source = contained_path(source_root, source_relative)
+    destination = contained_path(output_root, output_relative)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+    return destination
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('source', 'dataset', 'scorer', 'output', 'fixed-binary'):
@@ -112,14 +121,10 @@ def main(argv=None):
                 if call['provider'] != name:
                     continue
                 target = call['physical_artifact_path']
-                dest = args.output / target
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(contained_path(args.prior_correction, target), dest)
+                copy_contained_artifact(args.prior_correction, target, args.output, target)
                 physical.append(call)
             target = row['artifact_path']
-            dest = args.output / target
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(contained_path(args.prior_correction, target), dest)
+            copy_contained_artifact(args.prior_correction, target, args.output, target)
             print(name, row['ok'], row['output_chars'], 'inherited', flush=True)
             continue
         provider = 'moli' if name == 'moli-fixed' else name
@@ -158,13 +163,11 @@ def main(argv=None):
             call['provider'] = name
             call['attempt_id'] = name + '__' + call['run_id'] + '__' + call['attempt_id']
             target = 'artifacts/' + name + '/' + call['run_id'] + '-' + Path(call['physical_artifact_path']).name
-            dest = args.output / target
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(shard / call['physical_artifact_path'], dest)
+            copy_contained_artifact(shard, call['physical_artifact_path'], args.output, target)
             call['physical_artifact_path'] = target
             physical.append(call)
         target = 'artifacts/' + name + '/' + row['run_id'] + '.md'
-        shutil.copy2(shard / row['artifact_path'], args.output / target)
+        copy_contained_artifact(shard, row['artifact_path'], args.output, target)
         row['artifact_path'] = target
         row['physical_artifact_path'] = physical[-1]['physical_artifact_path']
         row['supersedes_attempt_id'] = old['attempt_id']
