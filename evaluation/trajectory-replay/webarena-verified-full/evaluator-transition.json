@@ -4,13 +4,14 @@
   "from_revision": "1925befb545c6433f7a7a5a77c473ce9e74eb468",
   "compatible_from_revisions": [
     "1925befb545c6433f7a7a5a77c473ce9e74eb468",
-    "37960b08e5d6529ee5a7464f8927d12a5ca0f9e8"
+    "37960b08e5d6529ee5a7464f8927d12a5ca0f9e8",
+    "4c3b14e5cda91889f5ee883c8661bccd1d96c1af"
   ],
   "from_evaluator_checksum": "0d463b93fda4f17b836456ac8c8e63525a597333b63118d2d195bc9ea32ee5a9",
   "from_data_checksum": "08c9f0d80d3b32779ab37ebab1c50183cf545b6443266a55b05445bff166dbb8",
-  "to_revision": "4c3b14e5cda91889f5ee883c8661bccd1d96c1af",
-  "to_evaluator_checksum": "7f6b1efd6ae2f88643f623a8ab4b1aeb107c0fa912b59f5ffd753de20337a226",
+  "to_revision": "da7b992eb10de78000f11a7f34fd4590c171fbd6",
+  "to_evaluator_checksum": "c24ae27d56ee3c2f7e12b5db737e06fb456e537b17f2bc9368970f895be4711d",
   "to_data_checksum": "b87ff766f3533934d1bee4ac3a91d06c4939a52bb7341df61b7556496faa3d8b",
-  "fork_diff_sha256": "c1e88d74ba75c636cd9e4c876c0479ac0b185ebd1f8bdbc499236f48251f445c",
+  "fork_diff_sha256": "3dc522227643183713d48846a636125e8a84ab3c53188e4de7ed65e837fcbda6",
   "compatibility_rule": "Every previously passing attempt must be re-evaluated from its hash-bound actual response and HAR and must still pass under the new evaluator. Browser actions are not repeated."
 }

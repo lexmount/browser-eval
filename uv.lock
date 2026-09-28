@@ -369,7 +369,7 @@ requires-dist = [
     { name = "requests", marker = "extra == 'reference-audit'", specifier = ">=2.32,<3" },
     { name = "ruff", marker = "extra == 'test'", specifier = ">=0.9,<1" },
     { name = "tiktoken", marker = "extra == 'browser-use-eval'", specifier = ">=0.7,<1" },
-    { name = "webarena-verified", marker = "extra == 'browser-use-eval'", git = "https://github.com/lexmount/webarena-verified.git?rev=4c3b14e5cda91889f5ee883c8661bccd1d96c1af" },
+    { name = "webarena-verified", marker = "extra == 'browser-use-eval'", git = "https://github.com/lexmount/webarena-verified.git?rev=da7b992eb10de78000f11a7f34fd4590c171fbd6" },
 ]
 provides-extras = ["headless-eval", "reference-audit", "webmainbench-eval", "browser-use-eval", "test", "oss-eval"]
 
@@ -4423,8 +4423,8 @@ wheels = [
 
 [[package]]
 name = "webarena-verified"
-version = "1.2.3.post1.dev15"
-source = { git = "https://github.com/lexmount/webarena-verified.git?rev=4c3b14e5cda91889f5ee883c8661bccd1d96c1af#4c3b14e5cda91889f5ee883c8661bccd1d96c1af" }
+version = "1.2.3.post1.dev16"
+source = { git = "https://github.com/lexmount/webarena-verified.git?rev=da7b992eb10de78000f11a7f34fd4590c171fbd6#da7b992eb10de78000f11a7f34fd4590c171fbd6" }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "compact-json" },
