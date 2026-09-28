@@ -9,6 +9,7 @@ from pathlib import Path
 from harness.trajectory_replay.catalog_action_audit import validate_catalog_action_audit
 from harness.trajectory_replay.catalog_contracts import (
     repository_root,
+    validate_catalog_comparison_release,
     validate_catalog_report_profile,
 )
 from harness.trajectory_replay.webarena_report import validate_catalog_acceptance_report
@@ -40,6 +41,13 @@ def main() -> None:
             "evaluation/trajectory-replay/webarena-verified-full/action-overrides-audit.json"
         ),
     )
+    parser.add_argument(
+        "--comparison-release",
+        type=Path,
+        default=Path(
+            "evaluation/trajectory-replay/webarena-verified-full/current-comparison.json"
+        ),
+    )
     args = parser.parse_args()
     verify_webarena_runtime_source()
     profile = validate_catalog_report_profile(args.profile, args.data_home)
@@ -66,7 +74,13 @@ def main() -> None:
         evidence_root / profile["report_archive_path"],
         profile=profile,
     )
-    print(profile["publication"]["share_url"])
+    comparison_release = (
+        args.comparison_release
+        if args.comparison_release.is_absolute()
+        else root / args.comparison_release
+    )
+    comparison = validate_catalog_comparison_release(comparison_release, args.data_home)
+    print(comparison["publication"]["share_url"])
 
 
 if __name__ == "__main__":

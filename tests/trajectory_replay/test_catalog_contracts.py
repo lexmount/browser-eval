@@ -10,6 +10,7 @@ from harness.trajectory_replay.catalog_contracts import (
     RUN_SCHEMAS,
     file_sha256,
     repository_root,
+    validate_catalog_comparison_release,
     validate_catalog_report_profile,
     validate_environment_preparation,
 )
@@ -254,3 +255,138 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
     profile.write_text(json.dumps(changed_profile))
     with pytest.raises(ValueError, match="dataset definition is invalid"):
         validate_catalog_report_profile(profile, data_home)
+
+
+def test_comparison_release_binds_population_review_and_publication(tmp_path):
+    data_home = tmp_path / "data"
+    evidence = data_home / "trajectory-replay/comparison"
+    profile = _write_json(
+        evidence / "profile.json",
+        {
+            "schema": "lex_webarena_trajectory_replay_profile/1",
+            "methods": [
+                {"id": "moli", "engine": "moli", "label": "Moli"},
+                {"id": "other", "engine": "other", "label": "Other"},
+            ],
+            "publication": {
+                "site_slug": "site",
+                "share_url": "https://artifact.example/v/share",
+                "expected_version": "ver_2",
+            },
+        },
+    )
+    dataset = _write_json(
+        evidence / "dataset.json",
+        {
+            "schema": "lex_webarena_catalog_comparison_dataset/1",
+            "counts": {"verified_tasks": 2, "verified_trajectories": 2},
+            "trajectories": [{"task_id": 1}, {"task_id": 2}],
+        },
+    )
+    review = _write_json(evidence / "review.json", {"reviewed": 1})
+    attempts = [
+        {"participant_id": "moli", "engine": "moli", "task_id": 1, "status": "pass"},
+        {"participant_id": "moli", "engine": "moli", "task_id": 2, "status": "pass"},
+        {"participant_id": "other", "engine": "other", "task_id": 1, "status": "pass"},
+        {"participant_id": "other", "engine": "other", "task_id": 2, "status": "fail"},
+    ]
+    results = _write_json(
+        evidence / "results.json",
+        {
+            "schema": "lex_webarena_catalog_comparison_results/1",
+            "dataset_sha256": file_sha256(dataset),
+            "attempts": attempts,
+            "physical_executions": [
+                *attempts,
+                {"participant_id": "other", "engine": "other", "task_id": 2},
+            ],
+        },
+    )
+    manifest = _write_json(
+        evidence / "report/manifest.json",
+        {
+            "task_count": 2,
+            "logical_results": 4,
+            "failed_results": 1,
+            "reviewed_failures": 1,
+            "participants": ["moli", "other"],
+            "results_sha256": file_sha256(results),
+            "dataset_sha256": file_sha256(dataset),
+            "review_sha256": file_sha256(review),
+        },
+    )
+    archive = evidence / "report.zip"
+    archive.write_bytes(b"archive")
+    receipt = _write_json(
+        evidence / "receipt.json",
+        {
+            "verified": True,
+            "slug": "site",
+            "share_url": "https://artifact.example/v/share",
+            "version": "ver_2",
+            "archive_sha256": file_sha256(archive),
+        },
+    )
+    attestation = _write_json(
+        evidence / "attestation.json",
+        {
+            "archive_sha256": file_sha256(archive),
+            "profile_sha256": file_sha256(profile),
+            "dataset_sha256": file_sha256(dataset),
+            "review_sha256": file_sha256(review),
+            "evidence_sha256": file_sha256(results),
+        },
+    )
+    paths = {
+        "profile": profile,
+        "dataset": dataset,
+        "results": results,
+        "failure_review": review,
+        "report_manifest": manifest,
+        "publication_archive": archive,
+        "publication_attestation": attestation,
+        "publication_receipt": receipt,
+    }
+    binding = _write_json(
+        tmp_path / "current-comparison.json",
+        {
+            "schema": "lex_webarena_replay_comparison_release/1",
+            "evidence_root": "trajectory-replay/comparison",
+            "task_count": 2,
+            "logical_results": 4,
+            "physical_executions": 5,
+            "participants": [
+                {
+                    "id": "moli",
+                    "engine": "moli",
+                    "label": "Moli",
+                    "pass": 2,
+                    "fail": 0,
+                },
+                {
+                    "id": "other",
+                    "engine": "other",
+                    "label": "Other",
+                    "pass": 1,
+                    "fail": 1,
+                },
+            ],
+            "artifacts": {
+                name: {"path": str(path.relative_to(evidence)), "sha256": file_sha256(path)}
+                for name, path in paths.items()
+            },
+            "publication": {
+                "slug": "site",
+                "share_url": "https://artifact.example/v/share",
+                "version_id": "ver_2",
+            },
+        },
+    )
+
+    assert validate_catalog_comparison_release(binding, data_home)["logical_results"] == 4
+
+    changed = json.loads(results.read_text(encoding="utf-8"))
+    changed["attempts"][3]["status"] = "pass"
+    results.write_text(json.dumps(changed), encoding="utf-8")
+    with pytest.raises(ValueError, match="results artifact changed"):
+        validate_catalog_comparison_release(binding, data_home)

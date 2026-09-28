@@ -1,0 +1,80 @@
+{
+  "schema": "lex_webarena_replay_comparison_release/1",
+  "benchmark": "WebArena-Verified",
+  "split": "full-812",
+  "evidence_root": "trajectory-replay/full-812-moli-lightpanda-obscura-kitesurf-20260928",
+  "task_count": 812,
+  "logical_results": 3248,
+  "physical_executions": 4133,
+  "participants": [
+    {
+      "id": "moli",
+      "engine": "moli",
+      "label": "Moli",
+      "pass": 812,
+      "fail": 0
+    },
+    {
+      "id": "lightpanda-nightly-9813",
+      "engine": "lightpanda",
+      "label": "Lightpanda nightly 9813",
+      "pass": 330,
+      "fail": 482
+    },
+    {
+      "id": "obscura-0.2.3",
+      "engine": "obscura",
+      "label": "Obscura 0.2.3",
+      "pass": 386,
+      "fail": 426
+    },
+    {
+      "id": "kitesurf-cloudflare",
+      "engine": "kitesurf",
+      "label": "Kitesurf · Cloudflare Browser Run",
+      "pass": 441,
+      "fail": 371
+    }
+  ],
+  "artifacts": {
+    "profile": {
+      "path": "profile.json",
+      "sha256": "f1065fbf79f7f84ac8274e44a1b7fcfa1a038caa771e6382e5b3cae3e355aef9"
+    },
+    "dataset": {
+      "path": "dataset.json",
+      "sha256": "1909aef1cabe8075ed69d14979c4b889048c633bbe3d4a24fba562fadf761572"
+    },
+    "results": {
+      "path": "results.json",
+      "sha256": "faa2053652d90df021d05fe24ab4634878e0bf74230dec3a4bb15d6b548cafbb"
+    },
+    "failure_review": {
+      "path": "failure-review.json",
+      "sha256": "8361d22672bacd88179b5ff0933a99af4ecf08039f7e1b5960b1fe18aea7d1cf"
+    },
+    "report_manifest": {
+      "path": "report-v1/report-manifest.json",
+      "sha256": "cd99164fbf1785e3b0cc423d2faa906d7307d087f7be9335e5cfb1346abb6f35"
+    },
+    "publication_archive": {
+      "path": "artifact-site.zip",
+      "sha256": "f5b77f29d3fdccb3f0dbfc7b3e26579f0fdb9060c4e5de5bbce617ea5266c378"
+    },
+    "publication_attestation": {
+      "path": "artifact-site.attestation.json",
+      "sha256": "4e6e8cd4c5a9fd38f62891ae1382fda74ecfbbcfd2189f409fc1f6ad73c56960"
+    },
+    "publication_receipt": {
+      "path": "artifact-site.receipt.json",
+      "sha256": "097d997e6adde9d4fc1fda352ea7e4cdbb2f93919d935674709e694b4c35c61a"
+    }
+  },
+  "publication": {
+    "service": "artifact-site",
+    "host": "https://artifact-site.lexmount.cn",
+    "slug": "EFLrNgujgsVc",
+    "version_id": "ver_3c4d2b47e1e44364bad2dd0fdd92621c",
+    "share_url": "https://artifact-site.lexmount.cn/v/4G8YKfQreobGLwg4fo-UJGohezNqgAEm"
+  }
+}

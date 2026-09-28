@@ -175,6 +175,13 @@ def test_catalog_release_gate_runs_live_action_audit(monkeypatch, tmp_path: Path
         lambda *args, **kwargs: seen.setdefault("report", (args, kwargs)),
     )
     monkeypatch.setattr(
+        catalog_release,
+        "validate_catalog_comparison_release",
+        lambda *args: {
+            "publication": {"share_url": "https://artifact.example/comparison"}
+        },
+    )
+    monkeypatch.setattr(
         "sys.argv",
         [
             "release-check",

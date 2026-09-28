@@ -32,6 +32,7 @@ REPORT_PROFILE_SCHEMA = "lex_webarena_replay_report_profile/1"
 REPORT_PROFILE_SCHEMAS = frozenset(
     {REPORT_PROFILE_SCHEMA, "lex_webarena_verified_full_report_profile/1"}
 )
+COMPARISON_RELEASE_SCHEMA = "lex_webarena_replay_comparison_release/1"
 RUN_SCHEMA = "lex_trajectory_replay_catalog_run/1"
 LEGACY_RUN_SCHEMAS = frozenset({"lex_webarena_full_replay_run/1", "lex_webarena_full_replay_run/2"})
 RUN_SCHEMAS = frozenset({RUN_SCHEMA, *LEGACY_RUN_SCHEMAS})
@@ -608,3 +609,167 @@ def validate_catalog_report_profile(profile_path: Path, data_home: Path) -> dict
     if not all(publication.get(key) for key in ("host", "slug", "version_id", "share_url")):
         raise ValueError("catalog report publication target is incomplete")
     return profile
+
+
+def validate_catalog_comparison_release(binding_path: Path, data_home: Path) -> dict:
+    """Validate the current multi-browser release without storing measured evidence in Git."""
+
+    binding = json.loads(binding_path.read_text(encoding="utf-8"))
+    evidence_root = Path(str(binding.get("evidence_root") or ""))
+    if (
+        binding.get("schema") != COMPARISON_RELEASE_SCHEMA
+        or evidence_root.is_absolute()
+        or ".." in evidence_root.parts
+        or not evidence_root.parts
+    ):
+        raise ValueError("comparison release binding is invalid")
+    root = data_home / evidence_root
+    if root.is_symlink() or not root.is_dir() or data_home.resolve() not in root.resolve().parents:
+        raise ValueError("comparison release evidence root is missing or unsafe")
+
+    required_artifacts = {
+        "profile",
+        "dataset",
+        "results",
+        "failure_review",
+        "report_manifest",
+        "publication_archive",
+        "publication_attestation",
+        "publication_receipt",
+    }
+    artifacts = binding.get("artifacts")
+    if not isinstance(artifacts, dict) or set(artifacts) != required_artifacts:
+        raise ValueError("comparison release artifact inventory is incomplete")
+    resolved: dict[str, Path] = {}
+    for name, artifact in artifacts.items():
+        relative = Path(str((artifact or {}).get("path") or ""))
+        expected = (artifact or {}).get("sha256")
+        if (
+            relative.is_absolute()
+            or ".." in relative.parts
+            or not relative.parts
+            or not _is_sha256(expected)
+        ):
+            raise ValueError(f"comparison release {name} binding is invalid")
+        target = root / relative
+        components = [
+            root.joinpath(*relative.parts[:index])
+            for index in range(1, len(relative.parts) + 1)
+        ]
+        if (
+            any(component.is_symlink() for component in components)
+            or not target.is_file()
+            or file_sha256(target) != expected
+        ):
+            raise ValueError(f"comparison release {name} artifact changed")
+        resolved[name] = target
+    if len({path.resolve() for path in resolved.values()}) != len(resolved):
+        raise ValueError("comparison release artifacts must be distinct files")
+
+    profile = json.loads(resolved["profile"].read_text(encoding="utf-8"))
+    dataset = json.loads(resolved["dataset"].read_text(encoding="utf-8"))
+    results = json.loads(resolved["results"].read_text(encoding="utf-8"))
+    manifest = json.loads(resolved["report_manifest"].read_text(encoding="utf-8"))
+    receipt = json.loads(resolved["publication_receipt"].read_text(encoding="utf-8"))
+    attestation = json.loads(resolved["publication_attestation"].read_text(encoding="utf-8"))
+    attempts = results.get("attempts")
+    participants = binding.get("participants")
+    if (
+        profile.get("schema") != "lex_webarena_trajectory_replay_profile/1"
+        or results.get("schema") != "lex_webarena_catalog_comparison_results/1"
+        or not isinstance(attempts, list)
+        or not isinstance(participants, list)
+        or not participants
+    ):
+        raise ValueError("comparison release inputs are invalid")
+    methods = profile.get("methods") or []
+    method_registry = {method.get("id"): method for method in methods if isinstance(method, dict)}
+    declared = {row.get("id"): row for row in participants if isinstance(row, dict)}
+    if (
+        len(method_registry) != len(methods)
+        or len(declared) != len(participants)
+        or set(declared) != set(method_registry)
+        or any(
+            set(row) != {"id", "engine", "label", "pass", "fail"}
+            or row.get("engine") != method_registry[participant_id].get("engine")
+            or row.get("label") != method_registry[participant_id].get("label")
+            for participant_id, row in declared.items()
+        )
+    ):
+        raise ValueError("comparison release participant registry changed")
+    task_count = binding.get("task_count")
+    trajectories = dataset.get("trajectories") or []
+    dataset_task_ids = {row.get("task_id") for row in trajectories if isinstance(row, dict)}
+    task_ids: set[int] | None = None
+    for participant_id, declared_row in declared.items():
+        rows = [row for row in attempts if row.get("participant_id") == participant_id]
+        row_task_ids = {row.get("task_id") for row in rows}
+        passed = sum(row.get("status") == "pass" for row in rows)
+        if (
+            len(rows) != task_count
+            or len(row_task_ids) != task_count
+            or row_task_ids != dataset_task_ids
+            or (task_ids is not None and row_task_ids != task_ids)
+            or declared_row.get("pass") != passed
+            or declared_row.get("fail") != len(rows) - passed
+        ):
+            raise ValueError("comparison release participant counts changed")
+        task_ids = row_task_ids
+    logical_results = len(attempts)
+    physical_executions = results.get("physical_executions")
+    failed_results = sum(row.get("fail", 0) for row in participants)
+    if (
+        type(task_count) is not int
+        or task_count <= 0
+        or dataset.get("schema") != "lex_webarena_catalog_comparison_dataset/1"
+        or len(trajectories) != task_count
+        or len(dataset_task_ids) != task_count
+        or any(type(task_id) is not int for task_id in dataset_task_ids)
+        or (dataset.get("counts") or {}).get("verified_tasks") != task_count
+        or (dataset.get("counts") or {}).get("verified_trajectories") != task_count
+        or results.get("dataset_sha256") != artifacts["dataset"]["sha256"]
+        or binding.get("logical_results") != logical_results
+        or logical_results != task_count * len(declared)
+        or any(
+            row.get("participant_id") not in declared
+            or row.get("engine") != method_registry[row.get("participant_id")].get("engine")
+            for row in attempts
+        )
+        or not isinstance(physical_executions, list)
+        or binding.get("physical_executions") != len(physical_executions)
+        or len(physical_executions) < logical_results
+        or any(
+            row.get("participant_id") not in declared
+            or row.get("engine") != method_registry[row.get("participant_id")].get("engine")
+            or row.get("task_id") not in dataset_task_ids
+            for row in physical_executions
+        )
+        or manifest.get("task_count") != task_count
+        or manifest.get("logical_results") != logical_results
+        or manifest.get("failed_results") != failed_results
+        or manifest.get("reviewed_failures") != failed_results
+        or manifest.get("participants") != list(declared)
+        or manifest.get("results_sha256") != artifacts["results"]["sha256"]
+        or manifest.get("dataset_sha256") != artifacts["dataset"]["sha256"]
+        or manifest.get("review_sha256") != artifacts["failure_review"]["sha256"]
+    ):
+        raise ValueError("comparison release population or report binding changed")
+    publication = binding.get("publication") or {}
+    profile_publication = profile.get("publication") or {}
+    if (
+        receipt.get("verified") is not True
+        or receipt.get("archive_sha256") != artifacts["publication_archive"]["sha256"]
+        or attestation.get("archive_sha256") != artifacts["publication_archive"]["sha256"]
+        or attestation.get("profile_sha256") != artifacts["profile"]["sha256"]
+        or attestation.get("dataset_sha256") != artifacts["dataset"]["sha256"]
+        or attestation.get("review_sha256") != artifacts["failure_review"]["sha256"]
+        or attestation.get("evidence_sha256") != artifacts["results"]["sha256"]
+        or publication.get("slug") != receipt.get("slug")
+        or publication.get("share_url") != receipt.get("share_url")
+        or publication.get("version_id") != receipt.get("version")
+        or publication.get("slug") != profile_publication.get("site_slug")
+        or publication.get("share_url") != profile_publication.get("share_url")
+        or publication.get("version_id") != profile_publication.get("expected_version")
+    ):
+        raise ValueError("comparison release publication binding changed")
+    return binding
