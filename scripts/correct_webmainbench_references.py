@@ -29,6 +29,16 @@ def text_digest(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def copy_contained_artifact(source_root: Path, source_relative: str,
+                            output_root: Path, output_relative: str) -> Path:
+    """Copy a declared artifact while keeping both paths inside their roots."""
+    source = contained_path(source_root, source_relative)
+    destination = contained_path(output_root, output_relative)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+    return destination
+
+
 def read_rows(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
@@ -158,7 +168,9 @@ def apply(source: Path, corrected_dataset: Path, manifest_path: Path,
     )
     for case_id in changed:
         reference = corrected_rows[case_id]["groundtruth_content"]
-        (output / "references" / f"{case_id}.md").write_text(reference, encoding="utf-8")
+        contained_path(output / "references", f"{case_id}.md").write_text(
+            reference, encoding="utf-8"
+        )
         case = source_cases[case_id]
         case["reference_sha256"] = text_digest(reference)
         case["reference_chars"] = len(reference)
@@ -173,8 +185,12 @@ def apply(source: Path, corrected_dataset: Path, manifest_path: Path,
     revision_source.mkdir()
     shutil.copy2(manifest_path, revision_source / manifest_path.name)
     for correction in corrections.values():
-        shutil.copy2(manifest_path.parent / correction["replacement_file"],
-                     revision_source / correction["replacement_file"])
+        copy_contained_artifact(
+            manifest_path.parent,
+            correction["replacement_file"],
+            revision_source,
+            correction["replacement_file"],
+        )
     receipt = {
         "schema_version": 1,
         "kind": "webmainbench_reference_correction_v1",

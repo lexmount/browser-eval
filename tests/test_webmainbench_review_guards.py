@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts.check_webmainbench_report import check_teds_warnings
+from scripts.correct_webmainbench_references import copy_contained_artifact
 from scripts.review_webmainbench_teds_correction import review
 from harness.web_fetch.webmainbench_diagnostics import (
     validate_reference_revision,
@@ -15,6 +16,27 @@ from harness.web_fetch.webmainbench_diagnostics import (
 
 
 class WebMainBenchReviewGuardsTests(unittest.TestCase):
+    def test_reference_revision_copy_rejects_source_and_destination_escape(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source, output = root / 'source', root / 'output'
+            source.mkdir()
+            output.mkdir()
+            (source / 'replacement.md').write_text('corrected reference')
+            copied = copy_contained_artifact(
+                source, 'replacement.md', output, 'nested/replacement.md'
+            )
+            self.assertEqual(copied.read_text(), 'corrected reference')
+            for source_name, output_name in [
+                ('../replacement.md', 'replacement.md'),
+                ('replacement.md', '../replacement.md'),
+            ]:
+                with self.subTest(source=source_name, output=output_name):
+                    with self.assertRaises(ValueError):
+                        copy_contained_artifact(
+                            source, source_name, output, output_name
+                        )
+
     def test_reference_revision_changes_only_declared_reference_and_metrics(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
