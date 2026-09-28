@@ -21,6 +21,7 @@ from harness.trajectory_replay.webarena_runtime_source import (
 
 TRANSITION_SCHEMA = "lex_webarena_evaluator_transition/1"
 RECEIPT_SCHEMA = "lex_webarena_evaluator_transition_receipt/1"
+SOURCE_KINDS = {"revision", "evaluator_fixes_sha256"}
 
 
 def json_sha256(value: Any) -> str:
@@ -31,6 +32,12 @@ def json_sha256(value: Any) -> str:
 def load_transition(path: Path) -> dict[str, Any]:
     transition = json.loads(path.read_text(encoding="utf-8"))
     compatible = transition.get("compatible_from_revisions")
+    sources = transition.get("compatible_sources")
+    source_keys = {
+        (source.get("kind"), source.get("identity"))
+        for source in sources or []
+        if isinstance(source, dict)
+    }
     if (
         transition.get("schema") != TRANSITION_SCHEMA
         or transition.get("repository") != WEBARENA_VERIFIED_FORK_URL
@@ -40,6 +47,23 @@ def load_transition(path: Path) -> dict[str, Any]:
         or transition.get("from_revision") not in compatible
         or len(set(compatible)) != len(compatible)
         or any(not isinstance(value, str) or len(value) != 40 for value in compatible)
+        or not isinstance(sources, list)
+        or not sources
+        or len(source_keys) != len(sources)
+        or any(
+            not isinstance(source, dict)
+            or source.get("kind") not in SOURCE_KINDS
+            or not isinstance(source.get("identity"), str)
+            or len(source["identity"])
+            != (40 if source.get("kind") == "revision" else 64)
+            or any(
+                not isinstance(source.get(name), str) or len(source[name]) != 64
+                for name in ("evaluator_checksum", "data_checksum")
+            )
+            for source in sources
+        )
+        or {identity for kind, identity in source_keys if kind == "revision"}
+        != set(compatible)
         or any(
             not isinstance(transition.get(key), str) or len(transition[key]) != 40
             for key in ("from_revision", "to_revision")
@@ -57,6 +81,29 @@ def load_transition(path: Path) -> dict[str, Any]:
     ):
         raise ValueError("WebArena evaluator transition authority is invalid")
     return transition
+
+
+def compatible_source(
+    transition: dict[str, Any],
+    *,
+    revision: str | None,
+    evaluator_fixes_sha256: str | None,
+) -> dict[str, str] | None:
+    """Resolve the exact evaluator/data identity used by an older run."""
+
+    candidates = []
+    if isinstance(revision, str):
+        candidates.append(("revision", revision))
+    if isinstance(evaluator_fixes_sha256, str):
+        candidates.append(("evaluator_fixes_sha256", evaluator_fixes_sha256))
+    matches = [
+        source
+        for source in transition["compatible_sources"]
+        if (source["kind"], source["identity"]) in candidates
+    ]
+    if len(matches) > 1:
+        raise ValueError("run matches more than one evaluator transition source")
+    return matches[0] if matches else None
 
 
 def _regular_json(path: Path) -> dict[str, Any]:
@@ -128,18 +175,23 @@ def reevaluate_pass(
 def load_receipt(path: Path, transition: dict[str, Any]) -> dict[tuple[int, str], dict[str, Any]]:
     receipt = json.loads(path.read_text(encoding="utf-8"))
     rows = receipt.get("rows") if isinstance(receipt, dict) else None
+    excluded = receipt.get("excluded_task_ids", []) if isinstance(receipt, dict) else None
     if (
         receipt.get("schema") != RECEIPT_SCHEMA
         or receipt.get("transition_sha256") != json_sha256(transition)
         or receipt.get("from_revision") != transition["from_revision"]
         or receipt.get("compatible_from_revisions")
         != transition["compatible_from_revisions"]
+        or receipt.get("compatible_sources") != transition["compatible_sources"]
         or receipt.get("to_revision") != transition["to_revision"]
         or receipt.get("from_evaluator_checksum") != transition["from_evaluator_checksum"]
         or receipt.get("from_data_checksum") != transition["from_data_checksum"]
         or receipt.get("to_evaluator_checksum") != transition["to_evaluator_checksum"]
         or receipt.get("to_data_checksum") != transition["to_data_checksum"]
         or not isinstance(rows, list)
+        or not isinstance(excluded, list)
+        or excluded != sorted(set(excluded))
+        or any(type(task_id) is not int for task_id in excluded)
     ):
         raise ValueError("WebArena evaluator transition receipt is invalid")
     indexed: dict[tuple[int, str], dict[str, Any]] = {}
@@ -159,6 +211,8 @@ def load_receipt(path: Path, transition: dict[str, Any]) -> dict[tuple[int, str]
                     "run_inputs_sha256",
                 )
             )
+            or not isinstance(row.get("source"), dict)
+            or row["source"] not in transition["compatible_sources"]
         ):
             raise ValueError("WebArena evaluator transition receipt row is invalid")
         indexed[key] = row

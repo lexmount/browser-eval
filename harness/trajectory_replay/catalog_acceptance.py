@@ -20,6 +20,7 @@ from harness.trajectory_replay.catalog_contracts import (
     verify_physical_evidence,
 )
 from harness.trajectory_replay.evaluator_transition import (
+    compatible_source,
     load_receipt,
     load_transition,
     reevaluate_pass,
@@ -80,6 +81,7 @@ def _verified_attempt(
     corrections: object,
     run_inputs_sha256: str | None = None,
     run_revision: str | None = None,
+    run_evaluator_fixes_sha256: str | None = None,
     evaluator_transition: dict | None = None,
     transition_receipt: dict[tuple[int, str], dict] | None = None,
     runtime_binding: dict[str, object] | None = None,
@@ -117,25 +119,31 @@ def _verified_attempt(
                 corrections=corrections,
             )
         else:
+            source = (
+                compatible_source(
+                    evaluator_transition,
+                    revision=run_revision,
+                    evaluator_fixes_sha256=run_evaluator_fixes_sha256,
+                )
+                if evaluator_transition is not None
+                else None
+            )
             if (
                 evaluator_transition is None
                 or transition_receipt is None
-                or run_revision not in evaluator_transition["compatible_from_revisions"]
+                or source is None
                 or run_inputs_sha256 is None
-                or current_evaluator
-                not in {
-                    evaluator_transition["from_evaluator_checksum"],
-                    evaluator_transition["to_evaluator_checksum"],
-                }
+                or current_evaluator != source["evaluator_checksum"]
+                or current_data != source["data_checksum"]
             ):
                 raise ValueError(f"task {task_id} pass lacks evaluator transition evidence")
             validate_passing_evaluation(
                 evaluation,
                 task_id=task_id,
-                expected_data_checksum=evaluator_transition["from_data_checksum"],
+                expected_data_checksum=source["data_checksum"],
                 benchmark=benchmark,
                 corrections=corrections,
-                expected_evaluator_checksum=current_evaluator,
+                expected_evaluator_checksum=source["evaluator_checksum"],
             )
             current, transition_binding = reevaluate_pass(
                 directory / f"task-{task_id}",
@@ -150,6 +158,7 @@ def _verified_attempt(
             )
             expected_receipt = {
                 "run_inputs_sha256": run_inputs_sha256,
+                "source": source,
                 **transition_binding,
             }
             if receipt_row != expected_receipt:
@@ -178,11 +187,49 @@ def _verified_attempt(
     )
 
 
+def _superseded_attempt(
+    directory: Path,
+    row: dict,
+    *,
+    runtime_binding: dict[str, object] | None = None,
+) -> tuple[dict, bool]:
+    """Verify retained physical bytes without promoting an obsolete action contract."""
+
+    task_id = row["task_id"]
+    physical = "action_count" in row
+    if physical and runtime_binding is not None:
+        assert_observed_runtime(
+            runtime_binding, row.get("runtime_metadata"), task_id=task_id
+        )
+    if physical:
+        verify_physical_evidence(directory, row)
+    elif row.get("status") != "candidate_setup_failure" or not row.get("error"):
+        raise ValueError(f"task {task_id} has neither physical evidence nor setup error")
+    return (
+        {
+            "task_id": task_id,
+            "status": row.get("status"),
+            "score": row.get("score"),
+            "progress_sha256": file_sha256(directory / "progress.jsonl"),
+            "evidence_sha256": row.get("evidence_sha256"),
+            "superseded_by_catalog_action_change": True,
+            **(
+                {"runtime_metadata": row["runtime_metadata"]}
+                if isinstance(row.get("runtime_metadata"), dict)
+                else {}
+            ),
+        },
+        physical,
+    )
+
+
 def audit(
     scope_path: Path,
     segment_dirs: list[Path],
     repair_dirs: list[Path],
     *,
+    replacement_dirs: list[Path] | None = None,
+    superseded_catalog_tasks: set[int] | None = None,
     excluded_duplicate_repair_tasks: set[int] | None = None,
     expected_backend: str = "browsertool",
     action_overrides_paths: list[Path] | None = None,
@@ -203,6 +250,16 @@ def audit(
         if evaluator_transition_receipt_path is not None and evaluator_transition is not None
         else None
     )
+    superseded_requested = set(superseded_catalog_tasks or ())
+    replacement_dirs = list(replacement_dirs or ())
+    if bool(superseded_requested) != bool(replacement_dirs):
+        raise ValueError("catalog replacements require an exact superseded task scope")
+    if evaluator_transition_receipt_path is not None:
+        receipt_payload = json.loads(
+            evaluator_transition_receipt_path.read_text(encoding="utf-8")
+        )
+        if set(receipt_payload.get("excluded_task_ids") or ()) != superseded_requested:
+            raise ValueError("transition exclusions differ from catalog replacements")
     used_transition_rows: set[tuple[int, str]] = set()
     scope = json.loads(scope_path.read_text(encoding="utf-8"))
     ids = scope.get("task_ids")
@@ -219,7 +276,12 @@ def audit(
         raise ValueError("the declared WebArena task scope changed")
     if not segment_dirs:
         raise ValueError("acceptance segments are required")
-    states = {task_id: {"task_id": task_id, "attempts": []} for task_id in ids}
+    if not superseded_requested <= set(ids):
+        raise ValueError("catalog replacement scope is outside the declared task scope")
+    states = {
+        task_id: {"task_id": task_id, "attempts": [], "action_sha256s": []}
+        for task_id in ids
+    }
     excluded_requested = set(excluded_duplicate_repair_tasks or ())
     excluded_seen: set[int] = set()
     excluded_attempts = []
@@ -232,6 +294,7 @@ def audit(
     remote_browser_identities: dict[str, dict[str, object]] = {}
     preparation_sha256s = set()
     physical_attempts = 0
+    replacement_seen: set[int] = set()
     benchmark = remote_benchmark(
         load_remote_sites(site_map_path)
         if site_map_path is not None
@@ -245,10 +308,15 @@ def audit(
             raise ValueError("duplicate external action overrides source")
         override_sources[digest] = path
     used_override_sources: set[str] = set()
-    for kind, directories in (("segment", segment_dirs), ("repair", repair_dirs)):
+    for kind, directories in (
+        ("segment", segment_dirs),
+        ("repair", repair_dirs),
+        ("replacement", replacement_dirs),
+    ):
         for directory in directories:
             binding, rows = _read_run(directory)
             run_revision = binding.get("webarena_revision")
+            run_evaluator_fixes_sha256 = binding.get("evaluator_fixes_sha256")
             if "action_overrides_sha256" in binding:
                 override_digest = binding["action_overrides_sha256"]
                 used_override_sources.add(override_digest)
@@ -340,6 +408,66 @@ def audit(
                 task_id = row["task_id"]
                 if kind == "segment":
                     ordered_ids.append(task_id)
+                if kind == "replacement":
+                    first_replacement = task_id not in replacement_seen
+                    valid_first = (
+                        first_replacement
+                        and states[task_id]["attempts"]
+                        and states[task_id]["attempts"][-1]["status"] == "pass"
+                        and row.get("executed_actions_sha256")
+                        != states[task_id]["action_sha256s"][-1]
+                    )
+                    valid_repair = (
+                        not first_replacement
+                        and states[task_id]["attempts"][-1]["status"] != "pass"
+                        and row.get("executed_actions_sha256")
+                        == states[task_id]["action_sha256s"][-1]
+                    )
+                    if (
+                        task_id not in superseded_requested
+                        or not row.get("executed_actions_sha256")
+                        or not (valid_first or valid_repair)
+                    ):
+                        raise ValueError(
+                            f"task {task_id} is not a valid changed-catalog replacement"
+                        )
+                    attempt, physical = _verified_attempt(
+                        directory,
+                        row,
+                        expected_data_checksum=data_checksum,
+                        benchmark=benchmark,
+                        corrections=corrections,
+                        run_inputs_sha256=run_inputs_sha256,
+                        run_revision=run_revision,
+                        run_evaluator_fixes_sha256=run_evaluator_fixes_sha256,
+                        evaluator_transition=evaluator_transition,
+                        transition_receipt=transition_receipt,
+                        runtime_binding=runtime_binding,
+                    )
+                    physical_attempts += int(physical)
+                    states[task_id]["attempts"].append(attempt)
+                    states[task_id]["action_sha256s"].append(
+                        row.get("executed_actions_sha256")
+                    )
+                    replacement_seen.add(task_id)
+                    continue
+                if task_id in superseded_requested:
+                    if kind == "repair" and (
+                        not states[task_id]["attempts"]
+                        or states[task_id]["attempts"][-1]["status"] == "pass"
+                    ):
+                        raise ValueError(
+                            f"task {task_id} superseded repair does not follow a failure"
+                        )
+                    attempt, physical = _superseded_attempt(
+                        directory, row, runtime_binding=runtime_binding
+                    )
+                    physical_attempts += int(physical)
+                    states[task_id]["attempts"].append(attempt)
+                    states[task_id]["action_sha256s"].append(
+                        row.get("executed_actions_sha256")
+                    )
+                    continue
                 if kind == "repair" and task_id in excluded_requested:
                     if (
                         not states[task_id]["attempts"]
@@ -357,6 +485,7 @@ def audit(
                         corrections=corrections,
                         run_inputs_sha256=run_inputs_sha256,
                         run_revision=run_revision,
+                        run_evaluator_fixes_sha256=run_evaluator_fixes_sha256,
                         evaluator_transition=evaluator_transition,
                         transition_receipt=transition_receipt,
                         runtime_binding=runtime_binding,
@@ -395,6 +524,7 @@ def audit(
                     corrections=corrections,
                     run_inputs_sha256=run_inputs_sha256,
                     run_revision=run_revision,
+                    run_evaluator_fixes_sha256=run_evaluator_fixes_sha256,
                     evaluator_transition=evaluator_transition,
                     transition_receipt=transition_receipt,
                     runtime_binding=runtime_binding,
@@ -408,6 +538,9 @@ def audit(
                     )
                 physical_attempts += int(physical)
                 states[task_id]["attempts"].append(attempt)
+                states[task_id]["action_sha256s"].append(
+                    row.get("executed_actions_sha256")
+                )
     if excluded_seen != excluded_requested:
         raise ValueError("declared duplicate repair exclusions were not found")
     if set(override_sources) - used_override_sources:
@@ -416,6 +549,8 @@ def audit(
         raise ValueError("evaluator transition receipt contains unused or missing pass evidence")
     if ordered_ids != ids:
         raise ValueError("acceptance sweep is incomplete or changed official order")
+    if replacement_seen != superseded_requested:
+        raise ValueError("catalog replacement scope is incomplete")
     rows = [
         {
             "task_id": task_id,
@@ -432,6 +567,7 @@ def audit(
         "binary_sha256s": sorted(binary_sha256s),
         "runs": bindings,
         "excluded_attempts": excluded_attempts,
+        "superseded_catalog_tasks": sorted(superseded_requested),
         "counts": {
             "total": len(ids),
             "pass": sum(row["status"] == "pass" for row in rows),
@@ -485,6 +621,8 @@ def main() -> None:
     )
     parser.add_argument("--segment", type=Path, action="append", required=True)
     parser.add_argument("--repair", type=Path, action="append", default=[])
+    parser.add_argument("--replacement", type=Path, action="append", default=[])
+    parser.add_argument("--supersede-catalog-task", type=int, action="append", default=[])
     parser.add_argument("--action-overrides", type=Path, action="append", default=[])
     parser.add_argument("--site-map", type=Path)
     parser.add_argument("--evaluator-transition", type=Path)
@@ -500,6 +638,8 @@ def main() -> None:
         args.scope,
         args.segment,
         args.repair,
+        replacement_dirs=args.replacement,
+        superseded_catalog_tasks=set(args.supersede_catalog_task),
         excluded_duplicate_repair_tasks=set(args.exclude_duplicate_repair_task),
         expected_backend=args.expected_backend,
         action_overrides_paths=args.action_overrides,

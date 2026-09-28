@@ -298,6 +298,89 @@ def test_acceptance_requires_transition_authority_and_receipt_together(tmp_path)
         )
 
 
+def test_acceptance_replaces_only_declared_changed_catalog_tasks(tmp_path, monkeypatch):
+    monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
+    monkeypatch.setattr(acceptance, "_superseded_attempt", _fake_verified)
+    scope = _scope(tmp_path, [7, 8])
+    sweep = _run(tmp_path, "sweep", [7, 8], {})
+    replacement = _run(tmp_path, "replacement", [8], {}, catalog="new-catalog")
+    progress = replacement / "progress.jsonl"
+    rows = [json.loads(line) for line in progress.read_text().splitlines()]
+    rows[0]["executed_actions_sha256"] = "new-actions"
+    progress.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    sweep_progress = sweep / "progress.jsonl"
+    rows = [json.loads(line) for line in sweep_progress.read_text().splitlines()]
+    for row in rows:
+        row["executed_actions_sha256"] = f'old-{row["task_id"]}'
+    sweep_progress.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+    ledger = acceptance.audit(
+        scope,
+        [sweep],
+        [],
+        replacement_dirs=[replacement],
+        superseded_catalog_tasks={8},
+    )
+
+    assert ledger["superseded_catalog_tasks"] == [8]
+    assert len(ledger["rows"][1]["attempts"]) == 2
+
+
+def test_acceptance_rejects_replacement_with_unchanged_actions(tmp_path, monkeypatch):
+    monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
+    monkeypatch.setattr(acceptance, "_superseded_attempt", _fake_verified)
+    scope = _scope(tmp_path, [7])
+    sweep = _run(tmp_path, "sweep", [7], {})
+    replacement = _run(tmp_path, "replacement", [7], {}, catalog="new-catalog")
+    for directory in (sweep, replacement):
+        progress = directory / "progress.jsonl"
+        row = json.loads(progress.read_text())
+        row["executed_actions_sha256"] = "same-actions"
+        progress.write_text(json.dumps(row) + "\n")
+
+    with pytest.raises(ValueError, match="changed-catalog replacement"):
+        acceptance.audit(
+            scope,
+            [sweep],
+            [],
+            replacement_dirs=[replacement],
+            superseded_catalog_tasks={7},
+        )
+
+
+def test_acceptance_allows_repair_only_after_failed_catalog_replacement(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
+    monkeypatch.setattr(acceptance, "_superseded_attempt", _fake_verified)
+    scope = _scope(tmp_path, [7])
+    sweep = _run(tmp_path, "sweep", [7], {})
+    replacement = _run(
+        tmp_path, "replacement", [7], {7: "fail"}, catalog="new-catalog"
+    )
+    repair = _run(tmp_path, "replacement-repair", [7], {}, catalog="new-catalog")
+    for directory, action in (
+        (sweep, "old-actions"),
+        (replacement, "new-actions"),
+        (repair, "new-actions"),
+    ):
+        progress = directory / "progress.jsonl"
+        row = json.loads(progress.read_text())
+        row["executed_actions_sha256"] = action
+        progress.write_text(json.dumps(row) + "\n")
+
+    ledger = acceptance.audit(
+        scope,
+        [sweep],
+        [],
+        replacement_dirs=[replacement, repair],
+        superseded_catalog_tasks={7},
+    )
+
+    assert ledger["counts"]["pass"] == 1
+    assert len(ledger["rows"][0]["attempts"]) == 3
+
+
 def test_acceptance_records_hash_bound_overrides_without_retaining_historical_file(
     tmp_path, monkeypatch
 ):
