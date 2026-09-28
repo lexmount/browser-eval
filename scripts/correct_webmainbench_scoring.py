@@ -15,7 +15,12 @@ sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision
-from scripts.correct_webmainbench_references import calculator, category, read_rows
+from scripts.correct_webmainbench_references import (
+    calculator,
+    category,
+    copy_contained_artifact,
+    read_rows,
+)
 from scripts.score_webmainbench_results import CORE_METRICS, aggregate, metric_dict
 
 
@@ -26,6 +31,19 @@ CONTROL_IDS = (
     "raw-html-pre-is-scorable-code",
     "layout-indented-prose-is-not-code",
 )
+
+
+def copy_correction_sources(corrections: dict, manifest_path: Path,
+                            correction_source: Path) -> None:
+    """Copy declared replacement files without allowing either root to escape."""
+    for item in corrections.values():
+        if item.get("replacement_file"):
+            copy_contained_artifact(
+                manifest_path.parent,
+                item["replacement_file"],
+                correction_source,
+                item["replacement_file"],
+            )
 
 
 def digest(path: Path) -> str:
@@ -243,10 +261,7 @@ def apply(source: Path, corrected_dataset: Path, manifest_path: Path,
     correction_source.mkdir()
     shutil.copy2(manifest_path, correction_source / manifest_path.name)
     shutil.copy2(REGISTRY, correction_source / REGISTRY.name)
-    for item in corrections.values():
-        if item.get("replacement_file"):
-            shutil.copy2(manifest_path.parent / item["replacement_file"],
-                         correction_source / item["replacement_file"])
+    copy_correction_sources(corrections, manifest_path, correction_source)
     receipt = {
         "schema_version": 1,
         "kind": "webmainbench_shared_population_scoring_correction",

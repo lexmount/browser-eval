@@ -107,6 +107,8 @@ def check(root: Path) -> None:
     seven_binding = json.loads((root / 'seven-method-binding.json').read_text(encoding='utf-8'))
     teds_receipt = json.loads((root / 'teds-correction.json').read_text(encoding='utf-8'))
     scoring_receipt_path = root / 'scoring-correction.json'
+    if not scoring_receipt_path.is_file():
+        raise ValueError('scoring-correction.json missing from report evidence')
     scoring_binding = json.loads(
         (repo / 'evaluation/webmainbench-full/scoring-correction-binding.json').read_text(encoding='utf-8')
     )
