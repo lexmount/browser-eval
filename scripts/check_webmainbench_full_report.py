@@ -141,8 +141,8 @@ def check(root: Path) -> None:
         if hashlib.sha256(certificate_bytes).hexdigest() != json.loads(correction_binding.read_text())['sha256']:
             raise ValueError('Case correction certificate differs from repository binding')
         teds = json.loads((root / 'teds-correction.json').read_text())
-        if receipt['preflight']['parent_results_sha256'] != teds['output_results_sha256']:
-            raise ValueError('Case correction predecessor differs from certified TEDS evidence')
+        if receipt['preflight']['parent_results_sha256'] != teds['input_results_sha256']:
+            raise ValueError('Case correction predecessor differs from the certified raw matrix')
         by_provider = {r['provider']: r for r in selected}
         replacement_bytes = ''.join(json.dumps(by_provider[p], ensure_ascii=False) + '\n'
                                     for p in receipt['preflight']['providers']).encode()

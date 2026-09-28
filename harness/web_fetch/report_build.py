@@ -668,7 +668,13 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         correction_root = data_home() / correction_binding['relative_path']
         if digest(correction_root / 'certificate.json') != correction_binding['sha256']:
             raise ValueError('Case correction differs from bound certificate')
-        _, corrected_rows, _ = validate_case_correction(correction_root, records, digest(source / 'results.jsonl'))
+        # The origin correction was certified against the raw seven-method matrix.
+        # Later score-only TEDS/reference revisions preserve those provider bytes.
+        case_correction_results_path = source / 'original-results.jsonl'
+        case_correction_records = read_jsonl(case_correction_results_path)
+        _, corrected_rows, _ = validate_case_correction(
+            correction_root, case_correction_records, digest(case_correction_results_path)
+        )
         corrected_keys = {(r['provider'], r['case_id']) for r in corrected_rows}
     failures = {(row['provider'], row['case_id']) for row in records
                 if webmainbench_full_machine_issue(source, row)} - corrected_keys
@@ -703,9 +709,7 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
             shutil.copy2(source / name, staging / name)
         if (source / 'reference-correction.json').is_file():
             shutil.copytree(source / 'reference-correction-source', staging / 'reference-correction-source')
-            for name in ('reference-correction.json', 'pre-reference-correction-results.jsonl',
-                         'pre-reference-correction-dataset.json'):
-                shutil.copy2(source / name, staging / name)
+            shutil.copy2(source / 'reference-correction.json', staging / 'reference-correction.json')
         for item in variants:
             provider = item['provider']
             bound = bound_variants[provider]
@@ -717,7 +721,12 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         summaries = json.loads((source / 'score-summaries.json').read_text(encoding='utf-8'))
         if correction_root:
             from .webmainbench_correction import apply as apply_case_correction
-            records, summaries = apply_case_correction(correction_root, staging, records, summaries)
+            raw_records = read_jsonl(source / 'original-results.jsonl')
+            records, summaries = apply_case_correction(
+                correction_root, staging, records, summaries,
+                validation_rows=raw_records,
+                expected_parent=digest(source / 'original-results.jsonl'),
+            )
         illustration_binding = profile_path.parent / 'illustrations.json'
         if illustration_binding.exists():
             (staging / 'assets').mkdir(exist_ok=True)

@@ -54,10 +54,15 @@ def validate(root: Path, original_rows: list[dict], expected_parent: str) -> tup
     return certificate, rows, physical
 
 
-def apply(root: Path, staging: Path, original_rows: list, summaries: dict) -> tuple[list, dict]:
+def apply(root: Path, staging: Path, original_rows: list, summaries: dict, *,
+          validation_rows: list | None = None, expected_parent: str | None = None) -> tuple[list, dict]:
     from scripts.score_webmainbench_results import aggregate
     from scripts.apply_webmainbench_case_correction import dimensions
-    certificate, replacements, calls = validate(root, original_rows, digest(staging / 'results.jsonl'))
+    certificate, replacements, calls = validate(
+        root,
+        validation_rows if validation_rows is not None else original_rows,
+        expected_parent if expected_parent is not None else digest(staging / 'results.jsonl'),
+    )
     lookup = {r['provider']: r for r in replacements}
     case_id = certificate['preflight']['case_id']
     result = [lookup[r['provider']] if r['case_id'] == case_id else r for r in original_rows]
