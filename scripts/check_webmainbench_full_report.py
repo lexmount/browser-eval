@@ -47,6 +47,30 @@ def check_diagnosis_inventory(analysis: BeautifulSoup) -> None:
             raise ValueError('Diagnostic result row cannot open its in-page diagnosis')
 
 
+def check_table_interaction(root: Path) -> None:
+    home = BeautifulSoup((root / 'index.html').read_text(encoding='utf-8'), 'html.parser')
+    core = home.select_one('table#core-results')
+    if (not core or len(core.select('tbody > tr')) != 7
+            or len(core.select('th[aria-sort="none"] > button[data-table-sort]')) != 8
+            or any(cell.get('data-sort') is None for cell in core.select('tbody > tr > td.number'))):
+        raise ValueError('Core comparison lacks complete stable sorting semantics')
+    if len(core.select('.comparison-winner')) != 6:
+        raise ValueError('Core comparison highlights changed while adding sorting')
+    dataset = BeautifulSoup((root / 'dataset/index.html').read_text(encoding='utf-8'), 'html.parser')
+    dataset_table = dataset.select_one('table#dataset-inventory')
+    if (not dataset.select_one('#dataset-q') or not dataset.select_one('#dataset-language')
+            or not dataset.select_one('#dataset-level') or not dataset.select_one('#dataset-count')
+            or not dataset_table or len(dataset_table.select('tbody > tr[data-dataset]')) != 545
+            or len(dataset_table.select('button[data-table-sort]')) != 4):
+        raise ValueError('Dataset inventory lacks complete search, filters or sorting')
+    analysis = BeautifulSoup((root / 'analysis/index.html').read_text(encoding='utf-8'), 'html.parser')
+    inventory = analysis.select_one('table#result-inventory')
+    if (not inventory or len(inventory.select('tbody > tr[data-result]')) != 3815
+            or len(inventory.select('button[data-table-sort]')) != 5
+            or any(cell.get('data-sort') is None for cell in inventory.select('tbody > tr > td:nth-of-type(4), tbody > tr > td:nth-of-type(5)'))):
+        raise ValueError('Result inventory lacks complete filters or stable sorting semantics')
+
+
 def check(root: Path) -> None:
     repo = Path(__file__).resolve().parents[1]
     profile_path = repo / 'evaluation/webmainbench-full/current-report.json'
@@ -178,6 +202,7 @@ def check(root: Path) -> None:
         raise ValueError("Interpretation example lacks source, reference or same-case result")
     analysis = BeautifulSoup((root / "analysis/index.html").read_text(encoding="utf-8"), "html.parser")
     check_diagnosis_inventory(analysis)
+    check_table_interaction(root)
     if (len(analysis.select("tr[data-result]")) != 3815 or not analysis.select_one("#kind")
             or not analysis.select_one("#cause")):
         raise ValueError("Result inventory incomplete")

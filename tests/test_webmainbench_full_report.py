@@ -93,6 +93,7 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
         {"provider": "moli", "case_id": case_id, "category": "browser_exit", "category_label": "Moli 解析器崩溃",
          "cause": "Fixture failed", "treatment": "Investigate", "status": "open"}]}), encoding="utf-8")
     (tmp_path / "physical-attempts.jsonl").write_text("".join(json.dumps(row) + "\n" for row in physical), encoding="utf-8")
+    (tmp_path / "moli-content-fixed-report.json").write_text(json.dumps({"source_commit": "39169d705902cad04d241ecff01fc692e4303edc"}), encoding="utf-8")
     generate_webmainbench_full(tmp_path, dataset, rows, summaries, profile)
     subprocess.run(["node", "--check", str(tmp_path / "assets/report.js")], check=True)
     report_js = (tmp_path / "assets/report.js").read_text(encoding="utf-8")
@@ -104,6 +105,10 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     assert home.select_one('td[data-target-body-provider="chromium"]').get_text(strip=True) == "0/545"
     assert home.select_one('td[data-target-body-provider="moli-content-fixed"]').get_text(strip=True) == "1/545"
     assert "目标正文" in home.get_text()
+    core = home.select_one('table#core-results')
+    assert len(core.select('tbody > tr')) == 7
+    assert len(core.select('th[aria-sort="none"] > button[data-table-sort]')) == 8
+    assert '实测提交 39169d705；PR919 最新 main 未重测' in core.get_text(' ', strip=True)
     guide = BeautifulSoup((tmp_path / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
     lineage = guide.select_one("#moli-repair-lineage")
     assert lineage is not None
@@ -123,6 +128,13 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     assert analysis.select_one('tr[data-provider="moli-content-fixed"]') is not None
     assert analysis.select_one("#cause") is not None
     assert analysis.select_one('tr[data-cause="Moli 解析器崩溃"]') is not None
+    assert len(analysis.select('table#result-inventory button[data-table-sort]')) == 5
+    assert all(cell.get('data-sort') is not None for cell in analysis.select('tr[data-result] td:nth-of-type(4), tr[data-result] td:nth-of-type(5)'))
+    dataset_page = BeautifulSoup((tmp_path / 'dataset/index.html').read_text(encoding='utf-8'), 'html.parser')
+    assert dataset_page.select_one('#dataset-q') is not None
+    assert dataset_page.select_one('#dataset-language') is not None
+    assert dataset_page.select_one('#dataset-level') is not None
+    assert len(dataset_page.select('table#dataset-inventory button[data-table-sort]')) == 4
     missing_dialog = BeautifulSoup(str(analysis).replace('id="diagnosis-error"', 'id="missing-error"'), 'html.parser')
     with pytest.raises(ValueError, match='diagnosis dialog'):
         check_diagnosis_inventory(missing_dialog)

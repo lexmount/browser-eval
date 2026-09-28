@@ -2936,6 +2936,7 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
     variant_labels = profile.get("variant_labels", {})
     labels = {p: (variant_labels[p] if p in variant_labels else profile["versions"][p] if p == "chromium" else p.capitalize() +
                   (" " + profile["versions"][p] if p != "kitesurf" else "")) for p in providers}
+    content_fixed_commit = json.loads((out / 'moli-content-fixed-report.json').read_text(encoding='utf-8'))['source_commit']
     measures = [("overall", "综合分"), ("text_edit", "全文"), ("code_edit", "代码"),
                 ("formula_edit", "公式"), ("table_edit", "表格内容"), ("table_TEDS", "表格结构")]
 
@@ -2966,7 +2967,7 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
     def target_body_count(provider):
         return sum(target_body[row["attempt_id"]] for row in records if row["provider"] == provider)
     css = """*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172637;font:16px/1.55 system-ui,sans-serif}body.dark{background:#101923;color:#edf3fa}a{color:#1859a5}body.dark a{color:#92c7ff}.wrap{width:min(1200px,calc(100% - 32px));margin:auto}header{background:#142d4b;color:white}header .wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:15px 0}header a{color:white;text-decoration:none}header strong{margin-right:auto}nav{display:flex;gap:14px;flex-wrap:wrap}button,input,select{font:inherit;border:1px solid #9aacc0;border-radius:7px;padding:7px 10px;background:white;color:#172637}body.dark button,body.dark input,body.dark select{background:#25384b;color:white;border-color:#61768b}h1{font-size:clamp(30px,4vw,48px);line-height:1.18;margin:0 0 15px}h2{font-size:26px;margin:0 0 14px}.hero{padding:48px 0 22px}.hero p{font-size:18px;max-width:900px;color:#506377}body.dark .hero p,body.dark .note{color:#bfd0e1}section{margin:24px 0 38px}figure{margin:24px 0}.panel{background:white;border:1px solid #d8e1eb;border-radius:12px;padding:20px;margin:14px 0}body.dark .panel{background:#1c2b3b;border-color:#38506a}.scroll{overflow:auto;max-height:66vh;border:1px solid #d8e1eb;border-radius:10px;background:white}body.dark .scroll{background:#1c2b3b;border-color:#38506a}table{border-collapse:collapse;width:100%;min-width:820px}th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #dce5ee;vertical-align:top}th{position:sticky;top:0;background:#e9f0f8;color:#152a40;z-index:1}body.dark th{background:#29435d;color:white}tbody tr:hover{background:#edf4fc}body.dark tbody tr:hover{background:#28445f}td small{display:block;color:#597088}body.dark td small{color:#b8cadb}.number{font-variant-numeric:tabular-nums;white-space:nowrap}.winner{color:#116b3c;font-weight:750}body.dark .winner{color:#82e1a7}.filters{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}.filters label{display:grid;gap:4px;font-size:13px;font-weight:700}.note{color:#52677b;font-size:14px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#0e2032;color:#f1f6fb;padding:17px;border-radius:8px;max-height:65vh;overflow:auto;font:13px/1.5 ui-monospace,monospace}.compare-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.compare-grid .panel{min-width:0;margin:0}.compare-grid pre{max-height:70vh}details{border:1px solid #dce5ee;border-radius:8px;padding:10px 14px;margin:10px 0}body.dark details{border-color:#38506a}summary{cursor:pointer;font-weight:700}.actions{display:flex;gap:14px;flex-wrap:wrap}.source{overflow-wrap:anywhere}footer{padding:32px 0;color:#52677b}@media(max-width:800px){.compare-grid{grid-template-columns:1fr}}@media(max-width:650px){.panel{padding:14px}header nav{width:100%}th,td{padding:7px 9px}}"""
-    js = """function theme(){document.body.classList.toggle('dark');try{localStorage.setItem('wmb545-theme',document.body.classList.contains('dark')?'dark':'light')}catch(e){}}try{if(localStorage.getItem('wmb545-theme')==='dark')document.body.classList.add('dark')}catch(e){}function filter(){let q=(document.getElementById('q')?.value||'').toLowerCase(),p=document.getElementById('provider')?.value||'',k=document.getElementById('kind')?.value||'issue',cause=document.getElementById('cause')?.value||'',n=0;document.querySelectorAll('tr[data-result]').forEach(r=>{let show=(!q||r.dataset.search.includes(q))&&(!p||r.dataset.provider===p)&&(!cause||r.dataset.cause===cause)&&(k==='all'||(k==='issue'?r.dataset.kind!=='未触发诊断':r.dataset.kind===k));r.hidden=!show;if(show)n++});let c=document.getElementById('count');if(c)c.textContent=n;let e=document.getElementById('empty');if(e)e.hidden=n!==0}document.addEventListener('DOMContentLoaded',()=>{for(let id of ['q','provider','kind','cause'])document.getElementById(id)?.addEventListener('input',filter);let params=new URLSearchParams(location.search);for(let id of ['provider','kind','cause']){let select=document.getElementById(id);if(select&&params.has(id))select.value=params.get(id)}filter();let node=document.getElementById('evidence-content');if(node){let path=params.get('path')||'';if(!/^(artifacts|references|sources)\\/[A-Za-z0-9_.\\/-]+$/.test(path)||path.includes('..')){node.textContent='无效证据路径';return}document.getElementById('evidence-path').textContent=path;document.getElementById('evidence-raw').href=path;loadEvidence(path,node)}});"""
+    js = """function theme(){document.body.classList.toggle('dark');try{localStorage.setItem('wmb545-theme',document.body.classList.contains('dark')?'dark':'light')}catch(e){}}try{if(localStorage.getItem('wmb545-theme')==='dark')document.body.classList.add('dark')}catch(e){}function filter(){let q=(document.getElementById('q')?.value||'').toLowerCase(),p=document.getElementById('provider')?.value||'',k=document.getElementById('kind')?.value||'issue',cause=document.getElementById('cause')?.value||'',n=0;document.querySelectorAll('tr[data-result]').forEach(r=>{let show=(!q||r.dataset.search.includes(q))&&(!p||r.dataset.provider===p)&&(!cause||r.dataset.cause===cause)&&(k==='all'||(k==='issue'?r.dataset.kind!=='未触发诊断':r.dataset.kind===k));r.hidden=!show;if(show)n++});let c=document.getElementById('count');if(c)c.textContent=n;let e=document.getElementById('empty');if(e)e.hidden=n!==0}function filterDataset(){let q=(document.getElementById('dataset-q')?.value||'').toLowerCase(),language=document.getElementById('dataset-language')?.value||'',level=document.getElementById('dataset-level')?.value||'',n=0;document.querySelectorAll('tr[data-dataset]').forEach(r=>{let show=(!q||r.dataset.search.includes(q))&&(!language||r.dataset.language===language)&&(!level||r.dataset.level===level);r.hidden=!show;if(show)n++});let count=document.getElementById('dataset-count');if(count)count.textContent=n;let empty=document.getElementById('dataset-empty');if(empty)empty.hidden=n!==0}function sortReportTable(button){let table=button.closest('table'),head=button.closest('th'),column=[...head.parentElement.cells].indexOf(head),type=button.dataset.sortType||'text',direction=head.getAttribute('aria-sort')==='ascending'?'descending':'ascending',body=table.tBodies[0],rows=[...body.rows].map((row,index)=>({row,index}));let valueOf=cell=>{let raw=cell?.dataset.sort??cell?.textContent.trim()??'';if(raw===''||raw==='—')return{missing:true,value:null};if(type==='number'){let number=Number(String(raw).replace(/[,％%]/g,''));return{missing:!Number.isFinite(number),value:number}}return{missing:false,value:String(raw).trim()}};rows.sort((left,right)=>{let a=valueOf(left.row.cells[column]),b=valueOf(right.row.cells[column]);if(a.missing!==b.missing)return a.missing?1:-1;if(a.missing&&b.missing)return left.index-right.index;let compared=type==='number'?a.value-b.value:a.value.localeCompare(b.value,'zh-CN',{numeric:true,sensitivity:'base'});return compared===0?left.index-right.index:(direction==='ascending'?compared:-compared)});body.replaceChildren(...rows.map(item=>item.row));table.querySelectorAll('th[aria-sort]').forEach(item=>item.setAttribute('aria-sort','none'));head.setAttribute('aria-sort',direction)}document.addEventListener('DOMContentLoaded',()=>{for(let id of ['q','provider','kind','cause'])document.getElementById(id)?.addEventListener('input',filter);for(let id of ['dataset-q','dataset-language','dataset-level'])document.getElementById(id)?.addEventListener('input',filterDataset);document.addEventListener('click',event=>{let button=event.target.closest('button[data-table-sort]');if(button)sortReportTable(button)});let params=new URLSearchParams(location.search);for(let id of ['provider','kind','cause']){let select=document.getElementById(id);if(select&&params.has(id))select.value=params.get(id)}filter();filterDataset();let node=document.getElementById('evidence-content');if(node){let path=params.get('path')||'';if(!/^(artifacts|references|sources)\\/[A-Za-z0-9_.\\/-]+$/.test(path)||path.includes('..')){node.textContent='无效证据路径';return}document.getElementById('evidence-path').textContent=path;document.getElementById('evidence-raw').href=path;loadEvidence(path,node)}});"""
     js += """
 async function loadJson(path){let response=await fetch(path);if(!response.ok)throw Error('HTTP '+response.status);return response.json()}
 async function loadEvidence(path,node){try{let index=await loadJson('artifact-shard-index.json'),shardPath=index[path];if(!shardPath)throw Error('证据索引缺失');let shard=await loadJson(shardPath),hash=shard.artifacts[path],value=shard.blobs[hash];if(typeof value!=='string')throw Error('证据内容缺失');node.textContent=value;let raw=document.getElementById('evidence-raw');raw.href=URL.createObjectURL(new Blob([value],{type:'text/plain;charset=utf-8'}));raw.download=path.split('/').pop()}catch(error){node.textContent='无法读取证据：'+error.message}}
@@ -3003,8 +3004,8 @@ async function renderCase(){
       if(typeof output!=='string')throw Error('方法输出缺失：'+provider);
       let tr=document.createElement('tr'),td=document.createElement('td'),link=document.createElement('a');
       link.href='results/index.html?provider='+provider+'&id='+id;link.textContent=names[provider]||provider;
-      td.append(link);tr.append(td);td=document.createElement('td');td.textContent=row.diagnosis;tr.append(td);
-      for(let metric of metrics){td=document.createElement('td');let entry=row.metrics?.[metric];td.textContent=(!entry?.success||entry.score==null)?'—':(entry.score*100).toFixed(1)+'%';tr.append(td)}
+      td.dataset.sort=names[provider]||provider;td.append(link);tr.append(td);td=document.createElement('td');td.dataset.sort=row.diagnosis;td.textContent=row.diagnosis;tr.append(td);
+      for(let metric of metrics){td=document.createElement('td');let entry=row.metrics?.[metric];td.dataset.sort=(!entry?.success||entry.score==null)?'':String(entry.score);td.textContent=(!entry?.success||entry.score==null)?'—':(entry.score*100).toFixed(1)+'%';tr.append(td)}
       body.append(tr);
       let panel=document.createElement('article');panel.className='panel result-output';
       let title=document.createElement('h2');title.textContent=names[provider]||provider;
@@ -3026,7 +3027,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
 async function openDiagnosis(button){let tr=button.closest('tr[data-result]'),dialog=document.getElementById('diagnosis-dialog'),provider=tr?.dataset.provider,id=tr?.dataset.caseId;if(!dialog||!provider||!id)return;let put=(name,value)=>{document.getElementById('diagnosis-'+name).textContent=value};put('title','正在读取诊断…');put('error','');put('log','');put('cause','');put('treatment','');dialog.showModal();try{let index=await loadJson('result-shard-index.json'),key=provider+'|'+id,shard=await loadJson(index[key]),row=shard.results[key];if(!row)throw Error('结果证据缺失');put('title',id+' · '+row.diagnosis);put('stage',row.error_type?'失败阶段：'+row.error_type:'诊断类别：'+row.diagnosis);put('error','程序错误：'+(row.error_message||'无'));put('log',row.provider_metadata?.stderr||row.provider_metadata?.browser_stderr||row.error_message||'无日志');put('cause','复核原因：'+(row.review?.cause||'未独立复核'));put('treatment','处理：'+(row.review?.treatment||'未记录').replace(/[。；]+$/,'')+'；状态：'+(row.review?.status||'未记录'));document.getElementById('diagnosis-result').href='results/index.html?provider='+provider+'&id='+id;document.getElementById('diagnosis-output').href='viewer/index.html?path='+encodeURIComponent(row.artifact_path);document.getElementById('diagnosis-case').href='cases/index.html?id='+id}catch(error){put('title','诊断读取失败');put('error',error.message)}}
 document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElementById('diagnosis-dialog');if(!dialog)return;document.getElementById('diagnosis-close').addEventListener('click',()=>dialog.close());document.addEventListener('click',event=>{let button=event.target.closest('button[data-diagnose]');if(button)openDiagnosis(button)})});
 """
-    css += "code,#result-error{overflow-wrap:anywhere;word-break:break-word}dialog{width:min(760px,calc(100% - 24px));max-height:85vh;overflow:auto;border:1px solid #9aacc0;border-radius:12px;background:white;color:#172637;padding:22px}dialog::backdrop{background:#0b172bc9}body.dark dialog{background:#1c2b3b;color:#edf3fa;border-color:#61768b}dialog .actions{margin-top:16px}dialog pre{max-height:28vh}td button[data-diagnose]{font-size:14px;padding:2px 6px}"
+    css += "code,#result-error{overflow-wrap:anywhere;word-break:break-word}.sort-button{appearance:none;border:0;background:transparent;color:inherit;padding:0;font-weight:700;cursor:pointer;text-align:left}.sort-button:hover,.sort-button:focus-visible{text-decoration:underline}th[aria-sort=ascending] .sort-button::after{content:' ↑'}th[aria-sort=descending] .sort-button::after{content:' ↓'}dialog{width:min(760px,calc(100% - 24px));max-height:85vh;overflow:auto;border:1px solid #9aacc0;border-radius:12px;background:white;color:#172637;padding:22px}dialog::backdrop{background:#0b172bc9}body.dark dialog{background:#1c2b3b;color:#edf3fa;border-color:#61768b}dialog .actions{margin-top:16px}dialog pre{max-height:28vh}td button[data-diagnose]{font-size:14px;padding:2px 6px}"
     (out / "assets").mkdir(exist_ok=True)
     (out / "assets/style.css").write_text(css, encoding="utf-8")
     (out / "assets/report.js").write_text(js, encoding="utf-8")
@@ -3034,8 +3035,19 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
     def anchor(path, label):
         return '<a href="' + esc(safe_href(path)) + '">' + esc(label) + '</a>'
 
-    def table(headers, rows):
-        return '<div class="scroll"><table><thead><tr>' + ''.join("<th>" + esc(x) + "</th>" for x in headers) + '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table></div>'
+    def table(headers, rows, sort_types=None, table_id=None):
+        sort_types = sort_types or [None] * len(headers)
+        if len(sort_types) != len(headers):
+            raise ValueError("Table sort contract differs from its columns")
+        header_cells = []
+        for label, sort_type in zip(headers, sort_types):
+            if sort_type:
+                header_cells.append('<th aria-sort="none"><button type="button" class="sort-button" data-table-sort data-sort-type="' +
+                                    esc(sort_type) + '">' + esc(label) + '<span aria-hidden="true"> ↕</span></button></th>')
+            else:
+                header_cells.append('<th>' + esc(label) + '</th>')
+        identity = ' id="' + esc(table_id) + '"' if table_id else ''
+        return '<div class="scroll"><table' + identity + '><thead><tr>' + ''.join(header_cells) + '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table></div>'
 
     navigation = [("总览", "index.html")]
     navigation += [("数据集", "dataset/index.html"),
@@ -3062,7 +3074,9 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
             summary = summaries[provider]
             scores = summary["official_aggregate"]["scores"]
             denominators = summary["official_aggregate"]["denominators"]
-            cells = ["<td>" + anchor("analysis/index.html?provider=" + provider, labels[provider]) + "</td>"]
+            method_detail = ('<small>实测提交 ' + content_fixed_commit[:9] + '；PR919 最新 main 未重测</small>'
+                             if provider == 'moli-content-fixed' else '')
+            cells = ['<td data-sort="' + esc(labels[provider]) + '">' + anchor("analysis/index.html?provider=" + provider, labels[provider]) + method_detail + "</td>"]
             for metric, _ in measures:
                 value = scores[metric]
                 all_values = [summaries[other]["official_aggregate"]["scores"][metric] for other in providers]
@@ -3071,10 +3085,11 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                 digits = 2 if metric == 'overall' else 3 if metric == 'code_edit' else 1
                 cells.append('<td class="number" data-metric="' + metric + '" data-metric-direction="max" data-sort="' + str(value) +
                              '"><span class="' + winner + '">' + f'{value * 100:.{digits}f}%' + "</span>" + detail + "</td>")
-            cells.append('<td class="number" data-target-body-provider="' + provider + '">' +
+            cells.append('<td class="number" data-target-body-provider="' + provider + '" data-sort="' + str(target_body_count(provider)) + '">' +
                          str(target_body_count(provider)) + "/545</td>")
             rows.append("<tr>" + "".join(cells) + "</tr>")
-        return table(["方法"] + [label for _, label in measures] + ["目标正文"], rows)
+        return table(["方法"] + [label for _, label in measures] + ["目标正文"], rows,
+                     ["text"] + ["number"] * len(measures) + ["number"], "core-results")
 
     def latency_table():
         rows = []
@@ -3096,8 +3111,9 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                 numbers.append('<td class="number" data-metric="success-latency-' + str(index) + '" data-metric-direction="' + ('neutral' if provider in variant_labels else 'min') + '"' +
                                (' data-sort="' + str(value) + '"' if value is not None else '') + '>' + marker +
                                (f"{value:,.0f} ms" if value is not None else "—") + end + '</td>')
-            rows.append("<tr><td>" + esc(labels[provider]) + "</td><td>" + str(len(successful_by_provider[provider])) + "/545</td>" + ''.join(numbers) + "</tr>")
-        return table(["方法", "目标正文页", "均值", "P50", "P95", "含重试总耗时"], rows)
+            rows.append("<tr><td>" + esc(labels[provider]) + "</td><td data-sort=\"" + str(len(successful_by_provider[provider])) + "\">" + str(len(successful_by_provider[provider])) + "/545</td>" + ''.join(numbers) + "</tr>")
+        return table(["方法", "目标正文页", "均值", "P50", "P95", "含重试总耗时"], rows,
+                     ["text", "number", "number", "number", "number", "number"])
 
     def all_call_latency_table():
         distributions = {provider: [row["elapsed_ms"] for row in records if row["provider"] == provider] for provider in providers}
@@ -3112,27 +3128,41 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                 marker = '<strong class="comparison-winner winner">' if unique else '<span>'
                 cells.append('<td class="number" data-metric="all-call-latency-' + str(index) + '" data-metric-direction="' + ('neutral' if provider in variant_labels else 'min') + '" data-sort="' +
                              str(number) + '">' + marker + f'{number:,.0f} ms' + ('</strong>' if unique else '</span>') + '</td>')
-            rows.append('<tr><td>' + esc(labels[provider]) + '</td><td>545/545</td>' + ''.join(cells) + '</tr>')
-        return table(['方法', '全部逻辑调用', '均值', 'P50', 'P95'], rows)
+            rows.append('<tr><td>' + esc(labels[provider]) + '</td><td data-sort="545">545/545</td>' + ''.join(cells) + '</tr>')
+        return table(['方法', '全部逻辑调用', '均值', 'P50', 'P95'], rows,
+                     ['text', 'number', 'number', 'number', 'number'])
 
     home = ('<section class="hero"><h1>' + prose('home_title') + '</h1><p>' + prose('home_lead') + '</p></section>' +
             '<section><h2>核心结果</h2>' + metric_table() + '<p class="note">' + prose('score_note') + '</p></section>' +
             '<section><h2>全部页面的调用耗时</h2>' + all_call_latency_table() + '<p class="note">' + prose('all_latency_note') + '</p></section>' +
             '<section><h2>目标正文页面的调用耗时与重试成本</h2>' + latency_table() + '<p class="note">' + prose('latency_note') + '</p></section>' +
-            '<section><h2>问题分布</h2>' + table(["自动诊断", "结果数"], ['<tr><td>' + anchor("analysis/index.html?kind=" + kind, kind) + '</td><td>' + str(count) + '</td></tr>' for kind, count in sorted(counts.items())]) +
+            '<section><h2>问题分布</h2>' + table(["自动诊断", "结果数"], ['<tr><td>' + anchor("analysis/index.html?kind=" + kind, kind) + '</td><td data-sort="' + str(count) + '">' + str(count) + '</td></tr>' for kind, count in sorted(counts.items())], ['text', 'number']) +
             '<p class="note">' + prose('diagnostic_note') + '</p></section>')
     page("index.html", "完整结果", home)
     dataset_rows = []
     for case in dataset["cases"]:
         case_id = case["id"]
         meta = case["meta"]
-        dataset_rows.append("<tr><td>" + anchor("cases/index.html?id=" + case_id, case_id) + "</td><td>" +
-                            esc(meta.get("language") or "—") + "</td><td>" + esc(meta.get("level") or "—") +
+        language = meta.get("language") or "—"
+        level = meta.get("level") or "—"
+        dataset_rows.append('<tr data-dataset data-language="' + esc(language) + '" data-level="' + esc(level) + '" data-search="' +
+                            esc((case_id + ' ' + case['url'] + ' ' + language + ' ' + level).lower()) + '"><td>' + anchor("cases/index.html?id=" + case_id, case_id) + "</td><td>" +
+                            esc(language) + "</td><td>" + esc(level) +
                             '</td><td class="source">' + anchor(case["url"], case["url"]) + "</td><td>" +
                             anchor("viewer/index.html?path=sources/" + case_id + ".html.txt", "冻结网页") + " · " +
                             anchor("viewer/index.html?path=references/" + case_id + ".md", "人工答案") + "</td></tr>")
+    dataset_languages = sorted({(case['meta'].get('language') or '—') for case in dataset['cases']})
+    dataset_levels = sorted({(case['meta'].get('level') or '—') for case in dataset['cases']})
+    dataset_filters = ('<div class="filters"><label>搜索任务或网址<input id="dataset-q" type="search"></label>'
+                       '<label>语言<select id="dataset-language"><option value="">全部语言</option>' +
+                       ''.join('<option value="' + esc(value) + '">' + esc(value) + '</option>' for value in dataset_languages) +
+                       '</select></label><label>难度<select id="dataset-level"><option value="">全部难度</option>' +
+                       ''.join('<option value="' + esc(value) + '">' + esc(value) + '</option>' for value in dataset_levels) +
+                       '</select></label></div><p>当前显示 <strong id="dataset-count"></strong> 题。'
+                       '<span id="dataset-empty" hidden>当前条件无任务。</span></p>')
     page("dataset/index.html", "数据集", '<section class="hero"><h1>冻结网页与人工答案</h1><p>' + prose('dataset_lead') + '</p></section>' +
-         table(["任务 ID", "语言", "难度", "来源", "证据"], dataset_rows))
+         dataset_filters + table(["任务 ID", "语言", "难度", "来源", "证据"], dataset_rows,
+                                 ['text', 'text', 'text', 'text', None], 'dataset-inventory'))
     options = ["issue", "all", "请求失败", "空输出", "错误页", "低全文相似度", "未触发诊断"]
     cause_owners = WEBMAINBENCH_FULL_CAUSE_OWNERS
     cause_order = tuple(cause_owners)
@@ -3153,17 +3183,19 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                            '" data-search="' + esc((case_id + " " + row["original_url"]).lower()) + '"><td>' +
                            anchor("cases/index.html?id=" + case_id, case_id) + "</td><td>" +
                            anchor("results/index.html?provider=" + provider + "&id=" + case_id, labels[provider]) + "</td><td>" +
-                           ('<button type="button" data-diagnose>' + esc(kind) + ' · 诊断</button>' if kind != '未触发诊断' else esc(kind)) + "</td><td>" +
-                           percent(score(row, "text_edit")) + "</td><td>" + f'{row["elapsed_ms"]:,.0f} ms' +
+                           ('<button type="button" data-diagnose>' + esc(kind) + ' · 诊断</button>' if kind != '未触发诊断' else esc(kind)) + "</td>" +
+                           '<td data-sort="' + (str(score(row, "text_edit")) if score(row, "text_edit") is not None else '') + '">' +
+                           percent(score(row, "text_edit")) + '</td><td data-sort="' + str(row["elapsed_ms"]) + '">' + f'{row["elapsed_ms"]:,.0f} ms' +
                            "</td><td>" + anchor("cases/index.html?id=" + case_id, "同页") + "</td></tr>")
     page("analysis/index.html", "结果分析", '<section class="hero"><h1>逐项结果与问题定位</h1><p>' + prose('analysis_lead') + '</p></section>' +
          filters + '<p>当前显示 <strong id="count"></strong> 条。<span id="empty" hidden>当前条件无结果。</span></p>' +
-         table(["任务", "方法", "诊断", "全文分", "最终调用", "同页"], result_rows) +
+         table(["任务", "方法", "诊断", "全文分", "最终调用", "同页"], result_rows,
+               ['text', 'text', 'text', 'number', 'number', None], 'result-inventory') +
          '<dialog id="diagnosis-dialog" aria-labelledby="diagnosis-title"><button type="button" id="diagnosis-close">关闭诊断</button><h2 id="diagnosis-title"></h2><p id="diagnosis-stage"></p><p id="diagnosis-error"></p><p id="diagnosis-cause"></p><p id="diagnosis-treatment"></p><details><summary>原始运行日志</summary><pre id="diagnosis-log"></pre></details><p class="actions"><a id="diagnosis-result">完整结果与调用记录</a><a id="diagnosis-output">原始输出</a><a id="diagnosis-case">同页七方法对照</a></p></dialog>')
     page("cases/index.html", "同页比较",
          '<section class="hero"><h1>人工答案与七种方法的完整输出</h1><p id="case-id"></p><p class="source" id="case-url"></p></section>'
          '<p class="actions"><a id="case-source">冻结网页</a><a id="case-reference">人工答案</a>' + anchor("dataset/index.html", "返回数据集") + '</p>'
-         '<div class="scroll"><table><thead><tr><th>方法</th><th>诊断</th>' + ''.join('<th>' + esc(label) + '</th>' for _, label in measures) +
+         '<div class="scroll"><table id="case-result-table"><thead><tr><th aria-sort="none"><button type="button" class="sort-button" data-table-sort data-sort-type="text">方法<span aria-hidden="true"> ↕</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-table-sort data-sort-type="text">诊断<span aria-hidden="true"> ↕</span></button></th>' + ''.join('<th aria-sort="none"><button type="button" class="sort-button" data-table-sort data-sort-type="number">' + esc(label) + '<span aria-hidden="true"> ↕</span></button></th>' for _, label in measures) +
          '</tr></thead><tbody id="case-results"></tbody></table></div>'
          '<section><h2>同页内容对照</h2><div class="compare-grid" id="case-comparison"></div></section>')
     page("results/index.html", "逐项结果",

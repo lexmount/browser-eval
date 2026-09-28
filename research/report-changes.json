@@ -1297,6 +1297,49 @@
       }}
     },
     {
+      "id": "webmainbench-545-table-controls-and-moli-provenance-20260928",
+      "date": "2026-09-28",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "title": "补齐表格交互并标明内容修复版的实测来源",
+      "summary": "核心方法比较、耗时表和逐项结果支持稳定排序；545 题数据集增加搜索、语言和难度筛选。核心表同时标明内容修复版分数来自提交 39169d705 的历史全量实测，PR919 的最新 main 实现没有重新测量。分数、分母和 3,815 条结果均未改变。",
+      "changes": [
+        [
+          "表格交互",
+          "核心比较无法按指标排序，545 题数据集也缺少搜索和分类筛选。",
+          "为数值比较增加带 aria-sort 的稳定排序，为数据集增加任务或网址搜索、语言和难度筛选，并保留逐项结果已有筛选。",
+          "排序不重算绿色最高值；紧凑方法表始终保留七种方法，筛选只用于大型清单。"
+        ],
+        [
+          "Moli 来源",
+          "核心表只写“1.1.10 内容修复版”，容易被理解为 PR919 rebase 最新 main 后的重测。",
+          "在对应方法行直接标明实测提交 39169d705，并说明 PR919 最新 main 未重测。",
+          "32.97% 继续表示冻结的 545 题历史实测；本次发布没有新增供应商调用，也没有替换任何结果。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Add table controls and identify the measured Moli content-repair build",
+          "summary": "Core method comparisons, latency tables, and the result inventory now support stable sorting; the 545-case dataset adds search, language, and difficulty filters. The core table also states that the content-repair score comes from the historical full run at commit 39169d705, while the latest-main implementation in PR919 was not rerun. Scores, denominators, and all 3,815 results are unchanged.",
+          "changes": [
+            [
+              "Table interaction",
+              "The core comparison could not be sorted by metric, and the 545-case dataset lacked search and categorical filters.",
+              "Add accessible stable sorting with aria-sort to numeric comparisons, plus task or URL search and language and difficulty filters for the dataset, while retaining the existing result filters.",
+              "Sorting never recomputes highlighted leaders; the compact method comparison always keeps all seven methods visible, and filtering is reserved for large inventories."
+            ],
+            [
+              "Moli provenance",
+              "The core table's Moli 1.1.10 content-repair label could be read as a rerun of PR919 after rebasing onto current main.",
+              "Show measured commit 39169d705 directly in that method row and state that the latest-main PR919 implementation was not rerun.",
+              "The 32.97% score remains the frozen historical 545-case measurement; this release adds no provider call and replaces no result."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "webmainbench-545-seven-method-moli-lineage-20260925",
       "date": "2026-09-25",
       "comparison_kinds": [
