@@ -73,6 +73,16 @@ def require_matrix(rows: list[dict], providers: list[str], case_ids: set[str]) -
         raise ValueError("Seven-method logical attempt identity is not unique")
 
 
+def require_provider_batch(execution: dict, provider: str) -> dict:
+    batches = [batch for batch in execution.get("batches", [])
+               if batch.get("provider") == provider]
+    if len(batches) != 1:
+        raise ValueError(
+            f"Expected exactly one execution batch for {provider}, found {len(batches)}"
+        )
+    return copy.deepcopy(batches[0])
+
+
 def assemble(prior: Path, content: Path, output: Path) -> None:
     if output.exists():
         raise ValueError("Composite evidence is immutable")
@@ -135,9 +145,8 @@ def assemble(prior: Path, content: Path, output: Path) -> None:
     for batch in execution["batches"]:
         if batch.get("provider") == historical:
             batch["provider"] = prior_alias["provider"]
-    content_batch = next(
-        copy.deepcopy(batch) for batch in json.loads((content / "execution.json").read_text())["batches"]
-        if batch.get("provider") == historical
+    content_batch = require_provider_batch(
+        json.loads((content / "execution.json").read_text()), historical
     )
     content_batch["provider"] = content_alias["provider"]
     execution["batches"].append(content_batch)

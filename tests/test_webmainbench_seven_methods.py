@@ -3,6 +3,7 @@ from scripts.assemble_webmainbench_seven_methods import (
     alias_row,
     copy_alias_artifacts,
     require_matrix,
+    require_provider_batch,
 )
 
 import pytest
@@ -53,3 +54,14 @@ def test_alias_copy_requires_a_bound_output_hash(tmp_path) -> None:
             "moli-fixed",
             "moli-content-fixed",
         )
+
+
+def test_execution_requires_exactly_one_batch_for_each_variant() -> None:
+    batch = {"provider": "moli-fixed", "attempts": 545}
+    selected = require_provider_batch({"batches": [batch]}, "moli-fixed")
+    assert selected == batch
+    assert selected is not batch
+    with pytest.raises(ValueError, match="found 0"):
+        require_provider_batch({"batches": []}, "moli-fixed")
+    with pytest.raises(ValueError, match="found 2"):
+        require_provider_batch({"batches": [batch, dict(batch)]}, "moli-fixed")
