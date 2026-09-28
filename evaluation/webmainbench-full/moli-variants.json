@@ -14,10 +14,10 @@
       "provider": "moli-content-fixed",
       "profile": "moli-content-fixed-report.json",
       "evidence_alias": "moli-fixed",
-      "label": "Moli 1.1.10 · 内容修复版",
-      "short_label": "内容修复版",
+      "label": "Moli 1.1.11 · PR919 修复版",
+      "short_label": "PR919 修复版",
       "role": "content_repair",
-      "pull_request": "https://github.com/lexmount/moli/pull/814"
+      "pull_request": "https://github.com/lexmount/moli/pull/919"
     }
   ]
 }
