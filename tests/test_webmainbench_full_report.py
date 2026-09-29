@@ -133,6 +133,13 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     assert len(core.select('tbody > tr')) == 7
     assert len(core.select('th[aria-sort="none"] > button[data-table-sort]')) == 8
     assert '实测提交 683b297e1；Moli 1.1.11' in core.get_text(' ', strip=True)
+    quality_matrix = home.select_one('table#quality-issue-matrix')
+    assert quality_matrix is not None
+    assert len(quality_matrix.select('tbody > tr')) == 7
+    assert len(quality_matrix.select('th[aria-sort="none"] > button[data-table-sort]')) == 7
+    assert quality_matrix.find(
+        'a', href='analysis/index.html?provider=moli&metric=delivery&kind=all'
+    ).get_text(strip=True) == '1'
     guide = BeautifulSoup((tmp_path / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
     lineage = guide.select_one("#moli-repair-lineage")
     assert lineage is not None
@@ -151,7 +158,9 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     assert len(analysis.select("tr[data-result]")) == 7
     assert analysis.select_one('tr[data-provider="moli-content-fixed"]') is not None
     assert analysis.select_one("#cause") is not None
+    assert analysis.select_one("#metric") is not None
     assert analysis.select_one('tr[data-cause="Moli 解析器崩溃"]') is not None
+    assert analysis.select_one('tr[data-provider="moli"][data-quality~="delivery"]') is not None
     assert len(analysis.select('table#result-inventory button[data-table-sort]')) == 5
     assert all(cell.get('data-sort') is not None for cell in analysis.select('tr[data-result] td:nth-of-type(4), tr[data-result] td:nth-of-type(5)'))
     dataset_page = BeautifulSoup((tmp_path / 'dataset/index.html').read_text(encoding='utf-8'), 'html.parser')

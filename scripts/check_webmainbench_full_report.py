@@ -239,7 +239,25 @@ def check(root: Path) -> None:
             raise ValueError("Core metrics or winner controls missing")
         if "545" not in page.get_text(" ", strip=True):
             raise ValueError("Complete population missing")
-    if len(home.select('td[data-metric-direction="min"]')) != 35:
+    quality_rows = home.select('table#quality-issue-matrix tr[data-quality-provider]')
+    quality_limits = {
+        'issue-delivery': 545, 'issue-text': 545, 'issue-code': 110,
+        'issue-formula': 113, 'issue-table': 81, 'issue-teds': 81,
+    }
+    if len(quality_rows) != len(providers):
+        raise ValueError('Quality issue matrix missing methods')
+    for row in quality_rows:
+        cells = {cell.get('data-metric'): int(cell.get_text(' ', strip=True))
+                 for cell in row.select('td[data-metric^="issue-"]')}
+        if cells.keys() != quality_limits.keys() or any(
+                value < 0 or value > quality_limits[metric]
+                for metric, value in cells.items()):
+            raise ValueError('Quality issue matrix exceeds its fixed population')
+    latency_cells = home.select(
+        'td[data-metric^="all-call-latency-"][data-metric-direction="min"], '
+        'td[data-metric^="success-latency-"][data-metric-direction="min"]'
+    )
+    if len(latency_cells) != 35:
         raise ValueError("All-call or conditional latency comparison missing")
     first_case = dataset["cases"][0]["id"]
     example_targets = {"viewer/index.html?path=sources/" + first_case + ".html.txt",
@@ -251,7 +269,7 @@ def check(root: Path) -> None:
     check_diagnosis_inventory(analysis)
     check_table_interaction(root)
     if (len(analysis.select("tr[data-result]")) != 3815 or not analysis.select_one("#kind")
-            or not analysis.select_one("#cause")):
+            or not analysis.select_one("#cause") or not analysis.select_one("#metric")):
         raise ValueError("Result inventory incomplete")
     if not any(row.get("data-kind") != "未触发诊断" for row in analysis.select("tr[data-result]")):
         raise ValueError("Default diagnostic population is empty")

@@ -29,6 +29,48 @@
       "sha256": "9db091bb41d693aa22862f2fe7e8f316ebfaaba1d2d1938fc515df915a8a329a",
       "generator": "deterministic HTML/CSS render",
       "scope": "observed defect to shared cause, implementation layer and verification"
+    },
+    {
+      "name": "moli-fix-01-visibility-disclosure.png",
+      "role": "moli-fix-type",
+      "sha256": "a76ff0144aa45b9de6b0aa7dcc213a423ecdf1c9323675ed6b882e2fbedfd832",
+      "generator": "ImageGen",
+      "scope": "visibility, disclosure content and hidden-subtree boundaries"
+    },
+    {
+      "name": "moli-fix-02-fallback-fragments.png",
+      "role": "moli-fix-type",
+      "sha256": "7d1dfec266bd0f6a070fc47e918806dce8fc6bf27d6cd32fbaffa3a3b12f1568",
+      "generator": "ImageGen",
+      "scope": "fallback conversion, escaping and fragment aliases"
+    },
+    {
+      "name": "moli-fix-03-live-form-state.png",
+      "role": "moli-fix-type",
+      "sha256": "852e50109f160588f6df5fe34ac66a39cfa81f341fb6a53b13b40360bbf3a571",
+      "generator": "ImageGen",
+      "scope": "live form state instead of serialized initial attributes"
+    },
+    {
+      "name": "moli-fix-04-media-candidates.png",
+      "role": "moli-fix-type",
+      "sha256": "5d89b58c2ba3618ef0ef04ecd02cba7f57e837c36ee11ea2594c433cec0dbbc4",
+      "generator": "ImageGen",
+      "scope": "standard and lazy media candidate precedence with URL safety"
+    },
+    {
+      "name": "moli-fix-05-semantic-boundaries.png",
+      "role": "moli-fix-type",
+      "sha256": "eadaf97a6703c5649674f75986a200701159ff4c882a48898c2c3a539ebfb6ce",
+      "generator": "ImageGen",
+      "scope": "math, code and table semantic boundaries"
+    },
+    {
+      "name": "moli-fix-06-parser-resume-ownership.png",
+      "role": "moli-fix-type",
+      "sha256": "720259b73c1cbc7d0eccecc4cc8618cefa09c20902bb5d2fd34500c47716ad70",
+      "generator": "ImageGen",
+      "scope": "parser suspension resume ownership"
     }
   ]
 }
