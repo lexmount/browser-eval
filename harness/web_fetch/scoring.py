@@ -21,7 +21,7 @@ SCORING_SOURCE_SHA256 = hashlib.sha256(b"\0".join(
         "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
         "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
         "response_input.py", "body_coverage.py", "structured_tables.py",
-        "ordered_tree.py",
+        "ordered_tree.py", "composite_tasks.py",
     )
 )).hexdigest()
 
@@ -52,7 +52,12 @@ _CONDITIONAL_FIELDS = {
     "dynamic_titles", "verification_note", "confirmed_entries", "checked_entries",
     "page_identity_required", "page_identity_status", "final_url_consistent",
     "language_consistent", "observed_document_language",
+    "acceptable_final_urls",
     "ordered_tree", "ordered_tree_similarity",
+    "composite_acceptance_sha256",
+    "body_requirements_sha256",
+    "page_context_anchor_results", "page_context_anchor_hits",
+    "page_context_anchor_total", "page_context_coverage", "page_context_pass",
 }
 
 
@@ -104,7 +109,7 @@ def score_attempt(
               if key not in _CONDITIONAL_FIELDS and not key.startswith(("stable_", "list_"))}
     keys = ("required_facts", "forbidden_any", "min_content_chars",
             "fact_coverage_threshold", "ground_truth_main_content", "required_patterns",
-            "acceptance_contract", "body_requirements")
+            "acceptance_contract", "body_requirements", "composite_acceptance")
     task_kind = case.get("task_kind", "body")
     rule_review = case.get("rule_review") or {}
     scoring_values = {key: case[key] for key in keys if key in case}
@@ -133,9 +138,38 @@ def score_attempt(
         ),
         **scoring_values,
     ))
+    page_context_anchors = (
+        ((case.get("source_benchmark") or {}).get("risk_control") or {}).get(
+            "page_context_anchors"
+        )
+        or []
+    )
+    if page_context_anchors:
+        from .stable_tasks import evaluate_stable_task
+
+        page_context = evaluate_stable_task(
+            content,
+            {
+                "version": 1,
+                "schema": "body_text",
+                "minimum_records": 0,
+                "stable_text_anchors": page_context_anchors,
+            },
+            base_url,
+            eligible=ok,
+        )
+        page_results = page_context["stable_anchor_results"]
+        page_hits = sum(bool(row["pass"]) for row in page_results)
+        result.update(
+            page_context_anchor_results=page_results,
+            page_context_anchor_hits=page_hits,
+            page_context_anchor_total=len(page_results),
+            page_context_coverage=round(page_hits / len(page_results), 4),
+            page_context_pass=all(row["pass"] for row in page_results),
+        )
     result.update(request_ok=ok, request_status_basis=status_basis,
                   normalized_named_link_count=len(links))
-    page_identity_required = bool(
+    dynamic_page_identity = bool(
         case.get("track") == "dynamic"
         and (metadata or {}).get("route") == "dynamic_selected_text"
         and case.get("evaluation_url")
@@ -143,7 +177,19 @@ def score_attempt(
         and case.get("target_language")
         and case.get("target_region")
     )
-    if page_identity_required:
+    risk_navigation = (
+        ((case.get("source_benchmark") or {}).get("risk_control") or {}).get(
+            "navigation_contract"
+        )
+        if case.get("track") == "risk_control"
+        else None
+    )
+    risk_page_identity = bool(
+        isinstance(risk_navigation, dict)
+        and isinstance(risk_navigation.get("requested_url"), str)
+        and isinstance(risk_navigation.get("observed_final_url"), str)
+    )
+    if dynamic_page_identity:
         observed_language = (metadata or {}).get("document_language")
         expected_document_language = (
             case.get("expected_document_language") or case["target_language"]
@@ -168,6 +214,25 @@ def score_attempt(
             final_url_consistent=final_consistent,
             language_consistent=language_consistent,
             observed_document_language=observed_language,
+        )
+    elif risk_page_identity:
+        acceptable_urls = list(
+            dict.fromkeys(
+                [risk_navigation["requested_url"], risk_navigation["observed_final_url"]]
+            )
+        )
+        final_consistent = bool(
+            isinstance(final_url, str)
+            and final_url
+            and any(_same_page_url(final_url, expected) for expected in acceptable_urls)
+        )
+        result.update(
+            page_identity_required=True,
+            page_identity_status=(
+                "verified" if final_consistent else "mismatch" if final_url else "unavailable"
+            ),
+            final_url_consistent=final_consistent,
+            acceptable_final_urls=acceptable_urls,
         )
     else:
         result.update(page_identity_required=False, page_identity_status="not_required")
@@ -204,6 +269,12 @@ def score_attempt(
     if contract:
         result["acceptance_contract_sha256"] = hashlib.sha256(json.dumps(
             contract, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    if composite := case.get("composite_acceptance"):
+        result["composite_acceptance_sha256"] = hashlib.sha256(json.dumps(
+            composite, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    if body_requirements := case.get("body_requirements"):
+        result["body_requirements_sha256"] = hashlib.sha256(json.dumps(
+            body_requirements, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     if not result["content_score_applicable"] or not ok:
         result["content_pass"] = False
     if result.get("page_identity_required") and result.get("page_identity_status") != "verified":

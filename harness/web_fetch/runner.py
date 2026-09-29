@@ -29,7 +29,7 @@ from .safety import contained_path, safe_identifier
 from .call_boundary import fetch_with_deadline
 from .response_input import apply_request_status
 from .artifacts import (
-    PRIVATE_ARTIFACT_ROOT, PUBLIC_CALL_LOG_ROOT, raw_response_binding,
+    PRIVATE_ARTIFACT_ROOT, PUBLIC_CALL_LOG_ROOT, diagnostic_log_binding, raw_response_binding,
     verify_record_private_artifacts, verify_record_public_call_logs,
 )
 
@@ -268,6 +268,7 @@ def persist_public_call_log(
     )
     response_values = (result.status_code, upstream, result.final_url, content_type, request_id)
     raw_retained = raw_response_binding(metadata) is not None
+    diagnostic_retained = diagnostic_log_binding(metadata) is not None
     call_id = f"{attempt_id}__p{physical_attempt:03d}"
     payload = {
         "schema_version": 1,
@@ -341,6 +342,12 @@ def persist_public_call_log(
             "request_summary": "captured" if "request_summary" in metadata else "not_exposed",
             "events": "complete",
             "raw_response": "retained_private_hash_bound" if raw_retained else "not_retained",
+            "diagnostic_log": (
+                "retained_private_hash_bound_complete"
+                if diagnostic_retained and not metadata.get("diagnostic_log_truncated")
+                else "retained_private_hash_bound_truncated"
+                if diagnostic_retained else "not_retained"
+            ),
             "output": "complete_hash_bound",
         },
     }
@@ -394,6 +401,25 @@ def persist_result_artifacts(
     elif any(result.metadata.get(key) is not None for key in
              ('raw_response_path', 'raw_response_sha256', 'raw_response_bytes')):
         raise ValueError('Raw response binding supplied without raw response bytes')
+    diagnostic_log = result.metadata.pop('_diagnostic_log_b64', None)
+    if diagnostic_log is not None:
+        binary = base64.b64decode(diagnostic_log, validate=True)
+        expected_hash = result.metadata.get('diagnostic_log_sha256')
+        expected_bytes = result.metadata.get('diagnostic_log_bytes')
+        if hashlib.sha256(binary).hexdigest() != expected_hash:
+            raise ValueError('Diagnostic log hash mismatch')
+        if len(binary) != expected_bytes:
+            raise ValueError('Diagnostic log byte size mismatch')
+        private_rel = (Path(PRIVATE_ARTIFACT_ROOT, *artifact_rel.parts[1:])
+                       .with_suffix('.stderr.log'))
+        private_path = contained_path(output_dir, private_rel)
+        private_path.parent.mkdir(parents=True, exist_ok=True)
+        private_path.write_bytes(binary)
+        result.metadata['diagnostic_log_path'] = private_rel.as_posix()
+        diagnostic_log_binding(result.metadata)
+    elif any(result.metadata.get(key) is not None for key in
+             ('diagnostic_log_path', 'diagnostic_log_sha256', 'diagnostic_log_bytes')):
+        raise ValueError('Diagnostic log binding supplied without diagnostic log bytes')
     delivered = result.metadata.get('file_evaluation', {}).get('files', [])
     if len(delivered) != len(result.files):
         raise ValueError(
@@ -617,6 +643,9 @@ def run_evaluation(
                         private_binding = raw_response_binding(result.metadata)
                         if private_binding:
                             private_artifacts.append(private_binding)
+                        diagnostic_binding = diagnostic_log_binding(result.metadata)
+                        if diagnostic_binding:
+                            private_artifacts.append(diagnostic_binding)
                         physical_attempts.append({
                             'physical_attempt': physical_attempt,
                             'started_at': physical_started,

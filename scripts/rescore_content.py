@@ -10,6 +10,7 @@ sys.path.insert(0, str(ROOT))
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 from harness.web_fetch.failure_diagnosis import diagnose
 from harness.web_fetch.models import execution_id
+from harness.web_fetch.metrics import summarize
 from harness.web_fetch.response_input import apply_request_status
 from harness.web_fetch.report import succeeded, failure_category
 from harness.web_fetch.safety import contained_path, validate_report_ids
@@ -106,6 +107,10 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False,
     # line/paragraph separators keeps one attempt on exactly one line too.
     temporary.write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in records))
     temporary.replace(path)
+    contained_path(source, 'summary.json').write_text(
+        json.dumps(summarize(records), ensure_ascii=False, indent=2) + '\n',
+        encoding='utf-8',
+    )
     return changes
 
 

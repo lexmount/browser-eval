@@ -7,6 +7,7 @@ Passing establishes the declared output structure, not factual source fidelity.
 from __future__ import annotations
 
 from datetime import date, datetime
+from html import unescape
 import hashlib
 import math
 import re
@@ -133,11 +134,10 @@ def _unwrap_links(text, schema):
 
 def _visible(text, schema=None):
     text = clean_reference_text(text)
-    if re.search(r'<(?:html|body|main|div|section|article|p|h[1-6])\b', text, re.I):
-        from html import unescape
-        # Decode one HTML entity layer, as a browser does. In particular a
-        # rendered nonbreaking space must not become the literal token "nbsp".
-        text = unescape(text)
+    # Decode one character-reference layer, as a browser does for both HTML
+    # and Markdown. In particular, ``&amp;`` is the visible ``&`` while an
+    # intentionally escaped ``&amp;amp;`` remains the literal text ``&amp;``.
+    text = unescape(text)
     # Extractors represent Markdown hard breaks using one or two backslashes.
     text = re.sub(r"\\{1,2}[ \t]*(?=\n)", "", text)
     text = _unwrap_links(text, schema)
@@ -155,6 +155,10 @@ def _visible(text, schema=None):
                          else line.replace(_CARD_BOUNDARY, "")
                          for line in text.splitlines())
     text = re.sub(r"\*\*|__|`", "", text)
+    # Link unwrapping may insert boundary spaces inside surrounding emphasis
+    # (``*[label](url)*`` becomes ``* label *``). Treat that as the same visible
+    # text as ordinary emphasis, without flattening other punctuation.
+    text = re.sub(r"(?<!\w)([*_])\s*([^\n]*?\S)\s*\1(?!\w)", r"\2", text)
     # Preserve newlines: flattening them would let one card borrow another's fields.
     return text.replace("\r\n", "\n")
 

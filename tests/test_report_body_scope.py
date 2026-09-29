@@ -9,8 +9,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch.report import (
-    TRACKS, _body_region_evidence, attempt_row, case_rate, generate, overview_card, ranking, reason, stable_anchor_evidence,
-    run_log_section, stable_answer_panel, stable_checks, stable_failure_summary, write_support,
+    TRACKS, _body_region_evidence, attempt_row, case_rate,
+    composite_contract_details, composite_result_evidence, failure_category,
+    generate, overview_card, ranking, reason, run_log_section,
+    stable_anchor_evidence, stable_answer_panel, stable_checks,
+    stable_failure_summary, write_support,
 )
 from harness.web_fetch.report_components import (
     task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status, task_instruction,
@@ -94,6 +97,80 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertIn('<div class="anchor-grid" data-scroll-after="5">',evidence)
         self.assertIn('<div class="record-scroll" data-scroll-after="5">',stable_checks(metrics))
         self.assertNotIn('data-scroll-after="5"',stable_answer_panel({**contract,'stable_text_anchors':anchors[:5]}))
+    def test_local_report_links_complete_private_debug_log(self):
+        c = case('debug-log', 'body', 'risk_control')
+        r = record(c)
+        r['provider_metadata'] = {
+            'local_report_complete_diagnostic_links': True,
+            'diagnostic_log_path': (
+                'private_artifacts/moli-1.1.11/debug-log/run-001.stderr.log'
+            ),
+            'diagnostic_log_bytes': 1234,
+            'diagnostic_log_sha256': 'a' * 64,
+            'diagnostic_log_truncated': False,
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            rendered = run_log_section(Path(directory), r, 'output')
+        self.assertIn('完整原始 debug 日志', rendered)
+        self.assertIn(
+            '../../private_artifacts/moli-1.1.11/debug-log/run-001.stderr.log',
+            rendered,
+        )
+        self.assertIn('1,234', rendered)
+        self.assertIn('截断：否', rendered)
+
+    def test_composite_rules_and_failures_are_visible_in_report(self):
+        contract = {"version": 1, "groups": [{
+            "id": "articles", "kind": "named_link", "minimum_records": 8,
+            "hosts": ["example.test"], "entry_path": r"/article/\d+",
+            "required_fields": [{"id": "date", "kind": "date_or_time"}],
+        }]}
+        rendered = composite_contract_details(contract)
+        for phrase in ["articles", "名称＋真实链接", "至少 8 条", "同条目字段：date",
+                       "路径：/article/\\d+"]:
+            self.assertIn(phrase, rendered)
+        metrics = {"composite_acceptance_pass": False, "composite_group_results": [{
+            "id": "articles", "kind": "named_link", "count": 7, "minimum": 8,
+            "records": [{"title": "One", "url": "https://example.test/article/1"}],
+            "pass": False,
+        }]}
+        evidence = composite_result_evidence(metrics)
+        for phrase in ["有效条目", "至少要求", "7", "8", "未通过", "One"]:
+            self.assertIn(phrase, evidence)
+        c = case("composite", "body", "risk_control")
+        c["acceptance_contract"] = {
+            "version": 1, "schema": "body_text", "minimum_records": 0,
+            "stable_text_anchors": [],
+        }
+        r = record(c, passed=False)
+        r["metrics"].update(metrics, stable_task_pass=True, stable_content_pass=True)
+        self.assertEqual(reason(r, c), "组合规则未满足：articles。")
+        self.assertEqual(failure_category(r, c), "规则不满足")
+
+    def test_risk_control_failure_categories_are_exclusive_and_output_first(self):
+        c = case("risk", "body", "risk_control")
+
+        def failed(**metrics):
+            r = record(c, passed=False)
+            r["metrics"].update(request_ok=True, content_chars=500,
+                                stable_task_pass=False)
+            r["metrics"].update(metrics)
+            return r
+
+        self.assertEqual(
+            failure_category(failed(blocked_page=True, composite_acceptance_pass=False), c),
+            "返回验证或拦截页面",
+        )
+        self.assertEqual(failure_category(failed(content_chars=0), c), "完全空返回")
+        self.assertEqual(
+            failure_category(failed(content_chars=37, markdown_headings=0, markdown_links=0,
+                                    stable_anchor_hits=0, content_check_hits=0), c),
+            "只返回等待提示或页面外壳",
+        )
+        self.assertEqual(
+            failure_category(failed(composite_acceptance_pass=False), c),
+            "规则不满足",
+        )
 
     def test_request_failure_reason_precedes_derived_empty_body_metrics(self):
         c=case('document','body','document');r=record(c,passed=False,ok=False)

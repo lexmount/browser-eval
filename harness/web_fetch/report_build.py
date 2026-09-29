@@ -18,9 +18,29 @@ from .webmainbench_diagnostics import validate_teds_revision_if_present
 from .webmainbench_latency_correction import prior_results_path
 from .webmainbench_latency_diagnostic import load_diagnostic
 from .artifacts import (
-    record_public_call_log_bindings, verify_record_private_artifacts,
+    diagnostic_log_binding, record_public_call_log_bindings, verify_record_private_artifacts,
     verify_public_call_log, verify_record_public_call_logs,
 )
+
+
+def require_risk_control_certification(source: Path, dataset: dict, records: list[dict]) -> None:
+    """Validate the complete profile-bound risk-control cohort before reporting."""
+    from .risk_control import validate_risk_control_certification
+
+    comparison = dataset.get("comparison", {})
+    if comparison.get("kind") != "risk_control_100_moli":
+        return
+    path = contained_path(source, "certification.json")
+    if not path.is_file() or path.is_symlink():
+        raise ValueError("Risk-control report requires a certification receipt")
+    profile_path = Path(__file__).resolve().parents[2] / "evaluation/risk-control/run-profile.json"
+    receipt = json.loads(path.read_text(encoding="utf-8"))
+    validate_risk_control_certification(source, dataset, records, receipt, profile_path)
+    for record in records:
+        metadata = record.get("provider_metadata", {})
+        if (diagnostic_log_binding(metadata) is None
+                or metadata.get("diagnostic_log_truncated") is not False):
+            raise ValueError("Risk-control certification requires complete diagnostic logs")
 
 
 def scoring_scope(records, cases):
@@ -147,6 +167,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
     records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
     validate_report_ids(dataset,records)
+    require_risk_control_certification(source, dataset, records)
     cases = {c['id']:c for c in dataset['cases']}
     from .result_review import require_result_review
     if local_audit:
@@ -218,6 +239,20 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             expected = hashlib.sha256(json.dumps(contract, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
             if r['metrics'].get('acceptance_contract_sha256') != expected:
                 raise ValueError(f'Acceptance contract hash missing or mismatched: {r["attempt_id"]}')
+        composite = cases[r['case_id']].get('composite_acceptance')
+        if composite:
+            from .composite_tasks import validate_composite_acceptance
+            validate_composite_acceptance(composite)
+            expected = hashlib.sha256(json.dumps(
+                composite, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
+            if r['metrics'].get('composite_acceptance_sha256') != expected:
+                raise ValueError(f'Composite contract hash missing or mismatched: {r["attempt_id"]}')
+        body_requirements = cases[r['case_id']].get('body_requirements')
+        if body_requirements:
+            expected = hashlib.sha256(json.dumps(
+                body_requirements, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
+            if r['metrics'].get('body_requirements_sha256') != expected:
+                raise ValueError(f'Body contract hash missing or mismatched: {r["attempt_id"]}')
         if cases[r['case_id']].get('expected_resources') or cases[r['case_id']].get('resource_output_contract'):
             resource_contract = {
                 'expected_resources': cases[r['case_id']].get('expected_resources', []),
@@ -338,6 +373,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 row['text_checked_cases']=len({r['case_id'] for r in text})
         for name,data in [('dataset.json',dataset),('execution.json',{'batches':manifests}),('summary.json',summary)]:
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+        if (source / 'certification.json').is_file():
+            shutil.copy2(source / 'certification.json', staging / 'certification.json')
         reliability=assess_reliability(dataset,records)
         (staging/'reliability.json').write_text(json.dumps(reliability,ensure_ascii=False,indent=2)+'\n')
         # Keep the downloadable result file byte-identical to the independently

@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from harness.web_fetch.metrics import summarize, task_passed
+from harness.web_fetch.metrics import summarize, task_measured, task_passed
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.providers.http_client import HttpResponse
@@ -44,6 +44,92 @@ REFERENCE = {"case_id": "legacy", "items": [
 
 
 class ScoringTests(unittest.TestCase):
+    def test_risk_control_requires_declared_page_identity(self):
+        navigation = {
+            "risk_control": {
+                "navigation_contract": {
+                    "requested_url": "https://example.test/start",
+                    "observed_final_url": "https://example.test/final",
+                    "target_language": "en",
+                }
+            }
+        }
+        c = case(
+            url="https://example.test/start",
+            track="risk_control",
+            acceptance_contract={
+                "version": 1,
+                "schema": "body_text",
+                "minimum_records": 0,
+                "stable_text_anchors": [{"id": "body", "alternatives": ["Expected"]}],
+            },
+            source_benchmark=navigation,
+        )
+        wrong = score_attempt(c, b"Expected", ok=True, final_url="https://other.test/")
+        self.assertTrue(wrong["page_identity_required"])
+        self.assertEqual(wrong["page_identity_status"], "mismatch")
+        self.assertTrue(task_measured(wrong))
+        self.assertFalse(task_passed(True, wrong))
+        missing = score_attempt(c, b"Expected", ok=True)
+        self.assertEqual(missing["page_identity_status"], "unavailable")
+        self.assertFalse(task_measured(missing))
+        self.assertFalse(task_passed(True, missing))
+        failed = score_attempt(c, b"", ok=False)
+        self.assertEqual(failed["page_identity_status"], "unavailable")
+        self.assertTrue(task_measured(failed))
+        self.assertFalse(task_passed(False, failed))
+        summary = summarize([{
+            "provider": "moli",
+            "provider_type": "moli_webfetch",
+            "case_id": c.id,
+            "case_name": c.name,
+            "category": c.category,
+            "ok": False,
+            "error_type": "timeout",
+            "elapsed_ms": 45_000,
+            "metrics": failed,
+        }])["providers"]["moli"]
+        self.assertEqual(summary["task_evaluated_attempts"], 1)
+        self.assertEqual(summary["task_unmeasured_attempts"], 0)
+        self.assertEqual(summary["task_pass_rate"], 0.0)
+        self.assertEqual(summary["failure_types"], {"timeout": 1})
+        accepted = score_attempt(c, b"Expected", ok=True, final_url="https://example.test/final")
+        self.assertEqual(accepted["page_identity_status"], "verified")
+        self.assertTrue(task_passed(True, accepted))
+
+    def test_risk_control_page_context_is_diagnostic_only(self):
+        benchmark = {
+            "risk_control": {
+                "navigation_contract": {
+                    "requested_url": "https://example.test/page",
+                    "observed_final_url": "https://example.test/page",
+                    "target_language": "en",
+                },
+                "page_context_anchors": [
+                    {"id": "translate", "alternatives": ["Translate"]}
+                ],
+            }
+        }
+        c = case(
+            track="risk_control",
+            acceptance_contract={
+                "version": 1,
+                "schema": "body_text",
+                "minimum_records": 0,
+                "stable_text_anchors": [{"id": "body", "alternatives": ["Target body"]}],
+            },
+            source_benchmark=benchmark,
+        )
+        measured = score_attempt(
+            c,
+            b"Target body",
+            ok=True,
+            final_url="https://example.test/page",
+        )
+        self.assertFalse(measured["page_context_pass"])
+        self.assertEqual(measured["page_context_coverage"], 0.0)
+        self.assertTrue(task_passed(True, measured))
+
     def test_source_title_is_answer_evidence_without_inflating_body_length(self):
         c=case(required_facts=[{'id':'title','alternatives':['Exact page title']},
                               {'id':'body','alternatives':['Body fact']}],
@@ -388,7 +474,7 @@ class ScoringTests(unittest.TestCase):
             "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
             "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
             "response_input.py", "body_coverage.py", "structured_tables.py",
-            "ordered_tree.py"))).hexdigest()
+            "ordered_tree.py", "composite_tasks.py"))).hexdigest()
         self.assertEqual(SCORING_SOURCE_SHA256, expected)
         self.assertEqual(score_attempt(case(), b"Text", ok=True)["scoring_source_sha256"], expected)
 
@@ -468,6 +554,10 @@ class ScoringPipelineTests(unittest.TestCase):
         self.assertEqual(changes, [])
         current = [json.loads(line) for line in (self.run / "results.jsonl").read_text().splitlines()]
         self.assertEqual(summarize(current), summary)
+        self.assertEqual(
+            json.loads((self.run / "summary.json").read_text()),
+            summary,
+        )
         for before, after in zip(original, current):
             self.assertEqual(before["metrics"], after["metrics"])
             for key in before:
@@ -499,6 +589,10 @@ class ScoringPipelineTests(unittest.TestCase):
         self.assertEqual(updated[0]["run_id"], "original-call-identity")
         self.assertEqual(updated[0]["metrics"]["content_check_coverage"], 0)
         self.assertEqual(changes, [{"attempt_id": records[0]["attempt_id"], "before": True, "after": False}])
+        self.assertEqual(
+            json.loads((self.run / "summary.json").read_text())["cases"]["web"]["task_pass_rate"],
+            0,
+        )
 
     def test_each_rescore_updates_audit_without_erasing_existing_scoring_or_call_identity(self):
         records, _ = self.live()

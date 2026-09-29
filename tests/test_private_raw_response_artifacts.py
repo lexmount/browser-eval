@@ -7,6 +7,7 @@ from pathlib import Path
 
 from harness.web_fetch.artifacts import (
     materialize_private_artifacts, verify_record_private_artifacts,
+    verify_record_public_call_logs,
 )
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
@@ -29,6 +30,21 @@ class RawEnvelopeProvider(Provider):
         })
 
 
+class DiagnosticLogProvider(Provider):
+    def __init__(self, raw: bytes):
+        super().__init__('diagnostic-log', {'type': 'fixture'})
+        self.raw = raw
+
+    def fetch(self, case, timeout):
+        return ProviderResult(True, 'Expected', metadata={
+            '_diagnostic_log_b64': base64.b64encode(self.raw).decode('ascii'),
+            'diagnostic_log_sha256': hashlib.sha256(self.raw).hexdigest(),
+            'diagnostic_log_bytes': len(self.raw),
+            'diagnostic_log_truncated': False,
+            'diagnostic_log_process_completed': True,
+        })
+
+
 def run_raw(root: Path, provider: Provider):
     return run_evaluation(
         output_dir=root, dataset_meta={'id': 'test'}, dataset_path=Path('dataset.json'),
@@ -39,6 +55,37 @@ def run_raw(root: Path, provider: Provider):
 
 
 class PrivateRawResponseArtifactTests(unittest.TestCase):
+    def test_runner_persists_complete_diagnostic_log_for_success(self):
+        raw = b'line one\nline two\n'
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            record = run_raw(root, DiagnosticLogProvider(raw))
+            metadata = record['provider_metadata']
+            self.assertNotIn('_diagnostic_log_b64', metadata)
+            self.assertEqual(metadata['diagnostic_log_bytes'], len(raw))
+            self.assertEqual(metadata['diagnostic_log_sha256'], hashlib.sha256(raw).hexdigest())
+            self.assertFalse(metadata['diagnostic_log_truncated'])
+            path = Path(metadata['diagnostic_log_path'])
+            self.assertEqual(path.parts[0], 'private_artifacts')
+            self.assertEqual(path.name, 'run-001.stderr.log')
+            self.assertEqual((root / path).read_bytes(), raw)
+            call_log = json.loads(
+                (root / metadata['call_log']['path']).read_text(encoding='utf-8')
+            )
+            self.assertEqual(
+                call_log['capture']['diagnostic_log'],
+                'retained_private_hash_bound_complete',
+            )
+            verify_record_public_call_logs(root, record)
+            verify_record_private_artifacts(root, record)
+            destination = root / 'aggregate'
+            destination.mkdir()
+            materialize_private_artifacts(destination, root, [record])
+            self.assertEqual((destination / path).read_bytes(), raw)
+            (destination / path).write_bytes(b'tampered')
+            with self.assertRaisesRegex(ValueError, 'byte size changed|hash changed'):
+                verify_record_private_artifacts(destination, record)
+
     def test_runner_moves_raw_envelope_out_of_results(self):
         raw = b'{"authorization":"Bearer private-token-123456789"}'
         with tempfile.TemporaryDirectory() as directory:

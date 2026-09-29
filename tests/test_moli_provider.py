@@ -11,12 +11,39 @@ from unittest.mock import Mock, patch
 
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers import build_provider
+from harness.web_fetch.providers.moli import _diagnostic_main_document_url
 from harness.web_fetch.report_interfaces import SPECS
 from harness.web_fetch.report_methods import PROFILES
 
 
 @unittest.skipUnless(os.name == "posix", "executable fixture uses POSIX shebang")
 class MoliTests(unittest.TestCase):
+    def test_effective_main_document_url_comes_from_same_call_debug_log(self):
+        requested = "https://example.com/start?q=1"
+        stderr = (
+            "DEBUG fetch request complete method=GET "
+            f"url={requested} final_url=https://example.com/final status=200 transfer_size=42\n"
+            "DEBUG fetch request complete method=GET url=https://cdn.example.com/app.js "
+            "final_url=https://cdn.example.com/app.js status=200 transfer_size=7\n"
+        )
+        self.assertEqual(
+            _diagnostic_main_document_url(stderr, requested), "https://example.com/final"
+        )
+
+    def test_effective_main_document_url_follows_logged_redirect_hops(self):
+        stderr = (
+            "DEBUG fetch request complete method=GET url=https://example.com/start "
+            "final_url=https://example.com/start status=302 transfer_size=42\n"
+            "DEBUG fetch request complete method=GET url=https://login.example.com/challenge "
+            "final_url=https://login.example.com/challenge status=200 transfer_size=7\n"
+            "DEBUG fetch request complete method=GET url=https://cdn.example.com/app.js "
+            "final_url=https://cdn.example.com/app.js status=200 transfer_size=7\n"
+        )
+        self.assertEqual(
+            _diagnostic_main_document_url(stderr, "https://example.com/start"),
+            "https://login.example.com/challenge",
+        )
+
     def test_resource_route_enumerates_bounded_same_origin_frame_documents(self):
         from harness.web_fetch.providers.moli import _RESOURCE_PAGE_EXPRESSION
 
@@ -95,6 +122,48 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["wait"], {"wait_until": "done"})
         self.assertTrue(result.metadata["block_private_networks"])
 
+    def test_ordinary_markdown_exposes_effective_url_from_debug_stderr(self):
+        provider = self.provider(
+            "import sys\n"
+            'print("# Example Domain")\n'
+            'print("DEBUG fetch request complete method=GET url=https://example.com/?a=1&b=2 '
+            'final_url=https://example.com/final status=200 transfer_size=42", file=sys.stderr)\n'
+        )
+        self.assertEqual(provider.validate(), [])
+        result = provider.fetch(self.case, 2)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.final_url, "https://example.com/final")
+        self.assertEqual(result.metadata["final_url_source"], "same_call_debug_log")
+
+    def test_effective_url_uses_complete_log_not_public_stderr_preview(self):
+        provider = self.provider(
+            "import sys\n"
+            'print("x"*1_000_100, file=sys.stderr)\n'
+            'print("DEBUG fetch request complete method=GET '
+            'url=https://example.com/?a=1&b=2 '
+            'final_url=https://example.com/final status=200 transfer_size=42", '
+            'file=sys.stderr)\n'
+            'print("# Example Domain")',
+            log_level="debug",
+            retain_complete_diagnostic_log=True,
+            max_diagnostic_bytes=2_000_000,
+        )
+        result = provider.fetch(self.case, 2)
+        self.assertTrue(result.ok, repr(result))
+        self.assertTrue(result.metadata["stderr_truncated"])
+        self.assertNotIn("fetch request complete", result.metadata["stderr"])
+        self.assertEqual(result.final_url, "https://example.com/final")
+        self.assertEqual(result.metadata["final_url_source"], "same_call_debug_log")
+        complete = base64.b64decode(result.metadata["_diagnostic_log_b64"], validate=True)
+        self.assertIn(b"fetch request complete", complete)
+
+    def test_binary_path_expands_environment_variable(self):
+        provider = self.provider('print("answer")')
+        provider.config["binary"] = "$RISK_MOLI_TEST_BINARY"
+        with patch.dict(os.environ, {"RISK_MOLI_TEST_BINARY": str(self.binary)}):
+            self.assertEqual(provider.validate(), [])
+            self.assertEqual(Path(provider._resolve_binary()), self.binary)
+
     def test_stderr_capture_exceeds_legacy_4096_without_silent_truncation(self):
         provider = self.provider(
             "import sys\nprint('x'*5000,file=sys.stderr)\nprint('answer')",
@@ -105,6 +174,36 @@ class MoliTests(unittest.TestCase):
         self.assertGreater(len(result.metadata["stderr"]), 4096)
         self.assertGreater(result.metadata["stderr_bytes"], 4096)
         self.assertFalse(result.metadata["stderr_truncated"])
+
+    def test_debug_logging_is_passed_and_complete_raw_stderr_is_bound(self):
+        provider = self.provider(
+            "import sys\n"
+            'assert sys.argv[sys.argv.index("--log-level")+1]=="debug"\n'
+            'print("first debug line",file=sys.stderr)\n'
+            'print("second debug line",file=sys.stderr)\n'
+            'print("answer")',
+            log_level="debug",
+            retain_complete_diagnostic_log=True,
+            max_diagnostic_bytes=100_000_000,
+            trace_network=False,
+        )
+        result = provider.fetch(self.case, 2)
+        self.assertTrue(result.ok)
+        raw = base64.b64decode(result.metadata["_diagnostic_log_b64"], validate=True)
+        self.assertEqual(raw, b"first debug line\nsecond debug line\n")
+        self.assertEqual(result.metadata["diagnostic_log_bytes"], len(raw))
+        self.assertEqual(
+            result.metadata["diagnostic_log_sha256"], hashlib.sha256(raw).hexdigest()
+        )
+        self.assertFalse(result.metadata["diagnostic_log_truncated"])
+        self.assertTrue(result.metadata["diagnostic_log_process_completed"])
+
+    def test_network_trace_cannot_change_markdown_scoring_route(self):
+        provider = self.provider('raise AssertionError("should not run")', trace_network=True)
+        self.assertIn(
+            "trace_network (requires JSON output and is not allowed for Markdown scoring)",
+            provider.validate(),
+        )
 
     def test_private_network_guard_exception_is_scoped_to_allowlisted_host(self):
         provider = self.provider(
@@ -757,16 +856,48 @@ class MoliTests(unittest.TestCase):
         process.assert_not_called()
 
     def test_failure_binary_and_oversized_output(self):
-        for script, config, expected in [
-            ('import sys\nprint("partial")\nsys.exit(7)', {}, "tool_error"),
-            ('import sys\nsys.stdout.buffer.write(b"\\xff")', {}, "invalid_output"),
-            ('print("abcdef")', {"max_bytes": 3}, "output_too_large"),
-            ('import sys\nprint("abcdef",file=sys.stderr)', {"max_bytes": 3}, "output_too_large"),
+        for script, config, expected, retained in [
+            ('import sys\nprint("partial")\nsys.exit(7)', {}, "tool_error", False),
+            ('import sys\nsys.stdout.buffer.write(b"\\xff")', {}, "invalid_output", False),
+            ('print("abcdef")', {"max_bytes": 3}, "output_too_large", False),
+            ('import sys\nprint("abcdef",file=sys.stderr)',
+             {"retain_complete_diagnostic_log": True, "max_diagnostic_bytes": 3},
+             "diagnostic_log_too_large", True),
         ]:
             with self.subTest(expected=expected):
                 result = self.provider(script, **config).fetch(self.case, 2)
                 self.assertFalse(result.ok)
                 self.assertEqual(result.error_type, expected)
+                self.assertEqual("_diagnostic_log_b64" in result.metadata, retained)
+                if retained:
+                    self.assertEqual(
+                        len(base64.b64decode(result.metadata["_diagnostic_log_b64"])),
+                        result.metadata["diagnostic_log_bytes"],
+                    )
+                    self.assertEqual(
+                        result.metadata["diagnostic_log_truncated"],
+                        expected == "diagnostic_log_too_large",
+                    )
+
+    def test_complete_diagnostic_retention_is_opt_in(self):
+        result = self.provider(
+            'import sys\nprint("diagnostic", file=sys.stderr)\nprint("answer")'
+        ).fetch(self.case, 2)
+        self.assertTrue(result.ok)
+        self.assertNotIn("_diagnostic_log_b64", result.metadata)
+        self.assertNotIn("diagnostic_log_sha256", result.metadata)
+
+    def test_diagnostic_only_options_require_explicit_retention(self):
+        self.assertIn(
+            "max_diagnostic_bytes (requires retain_complete_diagnostic_log)",
+            self.provider('print("answer")', max_diagnostic_bytes=10).validate(),
+        )
+        self.assertIn(
+            "local_report_complete_diagnostic_links (requires retain_complete_diagnostic_log)",
+            self.provider(
+                'print("answer")', local_report_complete_diagnostic_links=True
+            ).validate(),
+        )
 
     def test_zero_exit_empty_markdown_is_request_success(self):
         result = self.provider('print(" ")').fetch(self.case, 2)

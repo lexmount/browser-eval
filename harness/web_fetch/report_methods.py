@@ -14,6 +14,7 @@ PROFILES={
  'moli-1.0.6':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.0.6'),
  'moli':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.1.5'),
  'moli-1.1.7':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.1.7'),
+ 'moli-1.1.11':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；本轮风险网站评测固定 debug 日志并逐次完整留存。','https://github.com/lexmount/moli/releases/tag/v1.1.11'),
  'moli-1.1.3':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.1.3'),
  'chromium':('本地浏览器 CDP','Playwright 启动 Chromium，取完整渲染 DOM，再由 node-html-markdown 2.0.0 生成 Markdown。','https://playwright.dev/python/docs/browsers'),
  'moli-webfetch':('本地 CLI','Moli：普通正文用 Markdown，挑战题用 JSON 返回最终 DOM、状态和跳转诊断；动态等待与正文范围分离。DOCX 在同一次 CLI 运行中二次 fetch 原始字节；不调用模型。','https://github.com/lexmount/moli/tree/v1.1.4/skills/moli-webfetch'),
@@ -29,7 +30,7 @@ PROFILES={
  'langchain-webbase':('本地开源库','WebBaseLoader 使用 HTTP 与 BeautifulSoup 取得网页文字。','https://reference.langchain.com/python/langchain-community/document_loaders/web_base/WebBaseLoader'),
  'crawl4ai':('本地开源库','本地浏览器渲染，再抽取 Markdown、媒体及链接信息。','https://docs.crawl4ai.com/'),
 }
-DISPLAY_NAMES={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7'}
+DISPLAY_NAMES={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-1.1.11':'Moli 1.1.11'}
 def display_name(name):return DISPLAY_NAMES.get(name,name)
 
 def adoption_counts(data,names):

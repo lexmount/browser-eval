@@ -257,6 +257,14 @@ REPORT_LOCAL_ACCESS: dict[str, dict[str, Any]] = {
         "steps": "安装并固定官方 v1.1.7 二进制；不需要供应商账号或 API Key。",
         "free_note": "本地 CLI。",
     },
+    "moli-1.1.11": {
+        "provider": "Moli 1.1.11",
+        "registration_url": "https://github.com/lexmount/moli/releases/tag/v1.1.11",
+        "key_url": "https://github.com/lexmount/moli/releases/tag/v1.1.11",
+        "env_vars": ["MOLI_1_1_11_BINARY"],
+        "steps": "安装并固定官方 v1.1.11 二进制；不需要供应商账号或 API Key。",
+        "free_note": "本地 CLI。",
+    },
     "moli-webfetch": {
         "provider": "Moli WebFetch",
         "registration_url": "https://github.com/lexmount/moli/tree/main/skills/moli-webfetch",

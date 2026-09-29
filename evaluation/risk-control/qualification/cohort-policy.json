@@ -1,0 +1,33 @@
+{
+  "schema_version": 3,
+  "scope": "risk_control_qualification_only",
+  "formal_case_count": 100,
+  "historical_reserve_pool_count": 10,
+  "unused_reserve_cases_in_repository": 0,
+  "preferred_independent_sites": 70,
+  "site_count_fallbacks": [60, 50],
+  "minimum_independent_sites": 50,
+  "maximum_cases_per_site": 3,
+  "maximum_login_gate_cases": 20,
+  "minimum_explicit_security_cases": 80,
+  "site_identity": "user-recognizable platform or brand; subdomains, mobile variants, and regional entrypoints are merged",
+  "selection_passes": [
+    "first qualified case per site",
+    "second case only with a distinct content type",
+    "third case only with another distinct content type"
+  ],
+  "access_routes": [
+    "ordinary_http",
+    "browser_user_agent_http",
+    "fresh_headless_chromium"
+  ],
+  "minimum_independent_rounds": 1,
+  "reference_may_use_another_observation": true,
+  "automatic_clearance_required": false,
+  "allowed_languages": ["zh", "en"],
+  "navigation_timeout_ms": 45000,
+  "fixed_wait_ms": 20000,
+  "browser_interaction_allowed": "verification handling and inspection of already loaded content only",
+  "provider_outputs_used_for_selection": false,
+  "publication_authorized": false
+}

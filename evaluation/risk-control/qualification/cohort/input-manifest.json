@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "scope": "qualification_only",
+  "rule_status": "authored_and_executable",
+  "base_commit": "57f0b87caebb4a0979fa3206a17f9439fc112c20",
+  "formal_count": 100,
+  "reserve_count": 0,
+  "historical_reserve_pool_count": 10,
+  "formal_site_count": 74,
+  "evidence_roots": {
+    "legacy20260921": "risk-control/qualification-20260921",
+    "diverse20260924": "risk-control/qualification-diverse-20260924",
+    "diverse20260927": "risk-control/qualification-diverse-20260927"
+  },
+  "evidence_root_resolution": "Paths are relative to BROWSER_EVAL_DATA_HOME, which defaults to ~/.browser-eval; raw evidence remains outside Git.",
+  "files": [
+    {
+      "path": "cohort/cohort-manifest.json",
+      "sha256": "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e"
+    },
+    {
+      "path": "cohort-policy.json",
+      "sha256": "4835abe67852adf1609cb3033b19cbef839650d14879c0e24dd76116af2acd2e"
+    },
+    {
+      "path": "cohort/cohort-receipt.json",
+      "sha256": "29e56c1bbc96ae3bdc1abc20b469eee55dfb1f276f390bd585349b1c264a96ac"
+    }
+  ],
+  "source_qualification_receipt_sha256": "acf287f3b54352d1c97fb2b79b8d3d385d11ba44ac4bbfa693163627956e268e",
+  "reference_proof_bindings": 100,
+  "raw_qualification_evidence_in_git": false
+}

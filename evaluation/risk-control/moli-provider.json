@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "providers": {
+    "moli-1.1.11": {
+      "type": "moli_webfetch",
+      "binary": "${MOLI_1_1_11_BINARY}",
+      "expected_reported_version": "moli 1.1.11",
+      "expected_binary_sha256": "2e2b48ceb6280d08f617f50540a8214973ef178ca4d836eb26b7f07fef905a9c",
+      "wait_until": "done",
+      "block_private_networks": true,
+      "private_network_allowlist_hosts": [],
+      "max_bytes": 20000000,
+      "retain_complete_diagnostic_log": true,
+      "max_diagnostic_bytes": 100000000,
+      "log_level": "debug",
+      "trace_network": false,
+      "local_report_complete_diagnostic_links": true
+    }
+  }
+}

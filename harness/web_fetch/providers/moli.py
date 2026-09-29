@@ -15,7 +15,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, unquote, urlsplit
 
 from ..document_text import extract_document_text
 from ..models import EvalCase, ProviderResult
@@ -48,6 +48,58 @@ def _markdown_http_error_status(content: str) -> int | None:
         return None
     match = _MARKDOWN_HTTP_ERROR_PAGE.fullmatch(content)
     return int(match.group("status")) if match else None
+
+
+def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> str | None:
+    """Read Moli's effective main-document URL from the same call's debug log."""
+    pattern = re.compile(
+        rb"fetch request complete method=GET url=(?P<url>\S+) "
+        rb"final_url=(?P<final_url>\S+) status=(?P<status>\d{3})\b"
+    )
+
+    diagnostic = stderr.encode("utf-8") if isinstance(stderr, str) else stderr
+
+    def field(row: re.Match[bytes], name: str) -> str:
+        return row.group(name).decode("utf-8", "replace")
+
+    def identity(value: str) -> tuple:
+        parts = urlsplit(value)
+        return (
+            parts.scheme.casefold(),
+            (parts.hostname or "").casefold(),
+            unquote(parts.path).rstrip("/") or "/",
+            sorted(parse_qsl(parts.query, keep_blank_values=True)),
+        )
+
+    try:
+        requested_identity = identity(requested_url)
+    except ValueError:
+        return None
+    rows = list(pattern.finditer(diagnostic))
+    start = next(
+        (
+            index
+            for index, row in enumerate(rows)
+            if identity(field(row, "url")) == requested_identity
+        ),
+        None,
+    )
+    if start is None:
+        return None
+    row = rows[start]
+    # Moli logs each HTTP hop separately. During a main-document redirect the
+    # next completed GET is the redirected document; subresources begin only
+    # after a non-redirect document response has been received.
+    for following in rows[start + 1 : start + 10]:
+        if not 300 <= int(field(row, "status")) < 400:
+            break
+        row = following
+    candidate = field(row, "final_url")
+    try:
+        validate_http_url(candidate)
+    except ValueError:
+        return None
+    return candidate
 
 _HTML_TO_MARKDOWN = Path(__file__).resolve().parents[3] / "scripts/html_to_markdown.mjs"
 _NODE_HTML_MARKDOWN_PACKAGE = (
@@ -279,7 +331,10 @@ class MoliWebFetchProvider(Provider):
             self._active_process = None
 
     def _resolve_binary(self) -> str | None:
-        return shutil.which(os.path.expanduser(str(self.config.get("binary") or "moli")))
+        configured = os.path.expandvars(
+            os.path.expanduser(str(self.config.get("binary") or "moli"))
+        )
+        return shutil.which(configured)
 
     def _configuration_errors(self, binary: str | None) -> list[str]:
         errors = []
@@ -299,6 +354,27 @@ class MoliWebFetchProvider(Provider):
             errors.append("wait_until")
         if int(self.config.get("max_bytes", 20_000_000)) <= 0:
             errors.append("max_bytes")
+        retain_diagnostic = self.config.get("retain_complete_diagnostic_log", False)
+        if not isinstance(retain_diagnostic, bool):
+            errors.append("retain_complete_diagnostic_log")
+        if retain_diagnostic and int(self.config.get("max_diagnostic_bytes", 100_000_000)) <= 0:
+            errors.append("max_diagnostic_bytes")
+        if not retain_diagnostic and "max_diagnostic_bytes" in self.config:
+            errors.append("max_diagnostic_bytes (requires retain_complete_diagnostic_log)")
+        if self.config.get("log_level") not in {
+            None, "debug", "info", "warn", "error", "fatal"
+        }:
+            errors.append("log_level")
+        if self.config.get("trace_network") not in {None, False}:
+            errors.append("trace_network (requires JSON output and is not allowed for Markdown scoring)")
+        if not isinstance(
+            self.config.get("local_report_complete_diagnostic_links", False), bool
+        ):
+            errors.append("local_report_complete_diagnostic_links")
+        elif self.config.get("local_report_complete_diagnostic_links") and not retain_diagnostic:
+            errors.append(
+                "local_report_complete_diagnostic_links (requires retain_complete_diagnostic_log)"
+            )
         allowlist = self.config.get("private_network_allowlist_hosts", [])
         if (
             not isinstance(allowlist, list)
@@ -563,8 +639,14 @@ class MoliWebFetchProvider(Provider):
         )
         if block_private_networks and not private_network_guard_exception:
             command.append("--block-private-networks")
+        log_level = self.config.get("log_level")
+        if log_level:
+            command.extend(["--log-level", str(log_level)])
         command.append(case.url)
         limit = int(self.config.get("max_bytes", 20_000_000))
+        retain_diagnostic = bool(self.config.get("retain_complete_diagnostic_log", False))
+        diagnostic_limit = int(self.config.get("max_diagnostic_bytes", 100_000_000))
+        diagnostic_read_limit = diagnostic_limit if retain_diagnostic else limit
         metadata = {
             "dump": dump,
             "route": (
@@ -612,6 +694,11 @@ class MoliWebFetchProvider(Provider):
             "private_network_guard_exception": private_network_guard_exception,
             "private_network_guard_exception_host": (
                 requested_host if private_network_guard_exception else None
+            ),
+            "log_level": log_level,
+            "network_trace_requested": False,
+            "local_report_complete_diagnostic_links": bool(
+                self.config.get("local_report_complete_diagnostic_links", False)
             ),
         }
         try:
@@ -670,11 +757,14 @@ class MoliWebFetchProvider(Provider):
             with process:
                 stopped = None
                 while True:
-                    if (
-                        os.fstat(output.fileno()).st_size > limit
-                        or os.fstat(diagnostic.fileno()).st_size > limit
-                    ):
+                    if os.fstat(output.fileno()).st_size > limit:
                         stopped = "output_too_large"
+                        break
+                    if os.fstat(diagnostic.fileno()).st_size > diagnostic_read_limit:
+                        stopped = (
+                            "diagnostic_log_too_large" if retain_diagnostic
+                            else "output_too_large"
+                        )
                         break
                     if process.poll() is not None:
                         break
@@ -694,22 +784,42 @@ class MoliWebFetchProvider(Provider):
                 output.seek(0)
                 raw = output.read(limit + 1)
                 diagnostic.seek(0)
-                diagnostic_raw = diagnostic.read(limit + 1)
-                stderr = diagnostic_raw[:limit].decode("utf-8", "replace")
+                diagnostic_raw = diagnostic.read(diagnostic_read_limit + 1)
+                public_preview_limit = 1_000_000 if retain_diagnostic else limit
+                stderr = diagnostic_raw[:public_preview_limit].decode("utf-8", "replace")
                 metadata.update(
                     exit_code=process.returncode,
                     stdout_bytes=stdout_bytes,
                     stdout_truncated=stdout_bytes > limit,
                     stderr=stderr,
                     stderr_bytes=stderr_bytes,
-                    stderr_truncated=stderr_bytes > limit,
+                    stderr_truncated=stderr_bytes > public_preview_limit,
                 )
+                if retain_diagnostic:
+                    metadata.update(
+                        diagnostic_log_sha256=hashlib.sha256(diagnostic_raw).hexdigest(),
+                        diagnostic_log_bytes=len(diagnostic_raw),
+                        diagnostic_log_truncated=stopped == "diagnostic_log_too_large",
+                        diagnostic_log_process_completed=stopped is None,
+                        _diagnostic_log_b64=base64.b64encode(diagnostic_raw).decode("ascii"),
+                    )
         if stopped == "timeout":
             return ProviderResult(
                 False,
                 "",
                 error_type="timeout",
                 error_message="Moli fetch exceeded time budget",
+                metadata=metadata,
+            )
+        if stopped == "diagnostic_log_too_large":
+            return ProviderResult(
+                False,
+                "",
+                error_type="diagnostic_log_too_large",
+                error_message=(
+                    "Moli diagnostic log exceeded max_diagnostic_bytes; "
+                    "the cohort must not be certified with a truncated log"
+                ),
                 metadata=metadata,
             )
         if stopped == "output_too_large" or len(raw) > limit:
@@ -1072,14 +1182,17 @@ class MoliWebFetchProvider(Provider):
             )
         parsed_error_status = _markdown_http_error_status(content)
         ok = process.returncode == 0 and parsed_error_status is None
-        # Markdown mode normally exposes no HTTP status/final URL. Moli's compact
-        # whole-response error page is the exception: it explicitly carries the
-        # target status. Do not mistake ordinary documentation mentioning 403 for
-        # that envelope, and do not make a second request for metadata.
+        final_url = _diagnostic_main_document_url(diagnostic_raw, case.url)
+        if final_url:
+            metadata["final_url_source"] = "same_call_debug_log"
+        # The debug trace is part of this same provider call, so page identity
+        # does not require a second request. Moli's compact whole-response error
+        # page remains the only status envelope recognized in Markdown output.
         return ProviderResult(
             ok,
             content,
             status_code=parsed_error_status,
+            final_url=final_url,
             error_type=(
                 None if ok else "api_error" if parsed_error_status is not None else "tool_error"
             ),

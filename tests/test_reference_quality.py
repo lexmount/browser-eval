@@ -27,12 +27,31 @@ class ReferenceQualityTests(unittest.TestCase):
                          ['**Error: Forbidden / 403**'])
         self.assertEqual(blocked_page_hits(
             'This article explains an Error: Forbidden / 403 response.'), [])
+        variants = [
+            '# Testing to determine if you are a bot!',
+            '# Checking if you are not a bot',
+            '# Checking you are not a bot',
+            '# Verifying visitor request...',
+            '# Pardon Our Interruption',
+            '[![openSUSE](favicon.svg) Request on hold](/)',
+            '# This is a measure to protect this website from bots',
+        ]
+        for value in variants:
+            with self.subTest(value=value):
+                self.assertTrue(blocked_page_hits(value))
+        self.assertEqual(blocked_page_hits(
+            'The incident report says the request was put on hold.'), [])
     def test_inline_breadcrumb_spacing_is_formatting_not_missing_prose(self):
         variants = ['Settings > AI > Usage', 'Settings>AI>Usage', 'Settings\n>\nAI\n>\nUsage',
                     '[Settings](https://example.com/settings)>AI > Usage']
         self.assertEqual(len({normalize_for_match(value) for value in variants}), 1)
         self.assertEqual(normalize_for_match('管理后台 > AI 使用管理 > AI 使用数据'),
                          normalize_for_match('[管理后台](https://example.com)>AI 使用管理>AI 使用数据'))
+    def test_visible_text_normalization_handles_emphasis(self):
+        self.assertEqual(
+            normalize_for_match('the official resource for the *[Team Fortress](/wiki/tf)* series.'),
+            normalize_for_match('the official resource for the Team Fortress series.'),
+        )
     def test_balanced_multiline_nested_markdown_keeps_labels_not_destinations(self):
         value=('Badge [\n![\ncode style: prettier\n]\n(\nhttps://img.example/badge.svg\n)\n]\n'
                '(\nhttps://example.com/project\n) Contributing')

@@ -32,10 +32,10 @@ def render_pricing(out, names, *, table, cell, link, esc):
     def sources(p):
         return ' · '.join(link(s['url'], s['label'] + ' ↗') for s in p['sources'])
 
-    if set(names) <= {'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','chromium'}:
+    if set(names) <= {'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','moli-1.1.7','moli-1.1.11','chromium'}:
         rows=[('',cell(esc(p['label']))+cell(esc(p['status']))+cell(esc(p['note']))+cell(sources(p)))
               for p in data['other_methods'] if set(p['ids']) & set(names)]
-        return '<h3>本轮执行模式的成本边界</h3><p>这是客户端实测，不是计费或同机 CPU / 内存测试。本组官方资料核验日期：2026-09-07。</p>'+table(['方法','价格状态','成本边界','官方来源'],rows,cls='pricing-table',metrics=[])
+        return '<h3>本轮执行模式的成本边界</h3><p>这是客户端实测，不是计费或同机 CPU / 内存测试；各方法的资料核验日期见表内说明。</p>'+table(['方法','价格状态','成本边界','官方来源'],rows,cls='pricing-table',metrics=[])
 
     body = '<h3>获取 1,000 个网页，究竟付哪一种费用？</h3>'
     body += '<p>按给定 URL 获取正文比较，不包含搜索、研究 Agent 或聊天模型。按页产品可以换算为每千页；浏览器时长产品必须带上耗时假设。套餐价、超额价与试用额度分开列示。</p>'

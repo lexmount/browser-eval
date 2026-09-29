@@ -1276,6 +1276,61 @@
   ],
   "releases": [
     {
+      "id": "2026-09-29-risk-control-review-corrections",
+      "comparison_kinds": [
+        "risk_control_100_moli"
+      ],
+      "date": "2026-09-29",
+      "title": "纠正100例风控评测的页面身份、字段与外围文字规则",
+      "summary": "复核100例风控评测后，最终网址改为正式通过条件，表格字段按声明类型校验，100份外部参考证据在正式调用前后完整核验；页面外围文字改为不影响通过的诊断项。同一批原始返回零调用重算仍为31/100，两题发生方向相反的纠正。",
+      "changes": [
+        [
+          "页面身份",
+          "正文来自错误页面时仍可能通过，Markdown路线也没有登记同次调用的最终网址。",
+          "从同次调用debug日志恢复最终网址，并与每题请求网址及独立观察网址核对；已观察到的错误页面计为失败。",
+          "risk-diverse-118由通过改为失败；没有增加网络调用。"
+        ],
+        [
+          "验收规则",
+          "表格只检查单元格非空，页面外围文字会否决核心内容正确的结果。",
+          "表格列按文本、整数、日期或版本等声明类型校验；页面外围文字只报告覆盖率，不参与通过。",
+          "risk-diverse-011恢复通过；100题最终成绩净值仍为31/100。"
+        ],
+        [
+          "证据门禁",
+          "正式运行没有在调用前后证明全部100份外部参考文本存在且未变化。",
+          "运行器逐文件核对路径、哈希与字节数，并把前后完全一致的100题清单回执绑定到认证文件。",
+          "原始参考文本继续留在Git外；PR不保存网站正文或供应商输出。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Correct page identity, typed fields, and page-chrome rules for the 100-case risk-control benchmark",
+          "summary": "The 100-case risk-control audit now makes final-page identity a pass condition, validates table fields by declared type, verifies all 100 external reference files before and after a formal run, and reports page chrome as non-blocking diagnostics. Zero-call rescoring of the same outputs remains 31/100, with two opposite verdict corrections.",
+          "changes": [
+            [
+              "Page identity",
+              "Content from an unrelated page could pass, and the Markdown route did not record the same call's final URL.",
+              "Recover the final URL from the same call's debug log and compare it with each task's requested and independently observed URL; an observed mismatch is a failure.",
+              "risk-diverse-118 changes from pass to fail without an additional network call."
+            ],
+            [
+              "Acceptance rules",
+              "Tables only required non-empty cells, while missing page-chrome text could reject otherwise correct target content.",
+              "Validate table columns as declared text, integer, date, or version fields, and report page-chrome coverage without affecting task acceptance.",
+              "risk-diverse-011 returns to pass; the net score remains 31/100."
+            ],
+            [
+              "Evidence gate",
+              "A formal run did not prove that all 100 external reference texts existed unchanged before and after provider calls.",
+              "Verify every path, hash, and byte count and bind an identical before-and-after 100-case inventory receipt into certification.",
+              "Raw reference text stays outside Git; the PR contains neither website bodies nor provider outputs."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "webmainbench-545-pr919-e944d066-lexmain-f7cb97d-20260929",
       "date": "2026-09-29",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],

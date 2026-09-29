@@ -104,6 +104,10 @@ def run(command: list[str]) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
+    if (argv or sys.argv[1:])[:1] == ["risk-control"]:
+        from scripts.run_risk_control_moli import main as risk_control_main
+        risk_control_main((argv or sys.argv[1:])[1:], certified=True)
+        return
     if (argv or sys.argv[1:])[:1] == ["webmainbench-correction"]:
         from scripts.certify_webmainbench_case_correction import main as correction_main
         correction_main((argv or sys.argv[1:])[1:])

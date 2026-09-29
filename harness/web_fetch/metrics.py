@@ -325,11 +325,18 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
     # Scored records carry the case kind so dataset-free summaries use the same
     # predicate as the report. Explicit case context still takes precedence.
     task_kind = task_kind if task_kind is not None else metrics.get('task_kind', 'body')
+    if (metrics.get('page_identity_required')
+            and metrics.get('page_identity_status') != 'verified'):
+        return False
     if (not task_measured(metrics, task_kind) or metrics.get('deadline_overrun')
             or metrics.get('blocked_page')):
         return False
     if "stable_task_pass" in metrics:
+        combined = (metrics.get("content_pass")
+                    if "composite_acceptance_pass" in metrics or metrics.get("body_region_results")
+                    else True)
         return bool(ok and metrics["stable_task_pass"]
+                    and combined
                     and metrics.get("body_coverage_pass") is not False
                     and not metrics.get("forbidden_hits")
                     and not metrics.get("stable_blocked_page"))
@@ -341,7 +348,8 @@ def task_measured(metrics: dict, task_kind: str | None = None) -> bool:
     if metrics.get('rule_review_status') == 'unresolved':
         return False
     if (metrics.get('page_identity_required')
-            and metrics.get('page_identity_status') != 'verified'):
+            and metrics.get('page_identity_status') == 'unavailable'
+            and metrics.get('request_ok') is not False):
         return False
     kind = task_kind or metrics.get('task_kind', 'body')
     return kind != 'file' or isinstance(metrics.get('raw_file_pass'), bool)
@@ -364,6 +372,13 @@ def normalize_for_match(value: str) -> str:
     normalized = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', r'\1', normalized)
     normalized = re.sub(r'`([^`\n]+)`', r'\1', normalized)
     normalized = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', normalized)
+    def strip_single_emphasis(match: re.Match) -> str:
+        inner = match.group(2)
+        # Asterisks around words are Markdown; asterisks around numeric terms
+        # can be multiplication or exponent notation and must remain literal.
+        return inner if any(char.isalpha() for char in inner) else match.group(0)
+    normalized = re.sub(r'(?<!\w)([*_])(?=\S)([^\n]*?\S)\1(?!\w)',
+                        strip_single_emphasis, normalized)
     # Only a header/divider pair establishes a Markdown table. Pipe counts
     # alone also match footer separators and expressions such as a | b | c.
     table_rule = re.compile(r':?-{3,}:?')
@@ -466,6 +481,7 @@ def evaluate_content(
     base_url: str = "",
     named_links: list[dict] | None = None,
     body_requirements: dict | None = None,
+    composite_acceptance: dict | None = None,
     allow_reference_block_exemptions: bool = False,
 ) -> dict[str, Any]:
     answer_text = ((title.strip() + '\n') if title and title.strip() else '') + content
@@ -619,6 +635,14 @@ def evaluate_content(
                 result["stable_task_errors"].append("content_too_short")
         result["content_pass"] = bool(declared_body_pass and result["stable_task_pass"])
         result["content_decision_basis"] = "stable_contract_and_declared_content_requirements"
+    if composite_acceptance:
+        from .composite_tasks import evaluate_composite_acceptance
+        composite = evaluate_composite_acceptance(
+            answer_text, composite_acceptance, base_url=base_url, links=named_links,
+        )
+        result.update(composite)
+        result["content_pass"] = bool(result["content_pass"] and composite["composite_acceptance_pass"])
+        result["content_decision_basis"] = "stable_and_composite_acceptance_contract"
     return result
 
 
