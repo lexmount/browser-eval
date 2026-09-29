@@ -348,7 +348,8 @@ def task_measured(metrics: dict, task_kind: str | None = None) -> bool:
     if metrics.get('rule_review_status') == 'unresolved':
         return False
     if (metrics.get('page_identity_required')
-            and metrics.get('page_identity_status') == 'unavailable'):
+            and metrics.get('page_identity_status') == 'unavailable'
+            and metrics.get('request_ok') is not False):
         return False
     kind = task_kind or metrics.get('task_kind', 'body')
     return kind != 'file' or isinstance(metrics.get('raw_file_pass'), bool)

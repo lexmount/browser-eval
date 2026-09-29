@@ -50,12 +50,17 @@ def _markdown_http_error_status(content: str) -> int | None:
     return int(match.group("status")) if match else None
 
 
-def _diagnostic_main_document_url(stderr: str, requested_url: str) -> str | None:
+def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> str | None:
     """Read Moli's effective main-document URL from the same call's debug log."""
     pattern = re.compile(
-        r"fetch request complete method=GET url=(?P<url>\S+) "
-        r"final_url=(?P<final_url>\S+) status=(?P<status>\d{3})\b"
+        rb"fetch request complete method=GET url=(?P<url>\S+) "
+        rb"final_url=(?P<final_url>\S+) status=(?P<status>\d{3})\b"
     )
+
+    diagnostic = stderr.encode("utf-8") if isinstance(stderr, str) else stderr
+
+    def field(row: re.Match[bytes], name: str) -> str:
+        return row.group(name).decode("utf-8", "replace")
 
     def identity(value: str) -> tuple:
         parts = urlsplit(value)
@@ -70,12 +75,12 @@ def _diagnostic_main_document_url(stderr: str, requested_url: str) -> str | None
         requested_identity = identity(requested_url)
     except ValueError:
         return None
-    rows = list(pattern.finditer(stderr))
+    rows = list(pattern.finditer(diagnostic))
     start = next(
         (
             index
             for index, row in enumerate(rows)
-            if identity(row.group("url")) == requested_identity
+            if identity(field(row, "url")) == requested_identity
         ),
         None,
     )
@@ -86,10 +91,10 @@ def _diagnostic_main_document_url(stderr: str, requested_url: str) -> str | None
     # next completed GET is the redirected document; subresources begin only
     # after a non-redirect document response has been received.
     for following in rows[start + 1 : start + 10]:
-        if not 300 <= int(row.group("status")) < 400:
+        if not 300 <= int(field(row, "status")) < 400:
             break
         row = following
-    candidate = row.group("final_url")
+    candidate = field(row, "final_url")
     try:
         validate_http_url(candidate)
     except ValueError:
@@ -1177,7 +1182,7 @@ class MoliWebFetchProvider(Provider):
             )
         parsed_error_status = _markdown_http_error_status(content)
         ok = process.returncode == 0 and parsed_error_status is None
-        final_url = _diagnostic_main_document_url(stderr, case.url)
+        final_url = _diagnostic_main_document_url(diagnostic_raw, case.url)
         if final_url:
             metadata["final_url_source"] = "same_call_debug_log"
         # The debug trace is part of this same provider call, so page identity

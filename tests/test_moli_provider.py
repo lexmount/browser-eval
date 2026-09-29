@@ -135,6 +135,28 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.final_url, "https://example.com/final")
         self.assertEqual(result.metadata["final_url_source"], "same_call_debug_log")
 
+    def test_effective_url_uses_complete_log_not_public_stderr_preview(self):
+        provider = self.provider(
+            "import sys\n"
+            'print("x"*1_000_100, file=sys.stderr)\n'
+            'print("DEBUG fetch request complete method=GET '
+            'url=https://example.com/?a=1&b=2 '
+            'final_url=https://example.com/final status=200 transfer_size=42", '
+            'file=sys.stderr)\n'
+            'print("# Example Domain")',
+            log_level="debug",
+            retain_complete_diagnostic_log=True,
+            max_diagnostic_bytes=2_000_000,
+        )
+        result = provider.fetch(self.case, 2)
+        self.assertTrue(result.ok, repr(result))
+        self.assertTrue(result.metadata["stderr_truncated"])
+        self.assertNotIn("fetch request complete", result.metadata["stderr"])
+        self.assertEqual(result.final_url, "https://example.com/final")
+        self.assertEqual(result.metadata["final_url_source"], "same_call_debug_log")
+        complete = base64.b64decode(result.metadata["_diagnostic_log_b64"], validate=True)
+        self.assertIn(b"fetch request complete", complete)
+
     def test_binary_path_expands_environment_variable(self):
         provider = self.provider('print("answer")')
         provider.config["binary"] = "$RISK_MOLI_TEST_BINARY"

@@ -74,6 +74,25 @@ class ScoringTests(unittest.TestCase):
         self.assertEqual(missing["page_identity_status"], "unavailable")
         self.assertFalse(task_measured(missing))
         self.assertFalse(task_passed(True, missing))
+        failed = score_attempt(c, b"", ok=False)
+        self.assertEqual(failed["page_identity_status"], "unavailable")
+        self.assertTrue(task_measured(failed))
+        self.assertFalse(task_passed(False, failed))
+        summary = summarize([{
+            "provider": "moli",
+            "provider_type": "moli_webfetch",
+            "case_id": c.id,
+            "case_name": c.name,
+            "category": c.category,
+            "ok": False,
+            "error_type": "timeout",
+            "elapsed_ms": 45_000,
+            "metrics": failed,
+        }])["providers"]["moli"]
+        self.assertEqual(summary["task_evaluated_attempts"], 1)
+        self.assertEqual(summary["task_unmeasured_attempts"], 0)
+        self.assertEqual(summary["task_pass_rate"], 0.0)
+        self.assertEqual(summary["failure_types"], {"timeout": 1})
         accepted = score_attempt(c, b"Expected", ok=True, final_url="https://example.test/final")
         self.assertEqual(accepted["page_identity_status"], "verified")
         self.assertTrue(task_passed(True, accepted))
