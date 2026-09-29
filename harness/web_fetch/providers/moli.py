@@ -72,7 +72,11 @@ def _diagnostic_main_document_url(stderr: str, requested_url: str) -> str | None
         return None
     rows = list(pattern.finditer(stderr))
     start = next(
-        (index for index, row in enumerate(rows) if identity(row.group("url")) == requested_identity),
+        (
+            index
+            for index, row in enumerate(rows)
+            if identity(row.group("url")) == requested_identity
+        ),
         None,
     )
     if start is None:

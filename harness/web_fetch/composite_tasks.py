@@ -141,11 +141,7 @@ def _validate_group(group: dict) -> None:
         if (
             not isinstance(columns, list)
             or not columns
-            or any(
-                not isinstance(row, dict)
-                or "aliases" not in row
-                for row in columns
-            )
+            or any(not isinstance(row, dict) or "aliases" not in row for row in columns)
             or not fields_are_valid(columns)
             or group.get("identity_column") not in {row["id"] for row in columns}
         ):
@@ -297,6 +293,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
     entries = [entry for entry in entries if _key(entry["title"]) not in exclusions]
     fields = group.get("required_fields", [])
     if fields:
+
         def is_record_start(link) -> bool:
             pattern = group.get("record_line_pattern")
             if not pattern:
@@ -404,9 +401,7 @@ def _value_matches_spec(value: str, spec: dict, *, whole_cell: bool = False) -> 
     if kind == "integer":
         pattern = r"\d[\d,.]*"
         return bool(
-            re.fullmatch(pattern, visible)
-            if whole_cell
-            else re.search(rf"\b{pattern}\b", visible)
+            re.fullmatch(pattern, visible) if whole_cell else re.search(rf"\b{pattern}\b", visible)
         )
     if kind == "date_or_time":
         return bool(_DATE_OR_TIME.search(visible))
@@ -465,7 +460,6 @@ def _field_value(
         candidates = [
             (index, line) for index, line in enumerate(lines) if not used or index not in used
         ]
-    pattern = spec.get("pattern")
     for index, value in candidates:
         if _value_matches_spec(value, spec):
             return index, value

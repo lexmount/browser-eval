@@ -45,7 +45,7 @@
     },
     "rule_completeness_audit": {
       "path": "evaluation/risk-control/rule-completeness-audit-20260929.md",
-      "sha256": "89429912c09cfb3f42b093fe66f172471642d0f8ccf338c5798719cdd3eaad63"
+      "sha256": "d5a3c1c13ea1b49b5e1af8601dbb8df52fd97b12cc720d76592dafcf570c83c8"
     }
   },
   "provider": {

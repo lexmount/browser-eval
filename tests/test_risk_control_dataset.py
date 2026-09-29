@@ -12,8 +12,10 @@ from harness.web_fetch.risk_control import measured_risk_control_dataset
 from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
 from scripts.build_risk_control_dataset import evidence_roots
 from scripts.run_risk_control_moli import main as run_risk_control
-from scripts.run_risk_control_moli import reference_proof_snapshot
-from scripts.run_risk_control_moli import require_complete_diagnostic_logs
+from scripts.run_risk_control_moli import (
+    reference_proof_snapshot,
+    require_complete_diagnostic_logs,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET = ROOT / "evaluation/risk-control/dataset.json"
@@ -239,9 +241,7 @@ def certified_report_fixture(tmp_path):
         "after": proof_snapshot,
         "unchanged": True,
     }
-    (tmp_path / "reference-proof-verification.json").write_text(
-        json.dumps(proof_verification)
-    )
+    (tmp_path / "reference-proof-verification.json").write_text(json.dumps(proof_verification))
     proof_sha = hashlib.sha256(
         (tmp_path / "reference-proof-verification.json").read_bytes()
     ).hexdigest()
@@ -752,7 +752,9 @@ def test_page_content_without_declared_initial_chrome_passes_with_diagnostic_gap
     case = next(case for case in dataset["cases"] if case["id"] == case_id)
     anchors = [row["alternatives"][0] for row in case["acceptance_contract"]["stable_text_anchors"]]
     page_context = case["source_benchmark"]["risk_control"]["page_context_anchors"]
-    assert all(value in {row["alternatives"][0] for row in page_context} for value in required_chrome)
+    assert all(
+        value in {row["alternatives"][0] for row in page_context} for value in required_chrome
+    )
     partial = "\n".join(anchors)
     if body := case.get("body_requirements"):
         partial += "\n" + "\n".join(row["text"] for row in body["regions"])
