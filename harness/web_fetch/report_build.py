@@ -578,10 +578,24 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     return output / 'index.html'
 
 
+def public_webmainbench_scoring_projection(records: list[dict]) -> list[dict]:
+    """Omit private predecessor metrics while retaining certified replacement rows verbatim."""
+    projected = []
+    for record in records:
+        row = dict(record)
+        if not row.get('supersedes_attempt_id'):
+            row.pop('pre_scoring_correction_metrics', None)
+        projected.append(row)
+    return projected
+
+
 def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     """Build the separately bound complete 545-case report from certified evidence."""
     from scripts.run_certified_webmainbench_full import digest, read_jsonl
-    from .webmainbench_diagnostics import validate_teds_revision
+    from .webmainbench_diagnostics import (
+        validate_reference_revision, validate_teds_revision,
+        validate_webmainbench_scoring_revision,
+    )
     if source.is_symlink() or any(path.is_symlink() for path in source.rglob('*')):
         raise ValueError('Symlinked report evidence is forbidden')
     profile_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/current-report.json'
@@ -599,32 +613,65 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         raise ValueError('Complete scoring certificate mismatch')
     dataset = json.loads((source / 'dataset.json').read_text(encoding='utf-8'))
     records = read_jsonl(source / 'results.jsonl')
-    six_binding = json.loads((source / 'six-method-binding.json').read_text(encoding='utf-8'))
-    fixed_profile_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/moli-fixed-report.json'
-    if (six_binding.get('kind') != 'webmainbench_six_version_full_scope_binding'
-            or six_binding.get('baseline_certificate_sha256') != digest(source / 'cohort-certificate.json')
-            or six_binding.get('fixed_profile_sha256') != digest(fixed_profile_path)
-            or six_binding.get('fixed_certificate_sha256') != digest(source / 'fixed-cohort-certificate.json')
-            or six_binding.get('fixed_scoring_certificate_sha256') != digest(source / 'fixed-scoring-certificate.json')
-            or six_binding.get('results_sha256') != digest(source / 'original-results.jsonl')):
-        raise ValueError('Six-version report evidence binding mismatch')
-    fixed_cert = json.loads((source / 'fixed-cohort-certificate.json').read_text(encoding='utf-8'))
-    fixed_profile = json.loads(fixed_profile_path.read_text(encoding='utf-8'))
-    if (fixed_cert.get('preflight') != fixed_cert.get('postflight')
-            or fixed_cert.get('profile_sha256') != digest(fixed_profile_path)
-            or fixed_cert.get('binary_source_commit') != fixed_profile['source_commit']
-            or fixed_cert.get('measured_binary_sha256') != fixed_profile['binary_sha256']
-            or six_binding.get('fixed_source_commit') != fixed_profile['source_commit']):
-        raise ValueError('Fixed Moli cohort was not certified')
-    providers = profile['providers'] + ['moli-fixed']
-    display_profile = {**profile, 'providers': providers,
-                       'versions': {**profile['versions'], 'moli-fixed': '1.1.9'}}
+    repo = Path(__file__).resolve().parents[2]
+    registry_path = repo / 'evaluation/webmainbench-full/moli-variants.json'
+    registry = json.loads(registry_path.read_text(encoding='utf-8'))
+    seven_binding = json.loads((source / 'seven-method-binding.json').read_text(encoding='utf-8'))
+    teds_path = source / 'teds-correction.json'
+    teds_receipt = json.loads(teds_path.read_text(encoding='utf-8')) if teds_path.is_file() else None
+    scoring_path = source / 'scoring-correction.json'
+    scoring_receipt = json.loads(scoring_path.read_text(encoding='utf-8')) if scoring_path.is_file() else None
+    variants = registry.get('variants', [])
+    bound_variants = {item['provider']: item for item in seven_binding.get('variants', [])}
+    if (seven_binding.get('kind') != 'webmainbench_seven_method_full_scope_binding'
+            or seven_binding.get('registry_sha256') != digest(registry_path)
+            or seven_binding.get('baseline_certificate_sha256') != digest(source / 'cohort-certificate.json')
+            or seven_binding.get('results_sha256') != (
+                teds_receipt.get('input_results_sha256') if teds_receipt
+                else scoring_receipt.get('input_results_sha256') if scoring_receipt else None)
+            or (teds_receipt is not None and teds_receipt.get('output_results_sha256') != digest(
+                source / ('pre-reference-correction-results.jsonl'
+                          if (source / 'reference-correction.json').is_file()
+                          else 'pre-scoring-correction-results.jsonl'
+                          if scoring_receipt else 'results.jsonl')))
+            or seven_binding.get('logical_results') != 545 * (len(profile['providers']) + len(variants))):
+        raise ValueError('Seven-method report evidence binding mismatch')
+    versions = dict(profile['versions'])
+    variant_labels = {}
+    for item in variants:
+        provider = item['provider']
+        bound = bound_variants.get(provider, {})
+        profile_path_variant = repo / 'evaluation/webmainbench-full' / item['profile']
+        variant_profile = json.loads(profile_path_variant.read_text(encoding='utf-8'))
+        cert_path = source / bound.get('cohort_certificate', '')
+        scoring_path = source / bound.get('scoring_certificate', '')
+        cert = json.loads(cert_path.read_text(encoding='utf-8'))
+        version = variant_profile.get('versions', {}).get('moli')
+        if (not isinstance(version, str) or not version.strip()
+                or bound.get('profile_sha256') != digest(profile_path_variant)
+                or bound.get('cohort_certificate_sha256') != digest(cert_path)
+                or bound.get('scoring_certificate_sha256') != digest(scoring_path)
+                or cert.get('preflight') != cert.get('postflight')
+                or cert.get('profile_sha256') != digest(profile_path_variant)
+                or cert.get('binary_source_commit') != variant_profile['source_commit']
+                or cert.get('measured_binary_sha256') != variant_profile['binary_sha256']):
+            raise ValueError('Moli repair variant was not certified: ' + provider)
+        versions[provider] = version
+        variant_labels[provider] = item['label']
+    providers = profile['providers'] + [item['provider'] for item in variants]
+    display_profile = {**profile, 'providers': providers, 'versions': versions,
+                       'variant_labels': variant_labels, 'variants': variants}
     cases = {case['id']: case for case in dataset['cases']}
     if (len(cases) != 545 or len(records) != 545 * len(providers)
             or {(row['provider'], row['case_id']) for row in records} !=
             {(provider, case_id) for provider in providers for case_id in cases}):
         raise ValueError('Full WebMainBench result matrix mismatch')
-    validate_teds_revision(source)
+    if teds_receipt is not None:
+        validate_teds_revision(source)
+    if (source / 'reference-correction.json').is_file():
+        validate_reference_revision(source)
+    if (source / 'scoring-correction.json').is_file():
+        validate_webmainbench_scoring_revision(source)
     content_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/content-binding.json'
     content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
     content_path = data_home() / 'report-assets/webmainbench-full' / content_binding['relative_path']
@@ -645,14 +692,20 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         correction_root = data_home() / correction_binding['relative_path']
         if digest(correction_root / 'certificate.json') != correction_binding['sha256']:
             raise ValueError('Case correction differs from bound certificate')
-        _, corrected_rows, _ = validate_case_correction(correction_root, records, digest(source / 'results.jsonl'))
+        # The origin correction was certified against the raw seven-method matrix.
+        # Later score-only TEDS/reference revisions preserve those provider bytes.
+        case_correction_results_path = source / 'original-results.jsonl'
+        case_correction_records = read_jsonl(case_correction_results_path)
+        _, corrected_rows, _ = validate_case_correction(
+            correction_root, case_correction_records, digest(case_correction_results_path)
+        )
         corrected_keys = {(r['provider'], r['case_id']) for r in corrected_rows}
     failures = {(row['provider'], row['case_id']) for row in records
                 if webmainbench_full_machine_issue(source, row)} - corrected_keys
     reviewed = {(row['provider'], row['case_id']) for row in failure_analysis['reviewed_failures']}
     if (failure_analysis.get('kind') != 'webmainbench_full_failure_analysis_v1'
             or failure_analysis.get('cohort_certificate_sha256') != digest(source / 'cohort-certificate.json')
-            or reviewed != {item for item in failures if item[0] != 'moli-fixed'}
+            or reviewed != {item for item in failures if item[0] not in variant_labels}
             or len(reviewed) != len(failure_analysis['reviewed_failures'])
             or any(not all(isinstance(row.get(key), str) and row[key].strip()
                            for key in ('category_label', 'cause', 'treatment', 'status'))
@@ -669,23 +722,57 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix='.webmainbench-full-build-', dir=output.parent))
     try:
-        for name in ('artifacts', 'references', 'sources', 'fixture-certificates', 'correction-source'):
+        for name in ('artifacts', 'references', 'sources', 'fixture-certificates'):
             shutil.copytree(source / name, staging / name)
-        for name in ('dataset.json', 'results.jsonl', 'original-results.jsonl',
+        if (source / 'correction-source').is_dir():
+            shutil.copytree(source / 'correction-source', staging / 'correction-source')
+        for name in ('dataset.json', 'results.jsonl',
                      'physical-attempts.jsonl', 'execution.json', 'score-summaries.json',
                      'cohort-certificate.json', 'current-report.json',
                      'scoring-certificate.json',
-                     'teds-correction.json', 'teds-correction-review.json',
-                     'six-method-binding.json', 'fixed-cohort-certificate.json',
-                     'fixed-scoring-certificate.json', 'moli-fixed-report.json'):
+                     'seven-method-binding.json'):
             shutil.copy2(source / name, staging / name)
+        if teds_receipt is not None:
+            for name in ('teds-correction.json', 'teds-correction-review.json'):
+                shutil.copy2(source / name, staging / name)
+        if (source / 'reference-correction.json').is_file():
+            shutil.copytree(source / 'reference-correction-source', staging / 'reference-correction-source')
+            shutil.copy2(source / 'reference-correction.json', staging / 'reference-correction.json')
+        if (source / 'scoring-correction.json').is_file():
+            shutil.copytree(source / 'scoring-correction-source', staging / 'scoring-correction-source')
+            shutil.copy2(source / 'scoring-correction.json', staging / 'scoring-correction.json')
+        for item in variants:
+            provider = item['provider']
+            bound = bound_variants[provider]
+            for name in (item['profile'], bound['cohort_certificate'], bound['scoring_certificate']):
+                shutil.copy2(source / name, staging / name)
         shutil.copy2(content_path, staging / 'report-content.json')
         shutil.copy2(failure_path, staging / 'failure-analysis.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json', staging / 'provider-adoption.json')
         summaries = json.loads((source / 'score-summaries.json').read_text(encoding='utf-8'))
         if correction_root:
             from .webmainbench_correction import apply as apply_case_correction
-            records, summaries = apply_case_correction(correction_root, staging, records, summaries)
+            raw_records = read_jsonl(source / 'original-results.jsonl')
+            records, summaries = apply_case_correction(
+                correction_root, staging, records, summaries,
+                validation_rows=raw_records,
+                expected_parent=digest(source / 'original-results.jsonl'),
+            )
+            case_scoring_receipt = correction_root / 'scoring-correction.json'
+            if case_scoring_receipt.is_file():
+                shutil.copy2(case_scoring_receipt, staging / 'case-correction-scoring.json')
+        records = public_webmainbench_scoring_projection(records)
+        (staging / 'results.jsonl').write_text(
+            ''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in records),
+            encoding='utf-8',
+        )
+        if correction_root:
+            case_receipt_path = staging / 'case-correction.json'
+            case_receipt = json.loads(case_receipt_path.read_text(encoding='utf-8'))
+            case_receipt['current_results_sha256'] = digest(staging / 'results.jsonl')
+            case_receipt_path.write_text(
+                json.dumps(case_receipt, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
+            )
         illustration_binding = profile_path.parent / 'illustrations.json'
         if illustration_binding.exists():
             (staging / 'assets').mkdir(exist_ok=True)

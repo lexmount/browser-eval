@@ -2,16 +2,100 @@
   "schema_version": 1,
   "assets": [
     {
-      "name": "overview.png",
-      "sha256": "1166017830d43cf56876e7cfc771d34dcd2b77998cac38d07bb84fa4e869d177",
-      "generator": "ImageGen",
-      "scope": "six methods after certified origin correction"
+      "name": "seven-method-overview.png",
+      "role": "overview",
+      "sha256": "dde509a23ff5e0694df68c7b91974c388ddae3ff9441df6e161caddc6912f06e",
+      "generator": "deterministic HTML/CSS render",
+      "scope": "seven methods after certified origin, reference, TEDS and shared-population corrections",
+      "claims": {
+        "scores_percent": {
+          "moli": "36.41",
+          "lightpanda": "35.00",
+          "kitesurf": "33.43",
+          "chromium": "27.02",
+          "obscura": "31.03",
+          "moli-pr785-fixed": "36.53",
+          "moli-content-fixed": "39.41"
+        },
+        "machine_issues": 25,
+        "request_failures": 15,
+        "empty_outputs": 10,
+        "error_pages": 0
+      }
     },
     {
-      "name": "error-mechanisms.png",
-      "sha256": "c53b86571b5c20976f9a54ccfe33d065111732399fceeb4a148c74c520d3d843",
+      "name": "method-error-landscape.png",
+      "role": "quality-risk-landscape",
+      "sha256": "4b32244509a42764602dfbf16b13cb8d8f3351e5f7547b5489292698e124bbb5",
+      "generator": "deterministic HTML/CSS render",
+      "scope": "fixed-population quality thresholds and reviewed delivery failures for seven methods",
+      "claims": {
+        "denominators": {
+          "delivery": 545,
+          "text": 545,
+          "code": 110,
+          "formula": 257,
+          "table": 179,
+          "teds": 179
+        },
+        "reviewed_runtime_issues": 25
+      }
+    },
+    {
+      "name": "seven-method-error-taxonomy.png",
+      "role": "error-taxonomy",
+      "sha256": "a6d63aa9e38545f4b46d507ed7d8b7190cbb3e67879631b08e3f49d34e887c16",
       "generator": "ImageGen",
-      "scope": "six methods after certified origin correction"
+      "scope": "conceptual separation of delivery failures and content-quality gaps across seven methods"
+    },
+    {
+      "name": "moli-repair-mechanisms.png",
+      "role": "repair-mechanisms",
+      "sha256": "9db091bb41d693aa22862f2fe7e8f316ebfaaba1d2d1938fc515df915a8a329a",
+      "generator": "deterministic HTML/CSS render",
+      "scope": "observed defect to shared cause, implementation layer and verification"
+    },
+    {
+      "name": "moli-fix-01-visibility-disclosure.png",
+      "role": "moli-fix-type",
+      "sha256": "d7cb94763bdc1be0d8c479117e7d1e7eccb54d43392cf5d743a14e0e4615b8c1",
+      "generator": "ImageGen",
+      "scope": "visibility, disclosure content and hidden-subtree boundaries"
+    },
+    {
+      "name": "moli-fix-02-fallback-fragments.png",
+      "role": "moli-fix-type",
+      "sha256": "7d1dfec266bd0f6a070fc47e918806dce8fc6bf27d6cd32fbaffa3a3b12f1568",
+      "generator": "ImageGen",
+      "scope": "fallback conversion, escaping and fragment aliases"
+    },
+    {
+      "name": "moli-fix-03-live-form-state.png",
+      "role": "moli-fix-type",
+      "sha256": "852e50109f160588f6df5fe34ac66a39cfa81f341fb6a53b13b40360bbf3a571",
+      "generator": "ImageGen",
+      "scope": "live form state instead of serialized initial attributes"
+    },
+    {
+      "name": "moli-fix-04-media-candidates.png",
+      "role": "moli-fix-type",
+      "sha256": "5d89b58c2ba3618ef0ef04ecd02cba7f57e837c36ee11ea2594c433cec0dbbc4",
+      "generator": "ImageGen",
+      "scope": "standard and lazy media candidate precedence with URL safety"
+    },
+    {
+      "name": "moli-fix-05-semantic-boundaries.png",
+      "role": "moli-fix-type",
+      "sha256": "eadaf97a6703c5649674f75986a200701159ff4c882a48898c2c3a539ebfb6ce",
+      "generator": "ImageGen",
+      "scope": "math, code and table semantic boundaries"
+    },
+    {
+      "name": "moli-fix-06-parser-resume-ownership.png",
+      "role": "moli-fix-type",
+      "sha256": "720259b73c1cbc7d0eccecc4cc8618cefa09c20902bb5d2fd34500c47716ad70",
+      "generator": "ImageGen",
+      "scope": "parser suspension resume ownership"
     }
   ]
 }

@@ -61,7 +61,9 @@ def assemble(root: Path, output: Path, source: Path, profile_path: Path) -> None
             or scoring_certificate.get("source_binding") != certificate["postflight"]
             or [row["provider"] for row in scoring_certificate["providers"]] != profile["providers"]):
         raise ValueError("Complete scoring certificate differs from the certified cohort")
-    source_records = load_source(source)
+    source_records = load_source(
+        source, expected_sha256=profile["source_dataset_sha256"]
+    )
     ids = {row["track_id"] for row in source_records}
     if len(ids) != 545 or len(source_records) != profile["case_count"]:
         raise ValueError("Source case inventory mismatch")

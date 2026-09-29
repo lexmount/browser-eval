@@ -132,3 +132,24 @@ def test_scored_cohort_keeps_exact_measured_results_and_scorer_source(tmp_path):
         verify_score(shard, "moli", {"one", "two"}, scorer, {
             "case_count": 2, "official_scorer_commit": "pinned", "metric_config": {"use_llm": False},
         })
+
+
+def test_aggregate_keeps_applicable_metric_errors_in_the_denominator():
+    rows = [
+        {"metrics": {"code_edit": {"score": 0.8, "success": True, "details": {}}}},
+        {"metrics": {"code_edit": {
+            "score": 0.0,
+            "success": False,
+            "details": {"availability": "reference_error"},
+        }}},
+        {"metrics": {"code_edit": {
+            "score": 0.0,
+            "success": False,
+            "details": {"availability": "reference_not_applicable"},
+        }}},
+    ]
+
+    result = aggregate(rows)
+
+    assert result["denominators"]["code_edit"] == 2
+    assert result["scores"]["code_edit"] == 0.4

@@ -51,9 +51,9 @@ def review(source, corrected):
     changed = []
     for old, new in zip(before, after):
         if {k: v for k, v in new.items() if k not in ('metrics', 'official_metrics')} != {
-                k: v for k, v in old.items() if k != 'metrics'}:
+                k: v for k, v in old.items() if k not in ('metrics', 'official_metrics')}:
             raise ValueError('Changed provider evidence: ' + old['attempt_id'])
-        if new['official_metrics'] != old['metrics']:
+        if new['official_metrics'] != old.get('official_metrics', old['metrics']):
             raise ValueError('Original official metrics were not preserved')
         for metric in ('text_edit', 'code_edit', 'formula_edit', 'table_edit'):
             if new['metrics'].get(metric) != old['metrics'].get(metric):

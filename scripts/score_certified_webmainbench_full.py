@@ -72,7 +72,10 @@ def main() -> None:
         with (shard / "scoring.log").open("w", encoding="utf-8") as stream:
             subprocess.run([sys.executable, str(ROOT / "scripts/score_webmainbench_results.py"),
                             "--evidence", str(shard), "--dataset", str(args.source),
-                            "--scorer-repo", str(args.scorer)], cwd=ROOT, stdout=stream,
+                            "--scorer-repo", str(args.scorer),
+                            "--expected-dataset-sha256", profile["source_dataset_sha256"],
+                            "--expected-scorer-commit", profile["official_scorer_commit"]],
+                           cwd=ROOT, stdout=stream,
                            stderr=subprocess.STDOUT, check=True)
         receipts.append(verify_score(shard, provider, case_ids, args.scorer, profile))
         if source_binding(args.source, args.scorer, profile) != before or scorer_source_binding(args.scorer) != scorer_files:
