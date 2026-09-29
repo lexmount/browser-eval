@@ -86,6 +86,7 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.add("dynamic_page_identity_alignment")
         paired.add("dynamic_page_query_identity")
         paired.add("declared_document_language_vs_visible_language")
+        paired.add("source_document_language_absent")
         paired.add("frozen_source_name_link_pair_membership")
         paired.add("markdown_table_separator_layout")
         paired.add("wikimedia_thumbnail_host_equivalence")

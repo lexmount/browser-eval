@@ -1,0 +1,80 @@
+{
+  "schema_version": 2,
+  "kind": "scoring_and_dataset_revision_receipt",
+  "reason": "Six independently observed source documents omit the html lang attribute. Requiring a nonempty Moli document-language value makes their page identity unverifiable even when URL and content are correct. Three other blank Moli values were not exempted because their source documents declare ko, ar, and zh respectively.",
+  "predecessor_receipt": "research/moli-111-dynamic-document-language-revision.json",
+  "predecessor_receipt_sha256": "ae8beb0328f5784d30762ea0e89c15d1a51fc92fb51a54b5ab97c16e1e800754",
+  "historical_dataset_sha256": "8181394edb1cee4276de4e0f1981aedf164c883860267fcad0d51b292d953910",
+  "revised_dataset_sha256": "57a138d2c79c9f107124cad3997a7350aa33e40cee3ac1137c5d627f1db098ce",
+  "historical_scoring_source_sha256": "52429c2f2a289fb199edf5e856bf6fb1291ea862557b1a26729344b8130ee01a",
+  "revised_scoring_source_sha256": "4abca90a1d636eda501c2336e9dd3f68640036e10b9ad3abb30e4f1703a29eed",
+  "scoring_regressions_sha256": "582b5faf48e330833c51e0dc44b46aee923f1f0a0c616486454625571815231c",
+  "provider_calls_for_revision": 0,
+  "correction_provenance": {
+    "category": "acceptance-contract",
+    "root_cause": "The identity scorer conflated an independently observed absent html lang attribute with unavailable provider metadata and required a nonempty value for every source page.",
+    "regression_ids": [
+      "dynamic-undeclared-source-language-can-verify-identity",
+      "dynamic-undeclared-source-language-rejects-declared-language"
+    ],
+    "verdict_corrections": {"false_positives": 0, "false_negatives": 1, "total": 1}
+  },
+  "changes": [
+    {
+      "case_id": "dynamic-019-selenium-dev-selenium",
+      "source_checked_at": "2026-09-29T13:09:07.831311+00:00",
+      "source_final_url": "https://www.selenium.dev/selenium/web/iframes.html",
+      "source_html_sha256": "27093e054f88415861dfed19e73c253794d850d18cb87e2513a31ce772ae04b8",
+      "saved_answer_sha256": "27093e054f88415861dfed19e73c253794d850d18cb87e2513a31ce772ae04b8",
+      "task_pass_before": false, "task_pass_after": false,
+      "remaining_failure": "missing_iframe_form_body_and_anchors"
+    },
+    {
+      "case_id": "dynamic-063-s-weibo-com-top",
+      "source_checked_at": "2026-09-29T13:09:12.971333+00:00",
+      "source_final_url": "https://s.weibo.com/top/summary",
+      "source_html_sha256": "93051e8d95c5c9712123835ad763df9693392837a9dcdaf7870a3c77814f9867",
+      "saved_answer_sha256": "38f1ba856b41779b24cd715fbba63716a55bdd4f08037e4f41da7e7ec7a76ab3",
+      "task_pass_before": false, "task_pass_after": false,
+      "remaining_failure": "redirect_identity_and_named_links"
+    },
+    {
+      "case_id": "dynamic-029-029-primevue-basic-treetable",
+      "source_checked_at": "2026-09-29T13:09:27.449752+00:00",
+      "source_final_url": "https://primevue.dev/treetable/",
+      "source_html_sha256": "2b2e3112c62fcbca16e3359994cccb150534bf2019cee6a7b6d62d4690383106",
+      "saved_answer_sha256": "0b98a1d11564b9539a2a4153ee0cd10f3e96e42669887d30baf30bebcf0ae36b",
+      "task_pass_before": false, "task_pass_after": true
+    },
+    {
+      "case_id": "dynamic-030-030-primevue-basic-virtualscroller",
+      "source_checked_at": "2026-09-29T13:09:34.798125+00:00",
+      "source_final_url": "https://primevue.dev/virtualscroller/",
+      "source_html_sha256": "bb3d0704028f0d886e92a97c472a05129ba2fe0273a2638dc0eba692766786db",
+      "saved_answer_sha256": "9d9099dfbca192279159ce70e95063f96a47b93c5b54c36a9b424baa3ec0c6bc",
+      "task_pass_before": false, "task_pass_after": false,
+      "remaining_failure": "too_few_complete_records"
+    },
+    {
+      "case_id": "dynamic-046-en-real-hn-algolia",
+      "source_checked_at": "2026-09-29T13:12:05.427020+00:00",
+      "source_final_url": "https://hn.algolia.com/?dateRange=all&page=0&prefix=true&query=javascript&sort=byPopularity&type=story",
+      "source_html_sha256": "4a09de5a055500eb7427f4f8e48608c8fd600ec28b88fe3fedae0d6c8ce8c5bd",
+      "saved_answer_sha256": "ced90727f15ddb14dd532583cdee3c2b9b7428f825ec5c4065eb6625829facf6",
+      "task_pass_before": false, "task_pass_after": false,
+      "remaining_failure": "too_few_complete_named_links_and_page_identity"
+    },
+    {
+      "case_id": "dynamic-107-redoc-cafe-api",
+      "source_checked_at": "2026-09-29T13:09:46.949365+00:00",
+      "source_final_url": "https://redocly.github.io/redoc/",
+      "source_html_sha256": "fef1769d7f4ff39f2d65d4ef0adcf603c40a56895b0f5bc6d1463be71dc997e5",
+      "saved_answer_sha256": "a80cb8545f0c2dc831140efa29133d268e6e453a062e1d2b50b2b00686ae70a6",
+      "task_pass_before": false, "task_pass_after": false,
+      "remaining_failure": "missing_target_body_and_anchors"
+    }
+  ],
+  "task_decision_changes": [
+    {"case_id": "dynamic-029-029-primevue-basic-treetable", "answer_sha256": "0b98a1d11564b9539a2a4153ee0cd10f3e96e42669887d30baf30bebcf0ae36b", "before": false, "after": true}
+  ]
+}

@@ -18,6 +18,7 @@ PRIOR_SCORING_REVISION_PATH = ROOT / "research/moli-111-visible-html-scoring-rev
 INTERMEDIATE_SCORING_REVISION_PATH = ROOT / "research/moli-111-inline-html-scoring-revision.json"
 CURRENT_SCORING_REVISION_PATH = ROOT / "research/moli-111-visible-answer-scoring-revision.json"
 DOCUMENT_LANGUAGE_REVISION_PATH = ROOT / "research/moli-111-dynamic-document-language-revision.json"
+UNDECLARED_LANGUAGE_REVISION_PATH = ROOT / "research/moli-111-undeclared-source-language-revision.json"
 
 
 def _dataset():
@@ -33,12 +34,28 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert len({case["id"] for case in cases}) == 100
     assert len({case["url"] for case in cases}) == 100
     dataset_revision = json.loads(DOCUMENT_LANGUAGE_REVISION_PATH.read_text(encoding="utf-8"))
+    undeclared_revision = json.loads(UNDECLARED_LANGUAGE_REVISION_PATH.read_text(encoding="utf-8"))
     assert dataset_revision["historical_dataset_sha256"] == receipt["bindings"]["dataset_sha256"]
     assert (hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest()
-            == dataset_revision["revised_dataset_sha256"])
+            == undeclared_revision["revised_dataset_sha256"])
     assert (hashlib.sha256(CURRENT_SCORING_REVISION_PATH.read_bytes()).hexdigest()
             == dataset_revision["predecessor_receipt_sha256"])
+    assert (hashlib.sha256(DOCUMENT_LANGUAGE_REVISION_PATH.read_bytes()).hexdigest()
+            == undeclared_revision["predecessor_receipt_sha256"])
     historical_text = DATASET_PATH.read_text(encoding="utf-8")
+    for change in undeclared_revision["changes"]:
+        case = next(case for case in cases if case["id"] == change["case_id"])
+        assert case["expected_document_language_present"] is False
+        assert not case.get("expected_document_language")
+        assert len(change["source_html_sha256"]) == 64
+        assert len(change["saved_answer_sha256"]) == 64
+        marker = f'      "url": "{case["url"]}",\n      "expected_document_language_present": false,\n'
+        assert historical_text.count(marker) == 1
+        historical_text = historical_text.replace(
+            marker, f'      "url": "{case["url"]}",\n', 1)
+    assert len(undeclared_revision["changes"]) == 6
+    assert (hashlib.sha256(historical_text.encode()).hexdigest()
+            == dataset_revision["revised_dataset_sha256"])
     for change in dataset_revision["changes"]:
         case = next(case for case in cases if case["id"] == change["case_id"])
         assert change["field"] == "expected_document_language"
@@ -68,13 +85,19 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert intermediate["revised_scoring_source_sha256"] == revision["historical_scoring_source_sha256"]
     assert (hashlib.sha256(INTERMEDIATE_SCORING_REVISION_PATH.read_bytes()).hexdigest()
             == revision["predecessor_receipt_sha256"])
-    assert SCORING_SOURCE_SHA256 == revision["revised_scoring_source_sha256"]
+    assert revision["revised_scoring_source_sha256"] == undeclared_revision["historical_scoring_source_sha256"]
+    assert SCORING_SOURCE_SHA256 == undeclared_revision["revised_scoring_source_sha256"]
     regression_bytes = (ROOT / "evaluation/scoring-regressions.json").read_bytes()
-    assert hashlib.sha256(regression_bytes).hexdigest() == revision["scoring_regressions_sha256"]
+    assert hashlib.sha256(regression_bytes).hexdigest() == undeclared_revision["scoring_regressions_sha256"]
     assert revision["dataset_sha256"]["dynamic"] == dataset_revision["historical_dataset_sha256"]
     assert valid_correction_provenance(prior)
     assert valid_correction_provenance(intermediate)
     assert valid_correction_provenance(revision)
+    assert valid_correction_provenance(undeclared_revision)
+    assert undeclared_revision["historical_dataset_sha256"] == dataset_revision["revised_dataset_sha256"]
+    assert undeclared_revision["provider_calls_for_revision"] == 0
+    assert len(undeclared_revision["task_decision_changes"]) == 1
+    assert undeclared_revision["task_decision_changes"][0]["case_id"] == "dynamic-029-029-primevue-basic-treetable"
     assert intermediate["provider_calls_for_revision"] == 0
     assert len({row["case_id"] for row in intermediate["task_decision_changes"]}) == 4
     assert all(len(row["answer_sha256"]) == 64 for row in intermediate["task_decision_changes"])

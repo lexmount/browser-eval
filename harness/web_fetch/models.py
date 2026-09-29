@@ -44,6 +44,7 @@ class EvalCase:
     evaluation_url: str = ""
     expected_final_url: str = ""
     expected_document_language: str = ""
+    expected_document_language_present: bool = True
     target_language: str = ""
     target_region: str = ""
     rule_review: dict[str, Any] = field(default_factory=dict)

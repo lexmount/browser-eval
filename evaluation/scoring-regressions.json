@@ -21625,6 +21625,62 @@
       "ok": true,
       "expected_task_pass": false,
       "expected_metrics": {"blocked_page": true, "stable_blocked_page": true}
+    },
+    {
+        "id": "dynamic-undeclared-source-language-can-verify-identity",
+        "category": "acceptance-contract",
+        "root_cause": "source_document_language_absent",
+        "failure_mode": "false-negative",
+        "case": {
+            "url": "https://example.test/untagged",
+            "evaluation_url": "https://example.test/untagged",
+            "expected_final_url": "https://example.test/untagged",
+            "target_language": "en",
+            "target_region": "US",
+            "expected_document_language_present": false,
+            "track": "dynamic",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "body_text",
+                "minimum_records": 0,
+                "stable_text_anchors": [{"id": "content", "alternatives": ["Visible content"]}]
+            }
+        },
+        "artifact": "Visible content",
+        "ok": true,
+        "final_url": "https://example.test/untagged",
+        "metadata": {"route": "dynamic_selected_text", "document_language": ""},
+        "expected_task_pass": true,
+        "expected_metrics": {"page_identity_status": "verified", "language_consistent": true}
+    },
+    {
+        "id": "dynamic-undeclared-source-language-rejects-declared-language",
+        "category": "acceptance-contract",
+        "root_cause": "source_document_language_absent",
+        "failure_mode": "false-positive",
+        "case": {
+            "url": "https://example.test/untagged",
+            "evaluation_url": "https://example.test/untagged",
+            "expected_final_url": "https://example.test/untagged",
+            "target_language": "en",
+            "target_region": "US",
+            "expected_document_language_present": false,
+            "track": "dynamic",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "body_text",
+                "minimum_records": 0,
+                "stable_text_anchors": [{"id": "content", "alternatives": ["Visible content"]}]
+            }
+        },
+        "artifact": "Visible content",
+        "ok": true,
+        "final_url": "https://example.test/untagged",
+        "metadata": {"route": "dynamic_selected_text", "document_language": "en"},
+        "expected_task_pass": false,
+        "expected_metrics": {"page_identity_status": "mismatch", "language_consistent": false}
     }
   ]
 }
