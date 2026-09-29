@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Compile the audited risk-control rules into an executable dataset.
+"""Compile the audited access-restricted URL rules into an executable dataset.
 
 The Markdown files remain the human authority.  This compiler is deliberately
-strict about their hashes, order, stable-literal count, evidence bindings and
+strict about their hashes, order, stable-literal count, reference bindings and
 the independently counted list groups.  Provider output is never read.
 """
 from __future__ import annotations
@@ -22,16 +22,16 @@ from harness.web_fetch.storage import data_home
 
 ROOT = Path(__file__).resolve().parents[1]
 RISK = ROOT / "evaluation/risk-control"
-QUALIFIED = RISK / "qualification/cohort/qualified-cases.json"
+COHORT = RISK / "qualification/cohort/cohort-manifest.json"
 MANIFEST = RISK / "qualification/cohort/input-manifest.json"
 RULE_FILES = (RISK / "first-30-rule-review.md", RISK / "remaining-70-rule-review.md")
 LIST_CONTRACTS = RISK / "list-contracts.json"
 BODY_CONTRACTS = RISK / "body-contracts.json"
 EXPECTED_RULE_HASHES = {
-    "first-30-rule-review.md": "5f8b27fc8049c71d62da17fd21f2f33727ed6b26e965b12394ff3f15b3966c7f",
-    "remaining-70-rule-review.md": "2271df1be0f43164fee7eb8492406debed3cc558c189d18bd365722736c515bd",
+    "first-30-rule-review.md": "2e293709eb01b7607147cd86a1ff5ef0218559c1e92b2ee3cb0d47ee5e89f847",
+    "remaining-70-rule-review.md": "728ea96def6e35e4361c51db96859677e692d4462e32362fda00ad0399903f71",
 }
-EXPECTED_QUALIFIED_HASH = "60a25038958c507ff916ac42f0c47cafddea9a6195218c22c9eae982c9a633bc"
+EXPECTED_COHORT_HASH = "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e"
 CHINESE_NUMBERS = {"一": 1, "两": 2, "二": 2, "三": 3, "四": 4, "五": 5}
 
 
@@ -80,7 +80,6 @@ def parse_sections() -> list[dict]:
                 "index": int(match[1]), "id": match[2], "name": match[3],
                 "url": link[1], "fields": fields,
                 "stable": stable,
-                "rule_text": raw.strip(),
             })
     return sections
 
@@ -90,11 +89,46 @@ def evidence_roots() -> dict[str, Path]:
     return {key: data_home() / value for key, value in manifest["evidence_roots"].items()}
 
 
+def load_cohort() -> tuple[dict, list[dict]]:
+    cohort = json.loads(COHORT.read_text())
+    cases = cohort.get("cases")
+    if (
+        cohort.get("schema_version") != 1
+        or cohort.get("kind") != "risk_control_cohort_manifest"
+        or not isinstance(cases, list)
+    ):
+        raise ValueError("Unsupported cohort manifest")
+    required = {
+        "id", "url", "site_key", "target_scope", "target_language",
+        "qualification_class", "reference_proof",
+    }
+    for case in cases:
+        if not required <= set(case) <= required | {"observed_final_url"}:
+            raise ValueError(f"Unexpected cohort fields: {case.get('id', '<unknown>')}")
+        if set(case["reference_proof"]) != {"root", "path", "sha256"}:
+            raise ValueError(f"Invalid reference proof: {case['id']}")
+    expected_scope = {
+        "case_count": len(cases),
+        "site_count": len({case["site_key"] for case in cases}),
+        "security_or_access_control_cases": sum(
+            case["qualification_class"] == "security_or_access_control" for case in cases
+        ),
+        "login_only_cases": sum(
+            case["qualification_class"] == "login_only" for case in cases
+        ),
+        "qualification_reviewed_on": "2026-09-27",
+        "claim_scope": "saved_url_route_and_observation_only",
+    }
+    if cohort.get("scope") != expected_scope or len(cases) != len({case["id"] for case in cases}):
+        raise ValueError("Cohort scope or case identity mismatch")
+    return cohort, cases
+
+
 def proof(case: dict, roots: dict[str, Path]) -> tuple[str, dict]:
-    binding = case["reference"]["proof"]
+    binding = case["reference_proof"]
     path = roots[binding["root"]] / binding["path"]
     if not path.is_file() or sha(path) != binding["sha256"]:
-        raise ValueError(f"Missing or changed reference proof: {case['case_id']}")
+        raise ValueError(f"Missing or changed reference proof: {case['id']}")
     return path.read_text(errors="replace"), {
         "root": binding["root"], "path": binding["path"], "sha256": binding["sha256"]
     }
@@ -114,12 +148,12 @@ def region_count(body: str) -> int:
 
 def body_reference(
     section: dict, source: str, contract: dict | None
-) -> tuple[dict | None, dict | None]:
+) -> dict | None:
     body = section["fields"].get("正文参考")
     if not body or body.startswith("不另设"):
         if contract is not None:
             raise ValueError(f"Unexpected body contract: {section['id']}")
-        return None, None
+        return None
     if contract is None:
         raise ValueError(f"Missing exact body contract: {section['id']}")
     count = region_count(body)
@@ -156,7 +190,7 @@ def body_reference(
     if len(regions) != count or any(not compact_ngrams(region, 6) for region in regions):
         raise ValueError(f"Invalid body regions: {section['id']} count={count} "
                          f"actual={len(regions)} lengths={[len(value) for value in regions]}")
-    return ({
+    return {
         "version": 3,
         "unit": "region_compact_hexagram_recall",
         "minimum_coverage": 0.8,
@@ -164,24 +198,19 @@ def body_reference(
         "minimum_region_passes": max(1, count - 1),
         "regions": [{"id": f"body-region-{index + 1}", "text": text}
                     for index, text in enumerate(regions)],
-    }, {
-        "method": "audited_exact_line_regions",
-        "rule": body,
-        "regions": region_specs,
-        "drop_exact_lines": sorted(drop_exact),
-    })
+    }
 
 
 def build(output: Path) -> dict:
     for path in RULE_FILES:
         if sha(path) != EXPECTED_RULE_HASHES[path.name]:
             raise ValueError(f"Audited rule hash changed: {path}")
-    if sha(QUALIFIED) != EXPECTED_QUALIFIED_HASH:
-        raise ValueError("Qualified cohort hash changed")
+    if sha(COHORT) != EXPECTED_COHORT_HASH:
+        raise ValueError("Cohort manifest hash changed")
     sections = parse_sections()
-    qualified = json.loads(QUALIFIED.read_text())["cases"]
+    cohort, qualified = load_cohort()
     if ([section["index"] for section in sections] != list(range(1, 101))
-            or [section["id"] for section in sections] != [case["case_id"] for case in qualified]):
+            or [section["id"] for section in sections] != [case["id"] for case in qualified]):
         raise ValueError("Rule/cohort order mismatch")
     if sum(len(section["stable"]) for section in sections) != 1599:
         raise ValueError("Expected exactly 1599 required stable literals")
@@ -235,13 +264,13 @@ def build(output: Path) -> dict:
         acceptance = {"version": 1, "schema": "body_text", "minimum_records": 0,
                       "stable_text_anchors": anchors}
         validate_acceptance_contract(acceptance)
-        body, body_binding = body_reference(section, source, body_contracts.get(section["id"]))
+        body = body_reference(section, source, body_contracts.get(section["id"]))
         body_count += bool(body)
         composite = None
         if section["id"] in contracts:
             composite = {"version": 1, "groups": contracts[section["id"]]["groups"]}
             validate_composite_acceptance(composite)
-        final_url = qualified_case["reference"].get("final_url") or section["url"]
+        final_url = qualified_case.get("observed_final_url") or section["url"]
         case = {
             "id": section["id"], "name": section["name"], "url": section["url"],
             "category": "risk_control", "track": "risk_control", "task_kind": "body",
@@ -252,15 +281,12 @@ def build(output: Path) -> dict:
             "acceptance_contract": acceptance,
             "source_benchmark": {"risk_control": {
                 "navigation_contract": {
-                    "requested_url": qualified_case["requested_url"],
+                    "requested_url": qualified_case["url"],
                     "observed_final_url": final_url,
                     "target_language": qualified_case["target_language"],
-                    "redirect_review": qualified_case["reference"]["redirect_review"],
-                    "access_context": qualified_case["reference"].get("access_context"),
                 },
-                "audited_rule": {"index": section["index"], "text": section["rule_text"]},
+                "rule_index": section["index"],
                 "reference_proof": binding,
-                "body_binding": body_binding,
             }},
         }
         if body:
@@ -271,7 +297,7 @@ def build(output: Path) -> dict:
     dataset = {
         "schema_version": 1,
         "id": "risk-control-audited-100",
-        "name": "审核后风控网站100例",
+        "name": "曾观察到访问限制的100个网址",
         "tool": "web_fetch",
         "case_count": 100,
         "site_count": 74,
@@ -286,8 +312,9 @@ def build(output: Path) -> dict:
         "workers": 1,
         "retry_policy": {"declared_retries": 0, "authoritative_response": "final_physical_call"},
         "interaction_policy": "initial_load_only_no_click_input_scroll_pagination_login_or_ocr",
+        "qualification_scope": cohort["scope"],
         "source_bindings": {
-            "qualified_cases_sha256": sha(QUALIFIED),
+            "cohort_manifest_sha256": sha(COHORT),
             "first_30_rules_sha256": sha(RULE_FILES[0]),
             "remaining_70_rules_sha256": sha(RULE_FILES[1]),
             "list_contracts_sha256": sha(LIST_CONTRACTS),

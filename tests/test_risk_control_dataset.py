@@ -14,9 +14,8 @@ from scripts.build_risk_control_dataset import evidence_roots
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET = ROOT / "evaluation/risk-control/dataset.json"
-QUALIFIED = ROOT / "evaluation/risk-control/qualification/cohort/qualified-cases.json"
-QUALIFICATION_AUDIT = ROOT / "evaluation/risk-control/qualification/cohort/qualification-audit-receipt.json"
-REPLACEMENT = ROOT / "evaluation/risk-control/qualification/cohort/risk-107-replacement-receipt.json"
+COHORT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-manifest.json"
+COHORT_RECEIPT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-receipt.json"
 RUN_PROFILE = ROOT / "evaluation/risk-control/run-profile.json"
 
 
@@ -26,9 +25,9 @@ def dataset():
 
 
 def test_dataset_covers_the_exact_audited_cohort(dataset):
-    qualified = json.loads(QUALIFIED.read_text())["cases"]
+    cohort = json.loads(COHORT.read_text())
     assert dataset["case_count"] == len(dataset["cases"]) == 100
-    assert [case["id"] for case in dataset["cases"]] == [case["case_id"] for case in qualified]
+    assert [case["id"] for case in dataset["cases"]] == [case["id"] for case in cohort["cases"]]
     assert dataset["site_count"] == 74
     assert dataset["stable_literal_count"] == 1599
     assert dataset["body_case_count"] == 79
@@ -43,18 +42,41 @@ def test_external_evidence_roots_honor_data_home(monkeypatch, tmp_path):
     assert all(path.is_relative_to(tmp_path) for path in evidence_roots().values())
 
 
-def test_replacement_receipt_connects_audited_predecessor_to_final_cohort():
+def test_compact_cohort_receipt_binds_final_manifest_and_limits_the_claim():
     import hashlib
 
-    audit = json.loads(QUALIFICATION_AUDIT.read_text())
-    replacement = json.loads(REPLACEMENT.read_text())
-    assert replacement["predecessor_qualified_cases_sha256"] == audit["input"]["sha256"]
-    assert replacement["predecessor_qualification_audit_receipt_sha256"] == hashlib.sha256(
-        QUALIFICATION_AUDIT.read_bytes()
-    ).hexdigest()
-    assert replacement["final_qualified_cases_sha256"] == hashlib.sha256(
-        QUALIFIED.read_bytes()
-    ).hexdigest()
+    receipt = json.loads(COHORT_RECEIPT.read_text())
+    assert receipt["cohort_manifest_sha256"] == hashlib.sha256(COHORT.read_bytes()).hexdigest()
+    assert receipt["scope"] == {
+        "url_cases": 100,
+        "independent_sites": 74,
+        "security_or_access_control_cases": 96,
+        "login_only_cases": 4,
+    }
+    assert receipt["evidence_policy"]["raw_qualification_evidence_in_git"] is False
+    assert any("does not classify an entire site" in value for value in receipt["limits"])
+
+
+def test_cohort_keeps_only_scoring_inputs_and_compact_qualification_metadata():
+    cohort = json.loads(COHORT.read_text())
+    required = {
+        "id", "url", "site_key", "target_scope", "target_language",
+        "qualification_class", "reference_proof",
+    }
+    for case in cohort["cases"]:
+        assert required <= set(case) <= required | {"observed_final_url"}
+        assert set(case["reference_proof"]) == {"root", "path", "sha256"}
+    assert cohort["scope"]["case_count"] == len(cohort["cases"]) == 100
+    assert cohort["scope"]["site_count"] == len({case["site_key"] for case in cohort["cases"]}) == 74
+    assert cohort["scope"]["security_or_access_control_cases"] == sum(
+        case["qualification_class"] == "security_or_access_control" for case in cohort["cases"]
+    ) == 96
+    assert cohort["scope"]["login_only_cases"] == sum(
+        case["qualification_class"] == "login_only" for case in cohort["cases"]
+    ) == 4
+    serialized = json.dumps(cohort, ensure_ascii=False)
+    for forbidden in ["browser.har", "browser.png", "browser-nodes.json", '"restriction"']:
+        assert forbidden not in serialized
 
 
 def test_run_profile_binds_every_rule_and_qualification_authority():
@@ -62,8 +84,8 @@ def test_run_profile_binds_every_rule_and_qualification_authority():
 
     profile = json.loads(RUN_PROFILE.read_text())
     expected = {
-        "qualification_manifest", "qualification_audit", "replacement_receipt",
-        "qualified_cases", "first_30_rules", "remaining_70_rules",
+        "qualification_manifest", "cohort_receipt", "cohort_manifest",
+        "first_30_rules", "remaining_70_rules",
         "list_contracts", "body_contracts", "rule_independent_audit",
         "rule_completeness_audit",
     }

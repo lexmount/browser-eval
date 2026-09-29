@@ -15,22 +15,19 @@
   "evidence_root_resolution": "Paths are relative to BROWSER_EVAL_DATA_HOME, which defaults to ~/.browser-eval; raw evidence remains outside Git.",
   "files": [
     {
-      "path": "cohort/qualified-cases.json",
-      "sha256": "60a25038958c507ff916ac42f0c47cafddea9a6195218c22c9eae982c9a633bc"
+      "path": "cohort/cohort-manifest.json",
+      "sha256": "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e"
     },
     {
       "path": "cohort-policy.json",
       "sha256": "4835abe67852adf1609cb3033b19cbef839650d14879c0e24dd76116af2acd2e"
     },
     {
-      "path": "cohort/qualification-audit-receipt.json",
-      "sha256": "e6fba7298174204db98fa69b2bb9dba7cb2b9ce196919c9dccba7d06632dc5b0"
-    },
-    {
-      "path": "cohort/risk-107-replacement-receipt.json",
-      "sha256": "5c491ab23153b5fa869a61de1b607e2d652a6a93a145f842b7a8e84172b87ef9"
+      "path": "cohort/cohort-receipt.json",
+      "sha256": "29e56c1bbc96ae3bdc1abc20b469eee55dfb1f276f390bd585349b1c264a96ac"
     }
   ],
   "source_qualification_receipt_sha256": "acf287f3b54352d1c97fb2b79b8d3d385d11ba44ac4bbfa693163627956e268e",
-  "verified_unique_evidence_bindings": 655
+  "reference_proof_bindings": 100,
+  "raw_qualification_evidence_in_git": false
 }

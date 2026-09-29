@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "kind": "risk_control_cohort_qualification_receipt",
+  "cohort_manifest_sha256": "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e",
+  "scope": {
+    "url_cases": 100,
+    "independent_sites": 74,
+    "security_or_access_control_cases": 96,
+    "login_only_cases": 4
+  },
+  "qualification": {
+    "meaning": "A saved observation for the exact URL and route showed a security, access-policy, verification, or login restriction.",
+    "provider_outputs_used": false,
+    "independent_audit": {
+      "reviewed_at": "2026-09-28T07:39:10.875613+00:00",
+      "reviewer_class": "independent source-evidence audit",
+      "pre_replacement_cases": 100,
+      "pre_replacement_sites": 75,
+      "unresolved_cases": 0,
+      "external_files": [
+        {
+          "path": "risk-control/qualification-audit-20260928/qualification-audit.json",
+          "sha256": "5c34c3386b23a6d8eba942fd5f480435872354ab70bf098dc71e6b887ab80ddd"
+        },
+        {
+          "path": "risk-control/qualification-audit-20260928/qualification-audit.md",
+          "sha256": "ee820008c5490174bbd5fc814d6bf17e5f4e4cf6f445050dd3d18505e7cd5207"
+        }
+      ]
+    }
+  },
+  "replacement": {
+    "removed_case_id": "risk-107",
+    "added_case_id": "risk-diverse-271",
+    "formal_position": 8,
+    "reason": "The removed case no longer had auditable target records in the independent reference; the replacement followed the predeclared random reserve procedure before provider calls.",
+    "external_files": [
+      {
+        "path": "evidence/risk-control/kuaishou-requalification-20260929-r1/capture.json",
+        "sha256": "b40b2f6074c76b2817e3b815102cd1e27add0e650fa75b2a74539101ed997fd9"
+      },
+      {
+        "path": "evidence/risk-control/kuaishou-requalification-20260929-r1/reserve-selection.json",
+        "sha256": "5ad0130fa01d8c27a302b11ad7c739b68ce9f94c76072dcd0d1e31e4216c278c"
+      },
+      {
+        "path": "evidence/risk-control/kuaishou-requalification-20260929-r1/replacement-risk-diverse-271-reference/capture.json",
+        "sha256": "e6bb1c0c489c60845502fcac9052f91c37b4f4777037f12e68320f6cfbe983c4"
+      }
+    ]
+  },
+  "evidence_policy": {
+    "repository_contents": "compact cohort metadata and aggregate receipt only",
+    "external_contents": "raw HTML, text, screenshots, HAR, DOM, and per-case review detail",
+    "external_path_base": "BROWSER_EVAL_DATA_HOME",
+    "raw_qualification_evidence_in_git": false,
+    "provider_outputs_in_repository": false
+  },
+  "limits": [
+    "Qualification is URL-, route-, and observation-specific; it does not classify an entire site permanently.",
+    "The four login-only cases are not evidence of bot detection.",
+    "Qualification supports cohort selection and does not participate in result scoring."
+  ]
+}

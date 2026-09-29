@@ -37,14 +37,14 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
-    "风控网站内容": "Risk-control site content",
+    "历史访问受限网址内容": "Historically access-restricted URL content",
     "请求指定网址": "Request the specified URL",
     "识别目标页或拦截页": "Identify the target page or a blocked page",
     "提取首次加载内容": "Extract the initially loaded content",
     "核对稳定文字与完整正文": "Check stable text and the complete body",
     "核对列表结构与数量": "Check list structure and quantity",
     "测试不点击、不输入、不滚动、不翻页，也不登录。返回验证页、空白页或只有页面外壳都不能代替目标内容。": "The test does not click, type, scroll, paginate, or log in. A verification page, blank response, or page shell cannot substitute for the target content.",
-    "从曾出现登录、验证、反自动化或访问限制的网站取得指定页面内容。每例按独立保存的页面证据核对，防止只取得标题、开头、导航或少量列表条目也被判为通过。": "Retrieve the specified page content from sites that have shown login, verification, anti-automation, or access restrictions. Each case is checked against independently saved page evidence so that a title, opening section, navigation, or a few list entries cannot pass as the full target.",
+    "从曾在保存的观察中出现登录、验证、反自动化或访问限制的指定网址取得目标内容。资格只解释样本来源；评分按独立保存的目标页面参考核对，防止只取得标题、开头、导航或少量列表条目也被判为通过。": "Retrieve target content from specified URLs where saved observations showed login, verification, anti-automation, or access restrictions. Qualification only explains cohort selection; scoring uses independently saved target-page references so a title, opening section, navigation, or a few list entries cannot pass as the full target.",
     "文章页须覆盖直接加载出的完整正文；列表页须保留稳定栏目，并取得满足域名、路径、字段、去重和数量要求的名称与真实链接。": "An article page must cover the complete body loaded directly. A list page must retain stable sections and return names with real links that meet the host, path, field, deduplication, and quantity requirements.",
     "规则只覆盖指定网址首次自动加载出的可见目标内容，不要求绕过验证或执行交互。通过表示本次返回满足冻结规则，不证明网站以后不会改变，也不证明所有访问环境都能取得相同页面。": "The rules cover only visible target content loaded automatically on the specified URL. They do not require bypassing verification or interacting with the page. A pass means this response satisfies the frozen rules; it does not prove that the site will remain unchanged or that every access environment receives the same page.",
     "请求成功并取得指定目标页面；全部稳定文字、正文分区和组合规则均须满足。文章不能只返回标题或开头，列表须达到登记的字段、真实链接、路径、去重和数量要求；验证页、空返回和页面外壳均不通过。": "The request must succeed and return the specified target page, with every stable-text, body-region, and composite rule satisfied. An article cannot return only its title or opening. A list must meet its declared field, real-link, path, deduplication, and quantity requirements. Verification pages, empty responses, and page shells fail.",

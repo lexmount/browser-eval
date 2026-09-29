@@ -5,7 +5,7 @@
   "unresolved_case_ids": [],
   "dataset": {
     "path": "evaluation/risk-control/dataset.json",
-    "sha256": "cb86e5b27f1c192f30e1dd813f9c482e471af65c9000f0fe11d15b9da9056f45",
+    "sha256": "58dcffaedcf606fd8ceab8f0e6d05bcb15bd897698013d05c2846c5cc30f0074",
     "case_count": 100,
     "site_count": 74,
     "case_ids_sha256": "f037b11fa10826f6bdafd1e61ec8663070fe9873ebb891218cf941f67e5012b1"
@@ -13,27 +13,23 @@
   "source_bindings": {
     "qualification_manifest": {
       "path": "evaluation/risk-control/qualification/cohort/input-manifest.json",
-      "sha256": "78273bb6e8fc626a90675fc7ddfa52bf7aac4468a32a174a8570a41e8774c5c0"
+      "sha256": "b1e4fe9a27cb9cb9b1d533dd29d49b9f97af013f88b7a7ded876d48cfe07c9c4"
     },
-    "qualification_audit": {
-      "path": "evaluation/risk-control/qualification/cohort/qualification-audit-receipt.json",
-      "sha256": "e6fba7298174204db98fa69b2bb9dba7cb2b9ce196919c9dccba7d06632dc5b0"
+    "cohort_receipt": {
+      "path": "evaluation/risk-control/qualification/cohort/cohort-receipt.json",
+      "sha256": "29e56c1bbc96ae3bdc1abc20b469eee55dfb1f276f390bd585349b1c264a96ac"
     },
-    "replacement_receipt": {
-      "path": "evaluation/risk-control/qualification/cohort/risk-107-replacement-receipt.json",
-      "sha256": "5c491ab23153b5fa869a61de1b607e2d652a6a93a145f842b7a8e84172b87ef9"
-    },
-    "qualified_cases": {
-      "path": "evaluation/risk-control/qualification/cohort/qualified-cases.json",
-      "sha256": "60a25038958c507ff916ac42f0c47cafddea9a6195218c22c9eae982c9a633bc"
+    "cohort_manifest": {
+      "path": "evaluation/risk-control/qualification/cohort/cohort-manifest.json",
+      "sha256": "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e"
     },
     "first_30_rules": {
       "path": "evaluation/risk-control/first-30-rule-review.md",
-      "sha256": "5f8b27fc8049c71d62da17fd21f2f33727ed6b26e965b12394ff3f15b3966c7f"
+      "sha256": "2e293709eb01b7607147cd86a1ff5ef0218559c1e92b2ee3cb0d47ee5e89f847"
     },
     "remaining_70_rules": {
       "path": "evaluation/risk-control/remaining-70-rule-review.md",
-      "sha256": "2271df1be0f43164fee7eb8492406debed3cc558c189d18bd365722736c515bd"
+      "sha256": "728ea96def6e35e4361c51db96859677e692d4462e32362fda00ad0399903f71"
     },
     "list_contracts": {
       "path": "evaluation/risk-control/list-contracts.json",
@@ -45,7 +41,7 @@
     },
     "rule_independent_audit": {
       "path": "evaluation/risk-control/rule-independent-audit.md",
-      "sha256": "fa1b348703144f6c3e3e7d52dbbf5a75da37ff985b1cdeb01effd62620848f41"
+      "sha256": "b5ac1e035e64787a805393ffcd81e569f171985ec582f2b4615582b57290dff0"
     },
     "rule_completeness_audit": {
       "path": "evaluation/risk-control/rule-completeness-audit-20260929.md",

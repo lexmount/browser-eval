@@ -48,9 +48,13 @@ def test_full_risk_control_matrix_builds_existing_interactive_report(tmp_path, c
     detail = (report / "attempts/fixture-risk__risk-diverse-192__r001.html").read_text()
     case_page = (report / "datasets/risk-diverse-192.html").read_text()
     style = (report / "assets/style.css").read_text()
+    home = index.read_text()
 
     assert len(records) == 100
     assert index.is_file()
+    assert "历史访问受限网址" in home
+    assert "风控网站内容" not in home
+    assert "资格只解释样本来源" in home
     assert "组合规则结果" in detail
     assert "homepage-news" in detail
     assert "同条目字段" in detail

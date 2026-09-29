@@ -1,0 +1,1331 @@
+{
+  "schema_version": 1,
+  "kind": "risk_control_cohort_manifest",
+  "scope": {
+    "case_count": 100,
+    "site_count": 74,
+    "security_or_access_control_cases": 96,
+    "login_only_cases": 4,
+    "qualification_reviewed_on": "2026-09-27",
+    "claim_scope": "saved_url_route_and_observation_only"
+  },
+  "cases": [
+    {
+      "id": "risk-diverse-002",
+      "url": "https://www.zhihu.com/question/282715644/answer/3629347314",
+      "site_key": "zhihu",
+      "target_scope": "指定问题下该公开回答的完整首次载入正文，不含其他回答、推荐、图片文字和交互统计",
+      "target_language": "zh",
+      "qualification_class": "login_only",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "priority-batch-1-v2/risk-diverse-002/round-1/browser.txt",
+        "sha256": "e6993d87c2393a23a4e62b15083f384803f8ea427384f690ad29b3164af12dbc"
+      }
+    },
+    {
+      "id": "risk-001",
+      "url": "https://www.flipkart.com/acer-aspire-lite-amd-ryzen-3-quad-core-5400u-8-gb-256-gb-ssd-windows-11-home-al15-41-thin-light-laptop/p/itm1bc0bcb4598e7",
+      "site_key": "flipkart",
+      "target_scope": "Flipkart 原商品页面的名称和已加载 Product highlights；不取 more 展开内容、价格或库存。",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "legacy20260921",
+        "path": "current-and-reserves/risk-001/round-1/browser.txt",
+        "sha256": "b3bd3b5eccf86c26d1f25c303c86545a3ccd246d53990b8fd1943fb02c7fdc5b"
+      }
+    },
+    {
+      "id": "risk-006",
+      "url": "https://s.weibo.com/top/summary",
+      "site_key": "weibo",
+      "target_scope": "微博热搜主榜已加载的栏目及记录结构；不固定条目成员、名次或热度。",
+      "target_language": "zh",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "legacy20260921",
+        "path": "current-and-reserves/risk-006/round-1/browser.txt",
+        "sha256": "c02c6d8671f5113eef50b3e2642ccac8842b35539b8daccd11c04ba4f682093b"
+      }
+    },
+    {
+      "id": "risk-011",
+      "url": "https://www.toutiao.com/article/7595028554912399898/",
+      "site_key": "toutiao",
+      "target_scope": "今日头条指定文章标题、作者、导语和首次自动加载的整篇正文；不包含评论、作者热门作品、热榜和推荐文章。",
+      "target_language": "zh",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "legacy20260921",
+        "path": "current-and-reserves/risk-011/round-1/browser.txt",
+        "sha256": "4975f601cde6ab82b4948403b902bfcc32c99aa1c530ce88c7f9d4d6e8724532"
+      },
+      "observed_final_url": "https://www.toutiao.com/article/7595028554912399898/?wid=1789984348230"
+    },
+    {
+      "id": "risk-061",
+      "url": "https://dribbble.com/search/web-design",
+      "site_key": "dribbble",
+      "target_scope": "Dribbble web-design 搜索页已加载作品网格、名称、作者及栏目；不固定当前作品名单。",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "legacy20260921",
+        "path": "pilot/risk-061/round-1/browser.txt",
+        "sha256": "31263de4a7498167cb9503e6d5ec616fb0049b951a28104433aaad1e6c61f43e"
+      }
+    },
+    {
+      "id": "risk-101",
+      "url": "https://www.bilibili.com/v/popular/all/",
+      "site_key": "bilibili",
+      "target_scope": "综合热门列表原页面的说明、分类和初始视频条目字段，不固定成员或热度。",
+      "target_language": "zh",
+      "qualification_class": "login_only",
+      "reference_proof": {
+        "root": "legacy20260921",
+        "path": "current-and-reserves/risk-101/round-1/browser.txt",
+        "sha256": "b77fc3823d1fd20e3de3701cf1e94d7674f09fadc03d0577bace24391450a882"
+      }
+    },
+    {
+      "id": "risk-102",
+      "url": "https://v.qq.com/channel/movie",
+      "site_key": "tencent-video",
+      "target_scope": "电影频道原页面的分类和初始节目卡片，不进入播放页，不固定片单或分数。",
+      "target_language": "zh",
+      "qualification_class": "login_only",
+      "reference_proof": {
+        "root": "legacy20260921",
+        "path": "current-and-reserves-v2/risk-102/round-1/browser.txt",
+        "sha256": "bf20ba15ff9ad4930e7eef70cf4ff59bcf48000dc2d1a7d55cc0a722c2a62357"
+      }
+    },
+    {
+      "id": "risk-diverse-271",
+      "url": "https://dev.sanctum.geek.nz/cgit/?p=about",
+      "site_key": "sanctum",
+      "target_scope": "Original about-page text",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-13/risk-diverse-271/round-1/http-default.txt",
+        "sha256": "8e4909bbd19bfd4db1131c15021705b88b10da6797cbec4c37d9cac76635f21e"
+      }
+    },
+    {
+      "id": "risk-diverse-027",
+      "url": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/",
+      "site_key": "kernel",
+      "target_scope": "Linux kernel public Git repository identity and current repository summary",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-027/round-1/http-default.txt",
+        "sha256": "498e4ed3e272ecef07a4bfa46ceb8e91f2f06ebf9670bf634635df528c9c64fb"
+      }
+    },
+    {
+      "id": "risk-new-102",
+      "url": "https://wiki.debian.org/DebianInstall",
+      "site_key": "debian",
+      "target_scope": "DebianInstall 安装文档开头、Stable 与 Testing 说明；不固定当前版本。",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "legacy20260921",
+        "path": "new-candidates/risk-new-102/round-1/http-default.txt",
+        "sha256": "a24f416f6a21962ec45cfc145e4293ea0aaf12455a9f13ade94ab8a6885a7aeb"
+      }
+    },
+    {
+      "id": "risk-diverse-030",
+      "url": "https://bugs.winehq.org/",
+      "site_key": "winehq",
+      "target_scope": "Wine Bugzilla public landing page identity and visible bug-search interface",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-030/round-1/http-default.txt",
+        "sha256": "ea2bc84d2bd362f45849bf7ddf721d95ccd18ae9923a46ecf501b13c3b8548cc"
+      }
+    },
+    {
+      "id": "risk-diverse-031",
+      "url": "https://scioly.org/wiki/index.php/Main_Page",
+      "site_key": "scioly",
+      "target_scope": "public Science Olympiad wiki identity and main-page content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-031/round-1/http-default.txt",
+        "sha256": "828e24ac33bf0a96df3badc979357e352bbc33036f78bed037842b974de13b49"
+      },
+      "observed_final_url": "https://scioly.org/wiki/Main_Page"
+    },
+    {
+      "id": "risk-diverse-032",
+      "url": "https://git.enlightenment.org/enlightenment/enlightenment",
+      "site_key": "enlightenment",
+      "target_scope": "Enlightenment public source repository identity and summary",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-032/round-1/http-default.txt",
+        "sha256": "4c3a9090b32b0691f94cb2d60df30467689416238080936db08008a23f423e35"
+      }
+    },
+    {
+      "id": "risk-diverse-033",
+      "url": "https://forum.freecad.org/",
+      "site_key": "freecad",
+      "target_scope": "FreeCAD public forum identity and automatically visible forum categories",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-033/round-1/http-default.txt",
+        "sha256": "8303d462d254e22269ec7ae55e91b4c8b960c953cf91c3ebdecc37d3195f5488"
+      }
+    },
+    {
+      "id": "risk-diverse-034",
+      "url": "https://wiki.scummvm.org/index.php/Main_Page",
+      "site_key": "scummvm",
+      "target_scope": "ScummVM public wiki identity and main-page content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-034/round-1/http-default.txt",
+        "sha256": "7d374f40038973a777d0887ff1597d503e0c29b3484d11f2fa14a6c85f50f5a0"
+      }
+    },
+    {
+      "id": "risk-diverse-036",
+      "url": "https://openwrt.org/start",
+      "site_key": "openwrt",
+      "target_scope": "OpenWrt public wiki identity and start-page introductory content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-036/round-1/http-default.txt",
+        "sha256": "723024f17b569341acd0f823bd6b75c93044aea4eccd615c16c4b85080eec1bb"
+      }
+    },
+    {
+      "id": "risk-diverse-038",
+      "url": "https://wiki.archlinux.org/title/Main_page",
+      "site_key": "archlinux",
+      "target_scope": "ArchWiki public identity and main-page navigation or introductory content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-038/round-1/http-default.txt",
+        "sha256": "96d898bf6b274907bedae790a314ca341b868b9e4cdf8d68717cefdb8e862738"
+      }
+    },
+    {
+      "id": "risk-diverse-039",
+      "url": "https://svnweb.freebsd.org/base/",
+      "site_key": "freebsd",
+      "target_scope": "FreeBSD base source-tree public identity and directory listing",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-039/round-1/http-default.txt",
+        "sha256": "3c3bb52d75e2ac4c8e1d76098bee0e522ec2cbe8280752b66191233c5441a4ec"
+      }
+    },
+    {
+      "id": "risk-diverse-040",
+      "url": "https://source.puri.sm/Librem5/phosh",
+      "site_key": "purism",
+      "target_scope": "Phosh public project identity and README summary",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-040/round-1/browser.txt",
+        "sha256": "4d1d7a9acca97023eb373476c9592a328d86dfc8cba82fecdafd8e78431fe505"
+      }
+    },
+    {
+      "id": "risk-diverse-041",
+      "url": "https://dev.haiku-os.org/",
+      "site_key": "haiku",
+      "target_scope": "Haiku public development tracker identity and visible project navigation",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-041/round-1/http-default.txt",
+        "sha256": "94c2961107873eacf41fcce9797d92f06d9d539f2d08ecd4f179e627ab385b74"
+      }
+    },
+    {
+      "id": "risk-diverse-042",
+      "url": "https://git.devuan.org/devuan/installer-iso",
+      "site_key": "devuan",
+      "target_scope": "Devuan installer-iso public project identity and README summary",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-042/round-1/http-default.txt",
+        "sha256": "aa93249fa822d611ad12f6691a43374bef9cfe845623477676ec4e20437e262c"
+      }
+    },
+    {
+      "id": "risk-diverse-045",
+      "url": "https://www.cfaarchive.org/",
+      "site_key": "cfaarchive",
+      "target_scope": "CFA Archive public identity and automatically visible collection description",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-045/round-1/http-default.txt",
+        "sha256": "6b61c802ef1b1c1978fdf94dd0915920df06bff749480b87fd5fd8a05ee145cf"
+      }
+    },
+    {
+      "id": "risk-diverse-047",
+      "url": "https://bugzilla.proxmox.com/",
+      "site_key": "proxmox",
+      "target_scope": "Proxmox public bug tracker identity and visible search interface",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-047/round-1/http-default.txt",
+        "sha256": "92bc0bdd6b078217681dd4f026e77048527a5f2aa6139b13e266a9621b936bc9"
+      }
+    },
+    {
+      "id": "risk-diverse-048",
+      "url": "https://reactos.org/wiki/Main_Page",
+      "site_key": "reactos",
+      "target_scope": "ReactOS public wiki identity and main-page content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-048/round-1/http-default.txt",
+        "sha256": "8417fee5cad83604bcb2244bb372c640cbc10a521fcfff33a9c788cc08148965"
+      }
+    },
+    {
+      "id": "risk-diverse-049",
+      "url": "https://www.archlinux32.org/packages/",
+      "site_key": "archlinux32",
+      "target_scope": "Arch Linux 32 public package index identity and visible package entries",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-049/round-1/http-default.txt",
+        "sha256": "996bee4e2f0c6e19a7b50d0f098c19cde9ce67d532ecd741ac9822a6383f0051"
+      }
+    },
+    {
+      "id": "risk-diverse-050",
+      "url": "https://git.slackware.nl/current/",
+      "site_key": "slackware",
+      "target_scope": "Slackware current public repository identity and source summary",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-050/round-1/http-default.txt",
+        "sha256": "3d472fb18e065b1f18d9f78b587b31f71c86ff794b506cebbe2e3122096908c4"
+      }
+    },
+    {
+      "id": "risk-diverse-051",
+      "url": "https://repository.duke.edu/",
+      "site_key": "duke",
+      "target_scope": "Duke Digital Repository public identity and automatically visible collection discovery content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-051/round-1/browser.txt",
+        "sha256": "41cf58c34c4f08a6c6bffc8778752b7c50f11e97875c1daeed47155b84711a38"
+      }
+    },
+    {
+      "id": "risk-diverse-055",
+      "url": "https://tufind.hds.hebis.de/",
+      "site_key": "hebis",
+      "target_scope": "hebis public discovery service identity and catalog search interface",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-055/round-1/http-default.txt",
+        "sha256": "6902ef1e3bf769653f968e40c26e13e3eb11159bb5c7edc53a5b6790a36f5b52"
+      }
+    },
+    {
+      "id": "risk-diverse-057",
+      "url": "https://xeiaso.net/",
+      "site_key": "xeiaso",
+      "target_scope": "public author-site identity and automatically visible recent writing links",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-057/round-1/http-default.txt",
+        "sha256": "2a810eff376b42935fe3fe53a7c0ac4066cc672558b23b24ae71c8237de2a361"
+      }
+    },
+    {
+      "id": "risk-diverse-059",
+      "url": "https://superlove.sayitditto.net/",
+      "site_key": "superlove",
+      "target_scope": "Superlove public site identity and automatically visible page content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "anubis-batch-2/risk-diverse-059/round-1/http-default.txt",
+        "sha256": "f86dec738c654e83ccdd470c46489f42755052208f231cbe0bc9b8597a84f1f0"
+      }
+    },
+    {
+      "id": "risk-diverse-074",
+      "url": "https://www.ticketmaster.com/discover/concerts",
+      "site_key": "ticketmaster",
+      "target_scope": "public concerts discovery identity and automatically visible event results; dates and rank are not frozen",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "public-platform-batch-3/risk-diverse-074/round-1/http-default.txt",
+        "sha256": "f752e829207a79c5efa11f5ce5f3c58091edc047be6a06902be44e8c256445cd"
+      }
+    },
+    {
+      "id": "risk-diverse-101",
+      "url": "https://azurlane.koumakan.jp/",
+      "site_key": "azurlane-wiki",
+      "target_scope": "public Azur Lane Wiki identity and main-page content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-101/round-1/http-default.txt",
+        "sha256": "d3f38ad779e87598d6565ab09328fbd608d758783cbea64413b667077a858add"
+      },
+      "observed_final_url": "https://azurlane.koumakan.jp/wiki/Azur_Lane_Wiki"
+    },
+    {
+      "id": "risk-diverse-104",
+      "url": "https://dev.sanctum.geek.nz/",
+      "site_key": "sanctum",
+      "target_scope": "public development site identity and visible project content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-104/round-1/http-default.txt",
+        "sha256": "f4809ca6a3615c6e2885d49eed15dec2f4ed61f4ab9674cc2fecc89490e67d78"
+      },
+      "observed_final_url": "https://dev.sanctum.geek.nz/cgit"
+    },
+    {
+      "id": "risk-diverse-106",
+      "url": "https://extensions.typo3.org/",
+      "site_key": "typo3",
+      "target_scope": "public TYPO3 extension repository identity and visible extension content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-106/round-1/http-default.txt",
+        "sha256": "67b9895b3a68f5cc620dbdde18ded1d41bec64dc63442890db14ca5635d5bfd5"
+      }
+    },
+    {
+      "id": "risk-diverse-113",
+      "url": "https://mozillazine.org/",
+      "site_key": "mozillazine",
+      "target_scope": "public MozillaZine identity and visible community content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-113/round-1/http-default.txt",
+        "sha256": "95ef6bc5e33482538fdca1811f351bef4ed74fed8b999db066a45ee33c2d82b8"
+      }
+    },
+    {
+      "id": "risk-diverse-114",
+      "url": "https://pluralpedia.org/",
+      "site_key": "pluralpedia",
+      "target_scope": "public Pluralpedia identity and visible encyclopedia content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-114/round-1/http-default.txt",
+        "sha256": "1fd696eb3046c4411a211e986935ae0b122634df2ba8c743514e07c26b72d900"
+      },
+      "observed_final_url": "https://pluralpedia.org/w/Main_Page"
+    },
+    {
+      "id": "risk-diverse-117",
+      "url": "https://rpmfusion.org/",
+      "site_key": "rpmfusion",
+      "target_scope": "public RPM Fusion identity and visible project information",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-117/round-1/http-default.txt",
+        "sha256": "7a76cb6a1718130612481990176ba1b049f0481730f3672c3326b3dcd953e9a2"
+      }
+    },
+    {
+      "id": "risk-diverse-118",
+      "url": "https://squirreljme.cc/",
+      "site_key": "squirreljme",
+      "target_scope": "public SquirrelJME identity and visible project information",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-118/round-1/http-default.txt",
+        "sha256": "7c28d677097a2cfd48a2db90bfe4e61b08f0a7e560f4977ecc1ffec1c81d237d"
+      },
+      "observed_final_url": "https://multiphasicapps.net/doc/ckout/readme.mkd"
+    },
+    {
+      "id": "risk-diverse-121",
+      "url": "https://forums.dolphin-emu.org/",
+      "site_key": "dolphin",
+      "target_scope": "public Dolphin Emulator forum identity and visible forum categories",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-121/round-1/http-default.txt",
+        "sha256": "74648adaaff7f1fc477e13a6d1c02916836cb0c167343dfeb362896dc5cd91e4"
+      }
+    },
+    {
+      "id": "risk-diverse-122",
+      "url": "https://wiki.freepascal.org/",
+      "site_key": "freepascal",
+      "target_scope": "public Free Pascal wiki identity and visible main-page content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-122/round-1/http-default.txt",
+        "sha256": "6276f819d20bf2ef4fe97fb0dabf95607bc5627eccd298789125cd1abefb3897"
+      }
+    },
+    {
+      "id": "risk-diverse-123",
+      "url": "https://wiki.koha-community.org/",
+      "site_key": "koha",
+      "target_scope": "public Koha Community wiki identity and visible main-page content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-123/round-1/http-default.txt",
+        "sha256": "ab98cb5e01f2f184ee92d565024b157baddf68055d78e841bada6f0e10d99e23"
+      },
+      "observed_final_url": "https://wiki.koha-community.org/wiki/Main_Page"
+    },
+    {
+      "id": "risk-diverse-129",
+      "url": "https://ws.hydrooj.com/d/faqs/",
+      "site_key": "hydrooj",
+      "target_scope": "public HydroOJ FAQ site identity and visible FAQ content",
+      "target_language": "zh",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-129/round-1/browser.txt",
+        "sha256": "351cc637c74a1396f0f423af34ed4ab31e0834c67219f40bfdfc0f2a818ba428"
+      }
+    },
+    {
+      "id": "risk-diverse-134",
+      "url": "https://www.zillow.com/homes/for_sale/",
+      "site_key": "zillow",
+      "target_scope": "public homes-for-sale query identity and automatically visible listing content; prices and rank are not frozen",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-134/round-1/http-default.txt",
+        "sha256": "a34093a6286d94b04d21cdf509eda74351ad9535614bff9ba3b2996651e7a96d"
+      }
+    },
+    {
+      "id": "risk-diverse-135",
+      "url": "https://www.gocompare.com/",
+      "site_key": "gocompare",
+      "target_scope": "public Go.Compare identity and automatically visible comparison-service content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-135/round-1/browser.txt",
+        "sha256": "4b3170bdaf4e1fa5d065df5a234082cca69180edb7c86ff64199991d7e7effa2"
+      }
+    },
+    {
+      "id": "risk-diverse-138",
+      "url": "https://wiki.dlang.org/",
+      "site_key": "dlang",
+      "target_scope": "public D programming language wiki identity and main-page content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-138/round-1/http-default.txt",
+        "sha256": "11aa420adcf0485572e513728ed6b0a8d6e7d7ae3a25f0448ee634947770f1e3"
+      },
+      "observed_final_url": "https://wiki.dlang.org/The_D_Programming_Language"
+    },
+    {
+      "id": "risk-diverse-139",
+      "url": "https://dsource.org/",
+      "site_key": "dsource",
+      "target_scope": "public DSource identity and automatically visible project content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "security-platform-batch-4/risk-diverse-139/round-1/http-default.txt",
+        "sha256": "8822fc13632912a03f5c441c301f5d921fffbf728f01c08e7fbebc8116242ba2"
+      }
+    },
+    {
+      "id": "risk-diverse-153",
+      "url": "https://www.lznoip.club/training/66358a5906b752f133d95f9f",
+      "site_key": "lznoip",
+      "target_scope": "specified public training page identity and visible problem or training content",
+      "target_language": "zh",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "historical-security-batch-5/risk-diverse-153/round-1/browser.txt",
+        "sha256": "5a3c4080e0ebb4882d4c2ff85b47108050cc15ed5de964a6e9ff10aabf582695"
+      }
+    },
+    {
+      "id": "risk-diverse-158",
+      "url": "https://www.scribus.net/",
+      "site_key": "scribus",
+      "target_scope": "public Scribus project identity and automatically visible project content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "technology-detected-batch-6/risk-diverse-158/round-1/http-default.txt",
+        "sha256": "5cbb38a61b1293417beb70650538513cc6e82c64a443eb808d1b0affcaeeb504"
+      }
+    },
+    {
+      "id": "risk-diverse-159",
+      "url": "https://hal.science/",
+      "site_key": "hal",
+      "target_scope": "public HAL open archive identity and automatically visible discovery content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "technology-detected-batch-6/risk-diverse-159/round-1/http-default.txt",
+        "sha256": "b6077b6832aa38f911fc00514a0ba1b8a14d9247e14958c912d1a8cb96287eff"
+      }
+    },
+    {
+      "id": "risk-diverse-160",
+      "url": "https://observation.org/",
+      "site_key": "observation",
+      "target_scope": "public biodiversity observation platform identity and automatically visible observation content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "technology-detected-batch-6/risk-diverse-160/round-1/http-default.txt",
+        "sha256": "89ee201f846fe604c4e64733d29d438017c40270434332049b2d2255ec704f78"
+      }
+    },
+    {
+      "id": "risk-diverse-170",
+      "url": "https://git.linkpuff.me/",
+      "site_key": "linkpuff-git",
+      "target_scope": "public source forge identity and visible project content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "operator-reported-batch-7/risk-diverse-170/round-1/http-default.txt",
+        "sha256": "236862e9c30e39aa1f35b1657b6cb0bcbd78239cbcc3d3e572d62f9f65d28850"
+      }
+    },
+    {
+      "id": "risk-diverse-177",
+      "url": "https://forum.egosoft.com/",
+      "site_key": "egosoft",
+      "target_scope": "public Egosoft forum identity and visible forum categories",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "operator-reported-batch-7/risk-diverse-177/round-1/http-default.txt",
+        "sha256": "44bcb36ce98c2da61b610d75dca3044e5ffe455e6739bde711e86db573eff21e"
+      }
+    },
+    {
+      "id": "risk-diverse-181",
+      "url": "https://xtools.wmcloud.org/articleinfo/en.wikipedia.org/Artificial_intelligence",
+      "site_key": "wikimedia-xtools",
+      "target_scope": "specified public XTools article-info report identity and automatically visible analytics fields",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "operator-reported-batch-7/risk-diverse-181/round-1/http-default.txt",
+        "sha256": "653e897b4a416916d50126214959397ff4c90f21cfc094f57d19adf237277ba2"
+      }
+    },
+    {
+      "id": "risk-diverse-182",
+      "url": "https://spcodex.wiki/",
+      "site_key": "spcodex",
+      "target_scope": "public SP Codex wiki identity and visible main-page content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "operator-reported-batch-7/risk-diverse-182/round-1/http-default.txt",
+        "sha256": "5ded3231bdf007f4945bd9d4489ede04b6eb2e376b6dec263148b04bbd369573"
+      }
+    },
+    {
+      "id": "risk-diverse-185",
+      "url": "https://lumiera.org/doxy/",
+      "site_key": "lumiera",
+      "target_scope": "Lumiera API documentation identity and automatically visible documentation introduction",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "protected-route-batch-8/risk-diverse-185/round-1/http-default.txt",
+        "sha256": "978c6ed13e6992d03e2b2baa06e0d75e6a91129933be59a0b3c7de0de2b8ceb5"
+      }
+    },
+    {
+      "id": "risk-diverse-192",
+      "url": "https://ibiblio.org/",
+      "site_key": "ibiblio",
+      "target_scope": "ibiblio public archive identity and automatically visible collection introduction",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "indexed-anubis-batch-9/risk-diverse-192/round-1/browser.txt",
+        "sha256": "37116737351befd1d0e8c75d9fa4d608880d4d8c44edde8447a0614871720689"
+      },
+      "observed_final_url": "https://www.ibiblio.org/"
+    },
+    {
+      "id": "risk-diverse-193",
+      "url": "https://docs.fedoraproject.org/en-US/docs/",
+      "site_key": "fedora",
+      "target_scope": "Fedora documentation identity and automatically visible documentation landing content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "indexed-anubis-batch-9/risk-diverse-193/round-1/http-default.txt",
+        "sha256": "9f06625abe4e65dda698c268ddeb9ce46e030cd68cee89e994f53a97529a5a17"
+      }
+    },
+    {
+      "id": "risk-diverse-219",
+      "url": "https://wiki.qemu.org/",
+      "site_key": "qemu",
+      "target_scope": "Original wiki homepage introduction",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-219/round-1/http-default.txt",
+        "sha256": "035da671d81161e450b978c2c8e8b9f23e0b83ab15862f3579b45cffec0b0669"
+      },
+      "observed_final_url": "https://wiki.qemu.org/Main_Page"
+    },
+    {
+      "id": "risk-diverse-220",
+      "url": "https://wiki.musicbrainz.org/",
+      "site_key": "musicbrainz",
+      "target_scope": "Original English wiki homepage introduction",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-220/round-1/http-default.txt",
+        "sha256": "d9e84e3968c6cdff934114ebca7bcdc01c175e8557d8131306e46e4d28f48de5"
+      },
+      "observed_final_url": "https://wiki.musicbrainz.org/Main_Page"
+    },
+    {
+      "id": "risk-diverse-221",
+      "url": "https://www.sabre-roads.org.uk/",
+      "site_key": "sabre",
+      "target_scope": "Road community homepage introduction",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-221/round-1/http-default.txt",
+        "sha256": "0c4ca0f32d552e799d1eb6643962e53da3ef0026ad2b75bb1d2752dbbf5a559d"
+      }
+    },
+    {
+      "id": "risk-diverse-222",
+      "url": "https://wikibase.world/",
+      "site_key": "wikibase-world",
+      "target_scope": "Original community wiki introduction",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-222/round-1/http-default.txt",
+        "sha256": "c6c21cba924b808f8fd85f754618e03526d0689fdb4da696ef247a3a4ca7b202"
+      },
+      "observed_final_url": "https://wikibase.world/wiki/Project:Home"
+    },
+    {
+      "id": "risk-diverse-223",
+      "url": "https://www.noisebridge.net/",
+      "site_key": "noisebridge",
+      "target_scope": "Original hackerspace introduction",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-223/round-1/http-default.txt",
+        "sha256": "2ecd69cd1584d177d1dfc47e61f74a6a045798c54fdd2ffe1de94a52380b6a0f"
+      },
+      "observed_final_url": "https://www.noisebridge.net/wiki"
+    },
+    {
+      "id": "risk-diverse-225",
+      "url": "https://wiki.anton-paar.com/",
+      "site_key": "anton-paar",
+      "target_scope": "Original English knowledge wiki homepage",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-225/round-1/http-default.txt",
+        "sha256": "3d52a818f1111fc20948017bc80632fe9b44c4922fe10321b8368c6565eb1972"
+      },
+      "observed_final_url": "https://wiki.anton-paar.com/us-en/"
+    },
+    {
+      "id": "risk-diverse-226",
+      "url": "https://wiki.teamfortress.com/wiki/Main_Page",
+      "site_key": "valve",
+      "target_scope": "Original English game wiki homepage",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-226/round-1/http-default.txt",
+        "sha256": "9b4d886da513b045458062375ea338bae3dbf9388f2555fce35ae46fae8e4693"
+      }
+    },
+    {
+      "id": "risk-diverse-011",
+      "url": "https://www.threads.com/@nasa/post/DdEwHNClPdc?hl=zh-cn",
+      "site_key": "threads",
+      "target_scope": "指定公开帖子的作者和正文，以及自动出现的登录弹窗",
+      "target_language": "en",
+      "qualification_class": "login_only",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "priority-batch-1-v2/risk-diverse-011/round-1/browser.txt",
+        "sha256": "e2abc28acf49afb17cb79fd5ea23a176e86045972c92709c403d7295276d833f"
+      }
+    },
+    {
+      "id": "risk-diverse-012",
+      "url": "https://www.goodreads.com/book/show/953716.84_Charing_Cross_Road",
+      "site_key": "goodreads",
+      "target_scope": "指定图书的公开书名、作者和简介，以及自动出现的登录弹窗",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260924",
+        "path": "priority-batch-1-v2/risk-diverse-012/round-1/browser.txt",
+        "sha256": "eb3400df155dbc8672200c23a3f4ad20cf8f329871d8e5f68d3d29de3709c687"
+      }
+    },
+    {
+      "id": "risk-diverse-241",
+      "url": "https://www.power-z.cn/blogs/新闻/chargerlab-power-z-测试仪购买方式",
+      "site_key": "power-z",
+      "target_scope": "原厂文章中的产品区别说明，不固定价格或购买清单",
+      "target_language": "zh",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-241/round-1/http-default.txt",
+        "sha256": "68e90ab3385803c2462cf23335a163b4197ba9fd54cc26825b19a4707e52ef57"
+      },
+      "observed_final_url": "https://www.power-z.cn/blogs/%E6%96%B0%E9%97%BB/chargerlab-power-z-%E6%B5%8B%E8%AF%95%E4%BB%AA%E8%B4%AD%E4%B9%B0%E6%96%B9%E5%BC%8F"
+    },
+    {
+      "id": "risk-diverse-242",
+      "url": "https://www.tib.eu/en/",
+      "site_key": "tib",
+      "target_scope": "Library services introduction",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-12/risk-diverse-242/round-1/browser.txt",
+        "sha256": "f436e546be98b97fe83ff784606c32ed109131f85c1b4513aaa82b9d9a174a8b"
+      }
+    },
+    {
+      "id": "risk-diverse-244",
+      "url": "https://www.sciencemadness.org/smwiki/index.php/Main_Page",
+      "site_key": "sciencemadness",
+      "target_scope": "Original chemistry wiki introduction",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-12/risk-diverse-244/round-1/http-default.txt",
+        "sha256": "9111aa26d53d39dacebbe6a24abe8a7c09e61b8b1268a7c5838b9d8aa3a1b48d"
+      }
+    },
+    {
+      "id": "risk-diverse-245",
+      "url": "https://xeno-canto.org/about/xeno-canto",
+      "site_key": "xeno-canto",
+      "target_scope": "Original project about article",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-12/risk-diverse-245/round-1/http-default.txt",
+        "sha256": "77ca5221216ed7c74c7ee22aed7850cd4ff5b7d58119870d3a5c719f33cbfdbb"
+      }
+    },
+    {
+      "id": "risk-diverse-248",
+      "url": "https://theglobaleuropean.com/",
+      "site_key": "the-global-european",
+      "target_scope": "Original English publication homepage",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-12/risk-diverse-248/round-1/http-default.txt",
+        "sha256": "e8e9c6f05e943b34d29e347d99bf7de69c4c5ee033c7a82f090785615af55e8b"
+      }
+    },
+    {
+      "id": "risk-diverse-262",
+      "url": "https://knowledge.hacklab.to/wiki/",
+      "site_key": "hacklab",
+      "target_scope": "Original public knowledge wiki",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-13/risk-diverse-262/round-1/browser.txt",
+        "sha256": "fa888145c8c739b659b20a133ddb5702962f9ea4ed4c9921ed525d2aa30c90de"
+      },
+      "observed_final_url": "https://knowledge.hacklab.to/wiki/Main_Page"
+    },
+    {
+      "id": "risk-diverse-263",
+      "url": "https://www.freedesktop.org/wiki/",
+      "site_key": "freedesktop",
+      "target_scope": "Original freedesktop project wiki introduction",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-13/risk-diverse-263/round-1/http-default.txt",
+        "sha256": "cd10599caa0769f5d906c0c83670e4a629163d2100be27de1c39a1af479db600"
+      }
+    },
+    {
+      "id": "risk-diverse-267",
+      "url": "https://en.opensuse.org/Main_Page",
+      "site_key": "opensuse",
+      "target_scope": "Original English openSUSE wiki homepage",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-13/risk-diverse-267/round-1/browser.txt",
+        "sha256": "a998df755b33e3c73b2b63814790d62725e45b2af6e4b83f569ec7a64ef622a4"
+      }
+    },
+    {
+      "id": "risk-diverse-268",
+      "url": "https://wiki.alpinelinux.org/wiki/Main_Page",
+      "site_key": "alpine",
+      "target_scope": "Original English Alpine wiki homepage",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-13/risk-diverse-268/round-1/http-default.txt",
+        "sha256": "9dffd952d54e9c62e2028ed43a871acda64662e6388ad5b29bd241c957f0a6d8"
+      },
+      "observed_final_url": "https://wiki.alpinelinux.org/wiki/Main_Page?__goaway_challenge=cookie&__goaway_id=9429a1dbe025c115ef05a78712fb56b2"
+    },
+    {
+      "id": "risk-new-006",
+      "url": "https://dribbble.com/shots/16508584-TAE-Web-Design-for-Travel-Tourism",
+      "site_key": "dribbble",
+      "target_scope": "该作品详情页自动显示的标题、作者及公开设计说明；不包含评论、推荐作品或需要交互的部分。",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "legacy20260921",
+        "path": "new-candidates/risk-new-006/round-1/browser.txt",
+        "sha256": "bdcc9a671c4a6e40b82b55b7c2d26a7ed337141341df53d276a2eab9c5a909fa"
+      }
+    },
+    {
+      "id": "risk-diverse-199",
+      "url": "https://wiki.scummvm.org/index.php?title=About",
+      "site_key": "scummvm",
+      "target_scope": "directly loaded About article",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-199/round-1/http-default.txt",
+        "sha256": "a295d768f0285eb187622f3276113e395b061d41e23660d4b98364da998f97f0"
+      }
+    },
+    {
+      "id": "risk-diverse-200",
+      "url": "https://openwrt.org/docs/guide-quick-start/start",
+      "site_key": "openwrt",
+      "target_scope": "directly loaded quick-start guide",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-200/round-1/http-default.txt",
+        "sha256": "d3c236e2253571bb881389ba5d0f4077e6c782830586714a1466b6843ac3d38d"
+      }
+    },
+    {
+      "id": "risk-diverse-201",
+      "url": "https://wiki.archlinux.org/title/Installation_guide",
+      "site_key": "archlinux",
+      "target_scope": "initial full installation guide without expanding linked pages",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-201/round-1/http-default.txt",
+        "sha256": "e56f8d9d2d0ef8bd0708393ead89cc299817fb0380be6829336e8b6f819fe12c"
+      }
+    },
+    {
+      "id": "risk-diverse-202",
+      "url": "https://dev.haiku-os.org/wiki/TracGuide",
+      "site_key": "haiku",
+      "target_scope": "original guide page text",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-202/round-1/http-default.txt",
+        "sha256": "290c5458648d11013f7100cb8e7e1a752131d80f459354a242ec099c9d0fc8c7"
+      }
+    },
+    {
+      "id": "risk-diverse-204",
+      "url": "https://reactos.org/wiki/ReactOS",
+      "site_key": "reactos",
+      "target_scope": "original ReactOS overview article",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-204/round-1/http-default.txt",
+        "sha256": "d3e1a50c3d1316dec287b2f03d92e602dbc8766bb9d899e1b19eb09abf66ea32"
+      }
+    },
+    {
+      "id": "risk-diverse-205",
+      "url": "https://superlove.sayitditto.net/about",
+      "site_key": "superlove",
+      "target_scope": "original archive about-page content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-205/round-1/http-default.txt",
+        "sha256": "213beac48f635c564e73e91d25248074d6917f2298ff6207392085f59d89afe0"
+      }
+    },
+    {
+      "id": "risk-diverse-208",
+      "url": "https://pluralpedia.org/w/Project:About",
+      "site_key": "pluralpedia",
+      "target_scope": "original English about article",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-208/round-1/http-default.txt",
+        "sha256": "b68658451b26621c209c2f8979f66c13b5430f3278002e345fc0dc966b82e68c"
+      }
+    },
+    {
+      "id": "risk-diverse-209",
+      "url": "https://rpmfusion.org/FAQ",
+      "site_key": "rpmfusion",
+      "target_scope": "initial full FAQ text",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-209/round-1/http-default.txt",
+        "sha256": "72f13b5d249f05f3e374c5453f5fe65052b6586adc4e997b77990213a710cf28"
+      }
+    },
+    {
+      "id": "risk-diverse-210",
+      "url": "https://wiki.freepascal.org/Installing_the_Free_Pascal_Compiler",
+      "site_key": "freepascal",
+      "target_scope": "original English installation guide",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-210/round-1/http-default.txt",
+        "sha256": "2461cf779a98209cdf274171888717979648fad8fd73458a740f4de9b0c7539e"
+      }
+    },
+    {
+      "id": "risk-diverse-211",
+      "url": "https://wiki.koha-community.org/wiki/Getting_involved",
+      "site_key": "koha",
+      "target_scope": "original contributor guide",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-211/round-1/http-default.txt",
+        "sha256": "85c94f7a29083c23c0b30b7b2e2b484104cd65f84629d79dd3bab7e5f7c11e63"
+      }
+    },
+    {
+      "id": "risk-diverse-212",
+      "url": "https://wiki.dlang.org/Getting_Started",
+      "site_key": "dlang",
+      "target_scope": "original getting-started documentation",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-212/round-1/http-default.txt",
+        "sha256": "8aa5e96685d2260f90861ae15ff293431e6a49e14c038c37e159fcd54df84e18"
+      }
+    },
+    {
+      "id": "risk-diverse-213",
+      "url": "https://www.scribus.net/about/",
+      "site_key": "scribus",
+      "target_scope": "original about-page introduction",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-213/round-1/http-default.txt",
+        "sha256": "fbbf06ec0f3703b3b0085f77fad590b5900191a58c053fa19de8f4d9ac10c263"
+      }
+    },
+    {
+      "id": "risk-diverse-214",
+      "url": "https://observation.org/pages/about/",
+      "site_key": "observation",
+      "target_scope": "original platform about-page content",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-214/round-1/http-default.txt",
+        "sha256": "5108dd320c8a8f24b7b5e25528b20517f23cac165726f81792fdd0b852d0418b"
+      }
+    },
+    {
+      "id": "risk-diverse-215",
+      "url": "https://spcodex.wiki/SPCodex:About",
+      "site_key": "spcodex",
+      "target_scope": "original English about article",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-215/round-1/http-default.txt",
+        "sha256": "f74277eed84892867f9ce2a872840cd098caa837e867ca7dfb0d9dae83d1c753"
+      }
+    },
+    {
+      "id": "risk-diverse-216",
+      "url": "https://docs.fedoraproject.org/en-US/beginners-guide/",
+      "site_key": "fedora",
+      "target_scope": "original English beginners guide",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-10/risk-diverse-216/round-1/http-default.txt",
+        "sha256": "1b9490d7e28a23ac7c568f1befa4c6eb6fef6cf451c396fb8a7de90128228199"
+      }
+    },
+    {
+      "id": "risk-diverse-228",
+      "url": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/about/",
+      "site_key": "kernel",
+      "target_scope": "Repository About page README documentation",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-228/round-1/http-default.txt",
+        "sha256": "f063dedfa32b1cf8252cd7377dad564bda09358f0cde175950464161ea61c237"
+      }
+    },
+    {
+      "id": "risk-diverse-230",
+      "url": "https://scioly.org/wiki/Help:Getting_started",
+      "site_key": "scioly",
+      "target_scope": "Original English getting-started guide",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-230/round-1/http-default.txt",
+        "sha256": "40aa035c067afc0a4505d544dc87c7f94bdc30f7f68251a4fcca219853b289f8"
+      }
+    },
+    {
+      "id": "risk-diverse-231",
+      "url": "https://forum.freecad.org/app.php/help/faq",
+      "site_key": "freecad",
+      "target_scope": "Original forum help FAQ",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-231/round-1/http-default.txt",
+        "sha256": "5f04ec3a8f10d1e5abb45979221acfdf022ecddcd7d10a2595d58900247a51dc"
+      }
+    },
+    {
+      "id": "risk-diverse-234",
+      "url": "https://extensions.typo3.org/about-extension-repository/what-are-extensions",
+      "site_key": "typo3",
+      "target_scope": "Original explanatory article",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-234/round-1/http-default.txt",
+        "sha256": "ddd942e8364f0c27211a19e1984d074191f04dde45df0212969783cfc9ae76dc"
+      }
+    },
+    {
+      "id": "risk-diverse-236",
+      "url": "https://multiphasicapps.net/doc/ckout/assets/user-guide/readme.mkd",
+      "site_key": "squirreljme",
+      "target_scope": "Original user documentation",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-236/round-1/http-default.txt",
+        "sha256": "5d29d232c611a7fc432b0e11dc0b18dfd4b91ed064d6d34813a26a2369d26466"
+      }
+    },
+    {
+      "id": "risk-diverse-237",
+      "url": "https://dolphin-emu.org/docs/faq/",
+      "site_key": "dolphin",
+      "target_scope": "Original emulator FAQ",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-237/round-1/http-default.txt",
+        "sha256": "1c37a0dcbdc99679823eca20045034005584bf11ccd13e546aafa386953812b2"
+      }
+    },
+    {
+      "id": "risk-diverse-238",
+      "url": "https://forum.egosoft.com/app.php/help/faq",
+      "site_key": "egosoft",
+      "target_scope": "Original English forum FAQ",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-238/round-1/http-default.txt",
+        "sha256": "60efe495b4b8dfb4aee2a583dd72d930b09e6bea00e480419798d570ce1d06f6"
+      }
+    },
+    {
+      "id": "risk-diverse-239",
+      "url": "https://www.ibiblio.org/about/",
+      "site_key": "ibiblio",
+      "target_scope": "Original library about article",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-11/risk-diverse-239/round-1/browser.txt",
+        "sha256": "5882cefaa251c83d04f3566358d57dc94769db85fa85d69ae2aa79262b2d1931"
+      }
+    },
+    {
+      "id": "risk-diverse-250",
+      "url": "https://wiki.qemu.org/Contribute",
+      "site_key": "qemu",
+      "target_scope": "Original contributor documentation",
+      "target_language": "en",
+      "qualification_class": "security_or_access_control",
+      "reference_proof": {
+        "root": "diverse20260927",
+        "path": "reference-expansion-batch-12/risk-diverse-250/round-1/http-default.txt",
+        "sha256": "a0631fc717cf1c8ff82d4a3fecac9766ff00d0d8735001e53d143b18a29a1654"
+      }
+    }
+  ]
+}

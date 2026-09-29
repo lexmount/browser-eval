@@ -1,4 +1,4 @@
-# 风控网站：规则制定与核对说明
+# 历史访问受限网址：规则制定与核对说明
 
 本文件说明怎样为当前正式 100 个网址案例制定规则。它是制定方法，不是已经完成的逐例规则，也不表示这些案例已经接受产品测试。
 
@@ -6,9 +6,9 @@
 
 ### 1.1 只处理正式 100 例
 
-当前输入是本目录下的[最终正式名单](qualification/cohort/qualified-cases.json)和[输入校验清单](qualification/cohort/input-manifest.json)。当前正式 100 例覆盖 74 个独立网站；`risk-diverse-271` 已按保存的随机选择回执替换 `risk-107`。未使用的 9 个候补不制定规则，也不进入仓库。
+当前输入是本目录下的[精简 cohort manifest](qualification/cohort/cohort-manifest.json)和[输入校验清单](qualification/cohort/input-manifest.json)。当前正式 100 例覆盖 74 个独立网站；`risk-diverse-271` 已按整体资格回执中保存的随机选择记录替换 `risk-107`。未使用的 9 个候补不制定规则，也不进入仓库。
 
-本批唯一替换的原因、随机选择过程和替代案例复核见[替换回执](qualification/cohort/risk-107-replacement-receipt.json)。不得根据 Moli 能否抓取决定替换。
+本批唯一替换的原因、随机选择过程和替代案例复核见[整体资格回执](qualification/cohort/cohort-receipt.json)。不得根据 Moli 能否抓取决定替换。
 
 ### 1.2 本阶段做什么
 
