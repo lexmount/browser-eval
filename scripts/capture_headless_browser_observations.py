@@ -291,6 +291,8 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
                     outer_html = content_locator.evaluate('(element) => element.outerHTML')
                     content = extract_pruned_selector_text(outer_html, case['url'])
                     observation_method = 'rendered_selector_dom_text_with_reference_scope_pruning'
+                final_url = page.url
+                title = page.title()
         finally:
             browser.close()
     if case.get('task_kind') == 'resource':
@@ -318,6 +320,7 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
     return {
         'case_id': case['id'], 'status': 'success', 'independent': True,
         'checked_at': datetime.now(timezone.utc).isoformat(),
+        'final_url': final_url, 'title': title,
         'content_text': content, 'selector': rule['description'] if rule else selector,
         'observation_method': observation_method,
         'observed_records': count, 'scope_identity': scope_identity(case),

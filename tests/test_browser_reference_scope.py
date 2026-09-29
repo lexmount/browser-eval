@@ -1,10 +1,13 @@
 """Browser reference capture must preserve scope and isolate case failures."""
 import json
+import sys
+from types import SimpleNamespace
 
 import pytest
 
 from scripts import capture_headless_browser_observations as browser_capture
 from scripts.capture_headless_browser_observations import (
+    capture,
     evaluate_popular_source_contract,
     capture_popular_contract,
     capture_with_retries,
@@ -265,6 +268,71 @@ def test_popular_capture_uses_primary_body_when_microfrontend_adds_another(monke
     content, _, contract = capture_popular_contract(Page(), case, 1000, 0.0)
     assert content == 'Ready'
     assert contract['pass'] is True
+
+
+def test_popular_observation_retains_observed_redirect_and_title(monkeypatch):
+    class Locator:
+        @property
+        def first(self):
+            return self
+
+        def wait_for(self, **kwargs):
+            return None
+
+        def count(self):
+            return 1
+
+        def inner_text(self, **kwargs):
+            return 'Ready'
+
+        def evaluate_all(self, expression):
+            return []
+
+    class Page:
+        url = 'https://www.example.com/locale'
+
+        def goto(self, *args, **kwargs):
+            return None
+
+        def locator(self, selector):
+            return Locator()
+
+        def content(self):
+            return '<html><body>Ready</body></html>'
+
+        def title(self):
+            return 'Localized homepage'
+
+    class Browser:
+        def new_page(self):
+            return Page()
+
+        def close(self):
+            return None
+
+    class Context:
+        def __enter__(self):
+            return SimpleNamespace(chromium=SimpleNamespace(launch=lambda **kwargs: Browser()))
+
+        def __exit__(self, *args):
+            return False
+
+    monkeypatch.setitem(sys.modules, 'playwright.sync_api',
+                        SimpleNamespace(sync_playwright=Context))
+    case = {
+        'id': 'popular-redirect', 'url': 'https://example.com/',
+        'source_benchmark': {'stable_annotation': {'registry': 'popular-sites'}},
+        'acceptance_contract': {
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [{'id': 'ready', 'alternatives': ['Ready']}],
+        },
+    }
+
+    row = capture(case, 1000, '/chrome', '93.184.216.34')
+    assert row['status'] == 'success'
+    assert row['completion']['satisfied'] is True
+    assert row['final_url'] == 'https://www.example.com/locale'
+    assert row['title'] == 'Localized homepage'
 
 
 def test_capture_retries_one_case_until_declared_completion(monkeypatch):
