@@ -24,6 +24,7 @@ from harness.trajectory_replay.webarena_report import (
     _planned_actions_digest,
     _public_evidence,
     _reference_validity_by_task,
+    _resource_table,
     _shell,
     _successful_distribution_table,
     _task_page,
@@ -153,8 +154,14 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     assert manifest["routes"] == 20 + 2 * extra_methods
     assert "36/36" not in (output / "index.html").read_text()
     assert "fixes.html" not in (output / "index.html").read_text()
-    assert "BrowserTool 与浏览器的组合" in (output / "index.html").read_text()
-    assert "BrowserTool–browser combinations" in (output / "en/index.html").read_text()
+    chinese_home = (output / "index.html").read_text()
+    english_home = (output / "en/index.html").read_text()
+    assert "Playwright 重放器与浏览器的组合" in chinese_home
+    assert "Playwright-adapter–browser configurations" in english_home
+    assert "没有调用 CowAgent BrowserTool" in chinese_home
+    assert "本轮没有记录进程级 CPU、内存和网络采样" in chinese_home
+    assert "CPU 时间" not in chinese_home
+    assert "平均内存" not in chinese_home
     assert "参考答案均已核验" not in (output / "index.html").read_text()
     assert "with verified references" not in (output / "en/index.html").read_text()
     assert "独立复核范围见复核说明" in (output / "index.html").read_text()
@@ -438,6 +445,18 @@ def test_core_metrics_are_registry_driven_and_mark_only_unique_winners() -> None
     assert "median" not in rendered.lower()
 
 
+def test_unavailable_resource_metrics_are_not_rendered_as_empty_comparisons() -> None:
+    methods = [_method("Browser A", 1.0, 3.0), _method("Browser B", 0.8, 2.0)]
+    for method in methods:
+        for key in ("cpu", "memory", "memory_peak", "network_rx", "network_tx", "cpu_utilization"):
+            method[key] = {"n": 0, "mean": None, "p50": None, "p95": None}
+    rendered = _metrics_table(methods, "zh")
+    assert "CPU 时间" not in rendered
+    assert "平均内存" not in rendered
+    assert "端到端耗时" in rendered and "单次动作耗时" in rendered
+    assert _resource_table(methods, "zh") == ""
+
+
 def test_legacy_retrieval_provenance_binds_every_browser_to_saved_answer(tmp_path) -> None:
     answer = {"task_type": "RETRIEVE", "status": "SUCCESS", "retrieved_data": ["value"]}
     seed = {"tasks": [{"task_id": 243, "canonical_candidate_id": "candidate",
@@ -588,7 +607,9 @@ def test_own_success_distributions_do_not_select_shared_pass_tasks() -> None:
     assert methods[1]["successful"]["duration"]["mean"] == 2
     for lang in ("zh", "en"):
         rendered = _successful_distribution_table(methods, lang)
-        assert "n=1/2" in rendered and "n=0/1" in rendered
+        assert "n=1/2" in rendered and "n=1/1" in rendered
+        assert "CPU" not in rendered
+        assert ("接收数据" if lang == "zh" else "Network received") not in rendered
         assert 'class="winner"' not in rendered
 
 

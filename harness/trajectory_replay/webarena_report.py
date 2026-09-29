@@ -586,6 +586,11 @@ def _metrics_table(
         [{"id": row["id"], "value": row["valid_reference_passed"]} for row in methods],
         "value", higher=True,
     )
+    metric_keys = ["duration", "action_latency"]
+    if any(row["cpu"]["n"] for row in methods):
+        metric_keys.append("cpu")
+    if any(row["memory"]["n"] for row in methods):
+        metric_keys.append("memory")
     metric_winners = {
         metric: {
             stat: _unique_winners(
@@ -595,13 +600,21 @@ def _metrics_table(
             ) if metric == "action_latency" else set()
             for stat in ("mean", "p50", "p95")
         }
-        for metric in ("duration", "action_latency", "cpu", "memory")
+        for metric in metric_keys
     }
-    headers = (
-        ("方法", "官方通过", "官方通过率", "可核验题通过", "全部任务端到端耗时", "单次动作耗时", "CPU 时间", "平均内存")
-        if lang == "zh"
-        else ("Method", "Official passes", "Official pass rate", "Passes on verifiable tasks", "End-to-end time, all tasks", "Per-action latency", "CPU time", "Mean memory")
-    )
+    metric_headers = {
+        "duration": ("全部任务端到端耗时", "End-to-end time, all tasks"),
+        "action_latency": ("单次动作耗时", "Per-action latency"),
+        "cpu": ("CPU 时间", "CPU time"),
+        "memory": ("平均内存", "Mean memory"),
+    }
+    headers = [
+        "方法" if lang == "zh" else "Method",
+        "官方通过" if lang == "zh" else "Official passes",
+        "官方通过率" if lang == "zh" else "Official pass rate",
+        "可核验题通过" if lang == "zh" else "Passes on verifiable tasks",
+        *(metric_headers[key][0 if lang == "zh" else 1] for key in metric_keys),
+    ]
     if not show_valid_reference:
         headers = headers[:3] + headers[4:]
     body = []
@@ -625,21 +638,14 @@ def _metrics_table(
                 f'{row["valid_reference_passed"]}/{row["valid_reference_total"]}',
                 key in valid_winners, lang=lang,
             ),
-            _metric_lines(
-                row["duration"], time_value, key, metric_winners["duration"], lang=lang
-            ),
-            _metric_lines(
-                row["action_latency"],
-                time_value,
-                key,
-                metric_winners["action_latency"],
-                lang=lang,
-            ),
-            _metric_lines(row["cpu"], time_value, key, metric_winners["cpu"], lang=lang),
-            _metric_lines(
-                row["memory"], _format_mib, key, metric_winners["memory"], lang=lang
-            ),
         ]
+        for metric in metric_keys:
+            formatter = _format_mib if metric == "memory" else time_value
+            cells.append(
+                _metric_lines(
+                    row[metric], formatter, key, metric_winners[metric], lang=lang
+                )
+            )
         body.append(
             "<tr>"
             + f'<td>{_e(cells[0])}</td>'
@@ -666,10 +672,14 @@ def _resource_table(methods: list[dict[str, Any]], lang: str) -> str:
     )
     rows = []
     for key, label_zh, label_en, formatter in metrics:
+        if not any(method[key]["n"] for method in methods):
+            continue
         cells = [_e(label_zh if zh else label_en)]
         for method in methods:
             cells.append(_metric_lines(method[key], formatter, method["id"], {stat: set() for stat in ("mean", "p50", "p95")}, lang=lang))
         rows.append("<tr>" + "".join(f"<td>{cell}</td>" for cell in cells) + "</tr>")
+    if not rows:
+        return ""
     headers = ("资源指标" if zh else "Resource metric", *(method["label"] for method in methods))
     return f'<div class="table-scroll"><table><thead><tr>{"".join(f"<th>{_e(h)}</th>" for h in headers)}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
 
@@ -687,6 +697,8 @@ def _successful_distribution_table(methods: list[dict[str, Any]], lang: str) -> 
                ("cpu_utilization", "CPU 平均使用率", "Mean CPU utilization", lambda v: "—" if v is None else f"{v:.1f}%"))
     rows = []
     for name, label_zh, label_en, formatter in metrics:
+        if name != "duration" and not any(method["successful"][name]["n"] for method in methods):
+            continue
         cells = [_e(label_zh if zh else label_en)] + [
             _metric_lines(method["successful"][name], formatter, method["id"],
                           {stat: set() for stat in ("mean", "p50", "p95")}, lang=lang)
@@ -840,7 +852,7 @@ def _detail_page(
     report_root = "../" if zh else "../../"
     stage_labels = {
         "browser_session_setup": ("浏览器会话初始化", "Browser session setup"),
-        "browser_tool_execution": ("浏览器动作执行", "Browser action execution"),
+        "browser_tool_execution": ("Playwright 动作执行", "Playwright action execution"),
         "evidence_finalization": ("执行证据收尾", "Evidence finalization"),
         "official_evaluator_execution": ("官方评测器执行", "Official evaluator execution"),
         "side_effect_not_observed": ("网络验收条件未满足", "Network acceptance not satisfied"),
@@ -1050,6 +1062,7 @@ body{background:linear-gradient(180deg,var(--wash) 0,transparent 240px),var(--bg
 .mermaid svg{min-width:850px;height:auto!important}.flow-fallback{font-size:14px}.flow-node{min-width:170px}
 .review-table table{min-width:1120px}.review-table td:first-child{min-width:145px;font-weight:700}.review-table td:nth-child(n+2){min-width:230px;max-width:320px}.review-table td{overflow-wrap:anywhere}
 .successful-distributions table{min-width:1100px}.successful-distributions th:first-child,.successful-distributions td:first-child{min-width:140px;white-space:nowrap}.successful-distributions th:not(:first-child),.successful-distributions td:not(:first-child){min-width:170px}
+.report-table-tools{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin:10px 0}.report-table-tools label{display:grid;gap:4px;color:var(--muted);font-size:13px;font-weight:700}.report-table-tools input{min-width:220px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit}.report-table-tools button{padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--accent);font-weight:700}.report-table-count{color:var(--muted);font-size:13px}.table-sort{display:flex;align-items:center;gap:6px;width:100%;border:0;background:transparent;color:inherit;padding:0;text-align:left;font:inherit;font-weight:800;cursor:pointer}.table-sort::after{content:'↕';color:var(--muted);font-size:11px}.table-sort[data-direction=ascending]::after{content:'↑';color:var(--accent)}.table-sort[data-direction=descending]::after{content:'↓';color:var(--accent)}
 .trajectory-columns,.aligned-step{display:grid;grid-template-columns:48px minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
 .trajectory-columns{padding:0 18px 10px;color:var(--muted);font-size:13px}.aligned-step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 18px}
 .aligned-step.failed-step{border:2px solid var(--bad);background:color-mix(in srgb,var(--bad) 5%,var(--panel))}.aligned-standard,.aligned-actual{min-width:0;display:grid;gap:7px}.aligned-standard{border-right:1px solid var(--line);padding-right:12px}.aligned-step code{color:var(--muted);font:13px/1.45 ui-monospace,SFMono-Regular,monospace;overflow-wrap:anywhere}.aligned-step button{justify-self:start;border:0;background:transparent;color:var(--accent);font:inherit;font-weight:700;padding:4px 0;text-align:left}.aligned-actual-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.aligned-actual-head span:last-child{margin-left:auto;color:var(--muted)}.aligned-actual p{margin:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.status-muted{color:var(--muted)}
@@ -1070,6 +1083,83 @@ document.querySelector('.theme')?.addEventListener('click',()=>{
   localStorage.setItem('report-theme',root.dataset.theme);
 });
 const fetchJson=async path=>{const response=await fetch(path);if(!response.ok)throw Error(`HTTP ${response.status}`);return response.json()};
+const enhanceTables=()=>{
+  const excluded='[data-results] table,[data-dataset-table] table,[data-task-matrix] table';
+  document.querySelectorAll('.table-scroll>table').forEach((table,tableIndex)=>{
+    const headerRows=table.tHead?.rows||[];
+    const body=table.tBodies[0];
+    if(headerRows.length!==1||!body||body.rows.length<2)return;
+    const headers=[...headerRows[0].cells];
+    const rows=[...body.rows];
+    if(rows.some(row=>row.cells.length!==headers.length))return;
+    const original=new Map(rows.map((row,index)=>[row,index]));
+    const external=table.matches(excluded);
+    let query='';
+    let sortColumn=-1;
+    let direction='ascending';
+    let count=null;
+    const value=(cell)=>{
+      const explicit=cell.dataset.sort;
+      if(explicit!==undefined&&explicit!=='')return {missing:false,numeric:true,value:Number(explicit)};
+      const text=cell.textContent.trim();
+      if(!text||text==='—')return {missing:true,numeric:false,value:''};
+      const compact=text.replaceAll(',','').replace(/\s+/g,' ');
+      const ratio=compact.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(-?\d+(?:\.\d+)?)/);
+      if(ratio)return {missing:false,numeric:true,value:Number(ratio[1])/Number(ratio[2]||1)};
+      const number=compact.match(/^(-?\d+(?:\.\d+)?)\s*(?:%|ms|s|秒|MiB|MB|KiB|次|条|个|calls?)?(?:\s|$)/i);
+      if(number)return {missing:false,numeric:true,value:Number(number[1])};
+      return {missing:false,numeric:false,value:compact.toLocaleLowerCase()};
+    };
+    const apply=()=>{
+      const ordered=[...rows].sort((left,right)=>{
+        if(sortColumn<0)return original.get(left)-original.get(right);
+        const a=value(left.cells[sortColumn]);
+        const b=value(right.cells[sortColumn]);
+        if(a.missing!==b.missing)return a.missing?1:-1;
+        const compared=a.numeric&&b.numeric?a.value-b.value:String(a.value).localeCompare(String(b.value),lang);
+        return direction==='ascending'?compared:-compared;
+      });
+      let shown=0;
+      ordered.forEach(row=>{
+        body.append(row);
+        const matches=!query||row.textContent.toLocaleLowerCase().includes(query);
+        if(!external)row.hidden=!matches;
+        if(matches&&!row.hidden)shown++;
+      });
+      if(count)count.textContent=zh?`显示 ${shown} / ${rows.length} 行`:`Showing ${shown} / ${rows.length} rows`;
+    };
+    headers.forEach((header,column)=>{
+      const button=document.createElement('button');
+      button.type='button';button.className='table-sort';button.textContent=header.textContent.trim();
+      button.setAttribute('aria-label',(zh?'按此列排序：':'Sort by column: ')+button.textContent);
+      header.replaceChildren(button);
+      button.addEventListener('click',()=>{
+        direction=sortColumn===column&&direction==='ascending'?'descending':'ascending';
+        sortColumn=column;
+        headers.forEach((item,index)=>{
+          item.setAttribute('aria-sort',index===column?direction:'none');
+          item.querySelector('.table-sort')?.removeAttribute('data-direction');
+        });
+        button.dataset.direction=direction;apply();
+      });
+      header.setAttribute('aria-sort','none');
+    });
+    if(!external){
+      const tools=document.createElement('div');tools.className='report-table-tools';tools.dataset.tableControls=String(tableIndex);
+      const label=document.createElement('label');label.textContent=zh?'筛选此表':'Filter this table';
+      const input=document.createElement('input');input.type='search';input.placeholder=zh?'输入关键词':'Enter keywords';
+      input.dataset.tableFilter=String(tableIndex);label.append(input);tools.append(label);
+      const reset=document.createElement('button');reset.type='button';reset.textContent=zh?'重置':'Reset';tools.append(reset);
+      count=document.createElement('span');count.className='report-table-count';count.setAttribute('role','status');tools.append(count);
+      table.closest('.table-scroll').before(tools);
+      table.dataset.tableControls=String(tableIndex);
+      input.addEventListener('input',()=>{query=input.value.trim().toLocaleLowerCase();apply()});
+      reset.addEventListener('click',()=>{query='';sortColumn=-1;direction='ascending';input.value='';headers.forEach(item=>{item.setAttribute('aria-sort','none');item.querySelector('.table-sort')?.removeAttribute('data-direction')});apply();input.focus()});
+    }
+    table.dataset.enhanced='true';apply();
+  });
+};
+enhanceTables();
 const datasetTable=document.querySelector('[data-dataset-table]');
 if(datasetTable){
   const rows=[...datasetTable.querySelectorAll('tbody tr')];
@@ -1156,7 +1246,7 @@ if(inventory){
     if(!result)return;
     const detail=result.detail_url||'result/'+result.key+'.html';
     dialog.querySelector('[data-dialog-title]').textContent=result.browser+' · '+(zh?'任务':'Task')+' #'+result.task_id;
-    dialog.querySelector('[data-dialog-stage]').textContent=result.failure_stage==='browser_session_setup'?(zh?'浏览器会话初始化':'Browser session setup'):result.failure_stage==='browser_tool_execution'?(zh?'浏览器动作':'Browser action'):result.failure_stage==='evidence_finalization'?(zh?'执行证据收尾':'Evidence finalization'):result.failure_stage==='official_evaluator_execution'?(zh?'官方评测器执行':'Official evaluator execution'):result.failure_stage==='side_effect_not_observed'?(zh?'网络验收条件未满足':'Network acceptance not satisfied'):result.failure_stage==='official_evaluation'?(zh?'官方验收':'Official evaluation'):(zh?'无':'None');
+    dialog.querySelector('[data-dialog-stage]').textContent=result.failure_stage==='browser_session_setup'?(zh?'浏览器会话初始化':'Browser session setup'):result.failure_stage==='browser_tool_execution'?(zh?'Playwright 动作':'Playwright action'):result.failure_stage==='evidence_finalization'?(zh?'执行证据收尾':'Evidence finalization'):result.failure_stage==='official_evaluator_execution'?(zh?'官方评测器执行':'Official evaluator execution'):result.failure_stage==='side_effect_not_observed'?(zh?'网络验收条件未满足':'Network acceptance not satisfied'):result.failure_stage==='official_evaluation'?(zh?'官方验收':'Official evaluation'):(zh?'无':'None');
     dialog.querySelector('[data-dialog-error]').textContent=zh?'正在读取完整证据…':'Loading complete evidence…';
     delete dialog.dataset.loaded;
     dialog.querySelector('[data-dialog-link]').href=detail;
@@ -1299,6 +1389,12 @@ def build_webarena_replay_report(
     methods = participant_registry(profile["methods"])
     if len(methods) < 2 or profile.get("affected_task_methods"):
         raise ValueError("current report requires complete registered methods")
+    execution_backend = profile.get("execution_backend")
+    if execution_backend is not None and (
+        execution_backend != "playwright"
+        or any(method.get("backend") != execution_backend for method in profile["methods"])
+    ):
+        raise ValueError("replay report requires one Playwright backend for every method")
     execution = profile.get("execution") or {}
     if (
         execution.get("method_parallelism") != 1
@@ -1581,7 +1677,7 @@ def build_webarena_replay_report(
         )
         stage_rows = []
         for engine, method in methods.items():
-            for code, label_pair in (("browser_session_setup", ("浏览器会话初始化", "Browser session setup")), ("browser_tool_execution", ("浏览器动作", "Browser action")), ("evidence_finalization", ("执行证据收尾", "Evidence finalization")), ("official_evaluator_execution", ("官方评测器执行", "Official evaluator execution")), ("side_effect_not_observed", ("网络验收条件未满足", "Network acceptance not satisfied")), ("official_evaluation", ("官方验收", "Official evaluation"))):
+            for code, label_pair in (("browser_session_setup", ("浏览器会话初始化", "Browser session setup")), ("browser_tool_execution", ("Playwright 动作", "Playwright action")), ("evidence_finalization", ("执行证据收尾", "Evidence finalization")), ("official_evaluator_execution", ("官方评测器执行", "Official evaluator execution")), ("side_effect_not_observed", ("网络验收条件未满足", "Network acceptance not satisfied")), ("official_evaluation", ("官方验收", "Official evaluation"))):
                 count = sum(row["participant_id"] == engine and row["status"] != "pass" and row["failure_stage"] == code for row in public_rows)
                 if count:
                     stage_rows.append(f'<tr><td>{_e(method["label"])}</td><td>{label_pair[0 if zh else 1]}</td><td>{count}</td><td><a href="results.html?participant={_e(engine)}&status=fail&stage={code}">{"下钻到失败结果" if zh else "Inspect failures"} →</a></td></tr>')
@@ -1609,10 +1705,23 @@ def build_webarena_replay_report(
                 if zh else
                 f"All methods cover the same {task_count} tasks. Task details identify acceptance rules and declared corrections; the review page states the independent review scope. "
             )
+        has_resource_samples = any(
+            row[metric]["n"]
+            for row in method_rows
+            for metric in ("cpu", "memory", "memory_peak", "network_rx", "network_tx", "cpu_utilization")
+        )
         core_metrics_note += (
-            "提前失败会缩短工作量，因此总耗时和资源不按低者判优；单次动作耗时按实际工具调用统计。"
-            if zh else
-            "Early failures reduce work, so total time and resources are not ranked by lower values; per-action latency uses actual tool calls."
+            (
+                "提前失败会缩短工作量，因此总耗时和资源不按低者判优；单次动作耗时按实际 Playwright 调用统计。"
+                if has_resource_samples
+                else "提前失败会缩短工作量，因此总耗时不按低者判优；单次动作耗时按实际 Playwright 调用统计。"
+            )
+            if zh
+            else (
+                "Early failures reduce work, so total time and resources are not ranked by lower values; per-action latency uses actual Playwright calls."
+                if has_resource_samples
+                else "Early failures reduce work, so total time is not ranked by lower values; per-action latency uses actual Playwright calls."
+            )
         )
         core_metrics_table = _metrics_table(
             method_rows, lang, show_valid_reference=bool(unverifiable_ids)
@@ -1620,13 +1729,19 @@ def build_webarena_replay_report(
         measurement_note = (profile.get("measurement_notes") or {}).get(lang)
         if measurement_note:
             core_metrics_note += " " + _e(measurement_note)
-        summary_body = f'''<section class="hero"><p class="eyebrow">{eyebrow}</p><h1>{"浏览器轨迹重放评测" if zh else "Browser Trajectory Replay"}</h1><p>{f"{browser_count} 款浏览器组成 {method_count} 种方法配置，分别覆盖同一 {task_count} 题的冻结轨迹重放。CowAgent 只提供共同的 BrowserTool 操作层，Agent 不规划动作，模型不参与；因此结果比较的是 BrowserTool 与浏览器的组合配置，不能单独归因于浏览器内核。方法版本、轨迹与站点准备见环境说明。" if zh else f"{browser_count} browsers form {method_count} method configurations, each covering the same {task_count} frozen trajectory replays. CowAgent supplies only the shared BrowserTool action layer: no Agent plans actions and no model is called. Results compare BrowserTool–browser combinations, not browser engines in isolation. Environment documents versions, paths and site preparation."}</p><div class="detail-links"><a href="results.html">{"逐题查看结果与报错" if zh else "Explore outcomes and exact errors"}</a><a href="dataset.html">{"查看任务与标准轨迹" if zh else "Task contracts and fixed trajectories"}</a></div></section>
+        resource_table = _resource_table(method_rows, lang)
+        resource_section = (
+            f'<section><h2>{"资源与网络" if zh else "Resources and network"}</h2><p>{f"下表覆盖全部 {task_count} 题；n 表示有观测值的样本数，缺失不计为零。真实零值保留。网络传输量和 CPU 使用率不直接判优，低数值也可能来自提前失败、缓存或等待。" if zh else f"These per-task samples cover all {task_count} tasks. Each n counts observed values; missing samples are not zero, and measured zeroes are retained. Network bytes and CPU utilization are not ranked: lower values may reflect early failure, caching, or waiting."}</p><details class="matrix-disclosure"><summary>{"展开资源与网络统计" if zh else "Open resource and network statistics"}</summary>{resource_table}</details></section>'
+            if resource_table
+            else f'<section><h2>{"资源数据" if zh else "Resource data"}</h2><p class="callout">{"本轮没有记录进程级 CPU、内存和网络采样，因此这些指标不可用，报告不展示空值表或资源排名。端到端耗时和动作耗时来自现有轨迹记录，无需重新执行任务。" if zh else "This run did not record process-level CPU, memory, or network samples. Those metrics are unavailable, so the report does not show empty tables or resource rankings. End-to-end and action latency come from the retained trajectories and require no rerun."}</p></section>'
+        )
+        summary_body = f'''<section class="hero"><p class="eyebrow">{eyebrow}</p><h1>{"浏览器轨迹重放评测" if zh else "Browser Trajectory Replay"}</h1><p>{f"{browser_count} 款浏览器组成 {method_count} 种方法配置，分别覆盖同一 {task_count} 题的冻结轨迹重放。六种方法均由同一 Playwright 重放器通过 CDP 执行 BrowserTool 动作契约；本轮没有调用 CowAgent BrowserTool，也没有 Agent 或模型参与。结果比较的是 Playwright 重放器与浏览器的组合配置，不能单独归因于浏览器内核。方法版本、轨迹与站点准备见环境说明。" if zh else f"{browser_count} browsers form {method_count} method configurations, each covering the same {task_count} frozen trajectory replays. All six methods use the same Playwright replay adapter over CDP to execute the BrowserTool action contract; this run does not invoke CowAgent BrowserTool, an Agent, or a model. Results compare Playwright-adapter–browser configurations, not browser engines in isolation. Environment documents versions, paths and site preparation."}</p><div class="detail-links"><a href="results.html">{"逐题查看结果与报错" if zh else "Explore outcomes and exact errors"}</a><a href="dataset.html">{"查看任务与标准轨迹" if zh else "Task contracts and fixed trajectories"}</a></div></section>
         {validity_notice}
         {f'<p class="evidence-actions"><a href="{"" if zh else "../"}data/legacy-retrieval-provenance.json">{"查看 74 条历史取数验收输入的逐条哈希" if zh else "Inspect hashes for all 74 historical retrieval inputs"}</a></p>' if legacy_provenance is not None else ''}
         <section><h2>{"核心指标" if zh else "Core metrics"}</h2><p class="callout">{core_metrics_note}</p>{core_metrics_table}</section>
-        <section><h2>{"资源与网络" if zh else "Resources and network"}</h2><p>{f"下表覆盖全部 {task_count} 题；n 表示有观测值的样本数，缺失不计为零。真实零值保留。网络传输量和 CPU 使用率不直接判优，低数值也可能来自提前失败、缓存或等待。" if zh else f"These per-task samples cover all {task_count} tasks. Each n counts observed values; missing samples are not zero, and measured zeroes are retained. Network bytes and CPU utilization are not ranked: lower values may reflect early failure, caching, or waiting."}</p><details class="matrix-disclosure"><summary>{"展开资源与网络统计" if zh else "Open resource and network statistics"}</summary>{_resource_table(method_rows, lang)}</details></section>
+        {resource_section}
         {stage_section}
-        <section><h2>{"浏览器动作耗时" if zh else "Browser action latency"}</h2><p>{"均值、P50、P95 按单次调用统计；调用次数只说明工作量。下钻到结果详情可查看具体动作耗时和工具返回。" if zh else "Mean, P50, and P95 are per-call statistics; call counts only describe workload. Open a task result for the individual action timing and full tool response."}</p><details class="matrix-disclosure"><summary>{"展开各类动作耗时" if zh else "Open latency by action type"}</summary>{action_table}</details></section>'''
+        <section><h2>{"Playwright 动作耗时" if zh else "Playwright action latency"}</h2><p>{"均值、P50、P95 按单次 Playwright 调用统计；调用次数只说明工作量。下钻到结果详情可查看具体动作耗时和返回内容。" if zh else "Mean, P50, and P95 are per Playwright call; call counts only describe workload. Open a task result for individual action timing and complete responses."}</p><details class="matrix-disclosure"><summary>{"展开各类动作耗时" if zh else "Open latency by action type"}</summary>{action_table}</details></section>'''
         summary_body += f'<section><h2>{"各方法成功任务的条件分布" if zh else "Conditional distributions on each method’s successful tasks"}</h2><p>{"各列仅含该方法成功的任务，任务集合与样本数可能不同，不用于排名，也不替代上方共同任务全集的统计。" if zh else "Each column includes only that method’s successful tasks. Task sets and sample counts may differ; these distributions are not ranked and do not replace the all-task statistics above."}</p>{_successful_distribution_table(method_rows, lang)}</section>'
         (root / "index.html").write_text(_shell(lang, "index", "浏览器轨迹重放" if zh else "Browser Trajectory Replay", summary_body, current_route="index.html"), encoding="utf-8")
 
@@ -1660,12 +1775,12 @@ def build_webarena_replay_report(
         for row in public_rows:
             cause = row["cause_zh"] if zh else row["cause_en"]
             status = _verdict_label(row["status"], row.get("semantic_status"), lang)
-            stage_label = {"browser_session_setup": "浏览器会话初始化" if zh else "Browser session setup", "browser_tool_execution": "浏览器动作" if zh else "Browser action", "evidence_finalization": "执行证据收尾" if zh else "Evidence finalization", "official_evaluator_execution": "官方评测器执行" if zh else "Official evaluator execution", "side_effect_not_observed": "网络验收条件未满足" if zh else "Network acceptance not satisfied", "official_evaluation": "官方验收" if zh else "Official evaluation", "pass": "—"}.get(row["failure_stage"], row["failure_stage"])
+            stage_label = {"browser_session_setup": "浏览器会话初始化" if zh else "Browser session setup", "browser_tool_execution": "Playwright 动作" if zh else "Playwright action", "evidence_finalization": "执行证据收尾" if zh else "Evidence finalization", "official_evaluator_execution": "官方评测器执行" if zh else "Official evaluator execution", "side_effect_not_observed": "网络验收条件未满足" if zh else "Network acceptance not satisfied", "official_evaluation": "官方验收" if zh else "Official evaluation", "pass": "—"}.get(row["failure_stage"], row["failure_stage"])
             detail_url = row.get("detail_url") or f'result/{row["key"]}.html'
             result_rows.append(f'<tr data-key="{row["key"]}" data-task="{row["task_id"]}" data-participant="{_e(row["participant_id"])}" data-status="{row["status"]}" data-site="{_e(row["sites"][0] if row["sites"] else "")}" data-stage="{_e(row["failure_stage"])}" data-cause="{_e(row["cause_zh"] or row["cause_en"])}"><td><a href="task/{row["task_id"]}.html">#{row["task_id"]}</a><button type="button" data-open-diagnosis>{"诊断" if zh else "Diagnose"}</button></td><td><a href="{_e(detail_url)}">{_e(row["browser"])}</a></td><td>{_e(row["sites"][0] if row["sites"] else "")}</td><td class="status-{row["status"]}">{status}</td><td>{row["completed_actions"]}/{row["action_count"]}</td><td>{_e(stage_label)}</td><td>{_e(cause) if cause else "—"}</td><td><a href="{_e(detail_url)}">{"证据页" if zh else "Evidence page"}</a></td></tr>')
         browser_options = "".join(f'<option value="{_e(key)}">{_e(item["label"])}</option>' for key, item in comparison_methods.items())
         site_options = "".join(f'<option value="{_e(site)}">{_e(site)}</option>' for site in sorted({s for row in public_rows for s in row["sites"]}))
-        stage_labels = {"browser_session_setup": ("浏览器会话初始化", "Browser session setup"), "browser_tool_execution": ("浏览器动作", "Browser action"), "evidence_finalization": ("执行证据收尾", "Evidence finalization"), "official_evaluator_execution": ("官方评测器执行", "Official evaluator execution"), "side_effect_not_observed": ("网络验收条件未满足", "Network acceptance not satisfied"), "official_evaluation": ("官方验收", "Official evaluation")}
+        stage_labels = {"browser_session_setup": ("浏览器会话初始化", "Browser session setup"), "browser_tool_execution": ("Playwright 动作", "Playwright action"), "evidence_finalization": ("执行证据收尾", "Evidence finalization"), "official_evaluator_execution": ("官方评测器执行", "Official evaluator execution"), "side_effect_not_observed": ("网络验收条件未满足", "Network acceptance not satisfied"), "official_evaluation": ("官方验收", "Official evaluation")}
         present_stages = {row["failure_stage"] for row in public_rows if row["status"] == "fail"}
         stage_options = "".join(f'<option value="{code}">{_e(stage_labels[code][0 if zh else 1])}</option>' for code in stage_labels if code in present_stages)
         causes = {row["cause_zh"]: row["cause_zh"] if zh else row["cause_en"] for row in public_rows if row["cause_zh"]}
@@ -1723,7 +1838,7 @@ def build_webarena_replay_report(
   V --> X[{"绑定证据的结果" if zh else "Evidence-bound result"}]
   X --> T[{"销毁浏览器与站点" if zh else "Teardown browser and sites"}]
   T --> R</pre>'''
-        environment_body = f'''<section class="hero"><h1>{"环境与评测流程" if zh else "Environment and evaluation flow"}</h1><p>{"192.168.5.2 是 Colima 虚拟机中的宿主网关：浏览器容器通过它访问运行在同一台 Mac 虚拟化环境里的 WebArena 站点。它不是公网测试网站。" if zh else "192.168.5.2 is the host gateway inside the Colima VM. Browser containers use it to reach the WebArena sites running in the same Mac virtualization environment; it is not a public test website."}</p></section><section><h2>{"执行拓扑" if zh else "Execution topology"}</h2>{fallback}{topology}</section><section><h2>{"隔离规则" if zh else "Isolation rules"}</h2><div class="summary-grid"><article><strong>1</strong><p>{"一套固定端口站点环境，因此只允许一个方法运行。" if zh else "One fixed-port site stack permits only one running method."}</p></article><article><strong>{task_count}</strong><p>{"每种方法覆盖全部任务，方法开始前恢复站点；任务之间不重置。每题只保留一个最终逻辑结果，额外物理执行单独计数，输入未变且已经通过的任务不再执行。" if zh else "Each method covers every task after one site reset, with no reset between tasks. One final logical outcome is retained per task; extra physical calls are counted separately, and an unchanged task is not run again after passing."}</p></article><article><strong>0</strong><p>{"没有 Agent 决策和模型请求；输入是冻结的 BrowserTool 动作。" if zh else "No Agent decisions or model calls; inputs are frozen BrowserTool actions."}</p></article></div></section><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';const node=document.querySelector('.mermaid');try{{mermaid.initialize({{startOnLoad:false,theme:document.documentElement.dataset.theme==='dark'?'dark':'neutral'}});const rendered=await mermaid.render('replay-topology',node.textContent);node.innerHTML=rendered.svg;node.hidden=false;document.querySelector('[data-topology-fallback]').hidden=true}}catch(error){{node.hidden=true}}</script>'''
+        environment_body = f'''<section class="hero"><h1>{"环境与评测流程" if zh else "Environment and evaluation flow"}</h1><p>{"192.168.5.2 是 Colima 虚拟机中的宿主网关：浏览器容器通过它访问运行在同一台 Mac 虚拟化环境里的 WebArena 站点。它不是公网测试网站。" if zh else "192.168.5.2 is the host gateway inside the Colima VM. Browser containers use it to reach the WebArena sites running in the same Mac virtualization environment; it is not a public test website."}</p></section><section><h2>{"执行拓扑" if zh else "Execution topology"}</h2>{fallback}{topology}</section><section><h2>{"隔离规则" if zh else "Isolation rules"}</h2><div class="summary-grid"><article><strong>1</strong><p>{"一套固定端口站点环境，因此只允许一个方法运行。" if zh else "One fixed-port site stack permits only one running method."}</p></article><article><strong>{task_count}</strong><p>{"每种方法覆盖全部任务，方法开始前恢复站点；任务之间不重置。每题只保留一个最终逻辑结果，额外物理执行单独计数，输入未变且已经通过的任务不再执行。" if zh else "Each method covers every task after one site reset, with no reset between tasks. One final logical outcome is retained per task; extra physical calls are counted separately, and an unchanged task is not run again after passing."}</p></article><article><strong>0</strong><p>{"没有 Agent 决策和模型请求；Playwright 通过 CDP 重放冻结的 BrowserTool 动作契约。" if zh else "No Agent decisions or model calls; Playwright replays the frozen BrowserTool action contract over CDP."}</p></article></div></section><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';const node=document.querySelector('.mermaid');try{{mermaid.initialize({{startOnLoad:false,theme:document.documentElement.dataset.theme==='dark'?'dark':'neutral'}});const rendered=await mermaid.render('replay-topology',node.textContent);node.innerHTML=rendered.svg;node.hidden=false;document.querySelector('[data-topology-fallback]').hidden=true}}catch(error){{node.hidden=true}}</script>'''
         environment_body = environment_body.replace("环境与评测流程", "环境与方法").replace("Environment and evaluation flow", "Environment and method")
         if "Rainbond" in str((profile.get("execution") or {}).get("site_stack") or ""):
             diagram_script = environment_body[environment_body.index('<script type="module">'):]
@@ -1776,7 +1891,7 @@ def build_webarena_replay_report(
                 f'<p>{"所有浏览器使用同一套站点映射和题序；验收规则版本见下方说明及任务详情。每个方法开始前恢复站点基线，任务之间不重置站点。" if zh else "All browsers use the same site map and task order; acceptance revisions are identified below and on task pages. The site baseline is restored before each method, not between tasks."}</p></section>'
                 f'<section><h2>{"执行流程" if zh else "Execution flow"}</h2>{remote_fallback}{remote_diagram}'
                 f'<p>{"每个方法的基线恢复记录绑定 Pod 更换、镜像摘要和站点就绪；逐题记录轨迹、网络和评分证据。方法串行执行；额外物理调用只覆盖从未通过或冻结输入发生变化的任务。" if zh else "Each method-level baseline receipt binds Pod replacement, image digest and site readiness. Per-task traces, network captures and scores remain separate. Methods run serially; extra physical calls cover only never-passing tasks or tasks whose frozen input changed."}</p></section>'
-                + f'<p>{"浏览器运行于 macOS arm64 主机，通过网络访问 Rainbond 自托管站点。CowAgent 仅提供 BrowserTool 操作层，不进行 Agent 决策或模型调用。" if zh else "Browsers run on a macOS arm64 host and access self-hosted Rainbond sites over the network. CowAgent supplies only the BrowserTool action layer, without Agent decisions or model calls."}</p>'
+                + f'<p>{"浏览器运行于 macOS arm64 主机，通过网络访问 Rainbond 自托管站点。六种方法均由 Playwright 通过 CDP 重放 BrowserTool 动作契约；没有调用 CowAgent BrowserTool，也没有 Agent 决策或模型调用。" if zh else "Browsers run on a macOS arm64 host and access self-hosted Rainbond sites over the network. All six methods use Playwright over CDP to replay the BrowserTool action contract; CowAgent BrowserTool, Agent decisions, and model calls are absent."}</p>'
                 + reset_table + diagram_script
             )
         if measurement_note:
@@ -1932,6 +2047,7 @@ def build_webarena_replay_report(
         "participant_count": len(comparison_methods),
         "browser_count": browser_count,
         "method_count": method_count,
+        "execution_backend": execution_backend,
         "participants": list(comparison_methods),
         "logical_results": len(public_rows),
         "failed_results": sum(row["status"] != "pass" for row in public_rows),

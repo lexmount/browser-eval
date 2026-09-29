@@ -512,13 +512,43 @@ def check(report_dir: Path) -> dict[str, int]:
     metrics = json.loads((root / "data/metrics.json").read_text(encoding="utf-8"))
     _check_metric_populations(metrics, results, participants)
     _check_core_comparison(root, metrics, results, participants)
+    has_resource_samples = any(
+        row[metric]["n"]
+        for row in metrics["methods"]
+        for metric in (
+            "cpu",
+            "memory",
+            "memory_peak",
+            "network_rx",
+            "network_tx",
+            "cpu_utilization",
+        )
+    )
+    if not has_resource_samples:
+        for language_root in language_roots(root):
+            page = (language_root / "index.html").read_text(encoding="utf-8")
+            expected = (
+                "本轮没有记录进程级 CPU、内存和网络采样"
+                if language_root == root
+                else "did not record process-level CPU, memory, or network samples"
+            )
+            if expected not in page or "n=0/" in page:
+                raise ValueError(
+                    "unavailable resources must be stated once instead of rendered as empty metrics"
+                )
     for language_root in language_roots(root):
         _check_failure_matrix((language_root / "results.html").read_text(encoding="utf-8"), results, participants)
     _check_formal_execution_scope(manifest)
     if manifest.get("formal_reference_validity") is True:
+        if manifest.get("execution_backend") != "playwright":
+            raise ValueError("formal replay report must bind the Playwright backend")
         for language_root in language_roots(root):
             environment = (language_root / "environment.html").read_text(encoding="utf-8")
-            if "Rainbond" not in environment or "Colima" in environment:
+            if (
+                "Rainbond" not in environment
+                or "Colima" in environment
+                or "Playwright" not in environment
+            ):
                 raise ValueError("formal environment page does not describe the measured deployment")
         for participant in participants:
             for task_id in task_ids:
@@ -720,6 +750,12 @@ def check(report_dir: Path) -> dict[str, int]:
                 "review history must describe review rounds, not enumerate per-result audits"
             )
     js = (root / "assets/app.js").read_text(encoding="utf-8")
+    if (
+        "const enhanceTables=()=>" not in js
+        or "input.dataset.tableFilter" not in js
+        or "table.dataset.enhanced='true'" not in js
+    ):
+        raise ValueError("report tables must expose reusable sorting and filtering controls")
     if "const task=params.get('task');" not in js or "row.dataset.task===task" not in js:
         raise ValueError("dataset-to-results drilldown must select an exact task ID")
     if (

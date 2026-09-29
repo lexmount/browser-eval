@@ -465,6 +465,34 @@ return node && node.textContent.trim().startsWith('{');
                                 ).last.get_attribute("href")
                                 page.locator('[data-dataset-filter="q"]').fill("")
                                 page.locator('[data-dataset-filter="type"]').select_option("")
+                            if route.endswith("index.html") and not route.startswith("en/"):
+                                metrics = page.locator("table.metrics[data-enhanced=true]")
+                                metrics.wait_for(timeout=5_000)
+                                labels = metrics.locator("tbody tr td:first-child")
+                                original = labels.all_inner_texts()
+                                expected = page.evaluate(
+                                    "items => [...items].sort((left, right) => "
+                                    "left.toLocaleLowerCase().localeCompare("
+                                    "right.toLocaleLowerCase(), 'zh'))",
+                                    original,
+                                )
+                                metrics.locator("thead .table-sort").first.click()
+                                ascending = labels.all_inner_texts()
+                                metrics.locator("thead .table-sort").first.click()
+                                descending = labels.all_inner_texts()
+                                assert ascending == expected
+                                assert descending == list(reversed(expected))
+                                controls_id = metrics.get_attribute("data-table-controls")
+                                assert controls_id is not None
+                                table_filter = page.locator(
+                                    f'[data-table-controls="{controls_id}"] [data-table-filter]'
+                                )
+                                table_filter.fill("Kitesurf")
+                                assert metrics.locator("tbody tr:not([hidden])").count() == 1
+                                assert "Kitesurf" in metrics.locator(
+                                    "tbody tr:not([hidden]) td:first-child"
+                                ).inner_text()
+                                table_filter.fill("")
                             if route.endswith("diagnostics.html"):
                                 page.wait_for_function(
                                     "() => document.querySelector('[data-closure-count]')"
