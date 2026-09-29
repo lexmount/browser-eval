@@ -70,9 +70,10 @@ def aggregate(rows: list[dict]) -> dict:
     for row in rows:
         for name in CORE_METRICS:
             metric = row.get("metrics", {}).get(name, {})
-            if metric.get("success"):
-                totals[name] += metric["score"]
-                counts[name] += 1
+            if not metric or metric.get("details", {}).get("availability") == "reference_not_applicable":
+                continue
+            totals[name] += metric["score"] if metric.get("success") else 0.0
+            counts[name] += 1
     scores = {
         name: totals[name] / counts[name] if counts[name] else 0.0
         for name in CORE_METRICS

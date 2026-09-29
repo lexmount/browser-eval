@@ -141,7 +141,7 @@ def revised_metrics(old: dict, scorer, predicted: str, reference: str,
     for name, is_applicable in applicable.items():
         availability = result[name].get("details", {}).get("availability")
         if (is_applicable and not result[name].get("success")
-                and availability not in {"reference_error", "reference_not_applicable"}):
+                and availability != "reference_not_applicable"):
             error = result[name].get("error")
             result[name] = zero(name, name.removesuffix("_edit").replace("_TEDS", ""))
             result[name]["details"].update({
