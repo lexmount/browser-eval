@@ -37,7 +37,9 @@ def browser_observation_cases(dataset: dict, captures: Path,
     Malformed or missing audit rows fail closed instead of being guessed at.
     """
     from harness.web_fetch.metrics import normalize_for_match
-    from harness.web_fetch.reference_lifecycle import requires_fresh_reference
+    from harness.web_fetch.reference_lifecycle import (
+        requires_fresh_reference, requires_live_contract_check,
+    )
 
     try:
         rows = json.loads((captures / "audit.json").read_text(encoding="utf-8"))
@@ -56,6 +58,9 @@ def browser_observation_cases(dataset: dict, captures: Path,
     browser_cases = []
     for case_id in selected_case_ids:
         case = cases[case_id]
+        if requires_live_contract_check(case):
+            browser_cases.append(case_id)
+            continue
         if not requires_fresh_reference(case):
             continue
         row = by_id.get(case_id)
@@ -79,7 +84,8 @@ def browser_observation_cases(dataset: dict, captures: Path,
     return browser_cases
 
 
-def validate_browser_observations(path: Path, required_case_ids: list[str]) -> None:
+def validate_browser_observations(path: Path, required_case_ids: list[str],
+                                  cases: dict[str, dict] | None = None) -> None:
     """Reject partial or unsuccessful browser batches before lifecycle use."""
     try:
         rows = json.loads(path.read_text(encoding="utf-8"))
@@ -97,6 +103,16 @@ def validate_browser_observations(path: Path, required_case_ids: list[str]) -> N
     if failed:
         raise ValueError(
             "Required browser observations failed: " + ", ".join(failed))
+    if cases:
+        from harness.web_fetch.reference_lifecycle import requires_live_contract_check
+        from scripts.capture_headless_browser_observations import source_contract_sha256
+        for case_id in required_case_ids:
+            case = cases[case_id]
+            if requires_live_contract_check(case):
+                row = rows[case_id]
+                if (row.get('source_contract_sha256') != source_contract_sha256(case)
+                        or row.get('source_contract', {}).get('pass') is not True):
+                    raise ValueError('Popular source contract is unbound or failed: ' + case_id)
 
 
 def run(command: list[str]) -> None:
@@ -165,7 +181,8 @@ def main(argv: list[str] | None = None) -> None:
              "--case-ids", ",".join(pre_browser_cases), "--browser-binary", args.browser_binary,
              "--attempts", str(args.browser_capture_attempts)])
         try:
-            validate_browser_observations(pre_browser, pre_browser_cases)
+            validate_browser_observations(pre_browser, pre_browser_cases,
+                                          {case['id']: case for case in dataset['cases']})
         except ValueError as error:
             parser.error(str(error))
         browser_args = ["--browser-observations", str(pre_browser)]
@@ -205,7 +222,8 @@ def main(argv: list[str] | None = None) -> None:
              "--case-ids", ",".join(post_browser_cases), "--browser-binary", args.browser_binary,
              "--attempts", str(args.browser_capture_attempts)])
         try:
-            validate_browser_observations(post_browser, post_browser_cases)
+            validate_browser_observations(post_browser, post_browser_cases,
+                                          {case['id']: case for case in post_dataset['cases']})
         except ValueError as error:
             parser.error(str(error))
         post_browser_args = ["--browser-observations", str(post_browser)]

@@ -5,6 +5,7 @@ import pytest
 
 from scripts import capture_headless_browser_observations as browser_capture
 from scripts.capture_headless_browser_observations import (
+    evaluate_popular_source_contract,
     capture_with_retries,
     chromium_host_rule,
     extract_pruned_selector_text,
@@ -65,6 +66,29 @@ def test_selector_targeting_navigation_fails_closed():
     )
 
     assert text == ''
+
+
+def test_popular_source_contract_rejects_stale_heading_without_weakening_task():
+    case = {
+        'url': 'https://example.com/',
+        'acceptance_contract': {
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [
+                {'id': 'heading', 'alternatives': ['Original heading']},
+                {'id': 'nav', 'alternatives': ['Pricing']},
+            ],
+        },
+    }
+    fresh = evaluate_popular_source_contract(
+        case, '<html><body><h1>Original heading</h1><nav>Pricing</nav></body></html>')
+    stale = evaluate_popular_source_contract(
+        case, '<html><body><h1>New heading</h1><nav>Pricing</nav></body></html>')
+    hidden = evaluate_popular_source_contract(
+        case, '<html><body><h1>New heading</h1><script>Original heading</script>'
+              '<nav>Pricing</nav></body></html>')
+    assert fresh['pass'] is True
+    assert stale['missing_anchor_ids'] == ['heading']
+    assert hidden['missing_anchor_ids'] == ['heading']
 
 
 def test_capture_retries_one_case_until_declared_completion(monkeypatch):

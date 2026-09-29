@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.reference_lifecycle import (
     _resource_target_matches,
+    requires_live_contract_check,
     resource_source_scope_identity,
     scope_identity,
 )
@@ -39,6 +40,28 @@ COMPLETION = {
 }
 
 MAX_RESOURCE_CANDIDATES = 512
+
+
+def evaluate_popular_source_contract(case: dict, source_html: str,
+                                     final_url: str | None = None) -> dict:
+    """Check the same frozen task against independently rendered source DOM."""
+    from harness.web_fetch.stable_tasks import evaluate_stable_task
+
+    result = evaluate_stable_task(source_html, case['acceptance_contract'],
+                                  base_url=final_url or case['url'])
+    return {
+        'pass': result['stable_task_pass'],
+        'missing_anchor_ids': [anchor['id'] for anchor in result['stable_anchor_results']
+                               if not anchor['pass']],
+        'errors': result['stable_task_errors'],
+        'record_count': result['stable_record_count'],
+    }
+
+
+def source_contract_sha256(case: dict) -> str:
+    serialized = json.dumps(case['acceptance_contract'], ensure_ascii=False,
+                            sort_keys=True, separators=(',', ':')).encode()
+    return hashlib.sha256(serialized).hexdigest()
 
 
 def match_resource_targets(case: dict, candidates: list[dict]) -> list[dict]:
@@ -184,6 +207,9 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
     rule = COMPLETION.get(case['id'])
     selector = (rule or {}).get('selector') or case.get('source_verification',{}).get('selector') or 'body'
     begin = time.monotonic()
+    live_contract = requires_live_contract_check(case)
+    source_contract = None
+    source_html_sha256 = None
     host = url_host(case['url'])
     if resolved_ip is not None:
         resolved_ip = public_ip(resolved_ip)
@@ -199,6 +225,8 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
                 captured = capture_resource_observation(page, case, timeout_ms, begin)
                 final_url = page.url
                 title = page.title()
+            elif live_contract:
+                page.locator('body').wait_for(state='visible', timeout=timeout_ms)
             elif rule:
                 page.wait_for_function(
                     '([selector, minimum]) => document.querySelectorAll(selector).length >= minimum',
@@ -208,7 +236,14 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
             if case.get('task_kind') != 'resource':
                 count = page.locator(selector).count()
                 content_locator = page.locator('body' if case['id'] == 'javascript-spa' else selector)
-                if rule and rule.get('include_hidden_dom_text'):
+                if live_contract:
+                    source_html = page.content()
+                    source_html_sha256 = hashlib.sha256(source_html.encode()).hexdigest()
+                    source_contract = evaluate_popular_source_contract(
+                        case, source_html, page.url)
+                    content = page.locator('body').inner_text(timeout=timeout_ms)
+                    observation_method = 'independent_rendered_source_contract_check'
+                elif rule and rule.get('include_hidden_dom_text'):
                     content = content_locator.text_content(timeout=timeout_ms) or ''
                     observation_method = 'rendered_dom_text_including_preloaded_hidden_panels'
                 elif rule:
@@ -258,10 +293,16 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
             'resolved_ip': resolved_ip,
             'resolution_method': 'caller_supplied' if resolved_ip else 'chromium_dns',
         },
+        'source_contract': source_contract,
+        'source_contract_sha256': source_contract_sha256(case) if live_contract else None,
+        'source_html_sha256': source_html_sha256,
         'completion': {'satisfied': bool(normalized)
-                       and count >= (rule['minimum'] if rule else 1) and facts_present,
+                       and count >= (rule['minimum'] if rule else 1) and facts_present
+                       and (source_contract is None or source_contract['pass']),
                        'elapsed_ms': elapsed,
-                       'timeout_ms': timeout_ms},
+                       'timeout_ms': timeout_ms,
+                       'condition': ('frozen popular-site contract passes on independent DOM'
+                                     if live_contract else 'declared browser reference observed')},
     }
 
 

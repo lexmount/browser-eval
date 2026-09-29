@@ -6,10 +6,48 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.run_certified_benchmark import main
+from scripts.run_certified_benchmark import (
+    browser_observation_cases, main, validate_browser_observations,
+)
+from scripts.capture_headless_browser_observations import source_contract_sha256
 
 
 class CertifiedBenchmarkTests(unittest.TestCase):
+    def test_popular_observation_is_bound_to_exact_frozen_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "observations.json"
+            case = {
+                "id": "popular", "source_benchmark": {
+                    "stable_annotation": {"registry": "popular-sites"}},
+                "acceptance_contract": {
+                    "version": 1, "schema": "body_text", "minimum_records": 0,
+                    "stable_text_anchors": [{"id": "heading", "alternatives": ["Fresh"]}],
+                },
+            }
+            row = {"case_id": "popular", "status": "success",
+                   "completion": {"satisfied": True},
+                   "source_contract": {"pass": True},
+                   "source_contract_sha256": source_contract_sha256(case)}
+            path.write_text(json.dumps({"popular": row}))
+            validate_browser_observations(path, ["popular"], {"popular": case})
+            case['acceptance_contract']['stable_text_anchors'][0]['alternatives'] = ["Changed"]
+            with self.assertRaisesRegex(ValueError, "unbound"):
+                validate_browser_observations(path, ["popular"], {"popular": case})
+
+    def test_popular_stable_contract_requires_independent_browser_preflight(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            captures = Path(directory)
+            self.write_capture(captures, "popular", text="Old frozen heading")
+            dataset = {"cases": [{
+                "id": "popular", "url": "https://example.com/", "track": "challenge",
+                "source_benchmark": {"stable_annotation": {"registry": "popular-sites"}},
+                "acceptance_contract": {"version": 1, "schema": "body_text",
+                                        "minimum_records": 0, "stable_text_anchors": [
+                                            {"id": "heading", "alternatives": ["Old frozen heading"]}]},
+            }]}
+            self.assertEqual(browser_observation_cases(dataset, captures, ["popular"]),
+                             ["popular"])
+
     @staticmethod
     def write_capture(captures: Path, case_id: str, *, status: int = 200,
                       text: str = "reference") -> None:
