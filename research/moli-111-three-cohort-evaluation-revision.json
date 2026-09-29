@@ -21,7 +21,7 @@
   },
   "shared_scorer": {
     "main_baseline_sha256": "bd0b0118c84b0ba03d9241aba74be84330a9a9dd20f98f62a3ac8be396c79725",
-    "revised_sha256": "852f177af5ff7621b3063404b2c959b37e1848bf9ca8b1c827a94f789a1d4fd7",
+    "revised_sha256": "130d8de3c553e7f8d7ecc1ba3832aa6c03ad55c9f9b53ad4661a3faaddae1a39",
     "scoring_regressions_sha256": "1b02911af54f97e8f4dc1033f102a9936e123e74ead32fe25f46c98497739009",
     "regression_ids": [
       "html-doctype-hidden-challenge-is-not-visible",

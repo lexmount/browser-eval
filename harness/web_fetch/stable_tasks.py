@@ -850,7 +850,9 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     anchor_visible = None
     html_candidate = content.lstrip()
     first_line, newline, remainder = html_candidate.partition('\n')
-    if newline and '<' not in first_line and len(first_line) <= 300:
+    if (newline and len(first_line) <= 300
+            and re.match(r'\s*(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
+                         remainder, re.I)):
         html_candidate = remainder.lstrip()
     if re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
                 html_candidate, re.I):
