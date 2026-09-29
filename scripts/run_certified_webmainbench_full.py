@@ -28,7 +28,7 @@ def read_jsonl(path: Path) -> list[dict]:
 def source_binding(source: Path, scorer: Path, profile: dict) -> dict:
     if digest(source) != profile["source_dataset_sha256"]:
         raise ValueError("WebMainBench source bytes changed")
-    records = load_source(source)
+    records = load_source(source, expected_sha256=profile["source_dataset_sha256"])
     case_ids = [record["track_id"] for record in records]
     case_digest = hashlib.sha256(("\n".join(case_ids) + "\n").encode()).hexdigest()
     if len(records) != profile["case_count"] or case_digest != profile["case_ids_sha256"]:
@@ -117,7 +117,12 @@ def main() -> None:
     source_commit = profile.get('source_commit')
     verify_source_checkout(profile, args.binary_source)
     verify_declared_binary(profile)
-    case_ids = {record["track_id"] for record in load_source(args.source)}
+    case_ids = {
+        record["track_id"]
+        for record in load_source(
+            args.source, expected_sha256=profile["source_dataset_sha256"]
+        )
+    }
     args.output_root.mkdir(parents=True)
     (args.output_root / "preflight.json").write_text(
         json.dumps({"profile_sha256": profile_sha, **before}, indent=2) + "\n", encoding="utf-8")
@@ -129,6 +134,10 @@ def main() -> None:
                    "--output", str(args.output_root / provider),
                    "--timeout", str(profile["timeout_seconds"]),
                    "--max-failure-retries", str(profile["max_failure_retries"])]
+        command += [
+            "--expected-dataset-sha256", profile["source_dataset_sha256"],
+            "--official-scorer-commit", profile["official_scorer_commit"],
+        ]
         if provider != "kitesurf":
             version = profile["versions"][provider].split()[-1]
             command += ["--expected-version", version]

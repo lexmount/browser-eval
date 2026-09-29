@@ -21,8 +21,8 @@ def sha256_path(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def load_records(path: Path) -> dict[str, dict]:
-    if sha256_path(path) != DATASET_SHA256:
+def load_records(path: Path, expected_sha256: str = DATASET_SHA256) -> dict[str, dict]:
+    if sha256_path(path) != expected_sha256:
         raise ValueError("WebMainBench dataset hash mismatch")
     records = {}
     with path.open(encoding="utf-8") as stream:
@@ -35,14 +35,16 @@ def load_records(path: Path) -> dict[str, dict]:
     return records
 
 
-def official_calculator(repo: Path, cache_dir: Path):
+def official_calculator(
+    repo: Path, cache_dir: Path, expected_commit: str = SCORER_COMMIT
+):
     commit = subprocess.run(
         ["git", "-C", str(repo), "rev-parse", "HEAD"],
         capture_output=True,
         text=True,
         check=True,
     ).stdout.strip()
-    if commit != SCORER_COMMIT:
+    if commit != expected_commit:
         raise ValueError(f"Official scorer commit mismatch: {commit}")
     package = types.ModuleType("webmainbench")
     package.__path__ = [str(repo / "webmainbench")]
@@ -85,6 +87,8 @@ def main() -> None:
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--scorer-repo", type=Path, required=True)
     parser.add_argument("--revision", default="", help="Suffix for an explicit scoring correction")
+    parser.add_argument("--expected-dataset-sha256", default=DATASET_SHA256)
+    parser.add_argument("--expected-scorer-commit", default=SCORER_COMMIT)
     args = parser.parse_args()
     suffix = f"-{args.revision}" if args.revision else ""
     output = args.evidence / f"scored-results{suffix}.jsonl"
@@ -92,11 +96,15 @@ def main() -> None:
     if output.exists() or summary_path.exists():
         raise ValueError("Scored evidence exists; refusing to overwrite")
 
-    source = load_records(args.dataset)
+    source = load_records(args.dataset, args.expected_dataset_sha256)
     logical = [json.loads(line) for line in (args.evidence / "results.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
     if len({row["track_id"] for row in logical}) != len(logical):
         raise ValueError("Logical results contain duplicate track IDs")
-    calculator = official_calculator(args.scorer_repo, args.evidence / "official-scorer-cache")
+    calculator = official_calculator(
+        args.scorer_repo,
+        args.evidence / "official-scorer-cache",
+        args.expected_scorer_commit,
+    )
     scored = []
     with output.open("w", encoding="utf-8") as stream:
         for index, row in enumerate(logical, 1):
@@ -144,7 +152,7 @@ def main() -> None:
         },
         "scorer": {
             "repository": "https://github.com/opendatalab/WebMainBench",
-            "commit": SCORER_COMMIT,
+            "commit": args.expected_scorer_commit,
             "metric_config": {"use_llm": False},
             "aggregation": "official arithmetic mean of five independently aggregated metrics",
             "metric_source_sha256": {
