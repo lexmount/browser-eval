@@ -69,6 +69,34 @@ def evaluate_popular_source_contract(case: dict, source_html: str,
     }
 
 
+def capture_popular_contract(page, case: dict, timeout_ms: int,
+                             begin: float) -> tuple[str, str, dict]:
+    """Observe a hydrated page until its frozen contract passes or time expires.
+
+    A DOMContentLoaded snapshot alone cannot distinguish a stale reference from
+    a client-rendered page that has not populated its visible content yet.
+    Keep the last actual observation when the bounded wait expires.
+    """
+    deadline = begin + timeout_ms / 1000
+    while True:
+        source_html = page.content()
+        # Micro-frontends may expose another body in a nested document. The
+        # first visible top-level page body is the intended source surface.
+        content = page.locator('body').first.inner_text(timeout=timeout_ms)
+        visible_links = page.locator('a:visible').evaluate_all('''anchors => anchors
+            .filter(a => !a.closest('[hidden],[aria-hidden="true"]'))
+            .map(a => ({name: a.innerText.trim(), url: a.href}))
+            .filter(a => a.name && /^https?:/.test(a.url))''')
+        contract = evaluate_popular_source_contract(
+            case, source_html, content, visible_links, page.url)
+        if contract['pass']:
+            return content, hashlib.sha256(source_html.encode()).hexdigest(), contract
+        remaining_ms = int((deadline - time.monotonic()) * 1000)
+        if remaining_ms <= 0:
+            return content, hashlib.sha256(source_html.encode()).hexdigest(), contract
+        page.wait_for_timeout(min(250, remaining_ms))
+
+
 def source_contract_sha256(case: dict) -> str:
     serialized = json.dumps(case['acceptance_contract'], ensure_ascii=False,
                             sort_keys=True, separators=(',', ':')).encode()
@@ -237,7 +265,7 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
                 final_url = page.url
                 title = page.title()
             elif live_contract:
-                page.locator('body').wait_for(state='visible', timeout=timeout_ms)
+                page.locator('body').first.wait_for(state='visible', timeout=timeout_ms)
             elif rule:
                 page.wait_for_function(
                     '([selector, minimum]) => document.querySelectorAll(selector).length >= minimum',
@@ -248,15 +276,8 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
                 count = page.locator(selector).count()
                 content_locator = page.locator('body' if case['id'] == 'javascript-spa' else selector)
                 if live_contract:
-                    source_html = page.content()
-                    source_html_sha256 = hashlib.sha256(source_html.encode()).hexdigest()
-                    content = page.locator('body').inner_text(timeout=timeout_ms)
-                    visible_links = page.locator('a:visible').evaluate_all('''anchors => anchors
-                        .filter(a => !a.closest('[hidden],[aria-hidden="true"]'))
-                        .map(a => ({name: a.innerText.trim(), url: a.href}))
-                        .filter(a => a.name && /^https?:/.test(a.url))''')
-                    source_contract = evaluate_popular_source_contract(
-                        case, source_html, content, visible_links, page.url)
+                    content, source_html_sha256, source_contract = capture_popular_contract(
+                        page, case, timeout_ms, begin)
                     observation_method = 'independent_rendered_source_contract_check'
                 elif rule and rule.get('include_hidden_dom_text'):
                     content = content_locator.text_content(timeout=timeout_ms) or ''

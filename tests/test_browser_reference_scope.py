@@ -6,6 +6,7 @@ import pytest
 from scripts import capture_headless_browser_observations as browser_capture
 from scripts.capture_headless_browser_observations import (
     evaluate_popular_source_contract,
+    capture_popular_contract,
     capture_with_retries,
     chromium_host_rule,
     extract_pruned_selector_text,
@@ -113,6 +114,134 @@ def test_popular_source_contract_rejects_hidden_records_behind_security_gate():
     assert gated['pass'] is False
     assert gated['raw_html_pass'] is True
     assert 'too_few_complete_records' in gated['errors']
+
+
+def test_popular_capture_waits_for_late_visible_content(monkeypatch):
+    clock = [0.0]
+    monkeypatch.setattr(browser_capture.time, 'monotonic', lambda: clock[0])
+
+    class Locator:
+        def __init__(self, page):
+            self.page = page
+
+        @property
+        def first(self):
+            return self
+
+        def inner_text(self, *, timeout):
+            return self.page.text
+
+        def evaluate_all(self, expression):
+            return []
+
+    class Page:
+        url = 'https://example.com/'
+        text = 'Loading'
+
+        def content(self):
+            return f'<html><body>{self.text}</body></html>'
+
+        def locator(self, selector):
+            return Locator(self)
+
+        def wait_for_timeout(self, milliseconds):
+            clock[0] += milliseconds / 1000
+            self.text = 'Ready'
+
+    case = {
+        'url': Page.url,
+        'acceptance_contract': {
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [{'id': 'ready', 'alternatives': ['Ready']}],
+        },
+    }
+    content, source_hash, contract = capture_popular_contract(Page(), case, 1000, 0.0)
+
+    assert content == 'Ready'
+    assert contract['pass'] is True
+    assert clock[0] > 0
+    assert len(source_hash) == 64
+
+
+def test_popular_capture_retains_last_visible_failure_at_deadline(monkeypatch):
+    clock = [0.0]
+    monkeypatch.setattr(browser_capture.time, 'monotonic', lambda: clock[0])
+
+    class Locator:
+        @property
+        def first(self):
+            return self
+
+        def inner_text(self, *, timeout):
+            return 'Loading'
+
+        def evaluate_all(self, expression):
+            return []
+
+    class Page:
+        url = 'https://example.com/'
+
+        def content(self):
+            return '<html><body>Loading</body></html>'
+
+        def locator(self, selector):
+            return Locator()
+
+        def wait_for_timeout(self, milliseconds):
+            clock[0] += milliseconds / 1000
+
+    case = {
+        'url': Page.url,
+        'acceptance_contract': {
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [{'id': 'ready', 'alternatives': ['Ready']}],
+        },
+    }
+    content, _, contract = capture_popular_contract(Page(), case, 500, 0.0)
+
+    assert content == 'Loading'
+    assert contract['pass'] is False
+    assert contract['missing_anchor_ids'] == ['ready']
+    assert clock[0] == 0.5
+
+
+def test_popular_capture_uses_primary_body_when_microfrontend_adds_another(monkeypatch):
+    monkeypatch.setattr(browser_capture.time, 'monotonic', lambda: 0.0)
+
+    class PrimaryBody:
+        def inner_text(self, *, timeout):
+            return 'Ready'
+
+    class AmbiguousBodies:
+        first = PrimaryBody()
+
+        def inner_text(self, *, timeout):
+            raise AssertionError('unscoped body locator is ambiguous')
+
+    class VisibleLinks:
+        def evaluate_all(self, expression):
+            return []
+
+    class Page:
+        url = 'https://example.com/'
+
+        def content(self):
+            return '<html><body>Ready</body></html>'
+
+        def locator(self, selector):
+            return AmbiguousBodies() if selector == 'body' else VisibleLinks()
+
+    case = {
+        'url': Page.url,
+        'acceptance_contract': {
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [{'id': 'ready', 'alternatives': ['Ready']}],
+        },
+    }
+
+    content, _, contract = capture_popular_contract(Page(), case, 1000, 0.0)
+    assert content == 'Ready'
+    assert contract['pass'] is True
 
 
 def test_capture_retries_one_case_until_declared_completion(monkeypatch):
