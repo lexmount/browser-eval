@@ -120,6 +120,38 @@ def test_popular_source_contract_does_not_accept_hidden_old_navigation():
     assert result['missing_anchor_ids'] == ['old-nav']
 
 
+def test_dynamic_named_link_source_requires_visible_records_not_hidden_dom_links():
+    case = {
+        'url': 'https://example.com/products',
+        'acceptance_contract': {
+            'version': 1, 'schema': 'named_link', 'minimum_records': 2,
+            'hosts': ['example.com'], 'entry_path': '/product/[0-9]+',
+            'stable_text_anchors': [
+                {'id': 'heading', 'alternatives': ['Products']}],
+        },
+    }
+    hidden_html = (
+        '<html><body><h1>Products</h1><div hidden>'
+        '<a href="/product/1">Alpha</a><a href="/product/2">Beta</a>'
+        '</div></body></html>')
+    visible_html = (
+        '<html><body><h1>Products</h1><main>'
+        '<a href="/product/1">Alpha</a><a href="/product/2">Beta</a>'
+        '</main></body></html>')
+    hidden = evaluate_popular_source_contract(case, hidden_html, 'Products', [])
+    visible = evaluate_popular_source_contract(
+        case, visible_html, 'Products\nAlpha\nBeta', [
+            {'name': 'Alpha', 'url': 'https://example.com/product/1'},
+            {'name': 'Beta', 'url': 'https://example.com/product/2'},
+        ])
+
+    assert hidden['raw_html_pass'] is True
+    assert hidden['pass'] is False
+    assert hidden['record_count'] == 0
+    assert visible['pass'] is True
+    assert visible['record_count'] == 2
+
+
 def test_popular_source_contract_rejects_hidden_records_behind_security_gate():
     case = {
         'url': 'https://example.com/',

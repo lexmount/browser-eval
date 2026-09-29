@@ -45,7 +45,7 @@ MAX_RESOURCE_CANDIDATES = 512
 def evaluate_popular_source_contract(case: dict, source_html: str,
                                      rendered_text: str, visible_links: list[dict],
                                      final_url: str | None = None) -> dict:
-    """Score only rendered source text and visible links; retain raw-DOM diagnosis."""
+    """Score rendered source text and visible links; retain raw-DOM diagnosis."""
     from harness.web_fetch.stable_tasks import evaluate_stable_task
 
     contract = case['acceptance_contract']
@@ -340,7 +340,7 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
                        and (source_contract is None or source_contract['pass']),
                        'elapsed_ms': elapsed,
                        'timeout_ms': timeout_ms,
-                       'condition': ('frozen popular-site contract passes on independent DOM'
+                       'condition': ('frozen live source contract passes on independent DOM'
                                      if live_contract else 'declared browser reference observed')},
     }
 

@@ -95,12 +95,13 @@ def requires_fresh_reference(case) -> bool:
 
 
 def requires_live_contract_check(case) -> bool:
-    """Popular-page text contracts need source checks even without full-text truth."""
+    """Check volatile visible-link and popular-page contracts on live source."""
     benchmark = _get(case, "source_benchmark", {}) or {}
     annotation = benchmark.get("stable_annotation", {})
     contract = _get(case, "acceptance_contract", {}) or {}
-    return (annotation.get("registry") == "popular-sites"
-            and bool(contract.get("stable_text_anchors")))
+    return (bool(contract.get("stable_text_anchors"))
+            and (annotation.get("registry") == "popular-sites"
+                 or contract.get("schema") == "named_link"))
 
 
 def scope_identity(case) -> dict[str, Any]:

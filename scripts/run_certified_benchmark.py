@@ -112,7 +112,7 @@ def validate_browser_observations(path: Path, required_case_ids: list[str],
                 row = rows[case_id]
                 if (row.get('source_contract_sha256') != source_contract_sha256(case)
                         or row.get('source_contract', {}).get('pass') is not True):
-                    raise ValueError('Popular source contract is unbound or failed: ' + case_id)
+                    raise ValueError('Live source contract is unbound or failed: ' + case_id)
 
 
 def run(command: list[str]) -> None:

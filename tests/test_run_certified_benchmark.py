@@ -48,6 +48,59 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             self.assertEqual(browser_observation_cases(dataset, captures, ["popular"]),
                              ["popular"])
 
+    def test_dynamic_named_links_require_current_source_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            captures = Path(directory)
+            self.write_capture(captures, "dynamic-links", text="old frozen links")
+            case = {
+                "id": "dynamic-links", "url": "https://example.com/products",
+                "task_kind": "body", "acceptance_contract": {
+                    "version": 1, "schema": "named_link", "minimum_records": 2,
+                    "hosts": ["example.com"], "entry_path": "/product/[0-9]+",
+                    "stable_text_anchors": [
+                        {"id": "heading", "alternatives": ["Products"]}],
+                },
+            }
+            self.assertEqual(
+                browser_observation_cases({"cases": [case]}, captures, ["dynamic-links"]),
+                ["dynamic-links"])
+            path = captures / "observations.json"
+            row = {"case_id": "dynamic-links", "status": "success",
+                   "completion": {"satisfied": True},
+                   "source_contract": {"pass": False},
+                   "source_contract_sha256": source_contract_sha256(case)}
+            path.write_text(json.dumps({"dynamic-links": row}))
+            with self.assertRaisesRegex(ValueError, "source contract"):
+                validate_browser_observations(path, ["dynamic-links"],
+                                              {"dynamic-links": case})
+            row["source_contract"]["pass"] = True
+            path.write_text(json.dumps({"dynamic-links": row}))
+            validate_browser_observations(path, ["dynamic-links"],
+                                          {"dynamic-links": case})
+            case["acceptance_contract"]["minimum_records"] = 3
+            with self.assertRaisesRegex(ValueError, "unbound"):
+                validate_browser_observations(path, ["dynamic-links"],
+                                              {"dynamic-links": case})
+
+    def test_current_dynamic_named_link_cohort_all_gets_source_preflight(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        dataset = json.loads((root / "evaluation/dynamic-content-100-moli-webfetch/dataset.json")
+                             .read_text(encoding="utf-8"))
+        named_links = [case for case in dataset["cases"]
+                       if case["acceptance_contract"]["schema"] == "named_link"]
+        self.assertTrue(named_links)
+        ids = [case["id"] for case in named_links]
+        with tempfile.TemporaryDirectory() as directory:
+            captures = Path(directory)
+            (captures / "audit.json").write_text(json.dumps([
+                {"case_id": case_id, "status": 200} for case_id in ids]))
+            for case_id in ids:
+                reference = captures / case_id / "reference.txt"
+                reference.parent.mkdir()
+                reference.write_text("old captured links")
+            self.assertEqual(browser_observation_cases({"cases": named_links}, captures, ids),
+                             ids)
+
     @staticmethod
     def write_capture(captures: Path, case_id: str, *, status: int = 200,
                       text: str = "reference") -> None:
