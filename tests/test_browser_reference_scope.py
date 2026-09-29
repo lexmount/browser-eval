@@ -94,6 +94,29 @@ def test_popular_source_contract_rejects_stale_heading_without_weakening_task():
     assert hidden['missing_anchor_ids'] == ['heading']
 
 
+def test_popular_source_contract_does_not_accept_hidden_old_navigation():
+    case = {
+        'url': 'https://example.com/',
+        'acceptance_contract': {
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [
+                {'id': 'current', 'alternatives': ['News']},
+                {'id': 'old-nav', 'alternatives': ['Home']},
+            ],
+        },
+    }
+    result = evaluate_popular_source_contract(
+        case,
+        '<html><head><style>.offscreen{display:none}</style></head>'
+        '<body><nav>News</nav><div class="offscreen">Home</div></body></html>',
+        'News', [],
+    )
+
+    assert result['raw_html_pass'] is True
+    assert result['pass'] is False
+    assert result['missing_anchor_ids'] == ['old-nav']
+
+
 def test_popular_source_contract_rejects_hidden_records_behind_security_gate():
     case = {
         'url': 'https://example.com/',
