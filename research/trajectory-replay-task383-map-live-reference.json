@@ -1,0 +1,54 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 383,
+  "task_intent": "I am arriving at Pittsburgh Airport. Find if there is a Hyatt hotel nearby. If there is, get me its name and the names of any supermarkets that are within 15 minutes driving from the hotel. Return a list of objects with keys \"hotel\" and \"supermarkets\". (Use the OSRM direction service.)",
+  "source_sweep": "map-live-sweep-v127",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "b54f4491da0d3a22a7fac4f47acc43f11307c58beae802a5f6a16483b2c982c7",
+    "actual_response": "d62bbe6d76089f843c271c8b2dde6c5960cec2f456d05d5b9cfc56f9182f7a27",
+    "evaluation": "818aa0b9e6c4c4266b4ae60d0648f7deb5861e1570254be03728f523db3acaa9",
+    "trace": "8bcc67e32900583e223a20784d89a7154480f0f658c8769bbb2e1412a62c3260",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "e7c71f3ffb0b99d6f83e392d5801317edbb523314326ddbf39b7bff29f84358d"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      {
+        "hotel": "Hyatt Regency Pittsburgh International Airport",
+        "supermarkets": [
+          "Shop & Save",
+          "ALDI",
+          "Walmart Supercenter",
+          "Gordon Food Service",
+          "Magnet International Market"
+        ]
+      }
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/0/expected/retrieved_data/0/supermarkets",
+      "official": [
+        "Giant Eagle",
+        "ALDI"
+      ],
+      "corrected": [
+        "Shop & Save",
+        "ALDI",
+        "Walmart Supercenter",
+        "Gordon Food Service",
+        "Magnet International Market"
+      ]
+    }
+  ],
+  "derivation": {
+    "kind": "bounded_nominatim_osrm/1"
+  },
+  "regression_ids": [
+    "tr-383-accept-live-map-reference",
+    "tr-383-reject-nearby-wrong-map-reference"
+  ]
+}

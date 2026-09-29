@@ -28,6 +28,8 @@ def revise(
     corrections_path: Path,
     task_ids: list[int],
     selection_path: Path | None = None,
+    *,
+    require_current_upstream: bool = True,
 ) -> dict[str, Any]:
     if not task_ids or len(task_ids) != len(set(task_ids)):
         raise ValueError("revision task IDs must be nonempty and unique")
@@ -56,7 +58,10 @@ def revise(
         base["selection_sha256"] = _sha256(selection_path)
         base["counts"]["verified_tasks"] = len(selected_ids)
         base["counts"]["verified_trajectories"] = len(selected_ids)
-    catalog = load_corrections(corrections_path)
+    catalog = load_corrections(
+        corrections_path,
+        require_current_upstream=require_current_upstream,
+    )
     if not set(task_ids) - {67, 243} <= set(catalog.records):
         raise ValueError("missing reviewed correction")
     benchmark = _configure_benchmark()

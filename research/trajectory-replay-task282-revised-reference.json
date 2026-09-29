@@ -1,0 +1,161 @@
+{
+  "schema": "trajectory_replay_revised_reference/1",
+  "task_id": 282,
+  "observed_at": "2026-09-23",
+  "derivation": {
+    "kind": "qualified_catalog_price_range/1",
+    "selection": "Complete name-match population for Nike, retaining names that begin with Nike and explicitly identify slide or slides."
+  },
+  "independent_source": {
+    "kind": "public_storefront_graphql",
+    "path": "/graphql",
+    "filter": {
+      "name": {
+        "match": "Nike"
+      }
+    },
+    "page_size": 100,
+    "total_count": 148,
+    "returned_items": 148,
+    "source_observation_sha256": "10906db0bf14fb0e13d2462a76978470e7a245265cf2156a2fc0424a07bcba54",
+    "candidate_binding": {
+      "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-282.json",
+      "sha256": "b38cc2c5827f6b3ee8da3c0c074af364f1618762ab7223e3eaf76416dfa3cee1",
+      "contract_sha256": "04834c78c79bebd4b88cb66feb08e3c758139388f78ab75d7b730cd6977fb6c0",
+      "canonical_calls_sha256": "df6bdfcba113c601868a052ad247754cacabf2d5b86d2c838994ce6d31cb75f4"
+    },
+    "evidence_sha256": {
+      "trace.json": "442b408984070614bc500d1b8a374c8595ba265776c2673959f5b662fcc7e06f",
+      "acceptance.json": "11636bed51ec9a3c9b1cc075630c0e862b7eaa6f9180ef36426b3ebea6809582",
+      "network.har": "c6d3a9c828070a201e83664e66f882015081f35995ece54f1f55c6cf83a63d6a",
+      "readiness.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "actual_response.json": "fe7b5253bedcb0368259f106b694089aa265a1f902c522149a612dc153c7fdc0",
+      "evaluation.json": "bf9524d469aee4fc35b35b9c47678bec8cc35b82f97d10894cc63ca555fe6472"
+    },
+    "qualified_products": [
+      {
+        "sku": "B091MQTJ5V",
+        "name": "Nike Men's Benassi Solarsoft Slide Athletic Sandal (Midnight Navy/Blue, numeric_8)",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/nike-men-s-benassi-solarsoft-slide-athletic-sandal-midnight-navy-blue-numeric-8.html",
+        "price_cents": 9065,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name begins with Nike and explicitly identifies a slide or slides",
+          "matched_name": "Nike Men's Benassi Solarsoft Slide Athletic Sandal (Midnight Navy/Blue, numeric_8)"
+        }
+      },
+      {
+        "sku": "B07PWQF2J4",
+        "name": "Nike Men's Air Max Camden Slide Sandal",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/nike-men-s-air-max-camden-slide-sandal.html",
+        "price_cents": 6900,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name begins with Nike and explicitly identifies a slide or slides",
+          "matched_name": "Nike Men's Air Max Camden Slide Sandal"
+        }
+      },
+      {
+        "sku": "B091G4NDPD",
+        "name": "Nike Men's Benassi Solarsoft Slide Athletic Sandal (Black/White, numeric_14)",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/nike-men-s-benassi-solarsoft-slide-athletic-sandal-black-white-numeric-14.html",
+        "price_cents": 3995,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name begins with Nike and explicitly identifies a slide or slides",
+          "matched_name": "Nike Men's Benassi Solarsoft Slide Athletic Sandal (Black/White, numeric_14)"
+        }
+      },
+      {
+        "sku": "B084VVK71Y",
+        "name": "Nike Jordan Men's Break Slide Red AR6374-602",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/nike-jordan-men-s-break-slide-red-ar6374-602.html",
+        "price_cents": 4281,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name begins with Nike and explicitly identifies a slide or slides",
+          "matched_name": "Nike Jordan Men's Break Slide Red AR6374-602"
+        }
+      },
+      {
+        "sku": "B07GKXTVLN",
+        "name": "Nike Men's Benassi JDI Fanny Pack Slides",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/nike-men-s-benassi-jdi-fanny-pack-slides.html",
+        "price_cents": 5494,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name begins with Nike and explicitly identifies a slide or slides",
+          "matched_name": "Nike Men's Benassi JDI Fanny Pack Slides"
+        }
+      },
+      {
+        "sku": "B081TH3QK6",
+        "name": "Nike Offcourt Slide Mens Bq4639-002 Size 12",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/nike-offcourt-slide-mens-bq4639-002-size-12.html",
+        "price_cents": 4861,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name begins with Nike and explicitly identifies a slide or slides",
+          "matched_name": "Nike Offcourt Slide Mens Bq4639-002 Size 12"
+        }
+      },
+      {
+        "sku": "B096WH29TZ",
+        "name": "Nike Victori One Slide Mens Style : Dd9559-300",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/nike-victori-one-slide-mens-style-dd9559-300.html",
+        "price_cents": 6100,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name begins with Nike and explicitly identifies a slide or slides",
+          "matched_name": "Nike Victori One Slide Mens Style : Dd9559-300"
+        }
+      },
+      {
+        "sku": "B08QBDYN14",
+        "name": "Nike Victori One Mens Comfort Slide Cn9675-003 (Midnight Navy/Midnight Navy/White, Numeric_10)",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/nike-victori-one-mens-comfort-slide-cn9675-003-midnight-navy-midnight-navy-white-numeric-10.html",
+        "price_cents": 3686,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name begins with Nike and explicitly identifies a slide or slides",
+          "matched_name": "Nike Victori One Mens Comfort Slide Cn9675-003 (Midnight Navy/Midnight Navy/White, Numeric_10)"
+        }
+      },
+      {
+        "sku": "B0838KJT69",
+        "name": "Nike Owaysis Mens Slide Casual Sandal Ct5545-002 Size 6 Black/Black-Black",
+        "url": "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net/nike-owaysis-mens-slide-casual-sandal-ct5545-002-size-6-black-black-black.html",
+        "price_cents": 7399,
+        "currency": "USD",
+        "qualification_evidence": {
+          "rule": "name begins with Nike and explicitly identifies a slide or slides",
+          "matched_name": "Nike Owaysis Mens Slide Casual Sandal Ct5545-002 Size 6 Black/Black-Black"
+        }
+      }
+    ]
+  },
+  "expected_response": {
+    "task_type": "RETRIEVE",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      {
+        "names": [
+          "Nike Men's Benassi Solarsoft Slide Athletic Sandal (Midnight Navy/Blue, numeric_8)",
+          "Nike Men's Air Max Camden Slide Sandal",
+          "Nike Men's Benassi Solarsoft Slide Athletic Sandal (Black/White, numeric_14)",
+          "Nike Jordan Men's Break Slide Red AR6374-602",
+          "Nike Men's Benassi JDI Fanny Pack Slides",
+          "Nike Offcourt Slide Mens Bq4639-002 Size 12",
+          "Nike Victori One Slide Mens Style : Dd9559-300",
+          "Nike Victori One Mens Comfort Slide Cn9675-003 (Midnight Navy/Midnight Navy/White, Numeric_10)",
+          "Nike Owaysis Mens Slide Casual Sandal Ct5545-002 Size 6 Black/Black-Black"
+        ],
+        "min": 36.86,
+        "max": 90.65
+      }
+    ],
+    "error_details": null
+  },
+  "root_cause": "The frozen reference includes Nike womens Benassi Just Do It, which is absent from the deployed catalog's complete 148-item Nike population. The current population instead includes Nike Owaysis Mens Slide, changing both membership and the minimum price.",
+  "score_effect": "Reference membership remains nine products but replaces the absent Benassi item with the current Owaysis slide; the price range changes from USD 27.60–90.65 to USD 36.86–90.65. Historical results remain unchanged."
+}

@@ -45,6 +45,41 @@ def test_programmatic_failure_keeps_location_separate_from_root_cause() -> None:
     }
 
 
+def test_programmatic_failure_preserves_browser_session_setup_stage() -> None:
+    result = programmatic_failure(
+        {
+            "process_status": "fail",
+            "failure_stage": "browser_session_setup",
+            "error": "Traceback: _login_context failed before trajectory execution",
+        }
+    )
+    assert result == {
+        "stage": "browser_session_setup",
+        "step": None,
+        "message": "Traceback: _login_context failed before trajectory execution",
+    }
+
+
+def test_programmatic_failure_omits_mutable_traceback_source_excerpt() -> None:
+    result = programmatic_failure(
+        {
+            "process_status": "fail",
+            "failure_stage": "browser_session_setup",
+            "error": (
+                "Traceback (most recent call last):\n"
+                '  File "remote_execution.py", line 322, in _run_task\n'
+                '    source text from another checkout revision\n'
+                "playwright._impl._errors.TimeoutError: Locator.click timed out\n"
+                "Call log:\n  - element is outside of the viewport\n"
+            ),
+        }
+    )
+    assert result["message"] == (
+        "playwright._impl._errors.TimeoutError: Locator.click timed out\n"
+        "Call log:\n  - element is outside of the viewport"
+    )
+
+
 @pytest.mark.parametrize("tamper", ["row", "digest", "symlink", "new-result"])
 def test_append_methods_keeps_old_diagnostics_bound_to_unchanged_results(tmp_path: Path, tamper) -> None:
     old_row = {"participant_id": "moli", "engine": "moli", "task_id": 1,

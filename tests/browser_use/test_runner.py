@@ -13,6 +13,7 @@ from harness.browser_use.runner import (
     QEMU_X86_64_HOST_PATH,
     SITE_AUTH_HEADERS,
     _allow_official_container_hostname,
+    _bootstrap_postmill_browser_session,
     _bootstrap_postmill_session,
     _browser_tool_config,
     _configure_benchmark,
@@ -43,6 +44,7 @@ from harness.browser_use.selection import load_pilot
 def test_browser_config_requests_owned_context_and_supported_viewport_keys() -> None:
     config = _browser_tool_config("http://localhost:9222")
     assert config["cdp_isolated_context"] is True
+    assert config["locale"] == "en-US"
     assert (config["viewport_width"], config["viewport_height"]) == (1280, 900)
     assert "viewport" not in config
 
@@ -83,6 +85,22 @@ def test_viewport_receipt_measures_primary_and_new_page_before_navigation() -> N
     assert service._context.pages == [service._page]
     _verify_session_viewport(service, evidence, "after_login")
     assert evidence["observations"][-1]["phase"] == "after_login"
+
+
+def test_viewport_receipt_supports_a_declared_single_target_session() -> None:
+    service = _viewport_service()
+    service._supports_multiple_pages = False
+    service._context.new_page = lambda: (_ for _ in ()).throw(
+        AssertionError("single-target sessions must not create a child page")
+    )
+
+    evidence = _prepare_browser_viewport(service)
+
+    assert evidence["verified"] is True
+    assert evidence["page_model"] == "single_target"
+    assert [row["phase"] for row in evidence["observations"]] == [
+        "primary_before_navigation"
+    ]
 
 
 @pytest.mark.parametrize("width,height", [(780, 437), (1920, 1080), (1280, 720)])
@@ -252,6 +270,278 @@ def test_login_context_closes_old_tabs_and_opens_official_start_url() -> None:
     assert primary.url == "http://official.test/start"
 
 
+def test_login_context_publishes_layout_before_admin_visibility_check() -> None:
+    events = []
+
+    class Page:
+        def close(self):
+            pass
+
+        def set_default_timeout(self, _value):
+            pass
+
+        def set_default_navigation_timeout(self, _value):
+            pass
+
+        def goto(self, url, **_kwargs):
+            events.append(("goto", url))
+
+        def evaluate(self, _script):
+            pass
+
+        def reload(self, **_kwargs):
+            events.append(("reload",))
+
+        def locator(self, selector):
+            class Locator:
+                def wait_for(self):
+                    events.append(("visible", selector))
+
+            return Locator()
+
+        def wait_for_timeout(self, _value):
+            pass
+
+    primary = Page()
+    login_page = Page()
+    context = SimpleNamespace(
+        pages=[primary],
+        clear_cookies=lambda: None,
+        set_extra_http_headers=lambda _headers: None,
+        new_page=lambda: login_page,
+    )
+    service = SimpleNamespace(
+        _context=context,
+        _page=primary,
+        _submit=lambda callback: callback(),
+        _publish_page_layout=lambda page: events.append(("layout", page)),
+    )
+    benchmark = SimpleNamespace(
+        config=SimpleNamespace(
+            get_environment=lambda _site: SimpleNamespace(
+                active_url="http://fixture.test/admin"
+            )
+        )
+    )
+
+    _login_context(
+        service,
+        (WebArenaSite.SHOPPING_ADMIN,),
+        benchmark,
+        ["http://fixture.test/start"],
+    )
+
+    assert events.index(("reload",)) < events.index(("layout", login_page))
+    assert events.index(("layout", login_page)) < events.index(("visible", ".page-title"))
+
+
+def test_login_context_reuses_primary_page_for_single_target_session() -> None:
+    events = []
+
+    class Page:
+        def close(self):
+            raise AssertionError("the primary page must remain open")
+
+        def set_default_timeout(self, _value):
+            pass
+
+        def set_default_navigation_timeout(self, _value):
+            pass
+
+        def goto(self, url, **_kwargs):
+            events.append(("goto", url))
+
+        def evaluate(self, _script):
+            pass
+
+        def reload(self, **_kwargs):
+            events.append(("reload",))
+
+        def locator(self, selector):
+            return SimpleNamespace(wait_for=lambda: events.append(("visible", selector)))
+
+        def wait_for_timeout(self, _value):
+            pass
+
+    primary = Page()
+    context = SimpleNamespace(
+        pages=[primary],
+        clear_cookies=lambda: None,
+        set_extra_http_headers=lambda _headers: None,
+        new_page=lambda: (_ for _ in ()).throw(
+            AssertionError("single-target sessions must reuse the primary page")
+        ),
+    )
+    service = SimpleNamespace(
+        _context=context,
+        _page=primary,
+        _supports_multiple_pages=False,
+        _submit=lambda callback: callback(),
+    )
+    benchmark = SimpleNamespace(
+        config=SimpleNamespace(
+            get_environment=lambda _site: SimpleNamespace(
+                active_url="http://fixture.test/admin"
+            )
+        )
+    )
+
+    _login_context(
+        service,
+        (WebArenaSite.SHOPPING_ADMIN,),
+        benchmark,
+        ["http://fixture.test/start"],
+    )
+
+    assert events[-1] == ("goto", "http://fixture.test/start")
+
+
+def test_login_context_can_use_native_provider_login_submit() -> None:
+    events = []
+
+    class Locator:
+        def __init__(self, test_id):
+            self.test_id = test_id
+
+        def fill(self, value):
+            events.append(("fill", self.test_id, value))
+
+        def click(self, **kwargs):
+            events.append(("click", self.test_id, kwargs))
+
+        def evaluate(self, script):
+            events.append(("evaluate", self.test_id, script))
+
+    class Page:
+        def close(self):
+            raise AssertionError("the primary page must remain open")
+
+        def set_default_timeout(self, _value):
+            pass
+
+        def set_default_navigation_timeout(self, _value):
+            pass
+
+        def goto(self, url, **_kwargs):
+            events.append(("goto", url))
+
+        def evaluate(self, _script):
+            pass
+
+        def reload(self, **_kwargs):
+            pass
+
+        def get_by_test_id(self, test_id):
+            return Locator(test_id)
+
+        def wait_for_url(self, pattern, **_kwargs):
+            events.append(("wait_for_url", pattern))
+
+        def wait_for_timeout(self, _value):
+            pass
+
+    primary = Page()
+    context = SimpleNamespace(
+        pages=[primary],
+        clear_cookies=lambda: None,
+        set_extra_http_headers=lambda _headers: None,
+        new_page=lambda: (_ for _ in ()).throw(
+            AssertionError("single-target sessions must reuse the primary page")
+        ),
+    )
+    service = SimpleNamespace(
+        _context=context,
+        _page=primary,
+        _supports_multiple_pages=False,
+        _native_login_form_submit=True,
+        _submit_login_form=lambda page, submitter: events.append(
+            ("submit_login_form", page is primary, submitter.test_id)
+        ),
+        _submit=lambda callback: callback(),
+    )
+    benchmark = SimpleNamespace(
+        config=SimpleNamespace(
+            get_environment=lambda _site: SimpleNamespace(
+                active_url="http://fixture.test"
+            )
+        )
+    )
+
+    _login_context(
+        service,
+        (WebArenaSite.GITLAB,),
+        benchmark,
+        ["http://fixture.test/start"],
+    )
+
+    assert ("submit_login_form", True, "sign-in-button") in events
+    assert events[-1] == ("goto", "http://fixture.test/start")
+
+
+def test_login_context_uses_service_viewport_observer_without_page_script() -> None:
+    class Page:
+        def evaluate(self, _script):
+            raise AssertionError("the service viewport observer must replace page evaluation")
+
+        def set_default_timeout(self, _value):
+            pass
+
+        def set_default_navigation_timeout(self, _value):
+            pass
+
+        def goto(self, _url, **_kwargs):
+            pass
+
+        def wait_for_timeout(self, _value):
+            pass
+
+    primary = Page()
+    context = SimpleNamespace(
+        pages=[primary],
+        clear_cookies=lambda: (_ for _ in ()).throw(
+            AssertionError("fresh contexts must not repeat cookie cleanup")
+        ),
+        set_extra_http_headers=lambda _headers: (_ for _ in ()).throw(
+            AssertionError("an empty authentication header set must not be written")
+        ),
+    )
+    service = SimpleNamespace(
+        _context=context,
+        _page=primary,
+        _supports_multiple_pages=False,
+        _fresh_context_per_task=True,
+        _submit=lambda callback: callback(),
+        viewport_observer=lambda page: {
+            "width": 1280,
+            "height": 900,
+            "device_scale_factor": 1,
+        },
+    )
+    benchmark = SimpleNamespace(
+        config=SimpleNamespace(
+            get_environment=lambda _site: SimpleNamespace(active_url="http://fixture.test")
+        )
+    )
+    evidence = {"observations": [], "verified": True}
+
+    _login_context(
+        service,
+        (WebArenaSite.MAP,),
+        benchmark,
+        ["http://fixture.test/start"],
+        evidence,
+    )
+
+    assert evidence["observations"] == [
+        {
+            "phase": "login_before_navigation",
+            "width": 1280,
+            "height": 900,
+            "device_scale_factor": 1,
+        }
+    ]
+
+
 @pytest.mark.parametrize(
     "status,cookie,accepted",
     [(200, True, True), (302, True, False), (401, False, False), (200, False, False)],
@@ -279,6 +569,52 @@ def test_postmill_bootstrap_is_one_non_redirecting_cookie_request(status, cookie
     assert calls[0][1]["max_redirects"] == 0
     assert calls[0][1]["max_retries"] == 0
     assert calls[1] == "dispose"
+
+
+@pytest.mark.parametrize(
+    "status,redirected,cookie,accepted",
+    [
+        (200, False, True, True),
+        (302, False, True, False),
+        (200, True, True, False),
+        (200, False, False, False),
+    ],
+)
+def test_postmill_browser_bootstrap_uses_one_temporary_page_header(
+    status, redirected, cookie, accepted
+) -> None:
+    events = []
+    request = SimpleNamespace(redirected_from=object() if redirected else None)
+    response = SimpleNamespace(status=status, request=request)
+
+    class Page:
+        def set_extra_http_headers(self, headers):
+            events.append(("headers", headers))
+
+        def goto(self, url, **kwargs):
+            events.append(("goto", url, kwargs))
+            return response
+
+    context = SimpleNamespace(
+        cookies=lambda url: (
+            [{"name": "PHPSESSID", "value": "fixture-session"}] if cookie else []
+        )
+    )
+    page = Page()
+    if accepted:
+        _bootstrap_postmill_browser_session(context, page, "http://fixture.test")
+    else:
+        with pytest.raises(RuntimeError, match="Postmill browser bootstrap"):
+            _bootstrap_postmill_browser_session(context, page, "http://fixture.test")
+
+    assert events[0][0] == "headers"
+    assert set(events[0][1]) == {SITE_AUTH_HEADERS[WebArenaSite.REDDIT]}
+    assert events[1] == (
+        "goto",
+        "http://fixture.test",
+        {"wait_until": "commit", "timeout": 90_000},
+    )
+    assert events[2] == ("headers", {})
 
 
 @pytest.mark.parametrize("include_shopping", [False, True])

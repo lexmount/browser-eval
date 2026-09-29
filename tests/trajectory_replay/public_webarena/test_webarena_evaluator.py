@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from urllib.parse import urlencode
 
 import pytest
 
@@ -204,10 +205,12 @@ def test_official_webarena_verified_evaluator_can_read_safe_flash_cookie(tmp_pat
 
 
 @pytest.mark.parametrize(
-    "directions_engine",
-    ["fossgis_osrm_car", "fossgis_osrm_bicycle"],
+    ("directions_engine", "expected_status"),
+    [("fossgis_osrm_car", "pass"), ("fossgis_osrm_bicycle", "fail")],
 )
-def test_official_task_760_has_navigate_get_xhr_evaluator_defect(tmp_path, directions_engine):
+def test_official_task_760_checks_the_hoboken_car_route(
+    tmp_path, directions_engine, expected_status
+):
     config = tmp_path / "config.json"
     config.write_text(
         json.dumps(
@@ -221,13 +224,35 @@ def test_official_task_760_has_navigate_get_xhr_evaluator_defect(tmp_path, direc
         encoding="utf-8",
     )
     har = tmp_path / "network.har"
-    route = "/route/v1/driving/-75.4716115,40.6022552;-74.4041622,40.0757384"
+    route = (
+        "/route/v1/driving/"
+        "-75.44225386838299,40.651163100000005;-74.0323752,40.7433066"
+    )
     har.write_text(
         json.dumps(
-            {
-                "log": {
-                    "entries": [
-                        {
+                {
+                    "log": {
+                        "entries": [
+                            {
+                                "request": {
+                                    "method": "GET",
+                                    "url": "http://map.test/directions",
+                                    "headers": [
+                                        {"name": "Accept", "value": "text/html"},
+                                        {"name": "Sec-Fetch-Dest", "value": "document"},
+                                        {"name": "Sec-Fetch-Mode", "value": "navigate"},
+                                        {"name": "Sec-Fetch-User", "value": "?1"},
+                                    ],
+                                },
+                                "response": {
+                                    "status": 200,
+                                    "redirectURL": "",
+                                    "headers": [],
+                                    "cookies": [],
+                                    "content": {"mimeType": "text/html", "text": ""},
+                                },
+                            },
+                            {
                             "request": {
                                 "method": "GET",
                                 "url": f"http://map.test{route}",
@@ -264,7 +289,7 @@ def test_official_task_760_has_navigate_get_xhr_evaluator_defect(tmp_path, direc
         difficulty="simple",
         ground_truth={"expected_actions": []},
         source={"url": "https://example.test/760.trace.zip"},
-        evaluator={"kind": "webarena_verified", "task_id": 760, "revision": 2},
+        evaluator={"kind": "webarena_verified", "task_id": 760, "revision": 6},
         environment={"kind": "webarena_verified"},
     )
     evidence = TaskEvidence(
@@ -276,13 +301,10 @@ def test_official_task_760_has_navigate_get_xhr_evaluator_defect(tmp_path, direc
 
     result = WebArenaVerifiedEvaluator(config_path=config).evaluate(task, evidence)
 
-    # v1.2.3 selects only main-frame navigation events for every navigate+GET
-    # task, so it never considers this expected OSRM XHR for either engine.
-    assert result.status == "fail"
-    assert result.checks[1]["actual"] == []
+    assert result.status == expected_status
 
 
-def test_official_task_678_has_navigate_get_xhr_evaluator_defect(tmp_path):
+def test_official_task_678_checks_the_order_grid_xhr(tmp_path):
     config = tmp_path / "config.json"
     config.write_text(
         json.dumps(
@@ -301,10 +323,29 @@ def test_official_task_678_has_navigate_get_xhr_evaluator_defect(tmp_path):
     )
     har.write_text(
         json.dumps(
-            {
-                "log": {
-                    "entries": [
-                        {
+                {
+                    "log": {
+                        "entries": [
+                            {
+                                "request": {
+                                    "method": "GET",
+                                    "url": "http://shopping-admin.test/admin/sales/order/",
+                                    "headers": [
+                                        {"name": "Accept", "value": "text/html"},
+                                        {"name": "Sec-Fetch-Dest", "value": "document"},
+                                        {"name": "Sec-Fetch-Mode", "value": "navigate"},
+                                        {"name": "Sec-Fetch-User", "value": "?1"},
+                                    ],
+                                },
+                                "response": {
+                                    "status": 200,
+                                    "redirectURL": "",
+                                    "headers": [],
+                                    "cookies": [],
+                                    "content": {"mimeType": "text/html", "text": ""},
+                                },
+                            },
+                            {
                             "request": {
                                 "method": "GET",
                                 "url": f"http://shopping-admin.test/admin/mui/index/render/?{query}",
@@ -338,7 +379,7 @@ def test_official_task_678_has_navigate_get_xhr_evaluator_defect(tmp_path):
         difficulty="simple",
         ground_truth={"expected_actions": []},
         source={"url": "https://example.test/678.trace.zip"},
-        evaluator={"kind": "webarena_verified", "task_id": 678, "revision": 2},
+        evaluator={"kind": "webarena_verified", "task_id": 678, "revision": 3},
         environment={"kind": "webarena_verified"},
     )
     evidence = TaskEvidence(
@@ -350,11 +391,16 @@ def test_official_task_678_has_navigate_get_xhr_evaluator_defect(tmp_path):
 
     result = WebArenaVerifiedEvaluator(config_path=config).evaluate(task, evidence)
 
-    assert result.status == "fail"
-    assert result.checks[1]["actual"] == []
+    assert result.status == "pass"
 
 
-def test_official_task_811_has_invalid_single_item_alternatives_schema(tmp_path):
+@pytest.mark.parametrize(
+    ("assignee_ids", "expected_status"),
+    [([2330], "pass"), ([2331], "fail")],
+)
+def test_official_task_811_compares_singleton_array_as_an_array(
+    tmp_path, assignee_ids, expected_status
+):
     config = tmp_path / "config.json"
     config.write_text(
         json.dumps({"environments": {"__GITLAB__": {"urls": ["http://gitlab.test"]}}}),
@@ -376,7 +422,9 @@ def test_official_task_811_has_invalid_single_item_alternatives_schema(tmp_path)
                                 "headers": [{"name": "content-type", "value": "application/json"}],
                                 "postData": {
                                     "mimeType": "application/json",
-                                    "text": '{"issue":{"assignee_ids":[2330]}}',
+                                    "text": json.dumps(
+                                        {"issue": {"assignee_ids": assignee_ids}}
+                                    ),
                                 },
                             },
                             "response": {
@@ -402,7 +450,7 @@ def test_official_task_811_has_invalid_single_item_alternatives_schema(tmp_path)
         difficulty="simple",
         ground_truth={"expected_actions": []},
         source={"url": "https://example.test/811.trace.zip"},
-        evaluator={"kind": "webarena_verified", "task_id": 811, "revision": 2},
+        evaluator={"kind": "webarena_verified", "task_id": 811, "revision": 3},
         environment={"kind": "webarena_verified"},
     )
     evidence = TaskEvidence(
@@ -414,6 +462,183 @@ def test_official_task_811_has_invalid_single_item_alternatives_schema(tmp_path)
 
     result = WebArenaVerifiedEvaluator(config_path=config).evaluate(task, evidence)
 
-    assert result.status == "error"
-    assert result.checks[1]["status"] == "error"
-    assert "Alternatives require 2+ items" in str(result.checks[1]["error_msg"])
+    assert result.status == expected_status
+    assert result.checks[1]["status"] == (
+        "success" if expected_status == "pass" else "failure"
+    )
+
+
+def _reddit_entry(url, post_data):
+    return {
+        "request": {
+            "method": "POST",
+            "url": url,
+            "headers": [{"name": "content-type", "value": "application/x-www-form-urlencoded"}],
+            "postData": {
+                "mimeType": "application/x-www-form-urlencoded",
+                "text": urlencode(post_data),
+                "params": [{"name": key, "value": str(value)} for key, value in post_data.items()],
+            },
+        },
+        "response": {
+            "status": 302,
+            "redirectURL": "",
+            "headers": [],
+            "cookies": [],
+            "content": {"mimeType": "text/html", "text": ""},
+        },
+    }
+
+
+def _official_task(task_id):
+    return BrowserTask(
+        task_id=f"webarena-{task_id}",
+        title=f"Official task {task_id}",
+        tool_calls=(),
+        assertions=(),
+        tags=(),
+        difficulty="simple",
+        ground_truth={"expected_actions": []},
+        source={"url": f"https://example.test/{task_id}.trace.zip"},
+        evaluator={"kind": "webarena_verified", "task_id": task_id, "revision": 2},
+        environment={"kind": "webarena_verified"},
+    )
+
+
+@pytest.mark.parametrize(
+    ("retrieved_data", "expected_status"),
+    [(None, "pass"), ([0], "fail")],
+)
+def test_official_task_319_preserves_null_retrieved_data_key(
+    tmp_path, retrieved_data, expected_status
+):
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps({"environments": {"__SHOPPING__": {"urls": ["http://shopping.test"]}}}),
+        encoding="utf-8",
+    )
+    har = tmp_path / "network.har"
+    har.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "entries": [
+                        {
+                            "request": {
+                                "method": "GET",
+                                "url": "http://shopping.test/sales/order/history/",
+                                "headers": [],
+                            },
+                            "response": {
+                                "status": 200,
+                                "redirectURL": "",
+                                "headers": [],
+                                "cookies": [],
+                                "content": {"mimeType": "text/html", "text": "ok"},
+                            },
+                        }
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = WebArenaVerifiedEvaluator(config_path=config).evaluate(
+        _official_task(319),
+        TaskEvidence(
+            outputs={},
+            process_passed=True,
+            agent_response={
+                "task_type": "retrieve",
+                "status": "NOT_FOUND_ERROR",
+                "retrieved_data": retrieved_data,
+            },
+            network_har_path=har,
+        ),
+    )
+
+    assert result.status == expected_status
+
+
+def test_official_task_604_binds_dynamic_forum_id_from_the_submitted_form(tmp_path):
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps({"environments": {"__REDDIT__": {"urls": ["http://reddit.test"]}}}),
+        encoding="utf-8",
+    )
+    har = tmp_path / "network.har"
+    har.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "entries": [
+                        _reddit_entry(
+                            "http://reddit.test/submit",
+                            {
+                                "submission[title]": "what is the SOTA web navigation agent repo",
+                                "submission[forum]": "10043",
+                            },
+                        )
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = WebArenaVerifiedEvaluator(config_path=config).evaluate(
+        _official_task(604),
+        TaskEvidence(
+            outputs={},
+            process_passed=True,
+            agent_response={"task_type": "mutate", "status": "SUCCESS", "retrieved_data": None},
+            network_har_path=har,
+        ),
+    )
+
+    assert result.status == "pass"
+
+
+@pytest.mark.parametrize(
+    ("comment_key", "expected_status"),
+    [("reply_to_submission_69[comment]", "pass"), ("reply_to_submission_70[comment]", "fail")],
+)
+def test_official_task_611_requires_one_post_id_in_comment_url_and_form_key(
+    tmp_path, comment_key, expected_status
+):
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps({"environments": {"__REDDIT__": {"urls": ["http://reddit.test"]}}}),
+        encoding="utf-8",
+    )
+    har = tmp_path / "network.har"
+    har.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "entries": [
+                        _reddit_entry(
+                            "http://reddit.test/submit",
+                            {"submission[title]": "Harry Potter", "submission[forum]": "10037"},
+                        ),
+                        _reddit_entry(
+                            "http://reddit.test/f/books/69/-/comment",
+                            {comment_key: "Wonderful journey"},
+                        ),
+                    ]
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = WebArenaVerifiedEvaluator(config_path=config).evaluate(
+        _official_task(611),
+        TaskEvidence(
+            outputs={},
+            process_passed=True,
+            agent_response={"task_type": "mutate", "status": "SUCCESS", "retrieved_data": None},
+            network_har_path=har,
+        ),
+    )
+
+    assert result.status == expected_status

@@ -1,0 +1,20 @@
+{
+  "schema": "trajectory_replay_repeated_network_event_reference/1",
+  "task_id": 742,
+  "endpoint_pattern": "^__GITLAB__/api/v4/projects/\\d+/members$",
+  "required_member_ids": [
+    5,
+    278
+  ],
+  "official_last_event_only": [
+    true,
+    true
+  ],
+  "corrected_last_event_only": [
+    false,
+    false
+  ],
+  "proof_kind": "official_multi-event-contract_and_evaluator_last-event-selection",
+  "observed_har_sha256": "a06b21010d6bf90d59f4e96fb32c3f5806e6db9832ae3b76e59308f7cd9661fb",
+  "observed_project_id": 221
+}

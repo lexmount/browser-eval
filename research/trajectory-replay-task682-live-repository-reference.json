@@ -1,0 +1,47 @@
+{
+  "schema": "trajectory_replay_gitlab_repository_reference/1",
+  "task_id": 682,
+  "task_intent": "Find a GitLab repository related to chatGPT and create a new post in the discussion forum with the URL of the repository to the most relevant forum. Use the repository path as the post title and \"<number of commits> commit(s) already!\" as the post body.",
+  "source_sweep": "cross-site-posts-sweep-v192",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "642237d854e6e98465e701ac3dbe3b11e6b0aea5b4aa9b0e959bf381e431bcb9",
+    "failure_screenshot": "0772ffd0591ac6426df99ccb391a5673e383de7853701c54b3883d6da5264ee5",
+    "trace": "fd3beaba537ee23e72e465dff437f2f5bc6fdb8800ec2c02babf05e15c7e10f8",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "9408a1ff2f89f10839662d22e0dac099399dcbbd662a3403815a263620237861"
+  },
+  "query": {
+    "search_term": "chatGPT",
+    "simple": true,
+    "per_page": 100,
+    "result_count": 1
+  },
+  "selected_project": {
+    "id": 175,
+    "path_with_namespace": "convexegg/chatgpt",
+    "web_url": "http://localhost:8023/convexegg/chatgpt"
+  },
+  "commit_page_sizes": [
+    1
+  ],
+  "commit_count": 1,
+  "observed_post": {
+    "title": "convexegg/chatgpt",
+    "url": "http://localhost:8023/convexegg/chatgpt",
+    "body": "1 commits already!",
+    "kind": "repo"
+  },
+  "contract_values": [
+    {
+      "path": "/eval/1/expected/post_data/submission[body]",
+      "official": "193 commits already!",
+      "corrected": "1 commits already!"
+    }
+  ],
+  "finding": "The deployed GitLab search returns exactly one chatGPT project (convexegg/chatgpt); complete commit pagination yields 1 commits.",
+  "regression_ids": [
+    "tr-682-accept-live-repository-post",
+    "tr-682-reject-frozen-repository-post"
+  ]
+}

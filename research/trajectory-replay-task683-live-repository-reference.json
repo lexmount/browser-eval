@@ -1,0 +1,54 @@
+{
+  "schema": "trajectory_replay_gitlab_repository_reference/1",
+  "task_id": 683,
+  "task_intent": "Find a GitLab repository related to metaseq and create a new post in the discussion forum with the URL of the repository to the most relevant forum. Use the repository path as the post title and \"<number of commits> commit(s) already!\" as the post body.",
+  "source_sweep": "cross-site-posts-sweep-v192",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "d33e6fa8f1b938528a3e25bb40d3d4bbba38ac27233b718a85be3d866b9aa140",
+    "failure_screenshot": "15f88b7e9443642af335fa6989b8f1e74902161e12ecaa71fbdea654002e83f9",
+    "trace": "197a0e52f59db47c879d33145ba9ac71700a817ee41673a4eed1126efa776536",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "a5cc6f7c9cc3c1658da651aa2a2464899bbb5c96b92a45e6b3d6c702759fca52"
+  },
+  "query": {
+    "search_term": "metaseq",
+    "simple": true,
+    "per_page": 100,
+    "result_count": 1
+  },
+  "selected_project": {
+    "id": 33,
+    "path_with_namespace": "root/metaseq",
+    "web_url": "http://localhost:8023/root/metaseq"
+  },
+  "commit_page_sizes": [
+    100,
+    100,
+    72
+  ],
+  "commit_count": 272,
+  "observed_post": {
+    "title": "root/metaseq",
+    "url": "http://localhost:8023/root/metaseq",
+    "body": "272 commits already!",
+    "kind": "repo"
+  },
+  "contract_values": [
+    {
+      "path": "/eval/1/expected/post_data/submission[url]",
+      "official": "__GITLAB__/facebook/metaseq",
+      "corrected": "__GITLAB__/root/metaseq"
+    },
+    {
+      "path": "/eval/1/expected/post_data/submission[title]",
+      "official": "facebook/metaseq",
+      "corrected": "root/metaseq"
+    }
+  ],
+  "finding": "The deployed GitLab search returns exactly one metaseq project (root/metaseq); complete commit pagination yields 272 commits.",
+  "regression_ids": [
+    "tr-683-accept-live-repository-post",
+    "tr-683-reject-frozen-repository-post"
+  ]
+}

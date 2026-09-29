@@ -65,6 +65,10 @@ _CLICK_DISPATCHED_NAVIGATION_TIMEOUT_MARKERS = (
     "waiting for scheduled navigations to finish",
 )
 
+_STATE_CLEAR_NAVIGATION_SETTLE_TIMEOUT_MS = 1_500
+_STATE_CLEAR_NAVIGATION_GRACE_MS = 300
+_STATE_CLEAR_MAX_ATTEMPTS = 3
+
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -131,7 +135,51 @@ def _execute_replay_call(
 
         def execute() -> None:
             page = service._page
-            locator = page.locator(selector).first
+            layout_observer = getattr(service, "layout_observer", None)
+            timeout_ms = int(public_arguments.get("timeout_ms", 60_000))
+            deadline = time.monotonic() + timeout_ms / 1000
+
+            def remaining() -> int:
+                budget = int((deadline - time.monotonic()) * 1000)
+                if budget < 1:
+                    raise TimeoutError("compiled snapshot-ref action timed out")
+                return budget
+
+            if layout_observer is not None:
+                layout_observer(page, remaining())
+            locator = None
+            if layout_observer is not None and selector.endswith(":visible"):
+                stable = page.locator(selector.removesuffix(":visible"))
+                count = getattr(stable, "count", None)
+                if callable(count) and count() == 1:
+                    locator = stable.first
+                    if not bool(public_arguments.get("force", False)):
+                        visible = page.locator(selector)
+                        while visible.count() != 1:
+                            page.wait_for_timeout(min(100, remaining()))
+                            layout_observer(page, remaining())
+            if locator is None:
+                locator = page.locator(selector).first
+            if public_arguments.get("wait_for_enabled"):
+                while True:
+                    state = locator.evaluate(
+                        """element => ({
+                            connected: element.isConnected,
+                            disabled: Boolean(element.disabled),
+                            effectivelyDisabled: element.matches(':disabled'),
+                            ariaDisabled: element.getAttribute('aria-disabled')
+                        })"""
+                    )
+                    if (
+                        state.get("connected")
+                        and not state.get("disabled")
+                        and not state.get("effectivelyDisabled")
+                        and state.get("ariaDisabled") != "true"
+                    ):
+                        break
+                    page.wait_for_timeout(min(100, remaining()))
+                    if layout_observer is not None:
+                        layout_observer(page, remaining())
             if action == "click":
                 if diagnostics is None:
                     locator.evaluate("element => element.click()")
@@ -152,25 +200,60 @@ def _execute_replay_call(
                     diagnostics["click_dispatch_state"] = state
                 page.wait_for_timeout(500)
             elif action == "fill":
-                platform = locator.evaluate(
-                    "element => { element.focus(); return navigator.platform; }"
-                )
-                modifier = (
-                    "Meta"
-                    if str(platform).startswith(("Mac", "iPhone", "iPad", "iPod"))
-                    else "Control"
-                )
-                page.keyboard.press(f"{modifier}+A")
-                page.keyboard.press("Backspace")
-                page.keyboard.insert_text(str(public_arguments.get("text", "")))
+                text = str(public_arguments.get("text", ""))
+                if public_arguments.get("force"):
+                    state = locator.evaluate(
+                        "(element, expected) => { "
+                        "const setter = Object.getOwnPropertyDescriptor("
+                        "Object.getPrototypeOf(element), 'value')?.set; "
+                        "if (!setter) throw new Error('target has no native value setter'); "
+                        "setter.call(element, expected); "
+                        "element.dispatchEvent(new Event('input', {bubbles: true})); "
+                        "element.dispatchEvent(new Event('change', {bubbles: true})); "
+                        "if (element.value !== expected) "
+                        "throw new Error('filled value was not committed'); "
+                        "return {value: element.value}; }",
+                        text,
+                    )
+                else:
+                    platform = locator.evaluate(
+                        "element => { element.focus(); return navigator.platform; }"
+                    )
+                    modifier = (
+                        "Meta"
+                        if str(platform).startswith(("Mac", "iPhone", "iPad", "iPod"))
+                        else "Control"
+                    )
+                    page.keyboard.press(f"{modifier}+A")
+                    page.keyboard.press("Backspace")
+                    page.keyboard.insert_text(text)
+                    state = locator.evaluate(
+                        "(element, expected) => { "
+                        "element.dispatchEvent(new Event('input', {bubbles: true})); "
+                        "element.dispatchEvent(new Event('change', {bubbles: true})); "
+                        "if (element.value !== expected) "
+                        "throw new Error('filled value was not committed'); "
+                        "return {value: element.value}; }",
+                        text,
+                    )
+                if diagnostics is not None:
+                    diagnostics["fill_dispatch_state"] = state
             else:
                 value = str(public_arguments.get("value", ""))
-                locator.evaluate(
+                state = locator.evaluate(
                     "(element, value) => { if (element.tagName.toLowerCase() !== 'select') "
-                    "throw new Error('target is not a select element'); element.value = value; "
-                    "element.dispatchEvent(new Event('change', {bubbles: true})); }",
+                    "throw new Error('target is not a select element'); "
+                    "const before = element.value; "
+                    "element.value = value; if (element.value !== value) "
+                    "throw new Error('select option value was not found'); "
+                    "element.dispatchEvent(new Event('input', {bubbles: true})); "
+                    "element.dispatchEvent(new Event('change', {bubbles: true})); "
+                    "return {before, after: element.value, selectedText: "
+                    "element.selectedOptions[0]?.textContent ?? null}; }",
                     value,
                 )
+                if diagnostics is not None:
+                    diagnostics["select_dispatch_state"] = state
 
         service._submit(execute)
     except Exception as exc:
@@ -287,6 +370,36 @@ def _rebind_calls(
     return rebound
 
 
+def _clear_page_storage(page: Any) -> None:
+    script = (
+        "async () => {"
+        "localStorage.clear(); sessionStorage.clear();"
+        "if ('caches' in globalThis) {"
+        "for (const key of await caches.keys()) await caches.delete(key);"
+        "}"
+        "if ('indexedDB' in globalThis && indexedDB.databases) {"
+        "for (const db of await indexedDB.databases()) {"
+        "if (db.name) indexedDB.deleteDatabase(db.name);"
+        "}"
+        "}"
+        "}"
+    )
+    for attempt in range(_STATE_CLEAR_MAX_ATTEMPTS):
+        try:
+            page.evaluate(script)
+            return
+        except Exception as exc:
+            if (
+                "execution context was destroyed" not in str(exc).lower()
+                or attempt + 1 == _STATE_CLEAR_MAX_ATTEMPTS
+            ):
+                raise
+            page.wait_for_load_state(
+                "domcontentloaded", timeout=_STATE_CLEAR_NAVIGATION_SETTLE_TIMEOUT_MS
+            )
+            page.wait_for_timeout(_STATE_CLEAR_NAVIGATION_GRACE_MS)
+
+
 def _clear_browser_state(service: Any, origins: set[str]) -> None:
     """Fail closed unless all persistent browser state is cleared before a task."""
 
@@ -295,22 +408,40 @@ def _clear_browser_state(service: Any, origins: set[str]) -> None:
         page = service._page
         if context is None or page is None:
             raise RuntimeError("browser context is not ready for state reset")
+        if getattr(service, "_fresh_context_per_task", False):
+            return
         context.clear_cookies()
         context.clear_permissions()
-        cdp = context.new_cdp_session(page)
+        supports_network_reset_cdp = getattr(
+            service, "_supports_network_reset_cdp", True
+        )
+        supports_storage_cdp = getattr(service, "_supports_storage_cdp", True)
+        cdp = (
+            context.new_cdp_session(page)
+            if supports_network_reset_cdp or supports_storage_cdp
+            else None
+        )
         try:
-            cdp.send("Network.enable")
-            cdp.send("Network.clearBrowserCache")
-            cdp.send("Network.clearBrowserCookies")
-            for origin in sorted(origins):
-                cdp.send(
-                    "Storage.clearDataForOrigin",
-                    {"origin": origin, "storageTypes": "all"},
-                )
+            if supports_network_reset_cdp:
+                cdp.send("Network.enable")
+                cdp.send("Network.clearBrowserCache")
+                cdp.send("Network.clearBrowserCookies")
+            if supports_storage_cdp:
+                for origin in sorted(origins):
+                    cdp.send(
+                        "Storage.clearDataForOrigin",
+                        {"origin": origin, "storageTypes": "all"},
+                    )
+            else:
+                for origin in sorted(origins):
+                    page.goto(origin, wait_until="domcontentloaded", timeout=30_000)
+                    _clear_page_storage(page)
             page.goto("about:blank", wait_until="load", timeout=10_000)
-            cdp.send("Page.resetNavigationHistory")
+            if supports_storage_cdp:
+                cdp.send("Page.resetNavigationHistory")
         finally:
-            cdp.detach()
+            if cdp is not None:
+                cdp.detach()
 
     service._submit(clear)
 
@@ -421,21 +552,28 @@ def _run_one(  # noqa: PLR0913
         for index, arguments in enumerate(calls, start=1):
             call_started = time.perf_counter()
             diagnostics: dict[str, Any] = {}
-            result_status, result_text = _execute_replay_call(tool, arguments, diagnostics=diagnostics)
+            result_status, result_text = _execute_replay_call(
+                tool, arguments, diagnostics=diagnostics
+            )
             dispatched_before_timeout = _click_was_dispatched_before_navigation_timeout(
                 arguments, result_status, result_text
+            )
+            effective_status, observation_error = _replay_step_status(
+                arguments,
+                result_status,
+                result_text,
+                dispatched=dispatched_before_timeout,
             )
             record = {
                 "index": index,
                 "arguments": arguments,
-                "status": "success" if dispatched_before_timeout else result_status,
+                "status": effective_status,
                 "tool_status": result_status,
                 "duration_ms": round((time.perf_counter() - call_started) * 1000, 3),
                 "result": result_text,
             }
             if diagnostics:
                 record["action_diagnostics"] = diagnostics
-            observation_error = _embedded_observation_error(arguments, result_status, result_text)
             if observation_error is not None:
                 record["observation_status"] = "error"
                 record["observation_error"] = observation_error
@@ -445,14 +583,15 @@ def _run_one(  # noqa: PLR0913
                     "action_retried": False,
                 }
             records.append(record)
-            if result_status != "success" and not dispatched_before_timeout:
+            if effective_status != "success":
                 try:
                     record["failure_ui_state"] = _capture_failure_ui_state(service, arguments)
                 except Exception as observation_exc:
                     record["failure_ui_state_error"] = (
                         f"{type(observation_exc).__name__}: {observation_exc}"
                     )[:300]
-                raise RuntimeError(f"step {index} failed: {result_text}")
+                detail = observation_error or result_text
+                raise RuntimeError(f"step {index} failed: {detail}")
         timings["trajectory_replay_ms"] = (time.perf_counter() - replay_started) * 1000
         _verify_session_viewport(service, viewport_evidence, "after_trajectory")
         process_status = "pass"
@@ -707,12 +846,12 @@ def _attempt_needs_retry(attempt: dict[str, Any]) -> bool:
 def _embedded_observation_error(
     arguments: dict[str, Any], result_status: str, result_text: str
 ) -> str | None:
-    """Expose BrowserTool snapshot degradation without rewriting task outcome.
+    """Expose BrowserTool snapshot degradation as a replay failure.
 
     BrowserTool currently returns a successful tool status with a bracketed error
     payload when the page execution context changes during a snapshot.  The action
-    remains completed, but the observation is unavailable and must be explicit in
-    evidence so diagnosis can identify the first degraded step.
+    remains completed, but the required observation is unavailable.  Both replay
+    runners use this classification to fail the step and retain the exact error.
     """
 
     if arguments.get("action") != "snapshot" or result_status != "success":
@@ -721,6 +860,17 @@ def _embedded_observation_error(
     if not result_text.startswith(prefix):
         return None
     return result_text[len(prefix) :].removesuffix("]").strip()
+
+
+def _replay_step_status(
+    arguments: dict[str, Any], result_status: str, result_text: str, *, dispatched: bool
+) -> tuple[str, str | None]:
+    """Apply the same snapshot failure policy in every replay runner."""
+
+    observation_error = _embedded_observation_error(arguments, result_status, result_text)
+    if observation_error is not None:
+        return "error", observation_error
+    return ("success" if dispatched else result_status), None
 
 
 def _diagnostic_locator(selector: str) -> str:
@@ -744,7 +894,8 @@ def _diagnostic_locator(selector: str) -> str:
         elif char in ("'", '"'):
             quote = char
         elif selector.startswith(":visible", index) and (
-            index + 8 == len(selector) or not (selector[index + 8].isalnum() or selector[index + 8] in "_-\\")
+            index + 8 == len(selector)
+            or not (selector[index + 8].isalnum() or selector[index + 8] in "_-\\")
         ):
             index += 8
             continue

@@ -11,7 +11,6 @@ from harness.fix_log import load_fix_log
 from harness.trajectory_replay.webarena_report import (
     LEGACY_REPLAY_VALIDITY_INPUTS,
     _assets,
-    build_webarena_replay_report,
     _clean,
     _copy_failure_screenshot,
     _detail_page,
@@ -25,24 +24,30 @@ from harness.trajectory_replay.webarena_report import (
     _planned_actions_digest,
     _public_evidence,
     _reference_validity_by_task,
-    require_all_reference_validity,
+    _resource_table,
     _shell,
     _successful_distribution_table,
     _task_page,
     _unique_winners,
     _validated_planned_actions,
     _verdict_label,
+    build_webarena_replay_report,
+    require_all_reference_validity,
+)
+from scripts.build_webarena_replay_report import _bound_dataset_path
+from scripts.check_webarena_replay_report import (
+    _check_affected36_comparison,
+    _check_core_comparison,
+    _check_english_localization,
+    _check_formal_execution_scope,
+    _check_legacy_retrieval_audit,
+    _check_result_detail_semantics,
+    _contains_local_path_outside_web_url,
+    _semantic_page_inventory,
 )
 from scripts.check_webarena_replay_report import (
     check as check_report,
-    _check_affected36_comparison,
-    _check_core_comparison,
-    _check_legacy_retrieval_audit,
-    _check_result_detail_semantics,
-    _check_english_localization,
-    _semantic_page_inventory,
 )
-from scripts.build_webarena_replay_report import _bound_dataset_path
 
 
 def test_report_build_requires_hash_bound_corrected_dataset(tmp_path: Path) -> None:
@@ -121,13 +126,42 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
         review_path=files["review.json"], profile_path=files["profile.json"],
         output_dir=output, include_english=True,
     )
+    invalid_profile = tmp_path / "reset-every-task-profile.json"
+    invalid_profile.write_text(
+        json.dumps(
+            {
+                **profile,
+                "execution": {
+                    **profile["execution"],
+                    "reset_before_every_task": True,
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="common execution protocol"):
+        build_webarena_replay_report(
+            results_path=files["results.json"],
+            dataset_path=files["dataset.json"],
+            review_path=files["review.json"],
+            profile_path=invalid_profile,
+            output_dir=tmp_path / "invalid-report",
+        )
     assert manifest["participants"] == [item["id"] for item in methods]
+    assert manifest["browser_count"] == 2
+    assert manifest["method_count"] == len(methods)
     assert manifest["logical_results"] == len(methods)
     assert manifest["routes"] == 20 + 2 * extra_methods
     assert "36/36" not in (output / "index.html").read_text()
     assert "fixes.html" not in (output / "index.html").read_text()
-    assert "BrowserTool 与浏览器的组合" in (output / "index.html").read_text()
-    assert "BrowserTool–browser combinations" in (output / "en/index.html").read_text()
+    chinese_home = (output / "index.html").read_text()
+    english_home = (output / "en/index.html").read_text()
+    assert "Playwright 重放器与浏览器的组合" in chinese_home
+    assert "Playwright-adapter–browser configurations" in english_home
+    assert "没有调用 CowAgent BrowserTool" in chinese_home
+    assert "本轮没有记录进程级 CPU、内存和网络采样" in chinese_home
+    assert "CPU 时间" not in chinese_home
+    assert "平均内存" not in chinese_home
     assert "参考答案均已核验" not in (output / "index.html").read_text()
     assert "with verified references" not in (output / "en/index.html").read_text()
     assert "独立复核范围见复核说明" in (output / "index.html").read_text()
@@ -146,6 +180,14 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
         environment = (output / route).read_text()
         assert 'data-topology-fallback' in environment and 'class="mermaid"' in environment
         assert 'Rainbond WebArena' in environment
+    assert "方法身份与修复序列" in (output / "environment.html").read_text()
+    assert "Method identity and repair sequence" in (output / "en/environment.html").read_text()
+    environment_path = output / "environment.html"
+    original_environment = environment_path.read_text()
+    environment_path.write_text(original_environment.replace("方法身份与修复序列", ""))
+    with pytest.raises(ValueError, match="method identity"):
+        check_report(output)
+    environment_path.write_text(original_environment)
     assert not (output / "diagnostics.html").exists()
     assert check_report(output)["html_pages"] == 20 + 2 * extra_methods
     home = output / "index.html"
@@ -169,6 +211,14 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     assert not (output / "en/results.html").exists()
     assert 'class="language" href="../en/index.html"' in (output / "result/chromium-29.html").read_text()
     assert check_report(output)["html_pages"] == 11 + extra_methods
+    manifest_path = output / "report-manifest.json"
+    changed = json.loads(manifest_path.read_text())
+    changed["browser_count"] += 1
+    manifest_path.write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match="complete manifest-declared"):
+        check_report(output)
+    changed["browser_count"] -= 1
+    manifest_path.write_text(json.dumps(changed))
     stale = output / "en/results.html"
     stale.write_text("stale English report")
     with pytest.raises(ValueError, match="stale English"):
@@ -244,6 +294,24 @@ def test_formal_reference_validity_gate_requires_all_selected_tasks_for_all_meth
         require_all_reference_validity(profile, results, dataset)
 
 
+def test_formal_release_scope_accepts_any_complete_declared_split_size() -> None:
+    _check_formal_execution_scope(
+        {
+            "formal_reference_validity": True,
+            "task_count": 812,
+            "site_reset_between_tasks": False,
+        }
+    )
+    with pytest.raises(ValueError, match="method-reset task cohort"):
+        _check_formal_execution_scope(
+            {
+                "formal_reference_validity": True,
+                "task_count": 812,
+                "site_reset_between_tasks": True,
+            }
+        )
+
+
 def test_core_three_method_comparison_rejects_wrong_score_and_tie_highlight(tmp_path: Path) -> None:
     participants = ["chromium", "moli-old", "moli-fixed"]
     results = [
@@ -296,6 +364,30 @@ def test_result_detail_gate_rejects_duplicate_summary_and_missing_failure_log() 
     with pytest.raises(ValueError, match="evaluation logs"):
         _check_result_detail_semantics(
             html, {"programmatic_failure": {"stage": "official_evaluation", "message": "Exact timeout"}}, "fail",
+        )
+    _check_result_detail_semantics(
+        html,
+        {
+            "programmatic_failure": {
+                "stage": "browser_tool_execution",
+                "step": None,
+                "message": "Exact timeout",
+            },
+            "trajectory": [],
+        },
+        "fail",
+    )
+    with pytest.raises(ValueError, match="evaluation logs"):
+        _check_result_detail_semantics(
+            html,
+            {
+                "programmatic_failure": {
+                    "stage": "browser_tool_execution",
+                    "step": None,
+                    "message": "Exact timeout",
+                }
+            },
+            "fail",
         )
 
 
@@ -359,6 +451,18 @@ def test_core_metrics_are_registry_driven_and_mark_only_unique_winners() -> None
     assert "End-to-end time, all tasks" in rendered
     assert "n=90" in rendered
     assert "median" not in rendered.lower()
+
+
+def test_unavailable_resource_metrics_are_not_rendered_as_empty_comparisons() -> None:
+    methods = [_method("Browser A", 1.0, 3.0), _method("Browser B", 0.8, 2.0)]
+    for method in methods:
+        for key in ("cpu", "memory", "memory_peak", "network_rx", "network_tx", "cpu_utilization"):
+            method[key] = {"n": 0, "mean": None, "p50": None, "p95": None}
+    rendered = _metrics_table(methods, "zh")
+    assert "CPU 时间" not in rendered
+    assert "平均内存" not in rendered
+    assert "端到端耗时" in rendered and "单次动作耗时" in rendered
+    assert _resource_table(methods, "zh") == ""
 
 
 def test_legacy_retrieval_provenance_binds_every_browser_to_saved_answer(tmp_path) -> None:
@@ -511,7 +615,9 @@ def test_own_success_distributions_do_not_select_shared_pass_tasks() -> None:
     assert methods[1]["successful"]["duration"]["mean"] == 2
     for lang in ("zh", "en"):
         rendered = _successful_distribution_table(methods, lang)
-        assert "n=1/2" in rendered and "n=0/1" in rendered
+        assert "n=1/2" in rendered and "n=1/1" in rendered
+        assert "CPU" not in rendered
+        assert ("接收数据" if lang == "zh" else "Network received") not in rendered
         assert 'class="winner"' not in rendered
 
 
@@ -798,6 +904,58 @@ def test_replay_task_and_result_have_connected_drilldown() -> None:
     assert 'href="../evidence-viewer.html?file=data/evidence/moli-29.json"' in detail
 
 
+def test_detail_page_preserves_task_timeout_with_unknown_active_action() -> None:
+    task = {
+        "task_id": 90,
+        "task": {"intent": "Open the route", "sites": ["map"]},
+        "tool_calls": [{"action": "navigate", "url": "https://example.test"}],
+    }
+    attempt = {
+        "engine": "obscura",
+        "participant_id": "obscura-0.2.3",
+        "task_id": 90,
+        "status": "fail",
+        "completed_action_count": 0,
+        "action_count": 1,
+        "duration_ms": 590_000,
+        "resource": {},
+        "planned_actions": task["tool_calls"],
+    }
+    evidence = {
+        "programmatic_failure": {
+            "stage": "browser_tool_execution",
+            "step": None,
+            "trigger_step": None,
+            "message": "browser stopped responding",
+        },
+        "review": {
+            "label_zh": "浏览器运行时无响应",
+            "label_en": "Browser runtime became unresponsive",
+            "reason_zh": "活动动作边界未记录",
+            "reason_en": "The active action boundary was not recorded",
+            "remediation_owner": "Obscura",
+            "remediation_status": "recorded",
+        },
+        "trajectory": [
+            {
+                "index": None,
+                "action": "task_timeout",
+                "arguments": {},
+                "status": "fail",
+                "duration_ms": 590_000,
+                "error": "browser stopped responding",
+            }
+        ],
+        "screenshot": None,
+    }
+
+    detail = _detail_page("zh", attempt, task, {"label": "Obscura 0.2.3"}, evidence, [])
+
+    assert "活动动作未记录" in detail
+    assert "查看已保存轨迹证据" in detail
+    assert 'id="step-1"' in detail
+
+
 def test_unexecuted_qualified_step_stays_visible_and_is_not_called_an_action_error() -> None:
     task = {
         "task_id": 29,
@@ -846,6 +1004,81 @@ def test_report_removes_macos_and_linux_local_paths() -> None:
         "/opt/hostedtoolcache/trace.json",
     ):
         assert _clean(f"failure at {path}") == "failure at [local path removed]"
+
+
+def test_public_evidence_return_value_is_the_same_sanitized_value_written_to_disk(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    trace = tmp_path / "trace.json"
+    trace.write_text('[{"index": 1, "status": "fail"}]')
+    attempt = {
+        "participant_id": "browser",
+        "engine": "browser",
+        "task_id": 1,
+        "status": "fail",
+        "action_count": 1,
+        "completed_action_count": 0,
+        "duration_ms": 1,
+        "error": "failure at /Users/example/private/run.py",
+        "evidence": {
+            "trace": {
+                "path": str(trace),
+                "sha256": hashlib.sha256(trace.read_bytes()).hexdigest(),
+            }
+        },
+    }
+    monkeypatch.setattr(
+        "harness.trajectory_replay.webarena_report.programmatic_failure",
+        lambda _: {
+            "stage": "browser_tool_execution",
+            "step": 1,
+            "message": "failure at /Users/example/private/run.py",
+        },
+    )
+
+    public = _public_evidence(attempt, None, tmp_path)
+    written = json.loads(
+        (tmp_path / "data/evidence/browser-1.json").read_text(encoding="utf-8")
+    )
+
+    assert public == written
+    assert public["programmatic_failure"]["message"] == "failure at [local path removed]"
+    assert public["programmatic_failure"]["step"] == 1
+
+
+def test_report_preserves_web_routes_that_resemble_linux_paths() -> None:
+    actions = [
+        {
+            "action": "navigate",
+            "url": "https://gitlab.example.test/root/project/-/issues",
+        }
+    ]
+    attempt = {
+        "participant_id": "moli",
+        "task_id": 317,
+        "action_count": 1,
+        "planned_actions": actions,
+        "planned_actions_sha256": _planned_actions_digest(actions),
+    }
+
+    assert _clean(actions) == actions
+    assert _validated_planned_actions(attempt) == actions
+
+
+def test_release_path_gate_ignores_web_routes_but_detects_machine_paths() -> None:
+    assert not _contains_local_path_outside_web_url(
+        "https://gitlab.example.test/root/project/-/issues"
+    )
+    assert _contains_local_path_outside_web_url(
+        "opened /root/private/result.json from https://example.test/root/public"
+    )
+
+
+def test_report_does_not_redact_secret_like_substrings_inside_words() -> None:
+    product = "https://shop.example.test/task-chairhome-office-chair.html"
+
+    assert _clean(product) == product
+    assert _clean("token=sk-secret_value_123456") == "token=[secret removed]"
 
 
 def test_report_rejects_symlinked_evidence_parent(tmp_path: Path) -> None:

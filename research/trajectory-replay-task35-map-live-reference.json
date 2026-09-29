@@ -1,0 +1,57 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 35,
+  "task_intent": "I will arrive at Pittsburgh Airport soon. Find a Hyatt hotel in the vicinity, if available, and get me its name and the minimal driving time to a supermarket from the hotel. Return a list of objects with keys \"hotel_name\" (hotel name only) and \"travel_time\" (in HH:MM:SS format) only, without any additional details. (Use the OSRM direction service.)",
+  "source_sweep": "map-live-sweep-v125",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "0356180a421eea87978d157d22bde1c753ef2954ee823969b34d93278ff75d6d",
+    "actual_response": "bb1a44fd9ae0e6c5e11299ff389849bd331a3282a6c4b1a02872c2c9c0932af4",
+    "evaluation": "29a4c67452fc0ca64920f629b9afde855d17d82fe68c4d6e9a8b94ec43dbc1c6",
+    "trace": "f493ba34c8d195579f5caf7095c63d41974d6c3007e8d0246290eabfdbc836e5",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "df9e49282affc68c9763de94c9f89afa04fe23bf6b064be284778afc0180a59e"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      {
+        "hotel_name": "Hyatt Regency Pittsburgh International Airport",
+        "travel_time": "864.7s"
+      }
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/0/results_schema/items/properties",
+      "official": {
+        "hotel": {
+          "type": "string",
+          "format": "location-name"
+        },
+        "information": {
+          "type": "string",
+          "format": "duration"
+        }
+      },
+      "corrected": {
+        "hotel_name": {
+          "type": "string",
+          "format": "location-name"
+        },
+        "travel_time": {
+          "type": "string",
+          "format": "duration"
+        }
+      }
+    }
+  ],
+  "derivation": {
+    "kind": "bounded_nominatim_osrm/1"
+  },
+  "regression_ids": [
+    "tr-35-accept-live-map-reference",
+    "tr-35-reject-nearby-wrong-map-reference"
+  ]
+}

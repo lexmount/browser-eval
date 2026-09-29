@@ -4,13 +4,18 @@ import copy
 import hashlib
 import json
 from pathlib import Path
+from urllib.parse import urlencode
 
 import pytest
+from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.runner import _configure_benchmark
+from harness.trajectory_replay.remote_runtime import remote_benchmark
 from harness.trajectory_replay.webarena_corrections import (
+    DEFAULT_CORRECTIONS_PATH,
     CorrectedReplayContract,
     apply_correction,
+    check_replay_assertions,
     corrected_task_ids,
     evaluate_corrected_contract,
     load_corrections,
@@ -28,19 +33,320 @@ def catalog():
     return load_corrections()
 
 
+@pytest.fixture(scope="module")
+def route_benchmark():
+    return remote_benchmark(
+        {
+            WebArenaSite.SHOPPING: "http://shop.test",
+            WebArenaSite.SHOPPING_ADMIN: "http://admin.test",
+            WebArenaSite.REDDIT: "http://reddit.test",
+            WebArenaSite.GITLAB: "http://git.test",
+            WebArenaSite.MAP: "http://map.test",
+            WebArenaSite.WIKIPEDIA: "http://wiki.test",
+        }
+    )
+
+
 def _dump_eval(contract: CorrectedReplayContract, index: int) -> dict:
     return contract.task.eval[index].model_dump(mode="json")
+
+
+def _route_har(path: Path, url: str) -> Path:
+    engine = "bicycle" if "routed-bike" in url else "car"
+    path.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "version": "1.2",
+                    "creator": {"name": "route-order-control", "version": "1"},
+                    "entries": [
+                        {
+                            "request": {
+                                "method": "GET",
+                                "url": "http://map.test/directions",
+                                "headers": [
+                                    {"name": "accept", "value": "text/html"},
+                                    {"name": "sec-fetch-dest", "value": "document"},
+                                    {"name": "sec-fetch-mode", "value": "navigate"},
+                                    {"name": "sec-fetch-user", "value": "?1"},
+                                ],
+                            },
+                            "response": {
+                                "status": 200,
+                                "headers": [],
+                                "cookies": [],
+                                "content": {"mimeType": "text/html", "text": ""},
+                            },
+                        },
+                        {
+                            "request": {
+                                "method": "GET",
+                                "url": url,
+                                "headers": [
+                                    {
+                                        "name": "Cookie",
+                                        "value": f"_osm_directions_engine=fossgis_osrm_{engine}",
+                                    }
+                                ],
+                            },
+                            "response": {
+                                "status": 200,
+                                "headers": [],
+                                "cookies": [],
+                                "content": {"mimeType": "application/json", "text": "{}"},
+                            },
+                        }
+                    ],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _empty_har(path: Path) -> Path:
+    return _route_har(path, "http://map.test/unrelated")
+
+
+@pytest.mark.parametrize(
+    "task_id",
+    [9, 18, 32, 34, 35, 61, 90, 252, 363, 367, 383],
+)
+def test_live_map_reference_corrections_accept_bound_observation_and_reject_neighbor(
+    tmp_path, route_benchmark, catalog, task_id
+) -> None:
+    contract = apply_correction(route_benchmark.get_task(task_id), catalog)
+    record = catalog.records[task_id]
+    receipt_path = Path(__file__).resolve().parents[2] / record["reference_receipt"]["path"]
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert record["regression_ids"] == [
+        f"tr-{task_id}-accept-live-map-reference",
+        f"tr-{task_id}-reject-nearby-wrong-map-reference",
+    ]
+    response = receipt["observed_response"]
+    positive_har = _empty_har(tmp_path / "positive.har")
+    positive = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=response,
+        network_trace=positive_har,
+    )
+    assert float(positive.score) == 1.0
+
+    negative_har = _empty_har(tmp_path / "negative.har")
+    negative_response = copy.deepcopy(response)
+    negative_response["retrieved_data"] = ["definitely wrong"]
+    negative = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=negative_response,
+        network_trace=negative_har,
+    )
+    assert float(negative.score) == 0.0
+
+
+def test_live_gitlab_issue_state_accepts_observed_boolean_and_rejects_opposite(
+    tmp_path, route_benchmark, catalog
+) -> None:
+    contract = apply_correction(route_benchmark.get_task(179), catalog)
+    record = catalog.records[179]
+    receipt_path = Path(__file__).resolve().parents[2] / record["reference_receipt"]["path"]
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert record["regression_ids"] == [
+        "tr-179-accept-live-authored-issue-state",
+        "tr-179-reject-opposite-issue-state",
+    ]
+    assert receipt["selected_issue"]["author_id"] == receipt["query"]["authenticated_user_id"]
+    assert receipt["selected_issue"]["state"] == "opened"
+
+    positive = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=receipt["observed_response"],
+        network_trace=_empty_har(tmp_path / "positive.har"),
+    )
+    negative_response = copy.deepcopy(receipt["observed_response"])
+    negative_response["retrieved_data"] = [True]
+    negative = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=negative_response,
+        network_trace=_empty_har(tmp_path / "negative.har"),
+    )
+    assert float(positive.score) == 1.0
+    assert float(negative.score) == 0.0
+
+
+@pytest.mark.parametrize("task_id", [682, 683])
+def test_live_gitlab_repository_post_accepts_observed_project_and_rejects_frozen_value(
+    tmp_path, route_benchmark, catalog, task_id
+) -> None:
+    contract = apply_correction(route_benchmark.get_task(task_id), catalog)
+    record = catalog.records[task_id]
+    receipt_path = Path(__file__).resolve().parents[2] / record["reference_receipt"]["path"]
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert record["regression_ids"] == [
+        f"tr-{task_id}-accept-live-repository-post",
+        f"tr-{task_id}-reject-frozen-repository-post",
+    ]
+    assert receipt["query"]["result_count"] == 1
+    assert sum(receipt["commit_page_sizes"]) == receipt["commit_count"]
+
+    corrected_post = _dump_eval(contract, 1)["expected"]["post_data"]
+    positive_fields = {
+        "submission[mediaType]": "url",
+        "submission[url]": corrected_post["submission[url]"].replace(
+            "__GITLAB__", "http://git.test"
+        ),
+        "submission[title]": corrected_post["submission[title]"],
+        "submission[body]": corrected_post["submission[body]"],
+        "submission[forum]": "10043",
+    }
+
+    def score(fields: dict[str, str], name: str) -> float:
+        har = tmp_path / f"{name}.har"
+        har.write_text(
+            json.dumps(
+                {
+                    "log": {
+                        "version": "1.2",
+                        "creator": {"name": "gitlab-repository-control", "version": "1"},
+                        "entries": [
+                            {
+                                "request": {
+                                    "method": "POST",
+                                    "url": "http://reddit.test/submit/",
+                                    "headers": [],
+                                    "postData": {
+                                        "mimeType": "application/x-www-form-urlencoded",
+                                        "text": urlencode(fields),
+                                    },
+                                },
+                                "response": {
+                                    "status": 302,
+                                    "headers": [],
+                                    "cookies": [],
+                                    "content": {"mimeType": "text/html", "text": ""},
+                                },
+                            }
+                        ],
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        response = {"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None}
+        return float(
+            evaluate_corrected_contract(
+                route_benchmark,
+                contract,
+                agent_response=response,
+                network_trace=har,
+            ).score
+        )
+
+    assert score(positive_fields, "positive") == 1.0
+    negative_fields = dict(positive_fields)
+    first_change = record["preconditions"][0]
+    field = first_change["path"].rsplit("/", 1)[-1]
+    negative_fields[field] = first_change["equals"].replace(
+        "__GITLAB__", "http://git.test"
+    )
+    assert score(negative_fields, "negative") == 0.0
+
+
+def test_reddit_forum_slug_correction_accepts_deployed_route_and_rejects_label_url(
+    tmp_path, route_benchmark, catalog
+) -> None:
+    contract = apply_correction(route_benchmark.get_task(599), catalog)
+    response = {"task_type": "mutate", "status": "SUCCESS", "retrieved_data": None}
+
+    def write_har(path: Path, forum_path: str) -> Path:
+        post = f"http://reddit.test/f/{forum_path}/120613/d-yan-lecun-s-recent-recommendations"
+        payload = {
+            "log": {
+                "entries": [
+                    {
+                        "request": {
+                            "method": "POST",
+                            "url": f"http://reddit.test/f/{forum_path}/subscribe.json",
+                            "headers": [{"name": "referer", "value": post}],
+                        },
+                        "response": {
+                            "status": 200,
+                            "headers": [],
+                            "content": {
+                                "mimeType": "application/json",
+                                "text": json.dumps({"subscribed": True}),
+                            },
+                        },
+                    }
+                ]
+            }
+        }
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        return path
+
+    positive = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=response,
+        network_trace=write_har(tmp_path / "positive.har", "MachineLearning"),
+    )
+    negative = evaluate_corrected_contract(
+        route_benchmark,
+        contract,
+        agent_response=response,
+        network_trace=write_har(tmp_path / "negative.har", "machine%20learning"),
+    )
+    assert float(positive.score) == 1.0
+    assert float(negative.score) == 0.0
 
 
 def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
     payload = json.loads(catalog.source_path.read_text(encoding="utf-8"))
     assert payload["historical_browser_use_scores_immutable"] is True
     assert "Replay" in payload["scope"]
-    assert catalog.upstream["package_version"] == "1.2.3"
+    assert catalog.upstream["repository"] == "https://github.com/lexmount/webarena-verified.git"
+    assert catalog.upstream["branch"] == "lex-main"
+    assert len(catalog.upstream["revision"]) == 40
     assert len(catalog.upstream["dataset_sha256"]) == 64
     assert set(catalog.record_sha256s) == set(catalog.records)
     assert len(set(catalog.record_sha256s.values())) == len(catalog.records)
-    assert corrected_task_ids(catalog) == (225, 279, 448, 510, 528, 547, 699)
+    assert corrected_task_ids(catalog) == (
+        9,
+        18,
+        32,
+        34,
+        35,
+        61,
+        90,
+        179,
+        225,
+        252,
+        279,
+        280,
+        282,
+        363,
+        367,
+        383,
+        429,
+        430,
+        448,
+        510,
+        528,
+        529,
+        530,
+        599,
+        682,
+        683,
+        689,
+        690,
+        691,
+        692,
+        693,
+    )
     assert catalog.records[448]["regression_ids"] == [
         "tr-448-302-success",
         "tr-448-200-json-success",
@@ -52,9 +358,23 @@ def test_catalog_is_replay_only_and_has_exact_reviewed_scope(catalog) -> None:
     ]
 
 
+def test_current_catalog_rejects_a_different_fork_revision(tmp_path) -> None:
+    payload = json.loads(DEFAULT_CORRECTIONS_PATH.read_text(encoding="utf-8"))
+    payload["upstream"]["revision"] = "b" * 40
+    changed = tmp_path / "task-corrections.json"
+    changed.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="different WebArena fork revision"):
+        load_corrections(changed)
+
+
 def test_448_scoring_revision_is_bound_to_correction_and_regressions(catalog) -> None:
     root = Path(__file__).resolve().parents[2]
-    catalog = load_corrections(root / "evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json")
+    catalog = load_corrections(
+        root
+        / "evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json",
+        require_current_upstream=False,
+    )
     receipt = json.loads(
         (root / "research/trajectory-replay-task448-scoring-revision.json").read_text(
             encoding="utf-8"
@@ -98,11 +418,17 @@ def test_apply_is_pure_traceable_and_fails_closed(benchmark, catalog) -> None:
 
 def test_final_event_revision_binds_current_and_historical_catalogs(catalog):
     root = Path(__file__).resolve().parents[2]
-    receipt = json.loads((root / "research/trajectory-replay-task448-final-event-revision.json").read_text())
-    predecessor = load_corrections(root / receipt["predecessor_catalog_path"])
+    receipt = json.loads(
+        (root / "research/trajectory-replay-task448-final-event-revision.json").read_text()
+    )
+    predecessor = load_corrections(
+        root / receipt["predecessor_catalog_path"], require_current_upstream=False
+    )
     assert receipt["predecessor_correction_catalog_sha256"] == predecessor.source_sha256
     assert receipt["predecessor_correction_record_sha256"] == predecessor.record_sha256s[448]
-    revised = load_corrections(root / receipt["revised_catalog_path"])
+    revised = load_corrections(
+        root / receipt["revised_catalog_path"], require_current_upstream=False
+    )
     assert receipt["revised_correction_catalog_sha256"] == revised.source_sha256
     assert receipt["revised_correction_record_sha256"] == catalog.record_sha256s[448]
     assert receipt["regression_ids"] == catalog.records[448]["regression_ids"]
@@ -111,11 +437,13 @@ def test_final_event_revision_binds_current_and_historical_catalogs(catalog):
 
 def test_archived_catalog_reproduces_all_unchanged_task_contracts(benchmark, catalog):
     archived = load_corrections(
-        Path("evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json"))
-    for task_id in corrected_task_ids(archived):
+        Path("evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json"),
+        require_current_upstream=False,
+    )
+    for task_id in sorted(set(corrected_task_ids(archived)) & set(catalog.records)):
         previous = apply_correction(benchmark.get_task(task_id), archived)
         current = apply_correction(benchmark.get_task(task_id), catalog)
-        if task_id in {448, 510}:
+        if task_id in {280, 282, 448, 510}:
             assert previous.corrected_task_sha256 != current.corrected_task_sha256
         else:
             assert previous.corrected_task_sha256 == current.corrected_task_sha256
@@ -173,6 +501,63 @@ def test_279_complete_catalog_scores_both_directions(tmp_path, benchmark, catalo
             }
         )
     )
+    result = evaluate_corrected_contract(
+        benchmark, contract, agent_response=response, network_trace=trace
+    )
+    assert float(result.score) == score
+
+
+@pytest.mark.parametrize(
+    "task_id,expected_count,expected_min,expected_max",
+    [(280, 17, 8.99, 59.99), (282, 9, 36.86, 90.65)],
+)
+def test_current_catalog_price_ranges_are_complete(
+    benchmark, catalog, task_id, expected_count, expected_min, expected_max
+):
+    contract = apply_correction(benchmark.get_task(task_id), catalog)
+    result = _dump_eval(contract, 0)["expected"]["retrieved_data"][0]
+    assert len(result["names"]) == expected_count
+    assert result["min"] == expected_min
+    assert result["max"] == expected_max
+
+
+@pytest.mark.parametrize(
+    "task_id,mutation,score",
+    [
+        (280, "complete", 1.0),
+        (280, "omitted", 0.0),
+        (280, "unqualified", 0.0),
+        (282, "complete", 1.0),
+        (282, "retired", 0.0),
+        (282, "unqualified", 0.0),
+    ],
+    ids=[
+        "tr-280-accept-complete-seventeen-products",
+        "tr-280-reject-frozen-omitted-products",
+        "tr-280-reject-non-charger-anker-product",
+        "tr-282-accept-current-nine-slides",
+        "tr-282-reject-retired-benassi-product",
+        "tr-282-reject-non-slide-nike-sandal",
+    ],
+)
+def test_current_catalog_price_ranges_score_both_directions(
+    tmp_path, benchmark, catalog, task_id, mutation, score
+):
+    contract = apply_correction(benchmark.get_task(task_id), catalog)
+    response = copy.deepcopy(_dump_eval(contract, 0)["expected"])
+    values = response["retrieved_data"][0]
+    if mutation == "omitted":
+        values["names"].pop()
+    elif mutation == "retired":
+        values["names"][-1] = "Nike womens Benassi Just Do It"
+        values["min"] = 27.6
+    elif mutation == "unqualified":
+        values["names"].append(
+            "Anker Soundcore Mini 3 Bluetooth Speaker"
+            if task_id == 280
+            else "Nike Women's Tanjun Sandal"
+        )
+    trace = _route_har(tmp_path / f"catalog-{task_id}.har", "http://shop.test/")
     result = evaluate_corrected_contract(
         benchmark, contract, agent_response=response, network_trace=trace
     )
@@ -289,7 +674,9 @@ def test_448_official_evaluator_rejects_overwritten_correct_save(
 ) -> None:
     corrected = apply_correction(benchmark.get_task(448), catalog)
     predecessor = apply_correction(benchmark.get_task(448), load_corrections(
-        Path("evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json")))
+        Path("evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json"),
+        require_current_upstream=False,
+    ))
     target = "http://host.docker.internal:8023/-/profile"
 
     def entry(value: str) -> dict:
@@ -419,8 +806,11 @@ def test_510_freezes_selection_order_and_product(benchmark, catalog) -> None:
     assert _dump_eval(applied, 2)["expected"]["response_content"]["items_qty"] == 1
 
 
-def test_528_uses_final_dom_state_and_forbids_real_submission(benchmark, catalog) -> None:
-    applied = apply_correction(benchmark.get_task(528), catalog)
+@pytest.mark.parametrize("task_id", [528, 529, 530])
+def test_refund_forms_use_final_dom_state_and_forbid_real_submission(
+    benchmark, catalog, task_id
+) -> None:
+    applied = apply_correction(benchmark.get_task(task_id), catalog)
     network = [_dump_eval(applied, index) for index in range(1, len(applied.task.eval))]
     assert len(network) == 1
     assert network[0]["expected"]["url"] == "__SHOPPING__/contact/index/post"
@@ -431,15 +821,100 @@ def test_528_uses_final_dom_state_and_forbids_real_submission(benchmark, catalog
     assert assertion["forbid_network_event"]["http_method"] == "POST"
 
 
-def test_547_removes_redundant_attribute_save_but_keeps_variation_save(benchmark, catalog) -> None:
-    applied = apply_correction(benchmark.get_task(547), catalog)
+@pytest.mark.parametrize("task_id", [689, 690, 691, 692, 693])
+def test_coupon_requests_use_exact_final_dom_state_without_submission(
+    benchmark, catalog, tmp_path, task_id
+) -> None:
+    applied = apply_correction(benchmark.get_task(task_id), catalog)
+    network = [_dump_eval(applied, index) for index in range(1, len(applied.task.eval))]
+    assert len(network) == 1
+    assert network[0]["expected"]["url"] == "__SHOPPING__/contact/index/post"
+    assert network[0]["should_not_exist"] is True
+
+    assertion = applied.replay_assertions[0]
+    expected = assertion["fields"]
+    passed = check_replay_assertions(
+        applied,
+        page_url="http://shop.test/contact/",
+        page_text="Contact Us",
+        field_values=expected,
+    )
+    assert passed == (
+        {
+            "kind": "final_dom_form_state",
+            "status": "pass",
+            "expected": expected,
+            "actual": expected,
+        },
+    )
+
+    wrong = dict(expected)
+    wrong["textarea[name='comment']"] = "a different coupon reason"
+    assert check_replay_assertions(
+        applied,
+        page_url="http://shop.test/contact/",
+        page_text="Contact Us",
+        field_values=wrong,
+    )[0]["status"] == "fail"
+
+    empty_har = tmp_path / f"coupon-{task_id}.har"
+    empty_har.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "version": "1.2",
+                    "creator": {"name": "coupon-form-control", "version": "1"},
+                    "entries": [
+                        {
+                            "request": {
+                                "method": "GET",
+                                "url": "http://shop.test/contact/",
+                                "headers": [],
+                            },
+                            "response": {
+                                "status": 200,
+                                "headers": [],
+                                "cookies": [],
+                                "content": {"mimeType": "text/html", "text": ""},
+                            },
+                        }
+                    ],
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    response = {
+        "task_type": "mutate",
+        "status": "SUCCESS",
+        "retrieved_data": None,
+        "error_details": None,
+    }
+    assert evaluate_corrected_contract(
+        benchmark, applied, agent_response=response, network_trace=empty_har
+    ).score == 1
+
+
+def test_547_upstream_keeps_only_the_variation_save(benchmark, catalog) -> None:
+    assert 547 not in catalog.records
+    task = benchmark.get_task(547)
     network_urls = [
         item["expected"]["url"]
-        for item in (_dump_eval(applied, index) for index in range(1, len(applied.task.eval)))
+        for item in (item.model_dump(mode="json") for item in task.eval[1:])
     ]
     assert not any("product_attribute/save" in url for url in network_urls)
     assert any("catalog/product/save/id/1130" in url for url in network_urls)
-    assert applied.replay_assertions == ()
+
+
+def test_566_commit_path_matches_the_project_creation_contract(benchmark, catalog) -> None:
+    assert 566 not in catalog.records
+    task = benchmark.get_task(566)
+    project = task.eval[1].model_dump(mode="json")
+    commit = task.eval[2].model_dump(mode="json")
+    assert project["expected"]["post_data"]["project[path]"] == "do-it-myself"
+    assert commit["expected"]["url"] == (
+        "__GITLAB__/api/v4/projects/byteblaze%2Fdo-it-myself/repository/commits"
+    )
 
 
 def test_676_uses_upstream_filter_xhr_contract(benchmark, catalog) -> None:
@@ -453,8 +928,8 @@ def test_676_uses_upstream_filter_xhr_contract(benchmark, catalog) -> None:
 def test_699_checks_browser_form_array_fields_and_all_registered_customer_groups(
     benchmark, catalog
 ) -> None:
-    applied = apply_correction(benchmark.get_task(699), catalog)
-    evaluator = _dump_eval(applied, 1)
+    assert 699 not in catalog.records
+    evaluator = benchmark.get_task(699).eval[1].model_dump(mode="json")
     assert evaluator["post_data_schema"] is None
     assert evaluator["expected"]["post_data"] == {
         "name": "spring sale",

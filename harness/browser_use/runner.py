@@ -481,15 +481,25 @@ def _browser_tool_config(endpoint: str) -> dict[str, Any]:
         "viewport_width": BENCHMARK_VIEWPORT["width"],
         "viewport_height": BENCHMARK_VIEWPORT["height"],
         "cdp_isolated_context": True,
+        "locale": "en-US",
         "startup_timeout": 90,
     }
 
 
-def _record_page_viewport(page: Any, evidence: dict[str, Any], phase: str) -> None:
+def _record_page_viewport(
+    page: Any,
+    evidence: dict[str, Any],
+    phase: str,
+    observer: Any | None = None,
+) -> None:
     try:
-        observed = page.evaluate(
-            "() => ({width: innerWidth, height: innerHeight, "
-            "device_scale_factor: devicePixelRatio})"
+        observed = (
+            observer(page)
+            if observer is not None
+            else page.evaluate(
+                "() => ({width: innerWidth, height: innerHeight, "
+                "device_scale_factor: devicePixelRatio})"
+            )
         )
     except Exception:
         evidence["verified"] = False
@@ -506,8 +516,9 @@ def _verify_session_viewport(service: Any, evidence: dict[str, Any], phase: str)
         if not pages:
             evidence["verified"] = False
             raise RuntimeError("browser viewport cannot be verified without a live page")
+        observer = getattr(service, "viewport_observer", None)
         for page in pages:
-            _record_page_viewport(page, evidence, phase)
+            _record_page_viewport(page, evidence, phase, observer)
 
     service._submit(verify)
 
@@ -524,13 +535,24 @@ def _prepare_browser_viewport(service: Any) -> dict[str, Any]:
     def prepare() -> None:
         if not getattr(service, "_owns_cdp_context", False):
             raise RuntimeError("CowAgent lacks the required owned CDP context contract")
-        _record_page_viewport(service._page, evidence, "primary_before_navigation")
-        # Verify inheritance using a blank child before any login/site script.
-        child = service._context.new_page()
-        try:
-            _record_page_viewport(child, evidence, "new_page_before_navigation")
-        finally:
-            child.close()
+        observer = getattr(service, "viewport_observer", None)
+        _record_page_viewport(
+            service._page, evidence, "primary_before_navigation", observer
+        )
+        if getattr(service, "_supports_multiple_pages", True):
+            # Verify inheritance using a blank child before any login/site script.
+            child = service._context.new_page()
+            try:
+                _record_page_viewport(
+                    child, evidence, "new_page_before_navigation", observer
+                )
+            finally:
+                child.close()
+            evidence["page_model"] = "multiple_pages"
+        else:
+            # Some CDP implementations expose one target per browser session.
+            # The primary page still proves the requested viewport was applied.
+            evidence["page_model"] = "single_target"
         evidence["retained_external_context_count"] = sum(
             context != service._context for context in service._browser.contexts
         )
@@ -573,6 +595,37 @@ def _bootstrap_postmill_session(context: Any, base_url: str) -> None:
         response.dispose()
 
 
+def _bootstrap_postmill_browser_session(context: Any, page: Any, base_url: str) -> None:
+    """Establish Postmill auth through the browser when API cookies are not shared."""
+
+    creds = SITE_CREDENTIALS[WebArenaSite.REDDIT]
+    page.set_extra_http_headers(
+        {
+            SITE_AUTH_HEADERS[WebArenaSite.REDDIT]: (
+                f"{creds['username']}:{creds['password']}"
+            )
+        }
+    )
+    try:
+        response = page.goto(base_url, wait_until="commit", timeout=90_000)
+    finally:
+        page.set_extra_http_headers({})
+    if (
+        response is None
+        or not 200 <= response.status < 300
+        or response.request.redirected_from is not None
+    ):
+        status = response.status if response is not None else "no response"
+        raise RuntimeError(
+            f"Postmill browser bootstrap requires a direct 2xx response; got {status}"
+        )
+    if not any(
+        cookie.get("name") == "PHPSESSID" and cookie.get("value")
+        for cookie in context.cookies(base_url)
+    ):
+        raise RuntimeError("Postmill browser bootstrap did not establish a session cookie")
+
+
 def _login_context(
     service: Any,
     sites: tuple[WebArenaSite, ...],
@@ -580,6 +633,26 @@ def _login_context(
     start_urls: list[str],
     viewport_evidence: dict[str, Any] | None = None,
 ) -> int:
+    def publish_layout(page: Any) -> None:
+        publisher = getattr(service, "_publish_page_layout", None)
+        if publisher is not None:
+            publisher(page)
+
+    def wait_for_login_ready(
+        page: Any, selector: str, *, exact_text: str | None = None
+    ) -> None:
+        waiter = getattr(service, "_wait_for_login_ready", None)
+        if waiter is not None:
+            waiter(page, selector, exact_text=exact_text)
+            return
+        if exact_text is not None:
+            page.get_by_role("button", name=exact_text, exact=True).wait_for()
+            return
+        locator = page.locator(selector)
+        if "," in selector:
+            locator = locator.first
+        locator.wait_for()
+
     def login() -> None:
         context = service._context
         assert context is not None
@@ -588,52 +661,80 @@ def _login_context(
         for existing_page in context.pages:
             if existing_page != primary_page:
                 existing_page.close()
-        context.clear_cookies()
-        context.set_extra_http_headers(
-            {
-                SITE_AUTH_HEADERS[site]: (
-                    f"{SITE_CREDENTIALS[site]['username']}:{SITE_CREDENTIALS[site]['password']}"
-                )
-                for site in sites
-                if site in SITE_AUTH_HEADERS and site != WebArenaSite.REDDIT
-            }
-        )
+        fresh_context = getattr(service, "_fresh_context_per_task", False)
+        if not fresh_context:
+            context.clear_cookies()
+        auth_headers = {
+            SITE_AUTH_HEADERS[site]: (
+                f"{SITE_CREDENTIALS[site]['username']}:{SITE_CREDENTIALS[site]['password']}"
+            )
+            for site in sites
+            if site in SITE_AUTH_HEADERS and site != WebArenaSite.REDDIT
+        }
+        if auth_headers or not fresh_context:
+            context.set_extra_http_headers(auth_headers)
         for site in sites:
             base = benchmark.config.get_environment(site).active_url
-            creds = SITE_CREDENTIALS[site]
-            page = context.new_page()
+            creds = SITE_CREDENTIALS.get(site)
+            reuse_primary = not getattr(service, "_supports_multiple_pages", True)
+            page = primary_page if reuse_primary else context.new_page()
             try:
                 if viewport_evidence is not None:
-                    _record_page_viewport(page, viewport_evidence, "login_before_navigation")
+                    _record_page_viewport(
+                        page,
+                        viewport_evidence,
+                        "login_before_navigation",
+                        getattr(service, "viewport_observer", None),
+                    )
                 page.set_default_timeout(60_000)
                 page.set_default_navigation_timeout(90_000)
                 if site == WebArenaSite.SHOPPING:
                     page.goto(f"{base}/customer/account", wait_until="commit")
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")
-                    page.locator(".block-dashboard-info, .box-information").first.wait_for()
+                    publish_layout(page)
+                    wait_for_login_ready(
+                        page, ".block-dashboard-info, .box-information"
+                    )
                 elif site == WebArenaSite.SHOPPING_ADMIN:
                     page.goto(base, wait_until="commit")
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")
-                    page.locator(".page-title").wait_for()
+                    publish_layout(page)
+                    wait_for_login_ready(page, ".page-title")
                 elif site == WebArenaSite.REDDIT:
-                    _bootstrap_postmill_session(context, base)
+                    if getattr(service, "_supports_context_request_cookie_sharing", True):
+                        _bootstrap_postmill_session(context, base)
+                    else:
+                        _bootstrap_postmill_browser_session(context, page, base)
                     page.goto(base, wait_until="commit")
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")
-                    page.get_by_role("button", name=creds["username"], exact=True).wait_for()
+                    publish_layout(page)
+                    wait_for_login_ready(
+                        page, "button", exact_text=creds["username"]
+                    )
                 elif site == WebArenaSite.GITLAB:
                     page.goto(f"{base}/users/sign_in", wait_until="commit")
                     page.evaluate("localStorage.clear(); sessionStorage.clear()")
                     page.reload(wait_until="domcontentloaded")
+                    publish_layout(page)
                     page.get_by_test_id("username-field").fill(creds["username"])
+                    publish_layout(page)
                     page.get_by_test_id("password-field").fill(creds["password"])
-                    page.get_by_test_id("sign-in-button").click()
+                    publish_layout(page)
+                    sign_in = page.get_by_test_id("sign-in-button")
+                    if getattr(service, "_native_login_form_submit", False):
+                        service._submit_login_form(page, sign_in)
+                    else:
+                        sign_in.click()
                     page.wait_for_url("**/", timeout=90_000)
+                elif site not in {WebArenaSite.MAP, WebArenaSite.WIKIPEDIA}:
+                    raise ValueError(f"unsupported WebArena login site: {site}")
                 page.wait_for_timeout(1_000)
             finally:
-                page.close()
+                if not reuse_primary:
+                    page.close()
         primary_page.set_default_timeout(60_000)
         primary_page.set_default_navigation_timeout(90_000)
         primary_page.goto(start_urls[0], wait_until="domcontentloaded")

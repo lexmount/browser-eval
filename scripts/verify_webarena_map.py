@@ -66,12 +66,19 @@ def verify(base: str) -> dict:
         assert name in detail and path.rsplit("/", 1)[1] in detail
         assert "Not Found" not in detail
         checks.append({"feature": "object-detail", "path": path, "status": "pass"})
+    causeway = get("/relation/5475586").decode("utf-8")
+    assert "Lake Pontchartrain Causeway" in causeway and "5475586" in causeway
+    checks.append({
+        "feature": "frozen-route-relation",
+        "path": "/relation/5475586",
+        "status": "pass",
+    })
     try:
-        get("/relation/5475586")
+        get("/relation/999999999999")
     except HTTPError as error:
         assert error.code == 404
     else:
-        raise AssertionError("A missing frozen object must not be fabricated")
+        raise AssertionError("An unknown frozen object must not be fabricated")
     checks.append({"feature": "unavailable-object", "status": "pass"})
     return {"base_url": base, "status": "pass", "checks": checks}
 

@@ -233,9 +233,7 @@ def test_response_builder_filters_aligned_observed_rows_by_requested_value():
     )
 
     assert response is not None
-    assert response["retrieved_data"] == [
-        {"name": "Ada", "email": "ada@example.test"}
-    ]
+    assert response["retrieved_data"] == [{"name": "Ada", "email": "ada@example.test"}]
 
 
 def test_response_builder_ranks_observed_labels_by_numeric_score():
@@ -294,8 +292,7 @@ def test_response_builder_deduplicates_review_authors_across_observed_pages():
         ),
         {
             "page_two": '["Review by Ada\\nLow quality"]',
-            "page_one": '["Review by Grace\\nQuality issue", '
-            '"Review by Ada\\nQuality issue"]',
+            "page_one": '["Review by Grace\\nQuality issue", "Review by Ada\\nQuality issue"]',
         },
     )
 
@@ -359,6 +356,37 @@ def test_response_builder_reports_not_found_only_from_explicit_observed_evidence
     }
 
 
+def test_response_builder_reports_not_found_when_required_page_lacks_target_state():
+    response = build_agent_response(
+        _task(
+            {
+                "kind": "observed_not_found",
+                "task_type": "navigate",
+                "output": "page",
+                "evidence_regex": r"my orders",
+                "forbidden_regex": r"\bprocessing\b",
+            }
+        ),
+        {"page": "My Orders\nOrder #1 Complete"},
+    )
+    assert response is not None
+    assert response["status"] == "NOT_FOUND_ERROR"
+
+    with pytest.raises(ValueError, match="forbidden evidence"):
+        build_agent_response(
+            _task(
+                {
+                    "kind": "observed_not_found",
+                    "task_type": "navigate",
+                    "output": "page",
+                    "evidence_regex": r"my orders",
+                    "forbidden_regex": r"\bprocessing\b",
+                }
+            ),
+            {"page": "My Orders\nOrder #2 Processing"},
+        )
+
+
 @pytest.mark.parametrize(
     ("builder", "outputs"),
     (
@@ -385,3 +413,140 @@ def test_response_builder_reports_not_found_only_from_explicit_observed_evidence
 def test_response_builder_not_found_fails_closed_without_matching_evidence(builder, outputs):
     with pytest.raises(ValueError, match="observed_not_found"):
         build_agent_response(_task(builder), outputs)
+
+
+def test_response_builder_reports_action_not_allowed_only_from_complete_empty_scope():
+    builder = {
+        "kind": "observed_action_not_allowed",
+        "task_type": "mutate",
+        "output": "review_scope",
+    }
+
+    response = build_agent_response(
+        _task(builder),
+        {"review_scope": '{"scope_complete": true, "matches": [], "total": 7}'},
+    )
+
+    assert response == {
+        "task_type": "mutate",
+        "status": "ACTION_NOT_ALLOWED_ERROR",
+        "retrieved_data": None,
+    }
+
+
+@pytest.mark.parametrize(
+    "evidence",
+    [
+        '{"scope_complete": false, "matches": []}',
+        '{"scope_complete": true, "matches": ["review 42"]}',
+        '{"scope_complete": true}',
+    ],
+)
+def test_response_builder_action_not_allowed_fails_closed(evidence):
+    builder = {
+        "kind": "observed_action_not_allowed",
+        "task_type": "mutate",
+        "output": "review_scope",
+    }
+
+    with pytest.raises(ValueError):
+        build_agent_response(_task(builder), {"review_scope": evidence})
+
+
+def test_response_builder_reports_action_blocked_only_from_observed_blocker():
+    builder = {
+        "kind": "observed_action_blocked",
+        "task_type": "mutate",
+        "output": "merge_request_scope",
+    }
+
+    response = build_agent_response(
+        _task(builder),
+        {
+            "merge_request_scope": (
+                '{"scope_complete":true,"allowed":false,"blockers":[{"id":17,"state":"opened"}]}'
+            )
+        },
+    )
+
+    assert response == {
+        "task_type": "mutate",
+        "status": "ACTION_NOT_ALLOWED_ERROR",
+        "retrieved_data": None,
+    }
+
+
+@pytest.mark.parametrize(
+    "evidence",
+    [
+        '{"scope_complete":false,"allowed":false,"blockers":[{"id":17}]}',
+        '{"scope_complete":true,"allowed":true,"blockers":[{"id":17}]}',
+        '{"scope_complete":true,"allowed":false,"blockers":[]}',
+        '{"scope_complete":true,"allowed":false}',
+    ],
+)
+def test_response_builder_action_blocked_fails_closed(evidence):
+    builder = {
+        "kind": "observed_action_blocked",
+        "task_type": "mutate",
+        "output": "merge_request_scope",
+    }
+
+    with pytest.raises(ValueError):
+        build_agent_response(_task(builder), {"merge_request_scope": evidence})
+
+
+@pytest.mark.parametrize(
+    "evidence",
+    [
+        (
+            '{"scope_complete":true,"allowed":false,'
+            '"access_levels":[null,20],"required_access_level":40}'
+        ),
+        (
+            '{"scope_complete":true,"allowed":false,'
+            '"access_levels":[null,null],"required_access_level":40}'
+        ),
+    ],
+)
+def test_response_builder_reports_permission_denied_from_absent_or_insufficient_access(
+    evidence,
+):
+    builder = {
+        "kind": "observed_permission_denied",
+        "task_type": "retrieve",
+        "output": "project_permissions",
+    }
+
+    response = build_agent_response(
+        _task(builder),
+        {"project_permissions": evidence},
+    )
+
+    assert response == {
+        "task_type": "retrieve",
+        "status": "PERMISSION_DENIED_ERROR",
+        "retrieved_data": None,
+    }
+
+
+@pytest.mark.parametrize(
+    "evidence",
+    [
+        '{"scope_complete":false,"allowed":false,"access_levels":[null],"required_access_level":40}',
+        '{"scope_complete":true,"allowed":true,"access_levels":[null],"required_access_level":40}',
+        '{"scope_complete":true,"allowed":false,"access_levels":[],"required_access_level":40}',
+        '{"scope_complete":true,"allowed":false,"access_levels":[40],"required_access_level":40}',
+        '{"scope_complete":true,"allowed":false,"access_levels":[false],"required_access_level":40}',
+        '{"scope_complete":true,"allowed":false,"access_levels":[20],"required_access_level":true}',
+    ],
+)
+def test_response_builder_permission_denied_fails_closed(evidence):
+    builder = {
+        "kind": "observed_permission_denied",
+        "task_type": "retrieve",
+        "output": "project_permissions",
+    }
+
+    with pytest.raises(ValueError):
+        build_agent_response(_task(builder), {"project_permissions": evidence})

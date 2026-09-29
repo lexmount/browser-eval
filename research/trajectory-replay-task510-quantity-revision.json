@@ -7,6 +7,7 @@
   "predecessor_correction_catalog_sha256": "f77d148498e50710fdb7b1205dcb7770d2e746d6856112cb8bfa173989333a9e",
   "predecessor_correction_record_sha256": "5a141413e71ad077c19515596b7b4a904fac427bdaa43de656a8f978aab7839e",
   "revised_correction_catalog_sha256": "e764f4b2828fa97d98cecc8752b31329871e612be1fff13878410d41e8414f9b",
+  "revised_catalog_path": "evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260920-post-510.json",
   "revised_correction_record_sha256": "5b57108f9589f43d9ce5db9869793c77012413e0f93985d39d3124959e14759c",
   "regression_ids": [
     "tr-510-quantity-one",

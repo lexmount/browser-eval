@@ -1,0 +1,41 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 90,
+  "task_intent": "Get the relation IDs of each US state that borders Pennsylvania. Return a list of integers only, without any additional details.",
+  "source_sweep": "map-live-sweep-v127",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "95d065623d799b3ccc3861f9cd59043caed08a65643e85041fc2d8c3213fb085",
+    "actual_response": "0ec650fdffdb303f92ed0e4b8f9596af8a82eca7ba4e3721811bac2522faa763",
+    "evaluation": "a09aa2fcc0b8c07cb8e8c35662f60d3c95a1214ef13f3ea02e7183e42949eec5",
+    "trace": "95d019ea87ecfdb28ae2d86b37e40c03c5d8bf389e4d25165eb6b98497000bb4",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "261ba4e597a83fe5a19989afe133be6b9d6e68a79c37b4c7eb8fa6c3beb8a2d2"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      162061,
+      162112,
+      61320,
+      224951,
+      162110,
+      162068
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/0/expected/retrieved_data/2",
+      "official": 175905,
+      "corrected": 61320
+    }
+  ],
+  "derivation": {
+    "kind": "frozen_wikipedia_relation_ids/1"
+  },
+  "regression_ids": [
+    "tr-90-accept-live-map-reference",
+    "tr-90-reject-nearby-wrong-map-reference"
+  ]
+}

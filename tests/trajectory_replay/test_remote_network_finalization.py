@@ -1,0 +1,74 @@
+from pathlib import Path
+
+from harness.trajectory_replay.remote_execution import (
+    NETWORK_SETTLE_MS,
+    _finalize_network_recorder,
+    _replay_step_status,
+)
+
+
+def test_network_finalization_waits_for_background_response_before_stop() -> None:
+    events = []
+
+    class Page:
+        def wait_for_timeout(self, value):
+            events.append(("wait", value))
+
+    class Recorder:
+        def stop(self, context, path):
+            events.append(("stop", context, path))
+
+    class Service:
+        _page = Page()
+        _context = "context"
+
+        def _submit(self, function):
+            return function()
+
+    path = Path("network.har")
+    _finalize_network_recorder(Service(), Recorder(), path)
+    assert events == [("wait", NETWORK_SETTLE_MS), ("stop", "context", path)]
+    assert NETWORK_SETTLE_MS >= 2_000
+
+
+def test_network_finalization_accepts_task_specific_slow_response_window() -> None:
+    events = []
+
+    class Page:
+        def wait_for_timeout(self, value):
+            events.append(("wait", value))
+
+    class Recorder:
+        def stop(self, context, path):
+            events.append(("stop", context, path))
+
+    class Service:
+        _page = Page()
+        _context = "context"
+
+        def _submit(self, function):
+            return function()
+
+    path = Path("network.har")
+    _finalize_network_recorder(Service(), Recorder(), path, settle_ms=10_000)
+    assert events == [("wait", 10_000), ("stop", "context", path)]
+
+
+def test_remote_runner_fails_browsertool_embedded_snapshot_error() -> None:
+    status, error = _replay_step_status(
+        {"action": "snapshot"},
+        "success",
+        "[Snapshot error: Execution context was destroyed]",
+        dispatched=False,
+    )
+    assert status == "error"
+    assert error == "Execution context was destroyed"
+
+
+def test_remote_runner_keeps_successful_snapshot_and_dispatched_click_semantics() -> None:
+    assert _replay_step_status(
+        {"action": "snapshot"}, "success", "Page: ready", dispatched=False
+    ) == ("success", None)
+    assert _replay_step_status(
+        {"action": "click"}, "error", "navigation timeout", dispatched=True
+    ) == ("success", None)

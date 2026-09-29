@@ -5,7 +5,9 @@ from __future__ import annotations
 import base64
 import json
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
+from http.cookies import SimpleCookie
 from pathlib import Path
 from typing import Any
 
@@ -37,7 +39,37 @@ def _har_request(request: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _har_response(response: dict[str, Any], body: dict[str, Any] | None) -> dict[str, Any]:
+def _response_cookies(
+    base_headers: dict[str, Any] | None, extra_headers: dict[str, Any] | None
+) -> list[dict[str, str]]:
+    """Expose only the Magento flash cookie needed by official evaluators."""
+    cookies: dict[str, str] = {}
+    for headers in (base_headers, extra_headers):
+        raw = next(
+            (
+                str(value)
+                for name, value in (headers or {}).items()
+                if str(name).lower() == "set-cookie"
+            ),
+            "",
+        )
+        if not raw:
+            continue
+        parsed = SimpleCookie()
+        try:
+            parsed.load(raw)
+        except Exception:
+            continue
+        if "mage-messages" in parsed:
+            cookies["mage-messages"] = parsed["mage-messages"].value
+    return [{"name": name, "value": value} for name, value in cookies.items()]
+
+
+def _har_response(
+    response: dict[str, Any],
+    body: dict[str, Any] | None,
+    extra_headers: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     headers = response.get("headers", {})
     mime_type = str(response.get("mimeType") or "")
     content: dict[str, Any] = {"mimeType": mime_type, "text": ""}
@@ -47,7 +79,7 @@ def _har_response(response: dict[str, Any], body: dict[str, Any] | None) -> dict
         "status": int(response["status"]),
         "statusText": str(response.get("statusText") or ""),
         "headers": _headers(headers),
-        "cookies": [],
+        "cookies": _response_cookies(headers, extra_headers),
         "redirectURL": next(
             (str(value) for name, value in headers.items() if name.lower() == "location"),
             "",
@@ -81,7 +113,22 @@ class CdpHarRecorder:
         "maxResourceBufferSize": 1024 * 1024,
     }
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        capture_transport: str = "cdp",
+        capture_new_pages: bool = True,
+        playwright_request_transform: Callable[
+            [str, str, dict[str, Any]],
+            tuple[dict[str, Any], str | None, dict[str, Any] | None],
+        ]
+        | None = None,
+    ) -> None:
+        if capture_transport not in {"cdp", "playwright"}:
+            raise ValueError(f"unknown HAR capture transport: {capture_transport}")
+        self._capture_transport = capture_transport
+        self._capture_new_pages = capture_new_pages
+        self._playwright_request_transform = playwright_request_transform
         self._context: Any = None
         self._sessions: list[Any] = []
         self._requests: dict[tuple[int, str], dict[str, Any]] = {}
@@ -90,6 +137,7 @@ class CdpHarRecorder:
         self._session_ordinals: dict[int, int] = {}
         self._completion_timestamps: dict[tuple[int, str, int], Any] = {}
         self._extra_headers: dict[tuple[int, str], list[dict[str, Any]]] = {}
+        self._extra_response_headers: dict[tuple[int, str], list[dict[str, Any]]] = {}
         self._responses: list[tuple[Any, str, dict[str, Any], dict[str, Any]]] = []
         self._finished: set[tuple[int, str]] = set()
         self._failed: dict[tuple[int, str], dict[str, Any]] = {}
@@ -98,17 +146,64 @@ class CdpHarRecorder:
         self._response_bodies: dict[tuple[int, str, int], dict[str, Any]] = {}
         self._response_body_errors: dict[tuple[int, str, int], str] = {}
         self._payload: str | None = None
+        self._playwright_navigations: list[dict[str, Any]] = []
+        self._playwright_requests: dict[int, dict[str, Any]] = {}
+        self._playwright_request_objects: dict[int, Any] = {}
+        self._playwright_request_order: list[int] = []
+        self._playwright_responses: dict[int, tuple[Any, dict[str, Any]]] = {}
+        self._playwright_bodies: dict[int, dict[str, Any]] = {}
+        self._playwright_failures: dict[int, str] = {}
+        self._playwright_pages: list[Any] = []
         self._stopped = False
         self.errors: list[str] = []
 
-    def start(self, context: Any) -> None:
+    def start(self, context: Any, page: Any | None = None) -> None:
         self._context = context
+        if self._capture_transport == "playwright":
+            if self._capture_new_pages:
+                context.on("page", self._attach_playwright_page)
+            for selected_page in [page] if page is not None else context.pages:
+                self._attach_playwright_page(selected_page)
+            return
         context.on("page", self._attach)
         for page in context.pages:
             self._attach(page)
 
+    def record_navigation_response(self, response: Any) -> None:
+        """Retain an observed page.goto response when CDP omits Document events."""
+
+        if response is None:
+            return
+        try:
+            request = response.request
+            raw_request = {
+                "method": str(request.method),
+                "url": str(request.url),
+                "headers": dict(request.headers),
+                "postData": request.post_data,
+                "__resource_type": "Document",
+            }
+            raw_response = {
+                "status": int(response.status),
+                "statusText": str(response.status_text),
+                "headers": dict(response.headers),
+                "mimeType": str(response.headers.get("content-type") or "").split(";", 1)[0],
+            }
+            self._playwright_navigations.append(
+                {
+                    "request": _har_request(raw_request),
+                    "response": _har_response(raw_response, None),
+                    "_capture": {"state": "playwright-navigation-response"},
+                }
+            )
+        except Exception as exc:
+            self.errors.append(f"Playwright navigation response capture failed: {exc}")
+
     def stop(self, context: Any, path: Path) -> None:
         if self._stopped:
+            return
+        if self._capture_transport == "playwright":
+            self._stop_playwright(context, path)
             return
         if self._payload is None:
             # Network events and command responses share the ordered CDP channel.
@@ -146,6 +241,10 @@ class CdpHarRecorder:
             extra_headers_snapshot = {
                 key: [dict(headers) for headers in values]
                 for key, values in self._extra_headers.items()
+            }
+            extra_response_headers_snapshot = {
+                key: [dict(headers) for headers in values]
+                for key, values in self._extra_response_headers.items()
             }
             responses = [
                 observation
@@ -197,6 +296,10 @@ class CdpHarRecorder:
                 extras = extra_headers_snapshot.get(key, [])
                 if ordinal < len(extras):
                     request["headers"] = {**request.get("headers", {}), **extras[ordinal]}
+                response_extras = extra_response_headers_snapshot.get(key, [])
+                response_extra = (
+                    response_extras[ordinal] if ordinal < len(response_extras) else None
+                )
                 mime_type = str((response or {}).get("mimeType") or "")
                 if (
                     index == last_response_by_key[key]
@@ -218,7 +321,7 @@ class CdpHarRecorder:
                 entry = {
                     "request": _har_request(request),
                     "response": (
-                        _har_response(response, body)
+                        _har_response(response, body, response_extra)
                         if response is not None
                         else {
                             "status": 0,
@@ -271,11 +374,228 @@ class CdpHarRecorder:
                         # Retain raw evidence even if the supplied wall clock is invalid.
                         pass
                 entries.append(entry)
+            by_request = {
+                (entry["request"]["method"], entry["request"]["url"]): entry
+                for entry in entries
+            }
+            for fallback in self._playwright_navigations:
+                identity = (
+                    fallback["request"]["method"],
+                    fallback["request"]["url"],
+                )
+                existing = by_request.get(identity)
+                if existing is None:
+                    entries.append(fallback)
+                    by_request[identity] = fallback
+                elif existing["response"]["status"] == 0:
+                    existing["response"] = fallback["response"]
+                    existing["_capture"] = fallback["_capture"]
             for session in self._sessions:
                 try:
                     session.detach()
                 except Exception as exc:
                     self.errors.append(f"CDP detach failed: {exc}")
+            self._context = None
+            self._payload = json.dumps(
+                {
+                    "log": {
+                        "version": "1.2",
+                        "creator": {"name": "browser-eval", "version": "1"},
+                        "entries": entries,
+                    }
+                },
+                ensure_ascii=False,
+            )
+        path.write_text(self._payload, encoding="utf-8")
+        self._stopped = True
+
+    @staticmethod
+    def _playwright_headers(value: Any) -> dict[str, Any]:
+        try:
+            return dict(value.all_headers())
+        except Exception:
+            return dict(value.headers)
+
+    def _record_playwright_request(self, request: Any) -> None:
+        key = id(request)
+        if key in self._playwright_requests:
+            return
+        try:
+            raw = {
+                "method": str(request.method),
+                "url": str(request.url),
+                # Use cached headers in the event callback. all_headers() sends a
+                # protocol command and can re-enter response/finished callbacks
+                # before this request has been registered.
+                "headers": dict(request.headers),
+                "postData": request.post_data,
+                "__resource_type": str(request.resource_type).title(),
+            }
+            self._transform_playwright_request(raw)
+        except Exception as exc:
+            self.errors.append(f"Playwright request capture failed: {exc}")
+            return
+        self._playwright_requests[key] = raw
+        self._playwright_request_objects[key] = request
+        self._playwright_request_order.append(key)
+
+    def _transform_playwright_request(self, raw: dict[str, Any]) -> None:
+        if self._playwright_request_transform is None:
+            return
+        headers, post_data, response_transform = self._playwright_request_transform(
+            str(raw["method"]), str(raw["url"]), dict(raw.get("headers", {}))
+        )
+        raw["headers"] = headers
+        raw["__response_transform"] = response_transform
+        if post_data is not None:
+            raw["postData"] = post_data
+
+    def _record_playwright_response(self, response: Any) -> None:
+        try:
+            request = response.request
+            self._record_playwright_request(request)
+            headers = dict(response.headers)
+            content_type = next(
+                (
+                    str(value)
+                    for name, value in headers.items()
+                    if str(name).lower() == "content-type"
+                ),
+                "",
+            )
+            self._playwright_responses[id(request)] = (
+                response,
+                {
+                    "status": int(response.status),
+                    "statusText": str(response.status_text),
+                    "headers": headers,
+                    "mimeType": content_type.split(";", 1)[0].strip(),
+                },
+            )
+        except Exception as exc:
+            self.errors.append(f"Playwright response capture failed: {exc}")
+
+    def _capture_playwright_body(self, key: int) -> None:
+        observation = self._playwright_responses.get(key)
+        if observation is None or key in self._playwright_bodies:
+            return
+        response, raw_response = observation
+        if not _is_json_mime_type(raw_response.get("mimeType")):
+            return
+        try:
+            self._playwright_bodies[key] = {
+                "body": response.body().decode("utf-8", errors="replace"),
+                "base64Encoded": False,
+            }
+        except Exception as exc:
+            request = self._playwright_requests.get(key, {})
+            self.errors.append(
+                f"{request.get('url', '<unknown>')}: Playwright response body unavailable: {exc}"
+            )
+
+    def _record_playwright_finished(self, request: Any) -> None:
+        key = id(request)
+        self._record_playwright_request(request)
+        self._capture_playwright_body(key)
+
+    def _record_playwright_failed(self, request: Any) -> None:
+        key = id(request)
+        self._record_playwright_request(request)
+        try:
+            detail = request.failure or "request failed"
+        except Exception as exc:
+            detail = f"request failure unavailable: {exc}"
+        self._playwright_failures[key] = str(detail)
+
+    def _attach_playwright_page(self, page: Any) -> None:
+        if page in self._playwright_pages:
+            return
+        page.on("request", self._record_playwright_request)
+        page.on("response", self._record_playwright_response)
+        page.on("requestfinished", self._record_playwright_finished)
+        page.on("requestfailed", self._record_playwright_failed)
+        self._playwright_pages.append(page)
+
+    def _stop_playwright(self, context: Any, path: Path) -> None:
+        if self._payload is None:
+            if self._capture_new_pages:
+                try:
+                    context.remove_listener("page", self._attach_playwright_page)
+                except Exception as exc:
+                    self.errors.append(f"Playwright page listener detach failed: {exc}")
+            for page in self._playwright_pages:
+                for event, callback in (
+                    ("request", self._record_playwright_request),
+                    ("response", self._record_playwright_response),
+                    ("requestfinished", self._record_playwright_finished),
+                    ("requestfailed", self._record_playwright_failed),
+                ):
+                    try:
+                        page.remove_listener(event, callback)
+                    except Exception as exc:
+                        self.errors.append(
+                            f"Playwright {event} listener detach failed: {exc}"
+                        )
+            entries: list[dict[str, Any]] = []
+            for key in self._playwright_request_order:
+                request = self._playwright_requests[key]
+                request_object = self._playwright_request_objects[key]
+                request["headers"] = self._playwright_headers(request_object)
+                self._transform_playwright_request(request)
+                observation = self._playwright_responses.get(key)
+                if observation is not None:
+                    self._capture_playwright_body(key)
+                    response_object, raw_response = observation
+                    raw_response["headers"] = self._playwright_headers(response_object)
+                    response_transform = request.get("__response_transform") or {}
+                    for field in ("status", "statusText", "headers"):
+                        if field in response_transform:
+                            raw_response[field] = response_transform[field]
+                    raw_response["mimeType"] = next(
+                        (
+                            str(value).split(";", 1)[0].strip()
+                            for name, value in raw_response["headers"].items()
+                            if str(name).lower() == "content-type"
+                        ),
+                        "",
+                    )
+                    response = _har_response(
+                        raw_response,
+                        self._playwright_bodies.get(key),
+                        response_transform.get("extra_headers")
+                        or raw_response.get("headers"),
+                    )
+                else:
+                    response = {
+                        "status": 0,
+                        "statusText": "",
+                        "headers": [],
+                        "cookies": [],
+                        "redirectURL": "",
+                        "content": {"mimeType": "", "text": ""},
+                    }
+                entry = {"request": _har_request(request), "response": response}
+                if key in self._playwright_failures:
+                    entry["_capture"] = {
+                        "state": "failed",
+                        "errorText": self._playwright_failures[key],
+                    }
+                elif observation is None:
+                    entry["_capture"] = {
+                        "state": "incomplete",
+                        "reason": "response-not-observed-at-finalization",
+                    }
+                entries.append(entry)
+            represented = {
+                (entry["request"]["method"], entry["request"]["url"])
+                for entry in entries
+            }
+            entries.extend(
+                fallback
+                for fallback in self._playwright_navigations
+                if (fallback["request"]["method"], fallback["request"]["url"])
+                not in represented
+            )
             self._context = None
             self._payload = json.dumps(
                 {
@@ -388,6 +708,12 @@ class CdpHarRecorder:
             session.on(
                 "Network.requestWillBeSentExtraInfo",
                 lambda event: self._extra_headers.setdefault(
+                    (session_index, str(event["requestId"])), []
+                ).append(event.get("headers", {})),
+            )
+            session.on(
+                "Network.responseReceivedExtraInfo",
+                lambda event: self._extra_response_headers.setdefault(
                     (session_index, str(event["requestId"])), []
                 ).append(event.get("headers", {})),
             )

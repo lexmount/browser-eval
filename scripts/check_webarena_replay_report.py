@@ -12,13 +12,20 @@ import math
 import re
 from html.parser import HTMLParser
 from pathlib import Path
-
-from harness.trajectory_replay.report_languages import language_roots, report_languages
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from bs4 import BeautifulSoup
 
-from harness.trajectory_replay.webarena_report import LOCAL_PATH_RE
+from harness.trajectory_replay.report_languages import language_roots, report_languages
+from harness.trajectory_replay.webarena_report import LOCAL_PATH_RE, WEB_URL_RE
+
+
+def _contains_local_path_outside_web_url(text: str) -> bool:
+    url_spans = [match.span() for match in WEB_URL_RE.finditer(text)]
+    return any(
+        not any(start <= match.start() and match.end() <= end for start, end in url_spans)
+        for match in LOCAL_PATH_RE.finditer(text)
+    )
 
 
 def _text_without_verified_embedded_images(text: str, image_digests: set[str]) -> str:
@@ -35,7 +42,11 @@ def _text_without_verified_embedded_images(text: str, image_digests: set[str]) -
     return re.sub(r'(?:src|href)="data:image/png;base64,([^"]+)"', replace, text)
 
 
-def _check_interpretation(root: Path) -> None:
+def _check_interpretation(
+    root: Path,
+    results: list[dict] | None = None,
+    participants: list[str] | None = None,
+) -> None:
     sections = []
     for language_root in language_roots(root):
         integrated = BeautifulSoup((language_root / "interpretation.html").read_text(), "html.parser")
@@ -52,6 +63,32 @@ def _check_interpretation(root: Path) -> None:
             raise ValueError("article needs illustrations embedded in its offline view")
         if not integrated.select('a[href="article.html"][download]'):
             raise ValueError("article download is missing")
+        if any("browser-effect-pipeline" in image.get("src", "") for image in article.select("img")):
+            raise ValueError("interpretation retains the non-data-bearing pipeline image")
+        authored_sections = article.select(":scope > section[id]")
+        if not authored_sections or any("presentation-slide" not in section.get("class", []) for section in authored_sections):
+            raise ValueError("interpretation sections are not presentation-ready")
+        if results is not None and participants is not None:
+            failing = [
+                participant for participant in participants
+                if any(row["participant_id"] == participant and row["status"] != "pass" for row in results)
+            ]
+            profiles = article.select("[data-browser-failure-profile]")
+            if [profile["data-browser-failure-profile"] for profile in profiles] != failing:
+                raise ValueError("interpretation must contain one ordered profile per failing participant")
+            for profile in profiles:
+                participant = profile["data-browser-failure-profile"]
+                expected = {
+                    row["cause_code"] for row in results
+                    if row["participant_id"] == participant and row["status"] != "pass"
+                }
+                bars = {item["data-cause"] for item in profile.select(".failure-bars [data-cause]")}
+                details = {item["data-cause-detail"] for item in profile.select("[data-cause-detail]")}
+                if bars != expected or details != expected or any(
+                    detail.select_one('a[href^="result/"]') is None
+                    for detail in profile.select("[data-cause-detail]")
+                ):
+                    raise ValueError("browser failure profile is incomplete or lacks evidence links")
         online_links = article.select('[data-failure-matrix] a')
         offline_links = standalone.select('[data-failure-matrix] a')
         if len(online_links) != len(offline_links):
@@ -362,8 +399,10 @@ def _check_result_detail_semantics(text: str, evidence: dict, status: str) -> No
         or html.escape(str(failure["message"]), quote=True) not in text
         or (failure.get("stage") in {"official_evaluation", "side_effect_not_observed"}
             and not evidence.get("official_evaluation"))
-        or (failure.get("stage") == "browser_tool_execution"
-            and not evidence.get("trajectory"))
+        or (
+            failure.get("stage") == "browser_tool_execution"
+            and not isinstance(evidence.get("trajectory"), list)
+        )
     ):
         raise ValueError("failure detail lacks exact error or evaluation logs")
 
@@ -413,6 +452,17 @@ def _check_failure_matrix(page: str, results: list[dict], participants: list[str
                 raise ValueError("failure matrix inventory anchor is missing")
 
 
+def _check_formal_execution_scope(manifest: dict) -> None:
+    """Require method-level reset without hard-coding a benchmark split size."""
+
+    if manifest.get("formal_reference_validity") is not True:
+        return
+    if int(manifest.get("task_count") or 0) < 1 or manifest.get(
+        "site_reset_between_tasks"
+    ) is not False:
+        raise ValueError("formal report requires a complete method-reset task cohort")
+
+
 def check(report_dir: Path) -> dict[str, int]:
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
@@ -435,6 +485,8 @@ def check(report_dir: Path) -> dict[str, int]:
     required_manifest_fields = (
         "task_count",
         "participant_count",
+        "browser_count",
+        "method_count",
         "participants",
         "logical_results",
         "failed_results",
@@ -448,10 +500,18 @@ def check(report_dir: Path) -> dict[str, int]:
     participants = manifest.get("participants") or []
     task_count = int(manifest.get("task_count") or 0)
     participant_count = int(manifest.get("participant_count") or 0)
+    browser_count = int(manifest.get("browser_count") or 0)
+    method_count = int(manifest.get("method_count") or 0)
+    participant_engines = {
+        str(row["participant_id"]): str(row["engine"]) for row in results
+    }
     expected_results = task_count * participant_count
     if (
         task_count < 1
         or participant_count < 2
+        or method_count != participant_count
+        or browser_count != len(set(participant_engines.values()))
+        or not 1 <= browser_count <= method_count
         or len(participants) != participant_count
         or len(set(participants)) != participant_count
         or "historical_participants" in manifest
@@ -462,6 +522,23 @@ def check(report_dir: Path) -> dict[str, int]:
         raise ValueError(
             "report must contain the complete manifest-declared participant-task matrix"
         )
+    home = (root / "index.html").read_text(encoding="utf-8")
+    if f"{browser_count} 款浏览器组成 {method_count} 种方法配置" not in home:
+        raise ValueError("report home does not state the browser and method populations")
+    home_soup = BeautifulSoup(home, "html.parser")
+    signature = home_soup.select_one("[data-failure-signatures]")
+    failing_participants = [
+        participant for participant in participants
+        if any(row["participant_id"] == participant and row["status"] != "pass" for row in results)
+    ]
+    if (failing_participants and signature is None) or (
+        signature is not None
+        and [card["data-method"] for card in signature.select("[data-method]")]
+        != failing_participants
+    ):
+        raise ValueError("home must show one compact failure signature per failing participant")
+    if "失败发生在哪个环节" in home or home_soup.select_one("[data-failure-matrix]") is not None:
+        raise ValueError("home duplicates detailed result analysis")
     task_ids = {int(item["task_id"]) for item in results}
     result_keys = {(str(item["participant_id"]), int(item["task_id"])) for item in results}
     expected_keys = {(participant, task_id) for participant in participants for task_id in task_ids}
@@ -479,14 +556,62 @@ def check(report_dir: Path) -> dict[str, int]:
     metrics = json.loads((root / "data/metrics.json").read_text(encoding="utf-8"))
     _check_metric_populations(metrics, results, participants)
     _check_core_comparison(root, metrics, results, participants)
+    has_resource_samples = any(
+        row[metric]["n"]
+        for row in metrics["methods"]
+        for metric in (
+            "cpu",
+            "memory",
+            "memory_peak",
+            "network_rx",
+            "network_tx",
+            "cpu_utilization",
+        )
+    )
+    if not has_resource_samples:
+        for language_root in language_roots(root):
+            page = (language_root / "index.html").read_text(encoding="utf-8")
+            expected = (
+                "本轮没有记录进程级 CPU、内存和网络采样"
+                if language_root == root
+                else "did not record process-level CPU, memory, or network samples"
+            )
+            if expected not in page or "n=0/" in page:
+                raise ValueError(
+                    "unavailable resources must be stated once instead of rendered as empty metrics"
+                )
     for language_root in language_roots(root):
-        _check_failure_matrix((language_root / "results.html").read_text(encoding="utf-8"), results, participants)
+        environment = (language_root / "environment.html").read_text(encoding="utf-8")
+        identity_heading = (
+            "方法身份与修复序列"
+            if language_root == root
+            else "Method identity and repair sequence"
+        )
+        if identity_heading not in environment:
+            raise ValueError("environment page is missing method identity and repair sequence")
+    for language_root in language_roots(root):
+        results_page = (language_root / "results.html").read_text(encoding="utf-8")
+        _check_failure_matrix(results_page, results, participants)
+        if "successful-distributions" not in results_page or (
+            "Playwright 动作耗时" not in results_page
+            and "Playwright action latency" not in results_page
+        ):
+            raise ValueError("result analysis is missing its detailed latency distributions")
+    _check_formal_execution_scope(manifest)
     if manifest.get("formal_reference_validity") is True:
-        if task_count != 90 or manifest.get("site_reset_between_tasks") is not False:
-            raise ValueError("formal report requires the complete method-reset 90-task cohort")
+        if manifest.get("execution_backend") != "playwright":
+            raise ValueError("formal replay report must bind the Playwright backend")
         for language_root in language_roots(root):
             environment = (language_root / "environment.html").read_text(encoding="utf-8")
-            if "Rainbond" not in environment or "Colima" in environment:
+            if (
+                "Rainbond" not in environment
+                or "Colima" in environment
+                or "Playwright" not in environment
+                or any(
+                    str(row["browser"]) not in environment
+                    for row in results
+                )
+            ):
                 raise ValueError("formal environment page does not describe the measured deployment")
         for participant in participants:
             for task_id in task_ids:
@@ -497,7 +622,7 @@ def check(report_dir: Path) -> dict[str, int]:
     if metrics.get("affected36_methods"):
         raise ValueError("report must not contain a diagnostic-only comparison")
     if any((root / route).exists() for route in ("diagnostics.html", "fixes.html", "data/diagnostic-closure.json")):
-        raise ValueError("three-method report contains a separate diagnostic appendix")
+        raise ValueError("replay report contains a separate diagnostic appendix")
     failures = [item for item in results if item["status"] != "pass"]
     if manifest["failed_results"] != len(failures) or manifest["reviewed_failures"] != len(
         failures
@@ -579,7 +704,7 @@ def check(report_dir: Path) -> dict[str, int]:
         "evidence-viewer.html",
     )
     if manifest.get("interpretation"):
-        _check_interpretation(root)
+        _check_interpretation(root, results, participants)
         core_names += ("interpretation.html", "article.html")
     core, chinese_details, english_details = _semantic_page_inventory(root, core_names)
     forbidden = (
@@ -652,7 +777,9 @@ def check(report_dir: Path) -> dict[str, int]:
         for path in root.rglob("*")
         if path.is_file() and path.suffix in {".html", ".json", ".js", ".css"}
     )
-    if LOCAL_PATH_RE.search(distributable) or re.search(r"sk-[A-Za-z0-9_-]{12,}", distributable):
+    if _contains_local_path_outside_web_url(distributable) or re.search(
+        r"(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{12,}", distributable
+    ):
         raise ValueError("report contains a local path or credential-like token")
     css = (root / "assets/report.css").read_text(encoding="utf-8")
     if ".inventory{height:" not in css or "overflow:auto" not in css:
@@ -686,6 +813,12 @@ def check(report_dir: Path) -> dict[str, int]:
                 "review history must describe review rounds, not enumerate per-result audits"
             )
     js = (root / "assets/app.js").read_text(encoding="utf-8")
+    if (
+        "const enhanceTables=()=>" not in js
+        or "input.dataset.tableFilter" not in js
+        or "table.dataset.enhanced='true'" not in js
+    ):
+        raise ValueError("report tables must expose reusable sorting and filtering controls")
     if "const task=params.get('task');" not in js or "row.dataset.task===task" not in js:
         raise ValueError("dataset-to-results drilldown must select an exact task ID")
     if (

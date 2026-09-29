@@ -9,7 +9,12 @@ from urllib.request import urlopen
 
 import pytest
 
-from harness.environments.webarena.map_detail import DetailHandler, lookup, render
+from harness.environments.webarena.map_detail import (
+    DetailHandler,
+    FROZEN_OBJECTS,
+    lookup,
+    render,
+)
 
 
 @pytest.mark.parametrize("kind,identifier,name", [
@@ -54,7 +59,7 @@ def test_missing_object_stays_missing_and_details_escape_untrusted_tags():
         thread.start()
         try:
             with pytest.raises(HTTPError) as error:
-                urlopen(f"http://127.0.0.1:{server.server_port}/relation/5475586")
+                urlopen(f"http://127.0.0.1:{server.server_port}/relation/999999999999")
             assert error.value.code == 404
         finally:
             server.shutdown()
@@ -76,3 +81,13 @@ def test_lookup_requires_exact_type_and_id():
     with patch("harness.environments.webarena.map_detail.urlopen", return_value=Response()):
         assert lookup("node", "7")["osm_type"] == "node"
         assert lookup("relation", "7") is None
+
+
+def test_frozen_route_relation_uses_the_bound_real_osm_identity():
+    place = lookup("relation", "5475586")
+    assert place is FROZEN_OBJECTS[("relation", "5475586")]
+    assert place["display_name"].startswith("Lake Pontchartrain Causeway")
+    assert place["lat"] == "30.199722222222"
+    assert place["lon"] == "-90.122777777778"
+    assert place["extratags"]["wikidata"] == "Q1132510"
+    assert "5475586" in render("relation", "5475586", place).decode()

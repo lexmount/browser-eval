@@ -7,7 +7,7 @@ description: Write or revise standalone articles interpreting this project's ben
 
 Produce a reader-facing article whose conclusions, examples and background remain understandable without opening the source report. The benchmark supplies evidence; the article explains what the results mean and why they matter.
 
-Keep this skill and its dependencies in the repository. Read [editorial-standard.md](references/editorial-standard.md) before writing or revising, and [html-delivery.md](references/html-delivery.md) for HTML. Use the complete [Humanizer Chinese](../humanizer-chinese/SKILL.md) for Chinese prose and [Humanizer](../humanizer/SKILL.md) for English. Apply them in embedded/file mode: only finished prose enters the article.
+Keep this skill and its dependencies in the repository. Read [editorial-standard.md](references/editorial-standard.md) before writing or revising, and [html-delivery.md](references/html-delivery.md) for HTML. Run the complete [Humanizer](../humanizer/SKILL.md) and then [Humanizer Chinese](../humanizer-chinese/SKILL.md) over Chinese prose; run Humanizer over English prose. Apply them in embedded/file mode: only finished prose enters the article.
 
 ## Choose the work being requested
 
@@ -27,9 +27,11 @@ Choose an argument that the evidence supports, including exceptions that change 
 
 Develop the reader's understanding through concrete results, necessary background and inspectable examples. Explain unfamiliar concepts through their purpose and operation; a sentence excluding them from the benchmark is not an explanation. Use charts and specimens to carry data so prose can explain the result instead of repeating it. There is no fixed chapter count, case count, headline formula or required hero image.
 
+For report interpretation and summary pages, use a presentation-ready reading sequence: one finding per section, a data-bearing visual or evidence specimen as the main element, and short prose that explains it. Remove images that merely fill space. Keep full inventories and raw evidence on their functional report pages. When several methods fail for materially different reasons, give each method its own chapter with the complete reviewed distribution, mechanism, representative evidence, and cross-method distinction.
+
 When revising, check the whole article for the same underlying problem, then make the smallest coherent repair. Review any removed material for lost explanations, evidence, limitations or transitions. Broader restructuring is justified when the argument or organization is defective, not simply because a paragraph received criticism. If a needed fact is absent, investigate it or narrow the claim; do not replace it with confidence or invented precision.
 
-Run the language-appropriate Humanizer pass on headings, prose and captions. This is a prose edit, not a substitute for evidence or editorial judgment. Preserve technical meaning, natural language conventions and original measured text. Do not manufacture casual language or personal experience.
+Run both Humanizer and Humanizer Chinese on Chinese headings, prose and captions; run Humanizer on English. This is a prose edit, not a substitute for evidence or editorial judgment. Preserve technical meaning, natural language conventions and original measured text. Do not manufacture casual language or personal experience.
 
 ## Review and delivery
 

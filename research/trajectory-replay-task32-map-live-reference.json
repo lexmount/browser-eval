@@ -1,0 +1,39 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 32,
+  "task_intent": "I will arrive at Pittsburgh Airport soon. Find a Hilton hotel in the vicinity, if available, and get me its name and the walking distance to the nearest supermarket own by a local company from the hotel. Return a list of objects with keys \"hotel\" (hotel name) and \"distance\" (numeric value with unit km or m, e.g., 2.4km, 500m) only, without any additional details. (Use the OSRM direction service.)",
+  "source_sweep": "map-live-sweep-v125",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "c5ff5707eebf826985982f828fb609284b3e5afbe2fc6420ffad5f758e4e16e9",
+    "actual_response": "2953d899f9d1fcfa9e5d494d0aabd6effc2f6cc2ca13dec275d2f5f281696cfe",
+    "evaluation": "b445d618226767fd8c5188b6226dca8dd36969aa595b38eaac820fbfcfc1c393",
+    "trace": "7dbf71113a8607a9f407d2e16c48f2f9f2db5de381735bd1d673cb8d86d487b7",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "378ffcdcdce1a635c8b6204ede4eafe1faffe4997672a323a78455d59d43ce09"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      {
+        "hotel": "DoubleTree by Hilton Hotel Pittsburgh Airport",
+        "distance": "1946.9m"
+      }
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/0/expected/retrieved_data/0/distance",
+      "official": "2km",
+      "corrected": "1946.9m"
+    }
+  ],
+  "derivation": {
+    "kind": "bounded_nominatim_osrm/1"
+  },
+  "regression_ids": [
+    "tr-32-accept-live-map-reference",
+    "tr-32-reject-nearby-wrong-map-reference"
+  ]
+}
