@@ -302,8 +302,13 @@ class MoliWebFetchProvider(Provider):
             errors.append("wait_until")
         if int(self.config.get("max_bytes", 20_000_000)) <= 0:
             errors.append("max_bytes")
-        if int(self.config.get("max_diagnostic_bytes", 100_000_000)) <= 0:
+        retain_diagnostic = self.config.get("retain_complete_diagnostic_log", False)
+        if not isinstance(retain_diagnostic, bool):
+            errors.append("retain_complete_diagnostic_log")
+        if retain_diagnostic and int(self.config.get("max_diagnostic_bytes", 100_000_000)) <= 0:
             errors.append("max_diagnostic_bytes")
+        if not retain_diagnostic and "max_diagnostic_bytes" in self.config:
+            errors.append("max_diagnostic_bytes (requires retain_complete_diagnostic_log)")
         if self.config.get("log_level") not in {
             None, "debug", "info", "warn", "error", "fatal"
         }:
@@ -314,6 +319,10 @@ class MoliWebFetchProvider(Provider):
             self.config.get("local_report_complete_diagnostic_links", False), bool
         ):
             errors.append("local_report_complete_diagnostic_links")
+        elif self.config.get("local_report_complete_diagnostic_links") and not retain_diagnostic:
+            errors.append(
+                "local_report_complete_diagnostic_links (requires retain_complete_diagnostic_log)"
+            )
         allowlist = self.config.get("private_network_allowlist_hosts", [])
         if (
             not isinstance(allowlist, list)
@@ -583,7 +592,9 @@ class MoliWebFetchProvider(Provider):
             command.extend(["--log-level", str(log_level)])
         command.append(case.url)
         limit = int(self.config.get("max_bytes", 20_000_000))
+        retain_diagnostic = bool(self.config.get("retain_complete_diagnostic_log", False))
         diagnostic_limit = int(self.config.get("max_diagnostic_bytes", 100_000_000))
+        diagnostic_read_limit = diagnostic_limit if retain_diagnostic else limit
         metadata = {
             "dump": dump,
             "route": (
@@ -697,8 +708,11 @@ class MoliWebFetchProvider(Provider):
                     if os.fstat(output.fileno()).st_size > limit:
                         stopped = "output_too_large"
                         break
-                    if os.fstat(diagnostic.fileno()).st_size > diagnostic_limit:
-                        stopped = "diagnostic_log_too_large"
+                    if os.fstat(diagnostic.fileno()).st_size > diagnostic_read_limit:
+                        stopped = (
+                            "diagnostic_log_too_large" if retain_diagnostic
+                            else "output_too_large"
+                        )
                         break
                     if process.poll() is not None:
                         break
@@ -718,8 +732,8 @@ class MoliWebFetchProvider(Provider):
                 output.seek(0)
                 raw = output.read(limit + 1)
                 diagnostic.seek(0)
-                diagnostic_raw = diagnostic.read(diagnostic_limit + 1)
-                public_preview_limit = 1_000_000
+                diagnostic_raw = diagnostic.read(diagnostic_read_limit + 1)
+                public_preview_limit = 1_000_000 if retain_diagnostic else limit
                 stderr = diagnostic_raw[:public_preview_limit].decode("utf-8", "replace")
                 metadata.update(
                     exit_code=process.returncode,
@@ -728,12 +742,15 @@ class MoliWebFetchProvider(Provider):
                     stderr=stderr,
                     stderr_bytes=stderr_bytes,
                     stderr_truncated=stderr_bytes > public_preview_limit,
-                    diagnostic_log_sha256=hashlib.sha256(diagnostic_raw).hexdigest(),
-                    diagnostic_log_bytes=len(diagnostic_raw),
-                    diagnostic_log_truncated=stopped == "diagnostic_log_too_large",
-                    diagnostic_log_process_completed=stopped is None,
-                    _diagnostic_log_b64=base64.b64encode(diagnostic_raw).decode("ascii"),
                 )
+                if retain_diagnostic:
+                    metadata.update(
+                        diagnostic_log_sha256=hashlib.sha256(diagnostic_raw).hexdigest(),
+                        diagnostic_log_bytes=len(diagnostic_raw),
+                        diagnostic_log_truncated=stopped == "diagnostic_log_too_large",
+                        diagnostic_log_process_completed=stopped is None,
+                        _diagnostic_log_b64=base64.b64encode(diagnostic_raw).decode("ascii"),
+                    )
         if stopped == "timeout":
             return ProviderResult(
                 False,

@@ -9,7 +9,7 @@ import os
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.web_fetch.config import load_dataset, load_provider_config
+from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
 from harness.web_fetch.artifacts import diagnostic_log_binding
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.report_build import build_report
@@ -89,6 +89,7 @@ def validate(profile_path: Path) -> tuple[dict, dict, list, object, Path]:
         raise ValueError("Every risk-control case must use the same ordinary Markdown route")
     execution = profile["execution"]
     if execution != {
+        "certified_entrypoint": "scripts/run_certified_benchmark.py risk-control",
         "runs_per_case": 1,
         "timeout_seconds": 45,
         "delay_seconds": 0.5,
@@ -101,6 +102,7 @@ def validate(profile_path: Path) -> tuple[dict, dict, list, object, Path]:
         "only_per_case_argument": "url",
         "log_level": "debug",
         "max_output_bytes": 20000000,
+        "retain_complete_diagnostic_log": True,
         "max_diagnostic_bytes": 100000000,
         "trace_network": False,
         "diagnostic_log_policy": "retain_complete_raw_stderr_for_every_call_outside_git",
@@ -128,13 +130,21 @@ def validate(profile_path: Path) -> tuple[dict, dict, list, object, Path]:
     return profile, dataset, cases, provider, config_path
 
 
-def main() -> None:
+def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", type=Path, default=DEFAULT_PROFILE)
+    parser.add_argument("--env-file", type=Path,
+                        help="Load runtime paths from the repository .env or another explicit file")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--execute", action="store_true",
                         help="Make the 100 provider calls; omit for a call-free validation")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.execute and not certified:
+        parser.error(
+            "Formal execution must use scripts/run_certified_benchmark.py risk-control"
+        )
+    if args.env_file:
+        load_runtime_env(args.env_file)
     profile_path = args.profile.resolve()
     profile, dataset, cases, provider, config_path = validate(profile_path)
     if not args.execute:
@@ -165,6 +175,7 @@ def main() -> None:
         "coverage_plan": {"risk_control": [profile["provider"]["name"]]},
         "comparison": {
             "kind": "risk_control_100_moli",
+            "run_profile_sha256": digest(profile_path),
             "timeout_seconds": profile["execution"]["timeout_seconds"],
             "runs_per_case": 1,
             "concurrency": 1,
@@ -209,6 +220,25 @@ def main() -> None:
         },
         "batches": [manifest],
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    results_path = output / "results.jsonl"
+    certification = {
+        "schema_version": 1,
+        "kind": "certified_risk_control_100_moli_v1",
+        "profile_sha256": digest(profile_path),
+        "dataset_sha256": digest(output / "dataset.json"),
+        "results_sha256": digest(results_path),
+        "manifest_sha256": digest(output / "manifest.json"),
+        "execution_sha256": digest(output / "execution.json"),
+        "provider_identity_before": pre_identity,
+        "provider_identity_after": post_identity,
+        "logical_results": len(records),
+        "physical_calls": len(records),
+        "complete_diagnostic_logs": True,
+    }
+    (output / "certification.json").write_text(
+        json.dumps(certification, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     report = build_report(output, output / "report")
     print(json.dumps({
         "evidence": str(output),

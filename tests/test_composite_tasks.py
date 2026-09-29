@@ -71,6 +71,26 @@ Date: 2026-09-29
     assert failed["composite_group_results"][0]["count"] == 1
 
 
+def test_later_duplicate_does_not_lend_fields_to_intervening_record():
+    rules = contract(named(
+        "events", r"^# Events$", r"^# End$", 2,
+        required_fields=[{"id": "date", "kind": "date_or_time", "aliases": ["Date"]}],
+    ))
+    text = """# Events
+[One](https://example.test/item/1)
+Date: 2026-09-28
+
+[Two](https://example.test/item/2)
+
+[One again](https://example.test/item/1)
+Date: 2026-09-29
+# End
+"""
+    result = evaluate_composite_acceptance(text, rules, base_url="https://example.test/")
+    assert not result["composite_acceptance_pass"]
+    assert result["composite_group_results"][0]["count"] == 1
+
+
 def test_first_repeated_link_does_not_replace_the_visible_record_name():
     rules = contract(named(
         "homes", r"^# Homes$", r"^# End$", 1,
@@ -169,6 +189,32 @@ def test_field_report_binds_fixed_values_to_their_labels():
     assert not evaluate_composite_acceptance(
         "ID: 999\nWikidata ID: Q11660\nElsewhere 1164", rules,
         base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+
+
+def test_field_report_cannot_reuse_one_unlabelled_line_for_multiple_fields():
+    rules = contract({
+        "id": "report", "kind": "field_report",
+        "required_fields": [
+            {"id": "first", "kind": "integer"},
+            {"id": "second", "kind": "integer"},
+        ],
+    })
+    assert not evaluate_composite_acceptance(
+        "Only one value: 42", rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+
+
+def test_field_report_cannot_reuse_next_line_for_duplicate_labels():
+    rules = contract({
+        "id": "report", "kind": "field_report",
+        "required_fields": [
+            {"id": "first", "kind": "integer", "aliases": ["Count"]},
+            {"id": "second", "kind": "integer", "aliases": ["Count"]},
+        ],
+    })
+    assert not evaluate_composite_acceptance(
+        "Count\n42", rules, base_url="https://example.test/"
     )["composite_acceptance_pass"]
 
 

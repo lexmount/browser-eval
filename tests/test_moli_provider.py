@@ -121,6 +121,7 @@ class MoliTests(unittest.TestCase):
             'print("second debug line",file=sys.stderr)\n'
             'print("answer")',
             log_level="debug",
+            retain_complete_diagnostic_log=True,
             max_diagnostic_bytes=100_000_000,
             trace_network=False,
         )
@@ -793,26 +794,48 @@ class MoliTests(unittest.TestCase):
         process.assert_not_called()
 
     def test_failure_binary_and_oversized_output(self):
-        for script, config, expected in [
-            ('import sys\nprint("partial")\nsys.exit(7)', {}, "tool_error"),
-            ('import sys\nsys.stdout.buffer.write(b"\\xff")', {}, "invalid_output"),
-            ('print("abcdef")', {"max_bytes": 3}, "output_too_large"),
+        for script, config, expected, retained in [
+            ('import sys\nprint("partial")\nsys.exit(7)', {}, "tool_error", False),
+            ('import sys\nsys.stdout.buffer.write(b"\\xff")', {}, "invalid_output", False),
+            ('print("abcdef")', {"max_bytes": 3}, "output_too_large", False),
             ('import sys\nprint("abcdef",file=sys.stderr)',
-             {"max_diagnostic_bytes": 3}, "diagnostic_log_too_large"),
+             {"retain_complete_diagnostic_log": True, "max_diagnostic_bytes": 3},
+             "diagnostic_log_too_large", True),
         ]:
             with self.subTest(expected=expected):
                 result = self.provider(script, **config).fetch(self.case, 2)
                 self.assertFalse(result.ok)
                 self.assertEqual(result.error_type, expected)
-                self.assertIn("_diagnostic_log_b64", result.metadata)
-                self.assertEqual(
-                    len(base64.b64decode(result.metadata["_diagnostic_log_b64"])),
-                    result.metadata["diagnostic_log_bytes"],
-                )
-                self.assertEqual(
-                    result.metadata["diagnostic_log_truncated"],
-                    expected == "diagnostic_log_too_large",
-                )
+                self.assertEqual("_diagnostic_log_b64" in result.metadata, retained)
+                if retained:
+                    self.assertEqual(
+                        len(base64.b64decode(result.metadata["_diagnostic_log_b64"])),
+                        result.metadata["diagnostic_log_bytes"],
+                    )
+                    self.assertEqual(
+                        result.metadata["diagnostic_log_truncated"],
+                        expected == "diagnostic_log_too_large",
+                    )
+
+    def test_complete_diagnostic_retention_is_opt_in(self):
+        result = self.provider(
+            'import sys\nprint("diagnostic", file=sys.stderr)\nprint("answer")'
+        ).fetch(self.case, 2)
+        self.assertTrue(result.ok)
+        self.assertNotIn("_diagnostic_log_b64", result.metadata)
+        self.assertNotIn("diagnostic_log_sha256", result.metadata)
+
+    def test_diagnostic_only_options_require_explicit_retention(self):
+        self.assertIn(
+            "max_diagnostic_bytes (requires retain_complete_diagnostic_log)",
+            self.provider('print("answer")', max_diagnostic_bytes=10).validate(),
+        )
+        self.assertIn(
+            "local_report_complete_diagnostic_links (requires retain_complete_diagnostic_log)",
+            self.provider(
+                'print("answer")', local_report_complete_diagnostic_links=True
+            ).validate(),
+        )
 
     def test_zero_exit_empty_markdown_is_request_success(self):
         result = self.provider('print(" ")').fetch(self.case, 2)

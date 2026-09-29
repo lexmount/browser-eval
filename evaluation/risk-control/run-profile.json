@@ -11,6 +11,18 @@
     "case_ids_sha256": "f037b11fa10826f6bdafd1e61ec8663070fe9873ebb891218cf941f67e5012b1"
   },
   "source_bindings": {
+    "qualification_manifest": {
+      "path": "evaluation/risk-control/qualification/cohort/input-manifest.json",
+      "sha256": "78273bb6e8fc626a90675fc7ddfa52bf7aac4468a32a174a8570a41e8774c5c0"
+    },
+    "qualification_audit": {
+      "path": "evaluation/risk-control/qualification/cohort/qualification-audit-receipt.json",
+      "sha256": "e6fba7298174204db98fa69b2bb9dba7cb2b9ce196919c9dccba7d06632dc5b0"
+    },
+    "replacement_receipt": {
+      "path": "evaluation/risk-control/qualification/cohort/risk-107-replacement-receipt.json",
+      "sha256": "5c491ab23153b5fa869a61de1b607e2d652a6a93a145f842b7a8e84172b87ef9"
+    },
     "qualified_cases": {
       "path": "evaluation/risk-control/qualification/cohort/qualified-cases.json",
       "sha256": "60a25038958c507ff916ac42f0c47cafddea9a6195218c22c9eae982c9a633bc"
@@ -30,17 +42,26 @@
     "body_contracts": {
       "path": "evaluation/risk-control/body-contracts.json",
       "sha256": "db7d3083ff5430c2c56e9dcd7000cb340b78792dfb426ec3b9e08bd17fb81552"
+    },
+    "rule_independent_audit": {
+      "path": "evaluation/risk-control/rule-independent-audit.md",
+      "sha256": "fa1b348703144f6c3e3e7d52dbbf5a75da37ff985b1cdeb01effd62620848f41"
+    },
+    "rule_completeness_audit": {
+      "path": "evaluation/risk-control/rule-completeness-audit-20260929.md",
+      "sha256": "3e5b75c0f1c8f3fd4954aff4ab1a1b97f1de593a9d5beaa38359669416628a45"
     }
   },
   "provider": {
     "name": "moli-1.1.11",
     "config_path": "evaluation/risk-control/moli-provider.json",
-    "config_sha256": "5d6f6d171c5d0de7edebe69ca330a9d6442f4e5f6f697c0a4e6a998a792cd587",
+    "config_sha256": "1fc147fb00d65146cd39f05914b2f6470c87df4b853d7b89738798ce809ae314",
     "reported_version": "moli 1.1.11",
     "binary_path": "${MOLI_1_1_11_BINARY}",
     "binary_sha256": "2e2b48ceb6280d08f617f50540a8214973ef178ca4d836eb26b7f07fef905a9c"
   },
   "execution": {
+    "certified_entrypoint": "scripts/run_certified_benchmark.py risk-control",
     "runs_per_case": 1,
     "timeout_seconds": 45,
     "delay_seconds": 0.5,
@@ -53,6 +74,7 @@
     "only_per_case_argument": "url",
     "log_level": "debug",
     "max_output_bytes": 20000000,
+    "retain_complete_diagnostic_log": true,
     "max_diagnostic_bytes": 100000000,
     "trace_network": false,
     "diagnostic_log_policy": "retain_complete_raw_stderr_for_every_call_outside_git",

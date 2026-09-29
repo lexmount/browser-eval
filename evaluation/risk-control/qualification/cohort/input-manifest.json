@@ -8,11 +8,11 @@
   "historical_reserve_pool_count": 10,
   "formal_site_count": 74,
   "evidence_roots": {
-    "legacy20260921": ".browser-eval/risk-control/qualification-20260921",
-    "diverse20260924": ".browser-eval/risk-control/qualification-diverse-20260924",
-    "diverse20260927": ".browser-eval/risk-control/qualification-diverse-20260927"
+    "legacy20260921": "risk-control/qualification-20260921",
+    "diverse20260924": "risk-control/qualification-diverse-20260924",
+    "diverse20260927": "risk-control/qualification-diverse-20260927"
   },
-  "evidence_root_resolution": "Paths are relative to the local user home directory; raw evidence remains outside Git.",
+  "evidence_root_resolution": "Paths are relative to BROWSER_EVAL_DATA_HOME, which defaults to ~/.browser-eval; raw evidence remains outside Git.",
   "files": [
     {
       "path": "cohort/qualified-cases.json",
@@ -23,8 +23,12 @@
       "sha256": "4835abe67852adf1609cb3033b19cbef839650d14879c0e24dd76116af2acd2e"
     },
     {
+      "path": "cohort/qualification-audit-receipt.json",
+      "sha256": "e6fba7298174204db98fa69b2bb9dba7cb2b9ce196919c9dccba7d06632dc5b0"
+    },
+    {
       "path": "cohort/risk-107-replacement-receipt.json",
-      "sha256": "3e4c17cfdeda141e00e06dd2d3c938829d19de4c3fd268fef74cad0aed24ec72"
+      "sha256": "5c491ab23153b5fa869a61de1b607e2d652a6a93a145f842b7a8e84172b87ef9"
     }
   ],
   "source_qualification_receipt_sha256": "acf287f3b54352d1c97fb2b79b8d3d385d11ba44ac4bbfa693163627956e268e",

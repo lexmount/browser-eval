@@ -6,7 +6,7 @@
 - `cohort/qualification-audit-receipt.json`：2026-09-28 独立资格审核的范围、结果、完整性检查和仓库外逐例审核文件哈希。
 - `cohort/risk-107-replacement-receipt.json`：2026-09-29 快手复核、随机选择和候补参考复核的绑定回执。
 - `cohort-policy.json`：本批案例资格与分布约束。
-- `cohort/input-manifest.json`：输入文件校验值与仓库外证据根目录映射。
+- `cohort/input-manifest.json`：输入文件校验值与仓库外证据根目录映射；相对路径以 `BROWSER_EVAL_DATA_HOME` 为根，未设置时使用 `~/.browser-eval`。
 
 后续逐例规则以这里的最终名单和独立原页面证据为依据。原始正文、截图与网络证据继续保存在用户目录下的 `.browser-eval/`，按清单中的 root、path 和 sha256 定位并核验。未使用候补的内容仍留在原资格筛选证据中，不进入本分支。
 

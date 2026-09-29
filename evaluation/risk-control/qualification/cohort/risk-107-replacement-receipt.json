@@ -5,6 +5,9 @@
   "replaced_case_id": "risk-107",
   "replacement_case_id": "risk-diverse-271",
   "formal_position": 8,
+  "predecessor_qualified_cases_sha256": "539cc6bafc1ad9596d9b8b3c891cb367a65754db28321c0fb8c797cb48a11aca",
+  "predecessor_qualification_audit_receipt_sha256": "e6fba7298174204db98fa69b2bb9dba7cb2b9ce196919c9dccba7d06632dc5b0",
+  "final_qualified_cases_sha256": "60a25038958c507ff916ac42f0c47cafddea9a6195218c22c9eae982c9a633bc",
   "decision": "Kuaishou current independent evidence did not contain auditable target records; use the predeclared random reserve procedure.",
   "provider_outputs_used_for_rule_authoring": false,
   "kuaishou_recheck": {

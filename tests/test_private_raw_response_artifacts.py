@@ -7,6 +7,7 @@ from pathlib import Path
 
 from harness.web_fetch.artifacts import (
     materialize_private_artifacts, verify_record_private_artifacts,
+    verify_record_public_call_logs,
 )
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
@@ -75,6 +76,7 @@ class PrivateRawResponseArtifactTests(unittest.TestCase):
                 call_log['capture']['diagnostic_log'],
                 'retained_private_hash_bound_complete',
             )
+            verify_record_public_call_logs(root, record)
             verify_record_private_artifacts(root, record)
             destination = root / 'aggregate'
             destination.mkdir()

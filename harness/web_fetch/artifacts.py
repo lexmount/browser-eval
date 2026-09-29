@@ -106,8 +106,8 @@ def verify_public_call_log(root: Path, binding: dict[str, Any]) -> Path:
                       "process_stderr", "request_summary", "events", "raw_response", "output"}
     current_capture = legacy_capture | {"diagnostic_log"}
     if (not isinstance(payload.get("capture"), dict)
-            or set(payload["capture"]) not in {frozenset(legacy_capture),
-                                                frozenset(current_capture)}):
+            or frozenset(payload["capture"]) not in {frozenset(legacy_capture),
+                                                      frozenset(current_capture)}):
         raise ValueError("Public call log has an unexpected capture schema")
     stack = payload["error"]["stack"]
     if not isinstance(stack, list) or any(

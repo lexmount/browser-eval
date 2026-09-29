@@ -40,6 +40,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     bindings = compatibility["bindings"]
     assert bindings["dataset_sha256"] == receipt["bindings"]["dataset_sha256"]
     assert bindings["input_results_sha256"] == receipt["bindings"]["results_sha256"]
+    assert bindings["decision_digest_format"] == "sorted_attempt_id_boolean_json_v1"
     assert bindings["input_task_decisions_sha256"] == bindings["output_task_decisions_sha256"]
     assert bindings["scoring_source_sha256"] == SCORING_SOURCE_SHA256
     assert bindings["scoring_regressions_sha256"] == hashlib.sha256(

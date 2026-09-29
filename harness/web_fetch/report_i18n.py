@@ -1434,7 +1434,7 @@ TEXT.update({
     "本轮输出节选 · 统一记录": "Saved output excerpt · normalized record",
     "核对实现：": "Implementation checked:",
     "本轮执行模式的成本边界": "Cost boundary for the measured configuration",
-    "这是客户端实测，不是计费或同机 CPU / 内存测试。本组官方资料核验日期：2026-09-07。": "This is a client-observed benchmark, not a billing study or same-machine CPU/memory test. Official sources for this section were checked on 2026-09-07.",
+    "这是客户端实测，不是计费或同机 CPU / 内存测试；各方法的资料核验日期见表内说明。": "This is a client-observed benchmark, not a billing study or same-machine CPU/memory test; source verification dates are stated in the table notes.",
     "获取 1,000 个网页，究竟付哪一种费用？": "Which charge applies to 1,000 page fetches?",
     "如何读这个价格": "How to read these prices",
     "各提供方计费方案": "Provider billing plans",

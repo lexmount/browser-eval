@@ -17,6 +17,7 @@ from pathlib import Path
 from harness.web_fetch.body_coverage import compact_ngrams
 from harness.web_fetch.composite_tasks import validate_composite_acceptance
 from harness.web_fetch.stable_tasks import validate_acceptance_contract
+from harness.web_fetch.storage import data_home
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,7 +87,7 @@ def parse_sections() -> list[dict]:
 
 def evidence_roots() -> dict[str, Path]:
     manifest = json.loads(MANIFEST.read_text())
-    return {key: Path.home() / value for key, value in manifest["evidence_roots"].items()}
+    return {key: data_home() / value for key, value in manifest["evidence_roots"].items()}
 
 
 def proof(case: dict, roots: dict[str, Path]) -> tuple[str, dict]:

@@ -7,12 +7,17 @@ import pytest
 from harness.web_fetch.metrics import evaluate_content, normalize_for_match
 from harness.web_fetch.composite_tasks import validate_composite_acceptance
 from harness.web_fetch.stable_tasks import validate_acceptance_contract
-from scripts.run_risk_control_moli import require_complete_diagnostic_logs
+from harness.web_fetch.report_build import require_risk_control_certification
+from scripts.run_risk_control_moli import main as run_risk_control, require_complete_diagnostic_logs
+from scripts.build_risk_control_dataset import evidence_roots
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET = ROOT / "evaluation/risk-control/dataset.json"
 QUALIFIED = ROOT / "evaluation/risk-control/qualification/cohort/qualified-cases.json"
+QUALIFICATION_AUDIT = ROOT / "evaluation/risk-control/qualification/cohort/qualification-audit-receipt.json"
+REPLACEMENT = ROOT / "evaluation/risk-control/qualification/cohort/risk-107-replacement-receipt.json"
+RUN_PROFILE = ROOT / "evaluation/risk-control/run-profile.json"
 
 
 @pytest.fixture(scope="module")
@@ -31,6 +36,90 @@ def test_dataset_covers_the_exact_audited_cohort(dataset):
     assert dataset["independent_quantity_group_count"] == 27
     assert dataset["list_or_field_case_count"] == 23
     assert dataset["composite_group_count"] == 29
+
+
+def test_external_evidence_roots_honor_data_home(monkeypatch, tmp_path):
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path))
+    assert all(path.is_relative_to(tmp_path) for path in evidence_roots().values())
+
+
+def test_replacement_receipt_connects_audited_predecessor_to_final_cohort():
+    import hashlib
+
+    audit = json.loads(QUALIFICATION_AUDIT.read_text())
+    replacement = json.loads(REPLACEMENT.read_text())
+    assert replacement["predecessor_qualified_cases_sha256"] == audit["input"]["sha256"]
+    assert replacement["predecessor_qualification_audit_receipt_sha256"] == hashlib.sha256(
+        QUALIFICATION_AUDIT.read_bytes()
+    ).hexdigest()
+    assert replacement["final_qualified_cases_sha256"] == hashlib.sha256(
+        QUALIFIED.read_bytes()
+    ).hexdigest()
+
+
+def test_run_profile_binds_every_rule_and_qualification_authority():
+    import hashlib
+
+    profile = json.loads(RUN_PROFILE.read_text())
+    expected = {
+        "qualification_manifest", "qualification_audit", "replacement_receipt",
+        "qualified_cases", "first_30_rules", "remaining_70_rules",
+        "list_contracts", "body_contracts", "rule_independent_audit",
+        "rule_completeness_audit",
+    }
+    assert set(profile["source_bindings"]) == expected
+    for binding in profile["source_bindings"].values():
+        path = ROOT / binding["path"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == binding["sha256"]
+
+
+def test_direct_formal_execution_is_rejected_before_provider_validation(tmp_path):
+    with pytest.raises(SystemExit):
+        run_risk_control(["--execute", "--output", str(tmp_path / "run")])
+
+
+def test_report_requires_profile_bound_risk_control_certification(tmp_path):
+    import hashlib
+
+    profile_sha = hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
+    dataset = {
+        "comparison": {
+            "kind": "risk_control_100_moli",
+            "run_profile_sha256": profile_sha,
+        }
+    }
+    record = {
+        "provider_metadata": {
+            "diagnostic_log_path": "private_artifacts/moli/case/run-001.stderr.log",
+            "diagnostic_log_sha256": "a" * 64,
+            "diagnostic_log_bytes": 12,
+            "diagnostic_log_truncated": False,
+        }
+    }
+    (tmp_path / "dataset.json").write_text(json.dumps(dataset))
+    (tmp_path / "results.jsonl").write_text(json.dumps(record) + "\n")
+    (tmp_path / "manifest.json").write_text("{}\n")
+    (tmp_path / "execution.json").write_text('{"batches": [{}]}\n')
+    receipt = {
+        "schema_version": 1,
+        "kind": "certified_risk_control_100_moli_v1",
+        "profile_sha256": profile_sha,
+        "dataset_sha256": hashlib.sha256((tmp_path / "dataset.json").read_bytes()).hexdigest(),
+        "results_sha256": hashlib.sha256((tmp_path / "results.jsonl").read_bytes()).hexdigest(),
+        "manifest_sha256": hashlib.sha256((tmp_path / "manifest.json").read_bytes()).hexdigest(),
+        "execution_sha256": hashlib.sha256((tmp_path / "execution.json").read_bytes()).hexdigest(),
+        "provider_identity_before": {"reported_version": "moli 1.1.11", "binary_sha256": "b" * 64},
+        "provider_identity_after": {"reported_version": "moli 1.1.11", "binary_sha256": "b" * 64},
+        "logical_results": 1,
+        "physical_calls": 1,
+        "complete_diagnostic_logs": True,
+    }
+    (tmp_path / "certification.json").write_text(json.dumps(receipt))
+    require_risk_control_certification(tmp_path, dataset, [record])
+    receipt["results_sha256"] = "0" * 64
+    (tmp_path / "certification.json").write_text(json.dumps(receipt))
+    with pytest.raises(ValueError, match="mismatched"):
+        require_risk_control_certification(tmp_path, dataset, [record])
 
 
 def test_every_contract_validates_and_body_has_positive_and_adjacent_negative(dataset):

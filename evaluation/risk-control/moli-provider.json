@@ -10,6 +10,7 @@
       "block_private_networks": true,
       "private_network_allowlist_hosts": [],
       "max_bytes": 20000000,
+      "retain_complete_diagnostic_log": true,
       "max_diagnostic_bytes": 100000000,
       "log_level": "debug",
       "trace_network": false,

@@ -258,10 +258,14 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
                 continue
             candidates.append((identity, entry["url"], title, link.start))
         owned = {}
-        first = {}
-        for candidate in candidates:
-            first.setdefault(candidate[0], candidate)
-        ordered = sorted(first.values(), key=lambda row: row[3])
+        # Consecutive links to the same identity belong to one card (for
+        # example, a title link followed by a linked date).  A later duplicate
+        # after another identity starts a new card and must not enlarge the
+        # intervening record's field context.
+        ordered = []
+        for candidate in sorted(candidates, key=lambda row: row[3]):
+            if not ordered or ordered[-1][0] != candidate[0]:
+                ordered.append(candidate)
         for index, (identity, destination, label, start) in enumerate(ordered):
             line_start = content.rfind("\n", 0, start) + 1
             finish = ordered[index + 1][3] if index + 1 < len(ordered) else len(content)
@@ -329,7 +333,11 @@ def _field_value(lines: list[str], spec: dict, used: set[int] | None = None) -> 
                 match = re.match(rf"(?i)^\s*{re.escape(alias)}\s*[:：-]?\s*(.+)$", line)
                 if match and match[1].strip():
                     candidates.append((index, match[1].strip()))
-                elif _key(line) == _key(alias) and index + 1 < len(lines):
+                elif (
+                    _key(line) == _key(alias)
+                    and index + 1 < len(lines)
+                    and (not used or index + 1 not in used)
+                ):
                     candidates.append((index + 1, lines[index + 1].strip()))
     else:
         candidates = [(index, line) for index, line in enumerate(lines)
@@ -462,10 +470,12 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
 def _field_report_group(content: str, group: dict) -> dict:
     lines = _context_lines(content, "")
     fields = {}
+    used = set()
     for spec in group["required_fields"]:
-        value = _field_value(lines, spec)
+        value = _field_value(lines, spec, used)
         if value is not None:
             fields[spec["id"]] = value[1]
+            used.add(value[0])
     fixed = {key: {"value": value,
                    "pass": key in fields and _key(fields[key]) == _key(value)}
              for key, value in group.get("fixed_values", {}).items()}
