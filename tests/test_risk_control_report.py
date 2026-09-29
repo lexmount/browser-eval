@@ -6,7 +6,6 @@ from harness.web_fetch.providers.fixture import FixtureProvider
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.runner import run_evaluation
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DATASET = ROOT / "evaluation/risk-control/dataset.json"
 

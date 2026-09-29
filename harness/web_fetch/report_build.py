@@ -21,9 +21,9 @@ from .artifacts import (
     diagnostic_log_binding, record_public_call_log_bindings, verify_record_private_artifacts,
     verify_public_call_log, verify_record_public_call_logs,
 )
-
-
 def require_risk_control_certification(source: Path, dataset: dict, records: list[dict]) -> None:
+    from .risk_control import validate_risk_control_certification
+
     """Validate the complete profile-bound risk-control cohort before reporting."""
     comparison = dataset.get("comparison", {})
     if comparison.get("kind") != "risk_control_100_moli":
@@ -31,28 +31,9 @@ def require_risk_control_certification(source: Path, dataset: dict, records: lis
     path = contained_path(source, "certification.json")
     if not path.is_file() or path.is_symlink():
         raise ValueError("Risk-control report requires a certification receipt")
-    receipt = json.loads(path.read_text(encoding="utf-8"))
-    expected_profile = comparison.get("run_profile_sha256")
     profile_path = Path(__file__).resolve().parents[2] / "evaluation/risk-control/run-profile.json"
-    if (
-        receipt.get("schema_version") != 1
-        or receipt.get("kind") != "certified_risk_control_100_moli_v1"
-        or receipt.get("profile_sha256") != expected_profile
-        or expected_profile != hashlib.sha256(profile_path.read_bytes()).hexdigest()
-        or receipt.get("dataset_sha256")
-        != hashlib.sha256(contained_path(source, "dataset.json").read_bytes()).hexdigest()
-        or receipt.get("results_sha256")
-        != hashlib.sha256(contained_path(source, "results.jsonl").read_bytes()).hexdigest()
-        or receipt.get("manifest_sha256")
-        != hashlib.sha256(contained_path(source, "manifest.json").read_bytes()).hexdigest()
-        or receipt.get("execution_sha256")
-        != hashlib.sha256(contained_path(source, "execution.json").read_bytes()).hexdigest()
-        or receipt.get("provider_identity_before") != receipt.get("provider_identity_after")
-        or receipt.get("logical_results") != len(records)
-        or receipt.get("physical_calls") != len(records)
-        or receipt.get("complete_diagnostic_logs") is not True
-    ):
-        raise ValueError("Risk-control certification receipt is incomplete or mismatched")
+    receipt = json.loads(path.read_text(encoding="utf-8"))
+    validate_risk_control_certification(source, dataset, records, receipt, profile_path)
     for record in records:
         metadata = record.get("provider_metadata", {})
         if (diagnostic_log_binding(metadata) is None

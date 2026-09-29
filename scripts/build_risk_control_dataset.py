@@ -5,6 +5,7 @@ The Markdown files remain the human authority.  This compiler is deliberately
 strict about their hashes, order, stable-literal count, reference bindings and
 the independently counted list groups.  Provider output is never read.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -19,7 +20,6 @@ from harness.web_fetch.composite_tasks import validate_composite_acceptance
 from harness.web_fetch.stable_tasks import validate_acceptance_contract
 from harness.web_fetch.storage import data_home
 
-
 ROOT = Path(__file__).resolve().parents[1]
 RISK = ROOT / "evaluation/risk-control"
 COHORT = RISK / "qualification/cohort/cohort-manifest.json"
@@ -29,7 +29,9 @@ LIST_CONTRACTS = RISK / "list-contracts.json"
 BODY_CONTRACTS = RISK / "body-contracts.json"
 EXPECTED_RULE_HASHES = {
     "first-30-rule-review.md": "2e293709eb01b7607147cd86a1ff5ef0218559c1e92b2ee3cb0d47ee5e89f847",
-    "remaining-70-rule-review.md": "728ea96def6e35e4361c51db96859677e692d4462e32362fda00ad0399903f71",
+    "remaining-70-rule-review.md": (
+        "728ea96def6e35e4361c51db96859677e692d4462e32362fda00ad0399903f71"
+    ),
 }
 EXPECTED_COHORT_HASH = "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e"
 CHINESE_NUMBERS = {"一": 1, "两": 2, "二": 2, "三": 3, "四": 4, "五": 5}
@@ -40,8 +42,11 @@ def sha(path: Path) -> str:
 
 
 def compact_key(value: str) -> str:
-    return "".join(character for character in unicodedata.normalize("NFKC", value).casefold()
-                   if character.isalnum())
+    return "".join(
+        character
+        for character in unicodedata.normalize("NFKC", value).casefold()
+        if character.isalnum()
+    )
 
 
 def visible_text_key(value: str) -> str:
@@ -65,22 +70,36 @@ def parse_sections() -> list[dict]:
                 item = re.fullmatch(r"- \*\*(.+?)：\*\*\s*(.*)", line)
                 if item:
                     fields[item[1]] = item[2]
-            link = next((re.fullmatch(r"\[打开目标网页\]\((.+)\)", line)
-                         for line in lines if line.startswith("[打开目标网页]")), None)
+            link = next(
+                (
+                    re.fullmatch(r"\[打开目标网页\]\((.+)\)", line)
+                    for line in lines
+                    if line.startswith("[打开目标网页]")
+                ),
+                None,
+            )
             if not link:
                 raise ValueError(f"Missing target link: {lines[0]}")
             stable_key = next((key for key in fields if key.startswith("稳定文字")), None)
             if not stable_key:
                 raise ValueError(f"Missing stable text: {lines[0]}")
             stable = re.findall(r"`([^`]+)`", fields[stable_key])
-            stable = [literal for literal in stable
-                      if not re.search(rf"不把\s*`{re.escape(literal)}`\s*冻结", fields[stable_key])
-                      and not re.search(rf"`{re.escape(literal)}`[^。；]*不再冻结", fields[stable_key])]
-            sections.append({
-                "index": int(match[1]), "id": match[2], "name": match[3],
-                "url": link[1], "fields": fields,
-                "stable": stable,
-            })
+            stable = [
+                literal
+                for literal in stable
+                if not re.search(rf"不把\s*`{re.escape(literal)}`\s*冻结", fields[stable_key])
+                and not re.search(rf"`{re.escape(literal)}`[^。；]*不再冻结", fields[stable_key])
+            ]
+            sections.append(
+                {
+                    "index": int(match[1]),
+                    "id": match[2],
+                    "name": match[3],
+                    "url": link[1],
+                    "fields": fields,
+                    "stable": stable,
+                }
+            )
     return sections
 
 
@@ -99,8 +118,13 @@ def load_cohort() -> tuple[dict, list[dict]]:
     ):
         raise ValueError("Unsupported cohort manifest")
     required = {
-        "id", "url", "site_key", "target_scope", "target_language",
-        "qualification_class", "reference_proof",
+        "id",
+        "url",
+        "site_key",
+        "target_scope",
+        "target_language",
+        "qualification_class",
+        "reference_proof",
     }
     for case in cases:
         if not required <= set(case) <= required | {"observed_final_url"}:
@@ -113,9 +137,7 @@ def load_cohort() -> tuple[dict, list[dict]]:
         "security_or_access_control_cases": sum(
             case["qualification_class"] == "security_or_access_control" for case in cases
         ),
-        "login_only_cases": sum(
-            case["qualification_class"] == "login_only" for case in cases
-        ),
+        "login_only_cases": sum(case["qualification_class"] == "login_only" for case in cases),
         "qualification_reviewed_on": "2026-09-27",
         "claim_scope": "saved_url_route_and_observation_only",
     }
@@ -130,7 +152,9 @@ def proof(case: dict, roots: dict[str, Path]) -> tuple[str, dict]:
     if not path.is_file() or sha(path) != binding["sha256"]:
         raise ValueError(f"Missing or changed reference proof: {case['id']}")
     return path.read_text(errors="replace"), {
-        "root": binding["root"], "path": binding["path"], "sha256": binding["sha256"]
+        "root": binding["root"],
+        "path": binding["path"],
+        "sha256": binding["sha256"],
     }
 
 
@@ -146,9 +170,7 @@ def region_count(body: str) -> int:
     raise ValueError(f"Body region count is not explicit: {body}")
 
 
-def body_reference(
-    section: dict, source: str, contract: dict | None
-) -> dict | None:
+def body_reference(section: dict, source: str, contract: dict | None) -> dict | None:
     body = section["fields"].get("正文参考")
     if not body or body.startswith("不另设"):
         if contract is not None:
@@ -173,31 +195,43 @@ def body_reference(
             raise ValueError(f"Invalid body region shape: {section['id']}")
         selected_lines = []
         for segment in segments:
-            if set(segment) != {"lines"} or not isinstance(segment["lines"], list) or len(segment["lines"]) != 2:
+            if (
+                set(segment) != {"lines"}
+                or not isinstance(segment["lines"], list)
+                or len(segment["lines"]) != 2
+            ):
                 raise ValueError(f"Invalid body line segment: {section['id']}")
             start, end = segment["lines"]
-            if (not isinstance(start, int) or not isinstance(end, int)
-                    or start < 1 or end < start or end > len(source_lines)):
+            if (
+                not isinstance(start, int)
+                or not isinstance(end, int)
+                or start < 1
+                or end < start
+                or end > len(source_lines)
+            ):
                 raise ValueError(f"Body line segment out of range: {section['id']} {start}-{end}")
             line_numbers = set(range(start, end + 1))
             if used_lines & line_numbers:
                 raise ValueError(f"Body regions overlap: {section['id']} {start}-{end}")
             used_lines.update(line_numbers)
-            selected_lines.extend(source_lines[start - 1:end])
+            selected_lines.extend(source_lines[start - 1 : end])
         selected_lines = [line for line in selected_lines if line.strip() not in drop_exact]
         regions.append("\n".join(selected_lines).strip())
 
     if len(regions) != count or any(not compact_ngrams(region, 6) for region in regions):
-        raise ValueError(f"Invalid body regions: {section['id']} count={count} "
-                         f"actual={len(regions)} lengths={[len(value) for value in regions]}")
+        raise ValueError(
+            f"Invalid body regions: {section['id']} count={count} "
+            f"actual={len(regions)} lengths={[len(value) for value in regions]}"
+        )
     return {
         "version": 3,
         "unit": "region_compact_hexagram_recall",
         "minimum_coverage": 0.8,
         "minimum_floor": 0.6,
         "minimum_region_passes": max(1, count - 1),
-        "regions": [{"id": f"body-region-{index + 1}", "text": text}
-                    for index, text in enumerate(regions)],
+        "regions": [
+            {"id": f"body-region-{index + 1}", "text": text} for index, text in enumerate(regions)
+        ],
     }
 
 
@@ -209,8 +243,9 @@ def build(output: Path) -> dict:
         raise ValueError("Cohort manifest hash changed")
     sections = parse_sections()
     cohort, qualified = load_cohort()
-    if ([section["index"] for section in sections] != list(range(1, 101))
-            or [section["id"] for section in sections] != [case["id"] for case in qualified]):
+    if [section["index"] for section in sections] != list(range(1, 101)) or [
+        section["id"] for section in sections
+    ] != [case["id"] for case in qualified]:
         raise ValueError("Rule/cohort order mismatch")
     if sum(len(section["stable"]) for section in sections) != 1599:
         raise ValueError("Expected exactly 1599 required stable literals")
@@ -221,20 +256,20 @@ def build(output: Path) -> dict:
     body_source = json.loads(BODY_CONTRACTS.read_text())
     body_contracts = body_source["contracts"]
     expected_body_ids = {
-        section["id"] for section in sections
+        section["id"]
+        for section in sections
         if section["fields"].get("正文参考", "").strip()
         and not section["fields"]["正文参考"].startswith("不另设")
     }
     if set(body_contracts) != expected_body_ids or len(body_contracts) != 79:
         missing = sorted(expected_body_ids - set(body_contracts))
         unexpected = sorted(set(body_contracts) - expected_body_ids)
-        raise ValueError(
-            f"Body contract scope mismatch: missing={missing} unexpected={unexpected}"
-        )
+        raise ValueError(f"Body contract scope mismatch: missing={missing} unexpected={unexpected}")
     groups = sum(len(value["groups"]) for value in contracts.values())
     quantity_kinds = {"named_link", "name_description", "table", "linked_table"}
     quantity_contracts = {
-        identifier: value for identifier, value in contracts.items()
+        identifier: value
+        for identifier, value in contracts.items()
         if any(group["kind"] in quantity_kinds for group in value["groups"])
     }
     quantity_groups = sum(
@@ -245,12 +280,16 @@ def build(output: Path) -> dict:
     # The replacement removes Kuaishou's two independently counted list groups
     # and adds a fixed full-body About page.  The remaining multi-group cases are
     # Scioly (3), HydroOJ (2), and Global European (4).
-    if (len(quantity_contracts) != 21 or quantity_groups != 27
-            or len(contracts) != 23 or groups != 29):
+    if (
+        len(quantity_contracts) != 21
+        or quantity_groups != 27
+        or len(contracts) != 23
+        or groups != 29
+    ):
         raise ValueError("Expected 21 quantity cases/27 groups plus 2 field groups")
     cases = []
     body_count = 0
-    for section, qualified_case in zip(sections, qualified):
+    for section, qualified_case in zip(sections, qualified, strict=True):
         source, binding = proof(qualified_case, roots)
         normalized_stable = [visible_text_key(literal) for literal in section["stable"]]
         if len(normalized_stable) != len(set(normalized_stable)):
@@ -258,11 +297,19 @@ def build(output: Path) -> dict:
         normalized_source = visible_text_key(source)
         for literal in section["stable"]:
             if visible_text_key(literal) not in normalized_source:
-                raise ValueError(f"Stable literal missing from evidence: {section['id']}: {literal}")
-        anchors = [{"id": f"stable-{index + 1:02d}", "alternatives": [literal]}
-                   for index, literal in enumerate(section["stable"])]
-        acceptance = {"version": 1, "schema": "body_text", "minimum_records": 0,
-                      "stable_text_anchors": anchors}
+                raise ValueError(
+                    f"Stable literal missing from evidence: {section['id']}: {literal}"
+                )
+        anchors = [
+            {"id": f"stable-{index + 1:02d}", "alternatives": [literal]}
+            for index, literal in enumerate(section["stable"])
+        ]
+        acceptance = {
+            "version": 1,
+            "schema": "body_text",
+            "minimum_records": 0,
+            "stable_text_anchors": anchors,
+        }
         validate_acceptance_contract(acceptance)
         body = body_reference(section, source, body_contracts.get(section["id"]))
         body_count += bool(body)
@@ -272,22 +319,34 @@ def build(output: Path) -> dict:
             validate_composite_acceptance(composite)
         final_url = qualified_case.get("observed_final_url") or section["url"]
         case = {
-            "id": section["id"], "name": section["name"], "url": section["url"],
-            "category": "risk_control", "track": "risk_control", "task_kind": "body",
+            "id": section["id"],
+            "name": section["name"],
+            "url": section["url"],
+            "category": "risk_control",
+            "track": "risk_control",
+            "task_kind": "body",
             "description": qualified_case["target_scope"],
-            "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
-            "expected_any": [], "forbidden_any": [], "min_content_chars": 1,
-            "ground_truth_main_content": "", "required_facts": [],
+            "task_prompt": (
+                "提取声明网址首次自动加载出的目标正文、列表和真实链接；"
+                "不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。"
+            ),
+            "expected_any": [],
+            "forbidden_any": [],
+            "min_content_chars": 1,
+            "ground_truth_main_content": "",
+            "required_facts": [],
             "acceptance_contract": acceptance,
-            "source_benchmark": {"risk_control": {
-                "navigation_contract": {
-                    "requested_url": qualified_case["url"],
-                    "observed_final_url": final_url,
-                    "target_language": qualified_case["target_language"],
-                },
-                "rule_index": section["index"],
-                "reference_proof": binding,
-            }},
+            "source_benchmark": {
+                "risk_control": {
+                    "navigation_contract": {
+                        "requested_url": qualified_case["url"],
+                        "observed_final_url": final_url,
+                        "target_language": qualified_case["target_language"],
+                    },
+                    "rule_index": section["index"],
+                    "reference_proof": binding,
+                }
+            },
         }
         if body:
             case["body_requirements"] = body
@@ -331,13 +390,21 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=RISK / "dataset.json")
     args = parser.parse_args()
     dataset = build(args.output)
-    print(json.dumps({
-        "output": str(args.output), "sha256": sha(args.output),
-        "cases": len(dataset["cases"]), "body_cases": dataset["body_case_count"],
-        "quantity_groups": dataset["independent_quantity_group_count"],
-        "composite_groups": dataset["composite_group_count"],
-        "stable_literals": dataset["stable_literal_count"],
-    }, ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            {
+                "output": str(args.output),
+                "sha256": sha(args.output),
+                "cases": len(dataset["cases"]),
+                "body_cases": dataset["body_case_count"],
+                "quantity_groups": dataset["independent_quantity_group_count"],
+                "composite_groups": dataset["composite_group_count"],
+                "stable_literals": dataset["stable_literal_count"],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Validate or execute the frozen 100-case risk-control Moli cohort."""
+
 from __future__ import annotations
 
 import argparse
@@ -9,20 +10,26 @@ import os
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
 from harness.web_fetch.artifacts import diagnostic_log_binding
+from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.retrieval_hints import plan_for_case
+from harness.web_fetch.risk_control import measured_risk_control_dataset
 from harness.web_fetch.runner import run_evaluation
 from harness.web_fetch.storage import data_home
-
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PROFILE = ROOT / "evaluation/risk-control/run-profile.json"
 PROXY_VARIABLES = (
-    "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
-    "http_proxy", "https_proxy", "all_proxy", "no_proxy",
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "NO_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+    "no_proxy",
 )
 
 
@@ -49,7 +56,8 @@ def implementation_identity(provider, *, refresh: bool = False) -> dict:
 def require_complete_diagnostic_logs(records: list[dict]) -> None:
     """Fail closed unless every logical call retained its complete raw stderr."""
     incomplete = [
-        row["case_id"] for row in records
+        row["case_id"]
+        for row in records
         if diagnostic_log_binding(row.get("provider_metadata", {})) is None
         or row.get("provider_metadata", {}).get("diagnostic_log_truncated") is not False
     ]
@@ -133,28 +141,38 @@ def validate(profile_path: Path) -> tuple[dict, dict, list, object, Path]:
 def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", type=Path, default=DEFAULT_PROFILE)
-    parser.add_argument("--env-file", type=Path,
-                        help="Load runtime paths from the repository .env or another explicit file")
+    parser.add_argument(
+        "--env-file",
+        type=Path,
+        help="Load runtime paths from the repository .env or another explicit file",
+    )
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--execute", action="store_true",
-                        help="Make the 100 provider calls; omit for a call-free validation")
+    parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Make the 100 provider calls; omit for a call-free validation",
+    )
     args = parser.parse_args(argv)
     if args.execute and not certified:
-        parser.error(
-            "Formal execution must use scripts/run_certified_benchmark.py risk-control"
-        )
+        parser.error("Formal execution must use scripts/run_certified_benchmark.py risk-control")
     if args.env_file:
         load_runtime_env(args.env_file)
     profile_path = args.profile.resolve()
     profile, dataset, cases, provider, config_path = validate(profile_path)
     if not args.execute:
-        print(json.dumps({
-            "status": profile["status"],
-            "unresolved_case_ids": profile["unresolved_case_ids"],
-            "cases": len(cases),
-            "provider": implementation_identity(provider),
-            "provider_calls": 0,
-        }, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                {
+                    "status": profile["status"],
+                    "unresolved_case_ids": profile["unresolved_case_ids"],
+                    "cases": len(cases),
+                    "provider": implementation_identity(provider),
+                    "provider_calls": 0,
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return
     if profile["status"] != "ready" or profile["unresolved_case_ids"]:
         parser.error("The frozen profile still has unresolved rule/evidence conflicts")
@@ -170,20 +188,9 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
         os.environ.pop(key, None)
     os.environ["LANG"] = "C"
     os.environ["LC_ALL"] = "C"
-    measured_dataset = {
-        **dataset,
-        "coverage_plan": {"risk_control": [profile["provider"]["name"]]},
-        "comparison": {
-            "kind": "risk_control_100_moli",
-            "run_profile_sha256": digest(profile_path),
-            "timeout_seconds": profile["execution"]["timeout_seconds"],
-            "runs_per_case": 1,
-            "concurrency": 1,
-            "max_failure_retries": 0,
-            "conversion": "Moli native Markdown; wait-until done; no per-case options",
-            "require_independent_result_review": False,
-        },
-    }
+    profile_sha256 = digest(profile_path)
+    measured_dataset = measured_risk_control_dataset(profile, dataset, profile_sha256)
+    execution = profile["execution"]
     pre_identity = implementation_identity(provider)
     records, _ = run_evaluation(
         output_dir=output,
@@ -192,11 +199,11 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
         cases=cases,
         providers=[provider],
         provider_config_path=config_path,
-        runs=1,
-        timeout=45,
-        delay=0.5,
-        provider_concurrency=1,
-        max_failure_retries=0,
+        runs=execution["runs_per_case"],
+        timeout=execution["timeout_seconds"],
+        delay=execution["delay_seconds"],
+        provider_concurrency=execution["concurrency"],
+        max_failure_retries=execution["max_failure_retries"],
     )
     if len(records) != 100 or len({row["case_id"] for row in records}) != 100:
         raise ValueError("Incomplete risk-control Moli matrix")
@@ -205,26 +212,34 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
     if post_identity != pre_identity:
         raise ValueError("Moli implementation identity changed during execution")
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
-    manifest["run_profile_sha256"] = digest(profile_path)
+    manifest["run_profile_sha256"] = profile_sha256
     (output / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    (output / "execution.json").write_text(json.dumps({
-        "schema_version": 1,
-        "aggregate": {
-            "providers": [profile["provider"]["name"]],
-            "case_ids": [case.id for case in cases],
-            "started_at": manifest["started_at"],
-            "completed_at": datetime.now(UTC).isoformat(),
-            "batch_count": 1,
-        },
-        "batches": [manifest],
-    }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (output / "execution.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "aggregate": {
+                    "providers": [profile["provider"]["name"]],
+                    "case_ids": [case.id for case in cases],
+                    "started_at": manifest["started_at"],
+                    "completed_at": datetime.now(UTC).isoformat(),
+                    "batch_count": 1,
+                },
+                "batches": [manifest],
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     results_path = output / "results.jsonl"
     certification = {
         "schema_version": 1,
         "kind": "certified_risk_control_100_moli_v1",
-        "profile_sha256": digest(profile_path),
+        "profile_sha256": profile_sha256,
         "dataset_sha256": digest(output / "dataset.json"),
         "results_sha256": digest(results_path),
         "manifest_sha256": digest(output / "manifest.json"),
@@ -240,11 +255,17 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
         encoding="utf-8",
     )
     report = build_report(output, output / "report")
-    print(json.dumps({
-        "evidence": str(output),
-        "logical_results": len(records),
-        "report": str(report),
-    }, ensure_ascii=False, indent=2))
+    print(
+        json.dumps(
+            {
+                "evidence": str(output),
+                "logical_results": len(records),
+                "report": str(report),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":

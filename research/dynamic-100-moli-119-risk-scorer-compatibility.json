@@ -14,12 +14,12 @@
   "bindings": {
     "dataset_sha256": "2a149a7003a43ee4746bf1d11669154506a96172ddfe51f7abb9b2d547fba8b3",
     "input_results_sha256": "cca27ef9162406de2a1068ce8c7a5bb3b37439d873668e01dea0e1d26a061d2a",
-    "output_results_sha256": "da861a8d084eae408fe0564298133c8ecd212f6037e3a33181da83bfb2bcf49f",
+    "output_results_sha256": "d41448943fceec6d9c426524cb2650ebea53916f98b6846623988e3554ae4902",
     "output_summary_sha256": "68c9662854e6bfd5653d3d0749f5b142565f310105af3170caf863c4c55744d6",
-    "scoring_source_sha256": "9d259de8cef120a56e2f98dc740c851b16d4adc78ace219d577585097250c60b",
-    "rescore_source_sha256": "a44be7d249d060257e72a5079e994e832c37028f621db11f0a8811cf6a1ceb77",
+    "scoring_source_sha256": "7fa1d64276294265059960f7fa034e98c127bbaa4c0ce0bb3935b125e2582918",
+    "rescore_source_sha256": "d2400d386338e4c68c5c62c3dc4303c522e3450c3adf8ee3a1425636468620f0",
     "scoring_regressions_sha256": "37653e59ea4b3036ff43cfad2dce89432d8d2f5fddd014c0037159978c1c0706",
-    "composite_tests_sha256": "24787ef1eb72ebfa489ba73d581f18bf7b4bd09a013217cccf1395d3c845a3be",
+    "composite_tests_sha256": "3605ff3f0da8f1592884d2a0a3c31354b99cb3af1377920ddeb525a2e195192b",
     "decision_digest_format": "sorted_attempt_id_boolean_json_v1",
     "input_task_decisions_sha256": "0fc4eb6273c214053cd2931f09412abf9d9be9789529812c79ee3a2b09348eb1",
     "output_task_decisions_sha256": "0fc4eb6273c214053cd2931f09412abf9d9be9789529812c79ee3a2b09348eb1"
