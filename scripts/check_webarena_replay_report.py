@@ -581,6 +581,15 @@ def check(report_dir: Path) -> dict[str, int]:
                     "unavailable resources must be stated once instead of rendered as empty metrics"
                 )
     for language_root in language_roots(root):
+        environment = (language_root / "environment.html").read_text(encoding="utf-8")
+        identity_heading = (
+            "方法身份与修复序列"
+            if language_root == root
+            else "Method identity and repair sequence"
+        )
+        if identity_heading not in environment:
+            raise ValueError("environment page is missing method identity and repair sequence")
+    for language_root in language_roots(root):
         results_page = (language_root / "results.html").read_text(encoding="utf-8")
         _check_failure_matrix(results_page, results, participants)
         if "successful-distributions" not in results_page or (
@@ -598,6 +607,10 @@ def check(report_dir: Path) -> dict[str, int]:
                 "Rainbond" not in environment
                 or "Colima" in environment
                 or "Playwright" not in environment
+                or any(
+                    str(row["browser"]) not in environment
+                    for row in results
+                )
             ):
                 raise ValueError("formal environment page does not describe the measured deployment")
         for participant in participants:

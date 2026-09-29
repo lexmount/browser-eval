@@ -640,6 +640,7 @@ def validate_catalog_comparison_release(binding_path: Path, data_home: Path) -> 
         "dataset",
         "results",
         "failure_review",
+        "execution_metadata_revision",
         "report_manifest",
         "publication_archive",
         "publication_attestation",
@@ -677,6 +678,9 @@ def validate_catalog_comparison_release(binding_path: Path, data_home: Path) -> 
     profile = json.loads(resolved["profile"].read_text(encoding="utf-8"))
     dataset = json.loads(resolved["dataset"].read_text(encoding="utf-8"))
     results = json.loads(resolved["results"].read_text(encoding="utf-8"))
+    metadata_revision = json.loads(
+        resolved["execution_metadata_revision"].read_text(encoding="utf-8")
+    )
     manifest = json.loads(resolved["report_manifest"].read_text(encoding="utf-8"))
     receipt = json.loads(resolved["publication_receipt"].read_text(encoding="utf-8"))
     attestation = json.loads(resolved["publication_attestation"].read_text(encoding="utf-8"))
@@ -690,6 +694,27 @@ def validate_catalog_comparison_release(binding_path: Path, data_home: Path) -> 
         or not participants
     ):
         raise ValueError("comparison release inputs are invalid")
+    source_inputs = metadata_revision.get("source_inputs")
+    verification = metadata_revision.get("verification") or {}
+    if (
+        metadata_revision.get("schema") != "lex_trajectory_replay_metadata_revision/1"
+        or metadata_revision.get("provider_calls") != 0
+        or metadata_revision.get("results_sha256") != artifacts["results"]["sha256"]
+        or not isinstance(source_inputs, list)
+        or not source_inputs
+        or any(
+            not isinstance(row, dict)
+            or row.get("backend") != "playwright"
+            or not _is_sha256(row.get("sha256"))
+            or not row.get("path")
+            for row in source_inputs
+        )
+        or verification.get("source_input_count") != len(source_inputs)
+        or verification.get("non_playwright_source_inputs") != 0
+        or profile.get("execution_backend") != "playwright"
+        or (profile.get("resources") or {}).get("collection_status") != "not_recorded"
+    ):
+        raise ValueError("comparison release execution metadata revision changed")
     methods = profile.get("methods") or []
     method_registry = {method.get("id"): method for method in methods if isinstance(method, dict)}
     declared = {row.get("id"): row for row in participants if isinstance(row, dict)}

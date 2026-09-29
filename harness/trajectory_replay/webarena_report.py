@@ -11,7 +11,7 @@ import re
 import shutil
 import statistics
 import zipfile
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urlsplit
@@ -1920,6 +1920,47 @@ def build_webarena_replay_report(
                 + f'<p>{"浏览器运行于 macOS arm64 主机，通过网络访问 Rainbond 自托管站点。六种方法均由 Playwright 通过 CDP 重放 BrowserTool 动作契约；没有调用 CowAgent BrowserTool，也没有 Agent 决策或模型调用。" if zh else "Browsers run on a macOS arm64 host and access self-hosted Rainbond sites over the network. All six methods use Playwright over CDP to replay the BrowserTool action contract; CowAgent BrowserTool, Agent decisions, and model calls are absent."}</p>'
                 + reset_table + diagram_script
             )
+        identity_rows = []
+        for participant, method in methods.items():
+            hashes = Counter(
+                row["binary_sha256"]
+                for row in attempts
+                if row["participant_id"] == participant
+                and isinstance(row.get("binary_sha256"), str)
+                and row["binary_sha256"]
+            )
+            declared_hashes = method.get("binary_sha256s") or (
+                [method["binary_sha256"]]
+                if isinstance(method.get("binary_sha256"), str) else []
+            )
+            for binary_hash in declared_hashes:
+                hashes.setdefault(binary_hash, 0)
+            revision = (
+                method.get("release_tag")
+                or method.get("release_revision")
+                or method.get("version")
+                or "—"
+            )
+            distribution = ", ".join(
+                f'<code>{_e(binary_hash[:12])}</code> · {count} '
+                + ("题" if zh else "tasks")
+                for binary_hash, count in sorted(hashes.items(), key=lambda item: (-item[1], item[0]))
+            ) or "—"
+            identity_rows.append(
+                f'<tr><td>{_e(method["label"])}</td><td>{_e(revision)}</td>'
+                f'<td>{len(hashes) if hashes else "—"}</td><td>{distribution}</td></tr>'
+            )
+        identity_section = (
+            f'<section><h2>{"方法身份与修复序列" if zh else "Method identity and repair sequence"}</h2>'
+            f'<p>{"同一方法可能由多次定向修复后的浏览器构建共同收敛；表中列出最终逻辑结果实际绑定的构建及其题数。耗时是这条修复序列留下的逐题样本，不能解释为某一个构建版本的独立性能。" if zh else "A method may converge through several targeted browser builds. The table lists the builds bound to the retained logical results and their task counts. Latency is sampled across that repair sequence and does not establish the standalone performance of one build."}</p>'
+            '<div class="table-scroll"><table><thead><tr>'
+            + ''.join(f'<th>{label}</th>' for label in (
+                ("方法", "版本或修订", "构建数", "最终结果分布") if zh else
+                ("Method", "Version or revision", "Builds", "Retained result distribution")
+            ))
+            + '</tr></thead><tbody>' + ''.join(identity_rows) + '</tbody></table></div></section>'
+        )
+        environment_body = environment_body.replace('</section>', '</section>' + identity_section, 1)
         if measurement_note:
             environment_body += f'<p class="callout">{_e(measurement_note)}</p>'
         (root / "environment.html").write_text(_shell(lang, "environment", "环境与方法" if zh else "Environment and method", environment_body, current_route="environment.html"), encoding="utf-8")

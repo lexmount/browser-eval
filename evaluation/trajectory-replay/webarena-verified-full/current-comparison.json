@@ -55,7 +55,7 @@
   "artifacts": {
     "profile": {
       "path": "profile.json",
-      "sha256": "c1e0d806341e528759c8c28ac7fabfc87709fa1b1a2f6b75a96a260d18b6c814"
+      "sha256": "d9fe439d7800bba3e8b62577631bc682b53b933a27d8244aafc0db0330faa47f"
     },
     "dataset": {
       "path": "dataset.json",
@@ -79,22 +79,22 @@
     },
     "publication_archive": {
       "path": "artifact-site-package.zip",
-      "sha256": "956cb77d5996f363e04d3c4bfc7eeecef210ac515e055cbcba9d414995dfff66"
+      "sha256": "db50211d6f03c91d25b57911637ed19f52b2a5bbb3fb568db9dc0ec31d5f1fd9"
     },
     "publication_attestation": {
       "path": "artifact-site-attestation.json",
-      "sha256": "eb3ebba39f04a8c952d84aa7a32cc12f7f09c617ba7fc956f6e0df89b0f14142"
+      "sha256": "9fddc99a0ace95addde143730dea77564377aaf3bd1c8cab2bdb627623d75b56"
     },
     "publication_receipt": {
       "path": "artifact-site-receipt.json",
-      "sha256": "80e6fa07bbaaef4ef99ff2d0ae6eb92e199cc7f6cdfd275af11389ecc58549e9"
+      "sha256": "a9e5fdf7fab0ce544957576eb06d6a48fd0689730ef1bf4ddaac22779cd5581a"
     }
   },
   "publication": {
     "service": "artifact-site",
     "host": "https://artifact-site.lexmount.cn",
     "slug": "EFLrNgujgsVc",
-    "version_id": "ver_eab4bd54c82c440aad516258020c6242",
+    "version_id": "ver_c0f0693e9c08401bb4d2b88393234e55",
     "share_url": "https://artifact-site.lexmount.cn/v/4G8YKfQreobGLwg4fo-UJGohezNqgAEm"
   }
 }

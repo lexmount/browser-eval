@@ -180,6 +180,14 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
         environment = (output / route).read_text()
         assert 'data-topology-fallback' in environment and 'class="mermaid"' in environment
         assert 'Rainbond WebArena' in environment
+    assert "方法身份与修复序列" in (output / "environment.html").read_text()
+    assert "Method identity and repair sequence" in (output / "en/environment.html").read_text()
+    environment_path = output / "environment.html"
+    original_environment = environment_path.read_text()
+    environment_path.write_text(original_environment.replace("方法身份与修复序列", ""))
+    with pytest.raises(ValueError, match="method identity"):
+        check_report(output)
+    environment_path.write_text(original_environment)
     assert not (output / "diagnostics.html").exists()
     assert check_report(output)["html_pages"] == 20 + 2 * extra_methods
     home = output / "index.html"

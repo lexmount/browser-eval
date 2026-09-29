@@ -265,6 +265,8 @@ def test_comparison_release_binds_population_review_and_publication(tmp_path):
         evidence / "profile.json",
         {
             "schema": "lex_webarena_trajectory_replay_profile/1",
+            "execution_backend": "playwright",
+            "resources": {"collection_status": "not_recorded"},
             "methods": [
                 {"id": "moli", "engine": "moli", "label": "Moli"},
                 {"id": "other", "engine": "other", "label": "Other"},
@@ -338,11 +340,36 @@ def test_comparison_release_binds_population_review_and_publication(tmp_path):
             "evidence_sha256": file_sha256(results),
         },
     )
+    metadata_revision = _write_json(
+        evidence / "execution-metadata-revision.json",
+        {
+            "schema": "lex_trajectory_replay_metadata_revision/1",
+            "source_profile_sha256": "1" * 64,
+            "profile_sha256": file_sha256(profile),
+            "source_results_sha256": "2" * 64,
+            "results_sha256": file_sha256(results),
+            "provider_calls": 0,
+            "source_inputs": [
+                {
+                    "path": "/evidence/run/inputs.json",
+                    "sha256": "3" * 64,
+                    "backend": "playwright",
+                    "engine": "moli",
+                }
+            ],
+            "verification": {
+                "source_input_count": 1,
+                "non_playwright_source_inputs": 0,
+                "resource_samples_in_results": 0,
+            },
+        },
+    )
     paths = {
         "profile": profile,
         "dataset": dataset,
         "results": results,
         "failure_review": review,
+        "execution_metadata_revision": metadata_revision,
         "report_manifest": manifest,
         "publication_archive": archive,
         "publication_attestation": attestation,
@@ -385,6 +412,24 @@ def test_comparison_release_binds_population_review_and_publication(tmp_path):
     )
 
     assert validate_catalog_comparison_release(binding, data_home)["logical_results"] == 4
+
+    binding_payload = json.loads(binding.read_text(encoding="utf-8"))
+    revision = json.loads(metadata_revision.read_text(encoding="utf-8"))
+    revision["provider_calls"] = 1
+    metadata_revision.write_text(json.dumps(revision), encoding="utf-8")
+    binding_payload["artifacts"]["execution_metadata_revision"]["sha256"] = (
+        file_sha256(metadata_revision)
+    )
+    binding.write_text(json.dumps(binding_payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="execution metadata revision changed"):
+        validate_catalog_comparison_release(binding, data_home)
+
+    revision["provider_calls"] = 0
+    metadata_revision.write_text(json.dumps(revision), encoding="utf-8")
+    binding_payload["artifacts"]["execution_metadata_revision"]["sha256"] = (
+        file_sha256(metadata_revision)
+    )
+    binding.write_text(json.dumps(binding_payload), encoding="utf-8")
 
     changed = json.loads(results.read_text(encoding="utf-8"))
     changed["attempts"][3]["status"] = "pass"
