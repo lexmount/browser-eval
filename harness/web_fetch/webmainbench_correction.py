@@ -30,9 +30,10 @@ def validate(root: Path, original_rows: list[dict], expected_parent: str) -> tup
     rows = read_rows(root / 'results.jsonl')
     physical = read_rows(root / 'physical-attempts.jsonl')
     originals = {r['provider']: r for r in original_rows if r['case_id'] == plan['case_id']}
-    if (set(plan['providers']) != set(originals) or len(rows) != len(originals)
-            or {r['provider'] for r in rows} != set(originals)):
-        raise ValueError('Case correction must cover every method exactly once')
+    selected = set(plan['providers'])
+    if (not selected or not selected <= set(originals) or len(rows) != len(selected)
+            or {r['provider'] for r in rows} != selected):
+        raise ValueError('Case correction must cover every method declared by its plan exactly once')
     for row in rows:
         old = originals[row['provider']]
         if (row['case_id'] != plan['case_id'] or row['supersedes_attempt_id'] != old['attempt_id']
@@ -48,7 +49,7 @@ def validate(root: Path, original_rows: list[dict], expected_parent: str) -> tup
     if len({c['attempt_id'] for c in physical}) != len(physical):
         raise ValueError('Duplicate correction call identity')
     for call in physical:
-        if (call['track_id'] != plan['case_id'] or call['provider'] not in originals
+        if (call['track_id'] != plan['case_id'] or call['provider'] not in selected
                 or digest(contained_path(root, call['physical_artifact_path'])) != call['output_sha256']):
             raise ValueError('Correction physical output changed')
     return certificate, rows, physical
@@ -65,7 +66,7 @@ def apply(root: Path, staging: Path, original_rows: list, summaries: dict, *,
     )
     lookup = {r['provider']: r for r in replacements}
     case_id = certificate['preflight']['case_id']
-    result = [lookup[r['provider']] if r['case_id'] == case_id else r for r in original_rows]
+    result = [lookup.get(r['provider'], r) if r['case_id'] == case_id else r for r in original_rows]
     for row in replacements:
         path = contained_path(staging, row['artifact_path'])
         path.parent.mkdir(parents=True, exist_ok=True)

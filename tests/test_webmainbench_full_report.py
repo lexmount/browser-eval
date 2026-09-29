@@ -141,6 +141,10 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
         'a', href='analysis/index.html?provider=moli&metric=delivery&kind=all'
     ).get_text(strip=True) == '1'
     guide = BeautifulSoup((tmp_path / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
+    guide_quality = guide.select_one('#error-landscape table#quality-issue-matrix')
+    assert guide_quality is not None
+    assert len(guide_quality.select('tbody > tr')) == 7
+    assert len(guide_quality.select('th[aria-sort="none"] > button[data-table-sort]')) == 7
     lineage = guide.select_one("#moli-repair-lineage")
     assert lineage is not None
     assert lineage.find("a", href="https://github.com/lexmount/moli/pull/814").get_text(strip=True) == "PR814（历史前身）"

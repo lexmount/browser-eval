@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "webmainbench_shared_population_scoring_correction_binding",
-  "receipt_sha256": "df9e171e9ed119be9488f62fe1236844bb3ddf80e6ef8eef57ec9efef96e8bec",
-  "scorer_commit": "2907ffa4b40db0ca725abaee63a494e2583aaab5",
+  "receipt_sha256": "514c99c3c8b55b29eccc38fd87efecc40ebf8602f2e9e84b6807538df696061e",
+  "scorer_commit": "f7cb97df2dfb5ac10ebc97cd0b8f9d73ab40f50b",
   "regression_registry_sha256": "ddd89c55e5791a94f3d9282dc3a56fbefed2cb72aad8b0fc43d5275a3bca7cd3",
-  "results_sha256": "98f483b6b49d7b68329868f15dff7819df0c41baae9c817e7280fb9c19d1a1a7"
+  "results_sha256": "08f4464fe98c57910bcc21b63d3dad8c87d3bd505c8f181c89f169257fd8f439"
 }

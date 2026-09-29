@@ -105,7 +105,8 @@ def check(root: Path) -> None:
             or not target.get('site_slug')):
         raise ValueError('WebMainBench publication target is not bound to the certified profile')
     seven_binding = json.loads((root / 'seven-method-binding.json').read_text(encoding='utf-8'))
-    teds_receipt = json.loads((root / 'teds-correction.json').read_text(encoding='utf-8'))
+    teds_path = root / 'teds-correction.json'
+    teds_receipt = json.loads(teds_path.read_text(encoding='utf-8')) if teds_path.is_file() else None
     scoring_receipt_path = root / 'scoring-correction.json'
     if not scoring_receipt_path.is_file():
         raise ValueError('scoring-correction.json missing from report evidence')
@@ -117,7 +118,9 @@ def check(root: Path) -> None:
     if (seven_binding.get('kind') != 'webmainbench_seven_method_full_scope_binding'
             or seven_binding.get('logical_results') != 3815
             or seven_binding.get('registry_sha256') != hashlib.sha256(registry_path.read_bytes()).hexdigest()
-            or seven_binding.get('results_sha256') != teds_receipt.get('input_results_sha256')
+            or seven_binding.get('results_sha256') != (
+                teds_receipt.get('input_results_sha256') if teds_receipt
+                else scoring_receipt.get('input_results_sha256'))
             or any(bound_variants.get(item['provider'], {}).get('profile_sha256') != expected_variant_hashes[item['provider']]
                    for item in variants)):
         raise ValueError('Seven-method report binding missing or changed')
@@ -167,15 +170,18 @@ def check(root: Path) -> None:
                 or receipt['current_results_sha256'] != hashlib.sha256((root / 'results.jsonl').read_bytes()).hexdigest()
                 or receipt['score_summaries_sha256'] != hashlib.sha256((root / 'score-summaries.json').read_bytes()).hexdigest()):
             raise ValueError('Published case correction differs from its certified results')
-        selected = [r for r in records if r['case_id'] == receipt['preflight']['case_id']]
-        if len(selected) != 7 or any(not r.get('supersedes_attempt_id') for r in selected):
-            raise ValueError('Case correction missing a method')
+        selected = [r for r in records if r['case_id'] == receipt['preflight']['case_id']
+                    and r['provider'] in receipt['preflight']['providers']]
+        if (len(selected) != len(receipt['preflight']['providers'])
+                or any(not r.get('supersedes_attempt_id') for r in selected)):
+            raise ValueError('Case correction missing a declared method')
         original_certificate = {key: receipt[key] for key in ('kind', 'preflight', 'postflight', 'results_sha256', 'physical_sha256')}
         certificate_bytes = (json.dumps(original_certificate, ensure_ascii=False, indent=2) + '\n').encode()
         if hashlib.sha256(certificate_bytes).hexdigest() != json.loads(correction_binding.read_text())['sha256']:
             raise ValueError('Case correction certificate differs from repository binding')
-        teds = json.loads((root / 'teds-correction.json').read_text())
-        if receipt['preflight']['parent_results_sha256'] != teds['input_results_sha256']:
+        raw_parent = (teds_receipt['input_results_sha256'] if teds_receipt
+                      else scoring_receipt['input_results_sha256'])
+        if receipt['preflight']['parent_results_sha256'] != raw_parent:
             raise ValueError('Case correction predecessor differs from the certified raw matrix')
         by_provider = {r['provider']: r for r in selected}
         replacement_bytes = ''.join(json.dumps(by_provider[p], ensure_ascii=False) + '\n'
@@ -215,8 +221,8 @@ def check(root: Path) -> None:
                 overview_claims = asset.get('claims')
     summaries = json.loads((root / 'score-summaries.json').read_text(encoding='utf-8'))
     expected_denominators = {
-        'text_edit': 545, 'code_edit': 110, 'formula_edit': 113,
-        'table_edit': 81, 'table_TEDS': 81,
+        'text_edit': 545, 'code_edit': 110, 'formula_edit': 257,
+        'table_edit': 179, 'table_TEDS': 179,
     }
     if any(summary['official_aggregate']['denominators'] != expected_denominators
            for summary in summaries.values()):
@@ -239,20 +245,23 @@ def check(root: Path) -> None:
             raise ValueError("Core metrics or winner controls missing")
         if "545" not in page.get_text(" ", strip=True):
             raise ValueError("Complete population missing")
-    quality_rows = home.select('table#quality-issue-matrix tr[data-quality-provider]')
     quality_limits = {
         'issue-delivery': 545, 'issue-text': 545, 'issue-code': 110,
-        'issue-formula': 113, 'issue-table': 81, 'issue-teds': 81,
+        'issue-formula': 257, 'issue-table': 179, 'issue-teds': 179,
     }
-    if len(quality_rows) != len(providers):
-        raise ValueError('Quality issue matrix missing methods')
-    for row in quality_rows:
-        cells = {cell.get('data-metric'): int(cell.get_text(' ', strip=True))
-                 for cell in row.select('td[data-metric^="issue-"]')}
-        if cells.keys() != quality_limits.keys() or any(
-                value < 0 or value > quality_limits[metric]
-                for metric, value in cells.items()):
-            raise ValueError('Quality issue matrix exceeds its fixed population')
+    for document in (home, guide):
+        quality_rows = document.select('table#quality-issue-matrix tr[data-quality-provider]')
+        if len(quality_rows) != len(providers):
+            raise ValueError('Quality issue matrix missing methods')
+        for row in quality_rows:
+            cells = {cell.get('data-metric'): int(cell.get_text(' ', strip=True))
+                     for cell in row.select('td[data-metric^="issue-"]')}
+            if cells.keys() != quality_limits.keys() or any(
+                    value < 0 or value > quality_limits[metric]
+                    for metric, value in cells.items()):
+                raise ValueError('Quality issue matrix exceeds its fixed population')
+    if not guide.select_one('#error-landscape'):
+        raise ValueError('Interpretation error landscape missing')
     latency_cells = home.select(
         'td[data-metric^="all-call-latency-"][data-metric-direction="min"], '
         'td[data-metric^="success-latency-"][data-metric-direction="min"]'
@@ -321,7 +330,8 @@ def check(root: Path) -> None:
     cause_counts = Counter((entry["category_label"], entry["provider"])
                            for entry in failure_analysis["reviewed_failures"])
     cause_cells = guide.select("td[data-cause-provider][data-cause-kind]")
-    expected_cause_cells = {(kind, provider) for kind in WEBMAINBENCH_FULL_CAUSE_OWNERS for provider in providers}
+    reviewed_cause_kinds = {kind for kind, _ in cause_counts}
+    expected_cause_cells = {(kind, provider) for kind in reviewed_cause_kinds for provider in providers}
     if ({(cell["data-cause-kind"], cell["data-cause-provider"]) for cell in cause_cells} != expected_cause_cells
             or len(cause_cells) != len(expected_cause_cells)
             or any(cell.get_text(strip=True) !=

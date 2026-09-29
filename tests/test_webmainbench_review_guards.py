@@ -56,8 +56,8 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
                     metrics = {
                         name: {'score': 0.5, 'success': index < limit, 'details': {}}
                         for name, limit in {
-                            'text_edit': 545, 'code_edit': 110, 'formula_edit': 113,
-                            'table_edit': 81, 'table_TEDS': 81,
+                            'text_edit': 545, 'code_edit': 110, 'formula_edit': 257,
+                            'table_edit': 179, 'table_TEDS': 179,
                         }.items()
                     }
                     original = {

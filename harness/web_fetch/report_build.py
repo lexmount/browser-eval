@@ -617,19 +617,23 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     registry_path = repo / 'evaluation/webmainbench-full/moli-variants.json'
     registry = json.loads(registry_path.read_text(encoding='utf-8'))
     seven_binding = json.loads((source / 'seven-method-binding.json').read_text(encoding='utf-8'))
-    teds_receipt = json.loads((source / 'teds-correction.json').read_text(encoding='utf-8'))
+    teds_path = source / 'teds-correction.json'
+    teds_receipt = json.loads(teds_path.read_text(encoding='utf-8')) if teds_path.is_file() else None
+    scoring_path = source / 'scoring-correction.json'
+    scoring_receipt = json.loads(scoring_path.read_text(encoding='utf-8')) if scoring_path.is_file() else None
     variants = registry.get('variants', [])
     bound_variants = {item['provider']: item for item in seven_binding.get('variants', [])}
     if (seven_binding.get('kind') != 'webmainbench_seven_method_full_scope_binding'
             or seven_binding.get('registry_sha256') != digest(registry_path)
             or seven_binding.get('baseline_certificate_sha256') != digest(source / 'cohort-certificate.json')
-            or seven_binding.get('results_sha256') != teds_receipt.get('input_results_sha256')
-            or teds_receipt.get('output_results_sha256') != digest(
+            or seven_binding.get('results_sha256') != (
+                teds_receipt.get('input_results_sha256') if teds_receipt
+                else scoring_receipt.get('input_results_sha256') if scoring_receipt else None)
+            or (teds_receipt is not None and teds_receipt.get('output_results_sha256') != digest(
                 source / ('pre-reference-correction-results.jsonl'
                           if (source / 'reference-correction.json').is_file()
                           else 'pre-scoring-correction-results.jsonl'
-                          if (source / 'scoring-correction.json').is_file()
-                          else 'results.jsonl'))
+                          if scoring_receipt else 'results.jsonl')))
             or seven_binding.get('logical_results') != 545 * (len(profile['providers']) + len(variants))):
         raise ValueError('Seven-method report evidence binding mismatch')
     versions = dict(profile['versions'])
@@ -662,7 +666,8 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
             or {(row['provider'], row['case_id']) for row in records} !=
             {(provider, case_id) for provider in providers for case_id in cases}):
         raise ValueError('Full WebMainBench result matrix mismatch')
-    validate_teds_revision(source)
+    if teds_receipt is not None:
+        validate_teds_revision(source)
     if (source / 'reference-correction.json').is_file():
         validate_reference_revision(source)
     if (source / 'scoring-correction.json').is_file():
@@ -717,15 +722,19 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix='.webmainbench-full-build-', dir=output.parent))
     try:
-        for name in ('artifacts', 'references', 'sources', 'fixture-certificates', 'correction-source'):
+        for name in ('artifacts', 'references', 'sources', 'fixture-certificates'):
             shutil.copytree(source / name, staging / name)
+        if (source / 'correction-source').is_dir():
+            shutil.copytree(source / 'correction-source', staging / 'correction-source')
         for name in ('dataset.json', 'results.jsonl',
                      'physical-attempts.jsonl', 'execution.json', 'score-summaries.json',
                      'cohort-certificate.json', 'current-report.json',
                      'scoring-certificate.json',
-                     'teds-correction.json', 'teds-correction-review.json',
                      'seven-method-binding.json'):
             shutil.copy2(source / name, staging / name)
+        if teds_receipt is not None:
+            for name in ('teds-correction.json', 'teds-correction-review.json'):
+                shutil.copy2(source / name, staging / name)
         if (source / 'reference-correction.json').is_file():
             shutil.copytree(source / 'reference-correction-source', staging / 'reference-correction-source')
             shutil.copy2(source / 'reference-correction.json', staging / 'reference-correction.json')

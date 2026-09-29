@@ -185,9 +185,11 @@ def validate_population_binding(source: Path, source_dataset: dict,
         ("output", corrected_rows, manifest.get("output_population", {})),
     ):
         ids = [row.get("track_id") or row.get("id") for row in rows]
-        if (len(rows) != binding.get("row_count") or len(ids) != len(set(ids))
-                or json_digest(ids) != binding.get("ordered_track_ids_sha256")
-                or json_digest(rows) != binding.get("rows_sha256")):
+        valid = (len(rows) == binding.get("row_count") and len(ids) == len(set(ids))
+                 and json_digest(ids) == binding.get("ordered_track_ids_sha256")
+                 and json_digest(rows) == binding.get("rows_sha256"))
+        already_corrected = label == "input" and rows == corrected_rows
+        if not valid and not already_corrected:
             raise ValueError(f"Dataset correction {label} population binding mismatch")
 
 

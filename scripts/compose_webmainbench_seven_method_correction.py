@@ -64,39 +64,54 @@ def compose(seven: Path, prior_source: Path, prior_correction: Path,
         raise ValueError("Correction case differs between repair cohorts")
     old_by = {row["provider"]: row for row in old_replacements}
     new_by = {row["provider"]: row for row in new_replacements}
-    if any(old_by[provider] != new_by[provider] for provider in BASE):
+    if not set(BASE) <= set(old_by):
+        raise ValueError("Prior correction does not cover the shared methods")
+    if set(BASE) <= set(new_by) and any(
+            old_by[provider] != new_by[provider] for provider in BASE):
         raise ValueError("Shared method corrections differ")
+    if not set(BASE) <= set(new_by) and set(new_by) != {NEW}:
+        raise ValueError("Content correction must cover the shared methods or only the current variant")
     rows = [copy.deepcopy(old_by[provider]) for provider in BASE]
-    rows.append(alias_row(old_by[HISTORICAL], HISTORICAL, OLD))
-    rows.append(alias_row(new_by[HISTORICAL], HISTORICAL, NEW))
+    old_source_provider = OLD if OLD in old_by else HISTORICAL
+    new_source_provider = NEW if NEW in new_by else HISTORICAL
+    rows.append(copy.deepcopy(old_by[old_source_provider]) if old_source_provider == OLD
+                else alias_row(old_by[HISTORICAL], HISTORICAL, OLD))
+    rows.append(copy.deepcopy(new_by[new_source_provider]) if new_source_provider == NEW
+                else alias_row(new_by[HISTORICAL], HISTORICAL, NEW))
     providers = BASE + [OLD, NEW]
     if {row["provider"] for row in rows} != set(providers):
         raise ValueError("Seven-method correction rows are incomplete")
     old_base_calls = [row for row in old_calls if row["provider"] in BASE]
     new_base_calls = [row for row in new_calls if row["provider"] in BASE]
-    if old_base_calls != new_base_calls:
+    if new_base_calls and old_base_calls != new_base_calls:
         raise ValueError("Shared method correction calls differ")
     calls = copy.deepcopy(old_base_calls)
-    calls += [alias_row(row, HISTORICAL, OLD) for row in old_calls
-              if row["provider"] == HISTORICAL]
-    calls += [alias_row(row, HISTORICAL, NEW) for row in new_calls
-              if row["provider"] == HISTORICAL]
+    calls += [copy.deepcopy(row) if old_source_provider == OLD
+              else alias_row(row, HISTORICAL, OLD) for row in old_calls
+              if row["provider"] == old_source_provider]
+    calls += [copy.deepcopy(row) if new_source_provider == NEW
+              else alias_row(row, HISTORICAL, NEW) for row in new_calls
+              if row["provider"] == new_source_provider]
     if len({row["attempt_id"] for row in calls}) != len(calls):
         raise ValueError("Seven-method correction call identities are not unique")
     output.mkdir(parents=True)
     for row in old_replacements:
         if row["provider"] in BASE:
             copy_artifact(prior_correction, output, row, "artifact_path")
-    copy_artifact(prior_correction, output, old_by[HISTORICAL], "artifact_path", HISTORICAL, OLD)
-    copy_artifact(content_correction, output, new_by[HISTORICAL], "artifact_path", HISTORICAL, NEW)
+    copy_artifact(prior_correction, output, old_by[old_source_provider], "artifact_path",
+                  old_source_provider, OLD)
+    copy_artifact(content_correction, output, new_by[new_source_provider], "artifact_path",
+                  new_source_provider, NEW)
     for row in old_base_calls:
         copy_artifact(prior_correction, output, row, "physical_artifact_path")
     for row in old_calls:
-        if row["provider"] == HISTORICAL:
-            copy_artifact(prior_correction, output, row, "physical_artifact_path", HISTORICAL, OLD)
+        if row["provider"] == old_source_provider:
+            copy_artifact(prior_correction, output, row, "physical_artifact_path",
+                          old_source_provider, OLD)
     for row in new_calls:
-        if row["provider"] == HISTORICAL:
-            copy_artifact(content_correction, output, row, "physical_artifact_path", HISTORICAL, NEW)
+        if row["provider"] == new_source_provider:
+            copy_artifact(content_correction, output, row, "physical_artifact_path",
+                          new_source_provider, NEW)
     write_rows(output / "results.jsonl", rows)
     write_rows(output / "physical-attempts.jsonl", calls)
     plan = copy.deepcopy(prior_cert["preflight"])

@@ -46,20 +46,32 @@ def main(argv=None):
         parser.add_argument('--' + name, type=Path, required=True)
     parser.add_argument('--moli-binary', type=Path)
     parser.add_argument('--prior-correction', type=Path)
+    parser.add_argument('--provider', help='Correct only this evidence provider alias')
+    parser.add_argument('--runner-provider', help='Runner provider used for --provider')
     parser.add_argument('--case-id', required=True)
     args = parser.parse_args(argv)
     if args.output.exists():
         raise ValueError('Correction destination already exists')
     originals = rows(args.source / 'results.jsonl')
     selected = {r['provider']: r for r in originals if r['case_id'] == args.case_id}
-    providers = json.loads((args.source / 'dataset.json').read_text())['coverage_plan']['static_html']
-    if set(selected) != set(providers) or len(providers) != 6:
-        raise ValueError('Correction requires all six methods')
-    source_case = load_records(args.dataset)[args.case_id]
-    binaries = {'moli-fixed': args.fixed_binary}
+    source_dataset = json.loads((args.source / 'dataset.json').read_text())
+    declared = source_dataset['coverage_plan']['static_html']
+    if set(selected) != set(declared):
+        raise ValueError('Correction source method matrix is incomplete')
+    providers = [args.provider] if args.provider else declared
+    if args.provider and args.provider not in selected:
+        raise ValueError('Correction provider is not in the source matrix')
+    if args.provider and args.prior_correction:
+        parser.error('--prior-correction cannot be combined with --provider')
+    if not args.provider and len(providers) != 6:
+        raise ValueError('Complete correction requires all six methods')
+    source_sha256 = source_dataset['source_dataset_sha256']
+    source_case = load_records(args.dataset, source_sha256)[args.case_id]
+    fixed_provider = args.provider or 'moli-fixed'
+    binaries = {fixed_provider: args.fixed_binary}
     if args.moli_binary:
         binaries['moli'] = args.moli_binary
-    if not args.prior_correction and 'moli' not in binaries:
+    if not args.provider and not args.prior_correction and 'moli' not in binaries:
         parser.error('--moli-binary is required without --prior-correction')
     for name, binary in binaries.items():
         if digest(binary) != selected[name]['provider_metadata']['binary_sha256']:
@@ -98,10 +110,15 @@ def main(argv=None):
     plan = {'kind': 'webmainbench_origin_correction_v1', 'case_id': args.case_id,
             'providers': providers, 'parent_results_sha256': digest(args.source / 'results.jsonl'),
             'source_sha256': digest(args.dataset), 'timeout_seconds': 45, 'max_failure_retries': 1,
+            'scorer_commit': subprocess.check_output(
+                ['git', '-C', str(args.scorer), 'rev-parse', 'HEAD'], text=True).strip(),
             'input_html_sha256': hashlib.sha256(source_case['html'].encode()).hexdigest(),
             'reference_sha256': hashlib.sha256(source_case['groundtruth_content'].encode()).hexdigest(),
             'reason': 'localhost substitution triggers the frozen page canonical-URL redirect; preserve the original URL while serving the same frozen bytes and blocking external resources',
-            'selection': ('five unchanged methods inherited from a bound prior certified correction; '
+            'selection': ('one explicitly declared provider alias; the final physical call was '
+                          'selected before execution'
+                          if args.provider else
+                          'five unchanged methods inherited from a bound prior certified correction; '
                           'the final physical call for moli-fixed was selected before execution'
                           if args.prior_correction else
                           'final physical call; all six methods selected before execution')}
@@ -127,7 +144,8 @@ def main(argv=None):
             copy_contained_artifact(args.prior_correction, target, args.output, target)
             print(name, row['ok'], row['output_chars'], 'inherited', flush=True)
             continue
-        provider = 'moli' if name == 'moli-fixed' else name
+        provider = (args.runner_provider if name == args.provider and args.runner_provider
+                    else 'moli' if name == 'moli-fixed' else name)
         shard = args.output / name
         env = dict(os.environ)
         if name in binaries:
@@ -137,7 +155,10 @@ def main(argv=None):
         subprocess.run([sys.executable, str(ROOT / 'scripts/run_webmainbench_benchmark.py'),
                         '--provider', provider, '--dataset', str(args.dataset), '--output', str(shard),
                         '--case-ids-file', str(selection), '--preserve-original-origin',
-                        '--timeout', '45', '--max-failure-retries', '1', *version_args], env=env, cwd=ROOT, check=True)
+                        '--timeout', '45', '--max-failure-retries', '1',
+                        '--expected-dataset-sha256', plan['source_sha256'],
+                        '--official-scorer-commit', plan['scorer_commit'],
+                        *version_args], env=env, cwd=ROOT, check=True)
         verify_shard(shard, provider, {args.case_id}, {'case_count': 1, 'source_dataset_sha256': plan['source_sha256']})
         row = rows(shard / 'results.jsonl')[0]
         old = selected[name]
@@ -149,7 +170,8 @@ def main(argv=None):
                 raise ValueError('Frozen input changed')
         if not row['ok'] or not row['output_chars']:
             raise ValueError('Correction still fails: ' + name)
-        calculator = official_calculator(args.scorer, shard / 'score-cache')
+        calculator = official_calculator(
+            args.scorer, shard / 'score-cache', plan['scorer_commit'])
         output = (shard / row['artifact_path']).read_text()
         kwargs = dict(predicted_content=output, groundtruth_content=source_case['groundtruth_content'],
                       predicted_content_list=None, groundtruth_content_list=None)

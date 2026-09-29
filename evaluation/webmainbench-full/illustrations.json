@@ -4,23 +4,41 @@
     {
       "name": "seven-method-overview.png",
       "role": "overview",
-      "sha256": "b755713a63364f58df932a28ab082aa5bcc737de910ef2a1becce928279db212",
+      "sha256": "dde509a23ff5e0694df68c7b91974c388ddae3ff9441df6e161caddc6912f06e",
       "generator": "deterministic HTML/CSS render",
       "scope": "seven methods after certified origin, reference, TEDS and shared-population corrections",
       "claims": {
         "scores_percent": {
-          "moli": "48.70",
-          "lightpanda": "46.97",
-          "kitesurf": "45.64",
-          "chromium": "41.78",
-          "obscura": "39.04",
-          "moli-pr785-fixed": "48.91",
-          "moli-content-fixed": "55.25"
+          "moli": "36.41",
+          "lightpanda": "35.00",
+          "kitesurf": "33.43",
+          "chromium": "27.02",
+          "obscura": "31.03",
+          "moli-pr785-fixed": "36.53",
+          "moli-content-fixed": "39.41"
         },
         "machine_issues": 25,
         "request_failures": 15,
         "empty_outputs": 10,
         "error_pages": 0
+      }
+    },
+    {
+      "name": "method-error-landscape.png",
+      "role": "quality-risk-landscape",
+      "sha256": "4b32244509a42764602dfbf16b13cb8d8f3351e5f7547b5489292698e124bbb5",
+      "generator": "deterministic HTML/CSS render",
+      "scope": "fixed-population quality thresholds and reviewed delivery failures for seven methods",
+      "claims": {
+        "denominators": {
+          "delivery": 545,
+          "text": 545,
+          "code": 110,
+          "formula": 257,
+          "table": 179,
+          "teds": 179
+        },
+        "reviewed_runtime_issues": 25
       }
     },
     {
@@ -33,7 +51,7 @@
     {
       "name": "moli-fix-01-visibility-disclosure.png",
       "role": "moli-fix-type",
-      "sha256": "a76ff0144aa45b9de6b0aa7dcc213a423ecdf1c9323675ed6b882e2fbedfd832",
+      "sha256": "d7cb94763bdc1be0d8c479117e7d1e7eccb54d43392cf5d743a14e0e4615b8c1",
       "generator": "ImageGen",
       "scope": "visibility, disclosure content and hidden-subtree boundaries"
     },

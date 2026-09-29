@@ -167,8 +167,8 @@ def validate_webmainbench_scoring_revision(root):
                 != {key: value for key, value in right.items() if key not in allowed}):
             raise ValueError('WebMainBench scoring correction changed provider evidence')
     expected_denominators = {'text_edit': 545, 'code_edit': 110,
-                             'formula_edit': 113, 'table_edit': 81,
-                             'table_TEDS': 81}
+                             'formula_edit': 257, 'table_edit': 179,
+                             'table_TEDS': 179}
     providers = receipt.get('providers', [])
     actual_providers = {row['provider'] for row in after}
     if (not providers or len(providers) != len(set(providers))

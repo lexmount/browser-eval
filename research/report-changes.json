@@ -1276,6 +1276,27 @@
   ],
   "releases": [
     {
+      "id": "webmainbench-545-pr919-e944d066-lexmain-f7cb97d-20260929",
+      "date": "2026-09-29",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "title": "补齐渐显正文并按最新 lexmain 重算七方法结果",
+      "summary": "Moli PR919 提交 e944d066b 修复一次性前向渐显页面的正文缺失，以固定 release 二进制完成 545 页认证运行。七方法共 3,815 条结果按 WebMainBench lexmain f7cb97d 的参考与固定公共总体重算；PR919 目标正文 545/545，综合分 39.41%。",
+      "changes": [
+        ["Moli 正文交付", "CNN 冻结页的正文以 opacity:0 开始，页面加载后由同名关键帧渐显；旧可见性快照将其误判为永久隐藏。", "仅在最终关键帧明确恢复不透明度且动画为正时长、无正延迟、单次、正向、运行中并保持终态时保留正文；零时长、循环、反向和无关关键帧继续视为隐藏。", "固定二进制 e146b853… 完成 545 页认证运行，CNN 正文恢复，PR919 目标正文为 545/545。"],
+        ["固定计分总体", "先前报告仍使用公式 113 页、表格 81 页的旧抽取总体。", "按 lexmain f7cb97d 的参考抽取结果固定为全文 545、代码 110、公式 257、表格内容与结构各 179 页；适用页面遗漏或调用失败计零。", "七种方法全部使用同一总体；3,815 条既有输出离线重算，未新增 provider 调用。"],
+        ["当前结果", "旧图和文案绑定较早的 PR919 二进制与评分器，不能说明当前提交。", "报告绑定源码 e944d066b、release 二进制 e146b853…、评分器 f7cb97d，并保留原版 Moli、PR785 与 PR919 三行。", "PR919 综合分 39.41%，全文 40.79%、代码 91.74%、公式 28.16%、表格内容 22.61%、表格结构 13.74%；综合分和代码为七方法唯一最高。"]
+      ],
+      "i18n": {"en": {
+        "title": "Restore fade-in content and rescore seven methods with current lexmain",
+        "summary": "Moli PR919 commit e944d066b fixes missing content on one-shot forward fade-in pages and completes a certified 545-page run with a pinned release binary. WebMainBench lexmain f7cb97d rescored all 3,815 results against reference-defined fixed populations; PR919 delivers 545/545 target bodies and scores 39.41% overall.",
+        "changes": [
+          ["Moli body delivery", "The frozen CNN page starts its body at opacity zero and reveals it with a named keyframe after load; the previous visibility snapshot treated it as permanently hidden.", "Retain the body only when the final keyframe explicitly restores opacity and the animation has positive duration, no positive delay, one forward running iteration, and a retained final state. Zero-duration, looping, reverse, and unrelated animations remain hidden.", "Pinned binary e146b853… completes the certified 545-page run, restores the CNN body, and delivers 545/545 target bodies."],
+          ["Fixed scoring populations", "The prior report still used the older 113-page formula and 81-page table extraction populations.", "Bind lexmain f7cb97d reference extraction to 545 text, 110 code, 257 formula, and 179 table-content and table-structure pages. Omissions and failed calls score zero within applicable populations.", "All seven methods use the same populations; the 3,815 stored outputs are rescored offline with zero provider calls."],
+          ["Current result", "Earlier figures and prose were bound to an older PR919 binary and scorer.", "Bind the report to source e944d066b, release binary e146b853…, and scorer f7cb97d while keeping separate rows for original Moli, PR785, and PR919.", "PR919 scores 39.41% overall, 40.79% text, 91.74% code, 28.16% formula, 22.61% table content, and 13.74% table structure; overall and code are the unique seven-method maxima."]
+        ]
+      }}
+    },
+    {
       "id": "webmainbench-545-lexmain-reference-and-final-pr919-20260928",
       "date": "2026-09-28",
       "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],

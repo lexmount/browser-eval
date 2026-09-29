@@ -3137,12 +3137,12 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                      ['text', 'number', 'number', 'number', 'number'])
 
     quality_issue_specs = (
-        ('delivery', '未生成正文', None, None),
-        ('text', '全文低于 10%', 'text_edit', .1),
-        ('code', '代码低于 50%', 'code_edit', .5),
-        ('formula', '公式低于 50%', 'formula_edit', .5),
-        ('table', '表格内容低于 50%', 'table_edit', .5),
-        ('teds', '表格结构低于 50%', 'table_TEDS', .5),
+        ('delivery', '未生成正文 / 545', None, None),
+        ('text', '全文 <10% / 545', 'text_edit', .1),
+        ('code', '代码 <50% / 110', 'code_edit', .5),
+        ('formula', '公式 <50% / 257', 'formula_edit', .5),
+        ('table', '表格内容 <50% / 179', 'table_edit', .5),
+        ('teds', '表格结构 <50% / 179', 'table_TEDS', .5),
     )
 
     def quality_issue_flags(row):
@@ -3187,7 +3187,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
     home = ('<section class="hero"><h1>' + prose('home_title') + '</h1><p>' + prose('home_lead') + '</p></section>' +
             '<section><h2>核心结果</h2>' + metric_table() + '<p class="note">' + prose('score_note') + '</p></section>' +
             '<section><h2>七种方法的质量风险定位</h2>' + quality_issue_matrix() +
-            '<p class="note">同一结果可同时进入多列。未生成正文按 545 页统计；全文按 545 页统计；代码、公式、表格内容与表格结构分别只统计 110、113、81、81 页固定参考总体。绿色仅表示该列唯一最少，不代表综合质量排名。</p></section>' +
+            '<p class="note">同一结果可同时进入多列。未生成正文按 545 页统计；全文按 545 页统计；代码、公式、表格内容与表格结构分别只统计 110、257、179、179 页固定参考总体。绿色仅表示该列唯一最少，不代表综合质量排名。</p></section>' +
             '<section><h2>全部页面的调用耗时</h2>' + all_call_latency_table() + '<p class="note">' + prose('all_latency_note') + '</p></section>' +
             '<section><h2>目标正文页面的调用耗时与重试成本</h2>' + latency_table() + '<p class="note">' + prose('latency_note') + '</p></section>' +
             '<section><h2>问题分布</h2>' + table(["自动诊断", "结果数"], ['<tr><td>' + anchor("analysis/index.html?kind=" + kind, kind) + '</td><td data-sort="' + str(count) + '">' + str(count) + '</td></tr>' for kind, count in sorted(counts.items())], ['text', 'number']) +
@@ -3219,7 +3219,8 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                                  ['text', 'text', 'text', 'text', None], 'dataset-inventory'))
     options = ["issue", "all", "请求失败", "空输出", "错误页", "低全文相似度", "未触发诊断"]
     cause_owners = WEBMAINBENCH_FULL_CAUSE_OWNERS
-    cause_order = tuple(cause_owners)
+    reviewed_cause_labels = {row["category_label"] for row in failure_analysis["reviewed_failures"]}
+    cause_order = tuple(cause for cause in cause_owners if cause in reviewed_cause_labels)
     filters = ('<div class="filters"><label>搜索任务或网址<input id="q" type="search"></label><label>方法<select id="provider"><option value="">全部方法</option>' +
                ''.join('<option value="' + provider + '">' + esc(labels[provider]) + "</option>" for provider in providers) +
                '</select></label><label>诊断<select id="kind">' +
@@ -3331,7 +3332,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
          ' 条重试后返回成功，' + str(final_request_failures) +
          ' 条最终请求失败均调用两次。返回成功但正文为空或为错误页的结果不触发请求失败重试。</p></section>' +
          '<section class="panel"><h2>评分</h2><p>' + prose('method_scoring') + '</p><p>' + prose('method_correction') + '</p>' +
-         anchor("teds-correction.json", "修正收据") + " · " + anchor("teds-correction-review.json", "修正复核") + "</section>" +
+         ((anchor("teds-correction.json", "历史 TEDS 修正收据") + " · " + anchor("teds-correction-review.json", "历史修正复核")) if (out / "teds-correction.json").is_file() else anchor("scoring-correction.json", "Lexmain 统一评分修正收据")) + "</section>" +
          '<section><h2>调用接口</h2>' + table(['方法', '本轮调用方式'], interface_rows) + '</section>' +
          '<p class="note">' + prose('kitesurf_version_note') + '</p>' +
          '<section class="panel"><h2>公开采用证据</h2><p>' + prose('adoption_lead') + ' 截至 ' + esc(adoption['cutoff'][:10]) +
@@ -3448,26 +3449,36 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                      '解析器暂停与恢复所有权：资源阻塞期间明确保存唯一恢复责任，防止重复或遗漏恢复。') +
         '</section>'
     )
+    guide_error_landscape = (
+        '<section id="error-landscape"><h2>七种方法错在哪、差在哪</h2>' +
+        illustration('method-error-landscape.png',
+                     '七种方法的正文交付、全文、代码、公式和表格问题分布；精确数量见紧随其后的同数据表。') +
+        quality_issue_matrix() +
+        '<p class="note">同一结果可以同时属于多类问题。正文与全文使用 545 页总体；代码、公式、表格内容和表格结构使用各自固定参考总体。低分阈值用于定位，不等于二元通过率。</p>' +
+        '<h3>运行结果类型 × 方法</h3>' +
+        table(["方法", *diagnostic_kinds], diagnostic_rows) +
+        '<h3>已复核运行问题：根因 × 方法</h3>' +
+        table(["根因", *[labels[provider] for provider in providers], "归属或定位"], cause_rows) +
+        '<p>' + str(len(reviewed_failures)) + '/' + str(machine_issue_count) + ' ' + prose('review_scope_failure') +
+        '；' + str(len(records) - len(reviewed_failures)) + ' ' + prose('review_scope_pass') + '</p>' +
+        anchor('failure-analysis.json', '查看逐条失败原因与处理') + '</section>')
     page("guide/index.html", "结果解读",
-         '<section class="hero"><h1>结果解读</h1><p>' + esc(outcome) + " " + prose('guide_lead') + '</p></section><section><h2>质量与样本</h2>' +
-         metric_table() + '<p class="note">' + prose('guide_scope') + '</p></section><section><h2>核对完整输出</h2><p>' + prose('guide_outputs') + '</p>' +
-         anchor("analysis/index.html?kind=低全文相似度", "查看低全文分案例") +
-         '</section><section><h2>可检查的一页</h2><p>' + prose('guide_example') + '</p><p>' + example_links + '</p>' +
-         '</section><section id="content-audit"><h2>545 页内容审计如何进入修复</h2><p>' + prose('audit_scope') +
-         '</p><p>' + prose('audit_findings') + '</p><p>' + prose('audit_resolution') + '</p><p class="note">' +
-         prose('audit_limit') + '</p></section>' + illustration('seven-method-overview.png', '545 页七方法结果、目标正文覆盖与两次 Moli 修复的关系；分数与计分范围以表格为准。') + fixed_section + correction_section + moli_fix_figures +
+         '<section class="hero"><h1>结果解读</h1><p>' + esc(outcome) + " " + prose('guide_lead') + '</p></section>' +
+         illustration('seven-method-overview.png', '545 页七方法结果、目标正文覆盖与两次 Moli 修复的关系；分数与计分范围以表格为准。') +
+         '<section><h2>核心结果</h2>' + metric_table() + '<p class="note">' + prose('guide_scope') + '</p></section>' +
+         guide_error_landscape + moli_fix_figures +
          illustration('moli-repair-mechanisms.png', '从内容缺陷、实现原因到修复层和输出变化的对应关系。') +
-         '<section><h2>各方法的主要问题</h2>' +
+         fixed_section + correction_section +
+         '<section><h2>各方法的证据摘要</h2>' +
          table(["方法", "目标正文", "自动诊断数", "本轮观察"], method_rows) +
-         '<p class="note">' + prose('guide_method_scope') + '</p>' +
-         table(["方法", *diagnostic_kinds], diagnostic_rows) + '</section><section><h2>错误类别</h2>' +
-         table(["类别", "结果数"], ["<tr><td>" + esc(kind) + "</td><td>" + str(count) + "</td></tr>" for kind, count in sorted(counts.items())]) +
-         '<p class="note">' + prose('guide_diagnosis') + '</p><h3>已复核问题：错误类型 × 方法</h3>' +
-         table(["错误类型", *[labels[provider] for provider in providers], "归属或定位"], cause_rows) +
-         '<p>' + str(len(reviewed_failures)) + '/' + str(machine_issue_count) + ' ' + prose('review_scope_failure') +
-         '；' + str(len(records) - len(reviewed_failures)) + ' ' + prose('review_scope_pass') + '</p>' +
-         anchor('failure-analysis.json', '查看逐条失败原因与处理') +
-         '</section><section><h2>结论</h2><p>' + prose('guide_conclusion') + '</p></section>')
+         '<p class="note">' + prose('guide_method_scope') + '</p></section>' +
+         '<section><h2>核对完整输出</h2><p>' + prose('guide_outputs') + '</p>' +
+         anchor("analysis/index.html?kind=低全文相似度", "查看低全文分案例") + '</section>' +
+         '<section><h2>可检查的一页</h2><p>' + prose('guide_example') + '</p><p>' + example_links + '</p></section>' +
+         '<section id="content-audit"><h2>545 页内容审计如何进入修复</h2><p>' + prose('audit_scope') +
+         '</p><p>' + prose('audit_findings') + '</p><p>' + prose('audit_resolution') + '</p><p class="note">' +
+         prose('audit_limit') + '</p></section>' +
+         '<section><h2>结论</h2><p>' + prose('guide_conclusion') + '</p></section>')
     evidence_links = ["current-report.json", "cohort-certificate.json", "scoring-certificate.json",
                       *[item['profile'] for item in profile.get('variants', [])],
                       *[item['provider'] + "-cohort-certificate.json" for item in profile.get('variants', [])],
@@ -3475,8 +3486,10 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                       "seven-method-binding.json",
                       "execution.json", "dataset.json",
                       "results.jsonl", "physical-attempts.jsonl",
-                      "score-summaries.json", "teds-correction-review.json", "scoring-correction.json",
+                      "score-summaries.json", "scoring-correction.json",
                       "report-content.json", "failure-analysis.json"]
+    if (out / "teds-correction-review.json").is_file():
+        evidence_links.append("teds-correction-review.json")
     if correction:
         evidence_links += ['case-correction.json', 'case-correction-scoring.json',
                            'superseded-case-results.jsonl', 'superseded-case-calls.jsonl']

@@ -6,6 +6,7 @@ from scripts.assemble_webmainbench_seven_methods import (
     require_matrix,
     require_provider_batch,
 )
+from scripts.replace_webmainbench_variant import raw_row
 
 import pytest
 
@@ -82,3 +83,18 @@ def test_new_matrix_drops_partial_scope_teds_receipts(tmp_path) -> None:
     assert not (tmp_path / "teds-correction-review.json").exists()
     assert not (tmp_path / "original-results.jsonl").exists()
     assert not (tmp_path / "correction-source").exists()
+
+
+def test_replacement_raw_row_discards_every_prior_score_snapshot() -> None:
+    row = {
+        "metrics": {"overall": {"score": 0.5}},
+        "official_metrics": {"overall": {"score": 0.9}},
+        "pre_scoring_correction_metrics": {"overall": {"score": 0.1}},
+        "provider": "moli-content-fixed",
+    }
+    cleaned = raw_row(row)
+    assert cleaned == {
+        "metrics": {"overall": {"score": 0.5}},
+        "provider": "moli-content-fixed",
+    }
+    assert "official_metrics" in row

@@ -1,8 +1,11 @@
 import json
 from pathlib import Path
 import unittest
+import tempfile
 
-from scripts.correct_webmainbench_scoring import CONTROL_IDS, REGISTRY, revised_metrics
+from scripts.correct_webmainbench_scoring import (
+    CONTROL_IDS, REGISTRY, json_digest, revised_metrics, validate_population_binding,
+)
 
 
 class FakeResult:
@@ -109,6 +112,23 @@ class WebMainBenchScoringCorrectionTests(unittest.TestCase):
         self.assertTrue(modes)
         self.assertTrue(all(value == {"false-positive", "false-negative"}
                             for value in modes.values()))
+
+    def test_population_binding_accepts_a_fully_applied_corrected_dataset(self):
+        row = {"track_id": "case", "url": "https://example.test", "html": "<p>x</p>",
+               "groundtruth_content": "corrected", "meta": {"code": []}}
+        binding = {
+            "row_count": 1,
+            "ordered_track_ids_sha256": json_digest(["case"]),
+            "rows_sha256": json_digest([row]),
+        }
+        manifest = {"schema_version": 2, "input_population": {**binding, "rows_sha256": "old"},
+                    "output_population": binding}
+        dataset = {"cases": [{"id": "case", "meta": row["meta"]}]}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "references").mkdir()
+            (root / "references/case.md").write_text("corrected")
+            validate_population_binding(root, dataset, [row], manifest)
 
 
 if __name__ == "__main__":

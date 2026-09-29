@@ -28,6 +28,7 @@ webmainbench-eval = [
   "apted==1.0.3",
   "beautifulsoup4==4.14.2",
   "jieba==0.42.1",
+  "markdown>=3.7,<4",
   "openai>=2.8,<4",
   "python-dotenv==1.1.1",
   "rapidfuzz==3.14.1",
