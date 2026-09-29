@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 import math
 import hashlib
-from html import unescape
 import statistics
 import unicodedata
 from collections import Counter, defaultdict
@@ -354,7 +353,7 @@ def task_measured(metrics: dict, task_kind: str | None = None) -> bool:
 
 def normalize_for_match(value: str) -> str:
     from .reference_quality import clean_reference_text, visible_markdown_links
-    normalized = unicodedata.normalize("NFKC", unescape(value)).casefold()
+    normalized = unicodedata.normalize("NFKC", value).casefold()
     # Web editors insert zero-width spaces/BOMs and discretionary hyphens.
     # They are layout artifacts, not required prose; preserve meaningful joiners.
     normalized = clean_reference_text(normalized)
@@ -369,8 +368,13 @@ def normalize_for_match(value: str) -> str:
     normalized = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', r'\1', normalized)
     normalized = re.sub(r'`([^`\n]+)`', r'\1', normalized)
     normalized = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', normalized)
-    normalized = re.sub(r'(?<!\w)([*_])(?=\S)([^\n]*?\S)\1(?!\w)', r'\2', normalized)
-    normalized = re.sub(r'(?:(?<=\s)|^)[*_]{1,3}(?=\s)|(?<=\s)[*_]{1,3}(?=\s|$)', '', normalized)
+    def strip_single_emphasis(match: re.Match) -> str:
+        inner = match.group(2)
+        # Asterisks around words are Markdown; asterisks around numeric terms
+        # can be multiplication or exponent notation and must remain literal.
+        return inner if any(char.isalpha() for char in inner) else match.group(0)
+    normalized = re.sub(r'(?<!\w)([*_])(?=\S)([^\n]*?\S)\1(?!\w)',
+                        strip_single_emphasis, normalized)
     # Only a header/divider pair establishes a Markdown table. Pipe counts
     # alone also match footer separators and expressions such as a | b | c.
     table_rule = re.compile(r':?-{3,}:?')

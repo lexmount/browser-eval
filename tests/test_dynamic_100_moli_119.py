@@ -13,6 +13,7 @@ from harness.web_fetch.stable_tasks import validate_acceptance_contract
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_PATH = ROOT / "evaluation/dynamic-content-100-moli-webfetch/dataset.json"
 RECEIPT_PATH = ROOT / "research/dynamic-100-moli-119-local-audit.json"
+COMPATIBILITY_PATH = ROOT / "research/dynamic-100-moli-119-risk-scorer-compatibility.json"
 
 
 def _dataset():
@@ -23,12 +24,30 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     dataset = _dataset()
     cases = dataset["cases"]
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
+    compatibility = json.loads(COMPATIBILITY_PATH.read_text(encoding="utf-8"))
 
     assert len(cases) == receipt["scope"]["cases"] == 100
     assert len({case["id"] for case in cases}) == 100
     assert len({case["url"] for case in cases}) == 100
     assert hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest() == receipt["bindings"]["dataset_sha256"]
-    assert SCORING_SOURCE_SHA256 == receipt["bindings"]["scoring_source_sha256"]
+    assert compatibility["provider_calls"] == 0
+    assert compatibility["scope"] == {
+        "cases": 100,
+        "input_passes": 44,
+        "output_passes": 44,
+        "task_decision_changes": 0,
+    }
+    bindings = compatibility["bindings"]
+    assert bindings["dataset_sha256"] == receipt["bindings"]["dataset_sha256"]
+    assert bindings["input_results_sha256"] == receipt["bindings"]["results_sha256"]
+    assert bindings["input_task_decisions_sha256"] == bindings["output_task_decisions_sha256"]
+    assert bindings["scoring_source_sha256"] == SCORING_SOURCE_SHA256
+    assert bindings["scoring_regressions_sha256"] == hashlib.sha256(
+        (ROOT / "evaluation/scoring-regressions.json").read_bytes()
+    ).hexdigest()
+    assert bindings["composite_tests_sha256"] == hashlib.sha256(
+        (ROOT / "tests/test_composite_tasks.py").read_bytes()
+    ).hexdigest()
     assert "Moli 1.1.9 local audit complete" in dataset["approval_status"]
     assert dataset["comparison"]["local_audit_receipt"] == RECEIPT_PATH.relative_to(ROOT).as_posix()
 

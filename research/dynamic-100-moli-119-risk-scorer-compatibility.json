@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "kind": "offline_scorer_compatibility_receipt",
+  "id": "dynamic-100-moli-119-risk-scorer-compatibility-2026-09-29",
+  "purpose": "Prove that the additive risk-control scoring contract does not change any task verdict in the audited dynamic-site 100-case benchmark.",
+  "date": "2026-09-29",
+  "provider_calls": 0,
+  "scope": {
+    "cases": 100,
+    "input_passes": 44,
+    "output_passes": 44,
+    "task_decision_changes": 0
+  },
+  "bindings": {
+    "dataset_sha256": "2a149a7003a43ee4746bf1d11669154506a96172ddfe51f7abb9b2d547fba8b3",
+    "input_results_sha256": "cca27ef9162406de2a1068ce8c7a5bb3b37439d873668e01dea0e1d26a061d2a",
+    "output_results_sha256": "2f3ef1ee02970abb924caade66325df8d2a59dec9608048edbf38b27cc2391ae",
+    "output_summary_sha256": "68c9662854e6bfd5653d3d0749f5b142565f310105af3170caf863c4c55744d6",
+    "scoring_source_sha256": "b3946a562ab069761f423fefcec42712e21699cfb0edcfd783ba7ffb0e262ed7",
+    "rescore_source_sha256": "91eec04941090f5bae7b05757d58a674d5d6185bfdd35f305b3ffc94bfb2e1e2",
+    "scoring_regressions_sha256": "37653e59ea4b3036ff43cfad2dce89432d8d2f5fddd014c0037159978c1c0706",
+    "composite_tests_sha256": "0022c8dcb0abe99b808f21f9f389a9a76da37a159bc06b18a33585b92d6db02c",
+    "input_task_decisions_sha256": "1ad596dcf03c10745eecab62528858b0640d869a4c8b312f208857b4c4829599",
+    "output_task_decisions_sha256": "1ad596dcf03c10745eecab62528858b0640d869a4c8b312f208857b4c4829599"
+  },
+  "evidence_policy": {
+    "source_results_preserved": true,
+    "rescored_copy_outside_git": true,
+    "measured_outputs_in_git": false,
+    "provider_calls_during_rescore": 0
+  }
+}

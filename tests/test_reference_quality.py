@@ -47,9 +47,7 @@ class ReferenceQualityTests(unittest.TestCase):
         self.assertEqual(len({normalize_for_match(value) for value in variants}), 1)
         self.assertEqual(normalize_for_match('管理后台 > AI 使用管理 > AI 使用数据'),
                          normalize_for_match('[管理后台](https://example.com)>AI 使用管理>AI 使用数据'))
-    def test_visible_text_normalization_decodes_entities_and_emphasis(self):
-        self.assertEqual(normalize_for_match('Beds &amp; baths'),
-                         normalize_for_match('Beds & baths'))
+    def test_visible_text_normalization_handles_emphasis(self):
         self.assertEqual(
             normalize_for_match('the official resource for the *[Team Fortress](/wiki/tf)* series.'),
             normalize_for_match('the official resource for the Team Fortress series.'),
