@@ -468,7 +468,16 @@ def evaluate_content(
     body_requirements: dict | None = None,
     allow_reference_block_exemptions: bool = False,
 ) -> dict[str, Any]:
-    answer_text = ((title.strip() + '\n') if title and title.strip() else '') + content
+    title_prefix = ((title.strip() + '\n') if title and title.strip() else '')
+    raw_answer_text = title_prefix + content
+    visible_content = content
+    if (re.match(r'\s*<!doctype\s+html\b', content, re.I) or
+            re.match(r'\s*<(?:html|body|main|div|section|article)\b', content, re.I)):
+        # Raw HTML remains evidence for links and record structure, while
+        # prose checks see only the rendered text, not scripts or templates.
+        from .dynamic_lists import _scoped_html
+        visible_content = _scoped_html(content).get_text('\n', strip=True)
+    answer_text = title_prefix + visible_content
     from .reference_quality import blocked_page_hits, script_payload_shell
     block_hits = blocked_page_hits(answer_text)
     script_shell = script_payload_shell(answer_text)
@@ -513,25 +522,13 @@ def evaluate_content(
     if acceptance_contract:
         # A historical snapshot cannot exempt an explicit stable-mode block rule.
         reference_exemptions = []
-    forbidden_folded = folded
-    visible_html_text = None
-    if (re.match(r'\s*<!doctype\s+html\b', content, re.I) or
-            re.match(r'\s*<(?:html|body|main|div|section|article)\b', content, re.I)):
-        # Dormant HTML templates and scripts can mention CAPTCHA on a fully
-        # functioning page. Their source code is not a visible blocking notice.
-        # Preserve the supplied title and real page text for this gate.
-        from .dynamic_lists import _scoped_html
-        visible_html_text = _scoped_html(content).get_text(' ', strip=True)
-        forbidden_surface = ((title.strip() + '\n') if title and title.strip() else '')
-        forbidden_surface += visible_html_text
-        forbidden_folded = normalize_for_match(forbidden_surface)
     forbidden = [item for item in (forbidden_any or [])
-                 if item not in reference_exemptions and (text := normalize_for_match(item)) and text in forbidden_folded]
+                 if item not in reference_exemptions and (text := normalize_for_match(item)) and text in folded]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in answer_text.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
     legacy_pass = bool(matched) if expected else True
-    length_pass = len(content) >= min_content_chars
+    length_pass = len(visible_content) >= min_content_chars
     content_pass = (legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold
                     and not forbidden and not block_hits and not encoding_corruption
                     and not script_shell)
@@ -541,9 +538,7 @@ def evaluate_content(
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
     from .body_coverage import evaluate_body_requirements
-    body_surface = (((title.strip() + '\n') if title and title.strip() else '')
-                    + visible_html_text if visible_html_text is not None else answer_text)
-    body_checks = evaluate_body_requirements(body_surface, body_requirements or {})
+    body_checks = evaluate_body_requirements(answer_text, body_requirements or {})
     content_pass = content_pass and body_checks['body_coverage_pass']
     word_precision = word_recall = word_f1 = None
     if ground_truth_main_content:
@@ -598,7 +593,8 @@ def evaluate_content(
         # contract is different: it remains an independent acceptance gate.
         declared_body_pass = bool(result["body_coverage_pass"])
         from .stable_tasks import evaluate_stable_task
-        result.update(evaluate_stable_task(answer_text, acceptance_contract, base_url, links=named_links))
+        result.update(evaluate_stable_task(raw_answer_text, acceptance_contract,
+                                           base_url, links=named_links))
         if encoding_corruption:
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False

@@ -843,10 +843,22 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     minimum, maximum = contract["minimum_records"], contract.get("maximum_records")
     patterns = contract.get("page_patterns", [])
     visible = _visible(content, schema)
-    page_results = [{"pattern": p, "pass": bool(re.search(p, visible, re.I | re.M))} for p in patterns]
+    anchor_visible = None
+    html_candidate = content.lstrip()
+    first_line, newline, remainder = html_candidate.partition('\n')
+    if newline and '<' not in first_line and len(first_line) <= 300:
+        html_candidate = remainder.lstrip()
+    if re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
+                html_candidate, re.I):
+        from .dynamic_lists import _scoped_html
+        # Keep record parsing on its boundary-preserving representation;
+        # text checks must not read script, template, or hidden source.
+        anchor_visible = _scoped_html(content).get_text('\n', strip=True)
+    text_surface = anchor_visible if anchor_visible is not None else visible
+    page_results = [{"pattern": p, "pass": bool(re.search(p, text_surface, re.I | re.M))} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])
     from .reference_quality import blocked_page_hits
-    blocked_page = bool(blocked_page_hits(visible))
+    blocked_page = bool(blocked_page_hits(text_surface))
     if blocked_page:
         content_errors.append("blocked_page")
     errors = []
@@ -903,17 +915,6 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         else:
             records = [] if schema in {"body_text", "page_identity"} else _parse_records(visible, schema)
     anchors = []
-    anchor_visible = None
-    html_candidate = content.lstrip()
-    first_line, newline, remainder = html_candidate.partition('\n')
-    if newline and '<' not in first_line and len(first_line) <= 300:
-        html_candidate = remainder.lstrip()
-    if re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
-                html_candidate, re.I):
-        from .dynamic_lists import _scoped_html
-        # Stable text anchors describe rendered prose, not HTML source. Keep
-        # record parsing on its existing boundary-preserving representation.
-        anchor_visible = _scoped_html(content).get_text(' ', strip=True)
     non_record_visible = None
     if schema == 'named_link' and any(a.get('match_scope') == 'non_record_lines'
                                       for a in contract.get('stable_text_anchors', [])):

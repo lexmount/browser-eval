@@ -1,0 +1,43 @@
+{
+  "schema_version": 2,
+  "kind": "scoring_revision_receipt",
+  "reason": "The HTML visibility fix still left length, challenge, script-shell, and other prose checks on raw source bytes. Hidden code could inflate a body or look like the answer, while a real page could be rejected because of hidden code.",
+  "scope": "Saved 1.1.11 diagnostic second calls only; no provider request or historical certified result is overwritten.",
+  "run_manifest_sha256": "cae4b504ec0dbdbfdb4ae7a49547ebdd03cd6ce418016cdae2a959d0d969eaab",
+  "dataset_sha256": {
+    "popular": "0703badca3978cafe4f6db67fb9723f433781e1b87b4ef2af343756126e72cb5",
+    "dynamic": "2a149a7003a43ee4746bf1d11669154506a96172ddfe51f7abb9b2d547fba8b3"
+  },
+  "predecessor_receipt": "research/moli-111-inline-html-scoring-revision.json",
+  "predecessor_receipt_sha256": "6ec4c6baed9f7b2bedc65b978c7631201e52a720e457a72dd060edde61896e7c",
+  "historical_scoring_source_sha256": "c92c0ea4925812b748940fa046913196c88fbf43124af26dadead1245c17d0d1",
+  "revised_scoring_source_sha256": "52429c2f2a289fb199edf5e856bf6fb1291ea862557b1a26729344b8130ee01a",
+  "scoring_regressions_sha256": "e7d381481c7b54ca8c8c15c54075d159a1efd6680e9cbd0ada6033aaa9304eff",
+  "correction_provenance": {
+    "category": "format-normalization",
+    "root_cause": "HTML prose checks still read source bytes after anchor and coverage checks had switched to rendered text; the scoring surface was inconsistent across gates.",
+    "regression_ids": [
+      "html-visible-body-ignores-hidden-challenge-heading",
+      "html-hidden-script-cannot-inflate-visible-length",
+      "html-visible-challenge-heading-blocks-body"
+    ],
+    "verdict_corrections": {
+      "false_positives": 0,
+      "false_negatives": 0,
+      "total": 0
+    }
+  },
+  "task_decision_changes": [],
+  "diagnostic_change_case_ids": [
+    "global-homepage-030-weather-com",
+    "china-homepage-036-hao123-com",
+    "china-homepage-042-kdocs-cn",
+    "dynamic-019-selenium-dev-selenium",
+    "dynamic-055-arco-design-vue",
+    "dynamic-022-en-stable-syncfusion-grid",
+    "dynamic-035-035-vuetify-virtual-table",
+    "dynamic-107-redoc-cafe-api"
+  ],
+  "provider_calls_for_revision": 0,
+  "historical_receipt_unchanged": "research/dynamic-100-moli-119-local-audit.json"
+}
