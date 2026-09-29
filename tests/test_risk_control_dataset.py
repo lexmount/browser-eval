@@ -85,6 +85,19 @@ def test_language_rule_revision_binds_current_frozen_inputs():
     assert revision["correction"]["provider_calls"] == 0
 
 
+def test_every_secondary_risk_anchor_is_bound_to_independent_revision(dataset):
+    revision = json.loads(LANGUAGE_REVISION.read_text())
+    case_id = revision["case_id"]
+    declared = revision["correction"]["equivalent_ui_alternatives_added"]
+    observed = {}
+    for case in dataset["cases"]:
+        for anchor in case["acceptance_contract"]["stable_text_anchors"]:
+            for alternative in anchor["alternatives"][1:]:
+                observed[(case["id"], anchor["id"])] = alternative
+    assert observed == {(case_id, anchor_id): text for anchor_id, text in declared.items()}
+    assert len(revision["independent_browser_observation"]["visible_text_sha256"]) == 64
+
+
 def test_external_evidence_roots_honor_data_home(monkeypatch, tmp_path):
     monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path))
     assert all(path.is_relative_to(tmp_path) for path in evidence_roots().values())

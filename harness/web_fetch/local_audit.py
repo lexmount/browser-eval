@@ -122,8 +122,9 @@ def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
         raise ValueError("Scoring revision receipt has wrong bindings")
     regressions_path = _repository_file("evaluation/scoring-regressions.json")
     # The historical receipt's whole-file hash predates appended controls.
-    # Verify its exact bound prefix below; the later three-cohort revision
-    # separately binds the complete current registry hash.
+    # Verify its exact bound prefix below (the canonical content hashes also
+    # enforce order); the later three-cohort revision separately binds the
+    # complete current registry hash. New controls are append-only.
     controls = json.loads(regressions_path.read_text(encoding="utf-8")).get("cases", [])
     current_ids = [row.get("id") for row in controls]
     base_ids = scoring.get("preexisting_control_ids", [])

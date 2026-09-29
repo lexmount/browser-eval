@@ -307,6 +307,9 @@ def build(output: Path) -> dict:
         if len(normalized_stable) != len(set(normalized_stable)):
             raise ValueError(f"Duplicate normalized stable literal: {section['id']}")
         normalized_source = visible_text_key(source)
+        # The first literal comes from the frozen historical proof. Later
+        # locale equivalents come from a separate browser observation and are
+        # bound case-by-case in the language-rule revision receipt and tests.
         for alternatives in section["stable"]:
             literal = alternatives[0]
             if visible_text_key(literal) not in normalized_source:
