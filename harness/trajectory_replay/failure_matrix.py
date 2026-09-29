@@ -27,6 +27,126 @@ FAMILIES = (
 )
 
 
+def _reviewed_failures(rows: list[dict], participant: str) -> list[dict]:
+    selected = [
+        row
+        for row in rows
+        if row["participant_id"] == participant and row["status"] != "pass"
+    ]
+    if any(not row.get("cause_code") for row in selected):
+        raise ValueError(f"failure profile has an unreviewed result: {participant}")
+    return selected
+
+
+def _cause_groups(rows: list[dict]) -> list[tuple[str, list[dict]]]:
+    grouped: dict[str, list[dict]] = {}
+    for row in rows:
+        grouped.setdefault(str(row["cause_code"]), []).append(row)
+    return sorted(grouped.items(), key=lambda item: (-len(item[1]), item[0]))
+
+
+def failure_signature_cards(
+    methods: dict, rows: list[dict], lang: str, *, participants: tuple[str, ...]
+) -> str:
+    """Render a compact, data-bearing failure signature for summary pages."""
+    zh = lang == "zh"
+    cards = []
+    for participant in participants:
+        if participant not in methods:
+            raise ValueError(f"failure signature participant is not registered: {participant}")
+        failures = _reviewed_failures(rows, participant)
+        population = sum(row["participant_id"] == participant for row in rows)
+        groups = _cause_groups(failures)
+        dominant = groups[:3]
+        items = []
+        for _code, members in dominant:
+            sample = members[0]
+            label = sample.get("cause_zh" if zh else "cause_en") or sample["cause_code"]
+            share = len(members) / len(failures) * 100 if failures else 0
+            query = urlencode(
+                {
+                    "participant": participant,
+                    "status": "fail",
+                    "cause": sample.get("cause_zh") or sample["cause_code"],
+                }
+            )
+            items.append(
+                '<li><div><span>'
+                + escape(str(label))
+                + f'</span><strong>{len(members)}</strong></div>'
+                + f'<div class="failure-mini-track"><i style="width:{share:.2f}%"></i></div>'
+                + f'<a href="results.html?{escape(query, quote=True)}#result-inventory">'
+                + ("查看这些任务" if zh else "Inspect tasks")
+                + "</a></li>"
+            )
+        remainder = len(failures) - sum(len(members) for _, members in dominant)
+        if remainder:
+            items.append(
+                f'<li class="failure-remainder"><span>{"其余类型" if zh else "Other subtypes"}</span>'
+                f'<strong>{remainder}</strong></li>'
+            )
+        cards.append(
+            f'<article data-method="{escape(participant)}"><header><div><span>{"官方失败" if zh else "Official failures"}</span>'
+            f'<strong>{len(failures)} / {population}</strong></div><b>{escape(methods[participant]["label"])}</b></header>'
+            f'<ul>{"".join(items)}</ul></article>'
+        )
+    heading = "四种浏览器的主导错误" if zh else "Dominant failures in four browsers"
+    note = (
+        "每条失败只进入一个复核子类。这里显示各方法数量最多的三类；完整分类、原因和逐题证据见报告解读。"
+        if zh
+        else "Each failure belongs to one reviewed subtype. These are the three largest for each method; Interpretation contains every subtype, explanation, and case evidence."
+    )
+    return (
+        f'<section class="summary-slide" data-failure-signatures><div class="section-heading"><div><h2>{heading}</h2>'
+        f'<p>{note}</p></div><a href="interpretation.html#browser-diagnoses">'
+        + ("查看四章详解" if zh else "Read four browser chapters")
+        + f'</a></div><div class="failure-signature-grid">{"".join(cards)}</div></section>'
+    )
+
+
+def browser_failure_profile(methods: dict, rows: list[dict], lang: str, participant: str) -> str:
+    """Render one browser's complete reviewed subtype distribution and evidence links."""
+    if participant not in methods:
+        raise ValueError(f"failure profile participant is not registered: {participant}")
+    zh = lang == "zh"
+    selected = [row for row in rows if row["participant_id"] == participant]
+    failures = _reviewed_failures(rows, participant)
+    groups = _cause_groups(failures)
+    if not selected or not failures:
+        raise ValueError(f"failure profile requires a failing population: {participant}")
+    maximum = max(len(members) for _, members in groups)
+    bars = []
+    explanations = []
+    for code, members in groups:
+        sample = min(members, key=lambda row: int(row["task_id"]))
+        count = len(members)
+        label = sample.get("cause_zh" if zh else "cause_en") or code
+        reason = sample.get("reason_zh" if zh else "reason_en") or label
+        share = count / len(failures) * 100
+        width = count / maximum * 100
+        bars.append(
+            f'<li data-cause="{escape(code)}"><span>{escape(str(label))}</span>'
+            f'<div class="failure-bar-track"><i style="width:{width:.2f}%"></i></div>'
+            f'<strong>{count}</strong><small>{share:.1f}%</small></li>'
+        )
+        detail = f'result/{escape(str(sample["key"]), quote=True)}.html'
+        explanations.append(
+            f'<article data-cause-detail="{escape(code)}"><header><h3>{escape(str(label))}</h3>'
+            f'<strong>{count} {"题" if zh else "tasks"}</strong></header><p>{escape(str(reason))}</p>'
+            f'<a href="{detail}">{"代表题" if zh else "Representative task"} #{int(sample["task_id"])} →</a></article>'
+        )
+    passed = sum(row["status"] == "pass" for row in selected)
+    label = methods[participant]["label"]
+    return (
+        f'<div class="browser-failure-profile" data-browser-failure-profile="{escape(participant)}">'
+        f'<div class="browser-profile-overview"><div class="browser-score"><span>{escape(label)}</span>'
+        f'<strong>{passed}/{len(selected)}</strong><small>{"官方通过" if zh else "official passes"}</small></div>'
+        f'<div class="browser-failure-total"><strong>{len(failures)}</strong><span>{"条失败，全部已复核" if zh else "failures, all reviewed"}</span></div></div>'
+        f'<ol class="failure-bars">{"".join(bars)}</ol>'
+        f'<div class="failure-explanations">{"".join(explanations)}</div></div>'
+    )
+
+
 def failure_category_matrix(methods: dict, rows: list[dict], lang: str, *, embedded: bool = False) -> str:
     """Count each failed method-task once, including unreviewed failures."""
     zh = lang == "zh"

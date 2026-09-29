@@ -2,6 +2,8 @@
 
 The dashboard reading page and standalone HTML are two presentations of the same authored article. Use the current report renderer and preserve its integrity, safety and localization contracts.
 
+Treat report home and interpretation pages as reusable presentation material. Each section should communicate one conclusion through a chart, meaningful diagram, image, or inspectable evidence specimen, with concise supporting text and exact values available to copy. Do not use decorative background art or repeat the same dense table across summary, interpretation, and analysis. Result analysis owns filterable inventories and detailed distributions; result pages own logs and complete evidence.
+
 Generate Chinese by default. English prose, illustrations, rendering and language-specific checks run only on an explicit manual request. An absent English edition gets a not-generated notice and a return link, not stale translated pages. Preserve translation sources without distributing unused English assets. Apply cross-language parity checks only when both editions are generated; always test the notice in a Chinese-only release.
 
 ## Reading layout

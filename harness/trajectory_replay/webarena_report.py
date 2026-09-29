@@ -21,7 +21,10 @@ from harness.trajectory_replay.catalog_contracts import (
     LEGACY_CATALOG_REPORT_SCHEMA,
 )
 from harness.trajectory_replay.evaluator_transition import json_sha256, reevaluate_pass
-from harness.trajectory_replay.failure_matrix import failure_category_matrix
+from harness.trajectory_replay.failure_matrix import (
+    failure_category_matrix,
+    failure_signature_cards,
+)
 from harness.trajectory_replay.interpretation import render_interpretation, standalone_document
 from harness.trajectory_replay.participants import (
     bind_participant,
@@ -1351,6 +1354,16 @@ if(viewer){
 }'''
     (output / "assets").mkdir(parents=True, exist_ok=True)
     css += (
+        "\n.summary-slide{border:1px solid var(--line);background:var(--panel);border-radius:20px;padding:clamp(20px,3vw,34px);margin:28px 0;box-shadow:var(--shadow)}"
+        ".section-heading{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:20px}.section-heading h2{margin:0 0 8px}.section-heading p{margin:0;max-width:760px}"
+        ".failure-signature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.failure-signature-grid article{border:1px solid var(--line);border-radius:16px;padding:18px;background:var(--bg)}"
+        ".failure-signature-grid header{display:flex;justify-content:space-between;gap:16px;align-items:end;margin-bottom:14px}.failure-signature-grid header div span,.failure-signature-grid header div strong{display:block}.failure-signature-grid header div strong{font-size:1.55rem}.failure-signature-grid header b{text-align:right}"
+        ".failure-signature-grid ul{list-style:none;padding:0;margin:0;display:grid;gap:12px}.failure-signature-grid li>div:first-child{display:flex;justify-content:space-between;gap:10px}.failure-mini-track,.failure-bar-track,.outcome-track{height:9px;background:color-mix(in srgb,var(--line) 65%,transparent);border-radius:999px;overflow:hidden;margin:5px 0}.failure-mini-track i,.failure-bar-track i,.outcome-track i{display:block;height:100%;background:var(--accent);border-radius:inherit}"
+        ".failure-signature-grid li a{font-size:.88rem}.failure-remainder{display:flex;justify-content:space-between;color:var(--muted)}"
+        ".interpretation>.presentation-slide{margin:30px 0;padding:clamp(24px,4vw,50px);background:var(--panel);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}.interpretation>.presentation-slide>h2{max-width:980px;font-size:clamp(1.7rem,3vw,2.7rem);margin-top:0}"
+        ".outcome-chart ol{list-style:none;padding:0;margin:24px 0;display:grid;gap:17px}.outcome-chart li>div:first-child{display:flex;justify-content:space-between;gap:18px}.outcome-chart li strong{font-size:1.08rem}.outcome-track{height:18px;margin-top:7px}.outcome-chart figcaption{text-align:right;color:var(--muted)}"
+        ".browser-failure-profile{display:grid;gap:22px;margin:26px 0}.browser-profile-overview{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}.browser-profile-overview>div{border:1px solid var(--line);border-radius:16px;padding:20px;background:var(--bg)}.browser-profile-overview span,.browser-profile-overview small{display:block}.browser-profile-overview strong{display:block;font-size:clamp(2rem,5vw,4rem);line-height:1.05;margin:8px 0}"
+        ".failure-bars{list-style:none;padding:0;margin:0;display:grid;gap:9px}.failure-bars li{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(180px,2fr) 54px 58px;gap:12px;align-items:center}.failure-bars strong,.failure-bars small{text-align:right}.failure-explanations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.failure-explanations article{border:1px solid var(--line);border-radius:15px;padding:18px;background:var(--bg)}.failure-explanations header{display:flex;justify-content:space-between;gap:14px}.failure-explanations h3{font-size:1.05rem;margin:0}.failure-explanations p{font-size:.94rem}.failure-explanations a{font-size:.9rem}"
         "\n.diagnostic-observations table{min-width:840px}"
         ".diagnostic-observations td:first-child{white-space:nowrap;min-width:100px}"
         ".diagnostic-observations td code{overflow-wrap:anywhere}"
@@ -1358,6 +1371,8 @@ if(viewer){
         ".diagnostic-timeline li{border:1px solid #888;border-radius:10px;padding:12px;min-width:0}"
         ".diagnostic-timeline strong,.diagnostic-timeline span{display:block}"
         ".fixed36-diagnostic figure img{display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px}"
+        "@media(max-width:760px){.section-heading{display:block}.section-heading>a{display:inline-block;margin-top:12px}.failure-signature-grid,.failure-explanations,.browser-profile-overview{grid-template-columns:1fr}.failure-bars li{grid-template-columns:1fr 52px}.failure-bars li .failure-bar-track{grid-column:1/-1;grid-row:2}.failure-bars li small{grid-column:2}.interpretation>.presentation-slide{padding:22px 18px}}"
+        "@media print{@page{size:13.333in 7.5in;margin:.42in}.interpretation>.hero,.interpretation>.presentation-slide{break-after:page;break-inside:avoid;box-shadow:none;border-color:#bbb}.failure-explanations article{break-inside:avoid}}"
     )
     (output / "assets/report.css").write_text(css, encoding="utf-8")
     (output / "assets/app.js").write_text(js, encoding="utf-8")
@@ -1675,18 +1690,21 @@ def build_webarena_replay_report(
             if zh
             else f"WebArena-Verified · {task_count} tasks · model calls 0"
         )
-        stage_rows = []
-        for engine, method in methods.items():
-            for code, label_pair in (("browser_session_setup", ("浏览器会话初始化", "Browser session setup")), ("browser_tool_execution", ("Playwright 动作", "Playwright action")), ("evidence_finalization", ("执行证据收尾", "Evidence finalization")), ("official_evaluator_execution", ("官方评测器执行", "Official evaluator execution")), ("side_effect_not_observed", ("网络验收条件未满足", "Network acceptance not satisfied")), ("official_evaluation", ("官方验收", "Official evaluation"))):
-                count = sum(row["participant_id"] == engine and row["status"] != "pass" and row["failure_stage"] == code for row in public_rows)
-                if count:
-                    stage_rows.append(f'<tr><td>{_e(method["label"])}</td><td>{label_pair[0 if zh else 1]}</td><td>{count}</td><td><a href="results.html?participant={_e(engine)}&status=fail&stage={code}">{"下钻到失败结果" if zh else "Inspect failures"} →</a></td></tr>')
-        stage_table = f'<div class="table-scroll stage-table"><table><thead><tr><th>{"方法" if zh else "Method"}</th><th>{"失败环节" if zh else "Failure stage"}</th><th>{"结果数" if zh else "Outcomes"}</th><th>{"逐题证据" if zh else "Per-task evidence"}</th></tr></thead><tbody>{"".join(stage_rows)}</tbody></table></div>'
-        stage_section = (
-            f'<section><h2>{"失败发生在哪个环节" if zh else "Where failures occurred"}</h2>'
-            f'<p>{"浏览器会话初始化、轨迹动作报错与网络验收失败分别统计。网络验收失败表示工具调用返回成功，但网络记录中没有满足全部验收条件的请求：可能是请求未发生，也可能是 URL、参数或请求头不匹配。逐题详情给出相关阶段、动作、验收规则和复核原因。" if zh else "Browser-session setup, trajectory action errors, and network-acceptance failures are counted separately. In the latter case the tool call returned success, but no recorded request satisfied all criteria: the request may be absent, or its URL, parameters or headers may not match. Result details show the stage, related actions, evaluator rules, and reviewed causes."}</p>'
-            + stage_table + '</section>'
-        ) if stage_rows else ''
+        failure_participants = tuple(
+            engine
+            for engine in methods
+            if any(
+                row["participant_id"] == engine and row["status"] != "pass"
+                for row in public_rows
+            )
+        )
+        failure_signatures = (
+            failure_signature_cards(
+                methods, public_rows, lang, participants=failure_participants
+            )
+            if failure_participants
+            else ""
+        )
         validity_notice = _historical_replay_validity_notice(
             **validity_identity, lang=lang
         )
@@ -1740,9 +1758,7 @@ def build_webarena_replay_report(
         {f'<p class="evidence-actions"><a href="{"" if zh else "../"}data/legacy-retrieval-provenance.json">{"查看 74 条历史取数验收输入的逐条哈希" if zh else "Inspect hashes for all 74 historical retrieval inputs"}</a></p>' if legacy_provenance is not None else ''}
         <section><h2>{"核心指标" if zh else "Core metrics"}</h2><p class="callout">{core_metrics_note}</p>{core_metrics_table}</section>
         {resource_section}
-        {stage_section}
-        <section><h2>{"Playwright 动作耗时" if zh else "Playwright action latency"}</h2><p>{"均值、P50、P95 按单次 Playwright 调用统计；调用次数只说明工作量。下钻到结果详情可查看具体动作耗时和返回内容。" if zh else "Mean, P50, and P95 are per Playwright call; call counts only describe workload. Open a task result for individual action timing and complete responses."}</p><details class="matrix-disclosure"><summary>{"展开各类动作耗时" if zh else "Open latency by action type"}</summary>{action_table}</details></section>'''
-        summary_body += f'<section><h2>{"各方法成功任务的条件分布" if zh else "Conditional distributions on each method’s successful tasks"}</h2><p>{"各列仅含该方法成功的任务，任务集合与样本数可能不同，不用于排名，也不替代上方共同任务全集的统计。" if zh else "Each column includes only that method’s successful tasks. Task sets and sample counts may differ; these distributions are not ranked and do not replace the all-task statistics above."}</p>{_successful_distribution_table(method_rows, lang)}</section>'
+        {failure_signatures}'''
         (root / "index.html").write_text(_shell(lang, "index", "浏览器轨迹重放" if zh else "Browser Trajectory Replay", summary_body, current_route="index.html"), encoding="utf-8")
 
         headers = ["任务" if zh else "Task", "站点" if zh else "Site", "任务目标" if zh else "Task goal", "类型" if zh else "Type", "轨迹来源" if zh else "Trajectory source", "标准动作" if zh else "Fixed actions", "下钻" if zh else "Drill down"]
@@ -1811,9 +1827,19 @@ def build_webarena_replay_report(
         matrix_checks = "".join(f'<label class="compare-chip"><input type="checkbox" data-matrix-method value="{_e(engine)}" checked>{_e(item["label"])}</label>' for engine, item in comparison_methods.items())
         result_matrix = f'<section class="method-comparison"><div class="comparison-heading"><div><h2>{"同题方法对比" if zh else "Same-task method comparison"}</h2><p>{"按官方通过和失败分组展示所有方法；点开任一结果查看该方法的轨迹与执行证据。" if zh else "All methods are grouped by official pass and fail. Open any outcome for its method-specific path and execution evidence."}</p></div><span class="comparison-count" data-matrix-count></span></div><div class="comparison-controls"><label>{"基准方法" if zh else "Baseline method"}<select data-matrix-baseline>{matrix_baselines}</select></label><label>{"成败关系" if zh else "Outcome relation"}<select data-matrix-relation><option value="different">{"所选方法有分歧" if zh else "Selected methods disagree"}</option><option value="baseline-pass-others-fail">{"基准通过，其余失败" if zh else "Baseline passes; others fail"}</option><option value="baseline-fail-others-pass">{"基准失败，其余通过" if zh else "Baseline fails; others pass"}</option><option value="all-pass">{"所选全部通过" if zh else "All selected pass"}</option><option value="all-fail">{"所选全部失败" if zh else "All selected fail"}</option><option value="exact-pass">{"仅所选方法通过" if zh else "Only selected methods pass"}</option><option value="">{"全部任务" if zh else "All tasks"}</option></select></label><label>{"站点" if zh else "Site"}<select data-matrix-site><option value="">{"全部" if zh else "All"}</option>{matrix_sites}</select></label></div><fieldset class="comparison-methods"><legend>{"参与比较的方法（至少选一个）" if zh else "Comparison methods (select at least one)"}</legend><div class="method-checks">{matrix_checks}</div></fieldset><div class="table-scroll matrix-table" data-task-matrix><table><thead><tr><th>{"任务" if zh else "Task"}</th><th>{"站点" if zh else "Site"}</th><th>{"官方通过" if zh else "Official pass"}</th><th>{"失败" if zh else "Fail"}</th></tr></thead><tbody>{"".join(result_matrix_rows)}</tbody></table></div></section>'
         results_body = f'''<section class="hero"><p class="eyebrow">{len(public_rows)} {"条逻辑结果" if zh else "logical outcomes"}</p><h1>{"结果与失败诊断" if zh else "Results and failure diagnosis"}</h1><p>{"同题对比支持选择基准和多个方法；下方筛选表默认只显示失败，点击“诊断”查看原始判定、复核原因与执行证据。" if zh else "Choose a baseline and multiple methods for same-task comparison. The inventory starts with failures; open Diagnose for the exact finding, reviewed cause, and execution evidence."}</p></section><section class="compact-section">{result_matrix}</section><section><div class="filters"><label>{"搜索" if zh else "Search"}<input data-filter="q" placeholder="{"任务编号、站点或错误" if zh else "Task, site, or error"}"></label><label>{"方法" if zh else "Method"}<select data-filter="participant"><option value="">{"全部" if zh else "All"}</option>{browser_options}</select></label><label>{"结果" if zh else "Verdict"}<select data-filter="status"><option value="fail">{"失败" if zh else "Fail"}</option><option value="pass">{"通过" if zh else "Pass"}</option><option value="">{"全部" if zh else "All"}</option></select></label><label>{"站点" if zh else "Site"}<select data-filter="site"><option value="">{"全部" if zh else "All"}</option>{site_options}</select></label><label>{"失败环节" if zh else "Failure stage"}<select data-filter="stage"><option value="">{"全部" if zh else "All"}</option>{stage_options}</select></label><label>{"复核分类" if zh else "Reviewed category"}<select data-filter="cause"><option value="">{"全部" if zh else "All"}</option>{cause_options}</select></label></div><p class="result-count" data-result-count></p><div class="table-scroll inventory" data-results><table><thead><tr><th>{"任务" if zh else "Task"}</th><th>{"方法" if zh else "Method"}</th><th>{"站点" if zh else "Site"}</th><th>{"判定" if zh else "Verdict"}</th><th>{"动作" if zh else "Actions"}</th><th>{"失败环节" if zh else "Failure stage"}</th><th>{"复核分类" if zh else "Reviewed category"}</th><th>{"详情" if zh else "Detail"}</th></tr></thead><tbody>{''.join(result_rows)}</tbody></table></div></section><dialog id="diagnosis-dialog"><div class="dialog-head"><strong data-dialog-title></strong><button type="button" aria-label="{"关闭" if zh else "Close"}">×</button></div><div class="dialog-body"><div class="diagnosis-facts"><div><span>{"失败环节" if zh else "Failure stage"}</span><strong data-dialog-stage></strong></div><div><span>{"动作定位" if zh else "Action locator"}</span><strong data-dialog-step></strong></div><div><span>{"复核分类" if zh else "Reviewed category"}</span><strong data-dialog-category></strong></div></div><h3>{"程序判定与验收规则" if zh else "Programmatic finding and evaluator rule"}</h3><pre data-dialog-error></pre><h3>{"复核原因与处理" if zh else "Reviewed cause and treatment"}</h3><p data-dialog-cause></p><p data-dialog-remediation></p><div class="evidence-actions"><a data-dialog-step-link>{"打开对应动作" if zh else "Open the relevant action"}</a><a data-dialog-link>{"打开完整详情" if zh else "Open full detail"}</a></div></div></dialog>'''
+        diagnostic_details = (
+            failure_category_matrix(comparison_methods, public_rows, lang)
+            + f'<section><h2>{"Playwright 动作耗时" if zh else "Playwright action latency"}</h2>'
+            + f'<p>{"均值、P50、P95 按单次 Playwright 调用统计；调用次数只说明工作量。逐题详情保留每个动作的耗时和返回内容。" if zh else "Mean, P50, and P95 are per Playwright call; call counts describe workload. Result details retain every action duration and response."}</p>'
+            + f'<details class="matrix-disclosure"><summary>{"展开各类动作耗时" if zh else "Open latency by action type"}</summary>{action_table}</details></section>'
+            + f'<section><h2>{"各方法成功任务的条件分布" if zh else "Conditional distributions on each method’s successful tasks"}</h2>'
+            + f'<p>{"各列仅含该方法成功的任务，任务集合和样本数可能不同。这组数据用于诊断，不参与方法排名。" if zh else "Each column contains only that method’s successful tasks. Task sets and sample counts may differ, so these distributions are diagnostic and not ranked."}</p>'
+            + _successful_distribution_table(method_rows, lang)
+            + "</section>"
+        )
         results_body = results_body.replace(
             '<section class="compact-section">',
-            failure_category_matrix(comparison_methods, public_rows, lang) + '<section class="compact-section">',
+            diagnostic_details + '<section class="compact-section">',
             1,
         ).replace('<div class="filters">', '<div class="filters" id="result-inventory">', 1)
         results_body = results_body.replace("结果与失败诊断", "结果分析").replace("Results and failure diagnosis", "Results analysis")

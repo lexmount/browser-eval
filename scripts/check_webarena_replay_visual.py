@@ -362,6 +362,9 @@ def check(report: Path, receipt: Path) -> None:
                     fix_page.locator("h1").wait_for()
                     fix_page.close()
                 results = json.loads((report / "data/results.json").read_text(encoding="utf-8"))
+                expected_failure_profiles = len({
+                    item["participant_id"] for item in results if item["status"] != "pass"
+                })
                 passed_key = next((item["key"] for item in results if item["status"] == "pass"), None)
                 if passed_key is not None:
                     passed_page = browser.new_page()
@@ -540,6 +543,11 @@ return node && node.textContent.trim().startsWith('{');
                                     timeout=5_000
                                 )
                                 page.locator(".dialog-head button").click()
+                            if route.endswith("index.html") and not route.startswith("en/"):
+                                assert page.locator("[data-failure-signatures] [data-method]").count() == expected_failure_profiles
+                            if route.endswith(("interpretation.html", "article.html")):
+                                assert page.locator("[data-browser-failure-profile]").count() == expected_failure_profiles
+                                assert page.locator("[data-browser-failure-profile] [data-cause-detail] a").count() > expected_failure_profiles
                             if route.endswith("article.html"):
                                 # Script-free exports follow the OS preference, not
                                 # the dashboard's JavaScript theme attribute.
@@ -555,7 +563,8 @@ return node && node.textContent.trim().startsWith('{');
 const root=document.documentElement;
 const clipped=[];
 const layoutSelector='h1,h2,.filters input,.filters select,'+
-  '.diagnosis-grid article,.summary-grid article,.fact-strip>div';
+  '.diagnosis-grid article,.summary-grid article,.fact-strip>div,'+
+  '.failure-signature-grid article,.failure-explanations article,.failure-bars li';
 for(const element of document.querySelectorAll(layoutSelector)){
   if(!element.getClientRects().length)continue;
   const box=element.getBoundingClientRect();
@@ -622,6 +631,8 @@ return {
                                     "index.html",
                                     "results.html",
                                     "environment.html",
+                                    "interpretation.html",
+                                    "article.html",
                                 }
                                 or route.startswith(("result/", "task/"))
                                 or route.endswith("diagnostics.html")

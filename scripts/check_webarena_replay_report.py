@@ -42,7 +42,11 @@ def _text_without_verified_embedded_images(text: str, image_digests: set[str]) -
     return re.sub(r'(?:src|href)="data:image/png;base64,([^"]+)"', replace, text)
 
 
-def _check_interpretation(root: Path) -> None:
+def _check_interpretation(
+    root: Path,
+    results: list[dict] | None = None,
+    participants: list[str] | None = None,
+) -> None:
     sections = []
     for language_root in language_roots(root):
         integrated = BeautifulSoup((language_root / "interpretation.html").read_text(), "html.parser")
@@ -59,6 +63,32 @@ def _check_interpretation(root: Path) -> None:
             raise ValueError("article needs illustrations embedded in its offline view")
         if not integrated.select('a[href="article.html"][download]'):
             raise ValueError("article download is missing")
+        if any("browser-effect-pipeline" in image.get("src", "") for image in article.select("img")):
+            raise ValueError("interpretation retains the non-data-bearing pipeline image")
+        authored_sections = article.select(":scope > section[id]")
+        if not authored_sections or any("presentation-slide" not in section.get("class", []) for section in authored_sections):
+            raise ValueError("interpretation sections are not presentation-ready")
+        if results is not None and participants is not None:
+            failing = [
+                participant for participant in participants
+                if any(row["participant_id"] == participant and row["status"] != "pass" for row in results)
+            ]
+            profiles = article.select("[data-browser-failure-profile]")
+            if [profile["data-browser-failure-profile"] for profile in profiles] != failing:
+                raise ValueError("interpretation must contain one ordered profile per failing participant")
+            for profile in profiles:
+                participant = profile["data-browser-failure-profile"]
+                expected = {
+                    row["cause_code"] for row in results
+                    if row["participant_id"] == participant and row["status"] != "pass"
+                }
+                bars = {item["data-cause"] for item in profile.select(".failure-bars [data-cause]")}
+                details = {item["data-cause-detail"] for item in profile.select("[data-cause-detail]")}
+                if bars != expected or details != expected or any(
+                    detail.select_one('a[href^="result/"]') is None
+                    for detail in profile.select("[data-cause-detail]")
+                ):
+                    raise ValueError("browser failure profile is incomplete or lacks evidence links")
         online_links = article.select('[data-failure-matrix] a')
         offline_links = standalone.select('[data-failure-matrix] a')
         if len(online_links) != len(offline_links):
@@ -495,6 +525,20 @@ def check(report_dir: Path) -> dict[str, int]:
     home = (root / "index.html").read_text(encoding="utf-8")
     if f"{browser_count} 款浏览器组成 {method_count} 种方法配置" not in home:
         raise ValueError("report home does not state the browser and method populations")
+    home_soup = BeautifulSoup(home, "html.parser")
+    signature = home_soup.select_one("[data-failure-signatures]")
+    failing_participants = [
+        participant for participant in participants
+        if any(row["participant_id"] == participant and row["status"] != "pass" for row in results)
+    ]
+    if (failing_participants and signature is None) or (
+        signature is not None
+        and [card["data-method"] for card in signature.select("[data-method]")]
+        != failing_participants
+    ):
+        raise ValueError("home must show one compact failure signature per failing participant")
+    if "失败发生在哪个环节" in home or home_soup.select_one("[data-failure-matrix]") is not None:
+        raise ValueError("home duplicates detailed result analysis")
     task_ids = {int(item["task_id"]) for item in results}
     result_keys = {(str(item["participant_id"]), int(item["task_id"])) for item in results}
     expected_keys = {(participant, task_id) for participant in participants for task_id in task_ids}
@@ -537,7 +581,13 @@ def check(report_dir: Path) -> dict[str, int]:
                     "unavailable resources must be stated once instead of rendered as empty metrics"
                 )
     for language_root in language_roots(root):
-        _check_failure_matrix((language_root / "results.html").read_text(encoding="utf-8"), results, participants)
+        results_page = (language_root / "results.html").read_text(encoding="utf-8")
+        _check_failure_matrix(results_page, results, participants)
+        if "successful-distributions" not in results_page or (
+            "Playwright 动作耗时" not in results_page
+            and "Playwright action latency" not in results_page
+        ):
+            raise ValueError("result analysis is missing its detailed latency distributions")
     _check_formal_execution_scope(manifest)
     if manifest.get("formal_reference_validity") is True:
         if manifest.get("execution_backend") != "playwright":
@@ -641,7 +691,7 @@ def check(report_dir: Path) -> dict[str, int]:
         "evidence-viewer.html",
     )
     if manifest.get("interpretation"):
-        _check_interpretation(root)
+        _check_interpretation(root, results, participants)
         core_names += ("interpretation.html", "article.html")
     core, chinese_details, english_details = _semantic_page_inventory(root, core_names)
     forbidden = (

@@ -3,13 +3,43 @@ from urllib.parse import parse_qs, urlsplit
 import pytest
 from bs4 import BeautifulSoup
 
-from harness.trajectory_replay.failure_matrix import failure_category_matrix
+from harness.trajectory_replay.failure_matrix import (
+    browser_failure_profile,
+    failure_category_matrix,
+    failure_signature_cards,
+)
 
 
 def _row(method, task, code="", status="fail"):
     return dict(participant_id=method, task_id=task, status=status,
                 cause_code=code, cause_zh=code + "中文" if code else "",
-                cause_en=code + " English" if code else "")
+                cause_en=code + " English" if code else "",
+                reason_zh=code + "原因" if code else "",
+                reason_en=code + " reason" if code else "",
+                key=f"{method}-{task}")
+
+
+def test_failure_signatures_keep_only_three_leading_causes_and_link_to_analysis():
+    methods = {"one": {"label": "One"}}
+    rows = [_row("one", task, code) for task, code in enumerate(("a", "a", "b", "c", "d"))]
+    soup = BeautifulSoup(
+        failure_signature_cards(methods, rows, "zh", participants=("one",)),
+        "html.parser",
+    )
+    assert len(soup.select('[data-method="one"] li:not(.failure-remainder)')) == 3
+    assert soup.select_one(".failure-remainder strong").text == "1"
+    assert soup.select_one(".section-heading>a")["href"] == "interpretation.html#browser-diagnoses"
+
+
+def test_browser_profile_covers_every_reviewed_subtype_with_evidence():
+    methods = {"one": {"label": "One"}}
+    rows = [_row("one", 0, status="pass"), _row("one", 1, "a"), _row("one", 2, "b")]
+    soup = BeautifulSoup(browser_failure_profile(methods, rows, "zh", "one"), "html.parser")
+    assert {item["data-cause"] for item in soup.select(".failure-bars [data-cause]")} == {"a", "b"}
+    assert {item["data-cause-detail"] for item in soup.select("[data-cause-detail]")} == {"a", "b"}
+    assert {link["href"] for link in soup.select("[data-cause-detail] a")} == {
+        "result/one-1.html", "result/one-2.html"
+    }
 
 
 def test_article_embedding_keeps_matrix_without_a_duplicate_section_heading():

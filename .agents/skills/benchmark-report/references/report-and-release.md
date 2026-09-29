@@ -8,6 +8,12 @@ For the current trajectory report, `make trajectory-replay-report EVIDENCE=/abso
 
 ## Reader-facing structure
 
+Make the home and interpretation routes presentation-ready. Each section should make one finding legible through a data-bearing chart, mechanism diagram, meaningful image, or inspectable specimen, followed by short explanatory prose. Keep exact values in accessible text. Decoration is not a visual explanation: remove images that carry no data, mechanism, topology, or evidence. Dense sortable inventories and raw logs remain on the analysis and evidence routes that own them.
+
+When multiple methods have material failures, give each one a separate interpretation chapter containing its full reviewed subtype distribution, a plain-language explanation of the dominant mechanisms, representative result evidence, and the difference from the other methods. The home page should show only a compact leading-error signature; result analysis owns complete stage and case distributions.
+
+After the factual pass, run both repository Humanizer and Humanizer Chinese over Chinese report-authored headings, prose, and captions. Run Humanizer over English. These passes may improve language only; they must preserve numbers, scope, technical meaning, quotations, and uncertainty.
+
 Organize around reader questions, not storage tables. A useful report usually makes these answers easy to find:
 
 - What was compared, on which tasks and versions?

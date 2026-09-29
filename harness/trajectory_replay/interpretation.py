@@ -7,7 +7,11 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 
-from harness.trajectory_replay.failure_matrix import failure_category_matrix
+from harness.trajectory_replay.failure_matrix import (
+    browser_failure_profile,
+    failure_category_matrix,
+    failure_signature_cards,
+)
 
 
 def _report_page_url(report_url: str, relative: str) -> str:
@@ -15,6 +19,23 @@ def _report_page_url(report_url: str, relative: str) -> str:
     target = urlsplit(urljoin(report_url, relative))
     query = urlencode(parse_qsl(base.query) + parse_qsl(target.query))
     return urlunsplit((target.scheme, target.netloc, target.path, query, target.fragment))
+
+
+def _outcome_chart(methods: dict, rows: list[dict], lang: str) -> str:
+    """Render exact pass counts as a slide-friendly visual, not another data table."""
+    zh = lang == "zh"
+    entries = []
+    for key, method in methods.items():
+        selected = [row for row in rows if row["participant_id"] == key]
+        passed = sum(row["status"] == "pass" for row in selected)
+        rate = passed / len(selected) * 100 if selected else 0
+        entries.append(
+            f'<li data-method="{html.escape(key)}"><div><strong>{html.escape(method["label"])}</strong>'
+            f'<span>{passed}/{len(selected)} · {rate:.1f}%</span></div>'
+            f'<div class="outcome-track" aria-label="{rate:.1f}%"><i style="width:{rate:.2f}%"></i></div></li>'
+        )
+    caption = "官方通过数／812 题" if zh else "Official passes / 812 tasks"
+    return f'<figure class="outcome-chart" data-outcome-chart><ol>{"".join(entries)}</ol><figcaption>{caption}</figcaption></figure>'
 
 
 def render_interpretation(*, source: Path, contract_audit: Path, results_sha256: str,
@@ -39,16 +60,24 @@ def render_interpretation(*, source: Path, contract_audit: Path, results_sha256:
         if identity in seen:
             raise ValueError("duplicate article section")
         seen.add(identity)
-        body.append(f'<section id="{e(identity)}"><h2>{e(section["title"][lang])}</h2>')
+        body.append(
+            f'<section class="presentation-slide" id="{e(identity)}"><h2>{e(section["title"][lang])}</h2>'
+        )
         if section.get("data") == "outcomes":
-            headers = ("方法", "原始通过数", "任务总数") if lang == "zh" else ("Method", "Original passes", "Tasks")
-            table_rows = []
-            for key, method in methods.items():
-                selected = [row for row in rows if row["participant_id"] == key]
-                table_rows.append([method["label"], sum(row["status"] == "pass" for row in selected), len(selected)])
-            body.append(_table(headers, table_rows))
+            body.append(_outcome_chart(methods, rows, lang))
         elif section.get("data") == "failure_matrix":
             body.append(failure_category_matrix(methods, rows, lang, embedded=True))
+        elif section.get("data") == "failure_signatures":
+            participants = tuple(section.get("participants") or ())
+            body.append(
+                failure_signature_cards(
+                    methods, rows, lang, participants=participants
+                ).replace('href="interpretation.html#browser-diagnoses"', 'href="#browser-diagnoses"')
+            )
+        elif section.get("data") == "browser_failure_profile":
+            body.append(
+                browser_failure_profile(methods, rows, lang, section["participant"])
+            )
         elif section.get("data") == "contract_changes":
             headers = ("题目", "原合同", "改动及影响") if lang == "zh" else ("Task", "Original contract", "Change and effect")
             body.append(_table(headers, [
@@ -113,11 +142,16 @@ def render_interpretation(*, source: Path, contract_audit: Path, results_sha256:
     if standalone:
         if not report_url.startswith("https://"):
             raise ValueError("offline article requires the bound HTTPS report URL")
-        # Only the registry-generated matrix creates links in this renderer.
+        # Data visuals create report-relative evidence links. Preserve the share token
+        # in the script-free standalone article.
         def absolute_result_link(match):
             target = _report_page_url(report_url, html.unescape(match[1]))
             return f'href="{e(target)}"'
-        result = re.sub(r'href="(results\.html[^"]*)"', absolute_result_link, result)
+        result = re.sub(
+            r'href="((?:results\.html|result/[^"?#]+\.html)[^"]*)"',
+            absolute_result_link,
+            result,
+        )
     return title, result
 
 
