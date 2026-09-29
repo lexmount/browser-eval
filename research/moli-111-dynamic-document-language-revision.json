@@ -1,0 +1,72 @@
+{
+  "schema_version": 2,
+  "kind": "dataset_revision_receipt",
+  "reason": "Three Chinese-target dynamic pages declare html lang=en in the independently loaded source. Target content language and source document metadata are different requirements; inferring the latter from the former incorrectly rejects otherwise complete answers.",
+  "predecessor_receipt": "research/moli-111-visible-answer-scoring-revision.json",
+  "predecessor_receipt_sha256": "b6dfe593ac03defa97f6aabe954903cbfc3e45017b4e99f537b5ff70f1211e8f",
+  "historical_dataset_sha256": "2a149a7003a43ee4746bf1d11669154506a96172ddfe51f7abb9b2d547fba8b3",
+  "revised_dataset_sha256": "8181394edb1cee4276de4e0f1981aedf164c883860267fcad0d51b292d953910",
+  "provider_calls_for_revision": 0,
+  "correction_provenance": {
+    "category": "acceptance-contract",
+    "root_cause": "The dataset omitted the live source document language for Chinese-target pages, so identity validation incorrectly substituted the visible-content target language.",
+    "regression_ids": [
+      "dynamic-source-document-language-mismatch-is-not-verified",
+      "dynamic-arabic-visible-text-with-english-html-lang-remains-eligible"
+    ],
+    "verdict_corrections": {
+      "false_positives": 0,
+      "false_negatives": 2,
+      "total": 2
+    }
+  },
+  "changes": [
+    {
+      "case_id": "dynamic-057-nutui-jd-com-h5",
+      "field": "expected_document_language",
+      "before": "",
+      "after": "en",
+      "source_checked_at": "2026-09-29T12:43:13.783925+00:00",
+      "source_final_url": "https://nutui.jd.com/h5/vue/4x/#/zh-CN/guide/intro",
+      "source_html_sha256": "d1bd723ad1eb1824cdf2be8aba7bb7cea0e6e10727e59637832f6d865480db47",
+      "source_contract_sha256": "2046e7aff6eac15e24cfc80aeb695dfe41ebe9909c28db19dcef123ff309f0be",
+      "source_contract_met": true,
+      "saved_answer_sha256": "4702dd74e45bceeca7e842ce7fb9b021ff25132717c0a579f7cca1ba76bd10cf",
+      "task_pass_before": false,
+      "task_pass_after": true
+    },
+    {
+      "case_id": "dynamic-059-layui-vue-com-zh",
+      "field": "expected_document_language",
+      "before": "",
+      "after": "en",
+      "source_checked_at": "2026-09-29T12:44:54.354342+00:00",
+      "source_final_url": "https://www.layui-vue.com/zh-CN/components/table",
+      "source_html_sha256": "0515a90fde8f57e9661fcbafd01dfa89c0e4b957ae361e87bf201f3c53a3eb0f",
+      "source_contract_sha256": "9d2f96d00bb078da6c7cb77fcef889447671076643f41f424127af418853beb1",
+      "source_contract_met": true,
+      "saved_answer_sha256": "5c46a9210c93d60982f66fc67bf49b36f54629976fad7f1b11c111c60ece0b0e",
+      "task_pass_before": false,
+      "task_pass_after": true
+    },
+    {
+      "case_id": "dynamic-058-zh-stable-tdesign-table",
+      "field": "expected_document_language",
+      "before": "",
+      "after": "en",
+      "source_checked_at": "2026-09-29T12:53:14.710289+00:00",
+      "source_final_url": "https://tdesign.tencent.com/vue-next/components/table",
+      "source_html_sha256": "37a94443ad87172eb2157143bcefc57f6a51e929dcc6e3354d67f72612482493",
+      "source_contract_sha256": "b43b098d6bd1e9766a777e90f12938bc6e21377041f391be7a45b029dd48c2b2",
+      "source_contract_met": true,
+      "saved_answer_sha256": "6fb0249a105b89750d818e591503f72ed7ce32bd9d9824fc909de6f1e6c7d7f2",
+      "task_pass_before": false,
+      "task_pass_after": false,
+      "remaining_failure": "too_few_complete_records_and_missing_stable_anchors"
+    }
+  ],
+  "task_decision_changes": [
+    {"case_id": "dynamic-057-nutui-jd-com-h5", "answer_sha256": "4702dd74e45bceeca7e842ce7fb9b021ff25132717c0a579f7cca1ba76bd10cf", "before": false, "after": true},
+    {"case_id": "dynamic-059-layui-vue-com-zh", "answer_sha256": "5c46a9210c93d60982f66fc67bf49b36f54629976fad7f1b11c111c60ece0b0e", "before": false, "after": true}
+  ]
+}

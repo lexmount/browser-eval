@@ -17,6 +17,7 @@ RECEIPT_PATH = ROOT / "research/dynamic-100-moli-119-local-audit.json"
 PRIOR_SCORING_REVISION_PATH = ROOT / "research/moli-111-visible-html-scoring-revision.json"
 INTERMEDIATE_SCORING_REVISION_PATH = ROOT / "research/moli-111-inline-html-scoring-revision.json"
 CURRENT_SCORING_REVISION_PATH = ROOT / "research/moli-111-visible-answer-scoring-revision.json"
+DOCUMENT_LANGUAGE_REVISION_PATH = ROOT / "research/moli-111-dynamic-document-language-revision.json"
 
 
 def _dataset():
@@ -31,7 +32,32 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert len(cases) == receipt["scope"]["cases"] == 100
     assert len({case["id"] for case in cases}) == 100
     assert len({case["url"] for case in cases}) == 100
-    assert hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest() == receipt["bindings"]["dataset_sha256"]
+    dataset_revision = json.loads(DOCUMENT_LANGUAGE_REVISION_PATH.read_text(encoding="utf-8"))
+    assert dataset_revision["historical_dataset_sha256"] == receipt["bindings"]["dataset_sha256"]
+    assert (hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest()
+            == dataset_revision["revised_dataset_sha256"])
+    assert (hashlib.sha256(CURRENT_SCORING_REVISION_PATH.read_bytes()).hexdigest()
+            == dataset_revision["predecessor_receipt_sha256"])
+    historical_text = DATASET_PATH.read_text(encoding="utf-8")
+    for change in dataset_revision["changes"]:
+        case = next(case for case in cases if case["id"] == change["case_id"])
+        assert change["field"] == "expected_document_language"
+        assert change["before"] == "" and change["after"] == "en"
+        assert case[change["field"]] == change["after"]
+        assert change["source_contract_met"] is True
+        assert len(change["source_html_sha256"]) == 64
+        assert len(change["saved_answer_sha256"]) == 64
+        marker = f'      "url": "{case["url"]}",\n      "expected_document_language": "en",\n'
+        assert historical_text.count(marker) == 1
+        historical_text = historical_text.replace(
+            marker, f'      "url": "{case["url"]}",\n', 1)
+    assert (hashlib.sha256(historical_text.encode()).hexdigest()
+            == receipt["bindings"]["dataset_sha256"])
+    assert len(dataset_revision["changes"]) == 3
+    assert dataset_revision["provider_calls_for_revision"] == 0
+    assert valid_correction_provenance(dataset_revision)
+    assert len(dataset_revision["task_decision_changes"]) == 2
+    assert dataset_revision["changes"][2]["task_pass_after"] is False
     prior = json.loads(PRIOR_SCORING_REVISION_PATH.read_text(encoding="utf-8"))
     intermediate = json.loads(INTERMEDIATE_SCORING_REVISION_PATH.read_text(encoding="utf-8"))
     revision = json.loads(CURRENT_SCORING_REVISION_PATH.read_text(encoding="utf-8"))
@@ -45,7 +71,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert SCORING_SOURCE_SHA256 == revision["revised_scoring_source_sha256"]
     regression_bytes = (ROOT / "evaluation/scoring-regressions.json").read_bytes()
     assert hashlib.sha256(regression_bytes).hexdigest() == revision["scoring_regressions_sha256"]
-    assert revision["dataset_sha256"]["dynamic"] == hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest()
+    assert revision["dataset_sha256"]["dynamic"] == dataset_revision["historical_dataset_sha256"]
     assert valid_correction_provenance(prior)
     assert valid_correction_provenance(intermediate)
     assert valid_correction_provenance(revision)
