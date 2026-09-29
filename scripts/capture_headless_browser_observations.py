@@ -43,14 +43,25 @@ MAX_RESOURCE_CANDIDATES = 512
 
 
 def evaluate_popular_source_contract(case: dict, source_html: str,
+                                     rendered_text: str, visible_links: list[dict],
                                      final_url: str | None = None) -> dict:
-    """Check the same frozen task against independently rendered source DOM."""
+    """Score only rendered source text and visible links; retain raw-DOM diagnosis."""
     from harness.web_fetch.stable_tasks import evaluate_stable_task
 
-    result = evaluate_stable_task(source_html, case['acceptance_contract'],
+    contract = case['acceptance_contract']
+    raw = evaluate_stable_task(source_html, contract, base_url=final_url or case['url'])
+    projection = rendered_text
+    if contract['schema'] == 'named_link':
+        projection += '\n' + '\n'.join(
+            '[{name}]({url})'.format(
+                name=' '.join(link['name'].replace('[', ' ').replace(']', ' ').split()),
+                url=link['url'])
+            for link in visible_links if link.get('name') and link.get('url'))
+    result = evaluate_stable_task(projection, contract,
                                   base_url=final_url or case['url'])
     return {
         'pass': result['stable_task_pass'],
+        'raw_html_pass': raw['stable_task_pass'],
         'missing_anchor_ids': [anchor['id'] for anchor in result['stable_anchor_results']
                                if not anchor['pass']],
         'errors': result['stable_task_errors'],
@@ -239,9 +250,13 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
                 if live_contract:
                     source_html = page.content()
                     source_html_sha256 = hashlib.sha256(source_html.encode()).hexdigest()
-                    source_contract = evaluate_popular_source_contract(
-                        case, source_html, page.url)
                     content = page.locator('body').inner_text(timeout=timeout_ms)
+                    visible_links = page.locator('a:visible').evaluate_all('''anchors => anchors
+                        .filter(a => !a.closest('[hidden],[aria-hidden="true"]'))
+                        .map(a => ({name: a.innerText.trim(), url: a.href}))
+                        .filter(a => a.name && /^https?:/.test(a.url))''')
+                    source_contract = evaluate_popular_source_contract(
+                        case, source_html, content, visible_links, page.url)
                     observation_method = 'independent_rendered_source_contract_check'
                 elif rule and rule.get('include_hidden_dom_text'):
                     content = content_locator.text_content(timeout=timeout_ms) or ''

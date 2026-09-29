@@ -80,15 +80,39 @@ def test_popular_source_contract_rejects_stale_heading_without_weakening_task():
         },
     }
     fresh = evaluate_popular_source_contract(
-        case, '<html><body><h1>Original heading</h1><nav>Pricing</nav></body></html>')
+        case, '<html><body><h1>Original heading</h1><nav>Pricing</nav></body></html>',
+        'Original heading\nPricing', [])
     stale = evaluate_popular_source_contract(
-        case, '<html><body><h1>New heading</h1><nav>Pricing</nav></body></html>')
+        case, '<html><body><h1>New heading</h1><nav>Pricing</nav></body></html>',
+        'New heading\nPricing', [])
     hidden = evaluate_popular_source_contract(
         case, '<html><body><h1>New heading</h1><script>Original heading</script>'
-              '<nav>Pricing</nav></body></html>')
+              '<nav>Pricing</nav></body></html>', 'New heading\nPricing', [])
     assert fresh['pass'] is True
     assert stale['missing_anchor_ids'] == ['heading']
     assert hidden['missing_anchor_ids'] == ['heading']
+
+
+def test_popular_source_contract_rejects_hidden_records_behind_security_gate():
+    case = {
+        'url': 'https://example.com/',
+        'acceptance_contract': {
+            'version': 1, 'schema': 'named_link', 'minimum_records': 1,
+            'hosts': ['example.com'], 'entry_path': r'/item/[0-9]+',
+            'stable_text_anchors': [
+                {'id': 'nav', 'alternatives': ['Discover'], 'match_scope': 'non_record_lines'}],
+        },
+    }
+    raw = '<html><body><nav>Discover</nav><a href="/item/1">First item</a></body></html>'
+    fresh = evaluate_popular_source_contract(
+        case, raw, 'Discover\nFirst item',
+        [{'name': 'First item', 'url': 'https://example.com/item/1'}])
+    gated = evaluate_popular_source_contract(
+        case, raw, '安全限制\nIP存在风险，请切换可靠网络环境后重试', [])
+    assert fresh['pass'] is True
+    assert gated['pass'] is False
+    assert gated['raw_html_pass'] is True
+    assert 'too_few_complete_records' in gated['errors']
 
 
 def test_capture_retries_one_case_until_declared_completion(monkeypatch):
