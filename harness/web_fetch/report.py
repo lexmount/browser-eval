@@ -2939,6 +2939,7 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
     labels = {p: (variant_labels[p] if p in variant_labels else profile["versions"][p] if p == "chromium" else p.capitalize() +
                   (" " + profile["versions"][p] if p != "kitesurf" else "")) for p in providers}
     content_fixed_commit = json.loads((out / 'moli-content-fixed-report.json').read_text(encoding='utf-8'))['source_commit']
+    content_fixed_version = profile['versions']['moli-content-fixed']
     measures = [("overall", "综合分"), ("text_edit", "全文"), ("code_edit", "代码"),
                 ("formula_edit", "公式"), ("table_edit", "表格内容"), ("table_TEDS", "表格结构")]
 
@@ -3078,7 +3079,8 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
             summary = summaries[provider]
             scores = summary["official_aggregate"]["scores"]
             denominators = summary["official_aggregate"]["denominators"]
-            method_detail = ('<small>实测提交 ' + esc(content_fixed_commit[:9]) + '；Moli 1.1.11</small>'
+            method_detail = ('<small>实测提交 ' + esc(content_fixed_commit[:9]) + '；Moli ' +
+                             esc(content_fixed_version) + '</small>'
                              if provider == 'moli-content-fixed' else '')
             cells = ['<td data-sort="' + esc(labels[provider]) + '">' + anchor("analysis/index.html?provider=" + provider, labels[provider]) + method_detail + "</td>"]
             for metric, _ in measures:

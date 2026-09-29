@@ -132,7 +132,8 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     core = home.select_one('table#core-results')
     assert len(core.select('tbody > tr')) == 7
     assert len(core.select('th[aria-sort="none"] > button[data-table-sort]')) == 8
-    assert '实测提交 683b297e1；Moli 1.1.11' in core.get_text(' ', strip=True)
+    assert "实测提交 683b297e1；Moli 1.1'</script><script>bad()" in core.get_text(' ', strip=True)
+    assert core.find('script') is None
     quality_matrix = home.select_one('table#quality-issue-matrix')
     assert quality_matrix is not None
     assert len(quality_matrix.select('tbody > tr')) == 7
