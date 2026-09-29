@@ -90,7 +90,13 @@ def failure_signature_cards(
             f'<strong>{len(failures)} / {population}</strong></div><b>{escape(methods[participant]["label"])}</b></header>'
             f'<ul>{"".join(items)}</ul></article>'
         )
-    heading = "四种浏览器的主导错误" if zh else "Dominant failures in four browsers"
+    participant_count = len(participants)
+    heading = (
+        f"{participant_count} 款浏览器的主导错误"
+        if zh
+        else f"Dominant failures in {participant_count} "
+        + ("browser" if participant_count == 1 else "browsers")
+    )
     note = (
         "每条失败只进入一个复核子类。这里显示各方法数量最多的三类；完整分类、原因和逐题证据见报告解读。"
         if zh
@@ -99,7 +105,12 @@ def failure_signature_cards(
     return (
         f'<section class="summary-slide" data-failure-signatures><div class="section-heading"><div><h2>{heading}</h2>'
         f'<p>{note}</p></div><a href="interpretation.html#browser-diagnoses">'
-        + ("查看四章详解" if zh else "Read four browser chapters")
+        + (
+            f"查看 {participant_count} 章详解"
+            if zh
+            else f"Read {participant_count} browser "
+            + ("chapter" if participant_count == 1 else "chapters")
+        )
         + f'</a></div><div class="failure-signature-grid">{"".join(cards)}</div></section>'
     )
 

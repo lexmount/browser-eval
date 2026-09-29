@@ -28,7 +28,23 @@ def test_failure_signatures_keep_only_three_leading_causes_and_link_to_analysis(
     )
     assert len(soup.select('[data-method="one"] li:not(.failure-remainder)')) == 3
     assert soup.select_one(".failure-remainder strong").text == "1"
+    assert soup.select_one("h2").text == "1 款浏览器的主导错误"
+    assert soup.select_one(".section-heading>a").text == "查看 1 章详解"
     assert soup.select_one(".section-heading>a")["href"] == "interpretation.html#browser-diagnoses"
+
+
+def test_failure_signature_copy_uses_registered_participant_count_in_english():
+    methods = {"one": {"label": "One"}, "two": {"label": "Two"}}
+    rows = [_row("one", 1, "a"), _row("two", 1, "b")]
+    soup = BeautifulSoup(
+        failure_signature_cards(
+            methods, rows, "en", participants=("one", "two")
+        ),
+        "html.parser",
+    )
+
+    assert soup.select_one("h2").text == "Dominant failures in 2 browsers"
+    assert soup.select_one(".section-heading>a").text == "Read 2 browser chapters"
 
 
 def test_browser_profile_covers_every_reviewed_subtype_with_evidence():
