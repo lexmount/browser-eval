@@ -2,7 +2,9 @@
   "schema": "lex_webarena_replay_comparison_release/1",
   "benchmark": "WebArena-Verified",
   "split": "full-812",
-  "evidence_root": "trajectory-replay/full-812-five-browsers-six-methods-20260928",
+  "evidence_root": "trajectory-replay/full-812-five-browsers-six-methods-20260929",
+  "execution_backend": "playwright",
+  "resource_collection_status": "not_recorded",
   "task_count": 812,
   "logical_results": 4872,
   "physical_executions": 6554,
@@ -53,7 +55,7 @@
   "artifacts": {
     "profile": {
       "path": "profile.json",
-      "sha256": "6932b30d4898e0a930ae861c5a3fd47a90cb25dfebb44ad9b5ec27b95f4f6133"
+      "sha256": "c1e0d806341e528759c8c28ac7fabfc87709fa1b1a2f6b75a96a260d18b6c814"
     },
     "dataset": {
       "path": "dataset.json",
@@ -61,34 +63,38 @@
     },
     "results": {
       "path": "results.json",
-      "sha256": "64524c71b3446eedadeb15a71454dfa2b31d4675512032ffcb41a3d53678047d"
+      "sha256": "6074435e6a16976fb77c2bac48ea8a580e11d6d70b779b6fef69a9b082f82b62"
     },
     "failure_review": {
       "path": "failure-review.json",
-      "sha256": "42001bc9c27db602b3def7977541e20ddfbfbd55d4beb1816fbf1d187c5d9fda"
+      "sha256": "27a15133cf2910c3a1ebfecc684a6ada851a63aed7604328857e7286b7d08ff2"
+    },
+    "execution_metadata_revision": {
+      "path": "execution-metadata-revision.json",
+      "sha256": "95e19532a4d5e44399fc06656273303a6fc70c20e4b404ba74fdc81d29892411"
     },
     "report_manifest": {
-      "path": "report-v3/report-manifest.json",
-      "sha256": "e1b98aca49af1c748c8f71f888a8a2cc8ec1ebe18f2a8f97e217465f6c700f41"
+      "path": "report/report-manifest.json",
+      "sha256": "6fb52c5c78e87863a40b8ba8189e860740e3cb63b5780670fc85b3acaac56ad8"
     },
     "publication_archive": {
       "path": "artifact-site-package.zip",
-      "sha256": "b604f9e6fd7d8c2afe20b3d0271ecf74c2b199e7d91df299e26077159b7e9536"
+      "sha256": "956cb77d5996f363e04d3c4bfc7eeecef210ac515e055cbcba9d414995dfff66"
     },
     "publication_attestation": {
       "path": "artifact-site-attestation.json",
-      "sha256": "0000d732e4be6c35dee8f2bb19d775b3e1bff56af5bebf8422d5a4ef243f4c4a"
+      "sha256": "eb3ebba39f04a8c952d84aa7a32cc12f7f09c617ba7fc956f6e0df89b0f14142"
     },
     "publication_receipt": {
       "path": "artifact-site-receipt.json",
-      "sha256": "441b8fed2695dc7c493a98540a0e865c50afe17381e6f3f4b607a8bbbd42ae23"
+      "sha256": "80e6fa07bbaaef4ef99ff2d0ae6eb92e199cc7f6cdfd275af11389ecc58549e9"
     }
   },
   "publication": {
     "service": "artifact-site",
     "host": "https://artifact-site.lexmount.cn",
     "slug": "EFLrNgujgsVc",
-    "version_id": "ver_e7c97545a31e495c8b0261afac47de30",
+    "version_id": "ver_eab4bd54c82c440aad516258020c6242",
     "share_url": "https://artifact-site.lexmount.cn/v/4G8YKfQreobGLwg4fo-UJGohezNqgAEm"
   }
 }
