@@ -11,7 +11,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from harness.web_fetch.metrics import summarize, task_passed
+from harness.web_fetch.metrics import summarize, task_measured, task_passed
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.providers.http_client import HttpResponse
@@ -44,6 +44,73 @@ REFERENCE = {"case_id": "legacy", "items": [
 
 
 class ScoringTests(unittest.TestCase):
+    def test_risk_control_requires_declared_page_identity(self):
+        navigation = {
+            "risk_control": {
+                "navigation_contract": {
+                    "requested_url": "https://example.test/start",
+                    "observed_final_url": "https://example.test/final",
+                    "target_language": "en",
+                }
+            }
+        }
+        c = case(
+            url="https://example.test/start",
+            track="risk_control",
+            acceptance_contract={
+                "version": 1,
+                "schema": "body_text",
+                "minimum_records": 0,
+                "stable_text_anchors": [{"id": "body", "alternatives": ["Expected"]}],
+            },
+            source_benchmark=navigation,
+        )
+        wrong = score_attempt(c, b"Expected", ok=True, final_url="https://other.test/")
+        self.assertTrue(wrong["page_identity_required"])
+        self.assertEqual(wrong["page_identity_status"], "mismatch")
+        self.assertTrue(task_measured(wrong))
+        self.assertFalse(task_passed(True, wrong))
+        missing = score_attempt(c, b"Expected", ok=True)
+        self.assertEqual(missing["page_identity_status"], "unavailable")
+        self.assertFalse(task_measured(missing))
+        self.assertFalse(task_passed(True, missing))
+        accepted = score_attempt(c, b"Expected", ok=True, final_url="https://example.test/final")
+        self.assertEqual(accepted["page_identity_status"], "verified")
+        self.assertTrue(task_passed(True, accepted))
+
+    def test_risk_control_page_context_is_diagnostic_only(self):
+        benchmark = {
+            "risk_control": {
+                "navigation_contract": {
+                    "requested_url": "https://example.test/page",
+                    "observed_final_url": "https://example.test/page",
+                    "target_language": "en",
+                },
+                "page_context_anchors": [
+                    {"id": "translate", "alternatives": ["Translate"]}
+                ],
+            }
+        }
+        c = case(
+            track="risk_control",
+            acceptance_contract={
+                "version": 1,
+                "schema": "body_text",
+                "minimum_records": 0,
+                "stable_text_anchors": [{"id": "body", "alternatives": ["Target body"]}],
+            },
+            source_benchmark=benchmark,
+        )
+        measured = score_attempt(
+            c,
+            b"Target body",
+            ok=True,
+            final_url="https://example.test/page",
+        )
+        self.assertFalse(measured["page_context_pass"])
+        self.assertEqual(measured["page_context_coverage"], 0.0)
+        self.assertTrue(task_passed(True, measured))
+
     def test_source_title_is_answer_evidence_without_inflating_body_length(self):
         c=case(required_facts=[{'id':'title','alternatives':['Exact page title']},
                               {'id':'body','alternatives':['Body fact']}],

@@ -34,20 +34,37 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert compatibility["scope"] == {
         "cases": 100,
         "input_passes": 44,
-        "output_passes": 44,
-        "task_decision_changes": 0,
+        "output_passes": 45,
+        "task_decision_changes": 1,
     }
     bindings = compatibility["bindings"]
     assert bindings["dataset_sha256"] == receipt["bindings"]["dataset_sha256"]
     assert bindings["input_results_sha256"] == receipt["bindings"]["results_sha256"]
-    assert bindings["decision_digest_format"] == "sorted_attempt_id_boolean_json_v1"
-    assert bindings["input_task_decisions_sha256"] == bindings["output_task_decisions_sha256"]
+    assert bindings["decision_digest_format"] == (
+        "sorted_attempt_id_boolean_pairs_compact_json_v1"
+    )
+    assert bindings["input_task_decisions_sha256"] != bindings["output_task_decisions_sha256"]
+    assert compatibility["task_decision_changes"] == [
+        {
+            "attempt_id": "moli-webfetch__replacement-pt-kabum-smartphones__r001",
+            "before": False,
+            "after": True,
+            "reason": (
+                "The saved Markdown uses &amp; for a browser-visible ampersand in the "
+                "required text 'Celular & Smartphone'; decoding one character-reference "
+                "layer corrects the false negative."
+            ),
+        }
+    ]
     assert bindings["scoring_source_sha256"] == SCORING_SOURCE_SHA256
     assert bindings["scoring_regressions_sha256"] == hashlib.sha256(
         (ROOT / "evaluation/scoring-regressions.json").read_bytes()
     ).hexdigest()
     assert bindings["composite_tests_sha256"] == hashlib.sha256(
         (ROOT / "tests/test_composite_tasks.py").read_bytes()
+    ).hexdigest()
+    assert bindings["stable_tests_sha256"] == hashlib.sha256(
+        (ROOT / "tests/test_stable_tasks.py").read_bytes()
     ).hexdigest()
     assert "Moli 1.1.9 local audit complete" in dataset["approval_status"]
     assert dataset["comparison"]["local_audit_receipt"] == RECEIPT_PATH.relative_to(ROOT).as_posix()

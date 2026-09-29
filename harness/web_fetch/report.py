@@ -1074,7 +1074,10 @@ def stable_answer_panel(contract):
  return note+f'<div class="answer-list"{scroll}><div class="answer-item"><b>结构要求</b><blockquote>{esc(count)}</blockquote></div>{"".join(items)}</div>'
 
 def machine_contract(case):
- return {key:case[key] for key in ('acceptance_contract','composite_acceptance','body_requirements') if case.get(key)}
+ contract={key:case[key] for key in ('acceptance_contract','composite_acceptance','body_requirements') if case.get(key)}
+ diagnostics=(((case.get('source_benchmark') or {}).get('risk_control') or {}).get('page_context_anchors'))
+ if diagnostics:contract['page_context_diagnostics']={'affects_task_pass':False,'anchors':diagnostics}
+ return contract
 
 def composite_contract_details(contract):
  labels={'named_link':'名称＋真实链接','name_description':'名称＋说明','table':'表格字段',
@@ -1252,6 +1255,8 @@ def reason(r,c):
    failed=[row['id'] for row in m.get('composite_group_results',[]) if not row.get('pass')]
    return '组合规则未满足：'+('、'.join(failed) if failed else '未通过的规则组未登记')+'。'
   success='稳定内容与结构检查通过。' if m.get('stable_anchor_results') or m.get('stable_page_pattern_results') else '条目结构检查通过；本例未设置稳定文字核对点。'
+  if m.get('page_context_anchor_total'):
+   success+=f" 页面外围诊断覆盖 {m.get('page_context_anchor_hits',0)}/{m['page_context_anchor_total']}；该诊断不影响任务通过。"
   if m.get('stable_task_schema') == 'body_text':
    return success if succeeded(r,c) else stable_failure_summary(m)+'。'
   counts=f"检出 {m.get('stable_record_count','—')} 条，字段完整 {m.get('stable_complete_record_count','—')} 条，完整且唯一 {m.get('stable_unique_record_count','—')} 条，要求至少 {m.get('stable_minimum_records','—')} 条。"

@@ -99,6 +99,55 @@ Date: 2026-09-29
     assert result["composite_group_results"][0]["count"] == 1
 
 
+def test_record_line_pattern_keeps_support_links_inside_the_article_card():
+    content = """\
+## [First article](https://news.example/first)
+
+3 hours ago
+
+[Neutral](/about-labels#neutral) First Source
+
+Owner: [First Owner](https://owners.example/first)
+
+## [Second article](https://news.example/second)
+
+an hour ago
+
+[Center-left](/about-labels#center-left) Second Source
+
+Owner: [Second Owner](https://owners.example/second)
+"""
+    result = evaluate_composite_acceptance(
+        content,
+        {
+            "version": 1,
+            "groups": [
+                {
+                    "id": "articles",
+                    "kind": "named_link",
+                    "minimum_records": 2,
+                    "hosts": ["*"],
+                    "entry_path": "/.+",
+                    "record_line_pattern": r"^##\s+",
+                    "required_fields": [
+                        {"id": "time", "kind": "date_or_time"},
+                        {
+                            "id": "label",
+                            "kind": "text",
+                            "pattern": "Neutral|Center-left",
+                        },
+                        {"id": "source", "kind": "text", "minimum_chars": 2},
+                    ],
+                }
+            ],
+        },
+        base_url="https://page.example/",
+    )
+
+    assert result["composite_acceptance_pass"] is True
+    assert result["composite_group_results"][0]["count"] == 2
+
+
 def test_first_repeated_link_does_not_replace_the_visible_record_name():
     rules = contract(
         named(
@@ -175,9 +224,9 @@ def test_linked_table_requires_link_and_fields_in_same_row():
             "hosts": ["example.test"],
             "entry_path": r"/item/[0-9]+",
             "required_columns": [
-                {"id": "name", "aliases": ["Name"]},
-                {"id": "description", "aliases": ["Description"]},
-                {"id": "owner", "aliases": ["Owner"]},
+                {"id": "name", "kind": "text", "aliases": ["Name"]},
+                {"id": "description", "kind": "text", "aliases": ["Description"]},
+                {"id": "owner", "kind": "text", "aliases": ["Owner"]},
             ],
             "identity_column": "name",
             "link_column": "name",
@@ -256,10 +305,10 @@ def test_table_fields_are_checked_on_the_same_row_and_deduplicated():
             "kind": "table",
             "minimum_records": 2,
             "required_columns": [
-                {"id": "number", "aliases": ["No.", "Number"]},
-                {"id": "name", "aliases": ["Name"]},
-                {"id": "attempts", "aliases": ["Attempts"]},
-                {"id": "accepted", "aliases": ["AC"]},
+                {"id": "number", "kind": "integer", "aliases": ["No.", "Number"]},
+                {"id": "name", "kind": "text", "aliases": ["Name"]},
+                {"id": "attempts", "kind": "integer", "aliases": ["Attempts"]},
+                {"id": "accepted", "kind": "integer", "aliases": ["AC"]},
             ],
             "identity_column": "number",
         }
@@ -276,6 +325,36 @@ def test_table_fields_are_checked_on_the_same_row_and_deduplicated():
     assert not evaluate_composite_acceptance(negative, rules, base_url="https://example.test/")[
         "composite_acceptance_pass"
     ]
+
+
+def test_table_column_types_reject_nonempty_fake_values():
+    rules = contract(
+        {
+            "id": "packages",
+            "kind": "linked_table",
+            "minimum_records": 1,
+            "hosts": ["example.test"],
+            "entry_path": r"/item/[0-9]+",
+            "required_columns": [
+                {"id": "name", "kind": "text", "aliases": ["Name"]},
+                {"id": "version", "kind": "version", "aliases": ["Version"]},
+                {"id": "date", "kind": "date_or_time", "aliases": ["Date"]},
+            ],
+            "identity_column": "name",
+            "link_column": "name",
+        }
+    )
+    valid = """| Name | Version | Date |
+|---|---|---|
+| [One](https://example.test/item/1) | 1.2.3 | 2026-09-29 |
+"""
+    invalid = valid.replace("1.2.3 | 2026-09-29", "fake | fake")
+    assert evaluate_composite_acceptance(valid, rules, base_url="https://example.test/")[
+        "composite_acceptance_pass"
+    ]
+    result = evaluate_composite_acceptance(invalid, rules, base_url="https://example.test/")
+    assert not result["composite_acceptance_pass"]
+    assert result["composite_group_results"][0]["count"] == 0
 
 
 def test_adjacent_text_does_not_repair_a_literal_group():

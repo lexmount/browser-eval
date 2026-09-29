@@ -17,6 +17,7 @@ from harness.web_fetch.report_build import build_report
 from harness.web_fetch.retrieval_hints import plan_for_case
 from harness.web_fetch.risk_control import measured_risk_control_dataset
 from harness.web_fetch.runner import run_evaluation
+from harness.web_fetch.safety import contained_path
 from harness.web_fetch.storage import data_home
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +67,48 @@ def require_complete_diagnostic_logs(records: list[dict]) -> None:
             "Every Moli call must retain complete hash-bound raw stderr; incomplete cases: "
             + ", ".join(incomplete)
         )
+
+
+def reference_proof_roots(profile: dict) -> dict[str, Path]:
+    """Resolve the external, Git-out source roots declared by the bound manifest."""
+    binding = profile["source_bindings"]["qualification_manifest"]
+    manifest = json.loads(rooted(binding["path"]).read_text(encoding="utf-8"))
+    return {
+        key: (data_home() / relative).resolve()
+        for key, relative in manifest["evidence_roots"].items()
+    }
+
+
+def reference_proof_snapshot(cases: list[dict], roots: dict[str, Path]) -> dict:
+    """Hash every declared reference text; missing or changed files fail closed."""
+    files = []
+    for case in cases:
+        binding = case["source_benchmark"]["risk_control"]["reference_proof"]
+        if binding.get("root") not in roots:
+            raise ValueError(f"Unknown reference proof root: {case['id']}")
+        path = contained_path(roots[binding["root"]], binding["path"])
+        if not path.is_file():
+            raise ValueError(f"Missing reference proof: {case['id']}")
+        observed = digest(path)
+        if observed != binding.get("sha256"):
+            raise ValueError(f"Changed reference proof: {case['id']}")
+        files.append(
+            {
+                "case_id": case["id"],
+                "root": binding["root"],
+                "path": binding["path"],
+                "sha256": observed,
+                "bytes": path.stat().st_size,
+            }
+        )
+    if len(files) != 100 or len({row["case_id"] for row in files}) != 100:
+        raise ValueError("Reference proof scope is not the exact 100-case cohort")
+    inventory = json.dumps(files, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return {
+        "case_count": 100,
+        "inventory_sha256": hashlib.sha256(inventory.encode()).hexdigest(),
+        "files": files,
+    }
 
 
 def validate(profile_path: Path) -> tuple[dict, dict, list, object, Path]:
@@ -191,6 +234,8 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
     profile_sha256 = digest(profile_path)
     measured_dataset = measured_risk_control_dataset(profile, dataset, profile_sha256)
     execution = profile["execution"]
+    proof_roots = reference_proof_roots(profile)
+    proof_before = reference_proof_snapshot(dataset["cases"], proof_roots)
     pre_identity = implementation_identity(provider)
     records, _ = run_evaluation(
         output_dir=output,
@@ -211,8 +256,29 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
     post_identity = implementation_identity(provider, refresh=True)
     if post_identity != pre_identity:
         raise ValueError("Moli implementation identity changed during execution")
+    proof_after = reference_proof_snapshot(dataset["cases"], proof_roots)
+    if proof_after != proof_before:
+        raise ValueError("Reference proof inventory changed during execution")
+    proof_verification_path = output / "reference-proof-verification.json"
+    proof_verification_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "kind": "risk_control_reference_proof_verification",
+                "before": proof_before,
+                "after": proof_after,
+                "unchanged": True,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    proof_verification_sha256 = digest(proof_verification_path)
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     manifest["run_profile_sha256"] = profile_sha256
+    manifest["reference_proof_verification_sha256"] = proof_verification_sha256
     (output / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -244,6 +310,7 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
         "results_sha256": digest(results_path),
         "manifest_sha256": digest(output / "manifest.json"),
         "execution_sha256": digest(output / "execution.json"),
+        "reference_proof_verification_sha256": proof_verification_sha256,
         "provider_identity_before": pre_identity,
         "provider_identity_after": post_identity,
         "logical_results": len(records),

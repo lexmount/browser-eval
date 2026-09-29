@@ -110,8 +110,38 @@ def validate_risk_control_certification(
 
     manifest_path = contained_path(source, "manifest.json")
     execution_path = contained_path(source, "execution.json")
+    proof_verification_path = contained_path(source, "reference-proof-verification.json")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     execution_record = json.loads(execution_path.read_text(encoding="utf-8"))
+    proof_verification = json.loads(proof_verification_path.read_text(encoding="utf-8"))
+    proof_rows = proof_verification.get("before", {}).get("files", [])
+    expected_proofs = [
+        {
+            "case_id": case["id"],
+            **case["source_benchmark"]["risk_control"]["reference_proof"],
+        }
+        for case in frozen_dataset["cases"]
+    ]
+    observed_proofs = [
+        {key: row.get(key) for key in ("case_id", "root", "path", "sha256")}
+        for row in proof_rows
+    ]
+    proof_inventory = json.dumps(
+        proof_rows, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    if (
+        proof_verification.get("schema_version") != 1
+        or proof_verification.get("kind") != "risk_control_reference_proof_verification"
+        or proof_verification.get("unchanged") is not True
+        or proof_verification.get("after") != proof_verification.get("before")
+        or proof_verification.get("before", {}).get("case_count") != 100
+        or proof_verification.get("before", {}).get("inventory_sha256")
+        != hashlib.sha256(proof_inventory.encode()).hexdigest()
+        or observed_proofs != expected_proofs
+        or any(type(row.get("bytes")) is not int or row["bytes"] < 1 for row in proof_rows)
+    ):
+        raise ValueError("Risk-control reference proof verification is incomplete or mismatched")
+    proof_verification_sha256 = _digest(proof_verification_path)
     provider_rows = manifest.get("providers")
     parameters = manifest.get("parameters", {})
     if (
@@ -120,6 +150,8 @@ def validate_risk_control_certification(
         or manifest.get("unexecuted") != []
         or manifest.get("dataset_sha256") != frozen_dataset_sha256
         or manifest.get("provider_config_sha256") != profile["provider"]["config_sha256"]
+        or manifest.get("reference_proof_verification_sha256")
+        != proof_verification_sha256
         or not isinstance(provider_rows, list)
         or len(provider_rows) != 1
         or provider_rows[0].get("name") != provider_name
@@ -153,6 +185,8 @@ def validate_risk_control_certification(
         or receipt.get("results_sha256") != _digest(results_path)
         or receipt.get("manifest_sha256") != _digest(manifest_path)
         or receipt.get("execution_sha256") != _digest(execution_path)
+        or receipt.get("reference_proof_verification_sha256")
+        != proof_verification_sha256
         or receipt.get("provider_identity_before") != expected_identity
         or receipt.get("provider_identity_after") != expected_identity
         or receipt.get("logical_results") != 100

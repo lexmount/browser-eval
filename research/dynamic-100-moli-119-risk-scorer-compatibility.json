@@ -2,28 +2,37 @@
   "schema_version": 1,
   "kind": "offline_scorer_compatibility_receipt",
   "id": "dynamic-100-moli-119-risk-scorer-compatibility-2026-09-29",
-  "purpose": "Prove that the additive risk-control scoring contract does not change any task verdict in the audited dynamic-site 100-case benchmark.",
+  "purpose": "Record the exact impact of the shared scorer corrections on the audited dynamic-site 100-case benchmark without new provider calls.",
   "date": "2026-09-29",
   "provider_calls": 0,
   "scope": {
     "cases": 100,
     "input_passes": 44,
-    "output_passes": 44,
-    "task_decision_changes": 0
+    "output_passes": 45,
+    "task_decision_changes": 1
   },
   "bindings": {
     "dataset_sha256": "2a149a7003a43ee4746bf1d11669154506a96172ddfe51f7abb9b2d547fba8b3",
     "input_results_sha256": "cca27ef9162406de2a1068ce8c7a5bb3b37439d873668e01dea0e1d26a061d2a",
-    "output_results_sha256": "d41448943fceec6d9c426524cb2650ebea53916f98b6846623988e3554ae4902",
-    "output_summary_sha256": "68c9662854e6bfd5653d3d0749f5b142565f310105af3170caf863c4c55744d6",
-    "scoring_source_sha256": "7fa1d64276294265059960f7fa034e98c127bbaa4c0ce0bb3935b125e2582918",
-    "rescore_source_sha256": "d2400d386338e4c68c5c62c3dc4303c522e3450c3adf8ee3a1425636468620f0",
+    "output_results_sha256": "05d052d8b9f8b59b41a1ae01cf7888fdd0b32b0c0add6ab3d8dca8133c9cbd71",
+    "output_summary_sha256": "b862e6f58b7ff020ac75382054b53aed9877d2e7392114639c5803133ac45fad",
+    "scoring_source_sha256": "1ab965472fc1484039baf042ef2fdefafff1d626b3ae5a45e7fae69f110a8af4",
+    "rescore_source_sha256": "6fc032c1b87588a7ddd38a75a0035687e7cd1655640e762bfa15d460ab0ed2e1",
     "scoring_regressions_sha256": "37653e59ea4b3036ff43cfad2dce89432d8d2f5fddd014c0037159978c1c0706",
-    "composite_tests_sha256": "3605ff3f0da8f1592884d2a0a3c31354b99cb3af1377920ddeb525a2e195192b",
-    "decision_digest_format": "sorted_attempt_id_boolean_json_v1",
-    "input_task_decisions_sha256": "0fc4eb6273c214053cd2931f09412abf9d9be9789529812c79ee3a2b09348eb1",
-    "output_task_decisions_sha256": "0fc4eb6273c214053cd2931f09412abf9d9be9789529812c79ee3a2b09348eb1"
+    "composite_tests_sha256": "2dcb402cc55e192dc556d37c3150f6ae9ba76178c22da5ceb54a66e6af39b274",
+    "stable_tests_sha256": "0e6fcbaaf739d54fd875bf283d25caae7650b6a2879a7ba2fc299737ff6f7881",
+    "decision_digest_format": "sorted_attempt_id_boolean_pairs_compact_json_v1",
+    "input_task_decisions_sha256": "201770eb8c537b5ac4b9d84e550e17ae1a1a494296ebc9e4381215fa19a2b1e8",
+    "output_task_decisions_sha256": "3c2a9a3ac7eabda71f4771ed5f29d4dadcee8f357a257842e40d6117a09a278e"
   },
+  "task_decision_changes": [
+    {
+      "attempt_id": "moli-webfetch__replacement-pt-kabum-smartphones__r001",
+      "before": false,
+      "after": true,
+      "reason": "The saved Markdown uses &amp; for a browser-visible ampersand in the required text 'Celular & Smartphone'; decoding one character-reference layer corrects the false negative."
+    }
+  ],
   "evidence_policy": {
     "source_results_preserved": true,
     "rescored_copy_outside_git": true,

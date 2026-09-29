@@ -64,6 +64,7 @@ def _validate_group(group: dict) -> None:
         "identity_query_keys",
         "link_base_url",
         "record_name_exclusions",
+        "record_line_pattern",
         "start_pattern",
         "end_pattern",
         "required_fields",
@@ -89,7 +90,7 @@ def _validate_group(group: dict) -> None:
         }
     ):
         raise ValueError("Invalid composite record group")
-    for key in ("start_pattern", "end_pattern"):
+    for key in ("start_pattern", "end_pattern", "record_line_pattern"):
         if key in group:
             if not isinstance(group[key], str) or not group[key]:
                 raise ValueError("Invalid composite scope pattern")
@@ -142,14 +143,10 @@ def _validate_group(group: dict) -> None:
             or not columns
             or any(
                 not isinstance(row, dict)
-                or set(row) != {"id", "aliases"}
-                or not isinstance(row["id"], str)
-                or not row["id"]
-                or not isinstance(row["aliases"], list)
-                or not row["aliases"]
-                or any(not isinstance(value, str) or not value for value in row["aliases"])
+                or "aliases" not in row
                 for row in columns
             )
+            or not fields_are_valid(columns)
             or group.get("identity_column") not in {row["id"] for row in columns}
         ):
             raise ValueError("Invalid composite table columns")
@@ -300,6 +297,15 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
     entries = [entry for entry in entries if _key(entry["title"]) not in exclusions]
     fields = group.get("required_fields", [])
     if fields:
+        def is_record_start(link) -> bool:
+            pattern = group.get("record_line_pattern")
+            if not pattern:
+                return True
+            line_start = content.rfind("\n", 0, link.start) + 1
+            line_end = content.find("\n", link.end)
+            line_end = len(content) if line_end < 0 else line_end
+            return bool(re.search(pattern, content[line_start:line_end], re.I))
+
         # A card commonly places its title link, body paragraphs and date on
         # separate Markdown blocks.  Own everything from the first qualifying
         # link for one identity up to the first qualifying link for another
@@ -310,7 +316,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         for link in markdown_links(content):
             destination = urljoin(group.get("link_base_url", base_url), link.destination)
             identity = _link_identity(destination, group)
-            if identity not in allowed_rows or link.is_image:
+            if identity not in allowed_rows or link.is_image or not is_record_start(link):
                 continue
             label = visible_markdown_links(link.label).strip()
             field_like = bool(
@@ -325,7 +331,7 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         for link in markdown_links(content):
             destination = urljoin(group.get("link_base_url", base_url), link.destination)
             identity = _link_identity(destination, group)
-            if identity is None or link.is_image:
+            if identity is None or link.is_image or not is_record_start(link):
                 continue
             entry = allowed_rows.get(identity)
             if entry is None:
@@ -386,6 +392,34 @@ _VERSION = re.compile(
 )
 
 
+def _value_matches_spec(value: str, spec: dict, *, whole_cell: bool = False) -> bool:
+    """Apply the same declared field type rules to card and table values."""
+    visible = re.sub(r"\s+", " ", visible_markdown_links(value)).strip()
+    if not visible or visible in {"-", "—"}:
+        return False
+    if pattern := spec.get("pattern"):
+        if not re.search(pattern, visible, re.I | re.M):
+            return False
+    kind = spec["kind"]
+    if kind == "integer":
+        pattern = r"\d[\d,.]*"
+        return bool(
+            re.fullmatch(pattern, visible)
+            if whole_cell
+            else re.search(rf"\b{pattern}\b", visible)
+        )
+    if kind == "date_or_time":
+        return bool(_DATE_OR_TIME.search(visible))
+    if kind == "price":
+        return bool(_PRICE.search(visible))
+    if kind == "area":
+        return bool(_AREA.search(visible))
+    if kind == "version":
+        return bool(_VERSION.search(visible))
+    minimum = spec.get("minimum_chars", 2)
+    return len(visible) >= minimum and any(character.isalpha() for character in visible)
+
+
 def _context_lines(context: str, title: str) -> list[str]:
     title_key = _key(title)
     lines = []
@@ -432,25 +466,9 @@ def _field_value(
             (index, line) for index, line in enumerate(lines) if not used or index not in used
         ]
     pattern = spec.get("pattern")
-    kind = spec["kind"]
     for index, value in candidates:
-        if pattern and not re.search(pattern, value, re.I | re.M):
-            continue
-        if kind == "integer" and re.search(r"\b\d[\d,.]*\b", value):
+        if _value_matches_spec(value, spec):
             return index, value
-        if kind == "date_or_time" and _DATE_OR_TIME.search(value):
-            return index, value
-        if kind == "price" and _PRICE.search(value):
-            return index, value
-        if kind == "area" and _AREA.search(value):
-            return index, value
-        if kind == "version" and _VERSION.search(value):
-            return index, value
-        if kind == "text":
-            minimum = spec.get("minimum_chars", 2)
-            visible = re.sub(r"\s+", " ", value).strip()
-            if len(visible) >= minimum and any(character.isalpha() for character in visible):
-                return index, value
     return None
 
 
@@ -516,7 +534,10 @@ def _table_group(content: str, group: dict) -> dict:
                 values = [value.strip() for value in lines[row_index].strip("|").split(delimiter)]
                 if len(values) == len(headers):
                     row = {field: values[column] for field, column in mapping.items()}
-                    if all(value and value not in {"-", "—"} for value in row.values()):
+                    if all(
+                        _value_matches_spec(row[spec["id"]], spec, whole_cell=True)
+                        for spec in required
+                    ):
                         records.append(row)
                 row_index += 1
             break
@@ -560,8 +581,8 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
                     cell = row[group["link_column"]]
                     candidates = [link for link in markdown_links(cell) if not link.is_image]
                     if len(candidates) == 1 and all(
-                        visible_markdown_links(value).strip() not in {"", "-", "—"}
-                        for value in row.values()
+                        _value_matches_spec(row[spec["id"]], spec, whole_cell=True)
+                        for spec in required
                     ):
                         link = candidates[0]
                         destination = urljoin(

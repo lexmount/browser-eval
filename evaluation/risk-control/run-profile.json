@@ -5,7 +5,7 @@
   "unresolved_case_ids": [],
   "dataset": {
     "path": "evaluation/risk-control/dataset.json",
-    "sha256": "58dcffaedcf606fd8ceab8f0e6d05bcb15bd897698013d05c2846c5cc30f0074",
+    "sha256": "63c5b839cd6e680842bd0a8aea6814526f98d723c2df57ca32568b5a1dfe51b6",
     "case_count": 100,
     "site_count": 74,
     "case_ids_sha256": "f037b11fa10826f6bdafd1e61ec8663070fe9873ebb891218cf941f67e5012b1"
@@ -25,15 +25,15 @@
     },
     "first_30_rules": {
       "path": "evaluation/risk-control/first-30-rule-review.md",
-      "sha256": "2e293709eb01b7607147cd86a1ff5ef0218559c1e92b2ee3cb0d47ee5e89f847"
+      "sha256": "4b9a65bd6429223b914a3af5a169c744af01358e051390a4f272063a93199a83"
     },
     "remaining_70_rules": {
       "path": "evaluation/risk-control/remaining-70-rule-review.md",
-      "sha256": "728ea96def6e35e4361c51db96859677e692d4462e32362fda00ad0399903f71"
+      "sha256": "f5ce3afb723d91aac7dc2b4dbb6e822ac70292abd8dc46167e24fd47ab5bfd8c"
     },
     "list_contracts": {
       "path": "evaluation/risk-control/list-contracts.json",
-      "sha256": "96054c51c442aafa429980d3686673fc5451629acebf8687827f44437fca5253"
+      "sha256": "96a73f56db8221204dd27ad9ef37ba2be295fceaec86a7812a45aecde91536fd"
     },
     "body_contracts": {
       "path": "evaluation/risk-control/body-contracts.json",
@@ -45,7 +45,7 @@
     },
     "rule_completeness_audit": {
       "path": "evaluation/risk-control/rule-completeness-audit-20260929.md",
-      "sha256": "3e5b75c0f1c8f3fd4954aff4ab1a1b97f1de593a9d5beaa38359669416628a45"
+      "sha256": "89429912c09cfb3f42b093fe66f172471642d0f8ccf338c5798719cdd3eaad63"
     }
   },
   "provider": {

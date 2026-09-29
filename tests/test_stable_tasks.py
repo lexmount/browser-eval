@@ -42,6 +42,36 @@ class StableTaskTests(unittest.TestCase):
         self.assertFalse(missing["stable_task_pass"])
         self.assertIn("missing_stable_anchor:identity",missing["stable_task_errors"])
 
+    def test_link_text_inside_emphasis_matches_visible_body_anchor(self):
+        rules = {
+            "version": 1,
+            "schema": "body_text",
+            "minimum_records": 0,
+            "stable_text_anchors": [
+                {
+                    "id": "subtitle",
+                    "alternatives": ["the official resource for the Team Fortress series."],
+                }
+            ],
+        }
+        result = evaluate_stable_task(
+            "the official resource for the *[Team Fortress](/wiki/Team_Fortress_series)* series.",
+            rules,
+        )
+        self.assertTrue(result["stable_task_pass"], result)
+
+    def test_markdown_character_reference_matches_visible_body_anchor(self):
+        rules = {
+            "version": 1,
+            "schema": "body_text",
+            "minimum_records": 0,
+            "stable_text_anchors": [
+                {"id": "filter", "alternatives": ["Beds & baths"]}
+            ],
+        }
+        result = evaluate_stable_task("For sale\n\nBeds &amp; baths\n", rules)
+        self.assertTrue(result["stable_task_pass"], result)
+
     def test_body_text_contract_rejects_record_rules_or_no_stable_identity(self):
         with self.assertRaisesRegex(ValueError,"do not declare records"):
             validate_acceptance_contract({"version":1,"schema":"body_text",

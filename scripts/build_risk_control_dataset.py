@@ -28,9 +28,9 @@ RULE_FILES = (RISK / "first-30-rule-review.md", RISK / "remaining-70-rule-review
 LIST_CONTRACTS = RISK / "list-contracts.json"
 BODY_CONTRACTS = RISK / "body-contracts.json"
 EXPECTED_RULE_HASHES = {
-    "first-30-rule-review.md": "2e293709eb01b7607147cd86a1ff5ef0218559c1e92b2ee3cb0d47ee5e89f847",
+    "first-30-rule-review.md": "4b9a65bd6429223b914a3af5a169c744af01358e051390a4f272063a93199a83",
     "remaining-70-rule-review.md": (
-        "728ea96def6e35e4361c51db96859677e692d4462e32362fda00ad0399903f71"
+        "f5ce3afb723d91aac7dc2b4dbb6e822ac70292abd8dc46167e24fd47ab5bfd8c"
     ),
 }
 EXPECTED_COHORT_HASH = "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e"
@@ -83,13 +83,16 @@ def parse_sections() -> list[dict]:
             stable_key = next((key for key in fields if key.startswith("稳定文字")), None)
             if not stable_key:
                 raise ValueError(f"Missing stable text: {lines[0]}")
-            stable = re.findall(r"`([^`]+)`", fields[stable_key])
+            stable_rule = fields[stable_key]
+            target_rule, marker, context_rule = stable_rule.partition("页面外围诊断：")
+            stable = re.findall(r"`([^`]+)`", target_rule)
             stable = [
                 literal
                 for literal in stable
-                if not re.search(rf"不把\s*`{re.escape(literal)}`\s*冻结", fields[stable_key])
-                and not re.search(rf"`{re.escape(literal)}`[^。；]*不再冻结", fields[stable_key])
+                if not re.search(rf"不把\s*`{re.escape(literal)}`\s*冻结", stable_rule)
+                and not re.search(rf"`{re.escape(literal)}`[^。；]*不再冻结", stable_rule)
             ]
+            page_context = re.findall(r"`([^`]+)`", context_rule) if marker else []
             sections.append(
                 {
                     "index": int(match[1]),
@@ -98,6 +101,7 @@ def parse_sections() -> list[dict]:
                     "url": link[1],
                     "fields": fields,
                     "stable": stable,
+                    "page_context": page_context,
                 }
             )
     return sections
@@ -247,8 +251,10 @@ def build(output: Path) -> dict:
         section["id"] for section in sections
     ] != [case["id"] for case in qualified]:
         raise ValueError("Rule/cohort order mismatch")
-    if sum(len(section["stable"]) for section in sections) != 1599:
-        raise ValueError("Expected exactly 1599 required stable literals")
+    target_literal_count = sum(len(section["stable"]) for section in sections)
+    context_literal_count = sum(len(section["page_context"]) for section in sections)
+    if (target_literal_count, context_literal_count) != (728, 871):
+        raise ValueError("Expected exactly 728 target and 871 page-context literals")
 
     roots = evidence_roots()
     list_source = json.loads(LIST_CONTRACTS.read_text())
@@ -300,6 +306,11 @@ def build(output: Path) -> dict:
                 raise ValueError(
                     f"Stable literal missing from evidence: {section['id']}: {literal}"
                 )
+        for literal in section["page_context"]:
+            if visible_text_key(literal) not in normalized_source:
+                raise ValueError(
+                    f"Page-context literal missing from evidence: {section['id']}: {literal}"
+                )
         anchors = [
             {"id": f"stable-{index + 1:02d}", "alternatives": [literal]}
             for index, literal in enumerate(section["stable"])
@@ -345,6 +356,10 @@ def build(output: Path) -> dict:
                     },
                     "rule_index": section["index"],
                     "reference_proof": binding,
+                    "page_context_anchors": [
+                        {"id": f"page-context-{index + 1:02d}", "alternatives": [literal]}
+                        for index, literal in enumerate(section["page_context"])
+                    ],
                 }
             },
         }
@@ -365,7 +380,9 @@ def build(output: Path) -> dict:
         "independent_quantity_group_count": quantity_groups,
         "list_or_field_case_count": len(contracts),
         "composite_group_count": groups,
-        "stable_literal_count": 1599,
+        "stable_literal_count": target_literal_count,
+        "page_context_literal_count": context_literal_count,
+        "observed_literal_count": target_literal_count + context_literal_count,
         "runs_per_case": 1,
         "timeout_ms": 45000,
         "workers": 1,
@@ -400,6 +417,7 @@ def main() -> None:
                 "quantity_groups": dataset["independent_quantity_group_count"],
                 "composite_groups": dataset["composite_group_count"],
                 "stable_literals": dataset["stable_literal_count"],
+                "page_context_literals": dataset["page_context_literal_count"],
             },
             ensure_ascii=False,
             indent=2,

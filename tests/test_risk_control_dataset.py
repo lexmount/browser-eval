@@ -9,9 +9,10 @@ from harness.web_fetch.composite_tasks import validate_composite_acceptance
 from harness.web_fetch.metrics import evaluate_content, normalize_for_match
 from harness.web_fetch.report_build import require_risk_control_certification
 from harness.web_fetch.risk_control import measured_risk_control_dataset
-from harness.web_fetch.stable_tasks import validate_acceptance_contract
+from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
 from scripts.build_risk_control_dataset import evidence_roots
 from scripts.run_risk_control_moli import main as run_risk_control
+from scripts.run_risk_control_moli import reference_proof_snapshot
 from scripts.run_risk_control_moli import require_complete_diagnostic_logs
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,7 +32,9 @@ def test_dataset_covers_the_exact_audited_cohort(dataset):
     assert dataset["case_count"] == len(dataset["cases"]) == 100
     assert [case["id"] for case in dataset["cases"]] == [case["id"] for case in cohort["cases"]]
     assert dataset["site_count"] == 74
-    assert dataset["stable_literal_count"] == 1599
+    assert dataset["stable_literal_count"] == 728
+    assert dataset["page_context_literal_count"] == 871
+    assert dataset["observed_literal_count"] == 1599
     assert dataset["body_case_count"] == 79
     assert dataset["quantity_case_count"] == 21
     assert dataset["independent_quantity_group_count"] == 27
@@ -120,6 +123,34 @@ def test_direct_formal_execution_is_rejected_before_provider_validation(tmp_path
         run_risk_control(["--execute", "--output", str(tmp_path / "run")])
 
 
+def test_reference_proof_snapshot_requires_exact_unchanged_100_file_scope(tmp_path):
+    roots = {"proofs": tmp_path}
+    cases = []
+    for index in range(100):
+        identifier = f"case-{index:03d}"
+        path = tmp_path / f"{identifier}.txt"
+        path.write_text(f"evidence {index}\n")
+        cases.append(
+            {
+                "id": identifier,
+                "source_benchmark": {
+                    "risk_control": {
+                        "reference_proof": {
+                            "root": "proofs",
+                            "path": path.name,
+                            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                        }
+                    }
+                },
+            }
+        )
+    before = reference_proof_snapshot(cases, roots)
+    assert before["case_count"] == 100
+    (tmp_path / "case-042.txt").write_text("changed\n")
+    with pytest.raises(ValueError, match="Changed reference proof: case-042"):
+        reference_proof_snapshot(cases, roots)
+
+
 def certified_report_fixture(tmp_path):
     profile_bytes = RUN_PROFILE.read_bytes()
     profile = json.loads(profile_bytes)
@@ -185,6 +216,37 @@ def certified_report_fixture(tmp_path):
         },
         "batches": [manifest],
     }
+    proof_files = [
+        {
+            "case_id": case["id"],
+            **case["source_benchmark"]["risk_control"]["reference_proof"],
+            "bytes": 1,
+        }
+        for case in frozen_dataset["cases"]
+    ]
+    proof_inventory = json.dumps(
+        proof_files, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    )
+    proof_snapshot = {
+        "case_count": 100,
+        "inventory_sha256": hashlib.sha256(proof_inventory.encode()).hexdigest(),
+        "files": proof_files,
+    }
+    proof_verification = {
+        "schema_version": 1,
+        "kind": "risk_control_reference_proof_verification",
+        "before": proof_snapshot,
+        "after": proof_snapshot,
+        "unchanged": True,
+    }
+    (tmp_path / "reference-proof-verification.json").write_text(
+        json.dumps(proof_verification)
+    )
+    proof_sha = hashlib.sha256(
+        (tmp_path / "reference-proof-verification.json").read_bytes()
+    ).hexdigest()
+    manifest["reference_proof_verification_sha256"] = proof_sha
+    execution["batches"] = [manifest]
     (tmp_path / "dataset.json").write_text(json.dumps(dataset))
     (tmp_path / "results.jsonl").write_text(
         "".join(json.dumps(record) + "\n" for record in records)
@@ -199,6 +261,7 @@ def certified_report_fixture(tmp_path):
         "results_sha256": hashlib.sha256((tmp_path / "results.jsonl").read_bytes()).hexdigest(),
         "manifest_sha256": hashlib.sha256((tmp_path / "manifest.json").read_bytes()).hexdigest(),
         "execution_sha256": hashlib.sha256((tmp_path / "execution.json").read_bytes()).hexdigest(),
+        "reference_proof_verification_sha256": proof_sha,
         "provider_identity_before": identity,
         "provider_identity_after": identity,
         "logical_results": 100,
@@ -241,6 +304,21 @@ def test_report_requires_complete_profile_bound_risk_control_certification(tmp_p
     receipt["results_sha256"] = "0" * 64
     (tmp_path / "certification.json").write_text(json.dumps(receipt))
     with pytest.raises(ValueError, match="mismatched"):
+        require_risk_control_certification(tmp_path, dataset, records)
+
+
+def test_report_rejects_hash_bound_but_incomplete_reference_proof_receipt(tmp_path):
+    dataset, records, receipt, manifest, execution = certified_report_fixture(tmp_path)
+    proof_path = tmp_path / "reference-proof-verification.json"
+    proof = json.loads(proof_path.read_text())
+    proof["unchanged"] = False
+    proof_path.write_text(json.dumps(proof))
+    proof_sha = hashlib.sha256(proof_path.read_bytes()).hexdigest()
+    manifest["reference_proof_verification_sha256"] = proof_sha
+    receipt["reference_proof_verification_sha256"] = proof_sha
+    rewrite_certified_report_fixture(tmp_path, records, receipt, manifest, execution)
+
+    with pytest.raises(ValueError, match="reference proof verification"):
         require_risk_control_certification(tmp_path, dataset, records)
 
 
@@ -346,6 +424,7 @@ def test_corrected_rule_evidence_conflicts_are_encoded_exactly(dataset):
     picks = next(group for group in global_european if group["id"] == "agp-picks")
     assert "required_fields" not in picks
     perspectify = next(group for group in global_european if group["id"] == "perspectify")
+    assert perspectify["record_line_pattern"] == r"^##\s+"
     assert [field["id"] for field in perspectify["required_fields"]] == [
         "time",
         "label",
@@ -356,7 +435,8 @@ def test_corrected_rule_evidence_conflicts_are_encoded_exactly(dataset):
     zhihu_anchors = [
         row["alternatives"][0] for row in zhihu["acceptance_contract"]["stable_text_anchors"]
     ]
-    assert len(zhihu_anchors) == 15
+    assert len(zhihu_anchors) == 10
+    assert len(zhihu["source_benchmark"]["risk_control"]["page_context_anchors"]) == 5
     assert len(zhihu["body_requirements"]["regions"]) == 5
     assert (
         "成为推动本世纪人类社会发展的主要技术" in zhihu["body_requirements"]["regions"][-1]["text"]
@@ -501,9 +581,11 @@ def test_corrected_rule_evidence_conflicts_are_encoded_exactly(dataset):
         "Why not GitHub?",
         "Contributing",
         "Forking/mirroring",
-        "index",
-        "about",
     ]
+    assert [
+        row["alternatives"][0]
+        for row in replacement["source_benchmark"]["risk_control"]["page_context_anchors"]
+    ] == ["index", "about"]
     assert len(replacement["body_requirements"]["regions"]) == 4
     assert "generated by" not in json.dumps(replacement["body_requirements"], ensure_ascii=False)
 
@@ -658,20 +740,20 @@ def test_archwiki_requires_both_page_chrome_and_full_body(dataset):
         ),
         (
             "risk-diverse-225",
-            ["Products", "Services & Support", "Resources", "Articles", "Tables", "Calculators"],
+            ["Products", "Services & Support", "Resources"],
         ),
     ],
 )
-def test_page_content_without_declared_initial_chrome_fails(
+def test_page_content_without_declared_initial_chrome_passes_with_diagnostic_gap(
     dataset,
     case_id,
     required_chrome,
 ):
     case = next(case for case in dataset["cases"] if case["id"] == case_id)
     anchors = [row["alternatives"][0] for row in case["acceptance_contract"]["stable_text_anchors"]]
-    assert all(value in anchors for value in required_chrome)
-    omitted = set(required_chrome)
-    partial = "\n".join(value for value in anchors if value not in omitted)
+    page_context = case["source_benchmark"]["risk_control"]["page_context_anchors"]
+    assert all(value in {row["alternatives"][0] for row in page_context} for value in required_chrome)
+    partial = "\n".join(anchors)
     if body := case.get("body_requirements"):
         partial += "\n" + "\n".join(row["text"] for row in body["regions"])
     result = evaluate_content(
@@ -682,5 +764,16 @@ def test_page_content_without_declared_initial_chrome_fails(
         body_requirements=case.get("body_requirements"),
         base_url=case["url"],
     )
-    assert not result["stable_task_pass"]
-    assert not result["content_pass"]
+    assert result["stable_task_pass"]
+    assert result["content_pass"]
+    diagnostic = evaluate_stable_task(
+        partial,
+        {
+            "version": 1,
+            "schema": "body_text",
+            "minimum_records": 0,
+            "stable_text_anchors": page_context,
+        },
+        case["url"],
+    )
+    assert not diagnostic["stable_task_pass"]

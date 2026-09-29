@@ -11,12 +11,39 @@ from unittest.mock import Mock, patch
 
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers import build_provider
+from harness.web_fetch.providers.moli import _diagnostic_main_document_url
 from harness.web_fetch.report_interfaces import SPECS
 from harness.web_fetch.report_methods import PROFILES
 
 
 @unittest.skipUnless(os.name == "posix", "executable fixture uses POSIX shebang")
 class MoliTests(unittest.TestCase):
+    def test_effective_main_document_url_comes_from_same_call_debug_log(self):
+        requested = "https://example.com/start?q=1"
+        stderr = (
+            "DEBUG fetch request complete method=GET "
+            f"url={requested} final_url=https://example.com/final status=200 transfer_size=42\n"
+            "DEBUG fetch request complete method=GET url=https://cdn.example.com/app.js "
+            "final_url=https://cdn.example.com/app.js status=200 transfer_size=7\n"
+        )
+        self.assertEqual(
+            _diagnostic_main_document_url(stderr, requested), "https://example.com/final"
+        )
+
+    def test_effective_main_document_url_follows_logged_redirect_hops(self):
+        stderr = (
+            "DEBUG fetch request complete method=GET url=https://example.com/start "
+            "final_url=https://example.com/start status=302 transfer_size=42\n"
+            "DEBUG fetch request complete method=GET url=https://login.example.com/challenge "
+            "final_url=https://login.example.com/challenge status=200 transfer_size=7\n"
+            "DEBUG fetch request complete method=GET url=https://cdn.example.com/app.js "
+            "final_url=https://cdn.example.com/app.js status=200 transfer_size=7\n"
+        )
+        self.assertEqual(
+            _diagnostic_main_document_url(stderr, "https://example.com/start"),
+            "https://login.example.com/challenge",
+        )
+
     def test_resource_route_enumerates_bounded_same_origin_frame_documents(self):
         from harness.web_fetch.providers.moli import _RESOURCE_PAGE_EXPRESSION
 
@@ -94,6 +121,19 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["output"], "markdown")
         self.assertEqual(result.metadata["wait"], {"wait_until": "done"})
         self.assertTrue(result.metadata["block_private_networks"])
+
+    def test_ordinary_markdown_exposes_effective_url_from_debug_stderr(self):
+        provider = self.provider(
+            "import sys\n"
+            'print("# Example Domain")\n'
+            'print("DEBUG fetch request complete method=GET url=https://example.com/?a=1&b=2 '
+            'final_url=https://example.com/final status=200 transfer_size=42", file=sys.stderr)\n'
+        )
+        self.assertEqual(provider.validate(), [])
+        result = provider.fetch(self.case, 2)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.final_url, "https://example.com/final")
+        self.assertEqual(result.metadata["final_url_source"], "same_call_debug_log")
 
     def test_binary_path_expands_environment_variable(self):
         provider = self.provider('print("answer")')

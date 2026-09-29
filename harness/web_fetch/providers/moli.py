@@ -15,7 +15,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, unquote, urlsplit
 
 from ..document_text import extract_document_text
 from ..models import EvalCase, ProviderResult
@@ -48,6 +48,49 @@ def _markdown_http_error_status(content: str) -> int | None:
         return None
     match = _MARKDOWN_HTTP_ERROR_PAGE.fullmatch(content)
     return int(match.group("status")) if match else None
+
+
+def _diagnostic_main_document_url(stderr: str, requested_url: str) -> str | None:
+    """Read Moli's effective main-document URL from the same call's debug log."""
+    pattern = re.compile(
+        r"fetch request complete method=GET url=(?P<url>\S+) "
+        r"final_url=(?P<final_url>\S+) status=(?P<status>\d{3})\b"
+    )
+
+    def identity(value: str) -> tuple:
+        parts = urlsplit(value)
+        return (
+            parts.scheme.casefold(),
+            (parts.hostname or "").casefold(),
+            unquote(parts.path).rstrip("/") or "/",
+            sorted(parse_qsl(parts.query, keep_blank_values=True)),
+        )
+
+    try:
+        requested_identity = identity(requested_url)
+    except ValueError:
+        return None
+    rows = list(pattern.finditer(stderr))
+    start = next(
+        (index for index, row in enumerate(rows) if identity(row.group("url")) == requested_identity),
+        None,
+    )
+    if start is None:
+        return None
+    row = rows[start]
+    # Moli logs each HTTP hop separately. During a main-document redirect the
+    # next completed GET is the redirected document; subresources begin only
+    # after a non-redirect document response has been received.
+    for following in rows[start + 1 : start + 10]:
+        if not 300 <= int(row.group("status")) < 400:
+            break
+        row = following
+    candidate = row.group("final_url")
+    try:
+        validate_http_url(candidate)
+    except ValueError:
+        return None
+    return candidate
 
 _HTML_TO_MARKDOWN = Path(__file__).resolve().parents[3] / "scripts/html_to_markdown.mjs"
 _NODE_HTML_MARKDOWN_PACKAGE = (
@@ -1130,14 +1173,17 @@ class MoliWebFetchProvider(Provider):
             )
         parsed_error_status = _markdown_http_error_status(content)
         ok = process.returncode == 0 and parsed_error_status is None
-        # Markdown mode normally exposes no HTTP status/final URL. Moli's compact
-        # whole-response error page is the exception: it explicitly carries the
-        # target status. Do not mistake ordinary documentation mentioning 403 for
-        # that envelope, and do not make a second request for metadata.
+        final_url = _diagnostic_main_document_url(stderr, case.url)
+        if final_url:
+            metadata["final_url_source"] = "same_call_debug_log"
+        # The debug trace is part of this same provider call, so page identity
+        # does not require a second request. Moli's compact whole-response error
+        # page remains the only status envelope recognized in Markdown output.
         return ProviderResult(
             ok,
             content,
             status_code=parsed_error_status,
+            final_url=final_url,
             error_type=(
                 None if ok else "api_error" if parsed_error_status is not None else "tool_error"
             ),

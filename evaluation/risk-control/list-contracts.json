@@ -185,36 +185,42 @@
           "required_columns": [
             {
               "id": "arch",
+              "kind": "text",
               "aliases": [
                 "Arch"
               ]
             },
             {
               "id": "repo",
+              "kind": "text",
               "aliases": [
                 "Repo"
               ]
             },
             {
               "id": "name",
+              "kind": "text",
               "aliases": [
                 "Name"
               ]
             },
             {
               "id": "version",
+              "kind": "version",
               "aliases": [
                 "Version"
               ]
             },
             {
               "id": "build_date",
+              "kind": "date_or_time",
               "aliases": [
                 "Build Date"
               ]
             },
             {
               "id": "last_updated",
+              "kind": "date_or_time",
               "aliases": [
                 "Last Updated"
               ]
@@ -324,18 +330,21 @@
           "required_columns": [
             {
               "id": "name",
+              "kind": "text",
               "aliases": [
                 "Name"
               ]
             },
             {
               "id": "description",
+              "kind": "text",
               "aliases": [
                 "Description"
               ]
             },
             {
               "id": "owner",
+              "kind": "text",
               "aliases": [
                 "Owner"
               ]
@@ -465,6 +474,8 @@
           "required_columns": [
             {
               "id": "number",
+              "kind": "text",
+              "pattern": "^[A-Z]?[0-9]+$",
               "aliases": [
                 "题号",
                 "No.",
@@ -474,6 +485,7 @@
             },
             {
               "id": "name",
+              "kind": "text",
               "aliases": [
                 "题名",
                 "Name",
@@ -482,6 +494,7 @@
             },
             {
               "id": "attempts",
+              "kind": "integer",
               "aliases": [
                 "尝试数",
                 "Attempts",
@@ -490,6 +503,7 @@
             },
             {
               "id": "accepted",
+              "kind": "integer",
               "aliases": [
                 "AC 数",
                 "AC",
@@ -498,6 +512,7 @@
             },
             {
               "id": "difficulty",
+              "kind": "integer",
               "aliases": [
                 "难度",
                 "Difficulty"
@@ -720,6 +735,7 @@
             "*"
           ],
           "entry_path": "/.+",
+          "record_line_pattern": "^##\\s+",
           "start_pattern": "Perspectify News",
           "end_pattern": "Press Releases",
           "required_fields": [
