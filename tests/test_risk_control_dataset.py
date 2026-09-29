@@ -10,7 +10,7 @@ from harness.web_fetch.metrics import evaluate_content, normalize_for_match
 from harness.web_fetch.report_build import require_risk_control_certification
 from harness.web_fetch.risk_control import measured_risk_control_dataset
 from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
-from scripts.build_risk_control_dataset import evidence_roots
+from scripts.build_risk_control_dataset import evidence_roots, parse_sections
 from scripts.run_risk_control_moli import main as run_risk_control
 from scripts.run_risk_control_moli import (
     reference_proof_snapshot,
@@ -22,6 +22,7 @@ DATASET = ROOT / "evaluation/risk-control/dataset.json"
 COHORT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-manifest.json"
 COHORT_RECEIPT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-receipt.json"
 RUN_PROFILE = ROOT / "evaluation/risk-control/run-profile.json"
+LANGUAGE_REVISION = ROOT / "research/risk-control-language-rule-revision.json"
 
 
 @pytest.fixture(scope="module")
@@ -42,6 +43,46 @@ def test_dataset_covers_the_exact_audited_cohort(dataset):
     assert dataset["independent_quantity_group_count"] == 27
     assert dataset["list_or_field_case_count"] == 23
     assert dataset["composite_group_count"] == 29
+
+
+def test_training_page_accepts_the_visible_english_ui_without_dropping_chinese_content(dataset):
+    case = next(case for case in dataset["cases"] if case["id"] == "risk-diverse-153")
+    # The live page retains its Chinese training title but renders its UI in
+    # English. Both surfaces are part of the requested page, not a translated
+    # substitute or a relaxed content requirement.
+    visible = (
+        "教材《C++版信息学奥赛一本通编程启蒙》题单\n"
+        "Login to join training plan\n"
+        "Problem Tried AC Difficulty\n"
+        "P1 [例2.1]Hello World 454 122 7\n"
+    )
+    result = evaluate_stable_task(visible, case["acceptance_contract"], case["url"])
+    assert result["stable_task_pass"] is True
+    assert result["stable_anchor_hits"] == result["stable_anchor_total"] == 6
+    without_training_title = evaluate_stable_task(
+        visible.replace("教材《C++版信息学奥赛一本通编程启蒙》题单", ""),
+        case["acceptance_contract"], case["url"],
+    )
+    assert without_training_title["stable_task_pass"] is False
+
+
+def test_training_page_language_alternatives_rebuild_from_rule_review(dataset):
+    section = next(section for section in parse_sections() if section["id"] == "risk-diverse-153")
+    case = next(case for case in dataset["cases"] if case["id"] == section["id"])
+    assert section["stable"] == [
+        anchor["alternatives"] for anchor in case["acceptance_contract"]["stable_text_anchors"]
+    ]
+    assert len(section["stable"]) == 6
+
+
+def test_language_rule_revision_binds_current_frozen_inputs():
+    revision = json.loads(LANGUAGE_REVISION.read_text())
+    profile = json.loads(RUN_PROFILE.read_text())
+    assert revision["correction"]["new_dataset_sha256"] == hashlib.sha256(DATASET.read_bytes()).hexdigest()
+    assert revision["correction"]["new_run_profile_sha256"] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
+    assert profile["dataset"]["sha256"] == revision["correction"]["new_dataset_sha256"]
+    assert revision["independent_browser_observation"]["anchor_total"] == 6
+    assert revision["correction"]["provider_calls"] == 0
 
 
 def test_external_evidence_roots_honor_data_home(monkeypatch, tmp_path):

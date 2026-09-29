@@ -8,12 +8,14 @@ from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch import local_audit
 from harness.web_fetch.report import local_audit_banner, provider_configuration
 from harness.web_fetch.stable_tasks import validate_acceptance_contract
+from harness.web_fetch.scoring_regressions import load_scoring_regressions
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_PATH = ROOT / "evaluation/dynamic-content-100-moli-webfetch/dataset.json"
 RECEIPT_PATH = ROOT / "research/dynamic-100-moli-119-local-audit.json"
 COMPATIBILITY_PATH = ROOT / "research/dynamic-100-moli-119-risk-scorer-compatibility.json"
+REVISION_PATH = ROOT / "research/moli-111-three-cohort-evaluation-revision.json"
 
 
 def _dataset():
@@ -29,7 +31,33 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert len(cases) == receipt["scope"]["cases"] == 100
     assert len({case["id"] for case in cases}) == 100
     assert len({case["url"] for case in cases}) == 100
-    assert hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest() == receipt["bindings"]["dataset_sha256"]
+    revision = json.loads(REVISION_PATH.read_text(encoding="utf-8"))
+    assert revision["provider_calls_for_revision"] == 0
+    assert revision["dynamic_dataset"]["historical_sha256"] == receipt["bindings"]["dataset_sha256"]
+    assert hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest() == revision["dynamic_dataset"]["revised_sha256"]
+    historical = DATASET_PATH.read_text(encoding="utf-8")
+    controls = load_scoring_regressions()
+    for change in revision["dynamic_dataset"]["changes"]:
+        case = next(case for case in cases if case["id"] == change["case_id"])
+        assert case[change["field"]] == change["value"]
+        assert len(change["source_html_sha256"]) == 64
+        value = json.dumps(change["value"])
+        marker = f'      "url": "{case["url"]}",\n      "{change["field"]}": {value},\n'
+        assert historical.count(marker) == 1
+        historical = historical.replace(marker, f'      "url": "{case["url"]}",\n', 1)
+    assert len(revision["dynamic_dataset"]["changes"]) == 9
+    assert hashlib.sha256(historical.encode()).hexdigest() == receipt["bindings"]["dataset_sha256"]
+    scorer_revision = revision["shared_scorer"]
+    assert scorer_revision["main_baseline_sha256"] == compatibility["bindings"]["scoring_source_sha256"]
+    assert scorer_revision["revised_sha256"] == SCORING_SOURCE_SHA256
+    assert scorer_revision["scoring_regressions_sha256"] == hashlib.sha256(
+        (ROOT / "evaluation/scoring-regressions.json").read_bytes()).hexdigest()
+    assert set(scorer_revision["regression_ids"]) <= set(controls)
+    modes = {}
+    for identifier in scorer_revision["regression_ids"]:
+        row = controls[identifier]
+        modes.setdefault(row["root_cause"], set()).add(row["failure_mode"])
+    assert all(value == {"false-positive", "false-negative"} for value in modes.values())
     assert compatibility["provider_calls"] == 0
     assert compatibility["scope"] == {
         "cases": 100,
@@ -56,10 +84,8 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
             ),
         }
     ]
-    assert bindings["scoring_source_sha256"] == SCORING_SOURCE_SHA256
-    assert bindings["scoring_regressions_sha256"] == hashlib.sha256(
-        (ROOT / "evaluation/scoring-regressions.json").read_bytes()
-    ).hexdigest()
+    assert bindings["scoring_source_sha256"] == scorer_revision["main_baseline_sha256"]
+    assert bindings["scoring_regressions_sha256"] != scorer_revision["scoring_regressions_sha256"]
     assert bindings["composite_tests_sha256"] == hashlib.sha256(
         (ROOT / "tests/test_composite_tasks.py").read_bytes()
     ).hexdigest()
@@ -68,6 +94,30 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     ).hexdigest()
     assert "Moli 1.1.9 local audit complete" in dataset["approval_status"]
     assert dataset["comparison"]["local_audit_receipt"] == RECEIPT_PATH.relative_to(ROOT).as_posix()
+
+
+def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monkeypatch):
+    dataset = _dataset()
+    receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
+    registry = json.loads((ROOT / "evaluation/scoring-regressions.json").read_text())
+    original_file = local_audit._repository_file
+    replacement = tmp_path / "scoring-regressions.json"
+
+    def repository_file(relative):
+        return replacement if relative == "evaluation/scoring-regressions.json" else original_file(relative)
+
+    monkeypatch.setattr(local_audit, "_repository_file", repository_file)
+    changed = json.loads(json.dumps(registry))
+    changed["cases"][0]["artifact"] += " altered"
+    replacement.write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match="Scoring control contents changed"):
+        local_audit._require_repository_bindings(dataset, receipt)
+
+    changed = json.loads(json.dumps(registry))
+    changed["cases"].insert(0, dict(changed["cases"][-1], id="interleaved-control"))
+    replacement.write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match="Scoring control partition"):
+        local_audit._require_repository_bindings(dataset, receipt)
 
 
 def test_dynamic_100_contracts_are_valid_and_do_not_configure_provider_waits():

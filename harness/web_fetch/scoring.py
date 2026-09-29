@@ -191,6 +191,11 @@ def score_attempt(
     )
     if dynamic_page_identity:
         observed_language = (metadata or {}).get("document_language")
+        language_present = case.get("expected_document_language_present", True)
+        if not isinstance(language_present, bool):
+            raise ValueError("expected_document_language_present must be boolean")
+        if not language_present and case.get("expected_document_language"):
+            raise ValueError("An absent source language cannot have an expected language tag")
         expected_document_language = (
             case.get("expected_document_language") or case["target_language"]
         )
@@ -198,14 +203,17 @@ def score_attempt(
             isinstance(final_url, str) and final_url
             and _same_page_url(final_url, case["expected_final_url"])
         )
-        language_consistent = bool(
-            isinstance(observed_language, str) and observed_language.strip()
-            and observed_language.split("-", 1)[0].casefold()
-            == expected_document_language.split("-", 1)[0].casefold()
+        language_consistent = (
+            observed_language == "" if not language_present else bool(
+                isinstance(observed_language, str) and observed_language.strip()
+                and observed_language.split("-", 1)[0].casefold()
+                == expected_document_language.split("-", 1)[0].casefold()
+            )
         )
         identity_status = (
             "verified" if final_consistent and language_consistent
-            else "mismatch" if final_url and observed_language
+            else "mismatch" if final_url and (observed_language or
+                (not language_present and isinstance(observed_language, str)))
             else "unavailable"
         )
         result.update(

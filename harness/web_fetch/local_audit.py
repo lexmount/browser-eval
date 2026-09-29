@@ -121,19 +121,20 @@ def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
             != receipt.get("bindings", {}).get("scoring_source_sha256")):
         raise ValueError("Scoring revision receipt has wrong bindings")
     regressions_path = _repository_file("evaluation/scoring-regressions.json")
-    if _sha256(regressions_path) != scoring.get("bindings", {}).get(
-            "scoring_regressions_sha256"):
-        raise ValueError("Scoring regression inventory changed")
     controls = json.loads(regressions_path.read_text(encoding="utf-8")).get("cases", [])
     current_ids = [row.get("id") for row in controls]
     base_ids = scoring.get("preexisting_control_ids", [])
     revision_rows = scoring.get("revision_controls", [])
     revision_ids = [row.get("id") for row in revision_rows]
+    bound_count = len(base_ids) + len(revision_ids)
+    # A newer revision may append controls, but cannot replace or interleave
+    # any control that the historical audit bound by the hashes below.
+    bound_ids = current_ids[:bound_count]
     if (len(current_ids) != len(set(current_ids))
             or len(base_ids) != len(set(base_ids))
             or len(revision_ids) != len(set(revision_ids))
             or set(base_ids) & set(revision_ids)
-            or set(current_ids) != set(base_ids) | set(revision_ids)):
+            or set(bound_ids) != set(base_ids) | set(revision_ids)):
         raise ValueError("Scoring control partition is incomplete or duplicated")
     base_set, revision_set = set(base_ids), set(revision_ids)
     base_controls = [row for row in controls if row["id"] in base_set]

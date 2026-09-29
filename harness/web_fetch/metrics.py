@@ -484,7 +484,15 @@ def evaluate_content(
     composite_acceptance: dict | None = None,
     allow_reference_block_exemptions: bool = False,
 ) -> dict[str, Any]:
-    answer_text = ((title.strip() + '\n') if title and title.strip() else '') + content
+    title_prefix = ((title.strip() + '\n') if title and title.strip() else '')
+    raw_answer_text = title_prefix + content
+    visible_content = content
+    if (re.match(r'\s*<!doctype\s+html\b', content, re.I) or
+            re.match(r'\s*<(?:html|body|main|div|section|article)\b', content, re.I)):
+        # Keep raw HTML for records and links; score prose from visible text.
+        from .dynamic_lists import _scoped_html
+        visible_content = _scoped_html(content).get_text('\n', strip=True)
+    answer_text = title_prefix + visible_content
     from .reference_quality import blocked_page_hits, script_payload_shell
     block_hits = blocked_page_hits(answer_text)
     script_shell = script_payload_shell(answer_text)
@@ -529,22 +537,13 @@ def evaluate_content(
     if acceptance_contract:
         # A historical snapshot cannot exempt an explicit stable-mode block rule.
         reference_exemptions = []
-    forbidden_folded = folded
-    if re.match(r'\s*(?:<!doctype\s+html[^>]*>\s*)?<(?:html|body|main|div|section|article)\b', content, re.I):
-        # Dormant HTML templates and scripts can mention CAPTCHA on a fully
-        # functioning page. Their source code is not a visible blocking notice.
-        # Preserve the supplied title and real page text for this gate.
-        from .dynamic_lists import _scoped_html
-        forbidden_surface = ((title.strip() + '\n') if title and title.strip() else '')
-        forbidden_surface += _scoped_html(content).get_text(' ', strip=True)
-        forbidden_folded = normalize_for_match(forbidden_surface)
     forbidden = [item for item in (forbidden_any or [])
-                 if item not in reference_exemptions and (text := normalize_for_match(item)) and text in forbidden_folded]
+                 if item not in reference_exemptions and (text := normalize_for_match(item)) and text in folded]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in answer_text.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
     legacy_pass = bool(matched) if expected else True
-    length_pass = len(content) >= min_content_chars
+    length_pass = len(visible_content) >= min_content_chars
     content_pass = (legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold
                     and not forbidden and not block_hits and not encoding_corruption
                     and not script_shell)
@@ -609,7 +608,8 @@ def evaluate_content(
         # contract is different: it remains an independent acceptance gate.
         declared_body_pass = bool(result["body_coverage_pass"])
         from .stable_tasks import evaluate_stable_task
-        result.update(evaluate_stable_task(answer_text, acceptance_contract, base_url, links=named_links))
+        result.update(evaluate_stable_task(raw_answer_text, acceptance_contract,
+                                           base_url, links=named_links))
         if encoding_corruption:
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False

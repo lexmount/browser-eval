@@ -7404,19 +7404,22 @@
           {
             "id": "stable-02",
             "alternatives": [
-              "登录以参加训练计划"
+              "登录以参加训练计划",
+              "Login to join training plan"
             ]
           },
           {
             "id": "stable-03",
             "alternatives": [
-              "题目"
+              "题目",
+              "Problem"
             ]
           },
           {
             "id": "stable-04",
             "alternatives": [
-              "尝试"
+              "尝试",
+              "Tried"
             ]
           },
           {
@@ -7428,7 +7431,8 @@
           {
             "id": "stable-06",
             "alternatives": [
-              "难度"
+              "难度",
+              "Difficulty"
             ]
           }
         ]
