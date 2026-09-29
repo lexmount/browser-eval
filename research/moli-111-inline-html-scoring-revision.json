@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "kind": "scoring_revision_receipt",
+  "reason": "Stable text and distributed body coverage compared raw HTML source rather than rendered prose. Inline code split a visible phrase, while hidden script text could satisfy an anchor.",
+  "scope": "Saved 1.1.11 diagnostic second calls only; no provider request or historical certified result is overwritten.",
+  "run_manifest_sha256": "cae4b504ec0dbdbfdb4ae7a49547ebdd03cd6ce418016cdae2a959d0d969eaab",
+  "dataset_sha256": {
+    "popular": "0703badca3978cafe4f6db67fb9723f433781e1b87b4ef2af343756126e72cb5",
+    "dynamic": "2a149a7003a43ee4746bf1d11669154506a96172ddfe51f7abb9b2d547fba8b3"
+  },
+  "predecessor_receipt": "research/moli-111-visible-html-scoring-revision.json",
+  "predecessor_receipt_sha256": "786ba51a233b199ed70b0e4a5929cd0a602611f014576580cedab8cf8398ee8e",
+  "historical_scoring_source_sha256": "24408a877926266fc1304b169c7663e18744bd40d2184f825b89d3e35a4694af",
+  "revised_scoring_source_sha256": "c92c0ea4925812b748940fa046913196c88fbf43124af26dadead1245c17d0d1",
+  "scoring_regressions_sha256": "490d94962a9e966c06aedd73b2392456a0614d23d49df27aac97c1f0f33b227f",
+  "correction_provenance": {
+    "category": "format-normalization",
+    "root_cause": "Rendered HTML text and raw HTML source were mixed in stable-anchor and body-coverage matching; the same normalization defect caused both missing visible phrases and accepting hidden script phrases.",
+    "regression_ids": [
+      "html-inline-code-preserves-visible-anchor",
+      "html-hidden-script-cannot-satisfy-anchor",
+      "html-inline-code-counts-for-body-coverage",
+      "html-hidden-script-cannot-satisfy-body-coverage"
+    ],
+    "verdict_corrections": {
+      "false_positives": 2,
+      "false_negatives": 2,
+      "total": 4
+    }
+  },
+  "task_decision_changes": [
+    {"case_id": "china-homepage-080-yandex-com", "answer_sha256": "6800e396e205f3f5deeadb1b3d69a86cd581d94cbb36f211a43e8af7305e7ab0", "before": true, "after": false},
+    {"case_id": "china-homepage-085-shopify-com", "answer_sha256": "e5e0c93eaa56d44c1a8bf323e7fa96ae805d9f2df037ef6a038e9e384747f904", "before": true, "after": false},
+    {"case_id": "replacement-en-gridjs-search", "answer_sha256": "6f6938b4ba2166b6120842920b5e273ef494517cd2048d48175f74cdde0f655c", "before": false, "after": true},
+    {"case_id": "replacement-en-gridjs-sort", "answer_sha256": "4e5589d83da6f63255d1ec6b75ca70812e51ba7efdfcbd2e2c0b7765339590ca", "before": false, "after": true}
+  ],
+  "provider_calls_for_revision": 0,
+  "historical_receipt_unchanged": "research/dynamic-100-moli-119-local-audit.json"
+}

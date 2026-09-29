@@ -514,14 +514,16 @@ def evaluate_content(
         # A historical snapshot cannot exempt an explicit stable-mode block rule.
         reference_exemptions = []
     forbidden_folded = folded
+    visible_html_text = None
     if (re.match(r'\s*<!doctype\s+html\b', content, re.I) or
             re.match(r'\s*<(?:html|body|main|div|section|article)\b', content, re.I)):
         # Dormant HTML templates and scripts can mention CAPTCHA on a fully
         # functioning page. Their source code is not a visible blocking notice.
         # Preserve the supplied title and real page text for this gate.
         from .dynamic_lists import _scoped_html
+        visible_html_text = _scoped_html(content).get_text(' ', strip=True)
         forbidden_surface = ((title.strip() + '\n') if title and title.strip() else '')
-        forbidden_surface += _scoped_html(content).get_text(' ', strip=True)
+        forbidden_surface += visible_html_text
         forbidden_folded = normalize_for_match(forbidden_surface)
     forbidden = [item for item in (forbidden_any or [])
                  if item not in reference_exemptions and (text := normalize_for_match(item)) and text in forbidden_folded]
@@ -539,7 +541,9 @@ def evaluate_content(
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
     from .body_coverage import evaluate_body_requirements
-    body_checks = evaluate_body_requirements(answer_text, body_requirements or {})
+    body_surface = (((title.strip() + '\n') if title and title.strip() else '')
+                    + visible_html_text if visible_html_text is not None else answer_text)
+    body_checks = evaluate_body_requirements(body_surface, body_requirements or {})
     content_pass = content_pass and body_checks['body_coverage_pass']
     word_precision = word_recall = word_f1 = None
     if ground_truth_main_content:

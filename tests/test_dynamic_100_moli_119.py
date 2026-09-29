@@ -14,7 +14,8 @@ from harness.web_fetch.scoring_regressions import valid_correction_provenance
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_PATH = ROOT / "evaluation/dynamic-content-100-moli-webfetch/dataset.json"
 RECEIPT_PATH = ROOT / "research/dynamic-100-moli-119-local-audit.json"
-CURRENT_SCORING_REVISION_PATH = ROOT / "research/moli-111-visible-html-scoring-revision.json"
+PRIOR_SCORING_REVISION_PATH = ROOT / "research/moli-111-visible-html-scoring-revision.json"
+CURRENT_SCORING_REVISION_PATH = ROOT / "research/moli-111-inline-html-scoring-revision.json"
 
 
 def _dataset():
@@ -30,13 +31,21 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert len({case["id"] for case in cases}) == 100
     assert len({case["url"] for case in cases}) == 100
     assert hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest() == receipt["bindings"]["dataset_sha256"]
+    prior = json.loads(PRIOR_SCORING_REVISION_PATH.read_text(encoding="utf-8"))
     revision = json.loads(CURRENT_SCORING_REVISION_PATH.read_text(encoding="utf-8"))
-    assert receipt["bindings"]["scoring_source_sha256"] == revision["historical_scoring_source_sha256"]
+    assert receipt["bindings"]["scoring_source_sha256"] == prior["historical_scoring_source_sha256"]
+    assert prior["revised_scoring_source_sha256"] == revision["historical_scoring_source_sha256"]
+    assert (hashlib.sha256(PRIOR_SCORING_REVISION_PATH.read_bytes()).hexdigest()
+            == revision["predecessor_receipt_sha256"])
     assert SCORING_SOURCE_SHA256 == revision["revised_scoring_source_sha256"]
     regression_bytes = (ROOT / "evaluation/scoring-regressions.json").read_bytes()
     assert hashlib.sha256(regression_bytes).hexdigest() == revision["scoring_regressions_sha256"]
     assert revision["dataset_sha256"]["dynamic"] == hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest()
+    assert valid_correction_provenance(prior)
     assert valid_correction_provenance(revision)
+    assert revision["provider_calls_for_revision"] == 0
+    assert len({row["case_id"] for row in revision["task_decision_changes"]}) == 4
+    assert all(len(row["answer_sha256"]) == 64 for row in revision["task_decision_changes"])
     assert "Moli 1.1.9 local audit complete" in dataset["approval_status"]
     assert dataset["comparison"]["local_audit_receipt"] == RECEIPT_PATH.relative_to(ROOT).as_posix()
 

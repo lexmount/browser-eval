@@ -568,7 +568,8 @@ def _non_record_visible(content, contract, records, base_url):
     return None
 
 
-def _anchor_matches(anchor, records, visible, schema, non_record_visible=None):
+def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
+                    anchor_visible=None):
     from .metrics import fact_in_text, normalize_for_match
     if anchor.get('match_scope') == 'non_record_lines':
         if non_record_visible is not None:
@@ -580,7 +581,7 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None):
         # Flattened page output can put headings and records on one physical
         # line, so mask parsed record titles instead of discarding that line.
         titles = [normalize_for_match(r['fields']['title']) for r in records if r.get('valid') and r.get('fields',{}).get('title')]
-        folded = normalize_for_match(visible)
+        folded = normalize_for_match(anchor_visible if anchor_visible is not None else visible)
         for title in sorted(set(titles), key=len, reverse=True):
             folded = folded.replace(title, ' ')
         return [value for value in anchor["alternatives"]
@@ -606,7 +607,7 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None):
         return [value for value, fields in owned if any(record["valid"] and all(
             field_matches(record, fields, field)
             for field in SCHEMA_FIELDS[schema]) for record in records)]
-    folded = normalize_for_match(visible)
+    folded = normalize_for_match(anchor_visible if anchor_visible is not None else visible)
     return [value for value in anchor["alternatives"] if fact_in_text(folded, normalize_for_match(_visible(value)))]
 
 
@@ -902,12 +903,24 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         else:
             records = [] if schema in {"body_text", "page_identity"} else _parse_records(visible, schema)
     anchors = []
+    anchor_visible = None
+    html_candidate = content.lstrip()
+    first_line, newline, remainder = html_candidate.partition('\n')
+    if newline and '<' not in first_line and len(first_line) <= 300:
+        html_candidate = remainder.lstrip()
+    if re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
+                html_candidate, re.I):
+        from .dynamic_lists import _scoped_html
+        # Stable text anchors describe rendered prose, not HTML source. Keep
+        # record parsing on its existing boundary-preserving representation.
+        anchor_visible = _scoped_html(content).get_text(' ', strip=True)
     non_record_visible = None
     if schema == 'named_link' and any(a.get('match_scope') == 'non_record_lines'
                                       for a in contract.get('stable_text_anchors', [])):
         non_record_visible = _non_record_visible(content, contract, records, base_url)
     for anchor in contract.get("stable_text_anchors", []):
-        matched = _anchor_matches(anchor, records, visible, schema, non_record_visible)
+        matched = _anchor_matches(anchor, records, visible, schema,
+                                  non_record_visible, anchor_visible)
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
     content_errors += ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
     complete = [r for r in records if r["valid"]]

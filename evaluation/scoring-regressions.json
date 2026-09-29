@@ -21472,6 +21472,94 @@
       "ok": true,
       "expected_task_pass": false,
       "expected_metrics": {"content_pass": false, "forbidden_hits": ["CAPTCHA"]}
+    },
+    {
+      "id": "html-inline-code-preserves-visible-anchor",
+      "category": "format-normalization",
+      "root_cause": "stable_anchor_html_inline_markup",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://docs.example.test/search",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {"id": "search-instruction", "alternatives": ["Set search: true to enable the search plugin:"]}
+          ]
+        }
+      },
+      "artifact": "<!doctype html><html><body><main><p>Set <code>search: true</code> to enable the search plugin:</p></main></body></html>",
+      "title": "Search | Documentation",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"stable_anchor_hits": 1, "stable_content_pass": true}
+    },
+    {
+      "id": "html-hidden-script-cannot-satisfy-anchor",
+      "category": "format-normalization",
+      "root_cause": "stable_anchor_html_inline_markup",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://docs.example.test/search",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {"id": "search-instruction", "alternatives": ["Set search: true to enable the search plugin:"]}
+          ]
+        }
+      },
+      "artifact": "<!doctype html><html><head><script>const help = 'Set search: true to enable the search plugin:';</script></head><body><main><p>Search examples</p></main></body></html>",
+      "title": "Search | Documentation",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"stable_anchor_hits": 0, "stable_content_pass": false}
+    },
+    {
+      "id": "html-inline-code-counts-for-body-coverage",
+      "category": "format-normalization",
+      "root_cause": "body_coverage_html_visible_text",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://docs.example.test/sorting",
+        "task_kind": "body",
+        "body_requirements": {
+          "version": 3, "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 1.0, "minimum_floor": 1.0,
+          "minimum_region_passes": 1,
+          "regions": [{"id": "instruction", "text": "To enable sorting simply add sort true to your config"}]
+        }
+      },
+      "artifact": "<!doctype html><html><body><main><p>To enable sorting, simply add <code>sort: true</code> to your config:</p></main></body></html>",
+      "title": "Sorting | Documentation",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"body_coverage_pass": true}
+    },
+    {
+      "id": "html-hidden-script-cannot-satisfy-body-coverage",
+      "category": "format-normalization",
+      "root_cause": "body_coverage_html_visible_text",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://docs.example.test/sorting",
+        "task_kind": "body",
+        "body_requirements": {
+          "version": 3, "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 1.0, "minimum_floor": 1.0,
+          "minimum_region_passes": 1,
+          "regions": [{"id": "instruction", "text": "To enable sorting simply add sort true to your config"}]
+        }
+      },
+      "artifact": "<!doctype html><html><head><script>const help = 'To enable sorting simply add sort true to your config';</script></head><body><main><p>Sorting examples</p></main></body></html>",
+      "title": "Sorting | Documentation",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"body_coverage_pass": false}
     }
   ]
 }
