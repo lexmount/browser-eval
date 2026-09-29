@@ -301,7 +301,7 @@ def _markdown_named_items(content, contract, scope):
         linked_chars=sum(item.end-item.start for item in line_links)
         link_collection=(len(line_links) >= 3 and linked_chars >= 0.8 * len(line))
         if (prefix and not link_collection
-                and not re.fullmatch(r'[\s#>*\-\d.)|•·●▪◦,，、;；]*',prefix)):
+                and not re.fullmatch(r'[\s#>*\-\d.)|/:•·●▪◦,，、;；]*',prefix)):
             continue
         non_image_label=link.label
         for nested in reversed(markdown_links(link.label)):

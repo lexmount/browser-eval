@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "risk_control_formal_case_replacement",
+  "status": "rules_ready_before_provider_call",
+  "replaced_case_id": "risk-107",
+  "replacement_case_id": "risk-diverse-271",
+  "formal_position": 8,
+  "decision": "Kuaishou current independent evidence did not contain auditable target records; use the predeclared random reserve procedure.",
+  "provider_outputs_used_for_rule_authoring": false,
+  "kuaishou_recheck": {
+    "path": "~/.browser-eval/evidence/risk-control/kuaishou-requalification-20260929-r1/capture.json",
+    "sha256": "b40b2f6074c76b2817e3b815102cd1e27add0e650fa75b2a74539101ed997fd9",
+    "rounds": 2,
+    "browser_used": false,
+    "interaction_used": false,
+    "visible_short_video_links": 0
+  },
+  "random_selection": {
+    "path": "~/.browser-eval/evidence/risk-control/kuaishou-requalification-20260929-r1/reserve-selection.json",
+    "sha256": "5ad0130fa01d8c27a302b11ad7c739b68ce9f94c76072dcd0d1e31e4216c278c",
+    "eligible_count": 10,
+    "selected_index_zero_based": 6,
+    "redraws": []
+  },
+  "replacement_recheck": {
+    "path": "~/.browser-eval/evidence/risk-control/kuaishou-requalification-20260929-r1/replacement-risk-diverse-271-reference/capture.json",
+    "sha256": "e6bb1c0c489c60845502fcac9052f91c37b4f4777037f12e68320f6cfbe983c4",
+    "rounds": 2,
+    "browser_used": false,
+    "interaction_used": false,
+    "material_result": "same complete main body; generated footer timestamp differs"
+  },
+  "reference_authority": {
+    "path": "reference-expansion-batch-13/risk-diverse-271/round-1/http-default.txt",
+    "sha256": "8e4909bbd19bfd4db1131c15021705b88b10da6797cbec4c37d9cac76635f21e",
+    "bytes": 1014,
+    "root": "diverse20260927",
+    "quote": "code here varies a lot in usefulness and seriousness."
+  },
+  "rule_scope": {
+    "stable_text_count": 5,
+    "body_regions": 4,
+    "name_link": false,
+    "excluded": [
+      "navigation",
+      "search form",
+      "generated cgit version and timestamp",
+      "image alt text"
+    ]
+  }
+}

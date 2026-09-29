@@ -21,7 +21,7 @@ SCORING_SOURCE_SHA256 = hashlib.sha256(b"\0".join(
         "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
         "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
         "response_input.py", "body_coverage.py", "structured_tables.py",
-        "ordered_tree.py",
+        "ordered_tree.py", "composite_tasks.py",
     )
 )).hexdigest()
 
@@ -53,6 +53,8 @@ _CONDITIONAL_FIELDS = {
     "page_identity_required", "page_identity_status", "final_url_consistent",
     "language_consistent", "observed_document_language",
     "ordered_tree", "ordered_tree_similarity",
+    "composite_acceptance_sha256",
+    "body_requirements_sha256",
 }
 
 
@@ -104,7 +106,7 @@ def score_attempt(
               if key not in _CONDITIONAL_FIELDS and not key.startswith(("stable_", "list_"))}
     keys = ("required_facts", "forbidden_any", "min_content_chars",
             "fact_coverage_threshold", "ground_truth_main_content", "required_patterns",
-            "acceptance_contract", "body_requirements")
+            "acceptance_contract", "body_requirements", "composite_acceptance")
     task_kind = case.get("task_kind", "body")
     rule_review = case.get("rule_review") or {}
     scoring_values = {key: case[key] for key in keys if key in case}
@@ -204,6 +206,12 @@ def score_attempt(
     if contract:
         result["acceptance_contract_sha256"] = hashlib.sha256(json.dumps(
             contract, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    if composite := case.get("composite_acceptance"):
+        result["composite_acceptance_sha256"] = hashlib.sha256(json.dumps(
+            composite, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    if body_requirements := case.get("body_requirements"):
+        result["body_requirements_sha256"] = hashlib.sha256(json.dumps(
+            body_requirements, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     if not result["content_score_applicable"] or not ok:
         result["content_pass"] = False
     if result.get("page_identity_required") and result.get("page_identity_status") != "verified":

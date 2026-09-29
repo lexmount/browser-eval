@@ -95,6 +95,13 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["wait"], {"wait_until": "done"})
         self.assertTrue(result.metadata["block_private_networks"])
 
+    def test_binary_path_expands_environment_variable(self):
+        provider = self.provider('print("answer")')
+        provider.config["binary"] = "$RISK_MOLI_TEST_BINARY"
+        with patch.dict(os.environ, {"RISK_MOLI_TEST_BINARY": str(self.binary)}):
+            self.assertEqual(provider.validate(), [])
+            self.assertEqual(Path(provider._resolve_binary()), self.binary)
+
     def test_stderr_capture_exceeds_legacy_4096_without_silent_truncation(self):
         provider = self.provider(
             "import sys\nprint('x'*5000,file=sys.stderr)\nprint('answer')",
@@ -105,6 +112,35 @@ class MoliTests(unittest.TestCase):
         self.assertGreater(len(result.metadata["stderr"]), 4096)
         self.assertGreater(result.metadata["stderr_bytes"], 4096)
         self.assertFalse(result.metadata["stderr_truncated"])
+
+    def test_debug_logging_is_passed_and_complete_raw_stderr_is_bound(self):
+        provider = self.provider(
+            "import sys\n"
+            'assert sys.argv[sys.argv.index("--log-level")+1]=="debug"\n'
+            'print("first debug line",file=sys.stderr)\n'
+            'print("second debug line",file=sys.stderr)\n'
+            'print("answer")',
+            log_level="debug",
+            max_diagnostic_bytes=100_000_000,
+            trace_network=False,
+        )
+        result = provider.fetch(self.case, 2)
+        self.assertTrue(result.ok)
+        raw = base64.b64decode(result.metadata["_diagnostic_log_b64"], validate=True)
+        self.assertEqual(raw, b"first debug line\nsecond debug line\n")
+        self.assertEqual(result.metadata["diagnostic_log_bytes"], len(raw))
+        self.assertEqual(
+            result.metadata["diagnostic_log_sha256"], hashlib.sha256(raw).hexdigest()
+        )
+        self.assertFalse(result.metadata["diagnostic_log_truncated"])
+        self.assertTrue(result.metadata["diagnostic_log_process_completed"])
+
+    def test_network_trace_cannot_change_markdown_scoring_route(self):
+        provider = self.provider('raise AssertionError("should not run")', trace_network=True)
+        self.assertIn(
+            "trace_network (requires JSON output and is not allowed for Markdown scoring)",
+            provider.validate(),
+        )
 
     def test_private_network_guard_exception_is_scoped_to_allowlisted_host(self):
         provider = self.provider(
@@ -761,12 +797,22 @@ class MoliTests(unittest.TestCase):
             ('import sys\nprint("partial")\nsys.exit(7)', {}, "tool_error"),
             ('import sys\nsys.stdout.buffer.write(b"\\xff")', {}, "invalid_output"),
             ('print("abcdef")', {"max_bytes": 3}, "output_too_large"),
-            ('import sys\nprint("abcdef",file=sys.stderr)', {"max_bytes": 3}, "output_too_large"),
+            ('import sys\nprint("abcdef",file=sys.stderr)',
+             {"max_diagnostic_bytes": 3}, "diagnostic_log_too_large"),
         ]:
             with self.subTest(expected=expected):
                 result = self.provider(script, **config).fetch(self.case, 2)
                 self.assertFalse(result.ok)
                 self.assertEqual(result.error_type, expected)
+                self.assertIn("_diagnostic_log_b64", result.metadata)
+                self.assertEqual(
+                    len(base64.b64decode(result.metadata["_diagnostic_log_b64"])),
+                    result.metadata["diagnostic_log_bytes"],
+                )
+                self.assertEqual(
+                    result.metadata["diagnostic_log_truncated"],
+                    expected == "diagnostic_log_too_large",
+                )
 
     def test_zero_exit_empty_markdown_is_request_success(self):
         result = self.provider('print(" ")').fetch(self.case, 2)

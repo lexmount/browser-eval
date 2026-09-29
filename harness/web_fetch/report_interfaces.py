@@ -16,6 +16,7 @@ HEADLESS_ACCESS={
  'moli-1.0.6':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.0.6 release 获取二进制，配置 MOLI_1_0_6_BINARY；发布归档与可执行文件均校验 SHA-256。','env_vars':['MOLI_1_0_6_BINARY'],'links':[('Moli 1.0.6 正式发布','https://github.com/lexmount/moli/releases/tag/v1.0.6')]},
  'moli':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.5 release 获取二进制，配置 MOLI_BINARY；不是 Lexmount 云服务接口。','env_vars':['MOLI_BINARY'],'links':[('Moli 1.1.5 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.5')]},
  'moli-1.1.7':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.7 release 获取二进制，配置 MOLI_1_1_7_BINARY。','env_vars':['MOLI_1_1_7_BINARY'],'links':[('Moli 1.1.7 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.7')]},
+ 'moli-1.1.11':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.11 release 获取二进制，配置 MOLI_1_1_11_BINARY。','env_vars':['MOLI_1_1_11_BINARY'],'links':[('Moli 1.1.11 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.11')]},
  'moli-pr643':{'account':'不需要供应商账号或 API Key。','configuration':'从 Moli PR #643 的固定源码提交构建，配置 MOLI_PR643_BINARY；此方法是候选构建版。','env_vars':['MOLI_PR643_BINARY'],'links':[('Moli 源码 PR','https://github.com/lexmount/moli/pull/643')]},
  'moli-1.1.3':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.3 release 获取二进制，配置 MOLI_1_1_3_BINARY；发布包与可执行文件均校验 SHA-256。','env_vars':['MOLI_1_1_3_BINARY'],'links':[('Moli 1.1.3 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.3')]},
  'chromium':{'account':'不需要 Google 账号或 API Key；不加载个人登录会话。','configuration':'通过 Playwright 安装匹配的 Chromium，配置 CHROMIUM_BINARY。','env_vars':['CHROMIUM_BINARY'],'links':[('官方浏览器安装说明','https://playwright.dev/python/docs/browsers')]},
@@ -97,6 +98,7 @@ SPECS['moli-1.0.6']=moli_release_spec('1.0.6')
 SPECS['moli']=moli_release_spec('1.1.5')
 SPECS['moli-1.1.7']=moli_release_spec('1.1.7')
 SPECS['moli-1.1.3']=moli_release_spec('1.1.3')
+SPECS['moli-1.1.11']=moli_release_spec('1.1.11')
 SPECS['chromium']=spec(
  'Playwright · Chromium → DOM HTML → node-html-markdown','本地独立浏览器；不需要 Google 账号，不加载个人会话',
  [('url','string','唯一任务输入'),('wait_until','string','domcontentloaded'),('timeout','seconds','45 秒端到端截止'),('converter','string','node-html-markdown 2.0.0')],

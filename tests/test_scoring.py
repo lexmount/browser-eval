@@ -388,7 +388,7 @@ class ScoringTests(unittest.TestCase):
             "scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
             "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
             "response_input.py", "body_coverage.py", "structured_tables.py",
-            "ordered_tree.py"))).hexdigest()
+            "ordered_tree.py", "composite_tasks.py"))).hexdigest()
         self.assertEqual(SCORING_SOURCE_SHA256, expected)
         self.assertEqual(score_attempt(case(), b"Text", ok=True)["scoring_source_sha256"], expected)
 
@@ -468,6 +468,10 @@ class ScoringPipelineTests(unittest.TestCase):
         self.assertEqual(changes, [])
         current = [json.loads(line) for line in (self.run / "results.jsonl").read_text().splitlines()]
         self.assertEqual(summarize(current), summary)
+        self.assertEqual(
+            json.loads((self.run / "summary.json").read_text()),
+            summary,
+        )
         for before, after in zip(original, current):
             self.assertEqual(before["metrics"], after["metrics"])
             for key in before:
@@ -499,6 +503,10 @@ class ScoringPipelineTests(unittest.TestCase):
         self.assertEqual(updated[0]["run_id"], "original-call-identity")
         self.assertEqual(updated[0]["metrics"]["content_check_coverage"], 0)
         self.assertEqual(changes, [{"attempt_id": records[0]["attempt_id"], "before": True, "after": False}])
+        self.assertEqual(
+            json.loads((self.run / "summary.json").read_text())["cases"]["web"]["task_pass_rate"],
+            0,
+        )
 
     def test_each_rescore_updates_audit_without_erasing_existing_scoring_or_call_identity(self):
         records, _ = self.live()

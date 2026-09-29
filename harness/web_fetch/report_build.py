@@ -218,6 +218,20 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             expected = hashlib.sha256(json.dumps(contract, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
             if r['metrics'].get('acceptance_contract_sha256') != expected:
                 raise ValueError(f'Acceptance contract hash missing or mismatched: {r["attempt_id"]}')
+        composite = cases[r['case_id']].get('composite_acceptance')
+        if composite:
+            from .composite_tasks import validate_composite_acceptance
+            validate_composite_acceptance(composite)
+            expected = hashlib.sha256(json.dumps(
+                composite, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
+            if r['metrics'].get('composite_acceptance_sha256') != expected:
+                raise ValueError(f'Composite contract hash missing or mismatched: {r["attempt_id"]}')
+        body_requirements = cases[r['case_id']].get('body_requirements')
+        if body_requirements:
+            expected = hashlib.sha256(json.dumps(
+                body_requirements, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
+            if r['metrics'].get('body_requirements_sha256') != expected:
+                raise ValueError(f'Body contract hash missing or mismatched: {r["attempt_id"]}')
         if cases[r['case_id']].get('expected_resources') or cases[r['case_id']].get('resource_output_contract'):
             resource_contract = {
                 'expected_resources': cases[r['case_id']].get('expected_resources', []),

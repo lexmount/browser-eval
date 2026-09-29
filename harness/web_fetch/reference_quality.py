@@ -31,6 +31,9 @@ _BLOCKED_PAGE = re.compile(
     r"(?im)^\s*(?:#{1,6}\s*)?(?:[*_]{1,3})?(?:access denied|403 forbidden|"
     r"error:\s*forbidden\s*/\s*403|verify (?:that )?you are human|"
     r"checking your browser|(?:w3\s+)?performing security verification|making sure you're not a bot|"
+    r"testing to determine if you are a bot|checking (?:if )?you are not a bot|"
+    r"verifying visitor request|pardon our interruption|(?:opensuse\s+)?request on hold|"
+    r"this is a measure to protect this website from bots|"
     r"just a moment(?:\.{3}|…)?|attention required!?|captcha(?: challenge)?|"
     r"京东验证|验证中心|身份核实|验证一下\s*[,，]?\s*购物无忧)"
     r"(?:[*_]{1,3})?[.!: 。！：\t]*$"
@@ -42,10 +45,7 @@ def blocked_page_hits(text: str) -> list[str]:
     # Markdown serializers commonly place a decorative challenge-page image at
     # the start of the same source line as the visible gate phrase. The image is
     # not visible prose and must not prevent the phrase from being standalone.
-    visible = text
-    for link in reversed(markdown_links(text)):
-        if link.is_image:
-            visible = visible[:link.start] + " " + visible[link.end:]
+    visible = visible_markdown_links(text)
     return [match.group(0).strip() for match in _BLOCKED_PAGE.finditer(visible)]
 
 

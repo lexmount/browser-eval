@@ -192,7 +192,7 @@ for engine,url in {
             'CLI 自带等待；45 秒外层预算；直接使用原生 Markdown。' if native else
             'DOMContentLoaded；45 秒端到端预算；完整 DOM 经 node-html-markdown 2.0.0 转换。'),
  }
-for provider,version in (('moli-1.0.6','1.0.6'),('moli','1.1.5'),('moli-1.1.3','1.1.3')):
+for provider,version in (('moli-1.0.6','1.0.6'),('moli','1.1.5'),('moli-1.1.3','1.1.3'),('moli-1.1.11','1.1.11')):
     source='headless-moli-'+version
     SOURCES[source]=(f'Moli {version} · 官方发布',
         f'https://github.com/lexmount/moli/releases/tag/v{version}')
@@ -228,7 +228,7 @@ CAPABILITIES['moli-1.1.7']={
 }
 
 def render_capabilities(out, names, *, table, cell, link):
-    labels={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7'}
+    labels={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-1.1.11':'Moli 1.1.11'}
     unknown = sorted(set(names) - set(CAPABILITIES))
     evidence = {'checked_at': CHECKED_AT, 'scope': '官方契约/固定源码能力，不是实测成绩',
                 'sources': SOURCES, 'methods': {n: CAPABILITIES[n] for n in names if n in CAPABILITIES}, 'unreviewed': unknown}

@@ -9,7 +9,7 @@ from harness.web_fetch.report_interfaces import HEADLESS_ACCESS, SPECS, render_i
 class HeadlessAccessTests(unittest.TestCase):
     def test_all_measured_engines_have_account_and_official_sources(self):
         self.assertEqual(set(HEADLESS_ACCESS),
-                         {'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','moli-1.1.7','moli-pr643','chromium'})
+                         {'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','moli-1.1.7','moli-1.1.11','moli-pr643','chromium'})
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'adoption').mkdir()

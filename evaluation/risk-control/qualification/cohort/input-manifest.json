@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "scope": "qualification_only",
+  "rule_status": "authored_and_executable",
+  "base_commit": "57f0b87caebb4a0979fa3206a17f9439fc112c20",
+  "formal_count": 100,
+  "reserve_count": 10,
+  "formal_site_count": 74,
+  "evidence_roots": {
+    "legacy20260921": ".browser-eval/risk-control/qualification-20260921",
+    "diverse20260924": ".browser-eval/risk-control/qualification-diverse-20260924",
+    "diverse20260927": ".browser-eval/risk-control/qualification-diverse-20260927"
+  },
+  "evidence_root_resolution": "Paths are relative to the local user home directory; raw evidence remains outside Git.",
+  "files": [
+    {
+      "path": "cohort/qualified-cases.json",
+      "sha256": "6f7d08278f6934cee8579b000e1be69e0fa5be91656a949bc77f808f0295b283"
+    },
+    {
+      "path": "cohort/qualified-reserves.json",
+      "sha256": "d6c416be64fdcebec033990f37d341f3f32a4aab11fd71e5d41c0920655e225c"
+    },
+    {
+      "path": "cohort-policy.json",
+      "sha256": "171816e5e6578db7ca5452d84d5f3a8cef9e2bc05cd1095500224db9a4aba854"
+    },
+    {
+      "path": "cohort/risk-107-replacement-receipt.json",
+      "sha256": "6a09ce78867fb15e8aa79bacf97d4a8f92d1fc0d9fd37af883d5805276f09794"
+    }
+  ],
+  "source_qualification_receipt_sha256": "acf287f3b54352d1c97fb2b79b8d3d385d11ba44ac4bbfa693163627956e268e",
+  "verified_unique_evidence_bindings": 655
+}

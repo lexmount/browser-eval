@@ -1,0 +1,1337 @@
+{
+  "scope": "qualification_reserves_only",
+  "case_count": 10,
+  "site_count": 10,
+  "login_gate_count": 0,
+  "explicit_security_count": 10,
+  "cases": [
+    {
+      "schema_version": 3,
+      "case_id": "risk-diverse-251",
+      "requested_url": "https://wiki.musicbrainz.org/Frequently_Asked_Questions",
+      "page_name": "MusicBrainz FAQ",
+      "target_scope": "Original FAQ documentation",
+      "provider_outputs_used": false,
+      "site_key": "musicbrainz",
+      "site_name": "MusicBrainz",
+      "site_identity_basis": "Merge MusicBrainz brand subdomains and alternate entrances; verify actual ownership and language during review",
+      "risk_status": "confirmed",
+      "test_suitability": "qualified",
+      "disposition": "eligible",
+      "target_identity_key": "risk-diverse-251:original-target",
+      "target_language": "en",
+      "content_type": "documentation",
+      "content_type_review": "MusicBrainz FAQ 原页的用途介绍及四类 FAQ 说明；不进入子问答",
+      "site_identity_review": "按原目录已声明的平台归组，子域名不另计网站；新增同品牌页面仍须合并。",
+      "security_flow_key": "anubis-explicit-access-denied",
+      "reason": "已核对直接限制与原页面正文。MusicBrainz FAQ 原页的用途介绍及四类 FAQ 说明；不进入子问答",
+      "observation_differences_review": "复核保存的同轮不同访问方式：普通 HTTP 正文可读，浏览器 UA HTTP 返回 Anubis 拒绝页；差异不意味着没有风控。不推断今天状态或长期稳定。",
+      "reviewer": "Codex; direct source qualification review",
+      "reviewed_at": "2026-09-27T14:53:42.713709+00:00",
+      "restriction": {
+        "route": "http_browser_ua",
+        "security_kind": "explicit_bot_challenge",
+        "direct_restriction_observed": true,
+        "target_access_affected": true,
+        "ordinary_loading_excluded": true,
+        "paywall_only_excluded": true,
+        "attribution": "完整响应主体为 Oh noes / Access Denied，并明确标示 Protected by Anubis；原正文被替换，不是普通登录入口或裸状态码。",
+        "full_response_review": "已核对拒绝页完整文本及 HTML 主体；含 Anubis reject 图及错误码，无目标正文。脚本/隐藏 honeypot 不作为正文或资格依据。",
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-12/risk-diverse-251/round-1/complete.json",
+          "sha256": "b122550338bd771d07ca3684ad961637afc803ab8404dc12d77873bf39cc820f"
+        },
+        "final_url": "https://wiki.musicbrainz.org/Frequently_Asked_Questions",
+        "raw": {
+          "path": "reference-expansion-batch-12/risk-diverse-251/round-1/http-browser-ua.bin",
+          "sha256": "866bd9b6029f2cf3a369c5f24f95c9d73cd75c3bf83a1ed09f97ae9fe88fa45b",
+          "bytes": 2270,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-12/risk-diverse-251/round-1/http-browser-ua.txt",
+          "sha256": "a3777ea4e4beda168184d0fc8c2f22a98658e152796582f47c55c784e4a41ffe",
+          "bytes": 202,
+          "root": "diverse20260927",
+          "quote": "Access Denied: error code"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/environment.json",
+            "sha256": "23941650d58398eb3089ec305fe1ea3a46cdb1784c6fd91feb86f965c476cf11"
+          }
+        ]
+      },
+      "reference": {
+        "route": "http_default",
+        "target_identity_verified": true,
+        "language_verified": true,
+        "redirect_verified": true,
+        "initial_loaded_only": true,
+        "sufficient_for_rule_authoring": true,
+        "volatile_values_not_fixed": true,
+        "content_expansion_used": false,
+        "target_identity_review": "MusicBrainz FAQ 原页的用途介绍及四类 FAQ 说明；不进入子问答",
+        "content_scope_review": "已读保存文本并核对 HTML 正文结构，参考范围：MusicBrainz FAQ 原页的用途介绍及四类 FAQ 说明；不进入子问答；不使用隐藏模板、脚本、链接内或滚动新加载的内容。",
+        "language_review": "直接正文为英语；其他语言导航标签不改变主内容语言。",
+        "redirect_review": "固定输入直接返回同一原目标与英语内容，未改变页面。",
+        "observed_language": "en",
+        "operations": [],
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-12/risk-diverse-251/round-1/complete.json",
+          "sha256": "b122550338bd771d07ca3684ad961637afc803ab8404dc12d77873bf39cc820f"
+        },
+        "final_url": "https://wiki.musicbrainz.org/Frequently_Asked_Questions",
+        "raw": {
+          "path": "reference-expansion-batch-12/risk-diverse-251/round-1/http-default.bin",
+          "sha256": "ad3ba0cd20f9513ef43306e4a9421afde2b59cffb202f8e2e7aced7339f5bf44",
+          "bytes": 35122,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-12/risk-diverse-251/round-1/http-default.txt",
+          "sha256": "f57b0b3093a0252efd2bdb35026d469b9f7f0dc398d2213a1d347c28d605f172",
+          "bytes": 1529,
+          "root": "diverse20260927",
+          "quote": "This is a set of basic guides and FAQs that are maintained by the MusicBrainz community."
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/environment.json",
+            "sha256": "23941650d58398eb3089ec305fe1ea3a46cdb1784c6fd91feb86f965c476cf11"
+          }
+        ],
+        "access_context": "Saved observation: {\"initial_cookies\": 0, \"fresh_context\": null, \"headless\": null, \"interaction_used\": null, \"request_headers\": {\"User-Agent\": \"WebFetchRiskControlQualification/2.0\", \"Accept-Language\": \"en-US\"}, \"locale\": null}"
+      },
+      "reviewed_observations": [],
+      "validation": {
+        "case_id": "risk-diverse-251",
+        "qualified": true,
+        "status": "qualified",
+        "errors": []
+      },
+      "candidate_origin": {
+        "id": "risk-diverse-251",
+        "requested_url": "https://wiki.musicbrainz.org/Frequently_Asked_Questions",
+        "page_name": "MusicBrainz FAQ",
+        "site_key": "musicbrainz",
+        "site_name": "MusicBrainz",
+        "required_language": "en-US",
+        "target_scope": "Original FAQ documentation",
+        "site_identity_basis": "Merge MusicBrainz brand subdomains and alternate entrances; verify actual ownership and language during review",
+        "selection_priority": 251
+      }
+    },
+    {
+      "schema_version": 3,
+      "case_id": "risk-diverse-252",
+      "requested_url": "https://www.sabre-roads.org.uk/society/",
+      "page_name": "About SABRE society",
+      "target_scope": "Original society information article",
+      "provider_outputs_used": false,
+      "site_key": "sabre",
+      "site_name": "SABRE",
+      "site_identity_basis": "Merge SABRE brand subdomains and alternate entrances; verify actual ownership and language during review",
+      "risk_status": "confirmed",
+      "test_suitability": "qualified",
+      "disposition": "eligible",
+      "target_identity_key": "risk-diverse-252:original-target",
+      "target_language": "en",
+      "content_type": "article",
+      "content_type_review": "SABRE society 原页的社群活动介绍，Awaydays/Roadtrips 定义；不固定待举办活动",
+      "site_identity_review": "按原目录已声明的平台归组，子域名不另计网站；新增同品牌页面仍须合并。",
+      "security_flow_key": "anubis-explicit-access-denied",
+      "reason": "已核对直接限制与原页面正文。SABRE society 原页的社群活动介绍，Awaydays/Roadtrips 定义；不固定待举办活动",
+      "observation_differences_review": "复核保存的同轮不同访问方式：普通 HTTP 正文可读，浏览器 UA HTTP 返回 Anubis 拒绝页；差异不意味着没有风控。不推断今天状态或长期稳定。",
+      "reviewer": "Codex; direct source qualification review",
+      "reviewed_at": "2026-09-27T14:53:42.715316+00:00",
+      "restriction": {
+        "route": "http_browser_ua",
+        "security_kind": "explicit_bot_challenge",
+        "direct_restriction_observed": true,
+        "target_access_affected": true,
+        "ordinary_loading_excluded": true,
+        "paywall_only_excluded": true,
+        "attribution": "完整响应主体为 Oh noes / Access Denied，并明确标示 Protected by Anubis；原正文被替换，不是普通登录入口或裸状态码。",
+        "full_response_review": "已核对拒绝页完整文本及 HTML 主体；含 Anubis reject 图及错误码，无目标正文。脚本/隐藏 honeypot 不作为正文或资格依据。",
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-12/risk-diverse-252/round-1/complete.json",
+          "sha256": "f7ec74a1e8c378124a2c2e00c101a46df335be380ae12614eabffbaf7f0bafbc"
+        },
+        "final_url": "https://www.sabre-roads.org.uk/society/",
+        "raw": {
+          "path": "reference-expansion-batch-12/risk-diverse-252/round-1/http-browser-ua.bin",
+          "sha256": "3bfc6ccb63e390085281f17b3582def5b517d8fd6e51f76dba08729acce3b1b1",
+          "bytes": 2294,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-12/risk-diverse-252/round-1/http-browser-ua.txt",
+          "sha256": "640369c1ec83a1c8c6fe8795496b7b9cb75d35d332e7c698d84bd0c324fd6f62",
+          "bytes": 208,
+          "root": "diverse20260927",
+          "quote": "Access Denied: error code"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/environment.json",
+            "sha256": "23941650d58398eb3089ec305fe1ea3a46cdb1784c6fd91feb86f965c476cf11"
+          }
+        ]
+      },
+      "reference": {
+        "route": "http_default",
+        "target_identity_verified": true,
+        "language_verified": true,
+        "redirect_verified": true,
+        "initial_loaded_only": true,
+        "sufficient_for_rule_authoring": true,
+        "volatile_values_not_fixed": true,
+        "content_expansion_used": false,
+        "target_identity_review": "SABRE society 原页的社群活动介绍，Awaydays/Roadtrips 定义；不固定待举办活动",
+        "content_scope_review": "已读保存文本并核对 HTML 正文结构，参考范围：SABRE society 原页的社群活动介绍，Awaydays/Roadtrips 定义；不固定待举办活动；不使用隐藏模板、脚本、链接内或滚动新加载的内容。",
+        "language_review": "直接正文为英语；其他语言导航标签不改变主内容语言。",
+        "redirect_review": "固定输入直接返回同一原目标与英语内容，未改变页面。",
+        "observed_language": "en",
+        "operations": [],
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-12/risk-diverse-252/round-1/complete.json",
+          "sha256": "f7ec74a1e8c378124a2c2e00c101a46df335be380ae12614eabffbaf7f0bafbc"
+        },
+        "final_url": "https://www.sabre-roads.org.uk/society/",
+        "raw": {
+          "path": "reference-expansion-batch-12/risk-diverse-252/round-1/http-default.bin",
+          "sha256": "6a8f3e24ca9593a670fdbdc74f0b1f9a46695f3980700c431ed04346a956b88a",
+          "bytes": 5592,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-12/risk-diverse-252/round-1/http-default.txt",
+          "sha256": "d8de6c7ae27a67a0ef9d0c7f6472d7189c97649174ffd57b7c2a192ae0eec9b8",
+          "bytes": 907,
+          "root": "diverse20260927",
+          "quote": "SABRE is much more than a website or a discussion forum"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/environment.json",
+            "sha256": "23941650d58398eb3089ec305fe1ea3a46cdb1784c6fd91feb86f965c476cf11"
+          }
+        ],
+        "access_context": "Saved observation: {\"initial_cookies\": 0, \"fresh_context\": null, \"headless\": null, \"interaction_used\": null, \"request_headers\": {\"User-Agent\": \"WebFetchRiskControlQualification/2.0\", \"Accept-Language\": \"en-US\"}, \"locale\": null}"
+      },
+      "reviewed_observations": [],
+      "validation": {
+        "case_id": "risk-diverse-252",
+        "qualified": true,
+        "status": "qualified",
+        "errors": []
+      },
+      "candidate_origin": {
+        "id": "risk-diverse-252",
+        "requested_url": "https://www.sabre-roads.org.uk/society/",
+        "page_name": "About SABRE society",
+        "site_key": "sabre",
+        "site_name": "SABRE",
+        "required_language": "en-US",
+        "target_scope": "Original society information article",
+        "site_identity_basis": "Merge SABRE brand subdomains and alternate entrances; verify actual ownership and language during review",
+        "selection_priority": 252
+      }
+    },
+    {
+      "schema_version": 3,
+      "case_id": "risk-diverse-254",
+      "requested_url": "https://www.noisebridge.net/wiki/About",
+      "page_name": "About Noisebridge",
+      "target_scope": "Original about article",
+      "provider_outputs_used": false,
+      "site_key": "noisebridge",
+      "site_name": "Noisebridge",
+      "site_identity_basis": "Merge Noisebridge brand subdomains and alternate entrances; verify actual ownership and language during review",
+      "risk_status": "confirmed",
+      "test_suitability": "qualified",
+      "disposition": "eligible",
+      "target_identity_key": "risk-diverse-254:original-target",
+      "target_language": "en",
+      "content_type": "article",
+      "content_type_review": "Noisebridge About 原页开头 Excellence、Do-ocracy、Consensus 与空间用途说明；排除时间表及未核对的后续折叠内容",
+      "site_identity_review": "按原目录已声明的平台归组，子域名不另计网站；新增同品牌页面仍须合并。",
+      "security_flow_key": "anubis-explicit-access-denied",
+      "reason": "已核对直接限制与原页面正文。Noisebridge About 原页开头 Excellence、Do-ocracy、Consensus 与空间用途说明；排除时间表及未核对的后续折叠内容",
+      "observation_differences_review": "复核保存的同轮不同访问方式：普通 HTTP 正文可读，浏览器 UA HTTP 返回 Anubis 拒绝页；差异不意味着没有风控。不推断今天状态或长期稳定。",
+      "reviewer": "Codex; direct source qualification review",
+      "reviewed_at": "2026-09-27T14:53:42.718555+00:00",
+      "restriction": {
+        "route": "http_browser_ua",
+        "security_kind": "explicit_bot_challenge",
+        "direct_restriction_observed": true,
+        "target_access_affected": true,
+        "ordinary_loading_excluded": true,
+        "paywall_only_excluded": true,
+        "attribution": "完整响应主体为 Oh noes / Access Denied，并明确标示 Protected by Anubis；原正文被替换，不是普通登录入口或裸状态码。",
+        "full_response_review": "已核对拒绝页完整文本及 HTML 主体；含 Anubis reject 图及错误码，无目标正文。脚本/隐藏 honeypot 不作为正文或资格依据。",
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-12/risk-diverse-254/round-1/complete.json",
+          "sha256": "d927cfc8b04071849171b5ed3f8d9436d831ccefe831b67f2087b9b8872f7a90"
+        },
+        "final_url": "https://www.noisebridge.net/wiki/About",
+        "raw": {
+          "path": "reference-expansion-batch-12/risk-diverse-254/round-1/http-browser-ua.bin",
+          "sha256": "8005003a0ee0aa5cab78f23c81b18e1af619b678e147f7e0cf90a235d56b05ef",
+          "bytes": 2616,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-12/risk-diverse-254/round-1/http-browser-ua.txt",
+          "sha256": "ea2a8aa7cf6621494a8d455057aac25e9aece5d87b29838aa65a50c5ee98c518",
+          "bytes": 395,
+          "root": "diverse20260927",
+          "quote": "Access Denied: error code"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/environment.json",
+            "sha256": "23941650d58398eb3089ec305fe1ea3a46cdb1784c6fd91feb86f965c476cf11"
+          }
+        ]
+      },
+      "reference": {
+        "route": "http_default",
+        "target_identity_verified": true,
+        "language_verified": true,
+        "redirect_verified": true,
+        "initial_loaded_only": true,
+        "sufficient_for_rule_authoring": true,
+        "volatile_values_not_fixed": true,
+        "content_expansion_used": false,
+        "target_identity_review": "Noisebridge About 原页开头 Excellence、Do-ocracy、Consensus 与空间用途说明；排除时间表及未核对的后续折叠内容",
+        "content_scope_review": "已读保存文本并核对 HTML 正文结构，参考范围：Noisebridge About 原页开头 Excellence、Do-ocracy、Consensus 与空间用途说明；排除时间表及未核对的后续折叠内容；不使用隐藏模板、脚本、链接内或滚动新加载的内容。",
+        "language_review": "直接正文为英语；其他语言导航标签不改变主内容语言。",
+        "redirect_review": "固定输入直接返回同一原目标与英语内容，未改变页面。",
+        "observed_language": "en",
+        "operations": [],
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-12/risk-diverse-254/round-1/complete.json",
+          "sha256": "d927cfc8b04071849171b5ed3f8d9436d831ccefe831b67f2087b9b8872f7a90"
+        },
+        "final_url": "https://www.noisebridge.net/wiki/About",
+        "raw": {
+          "path": "reference-expansion-batch-12/risk-diverse-254/round-1/http-default.bin",
+          "sha256": "6fe761865601e887a90172719e02cf0c665afd3444cd559bc6d4341cfcafb5af",
+          "bytes": 37121,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-12/risk-diverse-254/round-1/http-default.txt",
+          "sha256": "8b0c0044df2770f68db49901044273b0cfb68e8ccd93029d28c5a2b6dadc7ec1",
+          "bytes": 6911,
+          "root": "diverse20260927",
+          "quote": "is a creative technology community for excellent, do-ocratic, consensus-based collaboration."
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/environment.json",
+            "sha256": "23941650d58398eb3089ec305fe1ea3a46cdb1784c6fd91feb86f965c476cf11"
+          }
+        ],
+        "access_context": "Saved observation: {\"initial_cookies\": 0, \"fresh_context\": null, \"headless\": null, \"interaction_used\": null, \"request_headers\": {\"User-Agent\": \"WebFetchRiskControlQualification/2.0\", \"Accept-Language\": \"en-US\"}, \"locale\": null}"
+      },
+      "reviewed_observations": [],
+      "validation": {
+        "case_id": "risk-diverse-254",
+        "qualified": true,
+        "status": "qualified",
+        "errors": []
+      },
+      "candidate_origin": {
+        "id": "risk-diverse-254",
+        "requested_url": "https://www.noisebridge.net/wiki/About",
+        "page_name": "About Noisebridge",
+        "site_key": "noisebridge",
+        "site_name": "Noisebridge",
+        "required_language": "en-US",
+        "target_scope": "Original about article",
+        "site_identity_basis": "Merge Noisebridge brand subdomains and alternate entrances; verify actual ownership and language during review",
+        "selection_priority": 254
+      }
+    },
+    {
+      "schema_version": 3,
+      "case_id": "risk-diverse-257",
+      "requested_url": "https://xeiaso.net/blog/2026/this-is-why-we-play/",
+      "page_name": "This is why we play",
+      "target_scope": "Original blog article",
+      "provider_outputs_used": false,
+      "site_key": "xeiaso",
+      "site_name": "Xe Iaso",
+      "site_identity_basis": "Merge Xe Iaso brand subdomains and alternate entrances; verify actual ownership and language during review",
+      "risk_status": "confirmed",
+      "test_suitability": "qualified",
+      "disposition": "eligible",
+      "target_identity_key": "risk-diverse-257:original-target",
+      "target_language": "en",
+      "content_type": "article",
+      "content_type_review": "Xe Iaso This is why we play 原博客，标题和开头关于游戏与社区的段落，未进入链接或评论",
+      "site_identity_review": "按原目录已声明的平台归组，子域名不另计网站；新增同品牌页面仍须合并。",
+      "security_flow_key": "anubis-explicit-access-denied",
+      "reason": "已核对直接限制与原页面正文。Xe Iaso This is why we play 原博客，标题和开头关于游戏与社区的段落，未进入链接或评论",
+      "observation_differences_review": "复核保存的同轮不同访问方式：普通 HTTP 正文可读，浏览器 UA HTTP 返回 Anubis 拒绝页；差异不意味着没有风控。不推断今天状态或长期稳定。",
+      "reviewer": "Codex; direct source qualification review",
+      "reviewed_at": "2026-09-27T14:53:42.721953+00:00",
+      "restriction": {
+        "route": "http_browser_ua",
+        "security_kind": "explicit_bot_challenge",
+        "direct_restriction_observed": true,
+        "target_access_affected": true,
+        "ordinary_loading_excluded": true,
+        "paywall_only_excluded": true,
+        "attribution": "完整响应主体为 Oh noes / Access Denied，并明确标示 Protected by Anubis；原正文被替换，不是普通登录入口或裸状态码。",
+        "full_response_review": "已核对拒绝页完整文本及 HTML 主体；含 Anubis reject 图及错误码，无目标正文。脚本/隐藏 honeypot 不作为正文或资格依据。",
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-12/risk-diverse-257/round-1/complete.json",
+          "sha256": "3b2a599fba6953521cd9744d8f6dd73cce5d79fd1d1fdae776cd10f5640ac4ee"
+        },
+        "final_url": "https://xeiaso.net/blog/2026/this-is-why-we-play/",
+        "raw": {
+          "path": "reference-expansion-batch-12/risk-diverse-257/round-1/http-browser-ua.bin",
+          "sha256": "84b296b77111c4b55f9e1c2ede190f6569638782f9b8d4fd7f802051f8f51e40",
+          "bytes": 2290,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-12/risk-diverse-257/round-1/http-browser-ua.txt",
+          "sha256": "bec0130eadf8609a1cc6a6728ef27a97b4b351529325c2a83779d22d678882c4",
+          "bytes": 207,
+          "root": "diverse20260927",
+          "quote": "Access Denied: error code"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/environment.json",
+            "sha256": "23941650d58398eb3089ec305fe1ea3a46cdb1784c6fd91feb86f965c476cf11"
+          }
+        ]
+      },
+      "reference": {
+        "route": "http_default",
+        "target_identity_verified": true,
+        "language_verified": true,
+        "redirect_verified": true,
+        "initial_loaded_only": true,
+        "sufficient_for_rule_authoring": true,
+        "volatile_values_not_fixed": true,
+        "content_expansion_used": false,
+        "target_identity_review": "Xe Iaso This is why we play 原博客，标题和开头关于游戏与社区的段落，未进入链接或评论",
+        "content_scope_review": "已读保存文本并核对 HTML 正文结构，参考范围：Xe Iaso This is why we play 原博客，标题和开头关于游戏与社区的段落，未进入链接或评论；不使用隐藏模板、脚本、链接内或滚动新加载的内容。",
+        "language_review": "直接正文为英语；其他语言导航标签不改变主内容语言。",
+        "redirect_review": "固定输入直接返回同一原目标与英语内容，未改变页面。",
+        "observed_language": "en",
+        "operations": [],
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-12/risk-diverse-257/round-1/complete.json",
+          "sha256": "3b2a599fba6953521cd9744d8f6dd73cce5d79fd1d1fdae776cd10f5640ac4ee"
+        },
+        "final_url": "https://xeiaso.net/blog/2026/this-is-why-we-play/",
+        "raw": {
+          "path": "reference-expansion-batch-12/risk-diverse-257/round-1/http-default.bin",
+          "sha256": "726cb816b36cbec2f9d4e64633b3d7979cce4606e2ac6a619b1771ccf9dc25bb",
+          "bytes": 39988,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-12/risk-diverse-257/round-1/http-default.txt",
+          "sha256": "15d99f407943ad57eb87620467f5b43599ed4e216dcf79dc1cf8b5f4e225d82b",
+          "bytes": 13696,
+          "root": "diverse20260927",
+          "quote": "A meditation on gaming, community, and the purpose of negative space"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-12/environment.json",
+            "sha256": "23941650d58398eb3089ec305fe1ea3a46cdb1784c6fd91feb86f965c476cf11"
+          }
+        ],
+        "access_context": "Saved observation: {\"initial_cookies\": 0, \"fresh_context\": null, \"headless\": null, \"interaction_used\": null, \"request_headers\": {\"User-Agent\": \"WebFetchRiskControlQualification/2.0\", \"Accept-Language\": \"en-US\"}, \"locale\": null}"
+      },
+      "reviewed_observations": [],
+      "validation": {
+        "case_id": "risk-diverse-257",
+        "qualified": true,
+        "status": "qualified",
+        "errors": []
+      },
+      "candidate_origin": {
+        "id": "risk-diverse-257",
+        "requested_url": "https://xeiaso.net/blog/2026/this-is-why-we-play/",
+        "page_name": "This is why we play",
+        "site_key": "xeiaso",
+        "site_name": "Xe Iaso",
+        "required_language": "en-US",
+        "target_scope": "Original blog article",
+        "site_identity_basis": "Merge Xe Iaso brand subdomains and alternate entrances; verify actual ownership and language during review",
+        "selection_priority": 257
+      }
+    },
+    {
+      "schema_version": 3,
+      "case_id": "risk-diverse-271",
+      "requested_url": "https://dev.sanctum.geek.nz/cgit/?p=about",
+      "page_name": "About Sanctum repository service",
+      "target_scope": "Original about-page text",
+      "provider_outputs_used": false,
+      "site_key": "sanctum",
+      "site_name": "Sanctum",
+      "site_identity_basis": "Merge Sanctum official domains and subdomains; independently verify during review",
+      "risk_status": "confirmed",
+      "test_suitability": "qualified",
+      "disposition": "eligible",
+      "target_identity_key": "risk-diverse-271:original-target",
+      "target_language": "en",
+      "content_type": "article",
+      "content_type_review": "Sanctum About 原页的仓库介绍、贡献和镜像要求，不进入链接；不同于仓库列表",
+      "site_identity_review": "按原目录已声明的平台归组，子域名不另计网站；新增同品牌页面仍须合并。",
+      "security_flow_key": "anubis-explicit-access-denied",
+      "reason": "直接访问限制与原目标正文已核对。Sanctum About 原页的仓库介绍、贡献和镜像要求，不进入链接；不同于仓库列表",
+      "observation_differences_review": "复核保存的同轮不同访问方式：普通 HTTP 正文可读，浏览器 UA HTTP 返回 Anubis 拒绝页；差异不意味着没有风控。不推断今天状态或长期稳定。",
+      "reviewer": "Codex; direct source qualification review",
+      "reviewed_at": "2026-09-27T14:57:45.542181+00:00",
+      "restriction": {
+        "route": "http_browser_ua",
+        "security_kind": "explicit_bot_challenge",
+        "direct_restriction_observed": true,
+        "target_access_affected": true,
+        "ordinary_loading_excluded": true,
+        "paywall_only_excluded": true,
+        "attribution": "完整响应主体为 Oh noes / Access Denied，并明确标示 Protected by Anubis；原正文被替换，不是普通登录入口或裸状态码。",
+        "full_response_review": "已核对拒绝页完整文本及 HTML 主体；含 Anubis reject 图及错误码，无目标正文。脚本/隐藏 honeypot 不作为正文或资格依据。",
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-13/risk-diverse-271/round-1/complete.json",
+          "sha256": "5e681f07db2916640105696b5971a9b2afd53a1e7d74bd4edd4ce675d7ff76b3"
+        },
+        "final_url": "https://dev.sanctum.geek.nz/cgit/?p=about",
+        "raw": {
+          "path": "reference-expansion-batch-13/risk-diverse-271/round-1/http-browser-ua.bin",
+          "sha256": "a3326b7a6dd923d2e45536b74e2f1bf8b8983f2893ba84ffbe8b51e0108fde20",
+          "bytes": 2270,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-13/risk-diverse-271/round-1/http-browser-ua.txt",
+          "sha256": "a3777ea4e4beda168184d0fc8c2f22a98658e152796582f47c55c784e4a41ffe",
+          "bytes": 202,
+          "root": "diverse20260927",
+          "quote": "Access Denied: error code"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-13/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-13/environment.json",
+            "sha256": "ea532eb4b768e73c3b6b0db3fc5301d0d7561b1908c663bd8c3af7ad7f04b706"
+          }
+        ]
+      },
+      "reference": {
+        "route": "http_default",
+        "target_identity_verified": true,
+        "language_verified": true,
+        "redirect_verified": true,
+        "initial_loaded_only": true,
+        "sufficient_for_rule_authoring": true,
+        "volatile_values_not_fixed": true,
+        "content_expansion_used": false,
+        "target_identity_review": "Sanctum About 原页的仓库介绍、贡献和镜像要求，不进入链接；不同于仓库列表",
+        "content_scope_review": "核对保存正文与 HTML，范围：Sanctum About 原页的仓库介绍、贡献和镜像要求，不进入链接；不同于仓库列表。不把隐藏数据或链接里的内容算入。",
+        "language_review": "直接正文为英语；其他语言导航标签不改变主内容语言。",
+        "redirect_review": "最终仍是原目标、同一种语言。",
+        "observed_language": "en",
+        "operations": [],
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-13/risk-diverse-271/round-1/complete.json",
+          "sha256": "5e681f07db2916640105696b5971a9b2afd53a1e7d74bd4edd4ce675d7ff76b3"
+        },
+        "final_url": "https://dev.sanctum.geek.nz/cgit/?p=about",
+        "raw": {
+          "path": "reference-expansion-batch-13/risk-diverse-271/round-1/http-default.bin",
+          "sha256": "72ca99c4db88f42a72044f981aa895e53d85af0e3365c14b02ae1ef3476b0287",
+          "bytes": 15503,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-13/risk-diverse-271/round-1/http-default.txt",
+          "sha256": "8e4909bbd19bfd4db1131c15021705b88b10da6797cbec4c37d9cac76635f21e",
+          "bytes": 1014,
+          "root": "diverse20260927",
+          "quote": "code here varies a lot in usefulness and seriousness."
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-13/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-13/environment.json",
+            "sha256": "ea532eb4b768e73c3b6b0db3fc5301d0d7561b1908c663bd8c3af7ad7f04b706"
+          }
+        ],
+        "access_context": "Saved observation: {\"initial_cookies\": 0, \"fresh_context\": null, \"headless\": null, \"interaction_used\": null, \"request_headers\": {\"User-Agent\": \"WebFetchRiskControlQualification/2.0\", \"Accept-Language\": \"en-US\"}, \"locale\": null}"
+      },
+      "reviewed_observations": [],
+      "validation": {
+        "case_id": "risk-diverse-271",
+        "qualified": true,
+        "status": "qualified",
+        "errors": []
+      },
+      "candidate_origin": {
+        "id": "risk-diverse-271",
+        "requested_url": "https://dev.sanctum.geek.nz/cgit/?p=about",
+        "page_name": "About Sanctum repository service",
+        "site_key": "sanctum",
+        "site_name": "Sanctum",
+        "required_language": "en-US",
+        "target_scope": "Original about-page text",
+        "site_identity_basis": "Merge Sanctum official domains and subdomains; independently verify during review",
+        "selection_priority": 271
+      }
+    },
+    {
+      "schema_version": 3,
+      "case_id": "risk-diverse-272",
+      "requested_url": "https://wiki.debian.org/FrontPage",
+      "page_name": "Debian Wiki homepage",
+      "target_scope": "English wiki homepage and project introduction",
+      "provider_outputs_used": false,
+      "site_key": "debian",
+      "site_name": "Debian",
+      "site_identity_basis": "Merge Debian brand routes, not new sites",
+      "risk_status": "confirmed",
+      "test_suitability": "qualified",
+      "disposition": "eligible",
+      "target_identity_key": "risk-diverse-272:original-target",
+      "target_language": "en",
+      "content_type": "homepage",
+      "content_type_review": "Debian Wiki 首页用途和用户、管理者、开发者栏目；不固定发行版号",
+      "site_identity_review": "按原目录已声明的平台归组，子域名不另计网站；新增同品牌页面仍须合并。",
+      "security_flow_key": "debian-pow",
+      "reason": "直接限制与同目标原文已核对。Debian Wiki 首页用途和用户、管理者、开发者栏目；不固定发行版号",
+      "observation_differences_review": "普通 HTTP 返回首页；浏览器 UA HTTP 进入 PoW 页面；浏览器执行后返回原首页。自动放行仅为观察事实，不是资格门槛。",
+      "reviewer": "Codex; direct source qualification review",
+      "reviewed_at": "2026-09-27T15:04:04.614357+00:00",
+      "restriction": {
+        "route": "http_browser_ua",
+        "security_kind": "automatic_browser_verification",
+        "direct_restriction_observed": true,
+        "target_access_affected": true,
+        "ordinary_loading_excluded": true,
+        "paywall_only_excluded": true,
+        "attribution": "原请求302进入 .internal/challenge.html，页面明确防AI抓取；脚本计算SHA256 challenge并写pow_nonce后返回原页。",
+        "full_response_review": "核对完整3319字节挑战HTML；正文被PoW页面替换，非正常动态加载。普通HTTP原页可读，浏览器自动返回原首页。",
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-14/risk-diverse-272/round-1/complete.json",
+          "sha256": "52de09ce41a89583719b2f1dce9431e1b792be746516656e1fcb34a3e138ead3"
+        },
+        "final_url": "https://wiki.debian.org/.internal/challenge.html?original=%2fFrontPage&referer=",
+        "raw": {
+          "path": "reference-expansion-batch-14/risk-diverse-272/round-1/http-browser-ua.bin",
+          "sha256": "d19b9ef1e716a61d30480e8e528a47d9975876c11febe9c4921a04110df10439",
+          "bytes": 3319,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-14/risk-diverse-272/round-1/http-browser-ua.txt",
+          "sha256": "030972fdbf5131d286126c8bee53df5deff957944f1d1ce87a9c4feeeb53bb08",
+          "bytes": 92,
+          "root": "diverse20260927",
+          "quote": "AI scrapers break the web"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-14/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-14/environment.json",
+            "sha256": "23fb6a80c5387d84c572f7d067967d3cb750840274b7a068f5ed46ffc2f03c8a"
+          }
+        ]
+      },
+      "reference": {
+        "route": "http_default",
+        "target_identity_verified": true,
+        "language_verified": true,
+        "redirect_verified": true,
+        "initial_loaded_only": true,
+        "sufficient_for_rule_authoring": true,
+        "volatile_values_not_fixed": true,
+        "content_expansion_used": false,
+        "target_identity_review": "Debian Wiki 首页用途和用户、管理者、开发者栏目；不固定发行版号",
+        "content_scope_review": "核对保存正文和 HTML 正常内容结构。范围：Debian Wiki 首页用途和用户、管理者、开发者栏目；不固定发行版号；排除隐藏文本、链接后内容和新展开内容。",
+        "language_review": "直接正文为英语；其他语言导航标签不改变主内容语言。",
+        "redirect_review": "最终网址与固定输入一致，未换站、换文章或语言。",
+        "observed_language": "en",
+        "operations": [],
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-14/risk-diverse-272/round-1/complete.json",
+          "sha256": "52de09ce41a89583719b2f1dce9431e1b792be746516656e1fcb34a3e138ead3"
+        },
+        "final_url": "https://wiki.debian.org/FrontPage",
+        "raw": {
+          "path": "reference-expansion-batch-14/risk-diverse-272/round-1/http-default.bin",
+          "sha256": "43bd9a78b2409d69c8561d1f3358b80e7db80e0d6bab7c2f442b4ac85eb3da02",
+          "bytes": 22864,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-14/risk-diverse-272/round-1/http-default.txt",
+          "sha256": "490422a5724d28e3ee19da9f5316bfd80b574c7ab4c92988c5d32693953bf6f4",
+          "bytes": 2120,
+          "root": "diverse20260927",
+          "quote": "This wiki is a support and documentation resource for the"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-14/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-14/environment.json",
+            "sha256": "23fb6a80c5387d84c572f7d067967d3cb750840274b7a068f5ed46ffc2f03c8a"
+          }
+        ],
+        "access_context": "Saved observation: {\"initial_cookies\": 0, \"fresh_context\": null, \"headless\": null, \"interaction_used\": null, \"request_headers\": {\"User-Agent\": \"WebFetchRiskControlQualification/2.0\", \"Accept-Language\": \"en-US\"}, \"locale\": null}"
+      },
+      "reviewed_observations": [],
+      "validation": {
+        "case_id": "risk-diverse-272",
+        "qualified": true,
+        "status": "qualified",
+        "errors": []
+      },
+      "candidate_origin": {
+        "id": "risk-diverse-272",
+        "requested_url": "https://wiki.debian.org/FrontPage",
+        "page_name": "Debian Wiki homepage",
+        "site_key": "debian",
+        "site_name": "Debian",
+        "required_language": "en-US",
+        "target_scope": "English wiki homepage and project introduction",
+        "site_identity_basis": "Merge Debian brand routes, not new sites",
+        "selection_priority": 272
+      }
+    },
+    {
+      "schema_version": 3,
+      "case_id": "risk-diverse-274",
+      "requested_url": "http://www.dsource.org/projects/tutorials/wiki",
+      "page_name": "dsource tutorials",
+      "target_scope": "Original D language tutorial directory and introduction",
+      "provider_outputs_used": false,
+      "site_key": "dsource",
+      "site_name": "dsource",
+      "site_identity_basis": "Merge dsource brand routes, not new sites",
+      "risk_status": "confirmed",
+      "test_suitability": "qualified",
+      "disposition": "eligible",
+      "target_identity_key": "risk-diverse-274:original-target",
+      "target_language": "en",
+      "content_type": "documentation",
+      "content_type_review": "dsource 已归档 Tutorials 原页的教程说明与分类；不当作最新 D 语言建议",
+      "site_identity_review": "按原目录已声明的平台归组，子域名不另计网站；新增同品牌页面仍须合并。",
+      "security_flow_key": "anubis-explicit-access-denied",
+      "reason": "直接限制与同目标原文已核对。dsource 已归档 Tutorials 原页的教程说明与分类；不当作最新 D 语言建议",
+      "observation_differences_review": "复核保存的同轮不同访问方式：普通 HTTP 正文可读，浏览器 UA HTTP 返回 Anubis 拒绝页；差异不意味着没有风控。不推断今天状态或长期稳定。",
+      "reviewer": "Codex; direct source qualification review",
+      "reviewed_at": "2026-09-27T15:04:04.618782+00:00",
+      "restriction": {
+        "route": "http_browser_ua",
+        "security_kind": "explicit_bot_challenge",
+        "direct_restriction_observed": true,
+        "target_access_affected": true,
+        "ordinary_loading_excluded": true,
+        "paywall_only_excluded": true,
+        "attribution": "完整响应主体为 Oh noes / Access Denied，并明确标示 Protected by Anubis；原正文被替换，不是普通登录入口或裸状态码。",
+        "full_response_review": "已核对拒绝页完整文本及 HTML 主体；含 Anubis reject 图及错误码，无目标正文。脚本/隐藏 honeypot 不作为正文或资格依据。",
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-14/risk-diverse-274/round-1/complete.json",
+          "sha256": "150abbcee349f141820d4e7c39161ac4ce34caa3c2c79c55254b8398627965f8"
+        },
+        "final_url": "http://www.dsource.org/projects/tutorials/wiki",
+        "raw": {
+          "path": "reference-expansion-batch-14/risk-diverse-274/round-1/http-browser-ua.bin",
+          "sha256": "f61f0fb44ca36dea3bd465ad7ef9fc5935706b597e632f664ad14919079b5218",
+          "bytes": 2925,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-14/risk-diverse-274/round-1/http-browser-ua.txt",
+          "sha256": "f4a4169e79b3c7a625d00d2cb51e719816b1e5c76860b4eb9b1540edf80d8cef",
+          "bytes": 262,
+          "root": "diverse20260927",
+          "quote": "Access Denied: error code"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-14/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-14/environment.json",
+            "sha256": "23fb6a80c5387d84c572f7d067967d3cb750840274b7a068f5ed46ffc2f03c8a"
+          }
+        ]
+      },
+      "reference": {
+        "route": "http_default",
+        "target_identity_verified": true,
+        "language_verified": true,
+        "redirect_verified": true,
+        "initial_loaded_only": true,
+        "sufficient_for_rule_authoring": true,
+        "volatile_values_not_fixed": true,
+        "content_expansion_used": false,
+        "target_identity_review": "dsource 已归档 Tutorials 原页的教程说明与分类；不当作最新 D 语言建议",
+        "content_scope_review": "核对保存正文和 HTML 正常内容结构。范围：dsource 已归档 Tutorials 原页的教程说明与分类；不当作最新 D 语言建议；排除隐藏文本、链接后内容和新展开内容。",
+        "language_review": "直接正文为英语；其他语言导航标签不改变主内容语言。",
+        "redirect_review": "最终网址与固定输入一致，未换站、换文章或语言。",
+        "observed_language": "en",
+        "operations": [],
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-14/risk-diverse-274/round-1/complete.json",
+          "sha256": "150abbcee349f141820d4e7c39161ac4ce34caa3c2c79c55254b8398627965f8"
+        },
+        "final_url": "http://www.dsource.org/projects/tutorials/wiki",
+        "raw": {
+          "path": "reference-expansion-batch-14/risk-diverse-274/round-1/http-default.bin",
+          "sha256": "c8f4d91600b71249c9ad70f92bd9a7b2d1426db2ba9739c174f2d88687497743",
+          "bytes": 12856,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-14/risk-diverse-274/round-1/http-default.txt",
+          "sha256": "f945a42ff16f202f287d4463ecdc20a841aa665ba46b346c580b3a961f8b16e9",
+          "bytes": 2261,
+          "root": "diverse20260927",
+          "quote": "The Tutorials Project"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-14/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-14/environment.json",
+            "sha256": "23fb6a80c5387d84c572f7d067967d3cb750840274b7a068f5ed46ffc2f03c8a"
+          }
+        ],
+        "access_context": "Saved observation: {\"initial_cookies\": 0, \"fresh_context\": null, \"headless\": null, \"interaction_used\": null, \"request_headers\": {\"User-Agent\": \"WebFetchRiskControlQualification/2.0\", \"Accept-Language\": \"en-US\"}, \"locale\": null}"
+      },
+      "reviewed_observations": [],
+      "validation": {
+        "case_id": "risk-diverse-274",
+        "qualified": true,
+        "status": "qualified",
+        "errors": []
+      },
+      "candidate_origin": {
+        "id": "risk-diverse-274",
+        "requested_url": "http://www.dsource.org/projects/tutorials/wiki",
+        "page_name": "dsource tutorials",
+        "site_key": "dsource",
+        "site_name": "dsource",
+        "required_language": "en-US",
+        "target_scope": "Original D language tutorial directory and introduction",
+        "site_identity_basis": "Merge dsource brand routes, not new sites",
+        "selection_priority": 274
+      }
+    },
+    {
+      "schema_version": 3,
+      "case_id": "risk-diverse-275",
+      "requested_url": "http://kb.mozillazine.org/Summary_of_Mozilla_products",
+      "page_name": "MozillaZine product summary",
+      "target_scope": "Original article summarizing Mozilla products",
+      "provider_outputs_used": false,
+      "site_key": "mozillazine",
+      "site_name": "MozillaZine",
+      "site_identity_basis": "Merge MozillaZine brand routes, not new sites",
+      "risk_status": "confirmed",
+      "test_suitability": "qualified",
+      "disposition": "eligible",
+      "target_identity_key": "risk-diverse-275:original-target",
+      "target_language": "en",
+      "content_type": "article",
+      "content_type_review": "MozillaZine 原文章对 Mozilla 产品的介绍；保留历史文档时间，不冒充最新产品现状",
+      "site_identity_review": "按原目录已声明的平台归组，子域名不另计网站；新增同品牌页面仍须合并。",
+      "security_flow_key": "anubis-explicit-access-denied",
+      "reason": "直接限制与同目标原文已核对。MozillaZine 原文章对 Mozilla 产品的介绍；保留历史文档时间，不冒充最新产品现状",
+      "observation_differences_review": "复核保存的同轮不同访问方式：普通 HTTP 正文可读，浏览器 UA HTTP 返回 Anubis 拒绝页；差异不意味着没有风控。不推断今天状态或长期稳定。",
+      "reviewer": "Codex; direct source qualification review",
+      "reviewed_at": "2026-09-27T15:04:04.620920+00:00",
+      "restriction": {
+        "route": "http_browser_ua",
+        "security_kind": "explicit_bot_challenge",
+        "direct_restriction_observed": true,
+        "target_access_affected": true,
+        "ordinary_loading_excluded": true,
+        "paywall_only_excluded": true,
+        "attribution": "完整响应主体为 Oh noes / Access Denied，并明确标示 Protected by Anubis；原正文被替换，不是普通登录入口或裸状态码。",
+        "full_response_review": "已核对拒绝页完整文本及 HTML 主体；含 Anubis reject 图及错误码，无目标正文。脚本/隐藏 honeypot 不作为正文或资格依据。",
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-14/risk-diverse-275/round-1/complete.json",
+          "sha256": "3e106f988774840faef4e60239e9b7d5c4ec1e8564fe872ec9e494bb7e389734"
+        },
+        "final_url": "http://kb.mozillazine.org/Summary_of_Mozilla_products",
+        "raw": {
+          "path": "reference-expansion-batch-14/risk-diverse-275/round-1/http-browser-ua.bin",
+          "sha256": "71ba64872a50eef290fdd9a2cdab77ee1e69bcd4131732f5638328a2e5fe89fa",
+          "bytes": 2270,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-14/risk-diverse-275/round-1/http-browser-ua.txt",
+          "sha256": "a3777ea4e4beda168184d0fc8c2f22a98658e152796582f47c55c784e4a41ffe",
+          "bytes": 202,
+          "root": "diverse20260927",
+          "quote": "Access Denied: error code"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-14/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-14/environment.json",
+            "sha256": "23fb6a80c5387d84c572f7d067967d3cb750840274b7a068f5ed46ffc2f03c8a"
+          }
+        ]
+      },
+      "reference": {
+        "route": "http_default",
+        "target_identity_verified": true,
+        "language_verified": true,
+        "redirect_verified": true,
+        "initial_loaded_only": true,
+        "sufficient_for_rule_authoring": true,
+        "volatile_values_not_fixed": true,
+        "content_expansion_used": false,
+        "target_identity_review": "MozillaZine 原文章对 Mozilla 产品的介绍；保留历史文档时间，不冒充最新产品现状",
+        "content_scope_review": "核对保存正文和 HTML 正常内容结构。范围：MozillaZine 原文章对 Mozilla 产品的介绍；保留历史文档时间，不冒充最新产品现状；排除隐藏文本、链接后内容和新展开内容。",
+        "language_review": "直接正文为英语；其他语言导航标签不改变主内容语言。",
+        "redirect_review": "最终网址与固定输入一致，未换站、换文章或语言。",
+        "observed_language": "en",
+        "operations": [],
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-14/risk-diverse-275/round-1/complete.json",
+          "sha256": "3e106f988774840faef4e60239e9b7d5c4ec1e8564fe872ec9e494bb7e389734"
+        },
+        "final_url": "http://kb.mozillazine.org/Summary_of_Mozilla_products",
+        "raw": {
+          "path": "reference-expansion-batch-14/risk-diverse-275/round-1/http-default.bin",
+          "sha256": "8e1165a7be8f7cccd6e346b217af8d568e184f4fb3a91710517289d2835a3610",
+          "bytes": 22045,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-14/risk-diverse-275/round-1/http-default.txt",
+          "sha256": "e5510805922fb5a9496f354af69a210b85843410a7727ac259484106e07b4037",
+          "bytes": 4367,
+          "root": "diverse20260927",
+          "quote": "Mozilla Foundation's standalone Web browser"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-14/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-14/environment.json",
+            "sha256": "23fb6a80c5387d84c572f7d067967d3cb750840274b7a068f5ed46ffc2f03c8a"
+          }
+        ],
+        "access_context": "Saved observation: {\"initial_cookies\": 0, \"fresh_context\": null, \"headless\": null, \"interaction_used\": null, \"request_headers\": {\"User-Agent\": \"WebFetchRiskControlQualification/2.0\", \"Accept-Language\": \"en-US\"}, \"locale\": null}"
+      },
+      "reviewed_observations": [],
+      "validation": {
+        "case_id": "risk-diverse-275",
+        "qualified": true,
+        "status": "qualified",
+        "errors": []
+      },
+      "candidate_origin": {
+        "id": "risk-diverse-275",
+        "requested_url": "http://kb.mozillazine.org/Summary_of_Mozilla_products",
+        "page_name": "MozillaZine product summary",
+        "site_key": "mozillazine",
+        "site_name": "MozillaZine",
+        "required_language": "en-US",
+        "target_scope": "Original article summarizing Mozilla products",
+        "site_identity_basis": "Merge MozillaZine brand routes, not new sites",
+        "selection_priority": 275
+      }
+    },
+    {
+      "schema_version": 3,
+      "case_id": "risk-diverse-235",
+      "requested_url": "https://extensions.typo3.org/extension/t3_cowriter",
+      "page_name": "TYPO3 T3 Cowriter extension",
+      "target_scope": "Original extension record description",
+      "provider_outputs_used": false,
+      "site_key": "typo3",
+      "site_name": "TYPO3",
+      "site_identity_basis": "TYPO3 brand and its official subdomains/alternate entrances merged; independently verify during review",
+      "risk_status": "confirmed",
+      "test_suitability": "qualified",
+      "disposition": "eligible",
+      "target_identity_key": "risk-diverse-235:original-target",
+      "target_language": "en",
+      "content_type": "record_detail",
+      "content_type_review": "TYPO3 t3_cowriter 扩展详情页，名称、简介、作者与分类；排除隐藏元数据、版本表、下载数、其他扩展列表",
+      "site_identity_review": "按原目录已声明的平台归组，子域名不另计网站；新增同品牌页面仍须合并。",
+      "security_flow_key": "anubis-explicit-access-denied",
+      "reason": "直接安全拦截及原页参考正文均已核验。TYPO3 t3_cowriter 扩展详情页，名称、简介、作者与分类；排除隐藏元数据、版本表、下载数、其他扩展列表",
+      "observation_differences_review": "复核保存的同轮不同访问方式：普通 HTTP 正文可读，浏览器 UA HTTP 返回 Anubis 拒绝页；差异不意味着没有风控。不推断今天状态或长期稳定。",
+      "reviewer": "Codex; direct source qualification review",
+      "reviewed_at": "2026-09-27T14:48:21.422261+00:00",
+      "restriction": {
+        "route": "http_browser_ua",
+        "security_kind": "explicit_bot_challenge",
+        "direct_restriction_observed": true,
+        "target_access_affected": true,
+        "ordinary_loading_excluded": true,
+        "paywall_only_excluded": true,
+        "attribution": "完整响应主体为 Oh noes / Access Denied，并明确标示 Protected by Anubis；原正文被替换，不是普通登录入口或裸状态码。",
+        "full_response_review": "已核对拒绝页完整文本及 HTML 主体；含 Anubis reject 图及错误码，无目标正文。脚本/隐藏 honeypot 不作为正文或资格依据。",
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-11/risk-diverse-235/round-1/complete.json",
+          "sha256": "9ec7507ab719c3d55dac7297a01c12d9233c7bab7d29aa21acf0fd8f86dec9de"
+        },
+        "final_url": "https://extensions.typo3.org/extension/t3_cowriter",
+        "raw": {
+          "path": "reference-expansion-batch-11/risk-diverse-235/round-1/http-browser-ua.bin",
+          "sha256": "e37715cd52099a4efa69978be62a5f2e5d6dd03be39e512ee8d0fe44a06a1349",
+          "bytes": 2270,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-11/risk-diverse-235/round-1/http-browser-ua.txt",
+          "sha256": "a3777ea4e4beda168184d0fc8c2f22a98658e152796582f47c55c784e4a41ffe",
+          "bytes": 202,
+          "root": "diverse20260927",
+          "quote": "Access Denied: error code"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-11/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-11/environment.json",
+            "sha256": "167f6efdb4cef28df58203b505c3767bd7b9e47d66e6f77f45100b939f62be0f"
+          }
+        ]
+      },
+      "reference": {
+        "route": "http_default",
+        "target_identity_verified": true,
+        "language_verified": true,
+        "redirect_verified": true,
+        "initial_loaded_only": true,
+        "sufficient_for_rule_authoring": true,
+        "volatile_values_not_fixed": true,
+        "content_expansion_used": false,
+        "target_identity_review": "TYPO3 t3_cowriter 扩展详情页，名称、简介、作者与分类；排除隐藏元数据、版本表、下载数、其他扩展列表",
+        "content_scope_review": "核对保存的正文与 HTML 结构，限定范围：TYPO3 t3_cowriter 扩展详情页，名称、简介、作者与分类；排除隐藏元数据、版本表、下载数、其他扩展列表。未扩展页面内容，未将完整文本文件中的隐藏内容自动纳入。",
+        "language_review": "直接正文为英语；其他语言导航标签不改变主内容语言。",
+        "redirect_review": "最终目标与输入一致；仅网址编码或规范化，不改变文章、语言或内容目标。",
+        "observed_language": "en",
+        "operations": [],
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-11/risk-diverse-235/round-1/complete.json",
+          "sha256": "9ec7507ab719c3d55dac7297a01c12d9233c7bab7d29aa21acf0fd8f86dec9de"
+        },
+        "final_url": "https://extensions.typo3.org/extension/t3_cowriter",
+        "raw": {
+          "path": "reference-expansion-batch-11/risk-diverse-235/round-1/http-default.bin",
+          "sha256": "e7b7bd4fa9ab8b927d0790606529ecd43a7fdee813111a4326b3f30685213090",
+          "bytes": 163155,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-11/risk-diverse-235/round-1/http-default.txt",
+          "sha256": "53be46a8368410f945fbe956860a1297c8b894474bfc8f2948472525ca58d08e",
+          "bytes": 37490,
+          "root": "diverse20260927",
+          "quote": "a digital assistant that helps you to write your content."
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-11/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-11/environment.json",
+            "sha256": "167f6efdb4cef28df58203b505c3767bd7b9e47d66e6f77f45100b939f62be0f"
+          }
+        ],
+        "access_context": "Saved observation: {\"initial_cookies\": 0, \"fresh_context\": null, \"headless\": null, \"interaction_used\": null, \"request_headers\": {\"User-Agent\": \"WebFetchRiskControlQualification/2.0\", \"Accept-Language\": \"en-US\"}, \"locale\": null}"
+      },
+      "reviewed_observations": [],
+      "validation": {
+        "case_id": "risk-diverse-235",
+        "qualified": true,
+        "status": "qualified",
+        "errors": []
+      },
+      "candidate_origin": {
+        "id": "risk-diverse-235",
+        "requested_url": "https://extensions.typo3.org/extension/t3_cowriter",
+        "page_name": "TYPO3 T3 Cowriter extension",
+        "site_key": "typo3",
+        "site_name": "TYPO3",
+        "required_language": "en-US",
+        "target_scope": "Original extension record description",
+        "site_identity_basis": "TYPO3 brand and its official subdomains/alternate entrances merged; independently verify during review",
+        "selection_priority": 235
+      }
+    },
+    {
+      "schema_version": 3,
+      "case_id": "risk-diverse-240",
+      "requested_url": "https://www.ibiblio.org/help/",
+      "page_name": "ibiblio help",
+      "target_scope": "Original help documentation",
+      "provider_outputs_used": false,
+      "site_key": "ibiblio",
+      "site_name": "ibiblio",
+      "site_identity_basis": "ibiblio brand and its official subdomains/alternate entrances merged; independently verify during review",
+      "risk_status": "confirmed",
+      "test_suitability": "qualified",
+      "disposition": "eligible",
+      "target_identity_key": "risk-diverse-240:original-target",
+      "target_language": "en",
+      "content_type": "documentation",
+      "content_type_review": "ibiblio Help 页两段支持渠道说明，未进入支持站或表单",
+      "site_identity_review": "按原目录已声明的平台归组，子域名不另计网站；新增同品牌页面仍须合并。",
+      "security_flow_key": "anubis-pow",
+      "reason": "直接安全拦截及原页参考正文均已核验。ibiblio Help 页两段支持渠道说明，未进入支持站或表单",
+      "observation_differences_review": "两种 HTTP 路径被 Anubis 替换，浏览器取得正文；自动放行仅描述本次事实，并非筛选门槛。",
+      "reviewer": "Codex; direct source qualification review",
+      "reviewed_at": "2026-09-27T14:48:21.433937+00:00",
+      "restriction": {
+        "route": "http_browser_ua",
+        "security_kind": "explicit_bot_challenge",
+        "direct_restriction_observed": true,
+        "target_access_affected": true,
+        "ordinary_loading_excluded": true,
+        "paywall_only_excluded": true,
+        "attribution": "完整响应为 Anubis PoW 机器人检查，正文被验证页替换。",
+        "full_response_review": "完整响应为 Anubis PoW 机器人检查，正文被验证页替换。",
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-11/risk-diverse-240/round-1/complete.json",
+          "sha256": "14412ab2c336093e6e1a2cbbb752d33c151d54654cf3f88faf5f780052de9596"
+        },
+        "final_url": "https://www.ibiblio.org/help/",
+        "raw": {
+          "path": "reference-expansion-batch-11/risk-diverse-240/round-1/http-browser-ua.bin",
+          "sha256": "0418972e2d13f1a46281d2a1dc9838dc518c56f2e6c18f7f33130ee3aaa4214f",
+          "bytes": 4509,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-11/risk-diverse-240/round-1/http-browser-ua.txt",
+          "sha256": "b0c4a58979117d0e3b1cedb488b451360e69297e443cd1c38d29e591de1e948c",
+          "bytes": 1416,
+          "root": "diverse20260927",
+          "quote": "Making sure you're not a bot!"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-11/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-11/environment.json",
+            "sha256": "167f6efdb4cef28df58203b505c3767bd7b9e47d66e6f77f45100b939f62be0f"
+          }
+        ]
+      },
+      "reference": {
+        "route": "browser",
+        "target_identity_verified": true,
+        "language_verified": true,
+        "redirect_verified": true,
+        "initial_loaded_only": true,
+        "sufficient_for_rule_authoring": true,
+        "volatile_values_not_fixed": true,
+        "content_expansion_used": false,
+        "target_identity_review": "ibiblio Help 页两段支持渠道说明，未进入支持站或表单",
+        "content_scope_review": "核对保存的正文与 HTML 结构，限定范围：ibiblio Help 页两段支持渠道说明，未进入支持站或表单。未扩展页面内容，未将完整文本文件中的隐藏内容自动纳入。 已查看截图并对照 DOM、HAR；原页面直接加载目标。",
+        "language_review": "直接正文为英语；其他语言导航标签不改变主内容语言。",
+        "redirect_review": "最终目标与输入一致；仅网址编码或规范化，不改变文章、语言或内容目标。",
+        "observed_language": "en",
+        "operations": [],
+        "observation": {
+          "root": "diverse20260927",
+          "path": "reference-expansion-batch-11/risk-diverse-240/round-1/complete.json",
+          "sha256": "14412ab2c336093e6e1a2cbbb752d33c151d54654cf3f88faf5f780052de9596"
+        },
+        "final_url": "https://www.ibiblio.org/help/",
+        "raw": {
+          "path": "reference-expansion-batch-11/risk-diverse-240/round-1/browser.html",
+          "sha256": "95ff476941bcbc18849c91d3bc3493bc64f3d3daaf7c856ad002dd15f10d0bef",
+          "bytes": 75154,
+          "root": "diverse20260927"
+        },
+        "proof": {
+          "path": "reference-expansion-batch-11/risk-diverse-240/round-1/browser.txt",
+          "sha256": "47d75cc6a9ca415fcce07dc7beda1997737949784ec1316e3115f38a29838b8f",
+          "bytes": 867,
+          "root": "diverse20260927",
+          "quote": "If you have a question related to an ibiblio service"
+        },
+        "screenshot": {
+          "path": "reference-expansion-batch-11/risk-diverse-240/round-1/browser.png",
+          "sha256": "5e7d12a60a59eb760f8589f6de4c97d8d02d72945a6fde357979a5913e9befcb",
+          "bytes": 115561,
+          "root": "diverse20260927"
+        },
+        "network": {
+          "path": "reference-expansion-batch-11/risk-diverse-240/round-1/browser.har",
+          "sha256": "cc788fb45d8951abea093c8a791c8595ccaa169b6c8e8c731dac4156306f1d32",
+          "bytes": 595699,
+          "root": "diverse20260927"
+        },
+        "layout": {
+          "path": "reference-expansion-batch-11/risk-diverse-240/round-1/browser-nodes.json",
+          "sha256": "119d0552af55d8a98e736457971f503315a7790eb5bb5511df56b5633114c473",
+          "bytes": 15868,
+          "root": "diverse20260927"
+        },
+        "provenance": [
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-11/protocol.json",
+            "sha256": "f1714fb81af3cbf19e66880b61b6b027c607d439be90f12a88843a84ddb68f6f"
+          },
+          {
+            "root": "diverse20260927",
+            "path": "reference-expansion-batch-11/environment.json",
+            "sha256": "167f6efdb4cef28df58203b505c3767bd7b9e47d66e6f77f45100b939f62be0f"
+          }
+        ],
+        "access_context": "Saved observation: {\"initial_cookies\": 0, \"fresh_context\": true, \"headless\": true, \"interaction_used\": false, \"request_headers\": null, \"locale\": \"en-US\"}"
+      },
+      "reviewed_observations": [],
+      "validation": {
+        "case_id": "risk-diverse-240",
+        "qualified": true,
+        "status": "qualified",
+        "errors": []
+      },
+      "candidate_origin": {
+        "id": "risk-diverse-240",
+        "requested_url": "https://www.ibiblio.org/help/",
+        "page_name": "ibiblio help",
+        "site_key": "ibiblio",
+        "site_name": "ibiblio",
+        "required_language": "en-US",
+        "target_scope": "Original help documentation",
+        "site_identity_basis": "ibiblio brand and its official subdomains/alternate entrances merged; independently verify during review",
+        "selection_priority": 240
+      }
+    }
+  ]
+}

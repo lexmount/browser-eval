@@ -54,7 +54,7 @@ def test_catalog_has_sources_dates_and_no_invented_annual_prices():
         assert all(s['url'].startswith('https://') for s in p['sources'])
     ids = [i for p in data['other_methods'] for i in p['ids']]
     assert len(ids) == len(set(ids))
-    assert {'moli','moli-1.1.3','kitesurf','chromium'} <= set(ids)
+    assert {'moli','moli-1.1.3','moli-1.1.11','kitesurf','chromium'} <= set(ids)
 
 
 def test_render_has_summary_details_download_and_explicit_billing_limits():

@@ -1,0 +1,771 @@
+{
+  "schema_version": 1,
+  "contracts": {
+    "risk-006": {
+      "groups": [
+        {
+          "id": "main-ranking",
+          "kind": "named_link",
+          "minimum_records": 41,
+          "hosts": [
+            "s.weibo.com"
+          ],
+          "entry_path": "/weibo",
+          "identity_query_keys": [
+            "q"
+          ],
+          "record_name_exclusions": [
+            "意见反馈"
+          ]
+        }
+      ]
+    },
+    "risk-061": {
+      "groups": [
+        {
+          "id": "shots",
+          "kind": "named_link",
+          "minimum_records": 34,
+          "hosts": [
+            "dribbble.com"
+          ],
+          "entry_path": "/shots/[0-9]+(?:-[^/]+)?",
+          "entry_identity_pattern": "/shots/([0-9]+)"
+        }
+      ]
+    },
+    "risk-101": {
+      "groups": [
+        {
+          "id": "popular-videos",
+          "kind": "named_link",
+          "minimum_records": 16,
+          "hosts": [
+            "www.bilibili.com"
+          ],
+          "entry_path": "/video/BV[A-Za-z0-9]+",
+          "entry_identity_pattern": "/video/(BV[A-Za-z0-9]+)"
+        }
+      ]
+    },
+    "risk-102": {
+      "groups": [
+        {
+          "id": "movie-cards",
+          "kind": "name_description",
+          "minimum_records": 10
+        }
+      ]
+    },
+    "risk-diverse-031": {
+      "groups": [
+        {
+          "id": "division-b",
+          "kind": "named_link",
+          "minimum_records": 19,
+          "hosts": [
+            "scioly.org"
+          ],
+          "entry_path": "/wiki/(?:index\\.php/)?[^/?#]+",
+          "start_pattern": "Division B",
+          "end_pattern": "Division C",
+          "record_name_exclusions": [
+            "2027 National Trial Events",
+            "Past Events",
+            "Division B"
+          ]
+        },
+        {
+          "id": "division-c",
+          "kind": "named_link",
+          "minimum_records": 19,
+          "hosts": [
+            "scioly.org"
+          ],
+          "entry_path": "/wiki/(?:index\\.php/)?[^/?#]+",
+          "start_pattern": "Division C",
+          "end_pattern": "State Pages",
+          "record_name_exclusions": [
+            "2027 National Trial Events",
+            "Past Events",
+            "Division C"
+          ]
+        },
+        {
+          "id": "state-pages",
+          "kind": "named_link",
+          "minimum_records": 42,
+          "hosts": [
+            "scioly.org"
+          ],
+          "entry_path": "/wiki/(?:index\\.php/)?[^/?#]+",
+          "start_pattern": "State Pages",
+          "end_pattern": "National Tournament",
+          "record_name_exclusions": [
+            "State Pages"
+          ]
+        }
+      ]
+    },
+    "risk-diverse-033": {
+      "groups": [
+        {
+          "id": "forums",
+          "kind": "named_link",
+          "minimum_records": 42,
+          "hosts": [
+            "forum.freecad.org"
+          ],
+          "entry_path": "/viewforum\\.php",
+          "identity_query_keys": [
+            "f"
+          ]
+        }
+      ]
+    },
+    "risk-diverse-039": {
+      "groups": [
+        {
+          "id": "entries",
+          "kind": "named_link",
+          "minimum_records": 9,
+          "hosts": [
+            "svnweb.freebsd.org"
+          ],
+          "entry_path": "/base/[^/]+"
+        }
+      ]
+    },
+    "risk-diverse-045": {
+      "groups": [
+        {
+          "id": "news",
+          "kind": "named_link",
+          "minimum_records": 3,
+          "hosts": [
+            "www.cfaarchive.org"
+          ],
+          "entry_path": "/admin_posts/[0-9]+",
+          "entry_identity_pattern": "/admin_posts/([0-9]+)",
+          "start_pattern": "News",
+          "required_fields": [
+            {
+              "id": "published",
+              "kind": "date_or_time",
+              "aliases": [
+                "Published"
+              ]
+            },
+            {
+              "id": "comments",
+              "kind": "integer",
+              "aliases": [
+                "Comments"
+              ]
+            },
+            {
+              "id": "summary",
+              "kind": "text",
+              "minimum_chars": 20
+            }
+          ]
+        }
+      ]
+    },
+    "risk-diverse-049": {
+      "groups": [
+        {
+          "id": "packages",
+          "kind": "linked_table",
+          "minimum_records": 80,
+          "hosts": [
+            "www.archlinux32.org"
+          ],
+          "entry_path": "/packages/(?:any|i486|i686|pentium4)/[^/]+/[^/]+",
+          "required_columns": [
+            {
+              "id": "arch",
+              "aliases": [
+                "Arch"
+              ]
+            },
+            {
+              "id": "repo",
+              "aliases": [
+                "Repo"
+              ]
+            },
+            {
+              "id": "name",
+              "aliases": [
+                "Name"
+              ]
+            },
+            {
+              "id": "version",
+              "aliases": [
+                "Version"
+              ]
+            },
+            {
+              "id": "build_date",
+              "aliases": [
+                "Build Date"
+              ]
+            },
+            {
+              "id": "last_updated",
+              "aliases": [
+                "Last Updated"
+              ]
+            }
+          ],
+          "identity_column": "name",
+          "link_column": "name"
+        }
+      ]
+    },
+    "risk-diverse-057": {
+      "groups": [
+        {
+          "id": "recent-articles",
+          "kind": "named_link",
+          "minimum_records": 7,
+          "hosts": [
+            "xeiaso.net",
+            "www.tigrisdata.com",
+            "anubis.techaro.lol"
+          ],
+          "entry_path": "/(?:blog/(?:[0-9]{4}/)?|notes/[0-9]{4}/)[^/]+",
+          "start_pattern": "Recent Articles"
+        }
+      ]
+    },
+    "risk-diverse-059": {
+      "groups": [
+        {
+          "id": "news",
+          "kind": "named_link",
+          "minimum_records": 3,
+          "hosts": [
+            "superlove.sayitditto.net"
+          ],
+          "entry_path": "/admin_posts/[0-9]+",
+          "entry_identity_pattern": "/admin_posts/([0-9]+)",
+          "start_pattern": "News",
+          "required_fields": [
+            {
+              "id": "published",
+              "kind": "date_or_time",
+              "aliases": [
+                "Published"
+              ]
+            },
+            {
+              "id": "comments",
+              "kind": "integer",
+              "aliases": [
+                "Comments"
+              ]
+            },
+            {
+              "id": "summary",
+              "kind": "text",
+              "minimum_chars": 20
+            }
+          ]
+        }
+      ]
+    },
+    "risk-diverse-074": {
+      "groups": [
+        {
+          "id": "concerts",
+          "kind": "named_link",
+          "minimum_records": 26,
+          "hosts": [
+            "www.ticketmaster.com",
+            "www.ticketweb.com"
+          ],
+          "entry_path": "/.*event/[A-Za-z0-9_-]+",
+          "record_name_exclusions": [
+            "BLUE FRIDAY SPECIAL! Entry to All Shows at the Blue Moon for 2026!",
+            "I'm On the List! + 1 (Entry to all shows at the Blue Moon in 2026...)"
+          ],
+          "required_fields": [
+            {
+              "id": "date_or_time",
+              "kind": "date_or_time"
+            },
+            {
+              "id": "venue",
+              "kind": "text",
+              "minimum_chars": 2
+            },
+            {
+              "id": "city_or_region",
+              "kind": "text",
+              "minimum_chars": 2
+            }
+          ]
+        }
+      ]
+    },
+    "risk-diverse-104": {
+      "groups": [
+        {
+          "id": "repositories",
+          "kind": "linked_table",
+          "minimum_records": 70,
+          "hosts": [
+            "dev.sanctum.geek.nz"
+          ],
+          "entry_path": "/cgit/[^/]+\\.git",
+          "required_columns": [
+            {
+              "id": "name",
+              "aliases": [
+                "Name"
+              ]
+            },
+            {
+              "id": "description",
+              "aliases": [
+                "Description"
+              ]
+            },
+            {
+              "id": "owner",
+              "aliases": [
+                "Owner"
+              ]
+            }
+          ],
+          "identity_column": "name",
+          "link_column": "name"
+        }
+      ]
+    },
+    "risk-diverse-106": {
+      "groups": [
+        {
+          "id": "extensions",
+          "kind": "named_link",
+          "minimum_records": 16,
+          "hosts": [
+            "extensions.typo3.org"
+          ],
+          "entry_path": "/(?:extension/[^/]+|package/[^/]+/[^/]+)",
+          "required_fields": [
+            {
+              "id": "description",
+              "kind": "text",
+              "minimum_chars": 10
+            },
+            {
+              "id": "version_or_compatibility",
+              "kind": "version"
+            }
+          ]
+        }
+      ]
+    },
+    "risk-diverse-121": {
+      "groups": [
+        {
+          "id": "forums",
+          "kind": "named_link",
+          "minimum_records": 20,
+          "hosts": [
+            "forums.dolphin-emu.org"
+          ],
+          "entry_path": "/Forum-[^/]+",
+          "required_fields": [
+            {
+              "id": "description",
+              "kind": "text",
+              "minimum_chars": 5
+            }
+          ]
+        }
+      ]
+    },
+    "risk-diverse-129": {
+      "groups": [
+        {
+          "id": "discussions",
+          "kind": "named_link",
+          "minimum_records": 16,
+          "hosts": [
+            "ws.hydrooj.com"
+          ],
+          "entry_path": "/d/faqs/discuss/[0-9a-fA-F]+",
+          "start_pattern": "Discussion",
+          "end_pattern": "Recent Problems"
+        },
+        {
+          "id": "problems",
+          "kind": "named_link",
+          "minimum_records": 8,
+          "hosts": [
+            "ws.hydrooj.com"
+          ],
+          "entry_path": "/d/faqs/p/[^/]+",
+          "start_pattern": "Recent Problems"
+        }
+      ]
+    },
+    "risk-diverse-134": {
+      "groups": [
+        {
+          "id": "homes",
+          "kind": "named_link",
+          "minimum_records": 8,
+          "hosts": [
+            "www.zillow.com"
+          ],
+          "entry_path": "/homedetails/[^/]+/[0-9]+_zpid",
+          "entry_identity_pattern": "/([0-9]+)_zpid",
+          "required_fields": [
+            {
+              "id": "price",
+              "kind": "price"
+            },
+            {
+              "id": "bedrooms",
+              "kind": "integer",
+              "pattern": "\\b(?:bds|beds?|bedrooms?)\\b"
+            },
+            {
+              "id": "bathrooms",
+              "kind": "integer",
+              "pattern": "\\b(?:ba|baths?|bathrooms?)\\b"
+            },
+            {
+              "id": "area",
+              "kind": "area"
+            },
+            {
+              "id": "house_type",
+              "kind": "text",
+              "pattern": "(?:house|home|condo|townhouse|apartment|lot|land|manufactured|multi-family|construction|owner)"
+            }
+          ]
+        }
+      ]
+    },
+    "risk-diverse-153": {
+      "groups": [
+        {
+          "id": "problems",
+          "kind": "table",
+          "minimum_records": 21,
+          "start_pattern": "(?:第一章|Chapter 1)",
+          "end_pattern": "(?:第六章|Chapter 6)",
+          "required_columns": [
+            {
+              "id": "number",
+              "aliases": [
+                "题号",
+                "No.",
+                "Number",
+                "ID"
+              ]
+            },
+            {
+              "id": "name",
+              "aliases": [
+                "题名",
+                "Name",
+                "Title"
+              ]
+            },
+            {
+              "id": "attempts",
+              "aliases": [
+                "尝试数",
+                "Attempts",
+                "Tried"
+              ]
+            },
+            {
+              "id": "accepted",
+              "aliases": [
+                "AC 数",
+                "AC",
+                "Accepted"
+              ]
+            },
+            {
+              "id": "difficulty",
+              "aliases": [
+                "难度",
+                "Difficulty"
+              ]
+            }
+          ],
+          "identity_column": "number"
+        }
+      ]
+    },
+    "risk-diverse-177": {
+      "groups": [
+        {
+          "id": "english-forums",
+          "kind": "named_link",
+          "minimum_records": 16,
+          "hosts": [
+            "forum.egosoft.com"
+          ],
+          "entry_path": "/viewforum\\.php",
+          "identity_query_keys": [
+            "f"
+          ],
+          "start_pattern": "English Forums",
+          "end_pattern": "(?:Deutsch|German Forums|Français|Other Languages)",
+          "record_name_exclusions": [
+            "English Forums"
+          ],
+          "required_fields": [
+            {
+              "id": "description",
+              "kind": "text",
+              "minimum_chars": 5
+            }
+          ]
+        }
+      ]
+    },
+    "risk-diverse-181": {
+      "groups": [
+        {
+          "id": "report-fields",
+          "kind": "field_report",
+          "required_fields": [
+            {
+              "id": "page_id",
+              "kind": "integer",
+              "aliases": [
+                "ID"
+              ]
+            },
+            {
+              "id": "wikidata_id",
+              "kind": "text",
+              "aliases": [
+                "Wikidata ID"
+              ],
+              "pattern": "Q[0-9]+"
+            },
+            {
+              "id": "page_size",
+              "kind": "integer",
+              "aliases": [
+                "Page size"
+              ]
+            },
+            {
+              "id": "total_edits",
+              "kind": "integer",
+              "aliases": [
+                "Total edits"
+              ]
+            },
+            {
+              "id": "editors",
+              "kind": "integer",
+              "aliases": [
+                "Editors"
+              ]
+            },
+            {
+              "id": "assessment",
+              "kind": "text",
+              "aliases": [
+                "Assessment"
+              ]
+            },
+            {
+              "id": "page_watchers",
+              "kind": "integer",
+              "aliases": [
+                "Page watchers"
+              ]
+            },
+            {
+              "id": "pageviews",
+              "kind": "integer",
+              "aliases": [
+                "Pageviews"
+              ]
+            },
+            {
+              "id": "first_edit",
+              "kind": "date_or_time",
+              "aliases": [
+                "First edit"
+              ]
+            },
+            {
+              "id": "latest_edit",
+              "kind": "date_or_time",
+              "aliases": [
+                "Latest edit"
+              ]
+            },
+            {
+              "id": "prose",
+              "kind": "integer",
+              "aliases": [
+                "Prose"
+              ]
+            },
+            {
+              "id": "references",
+              "kind": "integer",
+              "aliases": [
+                "References"
+              ]
+            }
+          ],
+          "fixed_values": {
+            "page_id": "1164",
+            "wikidata_id": "Q11660"
+          }
+        }
+      ]
+    },
+    "risk-diverse-192": {
+      "groups": [
+        {
+          "id": "homepage-news",
+          "kind": "named_link",
+          "minimum_records": 3,
+          "hosts": [
+            "www.ibiblio.org"
+          ],
+          "entry_path": "/archive/(?:19|20)[0-9]{2}/(?:0?[1-9]|1[0-2])/[a-z0-9][a-z0-9-]*",
+          "link_base_url": "https://www.ibiblio.org/",
+          "required_fields": [
+            {
+              "id": "published",
+              "kind": "date_or_time"
+            },
+            {
+              "id": "summary",
+              "kind": "text",
+              "minimum_chars": 40
+            }
+          ]
+        }
+      ]
+    },
+    "risk-diverse-012": {
+      "groups": [
+        {
+          "id": "edition-fields",
+          "kind": "literals",
+          "required_literals": [
+            "97 pages, Hardcover",
+            "First published January 1, 1970"
+          ]
+        }
+      ]
+    },
+    "risk-diverse-248": {
+      "groups": [
+        {
+          "id": "agp-picks",
+          "kind": "named_link",
+          "minimum_records": 8,
+          "hosts": [
+            "*"
+          ],
+          "entry_path": "/.+",
+          "start_pattern": "AGP Picks",
+          "end_pattern": "AGP Executive Report"
+        },
+        {
+          "id": "agp-wire",
+          "kind": "named_link",
+          "minimum_records": 4,
+          "hosts": [
+            "theglobaleuropean.com"
+          ],
+          "entry_path": "/agp-article/[0-9]+-[^/]+",
+          "start_pattern": "(?m)^## AGP Wire\\s*$",
+          "end_pattern": "Perspectify News",
+          "required_fields": [
+            {
+              "id": "date",
+              "kind": "date_or_time"
+            },
+            {
+              "id": "source",
+              "kind": "text",
+              "minimum_chars": 2
+            },
+            {
+              "id": "summary",
+              "kind": "text",
+              "minimum_chars": 20
+            }
+          ]
+        },
+        {
+          "id": "perspectify",
+          "kind": "named_link",
+          "minimum_records": 7,
+          "hosts": [
+            "*"
+          ],
+          "entry_path": "/.+",
+          "start_pattern": "Perspectify News",
+          "end_pattern": "Press Releases",
+          "required_fields": [
+            {
+              "id": "time",
+              "kind": "date_or_time"
+            },
+            {
+              "id": "label",
+              "kind": "text",
+              "pattern": "(?:Left-wing|Center-left|Neutral|Public Broadcaster|Gov't Institution|Center-right|Right-wing|Pro-Government|Gov't Propaganda|Press Release Service|Indeterminate)"
+            },
+            {
+              "id": "source",
+              "kind": "text",
+              "minimum_chars": 2
+            }
+          ]
+        },
+        {
+          "id": "press-releases",
+          "kind": "named_link",
+          "minimum_records": 5,
+          "hosts": [
+            "theglobaleuropean.com"
+          ],
+          "entry_path": "/article/[0-9]+-[^/]+",
+          "start_pattern": "Press Releases",
+          "required_fields": [
+            {
+              "id": "date",
+              "kind": "date_or_time"
+            },
+            {
+              "id": "source",
+              "kind": "text",
+              "minimum_chars": 2
+            },
+            {
+              "id": "summary",
+              "kind": "text",
+              "minimum_chars": 20
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

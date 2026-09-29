@@ -22,8 +22,8 @@ from .models import execution_id
 from .report_resources import render_resource_comparison
 from .webmainbench_diagnostics import ERROR_PAGE
 
-TRACKS={'web':'静态网站正文','dynamic':'动态网站正文','challenge':'热门网站正文','document':'文档正文','image':'图片获取','video':'视频获取'}
-PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-pr643':'Moli 1.1.7 · PR #643'}
+TRACKS={'web':'静态网站正文','dynamic':'动态网站正文','challenge':'热门网站正文','document':'文档正文','image':'图片获取','video':'视频获取','risk_control':'风控网站正文'}
+PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-pr643':'Moli 1.1.7 · PR #643','moli-1.1.11':'Moli 1.1.11'}
 
 
 def format_wcxb_conditional_latency(value: float | None) -> str:
@@ -503,7 +503,7 @@ def esc(s):return html.escape(str(s if s is not None else ''))
 def readable_output(s):
  return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]',lambda m:'\\x'+format(ord(m[0]),'02x'),s)
 
-_PRIVATE_LOG_KEYS={'raw_response_path','private_artifacts','private_artifact','private_path'}
+_PRIVATE_LOG_KEYS={'raw_response_path','diagnostic_log_path','private_artifacts','private_artifact','private_path'}
 def public_provider_metadata(value):
  """Remove pointers to private envelopes while keeping public adapter evidence."""
  if isinstance(value,dict):
@@ -639,6 +639,14 @@ def run_log_section(out,record,output):
  if artifact_relative:
   if raw_record:raw_record+=' · '
   raw_record+=f'<a href="../{esc(artifact_relative)}" download>下载本次保存的原始输出</a>'
+ diagnostic_path=metadata.get('diagnostic_log_path')
+ if metadata.get('local_report_complete_diagnostic_links') and diagnostic_path:
+  if raw_record:raw_record+=' · '
+  diagnostic_size=int(metadata.get('diagnostic_log_bytes') or 0)
+  diagnostic_sha=metadata.get('diagnostic_log_sha256') or '未登记'
+  diagnostic_truncated='是' if metadata.get('diagnostic_log_truncated') else '否'
+  raw_record+=(f'<a href="../../{esc(diagnostic_path)}" download>下载完整原始 debug 日志</a>'
+              f'（{diagnostic_size:,} 字节 · SHA-256：<code class="break">{esc(diagnostic_sha)}</code> · 截断：{diagnostic_truncated}）')
  if not raw_record:raw_record='这次历史调用没有可下载的原始记录'
  return (f'<section class="section" id="run-log"><div class="wrap"><h2>运行日志与证据</h2>'
          f'<dl class="diagnostic-fields">{fields}</dl>'
@@ -1065,6 +1073,48 @@ def stable_answer_panel(contract):
        if len(anchors)>5 else '')
  return note+f'<div class="answer-list"{scroll}><div class="answer-item"><b>结构要求</b><blockquote>{esc(count)}</blockquote></div>{"".join(items)}</div>'
 
+def machine_contract(case):
+ return {key:case[key] for key in ('acceptance_contract','composite_acceptance','body_requirements') if case.get(key)}
+
+def composite_contract_details(contract):
+ labels={'named_link':'名称＋真实链接','name_description':'名称＋说明','table':'表格字段',
+         'linked_table':'同一行字段＋真实链接','literals':'固定文字组','field_report':'同一报告字段'}
+ rows=[]
+ for group in contract.get('groups',[]):
+  scope=[]
+  if group.get('start_pattern'):scope.append('开始：'+group['start_pattern'])
+  if group.get('end_pattern'):scope.append('结束：'+group['end_pattern'])
+  requirements=[]
+  if group.get('minimum_records') is not None:requirements.append(f'至少 {group["minimum_records"]} 条')
+  if group.get('hosts'):requirements.append('域名：'+'、'.join(group['hosts']))
+  if group.get('entry_path'):requirements.append('路径：'+group['entry_path'])
+  if group.get('required_fields'):requirements.append('同条目字段：'+'、'.join(field['id'] for field in group['required_fields']))
+  if group.get('required_columns'):requirements.append('同一行列：'+'、'.join(field['id'] for field in group['required_columns']))
+  if group.get('required_literals'):requirements.append('全部文字：'+'、'.join(group['required_literals']))
+  if group.get('fixed_values'):requirements.append('固定值：'+'、'.join(f'{key}={value}' for key,value in group['fixed_values'].items()))
+  rows.append(('',cell(esc(group['id']))+cell(esc(labels.get(group['kind'],group['kind'])))+
+               cell(esc('；'.join(scope) or '整份返回'))+cell(esc('；'.join(requirements)))))
+ return ('<div class="answer-item"><b>组合规则</b><p>每组分别计算，所有组都必须通过；数量、链接和附加字段不能跨列表或跨条目拼接。</p>'+
+         table(['规则组','检查类型','适用范围','必须满足'],rows,metrics=[] )+'</div>')
+
+def composite_result_evidence(metrics):
+ results=metrics.get('composite_group_results',[])
+ if not results:return ''
+ labels={'named_link':'名称＋真实链接','name_description':'名称＋说明','table':'表格字段',
+         'linked_table':'同一行字段＋真实链接','literals':'固定文字组','field_report':'同一报告字段'}
+ rows=[];details=[]
+ for result in results:
+  count='—' if result.get('count') is None else str(result['count'])
+  minimum='—' if result.get('minimum') is None else str(result['minimum'])
+  rows.append(('',cell(esc(result['id']))+cell(esc(labels.get(result['kind'],result['kind'])))+
+               cell(count)+cell(minimum)+cell('通过' if result.get('pass') else '未通过')))
+  payload={key:result[key] for key in ('records','literal_results','fixed_value_results') if result.get(key)}
+  if payload:
+   details.append('<details><summary>'+esc(result['id'])+' 的解析结果</summary><pre data-kind="metadata">'+
+                  esc(json.dumps(payload,ensure_ascii=False,indent=2))+'</pre></details>')
+ return ('<div class="decision-lead"><b>组合规则结果：</b>每组独立核对，不能用另一个列表的条目补足，也不能把不同条目的字段拼在一起。</div>'+
+         table(['规则组','检查类型','有效条目','至少要求','判定'],rows,metrics=[])+''.join(details))
+
 def _stable_field_comparison(metrics,item):
  """Find the closest parsed record for a structured anchor, for display only."""
  schema=metrics.get('stable_task_schema')
@@ -1142,6 +1192,25 @@ def stable_anchor_evidence(metrics,output):
 def failure_category(r,c):
  if not measured(r,c):return '未测：缺少验收证据'
  if succeeded(r,c):return '—'
+ if c.get('track') == 'risk_control':
+  metrics=r['metrics']
+  if not metrics.get('request_ok',r.get('ok',False)):
+   return '请求或程序执行失败'
+  if metrics.get('blocked_page') or metrics.get('stable_blocked_page'):
+   return '返回验证或拦截页面'
+  content_chars=metrics.get('content_chars')
+  if content_chars == 0:
+   return '完全空返回'
+  if (
+   isinstance(content_chars,int) and content_chars <= 100
+   and not metrics.get('markdown_headings')
+   and not metrics.get('markdown_links')
+   and not metrics.get('stable_anchor_hits')
+   and not metrics.get('content_check_hits')
+  ):
+   return '只返回等待提示或页面外壳'
+  return '规则不满足'
+ if r['metrics'].get('composite_acceptance_pass') is False:return '组合规则未满足'
  if _quote_field_issue(r['metrics']):return '字段边界丢失'
  return (r.get('diagnosis') or diagnose(r,c,'') or {'category':'任务规则未满足'})['category']
 
@@ -1179,6 +1248,9 @@ def reason(r,c):
  if r['metrics'].get('deadline_overrun'):return '超过该调用登记的端到端时间预算；保留实际耗时和返回内容，但不计为按时交付。'
  if r['ok'] and 'stable_task_pass' in r['metrics']:
   m=r['metrics']
+  if m.get('composite_acceptance_pass') is False:
+   failed=[row['id'] for row in m.get('composite_group_results',[]) if not row.get('pass')]
+   return '组合规则未满足：'+('、'.join(failed) if failed else '未通过的规则组未登记')+'。'
   success='稳定内容与结构检查通过。' if m.get('stable_anchor_results') or m.get('stable_page_pattern_results') else '条目结构检查通过；本例未设置稳定文字核对点。'
   if m.get('stable_task_schema') == 'body_text':
    return success if succeeded(r,c) else stable_failure_summary(m)+'。'
@@ -1550,7 +1622,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   (out/'references').mkdir(exist_ok=True);(out/'references'/f'{c["id"]}.txt').write_text(ref)
   if c.get('acceptance_contract'):
    target=contained_path(out,'contracts/'+c['id']+'.json');target.parent.mkdir(exist_ok=True)
-   target.write_text(json.dumps(c['acceptance_contract'],ensure_ascii=False,indent=2)+'\n')
+   target.write_text(json.dumps(machine_contract(c),ensure_ascii=False,indent=2)+'\n')
   facts=[('',cell(esc(f['id']))+cell(esc(' / '.join(f['alternatives'])))) for f in c.get('required_facts',[])]
   resources=[('',cell(esc(x['id']))+cell('<br>'.join(link(u,u) for u in x.get('urls',[]))+('<br>入口地址规则：<code>'+esc(' / '.join(x['url_patterns']))+'</code>' if x.get('url_patterns') else ''))) for x in c.get('expected_resources',[])]
   rules=''.join(f'<p>{esc(x["id"])}：至少 {x.get("minimum",1)} 项；<code>{esc(x["pattern"])}</code></p>' for x in c.get('required_patterns',[]))
@@ -1565,6 +1637,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   if c.get('acceptance_contract'):
    facts=[]
    rules=stable_contract_details(c)
+   if c.get('composite_acceptance'):
+    rules+=composite_contract_details(c['composite_acceptance'])
   source_record=link('../sources/'+c['id']+'/evidence.json','获取记录') if (out/'sources'/c['id']/'evidence.json').exists() else '未保存源页快照'
   if c.get('track')=='dynamic':
    projected=c.get('stable_text_evidence') or {}
@@ -1726,8 +1800,9 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   delivered=r.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[])
   if 'stable_task_pass' in m and c.get('acceptance_contract'):
    reference_kind='contract';reference_download='../contracts/'+c['id']+'.json'
-   contract_text=json.dumps(c['acceptance_contract'],ensure_ascii=False,indent=2)
+   contract_text=json.dumps(machine_contract(c),ensure_ascii=False,indent=2)
    source_body=(stable_answer_panel(c['acceptance_contract'])+
+                (composite_contract_details(c['composite_acceptance']) if c.get('composite_acceptance') else '')+
                 '<details class="technical-details"><summary>查看机器可读契约</summary>'
                 f'<pre data-kind="contract">{esc(contract_text)}</pre></details>')
    source_meta='这里直接列出本任务真正要求的文字和记录数量，不要求用户阅读 JSON。'
@@ -1767,6 +1842,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
                  f'要求至少 {m.get("stable_minimum_records","—")} 条；结构检查{("通过" if m.get("stable_structure_pass") else "未通过")}，'
                  f'稳定文字检查{("通过" if m.get("stable_content_pass") else "未通过")}。</p>')
    checks_html+='<details class="technical-details"><summary>查看解析出的全部记录和机器检查字段</summary>'+stable_checks(m)+'</details>'
+   checks_html+=composite_result_evidence(m)
   else:
    checks_html+=(table(['核对点','标准答案','判定','实际命中'],checks) if checks else '<p class="decision-lead">本例按任务结构或原文件输出判定。</p>')
    checks_html+=''.join(f'<p>{esc(x["id"])}：实际 {x["count"]}，要求至少 {x["minimum"]}。</p>' for x in m.get('pattern_results',[]))
@@ -1781,7 +1857,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    checks_html+=table(['记录字段','有效记录数','至少要求','判定'],[('',cell(esc(x['field']))+cell(str(x['count']))+cell(str(x['minimum']))+cell('通过' if x['pass'] else '未通过')) for x in m['stable_field_results']],metrics=[])
   body+=section('为什么这样判',caveat+checks_html,'decision')
   if m.get('body_region_results'):
-   region_rows,region_cards=body_region_rows(c,m,output);rules=c.get('body_requirements',{})
+   scoring_text=((str(r.get('title')).strip()+'\n') if r.get('title') and str(r.get('title')).strip() else '')+output
+   region_rows,region_cards=body_region_rows(c,m,scoring_text);rules=c.get('body_requirements',{})
    required=rules.get('minimum_region_passes',len(rules.get('regions',[])))
    region_count=len(rules.get('regions',[]))
    region_intro=(f'<div class="decision-lead"><b>正文判定：</b>本例分为 {region_count} 段。'

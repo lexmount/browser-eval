@@ -96,14 +96,19 @@ def verify_public_call_log(root: Path, binding: dict[str, Any]) -> Path:
                     "stderr", "stderr_bytes", "stderr_truncated"},
         "output": {"path", "bytes", "sha256", "empty"},
         "error": {"type", "message", "exception_class", "stack"},
-        "capture": {"record", "response_metadata", "process_metadata", "process_stdout",
-                    "process_stderr", "request_summary", "events", "raw_response", "output"},
     }
     if payload.get("schema_version") != 1:
         raise ValueError("Public call log has an unsupported schema version")
     for key, fields in schemas.items():
         if not isinstance(payload.get(key), dict) or set(payload[key]) != fields:
             raise ValueError(f"Public call log has an unexpected {key} schema")
+    legacy_capture = {"record", "response_metadata", "process_metadata", "process_stdout",
+                      "process_stderr", "request_summary", "events", "raw_response", "output"}
+    current_capture = legacy_capture | {"diagnostic_log"}
+    if (not isinstance(payload.get("capture"), dict)
+            or set(payload["capture"]) not in {frozenset(legacy_capture),
+                                                frozenset(current_capture)}):
+        raise ValueError("Public call log has an unexpected capture schema")
     stack = payload["error"]["stack"]
     if not isinstance(stack, list) or any(
         not isinstance(frame, dict) or set(frame) != {"file", "line", "function"}
@@ -168,12 +173,40 @@ def raw_response_binding(metadata: dict[str, Any]) -> dict[str, Any] | None:
     return values
 
 
+def diagnostic_log_binding(metadata: dict[str, Any]) -> dict[str, Any] | None:
+    """Return a complete raw diagnostic-log binding, rejecting partial claims."""
+    values = {
+        "path": metadata.get("diagnostic_log_path"),
+        "sha256": metadata.get("diagnostic_log_sha256"),
+        "bytes": metadata.get("diagnostic_log_bytes"),
+    }
+    present = {key for key, value in values.items() if value is not None}
+    if not present:
+        return None
+    if present != set(values):
+        raise ValueError("Diagnostic log evidence binding is incomplete")
+    path = Path(str(values["path"]))
+    if not path.parts or path.parts[0] != PRIVATE_ARTIFACT_ROOT:
+        raise ValueError("Diagnostic log evidence must stay under private_artifacts")
+    digest = values["sha256"]
+    size = values["bytes"]
+    if (not isinstance(digest, str) or len(digest) != 64
+            or any(char not in "0123456789abcdef" for char in digest)):
+        raise ValueError("Diagnostic log evidence has an invalid SHA-256 binding")
+    if not isinstance(size, int) or isinstance(size, bool) or size < 0:
+        raise ValueError("Diagnostic log evidence has an invalid byte-size binding")
+    return values
+
+
 def record_private_bindings(record: dict[str, Any]) -> list[dict[str, Any]]:
     """Collect final and retained-retry private artifacts from one result."""
     bindings: list[dict[str, Any]] = []
     final = raw_response_binding(record.get("provider_metadata", {}))
     if final:
         bindings.append(final)
+    diagnostic = diagnostic_log_binding(record.get("provider_metadata", {}))
+    if diagnostic:
+        bindings.append(diagnostic)
     for attempt in record.get("provider_metadata", {}).get("retry", {}).get("attempts", []):
         private = attempt.get("private_artifacts", [])
         if not isinstance(private, list):
@@ -226,8 +259,11 @@ def verify_private_binding(root: Path, binding: dict[str, Any]) -> Path:
 
 
 def verify_record_private_artifacts(root: Path, record: dict[str, Any]) -> None:
-    if "_raw_response_b64" in record.get("provider_metadata", {}):
+    metadata = record.get("provider_metadata", {})
+    if "_raw_response_b64" in metadata:
         raise ValueError("Encoded raw response leaked into persisted result metadata")
+    if "_diagnostic_log_b64" in metadata:
+        raise ValueError("Encoded diagnostic log leaked into persisted result metadata")
     for binding in record_private_bindings(record):
         verify_private_binding(root, binding)
 

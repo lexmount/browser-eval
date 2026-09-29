@@ -279,7 +279,10 @@ class MoliWebFetchProvider(Provider):
             self._active_process = None
 
     def _resolve_binary(self) -> str | None:
-        return shutil.which(os.path.expanduser(str(self.config.get("binary") or "moli")))
+        configured = os.path.expandvars(
+            os.path.expanduser(str(self.config.get("binary") or "moli"))
+        )
+        return shutil.which(configured)
 
     def _configuration_errors(self, binary: str | None) -> list[str]:
         errors = []
@@ -299,6 +302,18 @@ class MoliWebFetchProvider(Provider):
             errors.append("wait_until")
         if int(self.config.get("max_bytes", 20_000_000)) <= 0:
             errors.append("max_bytes")
+        if int(self.config.get("max_diagnostic_bytes", 100_000_000)) <= 0:
+            errors.append("max_diagnostic_bytes")
+        if self.config.get("log_level") not in {
+            None, "debug", "info", "warn", "error", "fatal"
+        }:
+            errors.append("log_level")
+        if self.config.get("trace_network") not in {None, False}:
+            errors.append("trace_network (requires JSON output and is not allowed for Markdown scoring)")
+        if not isinstance(
+            self.config.get("local_report_complete_diagnostic_links", False), bool
+        ):
+            errors.append("local_report_complete_diagnostic_links")
         allowlist = self.config.get("private_network_allowlist_hosts", [])
         if (
             not isinstance(allowlist, list)
@@ -563,8 +578,12 @@ class MoliWebFetchProvider(Provider):
         )
         if block_private_networks and not private_network_guard_exception:
             command.append("--block-private-networks")
+        log_level = self.config.get("log_level")
+        if log_level:
+            command.extend(["--log-level", str(log_level)])
         command.append(case.url)
         limit = int(self.config.get("max_bytes", 20_000_000))
+        diagnostic_limit = int(self.config.get("max_diagnostic_bytes", 100_000_000))
         metadata = {
             "dump": dump,
             "route": (
@@ -612,6 +631,11 @@ class MoliWebFetchProvider(Provider):
             "private_network_guard_exception": private_network_guard_exception,
             "private_network_guard_exception_host": (
                 requested_host if private_network_guard_exception else None
+            ),
+            "log_level": log_level,
+            "network_trace_requested": False,
+            "local_report_complete_diagnostic_links": bool(
+                self.config.get("local_report_complete_diagnostic_links", False)
             ),
         }
         try:
@@ -670,11 +694,11 @@ class MoliWebFetchProvider(Provider):
             with process:
                 stopped = None
                 while True:
-                    if (
-                        os.fstat(output.fileno()).st_size > limit
-                        or os.fstat(diagnostic.fileno()).st_size > limit
-                    ):
+                    if os.fstat(output.fileno()).st_size > limit:
                         stopped = "output_too_large"
+                        break
+                    if os.fstat(diagnostic.fileno()).st_size > diagnostic_limit:
+                        stopped = "diagnostic_log_too_large"
                         break
                     if process.poll() is not None:
                         break
@@ -694,15 +718,21 @@ class MoliWebFetchProvider(Provider):
                 output.seek(0)
                 raw = output.read(limit + 1)
                 diagnostic.seek(0)
-                diagnostic_raw = diagnostic.read(limit + 1)
-                stderr = diagnostic_raw[:limit].decode("utf-8", "replace")
+                diagnostic_raw = diagnostic.read(diagnostic_limit + 1)
+                public_preview_limit = 1_000_000
+                stderr = diagnostic_raw[:public_preview_limit].decode("utf-8", "replace")
                 metadata.update(
                     exit_code=process.returncode,
                     stdout_bytes=stdout_bytes,
                     stdout_truncated=stdout_bytes > limit,
                     stderr=stderr,
                     stderr_bytes=stderr_bytes,
-                    stderr_truncated=stderr_bytes > limit,
+                    stderr_truncated=stderr_bytes > public_preview_limit,
+                    diagnostic_log_sha256=hashlib.sha256(diagnostic_raw).hexdigest(),
+                    diagnostic_log_bytes=len(diagnostic_raw),
+                    diagnostic_log_truncated=stopped == "diagnostic_log_too_large",
+                    diagnostic_log_process_completed=stopped is None,
+                    _diagnostic_log_b64=base64.b64encode(diagnostic_raw).decode("ascii"),
                 )
         if stopped == "timeout":
             return ProviderResult(
@@ -710,6 +740,17 @@ class MoliWebFetchProvider(Provider):
                 "",
                 error_type="timeout",
                 error_message="Moli fetch exceeded time budget",
+                metadata=metadata,
+            )
+        if stopped == "diagnostic_log_too_large":
+            return ProviderResult(
+                False,
+                "",
+                error_type="diagnostic_log_too_large",
+                error_message=(
+                    "Moli diagnostic log exceeded max_diagnostic_bytes; "
+                    "the cohort must not be certified with a truncated log"
+                ),
                 metadata=metadata,
             )
         if stopped == "output_too_large" or len(raw) > limit:
