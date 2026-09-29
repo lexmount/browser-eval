@@ -209,6 +209,11 @@ def check(root: Path) -> None:
         raise ValueError("Published failure analysis contains duplicate or empty reviews")
     home = check_presentation((root / "index.html").read_text(encoding="utf-8"))
     guide = check_presentation((root / "guide/index.html").read_text(encoding="utf-8"))
+    profile_rows = guide.select('table#method-error-profiles tbody > tr')
+    fix_slides = guide.select('[data-moli-fix-slide]')
+    if (len(profile_rows) != 7 or len(fix_slides) != 6
+            or any(len(slide.select('.slide-facts > div')) != 4 for slide in fix_slides)):
+        raise ValueError('Guide lacks the seven-method error profiles or six Moli visual repair slides')
     illustrations = repo / 'evaluation/webmainbench-full/illustrations.json'
     overview_claims = None
     if illustrations.exists():

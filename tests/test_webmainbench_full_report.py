@@ -103,6 +103,22 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     content["kitesurf_version_note"] = "后端版本未披露"
     content["fixed_quality"] = "成功结果仍需核对质量。"
     content["fixed_mechanism"] = "修复解析器状态。"
+    content["method_error_profiles"] = {
+        provider: {"runtime": "运行错误", "quality": "质量缺口", "reading": "处理优先级"}
+        for provider in providers
+    }
+    content["moli_fix_profiles"] = [
+        {"image": image, "title": "修复类型", "symptom": "现象", "root": "根因",
+         "fix": "修复", "verification": "验证"}
+        for image in (
+            "moli-fix-01-visibility-disclosure.png",
+            "moli-fix-02-fallback-fragments.png",
+            "moli-fix-03-live-form-state.png",
+            "moli-fix-04-media-candidates.png",
+            "moli-fix-05-semantic-boundaries.png",
+            "moli-fix-06-parser-resume-ownership.png",
+        )
+    ]
     for provider in providers:
         content["guide_method_" + provider] = "逐项观察"
     (tmp_path / "report-content.json").write_text(json.dumps(content), encoding="utf-8")
@@ -144,6 +160,11 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     guide = BeautifulSoup((tmp_path / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
     guide_quality = guide.select_one('#error-landscape table#quality-issue-matrix')
     assert guide_quality is not None
+    assert len(guide.select('table#method-error-profiles tbody > tr')) == 7
+    assert guide.select_one('img[src="assets/seven-method-error-taxonomy.png"]') is None
+    assert len(guide.select('[data-moli-fix-slide]')) == 6
+    assert all(len(slide.select('.slide-facts > div')) == 4
+               for slide in guide.select('[data-moli-fix-slide]'))
     assert len(guide_quality.select('tbody > tr')) == 7
     assert len(guide_quality.select('th[aria-sort="none"] > button[data-table-sort]')) == 7
     lineage = guide.select_one("#moli-repair-lineage")

@@ -2931,6 +2931,22 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
                 '"><img style="width:100%;min-width:800px;height:auto" loading="lazy" src="assets/' + name +
                 '" alt="' + esc(caption) + '"></a></div><figcaption>' + esc(caption) + '（窄屏可横向滚动，点击查看原图。）</figcaption></figure>')
     providers = profile["providers"]
+    method_error_profiles = content.get("method_error_profiles")
+    if (not isinstance(method_error_profiles, dict)
+            or set(method_error_profiles) != set(providers)
+            or any(set(item) != {"runtime", "quality", "reading"}
+                   for item in method_error_profiles.values())):
+        raise ValueError("Report content lacks a complete seven-method error profile")
+    moli_fix_profiles = content.get("moli_fix_profiles")
+    expected_moli_fix_images = [f"moli-fix-{index:02d}-{suffix}.png" for index, suffix in (
+        (1, "visibility-disclosure"), (2, "fallback-fragments"),
+        (3, "live-form-state"), (4, "media-candidates"),
+        (5, "semantic-boundaries"), (6, "parser-resume-ownership"))]
+    if (not isinstance(moli_fix_profiles, list)
+            or [item.get("image") for item in moli_fix_profiles] != expected_moli_fix_images
+            or any(set(item) != {"image", "title", "symptom", "root", "fix", "verification"}
+                   for item in moli_fix_profiles)):
+        raise ValueError("Report content lacks the six bound Moli fix profiles")
     cases = {case["id"]: case for case in dataset["cases"]}
     grouped = defaultdict(dict)
     for row in records:
@@ -3031,7 +3047,7 @@ document.addEventListener('DOMContentLoaded',()=>{if(document.getElementById('re
 let diagnosisFocus=null;async function openDiagnosis(button){let tr=button.closest('tr[data-result]'),dialog=document.getElementById('diagnosis-dialog'),provider=tr?.dataset.provider,id=tr?.dataset.caseId;if(!dialog||!provider||!id)return;diagnosisFocus=button;let put=(name,value)=>{document.getElementById('diagnosis-'+name).textContent=value};put('title','正在读取诊断…');put('error','');put('log','');put('cause','');put('treatment','');if(typeof dialog.showModal==='function')dialog.showModal();else{dialog.setAttribute('open','');dialog.setAttribute('aria-modal','true')}try{let index=await loadJson('result-shard-index.json'),key=provider+'|'+id,shard=await loadJson(index[key]),row=shard.results[key];if(!row)throw Error('结果证据缺失');put('title',id+' · '+row.diagnosis);put('stage',row.error_type?'失败阶段：'+row.error_type:'诊断类别：'+row.diagnosis);put('error','程序错误：'+(row.error_message||'无'));put('log',row.provider_metadata?.stderr||row.provider_metadata?.browser_stderr||row.error_message||'无日志');put('cause','复核原因：'+(row.review?.cause||'未独立复核'));put('treatment','处理：'+(row.review?.treatment||'未记录').replace(/[。；]+$/,'')+'；状态：'+(row.review?.status||'未记录'));document.getElementById('diagnosis-result').href='results/index.html?provider='+provider+'&id='+id;document.getElementById('diagnosis-output').href='viewer/index.html?path='+encodeURIComponent(row.artifact_path);document.getElementById('diagnosis-case').href='cases/index.html?id='+id}catch(error){put('title','诊断读取失败');put('error',error.message)}}
 document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElementById('diagnosis-dialog');if(!dialog)return;document.getElementById('diagnosis-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>diagnosisFocus?.focus())});
 """
-    css += "code,#result-error{overflow-wrap:anywhere;word-break:break-word}.sort-button{appearance:none;border:0;background:transparent;color:inherit;padding:0;font-weight:700;cursor:pointer;text-align:left}.sort-button:hover,.sort-button:focus-visible{text-decoration:underline}th[aria-sort=ascending] .sort-button::after{content:' ↑'}th[aria-sort=descending] .sort-button::after{content:' ↓'}dialog{width:min(760px,calc(100% - 24px));max-height:85vh;overflow:auto;border:1px solid #9aacc0;border-radius:12px;background:white;color:#172637;padding:22px}dialog::backdrop{background:#0b172bc9}body.dark dialog{background:#1c2b3b;color:#edf3fa;border-color:#61768b}dialog .actions{margin-top:16px}dialog pre{max-height:28vh}td button[data-diagnose]{font-size:14px;padding:2px 6px}"
+    css += "code,#result-error{overflow-wrap:anywhere;word-break:break-word}.sort-button{appearance:none;border:0;background:transparent;color:inherit;padding:0;font-weight:700;cursor:pointer;text-align:left}.sort-button:hover,.sort-button:focus-visible{text-decoration:underline}th[aria-sort=ascending] .sort-button::after{content:' ↑'}th[aria-sort=descending] .sort-button::after{content:' ↓'}dialog{width:min(760px,calc(100% - 24px));max-height:85vh;overflow:auto;border:1px solid #9aacc0;border-radius:12px;background:white;color:#172637;padding:22px}dialog::backdrop{background:#0b172bc9}body.dark dialog{background:#1c2b3b;color:#edf3fa;border-color:#61768b}dialog .actions{margin-top:16px}dialog pre{max-height:28vh}td button[data-diagnose]{font-size:14px;padding:2px 6px}.presentation-slide{background:white;border:1px solid #d8e1eb;border-radius:16px;padding:24px;margin:28px 0}.dark .presentation-slide{background:#1c2b3b;border-color:#38506a}.presentation-slide figure{margin:12px 0}.slide-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}.slide-facts div{padding:12px;border-radius:10px;background:#eef4fa}.dark .slide-facts div{background:#263d54}.slide-facts strong{display:block;color:#116b73;margin-bottom:4px}.dark .slide-facts strong{color:#75ddd1}@media(max-width:800px){.slide-facts{grid-template-columns:1fr 1fr}}@media(max-width:520px){.slide-facts{grid-template-columns:1fr}}@media print{header,footer{display:none}.presentation-slide{break-after:page;min-height:95vh;border:0;margin:0;padding:12mm}figure img{max-height:70vh;object-fit:contain}}"
     (out / "assets").mkdir(exist_ok=True)
     (out / "assets/style.css").write_text(css, encoding="utf-8")
     (out / "assets/report.js").write_text(js, encoding="utf-8")
@@ -3180,8 +3196,8 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                 winner = 'winner comparison-winner' if value == min(column) and column.count(value) == 1 else ''
                 cells.append('<td class="number" data-metric="issue-' + key +
                              '" data-metric-direction="min" data-sort="' + str(value) + '">' +
-                             '<a class="' + winner + '" href="analysis/index.html?provider=' + provider +
-                             '&metric=' + key + '&kind=all">' + str(value) + '</a></td>')
+                             '<a class="' + winner + '" href="analysis/index.html?provider=' + esc(provider) +
+                             '&metric=' + esc(key) + '&kind=all">' + str(value) + '</a></td>')
             rows.append('<tr data-quality-provider="' + provider + '">' + ''.join(cells) + '</tr>')
         return table(['方法', *[label for _, label, _, _ in quality_issue_specs]], rows,
                      ['text'] + ['number'] * len(quality_issue_specs), 'quality-issue-matrix')
@@ -3409,10 +3425,12 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
     for provider in providers:
         selected = [row for row in records if row["provider"] == provider]
         issues = sum(categories[row["attempt_id"]] != "未触发诊断" for row in selected)
+        profile_item = method_error_profiles[provider]
         method_rows.append("<tr><td>" + anchor("analysis/index.html?provider=" + provider, labels[provider]) +
                            "</td><td>" + str(target_body_count(provider)) +
-                           "/545</td><td>" + str(issues) + "</td><td>" +
-                           prose("guide_method_" + provider) + "</td></tr>")
+                           "/545</td><td>" + str(issues) + "</td><td>" + esc(profile_item["runtime"]) +
+                           "</td><td>" + esc(profile_item["quality"]) + "</td><td>" +
+                           esc(profile_item["reading"]) + "</td></tr>")
         diagnostic_rows.append("<tr><td>" + esc(labels[provider]) + "</td>" + "".join(
             '<td data-diagnostic-provider="' + provider + '" data-kind="' + kind + '">' +
             anchor("analysis/index.html?provider=" + provider + "&kind=" + kind,
@@ -3434,36 +3452,39 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                          (anchor(target, label) if count else label) + '</td>')
         cause_rows.append('<tr><td>' + esc(cause) + '</td>' + ''.join(cells) +
                           '<td>' + esc(cause_owners[cause]) + '</td></tr>')
-    moli_fix_figures = (
-        '<section id="moli-fix-types"><h2>Moli 修复覆盖的六类共享机制</h2>'
-        '<p>这些图说明实现边界，逐页结果和分数仍以本报告的冻结证据为准。</p>' +
-        illustration('moli-fix-01-visibility-disclosure.png',
-                     '可见性、折叠内容与加载状态：允许目标内容通过，同时继续抑制无关隐藏节点。') +
-        illustration('moli-fix-02-fallback-fragments.png',
-                     '后备转换、结构与片段身份：逐节点转换、统一转义，并保留同一节点的合法片段别名。') +
-        illustration('moli-fix-03-live-form-state.png',
-                     '实时表单状态：输出用户当前看到的输入和选择，不让初始序列化属性覆盖实时状态。') +
-        illustration('moli-fix-04-media-candidates.png',
-                     '媒体候选选择：标准候选优先，再使用有效地址和私有延迟候选，并统一执行安全过滤。') +
-        illustration('moli-fix-05-semantic-boundaries.png',
-                     '数学、代码与表格边界：透明节点间保持连续文本流，在真实块和语义边界停止。') +
-        illustration('moli-fix-06-parser-resume-ownership.png',
-                     '解析器暂停与恢复所有权：资源阻塞期间明确保存唯一恢复责任，防止重复或遗漏恢复。') +
-        '</section>'
-    )
+    moli_fix_slides = []
+    for item in moli_fix_profiles:
+        facts = ''.join('<div><strong>' + label + '</strong>' + esc(item[key]) + '</div>'
+                        for label, key in (("现象", "symptom"), ("根因", "root"),
+                                           ("修复", "fix"), ("验证", "verification")))
+        moli_fix_slides.append(
+            '<article class="presentation-slide" data-moli-fix-slide="' + esc(item["image"]) + '"><h3>' +
+            esc(item["title"]) + '</h3>' + illustration(item["image"], item["title"]) +
+            '<div class="slide-facts">' + facts + '</div></article>')
+    moli_fix_figures = ('<section id="moli-fix-types"><h2>Moli：六类问题各用一张图说明</h2>'
+                        '<p class="note">每张图按现象、根因、修复和泛化验证组织，可单独作为评审幻灯片。</p>' +
+                        ''.join(moli_fix_slides) + '</section>')
     guide_error_landscape = (
         '<section id="error-landscape"><h2>七种方法错在哪、差在哪</h2>' +
+        '<div class="presentation-slide">' +
+        illustration('seven-method-error-taxonomy.png',
+                     '错误先分为运行交付故障和内容质量缺口，再按方法定位主要问题族。') +
+        '</div>' +
+        '<div class="presentation-slide"><h3>精确数量：固定总体质量风险</h3>' +
         illustration('method-error-landscape.png',
-                     '七种方法的正文交付、全文、代码、公式和表格问题分布；精确数量见紧随其后的同数据表。') +
+                     '七种方法的正文交付、全文、代码、公式和表格问题分布。') +
         quality_issue_matrix() +
-        '<p class="note">同一结果可以同时属于多类问题。正文与全文使用 545 页总体；代码、公式、表格内容和表格结构使用各自固定参考总体。低分阈值用于定位，不等于二元通过率。</p>' +
-        '<h3>运行结果类型 × 方法</h3>' +
+        '<p class="note">同一结果可以同时属于多类问题；低分阈值用于定位，不等于二元通过率。</p></div>' +
+        '<div class="presentation-slide"><h3>运行结果类型与已复核根因</h3>' +
         table(["方法", *diagnostic_kinds], diagnostic_rows) +
-        '<h3>已复核运行问题：根因 × 方法</h3>' +
         table(["根因", *[labels[provider] for provider in providers], "归属或定位"], cause_rows) +
         '<p>' + str(len(reviewed_failures)) + '/' + str(machine_issue_count) + ' ' + prose('review_scope_failure') +
         '；' + str(len(records) - len(reviewed_failures)) + ' ' + prose('review_scope_pass') + '</p>' +
-        anchor('failure-analysis.json', '查看逐条失败原因与处理') + '</section>')
+        anchor('failure-analysis.json', '查看逐条失败原因与处理') + '</div>' +
+        '<div class="presentation-slide"><h3>逐方法错误画像</h3>' +
+        table(["方法", "目标正文", "自动诊断数", "运行交付错误", "主要质量缺口", "处理优先级"],
+              method_rows, table_id="method-error-profiles") +
+        '<p class="note">质量缺口是固定阈值下的测量结果；只有有直接证据的运行故障才给出根因归属。</p></div></section>')
     page("guide/index.html", "结果解读",
          '<section class="hero"><h1>结果解读</h1><p>' + esc(outcome) + " " + prose('guide_lead') + '</p></section>' +
          illustration('seven-method-overview.png', '545 页七方法结果、目标正文覆盖与两次 Moli 修复的关系；分数与计分范围以表格为准。') +
@@ -3471,9 +3492,6 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
          guide_error_landscape + moli_fix_figures +
          illustration('moli-repair-mechanisms.png', '从内容缺陷、实现原因到修复层和输出变化的对应关系。') +
          fixed_section + correction_section +
-         '<section><h2>各方法的证据摘要</h2>' +
-         table(["方法", "目标正文", "自动诊断数", "本轮观察"], method_rows) +
-         '<p class="note">' + prose('guide_method_scope') + '</p></section>' +
          '<section><h2>核对完整输出</h2><p>' + prose('guide_outputs') + '</p>' +
          anchor("analysis/index.html?kind=低全文相似度", "查看低全文分案例") + '</section>' +
          '<section><h2>可检查的一页</h2><p>' + prose('guide_example') + '</p><p>' + example_links + '</p></section>' +

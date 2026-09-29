@@ -7,7 +7,12 @@ from scripts.assemble_webmainbench_seven_methods import (
     require_provider_batch,
 )
 from scripts.replace_webmainbench_variant import raw_row
+from scripts.replace_webmainbench_variant import replace
+from scripts.compose_webmainbench_seven_method_correction import compose
 
+import hashlib
+import json
+from pathlib import Path
 import pytest
 
 
@@ -98,3 +103,164 @@ def test_replacement_raw_row_discards_every_prior_score_snapshot() -> None:
         "provider": "moli-content-fixed",
     }
     assert "official_metrics" in row
+
+
+def _write_jsonl(path: Path, rows: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+
+def _sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_complete_variant_replacement_preserves_other_methods_and_rebinds_evidence(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    source, candidate, output = (tmp_path / name for name in ("source", "candidate", "output"))
+    shard = candidate / "moli"
+    source.mkdir()
+    shard.mkdir(parents=True)
+    case_id = "case-1"
+    providers = ["moli", "moli-content-fixed"]
+    source_rows, source_calls = [], []
+    for provider in providers:
+        artifact = source / f"artifacts/{provider}/{case_id}.md"
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text("old " + provider)
+        physical = source / f"artifacts/{provider}/{case_id}-p01.txt"
+        physical.write_text("old " + provider)
+        source_rows.append({"provider": provider, "case_id": case_id,
+                            "attempt_id": f"{provider}__{case_id}__old",
+                            "artifact_path": str(artifact.relative_to(source)),
+                            "output_sha256": _sha(artifact), "metrics": {}})
+        source_calls.append({"provider": provider, "track_id": case_id,
+                             "attempt_id": f"{provider}__{case_id}__p01-old",
+                             "physical_artifact_path": str(physical.relative_to(source)),
+                             "output_sha256": _sha(physical)})
+    _write_jsonl(source / "results.jsonl", source_rows)
+    _write_jsonl(source / "original-results.jsonl", source_rows)
+    _write_jsonl(source / "physical-attempts.jsonl", source_calls)
+    (source / "dataset.json").write_text(json.dumps({
+        "cases": [{"id": case_id}], "coverage_plan": {"static_html": providers}}))
+    (source / "score-summaries.json").write_text(json.dumps({
+        provider: {"provider": provider, "official_aggregate": {}} for provider in providers}))
+    (source / "execution.json").write_text(json.dumps({
+        "batches": [{"provider": provider} for provider in providers]}))
+    (source / "seven-method-binding.json").write_text(json.dumps({
+        "variants": [{"provider": "moli-content-fixed"}],
+        "results_sha256": _sha(source / "results.jsonl"),
+        "physical_attempts_sha256": _sha(source / "physical-attempts.jsonl"),
+        "physical_calls": len(source_calls),
+    }))
+
+    measured_artifact = shard / f"artifacts/moli/{case_id}.md"
+    measured_artifact.parent.mkdir(parents=True)
+    measured_artifact.write_text("new content")
+    measured_physical = shard / f"artifacts/moli/{case_id}-p01.txt"
+    measured_physical.write_text("new content")
+    measured = {"provider": "moli", "track_id": case_id,
+                "attempt_id": f"moli__{case_id}__new",
+                "artifact_path": str(measured_artifact.relative_to(shard)),
+                "output_sha256": _sha(measured_artifact),
+                "metrics": {"overall": {"score": 1}},
+                "official_metrics": {"overall": {"score": 0}}}
+    call = {"provider": "moli", "track_id": case_id,
+            "attempt_id": f"moli__{case_id}__p01-new",
+            "physical_artifact_path": str(measured_physical.relative_to(shard)),
+            "output_sha256": _sha(measured_physical)}
+    _write_jsonl(shard / "scored-results.jsonl", [measured])
+    _write_jsonl(shard / "physical-attempts.jsonl", [call])
+    (shard / "score-summary.json").write_text(json.dumps({"official_aggregate": {}}))
+    (shard / "execution.json").write_text(json.dumps({"attempts": 1}))
+
+    profile_path = Path("evaluation/webmainbench-full/moli-content-fixed-report.json").resolve()
+    profile = json.loads(profile_path.read_text())
+    cohort = {"profile_sha256": _sha(profile_path), "preflight": {"scope": 545},
+              "postflight": {"scope": 545}, "binary_source_commit": profile["source_commit"],
+              "measured_binary_sha256": profile["binary_sha256"], "providers": ["cohort-ok"]}
+    (candidate / "cohort-certificate.json").write_text(json.dumps(cohort))
+    scoring = {"cohort_certificate_sha256": _sha(candidate / "cohort-certificate.json"),
+               "providers": ["score-ok"]}
+    (candidate / "scoring-certificate.json").write_text(json.dumps(scoring))
+    monkeypatch.setattr("scripts.replace_webmainbench_variant.verify_shard",
+                        lambda *args: "cohort-ok")
+    monkeypatch.setattr("scripts.replace_webmainbench_variant.verify_score",
+                        lambda *args: "score-ok")
+
+    replace(source, candidate, tmp_path / "scorer", profile_path,
+            "moli-content-fixed", output)
+
+    rows = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+    by_provider = {row["provider"]: row for row in rows}
+    assert by_provider["moli"]["attempt_id"] == "moli__case-1__old"
+    assert by_provider["moli-content-fixed"]["attempt_id"] == "moli-content-fixed__case-1__new"
+    assert "official_metrics" not in by_provider["moli-content-fixed"]
+    assert (output / "artifacts/moli-content-fixed/case-1.md").read_text() == "new content"
+    binding = json.loads((output / "seven-method-binding.json").read_text())
+    assert binding["physical_calls"] == 2
+    assert binding["results_sha256"] == _sha(output / "results.jsonl")
+
+
+def _freeze_case_correction(root: Path, source: Path, providers: list[str],
+                            originals: dict[str, dict], case_id: str) -> None:
+    rows, calls = [], []
+    for provider in providers:
+        artifact = root / f"artifacts/{provider}/{case_id}.md"
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text("corrected " + provider)
+        physical = root / f"artifacts/{provider}/{case_id}-p01.txt"
+        physical.write_text("corrected " + provider)
+        old = originals[provider]
+        rows.append({**old, "attempt_id": f"{provider}__{case_id}__new",
+                     "supersedes_attempt_id": old["attempt_id"],
+                     "artifact_path": str(artifact.relative_to(root)),
+                     "output_sha256": _sha(artifact), "physical_attempt_count": 1})
+        calls.append({"provider": provider, "track_id": case_id,
+                      "attempt_id": f"{provider}__{case_id}__p01-new",
+                      "physical_artifact_path": str(physical.relative_to(root)),
+                      "output_sha256": _sha(physical)})
+    _write_jsonl(root / "results.jsonl", rows)
+    _write_jsonl(root / "physical-attempts.jsonl", calls)
+    plan = {"providers": providers, "case_id": case_id,
+            "parent_results_sha256": _sha(source / "results.jsonl")}
+    (root / "certificate.json").write_text(json.dumps({
+        "kind": "webmainbench_origin_correction_v1", "preflight": plan,
+        "postflight": plan, "results_sha256": _sha(root / "results.jsonl"),
+        "physical_sha256": _sha(root / "physical-attempts.jsonl")}))
+
+
+def test_variant_only_case_correction_composes_with_shared_and_prior_methods(
+        tmp_path: Path) -> None:
+    base = ["moli", "lightpanda", "obscura", "chromium", "kitesurf"]
+    providers = base + ["moli-pr785-fixed", "moli-content-fixed"]
+    case_id = "case-1"
+    originals = {
+        provider: {"provider": provider, "case_id": case_id,
+                   "attempt_id": f"{provider}__{case_id}__old",
+                   "input_html_sha256": "input", "reference_sha256": "reference",
+                   "provider_metadata": {"binary_sha256": provider}}
+        for provider in providers
+    }
+    seven = tmp_path / "seven"
+    prior_source = tmp_path / "prior-source"
+    content_source = tmp_path / "content-source"
+    for root, selected in ((seven, providers),
+                           (prior_source, base + ["moli-pr785-fixed"]),
+                           (content_source, ["moli-content-fixed"])):
+        root.mkdir()
+        _write_jsonl(root / "results.jsonl", [originals[p] for p in selected])
+    prior = tmp_path / "prior-correction"
+    content = tmp_path / "content-correction"
+    prior.mkdir(); content.mkdir()
+    _freeze_case_correction(prior, prior_source, base + ["moli-pr785-fixed"], originals, case_id)
+    _freeze_case_correction(content, content_source, ["moli-content-fixed"], originals, case_id)
+
+    output = tmp_path / "composite"
+    compose(seven, prior_source, prior, content_source, content, output)
+
+    rows = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+    calls = [json.loads(line) for line in (output / "physical-attempts.jsonl").read_text().splitlines()]
+    assert {row["provider"] for row in rows} == set(providers)
+    assert {row["provider"] for row in calls} == set(providers)
+    assert len(rows) == len(calls) == 7
+    assert json.loads((output / "certificate.json").read_text())["preflight"]["providers"] == providers

@@ -42,6 +42,13 @@
       }
     },
     {
+      "name": "seven-method-error-taxonomy.png",
+      "role": "error-taxonomy",
+      "sha256": "a6d63aa9e38545f4b46d507ed7d8b7190cbb3e67879631b08e3f49d34e887c16",
+      "generator": "ImageGen",
+      "scope": "conceptual separation of delivery failures and content-quality gaps across seven methods"
+    },
+    {
       "name": "moli-repair-mechanisms.png",
       "role": "repair-mechanisms",
       "sha256": "9db091bb41d693aa22862f2fe7e8f316ebfaaba1d2d1938fc515df915a8a329a",
