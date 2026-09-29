@@ -1,0 +1,36 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 367,
+  "task_intent": "Measure distance between Carnegie Mellon University and CVS (closest one) by walking. Return the value as a string (numeric value with unit km or m, e.g., 2.4km, 500m) only, without any additional details. (Use the OSRM direction service.)",
+  "source_sweep": "map-live-sweep-v120",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "8518b7f53b88fdbeacd01ebfe17849649383b25c705a2fba91517e3f5b4301b8",
+    "actual_response": "e6d2dd6b8fa8d434115982aebaa593e9fabab8581c9b3a26e392b472c573db2d",
+    "evaluation": "0674949893bfea88ff1f535b1d091475780dcd7f6e66b2816f6585fa7c9da131",
+    "trace": "95eb4cd6ecf4a112a75900dad675c12235375632ba854e967ecbc1e767c1d3b4",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "81ac721104b0e8c034b112cd27a018da5f8cceef9ac9601c55617cab518fc6b5"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      "1454.8m"
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/0/expected/retrieved_data/0",
+      "official": "1.4km",
+      "corrected": "1454.8m"
+    }
+  ],
+  "derivation": {
+    "kind": "bounded_nominatim_osrm/1"
+  },
+  "regression_ids": [
+    "tr-367-accept-live-map-reference",
+    "tr-367-reject-nearby-wrong-map-reference"
+  ]
+}

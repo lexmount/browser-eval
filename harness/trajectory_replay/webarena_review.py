@@ -13,6 +13,19 @@ from .participants import bind_participant, participant_registry, resolve_partic
 REVIEW_SCHEMA = "lex_webarena_trajectory_replay_failure_review/1"
 
 
+def _concise_process_error(message: str) -> str:
+    """Keep the final exception and tool call log, not mutable source excerpts."""
+
+    starts = [
+        match.start()
+        for match in re.finditer(
+            r"(?m)^(?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*(?:Error|Exception): .+$",
+            message,
+        )
+    ]
+    return message[starts[-1] :].strip() if starts else message.strip()
+
+
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -23,10 +36,24 @@ def programmatic_failure(attempt: dict[str, Any]) -> dict[str, Any]:
     if attempt.get("process_status") != "pass":
         message = str(attempt.get("error") or "BrowserTool execution failed")
         match = re.search(r"RuntimeError: step (\d+) failed: ([^\n]+)", message)
+        stage = str(attempt.get("failure_stage") or "browser_tool_execution")
+        if stage not in {
+            "browser_session_setup",
+            "browser_tool_execution",
+            "evidence_finalization",
+            "official_evaluator_execution",
+        }:
+            raise ValueError(f"unsupported process failure stage: {stage}")
         return {
-            "stage": "browser_tool_execution",
-            "step": int(match.group(1)) if match else None,
-            "message": match.group(2) if match else message.strip(),
+            "stage": stage,
+            "step": (
+                int(attempt["failure_step"])
+                if attempt.get("failure_step") is not None
+                else int(match.group(1))
+                if match
+                else None
+            ),
+            "message": match.group(2) if match else _concise_process_error(message),
         }
     if attempt.get("evaluator_status") != "pass":
         return {

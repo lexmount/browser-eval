@@ -1,0 +1,39 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 429,
+  "task_intent": "On the map site, view the info page for the college or colleges where The Chair was filmed (open each in a separate tab) (use the provided wiki site to look up any needed information).",
+  "source_sweep": "map-college-sweep-v224",
+  "browser_call_count": 2,
+  "source_evidence_sha256": {
+    "network_har": "0a1b5d8380c73edefbbbbecd1c7775a76597212b57d4da159db7d855cc66083a",
+    "actual_response": "f5030a247a4d34da3abde0ef1f538e3a9a1bf67d41b32a18a829895f9c2f5cef",
+    "evaluation": "86046a586979df43697933fcf60a2c3633471dff9673b947f72028fafd3b3d41",
+    "trace": "b815841521da196697a923266edd201e8379234a5c5fde57b40b168dc99b85a1",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "565b9a0eeb468d65be5ce904bc948198cf42119e3c875f0e2f4bbb7196608d3d"
+  },
+  "observed_response": {
+    "task_type": "navigate",
+    "status": "SUCCESS",
+    "retrieved_data": null
+  },
+  "contract_values": [
+    {
+      "path": "/eval/1/expected/url",
+      "official": "__MAP__/relation/583390395",
+      "corrected": "__MAP__/way/583390395"
+    },
+    {
+      "path": "/eval/2/expected/url",
+      "official": "__MAP__/relation/172206707",
+      "corrected": "__MAP__/way/172206707"
+    }
+  ],
+  "derivation": {
+    "kind": "nominatim_object_geometry/1"
+  },
+  "regression_ids": [
+    "tr-429-accept-live-way-identities",
+    "tr-429-reject-relation-kind-for-way-identities"
+  ]
+}

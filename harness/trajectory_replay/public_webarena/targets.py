@@ -36,7 +36,13 @@ def validate_target(step: dict[str, Any]) -> None:
         raise ValueError("role target name must be a string")
 
 
-def locator_for(page: Any, step: dict[str, Any], *, all_matches: bool = False) -> Any:
+def locator_for(
+    page: Any,
+    step: dict[str, Any],
+    *,
+    all_matches: bool = False,
+    wait_for_target: bool = True,
+) -> Any:
     """Resolve the common target schema to a Playwright locator.
 
     Legacy selectors retain their old ``first`` behavior. Structured targets are
@@ -73,7 +79,7 @@ def locator_for(page: Any, step: dict[str, Any], *, all_matches: bool = False) -
     if bool(step.get("allow_many", False)):
         return locator.first
     count = locator.count()
-    if count == 0:
+    if count == 0 and wait_for_target:
         first = locator.first
         wait_for = getattr(first, "wait_for", None)
         if callable(wait_for):

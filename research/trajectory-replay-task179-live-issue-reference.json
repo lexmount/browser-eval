@@ -1,0 +1,56 @@
+{
+  "schema": "trajectory_replay_gitlab_live_reference/1",
+  "task_id": 179,
+  "task_intent": "Get whether my latest created issue with feature in its title is closed. Return a boolean (true if closed, false if opened).",
+  "source_sweep": "low-cost-repairs-sweep-v195",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "29a8d82629341664d164974931e2592f6932a106b3048867e1a395dd81d11e2c",
+    "actual_response": "2df64f5659039975483987e1c6d0c4dfb91f8429d1097f8aab3776366c0e6510",
+    "evaluation": "63caa57f13fec0242600ffa72ab84d3f775ab674f23142f153a9cd007974b8ca",
+    "trace": "b92f86f93d71d3e65a30e8b39dfa8ec9ca44cc8c079d641f9b61000eab5d0496",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "30c299758f3c5ab13b6efde6d03f35bf46c949c3b9f71817e4060d2796f742db"
+  },
+  "query": {
+    "authenticated_user_id": 2330,
+    "authenticated_username": "byteblaze",
+    "scope": "all",
+    "author_id": 2330,
+    "title_search": "feature",
+    "order_by": "created_at",
+    "sort": "desc"
+  },
+  "selected_issue": {
+    "id": 83747,
+    "iid": 39,
+    "project_id": 179,
+    "title": "[Feature suggestion] WCAG trash panda mode",
+    "author_id": 2330,
+    "created_at": "2023-01-22T19:23:16.000Z",
+    "state": "opened"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      false
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/0/expected/retrieved_data",
+      "official": [
+        true
+      ],
+      "corrected": [
+        false
+      ]
+    }
+  ],
+  "finding": "The authenticated user's latest authored issue with feature in its title is open in the deployed GitLab state. The frozen expected value says it is closed.",
+  "regression_ids": [
+    "tr-179-accept-live-authored-issue-state",
+    "tr-179-reject-opposite-issue-state"
+  ]
+}

@@ -11,6 +11,7 @@ from harness.web_fetch.report import link, generate, write, dataset_attrs, case_
 from harness.web_fetch.runner import load_records, run_evaluation, rescore_evaluation
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers.fixture import FixtureProvider
+from scripts.certify_webmainbench_case_correction import copy_contained_artifact
 
 
 class SecurityTests(unittest.TestCase):
@@ -46,6 +47,24 @@ class SecurityTests(unittest.TestCase):
             (root/'results.jsonl').symlink_to(outside/'results.jsonl')
             with self.assertRaises(ValueError): load_records(root)
             self.assertFalse((outside/'out.html').exists())
+
+    def test_evidence_inheritance_confines_both_copy_ends(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);source=root/'source';output=root/'output';outside=root/'outside'
+            (source/'nested').mkdir(parents=True);output.mkdir();outside.mkdir()
+            (source/'nested/result.md').write_text('result')
+            copied=copy_contained_artifact(source,'nested/result.md',output,'artifacts/result.md')
+            self.assertEqual(copied.read_text(),'result')
+            (output/'escape').symlink_to(outside,target_is_directory=True)
+            for source_path,target_path in [
+                ('../outside/result.md','artifacts/result.md'),
+                ('nested/result.md','../outside/result.md'),
+                ('nested/result.md','/tmp/result.md'),
+                ('nested/result.md','escape/result.md'),
+            ]:
+                with self.subTest(source=source_path,target=target_path), self.assertRaises(ValueError):
+                    copy_contained_artifact(source,source_path,output,target_path)
+            self.assertFalse((outside/'result.md').exists())
 
     def test_runner_rejects_traversal_before_calls(self):
         with tempfile.TemporaryDirectory() as tmp:

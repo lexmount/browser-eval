@@ -10,6 +10,7 @@ from harness.trajectory_replay.webarena_replay import (
     RECEIPT_SCHEMA,
     _attempt_needs_retry,
     _capture_failure_ui_state,
+    _clear_browser_state,
     _click_was_dispatched_before_navigation_timeout,
     _embedded_observation_error,
     _execute_replay_call,
@@ -17,6 +18,7 @@ from harness.trajectory_replay.webarena_replay import (
     _origin,
     _rebind_url,
     _reject_partial_method_resume,
+    _replay_step_status,
     _run_one,
     _validated_resume,
     run_replay_suite,
@@ -24,6 +26,172 @@ from harness.trajectory_replay.webarena_replay import (
     select_tasks,
     validate_qualification_dataset,
 )
+
+
+def test_clear_browser_state_uses_page_storage_for_sessions_without_storage_cdp() -> None:
+    events = []
+
+    class Session:
+        def send(self, method, params=None):
+            events.append(("cdp", method, params))
+
+        def detach(self):
+            events.append(("detach",))
+
+    class Page:
+        def goto(self, url, **_kwargs):
+            events.append(("goto", url))
+
+        def evaluate(self, script):
+            events.append(("evaluate", script))
+
+    page = Page()
+    context = type(
+        "Context",
+        (),
+        {
+            "clear_cookies": lambda self: events.append(("clear_cookies",)),
+            "clear_permissions": lambda self: events.append(("clear_permissions",)),
+            "new_cdp_session": lambda self, selected: Session(),
+        },
+    )()
+    service = type(
+        "Service",
+        (),
+        {
+            "_context": context,
+            "_page": page,
+            "_supports_storage_cdp": False,
+            "_submit": lambda self, callback: callback(),
+        },
+    )()
+
+    _clear_browser_state(service, {"http://b.test", "http://a.test"})
+
+    assert ("cdp", "Storage.clearDataForOrigin", None) not in events
+    assert [event for event in events if event[0] == "goto"] == [
+        ("goto", "http://a.test"),
+        ("goto", "http://b.test"),
+        ("goto", "about:blank"),
+    ]
+    assert sum(event[0] == "evaluate" for event in events) == 2
+
+
+def test_clear_browser_state_accepts_a_fresh_per_task_context_without_revisiting_sites() -> None:
+    class Context:
+        def clear_cookies(self):
+            raise AssertionError("a new context must not repeat storage cleanup")
+
+        def clear_permissions(self):
+            raise AssertionError("a new context must not repeat permission cleanup")
+
+    class Page:
+        def goto(self, *_args, **_kwargs):
+            raise AssertionError("a new context must not navigate through site origins")
+
+    service = type(
+        "Service",
+        (),
+        {
+            "_context": Context(),
+            "_page": Page(),
+            "_fresh_context_per_task": True,
+            "_submit": lambda self, callback: callback(),
+        },
+    )()
+
+    _clear_browser_state(service, {"http://example.test"})
+
+
+def test_clear_browser_state_avoids_unsupported_obscura_cdp_domains() -> None:
+    events = []
+
+    class Page:
+        def goto(self, url, **_kwargs):
+            events.append(("goto", url))
+
+        def evaluate(self, script):
+            events.append(("evaluate", script))
+
+    class Context:
+        def clear_cookies(self):
+            events.append(("clear_cookies",))
+
+        def clear_permissions(self):
+            events.append(("clear_permissions",))
+
+        def new_cdp_session(self, _page):
+            raise AssertionError("Obscura state reset must not open a CDP session")
+
+    service = type(
+        "Service",
+        (),
+        {
+            "_context": Context(),
+            "_page": Page(),
+            "_supports_network_reset_cdp": False,
+            "_supports_storage_cdp": False,
+            "_submit": lambda self, callback: callback(),
+        },
+    )()
+
+    _clear_browser_state(service, {"http://example.test"})
+
+    assert events[0:2] == [("clear_cookies",), ("clear_permissions",)]
+    assert [event for event in events if event[0] == "goto"] == [
+        ("goto", "http://example.test"),
+        ("goto", "about:blank"),
+    ]
+    assert sum(event[0] == "evaluate" for event in events) == 1
+
+
+def test_clear_browser_state_retries_storage_after_navigation_settles() -> None:
+    events = []
+
+    class Page:
+        def goto(self, url, **_kwargs):
+            events.append(("goto", url))
+
+        def evaluate(self, script):
+            events.append(("evaluate", script))
+            if sum(event[0] == "evaluate" for event in events) == 1:
+                raise RuntimeError(
+                    "Execution context was destroyed, most likely because of a navigation"
+                )
+
+        def wait_for_load_state(self, state, **kwargs):
+            events.append(("load_state", state, kwargs))
+
+        def wait_for_timeout(self, milliseconds):
+            events.append(("wait", milliseconds))
+
+    class Context:
+        def clear_cookies(self):
+            events.append(("clear_cookies",))
+
+        def clear_permissions(self):
+            events.append(("clear_permissions",))
+
+        def new_cdp_session(self, _page):
+            raise AssertionError("state reset must not open a CDP session")
+
+    service = type(
+        "Service",
+        (),
+        {
+            "_context": Context(),
+            "_page": Page(),
+            "_supports_network_reset_cdp": False,
+            "_supports_storage_cdp": False,
+            "_submit": lambda self, callback: callback(),
+        },
+    )()
+
+    _clear_browser_state(service, {"http://example.test"})
+
+    assert sum(event[0] == "evaluate" for event in events) == 2
+    assert any(event[:2] == ("load_state", "domcontentloaded") for event in events)
+    assert any(event[0] == "wait" for event in events)
 
 
 def test_method_scoped_site_cohort_rejects_partial_resume() -> None:
@@ -325,6 +493,15 @@ def test_snapshot_payload_error_is_exposed_as_observation_error() -> None:
         is None
     )
     assert _embedded_observation_error({"action": "snapshot"}, "success", "Page: stable") is None
+    assert _replay_step_status(
+        {"action": "snapshot"},
+        "success",
+        "[Snapshot error: context destroyed]",
+        dispatched=False,
+    ) == ("error", "context destroyed")
+    assert _replay_step_status(
+        {"action": "click"}, "error", "navigation timeout", dispatched=True
+    ) == ("success", None)
     assert _attempt_needs_retry(
         {
             "status": "fail",
@@ -362,7 +539,9 @@ def test_completed_click_is_not_replayed_when_only_navigation_wait_times_out() -
 
 @pytest.mark.parametrize("collect_diagnostics", [False, True])
 @pytest.mark.parametrize("disabled", [False, True])
-def test_compiled_snapshot_ref_click_preserves_dom_click_semantics(collect_diagnostics, disabled) -> None:
+def test_compiled_snapshot_ref_click_preserves_dom_click_semantics(
+    collect_diagnostics, disabled
+) -> None:
     events = []
 
     class Locator:
@@ -370,6 +549,9 @@ def test_compiled_snapshot_ref_click_preserves_dom_click_semantics(collect_diagn
 
         def __init__(self) -> None:
             self.first = self
+
+        def count(self):
+            return 1
 
         def evaluate(self, script, *args):
             events.append(("evaluate", script, args))
@@ -386,6 +568,10 @@ def test_compiled_snapshot_ref_click_preserves_dom_click_semantics(collect_diagn
 
     class Service:
         _page = Page()
+
+        @property
+        def layout_observer(self):
+            return lambda page, timeout: events.append(("layout", page, timeout))
 
         def _submit(self, callback):
             return callback()
@@ -409,14 +595,211 @@ def test_compiled_snapshot_ref_click_preserves_dom_click_semantics(collect_diagn
     )
 
     assert status == "success"
-    assert events[0] == ("locator", "a[href='/next']:visible")
+    assert events[0][:2] == ("layout", Service._page)
+    assert 0 < events[0][2] <= 60_000
+    assert ("locator", "a[href='/next']") in events
     assert events[-1] == ("wait", 500)
-    evaluations = [event for event in events if event[0] == "evaluate"]
+    evaluations = [
+        event for event in events
+        if event[0] == "evaluate" and "getComputedStyle" not in event[1]
+    ]
     assert len(evaluations) == 1
     assert "element.click()" in evaluations[0][1]
     if collect_diagnostics:
         assert diagnostics["click_dispatch_state"]["disabled"] is disabled
         assert evaluations[0][1].index("disabled:") < evaluations[0][1].index("element.click()")
+
+
+def test_moli_compiled_ref_waits_for_delayed_visible_target() -> None:
+    visibility = iter((0, 1))
+    events = []
+
+    class Locator:
+        first = None
+
+        def __init__(self, selector) -> None:
+            self.first = self
+            self.selector = selector
+
+        def count(self):
+            value = next(visibility) if self.selector.endswith(":visible") else 1
+            events.append(("count", self.selector, value))
+            return value
+
+        def evaluate(self, script, *args):
+            events.append(("action", script, args))
+            return {"before": "12", "after": args[0], "selectedText": "Illinois"}
+
+    class Page:
+        def locator(self, selector):
+            events.append(("locator", selector))
+            return Locator(selector)
+
+        def wait_for_timeout(self, timeout):
+            events.append(("wait", timeout))
+
+    class Service:
+        _page = Page()
+
+        @property
+        def layout_observer(self):
+            return lambda page, timeout: events.append(("layout", page, timeout))
+
+        def _submit(self, callback):
+            return callback()
+
+    class Tool:
+        def _get_service(self):
+            return Service()
+
+    status, _ = _execute_replay_call(
+        Tool(),
+        {
+            "action": "select",
+            "selector": "select[name='region_id']:visible",
+            "value": "23",
+            "replay_mode": "snapshot_ref_semantics",
+        },
+    )
+
+    assert status == "success"
+    assert events[0][:2] == ("layout", Service._page)
+    assert 0 < events[0][2] <= 60_000
+    assert ("wait", 100) in events
+    assert [event for event in events if event[0] == "count" and event[1].endswith(":visible")] == [
+        ("count", "select[name='region_id']:visible", 0),
+        ("count", "select[name='region_id']:visible", 1),
+    ]
+    assert events[-1][0] == "action"
+
+
+def test_moli_compiled_ref_force_uses_unique_stable_target_without_geometry_wait() -> None:
+    events = []
+
+    class Locator:
+        first = None
+
+        def __init__(self, selector) -> None:
+            self.first = self
+            self.selector = selector
+
+        def count(self):
+            events.append(("count", self.selector))
+            return 1 if not self.selector.endswith(":visible") else 0
+
+        def evaluate(self, script, *args):
+            events.append(("evaluate", self.selector, script, args))
+            return "Linux"
+
+    class Keyboard:
+        def press(self, key):
+            events.append(("press", key))
+
+        def insert_text(self, text):
+            events.append(("insert_text", text))
+
+    class Page:
+        keyboard = Keyboard()
+
+        def locator(self, selector):
+            return Locator(selector)
+
+    class Service:
+        _page = Page()
+        layout_observer = staticmethod(lambda _page, _timeout: events.append(("layout",)))
+
+        def _submit(self, callback):
+            return callback()
+
+    class Tool:
+        def _get_service(self):
+            return Service()
+
+    status, _ = _execute_replay_call(
+        Tool(),
+        {
+            "action": "fill",
+            "selector": "input[name='created_at[from]']:visible",
+            "text": "01/01/2023",
+            "force": True,
+            "replay_mode": "snapshot_ref_semantics",
+        },
+    )
+
+    assert status == "success"
+    assert ("count", "input[name='created_at[from]']:visible") not in events
+    assert ("insert_text", "01/01/2023") not in events
+    dispatches = [event for event in events if event[0] == "evaluate" and event[3]]
+    assert len(dispatches) == 1
+    assert "setter.call(element, expected)" in dispatches[0][2]
+    assert "dispatchEvent(new Event('input'" in dispatches[0][2]
+    assert dispatches[0][3] == ("01/01/2023",)
+
+
+def test_compiled_ref_wait_for_enabled_delays_single_click_dispatch() -> None:
+    states = iter(
+        (
+            {
+                "connected": True,
+                "disabled": True,
+                "effectivelyDisabled": True,
+                "ariaDisabled": None,
+            },
+            {
+                "connected": True,
+                "disabled": False,
+                "effectivelyDisabled": False,
+                "ariaDisabled": None,
+            },
+        )
+    )
+    events = []
+
+    class Locator:
+        first = None
+
+        def __init__(self) -> None:
+            self.first = self
+
+        def evaluate(self, script, *args):
+            if "element.click()" in script:
+                events.append("click")
+                return {}
+            events.append("probe")
+            return next(states)
+
+    class Page:
+        def locator(self, _selector):
+            return Locator()
+
+        def wait_for_timeout(self, timeout):
+            events.append(("wait", timeout))
+
+    class Service:
+        _page = Page()
+        layout_observer = None
+
+        def _submit(self, callback):
+            return callback()
+
+    class Tool:
+        def _get_service(self):
+            return Service()
+
+    status, _ = _execute_replay_call(
+        Tool(),
+        {
+            "action": "click",
+            "selector": "button.add-to-cart",
+            "wait_for_enabled": True,
+            "replay_mode": "snapshot_ref_semantics",
+        },
+    )
+
+    assert status == "success"
+    assert events.count("probe") == 2
+    assert events.count("click") == 1
+    assert ("wait", 100) in events
 
 
 @pytest.mark.parametrize(
@@ -434,9 +817,14 @@ def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics(
         def __init__(self) -> None:
             self.first = self
 
+        def count(self):
+            return 1
+
         def evaluate(self, script, *args):
             events.append(("evaluate", script, args))
-            return platform if "navigator.platform" in script else None
+            if "navigator.platform" in script:
+                return platform
+            return {"before": "closed", "after": args[0], "selectedText": "Open"}
 
     class Keyboard:
         def press(self, key):
@@ -455,6 +843,10 @@ def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics(
     class Service:
         _page = Page()
 
+        @property
+        def layout_observer(self):
+            return lambda page, timeout: events.append(("layout", page, timeout))
+
         def _submit(self, callback):
             return callback()
 
@@ -471,6 +863,7 @@ def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics(
             "replay_mode": "snapshot_ref_semantics",
         },
     )
+    diagnostics = {}
     select_status, _ = _execute_replay_call(
         Tool(),
         {
@@ -479,13 +872,26 @@ def test_compiled_snapshot_ref_fill_and_select_preserve_dom_semantics(
             "value": "open",
             "replay_mode": "snapshot_ref_semantics",
         },
+        diagnostics=diagnostics,
     )
 
     assert fill_status == select_status == "success"
+    assert events[0][:2] == ("layout", Service._page)
+    layouts = [event for event in events if event[:2] == ("layout", Service._page)]
+    assert len(layouts) == 2
+    assert all(0 < event[2] <= 60_000 for event in layouts)
+    assert ("locator", "input[name='query']") in events
+    assert ("locator", "select[name='status']") in events
     assert events.index(("press", f"{modifier}+A")) < events.index(("press", "Backspace"))
     assert events.index(("press", "Backspace")) < events.index(("insert_text", "needle"))
     assert not any(event[0] == "evaluate" and "element.value = ''" in event[1] for event in events)
     assert any(event[0] == "evaluate" and event[2] == ("open",) for event in events)
+    assert diagnostics["select_dispatch_state"]["after"] == "open"
+    select_script = next(
+        event[1] for event in events if event[0] == "evaluate" and event[2] == ("open",)
+    )
+    assert select_script.index("new Event('input'") < select_script.index("new Event('change'")
+    assert "element.value !== value" in select_script
 
 
 def test_declared_wait_seconds_are_dispatched_as_browser_tool_milliseconds() -> None:

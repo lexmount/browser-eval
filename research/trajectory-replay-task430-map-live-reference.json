@@ -1,0 +1,34 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 430,
+  "task_intent": "On the map site, view the info page for the college(s) where The Chair was filmed in Pennsylvania other than the ones in Pittsburgh (use the provided wiki site to look up any needed information).",
+  "source_sweep": "map-college-sweep-v224",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "4bd9109a90f1108b4caad986cdb29fab3cbcbdbd8085cc56f3ceb2eb7b6339ac",
+    "actual_response": "f5030a247a4d34da3abde0ef1f538e3a9a1bf67d41b32a18a829895f9c2f5cef",
+    "evaluation": "793d11ec6a240f96a6d9d31654c85c51a098c14d1fff20bbf851244f30ac8c39",
+    "trace": "3e4182aa4665238ae9c11940896b6e982308ee2fee917e8ee98c69c11af58e23",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "fe74bcfcd9cd00bfe24a3aed31daf875b946a41d1d9cfbb537857c1bfca1913b"
+  },
+  "observed_response": {
+    "task_type": "navigate",
+    "status": "SUCCESS",
+    "retrieved_data": null
+  },
+  "contract_values": [
+    {
+      "path": "/eval/1/expected/url",
+      "official": "__MAP__/TASK_430_MAP_RELATION_ID",
+      "corrected": "__MAP__/way/583390395"
+    }
+  ],
+  "derivation": {
+    "kind": "nominatim_object_geometry/1"
+  },
+  "regression_ids": [
+    "tr-430-accept-live-washington-jefferson-way",
+    "tr-430-reject-unresolved-placeholder"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 267,
+  "task_intent": "Get the relation ID of the closest national park to the hometown of Stephen King and the time to drive there. Return a list of objects with keys \"relation_id\" (integer) and \"duration\" (in HH:MM:SS format) only, without any additional details. (Use the OSRM direction service and the provided wiki to look up any needed information and search both source and destination by coordinates from the place official page on the wiki.)",
+  "source_sweep": "map-live-sweep-v126",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "a3d4f74d1da89a878a59e213dcc3a651409ba43c29564ef2e36f55675547bd51",
+    "actual_response": "92b9d825b24a2edb53c9fe47bf8cdaa32f3dbd691a63ab603f52dce4cc932ea0",
+    "evaluation": "1137bc6d5683bea123068442901258035d501309c849c229334e52db054048c0",
+    "trace": "84153a386d524265463e384a02127a7854f72b3beb11636f4a1ffb5fd0b34d3f",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "59eff0161f83773c01571377d30898a0633f75abc4d3fce215d83bd645c19dc3"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      {
+        "relation_id": 2176999,
+        "duration": "5550.7s"
+      }
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/1/expected/url",
+      "official": "^.*/route/.*/-68.2177005,44.3494709;-68.767507,44.8030715.*$",
+      "corrected": "^.*/route/.*/-68.2177005318788,44.3494709082008;-68.76750570908236,44.803065340439595.*$"
+    }
+  ],
+  "derivation": {
+    "kind": "frozen_wikipedia_nominatim_osrm/1"
+  },
+  "regression_ids": [
+    "tr-267-accept-live-map-reference",
+    "tr-267-reject-nearby-wrong-map-reference"
+  ]
+}

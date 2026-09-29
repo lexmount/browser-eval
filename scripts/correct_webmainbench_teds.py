@@ -33,6 +33,11 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def original_official_metrics(row):
+    """Keep the first official score snapshot across stacked score corrections."""
+    return copy.deepcopy(row.get('official_metrics', row.get('metrics', {})))
+
+
 def validate_controls():
     registry = load_scoring_regressions()
     for identifier in CONTROLS:
@@ -106,9 +111,9 @@ def main():
                 raise ValueError('Evidence binding mismatch: ' + row['attempt_id'])
             prior = inherited.get(row['attempt_id'])
             if prior is not None:
-                if (prior.get('official_metrics') != row.get('metrics') or
+                if (prior.get('official_metrics') != original_official_metrics(row) or
                     {key: value for key, value in prior.items() if key not in ('metrics', 'official_metrics')} !=
-                    {key: value for key, value in row.items() if key != 'metrics'}):
+                    {key: value for key, value in row.items() if key not in ('metrics', 'official_metrics')}):
                     raise ValueError('Inherited correction differs from frozen provider evidence: ' + row['attempt_id'])
                 row = copy.deepcopy(prior)
                 old = original['metrics'].get('table_TEDS', {})
@@ -116,7 +121,7 @@ def main():
                 if current.get('score') != old.get('score'):
                     changed.append({'attempt_id': row['attempt_id'], 'before': old['score'], 'after': current['score']})
             else:
-                row['official_metrics'] = copy.deepcopy(row.get('metrics', {}))
+                row['official_metrics'] = original_official_metrics(row)
             if prior is None and row.get('ok'):
                 prior = row['metrics']['table_edit']
                 dependency = MetricResult('table_edit', prior['score'], prior.get('details', {}),

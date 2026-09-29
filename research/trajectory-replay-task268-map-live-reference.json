@@ -1,0 +1,39 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 268,
+  "task_intent": "Get the relation ID of the closest national park to Vinalhaven, ME and the time to bike there. Return a list of objects with keys \"relation_id\" (integer) and \"duration\" (in HH:MM:SS format) only, without any additional details. (Use the OSRM direction service and the provided wiki to look up any needed information and search both source and destination by coordinates from the place official page on the wiki.)",
+  "source_sweep": "map-live-sweep-v126",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "8f6651fed7fa0a3d85d3e882d3bd2023aa04354501d00ce1e191f18a243612c6",
+    "actual_response": "ad5c1a9a12aa2dcdbe8f5483121bc96a99d888156e6683b559b88de173c7cdc0",
+    "evaluation": "61022919accaefad8a9a1889ade8b8ed986586a497258dd4d4dc02e1de041b1c",
+    "trace": "7d15f90a877190b103adcacdb65e738317d479a72d5763fdb0a2eb202ffde373",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "e9597fd7c06108c868715b346e72d67b584b4b623b5b83e098a231f72a9d6bcc"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      {
+        "relation_id": 2176999,
+        "duration": "39504.1s"
+      }
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/1/expected/url",
+      "official": "^.*/route/v1/.*/-68.2177005,44.3494709;-68.8315387,44.0478975.*$",
+      "corrected": "^.*/route/v1/.*/-68.2177005318788,44.3494709082008;-68.83153867121342,44.047897450225626.*$"
+    }
+  ],
+  "derivation": {
+    "kind": "frozen_wikipedia_nominatim_osrm/1"
+  },
+  "regression_ids": [
+    "tr-268-accept-live-map-reference",
+    "tr-268-reject-nearby-wrong-map-reference"
+  ]
+}

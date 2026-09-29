@@ -2,9 +2,17 @@ import socket
 import unittest
 import json
 import tempfile
+import hashlib
 from pathlib import Path
 
-from scripts.run_webmainbench_benchmark import DATASET_SHA256, check_identity, fetch_record, load_selected_ids
+from scripts.run_webmainbench_benchmark import (
+    DATASET_SHA256,
+    check_identity,
+    fetch_record,
+    load_selected_ids,
+    load_source,
+)
+from scripts.score_webmainbench_results import load_records
 
 
 RECORD = {
@@ -47,6 +55,33 @@ class WebMainBenchRunnerTests(unittest.TestCase):
             self.assertEqual(binding["format"], "webmainbench_sample_manifest_v1")
             self.assertEqual(binding["case_count"], 2)
             self.assertEqual(binding["selection_seed"], "fixed")
+
+    def test_corrected_full_dataset_requires_its_declared_hash(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "corrected.jsonl"
+            rows = [
+                {
+                    "track_id": f"case-{index}",
+                    "url": "https://example.test/source",
+                    "html": "<p>Hello</p>",
+                    "groundtruth_content": "Hello",
+                    "meta": {},
+                }
+                for index in range(545)
+            ]
+            path.write_text(
+                "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+            )
+            corrected_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+
+            with self.assertRaisesRegex(ValueError, "Unexpected WebMainBench"):
+                load_source(path)
+            self.assertEqual(
+                len(load_source(path, expected_sha256=corrected_hash)), 545
+            )
+            with self.assertRaisesRegex(ValueError, "dataset hash mismatch"):
+                load_records(path)
+            self.assertEqual(len(load_records(path, corrected_hash)), 545)
 
     def test_cloudflare_timeout_becomes_retryable_result(self):
         result = fetch_record(None, RaisingCloudflare(), RECORD, "https://localhost/case", 45)

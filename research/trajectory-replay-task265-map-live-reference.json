@@ -1,0 +1,39 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 265,
+  "task_intent": "Get the relation ID of the closest national park to Boston and the distance to drive there. Return a list of objects with keys \"relation_id\" (integer) and \"distance\" (numeric value with unit km or m, e.g., 2.4km, 500m) only, without any additional details. (Use the OSRM direction service and the provided wiki to look up any needed information and search both source and destination by coordinates from the place official page on the wiki.)",
+  "source_sweep": "map-live-sweep-v126",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "49520968ec7c7f1267169f3ccc5ee78c9733086210b598de28351dfc9c8b2bb5",
+    "actual_response": "9654bb1aff02655bc99546abeafe658b1ca22a55817151cdf098eb571f7893f7",
+    "evaluation": "f6a01be0cad7123823472919120f9a26ae6f2652fec37a2800d261f2f4ba2210",
+    "trace": "994fb58c2cdf5597ce2e44a00783ef943353e00fe6911e4748a1aaaa4dcde88d",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "b58f411c230cb689493b2de93f71fa618290a22363d31fac28c788f9e6ae7a69"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      {
+        "relation_id": 2176999,
+        "distance": "459445.3m"
+      }
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/1/expected/url",
+      "official": "^.*/route/v1/.*/-68.2177005,44.3494709;-71.0579762,42.3603713.*$",
+      "corrected": "^.*/route/v1/.*/-68.2177005318788,44.3494709082008;-71.05768162905511,42.360400999999996.*$"
+    }
+  ],
+  "derivation": {
+    "kind": "frozen_wikipedia_nominatim_osrm/1"
+  },
+  "regression_ids": [
+    "tr-265-accept-live-map-reference",
+    "tr-265-reject-nearby-wrong-map-reference"
+  ]
+}

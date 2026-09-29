@@ -1,0 +1,61 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 18,
+  "task_intent": "Get the time for walking and driving route from AMC Waterfront to Univ of Pittsburgh. Return a list of objects with keys \"mode\" (driving or walking) and \"duration\" (in HH:MM:SS format) only, without any additional details. (Use the OSRM direction service.)",
+  "source_sweep": "map-live-sweep-v117",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "643fadf78059364952fbdb16fe4a54905630af24d707564e773ce8dc43814f8b",
+    "actual_response": "b6f9933720d12b20d3345925ca449223fee45e8365e08441e9b889a162bcc231",
+    "evaluation": "5b181a9aea5cfbb4185627dbfcfc4a632f78e2b7985260d466e0b0dd63d3ed8f",
+    "trace": "c7ca74f043e3f99654b8c32946ef142003e1d6418bfbf32d6a2c01abf9558fbf",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "bdfe828060f6a69c47081cfcaab705d8606e9e3c8cdd4222de82a58a6d015c8f"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      {
+        "mode": "driving",
+        "duration": "876.7s"
+      },
+      {
+        "mode": "walking",
+        "duration": "6431.6s"
+      }
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/0/expected/retrieved_data",
+      "official": [
+        {
+          "mode": "driving",
+          "duration": "2min"
+        },
+        {
+          "mode": "walking",
+          "duration": "16min"
+        }
+      ],
+      "corrected": [
+        {
+          "mode": "driving",
+          "duration": "876.7s"
+        },
+        {
+          "mode": "walking",
+          "duration": "6431.6s"
+        }
+      ]
+    }
+  ],
+  "derivation": {
+    "kind": "bounded_nominatim_osrm/1"
+  },
+  "regression_ids": [
+    "tr-18-accept-live-map-reference",
+    "tr-18-reject-nearby-wrong-map-reference"
+  ]
+}

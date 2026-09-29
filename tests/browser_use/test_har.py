@@ -2,6 +2,576 @@ import base64
 import json
 
 from harness.browser_use.har import CdpHarRecorder, _har_request, _har_response, _is_json_mime_type
+from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
+
+
+def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(
+    tmp_path, monkeypatch
+) -> None:
+    class EventSource:
+        def __init__(self):
+            self.handlers = {}
+
+        def on(self, event, callback):
+            self.handlers[event] = callback
+
+        def remove_listener(self, *_args):
+            pass
+
+    page = EventSource()
+
+    class Context(EventSource):
+        pages = [page]
+
+        def expose_binding(self, _name, callback):
+            self.capture = callback
+
+        def add_init_script(self, _script):
+            pass
+
+        def route(self, selector, handler):
+            self.selector = selector
+            self.route_handler = handler
+
+    class Request:
+        method = "POST"
+        url = "http://private.example.test/save"
+        headers = {
+            "content-type": "application/json",
+            "x-browser-eval-request-body-id": "capture-1",
+        }
+        post_data = None
+        post_data_buffer = None
+        resource_type = "xhr"
+        failure = None
+
+        def all_headers(self):
+            return dict(self.headers)
+
+    request = Request()
+
+    class HarResponse:
+        status = 201
+        status_text = "Created"
+        headers = {"content-type": "application/json"}
+
+        def __init__(self):
+            self.request = request
+
+        def all_headers(self):
+            return dict(self.headers)
+
+        def body(self):
+            return b'{"saved":true}'
+
+    har_response = HarResponse()
+
+    class BridgeResponse:
+        status_code = 201
+        headers = {
+            "content-type": "application/json",
+            "content-length": "14",
+            "set-cookie": (
+                "PHPSESSID=private; Path=/\r\n"
+                "mage-messages=product%20added; Path=/"
+            ),
+        }
+        content = b'{"saved":true}'
+        url = request.url
+        cookies = []
+
+    class BridgeSession:
+        trust_env = True
+        cookies = []
+
+        def request(self, **kwargs):
+            assert kwargs == {
+                "method": "POST",
+                "url": request.url,
+                "headers": {"content-type": "application/json"},
+                "data": b'{"enabled":true}',
+                "allow_redirects": False,
+                "timeout": 60,
+            }
+            return BridgeResponse()
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.playwright_tool.requests.Session", BridgeSession
+    )
+    context = Context()
+    tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
+    tool._context = context
+    tool._page = page
+    tool.request_bridge_stats = {"requests": 0, "failures": 0}
+    tool._install_request_bridge({"http://private.example.test"})
+    context.capture(
+        {},
+        {
+            "requestId": "capture-1",
+            "method": "POST",
+            "url": request.url,
+            "body": {"kind": "text", "text": '{"enabled":true}'},
+        },
+    )
+    recorder = CdpHarRecorder(
+        capture_transport="playwright",
+        playwright_request_transform=tool.transform_playwright_har_request,
+    )
+    recorder.start(context)
+
+    class Route:
+        def __init__(self):
+            self.request = request
+
+        def fulfill(self, **kwargs):
+            assert kwargs == {
+                "status": 201,
+                "headers": {"content-type": "application/json"},
+                "body": b'{"saved":true}',
+            }
+            page.handlers["request"](request)
+            page.handlers["response"](har_response)
+            page.handlers["requestfinished"](request)
+
+    assert context.selector(request.url) is True
+    context.route_handler(Route())
+    path = tmp_path / "bridged.har"
+    recorder.stop(context, path)
+
+    entries = json.loads(path.read_text())["log"]["entries"]
+    assert len(entries) == 1
+    assert entries[0]["request"]["postData"]["text"] == '{"enabled":true}'
+    assert all(
+        header["name"].lower() != "x-browser-eval-request-body-id"
+        for header in entries[0]["request"]["headers"]
+    )
+    assert entries[0]["response"]["status"] == 201
+    assert entries[0]["response"]["content"]["text"] == '{"saved":true}'
+    assert entries[0]["response"]["cookies"] == [
+        {"name": "mage-messages", "value": "product%20added"}
+    ]
+    assert "private" not in json.dumps(entries[0]["response"])
+    assert tool.request_bridge_stats == {"requests": 1, "failures": 0}
+    assert recorder.errors == []
+
+
+def test_native_form_har_restores_real_redirect_and_safe_cookie(tmp_path) -> None:
+    class Request:
+        method = "POST"
+        url = "http://shop.test/wishlist/index/add/"
+        headers = {
+            "content-type": "application/x-www-form-urlencoded",
+            "x-browser-eval-request-body-id": "native-1",
+        }
+        post_data = None
+
+        def all_headers(self):
+            return dict(self.headers)
+
+    request = Request()
+
+    class Response:
+        status = 200
+        status_text = "OK"
+        headers = {"x-browser-eval-native-form-location": "http://shop.test/wishlist/"}
+
+        def all_headers(self):
+            return dict(self.headers)
+
+        def body(self):
+            return b""
+
+    response = Response()
+    response.request = request
+
+    def transform(method, url, headers):
+        assert (method, url) == (request.method, request.url)
+        assert headers["x-browser-eval-request-body-id"] == "native-1"
+        return (
+            {"content-type": "application/x-www-form-urlencoded"},
+            "product=42",
+            {
+                "status": 302,
+                "statusText": "Found",
+                "headers": {"location": "/wishlist/"},
+                "extra_headers": {
+                    "set-cookie": (
+                        "PHPSESSID=private; Path=/\r\n"
+                        "mage-messages=product%20added; Path=/"
+                    )
+                },
+            },
+        )
+
+    recorder = CdpHarRecorder(
+        capture_transport="playwright",
+        capture_new_pages=False,
+        playwright_request_transform=transform,
+    )
+    key = id(request)
+    recorder._playwright_requests[key] = {
+        "method": request.method,
+        "url": request.url,
+        "headers": dict(request.headers),
+        "postData": None,
+        "__resource_type": "Fetch",
+    }
+    recorder._playwright_request_objects[key] = request
+    recorder._playwright_request_order.append(key)
+    recorder._playwright_responses[key] = (
+        response,
+        {
+            "status": response.status,
+            "statusText": response.status_text,
+            "headers": dict(response.headers),
+            "mimeType": "",
+        },
+    )
+
+    path = tmp_path / "native-form.har"
+    recorder.stop(object(), path)
+    entry = json.loads(path.read_text())["log"]["entries"][0]
+
+    assert entry["request"]["postData"]["text"] == "product=42"
+    assert entry["response"]["status"] == 302
+    assert entry["response"]["statusText"] == "Found"
+    assert entry["response"]["redirectURL"] == "/wishlist/"
+    assert entry["response"]["cookies"] == [
+        {"name": "mage-messages", "value": "product%20added"}
+    ]
+    serialized = json.dumps(entry)
+    assert "x-browser-eval-native-form-location" not in serialized
+    assert "PHPSESSID" not in serialized
+
+
+def test_request_bridge_preserves_redirect_and_browser_generated_get(
+    tmp_path, monkeypatch
+) -> None:
+    class EventSource:
+        def __init__(self):
+            self.handlers = {}
+
+        def on(self, event, callback):
+            self.handlers[event] = callback
+
+        def remove_listener(self, *_args):
+            pass
+
+    page = EventSource()
+
+    class Context(EventSource):
+        pages = [page]
+
+        def expose_binding(self, _name, _callback):
+            pass
+
+        def add_init_script(self, _script):
+            pass
+
+        def route(self, selector, handler):
+            self.selector = selector
+            self.route_handler = handler
+
+    class Request:
+        headers = {}
+        post_data = None
+        post_data_buffer = None
+        resource_type = "document"
+        failure = None
+
+        def __init__(self, method, url):
+            self.method = method
+            self.url = url
+
+        def all_headers(self):
+            return {}
+
+    first_request = Request("POST", "http://private.example.test/start")
+    second_request = Request("GET", "http://private.example.test/target")
+
+    class BridgeResponse:
+        cookies = []
+
+        def __init__(self, request):
+            self.url = request.url
+            if request is first_request:
+                self.status_code = 302
+                self.headers = {"location": "/target", "content-length": "0"}
+                self.content = b""
+            else:
+                self.status_code = 200
+                self.headers = {"content-type": "text/html"}
+                self.content = b"<title>Target</title>"
+
+    class BridgeSession:
+        trust_env = True
+
+        def request(self, **kwargs):
+            assert kwargs["allow_redirects"] is False
+            request = first_request if kwargs["url"].endswith("/start") else second_request
+            return BridgeResponse(request)
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(
+        "harness.trajectory_replay.playwright_tool.requests.Session", BridgeSession
+    )
+    context = Context()
+    tool = PlaywrightReplayTool.__new__(PlaywrightReplayTool)
+    tool._context = context
+    tool._page = page
+    tool.request_bridge_stats = {"requests": 0, "failures": 0}
+    tool._install_request_bridge({"http://private.example.test"})
+    recorder = CdpHarRecorder(capture_transport="playwright")
+    recorder.start(context)
+
+    class HarResponse:
+        status_text = ""
+
+        def __init__(self, request, status, headers, body):
+            self.request = request
+            self.status = status
+            self.headers = headers
+            self._body = body
+
+        def all_headers(self):
+            return dict(self.headers)
+
+        def body(self):
+            return self._body
+
+    fulfilled = []
+
+    class Route:
+        def __init__(self, request):
+            self.request = request
+
+        def fulfill(self, **kwargs):
+            fulfilled.append(kwargs)
+            page.handlers["request"](self.request)
+            page.handlers["response"](
+                HarResponse(
+                    self.request,
+                    kwargs["status"],
+                    kwargs["headers"],
+                    kwargs["body"],
+                )
+            )
+            page.handlers["requestfinished"](self.request)
+
+    context.route_handler(Route(first_request))
+    context.route_handler(Route(second_request))
+    path = tmp_path / "redirect.har"
+    recorder.stop(context, path)
+
+    entries = json.loads(path.read_text())["log"]["entries"]
+    assert [(row["request"]["method"], row["request"]["url"]) for row in entries] == [
+        ("POST", first_request.url),
+        ("GET", second_request.url),
+    ]
+    assert [row["response"]["status"] for row in entries] == [302, 200]
+    assert fulfilled[0]["headers"]["location"] == "/target"
+    assert tool.request_bridge_stats == {"requests": 2, "failures": 0}
+
+
+def test_playwright_transport_records_mutation_and_json_body_without_cdp_session(
+    tmp_path,
+) -> None:
+    class EventSource:
+        def __init__(self):
+            self.handlers = {}
+            self.removed = []
+
+        def on(self, event, callback):
+            self.handlers[event] = callback
+
+        def remove_listener(self, event, callback):
+            assert self.handlers[event] == callback
+            self.removed.append(event)
+
+    page = EventSource()
+
+    class Context(EventSource):
+        pages = [page]
+
+        def new_cdp_session(self, _page):
+            raise AssertionError("Playwright capture must not attach a second CDP session")
+
+    class Request:
+        method = "POST"
+        url = "http://example.test/save"
+        headers = {"content-type": "application/json"}
+        post_data = '{"enabled":true}'
+        resource_type = "xhr"
+        failure = None
+
+        def all_headers(self):
+            return dict(self.headers)
+
+    class Response:
+        request = Request()
+        status = 200
+        status_text = "OK"
+        headers = {"content-type": "application/json; charset=utf-8"}
+
+        def all_headers(self):
+            return dict(self.headers)
+
+        def body(self):
+            return b'{"saved":true}'
+
+    context = Context()
+    recorder = CdpHarRecorder(capture_transport="playwright")
+    recorder.start(context)
+    response = Response()
+    page.handlers["request"](response.request)
+    page.handlers["response"](response)
+    page.handlers["requestfinished"](response.request)
+    path = tmp_path / "playwright.har"
+    recorder.stop(context, path)
+
+    entries = json.loads(path.read_text())["log"]["entries"]
+    assert entries == [
+        {
+            "request": {
+                "method": "POST",
+                "url": "http://example.test/save",
+                "headers": [
+                    {"name": "content-type", "value": "application/json"}
+                ],
+                "cookies": [],
+                "postData": {
+                    "mimeType": "application/json",
+                    "text": '{"enabled":true}',
+                },
+            },
+            "response": {
+                "status": 200,
+                "statusText": "OK",
+                "headers": [
+                    {
+                        "name": "content-type",
+                        "value": "application/json; charset=utf-8",
+                    }
+                ],
+                "cookies": [],
+                "redirectURL": "",
+                "content": {
+                    "mimeType": "application/json",
+                    "text": '{"saved":true}',
+                },
+            },
+        }
+    ]
+    assert recorder.errors == []
+    assert context.removed == ["page"]
+    assert set(page.removed) == {
+        "request",
+        "response",
+        "requestfinished",
+        "requestfailed",
+    }
+
+
+def test_playwright_transport_keeps_failed_request_as_status_zero(tmp_path) -> None:
+    class EventSource:
+        def __init__(self):
+            self.handlers = {}
+
+        def on(self, event, callback):
+            self.handlers[event] = callback
+
+        def remove_listener(self, *_args):
+            pass
+
+    page = EventSource()
+
+    class Context(EventSource):
+        pages = [page]
+
+    class Request:
+        method = "GET"
+        url = "http://example.test/unavailable"
+        headers = {}
+        post_data = None
+        resource_type = "document"
+        failure = "net::ERR_CONNECTION_REFUSED"
+
+        def all_headers(self):
+            return {}
+
+    context = Context()
+    recorder = CdpHarRecorder(capture_transport="playwright")
+    recorder.start(context)
+    request = Request()
+    page.handlers["request"](request)
+    page.handlers["requestfailed"](request)
+    path = tmp_path / "failed.har"
+    recorder.stop(context, path)
+
+    entry = json.loads(path.read_text())["log"]["entries"][0]
+    assert entry["response"]["status"] == 0
+    assert entry["_capture"] == {
+        "state": "failed",
+        "errorText": "net::ERR_CONNECTION_REFUSED",
+    }
+
+
+def test_navigation_response_fills_a_missing_cdp_document_event(tmp_path) -> None:
+    class Context:
+        pages = []
+
+        def on(self, *_args):
+            pass
+
+        def remove_listener(self, *_args):
+            pass
+
+    class Request:
+        method = "GET"
+        url = "http://map.example.test/"
+        headers = {"accept": "text/html"}
+        post_data = None
+
+    class Response:
+        request = Request()
+        status = 200
+        status_text = "OK"
+        headers = {"content-type": "text/html; charset=utf-8"}
+
+    context = Context()
+    recorder = CdpHarRecorder()
+    recorder.start(context)
+    recorder.record_navigation_response(Response())
+    path = tmp_path / "navigation.har"
+    recorder.stop(context, path)
+
+    entries = json.loads(path.read_text())["log"]["entries"]
+    assert entries == [
+        {
+            "request": {
+                "method": "GET",
+                "url": "http://map.example.test/",
+                "headers": [{"name": "accept", "value": "text/html"}],
+                "cookies": [],
+            },
+            "response": {
+                "status": 200,
+                "statusText": "OK",
+                "headers": [
+                    {"name": "content-type", "value": "text/html; charset=utf-8"}
+                ],
+                "cookies": [],
+                "redirectURL": "",
+                "content": {"mimeType": "text/html", "text": ""},
+            },
+            "_capture": {"state": "playwright-navigation-response"},
+        }
+    ]
 
 
 def test_capture_explicitly_retains_navigation_json_with_finite_limits(tmp_path) -> None:
@@ -95,6 +665,24 @@ def test_har_preserves_multipart_post_data_and_json_response() -> None:
     assert request["postData"]["mimeType"] == "multipart/form-data; boundary=test"
     assert 'name="choice"' in request["postData"]["text"]
     assert response["content"]["text"] == '{"items_qty":1}'
+
+
+def test_har_preserves_only_evaluator_safe_response_cookie_from_extra_info() -> None:
+    response = _har_response(
+        {"status": 302, "headers": {"Location": "/wishlist"}},
+        None,
+        {
+            "Set-Cookie": (
+                "PHPSESSID=secret; Path=/\r\n"
+                "mage-messages=product%20added; Path=/"
+            )
+        },
+    )
+
+    assert response["cookies"] == [
+        {"name": "mage-messages", "value": "product%20added"}
+    ]
+    assert "secret" not in json.dumps(response)
 
 
 def test_json_mime_matching_uses_case_insensitive_essence() -> None:

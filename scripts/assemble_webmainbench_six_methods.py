@@ -24,11 +24,14 @@ def require_unique_attempt_ids(rows: list[dict], label: str) -> None:
         raise ValueError(f"{label} attempt identity is not unique")
 
 
-def assemble(baseline: Path, candidate: Path, output: Path, scorer: Path) -> None:
+def assemble(baseline: Path, candidate: Path, output: Path, scorer: Path,
+             fixed_profile_path: Path | None = None) -> None:
     if output.exists():
         raise ValueError("Composite evidence is immutable")
     base_profile_path = ROOT / "evaluation/webmainbench-full/current-report.json"
-    fixed_profile_path = ROOT / "evaluation/webmainbench-full/moli-fixed-report.json"
+    fixed_profile_path = fixed_profile_path or (
+        ROOT / "evaluation/webmainbench-full/moli-pr785-fixed-report.json"
+    )
     base_profile = json.loads(base_profile_path.read_text())
     fixed_profile = json.loads(fixed_profile_path.read_text())
     base_cert = json.loads((baseline / "cohort-certificate.json").read_text())
@@ -130,8 +133,20 @@ def main() -> None:
     parser.add_argument("--candidate", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--scorer", required=True, type=Path)
+    parser.add_argument(
+        "--fixed-profile",
+        type=Path,
+        default=ROOT / "evaluation/webmainbench-full/moli-pr785-fixed-report.json",
+        help="Profile that certified the candidate cohort",
+    )
     args = parser.parse_args()
-    assemble(args.baseline, args.candidate, args.output, args.scorer)
+    assemble(
+        args.baseline,
+        args.candidate,
+        args.output,
+        args.scorer,
+        args.fixed_profile,
+    )
 
 
 if __name__ == "__main__":

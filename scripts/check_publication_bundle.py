@@ -69,6 +69,20 @@ def check(archive,source):
                     raise ValueError('Published scoring correction evidence missing: ' + name)
                 if data(name) != (source / name).read_bytes() and name not in privacy_by_path:
                     raise ValueError('Undisclosed scoring correction evidence projection: ' + name)
+        if (source / 'scoring-correction.json').is_file():
+            bound_files = [
+                'scoring-correction.json',
+            ]
+            bound_files += [
+                path.relative_to(source).as_posix()
+                for path in sorted((source / 'scoring-correction-source').rglob('*'))
+                if path.is_file()
+            ]
+            for name in bound_files:
+                if name not in manifest['files']:
+                    raise ValueError('Published shared-population correction evidence missing: ' + name)
+                if data(name) != (source / name).read_bytes() and name not in privacy_by_path:
+                    raise ValueError('Undisclosed shared-population correction projection: ' + name)
         projected_scored=0
         for row in rows:
             raw=data(row['artifact_path'])

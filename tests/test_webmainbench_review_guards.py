@@ -6,11 +6,164 @@ import unittest
 from unittest.mock import patch
 
 from scripts.check_webmainbench_report import check_teds_warnings
+from scripts.correct_webmainbench_references import copy_contained_artifact
+from scripts.correct_webmainbench_scoring import copy_correction_sources
+from scripts.correct_webmainbench_teds import original_official_metrics
 from scripts.review_webmainbench_teds_correction import review
-from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision, validate_teds_revision_if_present
+from harness.web_fetch.webmainbench_diagnostics import (
+    validate_reference_revision,
+    validate_webmainbench_scoring_revision,
+    validate_teds_revision,
+    validate_teds_revision_if_present,
+)
 
 
 class WebMainBenchReviewGuardsTests(unittest.TestCase):
+    def test_stacked_teds_correction_preserves_first_official_scores(self):
+        original = {'table_TEDS': {'score': 0.9}}
+        current = {'table_TEDS': {'score': 0.2}}
+        self.assertEqual(
+            original_official_metrics({'metrics': current, 'official_metrics': original}),
+            original,
+        )
+        self.assertEqual(original_official_metrics({'metrics': current}), current)
+
+    def test_scoring_correction_source_copy_rejects_root_escape(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source, output = root / 'source', root / 'output'
+            source.mkdir()
+            output.mkdir()
+            manifest = source / 'corrections.json'
+            manifest.write_text('{}')
+            (source / 'replacement.md').write_text('corrected reference')
+            copy_correction_sources(
+                {'case': {'replacement_file': 'replacement.md'}}, manifest, output
+            )
+            self.assertEqual((output / 'replacement.md').read_text(), 'corrected reference')
+            with self.assertRaises(ValueError):
+                copy_correction_sources(
+                    {'case': {'replacement_file': '../replacement.md'}}, manifest, output
+                )
+
+    def test_scoring_revision_keeps_provider_evidence_and_official_metrics(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            providers = [f'method-{index}' for index in range(7)]
+            before, after = [], []
+            for provider in providers:
+                for index in range(545):
+                    metrics = {
+                        name: {'score': 0.5, 'success': index < limit, 'details': {}}
+                        for name, limit in {
+                            'text_edit': 545, 'code_edit': 110, 'formula_edit': 257,
+                            'table_edit': 179, 'table_TEDS': 179,
+                        }.items()
+                    }
+                    original = {
+                        'attempt_id': f'{provider}:{index}', 'provider': provider,
+                        'case_id': str(index), 'output_sha256': 'fixed-output',
+                        'metrics': {'legacy': {'score': 0.1}},
+                        'official_metrics': {'legacy': {'score': 0.05}},
+                        'reference_sha256': 'old-reference', 'meta': {},
+                    }
+                    before.append(original)
+                    after.append({
+                        **original, 'metrics': metrics,
+                        'pre_scoring_correction_metrics': original['metrics'],
+                        'reference_sha256': 'corrected-reference',
+                        'meta': {'code': []},
+                    })
+            before_bytes = ''.join(json.dumps(row) + '\n' for row in before).encode()
+            after_bytes = ''.join(json.dumps(row) + '\n' for row in after).encode()
+            before_dataset, after_dataset = b'{"stage":"before"}\n', b'{"stage":"after"}\n'
+            (root / 'pre-scoring-correction-results.jsonl').write_bytes(before_bytes)
+            (root / 'results.jsonl').write_bytes(after_bytes)
+            (root / 'pre-scoring-correction-dataset.json').write_bytes(before_dataset)
+            (root / 'dataset.json').write_bytes(after_dataset)
+            receipt = {
+                'schema_version': 1,
+                'kind': 'webmainbench_shared_population_scoring_correction',
+                'provider_calls': 0, 'logical_results': len(after), 'providers': providers,
+                'input_results_sha256': hashlib.sha256(before_bytes).hexdigest(),
+                'output_results_sha256': hashlib.sha256(after_bytes).hexdigest(),
+                'input_dataset_sha256': hashlib.sha256(before_dataset).hexdigest(),
+                'output_dataset_sha256': hashlib.sha256(after_dataset).hexdigest(),
+            }
+            (root / 'scoring-correction.json').write_text(json.dumps(receipt))
+            validate_webmainbench_scoring_revision(root)
+            after[0]['official_metrics'] = {'changed': True}
+            after_bytes = ''.join(json.dumps(row) + '\n' for row in after).encode()
+            (root / 'results.jsonl').write_bytes(after_bytes)
+            receipt['output_results_sha256'] = hashlib.sha256(after_bytes).hexdigest()
+            (root / 'scoring-correction.json').write_text(json.dumps(receipt))
+            with self.assertRaisesRegex(ValueError, 'changed provider evidence'):
+                validate_webmainbench_scoring_revision(root)
+
+    def test_reference_revision_copy_rejects_source_and_destination_escape(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source, output = root / 'source', root / 'output'
+            source.mkdir()
+            output.mkdir()
+            (source / 'replacement.md').write_text('corrected reference')
+            copied = copy_contained_artifact(
+                source, 'replacement.md', output, 'nested/replacement.md'
+            )
+            self.assertEqual(copied.read_text(), 'corrected reference')
+            for source_name, output_name in [
+                ('../replacement.md', 'replacement.md'),
+                ('replacement.md', '../replacement.md'),
+            ]:
+                with self.subTest(source=source_name, output=output_name):
+                    with self.assertRaises(ValueError):
+                        copy_contained_artifact(
+                            source, source_name, output, output_name
+                        )
+
+    def test_reference_revision_changes_only_declared_reference_and_metrics(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            before = {
+                'attempt_id': 'method:case', 'case_id': 'case', 'provider': 'method',
+                'reference_sha256': 'old', 'output_sha256': 'output',
+                'artifact_path': 'responses/method/case.md', 'metrics': {'text_edit': {'score': 0.2}},
+            }
+            after = {
+                **before, 'reference_sha256': 'new', 'metrics': {'text_edit': {'score': 0.8}},
+                'pre_reference_correction_metrics': before['metrics'],
+            }
+            prior_results = (json.dumps(before) + '\n').encode()
+            current_results = (json.dumps(after) + '\n').encode()
+            prior_dataset = b'{"cases":[{"id":"case"}]}\n'
+            current_dataset = b'{"cases":[{"id":"case","reference_sha256":"new"}]}\n'
+            (root / 'pre-reference-correction-results.jsonl').write_bytes(prior_results)
+            (root / 'results.jsonl').write_bytes(current_results)
+            (root / 'pre-reference-correction-dataset.json').write_bytes(prior_dataset)
+            (root / 'dataset.json').write_bytes(current_dataset)
+            receipt = {
+                'schema_version': 1, 'kind': 'webmainbench_reference_correction_v1',
+                'provider_calls': 0, 'logical_results': 1, 'affected_logical_results': 1,
+                'input_results_sha256': hashlib.sha256(prior_results).hexdigest(),
+                'output_results_sha256': hashlib.sha256(current_results).hexdigest(),
+                'prior_evidence_dataset_sha256': hashlib.sha256(prior_dataset).hexdigest(),
+                'output_evidence_dataset_sha256': hashlib.sha256(current_dataset).hexdigest(),
+                'corrections': [{
+                    'track_id': 'case', 'original_reference_sha256': 'old',
+                    'replacement_reference_sha256': 'new',
+                }],
+            }
+            (root / 'reference-correction.json').write_text(json.dumps(receipt))
+            validate_reference_revision(root)
+            after['output_sha256'] = 'changed-provider-output'
+            (root / 'results.jsonl').write_text(json.dumps(after) + '\n')
+            receipt['output_results_sha256'] = hashlib.sha256(
+                (root / 'results.jsonl').read_bytes()
+            ).hexdigest()
+            (root / 'reference-correction.json').write_text(json.dumps(receipt))
+            with self.assertRaisesRegex(ValueError, 'changed provider evidence'):
+                validate_reference_revision(root)
+
     def test_teds_review_rejects_evidence_present_on_one_side_only(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

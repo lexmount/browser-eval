@@ -11,7 +11,7 @@ dependencies = [
 browser-harness-eval = "harness.web_fetch.cli:main"
 
 [tool.uv.sources]
-webarena-verified = { git = "https://github.com/lexmount/webarena-verified.git", rev = "7d060ec92b611d66b48d667acb9d92c35cfbdbda" }
+webarena-verified = { git = "https://github.com/lexmount/webarena-verified.git", rev = "da7b992eb10de78000f11a7f34fd4590c171fbd6" }
 
 [project.optional-dependencies]
 headless-eval = [
@@ -28,6 +28,7 @@ webmainbench-eval = [
   "apted==1.0.3",
   "beautifulsoup4==4.14.2",
   "jieba==0.42.1",
+  "markdown>=3.7,<4",
   "openai>=2.8,<4",
   "python-dotenv==1.1.1",
   "rapidfuzz==3.14.1",

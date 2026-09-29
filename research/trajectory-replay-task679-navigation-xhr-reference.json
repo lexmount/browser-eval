@@ -1,0 +1,11 @@
+{
+  "schema": "trajectory_replay_navigation_xhr_reference/1",
+  "task_id": 679,
+  "expected_event_kind": "XHR after the sales order page navigation",
+  "expected_filter_status": "complete",
+  "official_navigation_only": true,
+  "corrected_navigation_only": false,
+  "observed_har_sha256": "50bb8137b07185bbf4e3a6e631922ca6a5429b44af7e1487bace24b6f8295f1f",
+  "observed_request_contains": "filters%5Bstatus%5D=complete",
+  "finding": "The official contract expects the Magento grid XHR but navigation_only selects only the preceding HTML document navigation."
+}

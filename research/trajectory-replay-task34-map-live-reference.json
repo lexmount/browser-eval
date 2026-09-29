@@ -1,0 +1,62 @@
+{
+  "schema": "trajectory_replay_map_live_reference/1",
+  "task_id": 34,
+  "task_intent": "I will arrive at Pittsburgh Airport soon. Find a Hyatt hotel in the vicinity, if available, and get me its name and the shortest walking time to a supermarket from the hotel. Return a list of objects with keys \"hotel_name\" (hotel name only) and \"travel_time\" (in HH:MM:SS format) only, without any additional details. (Use the OSRM direction service.)",
+  "source_sweep": "map-live-sweep-v127",
+  "browser_call_count": 1,
+  "source_evidence_sha256": {
+    "network_har": "e828beef584f7890cf55813769ad46abee710df23a0d420b04c1a07b5a9c43f0",
+    "actual_response": "cee0743d0cfd866012b67f68b1d51dc820ae583f4aaeee6b4044d0c551455afa",
+    "evaluation": "4afd243ec2342b705d61a78d5cb5e819e3433dc054185ac857d256d1a87546b4",
+    "trace": "d8bd779f79276754d319bdd66aee148eb4ff4c85827fc974e24558d846d61368",
+    "readiness": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "outputs": "125f9ccf1d7a30236225c92777288a10d0d750d4255a950f1d057d534018ef2a"
+  },
+  "observed_response": {
+    "task_type": "retrieve",
+    "status": "SUCCESS",
+    "retrieved_data": [
+      {
+        "hotel_name": "Hyatt Regency Pittsburgh International Airport",
+        "travel_time": "9892.3s"
+      }
+    ]
+  },
+  "contract_values": [
+    {
+      "path": "/eval/0/results_schema/items/properties",
+      "official": {
+        "hotel": {
+          "type": "string",
+          "format": "location-name"
+        },
+        "information": {
+          "type": "string",
+          "format": "duration"
+        }
+      },
+      "corrected": {
+        "hotel_name": {
+          "type": "string",
+          "format": "location-name"
+        },
+        "travel_time": {
+          "type": "string",
+          "format": "duration"
+        }
+      }
+    },
+    {
+      "path": "/eval/0/expected/retrieved_data/0/travel_time",
+      "official": "3h 30min",
+      "corrected": "9892.3s"
+    }
+  ],
+  "derivation": {
+    "kind": "bounded_nominatim_osrm/1"
+  },
+  "regression_ids": [
+    "tr-34-accept-live-map-reference",
+    "tr-34-reject-nearby-wrong-map-reference"
+  ]
+}

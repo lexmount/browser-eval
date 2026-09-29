@@ -37,6 +37,9 @@ SUPPORTED_ACTIONS = frozenset(
         "back",
         "forward",
         "scroll",
+        "evaluate",
+        "wait_for_url",
+        "wait",
     }
 )
 
@@ -146,6 +149,44 @@ def _validate_step(task_id: str, index: int, step: Any) -> dict[str, Any]:
         ("http://", "https://", "{fixture_origin}/")
     ):
         raise ValueError(f"{task_id}: navigate step {index} requires an HTTP(S) URL")
+    if "new_page" in step and (
+        action != "navigate" or type(step["new_page"]) is not bool
+    ):
+        raise ValueError(
+            f"{task_id}: new_page is only valid as a boolean on navigate steps"
+        )
+    if action == "navigate" and step.get("new_page") and "tab_index" in step:
+        raise ValueError(
+            f"{task_id}: navigate step {index} cannot combine new_page with tab_index"
+        )
+    if action == "evaluate" and not str(step.get("script") or "").strip():
+        raise ValueError(f"{task_id}: evaluate call {index} requires a non-empty script")
+    if action == "wait_for_url" and not str(step.get("url") or "").strip():
+        raise ValueError(f"{task_id}: wait_for_url call {index} requires a URL pattern")
+    if action == "wait":
+        selector = step.get("selector")
+        milliseconds = step.get("timeout")
+        seconds = step.get("seconds")
+        if selector is not None:
+            if not isinstance(selector, str) or not selector.strip() or seconds is not None:
+                raise ValueError(f"{task_id}: wait call {index} has an invalid selector wait")
+            if step.get("wait_state", "visible") not in {
+                "attached",
+                "detached",
+                "visible",
+                "hidden",
+            }:
+                raise ValueError(f"{task_id}: wait call {index} has an invalid wait state")
+            if milliseconds is not None and (
+                type(milliseconds) not in {int, float} or milliseconds <= 0
+            ):
+                raise ValueError(f"{task_id}: wait call {index} requires a positive timeout")
+        else:
+            if (milliseconds is None) == (seconds is None):
+                raise ValueError(f"{task_id}: wait call {index} requires exactly one duration")
+            duration = milliseconds if milliseconds is not None else seconds
+            if type(duration) not in {int, float} or duration <= 0:
+                raise ValueError(f"{task_id}: wait call {index} requires a positive duration")
     try:
         validate_selector(step)
     except ValueError as exc:

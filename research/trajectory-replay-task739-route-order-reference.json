@@ -1,0 +1,16 @@
+{
+  "schema": "trajectory_replay_route_event_reference/1",
+  "task_id": 739,
+  "task_intent": "View the route on the map from Carnegie Mellon University to the home stadium of Yankees in the 80s. (Use the OSRM direction service and the provided wiki to look up any needed information and search both source and destination by coordinates from the place official page on the wiki.)",
+  "official_expected_url": "^.*/route/v1/.*/-73.9265212,40.8295828;-79.9427192,40.4441897.*$",
+  "corrected_expected_url": "^.*/route/v1/.*/-79.9427192,40.4441897;-73.9265212,40.8295828.*$",
+  "observed_correct_direction_request": "http://grfdfd7b-8080-ye7izl3p.dev.lexmount.net/osrm/routed-car/route/v1/driving/-79.9427192,40.4441897;-73.9265212,40.8295828?overview=false&geometries=polyline&steps=true",
+  "observed_har_sha256": "77e7a1d6f5db3017125c4b6c29909186266108889ac38a75e134c347d38d6d74",
+  "finding": "The official evaluator selects only the HTML navigation even though its expected URL describes the later OSRM route XHR, and its coordinate pairs reverse the task’s origin and destination.",
+  "official_navigation_only": true,
+  "corrected_navigation_only": false,
+  "observed_event_sequence": [
+    "GET /directions (HTML navigation)",
+    "GET /osrm/routed-car/route/v1/driving/{origin};{destination} (route XHR, HTTP 200)"
+  ]
+}

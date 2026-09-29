@@ -18,6 +18,32 @@ from urllib.request import urlopen
 OBJECT_PATH = re.compile(r"^/(node|way|relation)/([1-9][0-9]{0,18})/?$")
 TYPE_CODE = {"node": "N", "way": "W", "relation": "R"}
 NOMINATIM = "http://127.0.0.1:8085"
+# Nominatim deliberately omits many route relations.  This exact object is
+# frozen from Wikidata Q1132510 revision 2489023584, whose P402 value is
+# relation 5475586 and whose P625 coordinate is the value below.  The source
+# entity JSON has SHA-256 479e2cf83fe867b87eb875ddc5916af2feae1664fae45426f391a2ffd7df7185.
+FROZEN_OBJECTS = {
+    ("relation", "5475586"): {
+        "osm_type": "relation",
+        "osm_id": 5475586,
+        "display_name": (
+            "Lake Pontchartrain Causeway, Louisiana, United States"
+        ),
+        "class": "man_made",
+        "type": "bridge",
+        "lat": "30.199722222222",
+        "lon": "-90.122777777778",
+        "address": {"state": "Louisiana", "country": "United States"},
+        "extratags": {
+            "description": (
+                "set of two parallel bridges over Lake Pontchartrain in "
+                "southern Louisiana, United States"
+            ),
+            "length": "38.442 km",
+            "wikidata": "Q1132510",
+        },
+    }
+}
 STYLE = """
 .map-detail {font:14px/1.45 system-ui,sans-serif;color:#263238;min-width:0}
 .map-detail h1 {font-size:1.45rem;margin:0 0 8px;overflow-wrap:anywhere}
@@ -36,6 +62,9 @@ STYLE = """
 
 
 def lookup(kind: str, identifier: str) -> dict | None:
+    frozen = FROZEN_OBJECTS.get((kind, identifier))
+    if frozen is not None:
+        return frozen
     query = urlencode({"osm_ids": TYPE_CODE[kind] + identifier,
                        "format": "json", "addressdetails": 1, "extratags": 1})
     with urlopen(f"{NOMINATIM}/lookup?{query}", timeout=10) as response:

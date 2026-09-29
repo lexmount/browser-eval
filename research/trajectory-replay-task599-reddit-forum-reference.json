@@ -1,0 +1,16 @@
+{
+  "schema": "trajectory_replay_reddit_forum_reference/1",
+  "task_id": 599,
+  "captured_at": "2026-09-23T00:00:00+08:00",
+  "site": "reddit",
+  "observation": {
+    "search_url": "__REDDIT__/search?q=machine+learning",
+    "search_response_sha256": "20e9b0638f457ea208039d424f44c1f3d1bc06266b5b11c94d1190e0f0ca016f",
+    "matched_forum_href": "/f/MachineLearning",
+    "newest_url": "__REDDIT__/f/MachineLearning/new",
+    "newest_response_sha256": "d84e9d97417aaaeb6bcc9766692f28ae5015ccbac750b49bf21e90ca8b5e6b29",
+    "canonical_forum_href": "/f/MachineLearning",
+    "newest_post_href": "/f/MachineLearning/120613/d-yan-lecun-s-recent-recommendations"
+  },
+  "finding": "The deployed forum slug is case-sensitive MachineLearning. The official contract uses the nonexistent path machine learning while retaining the post ID and slug from the MachineLearning forum."
+}

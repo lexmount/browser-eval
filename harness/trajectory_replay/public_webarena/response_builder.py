@@ -250,8 +250,74 @@ def build_agent_response(task: BrowserTask, outputs: dict[str, str]) -> dict[str
             raise ValueError("observed_not_found requires a non-empty evidence_regex")
         if re.search(evidence_regex, outputs[output_name], flags=re.IGNORECASE) is None:
             raise ValueError("observed_not_found evidence regex did not match observed output")
+        forbidden_regex = config.get("forbidden_regex")
+        if forbidden_regex is not None:
+            if not isinstance(forbidden_regex, str) or not forbidden_regex:
+                raise ValueError("observed_not_found forbidden_regex must be non-empty")
+            if re.search(forbidden_regex, outputs[output_name], flags=re.IGNORECASE):
+                raise ValueError("observed_not_found forbidden evidence was present")
         retrieved_data = None
         response_status = "NOT_FOUND_ERROR"
+    elif kind == "observed_action_not_allowed":
+        output_name = str(config.get("output") or "")
+        if output_name not in outputs:
+            raise ValueError(f"response builder output is missing: {output_name}")
+        evidence = json.loads(outputs[output_name])
+        if not isinstance(evidence, dict):
+            raise ValueError("observed_action_not_allowed output must contain a JSON object")
+        if evidence.get("scope_complete") is not True:
+            raise ValueError("observed_action_not_allowed requires complete observed scope")
+        matches = evidence.get("matches")
+        if not isinstance(matches, list):
+            raise ValueError("observed_action_not_allowed requires an observed matches array")
+        if matches:
+            raise ValueError("observed_action_not_allowed found an actionable match")
+        retrieved_data = None
+        response_status = "ACTION_NOT_ALLOWED_ERROR"
+    elif kind == "observed_action_blocked":
+        output_name = str(config.get("output") or "")
+        if output_name not in outputs:
+            raise ValueError(f"response builder output is missing: {output_name}")
+        evidence = json.loads(outputs[output_name])
+        if not isinstance(evidence, dict):
+            raise ValueError("observed_action_blocked output must contain a JSON object")
+        if evidence.get("scope_complete") is not True:
+            raise ValueError("observed_action_blocked requires complete observed scope")
+        if evidence.get("allowed") is not False:
+            raise ValueError("observed_action_blocked requires an explicit blocked result")
+        blockers = evidence.get("blockers")
+        if not isinstance(blockers, list) or not blockers:
+            raise ValueError("observed_action_blocked requires observed blockers")
+        retrieved_data = None
+        response_status = "ACTION_NOT_ALLOWED_ERROR"
+    elif kind == "observed_permission_denied":
+        output_name = str(config.get("output") or "")
+        if output_name not in outputs:
+            raise ValueError(f"response builder output is missing: {output_name}")
+        evidence = json.loads(outputs[output_name])
+        if not isinstance(evidence, dict):
+            raise ValueError("observed_permission_denied output must contain a JSON object")
+        if evidence.get("scope_complete") is not True:
+            raise ValueError("observed_permission_denied requires complete observed scope")
+        if evidence.get("allowed") is not False:
+            raise ValueError("observed_permission_denied requires an explicit denied result")
+        access_levels = evidence.get("access_levels")
+        if not isinstance(access_levels, list) or not access_levels:
+            raise ValueError("observed_permission_denied requires observed access levels")
+        if any(
+            level is not None and (type(level) is not int or level < 0) for level in access_levels
+        ):
+            raise ValueError(
+                "observed_permission_denied access levels must be non-negative integers or null"
+            )
+        required_access_level = evidence.get("required_access_level")
+        if type(required_access_level) is not int or required_access_level < 1:
+            raise ValueError("observed_permission_denied requires a positive required access level")
+        concrete_access_levels = [level for level in access_levels if level is not None]
+        if any(level >= required_access_level for level in concrete_access_levels):
+            raise ValueError("observed_permission_denied found sufficient access")
+        retrieved_data = None
+        response_status = "PERMISSION_DENIED_ERROR"
     else:
         raise ValueError(f"unsupported response builder kind: {kind!r}")
     return {

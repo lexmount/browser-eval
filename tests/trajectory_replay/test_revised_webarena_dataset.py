@@ -17,7 +17,13 @@ FROZEN_CORRECTIONS = CORRECTIONS.parent / "dataset-67-225-243-corrections.json"
 
 
 def test_revised_dataset_is_complete_bound_and_reproducible() -> None:
-    result = revise(BASE, FROZEN_CORRECTIONS, [67, 225, 243], SELECTION)
+    result = revise(
+        BASE,
+        FROZEN_CORRECTIONS,
+        [67, 225, 243],
+        SELECTION,
+        require_current_upstream=False,
+    )
     committed = json.loads(REVISED.read_text(encoding="utf-8"))
     original = json.loads(BASE.read_text(encoding="utf-8"))
     assert result == committed
@@ -55,7 +61,13 @@ def test_revised_dataset_is_complete_bound_and_reproducible() -> None:
 
 
 def test_unrelated_catalog_updates_preserve_frozen_task_contracts() -> None:
-    historical = revise(BASE, FROZEN_CORRECTIONS, [67, 225, 243], SELECTION)
+    historical = revise(
+        BASE,
+        FROZEN_CORRECTIONS,
+        [67, 225, 243],
+        SELECTION,
+        require_current_upstream=False,
+    )
     current = revise(BASE, CORRECTIONS, [67, 225, 243], SELECTION)
     assert current["revision"]["correction_catalog_sha256"] == hashlib.sha256(
         CORRECTIONS.read_bytes()

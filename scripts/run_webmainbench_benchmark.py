@@ -67,10 +67,14 @@ def fetch_record(provider, cloudflare, record: dict, target_url: str, timeout: f
         )
 
 
-def load_source(path: Path, selected_ids: set[str] | None = None) -> list[dict]:
+def load_source(
+    path: Path,
+    selected_ids: set[str] | None = None,
+    expected_sha256: str = DATASET_SHA256,
+) -> list[dict]:
     payload = path.read_bytes()
     actual = sha256_bytes(payload)
-    if actual != DATASET_SHA256:
+    if actual != expected_sha256:
         raise ValueError(f"Unexpected WebMainBench-545 SHA-256: {actual}")
     records = [json.loads(line) for line in payload.splitlines() if line.strip()]
     if len(records) != 545:
@@ -397,8 +401,8 @@ def run(args: argparse.Namespace) -> None:
                              "chromium": "153.0.8010.47"}
         dataset_id = sample['dataset_id']
     else:
-        records = load_source(args.dataset, selected)
-        source_digest = DATASET_SHA256
+        records = load_source(args.dataset, selected, args.expected_dataset_sha256)
+        source_digest = args.expected_dataset_sha256
         expected_versions = {**EXPECTED_VERSIONS}
         if args.expected_version:
             expected_versions[args.provider] = args.expected_version
@@ -429,7 +433,7 @@ def run(args: argparse.Namespace) -> None:
     source_manifest = {
         "dataset_id": dataset_id,
         "source_sha256": source_digest,
-        "official_scorer_commit": SCORER_COMMIT if args.benchmark == "webmainbench" else None,
+        "official_scorer_commit": args.official_scorer_commit if args.benchmark == "webmainbench" else None,
         "case_count": len(records),
         "case_ids": [record["track_id"] for record in records],
         "selection_manifest": selection_binding,
@@ -564,6 +568,16 @@ def main() -> None:
     parser.add_argument("--timeout", type=float, default=45.0)
     parser.add_argument("--max-failure-retries", type=int, choices=(0, 1), default=1)
     parser.add_argument("--expected-version", help="Exact release version required for this provider")
+    parser.add_argument(
+        "--expected-dataset-sha256",
+        default=DATASET_SHA256,
+        help="Frozen WebMainBench JSONL SHA-256 (defaults to the original public corpus)",
+    )
+    parser.add_argument(
+        "--official-scorer-commit",
+        default=SCORER_COMMIT,
+        help="Scorer commit recorded with the run; scoring is performed separately",
+    )
     parser.add_argument(
         "--preserve-original-origin", action="store_true",
         help="Serve frozen bytes through a loopback proxy while retaining each source URL",

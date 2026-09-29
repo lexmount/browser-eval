@@ -1331,6 +1331,105 @@
       }
     },
     {
+      "id": "webmainbench-545-pr919-e944d066-lexmain-f7cb97d-20260929",
+      "date": "2026-09-29",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "title": "补齐渐显正文并按最新 lexmain 重算七方法结果",
+      "summary": "Moli PR919 提交 e944d066b 修复一次性前向渐显页面的正文缺失，以固定 release 二进制完成 545 页认证运行。七方法共 3,815 条结果按 WebMainBench lexmain f7cb97d 的参考与固定公共总体重算；PR919 目标正文 545/545，综合分 39.41%。",
+      "changes": [
+        ["Moli 正文交付", "CNN 冻结页的正文以 opacity:0 开始，页面加载后由同名关键帧渐显；旧可见性快照将其误判为永久隐藏。", "仅在最终关键帧明确恢复不透明度且动画为正时长、无正延迟、单次、正向、运行中并保持终态时保留正文；零时长、循环、反向和无关关键帧继续视为隐藏。", "固定二进制 e146b853… 完成 545 页认证运行，CNN 正文恢复，PR919 目标正文为 545/545。"],
+        ["固定计分总体", "先前报告仍使用公式 113 页、表格 81 页的旧抽取总体。", "按 lexmain f7cb97d 的参考抽取结果固定为全文 545、代码 110、公式 257、表格内容与结构各 179 页；适用页面遗漏或调用失败计零。", "七种方法全部使用同一总体；3,815 条既有输出离线重算，未新增 provider 调用。"],
+        ["当前结果", "旧图和文案绑定较早的 PR919 二进制与评分器，不能说明当前提交。", "报告绑定源码 e944d066b、release 二进制 e146b853…、评分器 f7cb97d，并保留原版 Moli、PR785 与 PR919 三行。", "PR919 综合分 39.41%，全文 40.79%、代码 91.74%、公式 28.16%、表格内容 22.61%、表格结构 13.74%；综合分和代码为七方法唯一最高。"]
+      ],
+      "i18n": {"en": {
+        "title": "Restore fade-in content and rescore seven methods with current lexmain",
+        "summary": "Moli PR919 commit e944d066b fixes missing content on one-shot forward fade-in pages and completes a certified 545-page run with a pinned release binary. WebMainBench lexmain f7cb97d rescored all 3,815 results against reference-defined fixed populations; PR919 delivers 545/545 target bodies and scores 39.41% overall.",
+        "changes": [
+          ["Moli body delivery", "The frozen CNN page starts its body at opacity zero and reveals it with a named keyframe after load; the previous visibility snapshot treated it as permanently hidden.", "Retain the body only when the final keyframe explicitly restores opacity and the animation has positive duration, no positive delay, one forward running iteration, and a retained final state. Zero-duration, looping, reverse, and unrelated animations remain hidden.", "Pinned binary e146b853… completes the certified 545-page run, restores the CNN body, and delivers 545/545 target bodies."],
+          ["Fixed scoring populations", "The prior report still used the older 113-page formula and 81-page table extraction populations.", "Bind lexmain f7cb97d reference extraction to 545 text, 110 code, 257 formula, and 179 table-content and table-structure pages. Omissions and failed calls score zero within applicable populations.", "All seven methods use the same populations; the 3,815 stored outputs are rescored offline with zero provider calls."],
+          ["Current result", "Earlier figures and prose were bound to an older PR919 binary and scorer.", "Bind the report to source e944d066b, release binary e146b853…, and scorer f7cb97d while keeping separate rows for original Moli, PR785, and PR919.", "PR919 scores 39.41% overall, 40.79% text, 91.74% code, 28.16% formula, 22.61% table content, and 13.74% table structure; overall and code are the unique seven-method maxima."]
+        ]
+      }}
+    },
+    {
+      "id": "webmainbench-545-lexmain-reference-and-final-pr919-20260928",
+      "date": "2026-09-28",
+      "comparison_kinds": ["webmainbench_frozen_html_to_markdown"],
+      "title": "修正 WebMainBench 参考、专项计分范围与 TEDS",
+      "summary": "Lexmount WebMainBench lexmain 修正 TEDS 有序树计算、22 条参考或代码标注，并让七种方法在相同的参考定义专项页面上计分。PR919 提交 b7a860600 的 545 页认证输出保持不变；3,815 条结果离线重算后，修复版成功生成正文 545/545，综合分为 55.25%。",
+      "changes": [
+        ["评测基准", "官方 TEDS 把序列化字符串交给 APTED；任务 f080fbec 的参考包含隐藏编辑器副本，另有 21 条代码参考或标注与冻结页面不一致。", "在 Lexmount WebMainBench lexmain 对显式有序树计算 TEDS，按冻结页面修正参考与代码范围，并用哈希绑定每条数据修订。", "TEDS、参考和代码范围均对全部 3,815 条冻结结果离线复算，没有新增 provider 调用。"],
+        ["统一计分范围", "代码、公式和表格分母曾由每种方法的输出决定；漏输出、抽取失败或额外输出会让不同方法落入不同计分页集合。", "专项指标改用参考答案定义的公共页面范围；参考适用但方法遗漏或调用失败时计零，参考无法抽取为可评分表示的页面记为不可用。", "七种方法统一使用全文 545、代码 110、公式 113、表格内容和结构各 81 页。成对回归控制同时覆盖漏计和误计。"],
+        ["实现复审", "上一候选把所有 pre 输出为围栏，并拆平任意含 pre 的表格；这提高代码提取分，却删除真实链接、行列和跨行关系。", "保留含链接的 pre 与语义表格；布局表继续按已有规则展开，同时修正祖先渐变、只读 DOM 查询和原始 fragment 优先级。", "相关行为测试通过；固定 release 二进制完成 545 页全量认证，545 次最终调用均成功。"],
+        ["分数解释", "旧报告的 33.11% 来自方法相关分母和不完整代码提取，不能作为同范围七方法比较。", "保留每份 provider 输出与官方原分，另存修正前指标，再用统一参考范围和修正评分器生成当前指标。", "PR919 综合分 55.25%，代码 91.06%、公式 64.08%、表格内容 50.09%、表格结构 30.25%，成功生成正文 545/545。"]
+      ],
+      "i18n": {"en": {
+        "title": "Correct WebMainBench references, component populations, and TEDS",
+        "summary": "Lexmount WebMainBench lexmain corrects ordered-tree TEDS, 22 reference or code annotations, and uses the same reference-defined component pages for all seven methods. The certified 545-page PR919 outputs at commit b7a860600 are unchanged. Offline rescoring of all 3,815 results yields 545/545 nonempty bodies and a 55.25% overall score.",
+        "changes": [
+          ["Evaluation basis", "Official TEDS passed a serialized string to APTED; task f080fbec included a hidden editor buffer, and 21 other code references or annotations differed from the frozen page.", "Compute TEDS over the explicit ordered tree, correct references and code scope against the frozen pages, and hash-bind each data correction in Lexmount WebMainBench lexmain.", "TEDS, references, and code scope are recomputed over all 3,815 frozen results with zero provider calls."],
+          ["Shared scoring scope", "Code, formula, and table denominators previously depended on each method output, so omissions, extraction failures, and extra output changed the scored population.", "Use reference-defined component populations for every method. Missing output and failed calls score zero inside an applicable population; pages whose references cannot be extracted into a scoreable form are unavailable.", "All seven methods now use 545 text, 110 code, 113 formula, and 81 table-content and table-structure pages. Paired controls cover both error directions."],
+          ["Implementation review", "The prior candidate fenced every pre element and flattened every table containing pre content, improving code extraction while deleting real links, rows, and spans.", "Preserve pre elements with links and semantic tables, retain existing layout-table handling, and correct ancestor gradients, read-only DOM lookups, and raw fragment priority.", "Scenario tests pass and the fixed release binary completes all 545 certified calls successfully."],
+          ["Score interpretation", "The former 33.11% value used method-dependent populations and incomplete code extraction, so it was not a same-scope seven-method comparison.", "Preserve each provider output and original official score, retain pre-correction metrics, and derive current metrics with the corrected scorer and shared reference scope.", "PR919 scores 55.25% overall, 91.06% code, 64.08% formula, 50.09% table content, and 30.25% table structure, with 545/545 nonempty bodies."]
+        ]
+      }}
+    },
+    {
+      "id": "webmainbench-545-moli-pr919-final-20260928",
+      "date": "2026-09-28",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "title": "以最新 main 的 Moli 1.1.11 完成 PR919 七方法正式重测",
+      "summary": "PR919 rebase 到 Moli main 80660fb6 后，以提交 683b297e1 的固定 release 二进制完成 545 页认证运行。修复版生成目标正文 545/545，综合分 35.88% 为七方法最高；代码边界修复使代码分从旧内容修复结果的 61.11% 回升到 74.91%。报告保留七种方法的 3,815 条独立结果。",
+      "changes": [
+        [
+          "运行身份",
+          "旧报告的内容修复分数来自 PR814 提交 39169d705，不能代表 rebase 最新 main 后的 PR919。",
+          "将 PR919 正式 rebase 到 main 80660fb6，绑定源码提交 683b297e1、Moli 1.1.11 release 二进制哈希和完整认证证据。",
+          "PR919 作为独立方法完成 545 页调用；原五方法和 PR785 修复版证据保持不变。"
+        ],
+        [
+          "代码分回归",
+          "旧内容修复版的代码分为 61.11%，块级 pre 被转成行内代码，复杂表格回退成 HTML 后也无法被代码提取器识别。",
+          "统一将可见 pre 输出为 Markdown 围栏；仅对含 pre 的复杂表格按可见单元格顺序展开，并增加块级、嵌套、语言标注和复杂表格场景测试。",
+          "七个同类页面恢复可计分代码，最终代码分为 74.91%，计分页由前两版的 97 页增至 103 页。"
+        ],
+        [
+          "报告结论",
+          "报告曾把历史 PR814 结果写成当前修复版，并沿用 32.97% 综合分。",
+          "用最终七方法证据重算表格、极值、解读和两张分析图，保留官方原分与独立 TEDS 修正层。",
+          "PR919 修复版综合分 35.88%，表格内容 25.59%、TEDS 16.64%、公式 20.81%，目标正文 545/545。官方参考把隐藏编辑器副本当作代码的一页仍保留官方零分并披露限制。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Complete the formal seven-method rerun with Moli 1.1.11 on current main",
+          "summary": "After rebasing PR919 onto Moli main 80660fb6, commit 683b297e1 was built once in release mode and run across the certified 545-page cohort. The repair produces target body text for 545/545 pages and leads all seven methods at 35.88% overall. Markdown code-boundary repairs raise the code score from 61.11% to 74.91%.",
+          "changes": [
+            [
+              "Run identity",
+              "The prior content-repair score came from PR814 commit 39169d705 and could not represent PR919 after rebasing onto current main.",
+              "Rebase PR919 onto main 80660fb6 and bind source commit 683b297e1, the Moli 1.1.11 release binary hash, and the complete certified evidence.",
+              "PR919 completes all 545 calls as a distinct method; the five baseline methods and the PR785 repair remain unchanged."
+            ],
+            [
+              "Code-score regression",
+              "The earlier content repair scored 61.11% for code because block pre elements became inline code and complex-table HTML fallback was invisible to the code extractor.",
+              "Emit visible pre content as fenced Markdown and flatten only complex tables containing pre elements in visible cell order, with scenario tests.",
+              "Seven affected pages recover extractable code; the final score is 74.91%, with 103 scored pages versus 97 for the earlier Moli variants."
+            ],
+            [
+              "Report conclusion",
+              "The report had presented historical PR814 evidence as the current repair and retained the 32.97% overall score.",
+              "Recompute tables, unique extrema, interpretation, and both diagrams from final seven-method evidence while preserving official raw scores and the independent TEDS correction layer.",
+              "The PR919 repair leads at 35.88% overall, with 25.59% table content, 16.64% corrected TEDS, 20.81% formula, and 545/545 target bodies."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-09-24-dynamic-100-moli-119-local-audit",
       "comparison_kinds": ["single_provider_dynamic_native_fetch"],
       "date": "2026-09-24",
@@ -1350,6 +1449,147 @@
           ["Evidence and report", "Raw results, debug logs and generated HTML do not belong in Git.", "Git retains case definitions, direct source evidence, shared scoring and report code, and hash receipts; run artifacts stay in persistent evidence.", "The report shows the Moli version, failure classes, body evidence and a drill-down through the complete physical-call chain."]
         ]
       }}
+    },
+    {
+      "id": "webmainbench-545-table-controls-and-moli-provenance-20260928",
+      "date": "2026-09-28",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "title": "补齐表格交互并标明内容修复版的实测来源",
+      "summary": "核心方法比较、耗时表和逐项结果支持稳定排序；545 题数据集增加搜索、语言和难度筛选。核心表同时标明内容修复版分数来自提交 39169d705 的历史全量实测，PR919 的最新 main 实现没有重新测量。分数、分母和 3,815 条结果均未改变。",
+      "changes": [
+        [
+          "表格交互",
+          "核心比较无法按指标排序，545 题数据集也缺少搜索和分类筛选。",
+          "为数值比较增加带 aria-sort 的稳定排序，为数据集增加任务或网址搜索、语言和难度筛选，并保留逐项结果已有筛选。",
+          "排序不重算绿色最高值；紧凑方法表始终保留七种方法，筛选只用于大型清单。"
+        ],
+        [
+          "Moli 来源",
+          "核心表只写“1.1.10 内容修复版”，容易被理解为 PR919 rebase 最新 main 后的重测。",
+          "在对应方法行直接标明实测提交 39169d705，并说明 PR919 最新 main 未重测。",
+          "32.97% 继续表示冻结的 545 题历史实测；本次发布没有新增供应商调用，也没有替换任何结果。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Add table controls and identify the measured Moli content-repair build",
+          "summary": "Core method comparisons, latency tables, and the result inventory now support stable sorting; the 545-case dataset adds search, language, and difficulty filters. The core table also states that the content-repair score comes from the historical full run at commit 39169d705, while the latest-main implementation in PR919 was not rerun. Scores, denominators, and all 3,815 results are unchanged.",
+          "changes": [
+            [
+              "Table interaction",
+              "The core comparison could not be sorted by metric, and the 545-case dataset lacked search and categorical filters.",
+              "Add accessible stable sorting with aria-sort to numeric comparisons, plus task or URL search and language and difficulty filters for the dataset, while retaining the existing result filters.",
+              "Sorting never recomputes highlighted leaders; the compact method comparison always keeps all seven methods visible, and filtering is reserved for large inventories."
+            ],
+            [
+              "Moli provenance",
+              "The core table's Moli 1.1.10 content-repair label could be read as a rerun of PR919 after rebasing onto current main.",
+              "Show measured commit 39169d705 directly in that method row and state that the latest-main PR919 implementation was not rerun.",
+              "The 32.97% score remains the frozen historical 545-case measurement; this release adds no provider call and replaces no result."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "webmainbench-545-seven-method-moli-lineage-20260925",
+      "date": "2026-09-25",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "title": "分开保留两次 Moli 修复并发布七方法结果",
+      "summary": "PR785 修复版和 1.1.10 内容修复版作为两个独立方法加入同一份 545 页报告，共 3,815 条结果。两版均生成目标正文 545/545；PR785 修复版综合分 34.08%，内容修复版综合分 32.97%，并提高表格内容、表格结构和公式分。",
+      "changes": [
+        [
+          "方法身份",
+          "内容修复版曾覆盖较早的 PR785 修复版，报告只能看到六种方法。",
+          "按源码提交、版本和二进制哈希拆分为 Moli 1.1.9 · PR785 修复版与 Moli 1.1.10 · 内容修复版，并将两套独立认证证据绑定为七方法矩阵。",
+          "原五方法结果保持不变；两种修复版各自保留完整输出与物理调用。"
+        ],
+        [
+          "结果解读",
+          "旧解读把两次修复合并为一个修复前后叙述。",
+          "新增三版 Moli 指标表和两张信息图，分别解释版本关系，以及症状、共同根因、修改层与核对方式。",
+          "内容修复版的结构和公式收益与代码分下降同时披露；跨日期耗时不作版本快慢结论。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Retain both Moli repairs as a seven-method comparison",
+          "summary": "The PR785 repair and the Moli 1.1.10 content repair are now separate methods in the same 545-page report, for 3,815 results. Both deliver target body text on 545/545 pages. The PR785 repair scores 34.08% overall; the content repair scores 32.97% while improving table content, table structure, and formula scores.",
+          "changes": [
+            [
+              "Method identity",
+              "The newer content repair had replaced the earlier PR785 repair, leaving only six visible methods.",
+              "Bind the Moli 1.1.9 PR785 repair and the Moli 1.1.10 content repair as distinct methods using their source commits, versions, binary hashes, and independent certificates.",
+              "The five baseline methods remain unchanged; both repair variants retain complete outputs and physical calls."
+            ],
+            [
+              "Interpretation",
+              "The prior explanation collapsed two different repairs into one before-and-after story.",
+              "Add a three-version Moli metric table and two information diagrams covering lineage and the path from symptoms through causes and implementation layers to verification.",
+              "The content repair's structure and formula gains are disclosed alongside its lower code score; cross-date latency is not used for version-speed claims."
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "webmainbench-545-moli-110-content-audit-20260924",
+      "date": "2026-09-24",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "title": "以 Moli 1.1.10 完成内容修复和六方法正式报告",
+      "summary": "修复前候选输出完成 545/545 页内容审计，问题按共享机制修复后只编译一次 Moli 1.1.10，并完成 545 页认证重测。修复版生成目标正文 545/545，综合分 32.97%，表格结构分 16.71% 为六方法最高；正式报告保留六方法、逐页证据和两张分析图。",
+      "changes": [
+        [
+          "内容审计与修复",
+          "先前报告只复核机器失败，未覆盖修复候选的全部成功输出。",
+          "逐页读取 545 份候选 Markdown 与冻结源码，归并可见性、表格、数学、媒体、链接、表单和代码边界共因，在通用转换层修复并增加行为回归。",
+          "审计记录 149 页可接受、351 页明确缺陷、45 页需运行时确认；这些诊断不替代官方分数。"
+        ],
+        [
+          "最终六方法结果",
+          "修复版仍绑定较早的 1.1.9 构建和过期结果说明。",
+          "从最新 main 上的提交 39169d705 编译一次 Moli 1.1.10，并用该固定二进制完成 545 页认证运行和原网址纠正。",
+          "修复版目标正文为 545/545；综合分 32.97%，原版 Moli 1.1.9 综合分 34.01% 仍最高。"
+        ],
+        [
+          "正式报告",
+          "旧正文仍写修复版 34.08% 最高，并把实测版本称为 1.1.9。",
+          "以最终证据重算表格、修复说明和结论，保留六方法同页对照、错误机制图、结果图与原始调用。",
+          "交付成功率、质量分和跨日期耗时分别解释。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Complete content repairs and the formal six-method report with Moli 1.1.10",
+          "summary": "All 545 candidate outputs were content-audited before shared causes were repaired. One Moli 1.1.10 release build then completed the certified 545-page rerun. The repaired method delivers target body text on 545/545 pages, scores 32.97% overall, and leads table structure at 16.71%; the formal report retains all six methods, per-page evidence, and both analysis figures.",
+          "changes": [
+            [
+              "Content audit and repair",
+              "The earlier report reviewed machine failures but did not inspect every successful candidate output.",
+              "Read all 545 candidate Markdown outputs against frozen source evidence, group visibility, table, math, media, link, form, and code-boundary causes, and repair them in shared conversion layers with behavioral regressions.",
+              "The audit recorded 149 acceptable pages, 351 definite defects, and 45 runtime checks. These diagnoses do not replace official scores."
+            ],
+            [
+              "Final six-method result",
+              "The repaired method was still described as an older 1.1.9 build with stale result prose.",
+              "Build Moli 1.1.10 once from commit 39169d705 on current main, then run the certified 545-page cohort and origin correction with that fixed binary.",
+              "The repaired method delivers 545/545 target bodies and scores 32.97% overall; original Moli 1.1.9 remains the overall leader at 34.01%."
+            ],
+            [
+              "Formal report",
+              "The previous prose still called the repaired result 34.08% and identified it as 1.1.9.",
+              "Recompute tables and conclusions from final evidence while retaining six-method same-case views, both analysis figures, failure evidence, and physical calls.",
+              "Delivery, quality scores, and cross-date latency are explained separately."
+            ]
+          ]
+        }
+      }
     },
     {
       "id": "webmainbench-545-six-method-origin-correction-20260924",

@@ -19,16 +19,27 @@ from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.runner import SITE_CREDENTIALS, SITE_PORTS
 
+READ_ONLY_PORTS = {8888: WebArenaSite.WIKIPEDIA, 3000: WebArenaSite.MAP}
+SUPPORTED_REMOTE_SITES = frozenset(SITE_PORTS) | frozenset(READ_ONLY_PORTS.values())
+
 
 def load_remote_sites(path: Path) -> dict[WebArenaSite, str]:
     value = json.loads(path.read_text(encoding="utf-8"))
     if value.get("schema") != "lex_webarena_remote_sites/1":
         raise ValueError("unsupported remote site map")
     raw = value.get("sites")
-    if not isinstance(raw, dict) or set(raw) != {site.value for site in SITE_PORTS}:
-        raise ValueError("remote site map must cover exactly the four mutable sites")
+    if (
+        not isinstance(raw, dict)
+        or not {site.value for site in SITE_PORTS} <= set(raw)
+        or not set(raw) <= {site.value for site in SUPPORTED_REMOTE_SITES}
+    ):
+        raise ValueError(
+            "remote site map must cover the four mutable sites and optional read-only sites"
+        )
     sites: dict[WebArenaSite, str] = {}
-    for site in SITE_PORTS:
+    for site in sorted(SUPPORTED_REMOTE_SITES, key=lambda item: item.value):
+        if site.value not in raw:
+            continue
         url = raw[site.value]
         if not isinstance(url, str):
             raise ValueError(f"invalid remote URL for {site.value}")
@@ -56,8 +67,27 @@ def remote_benchmark(sites: dict[WebArenaSite, str]) -> WebArenaVerified:
         config=WebArenaVerifiedConfig(
             environments={
                 site: EnvironmentConfig(
-                    urls=[url],
-                    credentials=SITE_CREDENTIALS[site],
+                    # Reverse proxies can terminate HTTPS while an application
+                    # still emits same-host HTTP requests from its configured
+                    # public base URL. Both transports identify the same bound
+                    # fixture and must derender to the same site token.
+                    urls=list(
+                        dict.fromkeys(
+                            [
+                                url,
+                                urlunsplit(
+                                    (
+                                        "http" if urlsplit(url).scheme == "https" else "https",
+                                        urlsplit(url).netloc,
+                                        urlsplit(url).path,
+                                        urlsplit(url).query,
+                                        urlsplit(url).fragment,
+                                    )
+                                ),
+                            ]
+                        )
+                    ),
+                    credentials=SITE_CREDENTIALS.get(site),
                     use_header_login=site == WebArenaSite.SHOPPING_ADMIN,
                 )
                 for site, url in sites.items()
@@ -70,6 +100,7 @@ def rebind_remote_calls(
     calls: list[dict[str, Any]],
     sites: dict[WebArenaSite, str],
     trusted_source_hosts: set[str],
+    source_sites: dict[WebArenaSite, str] | None = None,
 ) -> list[dict[str, Any]]:
     """Bind frozen WebArena URLs while tolerating HTTP-to-HTTPS proxy upgrades.
 
@@ -78,13 +109,17 @@ def rebind_remote_calls(
     semantics; only the transport scheme becomes an explicit alternative.
     """
     by_port = {port: site for site, ports in SITE_PORTS.items() for port in ports}
+    by_port.update(READ_ONLY_PORTS)
+    by_source_origin = {urlsplit(url).netloc: site for site, url in (source_sites or {}).items()}
 
     def rebind_url(value: str) -> str:
         parsed = urlsplit(value)
-        if parsed.scheme not in {"http", "https"} or parsed.hostname not in trusted_source_hosts:
+        if parsed.scheme not in {"http", "https"}:
             return value
-        site = by_port.get(parsed.port)
-        if site is None:
+        site = by_source_origin.get(parsed.netloc)
+        if site is None and parsed.hostname in trusted_source_hosts:
+            site = by_port.get(parsed.port)
+        if site is None or site not in sites:
             return value
         target = urlsplit(sites[site])
         return urlunsplit(
@@ -95,6 +130,10 @@ def rebind_remote_calls(
         r"(?P<before>\[href\s*=\s*)(?P<quote>['\"])(?P<url>https?://[^'\"]+)"
         r"(?P=quote)(?P<after>\])"
     )
+    embedded_url_pattern = re.compile(r"https?://[^\s\"'\])]+")
+
+    def rebind_embedded_urls(value: str) -> str:
+        return embedded_url_pattern.sub(lambda match: rebind_url(match.group()), value)
 
     def rebind_href(match: re.Match[str]) -> str:
         url = match.group("url")
@@ -118,13 +157,35 @@ def rebind_remote_calls(
         # URL-valued form inputs refer to the same fixture deployment as
         # navigation URLs. Do not rewrite prose or arbitrary external URLs.
         text = call.get("text")
-        if call.get("action") == "fill" and isinstance(text, str) and not any(
-            char.isspace() for char in text
+        if (
+            call.get("action") == "fill"
+            and isinstance(text, str)
+            and not any(char.isspace() for char in text)
         ):
             call["text"] = rebind_url(text)
         selector = call.get("selector")
         if isinstance(selector, str):
             call["selector"] = href_pattern.sub(rebind_href, selector)
+        target = call.get("target")
+        if isinstance(target, dict):
+            rebound_target = dict(target)
+            for key in ("value", "name"):
+                value = rebound_target.get(key)
+                if isinstance(value, str):
+                    rebound_target[key] = rebind_embedded_urls(value)
+            call["target"] = rebound_target
+        script = call.get("script")
+        if call.get("action") == "evaluate" and isinstance(script, str):
+            # Some qualified actions submit site URLs inside a JavaScript
+            # request body. Rewrite only origins explicitly bound to a source
+            # deployment; leave the rest of the program intact.
+            for source_site, source_url in (source_sites or {}).items():
+                source_origin = urlsplit(source_url)
+                target_origin = urlsplit(sites[source_site])
+                old = f"{source_origin.scheme}://{source_origin.netloc}"
+                new = f"{target_origin.scheme}://{target_origin.netloc}"
+                script = script.replace(old, new)
+            call["script"] = script
         rebound.append(call)
     return rebound
 
