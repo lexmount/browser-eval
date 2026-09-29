@@ -21,10 +21,12 @@ from .artifacts import (
     diagnostic_log_binding, record_public_call_log_bindings, verify_record_private_artifacts,
     verify_public_call_log, verify_record_public_call_logs,
 )
+
+
 def require_risk_control_certification(source: Path, dataset: dict, records: list[dict]) -> None:
+    """Validate the complete profile-bound risk-control cohort before reporting."""
     from .risk_control import validate_risk_control_certification
 
-    """Validate the complete profile-bound risk-control cohort before reporting."""
     comparison = dataset.get("comparison", {})
     if comparison.get("kind") != "risk_control_100_moli":
         return
