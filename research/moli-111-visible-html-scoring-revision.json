@@ -1,0 +1,34 @@
+{
+  "schema_version": 2,
+  "kind": "scoring_revision_receipt",
+  "reason": "The HTML visibility gate only recognized a doctype when the next token was a root element. A doctype followed by conditional comments left a hidden script's CAPTCHA token in the visible-text block check.",
+  "scope": "Saved 1.1.11 diagnostic attempts only; no historical certified result is overwritten.",
+  "run_manifest_sha256": "cae4b504ec0dbdbfdb4ae7a49547ebdd03cd6ce418016cdae2a959d0d969eaab",
+  "dataset_sha256": {
+    "popular": "0703badca3978cafe4f6db67fb9723f433781e1b87b4ef2af343756126e72cb5",
+    "dynamic": "2a149a7003a43ee4746bf1d11669154506a96172ddfe51f7abb9b2d547fba8b3"
+  },
+  "historical_scoring_source_sha256": "0df7dc9f52f335df1a26b3958ae30fc88c6e073b5b0a3df4e9867e52cbe68647",
+  "revised_scoring_source_sha256": "24408a877926266fc1304b169c7663e18744bd40d2184f825b89d3e35a4694af",
+  "scoring_regressions_sha256": "099a4fd934492da8f4477eb3cc000f16f2ced61e04537f1328ab251ede047726",
+  "correction_provenance": {
+    "category": "format-normalization",
+    "root_cause": "A doctype with intervening conditional comments bypassed HTML-only visible-text handling of forbidden notices.",
+    "regression_ids": [
+      "html-doctype-hidden-challenge-is-not-visible",
+      "html-doctype-visible-challenge-still-blocks"
+    ],
+    "verdict_corrections": {
+      "false_positives": 0,
+      "false_negatives": 1,
+      "total": 1
+    }
+  },
+  "task_decision_changes": [{
+    "case_id": "dynamic-080-es-es-nintendo-switch2-edition-search",
+    "before": false,
+    "after": true
+  }],
+  "provider_calls_for_revision": 0,
+  "historical_receipt_unchanged": "research/dynamic-100-moli-119-local-audit.json"
+}

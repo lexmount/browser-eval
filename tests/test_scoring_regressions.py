@@ -91,6 +91,7 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.add("wikimedia_thumbnail_host_equivalence")
         paired.add("source_owned_stable_text_scope")
         paired.add("inline_emphasis_in_structured_fields")
+        paired.add("html_visible_forbidden_surface")
         for root_cause in paired:
             self.assertEqual(root_modes.get(root_cause), {"false-positive", "false-negative"})
 

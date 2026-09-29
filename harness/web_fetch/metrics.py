@@ -514,7 +514,8 @@ def evaluate_content(
         # A historical snapshot cannot exempt an explicit stable-mode block rule.
         reference_exemptions = []
     forbidden_folded = folded
-    if re.match(r'\s*(?:<!doctype\s+html[^>]*>\s*)?<(?:html|body|main|div|section|article)\b', content, re.I):
+    if (re.match(r'\s*<!doctype\s+html\b', content, re.I) or
+            re.match(r'\s*<(?:html|body|main|div|section|article)\b', content, re.I)):
         # Dormant HTML templates and scripts can mention CAPTCHA on a fully
         # functioning page. Their source code is not a visible blocking notice.
         # Preserve the supplied title and real page text for this gate.

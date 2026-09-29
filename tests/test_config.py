@@ -4,11 +4,27 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from harness.web_fetch.config import expand_env, load_env_file, load_runtime_env
+from harness.web_fetch.config import expand_env, load_dataset, load_env_file, load_runtime_env
+from harness.web_fetch.models import EvalCase
 from scripts.import_benchmark_env import HOSTED_KEYS, import_credentials
 
 
 class ConfigTest(unittest.TestCase):
+    def test_current_site_cases_retain_review_and_page_identity_fields(self):
+        """Frozen case metadata must reach scoring without being dropped."""
+        import json
+
+        root = Path(__file__).resolve().parents[1] / "evaluation"
+        _, popular = load_dataset(root / "popular-sites/dataset.json")
+        self.assertEqual(len(popular), 100)
+        self.assertTrue(any(case.source_review_url for case in popular))
+
+        dynamic = json.loads((root / "dynamic-content-100-moli-webfetch/dataset.json").read_text())
+        cases = [EvalCase(**raw) for raw in dynamic["cases"]]
+        self.assertEqual(len(cases), 100)
+        self.assertTrue(all(case.rule_review for case in cases))
+        self.assertTrue(all(case.expected_final_url for case in cases))
+
     def test_env_file_is_data_not_shell(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             marker = Path(directory) / "must-not-exist"

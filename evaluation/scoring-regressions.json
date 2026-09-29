@@ -21440,6 +21440,38 @@
         "expected_metrics": {
             "stable_complete_record_count": 0
         }
+    },
+    {
+      "id": "html-doctype-hidden-challenge-is-not-visible",
+      "category": "format-normalization",
+      "root_cause": "html_visible_forbidden_surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/products",
+        "task_kind": "body",
+        "required_facts": [{"id": "products", "alternatives": ["Available products"]}],
+        "forbidden_any": ["CAPTCHA"]
+      },
+      "artifact": "<!DOCTYPE html><!--[if IE 7]><html lang=\"en\"><![endif]--><html><head><script>const gate = 'CAPTCHA';</script></head><body><main><h1>Available products</h1></main></body></html>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {"content_pass": true, "forbidden_hits": []}
+    },
+    {
+      "id": "html-doctype-visible-challenge-still-blocks",
+      "category": "format-normalization",
+      "root_cause": "html_visible_forbidden_surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/products",
+        "task_kind": "body",
+        "required_facts": [{"id": "products", "alternatives": ["Available products"]}],
+        "forbidden_any": ["CAPTCHA"]
+      },
+      "artifact": "<!DOCTYPE html><html><body><main><h1>Available products</h1><p>CAPTCHA</p></main></body></html>",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {"content_pass": false, "forbidden_hits": ["CAPTCHA"]}
     }
   ]
 }

@@ -7,6 +7,20 @@ from harness.web_fetch.metrics import (
 
 
 class MetricsTest(unittest.TestCase):
+    def test_forbidden_notice_checks_visible_html_after_doctype_comments(self):
+        page = ('<!DOCTYPE html><!--[if IE 7]><html lang="en"><![endif]-->'
+                '<html><head><script>const challenge = "CAPTCHA";</script></head>'
+                '<body><main><h1>Products</h1><p>Available today</p></main></body></html>')
+        allowed = evaluate_content(page, [], forbidden_any=['CAPTCHA'])
+        self.assertEqual(allowed['forbidden_hits'], [])
+        self.assertTrue(allowed['content_pass'])
+
+        blocked = evaluate_content(
+            '<!DOCTYPE html><html><body><h1>CAPTCHA</h1><p>Verify you are human</p></body></html>',
+            [], forbidden_any=['CAPTCHA'])
+        self.assertEqual(blocked['forbidden_hits'], ['CAPTCHA'])
+        self.assertFalse(blocked['content_pass'])
+
     def test_only_pure_markdown_table_rules_are_layout(self):
         divider = 'December 2007\n| Sun | Mon | Tue |\n| :---- | ---: | --- |'
         self.assertEqual(normalize_for_match(divider), 'december 2007 sun mon tue')

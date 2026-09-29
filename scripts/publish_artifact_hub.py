@@ -57,6 +57,8 @@ if not creating:
 if creating or updating:
  boundary='----webfetch'+uuid.uuid4().hex
  from scripts.check_publication_bundle import check
+ from scripts.report_release_gate import check_report_release
+ check_report_release(source,ROOT/'evaluation/current-report.json')
  check(archive,source)
  large_archive=archive.stat().st_size > 23*1024*1024
  parts=[]
