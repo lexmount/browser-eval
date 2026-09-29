@@ -182,6 +182,9 @@ def test_remote_setup_recovery_never_repeats_after_evidence_exists(tmp_path: Pat
         with calls.open("a", encoding="utf-8") as target:
             target.write("call\n")
         task_dir.mkdir()
+        (task_dir / ".trace.partial.json").write_text(
+            "raw hosted trace with private credentials", encoding="utf-8"
+        )
         raise RuntimeError("browser action failed")
 
     result = _run_remote_with_setup_recovery(
@@ -198,6 +201,7 @@ def test_remote_setup_recovery_never_repeats_after_evidence_exists(tmp_path: Pat
     assert calls.read_text(encoding="utf-8").splitlines() == ["call"]
     assert result["status"] == "candidate_setup_failure"
     assert "browser action failed" in result["error"]
+    assert not (task_dir / ".trace.partial.json").exists()
 
 
 def test_remote_setup_recovery_retries_connection_before_evidence(tmp_path: Path) -> None:

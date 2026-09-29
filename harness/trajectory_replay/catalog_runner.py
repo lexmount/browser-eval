@@ -356,6 +356,7 @@ def _run_with_pre_evidence_recovery(
     except Exception:
         first_error = traceback.format_exc()
         if task_dir.exists():
+            (task_dir / ".trace.partial.json").unlink(missing_ok=True)
             return {
                 "task_id": task_id,
                 "status": "candidate_setup_failure",
@@ -367,6 +368,8 @@ def _run_with_pre_evidence_recovery(
     except FileExistsError:
         raise
     except Exception:
+        if task_dir.exists():
+            (task_dir / ".trace.partial.json").unlink(missing_ok=True)
         return {
             "task_id": task_id,
             "status": "candidate_setup_failure",

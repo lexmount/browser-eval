@@ -8,6 +8,8 @@ import hashlib
 import ipaddress
 import json
 import re
+import signal
+import threading
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -894,6 +896,8 @@ class PlaywrightReplayTool:
                 escaped_filename = filename.replace('"', "%22")
                 disposition += f'; filename="{escaped_filename}"'
                 content_type = file["type"] or "application/octet-stream"
+                if "\r" in content_type or "\n" in content_type:
+                    raise ValueError("captured form content type contains a newline")
                 content = base64.b64decode(file["base64"], validate=True)
             chunks.extend((f"--{boundary}\r\n".encode(), disposition.encode(), b"\r\n"))
             if content_type:
@@ -1105,14 +1109,36 @@ class PlaywrightReplayTool:
     def _observe_document(
         self, page: Any, timeout_ms: int, limit: int
     ) -> tuple[str, str]:
-        del timeout_ms
-        value = page.evaluate(
-            """limit => ({
-                title: document.title || '',
-                body: (document.body?.innerText || '').slice(0, limit),
-            })""",
-            limit,
-        )
+        if timeout_ms < 1:
+            raise ValueError("document observation timeout must be positive")
+        if threading.current_thread() is not threading.main_thread() or not hasattr(
+            signal, "setitimer"
+        ):
+            raise RuntimeError(
+                "Kitesurf document observation requires the POSIX worker main thread"
+            )
+        if signal.getitimer(signal.ITIMER_REAL) != (0.0, 0.0):
+            raise RuntimeError("Kitesurf document observation found an active process timer")
+        previous_handler = signal.getsignal(signal.SIGALRM)
+
+        def expire(_signum: int, _frame: Any) -> None:
+            raise TimeoutError(
+                f"Kitesurf document observation exceeded {timeout_ms} ms"
+            )
+
+        signal.signal(signal.SIGALRM, expire)
+        signal.setitimer(signal.ITIMER_REAL, timeout_ms / 1_000)
+        try:
+            value = page.evaluate(
+                """limit => ({
+                    title: document.title || '',
+                    body: (document.body?.innerText || '').slice(0, limit),
+                })""",
+                limit,
+            )
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, previous_handler)
         if not isinstance(value, dict):
             raise RuntimeError("Kitesurf document observation returned an invalid payload")
         return str(value.get("title") or ""), str(value.get("body") or "")

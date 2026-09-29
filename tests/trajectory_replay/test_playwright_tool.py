@@ -735,6 +735,25 @@ def test_kitesurf_request_bridge_encodes_empty_form_data() -> None:
     assert data == f"--{boundary}--\r\n".encode()
 
 
+@pytest.mark.parametrize("content_type", ["text/plain\r\nX-Test: injected", "text/plain\n"])
+def test_kitesurf_request_bridge_rejects_newlines_in_file_content_type(
+    content_type: str,
+) -> None:
+    from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
+
+    body = {
+        "kind": "form-data",
+        "entries": [
+            {
+                "name": "upload",
+                "file": {"name": "note.txt", "type": content_type, "base64": ""},
+            }
+        ],
+    }
+    with pytest.raises(ValueError, match="content type contains a newline"):
+        PlaywrightReplayTool._decode_captured_request_body("unsafe-type", body)
+
+
 def test_kitesurf_request_body_id_survives_post_redirect_as_bodyless_get(
     monkeypatch,
 ) -> None:
@@ -1174,6 +1193,19 @@ def test_kitesurf_document_observer_uses_page_evaluate_without_locator() -> None
         "Dashboard",
         "Visible body",
     )
+
+
+def test_kitesurf_document_observer_enforces_action_timeout() -> None:
+    class Page:
+        def evaluate(self, _script, _limit):
+            time.sleep(1)
+
+    tool = _unit_tool(Page(), object(), engine="kitesurf")
+
+    started = time.monotonic()
+    with pytest.raises(TimeoutError, match="exceeded 20 ms"):
+        tool.document_observer(tool._page, 20, 123)
+    assert time.monotonic() - started < 0.5
 
 
 def test_obscura_viewport_verification_rejects_configured_but_unapplied_size() -> None:
