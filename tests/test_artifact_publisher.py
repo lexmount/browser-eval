@@ -6,10 +6,28 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError, URLError
 
-from harness.web_fetch.publication import put_file, updated_receipt, upload_large_archive
+from harness.web_fetch.publication import put_file, site_root_html, updated_receipt, upload_large_archive
 
 
 class ArtifactPublisherTests(unittest.TestCase):
+    def test_site_root_paths_preserve_evidence_and_external_links(self):
+        source = '''<head><link href="../assets/style.css?v=1"></head>
+<a href='../attempts/example.html#output'>案例</a><a href="#summary">摘要</a>
+<img src="../assets/image.png"/><a href="https://example.com/x">外链</a>
+<button data-href="../unchanged" title="href='../unchanged'">原始属性</button>
+<pre>&lt;a href="../unchanged"&gt;原始证据</pre>
+<script>const raw='<a href="../unchanged">';</script>'''
+        result = site_root_html(source, 'providers/moli.html')
+        self.assertIn('href="assets/style.css?v=1"', result)
+        self.assertIn("href='attempts/example.html#output'", result)
+        self.assertIn('href="providers/moli.html#summary"', result)
+        self.assertIn('src="assets/image.png"', result)
+        self.assertIn('href="https://example.com/x"', result)
+        self.assertIn('data-href="../unchanged" title="href=\'../unchanged\'"', result)
+        self.assertIn('<pre>&lt;a href="../unchanged"&gt;原始证据</pre>', result)
+        self.assertIn("<script>const raw='<a href=\"../unchanged\">';</script>", result)
+        self.assertEqual(site_root_html(result, 'index.html'), result)
+
     def test_updated_receipt_uses_activated_version_as_next_baseline(self):
         receipt = updated_receipt(
             {'slug': 'current', 'version': 'ver_legacy', 'versionId': 'ver_stale'},
