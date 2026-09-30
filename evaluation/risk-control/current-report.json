@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "dataset_id": "risk-control-audited-100",
+  "comparison_kind": "risk_control_100_moli",
+  "case_count": 100,
+  "case_ids_sha256": "6a956b28a4da0ab8cbc2fd2b749cff1b8c89d82e9bb03e61a1cc574ce1f08aa6",
+  "providers": [
+    "moli-1.1.11"
+  ],
+  "timeout_seconds": 45,
+  "runs_per_case": 1,
+  "concurrency": 1,
+  "reference_binding_mode": "external_reference_proofs_bound_to_original_calls_and_scoring_only_revision",
+  "publication_state": "verified_scoring_only_correction",
+  "unverified_reference_cases": [],
+  "require_independent_result_review": false,
+  "conversion": "Moli native Markdown; wait-until done; no per-case options",
+  "source_dataset_sha256": "f6a865b3d473c1b73e2d5069f161071e4f0a98176f6507a6d8455b94c3d826ec",
+  "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
+  "artifact_hub_site": "fZHpL1BU9RsO",
+  "artifact_hub_expected_version": "ver_02e9e192260244ebbebe5466f5ee1a1e",
+  "artifact_hub_share_url": "https://artifact-site.lexmount.cn/s/fZHpL1BU9RsO"
+}

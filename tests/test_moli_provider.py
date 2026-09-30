@@ -44,6 +44,47 @@ class MoliTests(unittest.TestCase):
             "https://login.example.com/challenge",
         )
 
+    def test_effective_main_document_url_follows_explicit_late_navigation(self):
+        stderr = (
+            "DEBUG fetch request complete method=GET url=https://example.com/start "
+            "final_url=https://example.com/ status=200 transfer_size=42\n"
+            "DEBUG following pending location navigation asynchronously stage=Load "
+            "url=https://challenge.example.com/check?redir=https%3A%2F%2Fexample.com%2Fnext\n"
+            "DEBUG fetch request complete method=GET url=https://cdn.example.com/app.css "
+            "final_url=https://cdn.example.com/app.css status=200 transfer_size=7\n"
+            "DEBUG fetch request complete method=GET "
+            "url=https://challenge.example.com/check?redir=https%3A%2F%2Fexample.com%2Fnext "
+            "final_url=https://challenge.example.com/check?redir=https%3A%2F%2Fexample.com%2Fnext "
+            "status=302 transfer_size=0\n"
+            "DEBUG fetch request complete method=GET url=https://example.com/next "
+            "final_url=https://example.com/next status=302 transfer_size=0\n"
+            "DEBUG fetch request complete method=GET url=https://cdn.example.com/theme.css "
+            "final_url=https://cdn.example.com/theme.css status=200 transfer_size=7\n"
+            "DEBUG fetch request complete method=GET url=https://example.com/document "
+            "final_url=https://example.com/document status=200 transfer_size=42\n"
+            "DEBUG published standalone replacement Document page_id=1\n"
+            "DEBUG fetch request complete method=GET url=https://cdn.example.com/app.js "
+            "final_url=https://cdn.example.com/app.js status=200 transfer_size=7\n"
+        )
+        self.assertEqual(
+            _diagnostic_main_document_url(stderr, "https://example.com/start"),
+            "https://example.com/document",
+        )
+
+    def test_effective_main_document_url_keeps_declared_late_navigation_target(self):
+        stderr = (
+            "DEBUG fetch request complete method=GET url=https://example.com/start "
+            "final_url=https://example.com/ status=200 transfer_size=42\n"
+            "DEBUG following pending location navigation asynchronously stage=Load "
+            "url=https://challenge.example.com/check?redir=https%3A%2F%2Fexample.com%2Fnext\n"
+            "DEBUG fetch request complete method=GET url=https://cdn.example.com/app.css "
+            "final_url=https://cdn.example.com/app.css status=200 transfer_size=7\n"
+        )
+        self.assertEqual(
+            _diagnostic_main_document_url(stderr, "https://example.com/start"),
+            "https://example.com/next",
+        )
+
     def test_resource_route_enumerates_bounded_same_origin_frame_documents(self):
         from harness.web_fetch.providers.moli import _RESOURCE_PAGE_EXPRESSION
 

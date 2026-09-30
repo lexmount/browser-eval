@@ -37,6 +37,20 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "安装并固定官方 v1.1.11 二进制；不需要供应商账号或 API Key。": "Install and pin the official v1.1.11 binary; no provider account or API key is required.",
+    "本地 CLI。": "Local CLI.",
+    "核验于 2026-09-28。算力、网络、存储、代理和维护成本自担；没有测量这些成本，不把本地调用等同于零成本。官方托管产品或服务价格不属于本轮执行模式。": "Verified on 2026-09-28. Compute, network, storage, proxy, and maintenance costs are borne locally; these costs were not measured, so a local call is not treated as free. Official hosted-product or service pricing is outside this run mode.",
+    "普通网页使用 fetch --dump markdown；本轮风险网站评测固定 debug 日志并逐次完整留存。": "Ordinary web pages use fetch --dump markdown; this risk-control benchmark pins debug logging and retains the complete log for every call.",
+    "从官方 v1.1.11 release 获取二进制，配置 MOLI_1_1_11_BINARY。": "Obtain the binary from the official v1.1.11 release and configure MOLI_1_1_11_BINARY.",
+    "Moli 1.1.11 正式发布": "Moli 1.1.11 official release",
+    "本方法只使用官方 1.1.11 发行二进制，与其他 Moli 版本分开计分。普通网页使用原生 Markdown；直接文档与媒体的裸 fetch 路线在正式二进制上实测确认。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。不在失败后切换引擎或输出模式。": "This method uses only the official 1.1.11 release binary and is scored separately from other Moli versions. Ordinary web pages use native Markdown; bare-fetch routes for direct documents and media were verified on the release binary. If a body-text task retrieves a supported original document, text is parsed within the same timing budget; file tasks validate bytes directly. The method does not switch engines or output modes after a failure.",
+    "从官方 v1.1.5 release 获取二进制，配置 MOLI_BINARY；不是 Lexmount 云服务接口。": "Obtain the binary from the official v1.1.5 release and configure MOLI_BINARY; this is not the Lexmount cloud-service interface.",
+    "Moli 1.1.5 正式发布": "Moli 1.1.5 official release",
+    "本方法只使用官方 1.1.5 发行二进制，与其他 Moli 版本分开计分。普通网页使用原生 Markdown；直接文档与媒体的裸 fetch 路线在正式二进制上实测确认。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。不在失败后切换引擎或输出模式。": "This method uses only the official 1.1.5 release binary and is scored separately from other Moli versions. Ordinary web pages use native Markdown; bare-fetch routes for direct documents and media were verified on the release binary. If a body-text task retrieves a supported original document, text is parsed within the same timing budget; file tasks validate bytes directly. The method does not switch engines or output modes after a failure.",
+    "从官方 v1.1.7 release 获取二进制，配置 MOLI_1_1_7_BINARY。": "Obtain the binary from the official v1.1.7 release and configure MOLI_1_1_7_BINARY.",
+    "Moli 1.1.7 正式发布": "Moli 1.1.7 official release",
+    "本方法只使用官方 1.1.7 发行二进制，与其他 Moli 版本分开计分。普通网页使用原生 Markdown；直接文档与媒体的裸 fetch 路线在正式二进制上实测确认。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。不在失败后切换引擎或输出模式。": "This method uses only the official 1.1.7 release binary and is scored separately from other Moli versions. Ordinary web pages use native Markdown; bare-fetch routes for direct documents and media were verified on the release binary. If a body-text task retrieves a supported original document, text is parsed within the same timing budget; file tasks validate bytes directly. The method does not switch engines or output modes after a failure.",
+    "历史访问受限网址正文": "Historically access-restricted URL body text",
     "历史访问受限网址内容": "Historically access-restricted URL content",
     "请求指定网址": "Request the specified URL",
     "识别目标页或拦截页": "Identify the target page or a blocked page",
@@ -48,6 +62,7 @@ TEXT = {
     "文章页须覆盖直接加载出的完整正文；列表页须保留稳定栏目，并取得满足域名、路径、字段、去重和数量要求的名称与真实链接。": "An article page must cover the complete body loaded directly. A list page must retain stable sections and return names with real links that meet the host, path, field, deduplication, and quantity requirements.",
     "规则只覆盖指定网址首次自动加载出的可见目标内容，不要求绕过验证或执行交互。通过表示本次返回满足冻结规则，不证明网站以后不会改变，也不证明所有访问环境都能取得相同页面。": "The rules cover only visible target content loaded automatically on the specified URL. They do not require bypassing verification or interacting with the page. A pass means this response satisfies the frozen rules; it does not prove that the site will remain unchanged or that every access environment receives the same page.",
     "请求成功并取得指定目标页面；全部稳定文字、正文分区和组合规则均须满足。文章不能只返回标题或开头，列表须达到登记的字段、真实链接、路径、去重和数量要求；验证页、空返回和页面外壳均不通过。": "The request must succeed and return the specified target page, with every stable-text, body-region, and composite rule satisfied. An article cannot return only its title or opening. A list must meet its declared field, real-link, path, deduplication, and quantity requirements. Verification pages, empty responses, and page shells fail.",
+    "请求成功并取得指定目标页面；全部稳定文字、正文分区和组合规则均须满足。文章不能只返回标题或开头，列表须达到登记的字段、真实链接、路径、去重和数量要求；验证页、空返回和页面外壳均不通过。 已登记正文覆盖规则的案例，还须在最多 5 个参考区域中逐区达到 80% 词语计数覆盖，不能只返回标题或开头。": "The request must succeed and return the specified target page, with every stable-text, body-region, and composite rule satisfied. An article cannot return only its title or opening. A list must meet its declared field, real-link, path, deduplication, and quantity requirements. Verification pages, empty responses, and page shells fail. Cases with registered body-coverage rules must also reach 80% token-count coverage in each of up to 5 reference regions; returning only a title or opening section is insufficient.",
     "打开指定网址，取得首次自动加载出的目标正文、列表和真实链接，不进行点击、输入、滚动、翻页或登录。": "Open the specified URL and retrieve the target body, lists, and real links loaded automatically, without clicking, typing, scrolling, pagination, or login.",
     "按独立保存的目标页面证据登记稳定文字、完整正文分区，以及名称—链接、路径、字段、去重和数量要求。": "Use independently saved target-page evidence to register stable text, complete body regions, and name-link, path, field, deduplication, and quantity requirements.",
     "先排除请求失败、空返回、验证或拦截页面和页面外壳，再逐项检查本例声明的稳定文字、正文覆盖与组合规则。": "First exclude request failures, empty responses, verification or blocked pages, and page shells. Then check the case's declared stable text, body coverage, and composite rules.",
@@ -1943,21 +1958,25 @@ TEXT.update({
     "独立页面提供稳定内容锚点与条目结构要求：剧集名称和本站详情入口，不固定当天的剧集名单。": "An independent page supplies stable content anchors and record-structure requirements: show name and a same-site detail endpoint. The day's show list is not frozen.",
     "至少 3 个有名称的本站详情链接，按地址去重。仅网址、导航按钮和登录提示不计入；频繁变化的条目名称、名次、价格或 ID 不固定为旧快照取值，不免除登记的稳定内容核对。": "Require at least 3 named same-site detail URLs, deduplicated by address. Bare URLs, navigation buttons, and login prompts do not count. Frequently changing names, ranks, prices, and IDs are not frozen to old snapshot values, but registered stable content is still required.",
     "稳定内容锚点与必需字段、类型、唯一性和数量全部通过。通过不证明变化值的事实准确性或实时性；缺少完整、可比的参考时完整度、纯净度和 F1 为 —。": "Stable content anchors and every required field, type, uniqueness, and count check pass. Acceptance does not establish the factual accuracy or freshness of volatile values; recall, precision, and F1 are — without a complete comparable reference.",
+    "稳定内容锚点与必需字段、类型、唯一性和数量全部通过。通过不证明变化值的事实准确性或实时性；缺少完整、可比的参考时完整度、纯净度和 F1 为 —。查看参考与实测 →": "Stable content anchors and every required field, type, uniqueness, and count check pass. Acceptance does not establish the factual accuracy or freshness of volatile values; recall, precision, and F1 are — without a complete comparable reference. View reference and measured results →",
     "查看参考与实测 →": "View reference and measured results →",
     "以 Attention Is All You Need PDF 为例，读取整篇论文；另测 DOCX、TXT 和嵌入文档页面。": "Use the Attention Is All You Need PDF as an example and read the complete paper; DOCX, TXT, and embedded-document pages are tested separately.",
     "从原始文件全部页面、段落和表格独立提取正文，并保存原文件。": "Independently extract body text from every page, paragraph, and table in the original file, and retain the file.",
     "输入原始文档 URL。方法能直接返回正文时直接使用；只返回 PDF、DOCX 等原始字节时，在同一计时预算内本地解析。取得可读正文后停表，再对照全文计算完整度、纯净度与 F1，并检查标题、核心术语及章节。": "Provide the original document URL. Use body text directly when the method returns it; when it returns only PDF, DOCX, or other original bytes, parse locally within the same timing budget. Stop timing once readable body text is available, then calculate recall, precision, and F1 against the complete text and check the title, core terms, and sections.",
     "必须返回文档正文，只返回论文下载地址不通过。": "The document body is required; a paper download URL alone fails.",
+    "必须返回文档正文，只返回论文下载地址不通过。查看本例完整参考与逐方法结果 →": "The document body is required; a paper download URL alone fails. View the complete reference and per-method results →",
     "查看本例完整参考与逐方法结果 →": "View the complete reference and per-method results →",
     "以 MDN 响应式图片页为例，找到指定正文图片；输入直接 PNG 时交付图片文件。": "Use the MDN responsive-images page to locate specified body images; for a direct PNG input, deliver the image file.",
     "含图页使用从源页保存的图片地址清单；直接图片使用原文件与校验值。": "Image-bearing pages use an image-URL manifest retained from the source page; direct images use the original file and checksum.",
     "逐项匹配允许的图片地址；直接文件核对实际字节的格式特征、长度与目标 SHA-256。": "Match each accepted image URL. For direct files, validate the actual bytes by format signature, length, and target SHA-256.",
     "找齐指定入口，或实际返回文件；只复述 PNG 地址不算取得文件。本榜不测“看懂图片”。": "Return every specified endpoint or the actual file, as required. Repeating a PNG URL does not mean the file was obtained. This ranking does not test image understanding.",
+    "找齐指定入口，或实际返回文件；只复述 PNG 地址不算取得文件。本榜不测“看懂图片”。查看图片参考与结果 →": "Return every specified endpoint or the actual file, as required. Repeating a PNG URL does not mean the file was obtained. This ranking does not test image understanding. View image references and results →",
     "查看图片参考与结果 →": "View image references and results →",
     "找到网页中的播放入口、交付直接视频文件，或读取标题与发布者。": "Find playback endpoints in a page, deliver a direct video file, or read title and publisher metadata.",
     "分别保存源页播放地址、原视频文件或可见标题与发布者，三种任务分开核对。": "Retain source-page playback URLs, original video files, or visible title and publisher as appropriate; the three deliverables are checked separately.",
     "例如 MDN 视频页匹配目标播放地址；信息页核对文字事实；直接 MP4 核对实际字节的格式特征、长度与目标 SHA-256。": "For example, match target playback URLs on an MDN video page, check textual facts on a metadata page, and validate a direct MP4 by byte signature, length, and target SHA-256.",
     "完成指定任务；找到播放地址不等于拿到视频，更不等于能识别画面或字幕。": "Complete the specified deliverable. Finding a playback URL is not obtaining the video, much less understanding frames or subtitles.",
+    "完成指定任务；找到播放地址不等于拿到视频，更不等于能识别画面或字幕。查看视频参考与结果 →": "Complete the specified deliverable. Finding a playback URL is not obtaining the video, much less understanding frames or subtitles. View video references and results →",
     "查看视频参考与结果 →": "View video references and results →",
     "没有 F1 最低分门槛": "No minimum F1 threshold",
     "8 次请求成功 → 请求成功率 80%": "8 successful requests → 80% request success rate",
@@ -3107,11 +3126,11 @@ REGEX.insert(0, (
 ))
 REGEX.insert(0, (
     re.compile(r"^共 (\d+) 组稳定文字，全部属于标准答案；当前区域显示约 5 组高度，向下滚动查看全部。$"),
-    r"All \1 stable-text groups belong to the reference answer. This area shows about five groups at a time; scroll to view all.",
+    r"All \1 stable-text groups belong to the reference answer. This area shows about 5 groups at a time; scroll to view all.",
 ))
 REGEX.insert(0, (
     re.compile(r"^共 (\d+) 项稳定文字判定，全部参与评分；当前区域显示约 5 项高度，向下滚动查看全部。$"),
-    r"All \1 stable-text checks contribute to scoring. This area shows about five at a time; scroll to view all.",
+    r"All \1 stable-text checks contribute to scoring. This area shows about 5 at a time; scroll to view all.",
 ))
 
 REGEX.insert(0, (

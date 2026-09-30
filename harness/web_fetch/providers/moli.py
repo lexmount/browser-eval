@@ -15,7 +15,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from urllib.parse import parse_qsl, unquote, urlsplit
+from urllib.parse import parse_qsl, unquote, urljoin, urlsplit
 
 from ..document_text import extract_document_text
 from ..models import EvalCase, ProviderResult
@@ -58,6 +58,9 @@ def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> st
     )
 
     diagnostic = stderr.encode("utf-8") if isinstance(stderr, str) else stderr
+    navigation_pattern = re.compile(
+        rb"following pending location navigation asynchronously[^\n]* url=(?P<url>\S+)"
+    )
 
     def field(row: re.Match[bytes], name: str) -> str:
         return row.group(name).decode("utf-8", "replace")
@@ -76,6 +79,26 @@ def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> st
     except ValueError:
         return None
     rows = list(pattern.finditer(diagnostic))
+
+    def redirect_target(start_index: int) -> re.Match[bytes]:
+        row = rows[start_index]
+        # Moli logs each HTTP hop separately. During a main-document redirect
+        # the next completed GET is the redirected document; subresources begin
+        # only after a non-redirect document response has been received.
+        for following in rows[start_index + 1 : start_index + 10]:
+            if not 300 <= int(field(row, "status")) < 400:
+                break
+            row = following
+        return row
+
+    def is_subresource(value: str) -> bool:
+        return urlsplit(value).path.casefold().endswith(
+            (
+                ".css", ".js", ".mjs", ".png", ".jpg", ".jpeg", ".gif",
+                ".svg", ".webp", ".ico", ".woff", ".woff2", ".ttf", ".otf",
+            )
+        )
+
     start = next(
         (
             index
@@ -86,15 +109,53 @@ def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> st
     )
     if start is None:
         return None
-    row = rows[start]
-    # Moli logs each HTTP hop separately. During a main-document redirect the
-    # next completed GET is the redirected document; subresources begin only
-    # after a non-redirect document response has been received.
-    for following in rows[start + 1 : start + 10]:
-        if not 300 <= int(field(row, "status")) < 400:
-            break
-        row = following
-    candidate = field(row, "final_url")
+    row = redirect_target(start)
+    candidate_override = None
+    # A page can replace the top-level document after the initial response
+    # (for example, a JavaScript challenge). Follow only Moli's explicit
+    # top-level location-navigation records; ordinary subresource GETs must not
+    # replace the effective document URL.
+    for navigation in navigation_pattern.finditer(diagnostic):
+        try:
+            navigation_url = field(navigation, "url")
+            navigation_parts = urlsplit(navigation_url)
+            query = dict(parse_qsl(navigation_parts.query, keep_blank_values=True))
+            declared_target = query.get("redir") or query.get("__goaway_redirect")
+            if not declared_target:
+                continue
+            declared_target = urljoin(navigation_url, declared_target)
+            navigation_identity = identity(declared_target)
+        except ValueError:
+            continue
+        boundary = diagnostic.find(
+            b"published standalone replacement Document", navigation.end()
+        )
+        if boundary < 0:
+            boundary = len(diagnostic)
+        navigation_start = next(
+            (
+                index
+                for index, candidate in enumerate(rows)
+                if navigation.end() <= candidate.start() < boundary
+                and identity(field(candidate, "url")) == navigation_identity
+            ),
+            None,
+        )
+        if navigation_start is None:
+            candidate_override = declared_target
+            continue
+        candidate_override = None
+        row = rows[navigation_start]
+        if 300 <= int(field(row, "status")) < 400:
+            later_documents = [
+                candidate
+                for candidate in rows[navigation_start + 1 :]
+                if candidate.start() < boundary
+                and not is_subresource(field(candidate, "url"))
+            ]
+            if later_documents:
+                row = later_documents[-1]
+    candidate = candidate_override or field(row, "final_url")
     try:
         validate_http_url(candidate)
     except ValueError:
