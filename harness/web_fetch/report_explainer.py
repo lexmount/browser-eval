@@ -743,9 +743,22 @@ def _render_headless(out, cases, records):
     return body + '<aside id="evidence" class="m-downloads"><a href="article.html" download="moli-web-fetch.html">下载独立 HTML</a> · <a href="interpretation-evidence.json" download>本文计算明细</a></aside>'
 
 
+def supports_authored_explainer(cases):
+    """Do not apply a mixed-track article to a different task family."""
+    return all(case.get('track', 'web') in TRACK_NAMES for case in cases.values())
+
+
 def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
     """One authored body; only image URL serialization differs for the offline export."""
     out = Path(out)
+    if not supports_authored_explainer(cases):
+        passes = sum(task_passed(row['ok'], row['metrics'],
+                     cases[row['case_id']].get('task_kind', 'body')) for row in records)
+        return (f'<section><h1>本报告的任务范围与验收规则</h1>'
+                f'<p>本报告包含 {len(cases)} 个任务、{len(records)} 个逻辑结果，'
+                f'任务通过 {passes}/{len(records)}。结论仅适用于已登记的任务和规则。</p>'
+                '<p><a href="../datasets/index.html">查看全部任务及验收规则</a> · '
+                '<a href="../analysis/index.html">查看结果、实际返回及失败证据</a></p></section>')
     if _is_headless_comparison(records):
         return _render_headless(out,cases,records)
     data = collect_evidence(cases, records)

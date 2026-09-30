@@ -147,14 +147,23 @@ def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> st
         candidate_override = None
         row = rows[navigation_start]
         if 300 <= int(field(row, "status")) < 400:
+            committed = diagnostic.find(
+                b"committed main navigation before replacement realm bootstrap",
+                row.end(), boundary,
+            )
             later_documents = [
                 candidate
                 for candidate in rows[navigation_start + 1 :]
                 if candidate.start() < boundary
-                and not is_subresource(field(candidate, "url"))
+                and (candidate.start() > committed if committed >= 0
+                     else not is_subresource(field(candidate, "url")))
             ]
-            if later_documents:
-                row = later_documents[-1]
+            # The committed replacement's first completed request owns the
+            # document. Never let a later extensionless asset overwrite it.
+            for candidate in later_documents:
+                row = candidate
+                if not 300 <= int(field(row, "status")) < 400:
+                    break
     candidate = candidate_override or field(row, "final_url")
     try:
         validate_http_url(candidate)

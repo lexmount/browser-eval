@@ -307,6 +307,13 @@ def test_report_requires_complete_profile_bound_risk_control_certification(tmp_p
         require_risk_control_certification(tmp_path, dataset, records)
 
 
+def test_uncertified_unbound_report_cannot_use_historical_revision_route(tmp_path):
+    dataset, records, _, _, _ = certified_report_fixture(tmp_path)
+    (tmp_path / 'certification.json').unlink()
+    with pytest.raises(ValueError, match='bound revision receipt'):
+        require_risk_control_certification(tmp_path, dataset, records)
+
+
 def test_report_rejects_hash_bound_but_incomplete_reference_proof_receipt(tmp_path):
     dataset, records, receipt, manifest, execution = certified_report_fixture(tmp_path)
     proof_path = tmp_path / "reference-proof-verification.json"

@@ -21100,7 +21100,7 @@
         "expected_task_pass": false
     },
     {
-        "id": "record-owned-stable-author-text-visible",
+      "id": "record-owned-stable-author-text-visible",
         "category": "acceptance-contract",
         "root_cause": "source_owned_stable_text_scope",
         "failure_mode": "false-negative",
@@ -21131,10 +21131,64 @@
         "expected_metrics": {
             "stable_anchor_hits": 1,
             "stable_complete_record_count": 1
-        }
+      }
     },
     {
-        "id": "record-owned-stable-author-text-absent",
+      "id": "declared-page-chrome-is-required-stable-text",
+      "category": "acceptance-contract",
+      "root_cause": "declared_full_page_stable_text_scope",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.org/",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": ["example.org"],
+          "entry_path": "/post/\\d+",
+          "stable_text_anchors": [
+            {"id": "navigation", "alternatives": ["翻译"]}
+          ]
+        }
+      },
+      "artifact": "翻译\n[文章标题](https://example.org/post/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_anchor_hits": 1,
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "missing-declared-page-chrome-fails-full-page-contract",
+      "category": "acceptance-contract",
+      "root_cause": "declared_full_page_stable_text_scope",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.org/",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": ["example.org"],
+          "entry_path": "/post/\\d+",
+          "stable_text_anchors": [
+            {"id": "navigation", "alternatives": ["翻译"]}
+          ]
+        }
+      },
+      "artifact": "[文章标题](https://example.org/post/1)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_anchor_hits": 0,
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "record-owned-stable-author-text-absent",
         "category": "acceptance-contract",
         "root_cause": "source_owned_stable_text_scope",
         "failure_mode": "false-positive",

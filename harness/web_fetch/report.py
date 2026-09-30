@@ -1593,8 +1593,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   cards+=overview_card(records,cases,track,label,names)
  home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类分榜与一个综合通过率总榜。')
  home+=local_audit_banner(dataset)
- from .report_explainer import article_title,render_explainer
- TITLE=article_title(records)
+ from .report_explainer import article_title,render_explainer,supports_authored_explainer
+ TITLE=article_title(records) if supports_authored_explainer(cases) else '本报告的任务范围与验收规则'
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
  write(out,'guide/index.html','报告解读',render_explainer(out,cases,records,table=table,cell=cell,link=link))
  panels=[]

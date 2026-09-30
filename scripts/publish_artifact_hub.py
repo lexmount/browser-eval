@@ -8,11 +8,19 @@ import uuid
 from pathlib import Path
 from urllib.parse import urlsplit
 
-BASE=os.environ.get('ARTIFACT_HUB_BASE_URL','https://artifact-hub.app.lexmount.com').rstrip('/')
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.publication_target import require_publication_site, require_publication_version
+custom_profile='--profile' in sys.argv
+profile_path=(Path(sys.argv[sys.argv.index('--profile')+1]) if custom_profile
+              else ROOT/'evaluation/current-report.json')
+profile_path=profile_path.resolve()
+if not profile_path.is_relative_to((ROOT/'evaluation').resolve()):
+ raise ValueError('--profile must stay under evaluation/')
+profile=json.loads(profile_path.read_text())
+BASE=os.environ.get('ARTIFACT_HUB_BASE_URL',profile.get('artifact_hub_base_url',
+    'https://artifact-hub.app.lexmount.com')).rstrip('/')
 token=load_token(base_url=BASE)
 receipt=(Path(sys.argv[sys.argv.index('--receipt')+1]) if '--receipt' in sys.argv
          else ROOT/'publish/artifact-hub-receipt.json')
@@ -26,9 +34,11 @@ source=(Path(sys.argv[sys.argv.index('--source')+1]) if '--source' in sys.argv
         else ROOT/'reports/webfetch')
 title=(sys.argv[sys.argv.index('--title')+1] if '--title' in sys.argv else 'Web Fetch 评测')
 if creating and updating:raise ValueError('Choose exactly one of --create or --update')
-if updating and not receipt.exists():
+if custom_profile and (creating or not updating):
+ raise ValueError('--profile requires --update of its bound site')
+if updating and not receipt.exists() and not custom_profile:
  raise ValueError('--update requires an existing receipt')
-expected=(require_publication_version(ROOT/'evaluation/current-report.json',requested_expected)
+expected=(require_publication_version(profile_path,requested_expected)
           if updating else None)
 archive_sha256=None
 if creating or updating:
@@ -39,24 +49,29 @@ def request(path,data=None,content_type=None,auth=True,method=None):
  if auth:headers['Authorization']='Bearer '+token
  if content_type:headers['Content-Type']=content_type
  if archive_sha256 and data is not None and method is None and (
-         path.startswith('/api/uploads?') or path.startswith('/api/uploads/') and '/commit' in path):
-  operation='start' if path.startswith('/api/uploads?') else 'commit'
+         path.split('?')[0]=='/api/uploads' or path.startswith('/api/uploads/') and '/commit' in path):
+  operation='start' if path.split('?')[0]=='/api/uploads' else 'commit'
   seed='|'.join((operation,archive_sha256,expected or '',path))
   headers['Idempotency-Key']='webfetch-'+operation+'-'+hashlib.sha256(seed.encode()).hexdigest()
  req=urllib.request.Request(BASE+path if path.startswith('/') else path,data=data,headers=headers,method=method)
  with urllib.request.urlopen(req,timeout=90 if method=='PUT' else 240) as response:return response.status,response.read()
 
-if not creating and not receipt.exists():
+if not creating and not receipt.exists() and not custom_profile:
  raise ValueError('Current report requires its existing site receipt; refusing to create a duplicate')
 if creating and receipt.exists():
  raise ValueError('--create requires a new receipt path')
-result={} if creating else json.loads(receipt.read_text())
+result=({} if creating else json.loads(receipt.read_text()) if receipt.exists() else {
+ 'slug':profile.get('artifact_hub_site'), 'base_url':BASE,
+ 'versionId':expected, 'share_url':profile.get('artifact_hub_share_url')})
 if not creating:
- require_publication_site(result,ROOT/'evaluation/current-report.json',BASE)
+ require_publication_site(result,profile_path,BASE)
  print('Using saved publication receipt; not creating a duplicate site.',flush=True)
 if creating or updating:
  boundary='----webfetch'+uuid.uuid4().hex
  from scripts.check_publication_bundle import check
+ if custom_profile:
+  from harness.web_fetch.storage import require_current_report_profile
+  require_current_report_profile(source,profile_path)
  check(archive,source)
  large_archive=archive.stat().st_size > 23*1024*1024
  parts=[]
@@ -89,6 +104,7 @@ if creating or updating:
  if updating:result.pop('version',None)
  result['base_url']=BASE
  # Retain manageability without putting edit/claim credentials in console output.
+ receipt.parent.mkdir(parents=True,exist_ok=True)
  receipt.write_text(json.dumps(result,ensure_ascii=False,indent=2));os.chmod(receipt,0o600)
  print(('Report created: ' if creating else 'Report updated: ')+result['slug'],flush=True)
 if not result.get('share_url'):

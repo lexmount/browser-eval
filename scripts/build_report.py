@@ -6,6 +6,7 @@ sys.path.insert(0,str(ROOT))
 from harness.web_fetch.report_build import build_report, build_public_benchmark_research, build_wcxb_report, build_webmainbench_full_report
 from harness.web_fetch.storage import (
     current_evidence_dir,
+    data_home,
     require_canonical_inputs,
     require_current_report_profile,
     require_evidence,
@@ -69,7 +70,9 @@ if __name__ == '__main__':
         sample=args.wcxb_sample or ROOT/profile['sample_manifest']
         print(build_wcxb_report(args.evidence,corpus,sample,profile,args.output or ROOT/'reports/wcxb'))
         raise SystemExit(0)
-    evidence=require_evidence(args.evidence or current_evidence_dir())
+    evidence=require_evidence(args.evidence or (
+        data_home()/profile['evidence_subpath'] if profile.get('evidence_subpath')
+        else current_evidence_dir()))
     if profile.get('comparison_kind')!='webmainbench_frozen_html_to_markdown':
         canonical=(profile_path.parent if (profile_path.parent/'dataset.json').is_file()
                    else ROOT/'evaluation')

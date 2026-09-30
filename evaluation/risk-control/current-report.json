@@ -16,6 +16,21 @@
   "require_independent_result_review": false,
   "conversion": "Moli native Markdown; wait-until done; no per-case options",
   "source_dataset_sha256": "f6a865b3d473c1b73e2d5069f161071e4f0a98176f6507a6d8455b94c3d826ec",
+  "evidence_subpath": "evidence/risk-control/moli-1.1.11-100-full-page-persistent-r2-20260930",
+  "report_output": "reports/risk-control",
+  "measured_dataset_sha256": "a49e36c498bd87ba3a04de60597fafdad0cb98a4c44204fe959c1acf8318d1c9",
+  "results_sha256": "51934b051b59363cd0699a33fef34986eb68e308895d9cd368507a9710bb28f8",
+  "scoring_revision": {
+    "path": "scoring-revisions.json",
+    "kind": "audited_scoring_rule_revision",
+    "receipt_sha256": "2d4c44588494ef110c5d48c7d5245bf30980497477646e43702efcc3a4a65fb5"
+  },
+  "historical_revision": {
+    "original_receipt_path": "original-pr36-full-page-followup-correction.json",
+    "original_receipt_sha256": "e2cdbd36cbc586a7e1dd0c9a54300a76e1e223ea372b2a056b08e775a49cc774",
+    "path": "pr36-full-page-followup-correction.json",
+    "receipt_sha256": "933a6ff90ec885c2910a5c079de278abd4121e6e2380d72038f7061054febeeb"
+  },
   "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
   "artifact_hub_site": "fZHpL1BU9RsO",
   "artifact_hub_expected_version": "ver_02e9e192260244ebbebe5466f5ee1a1e",

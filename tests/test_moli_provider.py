@@ -62,6 +62,8 @@ class MoliTests(unittest.TestCase):
             "final_url=https://cdn.example.com/theme.css status=200 transfer_size=7\n"
             "DEBUG fetch request complete method=GET url=https://example.com/document "
             "final_url=https://example.com/document status=200 transfer_size=42\n"
+            "DEBUG fetch request complete method=GET url=https://cdn.example.com/dynamic-asset "
+            "final_url=https://cdn.example.com/dynamic-asset status=200 transfer_size=7\n"
             "DEBUG published standalone replacement Document page_id=1\n"
             "DEBUG fetch request complete method=GET url=https://cdn.example.com/app.js "
             "final_url=https://cdn.example.com/app.js status=200 transfer_size=7\n"

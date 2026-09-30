@@ -121,9 +121,9 @@ def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
             != receipt.get("bindings", {}).get("scoring_source_sha256")):
         raise ValueError("Scoring revision receipt has wrong bindings")
     regressions_path = _repository_file("evaluation/scoring-regressions.json")
-    if _sha256(regressions_path) != scoring.get("bindings", {}).get(
-            "scoring_regressions_sha256"):
-        raise ValueError("Scoring regression inventory changed")
+    # The receipt freezes its control partition, not every future regression.
+    # Exact per-partition hashes below reject edits/deletions of frozen controls
+    # while allowing unrelated new controls to be registered.
     controls = json.loads(regressions_path.read_text(encoding="utf-8")).get("cases", [])
     current_ids = [row.get("id") for row in controls]
     base_ids = scoring.get("preexisting_control_ids", [])
@@ -133,7 +133,7 @@ def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
             or len(base_ids) != len(set(base_ids))
             or len(revision_ids) != len(set(revision_ids))
             or set(base_ids) & set(revision_ids)
-            or set(current_ids) != set(base_ids) | set(revision_ids)):
+            or not (set(base_ids) | set(revision_ids)) <= set(current_ids)):
         raise ValueError("Scoring control partition is incomplete or duplicated")
     base_set, revision_set = set(base_ids), set(revision_ids)
     base_controls = [row for row in controls if row["id"] in base_set]

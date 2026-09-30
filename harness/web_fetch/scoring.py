@@ -56,8 +56,6 @@ _CONDITIONAL_FIELDS = {
     "ordered_tree", "ordered_tree_similarity",
     "composite_acceptance_sha256",
     "body_requirements_sha256",
-    "page_context_anchor_results", "page_context_anchor_hits",
-    "page_context_anchor_total", "page_context_coverage", "page_context_pass",
 }
 
 
@@ -106,7 +104,8 @@ def score_attempt(
     content, links, ok, status_basis = (prepared_answer if prepared_answer is not None else
         answer_input(artifact, metadata, ok=ok, status_code=status_code))
     result = {key: value for key, value in (previous_metrics or {}).items()
-              if key not in _CONDITIONAL_FIELDS and not key.startswith(("stable_", "list_"))}
+              if key not in _CONDITIONAL_FIELDS
+              and not key.startswith(("stable_", "list_", "page_context_"))}
     keys = ("required_facts", "forbidden_any", "min_content_chars",
             "fact_coverage_threshold", "ground_truth_main_content", "required_patterns",
             "acceptance_contract", "body_requirements", "composite_acceptance")
@@ -138,35 +137,6 @@ def score_attempt(
         ),
         **scoring_values,
     ))
-    page_context_anchors = (
-        ((case.get("source_benchmark") or {}).get("risk_control") or {}).get(
-            "page_context_anchors"
-        )
-        or []
-    )
-    if page_context_anchors:
-        from .stable_tasks import evaluate_stable_task
-
-        page_context = evaluate_stable_task(
-            content,
-            {
-                "version": 1,
-                "schema": "body_text",
-                "minimum_records": 0,
-                "stable_text_anchors": page_context_anchors,
-            },
-            base_url,
-            eligible=ok,
-        )
-        page_results = page_context["stable_anchor_results"]
-        page_hits = sum(bool(row["pass"]) for row in page_results)
-        result.update(
-            page_context_anchor_results=page_results,
-            page_context_anchor_hits=page_hits,
-            page_context_anchor_total=len(page_results),
-            page_context_coverage=round(page_hits / len(page_results), 4),
-            page_context_pass=all(row["pass"] for row in page_results),
-        )
     result.update(request_ok=ok, request_status_basis=status_basis,
                   normalized_named_link_count=len(links))
     dynamic_page_identity = bool(

@@ -190,12 +190,28 @@ def download_export(request, destination, attempts=3):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--expected-archive',type=Path)
-    parser.add_argument('--slug',required=True)
+    parser.add_argument('--slug')
+    parser.add_argument('--profile',type=Path)
+    parser.add_argument('--bind-current-version',action='store_true',
+                        help='update the profile only after exact archive export verification')
     parser.add_argument('--base-url',default=os.environ.get('ARTIFACT_HUB_BASE_URL',DEFAULT_BASE))
     mode=parser.add_mutually_exclusive_group()
     mode.add_argument('--export',action='store_true',help='Diagnostic only: download and verify the complete site export')
     mode.add_argument('--public-files',action='store_true',help='Diagnostic only: download and verify every served file')
     args=parser.parse_args()
+    if args.profile:
+        profile_path=args.profile.resolve()
+        if not profile_path.is_relative_to((ROOT/'evaluation').resolve()):
+            parser.error('--profile must stay under evaluation/')
+        from harness.web_fetch.publication_target import current_publication_target
+        profile_base,profile_slug=current_publication_target(profile_path)
+        if args.slug and args.slug!=profile_slug:
+            parser.error('--slug differs from the profile-bound site')
+        args.slug=profile_slug
+        args.base_url=profile_base
+    if not args.slug:parser.error('--slug or --profile is required')
+    if args.bind_current_version and not (args.profile and args.export and args.expected_archive):
+        parser.error('--bind-current-version requires --profile, --export and --expected-archive')
     base=args.base_url.rstrip('/')
     if args.public_files:
         if not args.expected_archive:parser.error('--public-files requires --expected-archive')
@@ -215,6 +231,10 @@ def main():
             with zipfile.ZipFile(args.expected_archive) as expected:
                 wanted={x.filename:hashlib.sha256(expected.read(x)).hexdigest() for x in expected.infolist() if not x.is_dir()}
             if actual!=wanted:raise ValueError('Remote export differs from submitted archive')
+    if args.bind_current_version:
+        profile=json.loads(profile_path.read_text())
+        profile['artifact_hub_expected_version']=version
+        profile_path.write_text(json.dumps(profile,ensure_ascii=False,indent=2)+'\n')
     print(json.dumps({'version':version,'export_path':str(path),'files':len(actual),
         'submitted_bytes_verified':bool(args.expected_archive)},ensure_ascii=False),flush=True)
 

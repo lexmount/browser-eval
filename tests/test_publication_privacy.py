@@ -13,10 +13,21 @@ import zipfile
 from bs4 import BeautifulSoup
 
 from harness.web_fetch.publication_privacy import project_file, publication_risk
-from scripts.check_publication_bundle import scored_output_hash
+from scripts.check_publication_bundle import scored_output_hash, check as check_bundle
 
 
 class PublicationPrivacyTests(unittest.TestCase):
+    def test_json_url_redaction_preserves_escaped_quotes_and_line_boundaries(self):
+        value = {'log': 'src="https://example.test/map?signature=secret"\n下一行\u2028正文'}
+        original = (json.dumps(value, ensure_ascii=True) + '\n').encode()
+        projected, receipt = project_file('results.jsonl', original)
+        self.assertEqual(len(projected.splitlines()), 1)
+        self.assertEqual(json.loads(projected)['log'],
+                         'src="https://example.test/map?signature=[REDACTED]"\n下一行\u2028正文')
+        self.assertIsNotNone(receipt)
+        self.assertNotIn(b'secret', projected)
+        self.assertEqual(json.loads(original), value)
+
     def test_scored_bundle_requires_an_output_hash(self):
         self.assertEqual(scored_output_hash({'output_sha256': 'hash'}), 'hash')
         self.assertEqual(scored_output_hash({'metrics': {'content_sha256': 'fallback'}}), 'fallback')
@@ -213,7 +224,8 @@ class PublicationPrivacyTests(unittest.TestCase):
                 '<pre data-kind="call-log">{"event":"complete"}</pre></dialog></body></html>')
             (source / 'attempts/browser__file-case__r001.html').write_text(
                 '<html><body><h2>目标文件与实际返回</h2>'
-                '<pre data-kind="metadata">{}</pre></body></html>')
+                '<pre data-kind="metadata">{"field":"parsed"}</pre>'
+                '<pre data-kind="metadata">{"field":"response"}</pre></body></html>')
             (source / 'datasets/md-case.html').write_text(
                 '<html><body><h2>Source metadata</h2><pre>{"level":"hard"}</pre>'
                 '<h2>Official human ground truth</h2><pre>markdown ground truth</pre></body></html>')
@@ -286,6 +298,12 @@ class PublicationPrivacyTests(unittest.TestCase):
                 self.assertIn(f'data-file="references/{unusual_case}.txt"'.encode(), unusual_page)
                 self.assertNotIn(b'>literal backslash reference</pre>', unusual_page)
                 self.assertNotIn('.generated-report', manifest['files'])
+                file_attempt = unpack('attempts/browser__file-case__r001.html')
+                self.assertIn(b'{"field":"parsed"}', file_attempt)
+                self.assertIn(b'{"field":"response"}', file_attempt)
+            (source / 'results.jsonl').write_text(results.replace('"route": "markdown"', '"route": "changed"'))
+            with self.assertRaisesRegex(ValueError, 'results differ from the current source'):
+                check_bundle(root / 'publish/webfetch-sites.zip', source)
 
 
 if __name__ == '__main__':

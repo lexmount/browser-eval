@@ -153,6 +153,59 @@ class StorageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'attempt_ids'):
                 require_current_report_profile(evidence,root/'profile.json')
 
+    def test_current_report_profile_binds_exact_results_and_scoring_revision(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            evidence = root / "evidence"
+            evidence.mkdir()
+            dataset = {
+                "id": "current", "cases": [{"id": "a"}],
+                "coverage_plan": {"web": ["p"]},
+                "comparison": {
+                    "kind": "headless_markdown", "timeout_seconds": 45,
+                    "runs_per_case": 1, "concurrency": 1, "conversion": "native",
+                    "reference_binding_mode": "strict", "publication_state": "verified",
+                    "unverified_reference_cases": [],
+                    "require_independent_result_review": True,
+                },
+            }
+            dataset_raw = json.dumps(dataset).encode()
+            result_raw = (json.dumps({
+                "attempt_id": "p__a__r001", "provider": "p", "case_id": "a",
+            }) + "\n").encode()
+            (evidence / "dataset.json").write_bytes(dataset_raw)
+            (evidence / "results.jsonl").write_bytes(result_raw)
+            receipt = {
+                "kind": "audited_scoring_revision",
+                "output_dataset_sha256": hashlib.sha256(dataset_raw).hexdigest(),
+                "output_results_sha256": hashlib.sha256(result_raw).hexdigest(),
+            }
+            receipt_raw = json.dumps(receipt).encode()
+            (evidence / "revision.json").write_bytes(receipt_raw)
+            profile = {
+                "dataset_id": "current", "comparison_kind": "headless_markdown",
+                "case_count": 1,
+                "case_ids_sha256": hashlib.sha256(b'["a"]').hexdigest(),
+                "providers": ["p"], "timeout_seconds": 45,
+                "runs_per_case": 1, "concurrency": 1, "conversion": "native",
+                "reference_binding_mode": "strict", "publication_state": "verified",
+                "unverified_reference_cases": [],
+                "require_independent_result_review": True,
+                "measured_dataset_sha256": hashlib.sha256(dataset_raw).hexdigest(),
+                "results_sha256": hashlib.sha256(result_raw).hexdigest(),
+                "scoring_revision": {
+                    "path": "revision.json", "kind": "audited_scoring_revision",
+                    "receipt_sha256": hashlib.sha256(receipt_raw).hexdigest(),
+                },
+            }
+            profile_path = root / "profile.json"
+            profile_path.write_text(json.dumps(profile))
+            require_current_report_profile(evidence, profile_path)
+            receipt["output_results_sha256"] = "0" * 64
+            (evidence / "revision.json").write_text(json.dumps(receipt))
+            with self.assertRaisesRegex(ValueError, "scoring_revision"):
+                require_current_report_profile(evidence, profile_path)
+
     def test_current_report_profile_requires_bound_isolated_resource_cohort(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

@@ -7,6 +7,8 @@ import hashlib
 from collections import Counter
 from pathlib import Path
 
+from .safety import contained_path
+
 
 def data_home() -> Path:
     configured = os.environ.get("BROWSER_EVAL_DATA_HOME")
@@ -92,8 +94,12 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     profile = json.loads(profile_path.read_text())
     if profile.get("comparison_kind") == "wcxb_frozen_html_to_markdown":
         raise ValueError("WCXB evidence uses the certified cohort validator, not the legacy current-report profile validator")
-    dataset = json.loads((evidence / "dataset.json").read_text())
-    records = [json.loads(line) for line in (evidence / "results.jsonl").read_text().splitlines()]
+    dataset_path = evidence / "dataset.json"
+    results_path = evidence / "results.jsonl"
+    dataset_raw = dataset_path.read_bytes()
+    results_raw = results_path.read_bytes()
+    dataset = json.loads(dataset_raw)
+    records = [json.loads(line) for line in results_raw.decode().splitlines()]
     comparison = dataset.get("comparison", {})
     providers = set(profile["providers"])
     if len(providers) != len(profile["providers"]):
@@ -111,6 +117,12 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     ).encode()).hexdigest()
     if profile.get("case_ids_sha256") != case_ids_sha256:
         failures.append("case_ids_sha256")
+    if (profile.get("measured_dataset_sha256") is not None
+            and profile["measured_dataset_sha256"] != hashlib.sha256(dataset_raw).hexdigest()):
+        failures.append("measured_dataset_sha256")
+    if (profile.get("results_sha256") is not None
+            and profile["results_sha256"] != hashlib.sha256(results_raw).hexdigest()):
+        failures.append("results_sha256")
     if comparison.get("kind") != profile["comparison_kind"]:
         failures.append("comparison_kind")
     if comparison.get("timeout_seconds") != profile["timeout_seconds"]:
@@ -119,6 +131,26 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
         failures.append("runs_per_case")
     if comparison.get("conversion") != profile["conversion"]:
         failures.append("conversion")
+    revision = profile.get("scoring_revision")
+    if revision:
+        relative = revision.get("path", "teds-correction.json")
+        try:
+            receipt_path = contained_path(evidence, relative)
+            receipt_raw = receipt_path.read_bytes()
+            receipt = json.loads(receipt_raw)
+            if isinstance(receipt, list):
+                receipt = receipt[-1] if receipt else {}
+        except (FileNotFoundError, json.JSONDecodeError, TypeError, ValueError):
+            failures.append("scoring_revision")
+        else:
+            if (not isinstance(receipt, dict) or receipt_path.is_symlink()
+                    or hashlib.sha256(receipt_raw).hexdigest() != revision.get("receipt_sha256")
+                    or receipt.get("kind") != revision.get("kind")
+                    or (receipt.get("output_dataset_sha256") is not None
+                        and receipt["output_dataset_sha256"] != hashlib.sha256(dataset_raw).hexdigest())
+                    or (receipt.get("output_results_sha256") is not None
+                        and receipt["output_results_sha256"] != hashlib.sha256(results_raw).hexdigest())):
+                failures.append("scoring_revision")
     if profile.get("comparison_kind") == "webmainbench_frozen_html_to_markdown":
         latency_diagnostic = profile.get("latency_diagnostic")
         if latency_diagnostic:
@@ -130,13 +162,6 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
                 if (hashlib.sha256(manifest_data).hexdigest() != latency_diagnostic.get("manifest_sha256")
                         or json.loads(manifest_data).get("kind") != latency_diagnostic.get("kind")):
                     failures.append("latency_diagnostic")
-        revision = profile.get("scoring_revision")
-        if revision:
-            receipt_path = evidence / "teds-correction.json"
-            if (not receipt_path.is_file() or receipt_path.is_symlink()
-                    or hashlib.sha256(receipt_path.read_bytes()).hexdigest() != revision.get("receipt_sha256")
-                    or json.loads(receipt_path.read_text()).get("kind") != revision.get("kind")):
-                failures.append("scoring_revision")
         for key in ("max_failure_retries", "source_dataset_sha256", "official_scorer_commit",
                     "sample_manifest_sha256", "official_metrics", "metric_config", "input_contract"):
             if comparison.get(key) != profile.get(key):

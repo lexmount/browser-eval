@@ -29,7 +29,7 @@ SENSITIVE_KEY = (
     rb'(?:aws[-_])?secret[-_]?access[-_]?key|client[-_]?secret|secret|credentials?|'
     rb'x[-_]?api[-_]?key|api[-_]?key|password|passwd))'
 )
-EMBEDDED_URL = re.compile(r"(?i)\bhttps?://[^\s<>\"'\x00]+")
+EMBEDDED_URL = re.compile(r"(?i)\bhttps?://[^\s<>\"'\\\x00]+")
 QUERY_SENSITIVE_KEY = re.compile(
     r'(?i)(?:' + SENSITIVE_KEY.decode('ascii') +
     r'|(?:[a-z0-9]+[-_])*(?:signature|sig|signed|auth|key)|'

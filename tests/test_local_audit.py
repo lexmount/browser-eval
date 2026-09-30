@@ -15,6 +15,25 @@ def _write(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def test_frozen_scoring_controls_allow_additions_but_reject_edits(tmp_path, monkeypatch):
+    root = local_audit.ROOT
+    dataset = json.loads((root / 'evaluation/dynamic-content-100-moli-webfetch/dataset.json').read_text())
+    receipt = json.loads((root / 'research/dynamic-100-moli-119-local-audit.json').read_text())
+    relative = 'evaluation/scoring-regressions.json'
+    controls = json.loads((root / relative).read_text())
+    controls['cases'].append({'id': 'new-independent-control'})
+    path = tmp_path / 'controls.json'
+    _write(path, controls)
+    original_file = local_audit._repository_file
+    monkeypatch.setattr(local_audit, '_repository_file',
+                        lambda name: path if name == relative else original_file(name))
+    local_audit._require_repository_bindings(dataset, receipt)
+    controls['cases'][0]['artifact'] = 'changed frozen evidence'
+    _write(path, controls)
+    with pytest.raises(ValueError, match='control contents changed'):
+        local_audit._require_repository_bindings(dataset, receipt)
+
+
 def test_local_audit_requires_complete_inventory_and_review_lineage(tmp_path, monkeypatch):
     root = tmp_path / "repo"
     source = tmp_path / "evidence"
