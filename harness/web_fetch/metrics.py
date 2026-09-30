@@ -641,7 +641,7 @@ def evaluate_content(
     if composite_acceptance:
         from .composite_tasks import evaluate_composite_acceptance
         composite = evaluate_composite_acceptance(
-            answer_text, composite_acceptance, base_url=base_url, links=named_links,
+            visible_content, composite_acceptance, base_url=base_url, links=named_links,
         )
         result.update(composite)
         result["content_pass"] = bool(result["content_pass"] and composite["composite_acceptance_pass"])

@@ -120,3 +120,12 @@ def test_metadata_title_cannot_supply_declared_body_coverage():
     rules=body_requirements(text)
     assert not evaluate_content('Other text',[],title=text,body_requirements=rules)['body_coverage_pass']
     assert evaluate_content(text,[],title='Other title',body_requirements=rules)['body_coverage_pass']
+
+
+def test_metadata_title_cannot_supply_composite_records():
+    case={'url':'https://example.test/homes','task_kind':'body',
+          'composite_acceptance':{'version':1,'groups':[{'id':'homes','kind':'named_link',
+          'minimum_records':1,'hosts':['example.test'],'entry_path':r'/item/[0-9]+'}]}}
+    record='[One Main Street](https://example.test/item/1)'
+    for content,title,expected in [('Other text',record,False),(record,'Other title',True)]:
+        assert score_attempt(case,content.encode(),ok=True,title=title)['content_pass'] is expected
