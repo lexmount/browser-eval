@@ -42,6 +42,38 @@
         "long-metadata-title-keeps-visible-html-anchor",
         "long-metadata-title-cannot-expose-script-anchor"
       ]
+    },
+    {
+      "root_cause": "Text-node newlines could turn inline prose into standalone challenge markers. Shared visible HTML normalization now preserves block boundaries and inline continuity. Composite tables accept configured jointly captured fields and aggregate all tables within the unchanged declared section and record-count contract.",
+      "provider_calls": 0,
+      "predecessor_source_sha256": "8a58c7dde094c012edb941db18b4c45dc8035d297f46927b76ef4d07bac997ca",
+      "revised_sha256": "931e15f5ba432fa97c2ae03f4fd504c55ff753c9061b3da563be0c1054f2279a",
+      "scoring_regressions_sha256": "7f97e834d4b2ad810e6c4632d5b21391e5a6b6b277f5aec648aa91589c9fc510",
+      "saved_input_inventory_sha256": "7153ee217d94158a22c873ab49ece3142dca928fa700a5306968f839c8822ee7",
+      "saved_first_call_count": 300,
+      "first_call_decision_changes": 0,
+      "saved_diagnostic_call_count": 122,
+      "diagnostic_input_inventory_sha256": "d0bba6414c67803f9c47436cc1c08c3438a70791ec8f8c9340cf16c52752a967",
+      "diagnostic_metric_effect": "Visible line and word diagnostics change with block-aware normalization; historical metrics and physical calls remain immutable. The score-only view does not replace the first-call denominator.",
+      "regression_ids": [
+        "html-doctype-hidden-challenge-is-not-visible",
+        "html-doctype-visible-challenge-still-blocks",
+        "html-inline-code-preserves-visible-anchor",
+        "html-hidden-script-cannot-satisfy-anchor",
+        "html-inline-code-counts-for-body-coverage",
+        "html-hidden-script-cannot-satisfy-body-coverage",
+        "html-visible-body-ignores-hidden-challenge-heading",
+        "html-hidden-script-cannot-inflate-visible-length",
+        "html-visible-challenge-heading-blocks-body",
+        "dynamic-undeclared-source-language-can-verify-identity",
+        "dynamic-undeclared-source-language-rejects-declared-language",
+        "long-metadata-title-keeps-visible-html-anchor",
+        "long-metadata-title-cannot-expose-script-anchor",
+        "html-inline-challenge-explanation-is-prose",
+        "html-independent-challenge-heading-still-blocks",
+        "combined-problem-cells-across-sections-pass",
+        "combined-problem-cells-cannot-omit-name"
+      ]
     }
   ],
   "shared_scorer": {

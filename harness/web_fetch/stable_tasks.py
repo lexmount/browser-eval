@@ -864,8 +864,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             html_candidate = remainder.lstrip()
         if re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
                     html_candidate, re.I):
-            from .dynamic_lists import _scoped_html
-            anchor_visible = title_prefix + _scoped_html(html_candidate).get_text('\n', strip=True)
+            from .dynamic_lists import visible_html_text
+            anchor_visible = title_prefix + visible_html_text(html_candidate)
     text_surface = anchor_visible if anchor_visible is not None else visible
     page_results = [{"pattern": p, "pass": bool(re.search(p, text_surface, re.I | re.M))} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])

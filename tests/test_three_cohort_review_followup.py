@@ -48,3 +48,25 @@ def test_html_body_text_is_normalized_once_without_losing_title():
     assert scored['stable_task_pass'] is True
     assert scored['blocked_page'] is False
     assert parser.call_count==1
+
+
+@pytest.mark.parametrize('tag', ['strong', 'code', 'em', 'a', 'span'])
+def test_inline_challenge_phrase_is_not_a_standalone_challenge(tag):
+    rules={'version':1,'schema':'body_text','minimum_records':0,
+           'stable_text_anchors':[{'id':'body','alternatives':['Required body']} ]}
+    case={'id':'article','url':'https://example.com/article','track':'web','task_kind':'body','acceptance_contract':rules}
+    body=f'<p>Required body. If you see <{tag}>Verify you are human</{tag}>, complete the verification before continuing.</p>'
+    for html, expected in [(body, True), ('<p>Required body.</p><h1><strong>Verify you are human</strong></h1>', False)]:
+        html='<html><body>'+html+'</body></html>'
+        assert evaluate_stable_task(html,rules)['stable_task_pass'] is expected
+        scored=score_attempt(case,html.encode(),ok=True)
+        assert scored['content_pass'] is expected
+        assert scored['blocked_page'] is (not expected)
+
+
+@pytest.mark.parametrize('markup', ['<p>Required body.</p><p>Verify you are human</p>',
+                                  '<p>Required body.<br>Verify you are human</p>',
+                                  '<pre>Required body.\nVerify you are human</pre>'])
+def test_rendered_line_breaks_preserve_real_challenge_markers(markup):
+    case={'url':'https://example.test/article','task_kind':'body'}
+    assert score_attempt(case,('<html><body>'+markup+'</body></html>').encode(),ok=True)['blocked_page'] is True

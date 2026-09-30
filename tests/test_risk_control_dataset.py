@@ -103,10 +103,13 @@ def test_language_rule_revision_is_the_predecessor_of_the_current_sample_revisio
 
 def test_zillow_sample_revision_binds_current_frozen_inputs():
     revision = json.loads(ZILLOW_REVISION.read_text())
+    successor = json.loads((ROOT/'research/risk-control-training-list-revision.json').read_text())
     profile = json.loads(RUN_PROFILE.read_text())
-    assert revision["correction"]["new_dataset_sha256"] == hashlib.sha256(DATASET.read_bytes()).hexdigest()
-    assert revision["correction"]["new_run_profile_sha256"] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
-    assert profile["dataset"]["sha256"] == revision["correction"]["new_dataset_sha256"]
+    for key in ('dataset', 'run_profile'):
+        assert revision['correction']['new_'+key+'_sha256'] == successor['correction']['predecessor_'+key+'_sha256']
+    assert successor['correction']['new_dataset_sha256'] == hashlib.sha256(DATASET.read_bytes()).hexdigest()
+    assert successor['correction']['new_run_profile_sha256'] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
+    assert profile["dataset"]["sha256"] == successor["correction"]["new_dataset_sha256"]
     assert revision["correction"]["provider_calls"] == 1
     assert revision["correction"]["rerun_case_ids"] == ["risk-diverse-134"]
 

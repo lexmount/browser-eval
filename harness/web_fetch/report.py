@@ -688,13 +688,14 @@ _ENGLISH_GENERATED=False
 
 def write(out,path,title,body,*,root_links=False):
  depth=len(Path(path).parts)-1;base='../'*depth
+ document_base='<base href="'+(base or './')+'">' if root_links else ''
  if root_links:base=''
  nav=[('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('review/index.html','核验记录'),('guide/index.html','报告解读'),('adoption/index.html','方法介绍'),('reproduce/index.html','环境与复现'),('changes/index.html','变更记录'),('accounts/index.html','账号与安装')]
  brand=link(base+'index.html','Web Fetch')
  counterpart=(base+'en/'+path if _ENGLISH_GENERATED else base+'en/index.html')
  language=f'<a href="{safe_href(counterpart)}" hreflang="en">English</a>'
  footer='所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。'
- page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{_RELIABILITY_BANNER}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
+ page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{document_base}<title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{_RELIABILITY_BANNER}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
 _RESEARCH_ROUTES=[
@@ -731,16 +732,16 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[da
     text+='<p class="actions">'+''.join(link('attempts/'+cid+'.html',cid+' →') for cid in block['case_ids'])+'</p>'
    body+=section(esc(block['title']),text)
   return body
- def distribution(counts,population):
-  return '<figure class="editorial-figure">'+''.join('<div class="editorial-bar-row"><span>'+esc(label)+'</span><div class="editorial-bar-track"><i style="width:'+str(100*n/population)+'%"></i></div><b>'+str(n)+' / '+str(population)+'</b></div>' for label,n in counts)+'</figure>'
+ def distribution(counts):
+  return '<figure class="editorial-figure">'+''.join('<div class="editorial-bar-row"><span>'+esc(label)+'</span><div class="editorial-bar-track"><i style="width:'+str(100*n/population)+'%"></i></div><b>'+str(n)+' / '+str(population)+'</b></div>' for label,n,population in counts)+'</figure>'
  try:
   cards=''.join('<article class="guide-card"><h3>'+esc(groups[g]['label'] if g in groups else '整体')+'</h3><p><strong>'+str(p)+' / '+str(n)+'</strong> · '+pct(p/n)+'</p></article>' for g,(p,n) in model['metrics'].items())
   home=hero(esc(model['title']),esc(model['subtitle']))
-  home+=section('三类任务与整体结果','<div class="guide-grid">'+cards+'</div>'+distribution([(groups[g]['label'],model['metrics'][g][0]) for g in groups],max(g['case_count'] for g in groups.values()))+'<p>'+esc(model['metric_note'])+'</p>','cohort-results')
+  home+=section('三类任务与整体结果','<div class="guide-grid">'+cards+'</div>'+distribution([(groups[g]['label'],*model['metrics'][g]) for g in groups])+'<p>'+esc(model['metric_note'])+'</p>','cohort-results')
   failures=Counter(r['cause'] for r in rows if not r['initial_pass'])
-  home+=section('未通过项的主要原因',distribution([(labels[k],n) for k,n in failures.most_common(3)],sum(failures.values()))+'<p>'+link('analysis/index.html','查看全部原因与逐项证据 →')+'</p>')
+  home+=section('未通过项的主要原因',distribution([(labels[k],n,sum(failures.values())) for k,n in failures.most_common(3)])+'<p>'+link('analysis/index.html','查看全部原因与逐项证据 →')+'</p>')
   audit=model['success_audit'];counts=audit['source_state_counts']
-  home+=section('通过项也经过源页反查',distribution([(model['source_labels'][k],n) for k,n in counts.items()],audit['audited_passes'])+'<p>'+str(audit['audited_passes'])+' 个首轮或诊断通过结果有三方核对记录；当前页面可比较的内容与访问障碍分别记录。'+link('review/index.html','核验范围与结论 →')+'</p>')
+  home+=section('通过项也经过源页反查',distribution([(model['source_labels'][k],n,audit['audited_passes']) for k,n in counts.items()])+'<p>'+str(audit['audited_passes'])+' 个首轮或诊断通过结果有三方核对记录；当前页面可比较的内容与访问障碍分别记录。'+link('review/index.html','核验范围与结论 →')+'</p>')
   home+=section('阅读入口','<div class="guide-grid">'+''.join('<article class="guide-card"><h3>'+link(route,title)+'</h3><p>'+text+'</p></article>' for route,title,text in [('datasets/index.html','评测集','查看样本、任务与独立参考要求。'),('analysis/index.html','结果分析','筛选通过、未通过和归因，打开完整证据。'),('guide/index.html','报告解读','理解访问挑战、提取遗漏及评测修订。')])+'</div>')
   page('index.html',model['title'],home)
   controls='<div class="filters"><label>组别<select data-filter="cohort"><option value="">全部</option>'+''.join('<option value="'+esc(k)+'">'+esc(g['label'])+'</option>' for k,g in groups.items())+'</select></label><label>结果<select data-filter="result"><option value="fail">未通过</option><option value="pass">通过</option><option value="">全部</option></select></label><label>原因<select data-filter="cause"><option value="">全部</option>'+''.join('<option value="'+esc(k)+'">'+esc(v)+'</option>' for k,v in labels.items())+'</select></label><label>搜索<input data-filter="query" aria-label="搜索样本" placeholder="编号或网址"></label></div><p id="count" role="status"></p>'

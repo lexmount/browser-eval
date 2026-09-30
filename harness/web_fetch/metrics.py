@@ -491,8 +491,8 @@ def evaluate_content(
                    re.match(r'\s*<(?:html|body|main|div|section|article)\b', content, re.I))
     if is_html:
         # Keep raw HTML for records and links; score prose from visible text.
-        from .dynamic_lists import _scoped_html
-        visible_content = _scoped_html(content).get_text('\n', strip=True)
+        from .dynamic_lists import visible_html_text
+        visible_content = visible_html_text(content)
     answer_text = title_prefix + visible_content
     from .reference_quality import blocked_page_hits, script_payload_shell
     block_hits = blocked_page_hits(answer_text)

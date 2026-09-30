@@ -5,7 +5,7 @@
   "unresolved_case_ids": [],
   "dataset": {
     "path": "evaluation/risk-control/dataset.json",
-    "sha256": "b29fc8fc9d3d41dfc1bc1c7d4edf39b1d5ba7cbfb0e441ff85cf78e117044e84",
+    "sha256": "1556d26a1554609eab5c0d9c79479549ecf59b3dc36e12d316516f0d4c2517e2",
     "case_count": 100,
     "site_count": 74,
     "case_ids_sha256": "f037b11fa10826f6bdafd1e61ec8663070fe9873ebb891218cf941f67e5012b1"
@@ -33,7 +33,7 @@
     },
     "list_contracts": {
       "path": "evaluation/risk-control/list-contracts.json",
-      "sha256": "961cb9ec9dcfebe2f632ac598a835b7bfc70533d1c2e6cee27598772d72cf099"
+      "sha256": "4d848525cc47179904443758ccdea39ea12c0e959b07237e4193fe2540a59299"
     },
     "body_contracts": {
       "path": "evaluation/risk-control/body-contracts.json",

@@ -49,6 +49,62 @@ class ReportTemplateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Unregistered'):
             resolve_template('new-report')
 
+    def test_local_nested_pages_resolve_resources_navigation_and_lazy_evidence(self):
+        from bs4 import BeautifulSoup
+        from urllib.parse import urljoin, urlsplit
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            for row in model['rows']:
+                binding=row['first_answer'];raw=('Saved full output\n'*3000).encode()
+                (source/binding['path']).write_bytes(raw)
+                binding['sha256']=hashlib.sha256(raw).hexdigest()
+            (source/'report.json').write_text(json.dumps(model))
+            output=root/'report';build_diagnostic_cohorts(source,output)
+            for route in ('attempts/complete.html','attempts/challenge.html','datasets/complete.html'):
+                soup=BeautifulSoup((output/route).read_text(),'html.parser')
+                document='https://local.test/reports/'+route
+                base=soup.select_one('base[href]')
+                base_url=urljoin(document,base['href']) if base else document
+                for node in soup.select('[href], [src], [data-evidence-file]'):
+                    if node.name=='base':continue
+                    value=node.get('href') or node.get('src') or node.get('data-evidence-file')
+                    resolved=urlsplit(urljoin(base_url,value))
+                    if resolved.netloc!='local.test':continue
+                    self.assertTrue(resolved.path.startswith('/reports/'))
+                    self.assertTrue((output/resolved.path.removeprefix('/reports/')).is_file(),(route,value))
+
+    def test_cohort_chart_uses_each_own_denominator_and_rejects_tampering(self):
+        from bs4 import BeautifulSoup
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            model['rows'][0]['cohort']='small'
+            model['rows'][1]['cohort']='large'
+            extra=copy.deepcopy(model['rows'][1]);extra.update(id='challenge-two',run_id='call-challenge-two')
+            model['rows'].append(extra)
+            model['cohorts']=[{'id':'small','label':'Small','case_count':1},{'id':'large','label':'Large','case_count':2}]
+            model['metrics']={'small':[1,1],'large':[0,2],'overall':[1,3]}
+            (source/'report.json').write_text(json.dumps(model))
+            output=root/'report';build_diagnostic_cohorts(source,output)
+            page=output/'index.html';soup=BeautifulSoup(page.read_text(),'html.parser')
+            bars=soup.select('#cohort-results .editorial-bar-row')
+            self.assertEqual([b.select_one('b').get_text() for b in bars],['1 / 1','0 / 2'])
+            self.assertIn('100',bars[0].select_one('i')['style'])
+            bars[0].select_one('b').string='1 / 2';page.write_text(str(soup))
+            with self.assertRaises(ValueError):check_diagnostic_report(output)
+
+    def test_release_rejects_wrong_document_base_even_when_root_targets_exist(self):
+        from bs4 import BeautifulSoup
+        for mode in ('missing', 'wrong', 'external'):
+            with self.subTest(mode=mode),tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';diagnostic_example(source)
+                output=root/'report';build_diagnostic_cohorts(source,output)
+                page=output/'attempts/challenge.html';soup=BeautifulSoup(page.read_text(),'html.parser')
+                base=soup.select_one('base[href]')
+                if mode=='missing':base.decompose()
+                else:base['href']='./' if mode=='wrong' else 'https://wrong.test/'
+                page.write_text(str(soup))
+                with self.assertRaises(ValueError):check_diagnostic_report(output)
+
     def test_reference_scope_is_required_before_rendering_or_writing(self):
         for value in (None, '', '  ', 42, ['partial']):
             with self.subTest(scope=value),tempfile.TemporaryDirectory() as temp:

@@ -130,6 +130,36 @@ def _scoped_html(content):
     return soup
 
 
+def visible_html_text(content):
+    """Preserve block boundaries without splitting inline prose into headings.
+
+    This uses the same explicit visibility exclusions as record extraction,
+    not computed CSS. Source indentation is whitespace, not a rendered line.
+    """
+    from bs4 import Comment, NavigableString, Tag
+    blocks = {'address', 'article', 'aside', 'blockquote', 'dd', 'details', 'dialog',
+              'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer',
+              'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hr', 'li',
+              'main', 'nav', 'ol', 'p', 'pre', 'section', 'summary', 'table',
+              'tbody', 'thead', 'tfoot', 'title', 'tr', 'ul'}
+    parts = []
+    stack = [(_scoped_html(content), False, False)]
+    while stack:
+        node, closing, preformatted = stack.pop()
+        if isinstance(node, Comment):
+            continue
+        if isinstance(node, NavigableString):
+            parts.append(str(node) if preformatted else re.sub(r'\s+', ' ', str(node)))
+        elif isinstance(node, Tag):
+            separator = '\n' if node.name in blocks or node.name == 'br' else '\t' if node.name in {'td', 'th'} else ''
+            parts.append(separator)
+            if not closing:
+                preformatted = preformatted or node.name in {'pre', 'textarea'}
+                stack.append((node, True, preformatted))
+                stack.extend((child, False, preformatted) for child in reversed(node.contents))
+    return '\n'.join(line.strip() for line in ''.join(parts).splitlines() if line.strip())
+
+
 def _named_candidate(url, title, contract, base_url, excluded_titles, diagnostics=None):
     """Normalize one output candidate; malformed output drops only that candidate."""
     try:

@@ -33,7 +33,7 @@
     "cohort_manifest_sha256": "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26",
     "first_30_rules_sha256": "4b9a65bd6429223b914a3af5a169c744af01358e051390a4f272063a93199a83",
     "remaining_70_rules_sha256": "8aa6e8ca959251f58a80e381e6b1209c3af95ec5fa67ef188b01800ab560c796",
-    "list_contracts_sha256": "961cb9ec9dcfebe2f632ac598a835b7bfc70533d1c2e6cee27598772d72cf099",
+    "list_contracts_sha256": "4d848525cc47179904443758ccdea39ea12c0e959b07237e4193fe2540a59299",
     "body_contracts_sha256": "db7d3083ff5430c2c56e9dcd7000cb340b78792dfb426ec3b9e08bd17fb81552"
   },
   "cases": [
@@ -7516,8 +7516,14 @@
             "id": "problems",
             "kind": "table",
             "minimum_records": 21,
-            "start_pattern": "(?:第一章|Chapter 1)",
-            "end_pattern": "(?:第六章|Chapter 6)",
+            "start_pattern": "(?m)^\\s*(?:#{1,6}\\s*)?(?:第一章|Chapter\\s+1\\b|Section\\s+1\\.)",
+            "end_pattern": "(?m)^\\s*(?:#{1,6}\\s*)?(?:第六章|Chapter\\s+6\\b|Section\\s+6\\.)",
+            "combined_columns": [
+              {
+                "aliases": ["Problem", "题目"],
+                "pattern": "^(?P<number>[A-Z]?[0-9]+)\\s+(?P<name>.+)$"
+              }
+            ],
             "required_columns": [
               {
                 "id": "number",

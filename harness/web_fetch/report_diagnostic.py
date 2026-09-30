@@ -4,6 +4,7 @@ import json
 import re
 from collections import Counter
 from pathlib import Path
+from urllib.parse import unquote, urljoin, urlsplit
 
 from .safety import contained_path, safe_identifier, validate_http_url
 
@@ -93,6 +94,19 @@ def check_diagnostic_report(output):
     for route in core:
         page = (output / route).read_text()
         check_presentation(page)
+    home = BeautifulSoup((output / 'index.html').read_text(), 'html.parser')
+    bars = home.select('#cohort-results .editorial-bar-row')
+    if len(bars) != len(model['cohorts']):
+        raise ValueError('Missing cohort result chart')
+    for bar, group in zip(bars, model['cohorts']):
+        passed, total = model['metrics'][group['id']]
+        label, count, fill = bar.select_one('span'), bar.select_one('b'), bar.select_one('i')
+        if (not label or label.get_text() != group['label'] or not count
+                or count.get_text() != f'{passed} / {total}' or not fill):
+            raise ValueError('Cohort chart differs from measured results')
+        width = re.fullmatch(r'width:([0-9.]+)%', fill.get('style', ''))
+        if not width or abs(float(width[1]) - 100 * passed / total) > 1e-9:
+            raise ValueError('Cohort chart percentage mismatch')
     for row in model["rows"]:
         route = "attempts/" + row["id"] + ".html"
         soup = check_presentation((output / route).read_text())
@@ -114,18 +128,32 @@ def check_diagnostic_report(output):
             pre = panel.select_one('pre')
             binding = row[field]
             if pre.get('data-evidence-file'):
-                if pre['data-evidence-file'] != binding['path']:
+                if _local_target(output, output / route, soup, pre['data-evidence-file']) != contained_path(output, binding['path']):
                     raise ValueError("Lazy evidence target mismatch")
             elif pre.get_text() != files[binding['path']].decode('utf-8'):
                 raise ValueError("Rendered evidence differs from saved output")
     for route in output.rglob("*.html"):
         soup = BeautifulSoup(route.read_text(), "html.parser")
-        for node in soup.select("[href], [src]"):
-            value = node.get("href") or node.get("src")
+        for node in soup.select("[href], [src], [data-evidence-file]"):
+            if node.name == 'base':
+                continue
+            value = node.get("href") or node.get("src") or node.get('data-evidence-file')
             if value.startswith(("http:", "https:", "#", "data:")):
                 continue
-            # Artifact Site injects a site-root base on every route.
-            target = contained_path(output, value.split("#")[0].split("?")[0])
+            target = _local_target(output, route, soup, value)
             if not target.is_file():
                 raise ValueError("Broken report target: " + value)
     return {"cases": len(model["rows"]), "core_routes": len(core), "status": "passed"}
+
+
+def _local_target(output, route, soup, value):
+    """Resolve a packaged link exactly as the browser resolves document.baseURI."""
+    document = route.resolve().as_uri()
+    base = soup.select_one('base[href]')
+    resolved = urlsplit(urljoin(urljoin(document, base['href']) if base else document, value))
+    if resolved.scheme != 'file' or resolved.netloc:
+        raise ValueError('Expected local report target: ' + value)
+    target = Path(unquote(resolved.path)).resolve()
+    if not target.is_relative_to(output.resolve()):
+        raise ValueError('Report target escapes package: ' + value)
+    return target
