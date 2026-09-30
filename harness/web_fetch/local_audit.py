@@ -122,9 +122,9 @@ def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
         raise ValueError("Scoring revision receipt has wrong bindings")
     regressions_path = _repository_file("evaluation/scoring-regressions.json")
     # The historical receipt's whole-file hash predates appended controls.
-    # Verify its exact bound prefix below (the canonical content hashes also
-    # enforce order); the later three-cohort revision separately binds the
-    # complete current registry hash. New controls are append-only.
+    # Verify its exact ordered prefix and canonical contents below. Canonical
+    # hashes alone cannot detect interleaving the two historical partitions.
+    # Later scorer revisions bind the full registry; controls are append-only.
     controls = json.loads(regressions_path.read_text(encoding="utf-8")).get("cases", [])
     current_ids = [row.get("id") for row in controls]
     base_ids = scoring.get("preexisting_control_ids", [])
@@ -138,7 +138,7 @@ def _require_repository_bindings(dataset: dict, receipt: dict) -> None:
             or len(base_ids) != len(set(base_ids))
             or len(revision_ids) != len(set(revision_ids))
             or set(base_ids) & set(revision_ids)
-            or set(bound_ids) != set(base_ids) | set(revision_ids)):
+            or bound_ids != base_ids + revision_ids):
         raise ValueError("Scoring control partition is incomplete or duplicated")
     base_set, revision_set = set(base_ids), set(revision_ids)
     base_controls = [row for row in controls if row["id"] in base_set]

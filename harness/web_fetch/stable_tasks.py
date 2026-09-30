@@ -830,7 +830,7 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Invalid stable acceptance regex") from error
 
 
-def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None) -> dict:
+def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None) -> dict:
     """Validate a version-1 schema/count contract, without fetching or snapshots.
 
     Required keys: version, schema, minimum_records. Optional maximum_records
@@ -840,6 +840,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     must match, independently of record shape and optional snapshot word metrics.
     named_link additionally requires hosts and entry_path, using the existing
     same-site detail-link parser. Raw URL identity is not factual verification.
+    anchor_text may reuse the caller's normalized HTML prose (including its
+    explicit title prefix); raw content still owns structural record parsing.
     """
     validate_acceptance_contract(contract)
     schema = contract["schema"]
@@ -847,17 +849,23 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     minimum, maximum = contract["minimum_records"], contract.get("maximum_records")
     patterns = contract.get("page_patterns", [])
     visible = _visible(content, schema)
-    anchor_visible = None
-    html_candidate = content.lstrip()
-    first_line, newline, remainder = html_candidate.partition('\n')
-    if (newline and len(first_line) <= 300
-            and re.match(r'\s*(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
-                         remainder, re.I)):
-        html_candidate = remainder.lstrip()
-    if re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
-                html_candidate, re.I):
-        from .dynamic_lists import _scoped_html
-        anchor_visible = _scoped_html(content).get_text('\n', strip=True)
+    anchor_visible = anchor_text
+    if anchor_visible is None:
+        html_candidate = content.lstrip()
+        first_line, newline, remainder = html_candidate.partition('\n')
+        title_prefix = ''
+        # Legacy callers combine a metadata title and HTML. Recognize the
+        # following document, not a guessed title-length limit. Keep metadata
+        # as text rather than interpreting angle brackets in a title as HTML.
+        if (newline and re.match(r'\s*(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
+                                  remainder, re.I)
+                and not re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',first_line,re.I)):
+            title_prefix = first_line + '\n'
+            html_candidate = remainder.lstrip()
+        if re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
+                    html_candidate, re.I):
+            from .dynamic_lists import _scoped_html
+            anchor_visible = title_prefix + _scoped_html(html_candidate).get_text('\n', strip=True)
     text_surface = anchor_visible if anchor_visible is not None else visible
     page_results = [{"pattern": p, "pass": bool(re.search(p, text_surface, re.I | re.M))} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])

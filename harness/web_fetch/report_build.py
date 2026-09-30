@@ -16,7 +16,7 @@ from .wcxb_latency import load_full_paired_latency
 from .scoring import SCORING_SOURCE_SHA256
 from .webmainbench_diagnostics import validate_teds_revision_if_present
 from .webmainbench_latency_correction import prior_results_path
-from .webmainbench_latency_diagnostic import load_diagnostic
+from .webmainbench_latency_diagnostic import load_diagnostic as load_latency_diagnostic
 from .artifacts import (
     diagnostic_log_binding, record_public_call_log_bindings, verify_record_private_artifacts,
     verify_public_call_log, verify_record_public_call_logs,
@@ -551,7 +551,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     teds_revision = validate_teds_revision_if_present(source, records)
     summaries = json.loads(contained_path(source, 'score-summaries.json').read_text())
     manifests = json.loads(contained_path(source, 'execution.json').read_text())['batches']
-    latency_diagnostic = load_diagnostic(source, dataset, records, manifests)
+    latency_diagnostic = load_latency_diagnostic(source, dataset, records, manifests)
     review_path = source / 'result-review.json'
     review = json.loads(review_path.read_text()) if review_path.is_file() else None
     if review is not None and review.get('bindings', {}).get('results_jsonl_sha256') != hashlib.sha256(

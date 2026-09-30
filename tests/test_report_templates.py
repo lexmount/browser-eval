@@ -49,6 +49,29 @@ class ReportTemplateTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'Unregistered'):
             resolve_template('new-report')
 
+    def test_reference_scope_is_required_before_rendering_or_writing(self):
+        for value in (None, '', '  ', 42, ['partial']):
+            with self.subTest(scope=value),tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                binding=model['rows'][0]['reference']
+                if value is None:binding.pop('scope')
+                else:binding['scope']=value
+                (source/'report.json').write_text(json.dumps(model))
+                with self.assertRaisesRegex(ValueError,'reference.*scope'):
+                    build_diagnostic_cohorts(source,root/'report')
+                self.assertFalse((root/'report').exists())
+
+    def test_malformed_evidence_bindings_fail_at_the_model_boundary(self):
+        for field in ('reference','first_answer','answer','source','log'):
+            for value in ('not-an-object', {'path':'a.txt'}, {'path':None,'sha256':'invalid'}):
+                with self.subTest(field=field,value=value),tempfile.TemporaryDirectory() as temp:
+                    root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                    model['rows'][0][field]=value
+                    (source/'report.json').write_text(json.dumps(model))
+                    with self.assertRaisesRegex(ValueError,field):
+                        build_diagnostic_cohorts(source,root/'report')
+                    self.assertFalse((root/'report').exists())
+
     def test_large_output_is_retained_and_loaded_from_bound_file(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);source=root/'source';model=diagnostic_example(source)

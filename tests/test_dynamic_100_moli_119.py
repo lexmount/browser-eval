@@ -48,6 +48,11 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert len(revision["dynamic_dataset"]["changes"]) == 9
     assert hashlib.sha256(historical.encode()).hexdigest() == receipt["bindings"]["dataset_sha256"]
     scorer_revision = revision["shared_scorer"]
+    for followup in revision.get('shared_scorer_followups', []):
+        assert followup['predecessor_source_sha256'] == scorer_revision['revised_sha256']
+        assert followup['provider_calls'] == 0
+        assert set(scorer_revision['regression_ids']) <= set(followup['regression_ids'])
+        scorer_revision = {**scorer_revision, **followup}
     assert scorer_revision["main_baseline_sha256"] == compatibility["bindings"]["scoring_source_sha256"]
     assert scorer_revision["revised_sha256"] == SCORING_SOURCE_SHA256
     assert scorer_revision["scoring_regressions_sha256"] == hashlib.sha256(
@@ -115,6 +120,17 @@ def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monke
 
     changed = json.loads(json.dumps(registry))
     changed["cases"].insert(0, dict(changed["cases"][-1], id="interleaved-control"))
+    replacement.write_text(json.dumps(changed))
+    with pytest.raises(ValueError, match="Scoring control partition"):
+        local_audit._require_repository_bindings(dataset, receipt)
+
+    # Interleaving existing controls preserves both partition hashes, but
+    # violates the historical ordered inventory just as inserting a new ID does.
+    scoring = json.loads((ROOT / receipt['repository_evidence']['scoring_revision_path']).read_text())
+    first_revision = scoring['revision_controls'][0]['id']
+    changed = json.loads(json.dumps(registry))
+    index = next(i for i, row in enumerate(changed['cases']) if row['id'] == first_revision)
+    changed['cases'].insert(0, changed['cases'].pop(index))
     replacement.write_text(json.dumps(changed))
     with pytest.raises(ValueError, match="Scoring control partition"):
         local_audit._require_repository_bindings(dataset, receipt)

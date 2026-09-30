@@ -487,8 +487,9 @@ def evaluate_content(
     title_prefix = ((title.strip() + '\n') if title and title.strip() else '')
     raw_answer_text = title_prefix + content
     visible_content = content
-    if (re.match(r'\s*<!doctype\s+html\b', content, re.I) or
-            re.match(r'\s*<(?:html|body|main|div|section|article)\b', content, re.I)):
+    is_html = bool(re.match(r'\s*<!doctype\s+html\b', content, re.I) or
+                   re.match(r'\s*<(?:html|body|main|div|section|article)\b', content, re.I))
+    if is_html:
         # Keep raw HTML for records and links; score prose from visible text.
         from .dynamic_lists import _scoped_html
         visible_content = _scoped_html(content).get_text('\n', strip=True)
@@ -609,7 +610,8 @@ def evaluate_content(
         declared_body_pass = bool(result["body_coverage_pass"])
         from .stable_tasks import evaluate_stable_task
         result.update(evaluate_stable_task(raw_answer_text, acceptance_contract,
-                                           base_url, links=named_links))
+                                           base_url, links=named_links,
+                                           anchor_text=answer_text if is_html else None))
         if encoding_corruption:
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False

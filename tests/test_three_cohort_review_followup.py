@@ -1,6 +1,9 @@
 """Scorer controls added after the historical dynamic-audit test inventory froze."""
 
 from harness.web_fetch.stable_tasks import evaluate_stable_task
+from harness.web_fetch.scoring import score_attempt
+from unittest.mock import patch
+import pytest
 
 
 def test_title_with_angle_bracket_does_not_expose_hidden_html_anchor():
@@ -15,3 +18,33 @@ def test_title_with_angle_bracket_does_not_expose_hidden_html_anchor():
     visible = hidden.replace("<script>Secret Anchor</script>", "<p>Secret Anchor</p>")
     assert evaluate_stable_task(hidden, rules)["stable_task_pass"] is False
     assert evaluate_stable_task(visible, rules)["stable_task_pass"] is True
+
+
+@pytest.mark.parametrize('length', [299,300,301,1024])
+def test_metadata_title_length_cannot_expose_hidden_html(length):
+    rules={'version':1,'schema':'body_text','minimum_records':0,
+           'stable_text_anchors':[{'id':'body','alternatives':['Required body']}]}
+    title='T'*length
+    for hidden in (False,True):
+        html=('<html><body>'+('<script>Required body</script><p>Other text</p>'
+              if hidden else '<p>Required body</p>')+'</body></html>')
+        direct=evaluate_stable_task(title+'\n'+html,rules)
+        scored=score_attempt({'id':'article','url':'https://example.com/article','track':'web','task_kind':'body',
+                              'acceptance_contract':rules},html.encode(),ok=True,title=title)
+        assert direct['stable_task_pass'] is (not hidden)
+        assert scored['stable_task_pass'] is (not hidden)
+        assert direct['stable_anchor_results']==scored['stable_anchor_results']
+
+
+def test_html_body_text_is_normalized_once_without_losing_title():
+    from harness.web_fetch.dynamic_lists import _scoped_html
+    rules={'version':1,'schema':'body_text','minimum_records':0,
+           'stable_text_anchors':[{'id':'body','alternatives':['Required body']},
+                                  {'id':'title','alternatives':['Page heading']}]}
+    html='<html><body><p>Required <b>body</b></p><script>Access denied</script></body></html>'
+    case={'id':'article','url':'https://example.com/article','track':'web','task_kind':'body','acceptance_contract':rules}
+    with patch('harness.web_fetch.dynamic_lists._scoped_html',wraps=_scoped_html) as parser:
+        scored=score_attempt(case,html.encode(),ok=True,title='Page heading')
+    assert scored['stable_task_pass'] is True
+    assert scored['blocked_page'] is False
+    assert parser.call_count==1

@@ -1,6 +1,7 @@
 """Validate a diagnostic report model without upgrading it to certification."""
 import hashlib
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
@@ -39,6 +40,17 @@ def load_diagnostic(source):
                 if field in ("first_answer", "answer", "reference", "log"):
                     raise ValueError("Missing result evidence: " + field)
                 continue
+            if not isinstance(binding, dict):
+                raise ValueError("Invalid evidence binding: " + field)
+            if not isinstance(binding.get('path'), str) or not binding['path'].strip():
+                raise ValueError("Invalid evidence path: " + field)
+            digest = binding.get('sha256')
+            if not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest):
+                raise ValueError("Invalid evidence sha256: " + field)
+            if field == 'reference' or 'scope' in binding:
+                scope = binding.get('scope')
+                if not isinstance(scope, str) or not scope.strip():
+                    raise ValueError("Invalid " + field + " evidence scope: expected nonempty text")
             relative = binding["path"]
             original = source / relative
             if any(p.is_symlink() for p in (original, *original.parents)

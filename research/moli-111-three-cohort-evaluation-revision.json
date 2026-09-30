@@ -19,6 +19,31 @@
       {"case_id":"dynamic-107-redoc-cafe-api","field":"expected_document_language_present","value":false,"source_html_sha256":"fef1769d7f4ff39f2d65d4ef0adcf603c40a56895b0f5bc6d1463be71dc997e5"}
     ]
   },
+  "shared_scorer_followups": [
+    {
+      "root_cause": "A length-limited metadata-title heuristic could expose hidden HTML anchors for long titles. Reuse normalized HTML prose from the shared scorer while retaining raw structural input; standalone calls recognize a following HTML document without a title-length assumption and preserve metadata as plain text.",
+      "provider_calls": 0,
+      "predecessor_source_sha256": "130d8de3c553e7f8d7ecc1ba3832aa6c03ad55c9f9b53ad4661a3faaddae1a39",
+      "revised_sha256": "8a58c7dde094c012edb941db18b4c45dc8035d297f46927b76ef4d07bac997ca",
+      "scoring_regressions_sha256": "f409314fec258e9bcd632786d8e4f2ff5133744a551773ef2c088e4fefd0ae53",
+      "saved_input_inventory_sha256": "7153ee217d94158a22c873ab49ece3142dca928fa700a5306968f839c8822ee7",
+      "regression_ids": [
+        "html-doctype-hidden-challenge-is-not-visible",
+        "html-doctype-visible-challenge-still-blocks",
+        "html-inline-code-preserves-visible-anchor",
+        "html-hidden-script-cannot-satisfy-anchor",
+        "html-inline-code-counts-for-body-coverage",
+        "html-hidden-script-cannot-satisfy-body-coverage",
+        "html-visible-body-ignores-hidden-challenge-heading",
+        "html-hidden-script-cannot-inflate-visible-length",
+        "html-visible-challenge-heading-blocks-body",
+        "dynamic-undeclared-source-language-can-verify-identity",
+        "dynamic-undeclared-source-language-rejects-declared-language",
+        "long-metadata-title-keeps-visible-html-anchor",
+        "long-metadata-title-cannot-expose-script-anchor"
+      ]
+    }
+  ],
   "shared_scorer": {
     "main_baseline_sha256": "bd0b0118c84b0ba03d9241aba74be84330a9a9dd20f98f62a3ac8be396c79725",
     "revised_sha256": "130d8de3c553e7f8d7ecc1ba3832aa6c03ad55c9f9b53ad4661a3faaddae1a39",
