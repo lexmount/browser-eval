@@ -214,6 +214,7 @@ def test_zillow_case_binds_location_and_only_requires_visible_card_fields(datase
 
 @pytest.mark.parametrize('fields,expected', [
     ('3 beds · 2 baths · 1,200 sqft', True),
+    ('3 beds · 2.5 baths · 1,200 sqft', True),
     ('3 beds 2 baths 1,200 sqft', True),
     ('5 bds4 ba3,380 sqftActive', True),
     ('3 beds\n2 baths\n1,200 sqft', True),
