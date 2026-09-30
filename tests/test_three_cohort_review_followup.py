@@ -73,10 +73,12 @@ def test_rendered_line_breaks_preserve_real_challenge_markers(markup):
 
 
 @pytest.mark.parametrize('visible', [False, True])
-def test_document_head_cannot_supply_body_evidence(visible):
+@pytest.mark.parametrize('title_parent', ['head', 'body'])
+def test_document_head_cannot_supply_body_evidence(visible, title_parent):
     rules={'version':1,'schema':'body_text','minimum_records':0,
            'stable_text_anchors':[{'id':'body','alternatives':['Required body']}]}
-    html='<html><head><title>Required body</title></head><body><p>'+('Required body' if visible else 'Other text')+'</p></body></html>'
+    title='<title>Required body</title>'
+    html='<html><head>'+(title if title_parent=='head' else '')+'</head><body>'+(title if title_parent=='body' else '')+'<p>'+('Required body' if visible else 'Other text')+'</p></body></html>'
     case={'url':'https://example.test/article','task_kind':'body','acceptance_contract':rules}
     assert evaluate_stable_task(html,rules)['stable_task_pass'] is visible
     assert score_attempt(case,html.encode(),ok=True)['content_pass'] is visible
@@ -128,4 +130,12 @@ def test_metadata_title_cannot_supply_composite_records():
           'minimum_records':1,'hosts':['example.test'],'entry_path':r'/item/[0-9]+'}]}}
     record='[One Main Street](https://example.test/item/1)'
     for content,title,expected in [('Other text',record,False),(record,'Other title',True)]:
+        assert score_attempt(case,content.encode(),ok=True,title=title)['content_pass'] is expected
+
+
+@pytest.mark.parametrize('rule', [{'expected_any':['Order ID 123']},
+                                {'required_patterns':[{'id':'order','pattern':r'Order ID \d+','minimum':1}]}])
+def test_legacy_page_text_rules_cannot_take_evidence_from_metadata(rule):
+    case={'url':'https://example.test/order','task_kind':'body',**rule}
+    for content,title,expected in [('Other text','Order ID 123',False),('Order ID 123','Other title',True)]:
         assert score_attempt(case,content.encode(),ok=True,title=title)['content_pass'] is expected

@@ -499,7 +499,8 @@ def evaluate_content(
     replacement_count, replacement_ratio, encoding_corruption = text_corruption(answer_text)
     truncation_hits = declared_truncation_hits(answer_text)
     folded = normalize_for_match(answer_text)
-    matched = [marker for marker in expected if (text := normalize_for_match(marker)) and text in folded]
+    content_folded = normalize_for_match(visible_content)
+    matched = [marker for marker in expected if (text := normalize_for_match(marker)) and text in content_folded]
     facts = required_facts or []
     from .dynamic_entry_matching import matching_entry_facts
     entry_hits = matching_entry_facts(folded, facts, normalize_for_match, fact_in_text)
@@ -549,7 +550,7 @@ def evaluate_content(
                     and not script_shell)
     pattern_results = []
     for rule in required_patterns or []:
-        count = len(set(re.findall(rule['pattern'], answer_text, re.I)))
+        count = len(set(re.findall(rule['pattern'], visible_content, re.I)))
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
     from .body_coverage import evaluate_body_requirements
