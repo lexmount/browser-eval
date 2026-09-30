@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "kind": "risk_control_cohort_qualification_receipt",
-  "cohort_manifest_sha256": "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e",
+  "cohort_manifest_sha256": "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26",
   "scope": {
     "url_cases": 100,
     "independent_sites": 74,
@@ -46,6 +46,28 @@
       {
         "path": "evidence/risk-control/kuaishou-requalification-20260929-r1/replacement-risk-diverse-271-reference/capture.json",
         "sha256": "e6bb1c0c489c60845502fcac9052f91c37b4f4777037f12e68320f6cfbe983c4"
+      }
+    ]
+  },
+  "requalification": {
+    "case_id": "risk-diverse-134",
+    "old_url": "https://www.zillow.com/homes/for_sale/",
+    "new_url": "https://www.zillow.com/seattle-wa/",
+    "reason": "The location-free route selected an environment-dependent region while the task required at least eight listing cards. The corrected route fixes the task identity to Seattle without changing the site or interaction policy.",
+    "qualification_class": "security_or_access_control",
+    "provider_outputs_used": false,
+    "observations": {
+      "ordinary_http": "403 with x-px-blocked and px-captcha",
+      "browser": "two initial-load observations each exposed nine unique, complete listing cards"
+    },
+    "external_files": [
+      {
+        "path": "risk-control/qualification-zillow-20260929/risk-diverse-134/capture.json",
+        "sha256": "f8a3fda181d5f30985a281e22746dc41add69a46313cc4a48de72183c5456c0c"
+      },
+      {
+        "path": "risk-control/qualification-zillow-20260929/risk-diverse-134/browser-reference.txt",
+        "sha256": "8a46b8650d53c53b41b72dc8fa2892f3fde313a1218024e1a8a4b12c52966f9c"
       }
     ]
   },

@@ -136,14 +136,14 @@
 
 ## 43. risk-diverse-134｜Zillow Homes for Sale
 
-[打开目标网页](https://www.zillow.com/homes/for_sale/)
+[打开目标网页](https://www.zillow.com/seattle-wa/)
 
-- **网址、语言与目标：** 输入和最终网址相同；英文；未指定城市的售房搜索及首次加载房源。独立观察落在 Gilroy，但地区不是长期固定目标。
-- **稳定文字：** `For sale`、`Price`、`Beds & baths`、`Property type`、`Filters`、`Save search`；不把 `Gilroy CA Real Estate & Homes For Sale` 冻结为必需文字。 页面外围诊断：`Submit Search`、`Search`、`Updates`、`Favorites`、`Plan`、`Inbox`。这些文字均来自绑定的首次加载证据，仅用于页面外围覆盖诊断，不影响任务通过；它们不并入目标正文，排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
+- **网址、语言与目标：** 输入和最终网址相同；英文；Seattle 售房搜索及首次加载房源。精确地区属于任务身份，避免无地区入口按访问环境落到任意城市或空结果。
+- **稳定文字：** `For sale`、`Price`、`Beds & baths`、`Property type`、`Filters`、`Save search`、`Seattle WA Real Estate & Homes For Sale`。 页面外围诊断：`Submit Search`、`Search`、`Updates`、`Favorites`、`Plan`、`Inbox`。这些文字均来自绑定的首次加载证据，仅用于页面外围覆盖诊断，不影响任务通过；它们不并入目标正文，排除项中的“导航”仅指未列入这里的其他通用、状态性或易变导航。
 - **name-link：** 地址/名称与同一卡片的真实链接对应；主机为 `www.zillow.com`，路径完整匹配 `/homedetails/<slug>/<数字>_zpid/`。
-- **数量与字段：** N=9，T=8，按 zpid 去重；同一卡片需有价格、卧室数、浴室数、面积和房屋类型，具体值可变化。
+- **数量与字段：** N=9，T=8，按 zpid 去重；同一卡片需有页面可见的价格、卧室数、浴室数和面积，具体值可变化。房屋类型只存在于嵌入状态而未显示在首次加载卡片上，不作为输出必需字段。
 - **正文：** 不采用固定房源正文；变化卡片由 name-link、同卡片字段、去重和数量覆盖。
-- **排除：** `Loading`、结果总数、推荐、导航和页脚；不能把地区变化误判为抓错页面。
+- **排除：** `Loading`、结果总数、推荐、导航和页脚；其他地区的房源不能代替 Seattle 任务。
 
 ## 44. risk-diverse-135｜Go.Compare
 

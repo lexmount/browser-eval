@@ -30,10 +30,10 @@ BODY_CONTRACTS = RISK / "body-contracts.json"
 EXPECTED_RULE_HASHES = {
     "first-30-rule-review.md": "4b9a65bd6429223b914a3af5a169c744af01358e051390a4f272063a93199a83",
     "remaining-70-rule-review.md": (
-        "f5ce3afb723d91aac7dc2b4dbb6e822ac70292abd8dc46167e24fd47ab5bfd8c"
+        "8aa6e8ca959251f58a80e381e6b1209c3af95ec5fa67ef188b01800ab560c796"
     ),
 }
-EXPECTED_COHORT_HASH = "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e"
+EXPECTED_COHORT_HASH = "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26"
 CHINESE_NUMBERS = {"一": 1, "两": 2, "二": 2, "三": 3, "四": 4, "五": 5}
 
 
@@ -259,8 +259,8 @@ def build(output: Path) -> dict:
         raise ValueError("Rule/cohort order mismatch")
     target_literal_count = sum(len(section["stable"]) for section in sections)
     context_literal_count = sum(len(section["page_context"]) for section in sections)
-    if (target_literal_count, context_literal_count) != (728, 871):
-        raise ValueError("Expected exactly 728 target and 871 page-context literals")
+    if (target_literal_count, context_literal_count) != (729, 871):
+        raise ValueError("Expected exactly 729 target and 871 page-context literals")
 
     roots = evidence_roots()
     list_source = json.loads(LIST_CONTRACTS.read_text())

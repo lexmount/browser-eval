@@ -453,11 +453,6 @@
             {
               "id": "area",
               "kind": "area"
-            },
-            {
-              "id": "house_type",
-              "kind": "text",
-              "pattern": "(?:house|home|condo|townhouse|apartment|lot|land|manufactured|multi-family|construction|owner)"
             }
           ]
         }
