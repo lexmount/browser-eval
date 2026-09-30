@@ -39,14 +39,14 @@ def test_metadata_title_length_cannot_expose_hidden_html(length):
 def test_html_body_text_is_normalized_once_without_losing_title():
     from harness.web_fetch.dynamic_lists import _scoped_html
     rules={'version':1,'schema':'body_text','minimum_records':0,
-           'stable_text_anchors':[{'id':'body','alternatives':['Required body']},
-                                  {'id':'title','alternatives':['Page heading']}]}
+           'stable_text_anchors':[{'id':'body','alternatives':['Required body']}]}
     html='<html><body><p>Required <b>body</b></p><script>Access denied</script></body></html>'
     case={'id':'article','url':'https://example.com/article','track':'web','task_kind':'body','acceptance_contract':rules}
     with patch('harness.web_fetch.dynamic_lists._scoped_html',wraps=_scoped_html) as parser:
         scored=score_attempt(case,html.encode(),ok=True,title='Page heading')
     assert scored['stable_task_pass'] is True
     assert scored['blocked_page'] is False
+    assert scored['title_chars']==len('Page heading')
     assert parser.call_count==1
 
 
@@ -90,3 +90,33 @@ def test_numeric_card_pattern_can_describe_the_value_not_only_a_unit():
            'required_fields':[{'id':'quantity','kind':'integer','pattern':r'^\d+$'}]}]}
     text='# Stock\n[One](https://example.test/item/1)\n12\n# End'
     assert evaluate_composite_acceptance(text,rules,base_url='https://example.test/')['composite_acceptance_pass']
+
+
+@pytest.mark.parametrize('html',[False,True])
+def test_metadata_title_cannot_supply_declared_page_text(html):
+    import json
+    from pathlib import Path
+    from harness.web_fetch.metrics import task_passed
+    case=next(c for c in json.loads((Path(__file__).resolve().parents[1]/'evaluation/popular-sites/dataset.json').read_text())['cases'] if c['id']=='global-homepage-001-google-com')
+    anchors='; '.join(a['alternatives'][0] for a in case['acceptance_contract']['stable_text_anchors'])
+    for body,title,expected in [('Unrelated content',anchors,False),(anchors,'Unrelated title',True)]:
+        content='<html><body><p>'+body+'</p></body></html>' if html else body
+        result=score_attempt(case,content.encode(),ok=True,title=title,final_url=case['url'])
+        assert task_passed(True,result,case['task_kind']) is expected
+        assert result['stable_anchor_hits']==(result['stable_anchor_total'] if expected else 0)
+        assert result['title_chars']==len(title)
+
+
+def test_legacy_title_prefix_cannot_supply_html_body_anchor():
+    rules={'version':1,'schema':'body_text','minimum_records':0,
+           'stable_text_anchors':[{'id':'body','alternatives':['Required body']}]}
+    assert not evaluate_stable_task('Required body\n<html><body>Other text</body></html>',rules)['stable_task_pass']
+
+
+def test_metadata_title_cannot_supply_declared_body_coverage():
+    from harness.web_fetch.body_coverage import body_requirements
+    from harness.web_fetch.metrics import evaluate_content
+    text='Required body paragraph explains independent visible source content and complete record ownership.'
+    rules=body_requirements(text)
+    assert not evaluate_content('Other text',[],title=text,body_requirements=rules)['body_coverage_pass']
+    assert evaluate_content(text,[],title='Other title',body_requirements=rules)['body_coverage_pass']

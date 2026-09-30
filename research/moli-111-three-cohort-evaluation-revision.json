@@ -106,6 +106,41 @@
         "card-single-line-distinct-typed-fields-pass",
         "card-unrelated-quantity-cannot-supply-typed-fields"
       ]
+    },
+    {
+      "root_cause": "Document-title metadata still satisfied stable page anchors and independently declared body coverage. Those gates now consume only the visible returned content; title diagnostics and legacy answer-field fact rules remain separate.",
+      "provider_calls": 0,
+      "predecessor_source_sha256": "3976dfe42163bfd7afbe21115d13ef4a37572e45253deb71e525db98578198c6",
+      "revised_sha256": "9fc62f86c5c145b0bfd93ad7243df18ed8869382cbc45f982d0268b6545b1216",
+      "scoring_regressions_sha256": "32498259a903dcb8d0d202a88b3e9de91aa15f3c6e24bf54aac8a4d3706c7f29",
+      "saved_input_inventory_sha256": "7153ee217d94158a22c873ab49ece3142dca928fa700a5306968f839c8822ee7",
+      "regression_ids": [
+        "html-doctype-hidden-challenge-is-not-visible",
+        "html-doctype-visible-challenge-still-blocks",
+        "html-inline-code-preserves-visible-anchor",
+        "html-hidden-script-cannot-satisfy-anchor",
+        "html-inline-code-counts-for-body-coverage",
+        "html-hidden-script-cannot-satisfy-body-coverage",
+        "html-visible-body-ignores-hidden-challenge-heading",
+        "html-hidden-script-cannot-inflate-visible-length",
+        "html-visible-challenge-heading-blocks-body",
+        "dynamic-undeclared-source-language-can-verify-identity",
+        "dynamic-undeclared-source-language-rejects-declared-language",
+        "long-metadata-title-keeps-visible-html-anchor",
+        "long-metadata-title-cannot-expose-script-anchor",
+        "html-inline-challenge-explanation-is-prose",
+        "html-independent-challenge-heading-still-blocks",
+        "combined-problem-cells-across-sections-pass",
+        "combined-problem-cells-cannot-omit-name",
+        "html-head-title-cannot-supply-body",
+        "html-body-anchor-with-head-title-passes",
+        "card-single-line-distinct-typed-fields-pass",
+        "card-unrelated-quantity-cannot-supply-typed-fields",
+        "metadata-title-body-anchor-missing-fails",
+        "metadata-title-body-anchor-visible-passes",
+        "metadata-title-body-coverage-missing-fails",
+        "metadata-title-body-coverage-visible-passes"
+      ]
     }
   ],
   "shared_scorer": {

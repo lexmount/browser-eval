@@ -840,8 +840,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     must match, independently of record shape and optional snapshot word metrics.
     named_link additionally requires hosts and entry_path, using the existing
     same-site detail-link parser. Raw URL identity is not factual verification.
-    anchor_text may reuse the caller's normalized HTML prose (including its
-    explicit title prefix); raw content still owns structural record parsing.
+    anchor_text may reuse the caller's normalized visible HTML prose;
+    document-title metadata cannot supply page text or structural records.
     """
     validate_acceptance_contract(contract)
     schema = contract["schema"]
@@ -853,19 +853,17 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     if anchor_visible is None:
         html_candidate = content.lstrip()
         first_line, newline, remainder = html_candidate.partition('\n')
-        title_prefix = ''
         # Legacy callers combine a metadata title and HTML. Recognize the
         # following document, not a guessed title-length limit. Keep metadata
         # as text rather than interpreting angle brackets in a title as HTML.
         if (newline and re.match(r'\s*(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
                                   remainder, re.I)
                 and not re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',first_line,re.I)):
-            title_prefix = first_line + '\n'
             html_candidate = remainder.lstrip()
         if re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
                     html_candidate, re.I):
             from .dynamic_lists import visible_html_text
-            anchor_visible = title_prefix + visible_html_text(html_candidate)
+            anchor_visible = visible_html_text(html_candidate)
     text_surface = anchor_visible if anchor_visible is not None else visible
     page_results = [{"pattern": p, "pass": bool(re.search(p, text_surface, re.I | re.M))} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])
