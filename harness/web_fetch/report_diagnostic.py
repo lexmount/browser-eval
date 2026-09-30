@@ -101,8 +101,12 @@ def check_diagnostic_report(output):
         detail = soup.select_one('[data-report-detail]')
         if detail["data-report-detail"] != ('success' if row['initial_pass'] else 'failed'):
             raise ValueError("Rendered verdict differs from measured result")
-        for field in ("reference", "first_answer", "source", "log"):
+        for field in ("reference", "first_answer", "answer", "source", "log"):
             if not row.get(field):
+                continue
+            # The renderer shares the first-call panel only for an identical
+            # binding. Supplemental outputs require their own checked panel.
+            if field == "answer" and row[field] == row["first_answer"]:
                 continue
             panel = soup.select_one(f'[data-evidence-kind="{field}"]')
             if not panel or not panel.select_one('pre'):

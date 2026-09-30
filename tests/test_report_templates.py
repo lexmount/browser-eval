@@ -87,6 +87,27 @@ class ReportTemplateTests(unittest.TestCase):
             panel=soup.select_one('[data-evidence-kind="first_answer"] pre')
             self.assertEqual(panel['data-evidence-file'],binding['path'])
 
+    def test_release_checks_distinct_diagnostic_output(self):
+        from bs4 import BeautifulSoup
+        for mode in ('missing', 'wrong-file', 'wrong-content'):
+            with self.subTest(mode=mode),tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                relative='evidence/complete-diagnostic.txt'
+                raw=b'Required article body from supplemental call'
+                (source/relative).write_bytes(raw)
+                model['rows'][0]['answer']={'path':relative,'sha256':hashlib.sha256(raw).hexdigest(),'scope':'supplemental call'}
+                (source/'report.json').write_text(json.dumps(model))
+                output=root/'report';build_diagnostic_cohorts(source,output)
+                self.assertEqual(check_diagnostic_report(output)['cases'],2)
+                page=output/'attempts/complete.html'
+                soup=BeautifulSoup(page.read_text(),'html.parser')
+                panel=soup.select_one('[data-evidence-kind="answer"]')
+                if mode=='missing':panel.decompose()
+                elif mode=='wrong-file':panel.select_one('pre')['data-evidence-file']=model['rows'][0]['first_answer']['path']
+                else:panel.select_one('pre').string='Wrong supplemental output'
+                page.write_text(str(soup))
+                with self.assertRaises(ValueError):check_diagnostic_report(output)
+
     def test_build_preserves_outputs_and_separates_dataset_from_verdicts(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);source=root/'source';model=diagnostic_example(source)
