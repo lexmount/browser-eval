@@ -139,3 +139,15 @@ def test_legacy_page_text_rules_cannot_take_evidence_from_metadata(rule):
     case={'url':'https://example.test/order','task_kind':'body',**rule}
     for content,title,expected in [('Other text','Order ID 123',False),('Order ID 123','Other title',True)]:
         assert score_attempt(case,content.encode(),ok=True,title=title)['content_pass'] is expected
+
+
+def test_explicit_title_fact_and_body_scope_are_independent_requirements():
+    from harness.web_fetch.body_coverage import body_requirements
+    text='Required body paragraph explains independent visible source content and complete record ownership.'
+    case={'url':'https://example.test/article','task_kind':'body',
+          'required_facts':[{'id':'title','alternatives':['Exact page title']}],
+          'body_requirements':body_requirements(text)}
+    for content,title,expected in [(text,'Exact page title',True),
+                                   (text,'Wrong title',False),
+                                   ('Other text','Exact page title',False)]:
+        assert score_attempt(case,content.encode(),ok=True,title=title)['content_pass'] is expected

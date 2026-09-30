@@ -12,7 +12,9 @@ def resolve_template(track, *, root=ROOT):
     if track not in registry["tracks"]:
         raise ValueError("Unregistered report track; add its maintained renderer, runnable example and release checks first")
     result = dict(registry["tracks"][track])
-    for key in ("renderer", "entrypoint", "profile", "tests"):
+    for key in ("renderer", "entrypoint", "profile", "tests", *(
+        key for key in result if key.endswith('_profile')
+    )):
         path = root / result[key]
         if not path.is_file() or not path.resolve().is_relative_to(root.resolve()):
             raise ValueError("Report template has a missing or unsafe " + key)

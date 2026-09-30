@@ -37,6 +37,35 @@ def diagnostic_example(root):
 
 
 class ReportTemplateTests(unittest.TestCase):
+    def test_default_webfetch_and_wcxb_use_distinct_authoritative_profiles(self):
+        import shlex
+        from urllib.parse import urlsplit,parse_qs
+        template=resolve_template('webfetch')
+        self.assertEqual(template['profile'],'evaluation/current-report.json')
+        command=shlex.split(template['build'])
+        self.assertEqual(command[command.index('--profile')+1],template['profile'])
+        self.assertEqual(command[command.index('--output')+1],'reports/webfetch')
+        self.assertEqual(template['check'],'make report-check')
+        wcxb=json.loads((ROOT/template['wcxb_profile']).read_text())
+        command=shlex.split(template['wcxb_build'])
+        self.assertEqual(command[command.index('--profile')+1],template['wcxb_profile'])
+        self.assertEqual(command[command.index('--output')+1],'reports/wcxb')
+        self.assertEqual(template['example_profile'],template['wcxb_profile'])
+        self.assertEqual(urlsplit(template['example']).path,'/s/'+wcxb['artifact_hub_site'])
+        self.assertEqual(parse_qs(urlsplit(template['example']).query)['version'],[wcxb['artifact_hub_expected_version']])
+
+    def test_optional_variant_profiles_must_exist_within_the_repository(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'configs').mkdir()
+            registry=json.loads((ROOT/'configs/report-templates.json').read_text())
+            row=registry['tracks']['webfetch']
+            for key in ('renderer','entrypoint','profile','tests',*(key for key in row if key.endswith('_profile'))):
+                path=root/row[key];path.parent.mkdir(parents=True,exist_ok=True);path.write_text('{}')
+            for value in ('missing-profile.json',str(ROOT/'evaluation/wcxb/current-report.json')):
+                row['wcxb_profile']=value
+                (root/'configs/report-templates.json').write_text(json.dumps(registry))
+                with self.assertRaisesRegex(ValueError,'profile'):
+                    resolve_template('webfetch',root=root)
     def test_all_supported_tracks_resolve_existing_owners_and_pinned_examples(self):
         for track in ('webfetch','trajectory-replay','browser-use'):
             with self.subTest(track=track):
