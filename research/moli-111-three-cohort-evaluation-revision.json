@@ -74,6 +74,38 @@
         "combined-problem-cells-across-sections-pass",
         "combined-problem-cells-cannot-omit-name"
       ]
+    },
+    {
+      "root_cause": "HTML head text was accepted as rendered body evidence. Card fields were assigned whole lines rather than independent typed value spans; unrelated quantities could satisfy numeric labels, and single-character Markdown emphasis could leave delimiters in values.",
+      "provider_calls": 0,
+      "predecessor_source_sha256": "931e15f5ba432fa97c2ae03f4fd504c55ff753c9061b3da563be0c1054f2279a",
+      "revised_sha256": "4615cc372752494523eb08d840b80e58db2e8890225eec8830177c90dced3068",
+      "scoring_regressions_sha256": "b1f66941493c966550b64a799b781f04acb6982ebbd40dac333fd0f8401c3289",
+      "saved_input_inventory_sha256": "7153ee217d94158a22c873ab49ece3142dca928fa700a5306968f839c8822ee7",
+      "independent_card_source_sha256": "8a46b8650d53c53b41b72dc8fa2892f3fde313a1218024e1a8a4b12c52966f9c",
+      "regression_ids": [
+        "html-doctype-hidden-challenge-is-not-visible",
+        "html-doctype-visible-challenge-still-blocks",
+        "html-inline-code-preserves-visible-anchor",
+        "html-hidden-script-cannot-satisfy-anchor",
+        "html-inline-code-counts-for-body-coverage",
+        "html-hidden-script-cannot-satisfy-body-coverage",
+        "html-visible-body-ignores-hidden-challenge-heading",
+        "html-hidden-script-cannot-inflate-visible-length",
+        "html-visible-challenge-heading-blocks-body",
+        "dynamic-undeclared-source-language-can-verify-identity",
+        "dynamic-undeclared-source-language-rejects-declared-language",
+        "long-metadata-title-keeps-visible-html-anchor",
+        "long-metadata-title-cannot-expose-script-anchor",
+        "html-inline-challenge-explanation-is-prose",
+        "html-independent-challenge-heading-still-blocks",
+        "combined-problem-cells-across-sections-pass",
+        "combined-problem-cells-cannot-omit-name",
+        "html-head-title-cannot-supply-body",
+        "html-body-anchor-with-head-title-passes",
+        "card-single-line-distinct-typed-fields-pass",
+        "card-unrelated-quantity-cannot-supply-typed-fields"
+      ]
     }
   ],
   "shared_scorer": {

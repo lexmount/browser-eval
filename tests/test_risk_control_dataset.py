@@ -212,6 +212,25 @@ def test_zillow_case_binds_location_and_only_requires_visible_card_fields(datase
     )["content_pass"] is False
 
 
+@pytest.mark.parametrize('fields,expected', [
+    ('3 beds · 2 baths · 1,200 sqft', True),
+    ('3 beds 2 baths 1,200 sqft', True),
+    ('5 bds4 ba3,380 sqftActive', True),
+    ('3 beds\n2 baths\n1,200 sqft', True),
+    ('**3** beds · __2__ baths · **1,200** sqft', True),
+    ('1200 sqft beds\n1200 sqft baths\n1200 sqft', False),
+    ('3 beds · 1,200 sqft', False),
+])
+def test_zillow_full_score_requires_distinct_numeric_card_fields(dataset, fields, expected):
+    from harness.web_fetch.scoring import score_attempt
+    case=next(c for c in dataset['cases'] if c['id']=='risk-diverse-134')
+    anchors='\n'.join(a['alternatives'][0] for a in case['acceptance_contract']['stable_text_anchors'])
+    cards=[f'[10{i} Example Avenue](https://www.zillow.com/homedetails/Example/{10000000+i}_zpid/)\n$900,000\n{fields}' for i in range(8)]
+    result=score_attempt(case,(anchors+'\n\n'+'\n\n'.join(cards)).encode(),ok=True,final_url=case['url'])
+    assert result['content_pass'] is expected
+    assert result['composite_group_results'][0]['count']==(8 if expected else 0)
+
+
 def test_compact_cohort_receipt_binds_final_manifest_and_limits_the_claim():
     import hashlib
 

@@ -70,3 +70,13 @@ def test_inline_challenge_phrase_is_not_a_standalone_challenge(tag):
 def test_rendered_line_breaks_preserve_real_challenge_markers(markup):
     case={'url':'https://example.test/article','task_kind':'body'}
     assert score_attempt(case,('<html><body>'+markup+'</body></html>').encode(),ok=True)['blocked_page'] is True
+
+
+@pytest.mark.parametrize('visible', [False, True])
+def test_document_head_cannot_supply_body_evidence(visible):
+    rules={'version':1,'schema':'body_text','minimum_records':0,
+           'stable_text_anchors':[{'id':'body','alternatives':['Required body']}]}
+    html='<html><head><title>Required body</title></head><body><p>'+('Required body' if visible else 'Other text')+'</p></body></html>'
+    case={'url':'https://example.test/article','task_kind':'body','acceptance_contract':rules}
+    assert evaluate_stable_task(html,rules)['stable_task_pass'] is visible
+    assert score_attempt(case,html.encode(),ok=True)['content_pass'] is visible

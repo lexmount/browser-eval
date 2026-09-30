@@ -438,7 +438,7 @@ def _context_lines(context: str, title: str) -> list[str]:
         if re.match(r"^\s*#{1,6}\s+", raw):
             continue
         line = visible_markdown_links(raw)
-        line = re.sub(r"(?<!\w)([*_]{1,3})(?=\S)(.+?\S)\1(?!\w)", r"\2", line)
+        line = re.sub(r"(?<![\w*_])([*_]{1,3})([^\s*_](?:[^*_\n]*?[^\s*_])?)\1(?![\w*_])", r"\2", line)
         line = line.strip(" \t#>*|-_")
         if not line or _key(line) == title_key or re.fullmatch(r"https?://\S+", line):
             continue
@@ -449,8 +449,21 @@ def _context_lines(context: str, title: str) -> list[str]:
         if split:
             lines.extend((line[: split.start()], line[split.start() :]))
             continue
-        lines.append(line)
+        # Browser innerText may join adjacent inline field/status nodes.
+        # Preserve the visible lexical boundary, not a new record/field value.
+        lines.append(re.sub(r"(?<=[a-z])(?=\d|[A-Z])", " ", line))
     return lines
+
+
+def _field_token_pattern(spec: dict):
+    """Typed card fields own a distinct value span, not an entire layout line."""
+    if spec.get('aliases'):
+        return None
+    if spec['kind'] == 'integer' and spec.get('pattern'):
+        # A number elsewhere in the card cannot prove a numeric labeled field.
+        return re.compile(rf"\b{_AMOUNT}\s*(?:{spec['pattern']})", re.I)
+    return {'price': _PRICE, 'area': _AREA, 'date_or_time': _DATE_OR_TIME,
+            'version': _VERSION}.get(spec['kind'])
 
 
 def _field_value(
@@ -477,6 +490,11 @@ def _field_value(
             (index, line) for index, line in enumerate(lines) if not used or index not in used
         ]
     for index, value in candidates:
+        if token_pattern := _field_token_pattern(spec):
+            for match in token_pattern.finditer(value):
+                if _value_matches_spec(match[0], spec):
+                    return index, match[0]
+            continue
         if _value_matches_spec(value, spec):
             return index, value
     return None
@@ -486,11 +504,19 @@ def _required_fields(context: str, title: str, *, field_specs: list[dict]) -> bo
     """Require every declared field inside the record block which owns the link."""
     lines = _context_lines(context, title)
     used = set()
+    typed_lines = set()
     for spec in field_specs:
-        result = _field_value(lines, spec, used)
+        typed = _field_token_pattern(spec) is not None
+        result = _field_value(lines, spec, used if typed else used | typed_lines)
         if result is None:
             return False
-        used.add(result[0])
+        index, value = result
+        if typed:
+            # Consume this exact span so fields may share a line, never a value.
+            lines[index] = lines[index].replace(value, ' ' * len(value), 1)
+            typed_lines.add(index)
+        else:
+            used.add(index)
     return True
 
 

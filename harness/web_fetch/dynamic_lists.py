@@ -108,7 +108,7 @@ def _scoped_html(content):
     soup = BeautifulSoup(content, 'html.parser')
     # aria-hidden does not hide rendered labels. Explicit display/visibility
     # styles below, rather than accessibility metadata, determine exclusion.
-    for node in list(soup.select('script,style,template,[hidden]')):
+    for node in list(soup.select('head,script,style,template,[hidden]')):
         if node.parent is not None:
             node.decompose()
     for node in list(soup.select('[style]')):
@@ -141,7 +141,7 @@ def visible_html_text(content):
               'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer',
               'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hr', 'li',
               'main', 'nav', 'ol', 'p', 'pre', 'section', 'summary', 'table',
-              'tbody', 'thead', 'tfoot', 'title', 'tr', 'ul'}
+              'tbody', 'thead', 'tfoot', 'tr', 'ul'}
     parts = []
     stack = [(_scoped_html(content), False, False)]
     while stack:

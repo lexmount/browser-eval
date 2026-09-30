@@ -29,7 +29,7 @@ naming-check: runtime-check
 
 test-python: runtime-check
 	$(TEST_PY) -m unittest discover -s tests -v
-	$(TEST_PY) -m pytest tests/test_local_audit.py tests/test_dynamic_100_moli_119.py tests/test_three_cohort_review_followup.py tests/test_training_list_contract.py -q
+	$(TEST_PY) -m pytest tests/test_local_audit.py tests/test_dynamic_100_moli_119.py tests/test_three_cohort_review_followup.py tests/test_training_list_contract.py tests/test_risk_control_dataset.py tests/test_composite_tasks.py -q
 	$(TEST_PY) -m pytest tests/browser_use -q
 	$(TEST_PY) -m pytest tests/environments tests/test_manage_webarena_rainbond_pool.py -q
 	$(TEST_PY) -m pytest tests/trajectory_replay -q
