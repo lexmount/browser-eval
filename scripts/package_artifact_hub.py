@@ -17,6 +17,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 from urllib.parse import urlsplit, unquote
+from bs4 import BeautifulSoup
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
@@ -27,6 +28,61 @@ SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetc
 ARCHIVE=Path(sys.argv[2]).resolve() if len(sys.argv)>2 else ROOT/'publish/webfetch-sites.zip'
 (ROOT/'publish').mkdir(exist_ok=True)
 DEST=Path(tempfile.mkdtemp(prefix='artifact-hub-',dir=ROOT/'publish'))
+
+PRIVATE_RESULT_KEYS = {
+    'raw_response_path', 'diagnostic_log_path', 'private_artifacts',
+    'private_artifact', 'private_path', 'local_report_complete_diagnostic_links',
+    'authorization', 'proxy_authorization', 'cookie', 'set_cookie',
+    'access_token', 'refresh_token', 'id_token', 'api_key', 'password',
+    'passwd', 'secret', 'credentials', 'stderr',
+}
+
+
+def project_result_metadata(value):
+ """Remove local-only evidence pointers from the downloadable public results."""
+ if isinstance(value,dict):
+  result={};changes=0
+  for key,item in value.items():
+   if (key.casefold() in PRIVATE_RESULT_KEYS
+       or key.startswith(('private_','local_'))):
+    changes+=1;continue
+   projected,count=project_result_metadata(item)
+   result[key]=projected;changes+=count
+  return result,changes
+ if isinstance(value,list):
+  result=[];changes=0
+  for item in value:
+   projected,count=project_result_metadata(item)
+   result.append(projected);changes+=count
+  return result,changes
+ if isinstance(value,str):
+  try:projected,receipt=project_file('results-field.txt',value.encode())
+  except ValueError:return '[REDACTED]',1
+  return projected.decode(),(receipt or {}).get('replacements',0)
+ return value,0
+
+
+def project_results_jsonl(data):
+ rows=[json.loads(line) for line in data.splitlines() if line.strip()]
+ projected=[];removed=0
+ for row in rows:
+  clean,count=project_result_metadata(row)
+  removed+=count;projected.append(clean)
+ return (''.join(json.dumps(row,ensure_ascii=False,separators=(',',':'))+'\n'
+                 for row in projected).encode(),removed)
+
+
+def project_standalone_article(data):
+ article=BeautifulSoup(data,'html.parser');removed=0
+ for anchor in article.select('a[href]'):
+  href=anchor['href']
+  figure=anchor.find_parent('figure',class_='m-illustration')
+  image=figure.find('img') if figure else None
+  embedded_figure=(image and href.startswith('data:image/png;base64,')
+                   and href==image.get('src'))
+  if not href.startswith(('https://','http://','#')) and not embedded_figure:
+   del anchor['href'];removed+=1
+ return str(article).encode(),removed
 
 LOADER=r'''
 const decoder=new TextDecoder();let currentPage='index.html',renderId=0;
@@ -65,10 +121,10 @@ async function fileBytes(path){
 }
 async function textFile(path){return decoder.decode(await fileBytes(path))}
 let recordsPromise;
-const PRIVATE_METADATA_KEYS=new Set(['raw_response_path','private_artifacts','private_artifact','private_path']);
+const PRIVATE_METADATA_KEYS=new Set(['raw_response_path','diagnostic_log_path','private_artifacts','private_artifact','private_path','local_report_complete_diagnostic_links']);
 function publicMetadata(value){
  if(Array.isArray(value))return value.map(publicMetadata);
- if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([key])=>!PRIVATE_METADATA_KEYS.has(key)&&!key.startsWith('private_')).map(([key,item])=>[key,publicMetadata(item)]));
+ if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([key])=>!PRIVATE_METADATA_KEYS.has(key)&&!key.startsWith('private_')&&!key.startsWith('local_')).map(([key,item])=>[key,publicMetadata(item)]));
  return value;
 }
 async function metadata(index){
@@ -201,7 +257,29 @@ def build():
   name=path.relative_to(SOURCE).as_posix();data=path.read_bytes()
   if name=='.generated-report':continue
   if path.is_symlink():raise ValueError('Publication source must not contain symlinks: '+name)
-  data,redaction=project_file(name,data)
+  original_data=data;metadata_projections=0;projection_reason='local-only evidence metadata'
+  if name=='results.jsonl':
+   data,metadata_projections=project_results_jsonl(data)
+   redaction=None
+  else:
+   if name=='guide/article.html':
+    data,metadata_projections=project_standalone_article(data)
+    projection_reason='standalone local evidence links'
+   data,redaction=project_file(name,data)
+  if metadata_projections:
+   if redaction:
+    redaction['reason']=projection_reason+'; '+redaction['reason']
+    redaction['kinds']=['publication_projection',*redaction['kinds']]
+    redaction['replacements']+=metadata_projections
+    redaction['original_sha256']=hashlib.sha256(original_data).hexdigest()
+    redaction['original_bytes']=len(original_data)
+   else:
+    redaction={'path':name,'kinds':['publication_projection'],
+               'reason':projection_reason,
+               'replacements':metadata_projections,
+               'original_sha256':hashlib.sha256(original_data).hexdigest(),
+               'published_sha256':hashlib.sha256(data).hexdigest(),
+               'original_bytes':len(original_data),'published_bytes':len(data)}
   if redaction:
    if name in scored_paths:redaction['scored_output']=True
   if path.suffix=='.html':
@@ -214,14 +292,14 @@ def build():
     # Text tasks show the complete source and output in <pre> blocks, which we
     # replace with lazy-loaded evidence. Direct-file tasks intentionally show a
     # structured byte/hash comparison instead, so they have neither block.
-    assert all(len(by_kind[kind])<=1 for kind in ('output','metadata','call-output','call-metadata')) and len(by_kind['metadata'])==1,(name,{key:len(value) for key,value in by_kind.items()})
+    assert all(len(by_kind[kind])<=1 for kind in ('output','call-output','call-metadata')) and len(by_kind['metadata'])>=1,(name,{key:len(value) for key,value in by_kind.items()})
     # The first source block is the complete reference/contract. Newer detail pages
     # can also show several derived body-region excerpts; keep those excerpts inline
     # instead of incorrectly replacing each one with the complete source file.
     selected=[]
     if by_kind[source_kind]:selected.append(by_kind[source_kind][0])
     if by_kind['output']:selected.append(by_kind['output'][0])
-    selected.append(by_kind['metadata'][0])
+    selected.extend(by_kind['metadata'])
     if by_kind['call-output']:selected.append(by_kind['call-output'][0])
     if by_kind['call-metadata']:selected.append(by_kind['call-metadata'][0])
     selected.extend(by_kind['call-log'])
@@ -234,7 +312,9 @@ def build():
      if isinstance(value,dict):log_paths.append(value.get('path'))
     log_paths.extend([record.get('call_log_path'),metadata.get('call_log_path')])
     log_paths=list(dict.fromkeys(str(value) for value in log_paths if value and not str(value).startswith('private_artifacts/')))
-    assert len(log_paths)==len(by_kind['call-log']),(name,len(log_paths),len(by_kind['call-log']))
+    # New report pages render bounded log excerpts as numbered lists. Older
+    # pages used deferred <pre data-kind="call-log"> blocks. Support both.
+    assert len(by_kind['call-log']) in {0,len(log_paths)},(name,len(log_paths),len(by_kind['call-log']))
     log_replacements={match.start():f'<pre data-file="{path}" data-readable="1"></pre>'
                       for match,path in zip(by_kind['call-log'],log_paths)}
     reference_suffix='.md' if (SOURCE/'references'/f'{record["case_id"]}.md').exists() else '.txt'

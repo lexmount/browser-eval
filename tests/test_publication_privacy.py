@@ -264,12 +264,19 @@ class PublicationPrivacyTests(unittest.TestCase):
                 for name in manifest['files']:
                     self.assertNotIn(key, unpack(name))
                 privacy = json.loads(unpack('publication-privacy.json'))
-                self.assertEqual(len(privacy['files']), 1)
+                self.assertEqual(
+                    {row['path'] for row in privacy['files']},
+                    {'sources/case/source.html.txt', 'results.jsonl'},
+                )
                 self.assertNotIn(b'publication-privacy.json', unpack('index.html'))
                 self.assertNotIn('接口账号使用占位符'.encode(), unpack('index.html'))
                 article = unpack('guide/article.html')
                 self.assertNotIn(malicious.encode(), article)
-                self.assertEqual(unpack('results.jsonl'), results.encode())
+                public_results = [json.loads(line) for line in
+                                  unpack('results.jsonl').splitlines()]
+                self.assertEqual(public_results[0]['provider_metadata']['route'], 'markdown')
+                self.assertNotIn('raw_response_path', public_results[0]['provider_metadata'])
+                self.assertEqual(public_results[1], file_record)
                 attempt = unpack('attempts/browser__case__r001.html')
                 self.assertEqual(attempt.count(b'data-file="references/case.txt"'), 1)
                 self.assertEqual(attempt.count(b'data-file="artifacts/browser/case/run-001.txt"'), 2)
