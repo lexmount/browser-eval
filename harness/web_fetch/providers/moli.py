@@ -15,7 +15,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from urllib.parse import parse_qsl, unquote, urljoin, urlsplit
+from urllib.parse import parse_qsl, urljoin, urlsplit
 
 from ..document_text import extract_document_text
 from ..models import EvalCase, ProviderResult
@@ -65,18 +65,23 @@ def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> st
     def field(row: re.Match[bytes], name: str) -> str:
         return row.group(name).decode("utf-8", "replace")
 
-    def identity(value: str) -> tuple:
-        parts = urlsplit(value)
-        return (
-            parts.scheme.casefold(),
-            (parts.hostname or "").casefold(),
-            unquote(parts.path).rstrip("/") or "/",
-            sorted(parse_qsl(parts.query, keep_blank_values=True)),
-        )
+    def identity(value: str) -> tuple | None:
+        try:
+            validate_http_url(value)
+            parts = urlsplit(value)
+            return (
+                parts.scheme.casefold(),
+                (parts.hostname or "").casefold(),
+                parts.port if parts.port is not None else (443 if parts.scheme.casefold() == "https" else 80),
+                re.sub(r"%[0-9a-fA-F]{2}", lambda match: match[0].upper(),
+                       parts.path).rstrip("/") or "/",
+                sorted(parse_qsl(parts.query, keep_blank_values=True)),
+            )
+        except ValueError:
+            return None
 
-    try:
-        requested_identity = identity(requested_url)
-    except ValueError:
+    requested_identity = identity(requested_url)
+    if requested_identity is None:
         return None
     rows = list(pattern.finditer(diagnostic))
 
@@ -91,14 +96,6 @@ def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> st
             row = following
         return row
 
-    def is_subresource(value: str) -> bool:
-        return urlsplit(value).path.casefold().endswith(
-            (
-                ".css", ".js", ".mjs", ".png", ".jpg", ".jpeg", ".gif",
-                ".svg", ".webp", ".ico", ".woff", ".woff2", ".ttf", ".otf",
-            )
-        )
-
     start = next(
         (
             index
@@ -110,61 +107,59 @@ def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> st
     if start is None:
         return None
     row = redirect_target(start)
-    candidate_override = None
-    # A page can replace the top-level document after the initial response
-    # (for example, a JavaScript challenge). Follow only Moli's explicit
-    # top-level location-navigation records; ordinary subresource GETs must not
-    # replace the effective document URL.
-    for navigation in navigation_pattern.finditer(diagnostic):
+    # Only a committed top-level navigation can replace the document identity.
+    # Query parameters describe intent, never proof that a destination loaded.
+    navigations = list(navigation_pattern.finditer(diagnostic))
+    for index, navigation in enumerate(navigations):
+        boundary = navigations[index + 1].start() if index + 1 < len(navigations) else len(diagnostic)
+        committed = diagnostic.find(
+            b"committed main navigation before replacement realm bootstrap",
+            navigation.end(), boundary,
+        )
+        if committed < 0:
+            continue
         try:
             navigation_url = field(navigation, "url")
-            navigation_parts = urlsplit(navigation_url)
-            query = dict(parse_qsl(navigation_parts.query, keep_blank_values=True))
-            declared_target = query.get("redir") or query.get("__goaway_redirect")
-            if not declared_target:
+            navigation_identity = identity(navigation_url)
+            if navigation_identity is None:
+                return None
+            pending = [candidate for candidate in rows
+                       if navigation.end() <= candidate.start() < boundary]
+            response = next((candidate for candidate in pending
+                             if identity(field(candidate, "url")) == navigation_identity), None)
+            if response is None:
+                return None
+            if not 300 <= int(field(response, "status")) < 400:
+                row = response
                 continue
-            declared_target = urljoin(navigation_url, declared_target)
-            navigation_identity = identity(declared_target)
+            # Legacy Moli logs omit HTTP Location headers. Supported challenge
+            # redirect hints can locate a response, but never establish a URL
+            # without the corresponding completed GET and navigation commit.
+            query = dict(parse_qsl(urlsplit(navigation_url).query, keep_blank_values=True))
+            target = query.get("redir") or query.get("__goaway_redirect")
+            if not target:
+                return None
+            target_identity = identity(urljoin(navigation_url, target))
+            if target_identity is None:
+                return None
+            response = next((candidate for candidate in pending
+                             if identity(field(candidate, "url")) == target_identity), None)
+            if response is None:
+                return None
         except ValueError:
-            continue
-        boundary = diagnostic.find(
-            b"published standalone replacement Document", navigation.end()
-        )
-        if boundary < 0:
-            boundary = len(diagnostic)
-        navigation_start = next(
-            (
-                index
-                for index, candidate in enumerate(rows)
-                if navigation.end() <= candidate.start() < boundary
-                and identity(field(candidate, "url")) == navigation_identity
-            ),
-            None,
-        )
-        if navigation_start is None:
-            candidate_override = declared_target
-            continue
-        candidate_override = None
-        row = rows[navigation_start]
+            return None
+        row = response
         if 300 <= int(field(row, "status")) < 400:
-            committed = diagnostic.find(
-                b"committed main navigation before replacement realm bootstrap",
-                row.end(), boundary,
-            )
-            later_documents = [
-                candidate
-                for candidate in rows[navigation_start + 1 :]
-                if candidate.start() < boundary
-                and (candidate.start() > committed if committed >= 0
-                     else not is_subresource(field(candidate, "url")))
-            ]
-            # The committed replacement's first completed request owns the
-            # document. Never let a later extensionless asset overwrite it.
-            for candidate in later_documents:
-                row = candidate
-                if not 300 <= int(field(row, "status")) < 400:
-                    break
-    candidate = candidate_override or field(row, "final_url")
+            # For another redirect, accept only a final response at the commit
+            # boundary before replacement bootstrap can start new resources.
+            final = next((candidate for candidate in pending
+                          if committed < candidate.start() < boundary), None)
+            if final is None or 300 <= int(field(final, "status")) < 400:
+                return None
+            row = final
+    candidate = field(row, "final_url")
+    if identity(candidate) is None:
+        return None
     try:
         validate_http_url(candidate)
     except ValueError:

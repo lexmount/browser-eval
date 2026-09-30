@@ -1,65 +1,13 @@
 """Artifact Hub large-bundle transport; credentials remain with the caller."""
-import html
 import json
 import math
-import re
 import socket
 import time
 import zipfile
 from email.utils import parsedate_to_datetime
-from html.parser import HTMLParser
 from pathlib import PurePosixPath
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urljoin, urlsplit
-
-
-def site_root_html(text: str, page: str) -> str:
-    """Adapt HTML URLs to Artifact Site's injected root base, preserving text.
-
-    Only actual tag attributes are rewritten: quoted HTML in evidence, inline
-    scripts, styles, and all measured text remain untouched.
-    """
-    base = 'https://report.invalid/'
-    edits = []
-    lines = text.splitlines(keepends=True)
-    offsets = [0]
-    for line in lines:
-        offsets.append(offsets[-1] + len(line))
-
-    class Tags(HTMLParser):
-        def handle_starttag(self, tag, attrs):
-            raw = self.get_starttag_text()
-
-            def replace(match):
-                if match[2].lower() not in {'href', 'src', 'poster', 'action'}:
-                    return match[0]
-                value = html.unescape(match[4])
-                parsed = urlsplit(value)
-                if not value or parsed.scheme or parsed.netloc:
-                    return match[0]
-                resolved = urlsplit(urljoin(base + page, value))
-                path = resolved.path.lstrip('/')
-                if resolved.query:
-                    path += '?' + resolved.query
-                if resolved.fragment:
-                    path += '#' + resolved.fragment
-                return match[1] + match[3] + html.escape(path, quote=True) + match[3]
-
-            updated = re.sub(r'''((?<![\w:-])([\w:-]+)\s*=\s*)(["'])(.*?)\3''',
-                             replace, raw, flags=re.I | re.S)
-            if updated != raw:
-                line, column = self.getpos()
-                start = offsets[line - 1] + column
-                edits.append((start, start + len(raw), updated))
-
-        handle_startendtag = handle_starttag
-
-    parser = Tags(convert_charrefs=False)
-    parser.feed(text)
-    parser.close()
-    for start, end, updated in reversed(edits):
-        text = text[:start] + updated + text[end:]
-    return text
+from urllib.parse import quote
 
 
 def updated_receipt(receipt, response):

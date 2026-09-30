@@ -307,12 +307,6 @@ def test_report_requires_complete_profile_bound_risk_control_certification(tmp_p
         require_risk_control_certification(tmp_path, dataset, records)
 
 
-def test_uncertified_unbound_report_cannot_use_historical_revision_route(tmp_path):
-    dataset, records, _, _, _ = certified_report_fixture(tmp_path)
-    (tmp_path / 'certification.json').unlink()
-    with pytest.raises(ValueError, match='bound revision receipt'):
-        require_risk_control_certification(tmp_path, dataset, records)
-
 
 def test_report_rejects_hash_bound_but_incomplete_reference_proof_receipt(tmp_path):
     dataset, records, receipt, manifest, execution = certified_report_fixture(tmp_path)
@@ -769,3 +763,45 @@ def test_page_content_without_declared_initial_chrome_fails(
     )
     assert not result["stable_task_pass"]
     assert not result["content_pass"]
+
+
+
+def test_certified_report_preserves_certificate_bound_files(tmp_path, capsys):
+    from harness.web_fetch.config import load_dataset
+    from harness.web_fetch.providers.fixture import FixtureProvider
+    from harness.web_fetch.runner import run_evaluation
+    from harness.web_fetch.report_build import build_report
+
+    profile = json.loads(RUN_PROFILE.read_text())
+    provider = profile["provider"]["name"]
+    frozen, cases = load_dataset(DATASET)
+    measured = measured_risk_control_dataset(
+        profile, frozen, hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest())
+    provider_config = tmp_path / "fixture-provider.json"
+    provider_config.write_text(json.dumps({provider: {"type": "fixture"}}))
+    records, _ = run_evaluation(
+        output_dir=tmp_path, dataset_meta=measured, dataset_path=DATASET,
+        cases=cases, providers=[FixtureProvider(provider, {"type": "fixture"})],
+        provider_config_path=provider_config, runs=1, timeout=5, delay=0,
+        provider_concurrency=1, max_failure_retries=0)
+    capsys.readouterr()
+    _, certified, receipt, _, _ = certified_report_fixture(tmp_path)
+    diagnostic = b"DEBUG fixture diagnostic\n"
+    for row, certified_row in zip(records, certified, strict=True):
+        row["provider_metadata"].update(certified_row["provider_metadata"])
+        metadata = row["provider_metadata"]
+        metadata["diagnostic_log_sha256"] = hashlib.sha256(diagnostic).hexdigest()
+        metadata["diagnostic_log_bytes"] = len(diagnostic)
+        path = tmp_path / metadata["diagnostic_log_path"]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(diagnostic)
+    results = tmp_path / "results.jsonl"
+    results.write_text("".join(json.dumps(row) + "\n" for row in records))
+    receipt["results_sha256"] = hashlib.sha256(results.read_bytes()).hexdigest()
+    (tmp_path / "certification.json").write_text(json.dumps(receipt))
+    report = tmp_path / "report"
+    assert build_report(tmp_path, report).is_file()
+    for name in ("dataset.json", "manifest.json", "execution.json",
+                 "reference-proof-verification.json", "certification.json"):
+        assert (report / name).read_bytes() == (tmp_path / name).read_bytes()
+    require_risk_control_certification(report, measured, records)

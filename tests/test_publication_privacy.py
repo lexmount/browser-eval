@@ -183,6 +183,7 @@ class PublicationPrivacyTests(unittest.TestCase):
                 "window.addEventListener('DOMContentLoaded',initReport);\n"
             )
             (source / '.generated-report').write_text('local marker')
+            (source / 'dataset.json').write_text('{}')
             (source / 'reliability.json').write_text('{"complete":true}')
             (source / 'result-review.json').write_text('{"status":"passed","failures":[]}')
             call_logs=[b'{"event":"failed"}\n',b'{"event":"complete"}\n']

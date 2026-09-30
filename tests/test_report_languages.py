@@ -1,4 +1,5 @@
 import json
+import unittest
 
 import pytest
 
@@ -43,3 +44,13 @@ def test_language_contract_rejects_unknown_modes(tmp_path):
     (tmp_path / "report-languages.json").write_text(json.dumps({"languages": ["en"]}))
     with pytest.raises(ValueError, match="unsupported"):
         generated_languages(tmp_path)
+
+
+class VisibleNumbersTests(unittest.TestCase):
+    def test_chinese_spacing_preserves_numeric_parity_and_detects_changes(self):
+        from harness.report_languages import visible_numbers
+        expected = ["100", "103", "31", "100", "1,599", "80%"]
+        self.assertEqual(visible_numbers("100题、103次调用，31/100，1,599项，80%"), expected)
+        self.assertEqual(visible_numbers("100 tasks, 103 calls, 31/100, 1,599 items, 80%"), expected)
+        self.assertNotEqual(visible_numbers("100题"), visible_numbers("99 tasks"))
+        self.assertNotEqual(visible_numbers("100题"), visible_numbers("all tasks"))

@@ -31,27 +31,11 @@ def require_risk_control_certification(source: Path, dataset: dict, records: lis
     if comparison.get("kind") != "risk_control_100_moli":
         return
     path = contained_path(source, "certification.json")
+    if not path.is_file() or path.is_symlink():
+        raise ValueError("Risk-control report requires a certification receipt")
     profile_path = Path(__file__).resolve().parents[2] / "evaluation/risk-control/run-profile.json"
-    if path.is_symlink():
-        raise ValueError('Risk-control certification must not be a symlink')
-    if path.is_file():
-        receipt = json.loads(path.read_text(encoding="utf-8"))
-        validate_risk_control_certification(source, dataset, records, receipt, profile_path)
-    else:
-        from .risk_control import validate_risk_control_revision
-
-        current_report_path = (
-            Path(__file__).resolve().parents[2]
-            / "evaluation/risk-control/current-report.json"
-        )
-        current = json.loads(current_report_path.read_text(encoding="utf-8"))
-        revision = current.get("scoring_revision") or {}
-        revision_path = contained_path(source, revision.get("path", ""))
-        if not revision_path.is_file() or revision_path.is_symlink():
-            raise ValueError("Risk-control report requires a certification or bound revision receipt")
-        validate_risk_control_revision(
-            source, dataset, records, profile_path, current_report_path
-        )
+    receipt = json.loads(path.read_text(encoding="utf-8"))
+    validate_risk_control_certification(source, dataset, records, receipt, profile_path)
     for record in records:
         metadata = record.get("provider_metadata", {})
         if (diagnostic_log_binding(metadata) is None
@@ -395,17 +379,9 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
         if (source / 'certification.json').is_file():
             shutil.copy2(source / 'certification.json', staging / 'certification.json')
-        if dataset.get('comparison', {}).get('kind') == 'risk_control_100_moli':
-            current = json.loads((Path(__file__).resolve().parents[2] /
-                                  'evaluation/risk-control/current-report.json').read_text())
-            revision = current.get('scoring_revision') or {}
-            if revision:
-                relative = revision['path']
-                shutil.copy2(contained_path(source, relative), contained_path(staging, relative))
-            historical = current.get('historical_revision') or {}
-            if historical:
-                relative = historical['path']
-                shutil.copy2(contained_path(source, relative), contained_path(staging, relative))
+            if dataset.get('comparison', {}).get('kind') == 'risk_control_100_moli':
+                for name in ('dataset.json', 'manifest.json', 'execution.json', 'reference-proof-verification.json'):
+                    shutil.copy2(contained_path(source, name), staging / name)
         reliability=assess_reliability(dataset,records)
         (staging/'reliability.json').write_text(json.dumps(reliability,ensure_ascii=False,indent=2)+'\n')
         # Keep the downloadable result file byte-identical to the independently

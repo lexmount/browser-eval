@@ -30,6 +30,28 @@ class MoliTests(unittest.TestCase):
             _diagnostic_main_document_url(stderr, requested), "https://example.com/final"
         )
 
+    def test_document_request_identity_preserves_port_and_encoded_separators(self):
+        for requested, logged, matches in (
+            ("https://example.com:8443/start", "https://example.com/start", False),
+            ("https://example.com:0/start", "https://example.com/start", False),
+            ("https://example.com/a%2Fb", "https://example.com/a/b", False),
+            ("https://example.com/a%2fb", "https://example.com/a%2Fb", True),
+            ("https://example.com:443/start", "https://example.com/start", True),
+            ("https://example.com/start", "https://[invalid/", False),
+        ):
+            with self.subTest(requested=requested, logged=logged):
+                stderr = (f"DEBUG fetch request complete method=GET url={logged} "
+                          "final_url=https://example.com/document status=200\n")
+                self.assertEqual(_diagnostic_main_document_url(stderr, requested),
+                                 "https://example.com/document" if matches else None)
+
+    def test_invalid_final_url_is_unavailable_instead_of_raising(self):
+        for final_url in ("https://[invalid/", "https://example.com:invalid/", "https://example.com:99999/"):
+            with self.subTest(final_url=final_url):
+                stderr = ("DEBUG fetch request complete method=GET url=https://example.com/start "
+                          f"final_url={final_url} status=200\n")
+                self.assertIsNone(_diagnostic_main_document_url(stderr, "https://example.com/start"))
+
     def test_effective_main_document_url_follows_logged_redirect_hops(self):
         stderr = (
             "DEBUG fetch request complete method=GET url=https://example.com/start "
@@ -60,6 +82,7 @@ class MoliTests(unittest.TestCase):
             "final_url=https://example.com/next status=302 transfer_size=0\n"
             "DEBUG fetch request complete method=GET url=https://cdn.example.com/theme.css "
             "final_url=https://cdn.example.com/theme.css status=200 transfer_size=7\n"
+            "DEBUG committed main navigation before replacement realm bootstrap page_id=1\n"
             "DEBUG fetch request complete method=GET url=https://example.com/document "
             "final_url=https://example.com/document status=200 transfer_size=42\n"
             "DEBUG fetch request complete method=GET url=https://cdn.example.com/dynamic-asset "
@@ -73,7 +96,7 @@ class MoliTests(unittest.TestCase):
             "https://example.com/document",
         )
 
-    def test_effective_main_document_url_keeps_declared_late_navigation_target(self):
+    def test_effective_main_document_url_does_not_infer_an_unfetched_target(self):
         stderr = (
             "DEBUG fetch request complete method=GET url=https://example.com/start "
             "final_url=https://example.com/ status=200 transfer_size=42\n"
@@ -84,8 +107,28 @@ class MoliTests(unittest.TestCase):
         )
         self.assertEqual(
             _diagnostic_main_document_url(stderr, "https://example.com/start"),
-            "https://example.com/next",
+            "https://example.com/",
         )
+
+    def test_effective_main_document_url_accepts_ordinary_committed_navigation(self):
+        stderr = (
+            "DEBUG fetch request complete method=GET url=https://example.com/start "
+            "final_url=https://example.com/start status=200\n"
+            "DEBUG following pending location navigation asynchronously stage=Load "
+            "url=https://example.com/next\n"
+            "DEBUG fetch request complete method=GET url=https://example.com/next "
+            "final_url=https://example.com/document status=200\n"
+            "DEBUG committed main navigation before replacement realm bootstrap page_id=1\n"
+            "DEBUG published standalone replacement Document page_id=1\n"
+            "DEBUG fetch request complete method=GET url=https://cdn.example.com/asset "
+            "final_url=https://cdn.example.com/asset status=200\n"
+        )
+        self.assertEqual(_diagnostic_main_document_url(stderr, "https://example.com/start"),
+                         "https://example.com/document")
+        uncommitted = stderr.replace(
+            "DEBUG committed main navigation before replacement realm bootstrap page_id=1\n", "")
+        self.assertEqual(_diagnostic_main_document_url(uncommitted, "https://example.com/start"),
+                         "https://example.com/start")
 
     def test_resource_route_enumerates_bounded_same_origin_frame_documents(self):
         from harness.web_fetch.providers.moli import _RESOURCE_PAGE_EXPRESSION

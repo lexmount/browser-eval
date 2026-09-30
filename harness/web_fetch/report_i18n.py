@@ -37,6 +37,9 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "本报告的任务范围与验收规则": "Task scope and acceptance rules",
+    "查看全部任务及验收规则": "View all tasks and acceptance rules",
+    "查看结果、实际返回及失败证据": "View results, actual outputs, and failure evidence",
     "安装并固定官方 v1.1.11 二进制；不需要供应商账号或 API Key。": "Install and pin the official v1.1.11 binary; no provider account or API key is required.",
     "本地 CLI。": "Local CLI.",
     "核验于 2026-09-28。算力、网络、存储、代理和维护成本自担；没有测量这些成本，不把本地调用等同于零成本。官方托管产品或服务价格不属于本轮执行模式。": "Verified on 2026-09-28. Compute, network, storage, proxy, and maintenance costs are borne locally; these costs were not measured, so a local call is not treated as free. Official hosted-product or service pricing is outside this run mode.",
@@ -2425,6 +2428,7 @@ for adoption_text in (
 
 
 REGEX = [
+    (re.compile(r"^本报告包含 (\d+) 个任务、(\d+) 个逻辑结果，任务通过 (\d+)/(\d+)。结论仅适用于已登记的任务和规则。$"), r"This report contains \1 tasks and \2 logical results, with \3/\4 task passes. Conclusions apply only to the registered tasks and rules."),
     (re.compile(r"^的 F1 为 ([\d.]+%)，但没有满足该例任务规则。零通过表示没有一次满足全部任务门槛，不表示输出与参考毫无词语重合。这里的 F1 对照已保存的样本文本，只诊断文字重合，不承担实时事实核验。词频相似度允许部分文字得分，任务规则检查指定的内容或字段结构；二者应保留各自的含义。$"),
      r" has F1 \1 but does not satisfy its task rules. Zero passes means no call met every threshold, not zero textual overlap. This F1 compares saved sample text only and does not verify live facts. Token-frequency similarity can award partial text credit, while task rules check required content or field structure; the two retain distinct meanings."),
     (re.compile(r"^目标资源已命中，但答案字段还返回了非目标资源：(.+)$"),

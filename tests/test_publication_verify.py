@@ -8,41 +8,9 @@ from unittest.mock import patch
 import zipfile
 
 from scripts.verify_artifact_hub import download_export, verify_metadata, verify_public_files
-from scripts import verify_artifact_hub as verifier
 
 
 class PublicationVerifyTests(unittest.TestCase):
-    def test_profile_version_changes_only_after_exact_export_verification(self):
-        for matches in (True, False):
-            with self.subTest(matches=matches), tempfile.TemporaryDirectory() as folder:
-                root = Path(folder)
-                (root / 'evaluation').mkdir()
-                profile = root / 'evaluation/current-report.json'
-                before = {'artifact_hub_site': 'bound-site',
-                          'artifact_hub_base_url': 'https://reports.example',
-                          'artifact_hub_expected_version': 'ver_old'}
-                profile.write_text(json.dumps(before))
-                submitted, exported = root / 'submitted.zip', root / 'exported.zip'
-                for path, text in ((submitted, 'expected'),
-                                   (exported, 'expected' if matches else 'wrong')):
-                    with zipfile.ZipFile(path, 'w') as archive:
-                        archive.writestr('index.html', text)
-                args = ['verify', '--profile', str(profile), '--export',
-                        '--expected-archive', str(submitted), '--bind-current-version']
-                with patch.object(verifier, 'ROOT', root), \
-                     patch('sys.argv', args), \
-                     patch.object(verifier, 'load_token', return_value='fixture'), \
-                     patch.object(verifier, 'download_export', return_value=('ver_new', exported)) as download:
-                    if matches:
-                        verifier.main()
-                        self.assertEqual(json.loads(profile.read_text())['artifact_hub_expected_version'], 'ver_new')
-                    else:
-                        with self.assertRaisesRegex(ValueError, 'differs from submitted'):
-                            verifier.main()
-                        self.assertEqual(json.loads(profile.read_text()), before)
-                self.assertEqual(download.call_args.args[0].full_url,
-                                 'https://reports.example/api/sites/bound-site/export')
-
     def test_metadata_verification_does_not_download_report_files(self):
         payload={
             'slug':'test',

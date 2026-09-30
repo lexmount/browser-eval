@@ -55,25 +55,6 @@ popular-sites-report-check: runtime-check
 	$(PY) scripts/check_report.py reports/popular-sites --profile evaluation/popular-sites/current-report.json
 	$(PY) scripts/check_report_links.py reports/popular-sites
 
-.PHONY: risk-control-report risk-control-report-check
-risk-control-report: runtime-check
-	$(PY) scripts/build_report.py --profile evaluation/risk-control/current-report.json $(if $(EVIDENCE),--evidence "$(EVIDENCE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
-
-risk-control-report-check: runtime-check
-	$(PY) scripts/check_report.py reports/risk-control --profile evaluation/risk-control/current-report.json
-	$(PY) scripts/check_report_links.py reports/risk-control
-
-.PHONY: risk-control-package risk-control-publish
-risk-control-package: risk-control-report-check
-	@test -n "$(ARCHIVE)" || (echo 'ARCHIVE=/absolute/path/outside-git.zip is required' >&2; exit 2)
-	$(PY) scripts/package_artifact_hub.py reports/risk-control "$(ARCHIVE)"
-	$(PY) scripts/check_publication_bundle.py "$(ARCHIVE)" reports/risk-control
-
-risk-control-publish: runtime-check
-	@test -n "$(ARCHIVE)" -a -n "$(RECEIPT)" || (echo 'ARCHIVE and RECEIPT paths outside Git are required' >&2; exit 2)
-	$(PY) scripts/publish_artifact_hub.py --profile evaluation/risk-control/current-report.json --update --source reports/risk-control --archive "$(ARCHIVE)" --receipt "$(RECEIPT)"
-	$(PY) scripts/verify_artifact_hub.py --profile evaluation/risk-control/current-report.json --export --expected-archive "$(ARCHIVE)" --bind-current-version
-
 wcxb-release-check: runtime-check
 	$(PY) scripts/check_report.py reports/wcxb
 	$(PY) scripts/check_report_links.py reports/wcxb
