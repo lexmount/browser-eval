@@ -79,7 +79,7 @@
       "root_cause": "HTML head text was accepted as rendered body evidence. Card fields were assigned whole lines rather than independent typed value spans; unrelated quantities could satisfy numeric labels, and single-character Markdown emphasis could leave delimiters in values.",
       "provider_calls": 0,
       "predecessor_source_sha256": "931e15f5ba432fa97c2ae03f4fd504c55ff753c9061b3da563be0c1054f2279a",
-      "revised_sha256": "4615cc372752494523eb08d840b80e58db2e8890225eec8830177c90dced3068",
+      "revised_sha256": "3976dfe42163bfd7afbe21115d13ef4a37572e45253deb71e525db98578198c6",
       "scoring_regressions_sha256": "b1f66941493c966550b64a799b781f04acb6982ebbd40dac333fd0f8401c3289",
       "saved_input_inventory_sha256": "7153ee217d94158a22c873ab49ece3142dca928fa700a5306968f839c8822ee7",
       "independent_card_source_sha256": "8a46b8650d53c53b41b72dc8fa2892f3fde313a1218024e1a8a4b12c52966f9c",

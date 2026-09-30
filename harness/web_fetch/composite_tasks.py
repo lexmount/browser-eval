@@ -461,7 +461,7 @@ def _field_token_pattern(spec: dict):
         return None
     if spec['kind'] == 'integer' and spec.get('pattern'):
         # A number elsewhere in the card cannot prove a numeric labeled field.
-        return re.compile(rf"\b{_AMOUNT}\s*(?:{spec['pattern']})", re.I)
+        return re.compile(rf"\b{_AMOUNT}\s*(?:{spec['pattern']})|(?:{spec['pattern']})", re.I)
     return {'price': _PRICE, 'area': _AREA, 'date_or_time': _DATE_OR_TIME,
             'version': _VERSION}.get(spec['kind'])
 
