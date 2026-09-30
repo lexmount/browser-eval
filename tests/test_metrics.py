@@ -7,6 +7,13 @@ from harness.web_fetch.metrics import (
 
 
 class MetricsTest(unittest.TestCase):
+    def test_html_required_pattern_counts_only_visible_prose(self):
+        rule = [{"id": "order-number", "pattern": r"Order ID \d+", "minimum": 1}]
+        hidden = "<html><body><script>Order ID 123</script><p>Page ready</p></body></html>"
+        visible = "<html><body><p>Order ID 123</p></body></html>"
+        self.assertFalse(evaluate_content(hidden, [], required_patterns=rule)["content_pass"])
+        self.assertTrue(evaluate_content(visible, [], required_patterns=rule)["content_pass"])
+
     def test_only_pure_markdown_table_rules_are_layout(self):
         divider = 'December 2007\n| Sun | Mon | Tue |\n| :---- | ---: | --- |'
         self.assertEqual(normalize_for_match(divider), 'december 2007 sun mon tue')

@@ -572,7 +572,8 @@ def _non_record_visible(content, contract, records, base_url):
     return None
 
 
-def _anchor_matches(anchor, records, visible, schema, non_record_visible=None):
+def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
+                    anchor_visible=None):
     from .metrics import fact_in_text, normalize_for_match
     if anchor.get('match_scope') == 'non_record_lines':
         if non_record_visible is not None:
@@ -584,7 +585,7 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None):
         # Flattened page output can put headings and records on one physical
         # line, so mask parsed record titles instead of discarding that line.
         titles = [normalize_for_match(r['fields']['title']) for r in records if r.get('valid') and r.get('fields',{}).get('title')]
-        folded = normalize_for_match(visible)
+        folded = normalize_for_match(anchor_visible if anchor_visible is not None else visible)
         for title in sorted(set(titles), key=len, reverse=True):
             folded = folded.replace(title, ' ')
         return [value for value in anchor["alternatives"]
@@ -610,7 +611,7 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None):
         return [value for value, fields in owned if any(record["valid"] and all(
             field_matches(record, fields, field)
             for field in SCHEMA_FIELDS[schema]) for record in records)]
-    folded = normalize_for_match(visible)
+    folded = normalize_for_match(anchor_visible if anchor_visible is not None else visible)
     return [value for value in anchor["alternatives"] if fact_in_text(folded, normalize_for_match(_visible(value)))]
 
 
@@ -829,7 +830,7 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Invalid stable acceptance regex") from error
 
 
-def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None) -> dict:
+def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None) -> dict:
     """Validate a version-1 schema/count contract, without fetching or snapshots.
 
     Required keys: version, schema, minimum_records. Optional maximum_records
@@ -839,6 +840,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     must match, independently of record shape and optional snapshot word metrics.
     named_link additionally requires hosts and entry_path, using the existing
     same-site detail-link parser. Raw URL identity is not factual verification.
+    anchor_text may reuse the caller's normalized visible HTML prose;
+    document-title metadata cannot supply page text or structural records.
     """
     validate_acceptance_contract(contract)
     schema = contract["schema"]
@@ -846,10 +849,26 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     minimum, maximum = contract["minimum_records"], contract.get("maximum_records")
     patterns = contract.get("page_patterns", [])
     visible = _visible(content, schema)
-    page_results = [{"pattern": p, "pass": bool(re.search(p, visible, re.I | re.M))} for p in patterns]
+    anchor_visible = anchor_text
+    if anchor_visible is None:
+        html_candidate = content.lstrip()
+        first_line, newline, remainder = html_candidate.partition('\n')
+        # Legacy callers combine a metadata title and HTML. Recognize the
+        # following document, not a guessed title-length limit. Keep metadata
+        # as text rather than interpreting angle brackets in a title as HTML.
+        if (newline and re.match(r'\s*(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
+                                  remainder, re.I)
+                and not re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',first_line,re.I)):
+            html_candidate = remainder.lstrip()
+        if re.match(r'(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',
+                    html_candidate, re.I):
+            from .dynamic_lists import visible_html_text
+            anchor_visible = visible_html_text(html_candidate)
+    text_surface = anchor_visible if anchor_visible is not None else visible
+    page_results = [{"pattern": p, "pass": bool(re.search(p, text_surface, re.I | re.M))} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])
     from .reference_quality import blocked_page_hits
-    blocked_page = bool(blocked_page_hits(visible))
+    blocked_page = bool(blocked_page_hits(text_surface))
     if blocked_page:
         content_errors.append("blocked_page")
     errors = []
@@ -911,7 +930,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                                       for a in contract.get('stable_text_anchors', [])):
         non_record_visible = _non_record_visible(content, contract, records, base_url)
     for anchor in contract.get("stable_text_anchors", []):
-        matched = _anchor_matches(anchor, records, visible, schema, non_record_visible)
+        matched = _anchor_matches(anchor, records, visible, schema,
+                                  non_record_visible, anchor_visible)
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
     content_errors += ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
     complete = [r for r in records if r["valid"]]

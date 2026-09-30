@@ -30,10 +30,10 @@ BODY_CONTRACTS = RISK / "body-contracts.json"
 EXPECTED_RULE_HASHES = {
     "first-30-rule-review.md": "4b9a65bd6429223b914a3af5a169c744af01358e051390a4f272063a93199a83",
     "remaining-70-rule-review.md": (
-        "f5ce3afb723d91aac7dc2b4dbb6e822ac70292abd8dc46167e24fd47ab5bfd8c"
+        "8aa6e8ca959251f58a80e381e6b1209c3af95ec5fa67ef188b01800ab560c796"
     ),
 }
-EXPECTED_COHORT_HASH = "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e"
+EXPECTED_COHORT_HASH = "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26"
 CHINESE_NUMBERS = {"一": 1, "两": 2, "二": 2, "三": 3, "四": 4, "五": 5}
 
 
@@ -85,10 +85,16 @@ def parse_sections() -> list[dict]:
                 raise ValueError(f"Missing stable text: {lines[0]}")
             stable_rule = fields[stable_key]
             target_rule, marker, context_rule = stable_rule.partition("页面外围诊断：")
-            stable = re.findall(r"`([^`]+)`", target_rule)
             stable = [
-                literal
-                for literal in stable
+                [primary, *([english] if english else [])]
+                for primary, english in re.findall(
+                    r"`([^`]+)`(?:（英文界面为 `([^`]+)`）)?", target_rule
+                )
+            ]
+            stable = [
+                alternatives
+                for alternatives in stable
+                for literal in alternatives[:1]
                 if not re.search(rf"不把\s*`{re.escape(literal)}`\s*冻结", stable_rule)
                 and not re.search(rf"`{re.escape(literal)}`[^。；]*不再冻结", stable_rule)
             ]
@@ -253,8 +259,8 @@ def build(output: Path) -> dict:
         raise ValueError("Rule/cohort order mismatch")
     target_literal_count = sum(len(section["stable"]) for section in sections)
     context_literal_count = sum(len(section["page_context"]) for section in sections)
-    if (target_literal_count, context_literal_count) != (728, 871):
-        raise ValueError("Expected exactly 728 target and 871 page-context literals")
+    if (target_literal_count, context_literal_count) != (729, 871):
+        raise ValueError("Expected exactly 729 target and 871 page-context literals")
 
     roots = evidence_roots()
     list_source = json.loads(LIST_CONTRACTS.read_text())
@@ -297,11 +303,15 @@ def build(output: Path) -> dict:
     body_count = 0
     for section, qualified_case in zip(sections, qualified, strict=True):
         source, binding = proof(qualified_case, roots)
-        normalized_stable = [visible_text_key(literal) for literal in section["stable"]]
+        normalized_stable = [visible_text_key(alternatives[0]) for alternatives in section["stable"]]
         if len(normalized_stable) != len(set(normalized_stable)):
             raise ValueError(f"Duplicate normalized stable literal: {section['id']}")
         normalized_source = visible_text_key(source)
-        for literal in section["stable"]:
+        # The first literal comes from the frozen historical proof. Later
+        # locale equivalents come from a separate browser observation and are
+        # bound case-by-case in the language-rule revision receipt and tests.
+        for alternatives in section["stable"]:
+            literal = alternatives[0]
             if visible_text_key(literal) not in normalized_source:
                 raise ValueError(
                     f"Stable literal missing from evidence: {section['id']}: {literal}"
@@ -312,8 +322,8 @@ def build(output: Path) -> dict:
                     f"Page-context literal missing from evidence: {section['id']}: {literal}"
                 )
         anchors = [
-            {"id": f"stable-{index + 1:02d}", "alternatives": [literal]}
-            for index, literal in enumerate(section["stable"])
+            {"id": f"stable-{index + 1:02d}", "alternatives": alternatives}
+            for index, alternatives in enumerate(section["stable"])
         ]
         acceptance = {
             "version": 1,

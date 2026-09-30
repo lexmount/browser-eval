@@ -41,6 +41,14 @@ class EvalCase:
     mutable_body_policy: dict[str, Any] = field(default_factory=dict)
     body_requirements: dict[str, Any] = field(default_factory=dict)
     retrieval_hints: dict[str, Any] = field(default_factory=dict)
+    source_review_url: str = ""
+    evaluation_url: str = ""
+    expected_final_url: str = ""
+    expected_document_language: str = ""
+    expected_document_language_present: bool = True
+    target_language: str = ""
+    target_region: str = ""
+    rule_review: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

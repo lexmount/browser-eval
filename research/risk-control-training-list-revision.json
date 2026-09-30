@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "kind": "risk_control_score_only_contract_revision",
+  "case_id": "risk-diverse-153",
+  "root_cause": "The independent initial-load page uses Section 1 through Section 6 boundaries and five four-column tables. Problem cells jointly contain the problem number and name. The former contract required Chapter boundaries and separate number/name columns, and the shared parser stopped after the first table.",
+  "independent_browser_observation": {
+    "visible_text_sha256": "479116ad4cdca847c460bc41690dee7f7dd6a7e21d07e2bf8d2e32d24f9b6687",
+    "predecessor_observation_receipt": "research/risk-control-language-rule-revision.json",
+    "initial_scope": "Five initially expanded sections before Section 6; no interaction",
+    "observed_records": 26,
+    "required_records_unchanged": 21,
+    "required_fields_unchanged": ["number", "name", "attempts", "accepted", "difficulty"]
+  },
+  "correction": {
+    "predecessor_dataset_sha256": "b29fc8fc9d3d41dfc1bc1c7d4edf39b1d5ba7cbfb0e441ff85cf78e117044e84",
+    "predecessor_run_profile_sha256": "e8a49ffa5c58e570beec3e2f306e37afef89b2f4f1a5b62b7e26f6376979e6ba",
+    "predecessor_list_contracts_sha256": "961cb9ec9dcfebe2f632ac598a835b7bfc70533d1c2e6cee27598772d72cf099",
+    "new_dataset_sha256": "1556d26a1554609eab5c0d9c79479549ecf59b3dc36e12d316516f0d4c2517e2",
+    "new_run_profile_sha256": "9467bb7f42d8334d040978e217b54303e9ca01388134ae2ec3d803a5f17cd38e",
+    "new_list_contracts_sha256": "4d848525cc47179904443758ccdea39ea12c0e959b07237e4193fe2540a59299",
+    "changed_fields": ["composite_acceptance.groups.problems.start_pattern", "composite_acceptance.groups.problems.end_pattern", "composite_acceptance.groups.problems.combined_columns"],
+    "provider_calls": 0,
+    "retained_first_call_verdict": false,
+    "reason_no_call": "Score-only representation correction; input URL, requested scope and output requirements are unchanged. The saved provider answer is still a challenge page."
+  },
+  "regression_ids": ["combined-problem-cells-across-sections-pass", "combined-problem-cells-cannot-omit-name"],
+  "tests": ["test_complete_list_passes_public_scorer", "test_incomplete_training_list_fails_public_scorer", "test_training_quantity_and_section_scope_remain_required"]
+}

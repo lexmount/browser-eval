@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "tracks": {
+    "webfetch": {
+      "renderer": "harness/web_fetch/report.py",
+      "entrypoint": "scripts/build_report.py",
+      "profile": "evaluation/current-report.json",
+      "example": "https://artifact-site.lexmount.cn/s/p3sFcZrww_nx?version=ver_8ea488f5197c4b57a94c0e7987587e26",
+      "example_profile": "evaluation/wcxb/current-report.json",
+      "build": "uv run --frozen python scripts/build_report.py --profile evaluation/current-report.json --evidence /absolute/path --output reports/webfetch",
+      "check": "make report-check",
+      "wcxb_profile": "evaluation/wcxb/current-report.json",
+      "wcxb_build": "uv run --frozen python scripts/build_report.py --profile evaluation/wcxb/current-report.json --evidence /absolute/path --output reports/wcxb",
+      "wcxb_check": "make wcxb-release-check",
+      "tests": "tests/test_headless_report.py",
+      "variants": ["certified", "wcxb", "local-audit", "diagnostic-cohorts"],
+      "diagnostic_build": "make webfetch-diagnostic-report EVIDENCE=/absolute/path OUTPUT=/absolute/new-output",
+      "diagnostic_profile": "evaluation/live-webfetch/current-report.json",
+      "diagnostic_example": "tests/test_report_templates.py:diagnostic_example",
+      "diagnostic_example_check": "uv run --frozen python -m unittest tests.test_report_templates"
+    },
+    "trajectory-replay": {
+      "renderer": "harness/trajectory_replay/webarena_report.py",
+      "entrypoint": "scripts/build_webarena_replay_report.py",
+      "profile": "evaluation/trajectory-replay/webarena-verified-full/current-report.json",
+      "build": "make trajectory-replay-report EVIDENCE=/absolute/path/results.json",
+      "check": "make trajectory-replay-release-check",
+      "tests": "tests/trajectory_replay/test_webarena_report.py"
+    },
+    "browser-use": {
+      "renderer": "harness/browser_use/report.py",
+      "entrypoint": "scripts/build_browser_use_report.py",
+      "profile": "evaluation/browser-use/current-report.json",
+      "build": "make browser-use-report EVIDENCE=/absolute/path",
+      "check": "make browser-use-release-check EVIDENCE=/absolute/path",
+      "tests": "tests/browser_use/test_report.py"
+    }
+  }
+}

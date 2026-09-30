@@ -44,6 +44,25 @@ REFERENCE = {"case_id": "legacy", "items": [
 
 
 class ScoringTests(unittest.TestCase):
+    def test_untagged_source_requires_explicitly_observed_empty_language(self):
+        c = case(track="dynamic", evaluation_url="https://example.test/page",
+                 expected_final_url="https://example.test/page",
+                 target_language="en", target_region="US",
+                 expected_document_language_present=False)
+        base = {"route": "dynamic_selected_text"}
+        unknown = score_attempt(c, b"Visible page", ok=True, metadata=base,
+                                final_url="https://example.test/page")
+        self.assertEqual(unknown["page_identity_status"], "unavailable")
+        self.assertFalse(unknown["language_consistent"])
+        observed_empty = score_attempt(c, b"Visible page", ok=True,
+                                       metadata={**base, "document_language": ""},
+                                       final_url="https://example.test/page")
+        self.assertEqual(observed_empty["page_identity_status"], "verified")
+        observed_tagged = score_attempt(c, b"Visible page", ok=True,
+                                        metadata={**base, "document_language": "en"},
+                                        final_url="https://example.test/page")
+        self.assertEqual(observed_tagged["page_identity_status"], "mismatch")
+
     def test_risk_control_requires_declared_page_identity(self):
         navigation = {
             "risk_control": {

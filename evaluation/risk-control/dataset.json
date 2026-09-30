@@ -10,9 +10,9 @@
   "independent_quantity_group_count": 27,
   "list_or_field_case_count": 23,
   "composite_group_count": 29,
-  "stable_literal_count": 728,
+  "stable_literal_count": 729,
   "page_context_literal_count": 871,
-  "observed_literal_count": 1599,
+  "observed_literal_count": 1600,
   "runs_per_case": 1,
   "timeout_ms": 45000,
   "workers": 1,
@@ -30,10 +30,10 @@
     "claim_scope": "saved_url_route_and_observation_only"
   },
   "source_bindings": {
-    "cohort_manifest_sha256": "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e",
+    "cohort_manifest_sha256": "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26",
     "first_30_rules_sha256": "4b9a65bd6429223b914a3af5a169c744af01358e051390a4f272063a93199a83",
-    "remaining_70_rules_sha256": "f5ce3afb723d91aac7dc2b4dbb6e822ac70292abd8dc46167e24fd47ab5bfd8c",
-    "list_contracts_sha256": "96a73f56db8221204dd27ad9ef37ba2be295fceaec86a7812a45aecde91536fd",
+    "remaining_70_rules_sha256": "8aa6e8ca959251f58a80e381e6b1209c3af95ec5fa67ef188b01800ab560c796",
+    "list_contracts_sha256": "4d848525cc47179904443758ccdea39ea12c0e959b07237e4193fe2540a59299",
     "body_contracts_sha256": "db7d3083ff5430c2c56e9dcd7000cb340b78792dfb426ec3b9e08bd17fb81552"
   },
   "cases": [
@@ -6786,11 +6786,11 @@
     {
       "id": "risk-diverse-134",
       "name": "Zillow Homes for Sale",
-      "url": "https://www.zillow.com/homes/for_sale/",
+      "url": "https://www.zillow.com/seattle-wa/",
       "category": "risk_control",
       "track": "risk_control",
       "task_kind": "body",
-      "description": "public homes-for-sale query identity and automatically visible listing content; prices and rank are not frozen",
+      "description": "public Seattle homes-for-sale query identity and automatically visible listing content; prices and rank are not frozen",
       "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
       "expected_any": [],
       "forbidden_any": [],
@@ -6837,21 +6837,27 @@
             "alternatives": [
               "Save search"
             ]
+          },
+          {
+            "id": "stable-07",
+            "alternatives": [
+              "Seattle WA Real Estate & Homes For Sale"
+            ]
           }
         ]
       },
       "source_benchmark": {
         "risk_control": {
           "navigation_contract": {
-            "requested_url": "https://www.zillow.com/homes/for_sale/",
-            "observed_final_url": "https://www.zillow.com/homes/for_sale/",
+            "requested_url": "https://www.zillow.com/seattle-wa/",
+            "observed_final_url": "https://www.zillow.com/seattle-wa/",
             "target_language": "en"
           },
           "rule_index": 43,
           "reference_proof": {
-            "root": "diverse20260924",
-            "path": "security-platform-batch-4/risk-diverse-134/round-1/http-default.txt",
-            "sha256": "a34093a6286d94b04d21cdf509eda74351ad9535614bff9ba3b2996651e7a96d"
+            "root": "zillow20260929",
+            "path": "risk-diverse-134/browser-reference.txt",
+            "sha256": "8a46b8650d53c53b41b72dc8fa2892f3fde313a1218024e1a8a4b12c52966f9c"
           },
           "page_context_anchors": [
             {
@@ -6923,11 +6929,6 @@
               {
                 "id": "area",
                 "kind": "area"
-              },
-              {
-                "id": "house_type",
-                "kind": "text",
-                "pattern": "(?:house|home|condo|townhouse|apartment|lot|land|manufactured|multi-family|construction|owner)"
               }
             ]
           }
@@ -7404,19 +7405,22 @@
           {
             "id": "stable-02",
             "alternatives": [
-              "登录以参加训练计划"
+              "登录以参加训练计划",
+              "Login to join training plan"
             ]
           },
           {
             "id": "stable-03",
             "alternatives": [
-              "题目"
+              "题目",
+              "Problem"
             ]
           },
           {
             "id": "stable-04",
             "alternatives": [
-              "尝试"
+              "尝试",
+              "Tried"
             ]
           },
           {
@@ -7428,7 +7432,8 @@
           {
             "id": "stable-06",
             "alternatives": [
-              "难度"
+              "难度",
+              "Difficulty"
             ]
           }
         ]
@@ -7511,8 +7516,14 @@
             "id": "problems",
             "kind": "table",
             "minimum_records": 21,
-            "start_pattern": "(?:第一章|Chapter 1)",
-            "end_pattern": "(?:第六章|Chapter 6)",
+            "start_pattern": "(?m)^\\s*(?:#{1,6}\\s*)?(?:第一章|Chapter\\s+1\\b|Section\\s+1\\.)",
+            "end_pattern": "(?m)^\\s*(?:#{1,6}\\s*)?(?:第六章|Chapter\\s+6\\b|Section\\s+6\\.)",
+            "combined_columns": [
+              {
+                "aliases": ["Problem", "题目"],
+                "pattern": "^(?P<number>[A-Z]?[0-9]+)\\s+(?P<name>.+)$"
+              }
+            ],
             "required_columns": [
               {
                 "id": "number",

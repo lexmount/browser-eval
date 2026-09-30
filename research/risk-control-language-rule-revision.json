@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "risk_control_language_rule_revision",
+  "case_id": "risk-diverse-153",
+  "reason": "The live training page retains its Chinese title and problem rows while rendering the login prompt and table headers in English. The prior Chinese-only UI anchors rejected this complete visible page.",
+  "independent_browser_observation": {
+    "checked_at": "2026-09-29T14:14:46.704803+00:00",
+    "requested_url": "https://www.lznoip.club/training/66358a5906b752f133d95f9f",
+    "final_url": "https://www.lznoip.club/training/66358a5906b752f133d95f9f",
+    "visible_text_sha256": "479116ad4cdca847c460bc41690dee7f7dd6a7e21d07e2bf8d2e32d24f9b6687",
+    "source_html_sha256": "58f4f5ee43aef6d4fa1be44409a718722516072f551637b7df76856730115d61",
+    "original_anchor_hits": 2,
+    "anchor_total": 6,
+    "original_body_coverage_pass": true,
+    "raw_observation_location": "external evidence; not stored in Git"
+  },
+  "correction": {
+    "unchanged_required_chinese_title": "教材《C++版信息学奥赛一本通编程启蒙》题单",
+    "equivalent_ui_alternatives_added": {
+      "stable-02": "Login to join training plan",
+      "stable-03": "Problem",
+      "stable-04": "Tried",
+      "stable-06": "Difficulty"
+    },
+    "old_dataset_sha256": "63c5b839cd6e680842bd0a8aea6814526f98d723c2df57ca32568b5a1dfe51b6",
+    "new_dataset_sha256": "ea3ecc02aa1a85395f10f2b96fcb4be2e6717f6e73480bd1e81e705bf61cc7dd",
+    "new_run_profile_sha256": "bad1bf762f3fcba1680db0f545c6f100c29d0f80592fc76ea65fe16f659d67e0",
+    "provider_calls": 0
+  }
+}
