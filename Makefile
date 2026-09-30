@@ -15,6 +15,15 @@ import-env:
 runtime-check:
 	@$(PY) -c 'import sys; assert sys.version_info[:2] == (3, 11), sys.version'
 
+.PHONY: report-template webfetch-diagnostic-report
+report-template: runtime-check
+	$(PY) scripts/report_template.py "$(TRACK)"
+
+webfetch-diagnostic-report: runtime-check
+	@test -n "$(EVIDENCE)" -a -n "$(OUTPUT)"
+	$(PY) scripts/build_report.py --diagnostic-cohorts --evidence "$(EVIDENCE)" --output "$(OUTPUT)"
+	$(PY) scripts/check_diagnostic_report.py "$(OUTPUT)"
+
 naming-check: runtime-check
 	$(PY) scripts/check_track_naming.py
 

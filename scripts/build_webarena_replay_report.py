@@ -92,4 +92,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    from harness.reporting.templates import resolve_template
+    resolve_template("trajectory-replay")
     main()

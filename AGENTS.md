@@ -1,5 +1,7 @@
 # Report maintenance
 
+- Before report authoring, run `uv run --frozen python scripts/report_template.py <webfetch|trajectory-replay|browser-use>` and inspect its renderer, version-pinned example and checks. `configs/report-templates.json` owns discovery; examples supply presentation conventions, never measurements or publication targets. Extend the selected owner for new cohorts and evidence states. A new track must first gain a runnable synthetic example, evidence/detail behavior tests and a release check, then register those resources. Update the owning code and relevant skill when a repeated gap is demonstrated; keep report-specific findings outside instructions. Do not generate a disposable parallel renderer under a work directory.
+
 ## Change lifecycle and repository footprint
 
 - Extend the current owner before adding a parallel implementation. A second browser, cohort, dataset size, provider, language or release must select behavior through data, a registry or parameters in the existing pipeline. It must not create a browser-specific runner, copied renderer, numbered implementation or compatibility alias.
