@@ -215,13 +215,6 @@ Only one extra line
     ]
 
 
-def test_numeric_card_pattern_can_describe_the_value_not_only_a_unit():
-    rules=contract(named('stock',r'^# Stock$',r'^# End$',1,
-                         required_fields=[{'id':'quantity','kind':'integer','pattern':r'^\d+$'}]))
-    text='# Stock\n[One](https://example.test/item/1)\n12\n# End'
-    assert evaluate_composite_acceptance(text,rules,base_url='https://example.test/')['composite_acceptance_pass']
-
-
 def test_linked_table_requires_link_and_fields_in_same_row():
     rules = contract(
         {

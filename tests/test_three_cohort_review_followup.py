@@ -80,3 +80,13 @@ def test_document_head_cannot_supply_body_evidence(visible):
     case={'url':'https://example.test/article','task_kind':'body','acceptance_contract':rules}
     assert evaluate_stable_task(html,rules)['stable_task_pass'] is visible
     assert score_attempt(case,html.encode(),ok=True)['content_pass'] is visible
+
+
+def test_numeric_card_pattern_can_describe_the_value_not_only_a_unit():
+    from harness.web_fetch.composite_tasks import evaluate_composite_acceptance
+    rules={'version':1,'groups':[{'id':'stock','kind':'named_link','minimum_records':1,
+           'hosts':['example.test'],'entry_path':r'/item/[0-9]+',
+           'start_pattern':r'^# Stock$','end_pattern':r'^# End$',
+           'required_fields':[{'id':'quantity','kind':'integer','pattern':r'^\d+$'}]}]}
+    text='# Stock\n[One](https://example.test/item/1)\n12\n# End'
+    assert evaluate_composite_acceptance(text,rules,base_url='https://example.test/')['composite_acceptance_pass']
