@@ -15,7 +15,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from urllib.parse import parse_qsl, urljoin, urlsplit
+from urllib.parse import parse_qsl, quote, urljoin, urlsplit
 
 from ..document_text import extract_document_text
 from ..models import EvalCase, ProviderResult
@@ -74,7 +74,7 @@ def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> st
                 (parts.hostname or "").casefold(),
                 parts.port if parts.port is not None else (443 if parts.scheme.casefold() == "https" else 80),
                 re.sub(r"%[0-9a-fA-F]{2}", lambda match: match[0].upper(),
-                       parts.path).rstrip("/") or "/",
+                       quote(parts.path, safe="/%:@!$&'()*+,;=")).rstrip("/") or "/",
                 sorted(parse_qsl(parts.query, keep_blank_values=True)),
             )
         except ValueError:

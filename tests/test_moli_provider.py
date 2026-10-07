@@ -37,6 +37,8 @@ class MoliTests(unittest.TestCase):
             ("https://example.com/a%2Fb", "https://example.com/a/b", False),
             ("https://example.com/a%2fb", "https://example.com/a%2Fb", True),
             ("https://example.com:443/start", "https://example.com/start", True),
+            ("https://example.com/新闻", "https://example.com/%E6%96%B0%E9%97%BB", True),
+            ("https://example.com/a b", "https://example.com/a%20b", False),
             ("https://example.com/start", "https://[invalid/", False),
         ):
             with self.subTest(requested=requested, logged=logged):

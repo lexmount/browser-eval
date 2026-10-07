@@ -1276,6 +1276,61 @@
   ],
   "releases": [
     {
+      "id": "2026-10-07-risk-control-historical-presentation",
+      "comparison_kinds": [
+        "risk_control_100_moli"
+      ],
+      "date": "2026-10-07",
+      "title": "更新100例风控历史报告的说明与证据入口",
+      "summary": "保留100题历史结果、103次物理调用和31/100成绩。全部1,599项稳定文字均为必需；修正报告解读、网址识别与日志展示，没有新增供应商调用。历史证据缺少调用前后参考认证，本版不属于新的正式测评。",
+      "changes": [
+        [
+          "报告解读",
+          "通用文章包含本报告未测量的任务和方法。",
+          "改为本批100题的任务范围、必需文字规则和证据入口。",
+          "不再展示不适用的0任务比较。"
+        ],
+        [
+          "网址与日志",
+          "中文网址和百分号编码写法可能未被识别为同一请求；私有日志路径不适合线上报告。",
+          "按同次完整日志复核网址，公开页面指向已保存的公开日志；历史执行记录保持不变。",
+          "仅修正识别和展示，不改变历史评分、输出或耗时。"
+        ],
+        [
+          "证据限制",
+          "结果数量完整不能证明历史参考在调用前后未变化。",
+          "在页面明确标注历史结果未完成正式认证。",
+          "100题、103次物理调用和31/100成绩保持不变。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Update scope notes and evidence links for the 100-case historical risk-control report",
+          "summary": "Retain 100 historical results, 103 physical calls, and the 31/100 score. All 1,599 stable strings are required. Correct the report interpretation, URL identification, and log display without new provider calls. Historical evidence lacks before-and-after reference certification; this edition is not a new certified measurement.",
+          "changes": [
+            [
+              "Report interpretation",
+              "The generic article covered task families and methods absent from this report.",
+              "Explain the scope of these 100 tasks, required text rules, and evidence links.",
+              "Remove inapplicable comparisons with 0 tasks."
+            ],
+            [
+              "URLs and logs",
+              "Chinese URLs and their percent-encoded forms could fail to match; private log paths are unsuitable for a hosted report.",
+              "Recheck URLs against complete same-call logs and link public pages to retained public logs; preserve historical execution records.",
+              "Correct identification and display only, without changing historical scores, outputs, or latency."
+            ],
+            [
+              "Evidence limits",
+              "A complete result count does not prove that historical references remained unchanged before and after calls.",
+              "Label the pages as historical results without formal certification.",
+              "Retain 100 tasks, 103 physical calls, and the 31/100 score."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-09-29-risk-control-review-corrections",
       "scoring_revision_input_sha256": "4dbcdbcc9232697b0420869c2dc46939e033999ec60ed0edcc4b9278a98209fb",
       "comparison_kinds": [

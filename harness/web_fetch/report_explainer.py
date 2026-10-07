@@ -754,7 +754,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
     if not supports_authored_explainer(cases):
         passes = sum(task_passed(row['ok'], row['metrics'],
                      cases[row['case_id']].get('task_kind', 'body')) for row in records)
-        return (f'<section><h1>本报告的任务范围与验收规则</h1>'
+        return (f'<section class="wrap"><h1>本报告的任务范围与验收规则</h1>'
                 f'<p>本报告包含 {len(cases)} 个任务、{len(records)} 个逻辑结果，'
                 f'任务通过 {passes}/{len(records)}。结论仅适用于已登记的任务和规则。</p>'
                 '<p><a href="../datasets/index.html">查看全部任务及验收规则</a> · '
