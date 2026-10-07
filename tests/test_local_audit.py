@@ -140,3 +140,59 @@ def test_local_audit_requires_complete_inventory_and_review_lineage(tmp_path, mo
     _write(prior, {"reviewed": False})
     with pytest.raises(ValueError, match="inventory or hashes changed"):
         local_audit.require_local_audit(source, dataset, [record])
+
+
+def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp_path, monkeypatch):
+    from pathlib import Path
+    from harness.web_fetch.config import load_dataset
+    from harness.web_fetch.providers import build_provider
+    from harness.web_fetch.runner import run_evaluation
+    from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+    from harness.web_fetch.report_build import build_report
+    canonical = tmp_path / "repo/evaluation/dataset.json"
+    # Use a genuine committed contract to exercise the production scorer.
+    actual = json.loads(Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json").read_text())["cases"][0]
+    canonical_data = {"tool": "web_fetch", "cases": [actual]}
+    _write(canonical, canonical_data)
+    dataset = {**canonical_data, "id": "local-fixture", "name": "Local fixture",
+               "coverage_plan": {"dynamic": ["fixture"]},
+               "comparison": {"kind": "uniform_native_local_measurement",
+                   "publication_state": "local_audit_only_not_for_release"}}
+    inputs = tmp_path / "inputs/dataset.json"
+    _write(inputs, dataset)
+    config = tmp_path / "inputs/providers.json"
+    _write(config, {"providers": {"fixture": {"type": "fixture"}}})
+    _, cases = load_dataset(inputs)
+    evidence = tmp_path / "evidence"
+    records, _ = run_evaluation(output_dir=evidence, dataset_meta=dataset,
+        dataset_path=inputs, cases=cases, providers=[build_provider("fixture", {"type": "fixture"})],
+        provider_config_path=config, runs=1, timeout=45, delay=0)
+    batch = json.loads((evidence / "manifest.json").read_text())
+    _write(evidence / "execution.json", {"batches": [batch]})
+    _write(evidence / "local-run-contract.json", {
+        "schema_version": 1, "kind": "uniform_native_local_measurement",
+        "dataset_path": "evaluation/dataset.json", "dataset_sha256": _digest(canonical),
+        "scoring_source_sha256": SCORING_SOURCE_SHA256, "providers": ["fixture"],
+        "runs": 1, "timeout_seconds": 45, "max_failure_retries": 0})
+    contract_path = evidence / "local-run-contract.json"
+    contract = json.loads(contract_path.read_text())
+    contract.update(provider_config_sha256=batch["provider_config_sha256"],
+                    runtime_source_sha256=batch["runtime_source_sha256"])
+    _write(contract_path, contract)
+    dataset["comparison"]["local_run_contract_sha256"] = _digest(contract_path)
+    _write(evidence / "dataset.json", dataset)
+    monkeypatch.setattr(local_audit, "ROOT", tmp_path / "repo")
+    assert local_audit.require_local_audit(evidence, dataset, records) is None
+    output = tmp_path / "report"
+    build_report(evidence, output, local_audit=True)
+    assert "本地实测版" in (output / "index.html").read_text()
+    detail = (output / "attempts" / (records[0]["attempt_id"] + ".html")).read_text()
+    assert "运行日志与证据" in detail
+    assert not (output / "result-review.json").exists()
+    assert json.loads((output / "report-manifest.json").read_text())["certified"] is False
+    with pytest.raises(ValueError, match="incomplete"):
+        local_audit.require_local_audit(evidence, dataset, [])
+    changed = json.loads(json.dumps(dataset))
+    changed["cases"][0]["url"] = "https://other.test/"
+    with pytest.raises(ValueError, match="changed the committed cases"):
+        local_audit.require_local_audit(evidence, changed, records)

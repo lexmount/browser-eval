@@ -38,3 +38,5 @@ Repository reports default to Chinese-only output and checks. English generation
 Do not publish while the exact method matrix is incomplete, references required for the claimed metrics are unverified, an explicitly requested review scope is incomplete, unresolved adjudications remain, output identities cannot be reproduced, or the publication target is ambiguous. Report unreviewed scope honestly; do not imply that failure-only review covered machine passes.
 
 When finished, give the report and code-review links, measured and reviewed coverage, unresolved count, rerun scope, material limitations, and verification status. Keep internal notes and agent transcripts out of the public report.
+
+For a new URL-only local matrix over committed stable contracts, reuse the local-audit renderer with comparison.kind=uniform_native_local_measurement and a pre-call local-run-contract.json. Require complete case-by-method coverage and one hash-bound public call log per result. This mode must state that results are machine judgments without independent review and must never inherit historical review receipts or certification.

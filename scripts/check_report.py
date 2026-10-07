@@ -97,7 +97,12 @@ if d.get('comparison',{}).get('kind')=='webmainbench_frozen_html_to_markdown':
  print('PASS: WebMainBench preselected-200 matrix, sample, scores, retries, bilingual routes and reference assets verified')
  raise SystemExit(0)
 names={r['provider'] for r in rs}
-if profile_path and (profile_path.parent/'dataset.json').is_file():
+if d.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
+ from harness.web_fetch.local_audit import require_local_measurement
+ require_local_measurement(root,d,rs)
+ inventory={track:{'case_ids':[case['id'] for case in d['cases'] if case.get('track','web')==track], 'providers':providers} for track,providers in d['coverage_plan'].items()}
+ canonical_dataset=repository/json.loads((root/'local-run-contract.json').read_text())['dataset_path']
+elif profile_path and (profile_path.parent/'dataset.json').is_file():
  inventory={track:{'case_ids':[case['id'] for case in d['cases']
                               if case.get('track','web')==track],
                    'providers':providers}

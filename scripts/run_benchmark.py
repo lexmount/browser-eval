@@ -93,6 +93,7 @@ def main(argv=None):
     parser.add_argument('--dataset',type=Path,default=ROOT/'evaluation/dataset.json',help='Frozen dataset JSON; sources and list-references are resolved beside it')
     parser.add_argument('--output',type=Path,default=data_home()/'runs/webfetch')
     parser.add_argument('--env-file',type=Path)
+    parser.add_argument('--provider-config',type=Path,help='Shared predeclared provider configuration for all selected tracks')
     parser.add_argument('--providers',help='Comma-separated names; default: all benchmark methods')
     parser.add_argument('--track',help='Run only this task group, such as dynamic; default: all groups')
     parser.add_argument('--case-ids',help='Comma-separated case IDs; default: every case in the selected task group')
@@ -131,7 +132,7 @@ def main(argv=None):
     for scope,filename in [('web','providers.example.json'),('resources','providers.resources.json')]:
         selected=[c for c in cases if (c.track=='web')==(scope=='web')]
         if selected:
-            path=ROOT/'configs'/filename
+            path=args.provider_config or ROOT/'configs'/filename
             scopes.append((scope,path,load_provider_config(path),selected))
     errors=[]
     selected_providers=[]

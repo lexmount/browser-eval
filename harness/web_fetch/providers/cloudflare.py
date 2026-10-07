@@ -11,7 +11,7 @@ from pathlib import PurePosixPath
 from urllib.parse import urlencode, urljoin, urlsplit
 
 from ..models import EvalCase, ProviderResult
-from ..retrieval_hints import plan_for_case
+from ..retrieval_hints import plan_for_case, native_default_case
 from ..safety import validate_http_url
 from .base import Provider
 from .http_client import HttpOnlyRedirectHandler, HttpResponse, inner_timeout_budget, request
@@ -344,7 +344,7 @@ class CloudflareMarkdownProvider(Provider):
         request_body["actionTimeout"] = service_timeout_ms
         route = "browser_rendering_markdown"
         wait_metadata = None
-        if case.track == "dynamic" and "url" in request_body:
+        if case.track == "dynamic" and not native_default_case(case) and "url" in request_body:
             try:
                 if not math.isfinite(timeout) or timeout <= 0:
                     raise ValueError

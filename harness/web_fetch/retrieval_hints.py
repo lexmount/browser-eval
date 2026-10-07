@@ -285,7 +285,22 @@ def parse_retrieval_hints(
     )
 
 
+def native_default_case(case: Any) -> bool:
+    """Stable acceptance contracts permit a URL-only provider-default route."""
+    get = case.get if isinstance(case, dict) else lambda key, default=None: getattr(case, key, default)
+    if get("track", "web") != "dynamic" or get("retrieval_hints"):
+        return False
+    contract = get("acceptance_contract")
+    if not contract:
+        return False
+    from .stable_tasks import validate_acceptance_contract
+    validate_acceptance_contract(contract)
+    return True
+
+
 def plan_for_case(case: Any) -> RetrievalPlan | None:
+    if native_default_case(case):
+        return None
     hints = getattr(case, "retrieval_hints", None)
     if not hints and getattr(case, "track", "web") != "dynamic":
         return None

@@ -66,7 +66,7 @@ class ExaContentsProvider(Provider):
         )
         extras = ({"links": 20, "imageLinks": 20}
                   if self.config.get("include_resource_links") else {})
-        if case.acceptance_contract.get("schema") == "named_link":
+        if self.config.get("rich_links_limit") or (case.acceptance_contract.get("schema") == "named_link" and not self.config.get("uniform_native_parameters")):
             # Bare links and surrounding text do not prove record ownership.
             # Exa's richLinks route returns the explicit anchor/URL pair needed
             # by the shared named-link answer contract.

@@ -639,6 +639,10 @@ def run_log_section(out,record,output):
  if artifact_relative:
   if raw_record:raw_record+=' · '
   raw_record+=f'<a href="../{esc(artifact_relative)}" download>下载本次保存的原始输出</a>'
+ public_debug=metadata.get('public_debug_log_path')
+ if public_debug:
+  if raw_record:raw_record+=' · '
+  raw_record+=f'<a href="../{esc(public_debug)}" target="_blank">查看完整 debug 日志（已隐藏凭据与本机路径）</a>'
  diagnostic_path=metadata.get('diagnostic_log_path')
  if metadata.get('local_report_complete_diagnostic_links') and diagnostic_path:
   if raw_record:raw_record+=' · '
@@ -1649,6 +1653,8 @@ def attempt_row(r,c,base='../'):
 def local_audit_banner(dataset):
  if dataset.get('comparison',{}).get('publication_state')!='local_audit_only_not_for_release':
   return ''
+ if dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
+  return '<div class="wrap callout"><strong>本地实测版</strong><p>全部方法使用同一组已提交案例和判分规则，每例一次调用，统一45秒外部时限，不设逐例等待或提取参数，不重试。结果为机器判定，未进行独立人工审核；本报告仅供本地查看，不代表正式发布。</p></div>'
  return '<div class="wrap callout"><strong>本地审核版</strong><p>本页合并两个不同日期的 Moli 调用批次，保留每例的真实调用时间。本次仅更换报告展示代码，没有新增 Moli 调用，也不代表正式发布。</p></div>'
 
 def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False):

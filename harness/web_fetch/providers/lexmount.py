@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ..models import EvalCase, ProviderResult
-from ..retrieval_hints import plan_for_case
+from ..retrieval_hints import plan_for_case, native_default_case
 from .base import Provider
 from .http_client import inner_timeout_budget, request
 
@@ -32,7 +32,7 @@ class LexmountProvider(Provider):
         route = "v1_extract"
         wait_metadata = None
         configured_engine = self.config.get("engine")
-        if case.track == "dynamic":
+        if case.track == "dynamic" and not native_default_case(case):
             try:
                 plan = plan_for_case(case)
                 assert plan is not None

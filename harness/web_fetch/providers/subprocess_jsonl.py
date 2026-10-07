@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from ..models import EvalCase, ProviderResult
-from ..retrieval_hints import plan_for_case
+from ..retrieval_hints import plan_for_case, native_default_case
 from .base import Provider
 from .runtime_identity import validate_runtime_identity
 
@@ -185,6 +185,7 @@ class SubprocessJsonlProvider(Provider):
             "task_kind": case.task_kind,
             "track": case.track,
             "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
+            "retrieval_mode": "native_default" if native_default_case(case) else "declared_plan",
         }
         process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
         process.stdin.flush()

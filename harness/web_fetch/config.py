@@ -8,12 +8,14 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from .models import EvalCase
-from .retrieval_hints import parse_retrieval_hints
+from .retrieval_hints import parse_retrieval_hints, native_default_case
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def _validate_retrieval_hints(item: dict[str, Any]) -> None:
+    if native_default_case(item):
+        return
     parse_retrieval_hints(
         str(item.get("track", "web")),
         item.get("retrieval_hints") if "retrieval_hints" in item else None,

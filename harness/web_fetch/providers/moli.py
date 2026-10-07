@@ -551,7 +551,7 @@ class MoliWebFetchProvider(Provider):
                         "resource_discovery": "rendered_dom_and_same_origin_component_modules",
                     }
                     dump = None
-                elif case.track == "dynamic":
+                elif case.track == "dynamic" and retrieval_plan is not None:
                     plan = retrieval_plan
                     assert plan is not None
                     wait_arguments = ["--eval", _dynamic_text_expression(plan)]
@@ -612,7 +612,7 @@ class MoliWebFetchProvider(Provider):
                     dump = None
                 else:
                     wait_arguments = ["--wait-until", wait]
-                    wait_metadata = {"wait_until": wait}
+                    wait_metadata = {"wait_until": wait, **({"strategy": "native_default_completion"} if case.track == "dynamic" else {})}
             except ValueError as error:
                 return ProviderResult(
                     False,
@@ -663,6 +663,8 @@ class MoliWebFetchProvider(Provider):
                 else "challenge_json_trace"
                 if challenge_task
                 else "dynamic_selected_text"
+                if retrieval_plan is not None
+                else "dynamic_native_markdown"
                 if case.track == "dynamic"
                 else "media_metadata_runtime"
                 if media_metadata_task
@@ -682,7 +684,7 @@ class MoliWebFetchProvider(Provider):
                 else "final_dom_html+local_markdown+network_diagnostics"
                 if challenge_task
                 else "selected_records_or_rendered_body_fallback"
-                if case.track == "dynamic"
+                if retrieval_plan is not None
                 else "visible_text_and_standard_media_metadata"
                 if media_metadata_task
                 else "markdown"

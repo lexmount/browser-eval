@@ -198,6 +198,20 @@ class MoliTests(unittest.TestCase):
         self.assertFalse(result.metadata["diagnostic_log_truncated"])
         self.assertTrue(result.metadata["diagnostic_log_process_completed"])
 
+    def test_native_dynamic_uses_markdown_without_generated_wait_or_eval(self):
+        from harness.web_fetch.config import load_dataset
+        _, cases = load_dataset(Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json"))
+        provider = self.provider(
+            "import sys\n"
+            "assert '--eval' not in sys.argv and '--wait-selector' not in sys.argv\n"
+            "assert sys.argv[sys.argv.index('--dump')+1]=='markdown'\n"
+            "print('native answer')",
+            log_level="debug",
+        )
+        result = provider.fetch(cases[0], 2)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.metadata["route"], "dynamic_native_markdown")
+
     def test_network_trace_cannot_change_markdown_scoring_route(self):
         provider = self.provider('raise AssertionError("should not run")', trace_network=True)
         self.assertIn(

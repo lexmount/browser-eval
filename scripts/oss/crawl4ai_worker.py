@@ -27,7 +27,7 @@ _PDF_RETURN_MARGIN_SECONDS = 1.0
 def require_normalized_retrieval_plan(request):
     """Enforce plan presence at the worker boundary without reparsing its schema."""
     plan = request.get("retrieval_plan")
-    if request.get("track") == "dynamic" and not plan:
+    if request.get("track") == "dynamic" and not plan and request.get("retrieval_mode") != "native_default":
         raise ValueError("dynamic tasks require a normalized retrieval_plan")
     if request.get("track") != "dynamic" and plan:
         raise ValueError("retrieval_plan is only valid for dynamic tasks")
@@ -37,7 +37,7 @@ def require_normalized_retrieval_plan(request):
 def dynamic_completion_config(request):
     """Translate the runner-normalized, answer-free plan to Crawl4AI settings."""
     plan = require_normalized_retrieval_plan(request)
-    if request.get("track") != "dynamic":
+    if request.get("track") != "dynamic" or plan is None:
         return {}, {"strategy": "lifecycle", "wait_until": "domcontentloaded"}
     wait_kind = plan["wait_kind"]
     wait_for = ("css:" if wait_kind == "selector" else "js:") + plan["wait_value"]

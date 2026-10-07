@@ -344,6 +344,17 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 target_file = contained_path(staging, file['artifact_path'])
                 target_file.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(binary, target_file)
+            if local_audit and meta.get("diagnostic_log_path"):
+                from .runner import _public_text
+                diagnostic_source = contained_path(source, meta["diagnostic_log_path"])
+                raw_log = diagnostic_source.read_text(encoding="utf-8", errors="replace")
+                safe_log = _public_text(raw_log, limit=len(raw_log)) or ""
+                public_log = "logs/" + r["attempt_id"] + ".debug.txt"
+                destination = contained_path(staging, public_log)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(safe_log, encoding="utf-8")
+                meta["public_debug_log_path"] = public_log
+                meta["public_debug_log_sha256"] = hashlib.sha256(destination.read_bytes()).hexdigest()
             for binding in record_public_call_log_bindings(r):
                 log_source = verify_public_call_log(source, binding)
                 call_log = json.loads(log_source.read_text())
@@ -453,6 +464,16 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if (source/'file-rerun-selection.json').is_file():
             shutil.copy2(source/'file-rerun-selection.json', staging/'file-rerun-selection.json')
             shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')
+        if dataset.get("comparison", {}).get("kind") == "uniform_native_local_measurement":
+            shutil.copy2(source / "local-run-contract.json", staging / "local-run-contract.json")
+            from harness.reporting.templates import resolve_template
+            (staging / "report-manifest.json").write_text(json.dumps({
+                "schema_version": 1, "template": resolve_template("webfetch"),
+                "evidence_state": "local_measurement", "certified": False,
+                "languages": ["zh"], "provider_calls_added": 0,
+                "dataset_sha256": hashlib.sha256((source / "dataset.json").read_bytes()).hexdigest(),
+                "results_sha256": hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest(),
+            }, ensure_ascii=False, indent=2))
         generate(staging,dataset,records,manifests,include_english=include_english)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.

@@ -638,3 +638,14 @@ class NativeFileWorkerTests(unittest.TestCase):
         self.assertEqual(payload["error_type"], "TimeoutError")
         self.assertEqual(payload["metadata"]["completion"]["strategy"], "css_selector")
         self.assertEqual(payload["metadata"]["completion"]["effective_route_timeout_ms"], 10)
+
+
+def test_native_default_worker_has_no_generated_wait_or_extraction():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("native_crawl_worker", Path("scripts/oss/crawl4ai_worker.py"))
+    worker = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(worker)
+    request = {"track": "dynamic", "retrieval_plan": None, "retrieval_mode": "native_default"}
+    completion, _ = worker.dynamic_completion_config(request)
+    extraction, _ = worker.dynamic_extraction_config(request)
+    assert completion == extraction == {}

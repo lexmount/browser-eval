@@ -7,7 +7,7 @@ import math
 from urllib.parse import urlsplit
 
 from ..models import EvalCase, ProviderResult
-from ..retrieval_hints import plan_for_case
+from ..retrieval_hints import plan_for_case, native_default_case
 from .base import Provider
 from .http_client import inner_timeout_budget, request
 
@@ -178,7 +178,7 @@ class FirecrawlProvider(Provider):
         route = "v2_scrape_raw_base64" if file_route else "v2_scrape"
         wait_metadata = None
         dynamic_wait_strategy = None
-        if case.track == "dynamic":
+        if case.track == "dynamic" and not native_default_case(case):
             try:
                 if not math.isfinite(timeout) or timeout <= 0:
                     raise ValueError
