@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch.report import (
-    TRACKS, _body_region_evidence, attempt_row, case_rate,
+    TRACKS, _body_region_evidence, _body_scoring_text, body_region_rows, overview_all_call_latency, attempt_row, case_rate,
     composite_contract_details, composite_result_evidence, failure_category,
     generate, overview_card, ranking, reason, run_log_section,
     stable_anchor_evidence, stable_answer_panel, stable_checks,
@@ -52,6 +52,32 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_all_call_latency_keeps_failed_calls_and_rejects_partial_matrix(self):
+        c=case('body',kind='body')
+        rows=[record(c,passed=True,elapsed=100),record(c,passed=False,elapsed=900)]
+        rows[1]['provider']='second'
+        rendered=overview_all_call_latency(rows,{c['id']:c})
+        self.assertIn('900 ms',rendered)
+        self.assertIn('全部调用 P95',rendered)
+        with self.assertRaises(ValueError):
+            overview_all_call_latency(rows,{c['id']:c,'missing':case('missing',kind='body')})
+
+    def test_body_display_uses_visible_body_without_title_or_scripts(self):
+        from harness.web_fetch.scoring import score_attempt
+        contract={'version':3,'unit':'region_compact_hexagram_recall',
+                  'minimum_coverage':.8,'minimum_floor':.6,'minimum_region_passes':1,
+                  'regions':[{'id':'body','text':'abcdefghijkl'}]}
+        c=case('body',kind='body');c['body_requirements']=contract
+        for output in ('abcdef', '<main>abcdef<script>ghijkl</script></main>'):
+            with self.subTest(output=output):
+                r={'ok':True,'status_code':200,'title':'ghijkl'}
+                metrics=score_attempt(c,output.encode(),ok=True,title=r['title'])
+                scoring_text=_body_scoring_text(r,output)
+                self.assertEqual(scoring_text.strip(),'abcdef')
+                rows,cards=body_region_rows(c,metrics,scoring_text)
+                self.assertEqual(len(rows),1)
+                self.assertNotIn('ghijkl</pre>',cards)
+
     def test_body_evidence_uses_the_canonical_global_allocation(self):
         shared='abcdefghijklmnopqrstuvwx'*3
         contract={'version':3,'unit':'region_compact_hexagram_recall',

@@ -627,18 +627,22 @@ def run_log_section(out,record,output):
          f'<dt>退出码</dt><dd>{esc(process.get("exit_code",metadata.get("exit_code","—")))}</dd>'
          f'<dt>Markdown 输出</dt><dd>{output_bytes:,} 字节</dd><dt>运行日志</dt><dd>{top_log_size}</dd>'
          f'<dt>日志是否完整</dt><dd>{complete_label}</dd><dt>运行 ID</dt><dd>{esc(record.get("run_id") or execution_id(record) or "—")}</dd>'
-         f'<dt>Moli 版本</dt><dd>{esc(version)}</dd>')
+         f'<dt>方法版本</dt><dd>{esc(version)}</dd>')
  full_fields=(f'<dt>开始时间</dt><dd>{esc(record.get("started_at") or timing.get("started_at") or "—")}</dd>'
               f'<dt>结束时间</dt><dd>{esc(record.get("completed_at") or timing.get("completed_at") or "—")}</dd>'
               f'<dt>日志级别</dt><dd>{esc(metadata.get("log_level") or ("已保存 stderr（级别未记录）" if any_stderr else "未开启 debug"))}</dd>'
               f'<dt>公开日志</dt><dd>{top_log_size}</dd><dt>公开日志脱敏</dt><dd>否</dd>'
-              f'<dt>Moli SHA-256</dt><dd>{esc(metadata.get("binary_sha256") or "—")}</dd>'
+              f'<dt>方法 SHA-256</dt><dd>{esc(metadata.get("binary_sha256") or "—")}</dd>'
               f'<dt>正式命令</dt><dd>{esc(command)}</dd>')
  diagnostic=''.join(diagnostics) if diagnostics else '<p class="source-note">这次历史调用没有保存可展示的 stderr / debug 日志；不会补造不存在的日志。</p>'
  raw_record=' · '.join(f'<a href="../{esc(log["path"])}" download>下载{esc(log["label"])}记录</a>' for log in logs)
  if artifact_relative:
   if raw_record:raw_record+=' · '
   raw_record+=f'<a href="../{esc(artifact_relative)}" download>下载本次保存的原始输出</a>'
+ public_response=metadata.get('public_response_path')
+ if public_response:
+  if raw_record:raw_record+=' · '
+  raw_record+=f'<a href="../{esc(public_response)}" target="_blank">查看完整 API 响应（已隐藏凭据与本机路径）</a>'
  public_debug=metadata.get('public_debug_log_path')
  if public_debug:
   if raw_record:raw_record+=' · '
@@ -1110,6 +1114,16 @@ def _position_label(index,total):
  start=round(index*100/total);end=round((index+1)*100/total)
  return f'{names[index]}（标准答案 {start}–{end}%）'
 
+def _body_scoring_text(record, output):
+ """Use the scorer's body input; titles belong only to answer diagnostics."""
+ from .response_input import answer_input
+ content=answer_input(output.encode('utf-8'),record.get('provider_metadata'),
+                      ok=record.get('ok',False),status_code=record.get('status_code'))[0]
+ if re.match(r'\s*(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',content,re.I):
+  from .dynamic_lists import visible_html_text
+  content=visible_html_text(content)
+ return content
+
 def body_region_rows(case, metrics, output):
  from .body_coverage import evaluate_body_requirements
  contract=case.get('body_requirements') or {}
@@ -1491,6 +1505,19 @@ def matched_latency(groups,cases,base):
  links='、'.join(link(base+'datasets/'+key+'.html',cases[key].get('name',key)) for key in sorted(common))
  return '<details><summary>同题耗时 · 全部方法共同通过子集</summary><p>'+note+'</p>'+ (table(['方法','同题均值','同题 P50'],rows,metrics=[])+ '<p>'+links+'</p>' if rows else '')+'</details>'
 
+def overview_all_call_latency(records,cases):
+ names=sorted({r['provider'] for r in records})
+ keys={(r['provider'],r['case_id']) for r in records}
+ if len(keys)!=len(records) or any((name,cid) not in keys for name in names for cid in cases):
+  raise ValueError('All-call latency requires the full common task matrix')
+ rows=[]
+ for name in names:
+  times=[r['elapsed_ms'] for r in records if r['provider']==name]
+  rows.append(('',cell(link('providers/'+name+'.html',provider_label(name)))+cell(str(len(times)))+
+               cell(ms(statistics.mean(times)))+cell(ms(percentile(times,.5)))+cell(ms(percentile(times,.95)))))
+ return (f'<p>每种方法均使用同一组 {len(cases)} 个动态网站任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。各方法串行执行，仍受本地与远程环境、网络和产品内部限制影响。</p>'+
+         table(['方法','调用数','全部调用均值','全部调用 P50','全部调用 P95'],rows,'all-call-latency-table',metrics=[]))
+
 def overview_matched_latency(records,cases):
  from .report_explainer import _article_speed_population
  names=sorted({r['provider'] for r in records})
@@ -1696,6 +1723,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
  home+=section(f'{track_label} 类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  home+=section('综合通过率总榜',overall_ranking(records,cases,audit),'overall-ranking')
+ if dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
+  home+=section('同一任务集合的全部调用耗时',overview_all_call_latency(records,cases),'all-call-latency')
  home+=section('全部方法共同成功任务的耗时',overview_matched_latency(records,cases),'overall-matched-latency')
  if (out/'resource-cohort/resource-comparison.json').is_file():
   home+=section('CPU、内存与网络',overview_resources(out),'overall-resources')
@@ -1950,7 +1979,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    checks_html+=table(['记录字段','有效记录数','至少要求','判定'],[('',cell(esc(x['field']))+cell(str(x['count']))+cell(str(x['minimum']))+cell('通过' if x['pass'] else '未通过')) for x in m['stable_field_results']],metrics=[])
   body+=section('为什么这样判',caveat+checks_html,'decision')
   if m.get('body_region_results'):
-   scoring_text=((str(r.get('title')).strip()+'\n') if r.get('title') and str(r.get('title')).strip() else '')+output
+   scoring_text=_body_scoring_text(r,output)
    region_rows,region_cards=body_region_rows(c,m,scoring_text);rules=c.get('body_requirements',{})
    required=rules.get('minimum_region_passes',len(rules.get('regions',[])))
    region_count=len(rules.get('regions',[]))

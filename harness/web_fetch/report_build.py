@@ -355,6 +355,16 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 destination.write_text(safe_log, encoding="utf-8")
                 meta["public_debug_log_path"] = public_log
                 meta["public_debug_log_sha256"] = hashlib.sha256(destination.read_bytes()).hexdigest()
+            if local_audit and meta.get("raw_response_path"):
+                from .runner import _public_text
+                response_source = contained_path(source, meta["raw_response_path"])
+                response_text = response_source.read_text(encoding="utf-8", errors="replace")
+                public_response = "logs/" + r["attempt_id"] + ".response.txt"
+                destination = contained_path(staging, public_response)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(_public_text(response_text, limit=len(response_text)) or "", encoding="utf-8")
+                meta["public_response_path"] = public_response
+                meta["public_response_sha256"] = hashlib.sha256(destination.read_bytes()).hexdigest()
             for binding in record_public_call_log_bindings(r):
                 log_source = verify_public_call_log(source, binding)
                 call_log = json.loads(log_source.read_text())
