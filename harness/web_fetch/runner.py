@@ -27,7 +27,7 @@ from .artifacts import (
 )
 from .call_boundary import fetch_with_deadline
 from .metrics import summarize, task_passed
-from .models import AttemptRecord, EvalCase, ProviderResult
+from .models import AttemptRecord, EvalCase, ProviderResult, validate_case
 from .providers import Provider
 from .reference_inputs import read_dataset_bytes
 from .reference_lifecycle import (
@@ -457,14 +457,24 @@ def run_evaluation(
     resource_sample_interval_ms: int | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     output_dir = output_dir.resolve()
-    if provider_concurrency < 1:
-        raise ValueError("provider_concurrency must be at least 1")
-    if not math.isfinite(timeout) or timeout <= 0:
-        raise ValueError('timeout must be positive and finite')
-    if max_failure_retries not in {0, 1}:
+    for name, value, minimum in (
+        ('runs', runs, 1), ('provider_concurrency', provider_concurrency, 1),
+        ('max_failure_retries', max_failure_retries, 0),
+    ):
+        if type(value) is not int or value < minimum:
+            raise ValueError(f'{name} must be an integer of at least {minimum}')
+    for name, value, minimum in (('timeout', timeout, 0), ('delay', delay, 0)):
+        if (not isinstance(value, (int, float)) or isinstance(value, bool)
+                or not math.isfinite(value) or value < minimum or (name == 'timeout' and value == 0)):
+            raise ValueError(f'{name} must be finite and {"positive" if name == "timeout" else "nonnegative"}')
+    if max_failure_retries > 1:
         raise ValueError('max_failure_retries must be 0 or 1')
-    if resource_sample_interval_ms is not None and resource_sample_interval_ms < 10:
-        raise ValueError('resource_sample_interval_ms must be at least 10')
+    if resource_sample_interval_ms is not None and (
+        type(resource_sample_interval_ms) is not int or resource_sample_interval_ms < 10
+    ):
+        raise ValueError('resource_sample_interval_ms must be an integer of at least 10')
+    if not cases or not providers:
+        raise ValueError('Execution requires at least one task and provider')
     for provider in providers:
         if provider.config.get("uniform_native_parameters"):
             if runs != 1 or max_failure_retries != 0:
@@ -473,7 +483,11 @@ def run_evaluation(
                 provider.check_native_call(case)
         safe_identifier(provider.name)
     for case in cases:
-        safe_identifier(case.id)
+        validate_case(case)
+    if len({provider.name for provider in providers}) != len(providers):
+        raise ValueError('Provider names must be unique within an execution')
+    if len({case.id for case in cases}) != len(cases):
+        raise ValueError('Task IDs must be unique within an execution')
     for filename in ['artifacts', PUBLIC_CALL_LOG_ROOT, 'manifest.json', 'dataset.json',
                      'results.jsonl', 'summary.json']:
         contained_path(output_dir, filename)

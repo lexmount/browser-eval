@@ -18,11 +18,10 @@ from .report_style import STYLE
 from .report_components import tabs, metric_guide, metric_legend, examples, reference_status, basis_label, reference_label, reference_text, sources_panel, stable_contract_details, task_instruction
 from .failure_diagnosis import diagnose
 from .safety import contained_path, safe_href, validate_report_ids
-from .models import execution_id
+from .models import TRACKS, execution_id
 from .report_resources import render_resource_comparison
 from .webmainbench_diagnostics import ERROR_PAGE
 
-TRACKS={'web':'静态网站正文','dynamic':'动态网站正文','challenge':'热门网站正文','document':'文档正文','image':'图片获取','video':'视频获取','risk_control':'历史访问受限网址正文'}
 PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-pr643':'Moli 1.1.7 · PR #643','moli-1.1.11':'Moli 1.1.11'}
 
 

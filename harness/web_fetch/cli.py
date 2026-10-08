@@ -7,6 +7,7 @@ from pathlib import Path
 from .accounts import print_account_checklist
 from .config import load_dataset, load_provider_config, load_runtime_env, select_diagnostic_scope
 from .metrics import task_passed
+from .models import TASK_KINDS
 from .providers import build_provider
 from .report_build import build_report
 from .runner import rescore_evaluation, run_evaluation
@@ -108,7 +109,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated configured provider names")
     run.add_argument("--case-ids", default="", help="Optional comma-separated case IDs")
-    run.add_argument("--task-kind", choices=("body", "structure", "resource", "file"),
+    run.add_argument("--task-kind", choices=TASK_KINDS,
                      help="Select one task kind; intersects with --case-ids")
     run.add_argument("--runs", type=int, default=1)
     run.add_argument("--timeout", type=float, default=45)

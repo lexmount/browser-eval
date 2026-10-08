@@ -42,6 +42,13 @@ intersection. An empty selection or repeated task/provider names fails before
 calls. The diagnostic matrix contains exactly the selected tasks and methods;
 it does not inherit a historical cohort's certification or review requirements.
 
+The shared runner rejects empty or duplicate execution scopes before adapter
+validation or calls. Run counts and concurrency must be positive integers;
+timeouts must be positive and finite, and delays finite and nonnegative. Task
+IDs, HTTP(S) URLs, required fields, output types and report groups are validated
+on dataset loading and again at execution. `models.py` owns the output-type and
+report-group registry used by configuration, execution and presentation.
+
 ## Common text evaluation
 
 Website, dynamic-site, popular-site and document text share `scoring.score_attempt`:

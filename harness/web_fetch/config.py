@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from .models import EvalCase
+from .models import EvalCase, validate_case
 from .reference_inputs import read_dataset_bytes
 from .retrieval_hints import parse_retrieval_hints, native_default_case
 
@@ -96,13 +96,20 @@ def load_json(path: Path) -> Any:
 
 def load_dataset(path: Path) -> tuple[dict[str, Any], list[EvalCase]]:
     payload = load_json(path)
-    if payload.get("tool") != "web_fetch":
+    if not isinstance(payload, dict) or payload.get("tool") != "web_fetch":
         raise ValueError("dataset.tool must be 'web_fetch'")
     raw_cases = payload.get("cases", [])
+    if not isinstance(raw_cases, list) or any(not isinstance(item, dict) for item in raw_cases):
+        raise ValueError("dataset.cases must be a list of task objects")
     for item in raw_cases:
         _validate_retrieval_hints(item)
         _validate_ground_truth_evidence(item)
-    cases = [EvalCase(**item) for item in raw_cases]
+    try:
+        cases = [EvalCase(**item) for item in raw_cases]
+    except TypeError as error:
+        raise ValueError(f"Invalid task definition: {error}") from error
+    for case in cases:
+        validate_case(case)
     if not cases:
         raise ValueError("dataset must contain at least one case")
     ids = [case.id for case in cases]
