@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -108,6 +109,34 @@ def load_dataset(path: Path) -> tuple[dict[str, Any], list[EvalCase]]:
     if len(ids) != len(set(ids)):
         raise ValueError("dataset case ids must be unique")
     return payload, cases
+
+
+def select_diagnostic_scope(
+    dataset: dict[str, Any], cases: list[EvalCase], providers: list[str], *,
+    case_ids: str = "", task_kind: str | None = None,
+) -> tuple[dict[str, Any], list[EvalCase]]:
+    """Declare the generic runner's complete matrix before any provider call."""
+    if not providers or len(providers) != len(set(providers)):
+        raise ValueError("Select at least one provider; provider names must be unique")
+    requested = [item.strip() for item in case_ids.split(",") if item.strip()]
+    if case_ids and (not requested or len(requested) != len(set(requested))):
+        raise ValueError("Case IDs must be nonempty and unique")
+    unknown = set(requested) - {case.id for case in cases}
+    if unknown:
+        raise ValueError(f"Unknown cases: {', '.join(sorted(unknown))}")
+    selected = [case for case in cases if (not requested or case.id in requested)
+                and (task_kind is None or case.task_kind == task_kind)]
+    if not selected:
+        raise ValueError("Task selection is empty")
+    selected_ids = {case.id for case in selected}
+    scoped = deepcopy(dataset)
+    scoped['cases'] = [item for item in scoped['cases'] if item['id'] in selected_ids]
+    scoped['coverage_plan'] = {track: list(providers) for track in
+                               sorted({case.track for case in selected})}
+    # A new diagnostic run cannot inherit a historical cohort's certification.
+    scoped['comparison'] = {'kind': 'web_fetch_diagnostic',
+                            'publication_state': 'diagnostic_not_for_release'}
+    return scoped, selected
 
 
 def load_provider_settings(path: Path) -> dict[str, Any]:

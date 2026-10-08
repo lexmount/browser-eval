@@ -36,6 +36,8 @@ uv run --frozen browser-harness-eval run \
 
 普通 `run` 产生诊断证据。正式 Web Fetch 调用必须通过 `scripts/run_certified_benchmark.py` 冻结并复核参考；不完整批次不能用于发布。模型、远程接口和真实网站运行可能产生费用，运行要求见各轨道说明。
 
+用 `--task-kind file` 可检查文件交付；也可选择 `body`、`structure` 或 `resource`。`--case-ids case-a,case-b` 选择指定任务，与任务类型同时使用时取交集。报告只统计本次选择的任务和方法，并标明诊断用途。
+
 ## 安装所需能力
 
 基础安装只包含离线示例和基础 Web Fetch 所需依赖。按实验安装额外依赖：

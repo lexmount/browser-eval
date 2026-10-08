@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import argparse
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 
 from .accounts import print_account_checklist
-from .config import load_dataset, load_runtime_env, load_provider_config
-from .providers import build_provider
+from .config import load_dataset, load_provider_config, load_runtime_env, select_diagnostic_scope
 from .metrics import task_passed
+from .providers import build_provider
 from .report_build import build_report
 from .runner import rescore_evaluation, run_evaluation
 from .storage import data_home
-
 
 EXAMPLES = Path(__file__).parent / "data"
 
@@ -23,21 +21,20 @@ def default_run_dir() -> Path:
 
 
 def command_run(args: argparse.Namespace) -> int:
+    if args.output.exists() or args.output.is_symlink():
+        raise SystemExit("Output must be a new directory; existing evidence is immutable")
     load_runtime_env(args.env_file)
     dataset_meta, cases = load_dataset(args.dataset)
-    if args.case_ids:
-        requested = {item.strip() for item in args.case_ids.split(",") if item.strip()}
-        known = {case.id for case in cases}
-        unknown_cases = requested - known
-        if unknown_cases:
-            raise SystemExit(f"Unknown cases: {', '.join(sorted(unknown_cases))}")
-        cases = [case for case in cases if case.id in requested]
-        dataset_meta = {**dataset_meta, "id": f"{dataset_meta['id']}--subset", "name": f"{dataset_meta['name']}（子集）", "cases": [item for item in dataset_meta["cases"] if item["id"] in requested]}
     provider_configs = load_provider_config(args.provider_config)
     names = [name.strip() for name in args.providers.split(",") if name.strip()]
     unknown = [name for name in names if name not in provider_configs]
     if unknown:
         raise SystemExit(f"Unknown providers: {', '.join(unknown)}")
+    try:
+        dataset_meta, cases = select_diagnostic_scope(
+            dataset_meta, cases, names, case_ids=args.case_ids, task_kind=args.task_kind)
+    except ValueError as error:
+        raise SystemExit(str(error)) from error
     providers = [build_provider(name, provider_configs[name]) for name in names]
     records, _ = run_evaluation(
         output_dir=args.output,
@@ -111,6 +108,8 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated configured provider names")
     run.add_argument("--case-ids", default="", help="Optional comma-separated case IDs")
+    run.add_argument("--task-kind", choices=("body", "structure", "resource", "file"),
+                     help="Select one task kind; intersects with --case-ids")
     run.add_argument("--runs", type=int, default=1)
     run.add_argument("--timeout", type=float, default=45)
     run.add_argument("--delay", type=float, default=0.5)

@@ -119,7 +119,9 @@ def test_public_cli_runs_bound_dataset_and_keeps_original_manifest_hash(inputs, 
     assert command_run(args) == 0
     manifest = json.loads((output / "manifest.json").read_text())
     assert manifest["dataset_sha256"] == sha(original)
-    assert json.loads((output / "dataset.json").read_text()) == json.loads(original)
+    scoped = json.loads((output / "dataset.json").read_text())
+    assert scoped.pop("comparison")["publication_state"] == "diagnostic_not_for_release"
+    assert scoped == json.loads(original)
     records = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
     assert len(records) == 1 and records[0]["metrics"]["content_pass"]
     assert (output / records[0]["artifact_path"]).read_bytes()

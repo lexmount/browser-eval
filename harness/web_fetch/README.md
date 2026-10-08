@@ -24,15 +24,23 @@ file bytes cannot be reconstructed from a URL. An independent HTTP control can
 exercise the byte pipeline without pretending to be a provider result:
 
 ```bash
-uv run --frozen python -B scripts/check_file_delivery.py --output ~/.browser-eval/evidence/research/file-delivery-check
+uv run --frozen browser-harness-eval run \
+  --dataset evaluation/dataset.json \
+  --provider-config configs/providers.example.json --providers http-local \
+  --task-kind file --output ~/.browser-eval/evidence/research/file-delivery-check
 ```
 
-This writes three fresh call records, returned binaries and their target-hash
-checks, and a supplier configuration preflight. It does not overwrite historical
-records or fill any provider observation. Provider reruns need their
-runtime/credentials and a supported byte-returning adapter; text/links alone are
-not a file deliverable. Persist the control under
-`~/.browser-eval/evidence/research/file-delivery-check/`.
+This selects the dataset's file tasks and records HTTP calls, returned binaries,
+format/length checks and target hashes where declared. The report labels the run
+as diagnostic. HTTP delivery is separate from browser execution; it cannot fill
+historical browser observations. To check a browser's file delivery, use its
+configured provider name with the same command. Text or links alone are not a
+file deliverable. The output directory must be new.
+
+`--case-ids` selects explicit tasks; combining it with `--task-kind` takes their
+intersection. An empty selection or repeated task/provider names fails before
+calls. The diagnostic matrix contains exactly the selected tasks and methods;
+it does not inherit a historical cohort's certification or review requirements.
 
 ## Common text evaluation
 

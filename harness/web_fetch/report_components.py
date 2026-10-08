@@ -168,6 +168,17 @@ def task_pass_guide(track, base='', cases=None):
             labels={'financing':'分期','shipping':'配送'}
             text+=' '+c['name']+' 的字段覆盖要求：'+'、'.join(f'{labels.get(k,k)}至少 {v} 条' for k,v in fields.items())+'，各归属于完整且唯一的记录。'
     context = TRACK_CONTEXT.get(track)
+    kinds = {c.get('task_kind', 'body') for c in (cases or {}).values()
+             if c.get('track', 'web') == track}
+    if track == 'web' and kinds and kinds != {'body'}:
+        output_rules = {
+            'body': rules['web'],
+            'structure': '结构化内容按任务登记的字段、类型、数量、唯一性和链接规则验收。',
+            'resource': '资源发现按任务登记的目标地址及答案字段范围验收。',
+            'file': '文件交付须返回原始字节，并通过格式、长度及已登记目标 SHA-256 校验；文字或链接不能替代文件。',
+        }
+        text = ' '.join(output_rules[kind] for kind in sorted(kinds) if kind in output_rules)
+        context = None
     if not context:
         return '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+escape(text)+'</p></div>'
     example_link = ''

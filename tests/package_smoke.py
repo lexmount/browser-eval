@@ -40,12 +40,16 @@ def main():
         subprocess.run([
             sys.executable, '-m', 'harness.web_fetch', 'run', '--dataset', str(dataset),
             '--provider-config', str(config), '--providers', 'custom',
+            '--task-kind', 'body', '--case-ids', 'one',
             '--env-file', str(env), '--output', str(root / 'run'), '--delay', '0',
             '--fail-on-failure',
         ], check=True, cwd=root)
         records = [json.loads(line) for line in (root / 'run/results.jsonl').read_text().splitlines()]
         assert len(records) == 1 and records[0]['metrics']['content_pass']
         assert records[0]['provider_metadata']['worker_sha256']
+        scoped = json.loads((root / 'run/dataset.json').read_text())
+        assert scoped['coverage_plan'] == {'web': ['custom']}
+        assert scoped['comparison']['publication_state'] == 'diagnostic_not_for_release'
         from harness.reporting.links import check
         check(root / 'run/report')
         reference = (root / 'run/report/references/one.txt').read_text()

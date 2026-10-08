@@ -139,7 +139,10 @@ def diagnose(r,c,raw):
             else:
                 category,stage,proof=set_result('条目内容未获证实','独立内容核验',f"前三条中 {m.get('confirmed_entries',0)} 条得到独立名称—链接证据；未确认不等于错误")
     elif c.get('task_kind')=='file' and not m.get('raw_file_pass'):
-        category,stage,proof=set_result('未取得原文件','交付核验','没有可验证的原文件字节；文字或链接不能替代文件')
+        if meta.get('file_evaluation', {}).get('files'):
+            category,stage,proof=set_result('文件校验未通过','交付核验','已返回文件字节，但格式、长度或目标 SHA-256 校验未通过；逐项证据见文件交付详情')
+        else:
+            category,stage,proof=set_result('未取得原文件','交付核验','没有可验证的原文件字节；文字或链接不能替代文件')
     elif c.get('task_kind')=='resource' and not m.get('resource_pass'):
         missing=[x.get('id','') for x in m.get('resource_results',[]) if not x['pass']]
         unexpected=m.get('unexpected_resource_urls',[])

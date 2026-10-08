@@ -374,8 +374,20 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
    body=f'<div class="hero"><h1>{esc(case)} · {esc(type_label(lang,gt["page_type"]))}</h1><p class="source"><a href="{href(lang,"cases/"+case+".html#preview")}" title="{"阅读冻结 HTML" if lang=="zh" else "Read frozen HTML"}">{esc(group[providers[0]]["original_url"])}</a></p></div>{qualification}<section><h2>{esc(x["summary"])}</h2><div class="scroll"><table><thead><tr>'+''.join(f'<th>{esc(x[k])}</th>' for k in ('provider','precision','recall','f1'))+f'<th>{"应包含命中" if lang=="zh" else "Required hits"}</th><th>{"应排除误命中" if lang=="zh" else "Forbidden hits"}</th><th>{esc(x["diagnosis"])}</th></tr></thead><tbody>'+same+f'</tbody></table></div></section>{preview_section}<section class="panel" id="reference"><h2>{esc(x["reference"])}</h2><p><a href="{evidence_path}">{"完整证据 JSON" if lang=="zh" else "Complete evidence JSON"}</a> · <a href="{source_link}">{esc(x["source"])} HTML.gz</a></p><details data-output><summary>{"冻结 HTML 输入" if lang=="zh" else "Frozen HTML input"}</summary><pre data-src="{evidence_path}"></pre></details><pre>{esc(readable_output(reference))}</pre></section>'+''.join(panels)
    page(lang,f'cases/{case}.html',case,body)
 def provider_label(name):return PROVIDER_LABELS.get(name,name)
+def case_track_label(case):
+ if case.get('track','web')=='web':
+  return {'file':'文件交付','resource':'资源发现','structure':'结构化内容'}.get(case.get('task_kind','body'),TRACKS['web'])
+ return TRACKS[case['track']]
 def active_tracks(cases):
- return [(key,label) for key,label in TRACKS.items() if any(c.get('track','web')==key for c in cases.values())]
+ rows=[]
+ for key,label in TRACKS.items():
+  selected=[c for c in cases.values() if c.get('track','web')==key]
+  if not selected:continue
+  if key=='web' and any(c.get('task_kind','body')!='body' for c in selected):
+   labels={case_track_label(c) for c in selected}
+   label=next(iter(labels)) if len(labels)==1 else '网页任务'
+  rows.append((key,label))
+ return rows
 
 def track_count_label(count):return str(count)
 
@@ -1565,9 +1577,9 @@ def stable_checks(m):
 
 def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
  from .report_components import comparable_body_reference
- text_track=track in {'web','dynamic','document','challenge'}
  title_scope=track=='challenge' and any('title_quality' in r for r in records if cases[r['case_id']].get('track')==track)
  selected={k:c for k,c in cases.items() if c.get('track','web')==track}
+ text_track=track in {'web','dynamic','document','challenge'} and any(c.get('task_kind','body') in {'body','structure'} for c in selected.values())
  groups=defaultdict(list)
  for r in records:
   if cases[r['case_id']].get('track','web')==track:groups[r['provider']].append(r)
@@ -1587,7 +1599,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
    return statistics.mean(statistics.mean(values) for values in per_case.values()) if per_case else None
   times=[r['elapsed_ms'] for r in rs if succeeded(r,cases[r['case_id']])]
   values=cell(link(base+f'providers/{name}.html',provider_label(name)))+cell(rate(ok,len(rs)),ok/len(rs))
-  if track in {'web','dynamic','document','challenge'}:
+  if text_track:
    values+=cell(rate(passed,n),passed/n if n else -1)
    values+=''.join(cell(pct(avg(k)),avg(k) if full else -1) for k in ['word_recall','word_precision','word_f1'])
    per_case=defaultdict(list)
@@ -1608,7 +1620,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
   if audit:values+=review_cell(audit,rs,base)
   rows.append(('',values))
  heads=['方法','请求成功率']
- if track in {'web','dynamic','document','challenge'}:
+ if text_track:
   heads+=['任务通过率','完整度','纯净度','F1','文字核对覆盖']
  else:heads+=['任务通过率','资源命中率','文件取得率','信息通过率']
  heads+=['均值','P50','P95','判分完整性']
@@ -1789,7 +1801,7 @@ def comparison_rows(cases,bycase,names):
   method_links=lambda selected,state:('<span class="outcome-list">'+''.join(f'<a class="outcome-pill {state}" href="{esc(safe_href("../attempts/"+attempts[name]["attempt_id"]+".html"))}">{esc(provider_label(name))}</a>' for name in selected)+'</span>') if selected else '—'
   attrs=(dataset_attrs(c)+f' data-pass="{esc(" ".join(passed))}" data-fail="{esc(" ".join(failed))}"')
   task=(f'<div class="task-cell">{link("../datasets/"+case_id+".html",c["name"])}<div class="task-meta"><code class="tiny">{esc(case_id)}</code>'
-        f'<span class="track-badge">{esc(TRACKS[c.get("track","web")])}</span></div></div>')
+        f'<span class="track-badge">{esc(case_track_label(c))}</span></div></div>')
   values=cell(task)+cell(method_links(passed,'pass'))+cell(method_links(failed,'fail'))
   rows.append((attrs,values))
  return rows
@@ -1825,9 +1837,9 @@ def case_attrs(r,c):
  result='unmeasured' if not measured(r,c) else 'pass' if succeeded(r,c) else 'fail'
  return dataset_attrs(c)+f' data-provider="{esc(r["provider"])}" data-transport="{"pass" if r["ok"] else "fail"}" data-result="{result}" data-content="{content}" data-resources="{resources}" data-failure-stage="{stage}" data-failure-category="{esc(category)}" data-search="{esc(reason(r,c))}"'
 
-def attempt_row(r,c,base='../'):
+def attempt_row(r,c,base='../',*,label=None):
  m=r['metrics'];state=result_label(r,c)
- values=cell(link(base+'attempts/'+r['attempt_id']+'.html',c['name']))+cell(TRACKS[c.get('track','web')])+cell(f'<span class="{"good" if succeeded(r,c) else "bad"}">{state}</span>')+cell(esc(failure_category(r,c)))+cell(ms(r['elapsed_ms']))
+ values=cell(link(base+'attempts/'+r['attempt_id']+'.html',c['name'] if label is None else label))+cell(case_track_label(c))+cell(f'<span class="{"good" if succeeded(r,c) else "bad"}">{state}</span>')+cell(esc(failure_category(r,c)))+cell(ms(r['elapsed_ms']))
  values+=cell(f'<code class="tiny break">{esc(r.get("run_id") or execution_id(r))}</code>')
  return case_attrs(r,c),values
 
@@ -1863,6 +1875,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   _RELIABILITY_BANNER+='<div class="wrap callout" role="alert"><strong>已确认评分问题</strong><p>'+esc(f'{len(known)}条表格结果被评分程序误判为失败。统计保留原程序判定，当前通过率不得用于产品排名；详情见调用链检查。')+'</p></div>'
  if records and all(row.get('provider_type') == 'fixture' for row in records):
   _RELIABILITY_BANNER += '<div class="wrap callout" role="status"><strong>合成示例 · 非正式评测</strong><p>内容和失败均为预设场景，用于检查安装与报告功能，不代表浏览器测量结果。</p></div>'
+ elif dataset.get('comparison', {}).get('publication_state') == 'diagnostic_not_for_release':
+  _RELIABILITY_BANNER += '<div class="wrap callout" role="status"><strong>诊断运行 · 非正式评测</strong><p>本次调用用于检查所选任务和方法，不具备正式评测所需的批次认证。</p></div>'
  validate_report_ids(dataset,records)
  for path in ['assets/style.css','assets/report.js','references']:
   contained_path(out,path)
@@ -1970,7 +1984,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
             f'{pct(rules["minimum_coverage"])}。')
    else:policy=f'每段至少达到 {pct(rules["minimum_coverage"])}。'
    body+=section('如何检查是否抓全',f'<p class="decision-lead"><b>这是一份完整答案，不是 {total} 个任务。</b> 只检查标题和几个关键词，可能让“只抓到开头”的残缺结果通过。因此系统按前后位置检查同一份标准答案。{policy} 比对忽略空白、排版符号和 Markdown 链接地址；每次执行页会并列显示各位置的标准原文和实际证据。</p>'+''.join(region_cards))
-  body+=section('全部方法执行结果',table(['方法']+headers[1:],[(attrs,values.replace(esc(c['name']),esc(provider_label(r['provider'])),1)) for r in bycase[c['id']] for attrs,values in [attempt_row(r,c)]]))
+  body+=section('全部方法执行结果',table(['方法']+headers[1:],[attempt_row(r,c,label=provider_label(r['provider'])) for r in bycase[c['id']]]))
   write(out,'datasets/'+c['id']+'.html',c['name'],body)
  for name,rs in byprovider.items():
   write(out,'providers/'+name+'.html',name,provider_page_body(name,rs,cases,headers,tracks,native_default=dataset.get("comparison",{}).get("kind")=="uniform_native_local_measurement"))
