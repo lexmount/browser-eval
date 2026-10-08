@@ -21599,5 +21599,26 @@
       "case":{"url":"https://old.example/","task_kind":"body","acceptance_contract":{"version":1,"schema":"named_link","minimum_records":1,"hosts":["new.example"],"entry_path":"/article/\\d+","link_base_url":"https://new.example/"}},
       "artifact":"[A new article](https://outside.example/article/1)","ok":true,"expected_task_pass":false,"expected_metrics":{"stable_unique_record_count":0}
     }
+    ,{
+      "id":"escaped-list-punctuation-retains-entry", "category":"format-normalization",
+      "root_cause":"commonmark_escaped_punctuation_in_entry_prefix", "failure_mode":"false-negative",
+      "case":{"url":"https://example.test/","acceptance_contract":{"version":1,"schema":"named_link","minimum_records":1,"hosts":["example.test"],"entry_path":"/article/[0-9]+"}},
+      "artifact":"2026-10-08 \\- [Actual article](/article/1)","ok":true,"expected_task_pass":true
+    },{
+      "id":"escaped-recommendation-remains-prose", "category":"format-normalization",
+      "root_cause":"commonmark_escaped_punctuation_in_entry_prefix", "failure_mode":"false-positive",
+      "case":{"url":"https://example.test/","acceptance_contract":{"version":1,"schema":"named_link","minimum_records":1,"hosts":["example.test"],"entry_path":"/article/[0-9]+"}},
+      "artifact":"2026-10-08 Read \\- [Actual article](/article/1)","ok":true,"expected_task_pass":false
+    },{
+      "id":"unreserved-path-encoding-retains-card-fields", "category":"format-normalization",
+      "root_cause":"composite_card_identity_disagrees_on_unreserved_url_encoding", "failure_mode":"false-negative",
+      "case":{"url":"https://example.test/","composite_acceptance":{"version":1,"groups":[{"id":"offers","kind":"named_link","minimum_records":1,"hosts":["example.test"],"entry_path":"/item/[0-9]+_detail","required_fields":[{"id":"price","kind":"price"}]}]}},
+      "artifact":"[Actual offer](/item/12%5Fdetail)\n\n$120", "ok":true,"expected_task_pass":true
+    },{
+      "id":"encoded-card-cannot-borrow-next-price", "category":"format-normalization",
+      "root_cause":"composite_card_identity_disagrees_on_unreserved_url_encoding", "failure_mode":"false-positive",
+      "case":{"url":"https://example.test/","composite_acceptance":{"version":1,"groups":[{"id":"offers","kind":"named_link","minimum_records":2,"hosts":["example.test"],"entry_path":"/item/[0-9]+_detail","required_fields":[{"id":"price","kind":"price"}]}]}},
+      "artifact":"[Actual offer](/item/12%5Fdetail)\n\n[Other offer](/item/13_detail)\n\n$120", "ok":true,"expected_task_pass":false
+    }
   ]
 }

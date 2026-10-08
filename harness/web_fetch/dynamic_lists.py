@@ -351,6 +351,9 @@ def _markdown_named_items(content, contract, scope):
         # Emphasized numeric ranks remain list markup. Do not strip arbitrary
         # underscores: recommendation prose and unmatched markup stay invalid.
         prefix=re.sub(r'(?<!\w)(_{1,2})(\d+)\1(?=$|\s|[.)])',r'\2',prefix)
+        # CommonMark escapes change punctuation spelling, not list ownership.
+        # Normalize only this prefix; words still fail the prose exclusion.
+        prefix=re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])',r'\1',prefix)
         line_end=content.find('\n',link.end)
         line=content[line_start:None if line_end < 0 else line_end]
         line_links=markdown_links(line)

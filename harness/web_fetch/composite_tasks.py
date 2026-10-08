@@ -13,7 +13,7 @@ import re
 import unicodedata
 from urllib.parse import parse_qsl, unquote, urljoin, urlsplit
 
-from .dynamic_lists import extract_named_entries
+from .dynamic_lists import _canonical_entry_path, extract_named_entries
 from .reference_quality import clean_reference_text, markdown_links, visible_markdown_links
 
 
@@ -258,7 +258,7 @@ def _link_identity(url: str, group: dict) -> str | None:
         and parts.hostname not in group["hosts"]
     ):
         return None
-    path = parts.path.rstrip("/")
+    path = _canonical_entry_path(parts.path).rstrip("/")
     if not re.fullmatch(group["entry_path"], path):
         return None
     identity = f"{parts.hostname}::{path}"
