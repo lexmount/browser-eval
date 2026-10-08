@@ -4,12 +4,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.score_wcxb_results import classify, official_evaluator, percentile
-from harness.web_fetch.wcxb_dataset import choose, full_test_exclusions, validate_manifest
-from harness.web_fetch.webmainbench_runner import PROVIDERS, WCXB_PROVIDERS
 from harness.web_fetch.report import format_wcxb_conditional_latency
+from harness.web_fetch.wcxb_dataset import choose, full_test_exclusions, validate_manifest
 from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
-
+from harness.web_fetch.wcxb_scoring import classify, official_evaluator, percentile
+from harness.web_fetch.webmainbench_runner import PROVIDERS, WCXB_PROVIDERS
 
 ROOT = Path(__file__).resolve().parents[1]
 

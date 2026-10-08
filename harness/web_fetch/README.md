@@ -88,6 +88,29 @@ a changed experiment. Checkpoints and final outputs are created exclusively and
 cannot replace an existing observation. Store them under the configured data
 home, outside Git.
 
+## WCXB scoring
+
+`wcxb_scoring.py` owns certified frozen-HTML scoring. The maintained command is
+`scripts/score_wcxb_results.py`; `--profile` selects an explicit experiment profile
+and defaults to `evaluation/wcxb/current-report.json`. The profile's ordered
+participants must match the cohort certificate exactly. Adding or renaming a
+participant in a separately certified cohort requires data changes rather than
+scorer branches. This scoring option does not change the current report's
+publication authority or the certification runner's supported participants.
+
+The scorer loads the profile-pinned evaluator bytes and validates the complete
+source-qualified scope, execution identity, logical outputs, every retained
+physical response and final-call selection. When a profile binds a full paired
+timing correction, binary hashes join its timing roles to certified participants;
+browser names never select corrected values. All-call and successful-call
+latency populations remain separate, and retries retain their physical evidence.
+
+Scoring stages derived results before installation. Invalid or changing inputs
+produce no score files. Handled installation failures remove newly created
+outputs while preserving existing evidence; existing score files cannot be
+overwritten. The summary is installed last. Rebuilding a historical report uses
+its frozen scores, not an implicit rescore or new provider calls.
+
 ## Common text evaluation
 
 Website, dynamic-site, popular-site and document text share `scoring.score_attempt`:

@@ -172,6 +172,14 @@ Complete WebMainBench comparisons assemble the baseline and every registry-decla
 
 Independent HTTP source capture and HTML extraction belong to `harness/web_fetch/source_capture.py`; its command is `scripts/collect_source_evidence.py`. Reference audits, scope refreshes and browser observations import the same extractor. `document_text.py` owns document extraction for both captured sources and provider responses, with explicit whitespace preservation for source reconstruction. Capture writes a new external evidence directory, validates the complete requested task scope before requests, and retains failed HTTP observations for review. Capture alone neither approves a reference nor certifies a provider result.
 
+`harness/web_fetch/wcxb_scoring.py` owns certified WCXB scoring through
+`scripts/score_wcxb_results.py`. Its explicit profile selects the ordered
+participant matrix; certified binary identities select any paired timing roles.
+The scorer verifies source, execution, logical and physical-call evidence before
+installing derived scores. It stages retained retry responses privately and
+guards consumed inputs through installation. Existing scores are immutable;
+handled installation failures remove only outputs created by that operation.
+
 `harness/web_fetch/reference_inputs.py` resolves dataset-bound source inputs and the complete historical dataset. `evaluation/source-inputs.json` binds the dataset, its compact task catalog and every external input by SHA-256. Dataset readers preserve the exact original bytes; source readers verify the installed inventory before using it. Missing or changed inputs cannot fall back to a checkout copy or the non-executable catalog. Custom datasets without a manifest use their own adjacent inputs. Import and reconstruction commands are documented in [reference inputs](reference-inputs.md).
 
 `harness/web_fetch/headless_runner.py` selects browser cohorts from provider configuration and delegates calls to the shared runner. Method lists, version pins, container images and binary paths belong to that configuration. Cohort overrides keep resource and ordinary browser experiments distinct; neither method labels nor a fixed participant count select runtime behavior. Version checks belong to `providers/runtime_identity.py` and run through `HeadlessProvider.validate()` for both specialized and generic entry points.

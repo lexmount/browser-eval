@@ -5,6 +5,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import runpy
 import subprocess
 import sys
 import tempfile
@@ -737,6 +738,25 @@ def verify_browser_observation_capture(root, source_root):
         observations.capture_with_retries = original
 
 
+def verify_wcxb_scoring(root, source_root):
+    from harness.record_io import load_jsonl
+    from harness.web_fetch.wcxb_scoring import score
+
+    fixture = runpy.run_path(str(source_root / 'tests/wcxb_fixture.py'))
+    options = fixture['create_cohort'](root / 'wcxb-scoring', paired=True)
+    summary = score(**options)
+    assert summary['case_count'] == 2
+    assert summary['providers']['alpha']['mean_latency_ms'] == 11
+    assert summary['providers']['gamma']['mean_latency_ms'] == 13
+    assert summary['providers']['beta']['physical_call_count'] == 3
+    rows = load_jsonl(options['evidence_root'] / 'wcxb-scores.jsonl')
+    assert len(rows) == 6
+    assert sum(row['delivered'] for row in rows) == 5
+    subprocess.run([
+        sys.executable, str(source_root / 'scripts/score_wcxb_results.py'), '--help',
+    ], check=True, cwd=root, capture_output=True, text=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -785,6 +805,7 @@ def main():
         verify_repair_commands(root, args.source_root)
         verify_adjudication_commands(root, args.source_root)
         verify_browser_observation_capture(root, args.source_root)
+        verify_wcxb_scoring(root, args.source_root)
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
                        check=True, cwd=root)
         binary = root / 'browser'
