@@ -165,6 +165,7 @@ def main() -> None:
 
 
 def verify_score(shard: Path, provider: str, case_ids: set[str], scorer: Path, profile: dict) -> dict:
+    from .safety import contained_path
     from .webmainbench_evidence import digest, read_jsonl
 
     scored = read_jsonl(shard / "scored-results.jsonl")
@@ -181,7 +182,7 @@ def verify_score(shard: Path, provider: str, case_ids: set[str], scorer: Path, p
             or summary["official_aggregate"] != aggregate(scored)):
         raise ValueError(provider + ": scored evidence is incomplete or differs from measured calls")
     for relative, expected in summary["scorer"]["metric_source_sha256"].items():
-        if digest(scorer / relative) != expected:
+        if digest(contained_path(scorer, relative, reject_symlinks=True)) != expected:
             raise ValueError(provider + ": scorer source changed: " + relative)
     return {"provider": provider, "scored_results_sha256": digest(shard / "scored-results.jsonl"),
             "score_summary_sha256": digest(shard / "score-summary.json"),

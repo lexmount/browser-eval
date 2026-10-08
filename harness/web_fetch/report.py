@@ -3325,7 +3325,7 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
             or set(method_error_profiles) != set(providers)
             or any(set(item) != {"runtime", "quality", "reading"}
                    for item in method_error_profiles.values())):
-        raise ValueError("Report content lacks a complete seven-method error profile")
+        raise ValueError("Report content lacks a complete registered-method error profile")
     moli_fix_profiles = content.get("moli_fix_profiles")
     expected_moli_fix_images = [f"moli-fix-{index:02d}-{suffix}.png" for index, suffix in (
         (1, "visibility-disclosure"), (2, "fallback-fragments"),
@@ -3593,7 +3593,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
 
     home = ('<section class="hero"><h1>' + prose('home_title') + '</h1><p>' + prose('home_lead') + '</p></section>' +
             '<section><h2>核心结果</h2>' + metric_table() + '<p class="note">' + prose('score_note') + '</p></section>' +
-            '<section><h2>七种方法的质量风险定位</h2>' + quality_issue_matrix() +
+            '<section><h2>各方法的质量风险定位</h2>' + quality_issue_matrix() +
             '<p class="note">同一结果可同时进入多列。未生成正文按 545 页统计；全文按 545 页统计；代码、公式、表格内容与表格结构分别只统计 110、257、179、179 页固定参考总体。绿色仅表示该列唯一最少，不代表综合质量排名。</p></section>' +
             '<section><h2>全部页面的调用耗时</h2>' + all_call_latency_table() + '<p class="note">' + prose('all_latency_note') + '</p></section>' +
             '<section><h2>目标正文页面的调用耗时与重试成本</h2>' + latency_table() + '<p class="note">' + prose('latency_note') + '</p></section>' +
@@ -3657,9 +3657,9 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
          filters + '<p>当前显示 <strong id="count"></strong> 条。<span id="empty" hidden>当前条件无结果。</span></p>' +
          table(["任务", "方法", "诊断", "全文分", "最终调用", "同页"], result_rows,
                ['text', 'text', 'text', 'number', 'number', None], 'result-inventory') +
-         '<dialog id="diagnosis-dialog" aria-labelledby="diagnosis-title"><button type="button" id="diagnosis-close">关闭诊断</button><h2 id="diagnosis-title"></h2><p id="diagnosis-stage"></p><p id="diagnosis-error"></p><p id="diagnosis-cause"></p><p id="diagnosis-treatment"></p><details><summary>原始运行日志</summary><pre id="diagnosis-log"></pre></details><p class="actions"><a id="diagnosis-result">完整结果与调用记录</a><a id="diagnosis-output">原始输出</a><a id="diagnosis-case">同页七方法对照</a></p></dialog>')
+         '<dialog id="diagnosis-dialog" aria-labelledby="diagnosis-title"><button type="button" id="diagnosis-close">关闭诊断</button><h2 id="diagnosis-title"></h2><p id="diagnosis-stage"></p><p id="diagnosis-error"></p><p id="diagnosis-cause"></p><p id="diagnosis-treatment"></p><details><summary>原始运行日志</summary><pre id="diagnosis-log"></pre></details><p class="actions"><a id="diagnosis-result">完整结果与调用记录</a><a id="diagnosis-output">原始输出</a><a id="diagnosis-case">同页各方法对照</a></p></dialog>')
     page("cases/index.html", "同页比较",
-         '<section class="hero"><h1>人工答案与七种方法的完整输出</h1><p id="case-id"></p><p class="source" id="case-url"></p></section>'
+         '<section class="hero"><h1>人工答案与各方法的完整输出</h1><p id="case-id"></p><p class="source" id="case-url"></p></section>'
          '<p class="actions"><a id="case-source">冻结网页</a><a id="case-reference">人工答案</a>' + anchor("dataset/index.html", "返回数据集") + '</p>'
          '<div class="scroll"><table id="case-result-table"><thead><tr><th aria-sort="none"><button type="button" class="sort-button" data-table-sort onclick="sortReportTable(this)" data-sort-type="text">方法<span aria-hidden="true"> ↕</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-table-sort onclick="sortReportTable(this)" data-sort-type="text">诊断<span aria-hidden="true"> ↕</span></button></th>' + ''.join('<th aria-sort="none"><button type="button" class="sort-button" data-table-sort onclick="sortReportTable(this)" data-sort-type="number">' + esc(label) + '<span aria-hidden="true"> ↕</span></button></th>' for _, label in measures) +
          '</tr></thead><tbody id="case-results"></tbody></table></div>'
@@ -3667,7 +3667,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
     page("results/index.html", "逐项结果",
          '<div data-report-detail="pending"><section class="hero"><h1 id="result-title">正在载入结果…</h1><p class="source" id="result-source"></p></section>'
          '<section class="panel" data-result-summary><h2>结果摘要</h2><p id="result-summary"></p></section>'
-         '<p id="result-correction" hidden>本条为保留原网址后的认证补测结果，已替换旧环境下同一方法的结果。<a href="guide/index.html#fixture-correction">原因、七方法对照与旧调用记录</a></p>'
+         '<p id="result-correction" hidden>本条为保留原网址后的认证补测结果，已替换旧环境下同一方法的结果。<a href="guide/index.html#fixture-correction">原因、各方法对照与旧调用记录</a></p>'
          '<section class="panel" data-failure-diagnosis id="result-failure" hidden><h2>错误与诊断</h2><p id="result-stage"></p><p id="result-error"></p><p id="result-cause"></p><p id="result-treatment"></p>'
          '<details id="result-logs"><summary>原始运行日志</summary><pre data-kind="error" id="result-log"></pre></details></section>'
          '<section><h2>五项质量指标</h2><div class="scroll"><table><thead><tr><th>指标</th><th>分数</th><th>状态</th></tr></thead><tbody id="result-metrics"></tbody></table></div></section>'
@@ -3751,7 +3751,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
         anchor("viewer/index.html?path=sources/" + example_id + ".html.txt", "冻结 HTML"),
         anchor("viewer/index.html?path=references/" + example_id + ".md", "人工答案"),
         anchor("viewer/index.html?path=" + example_row["artifact_path"], labels[providers[0]] + " 输出"),
-        anchor("cases/index.html?id=" + example_id, "七种方法同页比较"),
+        anchor("cases/index.html?id=" + example_id, "各方法同页比较"),
     ])
     overall_scores = {provider: summaries[provider]["official_aggregate"]["scores"]["overall"]
                       for provider in providers}
@@ -3788,7 +3788,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                      (table(['任务', '原版正文', labels[prior_moli], labels[content_moli], '逐项证据'], changed_moli_rows)
                       if changed_moli_rows else '') +
                      '<p class="note">两个修复版均为独立的 545 页认证运行，运行日期不同，耗时不作版本快慢结论。' +
-                     anchor('seven-method-binding.json', '三轮证据绑定') + ' · ' +
+                     anchor(profile.get('method_binding_file', 'seven-method-binding.json'), '三轮证据绑定') + ' · ' +
                      anchor('https://github.com/lexmount/moli/pull/785', 'PR785') + ' · ' +
                      anchor('https://github.com/lexmount/moli/pull/814', 'PR814（历史前身）') + ' · ' +
                      anchor('https://github.com/lexmount/moli/pull/919', 'PR919（本次实测来源）') +
@@ -3854,7 +3854,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                         '<p class="note">每张图按现象、根因、修复和泛化验证组织，可单独作为评审幻灯片。</p>' +
                         ''.join(moli_fix_slides) + '</section>')
     guide_error_landscape = (
-        '<section id="error-landscape"><h2>七种方法错在哪、差在哪</h2>' +
+        '<section id="error-landscape"><h2>各方法错在哪、差在哪</h2>' +
         '<div class="presentation-slide">' +
         illustration('seven-method-error-taxonomy.png',
                      '错误先分为运行交付故障和内容质量缺口，再按方法定位主要问题族。') +
@@ -3892,7 +3892,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                       *[item['profile'] for item in profile.get('variants', [])],
                       *[item['provider'] + "-cohort-certificate.json" for item in profile.get('variants', [])],
                       *[item['provider'] + "-scoring-certificate.json" for item in profile.get('variants', [])],
-                      "seven-method-binding.json",
+                      profile.get("method_binding_file", "seven-method-binding.json"),
                       "execution.json", "dataset.json",
                       "results.jsonl", "physical-attempts.jsonl",
                       "score-summaries.json", "scoring-correction.json",

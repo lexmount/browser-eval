@@ -76,6 +76,27 @@ def test_changed_physical_output_cannot_be_certified(tmp_path):
                      {"case_count": 2, "source_dataset_sha256": "source"})
 
 
+@pytest.mark.parametrize("filename,key", [
+    ("results.jsonl", "artifact_path"),
+    ("physical-attempts.jsonl", "physical_artifact_path"),
+])
+@pytest.mark.parametrize("escape", ["traversal", "symlink"])
+def test_certification_rejects_artifacts_outside_the_cohort(tmp_path, filename, key, escape):
+    shard = _cohort(tmp_path)
+    rows = [json.loads(line) for line in (shard / filename).read_text().splitlines()]
+    external = tmp_path / "outside.txt"
+    external.write_bytes((shard / rows[0][key]).read_bytes())
+    if escape == "traversal":
+        rows[0][key] = "../outside.txt"
+    else:
+        (shard / "linked.txt").symlink_to(external)
+        rows[0][key] = "linked.txt"
+    _write_jsonl(shard / filename, rows)
+    with pytest.raises(ValueError):
+        verify_shard(shard, "moli", {"one", "two"},
+                     {"case_count": 2, "source_dataset_sha256": "source"})
+
+
 def test_declared_binary_is_checked_before_calls(tmp_path, monkeypatch):
     binary = tmp_path / 'moli'
     binary.write_bytes(b'fixed version')
@@ -112,7 +133,8 @@ def test_public_evidence_hides_local_build_path_without_losing_error():
     assert "html5ever/mod.rs:254:9" in public["error_message"]
 
 
-def test_scored_cohort_keeps_exact_measured_results_and_scorer_source(tmp_path):
+@pytest.mark.parametrize("escape", [None, "traversal", "symlink"])
+def test_scored_cohort_keeps_exact_measured_results_and_scorer_source(tmp_path, escape):
     shard = _cohort(tmp_path)
     raw = [json.loads(line) for line in (shard / "results.jsonl").read_text().splitlines()]
     names = ("text_edit", "code_edit", "formula_edit", "table_edit", "table_TEDS")
@@ -129,6 +151,21 @@ def test_scored_cohort_keeps_exact_measured_results_and_scorer_source(tmp_path):
     assert verify_score(shard, "moli", {"one", "two"}, scorer, {
         "case_count": 2, "official_scorer_commit": "pinned", "metric_config": {"use_llm": False},
     })["logical_results"] == 2
+    if escape:
+        external = tmp_path / "outside.py"
+        external.write_bytes((scorer / "metric.py").read_bytes())
+        relative = "../outside.py"
+        if escape == "symlink":
+            (scorer / "linked.py").symlink_to(external)
+            relative = "linked.py"
+        summary = json.loads((shard / "score-summary.json").read_text())
+        summary["scorer"]["metric_source_sha256"] = {relative: _digest(external.read_bytes())}
+        _write_json(shard / "score-summary.json", summary)
+        with pytest.raises(ValueError):
+            verify_score(shard, "moli", {"one", "two"}, scorer, {
+                "case_count": 2, "official_scorer_commit": "pinned", "metric_config": {"use_llm": False},
+            })
+        return
     scored[0]["ok"] = False
     _write_jsonl(shard / "scored-results.jsonl", scored)
     with pytest.raises(ValueError, match="differs from measured"):

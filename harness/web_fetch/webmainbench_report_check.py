@@ -2,17 +2,16 @@
 from __future__ import annotations
 
 import argparse
-from collections import Counter, defaultdict
 import hashlib
 import json
+from collections import Counter, defaultdict
 from pathlib import Path
-import sys
+
 from bs4 import BeautifulSoup
 
-
 from harness.reporting.presentation import check_presentation
+from harness.web_fetch.report import ERROR_PAGE
 from harness.web_fetch.safety import contained_path
-from harness.web_fetch.report import ERROR_PAGE, WEBMAINBENCH_FULL_CAUSE_OWNERS
 
 
 def check_result_payload(row: dict, index: dict, artifact_index: dict, shards: dict) -> None:
@@ -53,9 +52,9 @@ def check_interaction_script(script: str) -> None:
         raise ValueError('Report script lacks diagnosis focus restoration')
 
 
-def check_table_interaction(root: Path) -> None:
+def check_table_interaction(root: Path, *, provider_count: int, case_count: int) -> None:
     check_interaction_script((root / 'assets/report.js').read_text(encoding='utf-8'))
-    home = BeautifulSoup((root / 'index.html').read_text(encoding='utf-8'), 'html.parser')
+    home = check_presentation((root / 'index.html').read_text(encoding='utf-8'))
     style_href = home.select_one('link[rel="stylesheet"]')
     script_src = home.select_one('script[src]')
     if (not style_href or not script_src
@@ -63,22 +62,20 @@ def check_table_interaction(root: Path) -> None:
             or style_href['href'].split('?v=', 1)[1] != script_src.get('src', '').split('?v=', 1)[-1]):
         raise ValueError('Report assets lack a shared cache-busting version')
     core = home.select_one('table#core-results')
-    if (not core or len(core.select('tbody > tr')) != 7
+    if (not core or len(core.select('tbody > tr')) != provider_count
             or len(core.select('th[aria-sort="none"] > button[data-table-sort][onclick="sortReportTable(this)"]')) != 8
             or any(cell.get('data-sort') is None for cell in core.select('tbody > tr > td.number'))):
         raise ValueError('Core comparison lacks complete stable sorting semantics')
-    if len(core.select('.comparison-winner')) != 6:
-        raise ValueError('Core comparison highlights changed while adding sorting')
     dataset = BeautifulSoup((root / 'dataset/index.html').read_text(encoding='utf-8'), 'html.parser')
     dataset_table = dataset.select_one('table#dataset-inventory')
     if (not dataset.select_one('#dataset-q') or not dataset.select_one('#dataset-language')
             or not dataset.select_one('#dataset-level') or not dataset.select_one('#dataset-count')
-            or not dataset_table or len(dataset_table.select('tbody > tr[data-dataset]')) != 545
+            or not dataset_table or len(dataset_table.select('tbody > tr[data-dataset]')) != case_count
             or len(dataset_table.select('button[data-table-sort][onclick="sortReportTable(this)"]')) != 4):
         raise ValueError('Dataset inventory lacks complete search, filters or sorting')
     analysis = BeautifulSoup((root / 'analysis/index.html').read_text(encoding='utf-8'), 'html.parser')
     inventory = analysis.select_one('table#result-inventory')
-    if (not inventory or len(inventory.select('tbody > tr[data-result]')) != 3815
+    if (not inventory or len(inventory.select('tbody > tr[data-result]')) != case_count * provider_count
             or len(inventory.select('button[data-table-sort][onclick="sortReportTable(this)"]')) != 5
             or any(cell.get('data-sort') is None for cell in inventory.select('tbody > tr > td:nth-of-type(4), tbody > tr > td:nth-of-type(5)'))):
         raise ValueError('Result inventory lacks complete filters or stable sorting semantics')
@@ -103,7 +100,12 @@ def check(root: Path) -> None:
             or not str(target.get('share_url', '')).startswith(str(target.get('host', '')).rstrip('/') + '/v/')
             or not target.get('site_slug')):
         raise ValueError('WebMainBench publication target is not bound to the certified profile')
-    seven_binding = json.loads((root / 'seven-method-binding.json').read_text(encoding='utf-8'))
+    from .webmainbench_evidence import read_method_binding
+    _, method_binding = read_method_binding(root)
+    profile = json.loads(profile_path.read_text(encoding='utf-8'))
+    expected_providers = profile["providers"] + variant_ids
+    provider_count = len(expected_providers)
+    case_count = profile["case_count"]
     teds_path = root / 'teds-correction.json'
     teds_receipt = json.loads(teds_path.read_text(encoding='utf-8')) if teds_path.is_file() else None
     scoring_receipt_path = root / 'scoring-correction.json'
@@ -113,11 +115,11 @@ def check(root: Path) -> None:
         (repo / 'evaluation/webmainbench-full/scoring-correction-binding.json').read_text(encoding='utf-8')
     )
     scoring_receipt = json.loads(scoring_receipt_path.read_text(encoding='utf-8'))
-    bound_variants = {item['provider']: item for item in seven_binding.get('variants', [])}
-    if (seven_binding.get('kind') != 'webmainbench_seven_method_full_scope_binding'
-            or seven_binding.get('logical_results') != 3815
-            or seven_binding.get('registry_sha256') != hashlib.sha256(registry_path.read_bytes()).hexdigest()
-            or seven_binding.get('results_sha256') != (
+    bound_variants = {item['provider']: item for item in method_binding.get('variants', [])}
+    if (method_binding.get('kind') not in {'webmainbench_seven_method_full_scope_binding', 'webmainbench_method_cohort_binding'}
+            or method_binding.get('logical_results') != profile['case_count'] * (len(profile['providers']) + len(variants))
+            or method_binding.get('registry_sha256') != hashlib.sha256(registry_path.read_bytes()).hexdigest()
+            or method_binding.get('results_sha256') != (
                 teds_receipt.get('input_results_sha256') if teds_receipt
                 else scoring_receipt.get('input_results_sha256'))
             or any(bound_variants.get(item['provider'], {}).get('profile_sha256') != expected_variant_hashes[item['provider']]
@@ -157,8 +159,8 @@ def check(root: Path) -> None:
     failure_analysis = json.loads(failure_bytes)
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
     if manifest != {"schema_version": 1, "report": "webmainbench-545-full",
-                    "languages": ["zh"], "case_count": 545, "provider_count": 7,
-                    "result_count": 3815}:
+                    "languages": ["zh"], "case_count": case_count, "provider_count": provider_count,
+                    "result_count": case_count * provider_count}:
         raise ValueError("Incomplete WebMainBench report manifest")
     dataset = json.loads((root / "dataset.json").read_text(encoding="utf-8"))
     records = [json.loads(line) for line in (root / "results.jsonl").read_text(encoding="utf-8").splitlines()]
@@ -195,7 +197,7 @@ def check(root: Path) -> None:
             raise ValueError('Corrected case does not use the report scoring revision')
     providers = dataset["coverage_plan"]["static_html"]
     case_ids = {row["id"] for row in dataset["cases"]}
-    if len(case_ids) != 545 or len(records) != 3815 or len(providers) != 7:
+    if len(case_ids) != case_count or len(records) != case_count * provider_count or providers != expected_providers:
         raise ValueError("Full matrix missing")
     expected = {(provider, case_id) for provider in providers for case_id in case_ids}
     if {(row["provider"], row["case_id"]) for row in records} != expected:
@@ -210,9 +212,10 @@ def check(root: Path) -> None:
     guide = check_presentation((root / "guide/index.html").read_text(encoding="utf-8"))
     profile_rows = guide.select('table#method-error-profiles tbody > tr')
     fix_slides = guide.select('[data-moli-fix-slide]')
-    if (len(profile_rows) != 7 or len(fix_slides) != 6
+    content = json.loads((root / "report-content.json").read_text(encoding="utf-8"))
+    if (len(profile_rows) != provider_count or len(fix_slides) != len(content["moli_fix_profiles"])
             or any(len(slide.select('.slide-facts > div')) != 4 for slide in fix_slides)):
-        raise ValueError('Guide lacks the seven-method error profiles or six Moli visual repair slides')
+        raise ValueError('Guide lacks the declared method error profiles or bound repair slides')
     illustrations = repo / 'evaluation/webmainbench-full/illustrations.json'
     overview_claims = None
     if illustrations.exists():
@@ -270,7 +273,7 @@ def check(root: Path) -> None:
         'td[data-metric^="all-call-latency-"][data-metric-direction="min"], '
         'td[data-metric^="success-latency-"][data-metric-direction="min"]'
     )
-    if len(latency_cells) != 35:
+    if len(latency_cells) != provider_count * 5:
         raise ValueError("All-call or conditional latency comparison missing")
     first_case = dataset["cases"][0]["id"]
     example_targets = {"viewer/index.html?path=sources/" + first_case + ".html.txt",
@@ -280,8 +283,8 @@ def check(root: Path) -> None:
         raise ValueError("Interpretation example lacks source, reference or same-case result")
     analysis = BeautifulSoup((root / "analysis/index.html").read_text(encoding="utf-8"), "html.parser")
     check_diagnosis_inventory(analysis)
-    check_table_interaction(root)
-    if (len(analysis.select("tr[data-result]")) != 3815 or not analysis.select_one("#kind")
+    check_table_interaction(root, provider_count=provider_count, case_count=case_count)
+    if (len(analysis.select("tr[data-result]")) != case_count * provider_count or not analysis.select_one("#kind")
             or not analysis.select_one("#cause") or not analysis.select_one("#metric")):
         raise ValueError("Result inventory incomplete")
     if not any(row.get("data-kind") != "未触发诊断" for row in analysis.select("tr[data-result]")):

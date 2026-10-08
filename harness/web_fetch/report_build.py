@@ -769,17 +769,19 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     repo = Path(__file__).resolve().parents[2]
     registry_path = repo / 'evaluation/webmainbench-full/moli-variants.json'
     registry = json.loads(registry_path.read_text(encoding='utf-8'))
-    seven_binding = json.loads((source / 'seven-method-binding.json').read_text(encoding='utf-8'))
+    from .webmainbench_evidence import read_method_binding
+    binding_name, method_binding = read_method_binding(source)
     teds_path = source / 'teds-correction.json'
     teds_receipt = json.loads(teds_path.read_text(encoding='utf-8')) if teds_path.is_file() else None
     scoring_path = source / 'scoring-correction.json'
     scoring_receipt = json.loads(scoring_path.read_text(encoding='utf-8')) if scoring_path.is_file() else None
     variants = registry.get('variants', [])
-    bound_variants = {item['provider']: item for item in seven_binding.get('variants', [])}
-    if (seven_binding.get('kind') != 'webmainbench_seven_method_full_scope_binding'
-            or seven_binding.get('registry_sha256') != digest(registry_path)
-            or seven_binding.get('baseline_certificate_sha256') != digest(source / 'cohort-certificate.json')
-            or seven_binding.get('results_sha256') != (
+    bound_variants = {item['provider']: item for item in method_binding.get('variants', [])}
+    if (method_binding.get('kind') not in {'webmainbench_seven_method_full_scope_binding', 'webmainbench_method_cohort_binding'}
+            or method_binding.get('registry_sha256') != digest(registry_path)
+            or method_binding.get('baseline_profile_sha256') != digest(profile_path)
+            or method_binding.get('baseline_certificate_sha256') != digest(source / 'cohort-certificate.json')
+            or method_binding.get('results_sha256') != (
                 teds_receipt.get('input_results_sha256') if teds_receipt
                 else scoring_receipt.get('input_results_sha256') if scoring_receipt else None)
             or (teds_receipt is not None and teds_receipt.get('output_results_sha256') != digest(
@@ -787,7 +789,7 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
                           if (source / 'reference-correction.json').is_file()
                           else 'pre-scoring-correction-results.jsonl'
                           if scoring_receipt else 'results.jsonl')))
-            or seven_binding.get('logical_results') != 545 * (len(profile['providers']) + len(variants))):
+            or method_binding.get('logical_results') != 545 * (len(profile['providers']) + len(variants))):
         raise ValueError('Seven-method report evidence binding mismatch')
     versions = dict(profile['versions'])
     variant_labels = {}
@@ -813,7 +815,7 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         variant_labels[provider] = item['label']
     providers = profile['providers'] + [item['provider'] for item in variants]
     display_profile = {**profile, 'providers': providers, 'versions': versions,
-                       'variant_labels': variant_labels, 'variants': variants}
+                       'variant_labels': variant_labels, 'variants': variants, 'method_binding_file': binding_name}
     cases = {case['id']: case for case in dataset['cases']}
     if (len(cases) != 545 or len(records) != 545 * len(providers)
             or {(row['provider'], row['case_id']) for row in records} !=
@@ -883,7 +885,7 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
                      'physical-attempts.jsonl', 'execution.json', 'score-summaries.json',
                      'cohort-certificate.json', 'current-report.json',
                      'scoring-certificate.json',
-                     'seven-method-binding.json'):
+                     binding_name):
             shutil.copy2(source / name, staging / name)
         if teds_receipt is not None:
             for name in ('teds-correction.json', 'teds-correction-review.json'):

@@ -1,18 +1,20 @@
 """Reader-facing controls for the complete-cohort report renderer."""
-import json
 import hashlib
+import json
 import subprocess
 from pathlib import Path
-from bs4 import BeautifulSoup
-import pytest
 
+import pytest
+from bs4 import BeautifulSoup
+
+from harness.reporting.presentation import check_presentation
 from harness.web_fetch.report import generate_webmainbench_full
 from harness.web_fetch.report_build import public_webmainbench_scoring_projection
-from harness.reporting.presentation import check_presentation
 from harness.web_fetch.webmainbench_report_check import (
     check_diagnosis_inventory,
     check_interaction_script,
     check_result_payload,
+    check_table_interaction,
 )
 
 
@@ -29,9 +31,12 @@ def test_public_report_omits_private_predecessor_scores_but_keeps_certified_repl
     assert 'pre_scoring_correction_metrics' in rows[0]
 
 
-def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Path) -> None:
+@pytest.mark.parametrize("binding_name", ["seven-method-binding.json", "method-binding.json"])
+@pytest.mark.parametrize("extra_methods", [0, 1])
+def test_full_report_renders_registered_details_and_failure_evidence(tmp_path: Path, binding_name: str, extra_methods: int) -> None:
     providers = ["moli", "lightpanda", "obscura", "chromium", "kitesurf",
                  "moli-pr785-fixed", "moli-content-fixed"]
+    providers.extend(f"browser-{index}" for index in range(extra_methods))
     case_id = "case-1"
     metrics = ("text_edit", "code_edit", "formula_edit", "table_edit", "table_TEDS")
     (tmp_path / "artifacts").mkdir()
@@ -85,6 +90,7 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
                    "moli-content-fixed": "Moli 1.1.11 · PR919 721bd2e 实测版",
                },
                "source_dataset_sha256": "a" * 64, "official_scorer_commit": "b" * 40}
+    profile["method_binding_file"] = binding_name
     profile["versions"]["moli"] = "1.0'</script><script>bad()"
     profile["versions"]["moli-content-fixed"] = "1.1'</script><script>bad()"
     content_keys = ("home_title", "home_lead", "score_note", "latency_note", "all_latency_note", "diagnostic_note", "infographic_caption",
@@ -140,19 +146,20 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     assert '?v=' in home.select_one('link[rel="stylesheet"]')['href']
     assert home.select_one('link[rel="stylesheet"]')['href'].split('?v=', 1)[1] == home.select_one('script[src]')['src'].split('?v=', 1)[1]
     assert home.find('a', href='https://github.com/lexmount/WebMainBench/tree/lex-main') is not None
-    assert len(home.select('td[data-metric-direction="max"]')) == 42
+    assert len(home.select('td[data-metric-direction="max"]')) == 6 * len(providers)
     assert len(home.select('td[data-metric-direction="max"] .comparison-winner')) == 6
     assert home.select_one('td[data-target-body-provider="chromium"]').get_text(strip=True) == "0/545"
     assert home.select_one('td[data-target-body-provider="moli-content-fixed"]').get_text(strip=True) == "1/545"
     assert "成功生成正文" in home.get_text()
+    assert "各方法的质量风险定位" in home.get_text()
     core = home.select_one('table#core-results')
-    assert len(core.select('tbody > tr')) == 7
+    assert len(core.select('tbody > tr')) == len(providers)
     assert len(core.select('th[aria-sort="none"] > button[data-table-sort]')) == 8
     assert "实测提交 683b297e1；Moli 1.1'</script><script>bad()" in core.get_text(' ', strip=True)
     assert core.find('script') is None
     quality_matrix = home.select_one('table#quality-issue-matrix')
     assert quality_matrix is not None
-    assert len(quality_matrix.select('tbody > tr')) == 7
+    assert len(quality_matrix.select('tbody > tr')) == len(providers)
     assert len(quality_matrix.select('th[aria-sort="none"] > button[data-table-sort]')) == 7
     assert quality_matrix.find(
         'a', href='analysis/index.html?provider=moli&metric=delivery&kind=all'
@@ -160,15 +167,17 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     guide = BeautifulSoup((tmp_path / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
     guide_quality = guide.select_one('#error-landscape table#quality-issue-matrix')
     assert guide_quality is not None
-    assert len(guide.select('table#method-error-profiles tbody > tr')) == 7
+    assert "各方法错在哪、差在哪" in guide.select_one('#error-landscape').get_text()
+    assert len(guide.select('table#method-error-profiles tbody > tr')) == len(providers)
     assert guide.select_one('img[src="assets/seven-method-error-taxonomy.png"]') is None
     assert len(guide.select('[data-moli-fix-slide]')) == 6
     assert all(len(slide.select('.slide-facts > div')) == 4
                for slide in guide.select('[data-moli-fix-slide]'))
-    assert len(guide_quality.select('tbody > tr')) == 7
+    assert len(guide_quality.select('tbody > tr')) == len(providers)
     assert len(guide_quality.select('th[aria-sort="none"] > button[data-table-sort]')) == 7
     lineage = guide.select_one("#moli-repair-lineage")
     assert lineage is not None
+    assert lineage.find("a", href=binding_name) is not None
     assert lineage.find("a", href="https://github.com/lexmount/moli/pull/814").get_text(strip=True) == "PR814（历史前身）"
     assert lineage.find("a", href="https://github.com/lexmount/moli/pull/919").get_text(strip=True) == "PR919（本次实测来源）"
     assert "绑定 PR919 提交 683b297e1" in lineage.get_text(" ", strip=True)
@@ -179,9 +188,11 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     assert comparison.select_one("#case-results") is not None
     assert comparison.select_one("#case-comparison") is not None
     assert comparison.select_one("#case-reference") is not None
+    assert comparison.h1.get_text() == "人工答案与各方法的完整输出"
     analysis = BeautifulSoup((tmp_path / "analysis/index.html").read_text(encoding="utf-8"), "html.parser")
     check_diagnosis_inventory(analysis)
-    assert len(analysis.select("tr[data-result]")) == 7
+    assert analysis.select_one('#diagnosis-case').get_text() == '同页各方法对照'
+    assert len(analysis.select("tr[data-result]")) == len(providers)
     assert analysis.select_one('tr[data-provider="moli-content-fixed"]') is not None
     assert analysis.select_one("#cause") is not None
     assert analysis.select_one("#metric") is not None
@@ -194,6 +205,11 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     assert dataset_page.select_one('#dataset-language') is not None
     assert dataset_page.select_one('#dataset-level') is not None
     assert len(dataset_page.select('table#dataset-inventory button[data-table-sort]')) == 4
+    check_table_interaction(tmp_path, provider_count=len(providers), case_count=1)
+    with pytest.raises(ValueError, match="Core comparison"):
+        check_table_interaction(tmp_path, provider_count=len(providers) + 1, case_count=1)
+    with pytest.raises(ValueError, match="Dataset inventory"):
+        check_table_interaction(tmp_path, provider_count=len(providers), case_count=2)
     missing_dialog = BeautifulSoup(str(analysis).replace('id="diagnosis-error"', 'id="missing-error"'), 'html.parser')
     with pytest.raises(ValueError, match='diagnosis dialog'):
         check_diagnosis_inventory(missing_dialog)
@@ -217,7 +233,7 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     assert not (tmp_path / "artifacts").exists()
     assert not (tmp_path / "sources").exists()
     assert not (tmp_path / "references").exists()
-    assert len(list((tmp_path / "shards").glob("*.json"))) == 8
+    assert len(list((tmp_path / "shards").glob("*.json"))) == len(providers) + 1
     with pytest.raises(ValueError, match="Out-of-cohort"):
         check_presentation(home_html.replace('data-metric-direction="neutral"',
                                             'data-metric-direction="neutral"><strong class="comparison-winner">bad</strong><span', 1))

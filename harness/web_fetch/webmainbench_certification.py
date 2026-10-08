@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 from harness.web_fetch.config import load_runtime_env
+from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_evidence import digest, read_jsonl
 from harness.web_fetch.webmainbench_runner import load_source
 
@@ -76,11 +77,11 @@ def verify_shard(shard: Path, provider: str, case_ids: set[str], profile: dict) 
     if len(attempt_ids) != len(physical) or sum(row["physical_attempt_count"] for row in rows) != len(physical):
         raise ValueError(provider + ": physical call inventory mismatch")
     for row in rows:
-        path = shard / row["artifact_path"]
+        path = contained_path(shard, row["artifact_path"], reject_symlinks=True)
         if path.is_symlink() or digest(path) != row["output_sha256"]:
             raise ValueError(provider + ": result artifact mismatch: " + row["track_id"])
     for row in physical:
-        path = shard / row["physical_artifact_path"]
+        path = contained_path(shard, row["physical_artifact_path"], reject_symlinks=True)
         if path.is_symlink() or digest(path) != row["output_sha256"]:
             raise ValueError(provider + ": physical artifact mismatch: " + row["attempt_id"])
     return {"provider": provider, "logical_results": len(rows), "physical_calls": len(physical),

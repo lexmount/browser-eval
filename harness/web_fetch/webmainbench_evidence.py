@@ -16,10 +16,12 @@ def retry_chain_matches(row: dict, attempts: list[dict]) -> bool:
     recorded_elapsed = correction.get("original_elapsed_ms", row["elapsed_ms"])
     return bool(attempts) and (
         len(attempts) == row["physical_attempt_count"]
-        and [item["physical_attempt"] for item in attempts] == list(range(1, len(attempts) + 1))
+        and [item["physical_attempt"] for item in attempts]
+        == list(range(1, len(attempts) + 1))
         and attempts[-1]["output_sha256"] == row["output_sha256"]
         and abs(attempts[-1]["elapsed_ms"] - recorded_elapsed) <= 1e-12
-        and abs(sum(item["elapsed_ms"] for item in attempts) - row["total_elapsed_ms"]) <= 1e-12
+        and abs(sum(item["elapsed_ms"] for item in attempts) - row["total_elapsed_ms"])
+        <= 1e-12
     )
 
 
@@ -28,7 +30,9 @@ def alias_row(row: dict, source_provider: str, provider: str) -> dict:
     safe_identifier(provider)
     row = copy.deepcopy(row)
     row["provider"] = provider
-    row["attempt_id"] = row["attempt_id"].replace(source_provider + "__", provider + "__", 1)
+    row["attempt_id"] = row["attempt_id"].replace(
+        source_provider + "__", provider + "__", 1
+    )
     for key in ("artifact_path", "physical_artifact_path"):
         if key in row:
             row[key] = row[key].replace(
@@ -69,20 +73,24 @@ def copy_alias_artifacts(
             target = contained_path(output, relative, reject_symlinks=True)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(original, target)
+            if digest(target) != expected_sha256:
+                raise ValueError("Variant artifact changed while copying: " + row[key])
 
 
 def require_matrix(rows: list[dict], providers: list[str], case_ids: set[str]) -> None:
     expected = {(provider, case_id) for provider in providers for case_id in case_ids}
     actual = {(row["provider"], row["case_id"]) for row in rows}
-    attempts = [row["attempt_id"] for row in rows]
     if actual != expected or len(rows) != len(expected):
         raise ValueError("Logical result matrix is incomplete")
-    if len(attempts) != len(set(attempts)):
-        raise ValueError("Logical attempt identity is not unique")
+    require_unique_attempt_ids(rows, "Logical")
 
 
 def require_provider_batch(execution: dict, provider: str) -> dict:
-    batches = [batch for batch in execution.get("batches", []) if batch.get("provider") == provider]
+    batches = [
+        batch
+        for batch in execution.get("batches", [])
+        if batch.get("provider") == provider
+    ]
     if len(batches) != 1:
         raise ValueError(
             f"Expected exactly one execution batch for {provider}, found {len(batches)}"
@@ -96,5 +104,41 @@ def digest(path: Path) -> str:
 
 def read_jsonl(path: Path) -> list[dict]:
     return [
-        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
     ]
+
+
+def require_unique_attempt_ids(rows: list[dict], label: str) -> None:
+    values = [row.get("attempt_id") for row in rows]
+    if any(not isinstance(value, str) or not value for value in values) or len(
+        set(values)
+    ) != len(values):
+        raise ValueError(f"{label} attempt identity is not unique")
+
+
+def read_method_binding(root: Path) -> tuple[str, dict]:
+    """Read the current binding or the profile-bound historical release format."""
+    names = [
+        name
+        for name in ("method-binding.json", "seven-method-binding.json")
+        if (root / name).is_file()
+    ]
+    if len(names) != 1:
+        raise ValueError("Exactly one method-cohort binding is required")
+    path = contained_path(root, names[0], reject_symlinks=True)
+    binding = json.loads(path.read_text(encoding="utf-8"))
+    formats = {
+        "method-binding.json": (2, "webmainbench_method_cohort_binding"),
+        "seven-method-binding.json": (
+            1,
+            "webmainbench_seven_method_full_scope_binding",
+        ),
+    }
+    if (
+        not isinstance(binding, dict)
+        or (binding.get("schema_version"), binding.get("kind")) != formats[names[0]]
+    ):
+        raise ValueError("Unsupported method-cohort binding format")
+    return names[0], binding
