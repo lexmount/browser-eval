@@ -66,7 +66,7 @@ class HeadlessReportTests(unittest.TestCase):
         self.assertTrue(result['winner_tied'])
         english = localize_html(page, PurePosixPath('guide/index.html'))
         self.assertIn('Resource-efficiency co-leaders in this run', english)
-        self.assertIn('Lightpanda, Moli 1.1.1, Obscura, Chromium', english)
+        self.assertIn('Moli 1.1.1, Lightpanda, Obscura, Chromium', english)
         self.assertNotIn('资源效率并列领先', english)
 
     def test_resource_table_excludes_unobservable_remote_provider(self):

@@ -3,14 +3,12 @@ from __future__ import annotations
 
 from html import escape
 
-
 PROVIDER_NAMES = {
     'chromium': 'Chromium',
     'lightpanda': 'Lightpanda',
     'moli': 'Moli 1.1.1',
     'obscura': 'Obscura',
 }
-RESOURCE_ORDER = ('lightpanda', 'moli', 'obscura', 'chromium')
 
 
 GROUPS = (
@@ -65,10 +63,13 @@ def render_resource_comparison(summary, providers):
         return ('<p>当前证据没有独立的客户端资源测量；不从耗时反推 CPU 或内存。</p>',
                 {'winner': None, 'winner_count': 0, 'ranked_metric_count': 0})
     indexed = {row['provider']: row for row in summary['rows']}
-    local = [provider for provider in RESOURCE_ORDER if provider in providers]
+    declared = summary.get('providers', list(indexed))
+    local = [provider for provider in providers if provider in declared]
     missing = sorted(set(local) - set(indexed))
     if missing:
         raise ValueError('Resource cohort is missing local providers: ' + ', '.join(missing))
+    if not local:
+        raise ValueError('Resource comparison has no selected measured providers')
 
     winners = []
     for _, metrics in GROUPS:
@@ -137,7 +138,7 @@ def render_resource_comparison(summary, providers):
             '<table><thead><tr><th scope="col">序号</th><th scope="col">指标</th>' + header + '</tr></thead><tbody>'
             + ''.join(rows) + '</tbody></table></div></section>')
 
-    sample = (f'<p class="resource-sample">同题口径：四种本地配置共同通过 '
+    sample = (f'<p class="resource-sample">同题口径：所列配置共同通过 '
               f'<strong>{len(summary["common_pass_cases"])}/{len(summary["planned_cases"])}</strong> 个普通网页；'
               '失败任务不进入资源排名。</p>')
     caveat = ('<p class="callout"><b>可比边界：</b>每次调用使用一次性 Linux 客户端容器、cgroup v2 与独立网络命名空间；'

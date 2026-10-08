@@ -1717,7 +1717,7 @@ def overview_resources(out):
  if not path.is_file():
   return '<p>当前证据没有独立的客户端资源测量；不从耗时或进程体积推测 CPU 与内存。</p>'
  summary=json.loads(path.read_text())
- rendered,_=render_resource_comparison(summary,['lightpanda','moli','obscura','chromium','kitesurf'])
+ rendered,_=render_resource_comparison(summary,summary['providers'])
  return rendered
 
 def title_diagnostics(groups,selected,base,identifier):

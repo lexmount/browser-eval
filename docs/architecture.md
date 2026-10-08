@@ -26,6 +26,14 @@ public call logs, rejects symlinks and conflicting bytes, and exposes its new
 output directory only after validation succeeds. Canonical source and list
 references resolve through their hash-bound external-input manifest when present.
 
+`resource_cohort.py` validates the declared resource-method matrix, finite
+measurements and common execution environment, and rebuilds the resource summary
+from its original records. Assembly and report packaging share the comparison
+evidence copier in `artifacts.py`; only declared outputs, call logs, reference
+evidence and cohort metadata enter those directories. Public packages exclude
+private response envelopes and result-review payloads. Resource table participants
+come from the measured cohort rather than a fixed browser list.
+
 WebMainBench cohort certification is owned by `harness/web_fetch/webmainbench_certification.py`; scoring and score verification by `webmainbench_scoring.py`; full-cohort aggregation by `webmainbench_assembly.py`; and shared result-matrix, variant-identity and physical-call checks by `webmainbench_evidence.py`. Their command files delegate to these modules. Evidence-copy boundaries reject file and directory symlinks as well as escaping paths.
 
 Complete WebMainBench comparisons assemble the baseline and every registry-declared variant directly from their certified cohorts. Participant counts come from profiles and the registry throughout assembly, rendering and release checks. Only declared evidence enters the package; assembly commits a new directory after all checks pass. Replacing a cohort creates a new package and retains the previous one. See [the WebMainBench guide](../harness/web_fetch/WEBMAINBENCH.md) for the supported commands and historical binding format.

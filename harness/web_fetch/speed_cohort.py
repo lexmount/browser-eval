@@ -20,14 +20,14 @@ def _timestamp(value):
     return parsed
 
 
-def _provider_authority(dataset):
+def provider_cohort(dataset):
     tracks={case.get('track','web') for case in dataset.get('cases',[])}
     coverage=dataset.get('coverage_plan',{})
     cohorts=[coverage.get(track) for track in tracks]
     if (not tracks or any(not isinstance(names,list) or not names for names in cohorts)
             or any(names != cohorts[0] for names in cohorts[1:])
             or len(cohorts[0]) != len(set(cohorts[0]))):
-        raise ValueError('Speed dataset has no single authoritative provider cohort')
+        raise ValueError('Comparison dataset has no single authoritative provider cohort')
     return cohorts[0]
 
 
@@ -42,7 +42,7 @@ def derive_aggregate(dataset,batches):
     return {
         'started_at':min(starts).isoformat(),
         'completed_at':max(finishes).isoformat(),
-        'providers':_provider_authority(dataset),
+        'providers':provider_cohort(dataset),
         'case_ids':[case['id'] for case in dataset.get('cases',[])],
         'batch_count':len(batches),
     }
@@ -52,7 +52,7 @@ def build_summary(dataset, records, batches, aggregate):
     cases={c['id']:c for c in dataset['cases']}
     if len(cases)!=len(dataset['cases']):
         raise ValueError('Speed dataset contains duplicate cases')
-    providers=_provider_authority(dataset)
+    providers=provider_cohort(dataset)
     expected={(provider,cid) for provider in providers for cid in cases}
     if len(records)!=len(expected) or {(r['provider'],r['case_id']) for r in records}!=expected:
         raise ValueError('Speed cohort must contain exactly one complete provider/case matrix')

@@ -9,10 +9,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from harness.web_fetch.artifacts import (
-    artifact_bindings,
+    copy_cohort_evidence,
     materialize_bound_artifacts,
-    record_private_bindings,
-    verify_record_artifacts,
 )
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
@@ -485,13 +483,6 @@ def _write_projected_reference_revisions(source, target, case_ids):
 
 def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_providers=()):
     """Copy only explicitly bound speed evidence into an aggregate tree."""
-    if source.is_symlink():
-        raise ValueError('Speed cohort root must not be a symlink')
-    source_root=source.resolve()
-    for child in source.rglob('*'):
-        if child.is_symlink():
-            raise ValueError('Speed cohort contains a symlink: '+str(child.relative_to(source)))
-
     speed_declared={name for providers in dataset.get('coverage_plan',{}).values()
                     for name in providers}
     excluded_providers=sorted(set(excluded_providers)&speed_declared)
@@ -509,37 +500,9 @@ def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_provider
         projected_dataset,projected_rows,projected_batches,_=_project_provider_subset(
             deepcopy(dataset),rows,batches,[],excluded_providers)
 
-    allowed=set()
-    if not excluded_providers:
-        allowed.update({'dataset.json','results.jsonl','execution.json','speed-comparison.json'})
-        for optional in ('result-review.json','scoring-revisions.json','reference-revisions.json'):
-            if (source/optional).is_file():allowed.add(optional)
-    for row in projected_rows:
-        verify_record_artifacts(source,row)
-        allowed.update(relative for relative, _ in artifact_bindings(row))
-        allowed.update(binding['path'] for binding in record_private_bindings(row))
-    for batch in projected_batches:
-        evidence=batch.get('reference_checks',{}).get('postcheck',{}).get('evidence_path')
-        if evidence:allowed.add(evidence)
-    for case in projected_dataset.get('cases',[]):
-        case_id=case['id']
-        source_dir=contained_path(source,'sources/'+case_id)
-        if source_dir.is_dir():
-            allowed.update(child.relative_to(source_root).as_posix()
-                           for child in source_dir.rglob('*') if child.is_file())
-        reference=contained_path(source,'list-references/'+case_id+'.json')
-        if reference.is_file():allowed.add(reference.relative_to(source_root).as_posix())
-
-    target.mkdir(parents=True)
-    for relative in sorted(allowed):
-        source_file=contained_path(source,relative)
-        if not source_file.is_file():
-            raise ValueError('Speed cohort allowlisted file is missing: '+relative)
-        target_file=contained_path(target,relative)
-        target_file.parent.mkdir(parents=True,exist_ok=True)
-        shutil.copy2(source_file,target_file)
-    for row in projected_rows:
-        verify_record_artifacts(target, row)
+    copy_cohort_evidence(source, target, projected_dataset, projected_rows, projected_batches,
+                         summary_name='speed-comparison.json', include_private=True,
+                         include_metadata=not excluded_providers)
     if excluded_providers:
         aggregate=deepcopy(source_aggregate)
         aggregate['providers']=[name for name in aggregate['providers']
@@ -894,12 +857,13 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         _copy_speed_bundle(speed_cohort,output/'speed-cohort',speed_dataset,
                            speed_rows,speed_batches,excluded_providers=exclude_providers)
     if resource_cohort:
-        if not (resource_cohort/'resource-comparison.json').is_file():
-            raise ValueError('Resource cohort has not been packaged')
-        resource_rows=read_records(resource_cohort)
+        from .resource_cohort import validate_cohort
+        resource_dataset, resource_rows, resource_batches = validate_cohort(resource_cohort)
         if {row['provider'] for row in resource_rows} & set(exclude_providers):
             raise ValueError('Excluded providers remain in the resource cohort')
-        shutil.copytree(resource_cohort,output/'resource-cohort')
+        copy_cohort_evidence(resource_cohort, output/'resource-cohort',
+                             resource_dataset, resource_rows, resource_batches,
+                             summary_name='resource-comparison.json', include_private=True)
     if not failed:require_verified_reference_checks(batches,cases=dataset,records=records,source=output,
         equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
         'equivalent_reference_bytes_with_independent_batch_captures',

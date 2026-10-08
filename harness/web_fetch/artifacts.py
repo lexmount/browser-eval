@@ -354,3 +354,60 @@ def materialize_bound_artifacts(output: Path, source_root: Path, records: list[d
             raise ValueError('Copied artifact changed: ' + str(target.relative_to(output)))
     for record in records:
         verify_record_public_call_logs(output, record)
+
+
+def copy_cohort_evidence(source, target, dataset, records, batches, *,
+                         summary_name, include_private=False, include_metadata=True):
+    """Copy declared comparison evidence; publication excludes private envelopes."""
+    if summary_name not in {'speed-comparison.json', 'resource-comparison.json'}:
+        raise ValueError('Unsupported comparison summary')
+    source = Path(source)
+    if source.is_symlink():
+        raise ValueError('Comparison cohort root must not be a symlink')
+    source_root = source.resolve()
+    for child in source.rglob('*'):
+        if child.is_symlink():
+            raise ValueError('Comparison cohort contains a symlink')
+
+    allowed = set()
+    if include_metadata:
+        allowed.update({'dataset.json', 'results.jsonl', summary_name})
+        for optional in ('execution.json', 'manifest.json', 'scoring-revisions.json',
+                         'reference-revisions.json'):
+            if (source / optional).is_file():
+                allowed.add(optional)
+        if include_private and (source / 'result-review.json').is_file():
+            allowed.add('result-review.json')
+    for record in records:
+        verify_record_artifacts(source, record)
+        allowed.update(relative for relative, _ in artifact_bindings(record))
+        if include_private:
+            allowed.update(binding['path'] for binding in record_private_bindings(record))
+    for batch in batches:
+        relative = batch.get('reference_checks', {}).get('postcheck', {}).get('evidence_path')
+        if relative:
+            allowed.add(relative)
+    for case in dataset.get('cases', []):
+        case_id = case['id']
+        source_dir = contained_path(source, 'sources/' + case_id)
+        if source_dir.is_dir():
+            allowed.update(child.relative_to(source_root).as_posix()
+                           for child in source_dir.rglob('*') if child.is_file())
+        reference = contained_path(source, 'list-references/' + case_id + '.json')
+        if reference.is_file():
+            allowed.add(reference.relative_to(source_root).as_posix())
+
+    target.mkdir(parents=True)
+    for relative in sorted(allowed):
+        source_file = contained_path(source, relative, reject_symlinks=True)
+        if not source_file.is_file():
+            raise ValueError('Comparison cohort allowlisted file is missing: ' + relative)
+        target_file = contained_path(target, relative, reject_symlinks=True)
+        target_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_file, target_file)
+
+    for record in records:
+        for relative, digest in artifact_bindings(record):
+            if hashlib.sha256(contained_path(target, relative, reject_symlinks=True).read_bytes()).hexdigest() != digest:
+                raise ValueError('Copied comparison artifact changed: ' + relative)
+        verify_record_public_call_logs(target, record)

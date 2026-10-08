@@ -69,6 +69,9 @@ def main():
         assert assembled == cohort
         for relative, _ in artifact_bindings(cohort[0]):
             assert (root / 'assembled' / relative).read_bytes() == (root / 'cohort' / relative).read_bytes()
+        subprocess.run([sys.executable, '-c',
+                        'from harness.web_fetch.resource_cohort import main; main(["--help"])'],
+                       check=True, cwd=root, capture_output=True, text=True)
         from harness.reporting.links import check
         check(root / 'run/report')
         reference = (root / 'run/report/references/one.txt').read_text()

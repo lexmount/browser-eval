@@ -3300,7 +3300,7 @@ TEXT.update({
     "平均接收 / 平均发送": "Mean received / mean sent",
     "接收": "Received",
     "发送": "Sent",
-    "同题口径：四种本地配置共同通过": "Matched-task scope: general pages passed by all four local configurations:",
+    "同题口径：所列配置共同通过": "Matched-task scope: general pages passed by every listed configuration:",
     "个普通网页；失败任务不进入资源排名。": "pages; failed tasks do not enter the resource ranking.",
     "CPU 与计算": "CPU and compute",
     "内存": "Memory",

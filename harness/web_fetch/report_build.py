@@ -8,6 +8,7 @@ from pathlib import Path
 from harness.reporting.assets import copy_bound_assets
 
 from .artifacts import (
+    copy_cohort_evidence,
     diagnostic_log_binding,
     record_public_call_log_bindings,
     verify_public_call_log,
@@ -129,54 +130,6 @@ def copy_methodology_assets(output, assets=None):
             shutil.copy2(source, target)
 
 
-def copy_speed_cohort_public_files(source, target, dataset, records, batches):
-    """Copy the exact public speed-cohort evidence set; reject every symlink."""
-    source = Path(source)
-    if source.is_symlink():
-        raise ValueError('Speed cohort root must not be a symlink')
-    source_root = source.resolve()
-    for child in source.rglob('*'):
-        if child.is_symlink():
-            raise ValueError('Speed cohort evidence must not contain symlinks')
-
-    allowed = {'dataset.json', 'results.jsonl', 'speed-comparison.json'}
-    for optional in ('execution.json', 'manifest.json', 'scoring-revisions.json',
-                     'reference-revisions.json'):
-        if (source / optional).is_file():
-            allowed.add(optional)
-    for record in records:
-        relative = record['artifact_path']
-        artifact = contained_path(source, relative)
-        expected = record.get('metrics', {}).get('content_sha256')
-        if (not artifact.is_file() or not expected
-                or hashlib.sha256(artifact.read_bytes()).hexdigest() != expected):
-            raise ValueError('Speed cohort output integrity failure: ' + record['attempt_id'])
-        allowed.add(relative)
-        for binding in record_public_call_log_bindings(record):
-            allowed.add(verify_public_call_log(source, binding).relative_to(source_root).as_posix())
-    for batch in batches:
-        relative = batch.get('reference_checks', {}).get('postcheck', {}).get('evidence_path')
-        if relative:
-            allowed.add(relative)
-    for case in dataset.get('cases', []):
-        case_id = case['id']
-        source_dir = contained_path(source, 'sources/' + case_id)
-        if source_dir.is_dir():
-            allowed.update(child.relative_to(source_root).as_posix()
-                           for child in source_dir.rglob('*') if child.is_file())
-        reference = contained_path(source, 'list-references/' + case_id + '.json')
-        if reference.is_file():
-            allowed.add(reference.relative_to(source_root).as_posix())
-
-    target.mkdir(parents=True)
-    for relative in sorted(allowed):
-        source_file = contained_path(source, relative)
-        if not source_file.is_file():
-            raise ValueError('Speed cohort allowlisted file is missing: ' + relative)
-        target_file = contained_path(target, relative)
-        target_file.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source_file, target_file)
-
 
 def build_public_benchmark_research(source: Path, output: Path, *, include_english: bool = False) -> Path:
     """Build the research-only companion without measured evidence."""
@@ -272,20 +225,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 raise ValueError('Speed cohort output integrity failure: '+row['attempt_id'])
     resource_root=source/'resource-cohort'
     if resource_root.exists():
-        resource=json.loads((resource_root/'resource-comparison.json').read_text())
-        for name in ('dataset','results'):
-            extension='json' if name == 'dataset' else 'jsonl'
-            raw=(resource_root/f'{name}.{extension}').read_bytes()
-            if resource.get('bindings',{}).get(name+'_sha256') != hashlib.sha256(raw).hexdigest():
-                raise ValueError('Resource comparison '+name+' binding mismatch')
-        resource_dataset=json.loads((resource_root/'dataset.json').read_text())
-        resource_records=[json.loads(line) for line in
-                          (resource_root/'results.jsonl').read_text().splitlines()]
-        require_result_review(resource_root,resource_dataset,resource_records)
-        for row in resource_records:
-            raw=contained_path(resource_root,row['artifact_path'])
-            if hashlib.sha256(raw.read_bytes()).hexdigest()!=row['metrics']['content_sha256']:
-                raise ValueError('Resource cohort output integrity failure: '+row['attempt_id'])
+        from .resource_cohort import validate_cohort
+        resource_dataset, resource_records, resource_batches = validate_cohort(resource_root)
     for c in cases.values():
         annotation=c.get('source_benchmark',{}).get('stable_annotation',{})
         if annotation.get('anchor_evidence_sha256'):
@@ -445,11 +386,13 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if (source/'reference-checks').exists():
             shutil.copytree(source/'reference-checks', staging/'reference-checks')
         if speed_root.exists():
-            copy_speed_cohort_public_files(
-                speed_root, staging/'speed-cohort', speed_dataset, speed_records, speed_batches)
+            copy_cohort_evidence(
+                speed_root, staging/'speed-cohort', speed_dataset, speed_records, speed_batches,
+                summary_name='speed-comparison.json')
         if resource_root.exists():
-            shutil.copytree(resource_root,staging/'resource-cohort',ignore=shutil.ignore_patterns(
-                'result-review.json','review-history','private_artifacts'))
+            copy_cohort_evidence(resource_root, staging/'resource-cohort',
+                resource_dataset, resource_records, resource_batches,
+                summary_name='resource-comparison.json')
         summary = {t:{p:{'attempts':len(rs), 'task_pass':sum(succeeded(r,cases[r['case_id']]) for r in rs)}
                       for p in sorted({r['provider'] for r in records})
                       if (rs := [r for r in records if r['provider']==p and cases[r['case_id']].get('track','web')==t])}
