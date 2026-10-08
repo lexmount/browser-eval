@@ -134,6 +134,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--browser-binary")
     parser.add_argument("--env-file", type=Path)
     parser.add_argument("--reference-promotion", type=Path)
+    parser.add_argument('--retrieval-mode', choices=('declared', 'native'), default='declared',
+                        help='Explicitly select ordinary native fetch instead of selector-guided dynamic execution')
     args = parser.parse_args(argv)
     if args.browser_capture_attempts < 1:
         parser.error("--browser-capture-attempts must be at least 1")
@@ -147,6 +149,19 @@ def main(argv: list[str] | None = None) -> None:
         parser.error("Unknown case IDs: " + ", ".join(sorted(set(case_ids) - known)))
     if args.output.exists() or args.work_root.exists():
         parser.error("Output and work root must both be new immutable paths")
+
+    from harness.web_fetch.retrieval_hints import native_fetch_dataset, parse_retrieval_hints
+    if args.retrieval_mode == 'native':
+        original_sha = hashlib.sha256(args.dataset.read_bytes()).hexdigest()
+        dataset = native_fetch_dataset(dataset)
+        dataset['comparison']['input_dataset_sha256'] = original_sha
+    # Reject malformed execution contracts before doing any external captures.
+    for case in dataset['cases']:
+        parse_retrieval_hints(case.get('track', 'web'), case.get('retrieval_hints'), identifier=case['id'])
+    if args.retrieval_mode == 'native':
+        args.work_root.mkdir(parents=True)
+        args.dataset = args.work_root / 'input-dataset.json'
+        args.dataset.write_text(json.dumps(dataset, ensure_ascii=False, indent=2)+'\n')
 
     python = sys.executable
     selected = ",".join(case_ids)

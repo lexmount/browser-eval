@@ -8,6 +8,8 @@ For explicitly requested live WebFetch diagnostics, use `make webfetch-diagnosti
 
 For a new report type, first persist a reusable example and scenario-based positive/negative tests, register its owner and release gate, then generate the requested report. Later corrections update the owner and relevant rules when supported by evidence; do not clone a template per run or embed report-specific conclusions in instructions.
 
+Diagnostic failure analysis derives unmet requirements and expected/actual values from the saved score-bearing call, separately from independent source observations and supplemental calls. Count each affected task once per failure type, disclose overlaps, and link counts to the matching task inventory. Source access failure and later success are observations, not engine root causes. Release checks recompute the type counts and detail explanations from bound evidence and reject contradictory or missing values.
+
 ## Language generation
 
 All tracks generate and validate Chinese by default. English requires an explicit manual trigger; do not automatically translate prose, generate English illustrations, render English routes or run English-specific checks. A manifest records which languages were generated. When English is absent, retain only a clear not-generated notice with a return link, and test that control. Remove stale English output and unused translated assets from the new bundle while preserving source translations. Parity and English localization checks apply when the English edition is explicitly generated; Chinese-only releases retain all Chinese evidence, semantics, links and visual gates.

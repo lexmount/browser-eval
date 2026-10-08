@@ -26,17 +26,20 @@ from .artifacts import (
 def build_diagnostic_cohorts(source: Path, output: Path) -> Path:
     """Build an explicitly requested diagnostic edition using the WebFetch owner."""
     from harness.reporting.templates import resolve_template
-    from .report_diagnostic import load_diagnostic, check_diagnostic_report
+    from .report_diagnostic import load_diagnostic, check_diagnostic_report, prepare_diagnostic_evidence
     from .report import generate_cohort_diagnostic
 
     source, output = source.resolve(), output.resolve()
     if source == output or source.is_relative_to(output) or output.is_relative_to(source) or output.exists():
         raise ValueError("Diagnostic build requires a new output outside its evidence")
     template = resolve_template("webfetch")
-    model, files = load_diagnostic(source)
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=".diagnostic-report-", dir=output.parent))
     try:
+        if source.is_file():
+            prepare_diagnostic_evidence(source,staging)
+            source=staging
+        model, files = load_diagnostic(source)
         for relative, raw in files.items():
             target = contained_path(staging, relative)
             target.parent.mkdir(parents=True, exist_ok=True)

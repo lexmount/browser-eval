@@ -16,6 +16,16 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             main(["webmainbench-full", *arguments])
         invoked.assert_called_once_with(arguments)
 
+    def test_missing_dynamic_execution_contract_fails_before_external_work(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);dataset=root/'dataset.json'
+            dataset.write_text(json.dumps({'cases':[{'id':'dynamic-page','track':'dynamic'}]}))
+            with patch('scripts.run_certified_benchmark.run') as invoked:
+                with self.assertRaisesRegex(ValueError,'require retrieval_hints'):
+                    main(['--dataset',str(dataset),'--output',str(root/'run'),
+                          '--work-root',str(root/'work'),'--providers','p','--case-ids','dynamic-page'])
+            invoked.assert_not_called()
+
     @staticmethod
     def write_capture(captures: Path, case_id: str, *, status: int = 200,
                       text: str = "reference") -> None:

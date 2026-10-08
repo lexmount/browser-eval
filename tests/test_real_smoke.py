@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from harness.web_fetch.config import load_runtime_env, load_provider_config
@@ -27,19 +28,34 @@ class RealProviderSmokeTest(unittest.TestCase):
             name="Real smoke: Example Domain",
             url="https://example.com/",
             category="static_html",
-            expected_any=["Example Domain"],
+            expected_any=["This domain is for use in documentation examples"],
         )
 
-    def assert_provider_smoke(self, name: str) -> None:
+    def assert_provider_smoke(self, name: str, case: EvalCase | None = None):
         provider = build_provider(name, self.configs[name])
         missing = provider.validate()
         self.assertFalse(missing, f"{name} missing configuration: {', '.join(missing)}")
-        result = provider.fetch(self.case, timeout=20)
+        result = provider.fetch(case or self.case, timeout=20)
         self.assertTrue(result.ok, f"{name}: {result.error_type}: {result.error_message}")
-        self.assertIn("example domain", result.content.casefold())
+        self.assertIn("this domain is for use in documentation examples", result.content.casefold())
+        return result
 
     def test_cowagent_built_in_real_fetch(self) -> None:
         self.assert_provider_smoke("cowagent-built-in")
+
+    def test_moli_real_fetch(self) -> None:
+        self.assert_provider_smoke("moli-webfetch")
+
+    def test_moli_same_call_page_identity(self) -> None:
+        case = replace(self.case, source_benchmark={"risk_control": {
+            "navigation_contract": {
+                "requested_url": self.case.url,
+                "observed_final_url": self.case.url,
+            },
+        }})
+        result = self.assert_provider_smoke("moli-webfetch", case)
+        self.assertEqual(result.metadata["route"], "page_identity_json")
+        self.assertEqual(result.final_url, case.url)
 
     def test_lexmount_global_real_fetch(self) -> None:
         self.assert_provider_smoke("lexmount-global")
