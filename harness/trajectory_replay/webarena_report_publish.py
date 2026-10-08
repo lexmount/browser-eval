@@ -7,19 +7,23 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import tempfile
 import urllib.parse
 import urllib.request
-import uuid
 from io import BytesIO
 from pathlib import Path
 from urllib.error import HTTPError
 
 from harness.reporting.publication import (
+    PublicationOperation,
     PublicationSnapshot,
     archive_inventory,
+    atomic_write,
+    bind_publication_files,
+    binding_receipt_matches,
+    json_bytes,
     public_share_context,
+    recover_binding,
     snapshot_publication,
 )
 from harness.reporting.visual import tree_sha256 as _tree_sha256
@@ -49,44 +53,20 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def json_bytes(value: dict) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode()
-
-
-def atomic_write(path: Path, payload: bytes) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-    temporary = Path(temporary_name)
-    try:
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(payload)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        temporary.unlink(missing_ok=True)
-
-
 def recover_publication_binding() -> None:
-    if not BINDING_JOURNAL.is_file():
-        return
-    pending = json.loads(BINDING_JOURNAL.read_text(encoding="utf-8"))
-    if pending.get("schema") != "lex_webarena_replay_publication_binding/1":
-        raise ValueError("invalid pending publication binding")
-    profile = pending.get("profile")
-    attestation = pending.get("attestation")
-    if not isinstance(profile, dict) or not isinstance(attestation, dict):
-        raise ValueError("invalid pending publication binding payload")
-    profile_payload = json_bytes(profile)
-    if hashlib.sha256(profile_payload).hexdigest() != attestation.get("profile_sha256"):
-        raise ValueError("pending publication binding has an invalid profile hash")
-    atomic_write(PROFILE, profile_payload)
-    atomic_write(ATTESTATION, json_bytes(attestation))
-    BINDING_JOURNAL.unlink()
+    recover_binding(
+        PROFILE,
+        ATTESTATION,
+        BINDING_JOURNAL,
+        schema="lex_webarena_replay_publication_binding/2",
+        legacy_schema="lex_webarena_replay_publication_binding/1",
+        writer=atomic_write,
+    )
 
 
 def tree_sha256(root: Path) -> str:
     return _tree_sha256(root, framed_paths=False)
+
 
 def response_json(status: int, raw: bytes, *, operation: str) -> dict:
     if not 200 <= status < 300:
@@ -184,7 +164,8 @@ def validate_package() -> dict:
     checks["report_dataset"] = built.get("dataset_sha256") == attestation.get("dataset_sha256")
     checks["report_evidence"] = built.get("results_sha256") == attestation.get("evidence_sha256")
     checks["no_diagnostic_closure"] = not any(
-        value for value in (
+        value
+        for value in (
             built.get("diagnostic_closure_sha256"),
             attestation.get("diagnostic_closure_sha256"),
             attestation.get("diagnostic_closure"),
@@ -238,13 +219,14 @@ def staged_archive_upload(
         if release is not None:
             release.check()
         headers = None
-        if data is not None and method is None and (
-            path.startswith("/api/uploads?") or "/commit" in path
+        if (
+            data is not None
+            and method is None
+            and (path.startswith("/api/uploads?") or "/commit" in path)
         ):
             seed = json.dumps(identity, sort_keys=True, separators=(",", ":")) + "|" + path
             headers = {
-                "Idempotency-Key": "trajectory-staged-"
-                + hashlib.sha256(seed.encode()).hexdigest()
+                "Idempotency-Key": "trajectory-staged-" + hashlib.sha256(seed.encode()).hexdigest()
             }
         status, raw, response_headers = request(
             base,
@@ -302,42 +284,19 @@ def operation_identity(
 
 
 def pending_operation(identity: dict, *, allow_create: bool) -> tuple[dict, bool]:
-    if OPERATION_JOURNAL.is_file():
-        pending = json.loads(OPERATION_JOURNAL.read_text(encoding="utf-8"))
-        key = pending.pop("key", None)
-        if (
-            pending != identity
-            or not isinstance(key, str)
-            or not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", key)
-        ):
-            raise ValueError("pending Artifact Site operation differs from this release")
-        pending["key"] = key
-        return pending, True
-    if not allow_create:
-        raise ValueError("no bound site or matching pending creation operation")
-    pending = dict(identity)
-    pending["key"] = "trajectory-replay-" + uuid.uuid4().hex
-    atomic_write(OPERATION_JOURNAL, json_bytes(pending))
-    return pending, False
+    return PublicationOperation(OPERATION_JOURNAL, "trajectory-replay-").pending(
+        identity, allow_create=allow_create
+    )
 
 
 def completed_operation(base: str, key: str) -> tuple[int, bytes] | None:
-    status, raw, _ = request(base, f"/api/operations/{urllib.parse.quote(key)}")
-    if status == 404:
-        return None
-    operation = response_json(status, raw, operation="operation recovery")
-    state = operation.get("status")
-    if state == "running":
-        raise RuntimeError("Artifact Site operation is still running; retry this command later")
-    if state == "retryable":
-        return None
-    if state != "completed":
-        raise RuntimeError("Artifact Site operation returned an unknown recovery status")
-    result = operation.get("result")
-    http_status = operation.get("httpStatus")
-    if not isinstance(result, dict) or not isinstance(http_status, int):
-        raise RuntimeError("completed Artifact Site operation omitted its result")
-    return http_status, json.dumps(result, ensure_ascii=False).encode()
+    def send(path, *args, **kwargs):
+        status, raw, _ = request(base, path, *args, **kwargs)
+        return status, raw
+
+    return PublicationOperation(OPERATION_JOURNAL, "trajectory-replay-").completed(
+        key, request=send, decode=response_json
+    )
 
 
 def idempotent_upload(
@@ -350,31 +309,24 @@ def idempotent_upload(
     allow_create: bool,
     release: PublicationSnapshot | None = None,
 ) -> tuple[int, bytes]:
-    if release is not None:
-        release.check()
-    pending, resumed = pending_operation(identity, allow_create=allow_create)
-    key = pending["key"]
-    if resumed:
-        recovered = completed_operation(base, key)
-        if recovered is not None:
-            return recovered
-    if release is not None:
-        release.check()
-    status, raw, _ = request(
-        base,
+    def send(path, *args, **kwargs):
+        status, raw, _ = request(base, path, *args, **kwargs)
+        return status, raw
+
+    return PublicationOperation(OPERATION_JOURNAL, "trajectory-replay-").upload(
         path,
         payload,
         content_type,
-        extra_headers={"Idempotency-Key": key},
+        identity,
+        allow_create=allow_create,
+        request=send,
+        decode=response_json,
+        guard=release.check if release else lambda: None,
     )
-    return status, raw
 
 
 def clear_pending_operation(identity: dict) -> None:
-    if not OPERATION_JOURNAL.exists():
-        return
-    pending_operation(identity, allow_create=False)
-    OPERATION_JOURNAL.unlink(missing_ok=True)
+    PublicationOperation(OPERATION_JOURNAL, "trajectory-replay-").clear(identity)
 
 
 def preview_has_report_marker(body: bytes) -> bool:
@@ -384,6 +336,7 @@ def preview_has_report_marker(body: bytes) -> bool:
 
 def archive_hashes(path: Path) -> dict[str, str]:
     return archive_inventory(path)
+
 
 def verify_export(base: str, slug: str, *, archive: Path | None = None) -> None:
     status, raw, _ = request(base, f"/api/sites/{urllib.parse.quote(slug)}/export")
@@ -397,26 +350,32 @@ def verify_export(base: str, slug: str, *, archive: Path | None = None) -> None:
             raise RuntimeError("deployed Artifact Site file tree differs from package")
 
 
-def bind_publication(profile: dict, *, slug: str, share_url: str, version: str) -> None:
-    publication = profile.setdefault("publication", {})
-    publication.update(
-        {
+def bind_publication(
+    profile: dict,
+    *,
+    slug: str,
+    share_url: str,
+    version: str,
+    release: PublicationSnapshot | None = None,
+) -> None:
+    if not version.startswith("ver_"):
+        raise ValueError("publication response omitted a valid version id")
+    if json.loads(PROFILE.read_bytes()) != profile:
+        raise ValueError("publication profile changed before binding")
+    bind_publication_files(
+        PROFILE,
+        ATTESTATION,
+        BINDING_JOURNAL,
+        publication={
             "site_slug": slug,
             "share_url": share_url,
             "expected_version": version,
             "state": "verified",
-        }
+        },
+        schema="lex_webarena_replay_publication_binding/2",
+        expected=release.sources if release is not None else None,
+        writer=atomic_write,
     )
-    attestation = json.loads(ATTESTATION.read_text(encoding="utf-8"))
-    profile_payload = json_bytes(profile)
-    attestation["profile_sha256"] = hashlib.sha256(profile_payload).hexdigest()
-    pending = {
-        "schema": "lex_webarena_replay_publication_binding/1",
-        "profile": profile,
-        "attestation": attestation,
-    }
-    atomic_write(BINDING_JOURNAL, json_bytes(pending))
-    recover_publication_binding()
 
 
 def save_receipt(value: dict) -> None:
@@ -463,8 +422,12 @@ def _publish(*, create: bool, release: PublicationSnapshot) -> None:
     payload = content_type = None
     if not large_archive:
         payload, content_type = multipart_archive(title, archive=release.archive)
+    resume_binding = binding_receipt_matches(
+        RECEIPT, base=base, archive_sha256=release.sha256,
+        slug=bound_slug, version=expected_version,
+    )
     if bound_slug or expected_version:
-        if create:
+        if create and not resume_binding:
             raise ValueError("replay report is already bound; update it without --create")
         if not bound_slug or not expected_version.startswith("ver_"):
             raise ValueError("current replay profile has no complete Artifact Site binding")
@@ -475,12 +438,13 @@ def _publish(*, create: bool, release: PublicationSnapshot) -> None:
             title=title,
             kind="version",
             slug=slug,
-            expected_version=expected_version, archive=release.archive,
+            expected_version=expected_version,
+            archive=release.archive,
         )
         status, raw, _ = send(base, f"/api/sites/{urllib.parse.quote(slug)}")
         before = response_json(status, raw, operation="site lookup")
         remote_version = current_version(before)
-        if remote_version != expected_version:
+        if remote_version != expected_version or resume_binding:
             # A previous upload may have committed before a post-upload check
             # failed. Resume only when the exported tree proves that the
             # remote version is byte-identical to the current package.
@@ -492,7 +456,8 @@ def _publish(*, create: bool, release: PublicationSnapshot) -> None:
                     title=title,
                     slug=slug,
                     expected_version=expected_version,
-                    identity=upload_identity, release=release,
+                    identity=upload_identity,
+                    release=release,
                 )
                 status = 200
             else:
@@ -503,7 +468,8 @@ def _publish(*, create: bool, release: PublicationSnapshot) -> None:
                     payload,
                     content_type,
                     upload_identity,
-                    allow_create=True, release=release,
+                    allow_create=True,
+                    release=release,
                 )
             response_json(status, raw, operation="site version upload")
     else:
@@ -522,7 +488,8 @@ def _publish(*, create: bool, release: PublicationSnapshot) -> None:
                     title=title,
                     slug=None,
                     expected_version=None,
-                    identity=upload_identity, release=release,
+                    identity=upload_identity,
+                    release=release,
                 )
                 status = 200
             else:
@@ -532,7 +499,8 @@ def _publish(*, create: bool, release: PublicationSnapshot) -> None:
                     payload,
                     content_type,
                     upload_identity,
-                    allow_create=create, release=release,
+                    allow_create=create,
+                    release=release,
                 )
             created = response_json(status, raw, operation="site creation")
             slug = str(created.get("slug") or "")
@@ -580,8 +548,15 @@ def _publish(*, create: bool, release: PublicationSnapshot) -> None:
     release.check()
     validate_package()
     release.check()
+    status, raw, _ = send(base, f"/api/sites/{urllib.parse.quote(slug)}")
+    current = response_json(status, raw, operation="final site lookup")
+    if current_version(current) != version:
+        raise ValueError("remote version changed before publication binding")
+    save_receipt({"base_url": base, "slug": slug, "share_url": share_url,
+                  "version": version, "archive_sha256": release.sha256,
+                  "verified": False, "phase": "binding"})
     clear_pending_operation(upload_identity)
-    bind_publication(profile, slug=slug, share_url=share_url, version=version)
+    bind_publication(profile, slug=slug, share_url=share_url, version=version, release=release)
     save_receipt(
         {
             "base_url": base,

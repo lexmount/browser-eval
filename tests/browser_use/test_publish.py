@@ -4,7 +4,15 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 from harness.browser_use import report_publish as publisher
+
+
+@pytest.fixture(autouse=True)
+def private_binding_journal(monkeypatch, tmp_path):
+    monkeypatch.setattr(publisher, "BINDING_JOURNAL", tmp_path / "binding.json")
+    monkeypatch.setattr(publisher, "OPERATION_JOURNAL", tmp_path / "operation.json")
 
 
 def _sha256(path: Path) -> str:

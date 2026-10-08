@@ -269,6 +269,16 @@ match the frozen archive, including unique paths. Browser Use excludes its local
 guarded source tree. Its publication title comes from the current profile and
 its preview uses the validated same-origin share token.
 
+Both publishers keep private upload-operation and binding journals. Retries reuse
+the original idempotency key and recover completed uploads before submitting
+again. Browser Use also keeps multipart bytes stable across retries. Before local
+binding, the publisher checks the remote version again. Profile and attestation
+updates form a recoverable transaction bound to their paths and preceding hashes;
+recovery refuses to overwrite independently changed files. A binding-phase receipt
+lets a retry finish local bookkeeping without uploading another version. Keep
+these journals and receipts until recovery finishes; `--operation-journal` and
+`--binding-journal` select their locations when running outside the checkout.
+
 Report packaging belongs to `harness/browser_use/report_package.py` and
 `harness/trajectory_replay/webarena_report_package.py`. They share
 `harness/reporting/publication.py`: freeze report and authority inputs before

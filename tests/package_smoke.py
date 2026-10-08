@@ -586,7 +586,13 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
                     'publish_webarena_replay_artifact_site.py'):
         subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
                        check=True, cwd=root, stdout=subprocess.DEVNULL)
-    from harness.reporting.publication import package_archive
+    from harness.reporting.publication import (
+        PublicationOperation,
+        bind_publication_files,
+        json_bytes,
+        package_archive,
+        recover_binding,
+    )
     frozen = root / 'package-source'
     frozen.mkdir()
     (frozen / 'index.html').write_text('Installed publication control')
@@ -600,6 +606,38 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     assert json.loads(proof.read_text())['archive_sha256'] == hashlib.sha256(
         output.read_bytes()
     ).hexdigest()
+    binding_profile = root / 'binding-profile.json'
+    binding_profile.write_bytes(json_bytes({'publication': {'expected_version': 'old'}}))
+    binding_proof = root / 'binding-proof.json'
+    binding_proof.write_bytes(json_bytes({'archive_sha256': 'frozen'}))
+    binding_journal = root / 'binding-pending.json'
+
+    def interrupted_write(path, payload):
+        if path.resolve() == binding_proof.resolve():
+            raise OSError('interrupted proof installation')
+        path.write_bytes(payload)
+
+    try:
+        bind_publication_files(
+            binding_profile, binding_proof, binding_journal,
+            publication={'expected_version': 'new'}, schema='installed-control/1',
+            writer=interrupted_write,
+        )
+    except OSError:
+        pass
+    else:
+        raise AssertionError('binding failure was not exercised')
+    recover_binding(binding_profile, binding_proof, binding_journal, schema='installed-control/1')
+    assert not binding_journal.exists()
+    assert json.loads(binding_profile.read_bytes())['publication']['expected_version'] == 'new'
+    assert json.loads(binding_proof.read_bytes())['profile_sha256'] == hashlib.sha256(
+        binding_profile.read_bytes()
+    ).hexdigest()
+    operations = PublicationOperation(root / 'operation-pending.json', 'installed-control')
+    operation, resumed = operations.pending({'archive_sha256': 'frozen'}, allow_create=True)
+    assert not resumed
+    assert operations.pending({'archive_sha256': 'frozen'}, allow_create=False) == (operation, True)
+    operations.clear({'archive_sha256': 'frozen'})
     entry = str(source_root / 'scripts/check_browser_use_report.py')
     missing = subprocess.run([
         sys.executable, entry, str(report), '--evidence', str(report),

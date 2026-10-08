@@ -9,6 +9,14 @@ from harness.reporting.publication import snapshot_publication
 from harness.trajectory_replay import webarena_report_publish as replay
 
 
+@pytest.fixture(autouse=True)
+def private_binding_journals(monkeypatch, tmp_path):
+    monkeypatch.setattr(autonomous, 'BINDING_JOURNAL', tmp_path / 'autonomous-binding.json')
+    monkeypatch.setattr(replay, 'BINDING_JOURNAL', tmp_path / 'replay-binding.json')
+    monkeypatch.setattr(autonomous, 'OPERATION_JOURNAL', tmp_path / 'autonomous-operation.json')
+    monkeypatch.setattr(replay, 'OPERATION_JOURNAL', tmp_path / 'replay-operation.json')
+
+
 def test_private_archive_is_byte_exact_and_removed_on_error(tmp_path):
     archive = tmp_path / 'archive.zip'
     archive.write_bytes(b'frozen content')
@@ -137,12 +145,16 @@ def test_browser_publication_verifies_full_export_before_binding(tmp_path, monke
                       ('RECEIPT', receipt), ('ATTESTATION', proof)]:
         monkeypatch.setattr(autonomous, key, path)
     calls = []
+    uploaded = False
     def request(path, data=None, content_type=None, **kwargs):
+        nonlocal uploaded
         assert kwargs['base_url'] == 'https://example.invalid'
         calls.append(path)
         if path == '/api/sites/site-1' and data is None:
-            return 200, b'{"site":{"currentVersionId":"ver_old"}}'
+            version = 'ver_new' if uploaded else 'ver_old'
+            return 200, json.dumps({'site': {'currentVersionId': version}}).encode()
         if '/versions?' in path:
+            uploaded = True
             assert archive.read_bytes() in data and b'Registry-driven report' in data
             return 200, b'{"versionId":"ver_new"}'
         if path == '/api/sites/site-1' and kwargs.get('method') == 'PATCH':
