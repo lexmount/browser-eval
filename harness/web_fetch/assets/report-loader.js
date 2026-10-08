@@ -29,6 +29,7 @@ async function pack(name){
 }
 async function fileBytes(path){
  const m=await manifest(),f=m.files[path];if(!f)throw Error(tr('文件不存在：','File not found: ')+path);
+ if(f.inline_base64!==undefined){const bytes=Uint8Array.from(atob(f.inline_base64),c=>c.charCodeAt(0));if(bytes.length!==f.size)throw Error(tr('文件长度错误：','Invalid file length: ')+path);return bytes}
  const result=new Uint8Array(f.size);let offset=0;
  for(const hash of f.parts){const part=m.blocks[hash],bytes=await pack(part.pack);result.set(bytes.subarray(part.offset,part.offset+part.size),offset);offset+=part.size}
  return result;

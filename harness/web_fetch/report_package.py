@@ -459,7 +459,7 @@ def build_incremental(source: Path, baseline: Path, destination: Path):
   replace('publication-privacy.json',(json.dumps(privacy,ensure_ascii=False,indent=2)+'\n').encode())
   validate_virtual_links(manifest['files'], old_bytes)
   destination.mkdir(parents=True,exist_ok=False)
-  (destination/'loader.js').write_text(LOADER)
+  (destination/'loader.js').write_bytes((Path(__file__).parent / 'assets/report-loader.js').read_bytes())
   raw=json.dumps(manifest,separators=(',',':')).encode()
   (destination/'manifest.json').write_bytes(raw)
   receipt={'kind':'presentation_only_incremental_update','baseline_archive_sha256':hashlib.sha256(baseline.read_bytes()).hexdigest(),

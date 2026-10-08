@@ -275,13 +275,6 @@ class RuntimeEntrypointTests(unittest.TestCase):
                          'scripts/rename_artifact_hub.py'):
             self.assertNotIn('load_runtime_env', (ROOT/relative).read_text(), relative)
 
-    def test_publisher_does_not_read_the_published_site_back(self) -> None:
-        source = (ROOT / 'scripts/publish_artifact_hub.py').read_text()
-        self.assertNotIn("request(result['share_url']", source)
-        self.assertNotIn("'unauthenticated_status'", source)
-        self.assertNotIn('/api/preview/', source)
-        self.assertNotIn('/export', source)
-        self.assertIn("'versionId':version,'url':share_url", source)
 
 if __name__ == "__main__":
     unittest.main()

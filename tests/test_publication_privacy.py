@@ -12,9 +12,9 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
+from harness.web_fetch.publication_check import check as check_bundle
+from harness.web_fetch.publication_check import scored_output_hash
 from harness.web_fetch.publication_privacy import project_file, publication_risk
-from scripts.check_publication_bundle import check as check_bundle
-from scripts.check_publication_bundle import scored_output_hash
 
 
 class PublicationPrivacyTests(unittest.TestCase):

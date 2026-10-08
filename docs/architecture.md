@@ -268,6 +268,30 @@ Python. The ZIP is staged outside the report and installed only after source and
 destination identities still match; failed builds retain the previous archive.
 Packaging does not replace the report's full release checks.
 
+Web Fetch submission, bundle checking and remote verification belong to
+`harness/web_fetch/report_publish.py`, `publication_check.py` and
+`publication_verify.py`. Their scripts parse through these owners and do no work
+on import. Submission selects the service from an explicit profile, checks any
+requested host against it, and freezes the archive, source and profile before
+upload. Both one-shot and staged uploads retain an operation journal, reuse its
+idempotency key after interruption and install private receipts atomically.
+Receipts distinguish submitted bytes from verified public output. Remote metadata,
+public-file and export verification remain explicit read-only commands.
+
+The bundle checker covers the complete physical ZIP and virtual-file inventory,
+including duplicate names, unused blocks, pack gaps and trailing bytes. The
+installed loader must match exactly; runtime assets receive the public sensitive
+data scan. Checks on original scored files use contained, non-symlink paths.
+
+Use `scripts/publish_artifact_hub.py --update --profile /absolute/profile.json`
+with the corresponding `--archive`, `--source` and `--receipt`. A first creation
+uses `--create`, an unbound profile with an explicit `artifact_hub_base_url`, and a
+new receipt path. Keep `--operation-journal` until the command finishes. The
+existing no-action mode reuses a bound receipt without uploading or downloading
+report files. `scripts/verify_artifact_hub.py --slug SITE --profile PROFILE` reads
+metadata; `--public-files --expected-archive ZIP` or
+`--export --expected-archive ZIP` performs the respective byte verification.
+
 Report publication belongs to `harness/browser_use/report_publish.py` and
 `harness/trajectory_replay/webarena_report_publish.py`; their commands only parse
 and delegate through these owners. Both upload a private, byte-exact archive

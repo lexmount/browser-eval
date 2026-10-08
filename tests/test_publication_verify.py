@@ -1,13 +1,17 @@
 import io
-from http.client import IncompleteRead
 import json
-from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
 import zipfile
+from http.client import IncompleteRead
+from pathlib import Path
+from unittest.mock import patch
 
-from scripts.verify_artifact_hub import download_export, verify_metadata, verify_public_files
+from harness.web_fetch.publication_verify import (
+    download_export,
+    verify_metadata,
+    verify_public_files,
+)
 
 
 class PublicationVerifyTests(unittest.TestCase):
@@ -39,8 +43,8 @@ class PublicationVerifyTests(unittest.TestCase):
             'files':['index.html','loader.js'],
             'kind':'folder',
         }
-        with patch('scripts.verify_artifact_hub.load_token',return_value='fixture'), \
-             patch('scripts.verify_artifact_hub.urllib.request.urlopen',
+        with patch('harness.web_fetch.publication_verify.load_token',return_value='fixture'), \
+             patch('harness.web_fetch.publication_verify.urllib.request.urlopen',
                    return_value=io.BytesIO(json.dumps(payload).encode())) as opened:
             result=verify_metadata('test','https://reports.example')
         self.assertEqual(result['version'],'ver_first')
@@ -84,9 +88,9 @@ class PublicationVerifyTests(unittest.TestCase):
                        else '<html>报告</html>')
                 bundle.writestr('index.html',entry)
                 bundle.writestr('loader.js',b'const report=true;')
-            with patch('scripts.verify_artifact_hub.load_token',return_value='fixture'), \
-                 patch('scripts.verify_artifact_hub.urllib.request.urlopen',side_effect=response):
-                return verify_public_files('test',archive)
+            with patch('harness.web_fetch.publication_verify.load_token',return_value='fixture'), \
+                 patch('harness.web_fetch.publication_verify.urllib.request.urlopen',side_effect=response):
+                return verify_public_files('test',archive,'https://reports.example')
 
     def test_complete_matching_file_set(self):
         result=self.verify()
@@ -147,10 +151,10 @@ class PublicationVerifyTests(unittest.TestCase):
             with zipfile.ZipFile(archive,'w') as bundle:
                 bundle.writestr('index.html','<html>report</html>')
                 bundle.writestr('loader.js',b'const report=true;')
-            with patch('scripts.verify_artifact_hub.load_token',return_value='fixture'), \
-                 patch('scripts.verify_artifact_hub.urllib.request.urlopen',side_effect=response):
+            with patch('harness.web_fetch.publication_verify.load_token',return_value='fixture'), \
+                 patch('harness.web_fetch.publication_verify.urllib.request.urlopen',side_effect=response):
                 with self.assertRaisesRegex(ValueError,'Remote file differs: index.html'):
-                    verify_public_files('test',archive)
+                    verify_public_files('test',archive,'https://reports.example')
 
     def test_modified_bytes_fail(self):
         with self.assertRaisesRegex(ValueError,'Remote file differs'):
@@ -178,18 +182,18 @@ class PublicationVerifyTests(unittest.TestCase):
             with zipfile.ZipFile(archive,'w') as bundle:
                 bundle.writestr('index.html','<html>report</html>')
                 bundle.writestr('loader.js',b'const report=true;')
-            with patch('scripts.verify_artifact_hub.load_token',return_value='fixture'), \
-                 patch('scripts.verify_artifact_hub.time.sleep'), \
-                 patch('scripts.verify_artifact_hub.urllib.request.urlopen',side_effect=response):
-                self.assertEqual(verify_public_files('test',archive)['files'],2)
+            with patch('harness.web_fetch.publication_verify.load_token',return_value='fixture'), \
+                 patch('harness.web_fetch.publication_verify.time.sleep'), \
+                 patch('harness.web_fetch.publication_verify.urllib.request.urlopen',side_effect=response):
+                self.assertEqual(verify_public_files('test',archive,'https://reports.example')['files'],2)
         self.assertEqual(calls,2)
 
     def test_export_retries_server_error(self):
         class Export(io.BytesIO):
             headers={'x-artifact-version':'ver_first'}
         with tempfile.TemporaryDirectory() as temp, \
-             patch('scripts.verify_artifact_hub.time.sleep'), \
-             patch('scripts.verify_artifact_hub.urllib.request.urlopen',side_effect=[
+             patch('harness.web_fetch.publication_verify.time.sleep'), \
+             patch('harness.web_fetch.publication_verify.urllib.request.urlopen',side_effect=[
                  __import__('urllib.error').error.HTTPError('url',502,'bad gateway',{},None),
                  Export(b'archive')]):
             version,path=download_export('request',Path(temp))

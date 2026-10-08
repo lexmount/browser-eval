@@ -617,6 +617,23 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     (webfetch / 'reliability.json').write_text('{"complete":true}')
     webfetch_archive = root / 'webfetch.zip'
     package_webfetch(webfetch, webfetch_archive)
+    from harness.web_fetch.publication_check import check as check_webfetch_package
+    check_webfetch_package(webfetch_archive, webfetch)
+    for command in ('publish_artifact_hub.py', 'verify_artifact_hub.py',
+                    'check_publication_bundle.py'):
+        subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
+                       check=True, cwd=root, stdout=subprocess.DEVNULL)
+    from harness.web_fetch.report_publish import PublishConfig
+    from harness.web_fetch.report_publish import publish as submit_webfetch
+    target = root / 'webfetch-profile.json'
+    target.write_text(json.dumps({'artifact_hub_base_url': 'https://reports.invalid',
+                                 'artifact_hub_site': 'installed-site'}))
+    receipt = root / 'webfetch-receipt.json'
+    receipt.write_text(json.dumps({'slug': 'installed-site', 'versionId': 'ver_installed',
+                                  'share_url': 'https://reports.invalid/v/installed'}))
+    summary = submit_webfetch(PublishConfig(target, webfetch_archive, webfetch, receipt,
+                                           root / 'webfetch-operation.json'))
+    assert summary['versionId'] == 'ver_installed'
     with zipfile.ZipFile(webfetch_archive) as archive:
         assert b'function render()' in archive.read('loader.js')
         assert json.loads(archive.read('manifest.json'))['architecture']['logical_routes'] == 1
