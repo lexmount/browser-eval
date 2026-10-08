@@ -3,15 +3,26 @@ from pathlib import Path
 
 import pytest
 
-from harness.trajectory_replay.remote_runtime import load_remote_sites, rebind_remote_calls
-from scripts.freeze_webarena_three_method_inputs import _digest, _sha256, freeze
+from harness.trajectory_replay.remote_runtime import (
+    checked_file_sha256 as _sha256,
+)
+from harness.trajectory_replay.remote_runtime import (
+    freeze_method_inputs,
+    load_remote_sites,
+    rebind_remote_calls,
+)
+from harness.trajectory_replay.remote_runtime import (
+    input_digest as _digest,
+)
 
 
 def _write(path: Path, value: object) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
 
 
-def test_freeze_requires_all_90_tasks_and_current_retrieval_contracts(tmp_path: Path) -> None:
+def test_freeze_requires_all_90_tasks_and_current_retrieval_contracts(
+    tmp_path: Path, monkeypatch
+) -> None:
     site_map = tmp_path / "sites.json"
     _write(site_map, {
         "schema": "lex_webarena_remote_sites/1",
@@ -69,12 +80,34 @@ def test_freeze_requires_all_90_tasks_and_current_retrieval_contracts(tmp_path: 
         method_id="moli-fixed",
         engine="moli",
     )
-    result = freeze(**kwargs)
+    result = freeze_method_inputs(**kwargs)
     assert len(result["tasks"]) == 90
     assert result["task_ids"] == list(range(90))
     assert result["tasks"][0]["actions"] == result["tasks"][36]["actions"]
     assert result["browser_binary_sha256"] == _sha256(binary)
+
+    authority = tmp_path / "authority"
+    authority.mkdir()
+    revision = authority / "task-0.json"
+    _write(revision, {"tool_calls": calls})
+    affected_value = json.loads(affected.read_text())
+    affected_value["candidates"][0]["source_revision"] = {
+        "path": "task-0.json", "sha256": _sha256(revision),
+    }
+    _write(affected, affected_value)
+    unrelated = tmp_path / "unrelated"
+    unrelated.mkdir()
+    monkeypatch.chdir(unrelated)
+    frozen_elsewhere = freeze_method_inputs(**kwargs, reference_root=authority)
+    assert frozen_elsewhere["tasks"][0]["source_actions"] == calls
+    assert frozen_elsewhere["tasks"][0]["actions"] == result["tasks"][0]["actions"]
+    assert frozen_elsewhere["tasks"][1:] == result["tasks"][1:]
+    revision.write_text('{"tool_calls": []}')
+    with pytest.raises(ValueError, match="revised source actions changed"):
+        freeze_method_inputs(**kwargs, reference_root=authority)
+    _write(revision, {"tool_calls": calls})
+    kwargs["reference_root"] = authority
     tasks[36]["evaluation_input"]["task_type"] = "RETRIEVE"
     _write(dataset, {"schema": "lex_webarena_verified_trajectory_dataset/1", "trajectories": tasks})
     with pytest.raises(ValueError, match=r"missing: \[36\]"):
-        freeze(**kwargs)
+        freeze_method_inputs(**kwargs)
