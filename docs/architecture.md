@@ -257,7 +257,16 @@ linked report roots and linked case directories. Base and partially extended
 comparison reports keep the registered methods visible on home and interpretation
 pages; a missing configuration does not authorize an unmeasured comparison.
 
-## Browser trajectory replay ownership
+## Report packaging and publication
+
+Web Fetch lazy publication packaging belongs to
+`harness/web_fetch/report_package.py`, exposed by `scripts/package_artifact_hub.py`.
+Its loader is an installed JavaScript resource. Packaging retains privacy
+projection and byte-pack downloads, validates the declared sampled matrix rather
+than a dataset name or fixed case count, and checks links even under optimized
+Python. The ZIP is staged outside the report and installed only after source and
+destination identities still match; failed builds retain the previous archive.
+Packaging does not replace the report's full release checks.
 
 Report publication belongs to `harness/browser_use/report_publish.py` and
 `harness/trajectory_replay/webarena_report_publish.py`; their commands only parse

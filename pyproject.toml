@@ -103,7 +103,7 @@ include = ["harness*"]
 [tool.setuptools.package-data]
 "harness" = ["licenses/*.txt"]
 "harness.lexbench" = ["assets/*.js", "assets/*.cjs"]
-"harness.web_fetch" = ["data/*.json", "data/latency-certifiers/*.txt", "templates/*.html", "assets/methodology/*.png", "html_to_markdown.mjs"]
+"harness.web_fetch" = ["data/*.json", "data/latency-certifiers/*.txt", "templates/*.html", "assets/methodology/*.png", "assets/*.js", "html_to_markdown.mjs"]
 "harness.environments.webarena" = ["runtime/*.ini"]
 
 [tool.setuptools.data-files]

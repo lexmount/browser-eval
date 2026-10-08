@@ -606,6 +606,20 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     assert json.loads(proof.read_text())['archive_sha256'] == hashlib.sha256(
         output.read_bytes()
     ).hexdigest()
+    from harness.web_fetch.report_package import build as package_webfetch
+    webfetch = root / 'webfetch-report'
+    (webfetch / 'assets').mkdir(parents=True)
+    (webfetch / 'assets/style.css').write_text('body {color:black}')
+    (webfetch / 'assets/report.js').write_text("window.addEventListener('report-ready',initReport);")
+    (webfetch / 'index.html').write_text('<html><body>Installed Web Fetch report</body></html>')
+    (webfetch / 'dataset.json').write_text('{}')
+    (webfetch / 'results.jsonl').write_text('')
+    (webfetch / 'reliability.json').write_text('{"complete":true}')
+    webfetch_archive = root / 'webfetch.zip'
+    package_webfetch(webfetch, webfetch_archive)
+    with zipfile.ZipFile(webfetch_archive) as archive:
+        assert b'function render()' in archive.read('loader.js')
+        assert json.loads(archive.read('manifest.json'))['architecture']['logical_routes'] == 1
     binding_profile = root / 'binding-profile.json'
     binding_profile.write_bytes(json_bytes({'publication': {'expected_version': 'old'}}))
     binding_proof = root / 'binding-proof.json'

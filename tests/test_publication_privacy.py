@@ -1,20 +1,20 @@
 import base64
-import hashlib
 import gzip
+import hashlib
 import json
 import os
-from pathlib import Path
-import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 import zipfile
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 
 from harness.web_fetch.publication_privacy import project_file, publication_risk
-from scripts.check_publication_bundle import scored_output_hash, check as check_bundle
+from scripts.check_publication_bundle import check as check_bundle
+from scripts.check_publication_bundle import scored_output_hash
 
 
 class PublicationPrivacyTests(unittest.TestCase):
@@ -93,7 +93,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             scored_output_hash({'artifact_path': 'artifacts/case.md'})
 
     def test_loader_localizes_async_status_and_accessibility_copy(self):
-        source=(Path(__file__).resolve().parents[1]/'scripts/package_artifact_hub.py').read_text()
+        source=(Path(__file__).resolve().parents[1]/'harness/web_fetch/assets/report-loader.js').read_text()
         self.assertIn("function tr(zh,en)",source)
         for english in ('Failed to load the data catalog','Load complete content',
                         'Loading complete content…','Complete actual output',
@@ -220,12 +220,6 @@ class PublicationPrivacyTests(unittest.TestCase):
         repository = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            for relative in ('scripts/package_artifact_hub.py', 'harness/web_fetch/publication_privacy.py',
-                             'harness/web_fetch/publication_target.py', 'harness/reporting/packs.py',
-                             'harness/reporting/links.py'):
-                target = root / relative
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(repository / relative, target)
             (root / 'publish').mkdir()
             source = root / 'reports/webfetch'
             (source / 'assets').mkdir(parents=True)
@@ -306,7 +300,8 @@ class PublicationPrivacyTests(unittest.TestCase):
             raw_path.write_bytes(raw)
             malicious = 'https://example.test/" onmouseover="alert(1)'
             env = {**os.environ, 'WEBFETCH_REPORT_PUBLIC_URL': malicious}
-            subprocess.run([sys.executable, str(root / 'scripts/package_artifact_hub.py')], check=True,
+            subprocess.run([sys.executable, str(repository / 'scripts/package_artifact_hub.py'),
+                            str(source), str(root / 'publish/webfetch-sites.zip')], check=True,
                            capture_output=True, env=env)
             self.assertEqual(raw_path.read_bytes(), raw)
             with zipfile.ZipFile(root / 'publish/webfetch-sites.zip') as archive:
