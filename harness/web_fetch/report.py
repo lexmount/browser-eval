@@ -714,7 +714,7 @@ _RESEARCH_ROUTES=[
 
 def generate_cohort_diagnostic(out, model):
  """Render live cohort diagnostics through the maintained WebFetch components."""
- from .report_diagnostic import diagnostic_findings, diagnostic_failure_counts, diagnostic_cohort_summary, diagnostic_specimen_excerpt, FAILURE_TYPES
+ from .report_diagnostic import diagnostic_findings, diagnostic_failure_counts, diagnostic_cohort_summary, diagnostic_call_summary, diagnostic_specimen_excerpt, FAILURE_TYPES
  global _RELIABILITY_BANNER,_ENGLISH_GENERATED
  prior=(_RELIABILITY_BANNER,_ENGLISH_GENERATED)
  _RELIABILITY_BANNER='<div class="wrap callout"><strong>实时网页诊断</strong><p>'+esc(model['scope_note'])+'</p></div>'
@@ -756,6 +756,16 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[da
   return '<figure class="editorial-figure">'+''.join('<div class="editorial-bar-row"><span>'+esc(label)+'</span><div class="editorial-bar-track"><i style="width:'+str(100*n/population)+'%"></i></div><b>'+str(n)+' / '+str(population)+'</b></div>' for label,n,population in counts)+'</figure>'
  try:
   home=hero(esc(model['title']),esc(model['subtitle']))
+  overall=diagnostic_call_summary(rows,files);n=overall['total']
+  versions={g.get('version') or '见调用记录' for g in groups.values()}
+  values=cell('全部任务')+cell(esc(next(iter(versions)) if len(versions)==1 else '多个版本，见分组'))+cell(str(n),n)
+  for key in ('delivered','accepted'):
+   value=overall[key]
+   values+=cell('—' if value is None else f'{value} / {n}（{100*value/n:.1f}%）',-1 if value is None else value)
+  values+=''.join(cell('—' if overall[k] is None else f'{overall[k]/1000:.2f}',-1 if overall[k] is None else overall[k]) for k in ('mean_ms','p50_ms','p95_ms'))
+  overall_table=table(['评测集','实现版本','任务数','调用成功','任务通过','平均耗时（秒）','P50 耗时（秒）','P95 耗时（秒）'],[(' data-summary-overall="true"',values)],'overall-summary')
+  overall_section=section('整体评测结果',overall_table+'<p>全部预定任务组成一个评测集。调用成功不等于任务通过；耗时合并全部调用（含失败）计算，不平均各组的分位数。不同执行路线合并后的耗时仅描述本次评测集，不用于路线排名。</p>','overall-results')
+  home+=overall_section
   summary_rows=[]
   for s in diagnostic_cohort_summary(model,files):
    g=groups[s['id']];n=s['total']
@@ -788,7 +798,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[da
   analysis+=section('逐项结果',controls+table(['网站与样本','组别','首轮结果','失败类型','核验线索','证据'],inventory,'filtered-table',sortable=True),'failure-inventory')
   page('analysis/index.html','结果分析',analysis)
   guide=hero('这些网页的提取结果',str(model['metrics']['overall'][0])+' / '+str(len(rows))+' 个首次调用满足当时的完整验收要求；以下为指定样本的诊断结果。')
-  guide+=section('结果与计量范围',table(['任务组','实现版本','任务数','调用成功','任务通过','平均耗时（秒）','P50 耗时（秒）','P95 耗时（秒）'],summary_rows,'guide-summary',sortable=True)+'<p>'+esc(model['metric_note'])+' 耗时统计每组全部调用（含失败），P50 是中位数；未留存完整计时的组不计算耗时。</p>','guide-results')
+  guide+=overall_section+section('结果与计量范围',table(['任务组','实现版本','任务数','调用成功','任务通过','平均耗时（秒）','P50 耗时（秒）','P95 耗时（秒）'],summary_rows,'guide-summary',sortable=True)+'<p>'+esc(model['metric_note'])+' 耗时统计每组全部调用（含失败），P50 是中位数；未留存完整计时的组不计算耗时。</p>','guide-results')
   guide+=section('失败最常违反哪些要求',table(['输出缺陷','受影响的未通过任务'],[('',cell(link('analysis/index.html#issue='+k,FAILURE_TYPES[k]))+cell(str(n)+' / '+str(sum(failures.values())))) for k,n in failure_types.most_common()])+'<p>同一任务可涉及多个缺陷，数量不能相加。缺少文字是输出与验收不符的事实，不等于已经查明被测工具的内部故障。</p>')
   guide+=section('核验后的失败归类',table(['核验结论','未通过任务数','样本证据'],[
    ('',cell(esc(labels[k]))+cell(str(n)+' / '+str(sum(failures.values())))+cell(link(detail_link(next(r for r in rows if not r['initial_pass'] and r['cause']==k)),'查看具体要求、输出与源页')))

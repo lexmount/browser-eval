@@ -320,28 +320,30 @@ def diagnostic_failure_counts(model, files):
                    for kind in {f['kind'] for f in diagnostic_findings(row, files)})
 
 
+def diagnostic_call_summary(rows, files):
+    """Pool physical primary-call observations, never subgroup percentiles."""
+    logs = []
+    for row in rows:
+        try:
+            log = json.loads(files[row['log']['path']])
+        except (ValueError, TypeError):
+            log = {}
+        logs.append(log if isinstance(log, dict) else {})
+    statuses = [(l.get('metrics') or {}).get('request_ok', l.get('ok')) for l in logs]
+    times = [l.get('elapsed_ms') for l in logs]
+    complete_times = all(type(t) in (int, float) and math.isfinite(t) and t >= 0 for t in times)
+    times = sorted(times) if complete_times else []
+    return {'total': len(rows), 'accepted': sum(r['initial_pass'] for r in rows),
+        'delivered': sum(statuses) if all(type(s) is bool for s in statuses) else None,
+        'mean_ms': statistics.mean(times) if times else None,
+        'p50_ms': statistics.median(times) if times else None,
+        'p95_ms': times[max(0, math.ceil(.95 * len(times)) - 1)] if times else None}
+
+
 def diagnostic_cohort_summary(model, files):
-    summaries = []
-    for group in model['cohorts']:
-        rows = [r for r in model['rows'] if r['cohort'] == group['id']]
-        logs = []
-        for row in rows:
-            try:
-                log = json.loads(files[row['log']['path']])
-            except (ValueError, TypeError):
-                log = {}
-            logs.append(log if isinstance(log, dict) else {})
-        statuses = [(l.get('metrics') or {}).get('request_ok', l.get('ok')) for l in logs]
-        times = [l.get('elapsed_ms') for l in logs]
-        complete_times = all(type(t) in (int, float) and math.isfinite(t) and t >= 0 for t in times)
-        times = sorted(times) if complete_times else []
-        summaries.append({'id': group['id'], 'total': len(rows),
-            'accepted': sum(r['initial_pass'] for r in rows),
-            'delivered': sum(statuses) if all(type(s) is bool for s in statuses) else None,
-            'mean_ms': statistics.mean(times) if times else None,
-            'p50_ms': statistics.median(times) if times else None,
-            'p95_ms': times[max(0, math.ceil(.95 * len(times)) - 1)] if times else None})
-    return summaries
+    return [{'id': group['id'], **diagnostic_call_summary(
+        [r for r in model['rows'] if r['cohort'] == group['id']], files)}
+        for group in model['cohorts']]
 
 
 def load_diagnostic(source):
@@ -455,6 +457,17 @@ def check_diagnostic_report(output, profile=None):
         page = (output / route).read_text()
         check_presentation(page)
     home = BeautifulSoup((output / 'index.html').read_text(), 'html.parser')
+    overall = diagnostic_call_summary(model['rows'], files)
+    for route in ('index.html', 'guide/index.html'):
+        page = BeautifulSoup((output / route).read_text(), 'html.parser')
+        rendered = page.select('[data-summary-overall]')
+        expected_values = [overall[k] for k in ('total','delivered','accepted','mean_ms','p50_ms','p95_ms')]
+        if (len(rendered) != 1 or [c.get('data-sort') for c in rendered[0].select('td')][3:]
+                != [str(-1 if v is None else v) for v in expected_values]):
+            raise ValueError('Overall summary differs from the complete dataset calls')
+        for key in ('delivered', 'accepted'):
+            if overall[key] is not None and f'{100*overall[key]/overall["total"]:.1f}%' not in rendered[0].get_text():
+                raise ValueError('Overall summary omits the complete dataset rate')
     summaries = home.select('[data-summary-group]')
     expected_summaries = diagnostic_cohort_summary(model, files)
     if len(summaries) != len(expected_summaries):

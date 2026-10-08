@@ -38,6 +38,33 @@ def diagnostic_example(root):
 
 
 class ReportTemplateTests(unittest.TestCase):
+    def test_whole_dataset_summary_pools_calls_and_is_required_on_home_and_guide(self):
+        from bs4 import BeautifulSoup
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            model['cohorts']=[dict(id='articles',label='Articles',case_count=1),
+                              dict(id='challenges',label='Challenges',case_count=1)]
+            model['rows'][1]['cohort']='challenges'
+            model['metrics']={'articles':[1,1],'challenges':[0,1],'overall':[1,2]}
+            for row,elapsed in zip(model['rows'],(1000,9000)):
+                raw=json.dumps({'ok':row['initial_pass'],'elapsed_ms':elapsed}).encode()
+                (source/row['log']['path']).write_bytes(raw)
+                row['log']['sha256']=hashlib.sha256(raw).hexdigest()
+            (source/'report.json').write_text(json.dumps(model))
+            output=root/'report';build_diagnostic_cohorts(source,output)
+            for route in ('index.html','guide/index.html'):
+                page=BeautifulSoup((output/route).read_text(),'html.parser')
+                overall=page.select('[data-summary-overall]')
+                self.assertEqual(len(overall),1)
+                cells=overall[0].select('td')[3:]
+                self.assertEqual([float(c['data-sort']) for c in cells],[2,1,1,5000,5000,9000])
+                self.assertIn('50.0%',overall[0].get_text())
+                target=output/route
+                target.write_text(str(page).replace('data-summary-overall','data-missing-overall'))
+                with self.assertRaisesRegex(ValueError,'Overall summary'):
+                    check_diagnostic_report(output)
+                target.write_text(str(page))
+
     def test_body_failure_quotes_frozen_reference_not_matching_fragments(self):
         from harness.web_fetch.report_diagnostic import diagnostic_findings
         row={'initial_pass':False,'log':{'path':'log.json'},'reference':{'path':'reference.json'}}
@@ -298,7 +325,8 @@ class ReportTemplateTests(unittest.TestCase):
                 self.assertEqual([float(c['data-sort']) for c in cells[6:]],
                                  [-1,-1,-1] if missing else [5000,5000,9000])
                 target=output/'index.html'
-                target.write_text(target.read_text().replace('data-sort="'+cells[6]['data-sort']+'"','data-sort="1000"',1))
+                cells[6]['data-sort']='1000'
+                target.write_text(str(home))
                 with self.assertRaisesRegex(ValueError,'Summary'):check_diagnostic_report(output)
 
     def test_diagnostic_explains_failed_checks_and_keeps_review_separate(self):
