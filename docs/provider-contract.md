@@ -40,6 +40,13 @@ package separately and set `node_html_markdown_path` to its absolute package
 directory in the provider configuration. The adapter rejects a missing or
 different version before calls; the converter itself ships in the wheel.
 
+Repository-native third-party workers require the pinned upstream checkout and
+runtime declared in the provider configuration. After changing the DSH worker,
+rerun `scripts/bootstrap_oss_baselines.sh` to refresh its deployed copy. Preflight
+rejects a copy whose bytes differ from the maintained worker before any calls.
+DSH request status comes from the tool's declared output or presentation metadata;
+text embedded in the returned page cannot supply a missing HTTP status.
+
 The general CLI builds a result report from the supplied dataset and records.
 It does not require project-specific articles, account registries, pricing or
 adoption snapshots. Formal repository builds select those materials explicitly

@@ -34,6 +34,10 @@ class SubprocessJsonlProvider(Provider):
         "deepseek_harness_builtin": {
             "revision": "dd6322d604e00eec1ba5e0c8541159906a21094a",
             "node_version": "v24.15.0",
+            "identical_files": [(
+                "harness/scripts/oss/dsh_webfetch_worker.mts",
+                "repo/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
+            )],
             "paths": {
                 "{repo_path}/packages/web/web-fetch-http/src/provider.ts",
                 "{repo_path}/pnpm-lock.yaml",
@@ -96,7 +100,12 @@ class SubprocessJsonlProvider(Provider):
                 missing.append(f"package manager {package_manager_version}")
             if not locked["paths"].issubset(set(self.config.get("required_paths", []))):
                 missing.append("locked required paths")
-        if identity is not None:
+            if identity is not None:
+                hashes = identity["files_sha256"]
+                for source, deployed in locked.get("identical_files", []):
+                    if not hashes.get(source) or hashes.get(source) != hashes.get(deployed):
+                        missing.append(f"runtime files differ: {source}, {deployed}")
+        if identity is not None and not missing:
             self._implementation_identity = identity
         return missing
 

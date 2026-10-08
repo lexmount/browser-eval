@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers.runtime_identity import _command_executable
@@ -13,6 +14,34 @@ from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
 
 
 class SubprocessProviderTest(unittest.TestCase):
+    def test_runtime_rejects_stale_or_missing_worker_copy(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            source = repo / "source.mts"
+            deployed = repo / "deployed.mts"
+            source.write_text("current worker")
+            deployed.write_bytes(source.read_bytes())
+            required = {"{repo_path}/source.mts", "{repo_path}/deployed.mts"}
+            registry = {"fixture": {
+                "revision": None, "node_version": None, "paths": required,
+                "identical_files": [("repo/source.mts", "repo/deployed.mts")],
+            }}
+            provider = SubprocessJsonlProvider("worker", {
+                "method_type": "fixture", "repo_path": str(repo),
+                "command": [sys.executable], "required_paths": sorted(required),
+            })
+            with patch.object(SubprocessJsonlProvider, "_LOCKED_RUNTIMES", registry):
+                self.assertEqual(provider.validate(), [])
+                deployed.write_text("previous worker")
+                self.assertIn("runtime files differ: repo/source.mts, repo/deployed.mts",
+                              provider.validate())
+                self.assertFalse(hasattr(provider, "_implementation_identity"))
+                deployed.unlink()
+                self.assertTrue(provider.validate())
+                self.assertFalse(hasattr(provider, "_implementation_identity"))
+                deployed.write_bytes(source.read_bytes())
+                self.assertEqual(provider.validate(), [])
+
     def test_empty_repo_path_fails_preflight(self):
         provider = SubprocessJsonlProvider("test", {"command": ["node"], "repo_path": ""})
         self.assertIn("repo_path", provider.validate())

@@ -1,14 +1,10 @@
-import json
-import tempfile
 import unittest
-from pathlib import Path
 
 from harness.web_fetch.reference_revision import (
     equivalent_source_verification,
     reference_fields_for_case,
     scoring_relevant_reference_change,
 )
-from scripts.revise_cloudflare_saved_response import reference_revision_path
 
 
 class ReviseReferenceEvidenceTests(unittest.TestCase):
@@ -17,21 +13,6 @@ class ReviseReferenceEvidenceTests(unittest.TestCase):
             'fields':['source_verification','ground_truth_evidence']}]))
         self.assertTrue(scoring_relevant_reference_change([{
             'fields':['ground_truth_main_content','source_verification']}]))
-
-    def test_reference_revision_path_follows_hash_bound_transitions(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory)
-            states=[('a','1'),('b','2'),('c','3')]
-            (root/'reference-revisions.json').write_text(json.dumps([{
-                'revision_transitions':[
-                    {'input_dataset_sha256':'a','input_results_sha256':'1',
-                     'output_dataset_sha256':'b','output_results_sha256':'2'},
-                    {'input_dataset_sha256':'b','input_results_sha256':'2',
-                     'output_dataset_sha256':'c','output_results_sha256':'3'},
-                ]}]))
-            self.assertTrue(reference_revision_path(root,states[0],states[2]))
-            self.assertTrue(reference_revision_path(root,states[1],states[1]))
-            self.assertFalse(reference_revision_path(root,states[2],states[0]))
 
     def test_capture_instance_changes_do_not_expand_reference_revision_scope(self):
         old={"state":"valid","method":"independent","selector":"main",

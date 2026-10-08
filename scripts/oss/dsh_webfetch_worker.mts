@@ -55,10 +55,11 @@ for await (const line of rl) {
   dnsTraces = [];
   const debug = (event: string, fields: any = {}) => { if (request.log_level === "debug") process.stderr.write(JSON.stringify({ source: "caller_worker", event, at: new Date().toISOString(), ...fields }) + "\n"); };
   debug("native_tool_invocation_started", { url: request.url, internal_debug: "not_exposed_by_locked_fetch_implementation" });
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const { ctx, maxBytes, timeoutMs, dnsMode } = await contextFor(request);
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), Math.ceil(request.timeout_seconds * 1000));
+    timer = setTimeout(() => controller.abort(), Math.ceil(request.timeout_seconds * 1000));
     let out;
     try {
       out = await ctx.tools.execute({
@@ -93,5 +94,7 @@ for await (const line of rl) {
       error_message: message,
       metadata: { implementation: "DeepSeek Harness ctx.tools.execute(web_fetch)", dns_mode: request.dns_mode ?? "system", dns_resolutions: dnsTraces, timeout_ms: Math.ceil(Number(request.timeout_seconds) * 1000) },
     }) + "\n");
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
   }
 }

@@ -1,6 +1,8 @@
 import hashlib
 import json
 import re
+import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -178,20 +180,21 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertNotIn('DEEPSEEK_PNPM=', env_example)
 
     def test_dsh_worker_uses_execution_result_contract_and_fails_non_2xx(self) -> None:
-        worker = (ROOT / 'scripts/oss/dsh_webfetch_worker.mts').read_text()
-        helper = (ROOT / 'scripts/oss/dsh_output.mjs').read_text()
-        self.assertIn('projectDeclaredFetch(out)', worker)
-        self.assertNotIn('out.output', helper)
-        self.assertIn('out.meta', helper)
-        self.assertIn('out.value', helper)
-        self.assertIn('body.content', helper)
-        self.assertIn('statusCode < 200 || statusCode >= 300', helper)
-        self.assertIn('missingStatus ? "invalid_response"', helper)
-        self.assertNotIn('meta.url ?? request.url', helper)
-        self.assertNotIn('final_url: request.url', worker)
-        # A captured stderr traceback is useful; it must not replace the answer.
-        self.assertNotIn('content: error?.stack', worker)
-        self.assertIn('debug("native_tool_error"', worker)
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node is required for worker execution tests")
+        capability = subprocess.run(
+            [node, "--input-type=module", "-e",
+             "import {stripTypeScriptTypes} from 'node:module'"],
+            capture_output=True, timeout=10,
+        )
+        if capability.returncode:
+            self.skipTest("Worker execution tests require Node with native TypeScript erasure")
+        subprocess.run(
+            [node, "--experimental-vm-modules", str(ROOT / "tests/test_dsh_worker.mjs"),
+             str(ROOT / "scripts/oss/dsh_webfetch_worker.mts")],
+            capture_output=True, text=True, check=True, timeout=30,
+        )
 
     def test_openclaw_worker_does_not_publish_exception_stacks(self) -> None:
         worker = (ROOT / 'scripts/oss/openclaw_webfetch_worker.mts').read_text()
