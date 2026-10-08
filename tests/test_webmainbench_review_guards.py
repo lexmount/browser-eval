@@ -1,21 +1,21 @@
 import hashlib
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
+from harness.web_fetch.webmainbench_diagnostics import (
+    original_official_metrics,
+    validate_reference_revision,
+    validate_teds_revision,
+    validate_teds_revision_if_present,
+    validate_webmainbench_scoring_revision,
+)
 from scripts.check_webmainbench_report import check_teds_warnings
 from scripts.correct_webmainbench_references import copy_contained_artifact
 from scripts.correct_webmainbench_scoring import copy_correction_sources
-from scripts.correct_webmainbench_teds import original_official_metrics
 from scripts.review_webmainbench_teds_correction import review
-from harness.web_fetch.webmainbench_diagnostics import (
-    validate_reference_revision,
-    validate_webmainbench_scoring_revision,
-    validate_teds_revision,
-    validate_teds_revision_if_present,
-)
 
 
 class WebMainBenchReviewGuardsTests(unittest.TestCase):

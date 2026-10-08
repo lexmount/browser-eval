@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.run_certified_benchmark import main
+import pytest
+
+from harness.web_fetch.certification import browser_observation_cases, main
 
 
 class CertifiedBenchmarkTests(unittest.TestCase):
@@ -51,7 +55,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                         finalize_aggregate(output,root/'work/post-captures/observations.json')
                     else:self.fail('Unexpected external stage: '+script)
 
-                with patch('scripts.run_certified_benchmark.run',side_effect=execute):
+                with patch('harness.web_fetch.certification.run',side_effect=execute):
                     main(['--dataset',str(dataset),'--output',str(output),
                           '--work-root',str(root/'work'),'--providers','fixture',
                           '--provider-config',str(config),'--case-ids','stable',
@@ -84,14 +88,14 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 'stable_text_anchors':[{'id':'a','alternatives':['Required label']} ]}}]}))
             arguments=['--dataset',str(dataset),'--output',str(root/'run'),
                        '--work-root',str(root/'work'),'--providers','p','--case-ids','stable']
-            with patch('scripts.run_certified_benchmark.run') as invoked:
+            with patch('harness.web_fetch.certification.run') as invoked:
                 with self.assertRaises(SystemExit):main(arguments)
             invoked.assert_not_called()
             def completed(command):
                 script=Path(command[1]).name
                 if script=='collect_source_evidence.py':self.write_capture(Path(command[3]),'stable')
                 if script=='run_benchmark.py':self.write_output_dataset(command,dataset)
-            with patch('scripts.run_certified_benchmark.run',side_effect=completed):
+            with patch('harness.web_fetch.certification.run',side_effect=completed):
                 main([*arguments,'--diagnostic'])
             self.assertEqual(json.loads(dataset.read_text())['cases'][0]['acceptance_contract']['stable_text_anchors'][0]['alternatives'],['Required label'])
 
@@ -105,7 +109,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset=root/'dataset.json'
             dataset.write_text(json.dumps({'cases':[{'id':'dynamic-page','track':'dynamic'}]}))
-            with patch('scripts.run_certified_benchmark.run') as invoked:
+            with patch('harness.web_fetch.certification.run') as invoked:
                 with self.assertRaisesRegex(ValueError,'require retrieval_hints'):
                     main(['--dataset',str(dataset),'--output',str(root/'run'),
                           '--work-root',str(root/'work'),'--providers','p','--case-ids','dynamic-page'])
@@ -165,7 +169,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     (work / "post-captures").mkdir(parents=True, exist_ok=True)
                     (work / "post-captures/observations.json").write_text("[]\n")
 
-            with patch("scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+            with patch("harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(output),
                       "--work-root", str(work), "--providers", "p",
                       "--case-ids", "javascript-spa", "--browser-binary", "/chrome",
@@ -197,7 +201,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 if any(Path(value).name == "collect_source_evidence.py" for value in command):
                     self.write_capture(Path(command[3]), "javascript-spa")
             with self.assertRaises(SystemExit), patch(
-                    "scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+                    "harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(root / "run"),
                       "--work-root", str(root / "work"), "--providers", "p",
                       "--case-ids", "javascript-spa"])
@@ -219,7 +223,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 if Path(command[1]).name=='postcheck_headless.py':
                     (work/'post-captures').mkdir(parents=True, exist_ok=True)
                     (work/'post-captures/observations.json').write_text('[]\n')
-            with patch('scripts.run_certified_benchmark.run',side_effect=completed) as invoked:
+            with patch('harness.web_fetch.certification.run',side_effect=completed) as invoked:
                 main(['--dataset',str(dataset),'--output',str(output),'--work-root',str(work),
                       '--providers','p','--case-ids','stable',
                       '--reference-promotion',str(promotion)])
@@ -259,7 +263,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     (work / "post-captures").mkdir(parents=True, exist_ok=True)
                     (work / "post-captures/observations.json").write_text("[]\n")
 
-            with patch("scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+            with patch("harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(output),
                       "--work-root", str(work), "--providers", "p",
                       "--case-ids", "previously-unknown-browser-fallback",
@@ -312,7 +316,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 elif script == "postcheck_headless.py":
                     (work / "post-captures/observations.json").write_text("[]\n")
 
-            with patch("scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+            with patch("harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(output),
                       "--work-root", str(work), "--providers", "p",
                       "--case-ids", case_id, "--browser-binary", "/chrome"])
@@ -350,7 +354,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                                        status=503, text="")
 
             with self.assertRaises(SystemExit), patch(
-                    "scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+                    "harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(root / "run"),
                       "--work-root", str(work), "--providers", "p",
                       "--case-ids", "http-unavailable"])
@@ -385,7 +389,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     }}))
 
             with self.assertRaises(SystemExit), patch(
-                    "scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+                    "harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(root / "run"),
                       "--work-root", str(root / "work"), "--providers", "p",
                       "--case-ids", case_id, "--browser-binary", "/chrome"])
@@ -430,7 +434,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     self.write_output_dataset(command, dataset)
 
             with self.assertRaises(SystemExit), patch(
-                    "scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+                    "harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(root / "run"),
                       "--work-root", str(root / "work"), "--providers", "p",
                       "--case-ids", case_id, "--browser-binary", "/chrome"])
@@ -444,3 +448,84 @@ class CertifiedBenchmarkTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_explicit_browser_reference_route_is_used_even_with_usable_http_capture(tmp_path):
+    case = {
+        "id": "explicit-route",
+        "track": "web",
+        "task_kind": "body",
+        "ground_truth_main_content": "Required fact",
+        "required_facts": [{"alternatives": ["Required fact"]}],
+        "source_verification": {"observation_route": "browser"},
+    }
+    (tmp_path / case["id"]).mkdir()
+    (tmp_path / case["id"] / "reference.txt").write_text("Required fact")
+    (tmp_path / "audit.json").write_text(json.dumps([{"case_id": case["id"], "status": 200}]))
+    assert browser_observation_cases({"cases": [case]}, tmp_path, [case["id"]]) == [case["id"]]
+
+
+def test_conflicting_http_route_and_browser_provenance_is_rejected(tmp_path):
+    import pytest
+
+    case = {
+        "id": "conflicting-route",
+        "track": "web",
+        "task_kind": "body",
+        "ground_truth_main_content": "Required fact",
+        "required_facts": [{"alternatives": ["Required fact"]}],
+        "source_verification": {
+            "observation_route": "http",
+            "method": "Independent rendered browser DOM; complete declared scope",
+        },
+    }
+    (tmp_path / "audit.json").write_text(json.dumps([{"case_id": case["id"], "status": 200}]))
+    with pytest.raises(ValueError, match="contradicts browser reference provenance"):
+        browser_observation_cases({"cases": [case]}, tmp_path, [case["id"]])
+
+
+def test_explicit_empty_arguments_do_not_dispatch_an_ambient_subcommand(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["caller", "risk-control", "--validate-only"])
+    with patch("harness.web_fetch.risk_control.main") as invoked:
+        with pytest.raises(SystemExit) as error:
+            main([])
+    assert error.value.code == 2
+    invoked.assert_not_called()
+
+
+def test_invalid_selected_reference_route_stops_before_any_capture(tmp_path):
+    dataset = tmp_path / "dataset.json"
+    dataset.write_text(json.dumps({"cases": [{"id": "one", "track": "web", "task_kind": "body", "ground_truth_main_content": "Required fact", "source_verification": {"observation_route": "http", "method": "Independent rendered browser DOM; complete declared scope"}}]}))
+    with patch("harness.web_fetch.certification.run") as invoked:
+        with pytest.raises(ValueError, match="contradicts browser reference provenance"):
+            main(["--dataset", str(dataset), "--case-ids", "one", "--providers", "p", "--output", str(tmp_path / "output"), "--work-root", str(tmp_path / "work")])
+    invoked.assert_not_called()
+    assert not (tmp_path / "output").exists()
+    assert not (tmp_path / "work").exists()
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        ["run_certified_benchmark.py"],
+        ["run_certified_benchmark.py", "risk-control"],
+        ["run_certified_benchmark.py", "webmainbench-correction"],
+        ["run_certified_benchmark.py", "webmainbench-full"],
+        ["run_certified_benchmark.py", "wcxb"],
+        ["run_certified_benchmark.py", "wcxb-latency"],
+        ["run_risk_control_moli.py"],
+        ["certify_webmainbench_case_correction.py"],
+        ["correct_webmainbench_teds.py"],
+    ],
+)
+def test_certification_commands_have_help_without_evidence_or_provider_calls(command, tmp_path):
+    scripts = Path(__file__).resolve().parents[1] / "scripts"
+    result = subprocess.run(
+        [sys.executable, str(scripts / command[0]), *command[1:], "--help"],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "usage:" in result.stdout
+    assert list(tmp_path.iterdir()) == []

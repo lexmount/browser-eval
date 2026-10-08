@@ -1,6 +1,8 @@
 import hashlib
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -8,7 +10,12 @@ import pytest
 from harness.web_fetch.composite_tasks import validate_composite_acceptance
 from harness.web_fetch.metrics import evaluate_content, normalize_for_match
 from harness.web_fetch.report_build import require_risk_control_certification
-from harness.web_fetch.risk_control import measured_risk_control_dataset
+from harness.web_fetch.risk_control import main as run_risk_control
+from harness.web_fetch.risk_control import (
+    measured_risk_control_dataset,
+    reference_proof_snapshot,
+    require_complete_diagnostic_logs,
+)
 from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
 from scripts.build_risk_control_dataset import (
     BODY_CONTRACTS,
@@ -21,13 +28,24 @@ from scripts.build_risk_control_dataset import (
     evidence_roots,
     parse_sections,
 )
-from scripts.run_risk_control_moli import main as run_risk_control
-from scripts.run_risk_control_moli import (
-    reference_proof_snapshot,
-    require_complete_diagnostic_logs,
-)
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_certificate_validation_import_does_not_require_execution_stack(tmp_path):
+    code = '''
+import builtins
+original = builtins.__import__
+def restricted(name, *args, **kwargs):
+    if name in {"harness.web_fetch.providers", "harness.web_fetch.runner", "harness.web_fetch.report_build"}:
+        raise RuntimeError("Execution stack is unavailable")
+    return original(name, *args, **kwargs)
+builtins.__import__ = restricted
+from harness.web_fetch.risk_control import validate_risk_control_certification
+assert callable(validate_risk_control_certification)
+'''
+    result = subprocess.run([sys.executable, "-c", code], cwd=ROOT, text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
 DATASET = ROOT / "evaluation/risk-control/dataset.json"
 COHORT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-manifest.json"
 COHORT_RECEIPT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-receipt.json"
@@ -961,8 +979,8 @@ def test_page_content_without_declared_initial_chrome_fails(
 def test_certified_report_preserves_certificate_bound_files(tmp_path, capsys):
     from harness.web_fetch.config import load_dataset
     from harness.web_fetch.providers.fixture import FixtureProvider
-    from harness.web_fetch.runner import run_evaluation
     from harness.web_fetch.report_build import build_report
+    from harness.web_fetch.runner import run_evaluation
 
     profile = json.loads(RUN_PROFILE.read_text())
     provider = profile["provider"]["name"]

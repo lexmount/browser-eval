@@ -94,7 +94,7 @@ def test_external_dataset_preserves_frozen_bytes_and_canonical_evidence_contract
 
 
 def test_certified_native_preparation_uses_bound_external_dataset_bytes(inputs, tmp_path, monkeypatch):
-    from scripts.run_certified_benchmark import main as certified_main
+    from harness.web_fetch.certification import main as certified_main
 
     dataset, manifest_path, source, _ = inputs
     original = external_dataset(inputs)
@@ -110,7 +110,7 @@ def test_certified_native_preparation_uses_bound_external_dataset_bytes(inputs, 
         commands.append(command)
         raise CaptureIntercepted
 
-    monkeypatch.setattr('scripts.run_certified_benchmark.run', intercept)
+    monkeypatch.setattr('harness.web_fetch.certification.run', intercept)
     with pytest.raises(CaptureIntercepted):
         certified_main(['--dataset', str(dataset), '--output', str(tmp_path / 'native-output'),
                         '--work-root', str(work), '--providers', 'fixture',

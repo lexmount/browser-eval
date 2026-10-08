@@ -81,6 +81,15 @@ come from the measured cohort rather than a fixed browser list.
 
 WebMainBench cohort certification is owned by `harness/web_fetch/webmainbench_certification.py`; scoring and score verification by `webmainbench_scoring.py`; full-cohort aggregation by `webmainbench_assembly.py`; and shared result-matrix, variant-identity and physical-call checks by `webmainbench_evidence.py`. Their command files delegate to these modules. Evidence-copy boundaries reject file and directory symlinks as well as escaping paths.
 
+`harness/web_fetch/certification.py` owns the default pre/post reference sequence
+and WCXB cohort certification. It uses `reference_lifecycle.py` to select browser
+observations from declared provenance and acquisition routes. Risk-control
+execution shares `risk_control.py` with certificate validation. Origin-preserving
+case certification shares `webmainbench_correction.py` with correction application;
+TEDS revisions share `webmainbench_diagnostics.py` with revision validation.
+Their command paths remain stable. New revision receipts bind the actual shared
+implementation; retained revisions verify their own frozen source copies.
+
 Complete WebMainBench comparisons assemble the baseline and every registry-declared variant directly from their certified cohorts. Participant counts come from profiles and the registry throughout assembly, rendering and release checks. Only declared evidence enters the package; assembly commits a new directory after all checks pass. Replacing a cohort creates a new package and retains the previous one. See [the WebMainBench guide](../harness/web_fetch/WEBMAINBENCH.md) for the supported commands and historical binding format.
 
 Independent HTTP source capture and HTML extraction belong to `harness/web_fetch/source_capture.py`; its command is `scripts/collect_source_evidence.py`. Reference audits, scope refreshes and browser observations import the same extractor. `document_text.py` owns document extraction for both captured sources and provider responses, with explicit whitespace preservation for source reconstruction. Capture writes a new external evidence directory, validates the complete requested task scope before requests, and retains failed HTTP observations for review. Capture alone neither approves a reference nor certifies a provider result.
