@@ -17,6 +17,7 @@ BENCH_ROOT = pathlib.Path(
 )
 from harness.record_io import load_jsonl
 from harness.resource_calibration import duration_calibration
+from harness.web_fetch.safety import contained_path, safe_identifier
 
 from . import charts
 from .charts import combine_comparisons, render_chart
@@ -77,23 +78,29 @@ def main(argv=None):
     }
     SRC = args.source.resolve()
     OUT = args.output.resolve()
-    FUNCTIONAL_CORRECTION = args.functional_correction.resolve()
-    cohort = json.loads(args.cohort.read_text())
-    summary = json.loads(args.summary.read_text())
+    FUNCTIONAL_CORRECTION = args.functional_correction.absolute()
+    cohort = json.loads(
+        contained_path(args.cohort.parent, args.cohort.name, reject_symlinks=True).read_text()
+    )
+    summary = json.loads(
+        contained_path(args.summary.parent, args.summary.name, reject_symlinks=True).read_text()
+    )
     selected = {
         x["task_id"]: (group, x["sha256"])
         for group, items in cohort["strata"].items()
         for x in items
     }
-    contract = json.loads((RUNS / "protocol.json").read_text())
-    certificate = json.loads((RUNS / "certification.json").read_text())
-    if (
-        not certificate["protocol_sha256"]
-        == hashlib.sha256((RUNS / "protocol.json").read_bytes()).hexdigest()
-    ):
+    for task_id in selected:
+        safe_identifier(task_id)
+    protocol_file = contained_path(RUNS, "protocol.json", reject_symlinks=True)
+    contract = json.loads(protocol_file.read_text())
+    certificate = json.loads(
+        contained_path(RUNS, "certification.json", reject_symlinks=True).read_text()
+    )
+    if not certificate["protocol_sha256"] == hashlib.sha256(protocol_file.read_bytes()).hexdigest():
         raise ValueError("Protocol hash mismatch")
     for rel, digest in certificate["artifact_sha256"].items():
-        path = RUNS / rel
+        path = contained_path(RUNS, rel, reject_symlinks=True)
         if not (
             path.is_file()
             and (not path.is_symlink())
@@ -138,7 +145,8 @@ def main(argv=None):
         return path_re.sub("<local path>", endpoint_re.sub("<local fixture>", s))
 
     def read_run(name: str):
-        p = RUNS / label[name]
+        safe_identifier(name)
+        p = contained_path(RUNS, label[name], reject_symlinks=True)
         if not (p.is_dir() and (not p.is_symlink())):
             raise ValueError(
                 "Invalid Lexbench report evidence: p.is_dir() and (not p.is_symlink())"
@@ -359,16 +367,7 @@ def main(argv=None):
 
     def evidence_for(run_name: str, row: dict, run_root=None):
         p = run_root if run_root is not None else runs[run_name][0]
-        rel = pathlib.Path(row["artifact_dir"])
-        if not (".." not in rel.parts and (not rel.is_absolute())):
-            raise ValueError(
-                "Invalid Lexbench report evidence: '..' not in rel.parts and (not rel.is_absolute())"
-            )
-        folder = p / rel
-        if not folder.resolve().is_relative_to(p.resolve()):
-            raise ValueError(
-                "Invalid Lexbench report evidence: folder.resolve().is_relative_to(p.resolve())"
-            )
+        folder = contained_path(p, row["artifact_dir"], reject_symlinks=True)
         result = {}
         for filename in (
             "grader.json",
@@ -378,14 +377,9 @@ def main(argv=None):
             "resource.jsonl",
             "run.json",
         ):
-            source = folder / filename
+            source = contained_path(folder, filename, reject_symlinks=True)
             if not source.exists():
                 continue
-            for parent in source.parents:
-                if parent == p:
-                    break
-                if not not parent.is_symlink():
-                    raise ValueError("Invalid Lexbench report evidence: not parent.is_symlink()")
             if not (
                 source.is_file() and (not source.is_symlink()) and (source.stat().st_size < 8000000)
             ):
@@ -396,7 +390,12 @@ def main(argv=None):
             raw = source.read_text(errors="replace")
             data = clean(raw).encode()
             target = (
-                OUT / "data/evidence" / run_name / row["task_id"] / str(row["attempt"]) / filename
+                OUT
+                / "data/evidence"
+                / safe_identifier(run_name)
+                / safe_identifier(row["task_id"])
+                / safe_identifier(str(row["attempt"]))
+                / filename
             )
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(data)
@@ -419,13 +418,9 @@ def main(argv=None):
         }
         if original in generic:
             root = run_root if run_root is not None else runs[run_name][0]
-            folder = root / r["artifact_dir"]
-            if not folder.resolve().is_relative_to(root.resolve()):
-                raise ValueError(
-                    "Invalid Lexbench report evidence: folder.resolve().is_relative_to(root.resolve())"
-                )
+            folder = contained_path(root, r["artifact_dir"], reject_symlinks=True)
             for filename in ("stdout.log", "grader.json"):
-                path = folder / filename
+                path = contained_path(folder, filename, reject_symlinks=True)
                 if not path.is_file():
                     continue
                 if not not path.is_symlink():
@@ -481,8 +476,14 @@ def main(argv=None):
 
     cases = []
     for task_id, (stratum, digest) in selected.items():
-        definition_path = BENCH_ROOT / next(
-            x["path"] for x in runs["off_baseline"][1]["resolved_tasks"] if x["task_id"] == task_id
+        definition_path = contained_path(
+            BENCH_ROOT,
+            next(
+                x["path"]
+                for x in runs["off_baseline"][1]["resolved_tasks"]
+                if x["task_id"] == task_id
+            ),
+            reject_symlinks=True,
         )
         raw = definition_path.read_bytes()
         if not sha(raw) == digest:
@@ -544,13 +545,15 @@ def main(argv=None):
         }
         starts = []
         for i in range(1, 6):
-            directory = RUNS / f"cold_{i:02d}_{mode}"
-            manifest = json.loads((directory / "run_manifest.json").read_text())
+            directory = contained_path(RUNS, f"cold_{i:02d}_{mode}", reject_symlinks=True)
+            manifest = json.loads(
+                contained_path(directory, "run_manifest.json", reject_symlinks=True).read_text()
+            )
             if not manifest["engines"]["moli"]["sha256"] == cohort["moli_sha256"]:
                 raise ValueError(
                     "Invalid Lexbench report evidence: manifest['engines']['moli']['sha256'] == cohort['moli_sha256']"
                 )
-            values = load_jsonl(directory / "cold_start.jsonl")
+            values = load_jsonl(contained_path(directory, "cold_start.jsonl", reject_symlinks=True))
             if not (len(values) == 1 and values[0]["status"] == "ready"):
                 raise ValueError(
                     "Invalid Lexbench report evidence: len(values) == 1 and values[0]['status'] == 'ready'"
@@ -627,7 +630,9 @@ def main(argv=None):
             "Invalid Lexbench report evidence: sum((x['off_duration_ms'] - x['on_duration_ms'] for x in task_cost)) == metrics['off']['baseline']['duration_ms_all']['sum'] - metrics['on']['baseline']['duration_ms_all']['sum']"
         )
     launch_receipts = {
-        name: json.loads((RUNS / (run_id + "_launch.json")).read_text())
+        name: json.loads(
+            contained_path(RUNS, run_id + "_launch.json", reject_symlinks=True).read_text()
+        )
         for name, run_id in label.items()
         if (RUNS / (run_id + "_launch.json")).exists()
     }
@@ -641,7 +646,7 @@ def main(argv=None):
         "launch_receipts": launch_receipts,
         "scope": "Docker VM telemetry does not establish macOS host isolation.",
     }
-    observation_file = RUNS / "macos-observations.jsonl"
+    observation_file = contained_path(RUNS, "macos-observations.jsonl", reject_symlinks=True)
     if observation_file.exists():
         observations = load_jsonl(observation_file)
 
@@ -696,29 +701,29 @@ def main(argv=None):
             if b
             else "both_fail"
         ] += 1
-    resource_comparison = json.loads((VERSION_RUNS / "resource-comparison.json").read_text())
-    resource_certificate = json.loads((VERSION_RUNS / "resource-certification.json").read_text())
-    if (
-        not sha((VERSION_RUNS / "resource-comparison.json").read_bytes())
-        == resource_certificate["comparison_sha256"]
-    ):
+    comparison_file = contained_path(VERSION_RUNS, "resource-comparison.json", reject_symlinks=True)
+    version_protocol_file = contained_path(VERSION_RUNS, "protocol.json", reject_symlinks=True)
+    resource_comparison = json.loads(comparison_file.read_text())
+    resource_certificate = json.loads(
+        contained_path(
+            VERSION_RUNS, "resource-certification.json", reject_symlinks=True
+        ).read_text()
+    )
+    if not sha(comparison_file.read_bytes()) == resource_certificate["comparison_sha256"]:
         raise ValueError(
             "Invalid Lexbench report evidence: sha((VERSION_RUNS / 'resource-comparison.json').read_bytes()) == resource_certificate['comparison_sha256']"
         )
-    if (
-        not sha((VERSION_RUNS / "protocol.json").read_bytes())
-        == resource_certificate["protocol_sha256"]
-    ):
+    if not sha(version_protocol_file.read_bytes()) == resource_certificate["protocol_sha256"]:
         raise ValueError(
             "Invalid Lexbench report evidence: sha((VERSION_RUNS / 'protocol.json').read_bytes()) == resource_certificate['protocol_sha256']"
         )
     for rel, digest in resource_certificate["artifact_sha256"].items():
-        path = VERSION_RUNS / rel
+        path = contained_path(VERSION_RUNS, rel, reject_symlinks=True)
         if not (path.is_file() and (not path.is_symlink()) and (sha(path.read_bytes()) == digest)):
             raise ValueError(
                 "Invalid Lexbench report evidence: path.is_file() and (not path.is_symlink()) and (sha(path.read_bytes()) == digest)"
             )
-    version_protocol = json.loads((VERSION_RUNS / "protocol.json").read_text())
+    version_protocol = json.loads(version_protocol_file.read_text())
     if not (
         set(version_protocol["functional_tasks"]) == set(selected)
         and len(version_protocol["functional_tasks"]) == len(selected)
@@ -726,9 +731,15 @@ def main(argv=None):
         raise ValueError(
             "Invalid Lexbench report evidence: set(version_protocol['functional_tasks']) == set(selected) and len(version_protocol['functional_tasks']) == len(selected)"
         )
-    functional_114 = VERSION_RUNS / "114_off_differential_candidate_20260920"
-    functional_manifest = json.loads((functional_114 / "run_manifest.json").read_text())
-    functional_rows = load_jsonl(functional_114 / "results.jsonl")
+    functional_114 = contained_path(
+        VERSION_RUNS, "114_off_differential_candidate_20260920", reject_symlinks=True
+    )
+    functional_manifest = json.loads(
+        contained_path(functional_114, "run_manifest.json", reject_symlinks=True).read_text()
+    )
+    functional_rows = load_jsonl(
+        contained_path(functional_114, "results.jsonl", reject_symlinks=True)
+    )
     candidate_114 = "v4_cdp_emulation_setdefaultbackgroundcoloroverride"
     if not (
         functional_manifest["completion_status"] == "completed"
@@ -972,15 +983,20 @@ def main(argv=None):
                 raise ValueError(
                     "Invalid Lexbench report evidence: re.fullmatch('[A-Za-z0-9_-]+', run_id)"
                 )
-            run_root = ROOT / "work/lexbench-layout-policy-v3/runs" / run_id
+            run_root = contained_path(
+                ROOT / "work/lexbench-layout-policy-v3",
+                pathlib.Path("runs") / run_id,
+                reject_symlinks=True,
+            )
+            manifest_path = contained_path(run_root, "run_manifest.json", reject_symlinks=True)
             if not (
                 not run_root.is_symlink()
-                and sha((run_root / "run_manifest.json").read_bytes()) == binding["manifest_sha256"]
+                and sha(manifest_path.read_bytes()) == binding["manifest_sha256"]
             ):
                 raise ValueError(
                     "Invalid Lexbench report evidence: not run_root.is_symlink() and sha((run_root / 'run_manifest.json').read_bytes()) == binding['manifest_sha256']"
                 )
-            source_result = run_root / binding["results_file"]
+            source_result = contained_path(run_root, binding["results_file"], reject_symlinks=True)
             if not (
                 source_result.resolve().parent == run_root.resolve()
                 and (not source_result.is_symlink())
@@ -993,7 +1009,7 @@ def main(argv=None):
                     "Invalid Lexbench report evidence: sha(source_result.read_bytes()) == binding['results_sha256']"
                 )
             source_runs[run_id] = run_root
-            for task in json.loads((run_root / "run_manifest.json").read_text())["resolved_tasks"]:
+            for task in json.loads(manifest_path.read_text())["resolved_tasks"]:
                 if task["task_id"] in source_tasks:
                     if not source_tasks[task["task_id"]]["sha256"] == task["sha256"]:
                         raise ValueError(
@@ -1003,7 +1019,7 @@ def main(argv=None):
         for case in candidate["cases"]:
             task = source_tasks[case["task_id"]]
             bench_root = ROOT / "work/lexbench-layout-policy-v3"
-            task_path = bench_root / task["path"]
+            task_path = contained_path(bench_root, task["path"], reject_symlinks=True)
             if not (
                 task_path.resolve().is_relative_to(bench_root.resolve())
                 and (not task_path.is_symlink())
@@ -1184,7 +1200,9 @@ def main(argv=None):
         public_candidate_files["reproduction/run_resource_matrix.py"] = (
             args.resource_matrix / "orchestrator.py"
         ).read_bytes()
-    functional_correction = json.loads((FUNCTIONAL_CORRECTION / "receipt.json").read_text())
+    functional_correction = json.loads(
+        contained_path(FUNCTIONAL_CORRECTION, "receipt.json", reject_symlinks=True).read_text()
+    )
     if not functional_correction["schema"] == "moli_functional_contract_correction/1":
         raise ValueError(
             "Invalid Lexbench report evidence: functional_correction['schema'] == 'moli_functional_contract_correction/1'"
@@ -1202,12 +1220,24 @@ def main(argv=None):
             "Invalid Lexbench report evidence: [row['id'] for row in functional_correction['configurations']] == ['114_off', '118_off', '118_on']"
         )
     for item in functional_correction["configurations"]:
-        correction_run = FUNCTIONAL_CORRECTION / item["run_id"]
-        if not sha((correction_run / "results.jsonl").read_bytes()) == item["results_sha256"]:
+        correction_run = contained_path(FUNCTIONAL_CORRECTION, item["run_id"], reject_symlinks=True)
+        if (
+            not sha(
+                contained_path(correction_run, "results.jsonl", reject_symlinks=True).read_bytes()
+            )
+            == item["results_sha256"]
+        ):
             raise ValueError(
                 "Invalid Lexbench report evidence: sha((correction_run / 'results.jsonl').read_bytes()) == item['results_sha256']"
             )
-        if not sha((correction_run / "run_manifest.json").read_bytes()) == item["manifest_sha256"]:
+        if (
+            not sha(
+                contained_path(
+                    correction_run, "run_manifest.json", reject_symlinks=True
+                ).read_bytes()
+            )
+            == item["manifest_sha256"]
+        ):
             raise ValueError(
                 "Invalid Lexbench report evidence: sha((correction_run / 'run_manifest.json').read_bytes()) == item['manifest_sha256']"
             )
@@ -1375,7 +1405,9 @@ def main(argv=None):
         "schema": "moli_layout_report/2",
         "functional_contract_correction": functional_correction_public,
         "resource_window_corrections": corrections,
-        "environment": json.loads((RUNS / "environment.json").read_text()),
+        "environment": json.loads(
+            contained_path(RUNS, "environment.json", reject_symlinks=True).read_text()
+        ),
         "title": "Moli 1.1.4 / 1.1.8 / 1.1.9 comparison",
         "task_count": task_count,
         "attempts_per_mode": call_count,
@@ -1461,7 +1493,7 @@ def main(argv=None):
                 json.dumps(case, ensure_ascii=False, separators=(",", ":")) + "\n"
             )
     for relative, data in public_candidate_files.items():
-        target = OUT / relative
+        target = contained_path(OUT, relative, reject_symlinks=True)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
     (OUT / "data/version-comparison.json").write_text(
@@ -1521,7 +1553,7 @@ def main(argv=None):
         "mermaid.min.js": "07e37dfa97b337ccc85365d57eddf99b9706f09db3b59b260d0333b23b343c4b",
         "mermaid-LICENSE.txt": "ec9fb67dcb25eccc416ed56e1aab819222c805a2a4bfe4cb19e7556bf2ffde80",
     }.items():
-        asset = args.vendor_dir / name
+        asset = contained_path(args.vendor_dir, name, reject_symlinks=True)
         if not (not asset.is_symlink() and sha(asset.read_bytes()) == digest):
             raise ValueError(
                 "Invalid Lexbench report evidence: not asset.is_symlink() and sha(asset.read_bytes()) == digest"

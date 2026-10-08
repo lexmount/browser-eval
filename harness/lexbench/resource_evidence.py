@@ -12,6 +12,7 @@ from pathlib import Path
 from .resource_matrix import verify_calls
 
 from harness.record_io import load_jsonl
+from harness.web_fetch.safety import contained_path
 
 
 def digest(path: Path) -> str:
@@ -125,9 +126,9 @@ def validate_matrix(bundle: dict, builds: dict, summaries: dict) -> None:
 def load_matrix(directory: Path, builds: dict, summaries: dict) -> dict:
     if directory.is_symlink():
         raise ValueError("resource matrix directory must not be a symlink")
-    protocol_path = directory / "protocol.json"
-    calls_path = directory / "physical-calls.jsonl"
-    receipt_path = directory / "receipt.json"
+    protocol_path = contained_path(directory, "protocol.json", reject_symlinks=True)
+    calls_path = contained_path(directory, "physical-calls.jsonl", reject_symlinks=True)
+    receipt_path = contained_path(directory, "receipt.json", reject_symlinks=True)
     for path in (protocol_path, calls_path, receipt_path):
         digest(path)
     protocol = json.loads(protocol_path.read_text())
@@ -137,20 +138,25 @@ def load_matrix(directory: Path, builds: dict, summaries: dict) -> dict:
         "physical_calls_sha256"
     ] != digest(calls_path):
         raise ValueError("resource matrix evidence changed")
-    if receipt["orchestrator_sha256"] != digest(directory / "orchestrator.py"):
+    if receipt["orchestrator_sha256"] != digest(
+        contained_path(directory, "orchestrator.py", reject_symlinks=True)
+    ):
         raise ValueError("resource orchestrator source changed")
     root = Path(protocol["runner_root"])
     measurements = {}
     for method, identity in protocol["methods"].items():
         if not re.fullmatch(r"[A-Za-z0-9_-]+", identity["run_id"]):
             raise ValueError("invalid resource run identifier")
-        run = root / "runs" / identity["run_id"]
+        run = contained_path(root, Path("runs") / identity["run_id"], reject_symlinks=True)
         if run.is_symlink():
             raise ValueError("resource run must not be a symlink")
         for filename, expected in receipt["results"][method].items():
-            if digest(run / filename) != expected:
+            if digest(contained_path(run, filename, reject_symlinks=True)) != expected:
                 raise ValueError("resource run changed after certification")
-        rows = load_jsonl(run / "results.jsonl")
+        results_path = contained_path(run, "results.jsonl", reject_symlinks=True)
+        if "results.jsonl" not in receipt["results"][method]:
+            raise ValueError("resource results are missing their hash binding")
+        rows = load_jsonl(results_path)
         hashes = {
             (r["task_id"], r["attempt"]): hashlib.sha256(
                 json.dumps(r, sort_keys=True).encode()

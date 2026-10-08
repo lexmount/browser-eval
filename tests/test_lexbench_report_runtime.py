@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.lexbench.resource_evidence import load_matrix
 from harness.lexbench.resource_summary import summarize, validate_summary
 from tests.test_resource_calibration import experiment
 
@@ -199,3 +200,172 @@ def test_report_rejects_changed_protocol_and_partial_scope_before_output(
         else "Functional population differs from the report profile"
     ) in result.stderr
     assert not output.exists()
+
+
+@pytest.mark.parametrize("path_kind", ["parent", "absolute", "linked-directory", "linked-file"])
+def test_report_rejects_certificate_paths_outside_declared_regular_evidence(tmp_path, path_kind):
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    outside = tmp_path / "outside.txt"
+    outside.write_text("not report evidence")
+    if path_kind == "parent":
+        name = "../outside.txt"
+    elif path_kind == "absolute":
+        name = str(outside)
+    elif path_kind == "linked-directory":
+        (evidence / "linked").symlink_to(tmp_path, target_is_directory=True)
+        name = "linked/outside.txt"
+    else:
+        (evidence / "linked.txt").symlink_to(outside)
+        name = "linked.txt"
+    digest = "a" * 64
+    write_json(
+        evidence / "report-cohort.json",
+        {"k_runs": 3, "strata": {"one": [{"task_id": "one", "sha256": digest}]}},
+    )
+    write_json(evidence / "report-runs.json", {})
+    protocol_sha = write_json(
+        evidence / "protocol.json",
+        {"task_ids": ["one"], "tasks": {"one": {"sha256": digest}}, "try_layout": False},
+    )
+    write_json(
+        evidence / "certification.json",
+        {
+            "protocol_sha256": protocol_sha,
+            "artifact_sha256": {name: hashlib.sha256(outside.read_bytes()).hexdigest()},
+        },
+    )
+    output = tmp_path / "report"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(Path(__file__).resolve().parents[1] / "scripts/moli_report/build.py"),
+            "--cohort",
+            str(evidence / "report-cohort.json"),
+            "--output",
+            str(output),
+        ],
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode != 0
+    assert any(
+        message in result.stderr
+        for message in (
+            "Symlinked evidence",
+            "stay inside the evidence directory",
+            "not path.is_symlink()",
+        )
+    )
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("path_kind", ["parent", "absolute", "linked-directory", "linked-file"])
+def test_saved_profile_inputs_cannot_escape_runner_provenance_root(tmp_path, path_kind):
+    directory, _, marker = saved_profiles(tmp_path)
+    protocol_path = directory / "protocol.json"
+    protocol = json.loads(protocol_path.read_bytes())
+    root = Path(protocol["runner_root"])
+    outside = tmp_path / "outside.txt"
+    outside.write_text("not runner input")
+    if path_kind == "parent":
+        name = "../outside.txt"
+    elif path_kind == "absolute":
+        name = str(outside)
+    elif path_kind == "linked-directory":
+        (root / "linked").symlink_to(tmp_path, target_is_directory=True)
+        name = "linked/outside.txt"
+    else:
+        (root / "linked.txt").symlink_to(outside)
+        name = "linked.txt"
+    protocol["input_files"][name] = hashlib.sha256(outside.read_bytes()).hexdigest()
+    digest = write_json(protocol_path, protocol)
+    receipt = json.loads((directory / "receipt.json").read_bytes())
+    receipt["protocol_sha256"] = digest
+    write_json(directory / "receipt.json", receipt)
+    with pytest.raises(
+        ValueError,
+        match="Symlinked evidence|stay inside the evidence directory|must be a regular file",
+    ):
+        summarize(directory)
+    assert not marker.exists()
+
+
+@pytest.mark.parametrize("path_kind", ["parent", "absolute", "linked-directory", "linked-file"])
+def test_resource_matrix_receipt_cannot_read_files_outside_its_run(tmp_path, path_kind):
+    directory = tmp_path / "matrix"
+    directory.mkdir()
+    runner = tmp_path / "runner"
+    run = runner / "runs/one"
+    run.mkdir(parents=True)
+    outside = runner / "runs/outside.txt"
+    outside.write_text("not run evidence")
+    if path_kind == "parent":
+        name = "../outside.txt"
+    elif path_kind == "absolute":
+        name = str(outside)
+    elif path_kind == "linked-directory":
+        (run / "linked").symlink_to(outside.parent, target_is_directory=True)
+        name = "linked/outside.txt"
+    else:
+        (run / "linked.txt").symlink_to(outside)
+        name = "linked.txt"
+    protocol_sha = write_json(
+        directory / "protocol.json",
+        {"runner_root": str(runner), "methods": {"one": {"run_id": "one"}}},
+    )
+    (directory / "physical-calls.jsonl").write_bytes(b"")
+    (directory / "orchestrator.py").write_bytes(b"# collector\n")
+    (run / "results.jsonl").write_bytes(b"")
+    write_json(
+        directory / "receipt.json",
+        {
+            "protocol_sha256": protocol_sha,
+            "physical_calls_sha256": hashlib.sha256(b"").hexdigest(),
+            "orchestrator_sha256": hashlib.sha256(
+                (directory / "orchestrator.py").read_bytes()
+            ).hexdigest(),
+            "results": {"one": {name: hashlib.sha256(outside.read_bytes()).hexdigest()}},
+        },
+    )
+    with pytest.raises(
+        ValueError,
+        match="Symlinked evidence|stay inside the evidence directory|must be a regular file",
+    ):
+        load_matrix(directory, {}, {})
+
+
+def test_matrix_results_without_hash_binding_are_rejected_before_reading(tmp_path, monkeypatch):
+    directory = tmp_path / "matrix"
+    directory.mkdir()
+    runner = tmp_path / "runner"
+    run = runner / "runs/one"
+    run.mkdir(parents=True)
+    protocol_sha = write_json(
+        directory / "protocol.json",
+        {"runner_root": str(runner), "methods": {"one": {"run_id": "one"}}},
+    )
+    (directory / "physical-calls.jsonl").write_bytes(b"")
+    (directory / "orchestrator.py").write_bytes(b"# collector\n")
+    result = run / "results.jsonl"
+    result.write_bytes(b"")
+    write_json(
+        directory / "receipt.json",
+        {
+            "protocol_sha256": protocol_sha,
+            "physical_calls_sha256": hashlib.sha256(b"").hexdigest(),
+            "orchestrator_sha256": hashlib.sha256(
+                (directory / "orchestrator.py").read_bytes()
+            ).hexdigest(),
+            "results": {"one": {}},
+        },
+    )
+    original = Path.read_bytes
+
+    def read_bytes(path):
+        assert path != result, "Unbound results were read"
+        return original(path)
+
+    monkeypatch.setattr(Path, "read_bytes", read_bytes)
+    with pytest.raises(ValueError, match="results are missing their hash binding"):
+        load_matrix(directory, {}, {})

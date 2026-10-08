@@ -13,6 +13,7 @@ from .resource_evidence import digest as sha256
 
 from harness.record_io import load_jsonl
 from harness.resource_calibration import duration_calibration
+from harness.web_fetch.safety import contained_path
 
 
 def stats(values: list[float]) -> dict:
@@ -30,14 +31,16 @@ def stats(values: list[float]) -> dict:
 
 
 def summarize(directory: Path) -> dict:
-    protocol_path, receipt_path = directory / "protocol.json", directory / "receipt.json"
+    protocol_path = contained_path(directory, "protocol.json", reject_symlinks=True)
+    receipt_path = contained_path(directory, "receipt.json", reject_symlinks=True)
     protocol = json.loads(protocol_path.read_text())
     receipt = json.loads(receipt_path.read_text())
     if (
         protocol["schema"] != "moli_linux_resource_profiles/1"
         or receipt["schema"] != "moli_linux_resource_profiles_receipt/1"
         or receipt["protocol_sha256"] != sha256(protocol_path)
-        or receipt["orchestrator_sha256"] != sha256(directory / "orchestrator.py")
+        or receipt["orchestrator_sha256"]
+        != sha256(contained_path(directory, "orchestrator.py", reject_symlinks=True))
         or protocol["orchestrator_sha256"] != receipt["orchestrator_sha256"]
         or protocol["memory_metric"] != "process_tree_pss"
         or protocol["attempts"] != 5
@@ -54,7 +57,7 @@ def summarize(directory: Path) -> dict:
         raise ValueError("incomplete or changed resource protocol")
     runner = Path(protocol["runner_root"])
     for name, expected_hash in protocol["input_files"].items():
-        if sha256(runner / name) != expected_hash:
+        if sha256(contained_path(runner, name, reject_symlinks=True)) != expected_hash:
             raise ValueError(f"resource runner changed: {name}")
     expected = {(task, attempt) for task in protocol["task_ids"] for attempt in range(1, 6)}
     chart = {(item["task_id"], item["attempt"]) for item in protocol["chart_keys"]}
@@ -74,7 +77,7 @@ def summarize(directory: Path) -> dict:
         rows_by_phase, manifests, hosts = {}, {}, {}
         for phase in ("baseline", "engine"):
             binding = receipt["results"][f"{method}:{phase}"]
-            run = directory / binding["run_id"]
+            run = contained_path(directory, binding["run_id"], reject_symlinks=True)
             if run.resolve().parent != directory.resolve() or run.is_symlink():
                 raise ValueError("invalid resource run directory")
             for filename, key in (
@@ -82,7 +85,7 @@ def summarize(directory: Path) -> dict:
                 ("results.jsonl", "results_sha256"),
                 ("host_summary.json", "host_summary_sha256"),
             ):
-                if sha256(run / filename) != binding[key]:
+                if sha256(contained_path(run, filename, reject_symlinks=True)) != binding[key]:
                     raise ValueError("resource run changed after completion")
             manifest = json.loads((run / "run_manifest.json").read_text())
             rows = load_jsonl(run / "results.jsonl")

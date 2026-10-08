@@ -117,6 +117,12 @@ license. Saved runner files are hash-verified as provenance. Only an explicitly
 requested measurement executes the declared external driver. Historical calls,
 collectors and certificates retain their original bytes.
 
+The adapter uses the existing `harness/web_fetch/safety.py` path boundary for
+certificate entries, runner inputs, resource receipts and artifact directories.
+Declared paths must be relative to their evidence root; absolute paths, parent
+traversal and file or directory symlinks are rejected before reading. Task and
+method identifiers used in report output must be safe filename segments.
+
 ## Browser trajectory replay ownership
 
 Both browser tracks use `harness/environments/webarena/runtime.py` for site preparation, execution locks, login and viewport contracts, and `harness/environments/webarena/har.py` for network evidence. These modules do not import either track’s Agent or replay runner. Track runners own orchestration and verdicts.
