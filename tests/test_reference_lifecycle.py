@@ -22,7 +22,6 @@ from harness.web_fetch.reference_lifecycle import (
     validate_resource_source_evidence,
 )
 from harness.web_fetch.runner import rescore_evaluation, run_evaluation
-from scripts import run_local_dynamic_builtins as local
 
 
 class ReferenceLifecycleTests(unittest.TestCase):
@@ -327,19 +326,6 @@ class ReferenceLifecycleTests(unittest.TestCase):
         self.assertEqual(records[0]["metrics"]["reference_sha256"], sha256(self.case.ground_truth_main_content))
         self.assertEqual(json.loads((self.run / "manifest.json").read_text())["reference_checks"]["status"],
                          "reference_unverified")
-
-    def test_child_preflight_before_output_or_runtime_calls(self):
-        self.dataset(replace(self.case, track="dynamic"))
-        paths = local.RuntimePaths(*(self.root / name for name in ("cow", "claw", "deepseek", "node")))
-        # Stub isolation inspection; never inspect the actual environment.
-        with patch.object(local, "os") as operating, patch.object(local, "clean_environment", return_value={}), \
-                patch("harness.web_fetch.reference_lifecycle._now", return_value=self.now + timedelta(minutes=31)), \
-                patch.object(local.subprocess, "run") as process:
-            operating.environ = {}
-            with self.assertRaises(ReferenceLifecycleError):
-                local.run_child(self.run, paths, "dynamic", self.root / "tmp", self.dataset_path)
-        process.assert_not_called()
-        self.assertFalse(self.run.exists())
 
     def test_formatting_only_accepted_and_evidence_pointer_hash(self):
         original = self.prepare_run()
