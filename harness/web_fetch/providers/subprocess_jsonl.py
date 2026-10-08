@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import hashlib
 import os
 import queue
 import subprocess
@@ -182,6 +183,7 @@ class SubprocessJsonlProvider(Provider):
         request = {
             "url": case.url,
             "timeout_seconds": timeout,
+            "max_bytes": int(self.config.get("max_bytes", 20_000_000)),
             "task_kind": case.task_kind,
             "track": case.track,
             "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
@@ -265,6 +267,9 @@ class SubprocessJsonlProvider(Provider):
             error_message=None if ok else str(payload.get("error_message") or "worker failed"),
             metadata={
                 **dict(payload.get("metadata") or {}),
+                "_raw_response_b64": base64.b64encode(line.encode("utf-8")).decode("ascii"),
+                "raw_response_sha256": hashlib.sha256(line.encode("utf-8")).hexdigest(),
+                "raw_response_bytes": len(line.encode("utf-8")),
                 "_answer_elapsed_ms": round((time.perf_counter() - answer_begin) * 1000, 2),
                 **self._request_stderr(stderr_cursor),
                 "stdout": "".join(worker_logs),

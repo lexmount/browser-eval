@@ -146,6 +146,11 @@ def main(argv=None):
             missing=provider.validate()
             if missing:errors.append(f'{scope}/{name}: missing {", ".join(missing)}')
     if errors:parser.error('\n'.join(errors))
+    from harness.web_fetch.network_preflight import preflight_guarded_providers
+    try:
+        network_audit = preflight_guarded_providers(selected_providers, cases)
+    except ValueError as error:
+        parser.error(str(error))
     if args.validate_only:
         print(f'Configuration valid: {len(cases)} tasks × {len(names)} methods; no provider calls made')
         return
@@ -156,6 +161,8 @@ def main(argv=None):
         max_failure_retries=args.max_failure_retries,
     )
     args.output.mkdir(parents=True)
+    if network_audit is not None:
+        (args.output/"network-preflight.json").write_text(json.dumps(network_audit,ensure_ascii=False,indent=2)+"\n")
     def work(name):
         batches=[];records=[]
         for scope,path,config,selected in scopes:

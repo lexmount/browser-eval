@@ -29,6 +29,7 @@ for line in sys.stdin:
         metadata = docs[0].metadata if docs else {}
         output = {
             "ok": True,
+            "raw_tool_response": [{"page_content": doc.page_content, "metadata": doc.metadata} for doc in docs],
             "content": content,
             "title": metadata.get("title"),
             "metadata": {
@@ -36,6 +37,7 @@ for line in sys.stdin:
                 "library_version": LIBRARY_VERSION,
                 "document_count": len(docs),
                 "document_metadata": metadata,
+                "timeout_seconds": request["timeout_seconds"],
             },
         }
     except Exception as error:

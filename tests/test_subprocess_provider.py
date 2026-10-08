@@ -1,4 +1,5 @@
 import json
+import base64
 import os
 import subprocess
 import sys
@@ -106,6 +107,50 @@ class SubprocessProviderTest(unittest.TestCase):
         self.assertIn("Node v24.15.0", errors)
         self.assertIn("package manager 12.1.0", errors)
         self.assertIn("locked required paths", errors)
+
+    def test_worker_receives_shared_limits_and_retains_full_response_envelope(self):
+        script = "import sys,json; [(lambda q: print(json.dumps({'ok':True,'content':'answer','metadata':{'request':q},'auxiliary':'retained'}),flush=True))(json.loads(line)) for line in sys.stdin]"
+        provider=SubprocessJsonlProvider('worker', {'command':[sys.executable,'-u','-c',script], 'max_bytes':123456})
+        self.addCleanup(provider.__del__)
+        result=provider.fetch(EvalCase('control','control','https://example.com','control',[]),7)
+        payload=json.loads(base64.b64decode(result.metadata['_raw_response_b64']))
+        self.assertEqual(payload['metadata']['request']['timeout_seconds'],7)
+        self.assertEqual(payload['metadata']['request']['max_bytes'],123456)
+        self.assertEqual(payload['content'],result.content)
+        self.assertEqual(payload['auxiliary'],'retained')
+        with tempfile.TemporaryDirectory() as directory:
+            from harness.web_fetch.runner import persist_result_artifacts
+            target=Path(directory)
+            persist_result_artifacts(target, Path('artifacts/worker/control.txt'), result)
+            self.assertEqual(json.loads((target/result.metadata['raw_response_path']).read_bytes()),payload)
+
+    def test_native_langchain_document_is_retained_without_changing_answer(self):
+        import threading
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        class Fixture(BaseHTTPRequestHandler):
+            def do_GET(self):
+                body = b"<html><head><title>Fixture</title></head><body><p>Answer evidence</p></body></html>"
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(body)
+            def log_message(self, *args):
+                pass
+        server = ThreadingHTTPServer(('127.0.0.1', 0), Fixture)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+        worker = Path(__file__).resolve().parents[1] / 'scripts/oss/langchain_webbase_worker.py'
+        provider = SubprocessJsonlProvider('fixture', {'command': [sys.executable, str(worker)]})
+        self.addCleanup(provider.__del__)
+        url = f'http://127.0.0.1:{server.server_port}/'
+        result = provider.fetch(EvalCase('fixture', 'fixture', url, 'control', []), 45)
+        self.assertTrue(result.ok, result.error_message)
+        envelope = json.loads(base64.b64decode(result.metadata['_raw_response_b64']))
+        self.assertEqual(envelope['raw_tool_response'][0]['page_content'], result.content)
+        self.assertEqual(envelope['raw_tool_response'][0]['metadata']['title'], 'Fixture')
+        self.assertEqual(result.metadata['timeout_seconds'], 45)
 
     def test_worker_file_bytes_round_trip(self):
         script = "import sys,json; [(print(json.dumps({'ok':True,'files':[{'base64':'iVBORw0KGgo='}]}),flush=True)) for line in sys.stdin]"

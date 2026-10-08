@@ -8,13 +8,26 @@ import * as WebFetchHttp from "@deepseek-ai/dsh-web-fetch-http";
 import * as ToolWeb from "@deepseek-ai/dsh-tool-web";
 import * as TimeoutPolicy from "@deepseek-ai/dsh-tool-call-timeout-policy";
 
-const ctx = new Context();
-await ctx.plugin(SystemPrompt);
-await ctx.plugin(ToolRuntime);
-await ctx.plugin(WebRuntime, { fetchProvider: WebFetchHttp.LOCAL_FETCH_PROVIDER_ID });
-await ctx.plugin(WebFetchHttp, { maxResponseBytes: 10000000, maxBodyChars: 200000, timeoutMs: 45000 });
-await ctx.plugin(TimeoutPolicy);
-await ctx.plugin(ToolWeb, { search: false, fetch: true, fetchTimeoutMs: 45000, fetchMaxOutputChars: 220000 });
+let ctx: Context | undefined;
+let activeLimits = "";
+async function contextFor(request: any) {
+  const maxBytes = Number(request.max_bytes ?? 20000000);
+  const timeoutMs = Math.ceil(Number(request.timeout_seconds) * 1000);
+  if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0 || !Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) throw new Error("Invalid shared fetch limits");
+  const key = `${maxBytes}:${timeoutMs}`;
+  if (!ctx || key !== activeLimits) {
+    if (ctx) await ctx.fiber.dispose();
+    ctx = new Context();
+    await ctx.plugin(SystemPrompt);
+    await ctx.plugin(ToolRuntime);
+    await ctx.plugin(WebRuntime, { fetchProvider: WebFetchHttp.LOCAL_FETCH_PROVIDER_ID });
+    await ctx.plugin(WebFetchHttp, { maxResponseBytes: maxBytes, maxBodyChars: maxBytes, timeoutMs });
+    await ctx.plugin(TimeoutPolicy);
+    await ctx.plugin(ToolWeb, { search: false, fetch: true, fetchTimeoutMs: timeoutMs, fetchMaxOutputChars: maxBytes + 20000 });
+    activeLimits = key;
+  }
+  return { ctx, maxBytes, timeoutMs };
+}
 
 let counter = 0;
 const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
@@ -22,6 +35,7 @@ for await (const line of rl) {
   if (!line.trim()) continue;
   const request = JSON.parse(line);
   try {
+    const { ctx, maxBytes, timeoutMs } = await contextFor(request);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), Math.ceil(request.timeout_seconds * 1000));
     const out = await ctx.tools.execute({
@@ -57,16 +71,18 @@ for await (const line of rl) {
     process.stdout.write(JSON.stringify({
       ok,
       content,
+      raw_tool_response: out,
       status_code: statusCode,
       final_url: finalUrl,
       error_type: errorType,
       error_message: errorMessage,
-      metadata: { implementation: "DeepSeek Harness ctx.tools.execute(web_fetch)", presentation_meta: meta },
+      metadata: { implementation: "DeepSeek Harness ctx.tools.execute(web_fetch)", presentation_meta: meta, timeout_ms: timeoutMs, max_response_bytes: maxBytes, max_body_chars: maxBytes, max_output_chars: maxBytes + 20000 },
     }) + "\n");
   } catch (error: any) {
     const message = String(error?.message ?? error);
     process.stdout.write(JSON.stringify({
       ok: false,
+      raw_tool_error: { name: error?.name, message, code: error?.code },
       content: message,
       error_type: error?.code ?? "tool_error",
       error_message: message,

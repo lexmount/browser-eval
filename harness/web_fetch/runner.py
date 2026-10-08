@@ -471,7 +471,12 @@ def run_evaluation(
             raise ValueError(
                 f"provider {provider.name!r} missing configuration: {', '.join(missing)}"
             )
+    from .network_preflight import preflight_guarded_providers
+    network_audit = preflight_guarded_providers(providers, cases)
     output_dir.mkdir(parents=True, exist_ok=True)
+    if network_audit is not None:
+        (output_dir / 'network-preflight.json').write_text(
+            json.dumps(network_audit, ensure_ascii=False, indent=2) + '\n')
     artifacts_dir = output_dir / "artifacts"
     artifacts_dir.mkdir(exist_ok=True)
     started_at = utc_now()

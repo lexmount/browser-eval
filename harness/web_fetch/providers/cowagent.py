@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import importlib
+import base64
+import json
+import hashlib
+import math
+import threading
 import re
 import sys
 from pathlib import Path
@@ -19,8 +24,11 @@ def _sanitize_public_content(content: str) -> str:
     )
 
 
+_BUDGET_LOCK = threading.Lock()
+
+
 class CowAgentBuiltinProvider(Provider):
-    """Invoke CowAgent's repository-local WebFetch implementation unchanged."""
+    """Invoke native WebFetch with the shared caller timeout budget."""
 
     _LOCKED_REVISION = "ed5bb344cfe42cee443c8266ba47ee666d8d7471"
     _REQUIRED_PATHS = {
@@ -53,8 +61,22 @@ class CowAgentBuiltinProvider(Provider):
         if root_text not in sys.path:
             sys.path.insert(0, root_text)
         module = importlib.import_module("agent.tools.web_fetch.web_fetch")
-        tool = module.WebFetch({"cwd": str(workspace)})
-        result = tool.execute({"url": case.url})
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError("timeout must be positive and finite")
+        # This pinned version has no timeout argument. Scope its network budget
+        # override to one call, restore the native default even on exceptions,
+        # and serialize overrides across instances. Retrieval remains native.
+        with _BUDGET_LOCK:
+            native_timeout = module.DEFAULT_TIMEOUT
+            module.DEFAULT_TIMEOUT = timeout
+            try:
+                tool = module.WebFetch({"cwd": str(workspace)})
+                result = tool.execute({"url": case.url})
+            finally:
+                module.DEFAULT_TIMEOUT = native_timeout
+        raw = json.dumps({"status": result.status, "result": result.result,
+                          "ext_data": result.ext_data, "display": result.display},
+                         ensure_ascii=False).encode()
         ok = result.status == "success"
         content = _sanitize_public_content(str(result.result or ""))
         return ProviderResult(
@@ -66,7 +88,12 @@ class CowAgentBuiltinProvider(Provider):
             metadata={
                 "tool_status": result.status,
                 "source_file": str(root / "agent/tools/web_fetch/web_fetch.py"),
-                "cowagent_default_timeout_seconds": getattr(module, "DEFAULT_TIMEOUT", None),
+                "cowagent_default_timeout_seconds": native_timeout,
+                "effective_timeout_seconds": timeout,
+                "timeout_adapter": "scoped DEFAULT_TIMEOUT override",
+                "_raw_response_b64": base64.b64encode(raw).decode(),
+                "raw_response_sha256": hashlib.sha256(raw).hexdigest(),
+                "raw_response_bytes": len(raw),
                 "harness_timeout_seconds": timeout,
             },
         )

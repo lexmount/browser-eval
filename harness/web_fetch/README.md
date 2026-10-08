@@ -347,3 +347,21 @@ Use short batches when the full provider suite exceeds the time window. The
 cannot change within it. Matching pre/post captures bounds observed drift but
 cannot rule out an unobserved intermediate change. Historical runs lacking this
 protocol remain dated observations and cannot be certified retroactively.
+
+
+### Native caller limits and DNS
+
+Native workers receive the caller's `timeout_seconds` and `max_bytes`, and
+record effective limits with the result. OpenClaw and DeepSeek use their native
+configuration interfaces. The pinned CowAgent version exposes no timeout option;
+its adapter scopes `DEFAULT_TIMEOUT` to the shared budget for each call, restores
+the original value, and records both values. This is a caller budget adjustment,
+not an unchanged runtime default. No retry or case-specific retrieval rule is added.
+
+The runner and validation entry point check system DNS before guarded native
+methods execute. Synthetic `198.18.0.0/15` answers stop the comparison before
+product calls. Use an environment with real public DNS answers; do not disable
+SSRF guards, rewrite selected URLs, or classify this environment rejection as a
+product retrieval failure. Full native tool/worker envelopes are retained privately
+with hashes, separately from scored answer text. Historical outputs without those
+envelopes remain insufficient for an exact raw-response audit.
