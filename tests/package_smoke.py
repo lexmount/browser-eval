@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+import zipfile
 from pathlib import Path
 
 
@@ -579,6 +580,24 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
         rejected = subprocess.run([sys.executable, entry, *arguments], cwd=root,
                                   capture_output=True, text=True)
         assert rejected.returncode != 0 and 'symlink' in rejected.stderr.lower(), rejected.stderr
+    for command in ('package_browser_use_artifact_hub.py',
+                    'package_webarena_replay_artifact_site.py'):
+        subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
+                       check=True, cwd=root, stdout=subprocess.DEVNULL)
+    from harness.reporting.publication import package_archive
+    frozen = root / 'package-source'
+    frozen.mkdir()
+    (frozen / 'index.html').write_text('Installed publication control')
+    output, proof = root / 'package.zip', root / 'package.json'
+    package_archive(
+        frozen, output, proof, inputs=[], validate=lambda: None,
+        attest=lambda archive: {'archive_sha256': hashlib.sha256(archive.read_bytes()).hexdigest()},
+    )
+    with zipfile.ZipFile(output) as archive:
+        assert archive.read('index.html') == b'Installed publication control'
+    assert json.loads(proof.read_text())['archive_sha256'] == hashlib.sha256(
+        output.read_bytes()
+    ).hexdigest()
     entry = str(source_root / 'scripts/check_browser_use_report.py')
     missing = subprocess.run([
         sys.executable, entry, str(report), '--evidence', str(report),

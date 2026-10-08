@@ -4,38 +4,16 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import tempfile
 from pathlib import Path
 
 from harness.reporting.assets import copy_bound_assets
+from harness.trajectory_replay.report_inputs import bound_dataset_path, verified_dataset_path
 from harness.trajectory_replay.webarena_report import build_webarena_replay_report
 from harness.web_fetch.storage import data_home
 
 PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")
-
-
-def _verified_dataset_path(path: Path, digest: str) -> Path:
-    if (
-        path.is_symlink()
-        or any(parent.is_symlink() for parent in path.parents)
-        or not path.is_file()
-    ):
-        raise ValueError("bound corrected dataset is missing or symlinked")
-    if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
-        raise ValueError("bound corrected dataset changed")
-    return path
-
-
-def _bound_dataset_path(profile: dict) -> Path:
-    dataset = profile.get("dataset") or {}
-    path_value = dataset.get("path")
-    digest = dataset.get("sha256")
-    if not isinstance(path_value, str) or not path_value or not isinstance(digest, str):
-        raise ValueError("replay report profile requires a bound corrected dataset")
-    path = Path(path_value)
-    return _verified_dataset_path(path, digest)
 
 
 def main() -> None:
@@ -64,12 +42,12 @@ def main() -> None:
     )
     args = parser.parse_args()
     profile = json.loads(args.profile.read_text(encoding="utf-8"))
-    dataset_path = args.dataset or _bound_dataset_path(profile)
+    dataset_path = args.dataset or bound_dataset_path(profile)
     if args.dataset is not None:
         expected = (profile.get("dataset") or {}).get("sha256")
         if not isinstance(expected, str):
             raise ValueError("explicit report dataset requires a profile hash binding")
-        dataset_path = _verified_dataset_path(dataset_path, expected)
+        dataset_path = verified_dataset_path(dataset_path, expected)
     review_path = args.review or Path("research/trajectory-replay-failure-review.json")
     bindings = json.loads(args.content_bindings.read_text())
     with tempfile.TemporaryDirectory(prefix="replay-content-") as directory:

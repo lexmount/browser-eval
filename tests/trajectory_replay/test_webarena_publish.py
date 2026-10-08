@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-import scripts.package_webarena_replay_artifact_site as packager
 import scripts.publish_webarena_replay_artifact_site as publisher
+from harness.trajectory_replay import webarena_report_package as packager
 
 
 def _sha256(path: Path) -> str:

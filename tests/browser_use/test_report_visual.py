@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from harness.browser_use import report_package as packager
 from harness.browser_use import report_visual as visual
-from scripts import package_browser_use_artifact_hub as packager
 
 
 def report_fixture(root: Path) -> None:

@@ -17,13 +17,10 @@ from io import BytesIO
 from pathlib import Path
 from urllib.error import HTTPError
 
+from harness.trajectory_replay.report_inputs import bound_dataset_path
+from harness.trajectory_replay.webarena_report import require_all_reference_validity
 from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.publication import upload_large_archive
-from harness.trajectory_replay.webarena_report import require_all_reference_validity
-if __package__:
-    from scripts.build_webarena_replay_report import _bound_dataset_path
-else:
-    from build_webarena_replay_report import _bound_dataset_path
 
 ARCHIVE = Path("publish/trajectory-replay-artifact-site.zip")
 ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
@@ -160,7 +157,7 @@ def validate_package() -> dict:
     packaged_report = Path(str(attestation.get("packaged_report") or report))
     evidence = Path(str(attestation.get("evidence") or ""))
     profile = json.loads(PROFILE.read_text(encoding="utf-8"))
-    dataset_path = _bound_dataset_path(profile)
+    dataset_path = bound_dataset_path(profile)
     if (profile.get("scoring") or {}).get("require_all_reference_validity") is True:
         require_all_reference_validity(
             profile,

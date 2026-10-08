@@ -259,6 +259,16 @@ pages; a missing configuration does not authorize an unmeasured comparison.
 
 ## Browser trajectory replay ownership
 
+Report packaging belongs to `harness/browser_use/report_package.py` and
+`harness/trajectory_replay/webarena_report_package.py`. They share
+`harness/reporting/publication.py`: freeze report and authority inputs before
+release gates, stage the ZIP and attestation, verify the archive against the
+frozen file inventory, and reject input or destination changes before installing.
+Handled installation errors restore the preceding files; publishers reject an
+interrupted installation through the existing archive hash binding. Browser Use
+accepts `--authority-root` for repository-external execution. Replay build,
+packaging and publication share dataset binding in `report_inputs.py`.
+
 Visual release checks belong to `harness/browser_use/report_visual.py` and
 `harness/trajectory_replay/webarena_report_visual.py`. Both use
 `harness/reporting/visual.py` for browser discovery, input hashes, complete

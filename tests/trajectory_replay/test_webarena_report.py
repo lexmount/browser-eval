@@ -4,10 +4,8 @@ from pathlib import Path
 
 import pytest
 from bs4 import BeautifulSoup
-from PIL import Image
 
-from harness.browser_use.publication import sanitize
-from harness.fix_log import load_fix_log
+from harness.trajectory_replay.report_inputs import bound_dataset_path
 from harness.trajectory_replay.webarena_report import (
     LEGACY_REPLAY_VALIDITY_INPUTS,
     _assets,
@@ -47,22 +45,21 @@ from harness.trajectory_replay.webarena_report_check import (
 from harness.trajectory_replay.webarena_report_check import (
     check as check_report,
 )
-from scripts.build_webarena_replay_report import _bound_dataset_path
 
 
 def test_report_build_requires_hash_bound_corrected_dataset(tmp_path: Path) -> None:
     dataset = tmp_path / "corrected.json"
     dataset.write_text('{"trajectories": []}', encoding="utf-8")
     profile = {"dataset": {"path": str(dataset), "sha256": hashlib.sha256(dataset.read_bytes()).hexdigest()}}
-    assert _bound_dataset_path(profile) == dataset
+    assert bound_dataset_path(profile) == dataset
     with pytest.raises(ValueError, match="changed"):
-        _bound_dataset_path({"dataset": {**profile["dataset"], "sha256": "0" * 64}})
+        bound_dataset_path({"dataset": {**profile["dataset"], "sha256": "0" * 64}})
     with pytest.raises(ValueError, match="requires"):
-        _bound_dataset_path({})
+        bound_dataset_path({})
     link = tmp_path / "link.json"
     link.symlink_to(dataset)
     with pytest.raises(ValueError, match="symlinked"):
-        _bound_dataset_path({"dataset": {"path": str(link), "sha256": profile["dataset"]["sha256"]}})
+        bound_dataset_path({"dataset": {"path": str(link), "sha256": profile["dataset"]["sha256"]}})
 
 
 @pytest.mark.parametrize("extra_methods", [0, 2])
