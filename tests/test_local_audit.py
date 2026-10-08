@@ -215,3 +215,57 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     changed["cases"][0]["url"] = "https://other.test/"
     with pytest.raises(ValueError, match="changed the committed cases"):
         local_audit.require_local_audit(evidence, changed, records)
+
+
+def test_resumed_local_segments_reject_repeated_calls_and_policy_changes():
+    import copy
+    policy = {"provider_config_sha256": "a", "runtime_source_sha256": "b",
+              "parameters": {"timeout": 45}, "providers": [{"name": "test"}]}
+    first = {**policy, "attempt_ids": ["one"], "attempt_count": 1}
+    second = {**policy, "attempt_ids": ["two"], "attempt_count": 1}
+    batch = {**policy, "attempt_ids": ["one", "two"], "attempt_count": 2,
+             "segments": [first, second]}
+    local_audit._require_local_batch_segments(batch)
+    duplicate = copy.deepcopy(batch)
+    duplicate["segments"][1]["attempt_ids"] = ["one"]
+    with pytest.raises(ValueError, match="repeat or omit"):
+        local_audit._require_local_batch_segments(duplicate)
+    changed = copy.deepcopy(batch)
+    changed["segments"][1]["parameters"] = {"timeout": 90}
+    with pytest.raises(ValueError, match="parameters differ"):
+        local_audit._require_local_batch_segments(changed)
+
+
+def test_local_call_chain_section_discloses_real_log_gaps_and_escapes_text():
+    from harness.web_fetch.report import local_call_chain_section
+    dataset = {"comparison": {"call_chain_audit": {
+        "summary": "原判定保留；评分问题未更正",
+        "methods": [{"provider": "moli-webfetch", "calls": 5, "request_ok": 0,
+            "task_pass": 0, "logs": 5, "native_log_note": "2次原生日志缺失",
+            "assessment": "<原生内部原因未知>"}],
+        "findings": [{"text": "无新增调用"}]}}}
+    html = local_call_chain_section(dataset)
+    assert "2次原生日志缺失" in html and "无新增调用" in html
+    assert "&lt;原生内部原因未知&gt;" in html
+    assert "原判定保留；评分问题未更正" in html
+
+
+def test_report_real_diagnostics_do_not_claim_missing_debug(tmp_path):
+    from harness.web_fetch.report import run_log_section
+    log = tmp_path / "logs/real.txt"
+    log.parent.mkdir()
+    log.write_text('{"source":"caller","event":"request_sent"}\n')
+    record = {"attempt_id": "a", "provider": "moli-webfetch", "case_id": "c",
+              "run": 1, "started_at": "2026-10-08T00:00:00+00:00", "ok": False, "elapsed_ms": 45000,
+              "provider_metadata": {"public_debug_log_path": "logs/real.txt",
+                 "public_debug_log_sha256": _digest(log),
+                 "public_log_note": "原生日志缺失，仅保留调用方事件",
+                 "diagnostic_log_bytes": len(log.read_bytes()),
+                 "diagnostic_log_sha256": _digest(log)}}
+    html = run_log_section(tmp_path, record, "")
+    assert "原生日志缺失，仅保留调用方事件" in html
+    assert "已保存文件未截断；原生日志范围见说明" in html
+    assert "没有保存 debug 日志" not in html
+    assert "实际诊断日志" in html
+    assert (tmp_path / "logs/real.html").is_file()
+    assert "request_sent" in (tmp_path / "logs/real.html").read_text()

@@ -35,12 +35,15 @@ class CallDiagnostics:
         product_file=Path(str(self.path)+".openclaw.log")
         if product_file.is_file():
             raw+=b"\n--- native OpenClaw file log (verbatim) ---\n"+product_file.read_bytes()
+        product_stderr=Path(str(self.path)+".moli.stderr")
+        if product_stderr.is_file():
+            raw+=b"\n--- native Moli stderr (verbatim, through collection cutoff) ---\n"+product_stderr.read_bytes()
         native=result.metadata.pop("_diagnostic_log_b64", None)
         if native is not None:
             native=base64.b64decode(native,validate=True)
             if hashlib.sha256(native).hexdigest()!=result.metadata.get("diagnostic_log_sha256") or len(native)!=result.metadata.get("diagnostic_log_bytes"):
                 raise ValueError("Native diagnostic bytes changed")
-            raw+=b"\n--- native product stderr (verbatim) ---\n"+native
+            if not product_stderr.is_file(): raw+=b"\n--- native product stderr (verbatim) ---\n"+native
         result.metadata.update(_diagnostic_log_b64=base64.b64encode(raw).decode(),diagnostic_log_sha256=hashlib.sha256(raw).hexdigest(),diagnostic_log_bytes=len(raw),diagnostic_log_truncated=bool(result.metadata.get("diagnostic_log_truncated",False)),diagnostic_log_sources="observed caller events and exposed native process/library logs")
 
 def emit(event, **fields):

@@ -364,6 +364,28 @@ def _require_lineage(source: Path, receipt: dict) -> None:
         raise ValueError("PR review correction lineage is inconsistent")
 
 
+def _require_local_batch_segments(batch):
+    """A resumed batch must retain distinct physical manifests and the same policy."""
+    segments = batch.get("segments")
+    if segments is None:
+        return
+    if not isinstance(segments, list) or not segments:
+        raise ValueError("Local measurement has no physical segments")
+    attempts = []
+    for segment in segments:
+        for field in ("provider_config_sha256", "runtime_source_sha256", "parameters", "providers"):
+            if segment.get(field) != batch.get(field):
+                raise ValueError("Local measurement segment parameters differ")
+        ids = segment.get("attempt_ids", [])
+        if len(ids) != segment.get("attempt_count"):
+            raise ValueError("Local measurement segment count differs")
+        attempts.extend(ids)
+    if (len(attempts) != len(set(attempts))
+            or set(attempts) != set(batch.get("attempt_ids", []))
+            or len(attempts) != batch.get("attempt_count")):
+        raise ValueError("Local measurement segments repeat or omit a call")
+
+
 def require_local_measurement(source: Path, dataset: dict, records: list[dict]) -> None:
     """Validate a new complete local matrix without claiming independent review."""
     from .reliability import require_reliable
@@ -392,6 +414,7 @@ def require_local_measurement(source: Path, dataset: dict, records: list[dict]) 
     if len(execution["batches"]) != len(contract["providers"]):
         raise ValueError("Local measurement execution scope differs")
     for batch in execution["batches"]:
+        _require_local_batch_segments(batch)
         if (batch.get("provider_config_sha256") != contract["provider_config_sha256"]
                 or batch.get("runtime_source_sha256") != contract["runtime_source_sha256"]
                 or batch.get("parameters", {}).get("timeout") != 45

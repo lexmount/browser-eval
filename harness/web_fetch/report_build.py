@@ -348,6 +348,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 target_file = contained_path(staging, file['artifact_path'])
                 target_file.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(binary, target_file)
+            if local_audit:
+                meta["public_log_note"] = dataset.get("comparison", {}).get("call_chain_audit", {}).get("call_log_notes", {}).get(r["attempt_id"], "")
             if local_audit and meta.get("diagnostic_log_path"):
                 from .runner import _public_text
                 diagnostic_source = contained_path(source, meta["diagnostic_log_path"])

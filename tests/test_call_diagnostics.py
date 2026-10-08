@@ -40,3 +40,16 @@ def test_native_logging_is_observed_and_late_logs_do_not_mutate_evidence(tmp_pat
     assert sink.path.read_bytes()==saved
     assert b"native diagnostic message" in saved
     assert b"native_library" in saved
+
+def test_timeout_retains_product_stderr_even_without_returned_metadata(tmp_path):
+    sink=CallDiagnostics(tmp_path / "deadline.jsonl", "timed-out")
+    # Model a real process writing its persistent stderr before it is stopped.
+    from pathlib import Path
+    product_log=Path(str(sink.path)+".moli.stderr")
+    with product_log.open("wb") as stream:
+        stream.write(b"DEBUG native processing started\n");stream.flush()
+    result=ProviderResult(False,"",error_type="timeout")
+    sink.finish(result)
+    raw=base64.b64decode(result.metadata["_diagnostic_log_b64"])
+    assert b"DEBUG native processing started" in raw
+    assert result.content==""

@@ -791,7 +791,13 @@ class MoliWebFetchProvider(Provider):
                 metadata=metadata,
             )
         # Spool artifacts to files rather than retaining arbitrary CLI output in RAM.
-        with ExitStack() as dns_stack, tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as diagnostic:
+        with ExitStack() as dns_stack, ExitStack() as spool_stack:
+            sink = getattr(self, "_call_diagnostics", None)
+            output = spool_stack.enter_context(
+                Path(str(sink.path) + ".moli.stdout").open("x+b") if sink else tempfile.TemporaryFile())
+            diagnostic = spool_stack.enter_context(
+                Path(str(sink.path) + ".moli.stderr").open("x+b") if sink else tempfile.TemporaryFile())
+            if sink: sink.emit("caller", "native_cli_start", command=command)
             from ..network_dns import NativeDnsBroker, validate_native_dns_library
             dns_broker = None
             process_environment = None
