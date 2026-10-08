@@ -504,6 +504,7 @@ class NativeFileWorkerTests(unittest.TestCase):
                     success=True,
                     markdown=SimpleNamespace(raw_markdown="ready"),
                     redirected_url="https://example.com/final",
+                    redirected_status_code=200,
                     model_dump=lambda **kwargs: {"html": "<main>ready</main>",
                                                   "markdown": {"raw_markdown": "ready"},
                                                   "success": True},
@@ -512,7 +513,7 @@ class NativeFileWorkerTests(unittest.TestCase):
                     url=url,
                     error_message="",
                     media={"images": [], "videos": [], "audios": []},
-                    links={"internal": [], "external": []},
+                    links={"internal": [{"href": "https://example.com/record", "text": "Native record"}], "external": []},
                 )
 
         worker = self.load_worker(object, web_crawler=WebCrawler)
@@ -550,6 +551,10 @@ class NativeFileWorkerTests(unittest.TestCase):
         self.assertEqual(config.delay_before_return_html, 0.25)
         payload = json.loads(output.getvalue())
         self.assertEqual(payload["final_url"], "https://example.com/final")
+        self.assertEqual(payload["status_code"], 200)
+        from harness.web_fetch.response_input import answer_input
+        _, native_links, _, _ = answer_input(payload["content"].encode(), payload["metadata"])
+        self.assertEqual(native_links, [{"title": "Native record", "url": "https://example.com/record"}])
         self.assertEqual(payload["raw_tool_response"]["html"], "<main>ready</main>")
         self.assertEqual(payload["raw_tool_response"]["markdown"]["raw_markdown"], payload["content"])
         self.assertEqual(

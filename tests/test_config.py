@@ -115,3 +115,26 @@ class ConfigTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class CredentialAuthorityTests(unittest.TestCase):
+    def test_repo_credentials_replace_parent_and_missing_keys_do_not_inherit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / '.env').write_text('EXA_API_KEY=repo-fixture-key\nPATH_CHOICE=repo-path\n')
+            with patch('harness.web_fetch.config.ROOT', root), patch.dict(os.environ, {
+                    'EXA_API_KEY': 'parent-fixture-key', 'TAVILY_API_KEY': 'parent-only-key',
+                    'PATH_CHOICE': 'parent-path'}, clear=True):
+                load_runtime_env()
+                self.assertEqual(os.environ['EXA_API_KEY'], 'repo-fixture-key')
+                self.assertNotIn('TAVILY_API_KEY', os.environ)
+                self.assertEqual(os.environ['PATH_CHOICE'], 'parent-path')
+
+    def test_explicit_external_env_cannot_supply_evaluation_credentials(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'other.env'
+            source.write_text('EXA_API_KEY=external-fixture-key\n')
+            with patch('harness.web_fetch.config.ROOT', root), patch.dict(os.environ, {}, clear=True):
+                with self.assertRaisesRegex(ValueError, 'repository .env'):
+                    load_runtime_env(source)
+                self.assertNotIn('EXA_API_KEY', os.environ)
