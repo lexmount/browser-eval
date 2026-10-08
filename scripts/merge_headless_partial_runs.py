@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.safety import contained_path, validate_report_ids
 
 
@@ -56,7 +57,7 @@ def main() -> None:
     args = parser.parse_args()
     if args.output.exists():
         parser.error("Output exists")
-    dataset_bytes = (args.dataset or (args.base / "dataset.json")).read_bytes()
+    dataset_bytes = read_dataset_bytes(args.dataset or (args.base / "dataset.json"))
     dataset = json.loads(dataset_bytes)
     selected = rows(args.base)
     execution = args.base / "execution.json"

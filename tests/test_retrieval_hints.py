@@ -114,8 +114,8 @@ def test_dynamic_case_cannot_omit_retrieval_hints(tmp_path):
         load_dataset(_write_dataset(tmp_path, case))
 
 
-def test_all_current_dynamic_cases_have_bounded_generic_completion_signals():
-    _, cases = load_dataset(Path("evaluation/dataset.json"))
+def test_all_current_dynamic_cases_have_bounded_generic_completion_signals(historical_dataset):
+    _, cases = historical_dataset
     dynamic = [case for case in cases if case.track == "dynamic"]
     assert len(dynamic) == 10
     assert all(case.retrieval_hints for case in dynamic)
@@ -149,8 +149,8 @@ def test_v2_separates_completion_from_bounded_answer_free_extraction():
     assert plan.worker_dict()["extraction"]["fallback"] == "body"
 
 
-def test_current_completion_signals_are_bound_to_independent_capture_shape():
-    _, cases = load_dataset(Path("evaluation/dataset.json"))
+def test_current_completion_signals_are_bound_to_independent_capture_shape(historical_dataset):
+    _, cases = historical_dataset
     by_id = {case.id: case for case in cases}
     captures = []
     for path in (

@@ -16,6 +16,7 @@ from harness.web_fetch.reference_lifecycle import (
     valid_scoring_revision, reference_revision_cases, scoring_revision_history_sha256,
 )
 from harness.web_fetch.safety import contained_path, validate_report_ids
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.result_review import require_result_review
 from harness.web_fetch.artifacts import (
     materialize_private_artifacts, record_private_bindings,
@@ -574,7 +575,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     if output.exists():raise ValueError('Destination exists; evidence must not be overwritten')
     dataset=json.loads((run/'dataset.json').read_text())
     cases={c['id']:c for c in dataset['cases']}
-    canonical=(json.loads(canonical_dataset.read_text()) if canonical_dataset else None)
+    canonical=(json.loads(read_dataset_bytes(canonical_dataset)) if canonical_dataset else None)
     canonical_cases={c['id']:c for c in canonical['cases']} if canonical else {}
     case_replacements=(canonical.get('comparison',{}).get('case_replacements',{})
                        if canonical else {})

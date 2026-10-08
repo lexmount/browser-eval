@@ -18,6 +18,7 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.metrics import normalize_for_match
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
     _resource_target_matches,
     resource_source_scope_identity,
@@ -423,7 +424,7 @@ def main() -> None:
             parser.error(str(error))
     if args.output.exists():
         parser.error('Output exists; observations are immutable')
-    cases = {case['id']: case for case in json.loads(args.dataset.read_text())['cases']}
+    cases = {case['id']: case for case in json.loads(read_dataset_bytes(args.dataset))['cases']}
     wanted = args.case_ids.split(',')
     if set(wanted) - cases.keys():
         parser.error('Unknown case ID')

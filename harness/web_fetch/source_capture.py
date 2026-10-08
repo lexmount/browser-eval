@@ -312,7 +312,8 @@ def collect(
         raise ValueError("workers must be positive")
     if output.exists() or output.is_symlink():
         raise ValueError("Capture output must be a new directory")
-    cases = json.loads(dataset.read_text(encoding="utf-8"))["cases"]
+    from .reference_inputs import read_dataset_bytes
+    cases = json.loads(read_dataset_bytes(dataset))["cases"]
     ids = [safe_identifier(case["id"]) for case in cases]
     if not ids or len(set(ids)) != len(ids):
         raise ValueError("Dataset case IDs must be nonempty and unique")

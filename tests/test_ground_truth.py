@@ -12,6 +12,12 @@ from harness.web_fetch.reference_quality import audit_reference
 
 
 class GroundTruthTest(unittest.TestCase):
+    def historical_dataset(self):
+        try:
+            return load_dataset(Path('evaluation/dataset.json'))
+        except FileNotFoundError:
+            self.skipTest('requires externally installed historical reference inputs')
+
     def require_sources(self):
         try:
             return input_tree(Path('evaluation/dataset.json'), 'sources')
@@ -35,7 +41,8 @@ class GroundTruthTest(unittest.TestCase):
                 load_dataset(path)
 
     def test_current_task_set_and_reference_integrity(self):
-        data,cases=load_dataset(Path('evaluation/dataset.json'))
+        self.require_sources()
+        data,cases=self.historical_dataset()
         self.assertEqual(data['id'],'webfetch')
         self.assertEqual(Counter(c.track for c in cases),dict(web=100,dynamic=10,document=10,image=10,video=10,challenge=10))
         self.assertEqual(len({c.id for c in cases}),150)
@@ -59,7 +66,7 @@ class GroundTruthTest(unittest.TestCase):
                 self.assertEqual(c['required_facts'],[])
                 self.assertEqual(c['source_benchmark']['minimum_entries'],3)
                 self.assertEqual(c['source_benchmark']['verification_scope'],'first_three_name_detail_pairs')
-                reference=json.loads((Path('evaluation/list-references')/(c['id']+'.json')).read_text())
+                reference=json.loads((input_tree(Path('evaluation/dataset.json'),'list-references')/(c['id']+'.json')).read_text())
                 self.assertGreaterEqual(len(reference['items']),3,c['id'])
             elif c['task_kind']=='file':self.assertFalse(c['content_score_applicable'])
             elif c['task_kind']=='resource':self.assertTrue(c['expected_resources'])
@@ -68,7 +75,7 @@ class GroundTruthTest(unittest.TestCase):
         from harness.web_fetch.render_evidence import validate_render_reference
 
         sources = self.require_sources()
-        data, _ = load_dataset(Path('evaluation/dataset.json'))
+        data, _ = self.historical_dataset()
         for case in data['cases']:
             if case['track'] != 'dynamic' or case['source_verification'].get('state') == 'unavailable':
                 continue
@@ -78,7 +85,7 @@ class GroundTruthTest(unittest.TestCase):
             self.assertTrue(audit['valid'], audit['errors'])
 
     def test_restricted_tasks_retain_existing_evidence(self):
-        data,_=load_dataset(Path('evaluation/dataset.json'))
+        data,_=self.historical_dataset()
         by={c['id']:c for c in data['cases']}
         for cid,count in [('challenge-04',30),('challenge-06',15)]:
             self.assertEqual(by[cid]['source_verification']['state'],'restricted')
@@ -87,7 +94,7 @@ class GroundTruthTest(unittest.TestCase):
 
     def test_document_references_match_frozen_sources_and_embedded_provenance(self):
         from harness.web_fetch.document_text import extract_document_text
-        data,_=load_dataset(Path('evaluation/dataset.json'))
+        data,_=self.historical_dataset()
         cases={c['id']:c for c in data['cases']}
         sources=self.require_sources()
         direct={
@@ -117,7 +124,7 @@ class GroundTruthTest(unittest.TestCase):
         self.assertIn('/pdf/sample-3pp.pdf',(sources/'document-08'/'source.html.txt').read_text())
 
     def test_feishu_help_acceptance_is_content_not_table_markup(self):
-        data,_=load_dataset(Path('evaluation/dataset.json'))
+        data,_=self.historical_dataset()
         case=next(c for c in data['cases'] if c['id']=='lm-feishu-help')
         self.assertEqual(case['required_patterns'],[])
         reference=normalize_for_match(case['ground_truth_main_content'])

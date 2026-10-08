@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.body_coverage import body_requirements
 from harness.web_fetch.metrics import normalize_for_match
-from harness.web_fetch.reference_inputs import input_tree
+from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
     requires_fresh_reference,
     scope_identity,
@@ -275,7 +275,7 @@ def main(argv=None):
     args = p.parse_args(argv)
     if args.output.exists():
         p.error('Destination exists')
-    dataset_bytes=args.dataset.read_bytes()
+    dataset_bytes=read_dataset_bytes(args.dataset)
     try:
         dataset=select_freeze_cases(json.loads(dataset_bytes),args.case_ids,
                                     args.exclude_case_ids)

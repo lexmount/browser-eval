@@ -6,10 +6,12 @@ import json
 import pytest
 
 from harness.web_fetch.reference_inputs import (
+    check_reference_input_boundary,
     import_inputs,
     input_tree,
     load_manifest,
     main,
+    read_dataset_bytes,
     require_mutable_inputs,
 )
 from harness.web_fetch.storage import require_canonical_inputs
@@ -17,6 +19,147 @@ from harness.web_fetch.storage import require_canonical_inputs
 
 def sha(value):
     return hashlib.sha256(value).hexdigest()
+
+
+def external_dataset(inputs):
+    dataset, manifest_path, source, manifest = inputs
+    original = dataset.read_bytes()
+    (source / "dataset.json").write_bytes(original)
+    data = json.loads(original)
+    definition = sha(
+        json.dumps(
+            data["cases"][0], ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode()
+    )
+    catalog = {
+        **{key: data[key] for key in ("id", "name", "coverage_plan")},
+        "kind": "frozen_dataset_catalog",
+        "dataset_sha256": sha(original),
+        "case_count": 1,
+        "cases": [
+            {"id": "case-a", "url": "https://example.invalid", "definition_sha256": definition}
+        ],
+    }
+    (dataset.parent / "dataset-catalog.json").write_text(json.dumps(catalog))
+    manifest.update(
+        schema_version=2,
+        catalog="dataset-catalog.json",
+        catalog_sha256=sha((dataset.parent / "dataset-catalog.json").read_bytes()),
+        files={"dataset.json": sha(original)},
+    )
+    manifest_path.write_text(json.dumps(manifest))
+    dataset.unlink()
+    return original
+
+
+def test_catalog_is_non_executable_and_cannot_misdescribe_frozen_tasks(inputs):
+    from harness.web_fetch.config import load_dataset
+
+    dataset, manifest_path, source, manifest = inputs
+    external_dataset(inputs)
+    catalog_path = dataset.parent / "dataset-catalog.json"
+    with pytest.raises(ValueError, match="dataset.tool"):
+        load_dataset(catalog_path)
+    catalog = json.loads(catalog_path.read_text())
+    catalog["cases"][0]["id"] = "another-task"
+    catalog_path.write_text(json.dumps(catalog))
+    manifest["catalog_sha256"] = sha(catalog_path.read_bytes())
+    manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="catalog metadata differs"):
+        import_inputs(manifest_path, source)
+
+
+def test_external_dataset_preserves_frozen_bytes_and_canonical_evidence_contract(inputs, tmp_path):
+    from harness.web_fetch.config import load_dataset
+
+    dataset, manifest_path, source, _ = inputs
+    original = external_dataset(inputs)
+    with pytest.raises(FileNotFoundError, match="not installed"):
+        load_dataset(dataset)
+    output = import_inputs(manifest_path, source)
+    assert read_dataset_bytes(dataset) == original
+    assert load_dataset(dataset)[1][0].id == "case-a"
+    assert input_tree(dataset, "sources") == output / "sources"
+    evidence = tmp_path / "evidence"
+    import shutil
+
+    shutil.copytree(output, evidence)
+    require_canonical_inputs(evidence, dataset.parent)
+    check_reference_input_boundary(dataset.parent)
+    dataset.write_text("unbound local fallback")
+    assert read_dataset_bytes(dataset) == original
+    with pytest.raises(ValueError, match="duplicated"):
+        check_reference_input_boundary(dataset.parent)
+
+
+def test_public_cli_runs_bound_dataset_and_keeps_original_manifest_hash(inputs, tmp_path):
+    from harness.reporting.links import check
+    from harness.web_fetch.cli import build_parser, command_run
+
+    dataset, manifest_path, source, _ = inputs
+    original = external_dataset(inputs)
+    import_inputs(manifest_path, source)
+    env = tmp_path / "empty.env"
+    env.write_text("")
+    output = tmp_path / "run"
+    args = build_parser().parse_args(
+        [
+            "run",
+            "--dataset",
+            str(dataset),
+            "--env-file",
+            str(env),
+            "--output",
+            str(output),
+            "--delay",
+            "0",
+            "--fail-on-failure",
+        ]
+    )
+    assert command_run(args) == 0
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["dataset_sha256"] == sha(original)
+    assert json.loads((output / "dataset.json").read_text()) == json.loads(original)
+    records = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+    assert len(records) == 1 and records[0]["metrics"]["content_pass"]
+    assert (output / records[0]["artifact_path"]).read_bytes()
+    check(output / "report")
+
+
+def test_independent_source_capture_reads_the_complete_bound_task(inputs, tmp_path, monkeypatch):
+    from harness.web_fetch import source_capture
+
+    dataset, manifest_path, source, _ = inputs
+    original = external_dataset(inputs)
+    import_inputs(manifest_path, source)
+    seen = []
+
+    def capture(case, output, resolved_hosts):
+        seen.append(case)
+        return {"case_id": case["id"], "status": 200}
+
+    monkeypatch.setattr(source_capture, "capture", capture)
+    results = source_capture.collect(dataset, tmp_path / "captures", workers=1)
+    assert seen == json.loads(original)["cases"]
+    assert results == [{"case_id": "case-a", "status": 200}]
+
+
+@pytest.mark.parametrize("damage", ["dataset", "catalog", "missing", "symlink"])
+def test_external_dataset_binding_rejects_changed_missing_or_redirected_inputs(inputs, damage):
+    dataset, manifest_path, source, _ = inputs
+    external_dataset(inputs)
+    output = import_inputs(manifest_path, source)
+    if damage == "catalog":
+        (dataset.parent / "dataset-catalog.json").write_text("{}")
+    elif damage == "dataset":
+        (output / "dataset.json").write_text("{}")
+    elif damage == "missing":
+        (output / "dataset.json").unlink()
+    else:
+        (output / "dataset.json").unlink()
+        (output / "dataset.json").symlink_to(source / "dataset.json")
+    with pytest.raises((ValueError, FileNotFoundError)):
+        read_dataset_bytes(dataset)
 
 
 @pytest.fixture
@@ -28,7 +171,10 @@ def inputs(tmp_path, monkeypatch):
         json.dumps(
             {
                 "schema_version": 1,
+                "id": "synthetic-inputs",
+                "name": "Synthetic inputs",
                 "tool": "web_fetch",
+                "coverage_plan": {"web": ["fixture"]},
                 "cases": [
                     {
                         "id": "case-a",
@@ -44,9 +190,7 @@ def inputs(tmp_path, monkeypatch):
     source = tmp_path / "approved-copy"
     (source / "sources/case-a").mkdir(parents=True)
     (source / "sources/case-a/reference.txt").write_bytes(b"independent fixture")
-    (source / "sources/case-a/source.html").write_bytes(
-        b"<main>independent fixture</main>"
-    )
+    (source / "sources/case-a/source.html").write_bytes(b"<main>independent fixture</main>")
     files = {
         path.relative_to(source / "sources").as_posix(): sha(path.read_bytes())
         for path in source.rglob("*")
@@ -73,13 +217,9 @@ def test_import_is_allowlisted_and_dataset_adjacent_repository_copy_is_not_used(
     output = import_inputs(manifest_path, source)
     assert input_tree(dataset, "sources") == output / "sources"
     assert sorted(
-        path.relative_to(output).as_posix()
-        for path in output.rglob("*")
-        if path.is_file()
+        path.relative_to(output).as_posix() for path in output.rglob("*") if path.is_file()
     ) == ["sources/" + name for name in sorted(manifest["trees"]["sources"])]
-    assert (
-        output / "sources/case-a/reference.txt"
-    ).read_bytes() == b"independent fixture"
+    assert (output / "sources/case-a/reference.txt").read_bytes() == b"independent fixture"
     # A repository-side copy cannot mask changed or absent externally bound data.
     (dataset.parent / "sources/case-a").mkdir(parents=True)
     (dataset.parent / "sources/case-a/reference.txt").write_text("unbound fallback")
@@ -114,9 +254,7 @@ def test_invalid_source_cannot_leave_a_partial_import(inputs, damage):
 
 
 @pytest.mark.parametrize("damage", ["missing", "extra", "symlink"])
-def test_installed_inventory_is_exact_and_rejects_missing_extra_or_linked_files(
-    inputs, damage
-):
+def test_installed_inventory_is_exact_and_rejects_missing_extra_or_linked_files(inputs, damage):
     dataset, manifest_path, source, _ = inputs
     output = import_inputs(manifest_path, source)
     path = output / "sources/case-a/reference.txt"
@@ -156,9 +294,7 @@ def test_cli_check_preserves_existing_bytes_and_refuses_overwrite(inputs):
 
 
 @pytest.mark.parametrize("damage", ["dataset", "path", "hash", "version"])
-def test_manifest_rejects_wrong_dataset_escaping_paths_and_invalid_bindings(
-    inputs, damage
-):
+def test_manifest_rejects_wrong_dataset_escaping_paths_and_invalid_bindings(inputs, damage):
     dataset, manifest_path, _, manifest = inputs
     if damage == "dataset":
         dataset.write_text("{}")
@@ -180,9 +316,7 @@ def test_explicit_custom_dataset_uses_its_own_sources_without_global_state(tmp_p
     require_mutable_inputs(dataset)
 
 
-def test_canonical_validation_compares_evidence_against_external_inputs(
-    inputs, tmp_path
-):
+def test_canonical_validation_compares_evidence_against_external_inputs(inputs, tmp_path):
     dataset, manifest_path, source, _ = inputs
     import_inputs(manifest_path, source)
     evidence = tmp_path / "measured"
@@ -197,9 +331,7 @@ def test_canonical_validation_compares_evidence_against_external_inputs(
 
 
 @pytest.mark.parametrize("owner", ["merge", "prepare", "unavailable", "promote"])
-def test_reference_update_commands_reject_pinned_inputs_before_writes(
-    inputs, tmp_path, owner
-):
+def test_reference_update_commands_reject_pinned_inputs_before_writes(inputs, tmp_path, owner):
     dataset, _, _, _ = inputs
     before = dataset.read_bytes()
     with pytest.raises(ValueError, match="immutable"):
@@ -237,9 +369,7 @@ def test_runner_rejects_missing_bound_inputs_before_provider_preflight_or_output
     monkeypatch.setattr(run_benchmark, "load_runtime_env", lambda *args: None)
 
     def forbidden(*args, **kwargs):
-        pytest.fail(
-            "Missing bound inputs must be rejected before provider construction or calls"
-        )
+        pytest.fail("Missing bound inputs must be rejected before provider construction or calls")
 
     monkeypatch.setattr(run_benchmark, "build_provider", forbidden)
     output = tmp_path / "run"
@@ -294,10 +424,19 @@ def test_headless_runner_rejects_missing_inputs_before_provider_or_output(
         pytest.fail("Missing inputs must be rejected before provider construction")
 
     monkeypatch.setattr(run_headless_benchmark, "build_provider", forbidden)
-    monkeypatch.setattr(sys, "argv", [
-        "runner", "--dataset", str(dataset), "--output", str(output),
-        "--providers", "fixture",
-    ])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "runner",
+            "--dataset",
+            str(dataset),
+            "--output",
+            str(output),
+            "--providers",
+            "fixture",
+        ],
+    )
     with pytest.raises(FileNotFoundError, match="not installed"):
         run_headless_benchmark.main()
     assert not output.exists()

@@ -1,22 +1,30 @@
 # 冻结参考输入
 
-历史 Web Fetch 的源页、文档与独立渲染快照保存在 Git 外部。
+历史 Web Fetch 的完整数据集、源页、文档、列表参考与独立渲染快照保存在 Git 外部。
 `evaluation/source-inputs.json` 将完整文件清单、逐文件 SHA-256 和冻结数据集
-SHA-256 绑定在一起。数据集及历史证书保留原始字节。
+SHA-256 绑定在一起。完整数据集及历史证书保留原始字节。
+Git 中的 `evaluation/dataset-catalog.json` 只列任务目录、来源、覆盖计划和
+定义哈希，不含全文参考，也不能作为执行数据集传给运行器。
 
 默认位置为：
 
 ```text
+~/.browser-eval/reference-inputs/<清单 id>/dataset.json
 ~/.browser-eval/reference-inputs/<清单 id>/sources/
+~/.browser-eval/reference-inputs/<清单 id>/list-references/
 ```
 
 `BROWSER_EVAL_DATA_HOME` 可以替换数据根目录。清单指定了外置树时，运行器、
 参考预检和审计只读取该树；不会退回仓库中的同名目录，也不会自动请求网站。
-自定义数据集没有外置清单时，仍使用它旁边的 `sources/` 和 `list-references/`。
+历史命令中的 `evaluation/dataset.json` 由共享读取器按清单解析，读取外置的原始
+文件并验证 SHA-256；该文件不再出现在代码检出中。缺失时必须先导入，不会用
+任务目录代替完整数据集。自定义数据集没有外置清单时，仍读取显式提供的 JSON
+及其旁边的 `sources/` 和 `list-references/`。
 
 ## 导入和校验
 
-从已有且获准使用的副本导入。`--source` 指向包含 `sources/` 的目录：
+从已有且获准使用的副本导入。`--source` 指向包含原始 `dataset.json`、
+`sources/` 和 `list-references/` 的目录：
 
 ```sh
 uv run --frozen python scripts/import_reference_inputs.py \

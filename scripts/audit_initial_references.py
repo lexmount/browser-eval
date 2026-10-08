@@ -16,7 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from harness.web_fetch.reference_inputs import input_tree
+from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_quality import clean_reference_text
 from harness.web_fetch.safety import contained_path, safe_identifier
 from harness.web_fetch.scoring import score_attempt
@@ -168,7 +168,7 @@ def summarize(rows: list[dict]) -> dict:
 
 def audit_dataset(dataset: Path) -> dict:
     dataset = dataset.resolve()
-    raw = dataset.read_bytes()
+    raw = read_dataset_bytes(dataset)
     data = json.loads(raw)
     sources = input_tree(dataset, "sources")
     rows = [audit_case(case, dataset.parent, sources=sources) for case in data["cases"]]

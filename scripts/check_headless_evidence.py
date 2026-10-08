@@ -1,20 +1,20 @@
 """Audit complete measured evidence, including a publication-blocked cohort."""
 import argparse
-from collections import Counter
-from copy import deepcopy
 import hashlib
 import json
-from pathlib import Path
 import sys
+from collections import Counter
+from copy import deepcopy
+from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.config import load_dataset
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
+from harness.web_fetch.runner import load_list_reference
 from harness.web_fetch.safety import contained_path, validate_report_ids
 from harness.web_fetch.scoring import score_attempt
-from harness.web_fetch.body_coverage import body_requirements
-from harness.web_fetch.runner import load_list_reference
 from harness.web_fetch.storage import require_current_report_profile
 
 
@@ -26,7 +26,7 @@ def require(condition,message):
 def check(root,rescore=False):
     dataset,typed=load_dataset(root/'dataset.json')
     cases={c['id']:c for c in dataset['cases']};typed={c.id:c for c in typed}
-    original={c['id']:c for c in json.loads((ROOT/'evaluation/dataset.json').read_text())['cases']}
+    original={c['id']:c for c in json.loads(read_dataset_bytes(ROOT/'evaluation/dataset.json'))['cases']}
     require(cases.keys()==original.keys(),'Task inventory differs')
     for cid in cases:
         a,b=deepcopy(cases[cid]),deepcopy(original[cid])

@@ -8,6 +8,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from .models import EvalCase
+from .reference_inputs import read_dataset_bytes
 from .retrieval_hints import parse_retrieval_hints, native_default_case
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -89,7 +90,7 @@ def expand_env(value: Any) -> Any:
 
 
 def load_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(read_dataset_bytes(path))
 
 
 def load_dataset(path: Path) -> tuple[dict[str, Any], list[EvalCase]]:

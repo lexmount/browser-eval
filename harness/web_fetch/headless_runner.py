@@ -1,3 +1,5 @@
+from harness.web_fetch.reference_inputs import read_dataset_bytes
+
 """Run browser Markdown methods against the unchanged canonical Web Fetch cases."""
 
 import argparse
@@ -177,7 +179,7 @@ def main(argv=None):
                 "headless_client_resource_profile" if resource_profile else "headless_markdown"
             ),
             "timeout_seconds": args.timeout,
-            "source_dataset_sha256": hashlib.sha256(args.dataset.read_bytes()).hexdigest(),
+            "source_dataset_sha256": hashlib.sha256(read_dataset_bytes(args.dataset)).hexdigest(),
             "adapter_input_sha256": hashlib.sha256(
                 (Path(__file__).parent / "providers/headless_worker.py").read_bytes()
             ).hexdigest(),

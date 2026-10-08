@@ -1,38 +1,45 @@
 from __future__ import annotations
 
-import hashlib
 import base64
-import math
+import hashlib
 import json
+import math
 import platform
+import re
 import socket
 import sys
 import threading
 import time
 import traceback
-import re
-from concurrent.futures import ThreadPoolExecutor
 import urllib.error
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .artifacts import (
+    PRIVATE_ARTIFACT_ROOT,
+    PUBLIC_CALL_LOG_ROOT,
+    diagnostic_log_binding,
+    raw_response_binding,
+    verify_record_private_artifacts,
+    verify_record_public_call_logs,
+)
+from .call_boundary import fetch_with_deadline
 from .metrics import summarize, task_passed
-from .scoring import load_list_reference, score_attempt
 from .models import AttemptRecord, EvalCase, ProviderResult
 from .providers import Provider
+from .reference_inputs import read_dataset_bytes
 from .reference_lifecycle import (
-    ReferenceLifecycleError, check_case_reference_binding,
-    check_case_reference_fresh, preflight_reference_checks,
+    ReferenceLifecycleError,
+    check_case_reference_binding,
+    check_case_reference_fresh,
+    preflight_reference_checks,
 )
-from .safety import contained_path, safe_identifier
-from .call_boundary import fetch_with_deadline
 from .diagnostics import CallDiagnostics
 from .response_input import apply_request_status
-from .artifacts import (
-    PRIVATE_ARTIFACT_ROOT, PUBLIC_CALL_LOG_ROOT, diagnostic_log_binding, raw_response_binding,
-    verify_record_private_artifacts, verify_record_public_call_logs,
-)
+from .safety import contained_path, safe_identifier
+from .scoring import load_list_reference, score_attempt
 
 
 class IncompleteEvaluationError(RuntimeError):
@@ -494,7 +501,7 @@ def run_evaluation(
             p.relative_to(Path(__file__).parent).as_posix().encode()+b'\0'+p.read_bytes()
             for p in sorted(Path(__file__).parent.rglob('*.py')))).hexdigest(),
         "provider_config_sha256": hashlib.sha256(provider_config_path.read_bytes()).hexdigest() if provider_config_path.is_file() else None,
-        "dataset_sha256": hashlib.sha256(dataset_path.read_bytes()).hexdigest() if dataset_path.is_file() else None,
+        "dataset_sha256": hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest() if dataset_path.is_file() or (dataset_path.parent / 'source-inputs.json').is_file() else None,
         "network_preflight": ({"dns_mode": network_audit["dns_mode"],
                                "sha256": hashlib.sha256((output_dir / 'network-preflight.json').read_bytes()).hexdigest()}
                               if network_audit is not None else None),

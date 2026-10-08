@@ -23,7 +23,7 @@ from harness.web_fetch.artifacts import (  # noqa: E402
     record_private_bindings,
     verify_record_private_artifacts,
 )
-from harness.web_fetch.reference_inputs import input_tree
+from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (  # noqa: E402
     reference_revision_cases,
     require_verified_reference_checks,
@@ -47,7 +47,7 @@ def _sha256(path: Path) -> str:
 
 
 def _read_json(path: Path) -> dict:
-    value = json.loads(path.read_text(encoding="utf-8"))
+    value = json.loads(read_dataset_bytes(path))
     if not isinstance(value, dict):
         raise ValueError(f"Expected a JSON object: {path}")
     return value
@@ -936,7 +936,7 @@ def _assemble(
         raise ValueError("Selected execution batches do not exactly cover the final main matrix")
 
     # Preserve the canonical dataset bytes, not just an equivalent JSON object.
-    dataset_bytes = canonical_path.read_bytes()
+    dataset_bytes = read_dataset_bytes(canonical_path)
     results_bytes = b"".join(
         (json.dumps(row, ensure_ascii=True) + "\n").encode() for row in final_rows
     )
@@ -967,7 +967,7 @@ def _assemble(
         "kind": "predeclared_webfetch_refresh_assembly",
         "assembled_at": datetime.now(UTC).isoformat(),
         "plan_sha256": _sha256(plan_path),
-        "canonical_dataset_sha256": _sha256(canonical_path),
+        "canonical_dataset_sha256": hashlib.sha256(dataset_bytes).hexdigest(),
         "baseline": {
             **_bundle_identity(baseline, baseline_execution),
             "selected_attempts": len(selected_baseline),

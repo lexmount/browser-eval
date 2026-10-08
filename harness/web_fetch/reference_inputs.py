@@ -25,20 +25,33 @@ def load_manifest(path: Path, dataset: Path | None = None) -> dict:
         raise ValueError("Reference input manifest must not be symlinked")
     manifest = json.loads(path.read_text(encoding="utf-8"))
     if (
-        manifest.get("schema_version") != 1
+        manifest.get("schema_version") not in {1, 2}
         or manifest.get("kind") != "frozen_reference_inputs"
     ):
         raise ValueError("Unsupported reference input manifest")
     safe_identifier(manifest["id"])
-    declared_dataset = contained_path(
-        path.parent, manifest["dataset"], reject_symlinks=True
-    )
+    declared_dataset = contained_path(path.parent, manifest["dataset"], reject_symlinks=True)
     selected_dataset = dataset or declared_dataset
-    if (
-        selected_dataset.resolve() != declared_dataset
-        or digest(selected_dataset) != manifest["dataset_sha256"]
-    ):
+    if selected_dataset.resolve() != declared_dataset:
         raise ValueError("Reference inputs are bound to a different dataset")
+    if manifest["schema_version"] == 1:
+        if digest(selected_dataset) != manifest["dataset_sha256"]:
+            raise ValueError("Reference inputs are bound to a different dataset")
+    else:
+        catalog = contained_path(path.parent, manifest["catalog"], reject_symlinks=True)
+        if digest(catalog) != manifest["catalog_sha256"]:
+            raise ValueError("Frozen dataset catalog changed")
+        definition = json.loads(catalog.read_text(encoding="utf-8"))
+        if (
+            definition.get("kind") != "frozen_dataset_catalog"
+            or definition.get("dataset_sha256") != manifest["dataset_sha256"]
+            or manifest.get("files", {}).get(manifest["dataset"]) != manifest["dataset_sha256"]
+        ):
+            raise ValueError("Frozen dataset binding differs from its catalog")
+        for relative, expected in manifest["files"].items():
+            contained_path(path.parent, relative, reject_symlinks=True)
+            if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
+                raise ValueError("Reference input SHA-256 is invalid")
     if not manifest.get("trees"):
         raise ValueError("Reference input trees are missing")
     for tree, files in manifest["trees"].items():
@@ -47,15 +60,69 @@ def load_manifest(path: Path, dataset: Path | None = None) -> dict:
             raise ValueError("Reference input inventory must not be empty")
         for relative, expected in files.items():
             contained_path(path.parent, relative, reject_symlinks=True)
-            if not isinstance(expected, str) or not re.fullmatch(
-                r"[0-9a-f]{64}", expected
-            ):
+            if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
                 raise ValueError("Reference input SHA-256 is invalid")
     return manifest
 
 
 def input_root(manifest: dict) -> Path:
     return data_home() / "reference-inputs" / manifest["id"]
+
+
+def verify_catalog(path: Path, manifest: dict, raw: bytes) -> None:
+    """Bind the public task directory to the exact frozen task definitions."""
+    catalog = json.loads((path.parent / manifest["catalog"]).read_bytes())
+    dataset = json.loads(raw)
+    cases = dataset.get("cases", [])
+    if (
+        catalog.get("case_count") != len(cases)
+        or len(catalog.get("cases", [])) != len(cases)
+        or any(catalog.get(key) != dataset.get(key) for key in ("id", "name", "coverage_plan"))
+    ):
+        raise ValueError("Frozen dataset catalog inventory differs from its dataset")
+    for declared, case in zip(catalog["cases"], cases):
+        definition = hashlib.sha256(
+            json.dumps(case, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        if declared.get("definition_sha256") != definition:
+            raise ValueError("Frozen task definition differs from its catalog")
+        for key, value in declared.items():
+            if key == "definition_sha256":
+                continue
+            actual = case.get(key)
+            if key == "reference_sha256":
+                text = case.get("ground_truth_main_content", "")
+                actual = hashlib.sha256(text.encode()).hexdigest() if text else None
+            if value != actual:
+                raise ValueError("Frozen task catalog metadata differs from its dataset")
+
+
+def read_dataset_bytes(dataset: Path) -> bytes:
+    """Read a dataset from its explicit binding without changing its frozen bytes."""
+    path = dataset.parent / MANIFEST_NAME
+    if path.is_symlink():
+        raise ValueError("Reference input manifest must not be symlinked")
+    if path.is_file() or path.is_symlink():
+        # A sibling manifest governs its declared dataset, not unrelated configs.
+        declared = json.loads(path.read_text(encoding="utf-8")).get("dataset")
+        if declared and dataset.resolve() == (path.parent / declared).resolve():
+            manifest = load_manifest(path, dataset)
+            if manifest["schema_version"] == 2:
+                selected = contained_path(
+                    input_root(manifest), manifest["dataset"], reject_symlinks=True
+                )
+                if not selected.exists():
+                    if input_root(manifest).exists():
+                        raise ValueError("Installed frozen dataset is missing")
+                    raise FileNotFoundError(
+                        "Reference inputs are not installed; import the approved source copy with scripts/import_reference_inputs.py"
+                    )
+                raw = selected.read_bytes()
+                if hashlib.sha256(raw).hexdigest() != manifest["dataset_sha256"]:
+                    raise ValueError("Frozen dataset changed")
+                verify_catalog(path, manifest, raw)
+                return raw
+    return dataset.read_bytes()
 
 
 def verify_tree(root: Path, files: dict[str, str]) -> None:
@@ -87,6 +154,8 @@ def input_tree(dataset: Path, tree: str) -> Path:
     manifest_path = dataset.parent / MANIFEST_NAME
     if manifest_path.is_file() or manifest_path.is_symlink():
         manifest = load_manifest(manifest_path, dataset)
+        if manifest["schema_version"] == 2:
+            read_dataset_bytes(dataset)
         if tree in manifest["trees"]:
             root = contained_path(input_root(manifest), tree, reject_symlinks=True)
             verify_tree(root, manifest["trees"][tree])
@@ -97,7 +166,11 @@ def input_tree(dataset: Path, tree: str) -> Path:
 def require_mutable_inputs(dataset: Path) -> None:
     """Frozen external references can only be replaced by a new declared revision."""
     path = dataset.parent / MANIFEST_NAME
-    if path.exists() or path.is_symlink():
+    if (
+        path.exists()
+        or path.is_symlink()
+        or dataset.resolve().is_relative_to(data_home() / "reference-inputs")
+    ):
         raise ValueError(
             "Pinned reference inputs are immutable; create a separate candidate dataset and sources"
         )
@@ -107,12 +180,13 @@ def check_reference_input_boundary(directory: Path) -> None:
     """Reject source-tree copies of inputs explicitly assigned to external storage."""
     for path in directory.rglob(MANIFEST_NAME):
         manifest = load_manifest(path)
+        for relative in manifest.get("files", {}):
+            if contained_path(path.parent, relative, reject_symlinks=True).exists():
+                raise ValueError("External reference input duplicated in checkout: " + relative)
         for tree in manifest["trees"]:
             local = contained_path(path.parent, tree, reject_symlinks=True)
             if local.exists():
-                raise ValueError(
-                    "External reference inputs duplicated in checkout: " + tree
-                )
+                raise ValueError("External reference inputs duplicated in checkout: " + tree)
 
 
 def import_inputs(manifest_path: Path, source: Path) -> Path:
@@ -124,18 +198,21 @@ def import_inputs(manifest_path: Path, source: Path) -> Path:
             "Reference input destination already exists; verify it or select a new manifest revision"
         )
     bindings = {
-        f"{tree}/{name}": expected
-        for tree, files in manifest["trees"].items()
-        for name, expected in files.items()
+        **manifest.get("files", {}),
+        **{
+            f"{tree}/{name}": expected
+            for tree, files in manifest["trees"].items()
+            for name, expected in files.items()
+        },
     }
     output.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(
-        prefix=".reference-inputs-", dir=output.parent
-    ) as work:
+    with tempfile.TemporaryDirectory(prefix=".reference-inputs-", dir=output.parent) as work:
         staging = Path(work) / "inputs"
         copy_bound_assets(source, staging, bindings)
         for tree, files in manifest["trees"].items():
             verify_tree(staging / tree, files)
+        if manifest["schema_version"] == 2:
+            verify_catalog(manifest_path, manifest, (staging / manifest["dataset"]).read_bytes())
         staging.rename(output)
     return output
 
@@ -156,6 +233,11 @@ def main(argv=None) -> None:
     if args.check:
         manifest = load_manifest(args.manifest)
         root = input_root(manifest)
+        if manifest["schema_version"] == 2:
+            read_dataset_bytes(args.manifest.parent / manifest["dataset"])
+        for relative, expected in manifest.get("files", {}).items():
+            if digest(contained_path(root, relative, reject_symlinks=True)) != expected:
+                raise ValueError("Reference input changed: " + relative)
         for tree, files in manifest["trees"].items():
             verify_tree(root / tree, files)
     else:

@@ -10,16 +10,18 @@ from pathlib import Path
 from string import Template
 from urllib.parse import quote, urlsplit
 
-from .metrics import evaluate_content, task_passed, percentile
-from .scoring import score_attempt
+from harness.web_fetch.reference_inputs import read_dataset_bytes
+
+from .metrics import percentile, task_passed
+from .report_resources import render_resource_comparison
 from .report_style import STYLE
 from .safety import contained_path, safe_identifier
-from .report_resources import render_resource_comparison
-
+from .scoring import score_attempt
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
 HEADLESS_TITLE = '五类浏览器、七种方法取同一批网页：速度、正文与交付边界'
 from .publication_target import public_report_url
+
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
 TRACK_NAMES = {'web': '静态网站正文', 'document': '文档文字', 'image': '图片',
@@ -119,10 +121,13 @@ def _bound_initial_audit(cases):
     """Publish a whitelist projection only when the audit matches current input cases."""
     path = ROOT / 'research/initial-reference-audit.json'
     dataset_path = ROOT / 'evaluation/dataset.json'
-    if not path.exists() or not dataset_path.exists():
+    if not path.exists():
         return None
     audit = json.loads(path.read_text())
-    raw = dataset_path.read_bytes()
+    try:
+        raw = read_dataset_bytes(dataset_path)
+    except FileNotFoundError:
+        return None
     current = {c['id']: c for c in json.loads(raw)['cases']}
     # Other tracks' rules may change after this web-reference audit. Bind the
     # published claim to the complete web-case definitions, references and

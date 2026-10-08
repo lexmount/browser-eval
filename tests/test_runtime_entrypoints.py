@@ -204,7 +204,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertIn('"document_metadata": metadata', worker)
 
     def test_legacy_webfetch_dataset_coverage_matches_expected_methods(self) -> None:
-        dataset = json.loads((ROOT / "evaluation/dataset.json").read_text())
+        dataset = json.loads((ROOT / "evaluation/dataset-catalog.json").read_text())
         expected = {
             "cloudflare-markdown", "cowagent-built-in", "crawl4ai",
             "deepseek-harness-built-in", "exa", "firecrawl",

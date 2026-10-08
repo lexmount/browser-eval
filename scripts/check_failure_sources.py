@@ -3,11 +3,16 @@ import datetime as dt
 import hashlib
 import json
 import re
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
 import requests
 
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from harness.web_fetch.reference_inputs import read_dataset_bytes
+
 OUT=ROOT/'research/failure-sources.json'
 def check(case):
     item={'case_id':case['id'],'url':case['url'],'checked_at':dt.datetime.now(dt.timezone.utc).isoformat(),'method':'independent HTTP GET; at most 128 KiB'}
@@ -26,7 +31,7 @@ def check(case):
 
 if __name__=='__main__':
     from harness.web_fetch.storage import current_evidence_dir
-    d=json.loads((ROOT/'evaluation/dataset.json').read_text())
+    d=json.loads(read_dataset_bytes(ROOT/'evaluation/dataset.json'))
     failed={json.loads(l)['case_id'] for l in (current_evidence_dir()/'results.jsonl').read_text().splitlines() if not json.loads(l)['ok']}
     with ThreadPoolExecutor(max_workers=8) as pool:rows=list(pool.map(check,[c for c in d['cases'] if c['id'] in failed]))
     OUT.write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\n')

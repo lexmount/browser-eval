@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 
-from harness.web_fetch.reference_inputs import require_mutable_inputs
+from harness.web_fetch.reference_inputs import read_dataset_bytes, require_mutable_inputs
 from harness.web_fetch.safety import contained_path  # noqa: E402
 from scripts.freeze_headless_references import (  # noqa: E402
     _require_promotion,
@@ -35,7 +35,7 @@ def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target
             browser_observations=None,browser_observation_directory=None,
             research_root=None,sources_root=None):
     require_mutable_inputs(canonical_path)
-    canonical_bytes=canonical_path.read_bytes();canonical=json.loads(canonical_bytes)
+    canonical_bytes=read_dataset_bytes(canonical_path);canonical=json.loads(canonical_bytes)
     receipt=json.loads(receipt_path.read_text())
     case_ids=[change['case_id'] for change in receipt.get('changes',[])]
     if not case_ids or len(case_ids)!=len(set(case_ids)):
@@ -123,7 +123,7 @@ def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target
             (source/'current-capture.json').write_bytes(capture_record)
         (source/'reference.txt').write_bytes(reference)
     canonical_path.write_text(json.dumps(final,ensure_ascii=False,indent=2)+'\n')
-    return {'dataset_sha256':hashlib.sha256(canonical_path.read_bytes()).hexdigest(),
+    return {'dataset_sha256':hashlib.sha256(read_dataset_bytes(canonical_path)).hexdigest(),
             'receipt_sha256':receipt_sha,'affected_case_ids':case_ids}
 
 

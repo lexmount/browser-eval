@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 
 
 def _browser_contract(case: dict) -> bool:
@@ -148,7 +149,7 @@ def main(argv: list[str] | None = None) -> None:
     case_ids = [value.strip() for value in args.case_ids.split(",") if value.strip()]
     if not case_ids or len(case_ids) != len(set(case_ids)):
         parser.error("--case-ids must contain nonempty unique IDs")
-    dataset = json.loads(args.dataset.read_text(encoding="utf-8"))
+    dataset = json.loads(read_dataset_bytes(args.dataset))
     known = {case["id"] for case in dataset["cases"]}
     if set(case_ids) - known:
         parser.error("Unknown case IDs: " + ", ".join(sorted(set(case_ids) - known)))
@@ -386,9 +387,9 @@ def certify_wcxb_latency(argv: list[str]) -> None:
     parser.add_argument('--evidence-root', type=Path, required=True)
     args = parser.parse_args(argv)
     sys.path.insert(0, str(ROOT))
+    from harness.web_fetch.wcxb_dataset import validate_manifest
     from harness.web_fetch.wcxb_latency import load_full_paired_latency
     from harness.web_fetch.webmainbench_runner import load_wcxb_source
-    from harness.web_fetch.wcxb_dataset import validate_manifest
 
     certificate_path = args.evidence_root / 'certification.json'
     if certificate_path.exists():

@@ -53,15 +53,15 @@ def require_selection_history(evidence: Path) -> None:
 
 def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
     """Reject a report build when its frozen inputs differ from Git."""
-    from .reference_inputs import input_tree
+    from .reference_inputs import input_tree, read_dataset_bytes
 
     for relative in (Path("dataset.json"), Path("sources"), Path("list-references")):
         expected = canonical / relative
         actual = evidence / relative
-        if expected.is_file():
+        if relative == Path('dataset.json'):
             if not actual.is_file():
                 raise ValueError(f"Persistent evidence differs from canonical input: {relative}")
-            expected_dataset = json.loads(expected.read_text())
+            expected_dataset = json.loads(read_dataset_bytes(expected))
             actual_dataset = json.loads(actual.read_text())
             # Cases and shared scoring configuration are canonical. A measured
             # cohort owns its display identity, provider coverage plan and

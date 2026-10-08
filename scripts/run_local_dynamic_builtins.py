@@ -20,7 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.web_fetch.reference_inputs import input_tree
+from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.storage import data_home
 
 NAMES = ("cowagent-built-in", "openclaw-built-in", "deepseek-harness-built-in")
@@ -149,7 +149,7 @@ def run_child(output: Path, runtime_paths: RuntimePaths, track: str, temporary: 
     from harness.web_fetch.render_evidence import validate_render_reference
     from harness.web_fetch.runner import run_evaluation
 
-    raw = dataset_path.read_bytes()
+    raw = read_dataset_bytes(dataset_path)
     dataset = selected_dataset(json.loads(raw), track)
     source_tree = input_tree(dataset_path, 'sources')
     preflight_reference_checks(dataset["cases"], dataset_path)
@@ -276,7 +276,7 @@ def main() -> int:
             raise ValueError("Isolated child requires its allocated temporary directory")
         return run_child(output, runtime_paths, args.track, args.runtime_tmp, dataset_path)
     from harness.web_fetch.reference_lifecycle import preflight_reference_checks
-    selected = selected_dataset(json.loads(dataset_path.read_bytes()), args.track)
+    selected = selected_dataset(json.loads(read_dataset_bytes(dataset_path)), args.track)
     preflight_reference_checks(selected["cases"], dataset_path)
     output.mkdir(parents=True, exist_ok=False)
     for folder in ("openclaw-home", "openclaw-state", "cowagent-data", "cowagent-workspace"):

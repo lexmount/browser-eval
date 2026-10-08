@@ -5,18 +5,23 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 
-from scripts.freeze_headless_references import (  # noqa: E402
-    REFERENCE_PROMOTION_REGRESSION_IDS, _validate_approval,
-    compute_reference_update, load_browser_observations, select_freeze_cases,
-)
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.scoring_regressions import (  # noqa: E402
-    ROOT_CAUSE_CATEGORIES, build_correction_provenance,
+    ROOT_CAUSE_CATEGORIES,
+    build_correction_provenance,
+)
+from scripts.freeze_headless_references import (  # noqa: E402
+    REFERENCE_PROMOTION_REGRESSION_IDS,
+    _validate_approval,
+    compute_reference_update,
+    load_browser_observations,
+    select_freeze_cases,
 )
 
 
@@ -30,7 +35,7 @@ def prepare(*,dataset_path,captures,output,approved_by,approved_at,
     for path in (candidate_output,full_canonical_output):
         if path is not None and path.exists():
             raise ValueError('Destination exists; candidate datasets are immutable')
-    dataset_bytes=dataset_path.read_bytes()
+    dataset_bytes=read_dataset_bytes(dataset_path)
     dataset=select_freeze_cases(json.loads(dataset_bytes),case_ids,exclude_case_ids)
     observations=load_browser_observations(
         dataset,browser_observations,browser_observation_directory)

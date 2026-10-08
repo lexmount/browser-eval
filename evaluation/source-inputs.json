@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "kind": "frozen_reference_inputs",
-  "id": "webfetch-sources-9511b16bd27c",
+  "id": "webfetch-sources-9511b16bd27c-complete-v2",
   "dataset": "dataset.json",
   "dataset_sha256": "9511b16bd27cfe6c2d7913917992cec574f73a8b5b642c19283ea542f90dab81",
   "trees": {
@@ -774,6 +774,25 @@
       "web-retail-returns/evidence.json": "93df1f7061eac571186443953de97b6bd1c52664663485fca13045265272e5a2",
       "web-retail-returns/reference.txt": "27f1f408669900d2d464919a7944bf8d4690bcf7a6800567176733d007f07e94",
       "web-retail-returns/unavailable-reference.json": "05b38f5bafd10e1b1689072495e916d9028507d3e89a690955d9634a76fa0b52"
+    },
+    "list-references": {
+      "challenge-01.json": "cb5d40aa1384f41ce2facf0585c666bded904dcc4a424437bc18d34d731ee82e",
+      "challenge-02.json": "b4e7df0e45cd157427893a3db7497f2e37e90d865881b894763c9360431773c7",
+      "challenge-03.json": "f14d041f1f263e0528c92df1eb9657ffe5e28017e376c9b40a1e3a3f74f6affc",
+      "challenge-04.json": "b674765247a024b982e1116cdf70bf6387896647b0a7fd1a4b5724326b311b03",
+      "challenge-05.json": "bb6272af3edd24a26e7cb717d1188b072c9a48841ac210b26a34177e97fa61c5",
+      "challenge-06.json": "483fe58f799e7fb6fcaa618fd81929bf8e9bb53f24ef6e5ef2f8c062e03949b9",
+      "challenge-07.json": "210d66d1f1d432eef2ce71575c82674d0b5b833a150f55930ca62d064ce34e74",
+      "challenge-08.json": "f88b4bf778b9501edc4f511ffa6e67de6fc44944b003212bd280a4f26de47fc6",
+      "challenge-09.json": "9e5bd350d3b01098c4a7f5f610185eb303a9fd355eff27978e32adce8cb55181",
+      "challenge-10-justwatch.json": "2cfc6d8c9dc37d962b3c28a47d0743602ed866004d05bb6901c6c459c3457fbb",
+      "details.json": "5b6d52c77d69a16daad3cb22d57b3cd7c2016a2b9141005de589105aedcb73cc",
+      "xiaohongshu-details.json": "170b6f2c40f1840f94c43d8f08e7b26ff4c9a8a5c562286b2919da0e179dac76"
     }
+  },
+  "catalog": "dataset-catalog.json",
+  "catalog_sha256": "ccb06789463ba0720d5e342b9ef384c241675a791ada8b0ea318ea99a474b2e1",
+  "files": {
+    "dataset.json": "9511b16bd27cfe6c2d7913917992cec574f73a8b5b642c19283ea542f90dab81"
   }
 }

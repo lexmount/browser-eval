@@ -1,21 +1,23 @@
 """Apply reviewed body/table scoring rules to saved outputs without provider calls."""
 import argparse
-from datetime import datetime, timezone
 import fcntl
 import hashlib
 import json
-from pathlib import Path
 import sys
 import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.metrics import task_passed
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import reference_revision_cases
 from harness.web_fetch.result_review import review_input_identity
 from harness.web_fetch.safety import contained_path, validate_report_ids
 from harness.web_fetch.scoring_regressions import (
-    ROOT_CAUSE_CATEGORIES, build_correction_provenance,
+    ROOT_CAUSE_CATEGORIES,
+    build_correction_provenance,
 )
 from scripts.rescore_content import rescore
 
@@ -195,7 +197,7 @@ def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category:
     source = source.resolve()
     dataset_path = contained_path(source, 'dataset.json')
     results_path = contained_path(source, 'results.jsonl')
-    before_dataset = dataset_path.read_bytes()
+    before_dataset = read_dataset_bytes(dataset_path)
     before_results = results_path.read_bytes()
     review_path = source/'result-review.json'
     if review_path.is_file():
@@ -214,7 +216,7 @@ def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category:
     prior_reference_receipts = (json.loads(reference_receipt_path.read_text())
                                 if revised_reference_hashes else None)
     dataset = json.loads(before_dataset)
-    canonical = json.loads(canonical_path.read_text())
+    canonical = json.loads(read_dataset_bytes(canonical_path))
     old_cases = {case['id']:case for case in dataset['cases']}
     new_cases = {case['id']:case for case in canonical['cases']}
     if not old_cases.keys() <= new_cases.keys():
@@ -243,7 +245,7 @@ def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category:
     dataset['cases'] = [updated_cases[case['id']] for case in dataset['cases']]
     validate_report_ids(dataset, [json.loads(line) for line in before_results.splitlines()])
     dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2)+'\n')
-    staged_dataset = dataset_path.read_bytes()
+    staged_dataset = read_dataset_bytes(dataset_path)
     try:
         decisions = rescore(source, allow_rule_revision=True,
                             reference_revision_hashes=revised_reference_hashes or None)
@@ -251,7 +253,7 @@ def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category:
         # Never roll stale bytes over a different process's completed revision.
         # Standard callers are serialized below; this comparison also protects
         # against an uncooperative writer that does not take the lock.
-        if (dataset_path.read_bytes() == staged_dataset
+        if (read_dataset_bytes(dataset_path) == staged_dataset
                 and results_path.read_bytes() == before_results):
             dataset_path.write_bytes(before_dataset)
             results_path.write_bytes(before_results)
@@ -272,7 +274,7 @@ def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category:
     try:
         rebind_unchanged_result_review(
             review_path, before_dataset, before_results,
-            dataset_path.read_bytes(), results_path.read_bytes(),
+            read_dataset_bytes(dataset_path), results_path.read_bytes(),
             rebound_at=datetime.now(timezone.utc).isoformat())
     except IndependentReviewRequired:
         review_revision = archive_superseded_result_review(
@@ -284,7 +286,7 @@ def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category:
         'scored_at':datetime.now(timezone.utc).isoformat(),
         'input_dataset_sha256':hashlib.sha256(before_dataset).hexdigest(),
         'input_results_sha256':hashlib.sha256(before_results).hexdigest(),
-        'output_dataset_sha256':hashlib.sha256(dataset_path.read_bytes()).hexdigest(),
+        'output_dataset_sha256':hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest(),
         'output_results_sha256':hashlib.sha256(results_path.read_bytes()).hexdigest(),
         'changed_cases':changed,
         'task_decision_changes':decisions,

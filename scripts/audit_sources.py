@@ -9,6 +9,7 @@ import requests
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.dynamic_lists import evaluate_dynamic_list
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.source_capture import capture
 
 OUT=ROOT/'research/source-checks'
@@ -37,7 +38,7 @@ def inspect(case):
 
 if __name__=='__main__':
     OUT.mkdir(parents=True,exist_ok=True)
-    cases=json.loads((ROOT/'evaluation/dataset.json').read_text())['cases']
+    cases=json.loads(read_dataset_bytes(ROOT/'evaluation/dataset.json'))['cases']
     with ThreadPoolExecutor(max_workers=8) as pool:results=list(pool.map(inspect,cases))
     (OUT/'audit.json').write_text(json.dumps(results,ensure_ascii=False,indent=2)+'\n')
     print('ALL TASKS ATTEMPTED',len(results),flush=True)

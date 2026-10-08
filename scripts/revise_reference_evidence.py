@@ -4,20 +4,22 @@ This is intentionally narrower than a benchmark rerun: URLs, prompts,
 acceptance contracts, call identity, output bytes and timing cannot change.
 """
 import argparse
-from copy import deepcopy
-from datetime import datetime, timezone
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
+from copy import deepcopy
+from datetime import datetime, timezone
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import requires_fresh_reference
 from harness.web_fetch.safety import contained_path, validate_report_ids
 from harness.web_fetch.scoring_regressions import (
-    ROOT_CAUSE_CATEGORIES, build_correction_provenance,
+    ROOT_CAUSE_CATEGORIES,
+    build_correction_provenance,
 )
 from scripts.rescore_content import rescore
 from scripts.revise_body_scoring import archive_superseded_result_review
@@ -80,7 +82,7 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
     source = source.resolve()
     dataset_path = contained_path(source, "dataset.json")
     results_path = contained_path(source, "results.jsonl")
-    before_dataset = dataset_path.read_bytes()
+    before_dataset = read_dataset_bytes(dataset_path)
     before_results = results_path.read_bytes()
     review_path = source / "result-review.json"
     if review_path.is_file():
@@ -90,7 +92,7 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
                 "results_sha256": digest(before_results)}:
             raise ValueError("Existing result review is not bound to reference revision inputs")
     dataset = json.loads(before_dataset)
-    canonical = json.loads(canonical_path.read_text())
+    canonical = json.loads(read_dataset_bytes(canonical_path))
     old_cases = {case["id"]: case for case in dataset["cases"]}
     new_cases = {case["id"]: case for case in canonical["cases"]}
     if not old_cases.keys() <= new_cases.keys():
@@ -186,7 +188,7 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
         "corrected_at": datetime.now(timezone.utc).isoformat(),
         "input_dataset_sha256": digest(before_dataset),
         "input_results_sha256": digest(before_results),
-        "output_dataset_sha256": digest(dataset_path.read_bytes()),
+        "output_dataset_sha256": digest(read_dataset_bytes(dataset_path)),
         "output_results_sha256": digest(results_path.read_bytes()),
         "changed_cases": changed,
         "task_decision_changes": decisions,

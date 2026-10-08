@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch.providers.headless_worker import fetch
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 from scripts.certify_headless_cases import (
     read_completed_records as read_certification_records,
 )
@@ -53,7 +54,10 @@ class HeadlessReviewTests(unittest.TestCase):
         root=Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)
-            dataset=json.loads((root/'evaluation/dataset.json').read_text())
+            try:
+                dataset=json.loads(read_dataset_bytes(root/'evaluation/dataset.json'))
+            except FileNotFoundError:
+                self.skipTest('requires externally installed historical reference inputs')
             dataset['cases']=dataset['cases'][:1]
             (path/'dataset.json').write_text(json.dumps(dataset))
             for flags in ([],['-O']):

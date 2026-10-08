@@ -128,6 +128,13 @@ archive is labelled post-hoc; it is not rewritten as run-time provenance.
 
 ## Run and preserve evidence
 
+The historical `evaluation/dataset.json` input is resolved through
+`evaluation/source-inputs.json`; its full text and captured sources are outside
+Git. Import the approved frozen copy before using the historical commands below,
+as described in [reference inputs](../../docs/reference-inputs.md).
+`evaluation/dataset-catalog.json` is a public task directory, not an execution
+dataset. An explicitly supplied custom dataset remains a normal JSON file.
+
 `harness/web_fetch/headless_runner.py` owns cohort selection, execution and
 implementation checks. The command in `scripts/` delegates to it.
 `configs/providers.headless.json` declares the method registry and the `main`

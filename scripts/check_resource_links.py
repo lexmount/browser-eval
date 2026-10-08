@@ -5,11 +5,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urljoin
+
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 
 
 def main() -> None:
@@ -18,7 +23,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--timeout", type=float, default=25)
     args = parser.parse_args()
-    dataset = json.loads(args.dataset.read_text(encoding="utf-8"))
+    dataset = json.loads(read_dataset_bytes(args.dataset))
     expected: dict[str, list[str]] = {}
     for case in dataset["cases"]:
         for resource in case.get("expected_resources", []):

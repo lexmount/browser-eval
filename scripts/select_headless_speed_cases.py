@@ -4,7 +4,12 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import shutil
+import sys
 from urllib.parse import urlsplit
+
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 
 
 def select_cases(cases, count, excluded=frozenset()):
@@ -36,7 +41,7 @@ def main():
                         help='Provider-blind preflight reference exclusions')
     args=parser.parse_args()
     if args.output.exists():parser.error('Destination exists')
-    dataset=json.loads(args.dataset.read_text())
+    dataset=json.loads(read_dataset_bytes(args.dataset))
     try:
         selected=select_cases(dataset['cases'],args.count,
                               set(filter(None,args.exclude_case_ids.split(','))))

@@ -205,6 +205,11 @@ live in this package. The fixed-action kernel benchmark remains independent in
 
 From the repository root:
 
+The fixture commands need no historical inputs. The Moli command below uses the
+frozen historical dataset; first [import its approved input copy](../../docs/reference-inputs.md).
+Its `evaluation/dataset.json` name resolves through the input manifest, while the
+public task directory contains only metadata and definition hashes.
+
 ```sh
 make setup
 uv run --frozen python -m harness.web_fetch validate --providers fixture
