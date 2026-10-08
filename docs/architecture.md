@@ -123,7 +123,10 @@ The report application owns full rules, interfaces and auditable records. Its ta
 
 `harness/lexbench/` owns the retained Lexbench comparison adapter: report assembly,
 resource matrices, saved-profile aggregation, evidence validation, charts and
-static evidence packaging. `verification.py` owns static validation, release
+static evidence packaging. `reproduction.py` owns frozen layout command preparation
+and execution; report bundles copy that same source. It verifies task scope,
+input hashes and the captured runtime before execution, preserves existing runs
+and rechecks inputs afterward. `verification.py` owns static validation, release
 profile bindings and executable negative controls. Its rendering contract and the
 package loader are installed library assets, with no runtime dependency on
 `tests/`. Imports and help commands do not read report evidence.

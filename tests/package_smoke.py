@@ -71,7 +71,13 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
     assert (destination / 'bundle-loader.js').is_file()
     for name in ('index.html', 'en.html', 'en/index.html'):
         assert 'bundle-loader.js' in (destination / name).read_text()
-    from harness.lexbench import verification
+    from harness.lexbench import reproduction, verification
+    subprocess.run([sys.executable, "-m", "harness.lexbench.reproduction", "--help"],
+                   check=True, cwd=root, capture_output=True, text=True)
+    public_reproduction = root / "reproduce.py"
+    public_reproduction.write_bytes(Path(reproduction.__file__).read_bytes())
+    subprocess.run([sys.executable, str(public_reproduction), "--help"],
+                   check=True, cwd=root, capture_output=True, text=True)
     contract = Path(verification.__file__).with_name('assets') / 'render_contract.cjs'
     subprocess.run(['node', str(contract), '--app', str(source / 'app.js')],
                    check=True, cwd=root, capture_output=True, text=True)

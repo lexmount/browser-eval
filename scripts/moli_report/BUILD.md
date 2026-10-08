@@ -25,6 +25,18 @@ Choose a new output directory for each build; the builder does not delete existi
 
 The base three-configuration diagnostic report and partial fixed-layout additions retain their method summary and interpretation navigation. The 1.1.9 comparison chapter is rendered only when both compared configurations exist. This does not relax the complete method matrix required by `--release`.
 
+The fixed-layout reproduction entry delegates to `harness/lexbench/reproduction.py`:
+
+```sh
+uv run --frozen python scripts/moli_report/run.py \
+  --cohort /path/to/cohort.json --protocol /path/to/protocol.json \
+  --repo /path/to/frozen-runner --output /path/to/evidence \
+  --image sha256:CAPTURED_IMAGE_HASH --node-modules /path/to/linux-node-modules \
+  --agent-browser /path/to/linux-agent-browser --mode off --phase baseline
+```
+
+The default operation validates inputs and prints the Docker command. `--execute` starts the selected run; it preserves existing runs and rechecks frozen inputs afterward. The protocol and cohort must describe the same complete 372-case, three-attempt scope. Report bundles include this module as `reproduction/run.py`, with adjacent `cohort.json` and `protocol.json` as defaults; install Browser Eval before using it. Python optimization does not disable input checks. Historical source and measured-call bindings are unchanged.
+
 The four 1.1.9 resource configurations are release builds bound by `resource_builds` in `evaluation/moli/current-report.json`. Functional evidence binds its own binary identity. Do not relabel retained functional outcomes as a new build's measured accuracy.
 
 `uv run --frozen python -m scripts.moli_report.run_linux_resource_profiles --protocol /path/to/frozen-protocol.json --output /path/to/new-evidence-directory` executes the unchanged Lexbench driver and resource collector. Freeze 557 task definitions, fixtures, runner files, four binary hashes, five attempts, jobs=1, the seed and the 250 ms interval before execution. Each configuration has an independent container; all runs execute serially. The official profiler-off calibration precedes the profiler-on measurement. Resource values come from the latter. The builder verifies all 11,140 measured calls and their calibration pairs, checks the frozen 1,045-call chart population, recomputes aggregates and rejects missing or changed evidence. Keep all measured files outside Git.

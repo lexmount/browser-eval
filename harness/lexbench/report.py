@@ -19,7 +19,7 @@ from harness.record_io import load_jsonl
 from harness.resource_calibration import duration_calibration
 from harness.web_fetch.safety import contained_path, safe_identifier
 
-from . import charts
+from . import charts, reproduction
 from .charts import combine_comparisons, render_chart
 from .resource_evidence import load_matrix
 from .resource_summary import summarize as summarize_linux_profiles
@@ -1561,7 +1561,7 @@ def main(argv=None):
         shutil.copy2(asset, OUT / name)
     (OUT / "reproduction").mkdir(exist_ok=True)
     (OUT / "reproduction/cohort.json").write_text(clean(args.cohort.read_text()))
-    shutil.copy2(SRC / "run.py", OUT / "reproduction/run.py")
+    shutil.copy2(pathlib.Path(reproduction.__file__), OUT / "reproduction/run.py")
     shutil.copy2(
         pathlib.Path(charts.__file__),
         OUT / "reproduction/plot_version_summary.py",
