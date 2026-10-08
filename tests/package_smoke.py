@@ -7,6 +7,7 @@ import hashlib
 import json
 import subprocess
 import sys
+import sysconfig
 import tempfile
 import tomllib
 from pathlib import Path
@@ -25,6 +26,14 @@ def verify_package_tree(source_root: Path, package_root: Path) -> None:
                 for path in directory.glob(pattern):
                     if path.is_file():
                         expected[path.relative_to(source).as_posix()] = path
+    for destination, patterns in project['tool']['setuptools'].get('data-files', {}).items():
+        for pattern in patterns:
+            for path in source_root.glob(pattern):
+                installed_data = Path(sysconfig.get_path('data')) / destination / path.name
+                if path.is_symlink() or installed_data.is_symlink():
+                    raise ValueError('Distribution data must not be symlinked')
+                if installed_data.read_bytes() != path.read_bytes():
+                    raise ValueError('Distribution data differs from source: ' + str(path))
     observed = {}
     for path in package_root.rglob('*'):
         if path.is_symlink():
@@ -225,6 +234,29 @@ def main():
                   (root / 'cohort/results.jsonl').read_text().splitlines()]
         assert len(cohort) == 1 and cohort[0]['metrics']['content_pass']
         assert (root / 'cohort' / cohort[0]['artifact_path']).is_file()
+        from harness.web_fetch.rescoring import rescore
+        from harness.web_fetch.scoring_regressions import DEFAULT_REGISTRY, load_scoring_regressions
+        from harness.web_fetch.scoring_revision import revise
+        assert not DEFAULT_REGISTRY.is_relative_to(args.source_root.resolve())
+        assert load_scoring_regressions()
+        for module in ('rescoring', 'scoring_revision'):
+            subprocess.run([sys.executable, '-m', 'harness.web_fetch.' + module, '--help'],
+                           check=True, cwd=root, capture_output=True, text=True)
+        for script in ('rescore_content.py', 'revise_body_scoring.py'):
+            subprocess.run([sys.executable, str(args.source_root / 'scripts' / script), '--help'],
+                           check=True, cwd=root, capture_output=True, text=True)
+        rescore(root / 'cohort')
+        receipt = revise(
+            root / 'cohort', root / 'cohort/dataset.json',
+            root_cause_category='answer-surface',
+            root_cause='Synthetic installation control preserves the complete answer scoring surface.',
+            regression_ids=['answer-title-supplies-required-fact'],
+        )
+        assert receipt['provider_calls'] == 0 and receipt['task_decision_changes'] == []
+        revised = json.loads((root / 'cohort/results.jsonl').read_text())
+        assert revised['metrics'] == cohort[0]['metrics']
+        assert revised['attempt_id'] == cohort[0]['attempt_id']
+        cohort = [revised]
         from harness.web_fetch.artifacts import artifact_bindings
         from harness.web_fetch.assembly import assemble
         for directory in ('sources', 'list-references'):

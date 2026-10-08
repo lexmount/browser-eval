@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 from harness.record_io import parse_jsonl
 from harness.web_fetch.reference_lifecycle import scoring_revision_history_sha256
 from harness.web_fetch.result_review import require_result_review
-from scripts.revise_body_scoring import rebind_unchanged_result_review
+from harness.web_fetch.result_review import rebind_unchanged_result_review
 
 ALLOWED_REVISION_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts', 'acceptance_contract',

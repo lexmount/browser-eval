@@ -24,6 +24,7 @@ from .artifacts import (
     PUBLIC_CALL_LOG_ROOT,
     diagnostic_log_binding,
     raw_response_binding,
+    verify_record_artifacts,
     verify_record_private_artifacts,
     verify_record_public_call_logs,
 )
@@ -845,8 +846,12 @@ def rescore_evaluation(
     case_by_id = {case.id: case for case in cases}
     records = load_records(run_dir)
     for record in records:
-        verify_record_private_artifacts(run_dir, record)
-        verify_record_public_call_logs(run_dir, record)
+        if record.get("metrics", {}).get("content_sha256"):
+            verify_record_artifacts(run_dir, record)
+        else:
+            # Historical records without a primary hash keep their legacy contract.
+            verify_record_private_artifacts(run_dir, record)
+            verify_record_public_call_logs(run_dir, record)
         contained_path(run_dir, record["artifact_path"])
         expected_hash = record.get("metrics", {}).get("content_sha256")
         if expected_hash and hashlib.sha256(contained_path(run_dir, record["artifact_path"]).read_bytes()).hexdigest() != expected_hash:

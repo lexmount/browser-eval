@@ -21,10 +21,10 @@ from harness.web_fetch.reference_lifecycle import (
 )
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+from harness.web_fetch.scoring_revision import ALLOWED_FIELDS as SCORING_REVISION_FIELDS
 from scripts.rebind_result_review_metadata import (
     ALLOWED_REVISION_FIELDS as REBIND_REVISION_FIELDS,
 )
-from scripts.revise_body_scoring import ALLOWED_FIELDS as SCORING_REVISION_FIELDS
 
 RESOURCE_FIELDS = {"expected_resources", "resource_output_contract", "task_prompt"}
 

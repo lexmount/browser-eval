@@ -135,6 +135,19 @@ binds their SHA-256, original commit and path. Validation reads and hashes these
 files; it never imports or executes them and does not require old Git objects.
 The current certifier remains `webmainbench_latency_correction.py`.
 
+Offline scoring revisions use `harness/web_fetch/rescoring.py` and
+`harness/web_fetch/scoring_revision.py`; their commands only parse arguments and
+invoke those owners. Both run-level and assembled-evidence rescoring verify
+hash-bound primary responses, auxiliary files, downloads, retained retries and
+call logs before changing persisted scores. `result_review.py` owns review
+identity, validation, verdict-neutral rebinding and superseded-review archives.
+A score change cannot reuse a review whose inputs or machine verdict changed.
+
+The scoring regression registry remains authoritative at
+`evaluation/scoring-regressions.json`. Distribution builds install those exact
+bytes under `share/browser-harness-eval`, allowing installed offline revisions
+to validate provenance without a repository checkout or a duplicate registry.
+
 ## Lexbench comparison adapter
 
 `harness/lexbench/` owns the retained Lexbench comparison adapter: report assembly,

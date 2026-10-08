@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from correct_evaluation_contracts import correct
-from rescore_content import rescore
+from harness.web_fetch.rescoring import rescore
 
 from harness.record_io import load_jsonl, parse_jsonl
 from harness.web_fetch.metrics import task_measured, task_passed

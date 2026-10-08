@@ -1,9 +1,12 @@
 """Validate an independently produced, attempt-complete result review."""
 import hashlib
 import json
-from .metrics import task_passed
-from .anomaly_review import require_anomaly_review
+from pathlib import Path
 
+from harness.record_io import parse_jsonl
+
+from .anomaly_review import require_anomaly_review
+from .metrics import task_passed
 
 ANSWER_METADATA_FIELDS = ('links', 'images', 'videos', 'media', 'extras')
 
@@ -147,3 +150,122 @@ def require_blind_result_review(source, dataset, records, review_document=None):
 def require_result_review(source, dataset, records, review_document=None):
     return _require_result_review(
         source, dataset, records, review_document, anomaly_gate=True)
+
+
+class IndependentReviewRequired(ValueError):
+    """The prior review is valid history but cannot certify revised scores."""
+
+
+def rebind_unchanged_result_review(path, before_dataset, before_results,
+                                   after_dataset, after_results, *, rebound_at):
+    """Rebind a blind review only when its actual review inputs are unchanged."""
+    if not path.is_file():
+        return False
+    review = json.loads(path.read_text())
+    old_dataset_hash = hashlib.sha256(before_dataset).hexdigest()
+    old_results_hash = hashlib.sha256(before_results).hexdigest()
+    if review.get('bindings') != {
+            'dataset_sha256': old_dataset_hash,
+            'results_sha256': old_results_hash}:
+        raise ValueError('Existing result review is not bound to scoring inputs')
+    before_document = json.loads(before_dataset)
+    after_document = json.loads(after_dataset)
+    review_inputs = ('cases', 'coverage_plan')
+    changed_review_inputs = [key for key in review_inputs
+                             if before_document.get(key) != after_document.get(key)]
+    if changed_review_inputs:
+        raise IndependentReviewRequired(
+            'Dataset review inputs changed; independent result review must be rerun: '
+            + ', '.join(changed_review_inputs))
+    allowed_metadata = {'id', 'name', 'comparison'}
+    changed_top_level = sorted(
+        key for key in set(before_document) | set(after_document)
+        if before_document.get(key) != after_document.get(key)
+    )
+    if set(changed_top_level) - allowed_metadata:
+        raise IndependentReviewRequired(
+            'Dataset changed outside non-judgmental metadata; independent result review must be rerun')
+    before_comparison = before_document.get('comparison', {})
+    after_comparison = after_document.get('comparison', {})
+    changed_comparison = {
+        key for key in set(before_comparison) | set(after_comparison)
+        if before_comparison.get(key) != after_comparison.get(key)
+    }
+    if changed_comparison - {'conversion'}:
+        raise IndependentReviewRequired(
+            'Comparison semantics changed; independent result review must be rerun: '
+            + ', '.join(sorted(changed_comparison - {'conversion'}))
+        )
+    old_rows = {row['attempt_id']: row for row in parse_jsonl(before_results)}
+    new_rows = {row['attempt_id']: row for row in parse_jsonl(after_results)}
+    if old_rows.keys() != new_rows.keys():
+        raise IndependentReviewRequired(
+            'Attempt inventory changed; independent result review must be rerun')
+    cases = {case['id']: case for case in after_document['cases']}
+    scope = review.get('review_protocol', {}).get('scope', 'all')
+    reviewed_ids = {row['attempt_id'] for row in review.get('attempts', [])}
+    expected = set()
+    for attempt_id, old in old_rows.items():
+        new = new_rows[attempt_id]
+        if review_input_identity(old) != review_input_identity(new):
+            raise IndependentReviewRequired(
+                'Review-visible input changed; independent result review must be rerun')
+        kind = cases[new['case_id']].get('task_kind', 'body')
+        old_verdict = task_passed(old['ok'], old['metrics'], kind)
+        new_verdict = task_passed(new['ok'], new['metrics'], kind)
+        if old_verdict != new_verdict:
+            raise IndependentReviewRequired(
+                'Machine verdict changed; independent result review must be rerun')
+        if scope == 'all' or not new_verdict:
+            expected.add(attempt_id)
+    if reviewed_ids != expected:
+        raise IndependentReviewRequired(
+            'Review scope changed; independent result review must be rerun')
+    machine = {row['attempt_id']: row for row in review['attempts']}
+    for attempt_id in expected:
+        verdict = 'pass' if task_passed(
+            new_rows[attempt_id]['ok'], new_rows[attempt_id]['metrics'],
+            cases[new_rows[attempt_id]['case_id']].get('task_kind', 'body')) else 'fail'
+        if machine[attempt_id].get('machine_verdict') != verdict:
+            raise IndependentReviewRequired(
+                'Reviewed machine verdict changed; independent result review must be rerun')
+    review['bindings'] = {
+        'dataset_sha256': hashlib.sha256(after_dataset).hexdigest(),
+        'results_sha256': hashlib.sha256(after_results).hexdigest(),
+    }
+    review.setdefault('review_protocol', {})['rebound_after_nonjudgmental_metadata_change'] = {
+        'at': rebound_at, 'prior_results_sha256': old_results_hash,
+        'prior_dataset_sha256': old_dataset_hash,
+        'changed_top_level_fields': changed_top_level,
+        'provider_calls': 0,
+        'condition': 'cases, coverage, review-visible inputs, artifact hashes, scope and machine verdicts unchanged',
+    }
+    path.write_text(json.dumps(review, ensure_ascii=False, indent=2)+'\n')
+    return True
+
+
+def archive_superseded_result_review(path: Path, *, before_dataset: bytes,
+                                     before_results: bytes) -> dict:
+    """Move a valid superseded review into immutable, hash-addressed history."""
+    review_bytes = path.read_bytes()
+    review = json.loads(review_bytes)
+    old_dataset_hash = hashlib.sha256(before_dataset).hexdigest()
+    old_results_hash = hashlib.sha256(before_results).hexdigest()
+    if review.get('bindings') != {
+            'dataset_sha256': old_dataset_hash,
+            'results_sha256': old_results_hash}:
+        raise ValueError('Existing result review is not bound to scoring inputs')
+    history = path.parent/'review-history'
+    history.mkdir(exist_ok=True)
+    archive = history/f'result-review-{old_dataset_hash[:12]}-{old_results_hash[:12]}.json'
+    if archive.exists():
+        if archive.read_bytes() != review_bytes:
+            raise ValueError(f'Review history collision: {archive.name}')
+        path.unlink()
+    else:
+        path.replace(archive)
+    return {
+        'prior_result_review_path': archive.relative_to(path.parent).as_posix(),
+        'prior_result_review_sha256': hashlib.sha256(review_bytes).hexdigest(),
+        'independent_review_required': True,
+    }

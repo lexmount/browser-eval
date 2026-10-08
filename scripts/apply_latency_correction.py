@@ -11,7 +11,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from harness.record_io import parse_jsonl
 from harness.web_fetch.reference_lifecycle import scoring_revision_history_sha256
-from scripts.revise_body_scoring import rebind_unchanged_result_review
+from harness.web_fetch.result_review import rebind_unchanged_result_review
 
 
 def digest(data):return hashlib.sha256(data).hexdigest()

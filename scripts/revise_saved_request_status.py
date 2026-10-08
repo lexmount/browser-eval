@@ -31,7 +31,7 @@ from harness.web_fetch.reference_lifecycle import (
 from harness.web_fetch.report import failure_category
 from harness.web_fetch.result_review import require_result_review
 from harness.web_fetch.safety import contained_path
-from scripts.revise_body_scoring import rebind_unchanged_result_review
+from harness.web_fetch.result_review import rebind_unchanged_result_review
 
 PROVIDER = "deepseek-harness-built-in"
 HEADER = re.compile(r"Fetched (https?://\S+) \(HTTP ([1-5][0-9][0-9])\)")

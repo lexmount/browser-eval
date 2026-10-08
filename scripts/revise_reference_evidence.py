@@ -22,8 +22,8 @@ from harness.web_fetch.scoring_regressions import (
     ROOT_CAUSE_CATEGORIES,
     build_correction_provenance,
 )
-from scripts.rescore_content import rescore
-from scripts.revise_body_scoring import archive_superseded_result_review
+from harness.web_fetch.rescoring import rescore
+from harness.web_fetch.result_review import archive_superseded_result_review
 
 ALLOWED_FIELDS = {
     "ground_truth_main_content", "source_verification", "body_requirements",

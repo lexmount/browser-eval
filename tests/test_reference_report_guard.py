@@ -3,9 +3,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.report_build import build_report
 from harness.web_fetch.reference_lifecycle import ReferenceLifecycleError
-from scripts.rescore_content import rescore
+from harness.web_fetch.report_build import build_report
+from harness.web_fetch.rescoring import rescore
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 
 

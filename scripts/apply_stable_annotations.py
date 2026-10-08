@@ -19,7 +19,7 @@ from harness.web_fetch.stable_annotations import (
     bind_annotation_evidence,
 )
 from harness.web_fetch.storage import current_evidence_dir
-from scripts.rescore_content import rescore
+from harness.web_fetch.rescoring import rescore
 
 
 def apply(source: Path):

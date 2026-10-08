@@ -1,17 +1,19 @@
 import hashlib
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 from harness.web_fetch.result_review import (
-    require_blind_result_review, require_result_review, review_input_identity)
+    IndependentReviewRequired,
+    archive_superseded_result_review,
+    rebind_unchanged_result_review,
+    require_blind_result_review,
+    require_result_review,
+    review_input_identity,
+)
 from scripts.merge_result_review_revision import merge, merge_refresh, merge_replacement
 from scripts.rebase_blind_result_review import rebase
-from scripts.revise_body_scoring import (
-    IndependentReviewRequired, archive_superseded_result_review,
-    rebind_unchanged_result_review,
-)
 
 
 class ResultReviewTests(unittest.TestCase):

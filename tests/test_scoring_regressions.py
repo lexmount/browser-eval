@@ -1,20 +1,22 @@
 import hashlib
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
 from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.reference_lifecycle import (
-    reference_revision_cases, scoring_revision_history_sha256,
+    reference_revision_cases,
+    scoring_revision_history_sha256,
     valid_scoring_revision,
 )
 from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.scoring_regressions import (
-    load_scoring_regressions, require_scoring_regressions,
+    load_scoring_regressions,
+    require_scoring_regressions,
     valid_correction_provenance,
 )
-from scripts.revise_body_scoring import correction_provenance
+from harness.web_fetch.scoring_revision import correction_provenance
 
 
 class ScoringRegressionTests(unittest.TestCase):
