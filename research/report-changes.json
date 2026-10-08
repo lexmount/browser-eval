@@ -1276,6 +1276,61 @@
   ],
   "releases": [
     {
+      "id": "webmainbench-545-pr919-721bd2e-authority-20261008",
+      "date": "2026-10-08",
+      "comparison_kinds": [
+        "webmainbench_frozen_html_to_markdown"
+      ],
+      "title": "保留人工主内容参考并重算 PR919 实测结果",
+      "summary": "Moli 1.1.11 PR919 提交 721bd2e32 以固定 release 二进制完成 545 页认证运行，目标正文 545/545。复核确认任务 8798f93a 的 91 组可展开比赛明细属于人工标注主内容；撤销错误参考改动后，七方法零调用离线重算，PR919 实测版综合分为 39.27%。",
+      "changes": [
+        [
+          "实测版本边界",
+          "此前把 721bd2e 的运行称为 PR919 当前版本，分支后续重排会让这一称呼失真。",
+          "继续绑定提交 721bd2e32 与 release 二进制 fac987f5…，并明确它是一次独立实测版本。",
+          "目标正文 545/545；后续分支提交不借用本次分数。"
+        ],
+        [
+          "主内容参考复核",
+          "仅凭页面启动时折叠就删除任务 8798f93a 的 91 组比赛明细，混淆了初始可见文本与主内容抽取契约。",
+          "核对任务定义、人工 cc-select 标注、main_html 和 groundtruth_content；四者均把明细纳入主内容。恢复原参考，并要求未来修订绑定任务契约与冻结来源，禁止用方法得分授权改题。",
+          "PR919 实测版在该页的代码分保留为 12.28%；七方法只离线重算，没有新增 provider 调用。"
+        ],
+        [
+          "七方法结果",
+          "错误参考把一个真实的方法差距从正式结果中移除。",
+          "七种方法统一使用 22 条有效数据修订、固定公共总体和同一原网址补测结果。",
+          "PR919 实测版综合分 39.27%，全文 40.73%、代码 91.06%、公式 28.20%、表格内容 22.62%、表格结构 13.75%；综合分和代码为唯一最高。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Retain the annotated main-content reference and rescore the measured PR919 build",
+          "summary": "Moli 1.1.11 PR919 commit 721bd2e32 completed a certified 545-page run with a pinned release binary and delivered 545/545 target bodies. Review confirmed that the 91 expandable game-detail groups in case 8798f93a belong to the human-annotated main content. After reverting the invalid reference change, zero-call offline rescoring gives the measured PR919 build a 39.27% overall score.",
+          "changes": [
+            [
+              "Measured-build boundary",
+              "Calling the 721bd2e run the current PR919 build became inaccurate after the branch was rebased.",
+              "Keep the exact 721bd2e32 source and fac987f5… release binary binding and label it as a measured build.",
+              "It delivers 545/545 target bodies; later branch commits do not inherit these scores."
+            ],
+            [
+              "Main-content reference review",
+              "Removing 91 game-detail groups solely because they are collapsed at startup confused initial visible text with the benchmark main-content contract.",
+              "Check the task definition, human cc-select annotations, main_html, and groundtruth_content. All four include the details. Restore the reference and require future corrections to bind task-contract and frozen-source authority, never method scores.",
+              "The measured PR919 build retains a 12.28% code score on this page. All seven methods are rescored offline with zero provider calls."
+            ],
+            [
+              "Seven-method result",
+              "The invalid reference change removed a real method gap from the formal result.",
+              "Use the same 22 valid dataset corrections, reference-defined populations, and original-origin replacement result for all seven methods.",
+              "The measured PR919 build scores 39.27% overall, 40.73% text, 91.06% code, 28.20% formula, 22.62% table content, and 13.75% table structure; overall and code are the unique maxima."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-10-07-risk-control-historical-presentation",
       "comparison_kinds": [
         "risk_control_100_moli"
