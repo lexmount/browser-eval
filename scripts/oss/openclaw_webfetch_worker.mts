@@ -21,7 +21,7 @@ async function createTool(request: any, signal: AbortSignal, dnsTraces: any[]) {
           fetch: {
             readability: true,
             cacheTtlMinutes: 0,
-            timeoutSeconds,
+            ...(request.uniform_native_parameters ? {} : { timeoutSeconds }),
             maxChars: maxBytes,
             maxCharsCap: maxBytes,
             maxResponseBytes: maxBytes,
@@ -61,7 +61,8 @@ for await (const line of rl) {
         extractor: details.extractor,
         content_type: details.contentType,
         truncated: details.truncated,
-        timeout_seconds: timeoutSeconds,
+        caller_timeout_seconds: timeoutSeconds,
+        internal_timeout_policy: request.uniform_native_parameters ? "native_default" : "explicit",
         dns_mode: dnsMode,
         dns_resolutions: dnsTraces,
         max_response_bytes: maxBytes,

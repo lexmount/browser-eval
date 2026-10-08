@@ -413,3 +413,9 @@ raw tool value cannot be retroactively reconstructed or rescored as this route.
 本地 DNS 公平性预检覆盖全部六种本地方法，必须统一选择 system 或 public_doh。Moli 在 Darwin 上通过已绑定源码及哈希的进程内解析库支持 public_doh；Crawl4AI 正文浏览器路由使用指定 Chrome 的独立安全 DNS 配置目录。系统模式仍会在发现特殊地址时停止，不能混用模式或关闭产品安全检查。Moli 原生 HTTP 连接超时和响应字节上限也接收共享预算。Crawl4AI 正文路由保留完整原生 model_dump 回包，最终 URL 优先使用其声明的 redirected_url；评分正文仍为原生 raw_markdown。
 
 评测入口不会继承父进程的 API Key、API Token 或账户 ID；这些值只从仓库 .env 读取。普通运行路径变量仍可由调用环境提供，外部 --env-file 不能引入评测凭据。Crawl4AI 的最终 HTTP 状态优先读取原生 redirected_status_code，原始状态另存；原生 links 的 internal/external 名称和地址对直接进入共有 links 输入，不从日志、请求或裸 URL 补造名称。
+
+### Fixed native webpage calls
+
+`uniform_native_parameters: true` selects the fixed-native body/structure policy for web and dynamic tasks. Choose documented native extraction options once per method (for example Tavily advanced, Cloudflare networkidle2, Crawl4AI iframe/overlay options, native freshness and capacity options). The caller deadline is 45 seconds; product connection, navigation and extraction timers retain their native defaults. HTTP-client deadlines and worker cancellation enforce collection time, not product-side budgets. CowAgent globals are never patched.
+
+Per-case retrieval hints and auxiliary document/media/challenge routes are rejected before invocation in this mode. No caller failure retry, cross-provider fallback, injected extraction algorithm or answer synthesis is permitted. Keep the native response envelope and its declared answer; the product may still impose its own limits or internal retries. Prepare a new frozen invocation profile after a policy change; preserve previous measurements and do not infer revised scores without calls.

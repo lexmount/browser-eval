@@ -181,6 +181,7 @@ class SubprocessJsonlProvider(Provider):
         }
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        self.check_native_call(case)
         answer_begin = time.perf_counter()
         try:
             retrieval_plan = plan_for_case(case)
@@ -198,6 +199,7 @@ class SubprocessJsonlProvider(Provider):
         request = {
             "url": case.url,
             "timeout_seconds": timeout,
+            "uniform_native_parameters": bool(self.config.get("uniform_native_parameters")),
             "max_bytes": int(self.config.get("max_bytes", 20_000_000)),
             "dns_mode": self.config.get("dns_mode", "system"),
             "task_kind": case.task_kind,

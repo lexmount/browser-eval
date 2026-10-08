@@ -30,6 +30,8 @@ _PDF_RETURN_MARGIN_SECONDS = 1.0
 def require_normalized_retrieval_plan(request):
     """Enforce plan presence at the worker boundary without reparsing its schema."""
     plan = request.get("retrieval_plan")
+    if request.get("uniform_native_parameters") and plan:
+        raise ValueError("fixed native calls prohibit per-case retrieval plans")
     if request.get("track") == "dynamic" and not plan and request.get("retrieval_mode") != "native_default":
         raise ValueError("dynamic tasks require a normalized retrieval_plan")
     if request.get("track") != "dynamic" and plan:
@@ -390,6 +392,8 @@ async def main() -> None:
                     "remove_overlay_elements": True,
                     "process_iframes": True,
                 }
+                if request.get("uniform_native_parameters"):
+                    run_config_values.pop("page_timeout", None)
                 run_config_values.update(completion_config)
                 run_config_values.update(extraction_config)
                 run_config = CrawlerRunConfig(**run_config_values)

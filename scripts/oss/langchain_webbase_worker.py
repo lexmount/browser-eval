@@ -25,7 +25,7 @@ for line in sys.stdin:
     try:
         loader = WebBaseLoader(
             web_paths=(request["url"],),
-            requests_kwargs={"timeout": request["timeout_seconds"]},
+            requests_kwargs={} if request.get("uniform_native_parameters") else {"timeout": request["timeout_seconds"]},
             continue_on_failure=False,
             raise_for_status=True,
         )

@@ -99,6 +99,20 @@ class MoliTests(unittest.TestCase):
         values.update(changes)
         return SimpleNamespace(**values)
 
+    def test_fixed_native_cli_omits_internal_timers(self):
+        provider = self.provider(
+            "import sys\n"
+            "assert not {'--timeout', '--http-timeout', '--http-connect-timeout'} & set(sys.argv)\n"
+            "assert '--dump' in sys.argv and '--http-max-response-size' in sys.argv\n"
+            "print('complete native answer')\n",
+            uniform_native_parameters=True,
+        )
+        self.assertEqual(provider.validate(), [])
+        result = provider.fetch(self.case, 45)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.content, "complete native answer\n")
+        self.assertIsNone(result.metadata["http_connect_timeout_ms"])
+
     def test_cli_contract_and_diagnostics(self):
         provider = self.provider(
             "import sys\n"

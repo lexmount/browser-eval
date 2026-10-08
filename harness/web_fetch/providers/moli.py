@@ -455,6 +455,7 @@ class MoliWebFetchProvider(Provider):
         return errors
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        self.check_native_call(case)
         validate_http_url(case.url)
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be positive and finite")
@@ -648,6 +649,12 @@ class MoliWebFetchProvider(Provider):
         # Forward the common limits to the native transport as well as stdout.
         command.extend(["--http-connect-timeout", timeout_ms,
                         "--http-max-response-size", str(int(self.config.get("max_bytes", 20_000_000)))])
+        if self.config.get("uniform_native_parameters"):
+            # These are product timers, not the runner's wall-clock deadline.
+            for flag in ("--timeout", "--http-timeout", "--http-connect-timeout"):
+                if flag in command:
+                    index = command.index(flag)
+                    del command[index:index + 2]
         block_private_networks = bool(self.config.get("block_private_networks", True))
         requested_host = (urlsplit(case.url).hostname or "").casefold()
         private_network_guard_exception = block_private_networks and requested_host in set(
@@ -665,7 +672,8 @@ class MoliWebFetchProvider(Provider):
         diagnostic_read_limit = diagnostic_limit if retain_diagnostic else limit
         metadata = {
             "dump": dump,
-            "http_connect_timeout_ms": int(timeout_ms),
+            "http_connect_timeout_ms": None if self.config.get("uniform_native_parameters") else int(timeout_ms),
+            "internal_timeout_policy": "native_default" if self.config.get("uniform_native_parameters") else "explicit",
             "http_max_response_bytes": int(self.config.get("max_bytes", 20_000_000)),
             "route": (
                 "raw_file"

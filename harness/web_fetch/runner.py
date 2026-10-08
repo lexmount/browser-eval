@@ -458,6 +458,11 @@ def run_evaluation(
     if resource_sample_interval_ms is not None and resource_sample_interval_ms < 10:
         raise ValueError('resource_sample_interval_ms must be at least 10')
     for provider in providers:
+        if provider.config.get("uniform_native_parameters"):
+            if runs != 1 or max_failure_retries != 0:
+                raise ValueError("fixed native calls require one run and zero caller retries")
+            for case in cases:
+                provider.check_native_call(case)
         safe_identifier(provider.name)
     for case in cases:
         safe_identifier(case.id)

@@ -5,7 +5,6 @@ import base64
 import json
 import hashlib
 import math
-import threading
 import re
 import sys
 from pathlib import Path
@@ -24,7 +23,6 @@ def _sanitize_public_content(content: str) -> str:
     )
 
 
-_BUDGET_LOCK = threading.Lock()
 
 
 class CowAgentBuiltinProvider(Provider):
@@ -58,6 +56,7 @@ class CowAgentBuiltinProvider(Provider):
         return missing
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        self.check_native_call(case)
         from ..network_dns import public_dns_context, validate_dns_mode
         dns_mode = validate_dns_mode(self.config.get("dns_mode", "system"))
         root = Path(str(self.config["repo_path"])).expanduser().resolve()
@@ -72,18 +71,10 @@ class CowAgentBuiltinProvider(Provider):
         module = importlib.import_module("agent.tools.web_fetch.web_fetch")
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be positive and finite")
-        # This pinned version has no timeout argument. Scope its network budget
-        # override to one call, restore the native default even on exceptions,
-        # and serialize overrides across instances. Retrieval remains native.
-        with _BUDGET_LOCK:
-            native_timeout = module.DEFAULT_TIMEOUT
-            module.DEFAULT_TIMEOUT = timeout
-            try:
-                tool = module.WebFetch({"cwd": str(workspace)})
-                with public_dns_context(dns_mode, timeout) as dns_trace:
-                    result = tool.execute({"url": case.url})
-            finally:
-                module.DEFAULT_TIMEOUT = native_timeout
+        native_timeout = module.DEFAULT_TIMEOUT
+        tool = module.WebFetch({"cwd": str(workspace)})
+        with public_dns_context(dns_mode, timeout) as dns_trace:
+            result = tool.execute({"url": case.url})
         raw = json.dumps({"status": result.status, "result": result.result,
                           "ext_data": result.ext_data, "display": result.display},
                          ensure_ascii=False).encode()
@@ -102,8 +93,8 @@ class CowAgentBuiltinProvider(Provider):
                 "request_summary": {"caller_timeout_seconds": timeout, "caller_dns_mode": dns_mode},
                 "source_file": str(root / "agent/tools/web_fetch/web_fetch.py"),
                 "cowagent_default_timeout_seconds": native_timeout,
-                "effective_timeout_seconds": timeout,
-                "timeout_adapter": "scoped DEFAULT_TIMEOUT override",
+                "effective_timeout_seconds": native_timeout,
+                "timeout_adapter": "native_default",
                 "_raw_response_b64": base64.b64encode(raw).decode(),
                 "raw_response_sha256": hashlib.sha256(raw).hexdigest(),
                 "raw_response_bytes": len(raw),

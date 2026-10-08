@@ -294,6 +294,7 @@ class CloudflareMarkdownProvider(Provider):
         return [name for name in ("api_token", "account_id") if not self.config.get(name)]
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        self.check_native_call(case)
         return self._fetch_payload(
             case,
             timeout,
@@ -343,6 +344,9 @@ class CloudflareMarkdownProvider(Provider):
             }
         request_body["actionTimeout"] = service_timeout_ms
         route = "browser_rendering_markdown"
+        if self.config.get("uniform_native_parameters"):
+            request_body.get("gotoOptions", {}).pop("timeout", None)
+            request_body.pop("actionTimeout", None)
         wait_metadata = None
         if case.track == "dynamic" and not native_default_case(case) and "url" in request_body:
             try:
@@ -466,7 +470,7 @@ class CloudflareMarkdownProvider(Provider):
                 "route": route,
                 "wait": wait_metadata,
                 "browser": self.config.get("browser"),
-                "service_timeout_ms": service_timeout_ms,
+                "service_timeout_ms": None if self.config.get("uniform_native_parameters") else service_timeout_ms,
                 "client_http_timeout_ms": int(http_timeout * 1000),
                 "input_mode": "inline_html" if "html" in request_body else "url",
                 "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -562,7 +566,7 @@ class CloudflareMarkdownProvider(Provider):
                 "error_count": len(errors),
                 "retry_after": response.headers.get("retry-after"),
                 "browser_ms_used": response.headers.get("x-browser-ms-used"),
-                "service_timeout_ms": service_timeout_ms,
+                "service_timeout_ms": None if self.config.get("uniform_native_parameters") else service_timeout_ms,
                 "client_http_timeout_ms": int(http_timeout * 1000),
             },
         )
@@ -748,6 +752,7 @@ class CloudflareContentProvider(Provider):
         return [name for name in ("api_token", "account_id") if not self.config.get(name)]
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        self.check_native_call(case)
         account_id = str(self.config.get("account_id", ""))
         http_timeout = inner_timeout_budget(timeout)
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
@@ -800,7 +805,7 @@ class CloudflareContentProvider(Provider):
                 "upstream_status": upstream_status,
                 "empty_content": envelope_success and not content,
                 "error_count": len(errors),
-                "service_timeout_ms": service_timeout_ms,
+                "service_timeout_ms": None if self.config.get("uniform_native_parameters") else service_timeout_ms,
                 "client_http_timeout_ms": int(http_timeout * 1000),
             },
         )

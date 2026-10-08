@@ -19,7 +19,8 @@ async function contextFor(request: any) {
   if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0 || !Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) throw new Error("Invalid shared fetch limits");
   const dnsMode = request.dns_mode ?? "system";
   if (!["system", "public_doh"].includes(dnsMode)) throw new Error("dns_mode must be system or public_doh");
-  const key = `${maxBytes}:${timeoutMs}:${dnsMode}`;
+  const key = `${maxBytes}:${timeoutMs}:${dnsMode}:${!!request.uniform_native_parameters}`;
+  const nativeLimits = WebFetchHttp.Config({ maxResponseBytes: maxBytes, maxBodyChars: maxBytes, ...(request.uniform_native_parameters ? {} : { timeoutMs }) });
   if (!ctx || key !== activeLimits) {
     if (ctx) await ctx.fiber.dispose();
     ctx = new Context();
@@ -27,7 +28,7 @@ async function contextFor(request: any) {
     await ctx.plugin(ToolRuntime);
     await ctx.plugin(WebRuntime, { fetchProvider: WebFetchHttp.LOCAL_FETCH_PROVIDER_ID });
     if (dnsMode === "system") {
-      await ctx.plugin(WebFetchHttp, { maxResponseBytes: maxBytes, maxBodyChars: maxBytes, timeoutMs });
+      await ctx.plugin(WebFetchHttp, nativeLimits);
     } else {
       const { createPublicDnsLookup } = await import(pathToFileURL(path.join(process.env.BROWSER_EVAL_HARNESS_ROOT!, "scripts/oss/public_dns.mjs")).href);
       const { resolvePublicAddresses } = await import("@deepseek-ai/dsh-web-fetch-http/src/network.ts");
@@ -35,13 +36,12 @@ async function contextFor(request: any) {
       // DNS is the only environment seam changed; redirect policy is unchanged.
       await ctx.plugin({ name: "shared-dns-environment", inject: ["web"], apply(context: Context) {
         context.web.registerFetchProvider(new WebFetchHttp.HttpFetchProvider({
-          maxResponseBytes: maxBytes, maxBodyChars: maxBytes, timeoutMs,
-          maxRedirects: 5, userAgent: WebFetchHttp.DEFAULT_USER_AGENT,
+          ...nativeLimits,
         }, (hostname, signal) => resolvePublicAddresses(hostname, signal, createPublicDnsLookup(signal, dnsTraces))));
       }});
     }
     await ctx.plugin(TimeoutPolicy);
-    await ctx.plugin(ToolWeb, { search: false, fetch: true, fetchTimeoutMs: timeoutMs, fetchMaxOutputChars: maxBytes + 20000 });
+    await ctx.plugin(ToolWeb, { search: false, fetch: true, ...(request.uniform_native_parameters ? {} : { fetchTimeoutMs: timeoutMs }), fetchMaxOutputChars: maxBytes + 20000 });
     activeLimits = key;
   }
   return { ctx, maxBytes, timeoutMs, dnsMode };
@@ -76,7 +76,7 @@ for await (const line of rl) {
       metadata: { implementation: "DeepSeek Harness ctx.tools.execute(web_fetch)",
         output_projection: "declared_body", source_body_kind: projected.source_body_kind,
         truncated: projected.truncated, dns_mode: dnsMode, dns_resolutions: dnsTraces,
-        timeout_ms: timeoutMs, max_response_bytes: maxBytes, max_body_chars: maxBytes,
+        caller_timeout_ms: timeoutMs, internal_timeout_policy: request.uniform_native_parameters ? "native_default" : "explicit", max_response_bytes: maxBytes, max_body_chars: maxBytes,
         max_output_chars: maxBytes + 20000 },
     }) + "\n");
   } catch (error: any) {

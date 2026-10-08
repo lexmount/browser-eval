@@ -128,6 +128,7 @@ class FirecrawlProvider(Provider):
             )
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        self.check_native_call(case)
         base_url = str(self.config.get("base_url", "https://api.firecrawl.dev")).rstrip("/")
         headers = {}
         if self.config.get("api_key"):
@@ -168,7 +169,7 @@ class FirecrawlProvider(Provider):
             "formats": requested_formats,
             "maxAge": int(self.config.get("max_age", 0)),
             "proxy": str(self.config.get("proxy", "auto")),
-            "timeout": service_timeout_ms,
+            **({} if self.config.get("uniform_native_parameters") else {"timeout": service_timeout_ms}),
         }
         if file_route:
             # The benchmark asks for the original bytes. Disabling Firecrawl's
@@ -394,7 +395,7 @@ class FirecrawlProvider(Provider):
                 "requested_dynamic_wait_strategy": dynamic_wait_strategy,
                 "requested_cache_max_age_ms": request_body["maxAge"],
                 "requested_parsers": request_body.get("parsers"),
-                "service_timeout_ms": request_body["timeout"],
+                "service_timeout_ms": request_body.get("timeout"),
                 "client_http_timeout_ms": int(http_timeout * 1000),
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),

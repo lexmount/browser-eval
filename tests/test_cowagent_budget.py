@@ -8,7 +8,7 @@ from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider
 
 
-def test_uniform_timeout_reaches_native_tool_and_raw_envelope_is_retained(tmp_path):
+def test_outer_timeout_does_not_override_native_tool_and_raw_envelope_is_retained(tmp_path):
     calls = []
     module = SimpleNamespace(DEFAULT_TIMEOUT=30)
     class WebFetch:
@@ -22,10 +22,10 @@ def test_uniform_timeout_reaches_native_tool_and_raw_envelope_is_retained(tmp_pa
     provider = CowAgentBuiltinProvider('cow', {'repo_path': str(tmp_path), 'workspace': str(tmp_path)})
     with patch('harness.web_fetch.providers.cowagent.importlib.import_module', return_value=module):
         result = provider.fetch(EvalCase('one', 'one', 'https://example.com/', 'control', []), 45)
-    assert calls == [({'url': 'https://example.com/'}, 45)]
+    assert calls == [({'url': 'https://example.com/'}, 30)]
     assert module.DEFAULT_TIMEOUT == 30
     assert result.content == 'native answer'
-    assert result.metadata['effective_timeout_seconds'] == 45
+    assert result.metadata['effective_timeout_seconds'] == 30
     from harness.web_fetch.runner import persist_result_artifacts
     persist_result_artifacts(tmp_path, Path('artifacts/cow/control.txt'), result)
     raw = json.loads((tmp_path / result.metadata['raw_response_path']).read_bytes())
@@ -38,7 +38,7 @@ def test_native_default_restored_when_tool_raises(tmp_path):
         def __init__(self, config):
             pass
         def execute(self, arguments):
-            assert module.DEFAULT_TIMEOUT == 45
+            assert module.DEFAULT_TIMEOUT == 30
             raise RuntimeError('native failure')
     module.WebFetch = WebFetch
     provider = CowAgentBuiltinProvider('cow', {'repo_path': str(tmp_path), 'workspace': str(tmp_path)})
