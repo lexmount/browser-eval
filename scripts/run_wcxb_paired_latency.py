@@ -19,9 +19,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.providers import build_provider
-from scripts.run_webmainbench_benchmark import (fetch_record,
+from harness.web_fetch.webmainbench_runner import (fetch_record,
                                                   fixture_server, load_wcxb_source)
-from scripts.select_wcxb_sample import validate_manifest
+from harness.web_fetch.wcxb_dataset import validate_manifest
 
 
 def sha(data: bytes) -> str:

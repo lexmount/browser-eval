@@ -15,26 +15,26 @@ from urllib.parse import urlsplit, urlunsplit
 
 import docker
 
-from harness.browser_use.har import CdpHarRecorder
-from harness.browser_use.runner import (
+from harness.environments.webarena.har import CdpHarRecorder
+from harness.environments.webarena.runtime import (
     SITE_PORTS,
-    _allow_official_container_hostname,
-    _browser_session_contract,
-    _browser_tool_config,
-    _cdp_metadata,
-    _configure_benchmark,
-    _container_host_gateway,
-    _docker_daemon_lock_namespace,
-    _docker_image_metadata,
-    _login_context,
-    _physical_execution_lock,
-    _physical_execution_lock_path,
-    _prepare_browser_viewport,
-    _prepare_sites,
-    _require_clean_git_checkout,
-    _resource_summary,
-    _site_container_manager,
-    _verify_session_viewport,
+    allow_official_container_hostname,
+    browser_session_contract,
+    browser_tool_config,
+    cdp_metadata,
+    configure_benchmark,
+    container_host_gateway,
+    docker_daemon_lock_namespace,
+    docker_image_metadata,
+    login_context,
+    physical_execution_lock,
+    physical_execution_lock_path,
+    prepare_browser_viewport,
+    prepare_sites,
+    require_clean_git_checkout,
+    resource_summary,
+    site_container_manager,
+    verify_session_viewport,
 )
 from harness.trajectory_replay.metrics import DockerStatsResources, ResourceSampler
 from harness.trajectory_replay.runner import (
@@ -461,7 +461,7 @@ def _run_one(  # noqa: PLR0913
     retrieval_contract: dict[str, Any] | None = None,
     state_contract: Any = None,
     run_id: str = "",
-    prepare_sites: bool = True,
+    prepare_environment: bool = True,
 ) -> dict[str, Any]:
     task_id = int(task_seed["task_id"])
     candidate = _candidate(task_seed)
@@ -489,7 +489,7 @@ def _run_one(  # noqa: PLR0913
         corrected_contract = None
     sites = tuple(official_task.sites)
     start_urls = list(benchmark.config.render_url(list(official_task.start_urls), list(sites)))
-    site_access_host = _container_host_gateway(container)
+    site_access_host = container_host_gateway(container)
     calls = _rebind_calls(candidate["tool_calls"], site_access_host, trusted_source_site_hosts)
     source_site_hosts = replay_site_hosts(candidate["tool_calls"])
     attempt_dir = output_dir / engine / str(task_id) / f"physical-{physical_execution}"
@@ -503,8 +503,8 @@ def _run_one(  # noqa: PLR0913
         sys.path.insert(0, str(cowagent_repo))
     from agent.tools.browser.browser_tool import BrowserTool  # noqa: PLC0415
 
-    tool = BrowserTool(config=_browser_tool_config(endpoint))
-    _allow_official_container_hostname(tool)
+    tool = BrowserTool(config=browser_tool_config(endpoint))
+    allow_official_container_hostname(tool)
     resources = DockerStatsResources(container)
     sampler = ResourceSampler(resources, interval_ms=sample_interval_ms)
     before = None
@@ -527,20 +527,20 @@ def _run_one(  # noqa: PLR0913
     viewport_evidence: dict[str, Any] = {}
     try:
         prepare_started = time.perf_counter()
-        if prepare_sites:
-            _prepare_sites(sites)
+        if prepare_environment:
+            prepare_sites(sites)
         timings["environment_prepare_ms"] = (time.perf_counter() - prepare_started) * 1000
 
         setup_started = time.perf_counter()
         service = tool._get_service()
         service._submit(lambda: None)
-        viewport_evidence = _prepare_browser_viewport(service)
+        viewport_evidence = prepare_browser_viewport(service)
         origins = {
             _origin(benchmark.config.get_environment(site).active_url) for site in SITE_PORTS
         }
         _clear_browser_state(service, origins)
-        readiness_retries = _login_context(service, sites, benchmark, start_urls, viewport_evidence)
-        _verify_session_viewport(service, viewport_evidence, "after_login")
+        readiness_retries = login_context(service, sites, benchmark, start_urls, viewport_evidence)
+        verify_session_viewport(service, viewport_evidence, "after_login")
         service._submit(lambda: recorder.start(service._context))
         timings["browser_session_setup_ms"] = (time.perf_counter() - setup_started) * 1000
 
@@ -593,7 +593,7 @@ def _run_one(  # noqa: PLR0913
                 detail = observation_error or result_text
                 raise RuntimeError(f"step {index} failed: {detail}")
         timings["trajectory_replay_ms"] = (time.perf_counter() - replay_started) * 1000
-        _verify_session_viewport(service, viewport_evidence, "after_trajectory")
+        verify_session_viewport(service, viewport_evidence, "after_trajectory")
         process_status = "pass"
 
         if state_contract is not None:
@@ -810,7 +810,7 @@ def _run_one(  # noqa: PLR0913
         "browser_session_readiness_retries": readiness_retries,
         "viewport": viewport_evidence,
         "resource": (
-            _resource_summary(resources, sampler, before, after, resource_duration_ms)
+            resource_summary(resources, sampler, before, after, resource_duration_ms)
             if before is not None and after is not None and sampler.samples
             else {}
         ),
@@ -977,7 +977,7 @@ def _stop_all_sites() -> None:
     """Stop the fixed-port site stack before another method can acquire it."""
 
     for site in SITE_PORTS:
-        manager = _site_container_manager(site)
+        manager = site_container_manager(site)
         if manager.is_running():
             manager.stop()
 
@@ -1386,7 +1386,7 @@ def run_replay_suite(  # noqa: PLR0913
     # uncommitted candidate fix; retain the exact base commit instead of
     # rejecting that workflow as if it were formal evidence.
     browser_eval_commit = (
-        _require_clean_git_checkout(repo_root)
+        require_clean_git_checkout(repo_root)
         if scope != "diagnostic"
         else subprocess.run(
             ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
@@ -1395,24 +1395,24 @@ def run_replay_suite(  # noqa: PLR0913
             text=True,
         ).stdout.strip()
     )
-    cowagent_commit = _require_clean_git_checkout(cowagent)
+    cowagent_commit = require_clean_git_checkout(cowagent)
     client = docker.from_env()
     docker_info = client.info()
     browser_images = {
-        engine: _docker_image_metadata(client.images.get(ENGINE_IMAGES[engine]))
+        engine: docker_image_metadata(client.images.get(ENGINE_IMAGES[engine]))
         for engine in engines
     }
     site_images = {}
     for site in SITE_PORTS:
-        reference = _site_container_manager(site).config.docker_img
+        reference = site_container_manager(site).config.docker_img
         site_images[site.value] = {
             "reference": reference,
-            **_docker_image_metadata(client.images.get(reference)),
+            **docker_image_metadata(client.images.get(reference)),
         }
     runtime = {
         "browser_eval_commit": browser_eval_commit,
         "cowagent_commit": cowagent_commit,
-        "browser_session_contract": _browser_session_contract(),
+        "browser_session_contract": browser_session_contract(),
         "resources": {
             "cpus": cpus,
             "memory": memory,
@@ -1435,7 +1435,7 @@ def run_replay_suite(  # noqa: PLR0913
     if receipt_path.is_file():
         previous = json.loads(receipt_path.read_text(encoding="utf-8"))
         method_site_preparation = dict(previous.get("method_site_preparation") or {})
-    lock_path = _physical_execution_lock_path(_docker_daemon_lock_namespace(docker_info))
+    lock_path = physical_execution_lock_path(docker_daemon_lock_namespace(docker_info))
     receipt = {
         "schema": RECEIPT_SCHEMA,
         "run_id": run_id,
@@ -1460,7 +1460,7 @@ def run_replay_suite(  # noqa: PLR0913
         "attempts": attempts,
     }
     _write_receipt(receipt_path, receipt)
-    with _physical_execution_lock(lock_path) as lock_wait_ms:
+    with physical_execution_lock(lock_path) as lock_wait_ms:
         _remove_orphan_replay_runtimes(client, run_id)
         for engine in engines:
             _teardown_method(client, run_id, engine)
@@ -1484,7 +1484,7 @@ def run_replay_suite(  # noqa: PLR0913
                 site_preparation_started_at = round(time.time() * 1000)
                 _stop_all_sites()
                 if not reset_before_every_task:
-                    _prepare_sites(tuple(SITE_PORTS))
+                    prepare_sites(tuple(SITE_PORTS))
                     method_site_preparation[engine] = {
                         "status": "complete",
                         "started_at_unix_ms": site_preparation_started_at,
@@ -1512,14 +1512,14 @@ def run_replay_suite(  # noqa: PLR0913
                     container, engine=engine, cdp_port=ENGINE_PORTS[engine]
                 )
                 endpoint = _wait_cdp(http_endpoint, container=container)
-                benchmark = _configure_benchmark(hostname=_container_host_gateway(container))
+                benchmark = configure_benchmark(hostname=container_host_gateway(container))
                 session = {
                     "id": uuid.uuid4().hex[:12],
                     "engine": engine,
                     "container_id": container.id,
-                    "browser_image": _docker_image_metadata(container.image),
-                    "browser": _cdp_metadata(http_endpoint),
-                    "site_access_host": _container_host_gateway(container),
+                    "browser_image": docker_image_metadata(container.image),
+                    "browser": cdp_metadata(http_endpoint),
+                    "site_access_host": container_host_gateway(container),
                     "task_ids": [],
                 }
                 sessions.append(session)
@@ -1552,7 +1552,7 @@ def run_replay_suite(  # noqa: PLR0913
                             int(task["task_id"])
                         ),
                         run_id=run_id,
-                        prepare_sites=reset_before_every_task,
+                        prepare_environment=reset_before_every_task,
                     )
                     attempt["browser_session_id"] = session["id"]
                     _finish_physical_execution(physical_entry, attempt)
@@ -1573,9 +1573,9 @@ def run_replay_suite(  # noqa: PLR0913
                             "id": uuid.uuid4().hex[:12],
                             "engine": engine,
                             "container_id": container.id,
-                            "browser_image": _docker_image_metadata(container.image),
-                            "browser": _cdp_metadata(http_endpoint),
-                            "site_access_host": _container_host_gateway(container),
+                            "browser_image": docker_image_metadata(container.image),
+                            "browser": cdp_metadata(http_endpoint),
+                            "site_access_host": container_host_gateway(container),
                             "task_ids": [],
                         }
                         sessions.append(session)

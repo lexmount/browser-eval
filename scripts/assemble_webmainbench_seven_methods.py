@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.safety import contained_path
-from scripts.run_certified_webmainbench_full import digest, read_jsonl
+from harness.web_fetch.webmainbench_certification import digest, read_jsonl
 
 
 def write_rows(path: Path, rows: list[dict]) -> None:

@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.safety import contained_path
 from scripts.assemble_webmainbench_seven_methods import alias_row, require_matrix
-from scripts.run_certified_webmainbench_full import digest, read_jsonl, verify_shard
+from harness.web_fetch.webmainbench_certification import digest, read_jsonl, verify_shard
 from scripts.score_certified_webmainbench_full import verify_score
 
 

@@ -17,7 +17,10 @@ from webarena_verified import WebArenaVerified
 from webarena_verified.types.config import EnvironmentConfig, WebArenaVerifiedConfig
 from webarena_verified.types.task import WebArenaSite
 
-from harness.browser_use.runner import SITE_CREDENTIALS, SITE_PORTS
+from harness.environments.webarena.runtime import (
+    SITE_CREDENTIALS,
+    SITE_PORTS,
+)
 
 READ_ONLY_PORTS = {8888: WebArenaSite.WIKIPEDIA, 3000: WebArenaSite.MAP}
 SUPPORTED_REMOTE_SITES = frozenset(SITE_PORTS) | frozenset(READ_ONLY_PORTS.values())

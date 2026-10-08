@@ -2,6 +2,8 @@
 name = "browser-harness-eval"
 version = "0.1.0"
 description = "Reproducible browser service evaluation harness"
+readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.11"
 dependencies = [
   "beautifulsoup4>=4.12,<5",
@@ -9,6 +11,10 @@ dependencies = [
 
 [project.scripts]
 browser-harness-eval = "harness.web_fetch.cli:main"
+
+[project.urls]
+Repository = "https://github.com/lexmount/browser-eval"
+Issues = "https://github.com/lexmount/browser-eval/issues"
 
 [tool.uv.sources]
 webarena-verified = { git = "https://github.com/lexmount/webarena-verified.git", rev = "da7b992eb10de78000f11a7f34fd4590c171fbd6" }
@@ -93,3 +99,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["harness*"]
+
+[tool.setuptools.package-data]
+"harness.web_fetch" = ["data/*.json", "templates/*.html", "assets/methodology/*.png"]
+"harness.environments.webarena" = ["runtime/*.ini"]

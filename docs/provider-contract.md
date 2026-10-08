@@ -19,7 +19,7 @@ Credentials are expanded from environment placeholders in the provider config.
 They must never be added to `metadata`, content, manifest or logs.
 
 To add another supplier, implement `Provider`, register the type in
-`providers/base.py`, add an example configuration and write a fixture-backed
+`harness/web_fetch/providers/base.py`, add an example configuration and write a fixture-backed
 unit test. Metric and report code should not require changes.
 
 Providers are also assigned an output contract in `methods.py`. Cleaned

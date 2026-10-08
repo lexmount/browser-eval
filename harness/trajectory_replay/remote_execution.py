@@ -13,11 +13,11 @@ from pathlib import Path
 
 from webarena_verified.types.task import WebArenaSite
 
-from harness.browser_use.har import CdpHarRecorder
-from harness.browser_use.runner import (
-    _browser_tool_config,
-    _login_context,
-    _prepare_browser_viewport,
+from harness.environments.webarena.har import CdpHarRecorder
+from harness.environments.webarena.runtime import (
+    browser_tool_config,
+    login_context,
+    prepare_browser_viewport,
 )
 from harness.trajectory_replay.catalog_contracts import (
     apply_action_overrides,
@@ -417,7 +417,7 @@ def _run_task(
             raise ValueError("BrowserTool replay does not support remote CDP headers")
         from agent.tools.browser.browser_tool import BrowserTool  # noqa: PLC0415
 
-        tool = BrowserTool(config=_browser_tool_config(endpoint))
+        tool = BrowserTool(config=browser_tool_config(endpoint))
     elif backend == "playwright":
         from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
 
@@ -476,12 +476,12 @@ def _run_task(
     try:
         service = tool._get_service()
         service._submit(lambda: None)
-        viewport = _prepare_browser_viewport(service)
+        viewport = prepare_browser_viewport(service)
         _clear_browser_state(service, origins)
         start_urls = list(
             benchmark.config.render_url(list(official.start_urls), list(official.sites))
         )
-        _login_context(service, tuple(official.sites), benchmark, start_urls, viewport)
+        login_context(service, tuple(official.sites), benchmark, start_urls, viewport)
         service._submit(lambda: recorder.start(service._context, service._page))
         recorder_started = True
         failure_stage = "browser_tool_execution"

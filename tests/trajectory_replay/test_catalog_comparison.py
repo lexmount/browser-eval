@@ -398,7 +398,7 @@ def test_catalog_results_keep_one_logical_result_and_valid_physical_history(
                 {"status": "pass", "setup_failure": True},
                 {
                     "status": "fail",
-                    "error": "Traceback in _login_context: element is outside of the viewport",
+                    "error": "Traceback in login_context: element is outside of the viewport",
                     "evaluation": False,
                 },
             ],

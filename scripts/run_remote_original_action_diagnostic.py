@@ -52,11 +52,11 @@ def main() -> int:
     sys.path.insert(0, str(cowagent))
     from agent.tools.browser.browser_tool import BrowserTool  # noqa: PLC0415
 
-    from harness.browser_use.runner import (  # noqa: PLC0415
-        _browser_tool_config,
-        _cdp_metadata,
-        _login_context,
-        _prepare_browser_viewport,
+    from harness.environments.webarena.runtime import (
+        browser_tool_config,
+        cdp_metadata,
+        login_context,
+        prepare_browser_viewport,
     )
     from harness.trajectory_replay.remote_runtime import (  # noqa: PLC0415
         load_remote_sites,
@@ -178,12 +178,12 @@ def main() -> int:
                 if not advertised:
                     raise RuntimeError("Docker CDP response omitted webSocketDebuggerUrl")
                 cdp_endpoint = _external_websocket_url(endpoint, advertised)
-            tool = BrowserTool(config=_browser_tool_config(cdp_endpoint))
+            tool = BrowserTool(config=browser_tool_config(cdp_endpoint))
             service = tool._get_service()
-            receipt["browser"] = _cdp_metadata(endpoint)
-            receipt["viewport"] = _prepare_browser_viewport(service)
+            receipt["browser"] = cdp_metadata(endpoint)
+            receipt["viewport"] = prepare_browser_viewport(service)
             official_sites = tuple(official.sites)
-            receipt["login_retries"] = _login_context(
+            receipt["login_retries"] = login_context(
                 service, official_sites, benchmark,
                 [sites[site] for site in official_sites], receipt["viewport"],
             )

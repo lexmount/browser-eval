@@ -6,7 +6,9 @@ from types import SimpleNamespace
 import pytest
 from webarena_verified.core.utils.checksum import compute_data_file_checksum
 
-from harness.browser_use.runner import _configure_benchmark
+from harness.environments.webarena.runtime import (
+    configure_benchmark,
+)
 from harness.webarena_state import (
     PROTOCOL,
     capture_form,
@@ -101,9 +103,11 @@ def test_legacy_correction_requires_explicit_exact_supersession(setup):
 
 
 def test_session_identity_binds_single_request_auth():
-    from harness.browser_use.runner import _browser_session_contract
+    from harness.environments.webarena.runtime import (
+        browser_session_contract,
+    )
 
-    assert _browser_session_contract()["postmill_auth"] == "single_request_bootstrap"
+    assert browser_session_contract()["postmill_auth"] == "single_request_bootstrap"
 
 
 def test_capture_dispatch_failure_is_unavailable_without_repeating_actions(setup):
@@ -191,7 +195,7 @@ def test_qualification_validates_actual_state_not_just_score(setup, tamper):
 
 @pytest.fixture
 def setup(tmp_path):
-    benchmark = _configure_benchmark()
+    benchmark = configure_benchmark()
     task = benchmark.get_task(528)
     definition = {
         "task_id": task.task_id,
@@ -479,7 +483,7 @@ def test_capture_requests_only_real_form_state(setup):
 
 
 def test_runtime_host_rebinding_requires_explicit_new_frozen_site_identity(setup):
-    alternate = _configure_benchmark(hostname="declared-alternate.test")
+    alternate = configure_benchmark(hostname="declared-alternate.test")
     with pytest.raises(ValueError, match="frozen profile site binding"):
         load_contracts(setup.binding, setup.root, alternate)
     binding = copy.deepcopy(setup.binding)

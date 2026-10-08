@@ -673,9 +673,11 @@ def _resolve_tasks(
     selection: PilotSelection, *, expected_data_checksum: str | None = None
 ) -> list[dict[str, Any]]:
     try:
-        from .runner import _configure_benchmark
+        from harness.environments.webarena.runtime import (
+            configure_benchmark,
+        )
 
-        benchmark = _configure_benchmark()
+        benchmark = configure_benchmark()
         if expected_data_checksum:
             dataset_path = Path(benchmark.config.test_data_file)
             actual_data_checksum = _sha256(dataset_path)

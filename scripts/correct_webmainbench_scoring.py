@@ -20,7 +20,7 @@ from scripts.correct_webmainbench_references import (
     copy_contained_artifact,
     read_rows,
 )
-from scripts.score_webmainbench_results import CORE_METRICS, aggregate, metric_dict
+from harness.web_fetch.webmainbench_scoring import CORE_METRICS, aggregate, metric_dict
 
 
 REGISTRY = ROOT / "evaluation/webmainbench-full/scoring-regressions.json"

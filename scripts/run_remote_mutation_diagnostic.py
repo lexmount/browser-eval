@@ -18,11 +18,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-from harness.browser_use.har import CdpHarRecorder
-from harness.browser_use.runner import (
-    _browser_tool_config,
-    _login_context,
-    _prepare_browser_viewport,
+from harness.environments.webarena.har import CdpHarRecorder
+from harness.environments.webarena.runtime import (
+    browser_tool_config,
+    login_context,
+    prepare_browser_viewport,
 )
 from harness.trajectory_replay.remote_runtime import (
     file_sha256,
@@ -476,7 +476,7 @@ def main() -> int:
         sys.path.insert(0, str(args.cowagent_repo.resolve()))
     from agent.tools.browser.browser_tool import BrowserTool  # noqa: PLC0415
 
-    tool = BrowserTool(config=_browser_tool_config(args.cdp))
+    tool = BrowserTool(config=browser_tool_config(args.cdp))
     recorder = CdpHarRecorder()
     har = output / "network.har"
     trace: list[dict[str, Any]] = []
@@ -510,8 +510,8 @@ def main() -> int:
     try:
         service = tool._get_service()
         _clear_browser_state(service, {_origin(url) for url in sites.values()})
-        receipt["viewport"] = _prepare_browser_viewport(service)
-        receipt["login_retries"] = _login_context(service, tuple(task.sites), benchmark, starts)
+        receipt["viewport"] = prepare_browser_viewport(service)
+        receipt["login_retries"] = login_context(service, tuple(task.sites), benchmark, starts)
         service._submit(lambda: recorder.start(service._context))
         for index, arguments in enumerate(calls, 1):
             if readiness is not None and index == readiness["before_original_action"]:

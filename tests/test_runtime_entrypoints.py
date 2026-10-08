@@ -49,8 +49,6 @@ class RuntimeEntrypointTests(unittest.TestCase):
         project = (ROOT / "pyproject.toml").read_text()
         base = project.split("[project]", 1)[1].split("[project.scripts]", 1)[0]
         self.assertIn('beautifulsoup4', base)
-        makefile = (ROOT / "Makefile").read_text()
-        self.assertIn('tests/test_local_audit.py tests/test_dynamic_100_moli_119.py', makefile)
 
     def test_browser_use_routine_and_release_checks_are_separate(self) -> None:
         makefile = (ROOT / "Makefile").read_text()

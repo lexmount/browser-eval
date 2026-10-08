@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from scripts.run_certified_webmainbench_full import verify_shard, verify_declared_binary, verify_source_checkout
+from harness.web_fetch.webmainbench_certification import verify_shard, verify_declared_binary, verify_source_checkout
 from scripts.assemble_webmainbench_full import public_value
 from scripts.score_certified_webmainbench_full import verify_score
-from scripts.score_webmainbench_results import aggregate
+from harness.web_fetch.webmainbench_scoring import aggregate
 
 
 def _digest(value: bytes) -> str:

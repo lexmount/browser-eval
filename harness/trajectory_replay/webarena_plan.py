@@ -8,7 +8,9 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-from harness.browser_use.runner import SITE_PORTS
+from harness.environments.webarena.runtime import (
+    SITE_PORTS,
+)
 from harness.trajectory_replay.browser_use_seeds import (
     _authoritative_rows,
     _contains_ref,

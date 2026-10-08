@@ -1,5 +1,8 @@
 name: ci
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
@@ -22,5 +25,12 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - run: make setup
+      - run: make setup-test
       - run: make ci
+      - name: Build and exercise the installed package
+        run: |
+          uv build --wheel
+          wheel="$PWD/$(ls dist/*.whl)"
+          cd "$(mktemp -d)"
+          uv run --no-project --isolated --with "$wheel" browser-harness-eval validate
+          uv run --no-project --isolated --with "$wheel" browser-harness-eval run --delay 0 --output "$PWD/example"

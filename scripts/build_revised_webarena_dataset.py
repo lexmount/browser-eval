@@ -8,7 +8,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from harness.browser_use.runner import _configure_benchmark
+from harness.environments.webarena.runtime import (
+    configure_benchmark,
+)
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
 from harness.trajectory_replay.webarena_corrections import apply_correction, load_corrections
 
@@ -64,7 +66,7 @@ def revise(
     )
     if not set(task_ids) - {67, 243} <= set(catalog.records):
         raise ValueError("missing reviewed correction")
-    benchmark = _configure_benchmark()
+    benchmark = configure_benchmark()
     records = []
     for task_id in sorted(task_ids):
         row = rows[task_id]

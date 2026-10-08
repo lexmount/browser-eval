@@ -4,9 +4,12 @@ TEST_PY := $(UV) run --frozen --all-extras python
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
 DIAGNOSTIC_PROFILE ?= evaluation/live-webfetch/current-report.json
 
-.PHONY: setup import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check popular-sites-report popular-sites-report-check wcxb-release-check resource-image public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish webarena-catalog-report webarena-catalog-release-check public-webarena-report public-webarena-report-audit public-webarena-report-release
+.PHONY: setup setup-test import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check popular-sites-report popular-sites-report-check wcxb-release-check resource-image public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish webarena-catalog-report webarena-catalog-release-check public-webarena-report public-webarena-report-audit public-webarena-report-release
 
 setup:
+	$(UV) sync --frozen
+
+setup-test:
 	$(UV) sync --frozen --all-extras
 	npm ci
 
@@ -29,11 +32,7 @@ naming-check: runtime-check
 	$(PY) scripts/check_track_naming.py
 
 test-python: runtime-check
-	$(TEST_PY) -m unittest discover -s tests -v
-	$(TEST_PY) -m pytest tests/test_local_audit.py tests/test_dynamic_100_moli_119.py tests/test_three_cohort_review_followup.py tests/test_training_list_contract.py tests/test_risk_control_dataset.py tests/test_composite_tasks.py tests/test_cowagent_budget.py tests/test_fixed_native_policy.py tests/test_fixed_native_workers.py tests/test_call_diagnostics.py tests/test_risk_control_report.py -q
-	$(TEST_PY) -m pytest tests/browser_use -q
-	$(TEST_PY) -m pytest tests/environments tests/test_manage_webarena_rainbond_pool.py -q
-	$(TEST_PY) -m pytest tests/trajectory_replay -q
+	$(TEST_PY) -m pytest tests -q
 
 test-ui:
 	node tests/test_report_ui.mjs
@@ -42,7 +41,7 @@ test-ui:
 
 fixture-smoke: runtime-check
 	$(PY) -m harness.web_fetch validate --providers fixture
-	@tmp=$$(mktemp -d); $(PY) -m harness.web_fetch run --dataset configs/fixture-dataset.json --providers fixture --runs 1 --delay 0 --output "$$tmp/run"
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; $(PY) -m harness.web_fetch run --providers fixture --runs 1 --delay 0 --output "$$tmp/run"
 
 test: test-python test-ui test-native-adapters
 

@@ -57,8 +57,8 @@ def validate(root: Path, original_rows: list[dict], expected_parent: str) -> tup
 
 def apply(root: Path, staging: Path, original_rows: list, summaries: dict, *,
           validation_rows: list | None = None, expected_parent: str | None = None) -> tuple[list, dict]:
-    from scripts.score_webmainbench_results import aggregate
-    from scripts.apply_webmainbench_case_correction import dimensions
+    from harness.web_fetch.webmainbench_scoring import aggregate
+    from harness.web_fetch.webmainbench_case_correction import dimensions
     certificate, replacements, calls = validate(
         root,
         validation_rows if validation_rows is not None else original_rows,

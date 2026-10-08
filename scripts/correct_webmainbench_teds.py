@@ -19,7 +19,7 @@ from harness.web_fetch.scoring_regressions import build_correction_provenance, l
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_diagnostics import require_valid_teds_for_release
 from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision
-from scripts.score_webmainbench_results import aggregate, metric_dict, official_calculator
+from harness.web_fetch.webmainbench_scoring import aggregate, metric_dict, official_calculator
 
 CONTROLS = ['ordered-tree-identical-nested-content-is-perfect',
             'ordered-tree-missing-children-cannot-be-perfect']

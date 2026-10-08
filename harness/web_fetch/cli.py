@@ -10,15 +10,16 @@ from .config import load_dataset, load_runtime_env, load_provider_config
 from .providers import build_provider
 from .metrics import task_passed
 from .report_build import build_report
-from .runner import load_records, rescore_evaluation, run_evaluation
+from .runner import rescore_evaluation, run_evaluation
+from .storage import data_home
 
 
-ROOT = Path(__file__).resolve().parents[2]
+EXAMPLES = Path(__file__).parent / "data"
 
 
 def default_run_dir() -> Path:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    return Path("runs") / stamp
+    return data_home() / "runs" / stamp
 
 
 def command_run(args: argparse.Namespace) -> int:
@@ -106,8 +107,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     run = sub.add_parser("run", help="Run providers and generate a multi-page report")
-    run.add_argument("--dataset", type=Path, default=ROOT / "evaluation/dataset.json")
-    run.add_argument("--provider-config", type=Path, default=ROOT / "configs/providers.example.json")
+    run.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
+    run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated configured provider names")
     run.add_argument("--case-ids", default="", help="Optional comma-separated case IDs")
     run.add_argument("--runs", type=int, default=1)
@@ -134,12 +135,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     rescore = sub.add_parser("rescore", help="Recompute metrics/report from persisted artifacts and task rules")
     rescore.add_argument("run_dir", type=Path)
-    rescore.add_argument("--dataset", type=Path, default=ROOT / "evaluation/dataset.json")
+    rescore.add_argument("--dataset", type=Path, required=True)
     rescore.set_defaults(handler=command_rescore)
 
     validate = sub.add_parser("validate", help="Validate dataset and provider credentials without network calls")
-    validate.add_argument("--dataset", type=Path, default=ROOT / "evaluation/dataset.json")
-    validate.add_argument("--provider-config", type=Path, default=ROOT / "configs/providers.example.json")
+    validate.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
+    validate.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     validate.add_argument("--providers", default="fixture")
     validate.add_argument("--env-file", type=Path)
     validate.set_defaults(handler=command_validate)

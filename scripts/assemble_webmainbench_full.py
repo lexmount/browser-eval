@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.safety import contained_path
-from scripts.run_certified_webmainbench_full import digest, read_jsonl, verify_shard
-from scripts.run_webmainbench_benchmark import load_source
+from harness.web_fetch.webmainbench_certification import digest, read_jsonl, verify_shard
+from harness.web_fetch.webmainbench_runner import load_source
 
 
 def public_value(value):

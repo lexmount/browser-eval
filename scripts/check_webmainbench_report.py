@@ -7,7 +7,7 @@ import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from scripts.report_presentation_contract import check_presentation
+from harness.reporting.presentation import check_presentation
 from bs4 import BeautifulSoup
 from harness.web_fetch.report import STYLE, EXTRA, JS
 from harness.web_fetch.metrics import percentile

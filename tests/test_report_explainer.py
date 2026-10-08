@@ -11,7 +11,7 @@ import unittest
 from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.report import cell, link, table, succeeded, measured
 from harness.web_fetch.report_components import comparable_body_reference
-from harness.web_fetch.report_explainer import (HUB, _bound_initial_audit, _dynamic_section,
+from harness.web_fetch.report_explainer import (public_report_url, _bound_initial_audit, _dynamic_section,
     _speed_comparison, collect_evidence, render_explainer)
 from harness.web_fetch.report_style import STYLE
 from scripts.probe_cowagent_text import probe
@@ -356,7 +356,7 @@ class ExplainerTests(unittest.TestCase):
         page = self.render(self.records)
         from urllib.parse import parse_qs, urlsplit
         for href in re.findall(r'href="([^"]+)"',self.export):
-            self.assertTrue(href.startswith(HUB+'#page='),href)
+            self.assertTrue(href.startswith(public_report_url()+'#page='),href)
             route = parse_qs(urlsplit(href.replace('&amp;','&')).fragment)['page'][0]
             self.assertTrue(route.endswith('.html'),href)
         for suffix in ('interpretation-evidence.json','../results.jsonl','cowagent-text-probe.json'):

@@ -8,7 +8,9 @@ from urllib.parse import urlencode
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
-from harness.browser_use.runner import _configure_benchmark
+from harness.environments.webarena.runtime import (
+    configure_benchmark,
+)
 from harness.trajectory_replay.remote_runtime import remote_benchmark
 from harness.trajectory_replay.webarena_corrections import apply_correction, evaluate_corrected_contract, load_corrections
 
@@ -43,7 +45,7 @@ def scores(tmp_path, task_id, entries, catalog_path=ARCHIVED):
             WebArenaSite.WIKIPEDIA: WIKIPEDIA,
         })
         if task_id in {429, 430}
-        else _configure_benchmark()
+        else configure_benchmark()
     )
     task = benchmark.get_task(task_id)
     catalog = load_corrections(

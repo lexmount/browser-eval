@@ -31,9 +31,16 @@ def require_publication_version(profile_path: Path, requested_version: str | Non
     return expected
 
 
-_BASE,_SLUG=current_publication_target(require_bound=False)
-HUB = (os.environ.get('WEBFETCH_REPORT_PUBLIC_URL') or
-       (f'{_BASE}/api/preview/{_SLUG}' if _SLUG else '')).rstrip('/')
+def public_report_url(profile_path: Path | None = None) -> str:
+    """Resolve links at render time; an installed offline example has no deployment."""
+    override = os.environ.get('WEBFETCH_REPORT_PUBLIC_URL')
+    if override:
+        return override.rstrip('/')
+    selected = profile_path or ROOT / 'evaluation/current-report.json'
+    if profile_path is None and not selected.is_file():
+        return ''
+    base, slug = current_publication_target(selected, require_bound=False)
+    return f'{base}/api/preview/{slug}' if slug else ''
 
 
 def require_publication_site(receipt: dict, profile_path: Path, base_url: str | None=None) -> str:

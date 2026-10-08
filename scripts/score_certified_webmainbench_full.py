@@ -10,8 +10,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from scripts.run_certified_webmainbench_full import digest, read_jsonl, source_binding
-from scripts.score_webmainbench_results import aggregate
+from harness.web_fetch.webmainbench_certification import digest, read_jsonl, source_binding
+from harness.web_fetch.webmainbench_scoring import aggregate
 
 
 def verify_score(shard: Path, provider: str, case_ids: set[str], scorer: Path, profile: dict) -> dict:

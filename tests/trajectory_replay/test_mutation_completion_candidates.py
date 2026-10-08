@@ -12,7 +12,9 @@ from urllib.parse import urlencode, urljoin, urlsplit
 import pytest
 from bs4 import BeautifulSoup
 
-from harness.browser_use.runner import _configure_benchmark
+from harness.environments.webarena.runtime import (
+    configure_benchmark,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 CANDIDATES = (
@@ -36,7 +38,7 @@ def test_candidates_bind_frozen_actions_and_official_task_contract(candidates):
         int(row["task_id"]): row
         for row in json.loads(TRAJECTORIES.read_text(encoding="utf-8"))["trajectories"]
     }
-    benchmark = _configure_benchmark(hostname="192.168.5.2")
+    benchmark = configure_benchmark(hostname="192.168.5.2")
     assert set(candidates) == {
         399,
         404,
@@ -570,7 +572,7 @@ def test_order_candidate_does_not_replace_any_of_four_official_events(candidates
     assert candidate["official_network_evaluator_count"] == 4
     official = [
         row.expected.model_dump(exclude_none=True)
-        for row in _configure_benchmark(hostname="192.168.5.2").get_task(506).eval
+        for row in configure_benchmark(hostname="192.168.5.2").get_task(506).eval
         if row.evaluator == "NetworkEventEvaluator"
     ]
     assert [(row["http_method"], row["response_status"]) for row in official] == [
@@ -733,7 +735,7 @@ def test_old_task441_double_document_review_is_not_a_latest_moli_result(candidat
 def test_official_evaluator_requires_exact_network_event_and_success_response(
     tmp_path, candidates, task_id: int
 ):
-    benchmark = _configure_benchmark(hostname="192.168.5.2")
+    benchmark = configure_benchmark(hostname="192.168.5.2")
     rule = candidates[task_id]["official_network_event"]
     site_port = 9999 if task_id in {399, 404, 595} else 7770 if task_id in {571, 585} else 8023
     suffix = rule["url_suffix"]

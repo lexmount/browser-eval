@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from scripts.run_webmainbench_benchmark import fixture_server, load_source, fetch_record
+from harness.web_fetch.webmainbench_runner import fixture_server, load_source, fetch_record
 from harness.web_fetch.providers import build_provider
 
 CASE_ID = '819d17d7-4825-492f-9546-ab61b14e9aab'

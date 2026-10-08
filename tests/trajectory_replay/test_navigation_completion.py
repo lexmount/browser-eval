@@ -6,7 +6,9 @@ import json
 
 import pytest
 
-from harness.browser_use.runner import _configure_benchmark
+from harness.environments.webarena.runtime import (
+    configure_benchmark,
+)
 
 
 @pytest.mark.parametrize(
@@ -27,7 +29,7 @@ from harness.browser_use.runner import _configure_benchmark
 def test_navigation_requires_exact_official_get_event(
     tmp_path, task_id: int, passing_url: str, nearby_wrong_url: str
 ) -> None:
-    benchmark = _configure_benchmark(hostname="192.168.5.2")
+    benchmark = configure_benchmark(hostname="192.168.5.2")
     response = {"task_type": "NAVIGATE", "status": "SUCCESS", "retrieved_data": None}
     har = tmp_path / "network.har"
 

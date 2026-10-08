@@ -30,7 +30,7 @@ from harness.resource_accounting import (
 from .diagnostics import diagnose_summary
 from .evaluators import EvaluatorRegistry, TaskEvidence, write_agent_response
 from .executor import execute_steps
-from .har import CdpHarRecorder
+from harness.environments.webarena.har import CdpHarRecorder
 from .metrics import summarize_attempts
 from .qualification import task_contract_sha256
 from .report import write_latest_report

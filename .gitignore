@@ -29,6 +29,8 @@ run.log
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+/build/
+/dist/
 artifacts/trajectory_replay/
 artifacts/browser_use/
 /docs/reports/trajectory-replay-evaluation-*

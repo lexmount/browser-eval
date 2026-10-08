@@ -93,7 +93,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
 
     def test_dispatches_complete_webmainbench_certification(self) -> None:
         arguments = ["--output-root", "/tmp/run", "--source", "/tmp/source.jsonl"]
-        with patch("scripts.run_certified_webmainbench_full.main") as invoked:
+        with patch("harness.web_fetch.webmainbench_certification.main") as invoked:
             main(["webmainbench-full", *arguments])
         invoked.assert_called_once_with(arguments)
 

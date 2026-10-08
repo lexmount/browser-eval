@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 from html.parser import HTMLParser
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from scripts.report_presentation_contract import check_presentation
+from harness.reporting.presentation import check_presentation
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.storage import data_home
 

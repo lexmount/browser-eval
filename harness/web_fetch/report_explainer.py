@@ -19,7 +19,7 @@ from .report_resources import render_resource_comparison
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
 HEADLESS_TITLE = '五类浏览器、七种方法取同一批网页：速度、正文与交付边界'
-from .publication_target import HUB
+from .publication_target import public_report_url
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
 TRACK_NAMES = {'web': '静态网站正文', 'document': '文档文字', 'image': '图片',
@@ -83,8 +83,8 @@ def _methodology_figures(out):
 def evidence_url(path):
     contained_path(ROOT, path)
     if Path(path).suffix != '.html':
-        return HUB + '#page=guide%2Findex.html&anchor=evidence'
-    return HUB + '#page=' + quote(str(path), safe='')
+        return public_report_url() + '#page=guide%2Findex.html&anchor=evidence'
+    return public_report_url() + '#page=' + quote(str(path), safe='')
 
 
 def _link(path, label):
@@ -720,7 +720,7 @@ def _render_headless(out, cases, records):
         'pdf_fetch': f'{pdf_meta.get("raw_fetch_ms", 0)/1000:.2f}',
         'pdf_parse': f'{pdf_meta.get("document_extract_ms", 0)/1000:.2f}',
         'case_links': cases_links,
-        'report_url': escape(HUB, quote=True),
+        'report_url': escape(public_report_url(), quote=True),
         'browser_profiles': '',
         'case_workbench': render_article_cases(out, cases, records),
         'moli_web': str(data['tracks']['web']['providers']['moli']['passed']),
@@ -751,7 +751,8 @@ def supports_authored_explainer(cases):
 def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
     """One authored body; only image URL serialization differs for the offline export."""
     out = Path(out)
-    if not supports_authored_explainer(cases):
+    if (not supports_authored_explainer(cases)
+            or (records and all(row.get('provider_type') == 'fixture' for row in records))):
         passes = sum(task_passed(row['ok'], row['metrics'],
                      cases[row['case_id']].get('task_kind', 'body')) for row in records)
         return (f'<section class="wrap"><h1>本报告的任务范围与验收规则</h1>'

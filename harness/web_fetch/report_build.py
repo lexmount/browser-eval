@@ -725,7 +725,7 @@ def public_webmainbench_scoring_projection(records: list[dict]) -> list[dict]:
 
 def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     """Build the separately bound complete 545-case report from certified evidence."""
-    from scripts.run_certified_webmainbench_full import digest, read_jsonl
+    from harness.web_fetch.webmainbench_certification import digest, read_jsonl
     from .webmainbench_diagnostics import (
         validate_reference_revision, validate_teds_revision,
         validate_webmainbench_scoring_revision,
@@ -917,7 +917,7 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
                 shutil.copy2(asset_source, staging / 'assets' / asset['name'])
         generate_webmainbench_full(staging, dataset, records,
                                    summaries, display_profile)
-        from scripts.check_webmainbench_full_report import check as check_webmainbench_full
+        from harness.web_fetch.webmainbench_report_check import check as check_webmainbench_full
         check_webmainbench_full(staging)
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
@@ -938,8 +938,8 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
 
 def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: dict, output: Path) -> Path:
     """Build the one current report from a fully certified WCXB matrix."""
-    from scripts.run_webmainbench_benchmark import WCXB_PROVIDERS, load_wcxb_source
-    from scripts.select_wcxb_sample import validate_manifest
+    from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
+    from harness.web_fetch.wcxb_dataset import validate_manifest
     source, output = source.resolve(), output.resolve()
     certificate = json.loads((source / 'certification.json').read_text())
     summary = json.loads((source / 'wcxb-score-summary.json').read_text())

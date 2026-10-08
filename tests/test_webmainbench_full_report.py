@@ -8,8 +8,8 @@ import pytest
 
 from harness.web_fetch.report import generate_webmainbench_full
 from harness.web_fetch.report_build import public_webmainbench_scoring_projection
-from scripts.report_presentation_contract import check_presentation
-from scripts.check_webmainbench_full_report import (
+from harness.reporting.presentation import check_presentation
+from harness.web_fetch.webmainbench_report_check import (
     check_diagnosis_inventory,
     check_interaction_script,
     check_result_payload,

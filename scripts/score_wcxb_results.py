@@ -11,8 +11,8 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from scripts.run_webmainbench_benchmark import WCXB_PROVIDERS, load_wcxb_source
-from scripts.select_wcxb_sample import validate_manifest
+from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
+from harness.web_fetch.wcxb_dataset import validate_manifest
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.wcxb_latency import load_full_paired_latency
 

@@ -19,7 +19,7 @@ from types import SimpleNamespace
 from playwright.sync_api import sync_playwright
 
 from harness.trajectory_replay.webarena_replay import _execute_replay_call
-from harness.browser_use.har import CdpHarRecorder
+from harness.environments.webarena.har import CdpHarRecorder
 
 
 class Fixture(BaseHTTPRequestHandler):

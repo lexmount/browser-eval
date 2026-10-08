@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from harness.web_fetch.providers.headless import LOOPBACK_SANDBOX_PROFILE
-from scripts.run_webmainbench_benchmark import fixture_server, load_selected_ids, load_source, verify_loopback_sandbox
+from harness.web_fetch.webmainbench_runner import fixture_server, load_selected_ids, load_source, verify_loopback_sandbox
 
 
 def digest(path: Path) -> str:

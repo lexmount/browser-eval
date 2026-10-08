@@ -113,7 +113,7 @@ def main(argv: list[str] | None = None) -> None:
         correction_main((argv or sys.argv[1:])[1:])
         return
     if (argv or sys.argv[1:])[:1] == ["webmainbench-full"]:
-        from scripts.run_certified_webmainbench_full import main as webmainbench_full_main
+        from harness.web_fetch.webmainbench_certification import main as webmainbench_full_main
         webmainbench_full_main((argv or sys.argv[1:])[1:])
         return
     if (argv or sys.argv[1:])[:1] == ["wcxb"]:
@@ -278,12 +278,12 @@ def run_wcxb(argv: list[str]) -> None:
                         help="Comma-separated methods to rerun from the prior certified cohort")
     args = parser.parse_args(argv)
     sys.path.insert(0, str(ROOT))
-    from scripts.run_webmainbench_benchmark import WCXB_PROVIDERS, load_wcxb_source
+    from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
 
     if args.output_root.exists():
         parser.error("WCXB output root must be new and immutable")
     source_records, before = load_wcxb_source(args.dataset)
-    from scripts.select_wcxb_sample import validate_manifest
+    from harness.web_fetch.wcxb_dataset import validate_manifest
     manifest = json.loads(args.sample_manifest.read_text())
     profile = json.loads((ROOT / 'evaluation/wcxb/current-report.json').read_text())
     if (profile.get('comparison_kind') != 'wcxb_frozen_html_to_markdown'
@@ -387,8 +387,8 @@ def certify_wcxb_latency(argv: list[str]) -> None:
     args = parser.parse_args(argv)
     sys.path.insert(0, str(ROOT))
     from harness.web_fetch.wcxb_latency import load_full_paired_latency
-    from scripts.run_webmainbench_benchmark import load_wcxb_source
-    from scripts.select_wcxb_sample import validate_manifest
+    from harness.web_fetch.webmainbench_runner import load_wcxb_source
+    from harness.web_fetch.wcxb_dataset import validate_manifest
 
     certificate_path = args.evidence_root / 'certification.json'
     if certificate_path.exists():

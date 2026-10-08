@@ -23,7 +23,6 @@ sys.path.insert(0,str(ROOT))
 from harness.reporting.packs import write_packs
 from harness.reporting.links import validate_virtual_links
 from harness.web_fetch.publication_privacy import project_file
-from harness.web_fetch.publication_target import HUB
 SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetch'
 ARCHIVE=Path(sys.argv[2]).resolve() if len(sys.argv)>2 else ROOT/'publish/webfetch-sites.zip'
 (ROOT/'publish').mkdir(exist_ok=True)

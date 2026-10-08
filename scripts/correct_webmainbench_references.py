@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision
-from scripts.score_webmainbench_results import aggregate, metric_dict
+from harness.web_fetch.webmainbench_scoring import aggregate, metric_dict
 
 
 def digest(path: Path) -> str:

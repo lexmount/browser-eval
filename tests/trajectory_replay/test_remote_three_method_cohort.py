@@ -140,7 +140,7 @@ def test_browser_readiness_rejects_origin_and_magento_setup_errors(monkeypatch, 
     service = SimpleNamespace(_page=page, _submit=lambda callback: callback())
     closed = []
     tool = SimpleNamespace(_get_service=lambda: service, close=lambda: closed.append(True))
-    monkeypatch.setattr(cohort, "_prepare_browser_viewport", lambda *_: None)
+    monkeypatch.setattr(cohort, "prepare_browser_viewport", lambda *_: None)
     sites = {WebArenaSite.SHOPPING_ADMIN: "https://admin.example/admin"}
     if fault:
         with pytest.raises(ValueError):
@@ -335,7 +335,7 @@ def test_browser_session_setup_error_closes_probe_and_propagates(
     def reject(_service):
         raise RuntimeError("CowAgent lacks the required owned CDP context contract")
 
-    monkeypatch.setattr(cohort, "_prepare_browser_viewport", reject)
+    monkeypatch.setattr(cohort, "prepare_browser_viewport", reject)
     with pytest.raises(RuntimeError, match="owned CDP context"):
         cohort._verify_browser_session(tool)
     assert closed == [True]

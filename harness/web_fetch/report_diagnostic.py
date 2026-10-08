@@ -431,7 +431,7 @@ def load_diagnostic(source):
 def check_diagnostic_report(output, profile=None):
     """Enforce the shared reader structure and evidence dialogs at release."""
     from bs4 import BeautifulSoup
-    from scripts.report_presentation_contract import check_presentation
+    from harness.reporting.presentation import check_presentation
     from .publication_privacy import publication_risk
 
     output = Path(output)

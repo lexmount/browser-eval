@@ -50,13 +50,13 @@ def test_programmatic_failure_preserves_browser_session_setup_stage() -> None:
         {
             "process_status": "fail",
             "failure_stage": "browser_session_setup",
-            "error": "Traceback: _login_context failed before trajectory execution",
+            "error": "Traceback: login_context failed before trajectory execution",
         }
     )
     assert result == {
         "stage": "browser_session_setup",
         "step": None,
-        "message": "Traceback: _login_context failed before trajectory execution",
+        "message": "Traceback: login_context failed before trajectory execution",
     }
 
 

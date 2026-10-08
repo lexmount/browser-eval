@@ -13,9 +13,9 @@ import types
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from scripts.score_webmainbench_results import load_records, official_calculator, metric_dict
+from harness.web_fetch.webmainbench_scoring import load_records, official_calculator, metric_dict
 from scripts.correct_webmainbench_teds import corrected_distance
-from scripts.run_certified_webmainbench_full import verify_shard
+from harness.web_fetch.webmainbench_certification import verify_shard
 from harness.web_fetch.safety import contained_path
 
 

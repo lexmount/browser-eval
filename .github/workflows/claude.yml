@@ -28,14 +28,15 @@ jobs:
   claude:
     name: Claude 中文 Code Review
     if: |
+      vars.ENABLE_CLAUDE_REVIEW == 'true' && (
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude'))) ||
-      (github.event_name == 'pull_request' && github.event.pull_request.draft == false && (github.event.action == 'opened' || github.event.action == 'synchronize' || github.event.action == 'ready_for_review' || github.event.action == 'reopened'))
-    runs-on: self-hosted
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false && (github.event.action == 'opened' || github.event.action == 'synchronize' || github.event.action == 'ready_for_review' || github.event.action == 'reopened')))
+    runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
       issues: write
       actions: read
@@ -56,8 +57,6 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          path_to_claude_code_executable: /home/github/.local/bin/claude
-          path_to_bun_executable: /home/github/.bun/bin/bun
 
           # This is an optional setting that allows Claude to read CI results on PRs
           additional_permissions: |
@@ -75,8 +74,6 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          path_to_claude_code_executable: /home/github/.local/bin/claude
-          path_to_bun_executable: /home/github/.bun/bin/bun
           track_progress: true
 
           additional_permissions: |

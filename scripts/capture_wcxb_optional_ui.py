@@ -8,7 +8,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from scripts.run_webmainbench_benchmark import fixture_server, load_wcxb_source
+from harness.web_fetch.webmainbench_runner import fixture_server, load_wcxb_source
 
 
 def sha256(path: Path) -> str:

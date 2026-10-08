@@ -73,7 +73,7 @@ class ConfigTest(unittest.TestCase):
         from harness.web_fetch.cli import build_parser
         from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
         root=Path(__file__).resolve().parents[1]
-        self.assertEqual(build_parser().parse_args(['validate']).dataset,root/'evaluation/dataset.json')
+        self.assertEqual(build_parser().parse_args(['validate']).dataset,root/'harness/web_fetch/data/fixture-dataset.json')
         provider=SubprocessJsonlProvider('test',{'command':['python3'],'repo_path':'.'})
         self.assertEqual(provider._resolve_token('{harness_root}/scripts/oss/langchain_webbase_worker.py'),str(root/'scripts/oss/langchain_webbase_worker.py'))
 

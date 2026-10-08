@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.webmainbench_latency_diagnostic import _repeat_calls
-from scripts.run_webmainbench_benchmark import load_selected_ids, load_source
+from harness.web_fetch.webmainbench_runner import load_selected_ids, load_source
 
 
 def digest(path: Path) -> str:

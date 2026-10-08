@@ -446,12 +446,14 @@ def load_profile_contracts(
     """Resolve only the hostname already declared in a frozen opt-in profile."""
     if binding is None:
         return {}
-    from harness.browser_use.runner import _configure_benchmark
+    from harness.environments.webarena.runtime import (
+        configure_benchmark,
+    )
 
     hosts = {urlsplit(url).hostname for url in binding.get("site_urls", {}).values()}
     if len(hosts) != 1 or None in hosts:
         raise ValueError("state profile must declare one exact site access hostname")
-    return load_contracts(binding, root, _configure_benchmark(hostname=hosts.pop()))
+    return load_contracts(binding, root, configure_benchmark(hostname=hosts.pop()))
 
 
 def require_supersession(
@@ -466,7 +468,9 @@ def require_supersession(
 
 def verify_attempt(attempt: dict[str, Any], contract: BoundFormContract) -> None:
     """Recompute the score from hash-bound state, actual response and full HAR."""
-    from harness.browser_use.runner import _configure_benchmark
+    from harness.environments.webarena.runtime import (
+        configure_benchmark,
+    )
 
     if attempt.get("contract_correction_id"):
         raise ValueError("shared observed-state cannot also apply legacy replay correction")
@@ -491,7 +495,7 @@ def verify_attempt(attempt: dict[str, Any], contract: BoundFormContract) -> None
         or attempt.get("state_contract_sha256") != contract.definition_sha256
     ):
         raise ValueError("attempt differs from current observed-state contract")
-    benchmark = _configure_benchmark(hostname=urlsplit(contract.page_url).hostname)
+    benchmark = configure_benchmark(hostname=urlsplit(contract.page_url).hostname)
     current = evaluate_task(
         benchmark,
         contract,

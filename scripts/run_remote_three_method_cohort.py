@@ -23,7 +23,10 @@ from urllib.parse import urlsplit
 
 from webarena_verified.types.task import WebArenaSite
 
-from harness.browser_use.runner import _browser_tool_config, _prepare_browser_viewport
+from harness.environments.webarena.runtime import (
+    browser_tool_config,
+    prepare_browser_viewport,
+)
 from harness.trajectory_replay.remote_runtime import (
     file_sha256,
     load_remote_sites,
@@ -283,7 +286,7 @@ def _verify_browser_session(tool: object, sites: dict | None = None) -> list[dic
     try:
         service = tool._get_service()
         service._submit(lambda: None)
-        _prepare_browser_viewport(service)
+        prepare_browser_viewport(service)
 
         def check_sites() -> list[dict]:
             rows = []
@@ -397,7 +400,7 @@ def main(argv: list[str] | None = None) -> int:
         try:
             _wait_cdp(endpoint, process)
             readiness = _verify_browser_session(
-                BrowserTool(config=_browser_tool_config(endpoint)), sites
+                BrowserTool(config=browser_tool_config(endpoint)), sites
             )
             _write(args.output / "browser-readiness.json", readiness)
             for task_id in execution_manifest["task_ids"]:

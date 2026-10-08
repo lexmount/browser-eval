@@ -16,7 +16,9 @@ from pathlib import Path
 import pytest
 import requests
 
-from harness.browser_use.runner import _prepare_browser_viewport
+from harness.environments.webarena.runtime import (
+    prepare_browser_viewport,
+)
 from harness.trajectory_replay.public_webarena.executor import execute_steps
 from harness.trajectory_replay.remote_execution import _browser_command, _wait_cdp
 from harness.trajectory_replay.webarena_replay import _execute_replay_call
@@ -258,7 +260,7 @@ def test_obscura_viewport_verification_does_not_open_a_second_page(monkeypatch) 
 
     tool = PlaywrightReplayTool("http://127.0.0.1:1", engine="obscura")
     try:
-        viewport = _prepare_browser_viewport(tool)
+        viewport = prepare_browser_viewport(tool)
     finally:
         tool.close()
 
@@ -1230,7 +1232,7 @@ def test_obscura_viewport_verification_rejects_configured_but_unapplied_size() -
     tool._submit = lambda callback: callback()
 
     with pytest.raises(RuntimeError, match="viewport mismatch"):
-        _prepare_browser_viewport(tool)
+        prepare_browser_viewport(tool)
 
 
 def test_moli_layout_publication_uses_explicit_geometry_only_cdp():
@@ -1913,7 +1915,7 @@ def test_playwright_backend_executes_portable_and_snapshot_ref_calls(tmp_path: P
 
         tool = PlaywrightReplayTool(endpoint)
         try:
-            assert _prepare_browser_viewport(tool)["verified"]
+            assert prepare_browser_viewport(tool)["verified"]
             started = time.monotonic()
             status, _ = _execute_replay_call(
                 tool,

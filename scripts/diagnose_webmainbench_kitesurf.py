@@ -18,7 +18,7 @@ from harness.web_fetch.config import load_provider_config, load_runtime_env
 from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.runner import classify_exception
-from scripts.run_webmainbench_benchmark import case_for, load_source, public_metadata
+from harness.web_fetch.webmainbench_runner import case_for, load_source, public_metadata
 
 CASE_IDS = (
     '4c631939-b5d2-4750-a19e-687459751b91',

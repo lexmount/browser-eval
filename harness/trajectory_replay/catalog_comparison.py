@@ -235,7 +235,7 @@ def _attempt(
     if error and not failure_stage:
         failure_stage = (
             "browser_session_setup"
-            if "_login_context" in error
+            if "login_context" in error
             else "browser_tool_execution"
         )
     evaluator_status = (

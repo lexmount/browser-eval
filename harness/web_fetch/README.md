@@ -208,8 +208,8 @@ From the repository root:
 ```sh
 make setup
 uv run --frozen python -m harness.web_fetch validate --providers fixture
-uv run --frozen python -m harness.web_fetch run --dataset configs/fixture-dataset.json --providers fixture
-uv run --frozen python -m harness.web_fetch run --providers moli-webfetch --case-ids static-simple
+uv run --frozen python -m harness.web_fetch run --providers fixture
+uv run --frozen python -m harness.web_fetch run --dataset evaluation/dataset.json --provider-config configs/providers.example.json --providers moli-webfetch --case-ids static-simple
 make report EVIDENCE=/absolute/path/to/evidence
 ```
 
