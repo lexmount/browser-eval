@@ -15,6 +15,7 @@ import tempfile
 from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.resource_evidence import validate_matrix
 from harness.lexbench.resource_summary import validate_summary
+from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, safe_identifier
 
 
 def digest(p):
@@ -30,6 +31,7 @@ def fail(message):
 
 
 def validate(model, site, check_files=True):
+    reject_evidence_symlinks(site)
     if model.get("schema") != "moli_layout_report/2":
         fail("schema")
     if any(
@@ -63,6 +65,8 @@ def validate(model, site, check_files=True):
     inv = model.get("cases") or []
     if len(inv) != count or len({c["id"] for c in inv}) != count:
         fail("inventory")
+    for item in inv:
+        safe_identifier(item["id"])
     if len(model.get("strata") or []) != 15:
         fail("strata")
     outcome = model.get("case_outcomes") or {}
@@ -173,7 +177,7 @@ def validate(model, site, check_files=True):
         if method_id not in {"119_off", "119_on", "119_official_off", "119_official_on"}:
             fail("unknown fixed method")
         info = candidate.get("evidence") or {}
-        path = site / info.get("url", "")
+        path = contained_path(site, info.get("url", ""), reject_symlinks=True)
         if not path.resolve().is_relative_to(site.resolve()):
             fail("unsafe fixed summary target")
         if (
@@ -248,7 +252,7 @@ def validate(model, site, check_files=True):
                     if not attempt.get("evidence"):
                         fail("fixed attempt lacks evidence")
                     for evidence in attempt["evidence"].values():
-                        target = site / evidence["url"]
+                        target = contained_path(site, evidence["url"], reject_symlinks=True)
                         if (
                             not target.resolve().is_relative_to(site.resolve())
                             or not target.is_file()
@@ -266,7 +270,7 @@ def validate(model, site, check_files=True):
         profiles = model["linux_resource_profiles"]
 
         def resource_document(info):
-            path = site / info["url"]
+            path = contained_path(site, info["url"], reject_symlinks=True)
             if (
                 not path.resolve().is_relative_to(site.resolve())
                 or path.is_symlink()
@@ -337,7 +341,7 @@ def validate(model, site, check_files=True):
             continue
         official = resource_key == "official_resource"
         info = resource.get("evidence") or {}
-        path = site / info.get("url", "")
+        path = contained_path(site, info.get("url", ""), reject_symlinks=True)
         if not path.resolve().is_relative_to(site.resolve()):
             fail("unsafe resource target")
         if check_files and (
@@ -437,7 +441,7 @@ def validate(model, site, check_files=True):
             or not str(relative).startswith("data/candidates/")
         ):
             fail("unsafe resource matrix evidence")
-        path = site / relative
+        path = contained_path(site, relative, reject_symlinks=True)
         if (
             path.is_symlink()
             or not path.is_file()
@@ -517,7 +521,7 @@ def validate(model, site, check_files=True):
     ):
         fail("functional correction summary")
     correction_info = correction.get("evidence") or {}
-    correction_path = site / correction_info.get("url", "")
+    correction_path = contained_path(site, correction_info.get("url", ""), reject_symlinks=True)
     if not correction_path.resolve().is_relative_to(site.resolve()):
         fail("unsafe functional correction target")
     if check_files and (
@@ -603,7 +607,7 @@ def validate(model, site, check_files=True):
                     for _name, info in files.items():
                         if not info.get("url") or not info.get("sha256"):
                             fail("broken evidence reference")
-                        target = site / info["url"]
+                        target = contained_path(site, info["url"], reject_symlinks=True)
                         if not target.resolve().is_relative_to(site.resolve()):
                             fail("unsafe evidence target")
                         if check_files and (
@@ -712,7 +716,7 @@ def validate(model, site, check_files=True):
             fail("missing host scope")
     for correction in model.get("resource_window_corrections", []):
         info = correction["evidence"]
-        path = site / info["url"]
+        path = contained_path(site, info["url"], reject_symlinks=True)
         if (
             not path.resolve().is_relative_to(site.resolve())
             or not path.is_file()
@@ -805,8 +809,9 @@ def validate_release(model, profile):
 
 
 def verify_evidence(site: pathlib.Path, *, profile: dict | None = None) -> dict:
+    reject_evidence_symlinks(site)
     SITE = site.resolve()
-    model = json.loads((SITE / "data/model.json").read_text())
+    model = json.loads(contained_path(SITE, "data/model.json", reject_symlinks=True).read_text())
     if profile is not None:
         validate_release(model, profile)
     validate(model, SITE)

@@ -146,7 +146,11 @@ The adapter uses the existing `harness/web_fetch/safety.py` path boundary for
 certificate entries, runner inputs, resource receipts and artifact directories.
 Declared paths must be relative to their evidence root; absolute paths, parent
 traversal and file or directory symlinks are rejected before reading. Task and
-method identifiers used in report output must be safe filename segments.
+method identifiers used in report output must be safe filename segments. The
+static verifier applies these same boundaries before opening task files, including
+linked report roots and linked case directories. Base and partially extended
+comparison reports keep the registered methods visible on home and interpretation
+pages; a missing configuration does not authorize an unmeasured comparison.
 
 ## Browser trajectory replay ownership
 

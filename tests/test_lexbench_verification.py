@@ -131,6 +131,8 @@ def report(tmp_path):
                 "label": key,
                 "label_en": key,
                 "final_passed_cases": passed,
+                "policy": "fixed_on" if key.endswith("_on") else "fixed_off",
+                "moli_sha256": "c" * 64,
                 "direct_cases": 1 if index == 0 else 372,
                 "inherited_cases": 371 if index == 0 else 0,
             }
@@ -379,3 +381,64 @@ def test_schema_rejection_remains_active_under_optimization(tmp_path, optimized)
     )
     assert result.returncode != 0
     assert "ValueError: schema" in result.stderr
+
+
+@pytest.mark.parametrize("entry", ["validate", "verify_evidence"])
+def test_linked_report_root_is_rejected(report, tmp_path, entry):
+    from harness.lexbench import verification
+
+    site, model = report
+    linked = tmp_path / "linked-report"
+    linked.symlink_to(site, target_is_directory=True)
+    with pytest.raises(ValueError, match="[Ss]ymlink"):
+        if entry == "validate":
+            verification.validate(model, linked)
+        else:
+            verification.verify_evidence(linked)
+
+
+def test_linked_case_directory_is_rejected(report, tmp_path):
+    site, model = report
+    original = site / "data/cases"
+    external = tmp_path / "external-cases"
+    original.rename(external)
+    original.symlink_to(external, target_is_directory=True)
+    with pytest.raises(ValueError, match="[Ss]ymlink"):
+        validate(model, site)
+
+
+@pytest.mark.parametrize("relative", [False, True])
+def test_declared_artifact_paths_must_be_relative_without_parent_segments(report, relative):
+    site, model = report
+    target = site / model["functional_contract_correction"]["evidence"]["url"]
+    model["functional_contract_correction"]["evidence"]["url"] = (
+        f"../{site.name}/data/correction.json" if relative else str(target)
+    )
+    with pytest.raises(ValueError, match="relative"):
+        validate(model, site)
+
+
+def test_invalid_case_identifier_is_rejected_before_reading_cases(report, monkeypatch):
+    site, model = report
+    model["cases"][0]["id"] = "../outside"
+    original = Path.read_text
+
+    def forbidden_case_read(path, *args, **kwargs):
+        if "cases" in path.parts:
+            raise RuntimeError("Opened a task file before validating its identifier")
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", forbidden_case_read)
+    with pytest.raises(ValueError, match="Identifiers"):
+        validate(model, site)
+
+
+def test_three_configuration_report_passes_evidence_and_render_release_checks(report):
+    from harness.lexbench.verification import verify
+
+    site, _ = report
+    summary = verify(site)
+    assert summary["verified_cases"] == 372
+    assert summary["verified_calls"] == 4482
+    assert summary["negative_controls"] == 19
+    assert summary["result"] == "pass"

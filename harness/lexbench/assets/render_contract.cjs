@@ -240,6 +240,34 @@ for (const lang of ["zh", "en"]) {
   );
 }
 
+// Base and partially extended diagnostic reports must remain readable.
+for (const extra of [false, true]) {
+  const ids = ["114_off", "118_off", "118_on", ...(extra ? ["119_on"] : [])];
+  const diagnostic = {
+    task_count: 372,
+    attempts_per_mode: 1116,
+    protocol: { k_runs: 3 },
+    fixed_candidates: extra ? { "119_on": {} } : {},
+    combined_comparison: { configurations: [] },
+    functional_methods: ids.map((id, index) => ({
+      id, label: id, label_en: id,
+      policy: id.endsWith("_on") ? "fixed_on" : "fixed_off",
+      final_passed_cases: index,
+      direct_cases: 372, inherited_cases: 0,
+    })),
+  };
+  for (const lang of ["zh", "en"]) {
+    for (const page of ["home()", "guidePage()"]) {
+      const html = render(diagnostic, lang, page);
+      assert.equal((html.match(/data-functional-method=/g) || []).length, ids.length);
+      assert.ok(html.includes(`${ids.length - 1}/372`));
+      assert.ok(html.includes('href="#page=analysis"'));
+      assert.ok(!html.includes("undefined"));
+      assert.ok(!html.includes(lang === "zh" ? "修复版开启布局通过" : "Patched layout on passes"));
+    }
+  }
+}
+
 if (site) {
   const measured = JSON.parse(
     fs.readFileSync(path.join(site, "data/model.json"), "utf8"),

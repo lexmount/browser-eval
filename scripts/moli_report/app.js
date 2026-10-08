@@ -276,7 +276,7 @@ function metricRow(label, off, on, format, direction = "min", note = "") {
 const signed = (value, digits = 2, suffix = "%") =>
   `${value >= 0 ? "+" : ""}${fmt(value, digits)}${suffix}`;
 function functionalMethodSummary() {
-  if (!Object.keys(M.fixed_candidates || {}).length) return "";
+  if (!M.functional_methods?.length) return "";
   let rows = M.functional_methods,
     total = M.task_count,
     max = Math.max(...rows.map((x) => x.final_passed_cases)),
@@ -1480,12 +1480,24 @@ function reviewPage() {
   );
 }
 function guidePage() {
+  const patched = M.functional_methods.find((m) => m.id === "119_on");
+  const official = M.functional_methods.find((m) => m.id === "119_official_on");
+  if (!patched || !official) {
+    return (
+      hero(T.nav.guide, reportSubtitle()) +
+      functionalMethodSummary() +
+      combinedSummaryChart() +
+      section(
+        T.nav.method,
+        casePopulation(),
+        `<a href="${link("analysis")}">${esc(T.nav.analysis)}</a> · <a href="${link("method")}">${esc(T.nav.method)}</a> · <a href="${link("review")}">${esc(T.nav.review)}</a>`,
+      )
+    );
+  }
   const relations = fixedRelations();
   const example = M.fixed_case_outcomes.find(
     (c) => c.passes["119_official_on"] !== 3 && c.passes["119_on"] === 3,
   );
-  const patched = M.functional_methods.find((m) => m.id === "119_on");
-  const official = M.functional_methods.find((m) => m.id === "119_official_on");
   const relationText = relations
     .map(
       (r) =>
