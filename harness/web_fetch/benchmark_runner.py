@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .artifacts import materialize_worker_artifacts
+from .artifacts import materialize_bound_artifacts
 from .config import load_dataset, load_provider_config, load_runtime_env
 from .providers import build_provider
 from .reference_inputs import input_tree
@@ -108,7 +108,7 @@ def main(argv=None):
             folder=args.output/'workers'/name/scope
             provider=build_provider(name,config[name])
             rs,_=run_evaluation(output_dir=folder,dataset_meta=meta,dataset_path=args.dataset,cases=selected,providers=[provider],provider_config_path=path,runs=args.runs,timeout=45,delay=.5,provider_concurrency=1,max_failure_retries=args.max_failure_retries)
-            materialize_worker_artifacts(args.output, folder, rs)
+            materialize_bound_artifacts(args.output, folder, rs)
             batches.append(json.loads((folder/'manifest.json').read_text()));records.extend(rs)
         return records,batches
     aggregate_started_at=datetime.now(UTC).isoformat()

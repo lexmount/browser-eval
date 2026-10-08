@@ -5,7 +5,7 @@ import hashlib
 
 import pytest
 
-from harness.web_fetch.artifacts import materialize_worker_artifacts
+from harness.web_fetch.artifacts import materialize_bound_artifacts
 
 
 def digest(raw):
@@ -40,7 +40,7 @@ def test_changed_retry_bytes_cannot_receive_a_new_binding(worker, relative):
     original = copy.deepcopy(record)
     (source / relative).write_bytes(b'changed after acquisition')
     with pytest.raises(ValueError):
-        materialize_worker_artifacts(target, source, [record])
+        materialize_bound_artifacts(target, source, [record])
     assert record == original
     assert not target.exists()
 
@@ -50,7 +50,7 @@ def test_unbound_retry_auxiliary_is_rejected(worker):
     del record['provider_metadata']['retry']['attempts'][0]['artifact_sha256']['artifacts/p/c/first.bin']
     original = copy.deepcopy(record)
     with pytest.raises(ValueError, match='no hash binding'):
-        materialize_worker_artifacts(target, source, [record])
+        materialize_bound_artifacts(target, source, [record])
     assert record == original
 
 
@@ -67,7 +67,7 @@ def test_in_tree_symlinks_are_rejected_even_when_bytes_match(worker, boundary):
     actual.write_bytes(files[relative])
     linked.symlink_to(actual)
     with pytest.raises(ValueError, match='[Ss]ymlink'):
-        materialize_worker_artifacts(target, source, [record])
+        materialize_bound_artifacts(target, source, [record])
 
 
 @pytest.mark.parametrize('primary_binding', ['content', 'file-map'])
@@ -76,7 +76,7 @@ def test_declared_evidence_copies_without_mutating_records(worker, primary_bindi
     if primary_binding == 'file-map':
         del record['provider_metadata']['retry']['attempts'][0]['content_sha256']
     original = copy.deepcopy(record)
-    materialize_worker_artifacts(target, source, [record])
+    materialize_bound_artifacts(target, source, [record])
     assert record == original
     assert {key: (target / key).read_bytes() for key in files} == files
 
@@ -92,7 +92,7 @@ def test_symlinked_evidence_roots_are_rejected(worker, boundary):
         actual.mkdir()
     root.symlink_to(actual, target_is_directory=True)
     with pytest.raises(ValueError, match='[Ss]ymlink'):
-        materialize_worker_artifacts(target, source, [record])
+        materialize_bound_artifacts(target, source, [record])
 
 
 def test_collected_retries_bind_all_auxiliary_bytes_before_aggregation(tmp_path):
@@ -132,11 +132,11 @@ def test_collected_retries_bind_all_auxiliary_bytes_before_aggregation(tmp_path)
         assert attempt['artifact_sha256'] == {
             path: digest((source / path).read_bytes()) for path in attempt['artifact_paths']}
     target = tmp_path / 'aggregate'
-    materialize_worker_artifacts(target, source, records)
+    materialize_bound_artifacts(target, source, records)
     original = copy.deepcopy(records)
     changed = next(path for path in attempts[0]['artifact_paths']
                    if (source / path).read_bytes() == file_bytes)
     (source / changed).write_bytes(b'changed after acquisition')
     with pytest.raises(ValueError):
-        materialize_worker_artifacts(tmp_path / 'second-aggregate', source, records)
+        materialize_bound_artifacts(tmp_path / 'second-aggregate', source, records)
     assert records == original

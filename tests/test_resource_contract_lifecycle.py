@@ -12,7 +12,7 @@ from harness.web_fetch.reference_lifecycle import (
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from scripts.append_dynamic_content import frozen_case
-from scripts.assemble_headless import (
+from harness.web_fetch.assembly import (
     ALLOWED_REVISION_FIELDS as ASSEMBLY_REVISION_FIELDS,
     bind_assembled_scoring_revision,
 )

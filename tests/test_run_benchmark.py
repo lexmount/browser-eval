@@ -247,7 +247,7 @@ class BenchmarkSelectionTests(unittest.TestCase):
             },
         }
 
-        run_benchmark.materialize_worker_artifacts(output, worker, [record])
+        run_benchmark.materialize_bound_artifacts(output, worker, [record])
 
         for relative, content in files.items():
             self.assertEqual((output / relative).read_bytes(), content)

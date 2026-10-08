@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.assemble_webfetch_refresh import assemble, expected_refresh_pairs
-from scripts.package_headless_speed import build_summary as build_speed_summary
+from harness.web_fetch.refresh_assembly import assemble, expected_refresh_pairs
+from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 from harness.web_fetch.reference_lifecycle import reference_revision_cases, valid_scoring_revision
 from harness.web_fetch.scoring_regressions import build_correction_provenance
 
@@ -776,6 +776,36 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
                 canonical_dataset=self.canonical_path,
                 plan=self.plan_path,
             )
+
+    def test_bound_primary_symlinks_fail_before_output(self) -> None:
+        for source in (self.baseline, self.main):
+            with self.subTest(source=source.name):
+                primary = source / 'artifacts/shared.txt'
+                actual = source / 'same-bytes.txt'
+                actual.write_bytes(primary.read_bytes())
+                primary.unlink()
+                primary.symlink_to(actual)
+                output = self.root / ('linked-primary-' + source.name)
+                try:
+                    with self.assertRaisesRegex(ValueError, '[Ss]ymlink'):
+                        assemble(self.baseline, [self.main], self.speed, output,
+                                 canonical_dataset=self.canonical_path, plan=self.plan_path)
+                    self.assertFalse(output.exists())
+                finally:
+                    primary.unlink()
+                    primary.write_bytes(actual.read_bytes())
+
+    def test_baseline_and_rerun_root_symlinks_fail_before_output(self) -> None:
+        for source in (self.baseline, self.main):
+            with self.subTest(source=source.name):
+                linked = self.root / ('linked-' + source.name)
+                linked.symlink_to(source, target_is_directory=True)
+                output = self.root / ('linked-root-' + source.name)
+                with self.assertRaisesRegex(ValueError, 'root must not be a symlink'):
+                    assemble(linked if source == self.baseline else self.baseline,
+                             [linked if source == self.main else self.main], self.speed, output,
+                             canonical_dataset=self.canonical_path, plan=self.plan_path)
+                self.assertFalse(output.exists())
 
     def test_speed_schema_and_symlinks_fail_before_output(self) -> None:
         comparison = json.loads((self.speed / "speed-comparison.json").read_text())

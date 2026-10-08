@@ -16,6 +16,16 @@ artifacts receive hash bindings at collection. `artifacts.py` enumerates and
 verifies those bindings before aggregation, rejects symlinks and collisions,
 and never replaces a missing or mismatched binding with a newly computed hash.
 
+Web Fetch evidence assembly belongs to `harness/web_fetch/assembly.py`.
+`refresh_assembly.py` validates a predeclared refresh plan and uses the same
+artifact boundary and speed-bundle copier. `speed_cohort.py` owns the complete
+same-window latency matrix and summary. The corresponding `assemble_headless.py`,
+`assemble_webfetch_refresh.py` and `package_headless_speed.py` scripts only invoke
+these modules. Assembly preserves all physical-call outputs, auxiliary files and
+public call logs, rejects symlinks and conflicting bytes, and exposes its new
+output directory only after validation succeeds. Canonical source and list
+references resolve through their hash-bound external-input manifest when present.
+
 WebMainBench cohort certification is owned by `harness/web_fetch/webmainbench_certification.py`; scoring and score verification by `webmainbench_scoring.py`; full-cohort aggregation by `webmainbench_assembly.py`; and shared result-matrix, variant-identity and physical-call checks by `webmainbench_evidence.py`. Their command files delegate to these modules. Evidence-copy boundaries reject file and directory symlinks as well as escaping paths.
 
 Complete WebMainBench comparisons assemble the baseline and every registry-declared variant directly from their certified cohorts. Participant counts come from profiles and the registry throughout assembly, rendering and release checks. Only declared evidence enters the package; assembly commits a new directory after all checks pass. Replacing a cohort creates a new package and retains the previous one. See [the WebMainBench guide](../harness/web_fetch/WEBMAINBENCH.md) for the supported commands and historical binding format.

@@ -319,30 +319,38 @@ def artifact_bindings(record: dict[str, Any]) -> list[tuple[str, str]]:
     return list(bindings.items())
 
 
-def materialize_worker_artifacts(output: Path, worker: Path, records: list[dict]) -> None:
-    """Verify acquisition-time authority before copying declared worker evidence."""
+def verify_record_artifacts(root: Path, record: dict[str, Any]) -> None:
+    """Verify all declared public and private bytes against acquisition bindings."""
+    verify_record_private_artifacts(root, record)
+    for relative, digest in artifact_bindings(record):
+        if (not isinstance(relative, str) or not isinstance(digest, str)
+                or len(digest) != 64 or any(char not in '0123456789abcdef' for char in digest)):
+            raise ValueError('Incomplete artifact binding: ' + str(record.get('attempt_id')))
+        source = contained_path(root, relative, reject_symlinks=True)
+        if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != digest:
+            raise ValueError('Artifact differs from its result binding: ' + relative)
+    verify_record_public_call_logs(root, record)
+
+
+def materialize_bound_artifacts(output: Path, source_root: Path, records: list[dict]) -> None:
+    """Verify acquisition-time authority before copying declared evidence."""
     copies = {}
     for record in records:
-        verify_record_private_artifacts(worker, record)
-        logs = {binding['path']: binding for binding in record_public_call_log_bindings(record)}
+        verify_record_artifacts(source_root, record)
         for relative, digest in artifact_bindings(record):
-            source = contained_path(worker, relative, reject_symlinks=True)
+            source = contained_path(source_root, relative, reject_symlinks=True)
             target = contained_path(output, relative, reject_symlinks=True)
-            if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != digest:
-                raise ValueError('Worker artifact differs from its result binding: ' + relative)
-            if relative in logs:
-                verify_public_call_log(worker, logs[relative])
             if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest() != digest:
                 raise ValueError('Aggregate artifact collision: ' + relative)
             if relative in copies and copies[relative][2] != digest:
                 raise ValueError('Aggregate artifact collision: ' + relative)
             copies[relative] = (source, target, digest)
-    materialize_private_artifacts(output, worker, records)
+    materialize_private_artifacts(output, source_root, records)
     for source, target, digest in copies.values():
         target.parent.mkdir(parents=True, exist_ok=True)
         if not target.exists():
             shutil.copy2(source, target)
         if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
-            raise ValueError('Copied worker artifact changed: ' + str(target.relative_to(output)))
+            raise ValueError('Copied artifact changed: ' + str(target.relative_to(output)))
     for record in records:
         verify_record_public_call_logs(output, record)

@@ -26,6 +26,7 @@ def main():
         binary.chmod(0o700)
         dataset = root / 'dataset.json'
         dataset.write_text(json.dumps({'tool': 'web_fetch', 'id': 'fixture',
+            'comparison': {},
             'coverage_plan': {'web': ['custom']}, 'cases': [{
             'id': 'one', 'name': 'One', 'url': 'https://example.invalid/',
             'category': 'web', 'expected_any': ['Independent fixture output'],
@@ -58,6 +59,16 @@ def main():
                   (root / 'cohort/results.jsonl').read_text().splitlines()]
         assert len(cohort) == 1 and cohort[0]['metrics']['content_pass']
         assert (root / 'cohort' / cohort[0]['artifact_path']).is_file()
+        from harness.web_fetch.artifacts import artifact_bindings
+        from harness.web_fetch.assembly import assemble
+        for directory in ('sources', 'list-references'):
+            (root / 'cohort' / directory).mkdir(exist_ok=True)
+        assemble(root / 'cohort', root / 'certificates', [], root / 'assembled')
+        assembled = [json.loads(line) for line in
+                     (root / 'assembled/results.jsonl').read_text().splitlines()]
+        assert assembled == cohort
+        for relative, _ in artifact_bindings(cohort[0]):
+            assert (root / 'assembled' / relative).read_bytes() == (root / 'cohort' / relative).read_bytes()
         from harness.reporting.links import check
         check(root / 'run/report')
         reference = (root / 'run/report/references/one.txt').read_text()
@@ -70,7 +81,7 @@ def main():
                                    text=True, capture_output=True, check=True, cwd=root)
         assert '# 中文标题' in converted.stdout and '独立内容' in converted.stdout
         assert not CONVERTER.resolve().is_relative_to(Path(__file__).resolve().parents[1])
-    print('Installed wheel: native worker, scoring, evidence and HTML conversion passed')
+    print('Installed wheel: native worker, scoring, evidence assembly and HTML conversion passed')
 
 
 if __name__ == '__main__':

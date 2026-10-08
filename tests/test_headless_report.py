@@ -16,7 +16,7 @@ from harness.web_fetch.report_explainer import (
 from harness.web_fetch.report_resources import GROUPS, render_resource_comparison
 from harness.web_fetch.report_i18n import localize_html
 from scripts.certify_headless_cases import certify_case
-from scripts.assemble_headless import (assemble, copy_bound_review, copy_projected_review,
+from harness.web_fetch.assembly import (assemble, copy_bound_review, copy_projected_review,
                                        copy_scoring_revision_history,
                                        read_verified_batches,
                                        bind_assembled_scoring_revision,
@@ -25,7 +25,7 @@ from scripts.assemble_headless import (assemble, copy_bound_review, copy_project
                                        _copy_speed_bundle,
                                        _prune_shadowed_batch_attempts,
                                        _project_provider_subset)
-from scripts.package_headless_speed import build_summary as build_speed_summary
+from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 from unittest.mock import patch
 
 
@@ -204,7 +204,7 @@ class HeadlessReportTests(unittest.TestCase):
             summary['bindings']={'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
                                  'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()}
             (source/'speed-comparison.json').write_text(json.dumps(summary))
-            with patch('scripts.assemble_headless.require_verified_reference_checks'):
+            with patch('harness.web_fetch.assembly.require_verified_reference_checks'):
                 _copy_speed_bundle(source,target,dataset,records,batches,
                                    excluded_providers=['lexmount-global','lexmount-cn'])
             projected=json.loads((target/'speed-comparison.json').read_text())
@@ -387,7 +387,7 @@ class HeadlessReportTests(unittest.TestCase):
             root=Path(temp)
             batches=[{'run_id':'one'},{'run_id':'two'}]
             (root/'execution.json').write_text(json.dumps({'batches':batches}))
-            with patch('scripts.assemble_headless.require_verified_reference_checks') as verify:
+            with patch('harness.web_fetch.assembly.require_verified_reference_checks') as verify:
                 self.assertEqual(read_verified_batches(root,{'cases':[]},[]),batches)
                 verify.assert_called_once_with(batches,cases={'cases':[]},records=[],source=root,
                     equivalent_capture_bindings=False)

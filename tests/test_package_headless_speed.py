@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.package_headless_speed import build_summary, derive_aggregate, main
+from harness.web_fetch.speed_cohort import build_summary, derive_aggregate, main
 
 
 class SpeedPackagingTests(unittest.TestCase):
@@ -144,7 +144,7 @@ class SpeedPackagingTests(unittest.TestCase):
             argv=["package_headless_speed.py","--run",str(root),
                   "--upgrade-execution-metadata"]
             with patch("sys.argv",argv), \
-                    patch("scripts.package_headless_speed.require_verified_reference_checks"):
+                    patch("harness.web_fetch.speed_cohort.require_verified_reference_checks"):
                 main()
             execution=json.loads((root/"execution.json").read_text())
             self.assertEqual(execution["schema_version"],1)
