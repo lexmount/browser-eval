@@ -16,16 +16,17 @@ from harness.web_fetch.providers.headless import (
     output_mode_for_case,
 )
 from harness.web_fetch.providers.headless_worker import fetch
-from harness.web_fetch.runner import run_evaluation
-from scripts.review_headless_results import (
+from harness.web_fetch.review_execution import (
     INDEPENDENCE_RULES,
     RESOURCE_EQUIVALENCE_RULES,
     SCHEMA,
     anomaly_investigation_packet,
+    blind_review_prompt,
     independent_attempt,
+    review_main,
     validate_review_evidence,
 )
-from scripts.review_headless_results import main as review_main
+from harness.web_fetch.runner import run_evaluation
 
 
 class HeadlessTests(unittest.TestCase):
@@ -111,19 +112,17 @@ class HeadlessTests(unittest.TestCase):
                       RESOURCE_EQUIVALENCE_RULES)
         self.assertNotIn('machine verdict', RESOURCE_EQUIVALENCE_RULES)
         self.assertNotIn('metrics', RESOURCE_EQUIVALENCE_RULES)
-        source = Path(__file__).resolve().parents[1].joinpath(
-            'scripts/review_headless_results.py').read_text()
-        self.assertIn("prompt += '\\n' + RESOURCE_EQUIVALENCE_RULES", source)
+        prompt = blind_review_prompt(Path('/synthetic-packet.json'), 1)
+        self.assertIn(RESOURCE_EQUIVALENCE_RULES, prompt)
 
     def test_codex_review_schema_requires_every_declared_field(self):
         item = SCHEMA['properties']['attempts']['items']
         self.assertEqual(set(item['required']), set(item['properties']))
 
     def test_review_source_guards_case_only_and_declared_truncation_mistakes(self):
-        source = Path(__file__).resolve().parents[1].joinpath(
-            'scripts/review_headless_results.py').read_text()
-        self.assertIn('Capitalization alone is an ordinary presentation difference', source)
-        self.assertIn('provider-authored notice that explicitly says', source)
+        prompt = blind_review_prompt(Path('/synthetic-packet.json'), 1)
+        self.assertIn('Capitalization alone is an ordinary presentation difference', prompt)
+        self.assertIn('provider-authored notice that explicitly says', prompt)
 
     def test_explicit_empty_chromium_binary_never_uses_playwright_fallback(self):
         self.assertIsNone(_resolve_binary('chromium', ''))
@@ -170,6 +169,11 @@ class HeadlessTests(unittest.TestCase):
                 for provider in ('p','q') for case_id in ('a','b')
             ]
             (evidence/'dataset.json').write_text(json.dumps(dataset))
+            for record in records:
+                artifact = evidence / record['artifact_path']
+                artifact.parent.mkdir(parents=True, exist_ok=True)
+                artifact.write_bytes(b'Independent synthetic answer')
+                record['metrics']['content_sha256'] = hashlib.sha256(artifact.read_bytes()).hexdigest()
             (evidence/'results.jsonl').write_text(
                 ''.join(json.dumps(row)+'\n' for row in records))
             argv = ['review_headless_results.py','--evidence',str(evidence),
@@ -200,6 +204,10 @@ class HeadlessTests(unittest.TestCase):
                  'metrics':{'content_pass':True}},
             ]
             (evidence/'dataset.json').write_text(json.dumps(dataset))
+            for row in rows:
+                artifact = evidence / row['artifact_path']
+                artifact.write_bytes(b'Independent synthetic answer')
+                row['metrics']['content_sha256'] = hashlib.sha256(artifact.read_bytes()).hexdigest()
             (evidence/'results.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in rows))
             argv=['review_headless_results.py','--evidence',str(evidence),
                   '--work',str(work),'--model','inherited','--reviewer','internal',
@@ -225,6 +233,7 @@ class HeadlessTests(unittest.TestCase):
                  'artifact_path':'empty.txt','ok':True,'error_type':None,
                  'metrics':{'content_pass':True}}
             (evidence/'empty.txt').write_text('')
+            row['metrics']['content_sha256'] = hashlib.sha256(b'').hexdigest()
             (evidence/'dataset.json').write_text(json.dumps(dataset))
             (evidence/'results.jsonl').write_text(json.dumps(row)+'\n')
             argv=['review_headless_results.py','--evidence',str(evidence),

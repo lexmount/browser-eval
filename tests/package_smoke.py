@@ -54,7 +54,7 @@ def verify_package_tree(source_root: Path, package_root: Path) -> None:
             raise ValueError('Installed package differs from current source bytes: ' + name)
 
 
-def verify_review_revisions(root: Path) -> None:
+def verify_review_revisions(root: Path, source_root: Path) -> None:
     from copy import deepcopy
 
     from harness.web_fetch.result_review import (
@@ -66,12 +66,15 @@ def verify_review_revisions(root: Path) -> None:
     dataset = {'comparison': {'require_independent_result_review': True},
                'cases': [{'id': name, 'task_kind': 'body'} for name in ('a', 'b')]}
     records = [{'attempt_id': f'custom__{name}__r001', 'provider': 'custom',
-                'case_id': name, 'ok': True, 'metrics': {'content_pass': True}}
+                'case_id': name, 'artifact_path': f'{name}.txt', 'ok': True,
+                'metrics': {'content_pass': True, 'content_sha256': hashlib.sha256(b'').hexdigest()}}
                for name in ('a', 'b')]
 
     def bundle(name, document, rows, *, reviewed):
         path = root / name
         path.mkdir()
+        for row in rows:
+            (path / row['artifact_path']).write_bytes(b'')
         (path / 'dataset.json').write_text(json.dumps(document))
         (path / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
         if reviewed:
@@ -113,6 +116,17 @@ def verify_review_revisions(root: Path) -> None:
     assert merged['review_protocol']['matrix_refresh_review']['retained_attempts'] == 1
     assert merged['review_protocol']['matrix_refresh_review']['reviewed_attempts'] == 1
     assert (refreshed / 'results.jsonl').read_bytes() == before
+    for script in ('review_headless_results.py', 'review_result_anomalies.py'):
+        work = root / (script.removesuffix('.py') + '-work')
+        command = [sys.executable, str(source_root / 'scripts' / script),
+                   '--evidence', str(current), '--work', str(work), '--model', 'synthetic',
+                   '--reviewer', 'internal', '--prepare-only']
+        for _ in range(2):
+            subprocess.run(command, check=True, cwd=root, capture_output=True, text=True)
+        session = json.loads((work / 'review-session.json').read_text())
+        assert session['bindings']['results_sha256'] == hashlib.sha256(before).hexdigest()
+        assert set(session['artifacts_sha256']) == {'a.txt', 'b.txt'}
+        assert not (work / 'result-review.json').exists()
 
 
 def verify_lexbench_package(root: Path, renderer: Path) -> None:
@@ -252,7 +266,7 @@ def main():
         root = Path(work)
         verify_lexbench_package(root, args.source_root / 'scripts/moli_report/app.js')
         verify_dynamic_cohort(root, args.source_root)
-        verify_review_revisions(root)
+        verify_review_revisions(root, args.source_root)
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
                        check=True, cwd=root)
         binary = root / 'browser'

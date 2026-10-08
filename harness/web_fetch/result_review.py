@@ -287,7 +287,8 @@ def _read_review_evidence(source, *, skip_blank=False):
     )
 
 
-def _write_review(target, review, *, before_replace=None):
+def write_review_document(target, review, *, before_replace=None):
+    """Stage private review JSON and replace only an unchanged, unlinked destination."""
     if target.is_symlink():
         raise ValueError("Symlinked review output is forbidden")
     original = target.read_bytes() if target.exists() else None
@@ -325,7 +326,7 @@ def install_result_review(evidence, review, *, anomaly_gate=True, skip_blank=Fal
         if _read_review_evidence(evidence, skip_blank=skip_blank)[2] != bindings:
             raise ValueError("Review evidence changed before installation")
 
-    _write_review(target, review, before_replace=unchanged)
+    write_review_document(target, review, before_replace=unchanged)
     return target
 
 
@@ -731,7 +732,7 @@ def rebase_review(
     validator = require_result_review if install else require_blind_result_review
     validator(current, current_dataset, current_rows, result)
     if output.resolve() != installed.resolve():
-        _write_review(output, result)
+        write_review_document(output, result)
     if install:
         install_result_review(current, result, skip_blank=True)
     return result

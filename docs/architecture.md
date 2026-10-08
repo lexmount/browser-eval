@@ -31,6 +31,14 @@ Installation validates the candidate before replacing the review, rejects linked
 targets, and checks that evidence and the destination remain unchanged while
 staging. These operations neither call providers nor start independent review.
 
+`harness/web_fetch/review_execution.py` owns opt-in blind-review and later anomaly
+investigation execution. Their command scripts delegate to this owner. A private
+workspace receipt binds frozen dataset/results bytes, all declared artifacts,
+reviewer configuration and the current review implementation. Resume validates
+these bindings before changing packets or reusing outputs; anomaly grouping may
+remap completed groups only within that bound context. Installation uses the
+same validator and atomic writer as offline review revisions.
+
 Web Fetch evidence assembly belongs to `harness/web_fetch/assembly.py`.
 `refresh_assembly.py` validates a predeclared refresh plan and uses the same
 artifact boundary and speed-bundle copier. `speed_cohort.py` owns the complete

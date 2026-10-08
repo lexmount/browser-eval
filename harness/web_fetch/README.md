@@ -197,6 +197,20 @@ independent review still requires an explicit request.
 A merged blind review still needs any anomaly investigation required by the
 dataset before publication.
 
+Independent execution remains opt-in through `scripts/review_headless_results.py`;
+its default scope is machine failures. Reviewing passes or the full matrix also
+requires `--confirm-full-review`. `--prepare-only` creates blinded packets without
+starting a reviewer. `scripts/review_result_anomalies.py` investigates an already
+recorded blind review without changing its independent judgments.
+
+Keep each command's `--work` directory outside Git and measured evidence. Its private
+`review-session.json` binds the frozen inputs, verified artifact hashes, exact
+reviewer configuration and review implementation. Matching inputs can resume;
+changed inputs, models or implementations require a new work directory. Existing
+unbound work directories are preserved and rejected rather than silently reused.
+Changing task IDs is not required to invalidate stale judgments. Provider-filtered
+reviews remain partial and cannot replace a required complete installed review.
+
 For a heterogeneous same-window
 cohort, keep every predeclared call and report all-call latency (one shared task
 denominator) separately from successful-call latency (each method's conditional
