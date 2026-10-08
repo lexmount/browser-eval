@@ -1033,6 +1033,17 @@ def check_case_reference_and_scoring_revision_binding(
         )
 
 
+def require_certifiable_evidence(dataset=None, manifests=()) -> None:
+    """Diagnostic intent survives dataset copies and cannot become certification."""
+    comparison = dataset.get('comparison', {}) if isinstance(dataset, dict) else {}
+    candidates = [comparison, *manifests]
+    if any(isinstance(value, dict) and (
+            value.get('evidence_state') == 'diagnostic'
+            or value.get('publication_state') == 'diagnostic'
+            or value.get('unqualified_reference_cases')) for value in candidates):
+        raise ReferenceLifecycleError('Diagnostic evidence cannot enter certified assembly or reports')
+
+
 def require_verified_reference_checks(manifests, *, cases=None, records=None, source=None,
                                       equivalent_capture_bindings=False,
                                       allow_scoring_rule_revision=False) -> None:
@@ -1052,6 +1063,7 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
         manifests = [manifests]
     if not isinstance(manifests, (list, tuple)):
         raise ReferenceLifecycleError("Expected manifest batches")
+    require_certifiable_evidence(cases, manifests)
     case_map = None
     if cases is not None:
         if isinstance(cases, dict) and "cases" in cases and isinstance(cases["cases"], list):

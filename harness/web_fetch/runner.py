@@ -529,6 +529,11 @@ def run_evaluation(
     }
     if reference_checks is not None:
         manifest["reference_checks"] = reference_checks
+    comparison = dataset_meta.get('comparison', {})
+    if comparison.get('evidence_state') == 'diagnostic':
+        manifest['evidence_state'] = 'diagnostic'
+        manifest['unqualified_reference_cases'] = sorted(
+            set(comparison.get('unqualified_reference_cases', [])) & {case.id for case in cases})
     (output_dir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )

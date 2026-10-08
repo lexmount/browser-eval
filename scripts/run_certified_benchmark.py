@@ -171,10 +171,14 @@ def main(argv: list[str] | None = None) -> None:
         original_sha = hashlib.sha256(args.dataset.read_bytes()).hexdigest()
         dataset = native_fetch_dataset(dataset)
         dataset['comparison']['input_dataset_sha256'] = original_sha
+    if args.diagnostic:
+        dataset.setdefault('comparison',{}).update(
+            evidence_state='diagnostic', publication_state='diagnostic',
+            unqualified_reference_cases=sorted(unqualified))
     # Reject malformed execution contracts before doing any external captures.
     for case in dataset['cases']:
         parse_retrieval_hints(case.get('track', 'web'), case.get('retrieval_hints'), identifier=case['id'])
-    if args.retrieval_mode == 'native':
+    if args.retrieval_mode == 'native' or args.diagnostic:
         args.work_root.mkdir(parents=True)
         args.dataset = args.work_root / 'input-dataset.json'
         args.dataset.write_text(json.dumps(dataset, ensure_ascii=False, indent=2)+'\n')

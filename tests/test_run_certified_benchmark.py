@@ -10,6 +10,68 @@ from scripts.run_certified_benchmark import main
 
 
 class CertifiedBenchmarkTests(unittest.TestCase):
+    def test_diagnostic_execution_cannot_be_assembled_or_rendered_as_certified(self):
+        from scripts import freeze_headless_references, postcheck_headless, run_benchmark
+        from scripts.finalize_benchmark_run import finalize_aggregate
+        from scripts.assemble_headless import assemble
+        from harness.web_fetch.reference_lifecycle import (
+            ReferenceLifecycleError, require_verified_reference_checks)
+        from harness.web_fetch.report_build import build_report
+        for mode in ('declared', 'native'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root=Path(directory); dataset=root/'dataset.json'; output=root/'run'
+                case={'id':'stable','name':'Stable page','url':'https://example.test/page',
+                      'category':'web','track':'web','expected_any':['Required label'],
+                      'acceptance_contract':{'version':1,'schema':'body_text',
+                          'minimum_records':0,'stable_text_anchors':[
+                              {'id':'a','alternatives':['Required label']}]}}
+                dataset.write_text(json.dumps({'tool':'web_fetch','comparison':{},'cases':[case]}))
+                original=dataset.read_bytes()
+                config=root/'provider.json'
+                config.write_text(json.dumps({'providers':{'fixture':{'type':'fixture'}}}))
+                (root/'evaluation/list-references').mkdir(parents=True)
+
+                def execute(command):
+                    script=Path(command[1]).name
+                    if script=='collect_source_evidence.py':
+                        self.write_capture(Path(command[3]),'stable',text='Required label')
+                    elif script=='freeze_headless_references.py':
+                        with patch.object(freeze_headless_references,'ROOT',root):
+                            freeze_headless_references.main(command[2:])
+                    elif script=='run_benchmark.py':
+                        with patch.object(run_benchmark,'load_runtime_env'):
+                            run_benchmark.main(command[2:])
+                    elif script=='postcheck_headless.py':
+                        with patch('sys.argv',command[1:]):postcheck_headless.main()
+                    elif script=='finalize_benchmark_run.py':
+                        finalize_aggregate(output,root/'work/post-captures/observations.json')
+                    else:self.fail('Unexpected external stage: '+script)
+
+                with patch('scripts.run_certified_benchmark.run',side_effect=execute):
+                    main(['--dataset',str(dataset),'--output',str(output),
+                          '--work-root',str(root/'work'),'--providers','fixture',
+                          '--provider-config',str(config),'--case-ids','stable',
+                          '--retrieval-mode',mode,'--diagnostic'])
+                (output/'sources').mkdir(exist_ok=True)
+                (output/'list-references').mkdir(exist_ok=True)
+                with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
+                    assemble(output,root/'certificates',[],root/'formal')
+                self.assertFalse((root/'formal').exists())
+                saved=json.loads((output/'dataset.json').read_text())
+                self.assertEqual(saved['comparison']['evidence_state'],'diagnostic')
+                self.assertEqual(saved['comparison']['unqualified_reference_cases'],['stable'])
+                batches=json.loads((output/'execution.json').read_text())['batches']
+                self.assertTrue(all(b['evidence_state']=='diagnostic' and
+                    b['unqualified_reference_cases']==['stable'] for b in batches))
+                # Dropping dataset display metadata cannot erase execution provenance.
+                saved['comparison']={}
+                with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
+                    require_verified_reference_checks(batches,cases=saved)
+                with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
+                    build_report(output,root/'formal-report')
+                self.assertFalse((root/'formal-report').exists())
+                self.assertEqual(dataset.read_bytes(),original)
+
     def test_stable_rules_alone_cannot_be_mistaken_for_live_source_certification(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset=root/'dataset.json'

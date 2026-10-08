@@ -213,6 +213,9 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     if output.exists() and not (output/marker).is_file():
         raise ValueError(f'Refusing to replace an unmarked directory: {output}')
     dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
+    if not local_audit:
+        from .reference_lifecycle import require_certifiable_evidence
+        require_certifiable_evidence(dataset_probe)
     if dataset_probe.get('comparison', {}).get('kind') == 'webmainbench_frozen_html_to_markdown':
         return build_webmainbench_report(source, output, include_english=include_english)
     if not local_audit:
