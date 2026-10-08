@@ -98,6 +98,11 @@ def run(command: list[str]) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["webmainbench-latency"]:
+        from .webmainbench_latency_correction import certify
+
+        certify(argv[1:])
+        return
     if argv[:1] == ["risk-control"]:
         from harness.web_fetch.risk_control import main as risk_control_main
 

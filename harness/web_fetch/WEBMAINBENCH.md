@@ -37,6 +37,19 @@ profile defines the allowed network access, conversion route and deadline.
 Original URLs remain evidence metadata. This experiment measures frozen-page
 conversion, not current website availability or live browsing success.
 
+## Reproduce the sample's latency correction
+
+The retained 200-page sample's balanced Moli latency correction uses
+`scripts/run_certified_benchmark.py webmainbench-latency` and
+`scripts/apply_webmainbench_latency_correction.py`. Both delegate to
+`harness/web_fetch/webmainbench_latency_correction.py`. This frozen experiment
+keeps its declared versions, two rounds, final-round selection, macOS host
+observations and full 800-call scope. It does not change the scored outputs.
+New certificates include `certifier-source.py` and its SHA-256; preserve this
+file alongside `certification.json`, `selection.json`, `calls.jsonl` and outputs.
+Source copies are verified as data and never executed. Historical source
+bindings name exact Git revisions rather than the current command file.
+
 ## Certify, score and assemble the complete comparison
 
 Install the `headless-eval` and `webmainbench-eval` extras, prepare the declared

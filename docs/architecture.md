@@ -90,6 +90,15 @@ TEDS revisions share `webmainbench_diagnostics.py` with revision validation.
 Their command paths remain stable. New revision receipts bind the actual shared
 implementation; retained revisions verify their own frozen source copies.
 
+`webmainbench_latency_correction.py` owns the retained sample's latency
+certification, application and validation. New cohorts retain a hash-bound copy
+of the certifier captured before calls; consumers verify those bytes without
+executing them or comparing them with today's command wrapper. Historical
+certificates use the exact Git revisions and hashes in
+`harness/web_fetch/data/webmainbench-latency-source.json`. All declared physical
+calls require finite nonnegative timing, including unselected rounds. Host
+observations must be available before measurement starts.
+
 Complete WebMainBench comparisons assemble the baseline and every registry-declared variant directly from their certified cohorts. Participant counts come from profiles and the registry throughout assembly, rendering and release checks. Only declared evidence enters the package; assembly commits a new directory after all checks pass. Replacing a cohort creates a new package and retains the previous one. See [the WebMainBench guide](../harness/web_fetch/WEBMAINBENCH.md) for the supported commands and historical binding format.
 
 Independent HTTP source capture and HTML extraction belong to `harness/web_fetch/source_capture.py`; its command is `scripts/collect_source_evidence.py`. Reference audits, scope refreshes and browser observations import the same extractor. `document_text.py` owns document extraction for both captured sources and provider responses, with explicit whitespace preservation for source reconstruction. Capture writes a new external evidence directory, validates the complete requested task scope before requests, and retains failed HTTP observations for review. Capture alone neither approves a reference nor certifies a provider result.

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import statistics
 from collections import defaultdict
@@ -65,6 +66,10 @@ def _repeat_calls(root: Path, binding: dict, cases: dict, source_sha256: str,
         raise ValueError('Moli repeat selection or binary identity changed')
     seen = set()
     for row in calls:
+        elapsed = row.get('elapsed_ms')
+        if (isinstance(elapsed, bool) or not isinstance(elapsed, (int, float))
+                or not math.isfinite(elapsed) or elapsed < 0):
+            raise ValueError('Invalid latency timing in the declared physical calls')
         key = (row['case_id'], row['version'], row['round'])
         if (key in seen or row['case_id'] not in selected or row['version'] not in binaries
                 or not isinstance(row['round'], int) or not 1 <= row['round'] <= expected_rounds
