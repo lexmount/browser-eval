@@ -1,10 +1,13 @@
 import json
+import copy
 from pathlib import Path
 import unittest
 import tempfile
 
 from scripts.correct_webmainbench_scoring import (
-    CONTROL_IDS, REGISTRY, json_digest, revised_metrics, validate_population_binding,
+    CONTROL_IDS, REGISTRY, json_digest, prepare_correction_source, revised_metrics,
+    validate_correction_authority,
+    validate_population_binding,
 )
 
 
@@ -121,14 +124,89 @@ class WebMainBenchScoringCorrectionTests(unittest.TestCase):
             "ordered_track_ids_sha256": json_digest(["case"]),
             "rows_sha256": json_digest([row]),
         }
-        manifest = {"schema_version": 2, "input_population": {**binding, "rows_sha256": "old"},
-                    "output_population": binding}
+        manifest = {
+            "schema_version": 3,
+            "decision_contracts": {
+                "reference": {
+                    "changed_field": "groundtruth_content",
+                    "required_source_evidence": ["task_contract", "frozen_html"],
+                }
+            },
+            "corrections": [],
+            "input_population": {**binding, "rows_sha256": "old"},
+            "output_population": binding,
+        }
         dataset = {"cases": [{"id": "case", "meta": row["meta"]}]}
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "references").mkdir()
             (root / "references/case.md").write_text("corrected")
             validate_population_binding(root, dataset, [row], manifest)
+
+    def test_correction_authority_rejects_method_outcome_basis(self):
+        manifest = {
+            "schema_version": 3,
+            "decision_contracts": {
+                "reference": {
+                    "changed_field": "groundtruth_content",
+                    "required_source_evidence": ["task_contract", "frozen_html"],
+                }
+            },
+            "corrections": [{
+                "decision_contract": "reference",
+                "rationale": "The frozen source contradicts the reference.",
+                "evidence": {"method_score": {"before": 0.1, "after": 0.9}},
+            }],
+        }
+        with self.assertRaisesRegex(ValueError, "cannot authorize"):
+            validate_correction_authority(manifest)
+
+    def test_new_correction_replaces_inherited_provenance_directory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory) / "scoring-correction-source"
+            destination.mkdir()
+            (destination / "stale.json").write_text("{}")
+
+            prepare_correction_source(destination)
+
+            self.assertTrue(destination.is_dir())
+            self.assertEqual(list(destination.iterdir()), [])
+
+    def test_decision_authority_is_limited_to_the_authorized_field(self):
+        contracts = {
+            field: {"changed_field": field,
+                    "required_source_evidence": ["task_contract", "frozen_html"]}
+            for field in ("groundtruth_content", "meta")
+        }
+        changes = {
+            "groundtruth_content": {"original_groundtruth_sha256": "old",
+                                    "replacement_sha256": "new"},
+            "meta": {"original_meta_sha256": "old", "replacement_meta": {"code": []}},
+        }
+        for field, change in changes.items():
+            manifest = {"schema_version": 3, "decision_contracts": contracts,
+                        "corrections": [{**change, "decision_contract": field,
+                                         "rationale": "Frozen source supports this correction."}]}
+            with self.subTest(field=field):
+                validate_correction_authority(manifest)
+                wrong = copy.deepcopy(manifest)
+                wrong["corrections"][0]["decision_contract"] = next(
+                    value for value in contracts if value != field
+                )
+                with self.assertRaisesRegex(ValueError, "fields differ"):
+                    validate_correction_authority(wrong)
+                combined = copy.deepcopy(manifest)
+                combined["corrections"][0].update(changes[next(
+                    value for value in contracts if value != field
+                )])
+                with self.assertRaisesRegex(ValueError, "fields differ"):
+                    validate_correction_authority(combined)
+        unknown = {"schema_version": 3, "decision_contracts": {
+            "input": {"changed_field": "html",
+                      "required_source_evidence": ["task_contract", "frozen_html"]}},
+            "corrections": []}
+        with self.assertRaisesRegex(ValueError, "unsupported changed field"):
+            validate_correction_authority(unknown)
 
 
 if __name__ == "__main__":

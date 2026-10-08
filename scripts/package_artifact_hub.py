@@ -214,14 +214,16 @@ def build():
     # Text tasks show the complete source and output in <pre> blocks, which we
     # replace with lazy-loaded evidence. Direct-file tasks intentionally show a
     # structured byte/hash comparison instead, so they have neither block.
-    assert all(len(by_kind[kind])<=1 for kind in ('output','metadata','call-output','call-metadata')) and len(by_kind['metadata'])==1,(name,{key:len(value) for key,value in by_kind.items()})
+    assert all(len(by_kind[kind])<=1 for kind in ('output','call-output','call-metadata')) and by_kind['metadata'],(name,{key:len(value) for key,value in by_kind.items()})
     # The first source block is the complete reference/contract. Newer detail pages
     # can also show several derived body-region excerpts; keep those excerpts inline
     # instead of incorrectly replacing each one with the complete source file.
     selected=[]
     if by_kind[source_kind]:selected.append(by_kind[source_kind][0])
     if by_kind['output']:selected.append(by_kind['output'][0])
-    selected.append(by_kind['metadata'][0])
+    # Several metadata blocks represent distinct parsed log/response fields.
+    # A whole-result lazy loader cannot replace those narrower views.
+    if len(by_kind['metadata'])==1:selected.append(by_kind['metadata'][0])
     if by_kind['call-output']:selected.append(by_kind['call-output'][0])
     if by_kind['call-metadata']:selected.append(by_kind['call-metadata'][0])
     selected.extend(by_kind['call-log'])
@@ -234,7 +236,10 @@ def build():
      if isinstance(value,dict):log_paths.append(value.get('path'))
     log_paths.extend([record.get('call_log_path'),metadata.get('call_log_path')])
     log_paths=list(dict.fromkeys(str(value) for value in log_paths if value and not str(value).startswith('private_artifacts/')))
-    assert len(log_paths)==len(by_kind['call-log']),(name,len(log_paths),len(by_kind['call-log']))
+    # Current detail pages link to separate log viewers; older pages embedded
+    # one pre block per call. Both must retain the actual public log files.
+    assert all((SOURCE/path).is_file() for path in log_paths), (name, 'missing call log')
+    assert not by_kind['call-log'] or len(log_paths)==len(by_kind['call-log']), (name,len(log_paths),len(by_kind['call-log']))
     log_replacements={match.start():f'<pre data-file="{path}" data-readable="1"></pre>'
                       for match,path in zip(by_kind['call-log'],log_paths)}
     reference_suffix='.md' if (SOURCE/'references'/f'{record["case_id"]}.md').exists() else '.txt'

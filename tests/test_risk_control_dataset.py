@@ -46,8 +46,8 @@ def test_dataset_covers_the_exact_audited_cohort(dataset):
     assert dataset["case_count"] == len(dataset["cases"]) == 100
     assert [case["id"] for case in dataset["cases"]] == [case["id"] for case in cohort["cases"]]
     assert dataset["site_count"] == 74
-    assert dataset["stable_literal_count"] == 729
-    assert dataset["page_context_literal_count"] == 871
+    assert dataset["stable_literal_count"] == 1600
+    assert "page_context_literal_count" not in dataset
     assert dataset["observed_literal_count"] == 1600
     assert dataset["body_case_count"] == 79
     assert dataset["quantity_case_count"] == 21
@@ -65,11 +65,12 @@ def test_training_page_accepts_the_visible_english_ui_without_dropping_chinese_c
         "教材《C++版信息学奥赛一本通编程启蒙》题单\n"
         "Login to join training plan\n"
         "Problem Tried AC Difficulty\n"
+        "Home Problem Set Training Contest Record Ranking Login Sign Up Language\n"
         "P1 [例2.1]Hello World 454 122 7\n"
     )
     result = evaluate_stable_task(visible, case["acceptance_contract"], case["url"])
     assert result["stable_task_pass"] is True
-    assert result["stable_anchor_hits"] == result["stable_anchor_total"] == 6
+    assert result["stable_anchor_hits"] == result["stable_anchor_total"] == 15
     without_training_title = evaluate_stable_task(
         visible.replace("教材《C++版信息学奥赛一本通编程启蒙》题单", ""),
         case["acceptance_contract"], case["url"],
@@ -83,7 +84,7 @@ def test_training_page_language_alternatives_rebuild_from_rule_review(dataset):
     assert section["stable"] == [
         anchor["alternatives"] for anchor in case["acceptance_contract"]["stable_text_anchors"]
     ]
-    assert len(section["stable"]) == 6
+    assert len(section["stable"]) == 15
 
 
 def test_language_rule_revision_is_the_predecessor_of_the_current_sample_revision():
@@ -107,9 +108,15 @@ def test_zillow_sample_revision_binds_current_frozen_inputs():
     profile = json.loads(RUN_PROFILE.read_text())
     for key in ('dataset', 'run_profile'):
         assert revision['correction']['new_'+key+'_sha256'] == successor['correction']['predecessor_'+key+'_sha256']
-    assert successor['correction']['new_dataset_sha256'] == hashlib.sha256(DATASET.read_bytes()).hexdigest()
-    assert successor['correction']['new_run_profile_sha256'] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
-    assert profile["dataset"]["sha256"] == successor["correction"]["new_dataset_sha256"]
+    full_page = json.loads((ROOT/'research/risk-control-full-page-rule-revision.json').read_text())
+    assert successor['correction']['new_dataset_sha256'] == full_page['correction']['predecessor_dataset_sha256']
+    assert successor['correction']['new_run_profile_sha256'] == full_page['correction']['predecessor_run_profile_sha256']
+    locale=json.loads((ROOT/'research/risk-control-navigation-language-revision.json').read_text())
+    for key in ('dataset','run_profile'):
+        assert full_page['correction']['new_'+key+'_sha256'] == locale['correction']['predecessor_'+key+'_sha256']
+    assert locale['correction']['new_dataset_sha256'] == hashlib.sha256(DATASET.read_bytes()).hexdigest()
+    assert locale['correction']['new_run_profile_sha256'] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
+    assert profile["dataset"]["sha256"] == locale["correction"]["new_dataset_sha256"]
     assert revision["correction"]["provider_calls"] == 1
     assert revision["correction"]["rerun_case_ids"] == ["risk-diverse-134"]
 
@@ -117,7 +124,9 @@ def test_zillow_sample_revision_binds_current_frozen_inputs():
 def test_every_secondary_risk_anchor_is_bound_to_independent_revision(dataset):
     revision = json.loads(LANGUAGE_REVISION.read_text())
     case_id = revision["case_id"]
-    declared = revision["correction"]["equivalent_ui_alternatives_added"]
+    locale=json.loads((ROOT/'research/risk-control-navigation-language-revision.json').read_text())
+    declared = {**revision["correction"]["equivalent_ui_alternatives_added"],
+                **locale["correction"]["equivalent_ui_alternatives_added"]}
     observed = {}
     for case in dataset["cases"]:
         for anchor in case["acceptance_contract"]["stable_text_anchors"]:
@@ -490,6 +499,7 @@ def test_report_requires_complete_profile_bound_risk_control_certification(tmp_p
         require_risk_control_certification(tmp_path, dataset, records)
 
 
+
 def test_report_rejects_hash_bound_but_incomplete_reference_proof_receipt(tmp_path):
     dataset, records, receipt, manifest, execution = certified_report_fixture(tmp_path)
     proof_path = tmp_path / "reference-proof-verification.json"
@@ -618,8 +628,7 @@ def test_corrected_rule_evidence_conflicts_are_encoded_exactly(dataset):
     zhihu_anchors = [
         row["alternatives"][0] for row in zhihu["acceptance_contract"]["stable_text_anchors"]
     ]
-    assert len(zhihu_anchors) == 10
-    assert len(zhihu["source_benchmark"]["risk_control"]["page_context_anchors"]) == 5
+    assert len(zhihu_anchors) == 15
     assert len(zhihu["body_requirements"]["regions"]) == 5
     assert (
         "成为推动本世纪人类社会发展的主要技术" in zhihu["body_requirements"]["regions"][-1]["text"]
@@ -764,11 +773,9 @@ def test_corrected_rule_evidence_conflicts_are_encoded_exactly(dataset):
         "Why not GitHub?",
         "Contributing",
         "Forking/mirroring",
+        "index",
+        "about",
     ]
-    assert [
-        row["alternatives"][0]
-        for row in replacement["source_benchmark"]["risk_control"]["page_context_anchors"]
-    ] == ["index", "about"]
     assert len(replacement["body_requirements"]["regions"]) == 4
     assert "generated by" not in json.dumps(replacement["body_requirements"], ensure_ascii=False)
 
@@ -927,18 +934,15 @@ def test_archwiki_requires_both_page_chrome_and_full_body(dataset):
         ),
     ],
 )
-def test_page_content_without_declared_initial_chrome_passes_with_diagnostic_gap(
+def test_page_content_without_declared_initial_chrome_fails(
     dataset,
     case_id,
     required_chrome,
 ):
     case = next(case for case in dataset["cases"] if case["id"] == case_id)
     anchors = [row["alternatives"][0] for row in case["acceptance_contract"]["stable_text_anchors"]]
-    page_context = case["source_benchmark"]["risk_control"]["page_context_anchors"]
-    assert all(
-        value in {row["alternatives"][0] for row in page_context} for value in required_chrome
-    )
-    partial = "\n".join(anchors)
+    assert all(value in anchors for value in required_chrome)
+    partial = "\n".join(value for value in anchors if value not in required_chrome)
     if body := case.get("body_requirements"):
         partial += "\n" + "\n".join(row["text"] for row in body["regions"])
     result = evaluate_content(
@@ -949,16 +953,47 @@ def test_page_content_without_declared_initial_chrome_passes_with_diagnostic_gap
         body_requirements=case.get("body_requirements"),
         base_url=case["url"],
     )
-    assert result["stable_task_pass"]
-    assert result["content_pass"]
-    diagnostic = evaluate_stable_task(
-        partial,
-        {
-            "version": 1,
-            "schema": "body_text",
-            "minimum_records": 0,
-            "stable_text_anchors": page_context,
-        },
-        case["url"],
-    )
-    assert not diagnostic["stable_task_pass"]
+    assert not result["stable_task_pass"]
+    assert not result["content_pass"]
+
+
+
+def test_certified_report_preserves_certificate_bound_files(tmp_path, capsys):
+    from harness.web_fetch.config import load_dataset
+    from harness.web_fetch.providers.fixture import FixtureProvider
+    from harness.web_fetch.runner import run_evaluation
+    from harness.web_fetch.report_build import build_report
+
+    profile = json.loads(RUN_PROFILE.read_text())
+    provider = profile["provider"]["name"]
+    frozen, cases = load_dataset(DATASET)
+    measured = measured_risk_control_dataset(
+        profile, frozen, hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest())
+    provider_config = tmp_path / "fixture-provider.json"
+    provider_config.write_text(json.dumps({provider: {"type": "fixture"}}))
+    records, _ = run_evaluation(
+        output_dir=tmp_path, dataset_meta=measured, dataset_path=DATASET,
+        cases=cases, providers=[FixtureProvider(provider, {"type": "fixture"})],
+        provider_config_path=provider_config, runs=1, timeout=5, delay=0,
+        provider_concurrency=1, max_failure_retries=0)
+    capsys.readouterr()
+    _, certified, receipt, _, _ = certified_report_fixture(tmp_path)
+    diagnostic = b"DEBUG fixture diagnostic\n"
+    for row, certified_row in zip(records, certified, strict=True):
+        row["provider_metadata"].update(certified_row["provider_metadata"])
+        metadata = row["provider_metadata"]
+        metadata["diagnostic_log_sha256"] = hashlib.sha256(diagnostic).hexdigest()
+        metadata["diagnostic_log_bytes"] = len(diagnostic)
+        path = tmp_path / metadata["diagnostic_log_path"]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(diagnostic)
+    results = tmp_path / "results.jsonl"
+    results.write_text("".join(json.dumps(row) + "\n" for row in records))
+    receipt["results_sha256"] = hashlib.sha256(results.read_bytes()).hexdigest()
+    (tmp_path / "certification.json").write_text(json.dumps(receipt))
+    report = tmp_path / "report"
+    assert build_report(tmp_path, report).is_file()
+    for name in ("dataset.json", "manifest.json", "execution.json",
+                 "reference-proof-verification.json", "certification.json"):
+        assert (report / name).read_bytes() == (tmp_path / name).read_bytes()
+    require_risk_control_certification(report, measured, records)

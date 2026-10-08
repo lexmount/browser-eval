@@ -116,7 +116,7 @@ class ScoringTests(unittest.TestCase):
         self.assertEqual(accepted["page_identity_status"], "verified")
         self.assertTrue(task_passed(True, accepted))
 
-    def test_risk_control_page_context_is_diagnostic_only(self):
+    def test_risk_control_requires_all_declared_stable_page_text(self):
         benchmark = {
             "risk_control": {
                 "navigation_contract": {
@@ -124,9 +124,6 @@ class ScoringTests(unittest.TestCase):
                     "observed_final_url": "https://example.test/page",
                     "target_language": "en",
                 },
-                "page_context_anchors": [
-                    {"id": "translate", "alternatives": ["Translate"]}
-                ],
             }
         }
         c = case(
@@ -135,7 +132,10 @@ class ScoringTests(unittest.TestCase):
                 "version": 1,
                 "schema": "body_text",
                 "minimum_records": 0,
-                "stable_text_anchors": [{"id": "body", "alternatives": ["Target body"]}],
+                "stable_text_anchors": [
+                    {"id": "body", "alternatives": ["Target body"]},
+                    {"id": "translate", "alternatives": ["Translate"]},
+                ],
             },
             source_benchmark=benchmark,
         )
@@ -145,9 +145,16 @@ class ScoringTests(unittest.TestCase):
             ok=True,
             final_url="https://example.test/page",
         )
-        self.assertFalse(measured["page_context_pass"])
-        self.assertEqual(measured["page_context_coverage"], 0.0)
-        self.assertTrue(task_passed(True, measured))
+        self.assertFalse(measured["stable_task_pass"])
+        self.assertFalse(task_passed(True, measured))
+        complete = score_attempt(
+            c,
+            b"Target body\nTranslate",
+            ok=True,
+            final_url="https://example.test/page",
+        )
+        self.assertTrue(complete["stable_task_pass"])
+        self.assertTrue(task_passed(True, complete))
 
     def test_source_title_is_answer_evidence_without_inflating_body_length(self):
         c=case(required_facts=[{'id':'title','alternatives':['Exact page title']},

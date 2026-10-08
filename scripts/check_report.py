@@ -12,7 +12,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from harness.web_fetch.reliability import require_reliable
 from harness.web_fetch.reference_lifecycle import validate_resource_source_evidence
 from harness.web_fetch.storage import require_canonical_inputs, require_current_report_profile
-from harness.report_languages import check_language_contract, generated_languages
+from harness.report_languages import check_language_contract, generated_languages, visible_numbers
 from scripts.report_asset_parity import ArticleAssetParity
 
 class Tables(HTMLParser):
@@ -68,7 +68,7 @@ class PageShape(HTMLParser):
   if tag=='figure' and self.figures:self.figures.pop()
   if tag in {'pre','code','script','style'}:self.skip=max(0,self.skip-1)
  def handle_data(self,text):
-  if not self.skip:self.numbers.extend(re.findall(r'\d+(?:[.,]\d+)*(?:%|\b)',text))
+  if not self.skip:self.numbers.extend(visible_numbers(text))
 
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('root',type=Path)

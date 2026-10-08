@@ -1175,8 +1175,6 @@ def stable_answer_panel(contract):
 
 def machine_contract(case):
  contract={key:case[key] for key in ('acceptance_contract','composite_acceptance','body_requirements') if case.get(key)}
- diagnostics=(((case.get('source_benchmark') or {}).get('risk_control') or {}).get('page_context_anchors'))
- if diagnostics:contract['page_context_diagnostics']={'affects_task_pass':False,'anchors':diagnostics}
  return contract
 
 def composite_contract_details(contract):
@@ -1355,8 +1353,6 @@ def reason(r,c):
    failed=[row['id'] for row in m.get('composite_group_results',[]) if not row.get('pass')]
    return '组合规则未满足：'+('、'.join(failed) if failed else '未通过的规则组未登记')+'。'
   success='稳定内容与结构检查通过。' if m.get('stable_anchor_results') or m.get('stable_page_pattern_results') else '条目结构检查通过；本例未设置稳定文字核对点。'
-  if m.get('page_context_anchor_total'):
-   success+=f" 页面外围诊断覆盖 {m.get('page_context_anchor_hits',0)}/{m['page_context_anchor_total']}；该诊断不影响任务通过。"
   if m.get('stable_task_schema') == 'body_text':
    return success if succeeded(r,c) else stable_failure_summary(m)+'。'
   counts=f"检出 {m.get('stable_record_count','—')} 条，字段完整 {m.get('stable_complete_record_count','—')} 条，完整且唯一 {m.get('stable_unique_record_count','—')} 条，要求至少 {m.get('stable_minimum_records','—')} 条。"
@@ -1712,8 +1708,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   cards+=overview_card(records,cases,track,label,names)
  home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类分榜与一个综合通过率总榜。')
  home+=local_audit_banner(dataset)
- from .report_explainer import article_title,render_explainer
- TITLE=article_title(records)
+ from .report_explainer import article_title,render_explainer,supports_authored_explainer
+ TITLE=article_title(records) if supports_authored_explainer(cases) else '本报告的任务范围与验收规则'
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
  write(out,'guide/index.html','报告解读',render_explainer(out,cases,records,table=table,cell=cell,link=link))
  panels=[]
@@ -3283,7 +3279,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                   anchor("index.html", "WebMainBench · 545") + '</strong><nav>' + links + '</nav>' + anchor("en/index.html", "English") +
                   '<button onclick="theme()">切换主题</button></div></header><main class="wrap">' + body +
                   '</main><footer class="wrap">WebMainBench 545 例 · ' + str(len(providers)) + ' 种方法 · ' +
-                  anchor("https://github.com/lexmount/WebMainBench/tree/lexmain", "Lexmain 数据与评分器") + '</footer></body></html>')
+                  anchor("https://github.com/lexmount/WebMainBench/tree/lex-main", "lex-main 数据与评分器") + '</footer></body></html>')
         target = out / route
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(markup, encoding="utf-8")
@@ -3543,13 +3539,13 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
          '<section class="hero"><h1>测量与评分方法</h1><p>' + prose('method_lead') + '</p></section>' +
          '<section class="panel"><h2>输入</h2><p>' + prose('method_input') + '</p><p>数据 SHA-256：<code>' +
          esc(profile["source_dataset_sha256"]) + '</code>。原始评分器提交：<code>' + esc(profile["official_scorer_commit"]) +
-         '</code>' + (('；Lexmain 修正评分器提交：<code>' + esc(scoring_correction['scorer_commit']) + '</code>') if scoring_correction else '') +
+         '</code>' + (('；lex-main 修正评分器提交：<code>' + esc(scoring_correction['scorer_commit']) + '</code>') if scoring_correction else '') +
          '。</p></section><section class="panel"><h2>失败重试</h2><p>本轮共 ' + str(len(records) + retry_count) +
          ' 次物理调用，包含 ' + str(retry_count) + ' 次失败后的重试；其中 ' + str(recovered_count) +
          ' 条重试后返回成功，' + str(final_request_failures) +
          ' 条最终请求失败均调用两次。返回成功但正文为空或为错误页的结果不触发请求失败重试。</p></section>' +
          '<section class="panel"><h2>评分</h2><p>' + prose('method_scoring') + '</p><p>' + prose('method_correction') + '</p>' +
-         ((anchor("teds-correction.json", "历史 TEDS 修正收据") + " · " + anchor("teds-correction-review.json", "历史修正复核")) if (out / "teds-correction.json").is_file() else anchor("scoring-correction.json", "Lexmain 统一评分修正收据")) + "</section>" +
+         ((anchor("teds-correction.json", "历史 TEDS 修正收据") + " · " + anchor("teds-correction-review.json", "历史修正复核")) if (out / "teds-correction.json").is_file() else anchor("scoring-correction.json", "lex-main 统一评分修正收据")) + "</section>" +
          '<section><h2>调用接口</h2>' + table(['方法', '本轮调用方式'], interface_rows) + '</section>' +
          '<p class="note">' + prose('kitesurf_version_note') + '</p>' +
          '<section class="panel"><h2>公开采用证据</h2><p>' + prose('adoption_lead') + ' 截至 ' + esc(adoption['cutoff'][:10]) +

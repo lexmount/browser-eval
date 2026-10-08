@@ -112,6 +112,10 @@ def main(argv: list[str] | None = None) -> None:
         from scripts.certify_webmainbench_case_correction import main as correction_main
         correction_main((argv or sys.argv[1:])[1:])
         return
+    if (argv or sys.argv[1:])[:1] == ["webmainbench-full"]:
+        from scripts.run_certified_webmainbench_full import main as webmainbench_full_main
+        webmainbench_full_main((argv or sys.argv[1:])[1:])
+        return
     if (argv or sys.argv[1:])[:1] == ["wcxb"]:
         run_wcxb((argv or sys.argv[1:])[1:])
         return
