@@ -47,6 +47,28 @@ class NativeDnsBrokerTests(unittest.TestCase):
             self.assertEqual(self.query(broker, "expired.invalid"), b"ERROR\n")
             self.assertEqual(calls, ["failed.invalid"])
 
+    def test_diagnostics_preserve_actual_resolver_failure_without_retry_or_token(self):
+        from harness.web_fetch.diagnostics import CallDiagnostics
+        from harness.web_fetch.models import ProviderResult
+        calls = []
+        def resolver(host, timeout):
+            calls.append(host)
+            raise socket.gaierror("observed resolver failure")
+        with tempfile.TemporaryDirectory() as folder:
+            sink = CallDiagnostics(pathlib.Path(folder) / "dns.jsonl", "call-1")
+            with NativeDnsBroker(resolver=resolver, diagnostics=sink) as broker:
+                broker.begin_call(45)
+                token = broker.token
+                self.assertEqual(self.query(broker, "failed.invalid"), b"ERROR\n")
+            sink.finish(ProviderResult(False, ""))
+            raw = sink.path.read_text()
+            rows = [json.loads(line) for line in raw.splitlines()]
+            self.assertEqual(calls, ["failed.invalid"])
+            self.assertEqual(rows[1]["source"], "caller_dns")
+            self.assertEqual(rows[1]["event"], "resolver_query_failed")
+            self.assertEqual(rows[1]["message"], "observed resolver failure")
+            self.assertNotIn(token, raw)
+
     def test_previous_call_cannot_contaminate_new_trace(self):
         entered, release = threading.Event(), threading.Event()
         def resolver(host, timeout):

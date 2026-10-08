@@ -1108,6 +1108,27 @@ class MoliTests(unittest.TestCase):
         self.assertIsNone(result.status_code)
         self.assertIsNone(result.error_type)
 
+    def test_outer_deadline_preserves_live_cli_log_and_rejects_late_answer(self):
+        from harness.web_fetch.call_boundary import fetch_with_deadline
+        from harness.web_fetch.diagnostics import CallDiagnostics
+        provider = self.provider(
+            'import time\nprint("DEBUG actual fixture CLI started", file=sys.stderr, flush=True)\n'
+            'time.sleep(5)\nprint("late answer")',
+            uniform_native_parameters=True, log_level="debug", retain_complete_diagnostic_log=True,
+        )
+        self.assertEqual(provider.validate(), [])
+        sink = CallDiagnostics(Path(self.directory.name) / "call.jsonl", "deadline-call")
+        provider._call_diagnostics = sink
+        result, worker = fetch_with_deadline(provider, self.case, 0.5)
+        sink.finish(result)
+        self.assertEqual(result.error_type, "timeout")
+        self.assertEqual(result.content, "")
+        self.assertFalse(worker.is_alive())
+        raw = base64.b64decode(result.metadata["_diagnostic_log_b64"])
+        self.assertIn(b"DEBUG actual fixture CLI started", raw)
+        self.assertNotIn(b"late answer", raw)
+        self.assertIn(b"native_cli_start", raw)
+
     def test_timeout_is_failure(self):
         result = self.provider("import time\ntime.sleep(10)").fetch(self.case, 0.05)
         self.assertEqual(result.error_type, "timeout")

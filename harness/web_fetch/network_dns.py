@@ -111,10 +111,11 @@ class NativeDnsBroker:
     filters private addresses, retries, or falls back to system DNS. The system
     resolver is used only by this parent's HTTPS transport to the fixed DoH host.
     """
-    def __init__(self, *, resolver=None):
+    def __init__(self, *, resolver=None, diagnostics=None):
         import secrets
         import socketserver
         self.resolver = resolver or lookup_public_dns
+        self.diagnostics = diagnostics
         self.token = secrets.token_hex(32)
         self.deadline = 0.0
         self.generation = 0
@@ -125,12 +126,17 @@ class NativeDnsBroker:
             def handle(self):
                 self.connection.settimeout(2)
                 line = self.rfile.readline(4097)
+                observed_host = None
+                started = time.monotonic()
                 try:
                     if len(line) > 4096 or not line.endswith(b'\n'):
                         raise ValueError('invalid DNS bridge request')
                     token, host = line.decode('ascii').strip().split(' ', 1)
                     if not secrets.compare_digest(token, broker.token) or len(host) > 253 or any(c.isspace() for c in host):
                         raise ValueError('invalid DNS bridge request')
+                    observed_host = host
+                    if broker.diagnostics:
+                        broker.diagnostics.emit('caller_dns', 'resolver_query_started', hostname=host)
                     with broker.trace_lock:
                         deadline, generation = broker.deadline, broker.generation
                     remaining = deadline - time.monotonic()
@@ -152,7 +158,11 @@ class NativeDnsBroker:
                             raise TimeoutError("DNS call has been superseded")
                         broker.traces.append({'hostname': host, 'addresses': [address for address, _ in answers]})
                     self.wfile.write(('OK\n' + ''.join(rows) + 'END\n').encode('ascii'))
-                except (OSError, ValueError, UnicodeError, TimeoutError):
+                    if broker.diagnostics:
+                        broker.diagnostics.emit('caller_dns', 'resolver_query_returned', hostname=host, addresses=[address for address, _ in answers], elapsed_ms=round((time.monotonic()-started)*1000,2))
+                except (OSError, ValueError, UnicodeError, TimeoutError) as error:
+                    if broker.diagnostics:
+                        broker.diagnostics.emit('caller_dns', 'resolver_query_failed' if observed_host else 'bridge_request_rejected', hostname=observed_host, error_type=type(error).__name__, message=str(error), elapsed_ms=round((time.monotonic()-started)*1000,2))
                     try:
                         self.wfile.write(b'ERROR\n')
                     except OSError:

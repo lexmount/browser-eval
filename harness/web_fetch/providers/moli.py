@@ -804,7 +804,7 @@ class MoliWebFetchProvider(Provider):
             metadata["dns_mode"] = self.config.get("dns_mode", "system")
             if metadata["dns_mode"] == "public_doh":
                 library, binding = validate_native_dns_library(self.config.get("native_dns_library"))
-                dns_broker = dns_stack.enter_context(NativeDnsBroker())
+                dns_broker = dns_stack.enter_context(NativeDnsBroker(diagnostics=sink))
                 remaining = call_deadline - time.monotonic()
                 if remaining <= 0:
                     return ProviderResult(False, "", error_type="timeout", error_message="Moli fetch exceeded time budget", metadata=metadata)
