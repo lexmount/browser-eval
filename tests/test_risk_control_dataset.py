@@ -65,7 +65,7 @@ def test_training_page_accepts_the_visible_english_ui_without_dropping_chinese_c
         "教材《C++版信息学奥赛一本通编程启蒙》题单\n"
         "Login to join training plan\n"
         "Problem Tried AC Difficulty\n"
-        "首页 题库 训练 比赛 评测记录 排名 登录 注册 Language\n"
+        "Home Problem Set Training Contest Record Ranking Login Sign Up Language\n"
         "P1 [例2.1]Hello World 454 122 7\n"
     )
     result = evaluate_stable_task(visible, case["acceptance_contract"], case["url"])
@@ -111,9 +111,12 @@ def test_zillow_sample_revision_binds_current_frozen_inputs():
     full_page = json.loads((ROOT/'research/risk-control-full-page-rule-revision.json').read_text())
     assert successor['correction']['new_dataset_sha256'] == full_page['correction']['predecessor_dataset_sha256']
     assert successor['correction']['new_run_profile_sha256'] == full_page['correction']['predecessor_run_profile_sha256']
-    assert full_page['correction']['new_dataset_sha256'] == hashlib.sha256(DATASET.read_bytes()).hexdigest()
-    assert full_page['correction']['new_run_profile_sha256'] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
-    assert profile["dataset"]["sha256"] == full_page["correction"]["new_dataset_sha256"]
+    locale=json.loads((ROOT/'research/risk-control-navigation-language-revision.json').read_text())
+    for key in ('dataset','run_profile'):
+        assert full_page['correction']['new_'+key+'_sha256'] == locale['correction']['predecessor_'+key+'_sha256']
+    assert locale['correction']['new_dataset_sha256'] == hashlib.sha256(DATASET.read_bytes()).hexdigest()
+    assert locale['correction']['new_run_profile_sha256'] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
+    assert profile["dataset"]["sha256"] == locale["correction"]["new_dataset_sha256"]
     assert revision["correction"]["provider_calls"] == 1
     assert revision["correction"]["rerun_case_ids"] == ["risk-diverse-134"]
 
@@ -121,7 +124,9 @@ def test_zillow_sample_revision_binds_current_frozen_inputs():
 def test_every_secondary_risk_anchor_is_bound_to_independent_revision(dataset):
     revision = json.loads(LANGUAGE_REVISION.read_text())
     case_id = revision["case_id"]
-    declared = revision["correction"]["equivalent_ui_alternatives_added"]
+    locale=json.loads((ROOT/'research/risk-control-navigation-language-revision.json').read_text())
+    declared = {**revision["correction"]["equivalent_ui_alternatives_added"],
+                **locale["correction"]["equivalent_ui_alternatives_added"]}
     observed = {}
     for case in dataset["cases"]:
         for anchor in case["acceptance_contract"]["stable_text_anchors"]:

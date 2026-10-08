@@ -54,7 +54,7 @@ class MoliTests(unittest.TestCase):
                           f"final_url={final_url} status=200\n")
                 self.assertIsNone(_diagnostic_main_document_url(stderr, "https://example.com/start"))
 
-    def test_effective_main_document_url_follows_logged_redirect_hops(self):
+    def test_effective_main_document_url_rejects_unowned_redirect_hops(self):
         stderr = (
             "DEBUG fetch request complete method=GET url=https://example.com/start "
             "final_url=https://example.com/start status=302 transfer_size=42\n"
@@ -63,12 +63,9 @@ class MoliTests(unittest.TestCase):
             "DEBUG fetch request complete method=GET url=https://cdn.example.com/app.js "
             "final_url=https://cdn.example.com/app.js status=200 transfer_size=7\n"
         )
-        self.assertEqual(
-            _diagnostic_main_document_url(stderr, "https://example.com/start"),
-            "https://login.example.com/challenge",
-        )
+        self.assertIsNone(_diagnostic_main_document_url(stderr, "https://example.com/start"))
 
-    def test_effective_main_document_url_follows_explicit_late_navigation(self):
+    def test_effective_main_document_url_rejects_unowned_late_redirect_hops(self):
         stderr = (
             "DEBUG fetch request complete method=GET url=https://example.com/start "
             "final_url=https://example.com/ status=200 transfer_size=42\n"
@@ -93,10 +90,7 @@ class MoliTests(unittest.TestCase):
             "DEBUG fetch request complete method=GET url=https://cdn.example.com/app.js "
             "final_url=https://cdn.example.com/app.js status=200 transfer_size=7\n"
         )
-        self.assertEqual(
-            _diagnostic_main_document_url(stderr, "https://example.com/start"),
-            "https://example.com/document",
-        )
+        self.assertIsNone(_diagnostic_main_document_url(stderr, "https://example.com/start"))
 
     def test_effective_main_document_url_does_not_infer_an_unfetched_target(self):
         stderr = (
@@ -131,6 +125,26 @@ class MoliTests(unittest.TestCase):
             "DEBUG committed main navigation before replacement realm bootstrap page_id=1\n", "")
         self.assertEqual(_diagnostic_main_document_url(uncommitted, "https://example.com/start"),
                          "https://example.com/start")
+
+    def test_committed_nonredirect_post_and_get_preserve_same_document_identity(self):
+        from harness.web_fetch.scoring import score_attempt
+        from harness.web_fetch.metrics import task_passed
+        case={'url':'https://example.com/start','track':'risk_control','task_kind':'body',
+              'source_benchmark':{'risk_control':{'navigation_contract':{
+                  'requested_url':'https://example.com/start','observed_final_url':'https://example.com/document'}}},
+              'acceptance_contract':{'version':1,'schema':'body_text','minimum_records':0,
+                'stable_text_anchors':[{'id':'body','alternatives':['Complete required body']}]}}
+        for method in ('GET','POST'):
+            with self.subTest(method=method):
+                log=('DEBUG fetch request complete method=GET url=https://example.com/start final_url=https://example.com/start status=200\n'
+                     'DEBUG following pending location navigation asynchronously stage=Load url=https://example.com/document\n'
+                     'DEBUG committed main navigation before replacement realm bootstrap page_id=1\n'
+                     f'DEBUG fetch request complete method={method} url=https://example.com/document final_url=https://example.com/document status=200\n')
+                final=_diagnostic_main_document_url(log,case['url'])
+                self.assertEqual(final,'https://example.com/document')
+                metrics=score_attempt(case,b'Complete required body',ok=True,final_url=final)
+                self.assertEqual(metrics['page_identity_status'],'verified')
+                self.assertTrue(task_passed(True,metrics,'body'))
 
     def test_resource_route_enumerates_bounded_same_origin_frame_documents(self):
         from harness.web_fetch.providers.moli import _RESOURCE_PAGE_EXPRESSION
@@ -391,6 +405,55 @@ class MoliTests(unittest.TestCase):
             result.metadata["network_trace"]["response_header_names"], ["content-type"]
         )
         self.assertIn("_raw_stdout_b64", result.metadata)
+
+    def test_page_identity_uses_same_call_json_for_single_and_multihop_redirects(self):
+        from harness.web_fetch.scoring import score_attempt
+        from harness.web_fetch.metrics import task_passed
+        for hops in (1, 2):
+            with self.subTest(hops=hops):
+                final='https://example.com/document'
+                envelope={'final_url':final,'status':200,'title':'Article',
+                          'html':'<main>Complete required body</main>',
+                          'redirect_chain':[{'from_url':'https://example.com/redirect',
+                                             'to_url':final,'status':302}]*hops}
+                provider=self.provider(
+                    'import sys\n'
+                    'assert sys.argv[sys.argv.index("--dump")+1]=="json"\n'
+                    'assert "--trace-network" not in sys.argv\n'
+                    'print("DEBUG fetch request complete method=GET url=https://cdn.example.com/app.js final_url=https://cdn.example.com/app.js status=200",file=sys.stderr)\n'
+                    f'print({json.dumps(envelope)!r})')
+                case=self.case_with(track='risk_control',task_kind='body',
+                    source_benchmark={'risk_control':{'navigation_contract':{'requested_url':self.case.url,'observed_final_url':final,'target_language':'en'}}})
+                result=provider.fetch(case,10)
+                self.assertTrue(result.ok,repr(result))
+                self.assertEqual(result.final_url,final)
+                self.assertEqual(result.metadata['final_url_source'],'same_call_json')
+                self.assertEqual(result.metadata['output'],'final_dom_html+local_markdown')
+                self.assertFalse(result.metadata['network_trace_requested'])
+                config={'id':'article','url':case.url,'track':'risk_control','task_kind':'body',
+                        'source_benchmark':case.source_benchmark,
+                        'acceptance_contract':{'version':1,'schema':'body_text','minimum_records':0,
+                          'stable_text_anchors':[{'id':'body','alternatives':['Complete required body']}]}}
+                metrics=score_attempt(config,result.content.encode(),ok=result.ok,
+                                      status_code=result.status_code,final_url=result.final_url)
+                self.assertEqual(metrics['page_identity_status'],'verified')
+                self.assertTrue(task_passed(result.ok,metrics,'body'))
+                wrong=score_attempt(config,result.content.encode(),ok=True,status_code=200,
+                                    final_url='https://cdn.example.com/app.js')
+                self.assertEqual(wrong['page_identity_status'],'mismatch')
+                self.assertFalse(task_passed(True,wrong,'body'))
+
+    def test_legacy_multihop_log_does_not_select_interleaved_resource(self):
+        log=(
+            'DEBUG fetch request complete method=GET url=https://example.com/start final_url=https://example.com/start status=200\n'
+            'DEBUG following pending location navigation asynchronously stage=Load url=https://example.com/check?redir=/next\n'
+            'DEBUG fetch request complete method=GET url=https://example.com/check?redir=/next final_url=https://example.com/check?redir=/next status=302\n'
+            'DEBUG fetch request complete method=GET url=https://example.com/next final_url=https://example.com/next status=302\n'
+            'DEBUG committed main navigation before replacement realm bootstrap page_id=1\n'
+            'DEBUG fetch request complete method=GET url=https://cdn.example.com/app.js final_url=https://cdn.example.com/app.js status=200\n'
+            'DEBUG fetch request complete method=GET url=https://example.com/document final_url=https://example.com/document status=200\n'
+            'DEBUG published standalone replacement Document page_id=1\n')
+        self.assertIsNone(_diagnostic_main_document_url(log,'https://example.com/start'))
 
     def test_challenge_http_error_keeps_body_but_request_fails(self):
         envelope = {

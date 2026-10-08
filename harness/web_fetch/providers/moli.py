@@ -15,7 +15,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from urllib.parse import parse_qsl, quote, urljoin, urlsplit
+from urllib.parse import parse_qsl, quote, urlsplit
 
 from ..document_text import extract_document_text
 from ..models import EvalCase, ProviderResult
@@ -53,7 +53,7 @@ def _markdown_http_error_status(content: str) -> int | None:
 def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> str | None:
     """Read Moli's effective main-document URL from the same call's debug log."""
     pattern = re.compile(
-        rb"fetch request complete method=GET url=(?P<url>\S+) "
+        rb"fetch request complete method=(?:GET|POST) url=(?P<url>\S+) "
         rb"final_url=(?P<final_url>\S+) status=(?P<status>\d{3})\b"
     )
 
@@ -85,30 +85,12 @@ def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> st
         return None
     rows = list(pattern.finditer(diagnostic))
 
-    def redirect_target(start_index: int) -> re.Match[bytes]:
-        row = rows[start_index]
-        # Moli logs each HTTP hop separately. During a main-document redirect
-        # the next completed GET is the redirected document; subresources begin
-        # only after a non-redirect document response has been received.
-        for following in rows[start_index + 1 : start_index + 10]:
-            if not 300 <= int(field(row, "status")) < 400:
-                break
-            row = following
-        return row
-
-    start = next(
-        (
-            index
-            for index, row in enumerate(rows)
-            if identity(field(row, "url")) == requested_identity
-        ),
-        None,
-    )
-    if start is None:
+    # Legacy completion records do not identify redirect hops or request owners.
+    # Never infer the document from GET ordering or challenge query parameters.
+    row = next((candidate for candidate in rows
+                if identity(field(candidate, "url")) == requested_identity), None)
+    if row is None or 300 <= int(field(row, "status")) < 400:
         return None
-    row = redirect_target(start)
-    # Only a committed top-level navigation can replace the document identity.
-    # Query parameters describe intent, never proof that a destination loaded.
     navigations = list(navigation_pattern.finditer(diagnostic))
     for index, navigation in enumerate(navigations):
         boundary = navigations[index + 1].start() if index + 1 < len(navigations) else len(diagnostic)
@@ -118,45 +100,15 @@ def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> st
         )
         if committed < 0:
             continue
-        try:
-            navigation_url = field(navigation, "url")
-            navigation_identity = identity(navigation_url)
-            if navigation_identity is None:
-                return None
-            pending = [candidate for candidate in rows
-                       if navigation.end() <= candidate.start() < boundary]
-            response = next((candidate for candidate in pending
-                             if identity(field(candidate, "url")) == navigation_identity), None)
-            if response is None:
-                return None
-            if not 300 <= int(field(response, "status")) < 400:
-                row = response
-                continue
-            # Legacy Moli logs omit HTTP Location headers. Supported challenge
-            # redirect hints can locate a response, but never establish a URL
-            # without the corresponding completed GET and navigation commit.
-            query = dict(parse_qsl(urlsplit(navigation_url).query, keep_blank_values=True))
-            target = query.get("redir") or query.get("__goaway_redirect")
-            if not target:
-                return None
-            target_identity = identity(urljoin(navigation_url, target))
-            if target_identity is None:
-                return None
-            response = next((candidate for candidate in pending
-                             if identity(field(candidate, "url")) == target_identity), None)
-            if response is None:
-                return None
-        except ValueError:
+        navigation_identity = identity(field(navigation, "url"))
+        if navigation_identity is None:
             return None
-        row = response
-        if 300 <= int(field(row, "status")) < 400:
-            # For another redirect, accept only a final response at the commit
-            # boundary before replacement bootstrap can start new resources.
-            final = next((candidate for candidate in pending
-                          if committed < candidate.start() < boundary), None)
-            if final is None or 300 <= int(field(final, "status")) < 400:
-                return None
-            row = final
+        matches = [candidate for candidate in rows
+                   if navigation.end() <= candidate.start() < boundary
+                   and identity(field(candidate, "url")) == navigation_identity]
+        if len(matches) != 1 or 300 <= int(field(matches[0], "status")) < 400:
+            return None
+        row = matches[0]
     candidate = field(row, "final_url")
     if identity(candidate) is None:
         return None
@@ -543,7 +495,15 @@ class MoliWebFetchProvider(Provider):
         )
         media_metadata_task = case.track == "video" and case.task_kind == "body"
         challenge_task = case.track == "challenge"
-        if challenge_task and (
+        navigation_contract = ((getattr(case, "source_benchmark", {}) or {}).get(
+            "risk_control") or {}).get("navigation_contract")
+        identity_json_task = bool(
+            case.task_kind == "body" and isinstance(navigation_contract, dict)
+            and navigation_contract.get("requested_url")
+            and navigation_contract.get("observed_final_url")
+        )
+        json_page_task = challenge_task or identity_json_task
+        if json_page_task and (
             not shutil.which("node")
             or not _HTML_TO_MARKDOWN.is_file()
             or not _NODE_HTML_MARKDOWN_PACKAGE.is_file()
@@ -552,7 +512,7 @@ class MoliWebFetchProvider(Provider):
                 False,
                 "",
                 error_type="configuration",
-                error_message="Moli challenge route requires node-html-markdown 2.0.0",
+                error_message="Moli JSON page route requires node-html-markdown 2.0.0",
             )
         raw_task = file_task or (document_task and not document_runtime_fetch_task)
         timeout_ms = str(max(1, int(timeout * 1000)))
@@ -601,12 +561,12 @@ class MoliWebFetchProvider(Provider):
                         "completion_support": "exact",
                     }
                     dump = None
-                elif challenge_task:
-                    wait_arguments = ["--trace-network", "--wait-until", wait]
+                elif json_page_task:
+                    wait_arguments = (["--trace-network"] if challenge_task else []) + ["--wait-until", wait]
                     wait_metadata = {
                         "wait_until": wait,
                         "extraction": "json_final_dom_then_local_markdown",
-                        "network_trace": "metadata_without_response_bodies",
+                        "network_trace": "metadata_without_response_bodies" if challenge_task else "not_requested",
                     }
                     dump = "json"
                 elif case.task_kind == "resource":
@@ -727,6 +687,8 @@ class MoliWebFetchProvider(Provider):
                 if case.task_kind == "resource"
                 else "challenge_json_trace"
                 if challenge_task
+                else "page_identity_json"
+                if identity_json_task
                 else "dynamic_selected_text"
                 if case.track == "dynamic"
                 else "media_metadata_runtime"
@@ -746,6 +708,8 @@ class MoliWebFetchProvider(Provider):
                 if case.task_kind == "resource"
                 else "final_dom_html+local_markdown+network_diagnostics"
                 if challenge_task
+                else "final_dom_html+local_markdown"
+                if identity_json_task
                 else "selected_records_or_rendered_body_fallback"
                 if case.track == "dynamic"
                 else "visible_text_and_standard_media_metadata"
@@ -761,7 +725,7 @@ class MoliWebFetchProvider(Provider):
                 requested_host if private_network_guard_exception else None
             ),
             "log_level": log_level,
-            "network_trace_requested": False,
+            "network_trace_requested": challenge_task,
             "local_report_complete_diagnostic_links": bool(
                 self.config.get("local_report_complete_diagnostic_links", False)
             ),
@@ -1100,7 +1064,8 @@ class MoliWebFetchProvider(Provider):
                 error_message=None,
                 metadata=metadata,
             )
-        if challenge_task:
+        if json_page_task:
+            metadata["final_url_source"] = "same_call_json"
             metadata.update(
                 raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
                 _raw_stdout_b64=base64.b64encode(raw).decode("ascii"),
@@ -1112,7 +1077,7 @@ class MoliWebFetchProvider(Provider):
                     False,
                     "",
                     error_type="invalid_output",
-                    error_message=f"Moli challenge JSON is invalid: {error}",
+                    error_message=f"Moli page JSON is invalid: {error}",
                     metadata=metadata,
                 )
             if not isinstance(envelope, dict) or not isinstance(envelope.get("html"), str):
@@ -1123,7 +1088,7 @@ class MoliWebFetchProvider(Provider):
                     final_url=envelope.get("final_url") if isinstance(envelope, dict) else None,
                     title=envelope.get("title") if isinstance(envelope, dict) else None,
                     error_type="invalid_output",
-                    error_message="Moli challenge JSON omitted final DOM HTML",
+                    error_message="Moli page JSON omitted final DOM HTML",
                     metadata=metadata,
                 )
             trace = envelope.get("network") if isinstance(envelope.get("network"), dict) else {}
@@ -1172,7 +1137,7 @@ class MoliWebFetchProvider(Provider):
                     final_url=envelope.get("final_url"),
                     title=envelope.get("title"),
                     error_type="timeout",
-                    error_message="Moli challenge conversion exceeded time budget",
+                    error_message="Moli page conversion exceeded time budget",
                     metadata=metadata,
                 )
             try:
@@ -1191,7 +1156,7 @@ class MoliWebFetchProvider(Provider):
                     final_url=envelope.get("final_url"),
                     title=envelope.get("title"),
                     error_type="timeout",
-                    error_message="Moli challenge conversion exceeded time budget",
+                    error_message="Moli page conversion exceeded time budget",
                     metadata=metadata,
                 )
             if converted.returncode != 0 or len(converted.stdout) > limit:
@@ -1205,7 +1170,7 @@ class MoliWebFetchProvider(Provider):
                     error_message=(
                         converted.stderr.decode("utf-8", "replace")[:2000]
                         if converted.returncode
-                        else "Converted challenge output exceeds max_bytes"
+                        else "Converted page output exceeds max_bytes"
                     ),
                     metadata=metadata,
                 )

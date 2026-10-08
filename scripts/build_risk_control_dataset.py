@@ -30,7 +30,7 @@ BODY_CONTRACTS = RISK / "body-contracts.json"
 EXPECTED_RULE_HASHES = {
     "first-30-rule-review.md": "280f18c04a0fc83f2e59816b07454525780366500bfb8b2faef3019749759344",
     "remaining-70-rule-review.md": (
-        "e2450b8b112e86b5b904452eaf30262384df60f5cff246c5850b2df1737c8f0e"
+        "a1c743a2df97b20eddf10c28bf179f1125d8937e1a568abf6c9cf9e79c225da7"
     ),
 }
 EXPECTED_COHORT_HASH = "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26"

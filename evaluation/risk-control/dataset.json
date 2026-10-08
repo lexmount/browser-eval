@@ -31,7 +31,7 @@
   "source_bindings": {
     "cohort_manifest_sha256": "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26",
     "first_30_rules_sha256": "280f18c04a0fc83f2e59816b07454525780366500bfb8b2faef3019749759344",
-    "remaining_70_rules_sha256": "e2450b8b112e86b5b904452eaf30262384df60f5cff246c5850b2df1737c8f0e",
+    "remaining_70_rules_sha256": "a1c743a2df97b20eddf10c28bf179f1125d8937e1a568abf6c9cf9e79c225da7",
     "list_contracts_sha256": "4d848525cc47179904443758ccdea39ea12c0e959b07237e4193fe2540a59299",
     "body_contracts_sha256": "db7d3083ff5430c2c56e9dcd7000cb340b78792dfb426ec3b9e08bd17fb81552"
   },
@@ -7350,49 +7350,57 @@
           {
             "id": "stable-07",
             "alternatives": [
-              "首页"
+              "首页",
+              "Home"
             ]
           },
           {
             "id": "stable-08",
             "alternatives": [
-              "题库"
+              "题库",
+              "Problem Set"
             ]
           },
           {
             "id": "stable-09",
             "alternatives": [
-              "训练"
+              "训练",
+              "Training"
             ]
           },
           {
             "id": "stable-10",
             "alternatives": [
-              "比赛"
+              "比赛",
+              "Contest"
             ]
           },
           {
             "id": "stable-11",
             "alternatives": [
-              "评测记录"
+              "评测记录",
+              "Record"
             ]
           },
           {
             "id": "stable-12",
             "alternatives": [
-              "排名"
+              "排名",
+              "Ranking"
             ]
           },
           {
             "id": "stable-13",
             "alternatives": [
-              "登录"
+              "登录",
+              "Login"
             ]
           },
           {
             "id": "stable-14",
             "alternatives": [
-              "注册"
+              "注册",
+              "Sign Up"
             ]
           },
           {

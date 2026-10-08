@@ -5,7 +5,7 @@
   "unresolved_case_ids": [],
   "dataset": {
     "path": "evaluation/risk-control/dataset.json",
-    "sha256": "18540c639ceb6eb8cdcb5797698cf09be8962d1af502b9a76b3adddedfdabf20",
+    "sha256": "d0d038bae0114be107116edd94e501996ba6cda852ac29244c089e15a3e37437",
     "case_count": 100,
     "site_count": 74,
     "case_ids_sha256": "f037b11fa10826f6bdafd1e61ec8663070fe9873ebb891218cf941f67e5012b1"
@@ -29,7 +29,7 @@
     },
     "remaining_70_rules": {
       "path": "evaluation/risk-control/remaining-70-rule-review.md",
-      "sha256": "e2450b8b112e86b5b904452eaf30262384df60f5cff246c5850b2df1737c8f0e"
+      "sha256": "a1c743a2df97b20eddf10c28bf179f1125d8937e1a568abf6c9cf9e79c225da7"
     },
     "list_contracts": {
       "path": "evaluation/risk-control/list-contracts.json",

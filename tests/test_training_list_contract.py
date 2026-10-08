@@ -19,7 +19,7 @@ def training_case():
 
 def training_output(*,combined=True,rows=26,missing=None):
     lines=[TITLE,'Login to join training plan','Problem Set',
-           '首页 题库 训练 比赛 评测记录 排名 登录 注册 Language']
+           'Home Problem Set Training Contest Record Ranking Login Sign Up Language']
     for section in range(1,6):
         lines.append(f'Section {section}. 顺序结构')
         lines.append('Problem\tTried\tAC\tDifficulty' if combined else 'Number\tName\tTried\tAC\tDifficulty')
@@ -68,7 +68,7 @@ def test_training_revision_preserves_the_entire_predecessor_dataset_and_profile(
     for case in historical['cases']:
         count=full_page['predecessor_target_anchor_counts'][case['id']]
         anchors=case['acceptance_contract']['stable_text_anchors']
-        context=[{'id':f'page-context-{i+1:02d}','alternatives':a['alternatives']}
+        context=[{'id':f'page-context-{i+1:02d}','alternatives':[a['alternatives'][0]]}
                  for i,a in enumerate(anchors[count:])]
         case['acceptance_contract']['stable_text_anchors']=anchors[:count]
         case['source_benchmark']['risk_control']['page_context_anchors']=context
@@ -103,7 +103,7 @@ def test_training_revision_preserves_the_entire_predecessor_dataset_and_profile(
 
 def test_complete_training_list_cannot_omit_declared_navigation():
     case=training_case()
-    text=training_output().replace('首页 题库 训练 比赛 评测记录 排名 登录 注册 Language','')
+    text=training_output().replace('Home Problem Set Training Contest Record Ranking Login Sign Up Language','')
     result=score_attempt(case,text.encode(),ok=True,final_url=case['url'])
     assert result['composite_group_results'][0]['count']==26
     assert task_passed(True,result,case['task_kind']) is False
