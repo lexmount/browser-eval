@@ -10,7 +10,6 @@ import os
 import shutil
 import subprocess
 import sys
-import sysconfig
 import tempfile
 import types
 from pathlib import Path
@@ -26,7 +25,8 @@ from harness.web_fetch.webmainbench_scoring import (
     revised_metrics,
 )
 
-from .safety import contained_path, reject_evidence_symlinks, safe_identifier
+from .safety import contained_path, safe_identifier, stage_evidence_revision
+from .storage import installed_data_path
 
 
 def digest(path):
@@ -447,7 +447,7 @@ def certify_case_correction(argv=None):
 
 REGISTRY = (ROOT / "evaluation/webmainbench-full/scoring-regressions.json"
             if (ROOT / "pyproject.toml").is_file() else
-            Path(sysconfig.get_path("data")) / "share/browser-harness-eval/webmainbench/scoring-regressions.json")
+            installed_data_path("share/browser-harness-eval/webmainbench/scoring-regressions.json"))
 
 
 def text_digest(value):
@@ -464,31 +464,15 @@ def load_corrected_cases(path):
     return dict(zip(ids, rows))
 
 
-def _stage_offline_revision(source, output, operation):
-    if output.exists() or output.is_symlink():
-        raise ValueError("Correction output already exists")
-    if output.resolve().is_relative_to(source.resolve()):
-        raise ValueError("Correction output must be outside its source evidence")
-    reject_evidence_symlinks(source)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix=f".{output.name}-revision-", dir=output.parent) as work:
-        staging = Path(work) / "evidence"
-        receipt = operation(staging)
-        if output.exists() or output.is_symlink():
-            raise ValueError("Correction output appeared during staging")
-        staging.rename(output)
-    return receipt
-
-
 def revise_dataset_scoring(source, corrected_dataset, manifest_path, scorer_repo, scorer_commit, output):
     """Apply an authority-bound full-population revision into a new evidence directory."""
-    return _stage_offline_revision(source, output, lambda staging: _revise_dataset_scoring(
+    return stage_evidence_revision(source, output, lambda staging: _revise_dataset_scoring(
         source, corrected_dataset, manifest_path, scorer_repo, scorer_commit, staging))
 
 
 def rescore_case_correction(source, corrected_dataset, scorer_repo, scorer_commit, output):
     """Recompute a certified case correction without rewriting its provider calls."""
-    return _stage_offline_revision(source, output, lambda staging: _rescore_case_correction(
+    return stage_evidence_revision(source, output, lambda staging: _rescore_case_correction(
         source, corrected_dataset, scorer_repo, scorer_commit, staging))
 
 

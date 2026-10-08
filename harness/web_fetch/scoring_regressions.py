@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import json
-import sysconfig
 from pathlib import Path
 from typing import Any
+
+from .storage import installed_data_path
 
 ROOT = Path(__file__).resolve().parents[2]
 # A checkout uses its versioned registry; distributions install the same source
@@ -12,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REGISTRY = (
     ROOT / "evaluation/scoring-regressions.json"
     if (ROOT / "pyproject.toml").is_file()
-    else Path(sysconfig.get_path("data")) / "share/browser-harness-eval/scoring-regressions.json"
+    else installed_data_path("share/browser-harness-eval/scoring-regressions.json")
 )
 FAILURE_MODES = {"false-positive", "false-negative"}
 ROOT_CAUSE_CATEGORIES = {

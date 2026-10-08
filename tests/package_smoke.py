@@ -7,7 +7,6 @@ import hashlib
 import json
 import subprocess
 import sys
-import sysconfig
 import tempfile
 import tomllib
 from pathlib import Path
@@ -15,6 +14,8 @@ from pathlib import Path
 
 def verify_package_tree(source_root: Path, package_root: Path) -> None:
     """Require the installed library's exact current source and declared assets."""
+    from harness.web_fetch.storage import installed_data_path
+
     source = source_root / 'harness'
     if source.is_symlink() or package_root.is_symlink():
         raise ValueError('Package roots must not be symlinked')
@@ -29,7 +30,7 @@ def verify_package_tree(source_root: Path, package_root: Path) -> None:
     for destination, patterns in project['tool']['setuptools'].get('data-files', {}).items():
         for pattern in patterns:
             for path in source_root.glob(pattern):
-                installed_data = Path(sysconfig.get_path('data')) / destination / path.name
+                installed_data = installed_data_path((Path(destination) / path.name).as_posix())
                 if path.is_symlink() or installed_data.is_symlink():
                     raise ValueError('Distribution data must not be symlinked')
                 if installed_data.read_bytes() != path.read_bytes():
@@ -236,7 +237,7 @@ def verify_dynamic_cohort(root: Path, source_root: Path) -> None:
     assert (output / 'artifacts/stdout.txt').read_bytes() == b'process output'
 
 
-def verify_teds_revision(root: Path, source_root: Path) -> None:
+def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = False) -> None:
     from harness.web_fetch import webmainbench_diagnostics as diagnostics
     from harness.web_fetch.scoring_regressions import build_correction_provenance
     from harness.web_fetch.webmainbench_scoring import aggregate
@@ -246,19 +247,30 @@ def verify_teds_revision(root: Path, source_root: Path) -> None:
     corrected.mkdir()
     metrics = {name: {'score': 0.5, 'success': True, 'details': {}} for name in (
         'text_edit', 'code_edit', 'formula_edit', 'table_edit', 'table_TEDS', 'overall')}
+    metrics['overall']['details']['individual_scores'] = {
+        name: 0.5 for name in metrics if name != 'overall'}
     row = {'attempt_id': 'custom__one', 'provider': 'custom', 'case_id': 'one',
            'ok': True, 'artifact_path': 'one.md', 'metrics': metrics,
+           'reference_sha256': hashlib.sha256(b'reference').hexdigest(),
            'output_sha256': hashlib.sha256(b'synthetic response').hexdigest()}
     original = json.dumps(row) + '\n'
     for directory in (source, corrected):
         (directory / 'one.md').write_bytes(b'synthetic response')
-        (directory / 'dataset.json').write_text(json.dumps({'cases': [{'id': 'one'}]}))
+        (directory / 'references').mkdir()
+        (directory / 'references/one.md').write_bytes(b'reference')
+        (directory / 'dataset.json').write_text(json.dumps({
+            'cases': [{'id': 'one', 'meta': {}}], 'coverage_plan': {'static_html': ['custom']}}))
     (source / 'results.jsonl').write_text(original)
     (corrected / 'original-results.jsonl').write_text(original)
     (corrected / 'results.jsonl').write_text(json.dumps({**row, 'official_metrics': metrics}) + '\n')
     summary = aggregate([row])
-    (corrected / 'score-summaries.json').write_text(json.dumps({
-        'custom': {'official_aggregate': summary, 'original_official_aggregate': summary}}))
+    for directory in (source, corrected):
+        initial = {'official_aggregate': summary, 'dimensions': {},
+                   'scorer': {'metric_source_sha256': {}}}
+        if directory == corrected:
+            initial['original_official_aggregate'] = summary
+        (directory / 'score-summaries.json').write_text(json.dumps({
+            'custom': initial}))
     receipt = {'schema_version': 2, 'provider_calls': 0, 'source_code_sha256': {},
                'input_results_sha256': diagnostics.digest(source / 'results.jsonl'),
                'output_results_sha256': diagnostics.digest(corrected / 'results.jsonl'),
@@ -271,12 +283,48 @@ def verify_teds_revision(root: Path, source_root: Path) -> None:
                     '--source', str(source), '--corrected', str(corrected)], check=True)
     _, audit = diagnostics.validate_teds_revision(corrected)
     assert audit['status'] == 'passed' and audit['provider_calls'] == 0
+    if not with_writer:
+        return
+    repo = root / 'synthetic-scorer'
+    package = repo / 'webmainbench/metrics'
+    package.mkdir(parents=True)
+    (package / '__init__.py').write_text('')
+    (package / 'base.py').write_text(
+        'from dataclasses import dataclass\n'
+        '@dataclass\nclass MetricResult:\n'
+        '    name: str\n    score: float\n    details: dict\n'
+        '    success: bool\n    error_message: str | None = None\n')
+    (package / 'calculator.py').write_text(
+        'from .base import MetricResult\n'
+        'class TableMetric:\n'
+        '    def calculate(self, *args, **kwargs):\n'
+        "        return MetricResult('table_TEDS', 0.4, {}, True)\n"
+        'class MetricCalculator:\n'
+        '    def __init__(self, config):\n'
+        "        self.metrics = {'table_TEDS': TableMetric()}\n")
+    subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+    subprocess.run(['git', '-C', str(repo), 'add', '.'], check=True)
+    subprocess.run(['git', '-C', str(repo), '-c', 'user.name=Fixture',
+                    '-c', 'user.email=fixture@example.test', 'commit', '-qm', 'Synthetic scorer'], check=True)
+    head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
+    written = root / 'teds-written'
+    subprocess.run([sys.executable, str(source_root / 'scripts/correct_webmainbench_teds.py'),
+                    '--source', str(source), '--output', str(written), '--scorer-repo', str(repo),
+                    '--scorer-commit', head], check=True)
+    subprocess.run([sys.executable, str(source_root / 'scripts/review_webmainbench_teds_correction.py'),
+                    '--source', str(source), '--corrected', str(written)], check=True)
+    receipt, audit = diagnostics.validate_teds_revision(written)
+    assert receipt['scorer_commit'] == head and audit['provider_calls'] == 0
+    assert json.loads((written / 'score-summaries.json').read_text())[
+        'custom']['original_official_aggregate'] == summary
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
     parser.add_argument('--source-root', type=Path, required=True)
+    parser.add_argument('--webmainbench', action='store_true',
+                        help='Also exercise TEDS writing with the webmainbench-eval extra installed')
     args = parser.parse_args()
     from harness.web_fetch import webmainbench_latency_correction
 
@@ -308,7 +356,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
-        verify_teds_revision(root, args.source_root)
+        verify_teds_revision(root, args.source_root, with_writer=args.webmainbench)
         verify_lexbench_package(root, args.source_root / 'scripts/moli_report/app.js')
         verify_dynamic_cohort(root, args.source_root)
         verify_review_revisions(root, args.source_root)

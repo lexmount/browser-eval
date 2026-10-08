@@ -65,7 +65,10 @@ package-check: runtime-check
 	cd "$$package_run"; \
 	$(UV) run --no-project --isolated --python 3.11 --with "$$wheel" \
 	  python "$$project_root/tests/package_smoke.py" --source-root "$$project_root" \
-	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown"
+	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown"; \
+	$(UV) run --no-project --isolated --python 3.11 --with "$${wheel}[webmainbench-eval]" \
+	  python "$$project_root/tests/package_smoke.py" --source-root "$$project_root" \
+	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown" --webmainbench
 
 report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)

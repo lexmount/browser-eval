@@ -22,9 +22,19 @@ from harness.web_fetch.scoring_regressions import (
     load_scoring_regressions,
 )
 from harness.web_fetch.webmainbench_evidence import require_matrix
-from harness.web_fetch.webmainbench_scoring import aggregate, metric_dict, official_calculator
+from harness.web_fetch.webmainbench_scoring import (
+    SCORER_COMMIT,
+    aggregate,
+    metric_dict,
+    official_calculator,
+)
 
-from .safety import contained_path, reject_evidence_symlinks
+from .safety import (
+    contained_path,
+    evidence_tree_identity,
+    reject_evidence_symlinks,
+    stage_evidence_revision,
+)
 from .scoring_regressions import valid_correction_provenance
 from .webmainbench_latency_correction import prior_results_path
 
@@ -331,49 +341,76 @@ def correct_teds():
         type=Path,
         help="Previously verified correction whose unchanged results are inherited",
     )
+    parser.add_argument("--scorer-commit", default=SCORER_COMMIT)
     args = parser.parse_args()
-    if args.output.exists():
-        raise ValueError("Refusing to overwrite corrected evidence")
+    receipt = revise_teds(
+        args.source,
+        args.output,
+        args.scorer_repo,
+        prior_corrected=args.prior_corrected,
+        scorer_commit=args.scorer_commit,
+    )
+    print(
+        json.dumps(
+            {
+                "output": str(args.output),
+                "changed_scores": len(receipt["changed_scores"]),
+                "provider_calls": 0,
+            }
+        )
+    )
+
+
+def revise_teds(source, output, scorer_repo, *, prior_corrected=None, scorer_commit=SCORER_COMMIT):
+    """Stage a TEDS-only revision while retaining provider bytes and first official scores."""
+    prior_identity = (
+        evidence_tree_identity(prior_corrected) if prior_corrected is not None else None
+    )
+
+    def revise(staging):
+        receipt = _revise_teds(source, staging, scorer_repo, prior_corrected, scorer_commit)
+        if (
+            prior_corrected is not None
+            and evidence_tree_identity(prior_corrected) != prior_identity
+        ):
+            raise ValueError("Inherited correction evidence changed during revision")
+        return receipt
+
+    return stage_evidence_revision(source, output, revise)
+
+
+def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
     validate_controls()
     provenance = build_correction_provenance("structured-extraction", ROOT_CAUSE, CONTROLS)
-    source = args.source
     dataset = json.loads((source / "dataset.json").read_text())
     summaries = json.loads((source / "score-summaries.json").read_text())
     records = load_jsonl(source / "results.jsonl")
     inherited = {}
     inherited_receipt_sha256 = None
-    if args.prior_corrected:
-        validate_teds_revision(args.prior_corrected)
+    if prior_corrected:
+        validate_teds_revision(prior_corrected)
         inherited = {
-            row["attempt_id"]: row
-            for row in iter(load_jsonl(args.prior_corrected / "results.jsonl"))
+            row["attempt_id"]: row for row in iter(load_jsonl(prior_corrected / "results.jsonl"))
         }
-        inherited_receipt_sha256 = digest(args.prior_corrected / "teds-correction.json")
-    if any(path.is_symlink() for path in source.rglob("*")):
-        raise ValueError("Refusing symlinked correction evidence")
-    expected = {
-        (provider, case["id"])
-        for provider in dataset["coverage_plan"]["static_html"]
-        for case in dataset["cases"]
-    }
-    if (
-        len(records) != len(expected)
-        or len(expected) != len(dataset["cases"]) * len(summaries)
-        or {(row["provider"], row["case_id"]) for row in records} != expected
-    ):
-        raise ValueError(
-            f"Correction requires the complete declared "
-            f"{len(dataset['cases'])}-by-{len(summaries)} matrix"
-        )
+        inherited_receipt_sha256 = digest(prior_corrected / "teds-correction.json")
+    providers = dataset["coverage_plan"]["static_html"]
+    _require_teds_matrix(
+        dataset, {"scope": {"providers": providers, "logical_results": len(records)}}, records
+    )
+    if set(summaries) != set(providers):
+        raise ValueError("TEDS correction summaries differ from declared methods")
+    _require_finite_metrics(records)
     for summary in summaries.values():
         for relative, expected in summary["scorer"]["metric_source_sha256"].items():
-            path = args.scorer_repo / relative
+            path = contained_path(scorer_repo, relative, reject_symlinks=True)
             if not path.is_file():
-                path = args.scorer_repo / "webmainbench/metrics" / relative
+                path = contained_path(
+                    scorer_repo / "webmainbench/metrics", relative, reject_symlinks=True
+                )
             if digest(path) != expected:
                 raise ValueError("Official source differs: " + relative)
     with tempfile.TemporaryDirectory(prefix="webmainbench-teds-cache-") as cache_dir:
-        calculator = official_calculator(args.scorer_repo, Path(cache_dir))
+        calculator = official_calculator(scorer_repo, Path(cache_dir), scorer_commit)
         metric = calculator.metrics["table_TEDS"]
         metric._tree_edit_distance = types.MethodType(corrected_distance, metric)
         from webmainbench.metrics.base import MetricResult
@@ -473,9 +510,12 @@ def correct_teds():
             if index % 10 == 0:
                 print(f"Scored {index}/{len(records)}; changed {len(changed)}", flush=True)
         require_valid_teds_for_release(corrected)
+        _require_finite_metrics(corrected)
         for provider, summary in summaries.items():
             rows = [row for row in corrected if row["provider"] == provider]
-            summary["original_official_aggregate"] = summary["official_aggregate"]
+            summary.setdefault(
+                "original_official_aggregate", copy.deepcopy(summary["official_aggregate"])
+            )
             summary["official_aggregate"] = aggregate(rows)
             cases = {case["id"]: case for case in dataset["cases"]}
             for axis, values in summary["dimensions"].items():
@@ -488,22 +528,25 @@ def correct_teds():
                         return str(item if item not in (None, "") else "unavailable")
 
                     values[value] = aggregate([row for row in rows if category(row) == value])
-        shutil.copytree(source, args.output)
-        shutil.copy2(source / "results.jsonl", args.output / "original-results.jsonl")
-        results_path = args.output / "results.jsonl"
+        shutil.copytree(source, output)
+        shutil.copy2(source / "results.jsonl", output / "original-results.jsonl")
+        results_path = output / "results.jsonl"
         results_path.write_text(
             "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in corrected)
         )
-        (args.output / "score-summaries.json").write_text(
+        (output / "score-summaries.json").write_text(
             json.dumps(summaries, ensure_ascii=False, indent=2) + "\n"
         )
         source_files = [
-            Path(__file__),
+            Path(__file__).resolve(),
             ROOT / "harness/web_fetch/ordered_tree.py",
             ROOT / "harness/web_fetch/scoring.py",
+            ROOT / "harness/web_fetch/safety.py",
+            ROOT / "harness/web_fetch/webmainbench_scoring.py",
+            ROOT / "harness/web_fetch/webmainbench_evidence.py",
         ]
         for path in source_files:
-            target = args.output / "correction-source" / path.relative_to(ROOT)
+            target = output / "correction-source" / path.relative_to(ROOT)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, target)
         unavailable = [
@@ -516,6 +559,7 @@ def correct_teds():
             "schema_version": 2,
             "kind": "webmainbench_teds_tree_adapter_correction",
             "provider_calls": 0,
+            "scorer_commit": scorer_commit,
             "correction_provenance": provenance,
             "input_results_sha256": digest(source / "results.jsonl"),
             "output_results_sha256": digest(results_path),
@@ -532,14 +576,10 @@ def correct_teds():
             "denominator_changed": bool(unavailable),
             "latency_changed": False,
         }
-        (args.output / "teds-correction.json").write_text(
+        (output / "teds-correction.json").write_text(
             json.dumps(receipt, ensure_ascii=False, indent=2) + "\n"
         )
-    print(
-        json.dumps(
-            {"output": str(args.output), "changed_scores": len(changed), "provider_calls": 0}
-        )
-    )
+    return receipt
 
 
 def _require_teds_matrix(dataset, receipt, *matrices):

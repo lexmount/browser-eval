@@ -29,6 +29,7 @@ from harness.web_fetch.result_review import archive_superseded_result_review
 from harness.web_fetch.safety import (
     commit_staged_evidence,
     contained_path,
+    evidence_tree_identity,
     reject_evidence_symlinks,
     validate_report_ids,
 )
@@ -95,15 +96,6 @@ def reference_fields_for_case(old: dict, new: dict) -> set[str]:
 def scoring_relevant_reference_change(changed: list[dict]) -> bool:
     """Provenance metadata changes do not justify rewriting measured rows."""
     return any(set(change["fields"]) - NON_SCORING_REFERENCE_FIELDS for change in changed)
-
-
-def _tree_identity(root: Path) -> dict[str, str]:
-    reject_evidence_symlinks(root)
-    return {
-        str(path.relative_to(root)): digest(path.read_bytes())
-        for path in root.rglob("*")
-        if path.is_file()
-    }
 
 
 def _revise_staged(
@@ -227,11 +219,11 @@ def _revise_staged(
             origin = contained_path(incoming, relative, reject_symlinks=True)
             target = contained_path(source / folder, relative, reject_symlinks=True)
             if origin.is_dir():
-                expected = _tree_identity(origin)
+                expected = evidence_tree_identity(origin)
                 if target.exists():
                     shutil.rmtree(target)
                 shutil.copytree(origin, target)
-                if _tree_identity(target) != expected:
+                if evidence_tree_identity(target) != expected:
                     raise ValueError("Corrected reference changed during copy: " + identifier)
             elif origin.is_file():
                 expected = digest(origin.read_bytes())
@@ -337,7 +329,7 @@ def revise(
     for record in load_jsonl(source / "results.jsonl"):
         verify_record_artifacts(source, record)
     canonical_bytes = read_dataset_bytes(canonical_path)
-    before_identity = _tree_identity(source)
+    before_identity = evidence_tree_identity(source)
     for folder in ("sources", "list-references"):
         input_tree(canonical_path, folder)
     work = Path(tempfile.mkdtemp(prefix=f".{source.name}-reference-history-", dir=source.parent))
@@ -354,7 +346,7 @@ def revise(
             case_ids=case_ids,
             fields=fields,
         )
-        if _tree_identity(source) != before_identity:
+        if evidence_tree_identity(source) != before_identity:
             raise ValueError("Reference revision inputs changed during staging")
         if read_dataset_bytes(canonical_path) != canonical_bytes:
             raise ValueError("Canonical reference changed during staging")

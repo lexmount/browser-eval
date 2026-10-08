@@ -112,6 +112,16 @@ with revision validation. Both audit and validation check the complete declared
 method-by-task matrix. Audits use the shared aggregation rules, including metrics
 with no applicable samples, reject non-finite scores and install a receipt only
 after checking the evidence again.
+`safety.py` owns evidence-tree identities and staging for new offline revision
+directories. TEDS and full-population scoring revisions use this boundary; reference
+revisions use the same tree identity checks. A failed revision stays private, and
+a changed source prevents installation. TEDS revisions retain the first official
+aggregate alongside the first official per-result scores and bind the declared
+scorer commit and copied shared implementation in their receipts.
+Installed scoring registries are located through distribution records in
+`storage.py`; they do not assume the interpreter and package share a prefix.
+The package gate runs both base and WebMainBench-extra installations outside the
+checkout, including the complete offline TEDS revision and audit path.
 Their command paths remain stable. New revision receipts bind the actual shared
 implementation; retained revisions verify their own frozen source copies.
 

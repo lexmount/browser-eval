@@ -131,6 +131,12 @@ tracked changes. Historical schema-v1 reference receipts remain readable; new
 reference corrections use the schema-v3 command.
 
 The retained sample's TEDS-only revision uses `scripts/correct_webmainbench_teds.py`.
+Its scorer commit defaults to the frozen official baseline; `--scorer-commit` can
+declare another checkout explicitly. The checkout must match that commit and the
+source evidence's metric-source hashes. Revisions retain the first official score
+snapshots and aggregate, stage a complete new directory and reject source changes
+during scoring. `--prior-corrected` reuses an already validated correction while
+checking that its evidence also remains unchanged.
 `scripts/review_webmainbench_teds_correction.py --source <original-evidence>
 --corrected <revised-evidence>` checks its complete declared matrix, unchanged
 provider evidence and aggregate arithmetic. Both commands delegate to

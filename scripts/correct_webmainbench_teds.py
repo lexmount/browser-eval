@@ -1,9 +1,6 @@
-"""Command entry for the shared benchmark stage."""
-import sys
-from pathlib import Path
+"""Apply an offline TEDS-only revision with the shared evidence boundary."""
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from harness.web_fetch.webmainbench_diagnostics import correct_teds as main
+from harness.web_fetch.webmainbench_diagnostics import correct_teds
 
 if __name__ == "__main__":
-    main()
+    correct_teds()

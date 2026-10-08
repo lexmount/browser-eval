@@ -1,5 +1,7 @@
 """Validation at filesystem and URL boundaries shared by runners and reports."""
+import hashlib
 import re
+import tempfile
 from pathlib import Path, PureWindowsPath
 from urllib.parse import urlsplit
 
@@ -10,6 +12,34 @@ def reject_evidence_symlinks(root: Path) -> None:
         raise ValueError('Evidence root must not be a symlink')
     if any(path.is_symlink() for path in root.rglob('*')):
         raise ValueError('Evidence tree contains a symlink')
+
+
+def evidence_tree_identity(root: Path) -> dict[str, str]:
+    """Bind every file of an evidence tree without following links."""
+    reject_evidence_symlinks(root)
+    if not root.is_dir():
+        raise ValueError('Evidence root must be an existing directory')
+    return {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in root.rglob('*') if path.is_file()}
+
+
+def stage_evidence_revision(source: Path, output: Path, operation):
+    """Expose a new revision only after staging succeeds and its source remains unchanged."""
+    if output.exists() or output.is_symlink():
+        raise ValueError('Correction output already exists')
+    if output.resolve().is_relative_to(source.resolve()):
+        raise ValueError('Correction output must be outside its source evidence')
+    before = evidence_tree_identity(source)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=f'.{output.name}-revision-', dir=output.parent) as work:
+        staging = Path(work) / 'evidence'
+        result = operation(staging)
+        if evidence_tree_identity(source) != before:
+            raise ValueError('Source evidence changed during revision')
+        if output.exists() or output.is_symlink():
+            raise ValueError('Correction output appeared during staging')
+        staging.rename(output)
+    return result
 
 
 def safe_identifier(value: str) -> str:
