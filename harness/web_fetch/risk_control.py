@@ -12,6 +12,7 @@ from typing import Any
 
 from harness.web_fetch.artifacts import diagnostic_log_binding
 from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
+from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.retrieval_hints import plan_for_case
 from harness.web_fetch.storage import data_home
 
@@ -63,7 +64,7 @@ def validate_risk_control_certification(
     profile = json.loads(profile_bytes)
     repository_root = profile_path.parents[2]
     frozen_dataset_path = contained_path(repository_root, profile["dataset"]["path"])
-    frozen_dataset_bytes = frozen_dataset_path.read_bytes()
+    frozen_dataset_bytes = read_dataset_bytes(frozen_dataset_path)
     frozen_dataset_sha256 = hashlib.sha256(frozen_dataset_bytes).hexdigest()
     frozen_dataset = json.loads(frozen_dataset_bytes)
     expected_case_ids = [case["id"] for case in frozen_dataset["cases"]]
@@ -287,7 +288,7 @@ def validate(profile_path: Path) -> tuple[dict, dict, list, object, Path]:
         if not path.is_file() or _digest(path) != binding["sha256"]:
             raise ValueError("Frozen source binding changed: " + binding["path"])
     dataset_path = rooted(profile["dataset"]["path"])
-    if _digest(dataset_path) != profile["dataset"]["sha256"]:
+    if hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest() != profile["dataset"]["sha256"]:
         raise ValueError("Frozen risk-control dataset changed")
     dataset, cases = load_dataset(dataset_path)
     ids = [case.id for case in cases]

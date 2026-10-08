@@ -4,16 +4,17 @@ from pathlib import Path
 
 import pytest
 
-from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.metrics import task_passed
+from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.scoring_regressions import load_scoring_regressions
+from tests.conftest import read_frozen_dataset_bytes
 
 ROOT=Path(__file__).resolve().parents[1]
 TITLE='教材《C++版信息学奥赛一本通编程启蒙》题单'
 
 
 def training_case():
-    return next(c for c in json.loads((ROOT/'evaluation/risk-control/dataset.json').read_text())['cases']
+    return next(c for c in json.loads(read_frozen_dataset_bytes(ROOT/'evaluation/risk-control/dataset.json'))['cases']
                 if c['id']=='risk-diverse-153')
 
 
@@ -58,11 +59,11 @@ def test_training_quantity_and_section_scope_remain_required():
 
 
 def test_training_revision_preserves_the_entire_predecessor_dataset_and_profile():
-    import hashlib
     import copy
+    import hashlib
     receipt=json.loads((ROOT/'research/risk-control-training-list-revision.json').read_text())
     correction=receipt['correction']
-    dataset=json.loads((ROOT/'evaluation/risk-control/dataset.json').read_text())
+    dataset=json.loads(read_frozen_dataset_bytes(ROOT/'evaluation/risk-control/dataset.json'))
     full_page=json.loads((ROOT/'research/risk-control-full-page-rule-revision.json').read_text())
     historical=copy.deepcopy(dataset)
     for case in historical['cases']:

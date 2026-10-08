@@ -28,6 +28,7 @@ from scripts.build_risk_control_dataset import (
     evidence_roots,
     parse_sections,
 )
+from tests.conftest import read_frozen_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -56,7 +57,7 @@ ZILLOW_REVISION = ROOT / "research/risk-control-zillow-sample-revision.json"
 
 @pytest.fixture(scope="module")
 def dataset():
-    return json.loads(DATASET.read_text())
+    return json.loads(read_frozen_dataset_bytes(DATASET).decode("utf-8"))
 
 
 def test_dataset_covers_the_exact_audited_cohort(dataset):
@@ -132,7 +133,7 @@ def test_zillow_sample_revision_binds_current_frozen_inputs():
     locale=json.loads((ROOT/'research/risk-control-navigation-language-revision.json').read_text())
     for key in ('dataset','run_profile'):
         assert full_page['correction']['new_'+key+'_sha256'] == locale['correction']['predecessor_'+key+'_sha256']
-    assert locale['correction']['new_dataset_sha256'] == hashlib.sha256(DATASET.read_bytes()).hexdigest()
+    assert locale['correction']['new_dataset_sha256'] == hashlib.sha256(read_frozen_dataset_bytes(DATASET)).hexdigest()
     assert locale['correction']['new_run_profile_sha256'] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
     assert profile["dataset"]["sha256"] == locale["correction"]["new_dataset_sha256"]
     assert revision["correction"]["provider_calls"] == 1
@@ -367,7 +368,7 @@ def certified_report_fixture(tmp_path):
     profile_bytes = RUN_PROFILE.read_bytes()
     profile = json.loads(profile_bytes)
     profile_sha = hashlib.sha256(profile_bytes).hexdigest()
-    frozen_dataset = json.loads(DATASET.read_text())
+    frozen_dataset = json.loads(read_frozen_dataset_bytes(DATASET).decode("utf-8"))
     dataset = measured_risk_control_dataset(profile, frozen_dataset, profile_sha)
     provider = profile["provider"]["name"]
     identity = {
@@ -984,6 +985,7 @@ def test_certified_report_preserves_certificate_bound_files(tmp_path, capsys):
 
     profile = json.loads(RUN_PROFILE.read_text())
     provider = profile["provider"]["name"]
+    read_frozen_dataset_bytes(DATASET)
     frozen, cases = load_dataset(DATASET)
     measured = measured_risk_control_dataset(
         profile, frozen, hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest())

@@ -1,9 +1,0 @@
-{
-  "schema_version": 1,
-  "case_id": "china-homepage-026-aliyun-com",
-  "checked_at": "2026-09-18",
-  "provider_output_used": false,
-  "stable_page_sha256": "58ee437c3a6f9e6498040740d09affd2b042469d28c95bd4f11b4ca568252394",
-  "url": "https://aliyun.com/",
-  "dataset": "evaluation/popular-sites/dataset.json"
-}

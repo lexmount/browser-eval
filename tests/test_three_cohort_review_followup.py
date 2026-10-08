@@ -1,9 +1,12 @@
 """Scorer controls added after the historical dynamic-audit test inventory froze."""
 
-from harness.web_fetch.stable_tasks import evaluate_stable_task
-from harness.web_fetch.scoring import score_attempt
 from unittest.mock import patch
+
 import pytest
+
+from harness.web_fetch.scoring import score_attempt
+from harness.web_fetch.stable_tasks import evaluate_stable_task
+from tests.conftest import read_frozen_dataset_bytes
 
 
 def test_title_with_angle_bracket_does_not_expose_hidden_html_anchor():
@@ -98,8 +101,9 @@ def test_numeric_card_pattern_can_describe_the_value_not_only_a_unit():
 def test_metadata_title_cannot_supply_declared_page_text(html):
     import json
     from pathlib import Path
+
     from harness.web_fetch.metrics import task_passed
-    case=next(c for c in json.loads((Path(__file__).resolve().parents[1]/'evaluation/popular-sites/dataset.json').read_text())['cases'] if c['id']=='global-homepage-001-google-com')
+    case=next(c for c in json.loads(read_frozen_dataset_bytes(Path(__file__).resolve().parents[1]/'evaluation/popular-sites/dataset.json'))['cases'] if c['id']=='global-homepage-001-google-com')
     anchors='; '.join(a['alternatives'][0] for a in case['acceptance_contract']['stable_text_anchors'])
     for body,title,expected in [('Unrelated content',anchors,False),(anchors,'Unrelated title',True)]:
         content='<html><body><p>'+body+'</p></body></html>' if html else body

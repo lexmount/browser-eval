@@ -1,10 +1,19 @@
 # 冻结参考输入
 
-历史 Web Fetch 的完整数据集、源页、文档、列表参考与独立渲染快照保存在 Git 外部。
-`evaluation/source-inputs.json` 将完整文件清单、逐文件 SHA-256 和冻结数据集
+历史任务集的完整数据集、源页、文档、列表参考与独立渲染快照保存在 Git 外部。
+各目录中的 `source-inputs.json` 将完整文件清单、逐文件 SHA-256 和冻结数据集
 SHA-256 绑定在一起。完整数据集及历史证书保留原始字节。
-Git 中的 `evaluation/dataset-catalog.json` 只列任务目录、来源、覆盖计划和
-定义哈希，不含全文参考，也不能作为执行数据集传给运行器。
+对应的 `dataset-catalog.json` 只列任务目录、来源、覆盖计划和定义哈希，
+不含全文参考，也不能作为执行数据集传给运行器。
+
+| 任务集 | 清单 |
+| --- | --- |
+| Web Fetch | `evaluation/source-inputs.json` |
+| 热门网站 | `evaluation/popular-sites/source-inputs.json` |
+| 动态内容 | `evaluation/dynamic-content-100-moli-webfetch/source-inputs.json` |
+| 访问限制 | `evaluation/risk-control/source-inputs.json` |
+
+清单可只包含完整数据集；其参考文本已经在数据集内时，不需要另造源文件目录。
 
 默认位置为：
 
@@ -54,7 +63,7 @@ make test-reference-inputs
 uv run --frozen --all-extras python -m pytest tests -q --require-reference-inputs
 ```
 
-严格模式先校验完整清单，缺少输入直接失败。常规模式下，存在但损坏的输入
+严格模式先校验 `evaluation/` 下全部清单，缺少任一套输入直接失败。常规模式下，存在但损坏的输入
 也会失败，不会被当作缺失数据跳过。
 
 已绑定输入不可原地修改。参考更新命令只接受独立候选数据集和源目录；完成

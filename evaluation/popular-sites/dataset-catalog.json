@@ -1,0 +1,1016 @@
+{
+  "schema_version": 1,
+  "kind": "frozen_dataset_catalog",
+  "id": "popular-sites",
+  "name": "全球热门网站 100 站 Moli WebFetch v18 稳定文字纠正版",
+  "coverage_plan": {
+    "challenge": [
+      "moli-webfetch"
+    ]
+  },
+  "dataset": "dataset.json",
+  "dataset_sha256": "0703badca3978cafe4f6db67fb9723f433781e1b87b4ef2af343756126e72cb5",
+  "case_count": 100,
+  "cases": [
+    {
+      "id": "global-homepage-001-google-com",
+      "name": "google.com 首页",
+      "url": "https://www.google.com/?hl=en",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：About；Terms；Images；Privacy；Sign in；Business；Advertising；How Search works。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "27d240d078e8edc43d8304e28decbf6dfdbd6173748b5a345fcb2532fcb21936",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-002-youtube-com",
+      "name": "youtube.com 首页",
+      "url": "https://www.youtube.com/?hl=en&gl=US&persist_hl=1",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Home；Live；Music；Movies；Shorts；Explore；Sign in；Subscriptions；YouTube Kids；More from YouTube；About；Press；Terms；Privacy；Creators；Advertise；Copyright；Contact us；Developers；Report history；Policy & Safety；How YouTube works；Test new features。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "1f39dd7f274d799fb4e98ea2d91e17ad8eca59cc83a11c2eca86d33d20bf3b27",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-005-chatgpt-com",
+      "name": "chatgpt.com 首页",
+      "url": "https://chatgpt.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Help；Terms；Images；Plugins；New chat；Learn more；Privacy Policy；Chat with ChatGPT；See plans and pricing；Where should we begin?；Get responses tailored to you。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "630e3a25ca3a7de8bc12d560ebd1cbb5496ae9ec9d0e4e7a34307df6cb211737",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-089-yuque-com",
+      "name": "yuque.com 首页",
+      "url": "https://yuque.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：画板；互动交流；文档协同；权限管理；特色卡片；目录编排；知识管理；个人免费使用；团队免费使用；组件化编辑器；专业好用的编辑器；像书一样的知识库；Edge 插件；Chrome 插件；Help Center；Security；Terms；Join us；Pricing；Support；Welfare；About Us；Download；Feedback；Homepage；Developer；Contact us；Media reports；Product information；Template Gallery；Login / Register。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "fa553521956c988b34fda49a713d4236cb74d19922a5e9ecc2a6388e904f3032",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-008-whatsapp-com",
+      "name": "whatsapp.com 首页",
+      "url": "https://whatsapp.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立观察中确认的稳定普通网页文字：Apps；Blog；Log In；Mobile；Tablet；Careers；Desktop；Sitemap；About us；Download；Features；Contact Us；Learn more；Need help?；What we do；Who we are；Help Center；Brand Center；For Business；Use WhatsApp；WhatsApp Web；Keep in touch；Message privately；Never miss a moment with voice and video calls；Security Advisories；Terms & Privacy Policy。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "dcfd8b1e54ea580e56fd3cf5d4f7d120ec0e84e97bce1977fd882f132a837db1",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-010-bing-com",
+      "name": "bing.com 首页",
+      "url": "https://www.bing.com/?cc=us&setlang=en-us",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Help；Maps；News；Legal；Images；Videos；Sign in；DISCOVER；Feedback；Shopping；Advertise；Text creator；About our ads；Image creator；Bing homepage quiz；Privacy and Cookies；Your Privacy Choices；Consumer Health Privacy。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "f8230467f8c7a831a354c342cead877524f30f562814f8b4f03af599d636e3ac",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-011-wikipedia-org",
+      "name": "wikipedia.org 首页",
+      "url": "https://wikipedia.org/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立参考中保留的普通网页文字：The Free Encyclopedia；English；日本語；中文；Deutsch；Español；Русский；Français；Italiano；Português；Polski；Commons；Wikidata；MediaWiki；Meta-Wiki；Wikibooks；Wikiquote；Wikisource；Wikivoyage；Wiktionary；Wikispecies；Wikiversity；Wikifunctions；Terms of Use；Privacy Policy；Wikimedia Foundation；Free knowledge base；Free media collection。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "794249e4502d7a12054be61cce6338157a8baaec98d6ef62c86a995e25a11521",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-012-gemini-google-com",
+      "name": "gemini.google.com 首页",
+      "url": "https://gemini.google.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立观察中确认的稳定普通网页文字：Sign in；New chat；Conversation with Gemini；Gemini is AI and can make mistakes.；About Gemini；For Business；Get Gemini App；Google Privacy Policy。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "b1dade90d615ffd6cd131df8a17121d5105d09e42b1b4fe2511adfb66dbddc41",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-013-yahoo-co-jp",
+      "name": "yahoo.co.jp 首页",
+      "url": "https://yahoo.co.jp/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：Yahoo! JAPAN；ニュース；メール；ショッピング；地図；知恵袋；ヘルプ；主なサービス；お知らせ。同时返回至少 5 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /pickup/[0-9]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "115f8ef419096b47b78e150c1a334985ba9d0776171800803bd78a452a114c9f",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-015-yahoo-com",
+      "name": "yahoo.com 首页",
+      "url": "https://www.yahoo.com/?p=us",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：Mail；News；Search；Sports；Finance；Weather；Games；Shopping；Travel；Careers；Help；Feedback；Creators；Advertise；Products and Services；About Our Ads。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /(?:news|entertainment|finance)/.+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "4c00861551344716d5679c677158a2b7648bbf7c084f2348b8413333ee872277",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-016-amazon-com",
+      "name": "amazon.com 首页",
+      "url": "https://amazon.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：All；Baby；Help；Sell；Books；Music；Prime；Careers；Coupons；English；Fashion；Returns；Audible；Pharmacy；Registry；Computers；Handmade；Gift Cards；Amazon Devices；Conditions of Use；Privacy Notice。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 (?:/[^/]+)?/dp/[A-Z0-9]{10}。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "c3c58c5a454336515995eefa26d3d693eee2eb5503300458b2f4174408be75a5",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-018-baidu-com",
+      "name": "baidu.com 首页",
+      "url": "https://baidu.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：地图；学术；新闻；更多；登录；直播；视频；贴吧；关于百度；帮助中心；使用百度前必读；About Baidu。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "1b25cf0dde987ce3d0146d12df96dc00fe3bbd0f8d01c2c13ec70cc03ee7840f",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-020-naver-com",
+      "name": "naver.com 首页",
+      "url": "https://naver.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：검색；게임；경제；날씨；메일；쇼핑；웹툰；증권；지도；지식；카페；구독홈；뉴스홈；더보기；로그인；부동산；블로그；스포츠；치지직；캘린더；고객센터；공지사항；다운로드；오픈소스；이용안내；이용약관；인재채용；회사소개；회원가입；NAVER；Partners；Developers；개인정보처리방침；서비스 전체보기；청소년보호정책。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "7738387bb865b4934e21074444eeef566a47b812a12ac7053849f9601ff4bcfa",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-021-netflix-com",
+      "name": "netflix.com 首页",
+      "url": "https://netflix.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立参考中保留的普通网页文字：Sign In；Account；Privacy；Contact Us；Speed Test；Help Center；Media Center；Netflix Shop；Terms of Use；Legal Notices；Ways to Watch；Only on Netflix；Enjoy on your TV；Watch everywhere；Investor Relations；More Reasons to Join；Corporate Information；Frequently Asked Questions；Create profiles for kids；Download your shows to watch offline；Cookie Preferences；Ad Choices；Buy Gift Cards；Redeem Gift Cards。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "cf360f6aced8b59988811b2a4102c88ff3bbd01976afa039b8572248e0960bdc",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-023-cloud-microsoft",
+      "name": "cloud.microsoft 首页",
+      "url": "https://cloud.microsoft/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Word；Excel；PowerPoint；Azure；Careers；Company；Education；Investors；Learn more；Trademarks；What's new；Microsoft AI；Terms of use；Accessibility；Visual Studio；Developer & IT；Small Business；About Microsoft；Download Center；Microsoft Learn；Microsoft Store；Microsoft Teams；Get Copilot apps；Microsoft Security；Microsoft Developer；Privacy at Microsoft；Popular prompts to try；Jump into your favorite app。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "6ad25f05312b58cafcdc948aeb61904b22d54d50385db30272bb63455b700707",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-025-bilibili-com",
+      "name": "bilibili.com 首页",
+      "url": "https://bilibili.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：首页；番剧；直播；游戏中心；会员购；漫画；赛事；登录；大会员；动态；热门；电影；国创；电视剧；综艺；纪录片；动画；鬼畜；音乐；舞蹈；影视；娱乐；知识；科技数码；资讯；美食；专栏；活动；课堂；社区中心。同时返回至少 5 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /video/(?:BV[A-Za-z0-9]+|av[0-9]+)。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "7cfe12ce67c29ddad178a3d1142e646f040ff8766a480292857e3f267c53a751",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-027-dzen-ru",
+      "name": "dzen.ru 首页",
+      "url": "https://dzen.ru/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：Главное；Свежее；В мире；Политика；Общество；Экономика；Наука；Спорт；Культура；Технологии；Авто；Происшествия；Шоу-бизнес。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /(?:a/[A-Za-z0-9_-]+|news/story/[A-Za-z0-9_-]+)。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "aef6de2488ab2da35481371714932e4c549be7e388cfe39c90f4f1da1e8e27c2",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-028-microsoft-com",
+      "name": "microsoft.com 首页",
+      "url": "https://microsoft.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：XBOX；Azure；Deals；Careers；Company；Copilot；Returns；Sitemap；Support；Surface；Windows；Personal；Education；Investors；Recycling；Trademarks；What's new；Microsoft AI；Accessibility；Visual Studio；Developer & IT；Small Business；About Microsoft；Download Center；Microsoft Learn；Microsoft Store；Microsoft Teams；Microsoft Security；Microsoft Developer；Privacy at Microsoft；Explore Microsoft products；Microsoft 365。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "f7ee3b200b315815a5eed1ddf189d729ddbf722f3071a4eca3e7965c541e34a0",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-029-twitch-tv",
+      "name": "twitch.tv 首页",
+      "url": "https://www.twitch.tv/?lang=en",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立观察中稳定出现的普通网页文字：Browse；Categories；Live；Show all。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /(?!(?:directory|downloads?|jobs?|settings|login|signup|search|subscriptions|wallet|turbo|videos|friends|inventory|store|drops|creatorcamp|prime|about|legal|brand|security|partners|press|advertisers|blog)(?:/|$))[A-Za-z0-9_]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "1cce08cacf74e47352b834d77fb36926109b2d5fa6462bbe7148d185cccd0789",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-030-weather-com",
+      "name": "weather.com 首页",
+      "url": "https://weather.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：TV；More；Radar；Hourly；Careers；Monthly；Sign in；Sitemap；Feedback；AdChoices；Allergies；Forecasts；News Room；Tornadoes；Wildfires；Atmosphere；Cold & Flu；Air Quality；Alexa Skill；Data Rights；Get Premium；Data Vendors；Terms of Use；Trust Center；Weather Labs；Cookie Notice；Home & Garden；Privacy Policy；Privacy & Legal；Advertise With Us；Health & Wellness；Weather Data APIs；Accessibility Statement。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "eff36e502c2b506fa4bd58abcc613c5b981baa2e6d0483102ba0573ba09781cb",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-032-canva-com",
+      "name": "canva.com 首页",
+      "url": "https://canva.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Plans；Print；Terms；Tools；Events；Log in；Careers；Pricing；Privacy；Product；Sign up；Sitemap；Affinity；Business；Canva AI；Creators；Features；Newsroom；Security；Community；Education；Affiliates；Canva home；Enterprise；Learn blog；Nonprofits；About Canva；Help Center；Design School；Trust Center；Accessibility；Contact Sales；Canva Developers；Apps Marketplace；Visual Suite；Start designing；What will you design today?。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "eb118afa3a37238fa0fa09d0990bbc00c5e6e7e3c840dba383c99c93ee3ffca0",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-034-news-yahoo-co-jp",
+      "name": "news.yahoo.co.jp 首页",
+      "url": "https://news.yahoo.co.jp/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：Yahoo!ニュース；トピックス；アクセスランキング；国内；国際；経済；科学；IT；地域；速報。同时返回至少 5 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /pickup/[0-9]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "a3f16264008bee289c947ed3cca4a2b680c28a33e33ee042276d01c921f57318",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-035-fandom-com",
+      "name": "fandom.com 首页",
+      "url": "https://fandom.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：GAMES；MOVIES；TV；TOP WIKIS；Community；Help；Support；Careers；About；Press；Contact；Advertise；Media Kit；Fandom Apps；Global Sitemap；Terms of Use；Privacy Policy。同时返回至少 3 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /topics/(?:games|movies|tv)。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "f8ca1c1ff87bff143df54a8782eb8fe224f5f940625b10705d8e8473346bfa1f",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-036-globo-com",
+      "name": "globo.com 首页",
+      "url": "https://globo.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：g1；ge；globoplay；gshow；Notícias；Política；Economia；Esportes；Entretenimento；Educação；Tecnologia；Saúde；Ciência；Vídeos；Todos os Sites；Termo de uso；Aviso de Privacidade；Portal da Privacidade。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /.+/(?:noticia|blog)/.+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "846438af1c46fe89d24667e9b6b61edc0875362bfb1e04c242235b1361cbbf38",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-037-mail-ru",
+      "name": "mail.ru 首页",
+      "url": "https://mail.ru/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：mail.ru；Почта；Облако；Новости；Финансы；Игры；Кино；Леди；Hi-Tech；Мой Мир；Помощь；Войти；Регистрация；Создать почту。同时返回至少 5 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /[^/]+/[0-9]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "bc8c79a7bc5920dce3c8eb36bb16167be037b6e44acc45908551536686d22d3c",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-038-samsung-com",
+      "name": "samsung.com 首页",
+      "url": "https://www.samsung.com/us/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Shop；Legal；Ethics；Mobile；Orders；Careers；Returns；Sitemap；TV & AV；ABOUT US；Newsroom；Wearables；Appliances；Contact Us；Galaxy Tab；Order Help；Projectors；Accessories；Dishwashers；Environment；Galaxy Book；Galaxy Buds；SmartThings；Company Info；Find a Store；For Business；Galaxy Watch；Support Home；Accessibility；Refrigerators；Samsung Care+；Privacy Policy；SUSTAINABILITY；Apps & Services；Computers & Monitors。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "b3b81658661cd70527aa3e126982ee768d625821561a93971454a2b8fa0ffde5",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-039-duckduckgo-com",
+      "name": "duckduckgo.com 首页",
+      "url": "https://duckduckgo.com/?kad=en_US&kl=us-en",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Blog；Help；Chrome；Safari；Themes；Careers；Duck.ai；Firefox；Podcast；Homepage；Settings；Community；Downloads；Press Kit；Newsletter；Privacy Policy；About DuckDuckGo；Email Protection；Terms of Service；Browser Extensions；Advertise on Search；Compare Privacy；DuckDuckGo Subscription；Android Browser；Windows Browser；iOS Browser；Mac Browser。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "243e76b6c73fc5a941303b7885709142823aab90f90ec4f6264bcb58e73dc6fe",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-041-discord-com",
+      "name": "discord.com 首页",
+      "url": "https://discord.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立观察中稳定出现的普通网页文字：Blog；Jobs；About；Brand；Nitro；Terms；Log In；Quests；Safety；Status；Careers；Company；Privacy；Product；Support；Creators；Feedback；Language；Licenses；Newsroom；Policies；Community；Resources；Developers；Gift Cards；Guidelines；App Directory；Cookie Settings；MAKE YOUR GROUP CHATS MORE FUN；Group chat that’s all fun & games；stream like you’re in the same room；Hop in when you're free, no need to call。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定会随操作系统变化的下载按钮文字。",
+      "definition_sha256": "a9e99088f3aaa9829150994006f9ad085727d7a514dc1d22c36620524be03489",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-042-github-com",
+      "name": "github.com 首页",
+      "url": "https://github.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立观察中稳定出现的普通网页文字：AI；Blog；Docs；Shop；Team；About；Terms；Skills；Status；Careers；Company；Pricing；Privacy；Roadmap；Sign in；Sign up；Sitemap；Partners；Platform；Security；Ecosystem；Education；Resources；Enterprise；GitHub CLI；Why GitHub；Developer API；GitHub Mobile；Compare GitHub；Contact GitHub；GitHub Desktop；Community Forum；GitHub features；Premium Support；Customer Stories；GitHub Marketplace；The ReadME Project；GitHub Copilot；GitHub Actions；GitHub Codespaces。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "8bc5fe50aeb16df74e23ddbe93baae814a026b2b92ee2d95fa3901cb95611e5c",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-044-spotify-com",
+      "name": "spotify.com 首页",
+      "url": "https://open.spotify.com/?locale=en_US",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Home；Jobs；Legal；Company；Cookies；Support；Show all；About Ads；Investors；Developers；Advertising；Communities；For Artists；For Authors；Install App；For Creators；Spotify Free；Useful links；Your Library；Accessibility；Spotify Plans；For the Record；Privacy Policy；Browse podcasts；Free Mobile App；Safety & Privacy Center；Create your first playlist；Let's find some podcasts to follow。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "839a7f5ad174482b7e7f5024030fa5ebe4e1e52ee0e75289a8b7fc41791c6ded",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-045-nytimes-com",
+      "name": "nytimes.com 首页",
+      "url": "https://nytimes.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：U.S.；World；Business；Opinion；Arts；Cooking；Games；Wirecutter；The Athletic；Log in；Help；Site Map；Advertise；Contact Us。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /[0-9]{4}/[0-9]{2}/[0-9]{2}/.+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "86c8d0d3892b099d3c6768bbe9767b0fbfaa01023d3d42a4d3bd7e838403b221",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-046-zoom-us",
+      "name": "zoom.us 首页",
+      "url": "https://zoom.us/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：About；Phone；Press；Rooms；Terms；Account；Careers；English；Privacy；Sign In；Feedback；Meetings；Partners；Site Map；Webinars；Customers；Investors；Media Kit；Contact Us；What’s new；Zoom Cares；Integrations；Sign Up Free；Trust Center；Accessibility；Collaboration；Contact Sales；Support Center；Zoom Community；Download Center；Plans & Pricing；Legal & Compliance；Find out what's possible；One platform. Endless ways to work together.；Trusted by millions. Built for you.；Businesses achieve more with Zoom。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "d9d6c0903519dfddeff5cf85d3ed3d524f4e81ae6a9ba41436c09d76912507e1",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-049-brave-com",
+      "name": "brave.com 首页",
+      "url": "https://brave.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：FAQs；Blogs；Linux；Press；Events；GitHub；Reddit；Status；Android；Careers；Company；Contact；Desktop；Podcast；Reviews；Rewards；Support；Research；Brave Ads；Community；Downloads；Get Brave；Brave blog；Search API；Advertisers；Help center；Merch store；Brand assets；Brave Search；Brave Wallet；Terms of use；Brave Browser；Release notes；For businesses；Privacy policy；Private search；Powerful VPN；Transparency report；A Web with fewer ads；The browser that puts you first。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "81349009cefe8e59b6f1a812cea9a2025ee0717ee6ab34a3ac370bfb1e12dce9",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-056-apple-com",
+      "name": "apple.com 首页",
+      "url": "https://apple.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：iPad；Shop；Legal；Watch；AirTag；Events；iPhone；Vision；Wallet；Account；AirPods；Support；Apple TV；Newsroom；Site Map；App Store；Apple One；Apple Pay；Education；Financing；Investors；TV & Home；Apple Card；Apple Cash；Gift Cards；iCloud.com；About Apple；Accessories；Apple Music；Apple Store；Environment；MacBook Air；Apple Arcade；Find a Store；For Business；Terms of Use；Accessibility；Contact Apple；Privacy Policy。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "6dc0a942023eb99b67a89e106d7a748686f13d6ec17e6da0900ffa0c75a91b36",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-060-espn-com",
+      "name": "espn.com 首页",
+      "url": "https://espn.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：NFL；NBA；MLB；NHL；Soccer；Tennis；Hockey；Baseball；Football；Fantasy；Watch；espnW；Andscape；ESPN Apps；X Games。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /[a-z0-9-]+/story/_/id/[0-9]+/.+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "049f971c385695cb3e10d66c35fab15531f828829e78ed26685119fedf2e0599",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-062-bbc-com",
+      "name": "bbc.com 首页",
+      "url": "https://bbc.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：Home；News；Sport；Business；Culture；Arts；Travel；Earth；Audio；Video；Live；World；Health；Watch。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /news/articles/[a-z0-9]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "ecf8c08e7c3341658c9f519549f22388e24520359d789c7e2b5e3e37c617f0ad",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-063-paypal-com",
+      "name": "paypal.com 首页",
+      "url": "https://paypal.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Business；Personal；Send Money；Get the app；Pay Monthly；Browse Offers；Explore Crypto；Get the Debit Card；Get the PayPal app；See How You're Safe；PayPal Rewards terms；Shop in stores and online；Safety and privacy are our priority；Pay in 4。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "3c6018bee15fb6b55c79e8431d3a0f028c3f4232620b048937bee89bd41b77c5",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-088-figma-com",
+      "name": "figma.com 首页",
+      "url": "https://figma.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Blog；Plans；Events；FigJam；Log in；Status；Careers；Company；Pricing；Product；Support；Dev Mode；Newsroom；Customers；Downloads；Resources；Templates；UI design；Use cases；UX design；Developers；Enterprise；Figma Design；Figma Slides；Integrations；Prototyping；Wireframing；Contact sales；Release notes；Legal and privacy；Online whiteboard；Build with intention；Design anything you can imagine；The intelligent canvas for infinite creativity。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "2a58e240ad573f15b77a457d3f1e94ac6a2b000136f450ea0d7e97339782e107",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-067-deepseek-com",
+      "name": "deepseek.com 首页",
+      "url": "https://www.deepseek.com/en/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：More；Careers；Join Us；API Docs；Products；Research；API Pricing；DeepSeek App；DeepSeek Web；Terms of Use；Transparency；Privacy Policy；Service Status；DeepSeek Harness；Into the Unknown；Legal & Security；Use API Platform；Chat with DeepSeek；Report Security Issue。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "b2717adcdee3c3142defdb392ce3e5ec68e4ecc1c6f8046c7db9d805bce4f8d2",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-068-indeed-com",
+      "name": "indeed.com 首页",
+      "url": "https://indeed.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Help；Home；About；Terms；Sign in；Countries；Hiring Lab；Post a job；Browse jobs；Career advice；ESG at Indeed；Find salaries；Indeed Events；Work at Indeed；Company reviews；Browse companies；Employers / Post Job；Your Privacy Choices；Accessibility at Indeed；Your next job starts here。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "75c6e9677f3bceb11e84abf5723bc59cbab73cfd260d326d4af54878cf3bb5fc",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-072-rakuten-co-jp",
+      "name": "rakuten.co.jp 首页",
+      "url": "https://rakuten.co.jp/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：お買い物；カード；銀行；証券；トラベル；ブックス；ポイント；モバイル；ラクマ；ROOM；ログイン；ヘルプ；会社概要；採用情報。同时返回至少 5 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /.+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "6e422561432050c75172552f3fe9b1300e1074bae69897c3d2b2e6060c6cc5e7",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-075-telegram-org",
+      "name": "telegram.org 首页",
+      "url": "https://telegram.org/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：API；FAQ；Fast；Home；iPad；About；macOS；iPhone；Safety；Secure；Simple；Synced；Android；English；Privacy；Private；Platform；Powerful；Expressive；Mobile Web；PC / Linux；Mobile Apps；Recent News；Web-browser；Desktop Apps；Instant View；Translations；Why Telegram?；a new era of messaging。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "89910df42f9c6f19243a277ed83025a46b9609c8599ec2a71a7bdcf7d704b18f",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-080-cnn-com",
+      "name": "cnn.com 首页",
+      "url": "https://cnn.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：CNN；Home；World；Politics；Business；Health；Entertainment；Style；Travel；Sports；Video；Watch；Live；About；Tech；Science。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /[0-9]{4}/[0-9]{2}/[0-9]{2}/.+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "5447dda6f7218b48ed2e7e8db1a47d3a497d9bdcccf5350beecbb55682ec9496",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-081-namu-wiki",
+      "name": "namu.wiki 首页",
+      "url": "https://namu.wiki/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：대문；문법；분류；설정；신고；역사；통계；파일；FAQ；게시판；연습장；기본방침；업데이트；편집지침；공지 목록；문서 목록；문서 열람；최근 변경；최근 토론；특수 문서；나무위키 프로젝트；나무위키의 도움말；Privacy Policy；Términos de uso；나무위키는 누구나 기여할 수 있는 위키입니다.；검증되지 않았거나 편향된 내용이 있을 수 있습니다.。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "3afc7af36797b684f6307fb9fcb2c18655b4c5fe49fd23a46a7f482d7f2ba39f",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-082-shein-com",
+      "name": "shein.com 首页",
+      "url": "https://us.shein.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Kids；Tops；Curve；Shoes；New In；Dresses；Automotive；Flash Sale；Electronics；Hot Sellers；Free Returns；New Arrivals；Pet Supplies；Toys & Games；Customization；Fall & Winter；Free Shipping；Home & Living；Home Textiles；Bags & Luggage；Women Clothing；Beauty & Health；Home Appliances；Baby & Maternity；Books & Magazine；Food & Beverages；Sports & Outdoor；Jewelry & Accessories；Office & School Supplies；Tools & Home Improvement；Cell Phones & Accessories；SHEIN。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "c4a0abba66dbe24edc6e75059dd7d39e691cb554db8d1634a5f823fbc518c4b7",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-084-qq-com",
+      "name": "qq.com 首页",
+      "url": "https://qq.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：QQ；体育；娱乐；科技；游戏；汽车；教育；军事；房产；健康；财经；国际；微信；登录；反馈。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /rain/a/[A-Za-z0-9]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "ca71ee4acd364f0e7c835fc43d860780b25d97c092912ade934904ed10e10dc6",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-085-douyin-com",
+      "name": "douyin.com 首页",
+      "url": "https://douyin.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：三农；亲子；体育；全部；关注；动物；壁纸；影视；我的；投稿；推荐；旅行；朋友；汽车；消息；游戏；直播；知识；短剧；精选；美食；通知；音乐；二次元；充钻石；客户端；小剧场；放映厅；AI抖音；下载抖音；加入我们；友情链接；广告投放；抖音电商；站点地图；美妆穿搭；联系我们；账号找回；隐私政策；用户服务协议；电子营业执照；网络谣言曝光台；网上有害信息举报。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "0ab7a9480e7f83e0effb5c31da3fc92d663d6118f2280ac513a2e184b9de5741",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-086-usps-com",
+      "name": "usps.com 首页",
+      "url": "https://usps.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：FAQs；FOIA；Send；Shop；Careers；English；Español；Receive；Sign In；Support；Business；Feedback；Newsroom；PO BOXES；PASSPORTS；PostalPro；USPS Jobs；Contact Us；FREE BOXES；Site Index；Text Scams；Email Scams；Quick Tools；USPS Stamps；Click-N-Ship；Terms of Use；Top Searches；USPS Updates；Helpful Links；International；Privacy Policy；About USPS Home；Online Services；Postal Explorer；Search USPS.com；Informed Delivery；Inspector General；Stamps & Supplies；Track a Package；Find USPS Locations；Buy Stamps。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "f142bc76021b8d4176481ed6525950608b58a57c1e5b258202d6ee2154cf1437",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-087-instructure-com",
+      "name": "instructure.com 首页",
+      "url": "https://instructure.com/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Home；Legal；Status；Careers；Mastery；Privacy；Support；About Us；Advocacy；Security；Services；Community；Higher Ed；Parchment；Resources；Solutions；Contact Us；Leadership；All Products；Our Partners；Accessibility；AI Principles；Let's Connect；Why Instructure；Explore Canvas；Company Overview；Instructure Ecosystem；Explore the marketplace。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "3158b1045e299d99d33b9166f23c99f712928612ee335b08fcd339eb0556d36e",
+      "reference_sha256": null
+    },
+    {
+      "id": "global-homepage-090-rutube-ru",
+      "name": "rutube.ru 首页",
+      "url": "https://rutube.ru/",
+      "category": "global_homepage",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：Главная；Для вас；Каталог；В топе；Shorts；Детям；Спорт。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /video/[a-f0-9]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "04696c54f87afe0ab1d03706c24530ade3035d8c673d06312d3429d3787ae215",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-087-gamersky-com",
+      "name": "gamersky.com 首页",
+      "url": "https://gamersky.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：单机；资讯；攻略；下载；专区；商城；娱乐；动漫；专栏；众评。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /z/[^/]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "4aa300b825cbbe3d7371bdaf2ba5c06d7f9e3413daece9dfecb21004b4af972c",
+      "reference_sha256": null
+    },
+    {
+      "id": "challenge-02",
+      "name": "京东 · 商品搜索",
+      "url": "https://www.jd.com/chanpin/109113.html",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：请登录；我的京东；京东会员；企业采购；客户服务；京东公益；京东通信；京东E卡；价格保护。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /\\d+\\.html。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "d09b66d75b6de2c79f998fee017acdb57f7735b86f88a1eccba48c02e772a689",
+      "reference_sha256": null
+    },
+    {
+      "id": "challenge-03",
+      "name": "小红书 · 发现",
+      "url": "https://www.xiaohongshu.com/explore",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：发现；推荐；发布；视频；直播；穿搭；美食；彩妆；影视；职场；情感；家居；游戏；旅行；关于我们；营业执照；网上有害信息举报专区。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /explore/[a-fA-F0-9]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "6d589f2dbed2320e395739824513ad76f1452b5fd1928a51609b9594619dfc93",
+      "reference_sha256": null
+    },
+    {
+      "id": "challenge-04",
+      "name": "知乎 · 热榜",
+      "url": "https://www.zhihu.com/knowledge-plan/hot-question/hot/1000001/week",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：全部；关注；推荐；热榜；直答；专栏；圈子；教育；数码；法律；心理学；社会学；健康医学；体育竞技；家居生活；家用电器；切换模式。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /question/\\d+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "ee87e4f7e265057842249ecbbb72fc90f364ac235883f1730393b3885ad0f321",
+      "reference_sha256": null
+    },
+    {
+      "id": "challenge-05",
+      "name": "豆瓣 · 电影 Top 250",
+      "url": "https://movie.douban.com/top250",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：读书；音乐；同城；小组；阅读；豆品；豆瓣电影；排行榜；选电影；选剧集；关于豆瓣；帮助中心；法律声明；联系我们；移动应用。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /subject/\\d+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "fe6ad24be4410f8ce58e6231158bc75b3c651a61dbb5d0be68803bd3d660c6bd",
+      "reference_sha256": null
+    },
+    {
+      "id": "challenge-06",
+      "name": "MICHELIN Guide · 上海星级餐厅列表",
+      "url": "https://guide.michelin.com/jp/en/shanghai-municipality/shanghai/restaurants/all-starred",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：Hotels；Restaurants；Magazine；Sign In；My Lists；MICHELIN Guide；Contact Us。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /jp/en/shanghai-municipality/shanghai/restaurant/[^/?#]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "9ef94cc57a7c8701c34e0e424e0001d6027ad2eb55b788e0febd1fb8f842856f",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-090-toutiao-com",
+      "name": "toutiao.com 首页",
+      "url": "https://toutiao.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：登录；要闻；评论；关于头条；加入头条；友情链接；头条热榜；媒体合作；安全课堂；广告合作；用户协议；隐私政策；下载今日头条APP；营业执照；网上有害信息举报；网络谣言曝光台。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /article/\\d+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "8d74dab0199b300fea88f62045f196290dc4508863d86d1e37b8bd5ddfd87c6b",
+      "reference_sha256": null
+    },
+    {
+      "id": "challenge-10-justwatch",
+      "name": "JustWatch · 美区剧集目录",
+      "url": "https://www.justwatch.com/us/tv-shows",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：Home；New；Popular；Movies；TV shows；Sports；Lists；Filters；All；Free。同时返回至少 5 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /us/tv-show/[^/]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "647669d443c1fbd985d449f87c7c25100f7aa4a7642c6be0b02c3fc1d0b50af9",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-008-doubao-com",
+      "name": "doubao.com 首页",
+      "url": "https://doubao.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：更多；最近；新对话；为你推荐；关于豆包；新工作任务；API 服务；有什么我能帮你的吗？。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "15923cde0d34b94552591970ec4c84a24f37529f678f360fb4727644d91db683",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-012-feishu-cn",
+      "name": "feishu.cn 首页",
+      "url": "https://feishu.cn/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：定价；审批；邮箱；云文档；知识库；下载飞书；产品功能；企业服务；关于飞书；加入我们；协同办公；博客中心；即时消息；友情链接；合作伙伴；多维表格；安全合规；帮助中心；应用目录；开放平台；技术支持；探索飞书；更新日志；服务协议；查看案例；管理后台；组织管理；联系我们；联系销售；营业执照；视频会议；解决方案；隐私政策；飞书人事；飞书招聘；飞书绩效；飞书项目；举报与反馈；飞书 AI；智能会议纪要；字节跳动旗下 AI 工作平台。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "314266967664c009389d3fc298b402aaa310d30eb2d737c41e1fba72cbce7078",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-018-163-com",
+      "name": "163.com 首页",
+      "url": "https://163.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：新闻；体育；娱乐；财经；科技；汽车；游戏；教育；健康；公益；房产；手机；旅游；时尚；严选；文化；应用。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /dy/article/[A-Z0-9]+\\.html。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "f567da295f567c88be828069b5dfbd7386af9c485d3eace0e82adc901edd02ab",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-019-taobao-com",
+      "name": "taobao.com 首页",
+      "url": "https://taobao.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：淘宝网；女装；男装；数码；美妆；家电；家具；母婴；食品；我的淘宝；购物车；收藏夹；免费开店；免费注册；帮助中心；手机淘宝；淘宝直播；司法拍卖；天猫超市。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /item\\.htm。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "a1071775f061954a159af22b60996e9abaa6ea9e2623a0e969d20ece47575723",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-026-aliyun-com",
+      "name": "aliyun.com 首页",
+      "url": "https://aliyun.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立观察中确认的稳定普通网页文字：域名；备案；存储；容器；登录；短信；计算；专有云；中间件；云市场；大模型；控制台；数据库；数据集；镜像站；防火墙；上云迁移；专业服务；主机安全；产品动态；产品定价；企业出海；企业应用；企业成长；信任中心；信息公告；免费试用；免费额度；全部产品；全部权益；公司注册；加入我们；咨询伙伴；售前咨询；售后服务；安全举报；安全合规；客户案例；帮助文档；开发工具；最佳实践；法律声明；社会招聘；精选产品；阿里云。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "d5174b445103acdc0f7a43e6d365899cd9613ee847b43b25be435e71db79d27d",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-028-weibo-com",
+      "name": "weibo.com 首页",
+      "url": "https://weibo.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：体育；文娱；生活；社会；科技；微博热搜；热门推荐；热门榜单；举报中心；关于微博；帮助中心；开放平台；微博招聘；微博营销；客户端下载；自助服务中心；微博隐私安全中心；About Weibo。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /weibo。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "3500e9d29d7e6a963785e616dc3b648d7752c6257b115aefdac4020206dda9ec",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-029-360-com",
+      "name": "360.com 首页",
+      "url": "https://360.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：注册；游戏；登录；社区；产品动态；产品支持；企业安全；企业服务；免费试用；公司公告；公司简介；关注我们；安全资讯；官方客服；意见反馈；手机软件；数字安全；新闻动态；服务支持；校园招聘；热门软件；用户服务；社会招聘；立即体验；纳米AI；联系我们；投资者关系；软件下载中心；安全浏览器；360安全卫士；360极速浏览器。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "95cb91ef4745c5f90a4c64e6011da4e6138d7c04c04544da30f612b39166dc83",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-033-dingtalk-com",
+      "name": "dingtalk.com 首页",
+      "url": "https://dingtalk.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：专业版；专属版；中国站；标准版；下载钉钉；产品功能；付费产品；企业培训；企业百科；使用手册；加入我们；合作伙伴；商业版本；客户案例；市场活动；帮助中心；廉正举报；开放平台；服务协议；法律声明；注册钉钉；管理后台；组织管理；视频会议；钉钉动态；钉钉招聘；钉钉教育；钉钉文档；钉钉项目；支持与服务；服务与学习；安全合规中心；市场商务合作；钉钉隐私政策；案例与解决方案；钉钉服务状态中心。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "21b85dbce749d9d7ecd59901a839d5fb73d9d75e47553f7f8454f69f3bb8ffce",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-036-hao123-com",
+      "name": "hao123.com 首页",
+      "url": "https://hao123.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：体育；娱乐；小说；微博；抖音；推荐；搜狐；文娱；新浪；时尚；汽车；淘宝；游戏；生活；电影；电视；登录；直播；社会；科技；网易；腾讯；视频；财经；全站地图；关于本站；意见反馈；搜索热点；服务协议；百度地图；hao123。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "cb7bd806cf576976be7c7dc39054f24566a75e491fb846cd0616352704a650b8",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-039-1688-com",
+      "name": "1688.com 首页",
+      "url": "https://1688.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立观察中稳定出现的普通网页文字：女装；男装；箱包；配饰；找工厂；以图搜款；先采后付；办公文化；家用电器；家纺家饰；居家日用；收纳清洁；数码电脑；汽车用品；立即登录；精选货源；运动户外。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "7e21157388844e247f3120aafd2ec717eb037d4e94c11ef77c68da8645613dd1",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-040-quark-cn",
+      "name": "quark.cn 首页",
+      "url": "https://quark.cn/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：客户端；移动端；网页版；反馈入口；夸克网盘；校园招聘；用户协议；隐私协议；AI浏览器；iPad端；多设备体验；夸克PDF；夸克扫描王；浏览器插件；超级播放器；AI侧边栏：；PDF编辑：；搜索API；联系方式：；违法和不良信息举报；未成年人有害信息举报。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "9c01d5d31555e91efe12156819fddf266aa9e058913ec0d6575c7ef57af09618",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-042-kdocs-cn",
+      "name": "kdocs.cn 首页",
+      "url": "https://kdocs.cn/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：会员；微信；文字；演示；企业版；小程序；桌面端；模板库；流程图；移动端；企业专区；免费使用；多维表格；客户案例；帮助中心；开放平台；快捷方式；思维导图；意见反馈；智能表单；智能表格；标签整理；立即下载；立即体验；营业执照；解决方案；下载客户端；支持与合作；在线智能文档；WPS Docs；金山文档隐私政策；金山文档 | WPS云文档；一键分享，多人协作。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "da11784607f4ad6d615037014f99da934cceb0d73efed05e0206cc8c822702ec",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-044-kimi-com",
+      "name": "kimi.com 首页",
+      "url": "https://kimi.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立观察中确认的稳定普通网页文字：Docs；Chats；Swarm；Design；Sheets；Slides；My Kimi；Plugins；New chat；Websites；Kimi Code；Kimi Work；Scheduled；Deep Research；Ask anything, or task an agent…；AI-generated, for reference only；About Us；Get Help。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "ce9faf21ec962ce9f5979cfcca1b08f24d70ae00b38a1be57a0b51be083b21ba",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-045-tmall-com",
+      "name": "tmall.com 首页",
+      "url": "https://tmall.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：天猫；商品；女装；女鞋；内衣；男装；男鞋；手机；数码；家电；家具；家居；母婴；美妆；汽车；食品；运动；箱包；珠宝；电脑；购物车；收藏夹；聚划算；商家中心；商家支持。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /item\\.htm。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "a72e87598d3cbda982e7835e658b39de103c4354104c0ea29e7881db68da9d4d",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-046-wedoany-com",
+      "name": "wedoany.com 首页",
+      "url": "https://wedoany.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立观察中稳定出现的普通网页文字：首页；产品；供应商；中文站；更多；视频。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /product/[0-9]+\\.html。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "5583e7845970a9991f5cd9022bfe83f6224dc913d31b058e80c85a1d3ae2b831",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-047-qianwen-com",
+      "name": "qianwen.com 首页",
+      "url": "https://qianwen.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立参考中保留的普通网页文字：云空间；千问创作；定时任务；暂无对话；用户协议；隐私政策；向千问提问；你好，我是千问。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "18cf7f3d933f807ddfeb696a10d20c9759f7724e1071550d501110a6d06fc87b",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-048-douyu-com",
+      "name": "douyu.com 首页",
+      "url": "https://douyu.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：首页；直播；分类；赛事；视频；鱼吧；游戏；娱乐；户外；美食；关注；历史；消息；开播；下载；帮助。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /[0-9]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "3c757be2dccc1088c78772ab40864b3ba37bf483cc6399fecf7bddc11b898f8b",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-050-openai-com",
+      "name": "openai.com 首页",
+      "url": "https://openai.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Docs；More；News；Codex；Academy；Careers；Company；Podcast；Support；About Us；Apps SDK；Download；Overview；Products；Security；Resources；Solutions；API Log In；Developers；Foundation；Engineering；Help Center；Open Models；Our Charter；Try ChatGPT；API Platform；Terms of Use；Contact Sales；Release Notes；Other Policies；Privacy Policy；Research Index；Developer Forum；Safety Approach；ChatGPT Business；Customer Stories；Terms & Policies；OpenAI。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "972cf4042ec508e1750fde47e88464b2705c9dc230dcc207ff6a233fd75a744c",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-052-alipay-com",
+      "name": "alipay.com 首页",
+      "url": "https://alipay.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：余额宝；开放平台；快速登录；网商银行；联系我们；芝麻信用；蚂蚁微贷；蚂蚁集团；诚征英才；我是开发者；我是服务商；服务商平台；我是个人用户；我是商家用户；我是机构用户；蚂蚁商家中心；我已有支付宝账户。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "1796e7e6f8b1116fe409be36dcc2abfe5b3edfd31f3dde6a4d296d2100d3fe57",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-053-sohu-com",
+      "name": "sohu.com 首页",
+      "url": "https://sohu.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：新闻；体育；娱乐；财经；科技；汽车；游戏；教育；健康；公益；军事；文化；旅游；时尚；房产；手机；家居；博客。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /a/[0-9]+_[0-9]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "b287a3fbae626537701795aa3985877a7058ffdfe1c20bb48b98eee187d5821e",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-055-huya-com",
+      "name": "huya.com 首页",
+      "url": "https://huya.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：首页；直播；分类；赛事；视频；游戏；体育；户外；星秀；登录；历史；任务；下载；更多。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /video/u/[0-9]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "b5bd3df0125194641e74566f94ee03a029ad3c049c267f758be252fb4534e9f7",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-056-cnki-net",
+      "name": "cnki.net 首页",
+      "url": "https://cnki.net/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：主题；专利；会议；图书；年鉴；报纸；文库；标准；工具书；音频；会员；充值；帮助；手机版；检 索。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /(?:kcms2/article/abstract|rankinglist/article)。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "bce06090115540c06a37c639bf73bcd256f21c38ca18ec5c6e1e635976a20b8d",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-057-nih-gov",
+      "name": "nih.gov 首页",
+      "url": "https://nih.gov/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：FAQs；NIH Home；Follow Us；Contact Us；En Español；Press Room；Disclaimers；Jobs at NIH；Labs at NIH；No Fear Act；www.nih.gov；Virtual Tour；Accessibility；Visit USA.gov；Privacy Policy；Clinical Trials；NIH at a Glance；Training at NIH；The NIH Director；NIH HEAL Initiative；NIH on Social Media；Visitor Information；Funding for Research；NIH Website Archives；Impact of NIH Research；Nondiscrimination Notice；Freedom of Information Act；Office of Inspector General；Medical Research Initiatives；National Institutes of Health。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "bfdb8bb43654b9a831ab9fa3bc02df8af6bef4947562f20e33c3af1700897eab",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-058-huaban-com",
+      "name": "huaban.com 首页",
+      "url": "https://huaban.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立观察中稳定出现的普通网页文字：关于花瓣；设计师在花瓣；发现&收集灵感；登录/注册；探索你感兴趣的灵感；查看更多；收藏整理。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /boards/[0-9]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "6e7220543b8fa26783406b2e1b77515d1f251ef12d23928e677f6aceba309fe9",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-059-jianying-com",
+      "name": "jianying.com 首页",
+      "url": "https://jianying.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：蒙版；专业版；关键帧；多机位；电脑端；移动端；AI补帧；专业剪辑；创作课堂；剪映AI；即梦AI；图片设计；多时间线；政企宣传；智能抠像；智能调色；美颜美体；营业执照；营销推广；超清画质；隐私协议；音频剪辑；影视综二创；自媒体口播；用户协议 |。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "49f834d7e8da3a544f212c6db3faea3dd18f31c1a819d1489a10f320712b2d7f",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-060-eastmoney-com",
+      "name": "eastmoney.com 首页",
+      "url": "https://eastmoney.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：财经；股票；基金；行情；数据；资讯；债券；保险；期货；外汇；银行；博客；股吧；财富号；举报；反馈。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /a/[0-9]+\\.html。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "e11354f1da127814200ccca49abd9c5786302a962654beaf2d40816c5042529d",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-063-sina-com-cn",
+      "name": "sina.com.cn 首页",
+      "url": "https://sina.com.cn/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：新闻；体育；娱乐；财经；科技；汽车；游戏；教育；军事；国内；国际；图片；博客；房产；时尚；女性。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /.*/[0-9]{4}-[0-9]{2}-[0-9]{2}/[^/]+\\.shtml。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "748215cba275452e32b8a6a413d4ee5d18591856f4c3786531fdab6aaa7205eb",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-064-gamer520-com",
+      "name": "gamer520.com 首页",
+      "url": "https://gamer520.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：首页；PC游戏；PC修改器；模拟器大全；Switch；PS4&5专区；IGN必玩推荐榜；免费；语言。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /[0-9]+\\.html。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "5f96752daa8f10c5b6002f542790a302b2dc140eaf1454310b658a6bd45274f1",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-065-lingxing-com",
+      "name": "lingxing.com 首页",
+      "url": "https://lingxing.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：中文；价格；咨询；演示；首页；登录；白皮书；免费试用；关于领星；加入我们；快速响应；新闻中心；服务中心；核心功能；案例中心；物流追踪；立即体验；立即试用；获取报价；解决方案；跨境资讯；全周期服务；全方位保障；全生态产品；资源与支持；亚马逊ERP；多平台ERP；海外仓WMS；财务精准管理；进销存一体管理；领星ERP。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "228d4a87238776675c1603bbe7a818868e0e3e62c64ea648086f11aeb4d1ccba",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-067-alibaba-com",
+      "name": "alibaba.com 首页",
+      "url": "https://alibaba.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：Products；Manufacturers；Services；Worldwide；Sign in；Create account；Help Center；Top Ranking；Dropshipping；All categories；About Alibaba.com。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /product-detail/.+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "8fc516c8305ebb6f694ffcc80d4281fc8cb7d1ff18b43866767c24ba9a8d750d",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-068-youdao-com",
+      "name": "youdao.com 首页",
+      "url": "https://youdao.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：下载；企业；登录；全部产品；关于有道；加入有道；同道计划；廉正举报；有道介绍；有道宝库；有道小P；有道智选；有道领世；有道龙虾；服务条款；查看详情；校园招聘；用户资质；相关资质；社会招聘；社会责任；联系我们；营业执照；隐私政策；投资者关系；有道小图灵；有道精品课；有道词典笔；网易云课堂；不良信息举报；网易有道翻译；有道AI硬件；有道人工翻译；有道智慧教育。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "0b535b8895fa6a71dbc090b9671cb2c2cd800ee662e499866241f0c64e690455",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-069-3dmgame-com",
+      "name": "3dmgame.com 首页",
+      "url": "https://3dmgame.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：主站；新闻；攻略；下载；单机；手游；网游；商城；娱乐；原创；专栏；安卓。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /games/[A-Za-z0-9_-]+。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "3eb64aa93cea3943fce3c2d93692834a67618b0d17d0dc975e516794bb931ef3",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-071-2345-com",
+      "name": "2345.com 首页",
+      "url": "https://2345.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：AI；办公；体育；动漫；娱乐；学习；小说；影视；招聘；汽车；游戏；反馈；天气。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /p/[0-9]{8}/[0-9]+\\.html。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "11d10d111701539a2add53d384fd6991a5d78ec10cedb83729772fe56b6cb52c",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-072-cctv-com",
+      "name": "cctv.com 首页",
+      "url": "https://cctv.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：央视网；新闻；体育；财经；科教；文化；文娱；军事；健康；公益；国内；国际；地方；少儿；汽车；科技；纪录；综艺；直播；视频；栏目；片库；节目单；主持人；关于我们；帮助中心；网站声明；人才招聘；无障碍；繁体。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /[0-9]{4}/[0-9]{2}/[0-9]{2}/(?:ARTI|VIDE)[A-Za-z0-9]+\\.shtml。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "3e7d5be4d851bd689203088785ee291abd94119057be7cea5fce92278fe45915",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-073-so-com",
+      "name": "so.com 首页",
+      "url": "https://so.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：图片；地图；文库；更多；登录；百科；良医；视频；设置；资讯；问答；AI写作；AI绘图；AI论文；使用协议；免责声明；意见反馈；推广合作；违法举报；隐私条款；隐私管理；工商营业执照；未成年人举报；360搜索。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "a6ce5b3d09caa0a98f6319144586613c4d1f2b53f0422bacb5c71852139dfc8b",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-075-volcengine-com",
+      "name": "volcengine.com 首页",
+      "url": "https://volcengine.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：体验；可信；可控；安全；定价；应用；推理；更多；注册；登录；训练；运营；API；控制台；智能体；举报平台；云服务器；人才招聘；优惠活动；全部产品；关于我们；友情链接；在线咨询；备案服务；对象存储；文档中心；服务咨询；服务条款；模型广场；火山方舟；联系我们；营业执照；解决方案；隐私政策；云信任中心；建议与反馈；服务与支持；豆包大模型；机器学习平台；火山引擎。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "66363fae989a433f9bc4d5b9547d7fdd6bcb798e8f515428184f2f6144a06c75",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-078-nga-cn",
+      "name": "nga.cn 首页",
+      "url": "https://nga.cn/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，保留这些三次独立观察均出现的稳定普通网页文字：首页；注册；登录；游戏综合；主机电竞；手机游戏；暴雪游戏；玩家生活；论坛热帖；论坛活动；精品栏目；移动端；友情链接；商务合作；销售合作；NGA社区。同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /read\\.php。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；不固定当前条目、顺序、价格、排名或数量。",
+      "definition_sha256": "f38c08e256265c0358501f83ccf12a48805d53cd3e30cf90f8c2f23d33fb1eca",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-080-yandex-com",
+      "name": "yandex.com 首页",
+      "url": "https://yandex.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Mail；Maps；Video；Images；Weather；Services；Translate；Search with Yandex AI。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "78ae86c8fef42017c7b5c04a97d8c2a992bb804c58c9a8194740337ca26d5f3e",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-081-elsevier-com",
+      "name": "elsevier.com 首页",
+      "url": "https://www.elsevier.com/en-us",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Embase；Health；Knovel；Reaxys；Scopus；Careers；Industry；Open access；Useful links；Accessibility；Cookie Policy；ScienceDirect；About Elsevier；Privacy policy；Publish a book；Publish with us；Customer support；Elsevier Connect；Submit your paper；View all products；More from Elsevier；Terms & Conditions；Researcher & Author；Academic & Government；Discover our products；Resources for Editors；Shop Books & Journals；Resources for Reviewers；Advancing human progress；Publish your article in a journal。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "fae970f5feae5b29128c614d28b99face408f59c247a15c6f52fc416c1d64896",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-082-huawei-com",
+      "name": "huawei.com 首页",
+      "url": "https://huawei.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Home；Careers；Contact；Cookies；Privacy；Products；Corporate；Worldwide；Executives；HuaweiTech；What We Do；What's New；Huawei Blog；Latest News；Our Company；About Huawei；Media Center；Publications；Terms of Use；Trust Center；Digital Power；News & Events；Sustainability；Carrier Support；Consumer Support；Enterprise Support；Huawei Cloud Support；Partners & Developers。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "fde0a2edc7ed8e5f30c8465c86ee5b1115fe983b0df69ab06e9a4386a835c4cb",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-083-grok-com",
+      "name": "grok.com 首页",
+      "url": "https://grok.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些独立参考中保留的普通网页文字：Imagine；Sign in；Sign up；What should we explore?；Terms；Privacy Policy；By messaging Grok, you agree to our。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "04149c27eddcedbd9081979f5a4897a0512ab2efac89e694b80df93daf4b15cc",
+      "reference_sha256": null
+    },
+    {
+      "id": "china-homepage-085-shopify-com",
+      "name": "shopify.com 首页",
+      "url": "https://www.shopify.com/",
+      "category": "popular_site",
+      "track": "challenge",
+      "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Blog；Legal；Taxes；Global；Guides；Log in；Online；Themes；Careers；Courses；Domains；Pricing；Sitemap；Support；Payments；Products；Shipping；Shop App；Shop Pay；Sidekick；Analytics；App Store；Changelog；Discounts；Ecosystem；Investors；Resources；Affiliates；Build apps；Enterprise；Free Tools；Shopify POS；Shopify.dev；Theme Store；Why Shopify；Developer Docs；Hire a Partner；Privacy Policy；Service Status；Start for free；Sustainability；Community Forum；Compare Shopify；Website Builder；Shopify Checkout；Terms of Service；What is Shopify?；Shopify Help Center。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+      "definition_sha256": "697e494de49f481ae0834478820f03e67f68ccb1283a5b60d705a5d55b4beab4",
+      "reference_sha256": null
+    }
+  ]
+}

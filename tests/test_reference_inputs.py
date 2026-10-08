@@ -93,6 +93,51 @@ def test_external_dataset_preserves_frozen_bytes_and_canonical_evidence_contract
         check_reference_input_boundary(dataset.parent)
 
 
+def test_dataset_only_inputs_preserve_bytes_without_inventing_source_trees(inputs):
+    dataset, manifest_path, source, manifest = inputs
+    original = external_dataset(inputs)
+    manifest["trees"] = {}
+    manifest_path.write_text(json.dumps(manifest))
+    output = import_inputs(manifest_path, source)
+    assert read_dataset_bytes(dataset) == original
+    assert sorted(path.name for path in output.iterdir()) == ["dataset.json"]
+    assert input_tree(dataset, "sources") == output / "sources"
+    assert not (output / "sources").exists()
+    main(["--manifest", str(manifest_path), "--check"])
+    check_reference_input_boundary(dataset.parent)
+
+
+@pytest.mark.parametrize("location", ["checkout", "installed"])
+def test_dataset_only_inputs_reject_undeclared_source_trees(inputs, location):
+    dataset, manifest_path, source, manifest = inputs
+    external_dataset(inputs)
+    manifest["trees"] = {}
+    manifest_path.write_text(json.dumps(manifest))
+    output = import_inputs(manifest_path, source)
+    tree = (dataset.parent if location == "checkout" else output) / "sources"
+    tree.mkdir()
+    (tree / "private.txt").write_text("undeclared source material")
+    with pytest.raises(ValueError, match="[Uu]ndeclared|duplicated"):
+        input_tree(dataset, "sources")
+    if location == "checkout":
+        with pytest.raises(ValueError, match="duplicated"):
+            check_reference_input_boundary(dataset.parent)
+
+
+@pytest.mark.parametrize("destination", ["checkout", "installed"])
+def test_dataset_rebuild_refuses_a_frozen_output_before_reading_source_material(inputs, destination):
+    from scripts.build_risk_control_dataset import build
+
+    dataset, manifest_path, source, _ = inputs
+    original = external_dataset(inputs)
+    installed = import_inputs(manifest_path, source)
+    target = dataset if destination == "checkout" else installed / "dataset.json"
+    with pytest.raises(ValueError, match="immutable"):
+        build(target)
+    assert not dataset.exists()
+    assert (installed / "dataset.json").read_bytes() == original
+
+
 def test_certified_native_preparation_uses_bound_external_dataset_bytes(inputs, tmp_path, monkeypatch):
     from harness.web_fetch.certification import main as certified_main
 
@@ -123,12 +168,18 @@ def test_certified_native_preparation_uses_bound_external_dataset_bytes(inputs, 
     assert Path(commands[0][1]).name == 'collect_source_evidence.py'
 
 
-def test_public_cli_runs_bound_dataset_and_keeps_original_manifest_hash(inputs, tmp_path):
+@pytest.mark.parametrize("with_source_tree", [True, False])
+def test_public_cli_runs_bound_dataset_and_keeps_original_manifest_hash(
+    inputs, tmp_path, with_source_tree
+):
     from harness.reporting.links import check
     from harness.web_fetch.cli import build_parser, command_run
 
-    dataset, manifest_path, source, _ = inputs
+    dataset, manifest_path, source, manifest = inputs
     original = external_dataset(inputs)
+    if not with_source_tree:
+        manifest["trees"] = {}
+        manifest_path.write_text(json.dumps(manifest))
     import_inputs(manifest_path, source)
     env = tmp_path / "empty.env"
     env.write_text("")

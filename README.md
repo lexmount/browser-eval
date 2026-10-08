@@ -69,7 +69,7 @@ make ci           # 全量 Python 测试、界面脚本和离线示例
 
 CI 还构建安装包，并在仓库目录外验证运行。真实容器和在线端点测试需相应环境，不能用离线测试替代实验复现。详细要求见 [贡献指南](CONTRIBUTING.md) 和 [安全说明](SECURITY.md)。
 
-历史 Web Fetch 的完整数据集与源快照单独保存在私有数据目录，由 [输入清单](evaluation/source-inputs.json) 绑定。[任务目录](evaluation/dataset-catalog.json) 保留案例和定义哈希。完整输入不随源码或安装包分发，也不会在测试时自动下载。已有获准使用的副本时，按 [参考输入说明](docs/reference-inputs.md) 导入；`make test-reference-inputs` 会校验完整输入并运行测试，缺少输入直接失败。
+历史 Web Fetch、热门网站、动态内容和访问限制任务集的完整参考输入单独保存在私有数据目录，由各自的 `source-inputs.json` 绑定；对应的 `dataset-catalog.json` 保留案例和定义哈希。完整输入不随源码或安装包分发，也不会在测试时自动下载。已有获准使用的副本时，按 [参考输入说明](docs/reference-inputs.md) 导入；`make test-reference-inputs` 会校验全部清单并运行测试，缺少任一套输入直接失败。
 
 仓库保存可复用代码、精简任务定义、验收合同与证据绑定。供应商响应、运行清单、报告正文、截图及发布包保存在外部数据目录，不提交 Git。第三方源页和数据集的授权独立于代码许可，见 [第三方内容说明](THIRD_PARTY.md)。
 

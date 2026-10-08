@@ -7,6 +7,9 @@ has one authoritative result per case: 1,000 results in total. The compact
 `current-local-results.json` binds the exact saved result set and measured
 scoring revision; it is not a provider execution manifest or publication target.
 
+The complete frozen dataset is external and bound by `source-inputs.json`.
+Import an authorized copy using the [reference input guide](../../docs/reference-inputs.md).
+
 The caller deadline is 45 seconds, with no caller failure retry or per-case
 retrieval hints. Product timers retain their native defaults. Firecrawl uses
 its native `onlyMainContent: false` option uniformly across its 100 cases.

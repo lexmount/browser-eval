@@ -3,8 +3,9 @@ import json
 import unittest
 from pathlib import Path
 
+from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.stable_tasks import validate_acceptance_contract
-
+from tests.conftest import read_frozen_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
 TRACK = ROOT / "evaluation/popular-sites"
@@ -16,7 +17,7 @@ def sha256(path: Path) -> str:
 
 class PopularSitesCurrentTests(unittest.TestCase):
     def test_current_dataset_registry_and_profile_are_one_complete_matrix(self):
-        dataset = json.loads((TRACK / "dataset.json").read_text())
+        dataset = json.loads(read_frozen_dataset_bytes(TRACK / "dataset.json"))
         review_path = TRACK / "review.json"
         review = json.loads(review_path.read_text())
         profile = json.loads((TRACK / "current-report.json").read_text())
@@ -43,14 +44,14 @@ class PopularSitesCurrentTests(unittest.TestCase):
         self.assertNotIn("execution_contract", dataset["comparison"])
 
     def test_every_case_has_hash_bound_current_source_and_valid_contract(self):
-        dataset = json.loads((TRACK / "dataset.json").read_text())
+        dataset = json.loads(read_frozen_dataset_bytes(TRACK / "dataset.json"))
         for case in dataset["cases"]:
             with self.subTest(case=case["id"]):
                 validate_acceptance_contract(case["acceptance_contract"])
                 annotation = case["source_benchmark"]["stable_annotation"]
                 relative = Path(annotation["anchor_evidence"])
                 self.assertEqual(relative.parts[0], "sources")
-                stable_page = TRACK / relative
+                stable_page = input_tree(TRACK / "dataset.json", "sources") / Path(*relative.parts[1:])
                 evidence = stable_page.with_name("evidence.json")
                 self.assertTrue(stable_page.is_file())
                 self.assertTrue(evidence.is_file())

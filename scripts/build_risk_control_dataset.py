@@ -17,6 +17,7 @@ from pathlib import Path
 
 from harness.web_fetch.body_coverage import compact_ngrams
 from harness.web_fetch.composite_tasks import validate_composite_acceptance
+from harness.web_fetch.reference_inputs import require_mutable_inputs
 from harness.web_fetch.stable_tasks import validate_acceptance_contract
 from harness.web_fetch.storage import data_home
 
@@ -243,6 +244,7 @@ def body_reference(section: dict, source: str, contract: dict | None) -> dict | 
 
 
 def build(output: Path) -> dict:
+    require_mutable_inputs(output)
     for path in RULE_FILES:
         if sha(path) != EXPECTED_RULE_HASHES[path.name]:
             raise ValueError(f"Audited rule hash changed: {path}")
@@ -400,7 +402,7 @@ def build(output: Path) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", type=Path, default=RISK / "dataset.json")
+    parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     dataset = build(args.output)
     print(

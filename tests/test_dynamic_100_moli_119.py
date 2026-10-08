@@ -10,6 +10,7 @@ from harness.web_fetch.report import local_audit_banner, provider_configuration
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch.scoring_regressions import load_scoring_regressions
 from harness.web_fetch.stable_tasks import validate_acceptance_contract
+from tests.conftest import read_frozen_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_PATH = ROOT / "evaluation/dynamic-content-100-moli-webfetch/dataset.json"
@@ -19,7 +20,7 @@ REVISION_PATH = ROOT / "research/moli-111-three-cohort-evaluation-revision.json"
 
 
 def _dataset():
-    return json.loads(DATASET_PATH.read_text(encoding="utf-8"))
+    return json.loads(read_frozen_dataset_bytes(DATASET_PATH).decode("utf-8"))
 
 
 def test_dynamic_100_dataset_matches_the_frozen_local_audit():
@@ -34,7 +35,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     revision = json.loads(REVISION_PATH.read_text(encoding="utf-8"))
     assert revision["provider_calls_for_revision"] == 0
     assert revision["dynamic_dataset"]["historical_sha256"] == receipt["bindings"]["dataset_sha256"]
-    historical = DATASET_PATH.read_text(encoding="utf-8")
+    historical = read_frozen_dataset_bytes(DATASET_PATH).decode("utf-8")
     expected_hash=revision['dynamic_dataset']['revised_sha256']
     for followup in revision.get('dynamic_dataset_followups',[]):
         assert followup['predecessor_sha256']==expected_hash
@@ -44,7 +45,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
         manifest = json.loads((ROOT / 'evaluation/source-inputs.json').read_text())
         assert manifest['trees']['sources'][relative] == followup['source_authority']['sha256']
         expected_hash=followup['revised_sha256']
-    assert hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest()==expected_hash
+    assert hashlib.sha256(read_frozen_dataset_bytes(DATASET_PATH)).hexdigest()==expected_hash
     for followup in reversed(revision.get('dynamic_dataset_followups',[])):
         case=next(c for c in cases if c['id']==followup['case_id'])
         assert case['acceptance_contract']['link_base_url']==followup['value']

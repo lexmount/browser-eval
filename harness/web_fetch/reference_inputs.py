@@ -52,7 +52,9 @@ def load_manifest(path: Path, dataset: Path | None = None) -> dict:
             contained_path(path.parent, relative, reject_symlinks=True)
             if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
                 raise ValueError("Reference input SHA-256 is invalid")
-    if not manifest.get("trees"):
+    if not isinstance(manifest.get("trees"), dict) or (
+        not manifest["trees"] and manifest["schema_version"] == 1
+    ):
         raise ValueError("Reference input trees are missing")
     for tree, files in manifest["trees"].items():
         safe_identifier(tree)
@@ -160,6 +162,12 @@ def input_tree(dataset: Path, tree: str) -> Path:
             root = contained_path(input_root(manifest), tree, reject_symlinks=True)
             verify_tree(root, manifest["trees"][tree])
             return root
+        if manifest["schema_version"] == 2:
+            root = contained_path(input_root(manifest), tree, reject_symlinks=True)
+            local = contained_path(dataset.parent, tree, reject_symlinks=True)
+            if root.exists() or local.exists():
+                raise ValueError("Undeclared reference input tree: " + tree)
+            return root
     root = contained_path(dataset.parent, tree, reject_symlinks=True)
     reject_evidence_symlinks(root)
     return root
@@ -185,7 +193,10 @@ def check_reference_input_boundary(directory: Path) -> None:
         for relative in manifest.get("files", {}):
             if contained_path(path.parent, relative, reject_symlinks=True).exists():
                 raise ValueError("External reference input duplicated in checkout: " + relative)
-        for tree in manifest["trees"]:
+        trees = set(manifest["trees"])
+        if manifest["schema_version"] == 2:
+            trees.update({"sources", "list-references"})
+        for tree in trees:
             local = contained_path(path.parent, tree, reject_symlinks=True)
             if local.exists():
                 raise ValueError("External reference inputs duplicated in checkout: " + tree)

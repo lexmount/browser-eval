@@ -5,6 +5,16 @@ from pathlib import Path
 import pytest
 
 
+def read_frozen_dataset_bytes(path):
+    """Skip only an absent historical input; corrupt installed inputs must fail."""
+    from harness.web_fetch.reference_inputs import read_dataset_bytes
+
+    try:
+        return read_dataset_bytes(path)
+    except FileNotFoundError:
+        pytest.skip("requires externally installed historical reference inputs: " + str(path))
+
+
 @pytest.fixture
 def historical_dataset():
     from harness.web_fetch.config import load_dataset
@@ -28,12 +38,9 @@ def pytest_sessionstart(session):
         from harness.web_fetch.reference_inputs import main
 
         try:
-            main(
-                [
-                    "--manifest",
-                    str(Path(__file__).resolve().parents[1] / "evaluation/source-inputs.json"),
-                    "--check",
-                ]
-            )
+            for manifest in sorted(
+                (Path(__file__).resolve().parents[1] / "evaluation").rglob("source-inputs.json")
+            ):
+                main(["--manifest", str(manifest), "--check"])
         except (FileNotFoundError, ValueError) as error:
             raise pytest.UsageError(str(error)) from error

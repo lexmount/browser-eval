@@ -1,0 +1,1016 @@
+{
+  "schema_version": 1,
+  "kind": "frozen_dataset_catalog",
+  "id": "dynamic-qualified-100-moli-native-local-audit-20260924",
+  "name": "100个动态网站 · Moli原生Fetch · 本地审核版",
+  "coverage_plan": {
+    "dynamic": [
+      "moli-webfetch"
+    ]
+  },
+  "dataset": "dataset.json",
+  "dataset_sha256": "b32c7ad678ddef0377868f88d8fb82b0f84c09b708f67e5688317db96eab9571",
+  "case_count": 100,
+  "cases": [
+    {
+      "id": "dynamic-062-zh-sspai-home",
+      "name": "少数派首页文章列表",
+      "url": "https://sspai.com/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明URL首次自动加载完成后的目标内容；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "4f2a23e911296d0f7f6cba3ce479ed83f4bfded40e7167c7c183ca235e63d753",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-071-es-cl-falabella-audio",
+      "name": "Falabella Chile Equipos de música y karaokes",
+      "url": "https://www.falabella.com/falabella-cl/category/cat3091/Equipos-de-musica-y-karaokes",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "8fd871dbf6b7898830c8c053a49f223c963cb54bf43b5f1b6faa2390d2c64bfc",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-072-ko-lotteon-home",
+      "name": "롯데ON 홈 상품 목록",
+      "url": "https://www.lotteon.com/p/display/main/lotteon",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "a4547d08cce0a1109cf37e7d09f66cb3a9f9804227a62281cc9d07bce5403acd",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-076-es-es-nintendo-mario-search",
+      "name": "Nintendo España búsqueda de juegos de Mario",
+      "url": "https://www.nintendo.com/es-es/Buscar/Buscar-299117.html?q=Mario&f=147394-86",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "4a7e415b79d7e0ad0bd16a8e81d71cf508e4ef8eac62dcdece753e8945051b83",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-078-es-es-nintendo-switch2-search",
+      "name": "Nintendo España búsqueda de juegos de Nintendo Switch 2",
+      "url": "https://www.nintendo.com/es-es/Buscar/Buscar-299117.html?f=147394-87-126555",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "77091b3d9b4b164bb34c37771b19691fa12fc6b529205a6bb65882cb6d487c01",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-080-es-es-nintendo-switch2-edition-search",
+      "name": "Nintendo España búsqueda de Nintendo Switch 2 Edition",
+      "url": "https://www.nintendo.com/es-es/Buscar/Buscar-299117.html?q=2%2BEdition&f=147394-86-126556",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "023f404de501cb2107294125179e44bfed2e94ae70e1e3d7968457b35ce7c7af",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-091-pt-br-kabum-hardware",
+      "name": "KaBuM Hardware",
+      "url": "https://www.kabum.com.br/hardware",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明URL首次自动加载完成后的目标内容；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "eb159a5bbb36583a19d9cf1e0ccb75ace4014786919bd63f71b6eeced67be68a",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-023-en-mui-data-grid-pagination",
+      "name": "MUI Data Grid Pagination",
+      "url": "https://mui.com/x/react-data-grid/pagination/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明URL首次自动加载完成后的目标内容；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "67ff9377ffa0f138c83660f3c24f1eed863d243f33b6d6941e9d7978f7d1b584",
+      "reference_sha256": "5b8f7d36f6a59f9af3368498007af4416b0f06ed6b514129d8c354de3f937a69"
+    },
+    {
+      "id": "dynamic-061-061-juejin-ranking",
+      "name": "掘金首页动态文章列表",
+      "url": "https://juejin.cn/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "7f6794f8ffc9215deb94bc6bbb7400c005ac0b6043fe3e7aedf6af7355c3c7b1",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-068-ja-nintendo-switch2-software",
+      "name": "Nintendo Switch 2 Software",
+      "url": "https://www.nintendo.com/jp/games/switch2/index.html",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "35bac19f18232808fd38eca2f3274c8d05fdef94f96bc5b8610be8869b3fc4f1",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-069-ja-nintendo-search",
+      "name": "任天堂ゲームソフト検索",
+      "url": "https://www.nintendo.com/jp/search/index.html?q=Nintendo",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "4e9f21f4b2a39c1282197690083a275d505767249df6c14b3233c382c508dd62",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-057-nutui-jd-com-h5",
+      "name": "NutUI - 移动端 Vue 组件库",
+      "url": "https://nutui.jd.com/h5/vue/4x/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "cd99ca6e9ebcf2cd78ae9099cbd569c53f4ac78eb2be0f60f8b0d6d549e9d6df",
+      "reference_sha256": "6ccb6ebc62ffa5f687457747ee4c1ba231d3da248592b0e0c29ca7fa87bde0f2"
+    },
+    {
+      "id": "dynamic-017-en-stable-eui-table",
+      "name": "Elastic UI basic table demo",
+      "url": "https://eui.elastic.co/docs/components/tables/basic/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "371fa016afd498070778b1cd26e3dead2fb58b4b960006a05a6060e345c74896",
+      "reference_sha256": "1c68cc0b88558e3c0c00244381dac11fb6ba337663a4d3f1328c8fc26c917814"
+    },
+    {
+      "id": "dynamic-041-en-stable-heroui-table",
+      "name": "HeroUI basic table example",
+      "url": "https://www.heroui.com/docs/components/table",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "d6c568f48c7905d3466ffb6e1da843c8da57aaca3caf98d9fde6f3ddfce1cc54",
+      "reference_sha256": "3afbb8b8f09598f179126b2a614cd27564f8f67ed4454864a994a525dc4dd125"
+    },
+    {
+      "id": "dynamic-019-selenium-dev-selenium",
+      "name": "This page has iframes",
+      "url": "https://www.selenium.dev/selenium/web/iframes.html",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "590812f60d9eebe4db53ef19036d4bcb8d39c2a5e727a5cfcac729b0d444ec1c",
+      "reference_sha256": "7d03bf2e3f739f5ac451815a0bba26082210da0d995c26516c87288f813df5c9"
+    },
+    {
+      "id": "dynamic-020-webscraper-io-test",
+      "name": "Ajax | Web Scraper Test Sites",
+      "url": "https://webscraper.io/test-sites/e-commerce/ajax/computers/tablets",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "f829089a4eec107e9b04c17f24788ca08b134dc94d7a03780fe6607e6ca3d356",
+      "reference_sha256": "b580b2319ef322b1dc5ae0d1a951ffa85324cee85cb49772092407bcf841ced1"
+    },
+    {
+      "id": "dynamic-026-bilibili-rank",
+      "name": "Bilibili 全站排行榜首批记录",
+      "url": "https://www.bilibili.com/v/popular/rank/all",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "b82e0ad9f1b21668272d2317a958584564d641e187fcbab3535a7cbb434fc674",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-027-ej2-syncfusion-com-react",
+      "name": "React Grid Grouping Example | Syncfusion",
+      "url": "https://ej2.syncfusion.com/react/demos/grid/grouping/index.html",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "c76278f800449281fd51e07da384d41f780bf3b638a0f8691da270549a3209d4",
+      "reference_sha256": "701f5df83963431f1274c025d2985342084b333e91a51abdf8f46ced110c341c"
+    },
+    {
+      "id": "dynamic-028-ej2-syncfusion-com-react",
+      "name": "React Grid Paging Example | Syncfusion",
+      "url": "https://ej2.syncfusion.com/react/demos/grid/paging/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "8af7c10b4a899dd2d100447d27560799b82dd1d60eba73e91e0c21298bed1c96",
+      "reference_sha256": "0318325d86327f2c869d66f12655fa29708860a84cc70a91be3956c423fb5354"
+    },
+    {
+      "id": "dynamic-036-yonhap-home",
+      "name": "연합뉴스 首次主新闻区",
+      "url": "https://www.yna.co.kr/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "109d55100962a625c65fdaa6963dd68e9a38c4ae3e44acfacf55cc5d28b07d53",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-037-quasar-dev-vue",
+      "name": "Virtual Scroll | Quasar Framework",
+      "url": "https://quasar.dev/vue-components/virtual-scroll/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "4a91c192ddcc022e57ea4138704f298e04648a7c5b38fc4d3ba144a528ae440a",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-038-material-angular-dev-components",
+      "name": "Table • Angular Material",
+      "url": "https://material.angular.dev/components/table/examples",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "6bbea9daa4824b34d51bcd3d608aeda0c43184e732aa3b1c40aaa5488befc05c",
+      "reference_sha256": "4c3f95132d6e8853971eb62de9165bf13e11aa02399e28074e63314451dd1045"
+    },
+    {
+      "id": "dynamic-040-gridjs-io-docs",
+      "name": "Hello, World! | Grid.js",
+      "url": "https://gridjs.io/docs/examples/hello-world",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "4db6150c9e5552c59d7baaba13de11db0a405a16829481d3da0ee1ec19af31f0",
+      "reference_sha256": "fcacdea375bdfd7396bde270160ed216d757aa44aa00374e7bdda995016aee68"
+    },
+    {
+      "id": "dynamic-051-youzan-github-io-vant",
+      "name": "Vant 2 - Mobile UI Components built on Vue",
+      "url": "https://youzan.github.io/vant/v2/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "c991baf766697789c8913532c445e896693a0d5e7dcd6c26c7605b0b9bfc3764",
+      "reference_sha256": "f43b4377f3d46be1f43fafcc7e231568b9fa3ac7cfe0985204dd1f2eb1c4d5ec"
+    },
+    {
+      "id": "dynamic-052-bilibili-com-v",
+      "name": "哔哩哔哩热门",
+      "url": "https://www.bilibili.com/v/popular/all/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "611c80492c4636fb567362b6acfaa15e7830b2e1ae609260f47a69d0108f5f02",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-054-ant-protable-api",
+      "name": "Ant Design ProTable：API 参数表",
+      "url": "https://procomponents.ant.design/components/table",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "5dcb7dc220c72a06243708911204f4ccffc895702d7e4663e8036fcb18f8661d",
+      "reference_sha256": "19b570b9a924c6f264afdc48bdaa78060f53c835fdfeea7ca6f3b49ed66c14ed"
+    },
+    {
+      "id": "dynamic-055-arco-design-vue",
+      "name": "Arco Design Vue",
+      "url": "https://arco.design/vue/component/table",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "ee823dd9d72099b960c1c76ee17359f5d30542b15c219117e7d29bbecbca950e",
+      "reference_sha256": "2ca4df7562bbd06eb179723de7aab37edeae75a6c35a6279a68af7ba01c77bee"
+    },
+    {
+      "id": "dynamic-056-vant-ui-github-io-vant",
+      "name": "Vant 4 - A lightweight, customizable Vue UI library for mobile web apps.",
+      "url": "https://vant-ui.github.io/vant/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "5ff42d9a716f1aa5aab52791c2e5749eeb4dc2228338da83b97bf6244f7173eb",
+      "reference_sha256": "56498549b4dc576fa6e1b024e79cf1723155d93c114daecf6fb419d8f712ab40"
+    },
+    {
+      "id": "dynamic-059-layui-vue-com-zh",
+      "name": "Layui - Vue 前端 UI 框架",
+      "url": "https://www.layui-vue.com/zh-CN/components/table",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "a65f44ab4e461553a58c4efbe225be1edda6806130612570a815cae6d8fa242e",
+      "reference_sha256": "fbed3d0116e68c5ee2c2dd0600f40d7c50a5cf5d7be88e1349738d617426a3d0"
+    },
+    {
+      "id": "dynamic-063-s-weibo-com-top",
+      "name": "微博搜索-热搜榜",
+      "url": "https://s.weibo.com/top/summary",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "0cdd48560402d980c1e5d7b82e3d8d3611a2919ec8036bc44851055071767686",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-065-franceinfo-home",
+      "name": "Franceinfo 首页：首次加载的文章链接",
+      "url": "https://www.francetvinfo.fr/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "a748369cce0fad76bca8c7b365d403d8f243c5028166673cf17a81c01626e59a",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-070-nintendo-feature",
+      "name": "任天堂：特集・Direct 一覧",
+      "url": "https://www.nintendo.com/jp/games/feature/index.html",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "142752ae8315d1f552c2e22210e80314d60a56e1776fb6f4d2261ac4340887ac",
+      "reference_sha256": "63c4b4614acc4f07a40589af8dd6df52bfe77ea08c20347efdb3f03adf52e81e"
+    },
+    {
+      "id": "dynamic-074-melon-com-chart",
+      "name": "멜론차트>TOP100>멜론",
+      "url": "https://www.melon.com/chart/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "b3a17ecea077b80ad42393dc1d33207ad81f18009d294a32acd94434c9d42814",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-082-allocine-films",
+      "name": "AlloCiné：Cinéma",
+      "url": "https://www.allocine.fr/film/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "cfec76b111bd77e66e24efe11f74690bfd6de4b1dea4af9cff55c9ab9a4a6cf9",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-086-joyn-prosieben",
+      "name": "Joyn：ProSieben Mediathek",
+      "url": "https://www.joyn.de/mediatheken/prosieben",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "d13635e79401a8972634924137bff41907131cccde94234f8308b60ac63fd602",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-087-joyn-filme",
+      "name": "Joyn：Filme",
+      "url": "https://www.joyn.de/filme",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "d7c907fd01e50424a58b45a45940c672d7e9e280d847b5821f357d81c113004d",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-092-play-uol-com-br",
+      "name": "Assista a filmes, séries e esportes online | UOL Play",
+      "url": "https://play.uol.com.br/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "a75d41aa2717210ce5ef0fc3a21b9d4ca2bf71feb7e842fb0e7a0d2f153943a7",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-095-joyn-home",
+      "name": "Joyn Germany 首次媒体内容区",
+      "url": "https://www.joyn.de/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
+      "definition_sha256": "ce19dc33fa5c7d4de9d7ad027b7e591ef5d2d1253c71a6f68af8be6786675bd5",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-098-shahid-mbc-net-ar",
+      "name": "MBC شاهد | الرئيسية",
+      "url": "https://shahid.mbc.net/ar",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "f47e31b2f62075976234fec975603f189d1dab17c93caeed9e9de5373c8749b9",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-013-en-stable-patternfly-table",
+      "name": "PatternFly compact table demo",
+      "url": "https://www.patternfly.org/components/table/react-demos/compact/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "dab821919ec00b27b1dfd0500675b2b11073a19de0f657b3b519ee2aa8e5074a",
+      "reference_sha256": "bd2afda485cdccb64c283a4cabfef562e5f10c56440cc75dfdda49bb3716734a"
+    },
+    {
+      "id": "dynamic-014-en-stable-rsuite-table",
+      "name": "RSuite basic table example",
+      "url": "https://rsuitejs.com/components/table/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "6b3c60c86a959a0bc6dea81855c5b583781bb4c83b2c82f8b67f40ff371b1ac5",
+      "reference_sha256": "c1c4309b1db1c8d2b834d353326ca9d978ddba2ae63d4cf0e0da5ecd93f827e2"
+    },
+    {
+      "id": "dynamic-015-015-testpages-iframe-list",
+      "name": "iframe-list child document, excluding the parent navigation and the interactive sibling frame",
+      "url": "https://testpages.eviltester.com/pages/embedded-pages/iframes/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "60177d04d06bc3bcf4ca43fddde548cc03f382e541b66bb1fe37bb978ad4c819",
+      "reference_sha256": "9429d55770b19f44d152aaeae72630e567326e675ae712f22844b86a54817c3b"
+    },
+    {
+      "id": "dynamic-016-en-stable-angular-tree",
+      "name": "Angular Material tree examples catalogue",
+      "url": "https://material.angular.dev/components/tree/examples",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "db52ec4144ca8c5e38a6d45abcd28f3bd58a5bdfdc1934e0b72a6833161dc113",
+      "reference_sha256": "87f11b79a279fad210089deefaa2533bc09aa625b2ae60aa52133b0eb0fefdd2"
+    },
+    {
+      "id": "dynamic-018-en-stable-varlet-home",
+      "name": "Varlet UI English landing main content",
+      "url": "https://www.varletjs.org/#/en-US/index",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "120dcb7f43bcc8b54bebd49decc749b3b7024439d51892e14f49fba4da3d30b3",
+      "reference_sha256": "af99d0b85518ba88b9f0d2d548f773d88e7e68a5c47285b1876deecae93e9afb"
+    },
+    {
+      "id": "dynamic-021-021-scalar-get-operation",
+      "name": "Scalar Hello World GET operation view, excluding editor controls and global navigation",
+      "url": "https://sandbox.scalar.com/#GET/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "ed04a82103d885ef17f15bea054d1cc4b7ed316fbecb905b334bbc69535c825a",
+      "reference_sha256": "060905d2e11f535d1b5178840cec66805045ccf109ec0d88e97148ec70247639"
+    },
+    {
+      "id": "dynamic-022-en-stable-syncfusion-grid",
+      "name": "Syncfusion React Grid overview data grid",
+      "url": "https://ej2.syncfusion.com/react/demos/grid/overview/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "ec87495616619dd4cb014d91e94cc105498bfb1600a52e5daeb6dcc9dea8c5d0",
+      "reference_sha256": "a940a9cb54053414837069ebdcf23947cc591435f4d7ef69738bdf099e4aa2dd"
+    },
+    {
+      "id": "dynamic-024-en-stable-gridjs-pagination",
+      "name": "Grid.js pagination example first page",
+      "url": "https://gridjs.io/docs/examples/pagination",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "705c288d284b70ff7098089f36f3ae6d6a87fe188131a7148b4ed1888145912e",
+      "reference_sha256": "24b942280b7444f71f06a5a6eb30a29fc8e188874093a49dc5d6e87a9229dd7e"
+    },
+    {
+      "id": "dynamic-025-025-tabulator-vertical-virtual-dom",
+      "name": "Virtual DOM - Vertical example section and its initially visible table rows",
+      "url": "https://www.tabulator.info/examples/6.x/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "12e1d4ff22f0a67ff8d5b996c6c5544cd4af14505bcea2eb682d6e07072a6cdc",
+      "reference_sha256": "89145f03771ac30baf0286863659da402f3acd94d72a9b1c16d5531d881099ab"
+    },
+    {
+      "id": "dynamic-029-029-primevue-basic-treetable",
+      "name": "PrimeVue Basic TreeTable example",
+      "url": "https://primevue.dev/treetable/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "41356baec3ca18d0856a4febba663e97a8a65c2d373a7bd4fd56892777c5ff17",
+      "reference_sha256": "6cecfd6f5c56a8b3c392092a5182767be136b9fe18554d83e806db837dc66919"
+    },
+    {
+      "id": "dynamic-030-030-primevue-basic-virtualscroller",
+      "name": "PrimeVue Basic VirtualScroller initial viewport",
+      "url": "https://primevue.dev/virtualscroller/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "2f8f5147e7ddd79293a77a5bcaabc309225f0b0e3f6f50bddb82e092ce22f898",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-031-031-primeng-basic-table",
+      "name": "PrimeNG Basic Table example",
+      "url": "https://primeng.dev/table",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "c65344831908c780ea372277b869f4e0fc711e9b9f005e985aa915aaa83a5b7d",
+      "reference_sha256": "92f822bb2535a6d146364fd9fc16556d8ff97e5b4c2c528719516013bbedce29"
+    },
+    {
+      "id": "dynamic-032-032-primeng-basic-virtualscroller",
+      "name": "PrimeNG Basic VirtualScroller initial viewport",
+      "url": "https://primeng.dev/virtualscroller",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "b70715b3b3ee614edb158aa837fd31bc348a05ed325eef7e3ea844d230aea82c",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-033-033-vuetify-usage-table",
+      "name": "Vuetify data table Usage section",
+      "url": "https://vuetifyjs.com/en/components/data-tables/basics/#usage",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "088b710683fcd33f5f3a70e4f26051c2cab981c0fb5c15a842f0f3bde723a088",
+      "reference_sha256": "a70494640e1b49db7cd6bef7ea6018ca795be4a551ad77dab2c2a6f44958fc2c"
+    },
+    {
+      "id": "dynamic-034-034-vuetify-server-table",
+      "name": "Server-side paginate and sort example",
+      "url": "https://vuetifyjs.com/en/components/data-tables/server-side-tables/#examples",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "0a5e34118131ec1ad1210b1cea822a794e62425a54b9dbd56b016b2069152a5c",
+      "reference_sha256": "35954335be53f0e64e94e8a432d30a051fdcf0d71650cf9035cdcf0d4459d5b8"
+    },
+    {
+      "id": "dynamic-035-035-vuetify-virtual-table",
+      "name": "Vuetify Basic virtual table example initial viewport",
+      "url": "https://vuetifyjs.com/en/components/data-tables/virtual-tables/#examples",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "14c49b5bff05d8f2cedf4229d06af33542ac509a00af74581d0fe38fc4286d95",
+      "reference_sha256": "6559116ff0ce6a067a4c2df65bf93abb7ebf5bbe47598b07106b804b069c11ed"
+    },
+    {
+      "id": "dynamic-039-039-angular-autocomplete-examples",
+      "name": "Autocomplete examples catalogue, excluding suggestions that require typing",
+      "url": "https://material.angular.dev/components/autocomplete/examples",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "8856f3b2b51c3206e25452c6a32e410929e44f791aed8b8ae1fdba91b55443d9",
+      "reference_sha256": "ee3f2a44b2c5320ef93f20dc1b2613d70a8509c6cbbff6e0fd62c2d9d8d0b188"
+    },
+    {
+      "id": "dynamic-043-en-stable-grommet-table",
+      "name": "Grommet DataTable example",
+      "url": "https://v2.grommet.io/datatable",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "1d71369c64f1cd6187aedeb24559f2aa6f82923e6a1f978b582eae3c9402cbe2",
+      "reference_sha256": "c055e3041af1a49e06bd3686ee98ecadb3f14621ecd1757ab531b8b44c8339ab"
+    },
+    {
+      "id": "dynamic-046-en-real-hn-algolia",
+      "name": "Algolia Hacker News javascript result list",
+      "url": "https://hn.algolia.com/?dateRange=all&page=0&prefix=true&query=javascript&sort=byPopularity&type=story",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "80161073dfe8e74f203b1a4e2bbabb2e140f4661dd1f61bbb3f2ad8182a5fda1",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-050-en-real-usgs-earthquakes",
+      "name": "USGS recent earthquake list loaded with the map",
+      "url": "https://earthquake.usgs.gov/earthquakes/map/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "0b7b79248b87bea1ab92b27d4387654ea786489b37479ed2e11228154b632422",
+      "reference_sha256": "559864e428bc07cc083ad035799ad4066c09f6dd1405421e0e0fc3641f78b48f"
+    },
+    {
+      "id": "dynamic-058-zh-stable-tdesign-table",
+      "name": "TDesign 基础表格首个数据表",
+      "url": "https://tdesign.tencent.com/vue-next/components/table",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "9e06499493d904b1ce92d036693d4319c650015ee636b823114b50ac0d8dd6a7",
+      "reference_sha256": "4efa6a97e411a317392c68344ffc4474c41f1a167fc4d3387ba8c8e5a54f38e5"
+    },
+    {
+      "id": "dynamic-096-ar-real-cnn-world",
+      "name": "CNN العربية قسم العالم وأول قائمة أخبار",
+      "url": "https://arabic.cnn.com/world",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "0ca5826af32d65dcbcad3434329cc13c81ee5f1405544f1f1185cdbe197f2c4f",
+      "reference_sha256": null
+    },
+    {
+      "id": "dynamic-quotes-api",
+      "name": "Quotes · 异步引文",
+      "url": "https://quotes.toscrape.com/scroll",
+      "category": "async_api",
+      "track": "dynamic",
+      "task_prompt": "读取初次自动加载完成后的 10 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
+      "definition_sha256": "5cf871325f7883b0436cc7aeb50200f7d01090ffb6ab8885b501b1d883a283db",
+      "reference_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780"
+    },
+    {
+      "id": "dynamic-products-api",
+      "name": "Scraping Course · 异步商品",
+      "url": "https://www.scrapingcourse.com/javascript-rendering",
+      "category": "async_api",
+      "track": "dynamic",
+      "task_prompt": "读取初次自动加载完成后的 12 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
+      "definition_sha256": "b277550fe0e6c50e286b3a216f4627bf9fefb18986363619df56627c7a7c7dc1",
+      "reference_sha256": "133390e3d8bb20f971778abb2b43c4803f1c363703e60cabe9aecc5304cdd09c"
+    },
+    {
+      "id": "dynamic-catalog",
+      "name": "Web Scraper · 客户端商品目录",
+      "url": "https://webscraper.io/test-sites/e-commerce/ajax/computers/laptops",
+      "category": "client_catalog",
+      "track": "dynamic",
+      "task_prompt": "读取初次自动加载完成后的 6 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
+      "definition_sha256": "33aa0ac4db55ad2acf5d797f715a7a9a37a67f2a800bb4e4667b74bc206199bc",
+      "reference_sha256": "304b607dabec992e508c3cfbef381e44dc55915c820e05627ecbaa08034ae836"
+    },
+    {
+      "id": "dynamic-delayed",
+      "name": "Quotes · 延迟呈现",
+      "url": "https://quotes.toscrape.com/js-delayed/?delay=3000",
+      "category": "delayed_render",
+      "track": "dynamic",
+      "task_prompt": "读取初次自动加载完成后的 10 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
+      "definition_sha256": "9af86098b6303bf838ae58438322b5ab38d6de51ddd8f0585c014376d64f68c0",
+      "reference_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780"
+    },
+    {
+      "id": "dynamic-reviews-graphql",
+      "name": "ScrapFly · GraphQL 评论",
+      "url": "https://web-scraping.dev/reviews",
+      "category": "graphql",
+      "track": "dynamic",
+      "task_prompt": "首次自动加载的 20 条评论：日期与评论全文；不含星级图形，不点击 Load More。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
+      "definition_sha256": "986fb43f2ad57feddb89b68951c201c8d8bb442b955c186c80a4879642eef8d2",
+      "reference_sha256": "176193496a44f0acfbd9d91ecca4a8443a75debc8839acab4c37f5cb31de0535"
+    },
+    {
+      "id": "dynamic-react-cart",
+      "name": "React · 商品与分期信息",
+      "url": "https://react-shopping-cart-67954.firebaseapp.com/",
+      "category": "react_app",
+      "track": "dynamic",
+      "task_prompt": "默认未筛选目录的全部 16 个商品：名称、售价、可见分期与免邮文字；不含按钮、图片及广告。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
+      "definition_sha256": "feba1c4fc954edd6da972d93150946214606655358ec0f7704ee45f427b12e6d",
+      "reference_sha256": "cf603310fbc4eabf16baa9ef3ddcb0ae6bfc156de5cb4e3a4fe9af605692a2df"
+    },
+    {
+      "id": "dynamic-angular-phones",
+      "name": "Angular · 手机目录",
+      "url": "https://angular.github.io/angular-phonecat/step-12/app/",
+      "category": "client_router",
+      "track": "dynamic",
+      "task_prompt": "默认手机列表全部 20 条名称与描述；不搜索、不排序、不进入详情。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
+      "definition_sha256": "54c5dc2cb74e93500dfc121746cb8f31f477d5368d6537fcb80db32bba239f63",
+      "reference_sha256": "877d5cd0a01d27940808b469c7792136644f4df27dcebf6f814324bd5ede95f1"
+    },
+    {
+      "id": "dynamic-swagger",
+      "name": "Swagger · 接口目录",
+      "url": "https://petstore.swagger.io/",
+      "category": "schema_render",
+      "track": "dynamic",
+      "task_prompt": "默认展开分组中全部 20 条操作摘要：HTTP 方法、路径和说明；不展开参数、不执行 API、不含 Cookie 横幅。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
+      "definition_sha256": "956e2afa03b05074be625000b5f72b091fde45823eff6cb063d347b44cb51b69",
+      "reference_sha256": "37727508e4f211fe7a6f2f18e74b5840f8f9a6c9595d91bc8f74f5d662db5054"
+    },
+    {
+      "id": "dynamic-product-reviews",
+      "name": "ScrapFly · 内嵌评论数据",
+      "url": "https://web-scraping.dev/product/1",
+      "category": "embedded_state",
+      "track": "dynamic",
+      "task_prompt": "商品页首次自动呈现的 5 条评论：日期和评论全文；不含星级图形、商品推荐，不点击 Load More。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
+      "definition_sha256": "a2512778de7e7502817ccc865e0a99aa3fe0daa1c8622853f7a9c03f2b2c02a3",
+      "reference_sha256": "e1b7d42946c236ed613e0318b20fefd56a7652073fccb88d6dcc29980fb27246"
+    },
+    {
+      "id": "dynamic-iframe",
+      "name": "Scrape This Site · 内嵌分类目录",
+      "url": "https://www.scrapethissite.com/pages/frames/",
+      "category": "embedded_frame",
+      "track": "dynamic",
+      "task_prompt": "父页自动加载的 iframe 中全部 14 个龟类科名称；不进入详情，不要求图片或按钮文字。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
+      "definition_sha256": "f9d3f2e96fa994b41f30d1c0eae566ff7357476b50ecff2c3555a5533e090370",
+      "reference_sha256": "e4183696f6e74f9016c0668ee9809eb2fe7b03c244bfdae2231d8e1a1326f9ca"
+    },
+    {
+      "id": "dynamic-104-mui-data-grid",
+      "name": "MUI X Data Grid · 说明正文与首个网格",
+      "url": "https://mui.com/x/react-data-grid/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
+      "definition_sha256": "25f0853ec2d5f18e756c275a50331fb03761b417c707928a515b142aed45b7b1",
+      "reference_sha256": "65e76135cb5da54ecd7ca6ab6caec45334c9435d3ebf4b3bea8f5b777e96baf9"
+    },
+    {
+      "id": "dynamic-105-blueprint-docs",
+      "name": "Blueprint · 客户端渲染入门正文",
+      "url": "https://blueprintjs.com/docs/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取 Blueprint 文档首页首次自动加载后 main 区域的完整正文；不得点击、输入、搜索、滚动或翻页。排除顶栏、侧栏、页脚、广告、Cookie 和登录提示。",
+      "definition_sha256": "e34a661c7b07d06b6564af6803df1461e1ed27410c752266eaab4e64b9a15220",
+      "reference_sha256": "d01a60120c93e838407ee01c2c429664e8c9c939b5a41385810cfe5ec2565b21"
+    },
+    {
+      "id": "dynamic-107-redoc-cafe-api",
+      "name": "Redoc · Cafe API 自动生成正文",
+      "url": "https://redocly.github.io/redoc/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得点击、输入、滚动、搜索或翻页。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "349a6342cccb5b686a95d103f8a4ebd6e817ce2586dc89d416dd0bb39e7df171",
+      "reference_sha256": "0cb4397fe97bb627a02ff1cd851d843044b0b0e3bc2109ecd4ea1667e505a315"
+    },
+    {
+      "id": "dynamic-108-swagger-petstore3",
+      "name": "Swagger Petstore 3 · 操作摘要",
+      "url": "https://petstore3.swagger.io/",
+      "category": "dynamic_content",
+      "track": "dynamic",
+      "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得点击、输入、滚动、搜索或翻页。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
+      "definition_sha256": "19a0d12811cfff31abeb0f7965f8c4a36e56b1fbc552e9688ba916d980bdbe02",
+      "reference_sha256": "30ff491963bec4b6fc42b469acc077e48fb0d112315c0bb582fe7fa4b7a7dbb6"
+    },
+    {
+      "id": "replacement-en-syncfusion-filtering",
+      "name": "en syncfusion filtering",
+      "url": "https://ej2.syncfusion.com/react/demos/grid/filtering/",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "54ce1b72c63b714a1d8ce54107a4e09988aa140478a5ed5527dcfd6496851a32",
+      "reference_sha256": "3743561d46e4a6cdd69b63092d01f0748e3e603d820716984137cf23776b4319"
+    },
+    {
+      "id": "replacement-en-gridjs-search",
+      "name": "en gridjs search",
+      "url": "https://gridjs.io/docs/examples/search",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "00927f927deea075f7089e43a6847587200123a26056e545c1ba842353ac619d",
+      "reference_sha256": "86033c182a6cb83bcbfdc83fd86253b36f2ffc95d3f76eb38a69259a1429f978"
+    },
+    {
+      "id": "replacement-en-quasar-table",
+      "name": "en quasar table",
+      "url": "https://quasar.dev/vue-components/table/",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "adae74ca668bf8a2fb1d7845363a39c097469d296e665781cf9bd44e9afa0837",
+      "reference_sha256": "d59a1e17a4ee006a32fb945d1221623abd8a010f6b59e4866c71a4583f907854"
+    },
+    {
+      "id": "replacement-en-gridjs-sort",
+      "name": "en gridjs sort",
+      "url": "https://gridjs.io/docs/examples/sorting",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "0357437fceef7c7704f805cf4813bb53c83e0ef2311d7161ae33e741b6a0393c",
+      "reference_sha256": "ac3a9ae55b81c06f6217fc8d167244983a348e412cfd45ae0624c048d7f65d55"
+    },
+    {
+      "id": "replacement-en-mui-sorting",
+      "name": "en mui sorting",
+      "url": "https://mui.com/x/react-data-grid/sorting/",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "5da7b4386dbbce90c93da07808fba03bfdf1fc5e7f0159be259fac7c6a13757c",
+      "reference_sha256": "6b52acf87973565e4e2fcebb5b8bf420b96f0a7b5bcacb1c4f13112e7ccc6fd3"
+    },
+    {
+      "id": "replacement-ko-yonhap-economy",
+      "name": "ko yonhap economy",
+      "url": "https://www.yna.co.kr/economy/index",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "43f81e3086dfbaab62819f83d41e529659b5c94ee0fb59e865f0ddcc1fa1ce38",
+      "reference_sha256": null
+    },
+    {
+      "id": "replacement-en-mui-filtering",
+      "name": "en mui filtering",
+      "url": "https://mui.com/x/react-data-grid/filtering/",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "126eb8a8101994733af9fee8eb2d9623b3a23072d73fb423f5fe2665745fa3ae",
+      "reference_sha256": "f7f6a646b1f36d6b67c1bf3c6e00ddc8d7f5cd08a67e18789aa58f9f5c03fa9b"
+    },
+    {
+      "id": "replacement-en-syncfusion-sorting",
+      "name": "en syncfusion sorting",
+      "url": "https://ej2.syncfusion.com/react/demos/grid/sorting/",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "2309555904b277e7935aec52723ffbdc855768f2082e26e40bf869e5223bca00",
+      "reference_sha256": "1e47dc1340a62095adc7afe5bdf65faf88f6208df3b26156ad22a23ebdf0c201"
+    },
+    {
+      "id": "replacement-zh-ant-descriptions",
+      "name": "zh ant descriptions",
+      "url": "https://procomponents.ant.design/components/descriptions",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "3036d8f54eca42ea0345afa030f8ed4e14e890f2d5bc366761b9a74866c4fee6",
+      "reference_sha256": "f1174a7e6bb1faf882656ab7cccdde2cfab6d5a6bb194c7a26bf69f4f54950b1"
+    },
+    {
+      "id": "replacement-zh-ant-form",
+      "name": "zh ant form",
+      "url": "https://procomponents.ant.design/components/form",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "3ddf800eb921d4583527992e4f672c4f0cc0e7ac8e35795a22b29def2bd5acd4",
+      "reference_sha256": "a2bd1616855ac25dc08a57072acccecab2330bf1540f7aac73968a5186c2ee4b"
+    },
+    {
+      "id": "replacement-ja-nintendo-mario",
+      "name": "ja nintendo mario",
+      "url": "https://www.nintendo.com/jp/search/index.html?q=Mario",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "c3cad8aae6d13af59842a5598f085d9f31473d3df60205292f6a278c9d85c9cd",
+      "reference_sha256": null
+    },
+    {
+      "id": "replacement-ja-nintendo-zelda",
+      "name": "ja nintendo zelda",
+      "url": "https://www.nintendo.com/jp/search/index.html?q=Zelda",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "6ac0caf6c34f4164536f88a1e5a8b94219a79cd0d6f12e3ca28c536089ee6cfd",
+      "reference_sha256": null
+    },
+    {
+      "id": "replacement-ko-yonhap-sports",
+      "name": "ko yonhap sports",
+      "url": "https://www.yna.co.kr/sports/index",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "b00403a8d828073dc948764730984d7932976b0429f14893ba7d266e2e3e7c2c",
+      "reference_sha256": null
+    },
+    {
+      "id": "replacement-fix6-es-mx-lokus-home",
+      "name": "fix6 es mx lokus home",
+      "url": "https://app.gobiernodigitaleinnovacion.com/",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "d98c688d966b0ca2453e48e616e079816eb343d98a4962d0ea3f5f8364dde2c7",
+      "reference_sha256": "ea08d371eae9b0226fd7c544004a17f560ca7436aae22be66e2578cd2ee009f1"
+    },
+    {
+      "id": "replacement-fix6-es-mx-lokus-tutorials",
+      "name": "fix6 es mx lokus tutorials",
+      "url": "https://app.gobiernodigitaleinnovacion.com/tutoriales",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "ce1389b65a9d7723aea5b321b971cacfa1a1221ded019495d48847ad1a89bf4c",
+      "reference_sha256": null
+    },
+    {
+      "id": "replacement-fix3-fr-fr-datapass-stats",
+      "name": "fix3 fr fr datapass stats",
+      "url": "https://datapass.api.gouv.fr/stats",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "ee8d9ac0e321d6f0bb02ed74a625bb86142257cfdcea98630d88081b796d7670",
+      "reference_sha256": "fbc4ca8650caa8346ebd813df4ef5db624a75ed93dbd44bc83b35b63eaf02d01"
+    },
+    {
+      "id": "replacement-pt-kabum-computers",
+      "name": "pt kabum computers",
+      "url": "https://www.kabum.com.br/computadores",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "cc7310c1fd4df77f0b20c97b30006633f86c500e55f82c50af8784691c16e2e2",
+      "reference_sha256": null
+    },
+    {
+      "id": "replacement-fix3-fr-fr-mobilites-durables",
+      "name": "fix3 fr fr mobilites durables",
+      "url": "https://mobilites-durables.transports.gouv.fr/accueil/",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "56a2980a8c7af0d6e4f5575021dd312a457eba7880caaeca54c0cf6e73d7fbe3",
+      "reference_sha256": "c2d6df995c08803ffa7639c3e36ab400a1d95fe091b24dc221d9c24ea70ff998"
+    },
+    {
+      "id": "replacement-pt-kabum-gamer",
+      "name": "pt kabum gamer",
+      "url": "https://www.kabum.com.br/espaco-gamer",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "0052f1c02d645ceb0d4961be750e8bbc49fa748e68d912bd4e783d2e27994db3",
+      "reference_sha256": null
+    },
+    {
+      "id": "replacement-fix3-de-dashboard-deutschland",
+      "name": "fix3 de dashboard deutschland",
+      "url": "https://www.dashboard-deutschland.de/",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "4932d1aa9dd058cd7786c2007dcabbff4597b265bd3763f7d86753b2dd843ac0",
+      "reference_sha256": "e4fb89584f614f911038b74c8b9ebd1068ccb306737ed695319b982abba800f6"
+    },
+    {
+      "id": "replacement-pt-kabum-peripherals",
+      "name": "pt kabum peripherals",
+      "url": "https://www.kabum.com.br/perifericos",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "934916fcdc3febff8ed002203626a8dd517275676a3bcb08ce589a5057bb42e8",
+      "reference_sha256": null
+    },
+    {
+      "id": "replacement-pt-kabum-smartphones",
+      "name": "pt kabum smartphones",
+      "url": "https://www.kabum.com.br/celular-smartphone",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "db0320195a096ab17afa5ff642c179dc48bced8c0d099e01d3bf4ed3af1e24f9",
+      "reference_sha256": null
+    },
+    {
+      "id": "replacement-fix2-ar-mantine-rtl",
+      "name": "fix2 ar mantine rtl",
+      "url": "https://orwa-mahmoud.github.io/adapttable/demo/mantine/rtl/",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "843740bea01969ef3557ec665bb559da8b637d5a70b1c858fedbbbd67d588f4d",
+      "reference_sha256": null
+    },
+    {
+      "id": "replacement-fix3-ar-antd-rtl",
+      "name": "fix3 ar antd rtl",
+      "url": "https://orwa-mahmoud.github.io/adapttable/demo/antd/rtl/",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "35ca08a733481e22d5f3107255e328cd957b8edb7ad910af51aaf17c6bd9ccec",
+      "reference_sha256": null
+    },
+    {
+      "id": "replacement-fix2-ar-shadcn-rtl",
+      "name": "fix2 ar shadcn rtl",
+      "url": "https://orwa-mahmoud.github.io/adapttable/demo/shadcn/rtl/",
+      "category": "Dynamic websites",
+      "track": "dynamic",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "definition_sha256": "9027e5f3df7e0065c2203e500b7ff2bb0f51b02984acccd4b3036706d631986c",
+      "reference_sha256": null
+    }
+  ]
+}
