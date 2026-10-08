@@ -4,6 +4,14 @@ from pathlib import Path, PureWindowsPath
 from urllib.parse import urlsplit
 
 
+def reject_evidence_symlinks(root: Path) -> None:
+    """Never follow file or directory links while materializing evidence."""
+    if root.is_symlink():
+        raise ValueError('Evidence root must not be a symlink')
+    if any(path.is_symlink() for path in root.rglob('*')):
+        raise ValueError('Evidence tree contains a symlink')
+
+
 def safe_identifier(value: str) -> str:
     if not isinstance(value, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', value):
         raise ValueError('Identifiers must be a single alphanumeric filename segment')

@@ -29,6 +29,18 @@ Reference-check observations are copied from each source batch's certificate by
 path and SHA-256; adjacent notes and undeclared observations stay outside the
 assembly. The same copier serves refresh assembly, reports, speed and resource comparison bundles.
 
+`artifacts.py` also owns task-scoped source and list-reference copying for runners,
+assembly and reports. It retains each selected task's source directory and matching
+list reference, checks copied bytes, and excludes other tasks and top-level notes.
+Task additions and replacements use their own input directories; canonical builds
+use the canonical dataset's verified inputs. Custom input trees reject symlinks
+before provider calls. Files within a selected task directory remain part of that
+task's declared source scope; this scope does not grant redistribution rights.
+Provider-blind speed selection belongs to `speed_cohort.py`; reference-freeze
+computation, browser observations and promotion validation belong to
+`reference_freeze.py`. Their command scripts expose the same public arguments,
+and promotion tools import the shared module rather than another command script.
+
 `resource_cohort.py` validates the declared resource-method matrix, finite
 measurements and common execution environment, and rebuilds the resource summary
 from its original records. Assembly and report packaging share the comparison

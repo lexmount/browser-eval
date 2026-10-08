@@ -15,7 +15,7 @@ sys.path.insert(0,str(ROOT))
 
 from harness.web_fetch.reference_inputs import read_dataset_bytes, require_mutable_inputs
 from harness.web_fetch.safety import contained_path  # noqa: E402
-from scripts.freeze_headless_references import (  # noqa: E402
+from harness.web_fetch.reference_freeze import (  # noqa: E402
     _require_promotion,
     browser_observation_bytes,
     compute_reference_update,

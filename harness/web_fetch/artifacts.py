@@ -12,7 +12,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Iterable
 
-from .safety import contained_path
+from .safety import contained_path, reject_evidence_symlinks, safe_identifier
 
 PRIVATE_ARTIFACT_ROOT = "private_artifacts"
 PUBLIC_CALL_LOG_ROOT = "call-logs"
@@ -356,14 +356,6 @@ def materialize_bound_artifacts(output: Path, source_root: Path, records: list[d
         verify_record_public_call_logs(output, record)
 
 
-def reject_evidence_symlinks(root: Path) -> None:
-    """Never follow file or directory links while materializing evidence."""
-    if root.is_symlink():
-        raise ValueError('Evidence root must not be a symlink')
-    if any(path.is_symlink() for path in root.rglob('*')):
-        raise ValueError('Evidence tree contains a symlink')
-
-
 def materialize_reference_checks(output: Path, source: Path, batches: list[dict]) -> None:
     """Retain only hash-bound observations named by the execution certificates."""
     for batch in batches:
@@ -389,6 +381,44 @@ def materialize_reference_checks(output: Path, source: Path, batches: list[dict]
             raise ValueError('Copied reference check evidence changed')
 
 
+def materialize_task_references(output: Path, trees: dict[str, Path], case_ids: Iterable[str]) -> None:
+    """Copy selected task references from already validated input trees."""
+    identifiers = list(dict.fromkeys(safe_identifier(value) for value in case_ids))
+    for name in ('sources', 'list-references'):
+        root = trees[name]
+        reject_evidence_symlinks(root)
+        if root.exists() and not root.is_dir():
+            raise ValueError('Reference input tree must be a directory: ' + name)
+        destination = output / name
+        destination.mkdir(parents=True, exist_ok=True)
+        files = []
+        for identifier in identifiers:
+            relative = identifier if name == 'sources' else identifier + '.json'
+            path = contained_path(root, relative, reject_symlinks=True)
+            if not path.exists():
+                continue
+            if name == 'sources':
+                if not path.is_dir():
+                    raise ValueError('Task source must be a directory: ' + identifier)
+                files.extend(child for child in path.rglob('*') if child.is_file())
+            else:
+                if not path.is_file():
+                    raise ValueError('Task list reference must be a file: ' + identifier)
+                files.append(path)
+        for path in files:
+            target = contained_path(destination, path.relative_to(root.resolve()),
+                                    reject_symlinks=True)
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            if target.exists():
+                if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                    raise ValueError('Conflicting task reference: ' + str(target))
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, target)
+            if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                raise ValueError('Copied task reference changed: ' + str(target))
+
+
 def copy_cohort_evidence(source, target, dataset, records, batches, *,
                          summary_name, include_private=False, include_metadata=True):
     """Copy declared comparison evidence; publication excludes private envelopes."""
@@ -396,7 +426,6 @@ def copy_cohort_evidence(source, target, dataset, records, batches, *,
         raise ValueError('Unsupported comparison summary')
     source = Path(source)
     reject_evidence_symlinks(source)
-    source_root = source.resolve()
 
     allowed = set()
     if include_metadata:
@@ -412,18 +441,11 @@ def copy_cohort_evidence(source, target, dataset, records, batches, *,
         allowed.update(relative for relative, _ in artifact_bindings(record))
         if include_private:
             allowed.update(binding['path'] for binding in record_private_bindings(record))
-    for case in dataset.get('cases', []):
-        case_id = case['id']
-        source_dir = contained_path(source, 'sources/' + case_id)
-        if source_dir.is_dir():
-            allowed.update(child.relative_to(source_root).as_posix()
-                           for child in source_dir.rglob('*') if child.is_file())
-        reference = contained_path(source, 'list-references/' + case_id + '.json')
-        if reference.is_file():
-            allowed.add(reference.relative_to(source_root).as_posix())
 
     target.mkdir(parents=True)
     materialize_reference_checks(target, source, batches)
+    materialize_task_references(target, {name: source / name
+        for name in ('sources', 'list-references')}, [case['id'] for case in dataset.get('cases', [])])
     for relative in sorted(allowed):
         source_file = contained_path(source, relative, reject_symlinks=True)
         if not source_file.is_file():

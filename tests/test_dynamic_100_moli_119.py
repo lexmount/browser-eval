@@ -225,5 +225,5 @@ def test_source_evidence_inventory_detects_omissions_extras_changes_and_symlinks
 
     linked = root / "evaluation/sources/case-2"
     linked.symlink_to(source.parent, target_is_directory=True)
-    with pytest.raises(ValueError, match="symlinks"):
+    with pytest.raises(ValueError, match="symlink"):
         local_audit._source_evidence_inventory({"cases": [{"id": "case-2"}]})

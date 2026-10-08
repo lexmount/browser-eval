@@ -97,6 +97,39 @@ def test_custom_registry_defaults_to_its_methods_and_retains_true_input_identity
     assert manifest["provider_config_source"] == config.name
 
 
+def test_headless_run_copies_references_only_for_selected_tasks(experiment):
+    run, dataset, _, output = experiment
+    files = {'sources/fixture/reference.txt': b'fixture source',
+             'list-references/fixture.json': b'{"case_id":"fixture"}',
+             'sources/other/reference.txt': b'other task source',
+             'list-references/other.json': b'{"case_id":"other"}',
+             'sources/internal-note.txt': b'synthetic private note'}
+    for relative, raw in files.items():
+        path = dataset.parent / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(raw)
+    run({'providers': {'future': {'type': 'headless_markdown', 'expected_version': '9.2.0'}}})
+    for relative, raw in files.items():
+        if '/fixture' in relative:
+            assert (output / relative).read_bytes() == raw
+        else:
+            assert not (output / relative).exists()
+
+
+@pytest.mark.parametrize('tree', ['sources', 'list-references'])
+def test_headless_rejects_linked_reference_inputs_before_browser_calls(experiment, tree):
+    run, dataset, _, output = experiment
+    folder = dataset.parent / tree
+    folder.mkdir()
+    actual = dataset.parent / 'same-source.txt'
+    actual.write_text('synthetic source')
+    (folder / 'linked').symlink_to(actual)
+    with pytest.raises(ValueError, match='[Ss]ymlink'):
+        run({'providers': {'future': {'type': 'headless_markdown', 'expected_version': '9.2.0'}}})
+    assert not SyntheticBrowser.calls
+    assert not output.exists()
+
+
 def test_resource_cohort_overrides_normal_version_and_binary_without_provider_name_rules(
     experiment,
 ):

@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from harness.web_fetch.body_coverage import body_requirements
 from harness.web_fetch.reference_lifecycle import scope_identity
 from harness.web_fetch.scoring_regressions import build_correction_provenance
-from scripts.freeze_headless_references import (
+from harness.web_fetch.reference_freeze import (
     _digest_json, _require_promotion, compute_reference_update, main,
 )
 from scripts.prepare_reference_promotion import prepare
@@ -179,6 +179,13 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             dataset={'cases':[case],'coverage_plan':{'web':['p']}}
             dataset_path=root/'dataset.json'
             dataset_path.write_text(json.dumps(dataset))
+            for identifier in (case['id'], 'outside-task-scope'):
+                folder=root/'sources'/identifier
+                folder.mkdir(parents=True)
+                (folder/'reference.txt').write_text(identifier)
+                reference=root/'list-references'/(identifier+'.json')
+                reference.parent.mkdir(exist_ok=True)
+                reference.write_text('{}')
             capture={'case_id':'freeze-fixture','status':200,'checked_at':checked,
                      'selector':'#mw-content-text .mw-parser-output','sha256':'c'*64,
                      'extracted_sha256':hashlib.sha256(new.encode()).hexdigest(),
@@ -214,6 +221,9 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             main(['--captures',str(captures),'--dataset',str(dataset_path),
                   '--output',str(output),'--reference-promotion',str(promotion)])
             refresh=json.loads((output/'reference-refresh.json').read_text())
+            self.assertTrue((output/'list-references'/f'{case["id"]}.json').is_file())
+            self.assertFalse((output/'sources/outside-task-scope').exists())
+            self.assertFalse((output/'list-references/outside-task-scope.json').exists())
             self.assertTrue(refresh['reference_changed'])
             self.assertTrue(refresh['task_rules_changed'])
             self.assertEqual(refresh['changed'],[change])

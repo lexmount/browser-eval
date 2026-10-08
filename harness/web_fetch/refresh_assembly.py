@@ -16,7 +16,7 @@ from pathlib import Path
 from harness.web_fetch.artifacts import (
     materialize_bound_artifacts,
     materialize_reference_checks,
-    reject_evidence_symlinks,
+    materialize_task_references,
     verify_record_artifacts,
 )
 from harness.web_fetch.assembly import (
@@ -29,7 +29,7 @@ from harness.web_fetch.reference_lifecycle import (
     require_verified_reference_checks,
     valid_scoring_revision,
 )
-from harness.web_fetch.safety import contained_path, validate_report_ids
+from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, validate_report_ids
 from harness.web_fetch.scoring_regressions import (
     build_correction_provenance,
     load_scoring_regressions,
@@ -857,12 +857,8 @@ def _assemble(
         raise ValueError("Speed comparison schema, bindings, or rows differ from measured evidence")
 
     output.mkdir(parents=True)
-    for folder in ("sources", "list-references"):
-        source = input_tree(canonical_path, folder)
-        if not source.is_dir():
-            raise ValueError(f"Canonical input tree is missing: {folder}")
-        reject_evidence_symlinks(source)
-        shutil.copytree(source, output / folder)
+    materialize_task_references(output, {name: input_tree(canonical_path,name)
+        for name in ('sources','list-references')}, [case['id'] for case in canonical['cases']])
     _copy_artifacts(output, selected)
     materialize_reference_checks(output, baseline, baseline_batches)
     for source_batches, _rows, root, _path in rerun_batches:

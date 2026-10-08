@@ -12,7 +12,7 @@ from harness.web_fetch.artifacts import (
     copy_cohort_evidence,
     materialize_bound_artifacts,
     materialize_reference_checks,
-    reject_evidence_symlinks,
+    materialize_task_references,
 )
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
@@ -23,7 +23,7 @@ from harness.web_fetch.reference_lifecycle import (
     valid_scoring_revision,
 )
 from harness.web_fetch.result_review import require_result_review
-from harness.web_fetch.safety import contained_path, validate_report_ids
+from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, validate_report_ids
 from harness.web_fetch.scoring_regressions import (
     build_correction_provenance,
     valid_correction_provenance,
@@ -538,6 +538,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     if output.exists():raise ValueError('Destination exists; evidence must not be overwritten')
     dataset=json.loads((run/'dataset.json').read_text())
     cases={c['id']:c for c in dataset['cases']}
+    reference_input_roots={identifier:run for identifier in cases}
     canonical=(json.loads(read_dataset_bytes(canonical_dataset)) if canonical_dataset else None)
     canonical_cases={c['id']:c for c in canonical['cases']} if canonical else {}
     case_replacements=(canonical.get('comparison',{}).get('case_replacements',{})
@@ -588,6 +589,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             elif before!=after:
                 raise ValueError('Replacement changed task rules without a canonical dataset: '+cid)
             replacement_cases[target_id]=(case,root)
+            reference_input_roots[cid]=root
             old_providers=dataset['coverage_plan'][cases[target_id].get('track','web')]
             new_providers=new_dataset['coverage_plan'][case.get('track','web')]
             if set(old_providers)!=set(new_providers):
@@ -632,6 +634,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             if canonical and _without_reference(case)!=_without_reference(canonical_cases[cid]):
                 raise ValueError('Addition differs from canonical task rules: '+cid)
             cases[cid]=case
+            reference_input_roots[cid]=root
             dataset['coverage_plan'].setdefault(case.get('track','web'),new_dataset['coverage_plan'][case.get('track','web')])
         expected|=planned
         selected.extend((r,root) for r in rows)
@@ -736,14 +739,13 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             'equivalent_reference_bytes_with_independent_batch_captures',
             allow_scoring_rule_revision=valid_scoring_revision(run))
     output.mkdir(parents=True)
-    for folder in ('sources','list-references'):
-        source_tree = input_tree(canonical_dataset, folder) if canonical_dataset else run/folder
-        reject_evidence_symlinks(source_tree)
-        shutil.copytree(source_tree,output/folder)
-    for cid,(_,root) in replacement_cases.items() if not canonical else []:
-        # This is a newly created assembly tree, not previously measured output.
-        target=output/'sources'/cid
-        shutil.copytree(root/'sources'/cid,target,dirs_exist_ok=True)
+    reference_groups={}
+    for case in dataset['cases']:
+        path=canonical_dataset or reference_input_roots[case['id']]/'dataset.json'
+        reference_groups.setdefault(path,[]).append(case['id'])
+    for path, identifiers in reference_groups.items():
+        materialize_task_references(output, {name: input_tree(path,name)
+            for name in ('sources','list-references')}, identifiers)
     for row,root in selected:
         materialize_bound_artifacts(output, root, [row])
     for root, source_batches in reference_evidence:

@@ -280,11 +280,5 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertNotIn('/export', source)
         self.assertIn("'versionId':version,'url':share_url", source)
 
-    def test_dynamic_rendered_references_cannot_fall_back_to_http(self) -> None:
-        source = (ROOT / "scripts/freeze_headless_references.py").read_text()
-        self.assertIn("RENDERED_REFERENCE_CASES", source)
-        self.assertIn("cid in RENDERED_REFERENCE_CASES and cid not in observations", source)
-
-
 if __name__ == "__main__":
     unittest.main()

@@ -53,6 +53,64 @@ def test_assembly_preserves_all_physical_call_evidence(source, tmp_path):
         assert (target / relative).read_bytes() == (root / relative).read_bytes()
 
 
+def test_assembly_and_report_include_only_current_task_references(source, tmp_path):
+    root, _ = source
+    files = {'sources/one/reference.txt': b'selected source',
+             'list-references/one.json': b'{"case_id":"one"}',
+             'sources/other/reference.txt': b'other task source',
+             'list-references/other.json': b'{"case_id":"other"}',
+             'sources/internal-note.txt': b'synthetic private note'}
+    for relative, raw in files.items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(raw)
+    output = tmp_path / 'assembled'
+    assemble(root, tmp_path / 'certificates', [], output)
+    for relative in ('sources/other/reference.txt', 'list-references/other.json',
+                     'sources/internal-note.txt'):
+        assert not (output / relative).exists()
+        path = output / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(files[relative])
+    report = build_report(output, tmp_path / 'report').parent
+    for relative, raw in files.items():
+        if '/one' in relative:
+            assert (output / relative).read_bytes() == raw
+            assert (report / relative).read_bytes() == raw
+        else:
+            assert not (report / relative).exists()
+
+
+@pytest.mark.parametrize('operation', ['addition', 'replacement'])
+def test_assembly_uses_reference_inputs_from_the_declared_task_owner(source, tmp_path, operation):
+    class Fixture(Provider):
+        def fetch(self, case, timeout):
+            return ProviderResult(True, 'Expected')
+
+    root, _ = source
+    dataset = json.loads((root / 'dataset.json').read_text())
+    original = dataset['cases'][0]
+    case = EvalCase(**original) if operation == 'replacement' else EvalCase(
+        'two', 'Two', 'https://example.invalid/two', 'synthetic', ['Expected'])
+    incoming = tmp_path / 'incoming'
+    run_evaluation(output_dir=incoming, dataset_meta={**dataset, 'cases': [asdict(case)]},
+        dataset_path=tmp_path / 'input.json', cases=[case],
+        providers=[Fixture('retrying', {'type': 'fixture'})],
+        provider_config_path=tmp_path / 'providers.json', runs=1, timeout=1, delay=0)
+    for owner, text in ((root, 'old source'), (incoming, 'new source')):
+        folder = owner / 'sources' / case.id
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / 'reference.txt').write_text(text)
+        reference = owner / 'list-references' / (case.id + '.json')
+        reference.parent.mkdir(exist_ok=True)
+        reference.write_text(json.dumps({'case_id': case.id, 'source': text}))
+    output = tmp_path / 'assembled'
+    assemble(root, tmp_path / 'certificates', [incoming] if operation == 'replacement' else [],
+             output, additions=[incoming] if operation == 'addition' else [])
+    assert (output / 'sources' / case.id / 'reference.txt').read_text() == 'new source'
+    assert json.loads((output / 'list-references' / (case.id + '.json')).read_text())['source'] == 'new source'
+
+
 @pytest.mark.parametrize('damage', [None, 'changed', 'missing'])
 def test_assembly_copies_only_certificate_bound_reference_checks(tmp_path, damage):
     class Fixture(Provider):
@@ -154,7 +212,9 @@ def test_assembly_uses_verified_external_reference_trees(source, tmp_path, monke
     canonical.write_bytes((root / 'dataset.json').read_bytes())
     approved = tmp_path / 'approved'
     files = {'sources/one/reference.txt': b'approved reference',
-             'list-references/one.json': b'{"scope":"approved"}'}
+             'list-references/one.json': b'{"scope":"approved"}',
+             'sources/other/reference.txt': b'approved other task',
+             'list-references/other.json': b'{"scope":"other"}'}
     trees = {'sources': {}, 'list-references': {}}
     for relative, raw in files.items():
         path = approved / relative
@@ -176,7 +236,10 @@ def test_assembly_uses_verified_external_reference_trees(source, tmp_path, monke
     else:
         assemble(root, tmp_path / 'certificates', [], target, canonical_dataset=canonical)
         for relative, raw in files.items():
-            assert (target / relative).read_bytes() == raw
+            if '/one' in relative:
+                assert (target / relative).read_bytes() == raw
+            else:
+                assert not (target / relative).exists()
     assert not (checkout / 'sources').exists()
 
 

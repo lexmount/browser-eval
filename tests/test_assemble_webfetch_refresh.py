@@ -347,6 +347,24 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
                  canonical_dataset=self.canonical_path, plan=self.plan_path)
         self.assertFalse((output / 'reference-checks/private-note.txt').exists())
 
+    def test_refresh_copies_references_only_for_canonical_tasks(self) -> None:
+        root = self.canonical_path.parent
+        selected = self.canonical_cases[0]['id']
+        for identifier in (selected, 'outside-task-scope'):
+            folder = root / 'sources' / identifier
+            folder.mkdir()
+            (folder / 'reference.txt').write_text(identifier)
+            (root / 'list-references' / (identifier + '.json')).write_text('{}')
+        (root / 'sources/private-note.txt').write_text('synthetic private note')
+        output = self.root / 'assembled-reference-scope'
+        assemble(self.baseline, [self.main], self.speed, output,
+                 canonical_dataset=self.canonical_path, plan=self.plan_path)
+        self.assertEqual((output / 'sources' / selected / 'reference.txt').read_text(), selected)
+        self.assertTrue((output / 'list-references' / (selected + '.json')).is_file())
+        self.assertFalse((output / 'sources/outside-task-scope').exists())
+        self.assertFalse((output / 'list-references/outside-task-scope.json').exists())
+        self.assertFalse((output / 'sources/private-note.txt').exists())
+
     def test_refresh_rejects_reference_tree_symlinks(self) -> None:
         actual = self.root / 'same-reference.txt'
         actual.write_text('synthetic source')

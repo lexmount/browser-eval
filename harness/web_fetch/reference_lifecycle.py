@@ -185,8 +185,8 @@ def validate_resource_source_evidence(case, dataset_path: Path) -> dict | None:
     if evidence_path != expected_path or not isinstance(evidence_hash, str) \
             or re.fullmatch(r"[0-9a-f]{64}", evidence_hash) is None:
         raise ReferenceLifecycleError(f"{identifier}: resource evidence binding is missing")
-    root = input_tree(Path(dataset_path), "sources")
     try:
+        root = input_tree(Path(dataset_path), "sources")
         evidence_raw = contained_path(root, f"{identifier}/evidence.json").read_bytes()
         if sha256(evidence_raw) != evidence_hash:
             raise ReferenceLifecycleError(
@@ -340,8 +340,8 @@ def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
         _completion(completion)
         _fresh(completion.get("checked_at"), now)
         source = Path(identifier)
-        root = input_tree(Path(dataset_path), "sources")
         try:
+            root = input_tree(Path(dataset_path), "sources")
             initial = contained_path(root, source / "initial.html.txt").read_bytes()
             rendered_raw = contained_path(root, source / "rendered.txt").read_bytes()
             reference_raw = contained_path(root, source / "reference.txt").read_bytes()
@@ -378,7 +378,10 @@ def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
 
 def preflight_reference_checks(cases, dataset_path: Path, now=None) -> dict | None:
     """Read-only preflight; call before creating outputs or invoking providers."""
-    input_tree(dataset_path, "sources")
+    try:
+        input_tree(dataset_path, "sources")
+    except ValueError as error:
+        raise ReferenceLifecycleError('Invalid reference input tree: ' + str(error)) from error
     checked = _now(now)
     bindings = {}
     for case in cases:

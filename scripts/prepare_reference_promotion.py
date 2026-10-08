@@ -16,7 +16,7 @@ from harness.web_fetch.scoring_regressions import (  # noqa: E402
     ROOT_CAUSE_CATEGORIES,
     build_correction_provenance,
 )
-from scripts.freeze_headless_references import (  # noqa: E402
+from harness.web_fetch.reference_freeze import (  # noqa: E402
     REFERENCE_PROMOTION_REGRESSION_IDS,
     _validate_approval,
     compute_reference_update,

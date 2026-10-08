@@ -1,13 +1,11 @@
-from harness.web_fetch.reference_inputs import read_dataset_bytes
-
 """Run browser Markdown methods against the unchanged canonical Web Fetch cases."""
 
 import argparse
 import hashlib
 import json
-import shutil
 from pathlib import Path
 
+from harness.web_fetch.artifacts import materialize_task_references
 from harness.web_fetch.config import (
     load_dataset,
     load_provider_settings,
@@ -19,7 +17,7 @@ from harness.web_fetch.providers.runtime_identity import (
     require_expected_provider_versions,
     version_number,
 )
-from harness.web_fetch.reference_inputs import input_tree
+from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.runner import run_evaluation
 from harness.web_fetch.safety import safe_identifier
 
@@ -261,9 +259,7 @@ def main(argv=None):
             "observed_deployments": deployments,
             "observed_extractors": extractors,
         }
-    for folder in ("sources", "list-references"):
-        if input_trees[folder].exists():
-            shutil.copytree(input_trees[folder], args.output / folder)
+    materialize_task_references(args.output, input_trees, [case.id for case in cases])
     manifest = json.loads((args.output / "manifest.json").read_text())
     manifest["dataset"]["source"] = args.dataset.name
     manifest["provider_config_source"] = args.config.name

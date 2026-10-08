@@ -3,12 +3,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 
-from .artifacts import materialize_bound_artifacts
+from .artifacts import materialize_bound_artifacts, materialize_task_references
 from .config import load_dataset, load_provider_config, load_runtime_env
 from .providers import build_provider
 from .reference_inputs import input_tree
@@ -123,13 +122,8 @@ def main(argv=None):
     for name,value in [('dataset.json',dataset),('execution.json',execution)]:
         (args.output/name).write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n')
     (args.output/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
-    for case in cases:
-        source=sources/case.id
-        if source.exists():shutil.copytree(source,args.output/'sources'/case.id)
-        reference=list_references/(case.id+'.json')
-        if reference.exists():
-            (args.output/'list-references').mkdir(exist_ok=True)
-            shutil.copy2(reference,args.output/'list-references'/reference.name)
+    materialize_task_references(args.output, {'sources':sources,'list-references':list_references},
+                                [case.id for case in cases])
     if args.measure_only:
         print(args.output)
     else:

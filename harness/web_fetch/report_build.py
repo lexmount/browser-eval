@@ -11,8 +11,8 @@ from .artifacts import (
     copy_cohort_evidence,
     diagnostic_log_binding,
     materialize_reference_checks,
+    materialize_task_references,
     record_public_call_log_bindings,
-    reject_evidence_symlinks,
     verify_public_call_log,
     verify_record_private_artifacts,
     verify_record_public_call_logs,
@@ -33,7 +33,7 @@ from .report import (
     webmainbench_full_machine_issue,
 )
 from .report_changes import webmainbench_history
-from .safety import contained_path, safe_identifier, validate_report_ids
+from .safety import contained_path, reject_evidence_symlinks, safe_identifier, validate_report_ids
 from .scoring import SCORING_SOURCE_SHA256
 from .storage import data_home, require_selection_history
 from .wcxb_latency import load_full_paired_latency
@@ -375,14 +375,12 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             else:
                 r['diagnosis']=diagnose(r,cases[r['case_id']],text)
             r['failure_category'] = failure_category(r, cases[r['case_id']])
-        for folder in ['sources','list-references','reference-checks']:
+        for folder in ['reference-checks']:
             tree=contained_path(source,folder,reject_symlinks=True)
             if tree.exists():
                 reject_evidence_symlinks(tree)
-        if (source/'sources').exists():
-            shutil.copytree(source/'sources', staging/'sources')
-        if (source/'list-references').exists():
-            shutil.copytree(source/'list-references',staging/'list-references')
+        materialize_task_references(staging, {name: source/name
+            for name in ('sources','list-references')}, cases)
         materialize_reference_checks(staging, source, manifests)
         if speed_root.exists():
             copy_cohort_evidence(

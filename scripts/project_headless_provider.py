@@ -21,6 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.artifacts import materialize_private_artifacts
+from harness.web_fetch.artifacts import materialize_task_references
+from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 from harness.web_fetch.safety import contained_path, validate_report_ids
 from harness.web_fetch.artifacts import artifact_bindings
@@ -143,20 +145,6 @@ def _bound_file(root: Path, relative: str) -> Path:
     return contained_path(root, relative)
 
 
-def _copy_case_references(reference_root: Path, output: Path, case_ids: set[str]) -> None:
-    for case_id in sorted(case_ids):
-        source_dir = _bound_file(reference_root, f"sources/{case_id}")
-        if source_dir.is_dir():
-            if source_dir.is_symlink() or any(path.is_symlink() for path in source_dir.rglob("*")):
-                raise ValueError("Reference source directory must not be a symlink: " + case_id)
-            shutil.copytree(source_dir, contained_path(output, f"sources/{case_id}"))
-        list_reference = _bound_file(reference_root, f"list-references/{case_id}.json")
-        if list_reference.is_file():
-            target = contained_path(output, f"list-references/{case_id}.json")
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(list_reference, target)
-
-
 def project(source: Path, output: Path, provider: str, reference_root: Path | None = None,
             case_ids: set[str] | None = None) -> None:
     source, output = source.resolve(), output.resolve()
@@ -212,7 +200,8 @@ def project(source: Path, output: Path, provider: str, reference_root: Path | No
 
     output.mkdir(parents=True)
     (output / f"source-{source_kind}.json").write_bytes(source_document_bytes)
-    _copy_case_references(reference_root, output, set(cases))
+    materialize_task_references(output, {name: input_tree(reference_root/'dataset.json',name)
+        for name in ('sources','list-references')}, cases)
     for batch in projected_batches:
         evidence = batch.get("reference_checks", {}).get("postcheck", {}).get("evidence_path")
         if not evidence:

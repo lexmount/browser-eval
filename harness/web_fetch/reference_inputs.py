@@ -10,7 +10,7 @@ import tempfile
 from pathlib import Path
 
 from harness.reporting.assets import copy_bound_assets
-from harness.web_fetch.safety import contained_path, safe_identifier
+from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, safe_identifier
 from harness.web_fetch.storage import data_home
 
 MANIFEST_NAME = "source-inputs.json"
@@ -160,7 +160,9 @@ def input_tree(dataset: Path, tree: str) -> Path:
             root = contained_path(input_root(manifest), tree, reject_symlinks=True)
             verify_tree(root, manifest["trees"][tree])
             return root
-    return contained_path(dataset.parent, tree, reject_symlinks=True)
+    root = contained_path(dataset.parent, tree, reject_symlinks=True)
+    reject_evidence_symlinks(root)
+    return root
 
 
 def require_mutable_inputs(dataset: Path) -> None:
