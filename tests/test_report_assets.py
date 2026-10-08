@@ -21,6 +21,16 @@ class ReportAssetsTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'duplicated'):
                 check_external_asset_boundary(root)
 
+    def test_documentation_cannot_hide_a_copy_of_bound_report_content(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            (root / 'research').mkdir()
+            (root / 'research/example-content.json').write_text('{"figure.png": "hash"}')
+            (root / 'docs').mkdir()
+            (root / 'docs/figure.png').write_bytes(b'report figure')
+            with self.assertRaisesRegex(ValueError, 'duplicated'):
+                check_external_asset_boundary(root)
+
     def test_only_bound_assets_are_copied_byte_exactly(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp).resolve()
@@ -34,6 +44,22 @@ class ReportAssetsTest(unittest.TestCase):
             self.assertFalse((root / 'output/private.log').exists())
             with self.assertRaises(ValueError):
                 copy_bound_assets(source, root / 'output', bindings)
+
+    def test_unbound_retired_report_assets_are_also_outside_the_repository(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            (root / 'report-assets').mkdir()
+            (root / 'report-assets/retired-figure.png').write_bytes(b'historical figure')
+            with self.assertRaisesRegex(ValueError, 'outside'):
+                check_external_asset_boundary(root)
+
+    def test_report_assets_directory_symlinks_are_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            (root / 'external-assets').mkdir()
+            (root / 'report-assets').symlink_to(root / 'external-assets', target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, '[Ss]ymlink'):
+                check_external_asset_boundary(root)
 
     def test_changed_missing_unsafe_and_symlink_assets_reject_before_writes(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -14,4 +14,12 @@
 
 不要提交 `.env`、Token、Cookie、供应商输出、运行目录、生成报告或内部审核记录。第三方内容须保留来源、版本和许可说明。补充任务定义不等于取得源页面的再分发权。
 
+首次公开源码时，从审查后的当前提交导出源码包，在新仓库中初始化公开历史；不要推送仍含外置源材料的开发历史。删除当前文件不会从旧提交中移除它们。导出使用 Git 自身的归档功能：
+
+```sh
+git archive --format=tar.gz --output=/tmp/browser-eval-source.tar.gz HEAD
+```
+
+源码包不包含 `.git`、未跟踪文件和本机安装目录。解包后按 README 安装依赖并运行 `make ci`，使用空的 `BROWSER_EVAL_DATA_HOME` 验证普通贡献者的使用场景。历史认证器按清单保留为只读、哈希绑定的文本材料，不依赖旧 Git 提交，也不是可执行入口。源材料的分发边界仍以 [第三方内容说明](THIRD_PARTY.md) 和 [参考输入说明](docs/reference-inputs.md) 为准。
+
 可选的 Claude 审查需要维护者设置仓库变量 `ENABLE_CLAUDE_REVIEW=true` 和 `CLAUDE_CODE_OAUTH_TOKEN`。普通 CI 不依赖这些配置；该审查使用临时 GitHub 托管运行器，不要求个人主机路径。

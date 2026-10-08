@@ -123,15 +123,20 @@ def verify_certifier_source(directory: Path, exclusion: dict) -> None:
         raise ValueError("Invalid latency certifier source hash")
     binding = exclusion.get("certifying_runner_source")
     if binding is None:
+        data = Path(__file__).parent / "data"
         registry = json.loads(
-            (Path(__file__).parent / "data/webmainbench-latency-source.json").read_bytes()
+            (data / "webmainbench-latency-source.json").read_bytes()
         )
+        sources = [row for row in registry["sources"] if row["sha256"] == expected]
         if (
             registry.get("schema_version") != 1
             or registry.get("kind") != "frozen_webmainbench_latency_certifier"
-            or expected not in {row["sha256"] for row in registry["sources"]}
+            or len(sources) != 1
         ):
             raise ValueError("Unrecognized historical latency certifier source")
+        artifact = contained_path(data, sources[0]["source_artifact"], reject_symlinks=True)
+        if digest(artifact) != expected:
+            raise ValueError("Historical latency certifier source changed")
         return
     if (
         not isinstance(binding, dict)

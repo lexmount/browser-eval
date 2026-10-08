@@ -113,6 +113,16 @@ def main():
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
     parser.add_argument('--source-root', type=Path, required=True)
     args = parser.parse_args()
+    from harness.web_fetch import webmainbench_latency_correction
+
+    legacy_registry = json.loads(
+        (Path(webmainbench_latency_correction.__file__).parent
+         / 'data/webmainbench-latency-source.json').read_bytes()
+    )
+    for source in legacy_registry['sources']:
+        webmainbench_latency_correction.verify_certifier_source(
+            Path.cwd(), {'certifying_runner_sha256': source['sha256']}
+        )
     import harness.web_fetch
     installed = Path(harness.web_fetch.__file__).resolve().parents[1]
     if installed.is_relative_to(args.source_root.resolve()):

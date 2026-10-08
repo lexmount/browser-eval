@@ -165,7 +165,10 @@ def test_apply_complete_frozen_cohort_survives_entry_point_changes(cohort, tmp_p
     else:
         emitter = tmp_path / "emitter.py"
         marker = tmp_path / "executed"
-        payload = f'from pathlib import Path\nPath({str(marker)!r}).touch()\nraise RuntimeError("must not execute")\n'.encode()
+        payload = (
+            f'from pathlib import Path\nPath({str(marker)!r}).touch()\n'
+            'raise RuntimeError("must not execute")\n'
+        ).encode()
         emitter.write_bytes(payload)
         binding = latency.bind_certifier_source(calls_root, emitter, payload)
         cert["environment_exclusion"].update(
@@ -200,19 +203,51 @@ def test_apply_complete_frozen_cohort_survives_entry_point_changes(cohort, tmp_p
     assert not (tmp_path / "executed").exists()
 
 
-def test_historical_source_registry_binds_exact_git_bytes():
-    root = Path(__file__).resolve().parents[1]
+def test_historical_source_registry_binds_exact_retained_bytes(monkeypatch, tmp_path):
+    def no_subprocess(*args, **kwargs):
+        raise AssertionError("Historical source validation must not invoke Git or archived code")
+
+    monkeypatch.setattr(subprocess, "run", no_subprocess)
+    data = Path(latency.__file__).parent / "data"
     registry = json.loads(
-        (Path(latency.__file__).parent / "data/webmainbench-latency-source.json").read_bytes()
+        (data / "webmainbench-latency-source.json").read_bytes()
     )
     for source in registry["sources"]:
-        result = subprocess.run(
-            ["git", "show", f"{source['git_commit']}:{source['path']}"],
-            cwd=root,
-            check=True,
-            capture_output=True,
+        assert sha((data / source["source_artifact"]).read_bytes()) == source["sha256"]
+        latency.verify_certifier_source(
+            tmp_path, {"certifying_runner_sha256": source["sha256"]}
         )
-        assert sha(result.stdout) == source["sha256"]
+
+
+@pytest.mark.parametrize("damage", ["missing", "changed", "symlink", "outside"])
+def test_historical_source_damage_is_rejected_before_using_a_certificate(
+    tmp_path, monkeypatch, damage
+):
+    import shutil
+
+    original = Path(latency.__file__).parent / "data"
+    local = tmp_path / "library"
+    shutil.copytree(original, local / "data")
+    registry_path = local / "data/webmainbench-latency-source.json"
+    registry = json.loads(registry_path.read_bytes())
+    source = registry["sources"][0]
+    artifact = local / "data" / source["source_artifact"]
+    if damage == "missing":
+        artifact.unlink()
+    elif damage == "changed":
+        artifact.write_bytes(artifact.read_bytes() + b"\n")
+    else:
+        external = tmp_path / "external.py.txt"
+        external.write_bytes(artifact.read_bytes())
+        if damage == "symlink":
+            artifact.unlink()
+            artifact.symlink_to(external)
+        else:
+            source["source_artifact"] = str(external)
+            registry_path.write_text(json.dumps(registry))
+    monkeypatch.setattr(latency, "__file__", str(local / "latency.py"))
+    with pytest.raises((ValueError, FileNotFoundError)):
+        latency.verify_certifier_source(tmp_path, {"certifying_runner_sha256": source["sha256"]})
 
 
 @pytest.mark.parametrize("value", [True, -1, float("nan"), float("inf")])

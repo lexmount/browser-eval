@@ -119,6 +119,12 @@ and its bound supporting materials in the same report implementation.
 
 The report application owns full rules, interfaces and auditable records. Its tables retain local metric definitions and link to the matching methodology example. The interpretation article owns the argument, mechanism experiments, counterexamples and decision implications; it repeats only enough context to stand alone. The homepage provides quantitative overview and article access, not a second prose summary. Provider integration details belong with their interface examples, not a separate page repeating task boundaries.
 
+Historical WebMainBench latency certifiers are retained as immutable `.py.txt`
+artifacts under `harness/web_fetch/data/latency-certifiers/`. The source registry
+binds their SHA-256, original commit and path. Validation reads and hashes these
+files; it never imports or executes them and does not require old Git objects.
+The current certifier remains `webmainbench_latency_correction.py`.
+
 ## Lexbench comparison adapter
 
 `harness/lexbench/` owns the retained Lexbench comparison adapter: report assembly,
