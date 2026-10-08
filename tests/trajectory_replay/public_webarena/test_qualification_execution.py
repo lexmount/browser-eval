@@ -86,6 +86,7 @@ def write_shard(command, *, check, env):
         'trace': [], 'evidence_directory': str(evidence),
         'task_contract_sha256': qualification.task_contract_sha256(task_payload),
     }
+    (evidence / 'attempt.json').write_text(json.dumps(row))
     (output / 'attempts.jsonl').write_text(json.dumps(row) + '\n')
     (output / 'summary.json').write_text('{}')
     def digest(path):
@@ -227,6 +228,22 @@ def test_resume_validator_rejects_linked_artifacts_even_when_bytes_match(
     path.rename(target)
     path.symlink_to(target)
     with pytest.raises(ValueError, match='Symlinked evidence'):
+        qualification.validate_completed_shard(
+            output, suite_sha256=hashlib.sha256(suite.read_bytes()).hexdigest(),
+            scope_sha256=hashlib.sha256(scope.read_bytes()).hexdigest(),
+            shard={'id': 'shopping-0-of-1', 'batch_id': 'shopping', 'shard_count': 1,
+                   'shard_index': 0, 'task_ids': ['a']}, qualification_pass_index=1,
+        )
+
+
+def test_resume_requires_the_raw_attempt_not_only_its_projection(tmp_path, monkeypatch):
+    suite, scope, evidence, argv = inputs(tmp_path)
+    monkeypatch.setattr(qualification.subprocess, 'run', write_shard)
+    qualification.main_qualification(argv)
+    output = evidence / 'pass-1/shopping-0-of-1'
+    raw = output / 'tasks/a/chromium/attempt-1/attempt.json'
+    raw.unlink(missing_ok=True)
+    with pytest.raises(ValueError, match='source evidence is missing'):
         qualification.validate_completed_shard(
             output, suite_sha256=hashlib.sha256(suite.read_bytes()).hexdigest(),
             scope_sha256=hashlib.sha256(scope.read_bytes()).hexdigest(),

@@ -106,6 +106,7 @@ def test_completed_shard_validation_binds_manifest_hashes_scope_and_attempts(tmp
         evidence = output / "tasks" / row["task_id"] / "chromium" / "attempt-1"
         evidence.mkdir(parents=True)
         row["evidence_directory"] = str(evidence)
+        _write_json(evidence / "attempt.json", row)
         _write_json(
             evidence / "network.har",
             {
@@ -195,6 +196,7 @@ def test_completed_shard_validation_rejects_old_har_creator(tmp_path):
         )
         + "\n"
     )
+    _write_json(evidence / "attempt.json", json.loads(attempts_path.read_text()))
     _write_json(output / "summary.json", {"ok": True})
     _write_json(
         evidence / "network.har",

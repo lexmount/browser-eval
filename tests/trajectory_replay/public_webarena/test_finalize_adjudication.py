@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import hashlib
 import json
+from copy import deepcopy
+from pathlib import Path
+
+import pytest
 
 from harness.trajectory_replay.public_webarena.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from harness.trajectory_replay.public_webarena.qualification import (
     QUALIFICATION_SCHEMA,
-    task_contract_sha256,
-)
-from scripts.finalize_webarena_adjudication import (
     finalize_adjudication,
     qualification_from_applied_suite,
+    task_contract_sha256,
 )
 
 
@@ -379,3 +381,81 @@ def test_revalidation_preserves_existing_repair_reason(tmp_path):
     )
 
     assert result["tasks"][0]["adjudication"]["reason"] == ("Previously validated correction.")
+
+
+@pytest.mark.parametrize("projection_passes", [False, True])
+def test_finalization_rejects_projection_verdict_drift_in_both_directions(
+    tmp_path, projection_passes,
+):
+    task = _task("webarena-1")
+    rows = [_write_attempt(tmp_path, task, index) for index in (1, 2)]
+    if projection_passes:
+        source = Path(rows[0]["evidence_directory"]) / "attempt.json"
+        raw = json.loads(source.read_text())
+        raw["status"] = "fail"
+        source.write_text(json.dumps(raw))
+    else:
+        rows[0]["status"] = "fail"
+    projection = tmp_path / "attempts.jsonl"
+    projection.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    with pytest.raises(ValueError, match="projection differs"):
+        finalize_adjudication(
+            {"tasks": [task]}, {"tasks": [{"task_id": task["id"], "disposition": "eligible"}]},
+            [({"tasks": [task]}, projection)], {},
+        )
+
+
+@pytest.mark.parametrize("field", ["title", "evaluator", "environment", "source"])
+def test_finalization_rejects_requalified_changes_to_immutable_task_fields(tmp_path, field):
+    original = _task("webarena-1")
+    candidate = deepcopy(original)
+    candidate[field] = "Different instruction" if field == "title" else {"changed": True}
+    if field == "source":
+        candidate[field] = {"verified_evaluators": [{"expected": "different oracle"}]}
+    projection = tmp_path / "attempts.jsonl"
+    projection.write_text("".join(json.dumps(_write_attempt(tmp_path, candidate, index)) + "\n"
+                                  for index in (1, 2)))
+    with pytest.raises(ValueError, match="immutable"):
+        finalize_adjudication(
+            {"tasks": [original]}, {"tasks": [{"task_id": original["id"],
+                                               "disposition": "needs_trace_repair"}]},
+            [({"tasks": [candidate]}, projection)], {},
+        )
+
+
+@pytest.mark.parametrize("inventory", ["canonical", "decisions", "validated"])
+def test_duplicate_task_inventory_cannot_be_silently_collapsed(tmp_path, inventory):
+    task = _task("webarena-1")
+    suite = {"tasks": [task]}
+    decisions = {"tasks": [{"task_id": task["id"], "disposition": "eligible"}]}
+    validated = {"tasks": [task]}
+    projection = tmp_path / "attempts.jsonl"
+    projection.write_text("".join(json.dumps(_write_attempt(tmp_path, task, index)) + "\n"
+                                  for index in (1, 2)))
+    target = {"canonical": suite, "decisions": decisions, "validated": validated}[inventory]
+    target["tasks"] *= 2
+    with pytest.raises(ValueError, match="duplicate"):
+        finalize_adjudication(suite, decisions, [(validated, projection)], {})
+
+
+def test_empty_candidate_cannot_gain_eligibility_from_passing_metadata(tmp_path):
+    task = _task("webarena-1")
+    task["trajectory"]["actions"] = []
+    projection = tmp_path / "attempts.jsonl"
+    projection.write_text("".join(json.dumps(_write_attempt(tmp_path, task, index)) + "\n"
+                                  for index in (1, 2)))
+    with pytest.raises(ValueError, match="non-empty trajectory"):
+        finalize_adjudication(
+            {"tasks": [task]}, {"tasks": [{"task_id": task["id"], "disposition": "eligible"}]},
+            [({"tasks": [task]}, projection)], {},
+        )
+
+
+@pytest.mark.parametrize("hashes", [None, [], ["a" * 64], ["a" * 64, "a" * 64], ["bad", "b" * 64]])
+def test_applied_eligibility_requires_two_retained_proof_hashes(hashes):
+    task = _task("webarena-1")
+    task["ground_truth"]["qualification"] = {"status": "eligible"}
+    if hashes is not None:
+        task["ground_truth"]["qualification"]["validated_run_sha256s"] = hashes
+    with pytest.raises(ValueError, match="two.*hash"):
+        qualification_from_applied_suite({"tasks": [task]})

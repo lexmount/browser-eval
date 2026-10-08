@@ -492,6 +492,73 @@ def verify_repair_commands(root: Path, source_root: Path) -> None:
     assert summary['model'] == 'offline-fixture'
 
 
+def verify_adjudication_commands(root: Path, source_root: Path) -> None:
+    from harness.trajectory_replay.public_webarena import qualification as q
+    from harness.trajectory_replay.public_webarena.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
+
+    stage = root / 'adjudication'
+    stage.mkdir()
+    suite_path = stage / 'suite.json'
+    suite_path.write_bytes((root / 'repairs/build_webarena_repair_probe.py.json').read_bytes())
+    suite = json.loads(suite_path.read_text())
+    task = suite['tasks'][0]
+    rows = []
+    for index in (1, 2):
+        directory = stage / f'pass-{index}'
+        directory.mkdir()
+        (directory / 'final.png').write_bytes(b'synthetic screenshot')
+        (directory / 'final-page.json').write_text('{"visible_text":"Observed heading"}')
+        (directory / 'network.har').write_text(json.dumps({'log': {'creator': {
+            'name': HAR_CREATOR_NAME, 'version': HAR_CREATOR_VERSION}, 'entries': []}}))
+        row = {'task_id': task['id'], 'engine': 'chromium', 'attempt': 1, 'is_retry': False,
+               'qualification_run': True, 'qualification_pass_index': index,
+               'qualification_required_passes': 2, 'run_id': f'run-{index}',
+               'task_contract_sha256': q.task_contract_sha256(task),
+               'evidence_directory': str(directory),
+               **{key: 'pass' for key in ('status', 'process_status', 'result_status',
+                                         'evidence_status', 'combined_status')},
+               'final_page_evidence': {'status': 'complete', **{
+                   key: {'path': name, 'sha256': hashlib.sha256(
+                       (directory / name).read_bytes()).hexdigest()}
+                   for key, name in (('screenshot', 'final.png'), ('page', 'final-page.json'))}}}
+        (directory / 'attempt.json').write_text(json.dumps(row))
+        rows.append(row)
+    projection = stage / 'attempts.jsonl'
+    projection.write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    scripts = source_root / 'scripts'
+    queue, final = stage / 'queue.json', stage / 'final.json'
+    for command, arguments in (
+        ('build_webarena_repair_queue.py', ['--attempts', str(projection), '--output', str(queue)]),
+        ('finalize_webarena_adjudication.py', ['--qualification', str(queue), '--validated-run',
+                                             f'{suite_path}::{projection}', '--output', str(final)]),
+        ('apply_webarena_qualification.py', ['--qualification', str(final),
+                                           '--output', str(stage / 'applied.json')]),
+    ):
+        subprocess.run([sys.executable, str(scripts / command), '--suite', str(suite_path),
+                        *arguments], check=True, cwd=stage)
+    applied = q.load_suite(stage / 'applied.json').tasks[0]
+    assert applied.ground_truth['qualification']['status'] == 'eligible'
+    assert len(applied.ground_truth['qualification']['validated_run_sha256s']) == 2
+    decisions = json.loads(final.read_text())
+    decision = decisions['tasks'][0]
+    decision['disposition'] = 'needs_trace_repair'
+    decision['adjudication']['reason'] = 'Use the current heading locator'
+    corrected = json.loads(json.dumps(task['trajectory']))
+    corrected['actions'][-1]['selector'] = 'main h1'
+    decision['adjudication']['corrected_trajectory'] = corrected
+    proposed = stage / 'proposed.json'
+    proposed.write_text(json.dumps(decisions))
+    for command in ('build_webarena_repair_validation_suite.py',
+                    'build_webarena_evidence_revalidation_suite.py'):
+        output = stage / (command + '.json')
+        subprocess.run([sys.executable, str(scripts / command), '--suite', str(suite_path),
+                        '--qualification', str(proposed), '--output', str(output)],
+                       check=True, cwd=stage)
+        candidate = q.load_suite(output).tasks[0]
+        assert candidate.ground_truth['qualification']['status'] == 'pending'
+        assert candidate.tool_calls[-1]['selector'] == 'main h1'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -537,6 +604,7 @@ def main():
         verify_review_revisions(root, args.source_root)
         verify_qualification_commands(root, args.source_root)
         verify_repair_commands(root, args.source_root)
+        verify_adjudication_commands(root, args.source_root)
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
                        check=True, cwd=root)
         binary = root / 'browser'

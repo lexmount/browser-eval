@@ -194,9 +194,39 @@ def task_contract_sha256(task: dict[str, Any]) -> str:
     )
 
 
+def _qualification_rows(rows: Any, key: str, label: str) -> dict[str, dict[str, Any]]:
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"{label} must contain a non-empty task inventory")
+    result = {}
+    for row in rows:
+        if (not isinstance(row, dict) or not isinstance(row.get(key), str)
+                or not row[key].strip() or row[key] in result):
+            raise ValueError(f"{label} contains invalid or duplicate task identities")
+        result[row[key]] = row
+    return result
+
+
+def _verify_attempt_projection(row: dict[str, Any], *, allow_missing: bool = False) -> bool:
+    directory_value = row.get("evidence_directory")
+    if not isinstance(directory_value, str) or not directory_value.strip():
+        if allow_missing:
+            return False
+        raise ValueError("qualification attempt lacks evidence_directory")
+    directory = Path(directory_value)
+    path = contained_path(directory, "attempt.json", reject_symlinks=True)
+    if not path.is_file():
+        if allow_missing:
+            return False
+        raise ValueError("qualification attempt source evidence is missing")
+    if _json_sha256(json.loads(path.read_bytes())) != _json_sha256(row):
+        raise ValueError("qualification projection differs from immutable attempt evidence")
+    return True
+
+
 def _validated_attempt(
     path: Path, task_id: str, *, expected_contract_sha256: str
 ) -> tuple[str, str, int]:
+    path = contained_path(path.parent, path.name, reject_symlinks=True)
     if not path.is_file():
         raise ValueError(f"{task_id}: validated attempt evidence is missing")
     raw = path.read_bytes()
@@ -205,6 +235,7 @@ def _validated_attempt(
     if (
         str(row.get("task_id")) != task_id
         or row.get("engine") != "chromium"
+        or type(row.get("attempt")) is not int
         or row.get("attempt") != 1
         or row.get("is_retry") is not False
         or row.get("qualification_run") is not True
@@ -216,8 +247,9 @@ def _validated_attempt(
     if not run_id:
         raise ValueError(f"{task_id}: validated attempt run_id is missing")
     if (
-        isinstance(pass_index, bool)
+        type(pass_index) is not int
         or pass_index not in {1, 2}
+        or type(row.get("qualification_required_passes")) is not int
         or row.get("qualification_required_passes") != 2
     ):
         raise ValueError(
@@ -225,10 +257,13 @@ def _validated_attempt(
         )
     if row.get("task_contract_sha256") != expected_contract_sha256:
         raise ValueError(f"{task_id}: validated attempt does not match corrected task contract")
-    evidence_directory = Path(str(row.get("evidence_directory") or "")).resolve()
+    evidence_directory = Path(str(row.get("evidence_directory") or ""))
+    if evidence_directory.is_symlink():
+        raise ValueError("qualification evidence directory is symlinked")
+    evidence_directory = evidence_directory.resolve()
     if evidence_directory != path.parent.resolve():
         raise ValueError(f"{task_id}: validated attempt evidence directory mismatch")
-    har_path = evidence_directory / "network.har"
+    har_path = contained_path(evidence_directory, "network.har", reject_symlinks=True)
     if not har_path.is_file():
         raise ValueError(f"{task_id}: validated attempt network HAR is missing")
     har = json.loads(har_path.read_text(encoding="utf-8"))
@@ -242,7 +277,7 @@ def _validated_attempt(
         metadata = final_evidence.get(key) or {}
         if metadata.get("path") != expected_name:
             raise ValueError(f"{task_id}: validated attempt {key} evidence path is invalid")
-        evidence_path = evidence_directory / expected_name
+        evidence_path = contained_path(evidence_directory, expected_name, reject_symlinks=True)
         if not evidence_path.is_file():
             raise ValueError(f"{task_id}: validated attempt {key} evidence is missing")
         expected_sha256 = str(metadata.get("sha256") or "")
@@ -262,8 +297,8 @@ def validated_attempt_sha256s(
         raise ValueError(f"{task_id}: eligibility requires exactly two validated_attempt_paths")
     if any(not isinstance(value, str) or not value.strip() for value in path_values):
         raise ValueError(f"{task_id}: validated attempt paths must be non-empty strings")
-    paths = [Path(value).resolve() for value in path_values]
-    if len(set(paths)) != 2:
+    paths = [Path(value) for value in path_values]
+    if len({path.resolve() for path in paths}) != 2:
         raise ValueError(f"{task_id}: validated attempt paths must be unique")
     validated = [
         _validated_attempt(
@@ -293,8 +328,8 @@ def build_repair_queue(
     )
     if not paths:
         raise ValueError("qualification evidence paths are required")
-    from harness.record_io import load_jsonl
-
+    if any(path.is_symlink() or not path.is_file() for path in paths):
+        raise ValueError("qualification evidence paths must be existing non-symlinked files")
     rows = [row for path in paths for row in load_jsonl(path, skip_blank=True)]
     by_task: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
@@ -302,11 +337,15 @@ def build_repair_queue(
             row.get("engine") != "chromium"
             or row.get("is_retry") is not False
             or row.get("qualification_run") is not True
+            or type(row.get("attempt")) is not int
             or row.get("attempt") != 1
+            or type(row.get("qualification_pass_index")) is not int
+            or type(row.get("qualification_required_passes")) is not int
             or row.get("qualification_required_passes") != 2
         ):
             raise ValueError("qualification evidence must contain primary Chromium attempts only")
         by_task.setdefault(str(row["task_id"]), []).append(row)
+    _qualification_rows([{"id": task.task_id} for task in suite.tasks], "id", "suite")
     expected = {task.task_id for task in suite.tasks}
     if set(by_task) != expected or any(len(items) != 2 for items in by_task.values()):
         raise ValueError("qualification evidence must cover every task exactly twice")
@@ -334,11 +373,14 @@ def build_repair_queue(
         contract = task_contract_sha256(task_payload)
         if any(row.get("task_contract_sha256") != contract for row in task_rows):
             raise ValueError(f"{task.task_id}: qualification attempt does not match task contract")
+        sources_present = [_verify_attempt_projection(row, allow_missing=True) for row in task_rows]
         semantic_conflicts = trajectory_semantic_conflicts(task_payload)
         if semantic_conflicts:
             disposition = "needs_trace_repair"
         elif not task.tool_calls:
             disposition = "needs_trace_repair"
+        elif not all(sources_present):
+            disposition = "needs_evidence_revalidation"
         elif all(
             all(row.get(field) == "pass" for field in _PASS_STATUS_FIELDS) for row in task_rows
         ):
@@ -465,7 +507,8 @@ def build_repair_validation_suite(
     """Materialize proposed corrections for their mandatory Chromium revalidation run."""
     result = deepcopy(suite_payload)
     tasks = result.get("tasks") or []
-    decisions = {str(item["task_id"]): item for item in qualification.get("tasks") or []}
+    _qualification_rows(tasks, "id", "suite")
+    decisions = _qualification_rows(qualification.get("tasks"), "task_id", "qualification")
     if set(decisions) != {str(task["id"]) for task in tasks}:
         raise ValueError("qualification task set does not match suite")
     selected: list[dict[str, Any]] = []
@@ -511,7 +554,8 @@ def build_evidence_revalidation_suite(
     """Re-run every provisionally eligible task under the current evidence contract."""
     result = deepcopy(suite_payload)
     tasks = result.get("tasks") or []
-    decisions = {str(item["task_id"]): item for item in qualification.get("tasks") or []}
+    _qualification_rows(tasks, "id", "suite")
+    decisions = _qualification_rows(qualification.get("tasks"), "task_id", "qualification")
     if set(decisions) != {str(task["id"]) for task in tasks}:
         raise ValueError("qualification task set does not match suite")
     selected: list[dict[str, Any]] = []
@@ -546,8 +590,10 @@ def apply_adjudication(
     *,
     task_ids: set[str] | None = None,
 ) -> dict[str, Any]:
-    decisions = {str(item["task_id"]): item for item in qualification.get("tasks") or []}
+    suite_payload = deepcopy(suite_payload)
+    decisions = _qualification_rows(qualification.get("tasks"), "task_id", "qualification")
     tasks = suite_payload.get("tasks") or []
+    _qualification_rows(tasks, "id", "suite")
     suite_ids = {str(task["id"]) for task in tasks}
     selected_ids = suite_ids if task_ids is None else set(task_ids)
     if not selected_ids or not selected_ids <= suite_ids:
@@ -627,7 +673,7 @@ def apply_adjudication(
     ]
     if any(status not in {"eligible", "skipped"} for status in final_statuses):
         raise ValueError("applied suite contains unresolved qualification states")
-    suite_payload["benchmark"]["qualification"] = {
+    suite_payload.setdefault("benchmark", {})["qualification"] = {
         "schema": qualification.get("schema"),
         "qualified_count": final_statuses.count("eligible"),
         "skipped_count": final_statuses.count("skipped"),
@@ -816,6 +862,7 @@ def validate_completed_shard(
         row.get("engine") != "chromium"
         or row.get("qualification_run") is not True
         or row.get("is_retry") is not False
+        or type(row.get("attempt")) is not int
         or row.get("attempt") != 1
         or row.get("qualification_pass_index") != qualification_pass_index
         or row.get("qualification_required_passes") != qualification_required_passes
@@ -834,6 +881,7 @@ def validate_completed_shard(
         har_path = contained_path(output, relative / "network.har", reject_symlinks=True)
         if not har_path.is_file():
             raise ValueError(f"{shard['id']}: attempt network HAR is missing")
+        _verify_attempt_projection(row)
         har = json.loads(har_path.read_text(encoding="utf-8"))
         if (har.get("log") or {}).get("creator") != expected_creator:
             raise ValueError(
@@ -1441,3 +1489,363 @@ def main_repair_batch(argv=None) -> None:
 
 def main_codex_repair_suite(argv=None) -> None:
     _main_proposal_suite(argv, "codex_repair_validation")
+
+
+def _default_skip_reason(decision: dict[str, Any]) -> str:
+    disposition = str(decision.get("disposition") or "")
+    if disposition == "needs_response_annotation":
+        return (
+            "The official trajectory did not produce an evaluator-compatible answer, and no "
+            "bounded DOM-observation repair passed independent Chromium qualification."
+        )
+    if disposition == "needs_evidence_revalidation":
+        return (
+            "The provisional result was not reproduced under the complete HAR and final-page "
+            "evidence contract."
+        )
+    return (
+        "The official trajectory failed isolated Chromium replay or conflicted with the task "
+        "and evaluator; no bounded correction passed independent qualification."
+    )
+
+
+
+def qualification_from_applied_suite(suite: dict[str, Any]) -> dict[str, Any]:
+    """Rehydrate adjudication state without requiring old private evidence paths."""
+    decisions: list[dict[str, Any]] = []
+    tasks = _qualification_rows(suite.get("tasks"), "id", "applied suite")
+    for task in tasks.values():
+        qualification = deepcopy((task.get("ground_truth") or {}).get("qualification") or {})
+        status = qualification.get("status")
+        if status not in {"eligible", "skipped"}:
+            raise ValueError(f"{task.get('id')}: applied suite has unresolved qualification")
+        if status == "eligible":
+            hashes = qualification.get("validated_run_sha256s")
+            if (not isinstance(hashes, list) or len(hashes) != 2
+                    or any(not isinstance(value, str) or not _SHA256_RE.fullmatch(value)
+                           for value in hashes) or len(set(hashes)) != 2):
+                raise ValueError(
+                    f"{task['id']}: applied eligibility requires two distinct proof hashes"
+                )
+        decisions.append(
+            {
+                "task_id": str(task["id"]),
+                "disposition": "eligible" if status == "eligible" else "needs_trace_repair",
+                "adjudication": qualification,
+            }
+        )
+    return {
+        "schema": QUALIFICATION_SCHEMA,
+        "policy": {
+            "qualification_browser": "upstream Chromium",
+            "independent_passes_per_task": 2,
+            "task_and_evaluator_are_immutable": True,
+            "browser_comparison_results_must_not_be_used": True,
+            "allowed_final_statuses": ["eligible", "skipped"],
+        },
+        "tasks": decisions,
+    }
+
+
+
+def _collect_validated_run(
+    canonical_tasks: dict[str, dict[str, Any]],
+    decisions: dict[str, dict[str, Any]],
+    validated_suite: dict[str, Any],
+    attempts_path: Path,
+    candidates: dict[tuple[str, str], dict[str, Any]],
+) -> None:
+    validated_tasks = _qualification_rows(validated_suite.get("tasks"), "id", "validated suite")
+    if attempts_path.is_symlink():
+        raise ValueError("qualification attempt projection is symlinked")
+    rows = load_jsonl(attempts_path, skip_blank=True)
+    identities = {
+        (
+            str(row.get("task_id")),
+            str(row.get("run_id")),
+            row.get("qualification_pass_index"),
+        )
+        for row in rows
+    }
+    if not rows or len(identities) != len(rows):
+        raise ValueError(f"validated run has empty or duplicate attempt rows: {attempts_path}")
+    for row in rows:
+        task_id = str(row.get("task_id") or "")
+        task = validated_tasks.get(task_id)
+        if task is None or task_id not in canonical_tasks or task_id not in decisions:
+            raise ValueError(f"validated run contains unknown task {task_id}")
+        if (
+            row.get("engine") != "chromium"
+            or row.get("qualification_run") is not True
+            or row.get("is_retry") is not False
+            or type(row.get("attempt")) is not int
+            or row.get("attempt") != 1
+            or type(row.get("qualification_pass_index")) is not int
+            or row.get("qualification_pass_index") not in {1, 2}
+            or type(row.get("qualification_required_passes")) is not int
+            or row.get("qualification_required_passes") != 2
+        ):
+            raise ValueError(f"{task_id}: validated run violates cold primary policy")
+        _verify_attempt_projection(row)
+        if not (task.get("trajectory") or {}).get("actions"):
+            raise ValueError(f"{task_id}: qualified candidate requires a non-empty trajectory")
+        original = canonical_tasks[task_id]
+        for key in ("id", "title", "evaluator", "environment"):
+            if task.get(key) != original.get(key):
+                raise ValueError(f"{task_id}: validated suite changed immutable {key}")
+        if ((task.get("source") or {}).get("verified_evaluators")
+                != (original.get("source") or {}).get("verified_evaluators")):
+            raise ValueError(f"{task_id}: validated suite changed immutable evaluator contracts")
+        if row.get("task_contract_sha256") != task_contract_sha256(task):
+            raise ValueError(f"{task_id}: validated run does not match task contract")
+        evidence_directory = str(row.get("evidence_directory") or "").strip()
+        if not evidence_directory:
+            raise ValueError(f"{task_id}: validated run lacks evidence_directory")
+        contract = task_contract_sha256(task)
+        candidate = candidates.setdefault(
+            (task_id, contract),
+            {
+                "task_id": task_id,
+                "contract": contract,
+                "task": deepcopy(task),
+                "attempt_paths": [],
+                "passing_paths": [],
+            },
+        )
+        attempt_path = str(Path(evidence_directory) / "attempt.json")
+        candidate["attempt_paths"].append(attempt_path)
+        if all(
+            row.get(key) == "pass"
+            for key in (
+                "process_status",
+                "result_status",
+                "evidence_status",
+                "status",
+                "combined_status",
+            )
+        ):
+            candidate["passing_paths"].append(attempt_path)
+
+
+
+def _overlay_two_pass_candidates(
+    canonical_tasks: dict[str, dict[str, Any]],
+    decisions: dict[str, dict[str, Any]],
+    candidates: dict[tuple[str, str], dict[str, Any]],
+) -> set[str]:
+    overlaid: set[str] = set()
+    for candidate in candidates.values():
+        task_id = candidate["task_id"]
+        attempt_paths = candidate["attempt_paths"]
+        passing_paths = candidate["passing_paths"]
+        if len(attempt_paths) > 2:
+            raise ValueError(f"{task_id}: more than two validation attempts")
+        if len(attempt_paths) != 2 or len(passing_paths) != 2:
+            continue
+        if task_id in overlaid:
+            raise ValueError(f"{task_id}: multiple task contracts passed qualification")
+        task = candidate["task"]
+        contract = candidate["contract"]
+        adjudication: dict[str, Any] = {
+            "status": "eligible",
+            "validated_attempt_paths": list(passing_paths),
+        }
+        # Validate the immutable attempt files, not only their JSONL projections.
+        validated_attempt_sha256s(
+            adjudication,
+            task_id,
+            expected_contract_sha256=contract,
+        )
+        original = canonical_tasks[task_id]
+        reason = str(
+            ((task.get("ground_truth") or {}).get("qualification") or {}).get("reason")
+            or ((decisions[task_id].get("adjudication") or {}).get("reason"))
+            or ""
+        ).strip()
+        if task.get("trajectory") != original.get("trajectory"):
+            adjudication["corrected_trajectory"] = deepcopy(task["trajectory"])
+        validated_builder = (task.get("ground_truth") or {}).get("response_builder")
+        original_builder = (original.get("ground_truth") or {}).get("response_builder")
+        if validated_builder != original_builder:
+            adjudication["response_builder"] = deepcopy(validated_builder)
+        if (
+            adjudication.get("corrected_trajectory") is not None
+            or adjudication.get("response_builder") is not None
+            or decisions[task_id].get("disposition")
+            not in {"eligible", "needs_evidence_revalidation"}
+        ):
+            if not reason:
+                raise ValueError(f"{task_id}: repaired validated pass lacks reason")
+            adjudication["reason"] = reason
+        decisions[task_id]["adjudication"] = adjudication
+        overlaid.add(task_id)
+    return overlaid
+
+
+
+def finalize_adjudication(
+    suite: dict[str, Any],
+    qualification: dict[str, Any],
+    validated_runs: list[tuple[dict[str, Any], Path]],
+    invalidations: dict[str, str],
+) -> dict[str, Any]:
+    result = deepcopy(qualification)
+    canonical_tasks = _qualification_rows(suite.get("tasks"), "id", "canonical suite")
+    decisions = _qualification_rows(result.get("tasks"), "task_id", "qualification")
+    if set(decisions) != set(canonical_tasks):
+        raise ValueError("qualification task set does not match canonical suite")
+    unknown_invalidations = set(invalidations) - set(decisions)
+    if unknown_invalidations:
+        raise ValueError(f"invalidations contain unknown tasks: {sorted(unknown_invalidations)}")
+    # Preserve prior repair reasons while overlaying, but remember which
+    # eligibility decisions must be replaced by fresh two-pass evidence.
+    previous_eligible = {
+        task_id
+        for task_id, decision in decisions.items()
+        if (decision.get("adjudication") or {}).get("status") == "eligible"
+    }
+    candidates: dict[tuple[str, str], dict[str, Any]] = {}
+    for validated_suite, attempts_path in validated_runs:
+        _collect_validated_run(
+            canonical_tasks,
+            decisions,
+            validated_suite,
+            attempts_path,
+            candidates,
+        )
+    overlaid = _overlay_two_pass_candidates(canonical_tasks, decisions, candidates)
+    # A partial repair-validation batch is an incremental overlay. Only a task
+    # that was actually present in fresh evidence may replace its prior
+    # eligibility; otherwise an unrelated small batch would silently erase all
+    # previously qualified tasks. A complete revalidation still has replacement
+    # semantics because every task is present in ``candidates``.
+    observed_task_ids = {task_id for task_id, _contract in candidates}
+    for task_id in (previous_eligible & observed_task_ids) - overlaid:
+        decisions[task_id]["adjudication"] = None
+    # An explicit invalidation records later evidence and therefore wins over
+    # every provisional or independently reproduced pass.
+    for task_id, reason in invalidations.items():
+        if not str(reason).strip():
+            raise ValueError(f"{task_id}: invalidation reason is empty")
+        decisions[task_id]["adjudication"] = {
+            "status": "skipped",
+            "reason": str(reason).strip(),
+        }
+    for decision in decisions.values():
+        adjudication = decision.get("adjudication")
+        if not isinstance(adjudication, dict) or adjudication.get("status") not in {
+            "eligible",
+            "skipped",
+        }:
+            decision["adjudication"] = {
+                "status": "skipped",
+                "reason": _default_skip_reason(decision),
+            }
+    result["tasks"] = [decisions[str(task["id"])] for task in suite["tasks"]]
+    result["schema"] = QUALIFICATION_SCHEMA
+    return result
+
+
+
+def main_finalize_adjudication(argv=None) -> None:
+    parser = argparse.ArgumentParser(
+        description="Finalize complete two-pass qualification decisions",
+    )
+    parser.add_argument("--suite", type=Path, required=True)
+    parser.add_argument(
+        "--qualification",
+        type=Path,
+        help="prior private adjudication; omit to rehydrate from an already applied suite",
+    )
+    parser.add_argument(
+        "--validated-run",
+        action="append",
+        default=[],
+        metavar="SUITE::ATTEMPTS",
+    )
+    parser.add_argument("--invalidations", type=Path)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    runs: list[tuple[dict[str, Any], Path]] = []
+    for value in args.validated_run:
+        parts = value.split("::", 1)
+        if len(parts) != 2:
+            raise ValueError("validated run must be SUITE::ATTEMPTS")
+        suite_path, attempts_path = map(Path, parts)
+        load_suite(suite_path)
+        runs.append(
+            (
+                json.loads(suite_path.read_text(encoding="utf-8")),
+                attempts_path,
+            )
+        )
+    invalidations = (
+        json.loads(args.invalidations.read_text(encoding="utf-8")) if args.invalidations else {}
+    )
+    if not isinstance(invalidations, dict):
+        raise ValueError("invalidations must be a task-to-reason object")
+    load_suite(args.suite)
+    suite = json.loads(args.suite.read_text(encoding="utf-8"))
+    qualification = (
+        json.loads(args.qualification.read_text(encoding="utf-8"))
+        if args.qualification
+        else qualification_from_applied_suite(suite)
+    )
+    payload = finalize_adjudication(
+        suite,
+        qualification,
+        runs,
+        {str(key): str(value) for key, value in invalidations.items()},
+    )
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    _write_immutable(args.output, payload)
+
+
+def _main_adjudicated_suite(argv, *, evidence_only: bool) -> None:
+    parser = argparse.ArgumentParser(description="Build a pending qualification validation suite")
+    parser.add_argument("--suite", type=Path, required=True)
+    parser.add_argument("--qualification", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    builder = build_evidence_revalidation_suite if evidence_only else build_repair_validation_suite
+    result = builder(
+        json.loads(args.suite.read_text(encoding="utf-8")),
+        json.loads(args.qualification.read_text(encoding="utf-8")),
+    )
+    _write_qualified_suite(args.output, result)
+
+
+def main_repair_validation_suite(argv=None) -> None:
+    _main_adjudicated_suite(argv, evidence_only=False)
+
+
+def main_evidence_revalidation_suite(argv=None) -> None:
+    _main_adjudicated_suite(argv, evidence_only=True)
+
+
+def main_apply_adjudication(argv=None) -> None:
+    parser = argparse.ArgumentParser(
+        description="Apply complete or selected qualification decisions",
+    )
+    parser.add_argument("--suite", type=Path, required=True)
+    parser.add_argument("--qualification", type=Path, required=True)
+    parser.add_argument("--task-id", action="append", dest="task_ids")
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    result = apply_adjudication(
+        json.loads(args.suite.read_text(encoding="utf-8")),
+        json.loads(args.qualification.read_text(encoding="utf-8")),
+        task_ids=set(args.task_ids) if args.task_ids else None,
+    )
+    _write_qualified_suite(args.output, result)
+
+
+def main_repair_queue(argv=None) -> None:
+    parser = argparse.ArgumentParser(description="Build the complete two-pass correction queue")
+    parser.add_argument("--suite", type=Path, required=True)
+    parser.add_argument("--attempts", type=Path, required=True, nargs="+")
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    payload = build_repair_queue(load_suite(args.suite), args.attempts)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    _write_immutable(args.output, payload)

@@ -231,6 +231,28 @@ parent file hash. Action-count changes additionally require the existing paired 
 qualification receipts. Freezing writes a new manifest and never overwrites an existing
 one; it does not execute or score a browser.
 
+### Qualification decisions and immutable outputs
+
+The public WebArena queue, revalidation, finalization and application commands share
+`public_webarena/qualification.py`. Every declared task and decision must occur exactly
+once. A resumable shard must retain its raw `attempt.json` as well as its summary and HAR.
+A JSONL attempt projection must match that raw record, including scalar types; a passing summary
+cannot promote a failed attempt, and a failing summary cannot discard a passing attempt.
+Older summaries without raw source evidence cannot establish eligibility and require
+evidence revalidation.
+Eligibility requires two distinct Chromium runs covering integer pass indices 1 and 2,
+with the required HAR and hash-verified final-page evidence. Linked attempt, HAR and
+final-page files are rejected. Applied eligibility retains both distinct proof hashes;
+empty trajectories cannot gain eligibility from passing metadata.
+
+Finalization allows declared trajectory and response-builder repairs while preserving
+the task instruction, evaluator contracts and environment. Applying decisions derives
+a new suite and preserves the original input, including when validation fails. The queue
+and final adjudication are immutable private evidence; derived suites are validated before
+the output appears. Repeating a command with identical content is safe, but a different
+revision needs a new output path. These commands do not execute a browser or alter
+historical comparison scores.
+
 ### Public WebArena repair proposals
 
 Repair authoring is optional. It produces pending trajectories for the isolated public
