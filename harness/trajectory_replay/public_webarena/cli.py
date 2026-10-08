@@ -5,13 +5,13 @@ from __future__ import annotations
 import argparse
 import fcntl
 import hashlib
-import json
 import re
 from collections.abc import Iterator
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from .config import configure_browser_docker_host, load_runtime_env
+from .qualification import task_ids_from_scope
 from .runner import run_evaluation
 
 
@@ -38,46 +38,6 @@ def qualification_lock(
         handle.close()
 
 
-def task_ids_from_scope(
-    scope_path: str | Path,
-    suite_path: str | Path,
-    batch_id: str,
-    *,
-    shard_count: int | None = None,
-    shard_index: int | None = None,
-) -> tuple[str, ...]:
-    scope_file = Path(scope_path)
-    suite_file = Path(suite_path)
-    scope = json.loads(scope_file.read_text(encoding="utf-8"))
-    if scope.get("schema") != "lex_browser_use_native_scope/1":
-        raise ValueError("native scope schema is invalid")
-    if scope.get("suite_sha256") != hashlib.sha256(suite_file.read_bytes()).hexdigest():
-        raise ValueError("native scope does not match suite sha256")
-    matches = [
-        row for row in scope.get("qualification_batches") or [] if row.get("id") == batch_id
-    ]
-    if len(matches) != 1:
-        raise ValueError(f"unknown or duplicate native scope batch: {batch_id}")
-    batch = matches[0]
-    task_ids = tuple(str(value) for value in batch.get("task_ids") or [])
-    if not task_ids or len(set(task_ids)) != len(task_ids):
-        raise ValueError(f"native scope batch is empty or contains duplicates: {batch_id}")
-    if not set(task_ids) <= set(scope.get("included_task_ids") or []):
-        raise ValueError(f"native scope batch contains excluded tasks: {batch_id}")
-    if (shard_count is None) != (shard_index is None):
-        raise ValueError("batch shard count and index must be provided together")
-    if shard_count is not None and shard_index is not None:
-        declared_shard_count = int(batch.get("shard_count") or 1)
-        if shard_count != declared_shard_count:
-            raise ValueError(
-                f"batch shard count must match pre-registered value {declared_shard_count}"
-            )
-        if shard_count < 1 or shard_count > len(task_ids):
-            raise ValueError("batch shard count must be between 1 and the batch task count")
-        if shard_index < 0 or shard_index >= shard_count:
-            raise ValueError("batch shard index must be zero-based and smaller than shard count")
-        task_ids = task_ids[shard_index::shard_count]
-    return task_ids
 
 
 def main() -> None:

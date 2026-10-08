@@ -291,13 +291,20 @@ index. Shards from one stateful site remain sequential because they share a rese
 uv run --frozen python -m harness.trajectory_replay.public_webarena.cli --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --batch-id shopping --batch-shard-count 4 --batch-shard-index 0 --webarena-config <runtime-config> --qualification-run --qualification-pass-index <1-or-2> --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/pass-<1-or-2>/shopping-0-of-4
 ```
 
-The scope orchestrator keeps shards from the same site sequential, but may run disjoint site batches
-in parallel. `--max-site-workers 3` therefore never overlaps two resets that can touch the same
-service. On restart it skips an existing shard only after verifying its manifest contract, artifact
+The scope orchestrator keeps shards within each site batch sequential. One runtime configuration
+permits one active batch. To run batches concurrently, repeat `--webarena-config` with independently
+provisioned slice configurations and set `--max-site-workers` to the desired limit. These slices
+must have separate containers, data stores, ports, gateways and lock namespaces; distinct filenames
+alone do not establish deployment isolation. On restart it skips an existing shard only after
+verifying its manifest contract, artifact
 hashes, and exactly one primary Chromium attempt per task and pass. Incomplete output is preserved
 under `_failed` before a clean rerun; conflicting complete evidence is never overwritten. After
 both 172-task passes are present, it writes the immutable correction queue;
-`--dry-run` prints the full plan without creating the evidence root.
+`--dry-run` prints the full plan without creating the evidence root or relocating existing
+incomplete output. The suite and scope must retain their bytes throughout orchestration;
+runtime gateway updates follow the existing Rainbond reset receipts. Linked shard artifacts
+are rejected. Derived qualification suites are validated
+before writing, and an existing different output is never replaced.
 
 ```text
 uv run --frozen python -m scripts.run_webarena_qualification --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --webarena-config <runtime-config> --env-file .env --browser-docker-host unix:///var/run/docker.sock --max-site-workers 3 --evidence-root <evidence>/qualification

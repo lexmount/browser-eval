@@ -366,6 +366,57 @@ def verify_release_check_helpers(root: Path, source_root: Path) -> None:
         assert 'release authority is missing' not in rejected.stderr
 
 
+def verify_qualification_commands(root: Path, source_root: Path) -> None:
+    from harness.trajectory_replay.public_webarena import qualification
+
+    assert not Path(qualification.__file__).resolve().is_relative_to(source_root.resolve())
+    stage = root / 'qualification'
+    stage.mkdir()
+    suite = stage / 'suite.json'
+    suite.write_text(json.dumps({'schema': 'lex_browser_use_tasks/4', 'tasks': [{
+        'id': 'a', 'title': 'Candidate', 'difficulty': 'simple', 'tags': ['mutate'],
+        'trajectory': {'schema': 'lex_browser_trajectory/1', 'actions': []},
+        'ground_truth': {'expected_actions': [], 'qualification': {'status': 'pending'}},
+        'source': {'url': 'https://example.invalid/task'},
+        'evaluator': {'kind': 'webarena_verified', 'task_id': 1, 'revision': 1},
+        'environment': {'kind': 'webarena_verified', 'sites': ['shopping']},
+    }]}))
+    scope = stage / 'scope.json'
+    scope.write_text(json.dumps({
+        'schema': 'lex_browser_use_native_scope/1',
+        'suite_sha256': hashlib.sha256(suite.read_bytes()).hexdigest(),
+        'included_task_ids': ['a'], 'excluded_tasks': [],
+        'qualification_batches': [{'id': 'shopping', 'sites': ['shopping'],
+                                   'shard_count': 1, 'task_ids': ['a']}],
+    }))
+    config = stage / 'config.json'
+    config.write_text('{}')
+    evidence = stage / 'evidence'
+    partial = evidence / 'pass-1/shopping-0-of-1/partial.txt'
+    partial.parent.mkdir(parents=True)
+    partial.write_bytes(b'preserve partial evidence')
+    scripts = source_root / 'scripts'
+    subprocess.run([
+        sys.executable, str(scripts / 'run_webarena_qualification.py'), '--suite', str(suite),
+        '--native-scope', str(scope), '--webarena-config', str(config),
+        '--evidence-root', str(evidence), '--dry-run',
+    ], check=True, cwd=stage, capture_output=True)
+    assert partial.read_bytes() == b'preserve partial evidence'
+    assert not (evidence / '_failed').exists() and not (evidence / 'pass-2').exists()
+    queue = stage / 'queue.json'
+    queue.write_text(json.dumps({'tasks': [{'task_id': 'a', 'disposition': 'eligible'}]}))
+    for command, arguments in (
+        ('build_webarena_qualification_subset.py', ['--qualification', str(queue),
+                                                  '--dispositions', 'eligible',
+                                                  '--task-types', 'mutate']),
+        ('build_webarena_requalification_suite.py', ['--native-scope', str(scope)]),
+    ):
+        output = stage / (command + '.json')
+        subprocess.run([sys.executable, str(scripts / command), '--suite', str(suite),
+                        *arguments, '--output', str(output)], check=True, cwd=stage)
+        assert qualification.load_suite(output).tasks[0].task_id == 'a'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -409,6 +460,7 @@ def main():
         verify_lexbench_package(root, args.source_root / 'scripts/moli_report/app.js')
         verify_dynamic_cohort(root, args.source_root)
         verify_review_revisions(root, args.source_root)
+        verify_qualification_commands(root, args.source_root)
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
                        check=True, cwd=root)
         binary = root / 'browser'

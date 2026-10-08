@@ -6,15 +6,15 @@ from pathlib import Path
 
 import pytest
 
-from harness.trajectory_replay.public_webarena.qualification import task_contract_sha256
-from harness.trajectory_replay.public_webarena.suite import BrowserTask, TaskSuite
-from scripts.run_webarena_qualification import (
+from harness.trajectory_replay.public_webarena.qualification import (
     _write_immutable,
     build_scoped_repair_queue,
     qualification_shards,
     qualification_waves,
+    task_contract_sha256,
     validate_completed_shard,
 )
+from harness.trajectory_replay.public_webarena.suite import BrowserTask, TaskSuite
 
 
 def _write_json(path, payload):

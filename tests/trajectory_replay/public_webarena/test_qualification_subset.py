@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.build_webarena_qualification_subset import build_subset
+from harness.trajectory_replay.public_webarena.qualification import build_qualification_subset
 
 
 def _task(task_id: str, task_type: str, site: str) -> dict:
@@ -31,7 +31,7 @@ def test_qualification_subset_selects_disposition_type_and_site():
         ]
     }
 
-    result = build_subset(
+    result = build_qualification_subset(
         suite,
         qualification,
         dispositions={"needs_trace_repair"},
@@ -48,7 +48,7 @@ def test_qualification_subset_selects_disposition_type_and_site():
 
 def test_qualification_subset_rejects_empty_result():
     with pytest.raises(ValueError, match="empty"):
-        build_subset(
+        build_qualification_subset(
             {"tasks": [_task("a", "retrieve", "map")]},
             {"tasks": [{"task_id": "a", "disposition": "eligible"}]},
             dispositions={"needs_trace_repair"},
@@ -58,7 +58,7 @@ def test_qualification_subset_rejects_empty_result():
 
 def test_qualification_subset_rejects_unknown_filter_values():
     with pytest.raises(ValueError, match="unsupported disposition"):
-        build_subset(
+        build_qualification_subset(
             {"tasks": []},
             {"tasks": []},
             dispositions={"unknown"},
@@ -77,7 +77,7 @@ def test_qualification_subset_can_match_an_exact_multi_site_group():
         ]
     }
 
-    result = build_subset(
+    result = build_qualification_subset(
         {"tasks": [multi, single]},
         qualification,
         dispositions={"needs_trace_repair"},
