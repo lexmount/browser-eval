@@ -1,19 +1,19 @@
 """Behavioral controls for keeping both Moli repair cohorts distinct."""
-from scripts.assemble_webmainbench_seven_methods import (
-    alias_row,
-    copy_alias_artifacts,
-    drop_inherited_teds_revision,
-    require_matrix,
-    require_provider_batch,
-)
-from scripts.replace_webmainbench_variant import raw_row
-from scripts.replace_webmainbench_variant import replace
-from scripts.compose_webmainbench_seven_method_correction import compose
-
 import hashlib
 import json
 from pathlib import Path
+
 import pytest
+
+from harness.web_fetch.webmainbench_evidence import (
+    alias_row,
+    copy_alias_artifacts,
+    require_matrix,
+    require_provider_batch,
+)
+from scripts.assemble_webmainbench_seven_methods import drop_inherited_teds_revision
+from scripts.compose_webmainbench_seven_method_correction import compose
+from scripts.replace_webmainbench_variant import raw_row, replace
 
 
 def test_alias_row_rewrites_every_provider_owned_identity() -> None:

@@ -4,30 +4,46 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
+
 from harness.reporting.assets import copy_bound_assets
-from .report import generate, generate_public_benchmark_research, generate_webmainbench, generate_webmainbench_full, webmainbench_full_machine_issue, generate_wcxb, succeeded, measured, failure_category, TRACKS
-from .report_changes import webmainbench_history
+
+from .artifacts import (
+    diagnostic_log_binding,
+    record_public_call_log_bindings,
+    verify_public_call_log,
+    verify_record_private_artifacts,
+    verify_record_public_call_logs,
+)
 from .failure_diagnosis import diagnose
-from .safety import contained_path, safe_identifier, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
-from .storage import require_selection_history,data_home
-from .wcxb_latency import load_full_paired_latency
+from .report import (
+    TRACKS,
+    failure_category,
+    generate,
+    generate_public_benchmark_research,
+    generate_wcxb,
+    generate_webmainbench,
+    generate_webmainbench_full,
+    measured,
+    succeeded,
+    webmainbench_full_machine_issue,
+)
+from .report_changes import webmainbench_history
+from .safety import contained_path, safe_identifier, validate_report_ids
 from .scoring import SCORING_SOURCE_SHA256
+from .storage import data_home, require_selection_history
+from .wcxb_latency import load_full_paired_latency
 from .webmainbench_diagnostics import validate_teds_revision_if_present
 from .webmainbench_latency_correction import prior_results_path
 from .webmainbench_latency_diagnostic import load_diagnostic as load_latency_diagnostic
-from .artifacts import (
-    diagnostic_log_binding, record_public_call_log_bindings, verify_record_private_artifacts,
-    verify_public_call_log, verify_record_public_call_logs,
-)
 
 
 def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | None = None) -> Path:
     """Build an explicitly requested diagnostic edition using the WebFetch owner."""
     from harness.reporting.templates import resolve_template
-    from .report_diagnostic import load_diagnostic, check_diagnostic_report, prepare_diagnostic_evidence
     from .report import generate_cohort_diagnostic
+    from .report_diagnostic import check_diagnostic_report, load_diagnostic, prepare_diagnostic_evidence
 
     if profile is not None:
         configuration = json.loads(profile.read_text())
@@ -279,6 +295,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 # newer origin/main release gate in a local merged view.
                 continue
             from copy import deepcopy
+
             from .stable_annotations import bind_annotation_evidence
             checked=deepcopy(c)
             bind_annotation_evidence(checked,source)
@@ -725,9 +742,11 @@ def public_webmainbench_scoring_projection(records: list[dict]) -> list[dict]:
 
 def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     """Build the separately bound complete 545-case report from certified evidence."""
-    from harness.web_fetch.webmainbench_certification import digest, read_jsonl
+    from harness.web_fetch.webmainbench_evidence import digest, read_jsonl
+
     from .webmainbench_diagnostics import (
-        validate_reference_revision, validate_teds_revision,
+        validate_reference_revision,
+        validate_teds_revision,
         validate_webmainbench_scoring_revision,
     )
     if source.is_symlink() or any(path.is_symlink() for path in source.rglob('*')):
@@ -917,7 +936,9 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
                 shutil.copy2(asset_source, staging / 'assets' / asset['name'])
         generate_webmainbench_full(staging, dataset, records,
                                    summaries, display_profile)
-        from harness.web_fetch.webmainbench_report_check import check as check_webmainbench_full
+        from harness.web_fetch.webmainbench_report_check import (
+            check as check_webmainbench_full,
+        )
         check_webmainbench_full(staging)
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
@@ -938,8 +959,8 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
 
 def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: dict, output: Path) -> Path:
     """Build the one current report from a fully certified WCXB matrix."""
-    from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
     from harness.web_fetch.wcxb_dataset import validate_manifest
+    from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
     source, output = source.resolve(), output.resolve()
     certificate = json.loads((source / 'certification.json').read_text())
     summary = json.loads((source / 'wcxb-score-summary.json').read_text())

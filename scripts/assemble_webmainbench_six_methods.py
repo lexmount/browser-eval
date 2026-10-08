@@ -4,16 +4,17 @@ from __future__ import annotations
 import argparse
 import copy
 import json
-from pathlib import Path
 import shutil
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from harness.web_fetch.webmainbench_certification import digest, read_jsonl, verify_shard
-from scripts.score_certified_webmainbench_full import verify_score
 from harness.web_fetch.safety import contained_path
+from harness.web_fetch.webmainbench_certification import verify_shard
+from harness.web_fetch.webmainbench_evidence import digest, read_jsonl
+from harness.web_fetch.webmainbench_scoring import verify_score
 
 FIXED = "moli-fixed"
 

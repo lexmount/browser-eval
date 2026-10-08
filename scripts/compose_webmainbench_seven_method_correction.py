@@ -4,17 +4,16 @@ from __future__ import annotations
 import argparse
 import copy
 import json
-from pathlib import Path
 import shutil
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_correction import digest, read_rows, validate
-from scripts.assemble_webmainbench_seven_methods import alias_row
-
+from harness.web_fetch.webmainbench_evidence import alias_row
 
 BASE = ["moli", "lightpanda", "obscura", "chromium", "kitesurf"]
 OLD = "moli-pr785-fixed"

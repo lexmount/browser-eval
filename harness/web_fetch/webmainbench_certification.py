@@ -10,18 +10,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+from harness.web_fetch.config import load_runtime_env
+from harness.web_fetch.webmainbench_evidence import digest, read_jsonl
+from harness.web_fetch.webmainbench_runner import load_source
+
 ROOT = Path(__file__).resolve().parents[2]
 
-from harness.web_fetch.webmainbench_runner import load_source
-from harness.web_fetch.config import load_runtime_env
 
 
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
-
-def read_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
 def source_binding(source: Path, scorer: Path, profile: dict) -> dict:
@@ -158,6 +155,63 @@ def main(argv: list[str] | None = None) -> None:
     (args.output_root / "cohort-certificate.json").write_text(
         json.dumps(certificate, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print("Certified complete WebMainBench cohort: " + str(args.output_root), flush=True)
+
+
+def scorer_source_binding(scorer: Path) -> dict[str, str]:
+    files = sorted((scorer / "webmainbench/metrics").glob("*.py"))
+    if not files:
+        raise ValueError("Pinned scorer metrics source is absent")
+    return {str(path.relative_to(scorer)): digest(path) for path in files}
+
+
+
+def main_score() -> None:
+    from .webmainbench_scoring import verify_score
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--cohort", type=Path, required=True)
+    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--scorer", type=Path, required=True)
+    parser.add_argument("--profile", type=Path, default=ROOT / "evaluation/webmainbench-full/current-report.json")
+    args = parser.parse_args()
+    if (args.cohort / "scoring-certificate.json").exists():
+        parser.error("Scoring certificate already exists; refusing overwrite")
+    profile = json.loads(args.profile.read_text(encoding="utf-8"))
+    cohort = json.loads((args.cohort / "cohort-certificate.json").read_text(encoding="utf-8"))
+    if (cohort.get("kind") != "certified_webmainbench_545_full_v1"
+            or cohort.get("profile_sha256") != digest(args.profile)):
+        parser.error("Complete certified cohort is required")
+    before = source_binding(args.source, args.scorer, profile)
+    scorer_files = scorer_source_binding(args.scorer)
+    if before != cohort["postflight"]:
+        parser.error("Scoring input differs from the certified cohort")
+    source_rows = read_jsonl(args.source)
+    case_ids = {row["track_id"] for row in source_rows}
+    if len(source_rows) != profile["case_count"] or len(case_ids) != len(source_rows):
+        parser.error("Source case inventory differs from the declared cohort")
+    receipts = []
+    for provider in profile["providers"]:
+        shard = args.cohort / provider
+        print("Scoring " + provider, flush=True)
+        with (shard / "scoring.log").open("w", encoding="utf-8") as stream:
+            subprocess.run([sys.executable, "-m", "harness.web_fetch.webmainbench_scoring",
+                            "--evidence", str(shard), "--dataset", str(args.source),
+                            "--scorer-repo", str(args.scorer),
+                            "--expected-dataset-sha256", profile["source_dataset_sha256"],
+                            "--expected-scorer-commit", profile["official_scorer_commit"]],
+                           cwd=ROOT, stdout=stream,
+                           stderr=subprocess.STDOUT, check=True)
+        receipts.append(verify_score(shard, provider, case_ids, args.scorer, profile))
+        if source_binding(args.source, args.scorer, profile) != before or scorer_source_binding(args.scorer) != scorer_files:
+            raise ValueError("Source or scorer changed during scoring")
+        print(provider + " scored and verified", flush=True)
+    certificate = {"schema_version": 1, "kind": "certified_webmainbench_scoring_v1",
+                   "cohort_certificate_sha256": digest(args.cohort / "cohort-certificate.json"),
+                   "source_binding": before, "scorer_source_sha256": scorer_files,
+                   "providers": receipts}
+    (args.cohort / "scoring-certificate.json").write_text(
+        json.dumps(certificate, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print("Certified complete scoring", flush=True)
 
 
 if __name__ == "__main__":

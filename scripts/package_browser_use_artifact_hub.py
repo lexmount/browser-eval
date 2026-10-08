@@ -12,7 +12,7 @@ from pathlib import Path
 if __package__:
     from scripts.check_browser_use_report import check
     from scripts.check_browser_use_visual import check as check_visual
-    from scripts.check_report_links import check as check_links
+    from harness.reporting.links import check as check_links
 else:  # Direct execution adds scripts/, not the repository root.
     from check_browser_use_report import check
     from check_browser_use_visual import check as check_visual

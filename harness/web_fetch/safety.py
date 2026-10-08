@@ -10,7 +10,7 @@ def safe_identifier(value: str) -> str:
     return value
 
 
-def contained_path(root: Path, relative: str | Path) -> Path:
+def contained_path(root: Path, relative: str | Path, *, reject_symlinks: bool = False) -> Path:
     value = str(relative)
     path = Path(value)
     if (not value or path == Path('.') or path.is_absolute() or '..' in path.parts
@@ -18,6 +18,14 @@ def contained_path(root: Path, relative: str | Path) -> Path:
             or any(ord(char) < 32 for char in value)):
         raise ValueError('Paths must be relative and stay inside the evidence directory')
     base = root.resolve()
+    if reject_symlinks:
+        if root.is_symlink():
+            raise ValueError('Symlinked evidence is forbidden')
+        lexical = base
+        for part in path.parts:
+            lexical = lexical / part
+            if lexical.is_symlink():
+                raise ValueError('Symlinked evidence is forbidden')
     target = (base / path).resolve()
     if not target.is_relative_to(base) or target == base:
         raise ValueError('Path or symlink escapes its evidence directory')

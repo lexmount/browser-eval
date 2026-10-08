@@ -23,6 +23,28 @@ def test_default_evidence_is_outside_the_checkout(tmp_path, monkeypatch):
     assert default_run_dir().is_relative_to(tmp_path / "data" / "runs")
 
 
+def test_base_cli_does_not_load_optional_execution_dependencies(tmp_path):
+    program = '''
+import importlib.abc
+import sys
+class BaseInstallation(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        optional = {'docker', 'playwright', 'openai', 'webarena_verified', 'pypdf', 'requests'}
+        if fullname.split('.')[0] in optional:
+            raise AssertionError('Base CLI loaded optional dependency: ' + fullname)
+sys.meta_path.insert(0, BaseInstallation())
+from harness.web_fetch.cli import main
+sys.argv = ['browser-harness-eval', 'validate']
+main()
+'''
+    root = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [sys.executable, "-c", program], cwd=tmp_path,
+        env={**os.environ, "PYTHONPATH": str(root)}, capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 def test_offline_example_runs_without_a_repository(tmp_path):
     root = Path(__file__).resolve().parents[1]
     installation = tmp_path / "installation"
@@ -52,7 +74,7 @@ def test_offline_example_runs_without_a_repository(tmp_path):
     assert "网页抓取成功之后，内容离可用还有多远" not in home
     guide = (run / "report/guide/index.html").read_text()
     assert "本报告的任务范围与验收规则" in guide
-    from scripts.check_report_links import check
+    from harness.reporting.links import check
     check(run / "report")
     for row in rows:
         assert (run / "report/attempts" / (row["attempt_id"] + ".html")).is_file()

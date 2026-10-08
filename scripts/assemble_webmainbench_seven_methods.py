@@ -7,80 +7,34 @@ identity without changing any measured output or physical call.
 from __future__ import annotations
 
 import argparse
-import copy
 import json
-from pathlib import Path
 import shutil
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from harness.web_fetch.safety import contained_path
-from harness.web_fetch.webmainbench_certification import digest, read_jsonl
+from harness.web_fetch.webmainbench_evidence import (
+    alias_row,
+    copy_alias_artifacts,
+    digest,
+    read_jsonl,
+    require_matrix,
+    require_provider_batch,
+)
 
 
 def write_rows(path: Path, rows: list[dict]) -> None:
     path.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows))
 
 
-def alias_row(row: dict, source_provider: str, provider: str) -> dict:
-    row = copy.deepcopy(row)
-    row["provider"] = provider
-    row["attempt_id"] = row["attempt_id"].replace(source_provider + "__", provider + "__", 1)
-    for key in ("artifact_path", "physical_artifact_path"):
-        if key in row:
-            row[key] = row[key].replace(
-                f"artifacts/{source_provider}/", f"artifacts/{provider}/", 1
-            )
-    if row.get("supersedes_attempt_id"):
-        row["supersedes_attempt_id"] = row["supersedes_attempt_id"].replace(
-            source_provider + "__", provider + "__", 1
-        )
-    return row
 
 
-def copy_alias_artifacts(source: Path, output: Path, rows: list[dict],
-                         source_provider: str, provider: str) -> None:
-    for row in rows:
-        expected_sha256 = row.get("output_sha256")
-        if not isinstance(expected_sha256, str) or not expected_sha256:
-            raise ValueError(
-                "Variant artifact is missing output_sha256: "
-                + str(row.get("attempt_id", "unknown attempt"))
-            )
-        for key in ("artifact_path", "physical_artifact_path"):
-            if key not in row:
-                continue
-            original = contained_path(source, row[key])
-            if digest(original) != expected_sha256:
-                raise ValueError("Variant artifact changed: " + row[key])
-            relative = row[key].replace(
-                f"artifacts/{source_provider}/", f"artifacts/{provider}/", 1
-            )
-            target = contained_path(output, relative)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(original, target)
 
 
-def require_matrix(rows: list[dict], providers: list[str], case_ids: set[str]) -> None:
-    expected = {(provider, case_id) for provider in providers for case_id in case_ids}
-    actual = {(row["provider"], row["case_id"]) for row in rows}
-    attempts = [row["attempt_id"] for row in rows]
-    if actual != expected or len(rows) != len(expected):
-        raise ValueError("Seven-method logical result matrix is incomplete")
-    if len(attempts) != len(set(attempts)):
-        raise ValueError("Seven-method logical attempt identity is not unique")
 
 
-def require_provider_batch(execution: dict, provider: str) -> dict:
-    batches = [batch for batch in execution.get("batches", [])
-               if batch.get("provider") == provider]
-    if len(batches) != 1:
-        raise ValueError(
-            f"Expected exactly one execution batch for {provider}, found {len(batches)}"
-        )
-    return copy.deepcopy(batches[0])
 
 
 def drop_inherited_teds_revision(output: Path) -> None:

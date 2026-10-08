@@ -11,7 +11,6 @@ import types
 from collections import defaultdict
 from pathlib import Path
 
-
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
 CORE_METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
@@ -163,6 +162,30 @@ def main() -> None:
         "supersedes": ["scored-results.jsonl", "score-summary.json"] if args.revision else [],
     }
     summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def verify_score(shard: Path, provider: str, case_ids: set[str], scorer: Path, profile: dict) -> dict:
+    from .webmainbench_evidence import digest, read_jsonl
+
+    scored = read_jsonl(shard / "scored-results.jsonl")
+    measured = read_jsonl(shard / "results.jsonl")
+    summary = json.loads((shard / "score-summary.json").read_text(encoding="utf-8"))
+    if (len(scored) != profile["case_count"] or len(measured) != len(scored)
+            or {row["track_id"] for row in scored} != case_ids
+            or len({row["track_id"] for row in scored}) != len(scored)
+            or any(row["provider"] != provider for row in scored)
+            or [{key: value for key, value in row.items() if key != "metrics"} for row in scored] != measured
+            or summary.get("provider") != provider or summary.get("case_count") != len(scored)
+            or summary.get("scorer", {}).get("commit") != profile["official_scorer_commit"]
+            or summary.get("scorer", {}).get("metric_config") != profile["metric_config"]
+            or summary["official_aggregate"] != aggregate(scored)):
+        raise ValueError(provider + ": scored evidence is incomplete or differs from measured calls")
+    for relative, expected in summary["scorer"]["metric_source_sha256"].items():
+        if digest(scorer / relative) != expected:
+            raise ValueError(provider + ": scorer source changed: " + relative)
+    return {"provider": provider, "scored_results_sha256": digest(shard / "scored-results.jsonl"),
+            "score_summary_sha256": digest(shard / "score-summary.json"),
+            "logical_results": len(scored)}
 
 
 if __name__ == "__main__":

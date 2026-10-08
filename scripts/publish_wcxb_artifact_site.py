@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.publication import upload_large_archive, verify_published_tree
 from harness.web_fetch.publication_target import require_publication_version
-from scripts.check_report_links import check as check_links
+from harness.reporting.links import check as check_links
 from scripts.check_wcxb_report import check as check_report
 
 

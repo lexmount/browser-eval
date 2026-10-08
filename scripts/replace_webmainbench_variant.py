@@ -9,18 +9,22 @@ from __future__ import annotations
 import argparse
 import copy
 import json
-from pathlib import Path
 import shutil
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.safety import contained_path
-from scripts.assemble_webmainbench_seven_methods import alias_row, require_matrix
-from harness.web_fetch.webmainbench_certification import digest, read_jsonl, verify_shard
-from scripts.score_certified_webmainbench_full import verify_score
-
+from harness.web_fetch.webmainbench_certification import verify_shard
+from harness.web_fetch.webmainbench_evidence import (
+    alias_row,
+    digest,
+    read_jsonl,
+    require_matrix,
+)
+from harness.web_fetch.webmainbench_scoring import verify_score
 
 HISTORY_FILES = (
     "teds-correction.json", "teds-correction-review.json",
