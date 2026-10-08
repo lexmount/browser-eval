@@ -34,7 +34,7 @@ def _stable_failure(metrics):
     return label, '内容核验', counts + '。规则：' + (', '.join(errors) or '未提供具体错误')
 
 
-def diagnose(r,c,raw,source=None):
+def diagnose(r,c,raw):
     from .metrics import task_measured
     if not task_measured(r['metrics'], c.get('task_kind')):
         return None
@@ -169,5 +169,4 @@ def diagnose(r,c,raw,source=None):
                 f"{p['id']} 检出 {p['count']}，至少需要 {p['minimum']}" for p in m['pattern_results'] if not p['pass']))
         else:category,stage,proof=set_result('内容结构不完整','内容核验','未满足本例字段或数量规则，见逐项判定')
     if not category:return None
-    return {'category':category,'stage':stage,'evidence':proof,'certainty':certainty,
-            'independent_source_check':source,'source_check_boundary':'独立复查与调用的时间、网络、会话不同；一次拒绝不能证明网站失效。'}
+    return {'category':category,'stage':stage,'evidence':proof,'certainty':certainty}

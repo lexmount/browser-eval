@@ -1,9 +1,12 @@
 """Exercise the installed application's contract without repository resources."""
+import json
 import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 from harness.web_fetch.cli import default_run_dir
 from harness.web_fetch.report import run_log_section
@@ -45,11 +48,19 @@ main()
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_offline_example_runs_without_a_repository(tmp_path):
+@pytest.mark.parametrize("unbound_diagnostics", [
+    json.dumps([{"case_id": "fixture-failure", "url": "https://unrelated.invalid/",
+                 "status": 200, "title": "Unrelated historical source"}]),
+    "invalid historical JSON",
+])
+def test_offline_example_runs_without_a_repository(tmp_path, unbound_diagnostics):
     root = Path(__file__).resolve().parents[1]
     installation = tmp_path / "installation"
     shutil.copytree(root / "harness", installation / "harness",
                     ignore=shutil.ignore_patterns("__pycache__"))
+    # A shared case ID does not bind another dataset's source observation.
+    (installation / "research").mkdir()
+    (installation / "research/failure-sources.json").write_text(unbound_diagnostics)
     env = {**os.environ, "PYTHONPATH": str(installation)}
     for arguments, expected_code in [
         (["validate"], 0),
@@ -59,11 +70,13 @@ def test_offline_example_runs_without_a_repository(tmp_path):
         result = subprocess.run([sys.executable, "-m", "harness.web_fetch", *arguments],
                                 cwd=tmp_path, env=env, capture_output=True, text=True)
         assert result.returncode == expected_code, result.stdout + result.stderr
-    import json
     run = tmp_path / "run"
     rows = [json.loads(line) for line in (run / "results.jsonl").read_text().splitlines()]
     assert len(rows) == 2
     assert {row["ok"] for row in rows} == {True, False}
+    reported = [json.loads(line) for line in
+                (run / "report/results.jsonl").read_text().splitlines()]
+    assert reported == rows
     reliability = json.loads((run / "report/reliability.json").read_text())
     assert reliability["complete"]
     assert reliability["expected_calls"] == 2

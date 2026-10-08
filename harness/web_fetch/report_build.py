@@ -336,8 +336,6 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             if r['metrics'].get('resource_acceptance_contract_sha256') != expected:
                 raise ValueError(
                     f'Resource acceptance contract hash missing or mismatched: {r["attempt_id"]}')
-    diagnostic_path=Path(__file__).resolve().parents[2]/'research/failure-sources.json'
-    source_checks={x['case_id']:x for x in json.loads(diagnostic_path.read_text())} if diagnostic_path.exists() else {}
     if not cases or not records:
         raise ValueError('A report requires tasks and measured records')
     execution = source/'execution.json'
@@ -432,7 +430,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             if local_audit and (saved_diagnosis or {}).get('classification_revision') == 'failure-classification-v2':
                 r['diagnosis'] = saved_diagnosis
             else:
-                r['diagnosis']=diagnose(r,cases[r['case_id']],text,source_checks.get(r['case_id']))
+                r['diagnosis']=diagnose(r,cases[r['case_id']],text)
             r['failure_category'] = failure_category(r, cases[r['case_id']])
         for folder in ['sources','list-references','reference-checks']:
             tree=contained_path(source,folder)

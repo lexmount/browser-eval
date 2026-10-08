@@ -6,8 +6,10 @@ Measured outputs are persistent local data, not source files. The current eviden
 bundle lives at `~/.browser-eval/evidence/current/` by default; set
 `WEB_FETCH_EVIDENCE_DIR` to use another explicit bundle. Raw research reruns live
 under `~/.browser-eval/evidence/research/`; use
-`WEB_FETCH_RESEARCH_EVIDENCE_DIR` when they are stored elsewhere. Git retains the frozen dataset,
-annotations and independent source evidence, but ignores provider artifacts,
+`WEB_FETCH_RESEARCH_EVIDENCE_DIR` when they are stored elsewhere. Git retains compact
+task catalogs, acceptance contracts, annotations and input hash manifests. Full
+historical datasets and source captures are installed outside the checkout; see
+[frozen reference inputs](../../docs/reference-inputs.md). Git ignores provider artifacts,
 results, execution manifests, selection receipts and internal audit notes.
 
 `research/report-changes.json` drives the public, collapsible `changes/index.html`.
