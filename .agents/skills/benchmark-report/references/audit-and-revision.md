@@ -18,7 +18,7 @@ release manifest + deployed bytes
 
 Hash and bind transitions where accidental mixing is plausible. Validate exact cardinality and uniqueness, not only totals. Treat raw outputs, timestamps, request status, method version, and call IDs as immutable measured evidence.
 
-Source-dependent calls require a fail-closed boundary: capture and freeze the declared reference scope immediately before execution, repeat the independent observation after execution, and bind both checks to the complete cohort. A process exit, partial attempt count, changed reference, or missing post-check makes the cohort diagnostic rather than publishable; never salvage its successful rows into the release matrix.
+Live exact-reference calls require a fail-closed boundary: capture and freeze the declared reference scope immediately before execution, repeat the independent observation after execution, and bind both checks to the complete cohort. A process exit, partial attempt count, changed reference, or missing post-check makes the cohort diagnostic rather than publishable; never salvage its successful rows into the release matrix.
 
 ## Independent result review
 
@@ -78,3 +78,4 @@ private evidence. Never rescue an empty declared body from a nonempty display
 message. Reproject retained full responses without new product calls when only
 this selection changed; missing historical envelopes require fresh calls across
 the full declared correction scope before claiming revised benchmark scores.
+Reruns of unchanged compiled acceptance-contract tasks freeze the existing executable dataset. They do not require recovering historical qualification raw files or repeating admission review. Source qualification is part of task authoring and reference/rule correction, not a prerequisite for every provider-version comparison. Preserve historical receipts without applying their evidence-file requirements to a new execution protocol.

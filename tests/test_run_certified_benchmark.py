@@ -76,11 +76,11 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 self.assertFalse((root/'formal').exists())
                 saved=json.loads((output/'dataset.json').read_text())
                 self.assertEqual(saved['comparison']['evidence_state'],'diagnostic')
-                self.assertEqual(saved['comparison']['unqualified_reference_cases'],['stable'])
+                self.assertEqual(saved['comparison']['unqualified_reference_cases'],[])
                 batches=json.loads((output/'execution.json').read_text())['batches']
                 self.assertTrue(all(b['parameters']['max_failure_retries']==retries for b in batches))
                 self.assertTrue(all(b['evidence_state']=='diagnostic' and
-                    b['unqualified_reference_cases']==['stable'] for b in batches))
+                    b['unqualified_reference_cases']==[] for b in batches))
                 # Dropping dataset display metadata cannot erase execution provenance.
                 saved['comparison']={}
                 with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
@@ -90,25 +90,66 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 self.assertFalse((root/'formal-report').exists())
                 self.assertEqual(dataset.read_bytes(),original)
 
-    def test_stable_rules_alone_cannot_be_mistaken_for_live_source_certification(self):
+    def test_frozen_contract_execution_needs_no_historical_qualification_files(self):
+        from harness.web_fetch import reference_freeze, benchmark_runner
+        from harness.web_fetch.evidence import finalize_aggregate
+        from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory);dataset=root/'dataset.json'
-            dataset.write_text(json.dumps({'cases':[{'id':'stable','acceptance_contract':{
-                'version':1,'schema':'body_text','minimum_records':0,
-                'stable_text_anchors':[{'id':'a','alternatives':['Required label']} ]}}]}))
-            arguments=['--dataset',str(dataset),'--output',str(root/'run'),
-                       '--work-root',str(root/'work'),'--providers','p','--case-ids','stable']
-            with patch('harness.web_fetch.certification.run') as invoked:
-                with self.assertRaises(SystemExit):main(arguments)
-            invoked.assert_not_called()
-            def completed(stage, arguments):
-                command = [stage, *arguments]
-                script=stage_name(command)
-                if script=='source_capture.main':self.write_capture(Path(command[2]),'stable')
-                if script=='benchmark_runner.main':self.write_output_dataset(command,dataset)
-            with patch('harness.web_fetch.certification.run',side_effect=completed):
-                main([*arguments,'--diagnostic'])
-            self.assertEqual(json.loads(dataset.read_text())['cases'][0]['acceptance_contract']['stable_text_anchors'][0]['alternatives'],['Required label'])
+            root = Path(directory)
+            dataset = root / 'dataset.json'
+            output = root / 'run'
+            case = {'id': 'stable', 'name': 'Stable page',
+                    'url': 'https://example.test/page', 'category': 'web',
+                    'track': 'web', 'expected_any': ['Required label'],
+                    'source_benchmark': {'risk_control': {'reference_proof': {
+                        'root': 'historical', 'path': 'missing/browser.txt',
+                        'sha256': 'a' * 64}}},
+                    'acceptance_contract': {'version': 1, 'schema': 'body_text',
+                        'minimum_records': 0, 'stable_text_anchors': [
+                            {'id': 'a', 'alternatives': ['Required label']}]}}
+            import hashlib
+            fixed = {'id': 'fixed-answer', 'name': 'Fixed answer',
+                     'url': 'https://example.test/fixed', 'category': 'web', 'track': 'web',
+                     'expected_any': ['Required label'], 'ground_truth_main_content': 'Required label',
+                     'source_verification': {'state': 'valid', 'checked_at': '2020-01-01T00:00:00Z',
+                        'method': 'Independent source capture',
+                        'reference_sha256': hashlib.sha256(b'Required label').hexdigest()}}
+            dataset.write_text(json.dumps({'tool': 'web_fetch', 'comparison': {}, 'cases': [case, fixed]}))
+            original = dataset.read_bytes()
+            config = root / 'providers.json'
+            config.write_text(json.dumps({'providers': {'fixture': {'type': 'fixture'}}}))
+            (root / 'evaluation/list-references').mkdir(parents=True)
+            stages = []
+
+            def execute(stage, arguments):
+                script = stage.__module__.rsplit('.', 1)[-1] + '.' + stage.__name__
+                stages.append(script)
+                if script == 'reference_freeze.main':
+                    reference_freeze.main(arguments)
+                elif script == 'benchmark_runner.main':
+                    with patch.object(benchmark_runner, 'load_runtime_env'):
+                        benchmark_runner.main(arguments)
+                elif script == 'reference_freeze.postcheck_main':
+                    self.fail('Frozen stable contracts must not trigger live-source recapture')
+                elif script == 'evidence.finalize_main':
+                    finalize_aggregate(output, root / 'work/post-captures/observations.json')
+                else:
+                    self.fail('Unexpected external work: ' + script)
+
+            with patch('harness.web_fetch.certification.run', side_effect=execute):
+                main(['--dataset', str(dataset), '--output', str(output),
+                      '--work-root', str(root / 'work'), '--providers', 'fixture',
+                      '--provider-config', str(config), '--case-ids', 'stable,fixed-answer'])
+            measured = json.loads((output / 'dataset.json').read_text())
+            self.assertEqual(measured['cases'], [case, fixed])
+            self.assertEqual(dataset.read_bytes(), original)
+            self.assertEqual(measured['comparison']['source_reference_policy'],
+                             'frozen_benchmark_inputs_with_explicit_live_exact_checks')
+            batches = json.loads((output / 'execution.json').read_text())['batches']
+            records = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]
+            self.assertEqual(len(records), 2)
+            self.assertNotIn('collect_source_evidence.py', stages)
+            require_verified_reference_checks(batches, cases=measured, records=records, source=output)
 
     def test_dispatches_complete_webmainbench_certification(self) -> None:
         arguments = ["--output-root", "/tmp/run", "--source", "/tmp/source.jsonl"]
@@ -159,7 +200,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             dataset.write_text(json.dumps({"cases": [{
                 "id": "javascript-spa", "track": "web", "task_kind": "body",
                 "ground_truth_main_content": "reference",
-                "source_verification": {
+                "source_verification": {"reference_mode": "live_exact",
                     "method": "Independent visible browser DOM; complete declared scope"
                 },
             }]}))
@@ -205,7 +246,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             dataset.write_text(json.dumps({"cases": [{
                 "id": "javascript-spa", "track": "web", "task_kind": "body",
                 "ground_truth_main_content": "reference",
-                "source_verification": {
+                "source_verification": {"reference_mode": "live_exact",
                     "method": "Independent visible browser DOM; complete declared scope"
                 },
             }]}))
@@ -256,7 +297,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             dataset.write_text(json.dumps({"cases": [{
                 "id": "previously-unknown-browser-fallback", "track": "web",
                 "task_kind": "body", "ground_truth_main_content": "reference",
-                "source_verification": {
+                "source_verification": {"reference_mode": "live_exact",
                     "method": "Independent HTTP response and reviewed article selector",
                     "selector": "main",
                 },
@@ -310,7 +351,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             dataset.write_text(json.dumps({"cases": [{
                 "id": case_id, "track": "web", "task_kind": "body",
                 "ground_truth_main_content": "reference",
-                "source_verification": {
+                "source_verification": {"reference_mode": "live_exact",
                     "method": "Independent HTTP response and reviewed article selector",
                     "selector": "main",
                 },
@@ -358,7 +399,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             dataset.write_text(json.dumps({"cases": [{
                 "id": "http-unavailable", "track": "web", "task_kind": "body",
                 "ground_truth_main_content": "reference",
-                "source_verification": {
+                "source_verification": {"reference_mode": "live_exact",
                     "method": "Independent HTTP response and reviewed article selector"
                 },
             }]}))
@@ -388,7 +429,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 "id": case_id, "url": "https://example.com/",
                 "track": "web", "task_kind": "body",
                 "ground_truth_main_content": "reference",
-                "source_verification": {
+                "source_verification": {"reference_mode": "live_exact",
                     "method": "Independent rendered browser DOM; complete declared scope"
                 },
             }]}))
@@ -429,7 +470,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 "id": case_id, "url": "https://example.com/",
                 "track": "web", "task_kind": "body",
                 "ground_truth_main_content": "reference",
-                "source_verification": {
+                "source_verification": {"reference_mode": "live_exact",
                     "method": "Independent rendered browser DOM; complete declared scope"
                 },
             }]}))
@@ -476,7 +517,7 @@ def test_explicit_browser_reference_route_is_used_even_with_usable_http_capture(
         "task_kind": "body",
         "ground_truth_main_content": "Required fact",
         "required_facts": [{"alternatives": ["Required fact"]}],
-        "source_verification": {"observation_route": "browser"},
+        "source_verification": {"reference_mode": "live_exact", "observation_route": "browser"},
     }
     (tmp_path / case["id"]).mkdir()
     (tmp_path / case["id"] / "reference.txt").write_text("Required fact")
@@ -494,6 +535,7 @@ def test_conflicting_http_route_and_browser_provenance_is_rejected(tmp_path):
         "ground_truth_main_content": "Required fact",
         "required_facts": [{"alternatives": ["Required fact"]}],
         "source_verification": {
+            "reference_mode": "live_exact",
             "observation_route": "http",
             "method": "Independent rendered browser DOM; complete declared scope",
         },
@@ -514,7 +556,7 @@ def test_explicit_empty_arguments_do_not_dispatch_an_ambient_subcommand(monkeypa
 
 def test_invalid_selected_reference_route_stops_before_any_capture(tmp_path):
     dataset = tmp_path / "dataset.json"
-    dataset.write_text(json.dumps({"cases": [{"id": "one", "track": "web", "task_kind": "body", "ground_truth_main_content": "Required fact", "source_verification": {"observation_route": "http", "method": "Independent rendered browser DOM; complete declared scope"}}]}))
+    dataset.write_text(json.dumps({"cases": [{"id": "one", "track": "web", "task_kind": "body", "ground_truth_main_content": "Required fact", "source_verification": {"reference_mode": "live_exact", "observation_route": "http", "method": "Independent rendered browser DOM; complete declared scope"}}]}))
     with patch("harness.web_fetch.certification.run") as invoked:
         with pytest.raises(ValueError, match="contradicts browser reference provenance"):
             main(["--dataset", str(dataset), "--case-ids", "one", "--providers", "p", "--output", str(tmp_path / "output"), "--work-root", str(tmp_path / "work")])

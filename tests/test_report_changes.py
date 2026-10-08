@@ -7,6 +7,23 @@ from harness.web_fetch.report_changes import render_changes, render_webmainbench
 from harness.web_fetch.report import overview_card, ranking
 
 class ReportChangesTests(unittest.TestCase):
+    def test_unpublished_corrections_are_not_public_history_or_revision_bindings(self):
+        from harness.web_fetch.report_changes import select_cohort_history, require_revision_release_bindings
+        public={'id':'public','publication_state':'published','comparison_kinds':['headless_markdown'],'scoring_revision_input_sha256':'published'}
+        draft={'id':'draft','comparison_kinds':['headless_markdown'],'publication_state':'unpublished','scoring_revision_input_sha256':'draft'}
+        data={'schema_version':3,'releases':[draft,public],'review_rounds':[{'id':'review','description':'Synthetic review'}]}
+        with patch('harness.web_fetch.report_changes.require_review_rounds',return_value=[]):
+            selected=select_cohort_history(data,{'comparison':{'kind':'headless_markdown'}},[])
+        self.assertEqual(selected['releases'],[public])
+        unmarked={k:v for k,v in public.items() if k!='publication_state'}
+        with patch('harness.web_fetch.report_changes.require_review_rounds',return_value=[]), self.assertRaisesRegex(ValueError,'publication state'):
+            select_cohort_history({**data,'releases':[unmarked]}, {'comparison':{'kind':'headless_markdown'}}, [])
+        require_revision_release_bindings([{'input_results_sha256':'published'}],[draft,public])
+        with self.assertRaises(ValueError):
+            require_revision_release_bindings([{'input_results_sha256':'draft'}],[draft,public])
+        with self.assertRaisesRegex(ValueError,'publication state'):
+            require_revision_release_bindings([{'input_results_sha256':'published'}],[{**public,'publication_state':'typo'}])
+
     def test_webmainbench_history_is_localized_from_one_record(self):
         from harness.web_fetch.report_changes import ROOT
         source = json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8'))

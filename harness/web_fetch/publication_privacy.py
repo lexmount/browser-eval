@@ -104,10 +104,17 @@ def _redact_plain_url_queries(text):
 
     def redact_url(match):
         nonlocal replacements
-        url = match.group()
+        original = match.group()
+        decoded = html.unescape(original)
+        bounded = EMBEDDED_URL.match(decoded)
+        if bounded is None:
+            return original
+        url = bounded.group()
+        suffix = decoded[len(url):]
         query = url.partition('?')[2].partition('#')[0]
         if not query:
-            return url
+            return original
+        prior_replacements = replacements
         parts = []
         for item in query.split('&'):
             key, separator, value = item.partition('=')
@@ -122,7 +129,10 @@ def _redact_plain_url_queries(text):
                 item = key + '=[REDACTED]'
                 replacements += 1
             parts.append(item)
-        return url.replace('?' + query, '?' + '&'.join(parts), 1)
+        if replacements == prior_replacements:
+            return original
+        projected = url.replace('?' + query, '?' + '&'.join(parts), 1) + suffix
+        return html.escape(projected, quote=True) if decoded != original else projected
 
     return EMBEDDED_URL.sub(redact_url, text), replacements
 
@@ -188,12 +198,18 @@ def publication_risk(data):
 
 
 def project_file(name, data):
-    """Redact only auxiliary HTML. Any match elsewhere requires human review."""
+    """Project public copies and bind their hashes to retained original evidence."""
     path = PurePosixPath(name)
     if 'private_artifacts' in path.parts:
         raise ValueError('Private evidence is not publishable: ' + name)
     if any(part.startswith('.') for part in path.parts):
         raise ValueError('Private/hidden file is not publishable: ' + name)
+    if OTHER_SECRET.search(data):
+        raise ValueError('Potential credential-shaped value in publication file: ' + name)
+    if name.endswith(('.json', '.jsonl')):
+        structured = _project_json(name, data)
+        if structured is not None:
+            return structured
     original = data
     inline_replacements = 0
     inline_kinds = set()
@@ -242,3 +258,57 @@ def project_file(name, data):
         'original_bytes': len(original),
         'published_bytes': len(projected),
     }
+
+
+def _project_json(name, data):
+    """Project decoded values so header text cannot consume JSON delimiters."""
+    lines = data.splitlines(keepends=True) if name.endswith('.jsonl') else [data]
+    try:
+        documents = [json.loads(line) if line.strip() else None for line in lines]
+    except (ValueError, UnicodeError):
+        return None
+    replacements = 0
+    kinds = set()
+
+    def project(value):
+        nonlocal replacements
+        if isinstance(value, dict):
+            result = {}
+            for key, child in value.items():
+                if (isinstance(child, str) and child
+                        and re.fullmatch(SENSITIVE_KEY, key.encode(), re.I)
+                        and not child.startswith(('<', '['))
+                        and not PUBLIC_AUTH_PLACEHOLDER.fullmatch((key+': '+child).encode())):
+                    result[key] = '[REDACTED]'
+                    replacements += 1
+                    kinds.add('credential')
+                else:
+                    result[key] = project(child)
+            return result
+        if isinstance(value, list):
+            return [project(child) for child in value]
+        if isinstance(value, str):
+            raw, receipt = project_file(name+'.value.txt', value.encode())
+            if receipt:
+                replacements += receipt['replacements']
+                kinds.update(receipt['kinds'])
+            return raw.decode()
+        return value
+
+    output = []
+    for raw, document in zip(lines, documents):
+        revised = project(document)
+        if revised == document:
+            output.append(raw)
+        else:
+            ending = b'\r\n' if raw.endswith(b'\r\n') else b'\n' if raw.endswith(b'\n') else b''
+            output.append(json.dumps(revised, ensure_ascii=True).encode()+ending)
+    projected = b''.join(output)
+    if projected == data:
+        return data, None
+    return projected, {'path': name, 'kinds': sorted(kinds),
+        'reason': 'sensitive values in decoded JSON; JSON structure and non-sensitive fields retained',
+        'replacements': replacements,
+        'original_sha256': hashlib.sha256(data).hexdigest(),
+        'published_sha256': hashlib.sha256(projected).hexdigest(),
+        'original_bytes': len(data), 'published_bytes': len(projected)}

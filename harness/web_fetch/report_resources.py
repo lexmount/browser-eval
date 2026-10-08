@@ -6,7 +6,7 @@ from html import escape
 PROVIDER_NAMES = {
     'chromium': 'Chromium',
     'lightpanda': 'Lightpanda',
-    'moli': 'Moli 1.1.1',
+    'moli': 'Moli',
     'obscura': 'Obscura',
 }
 

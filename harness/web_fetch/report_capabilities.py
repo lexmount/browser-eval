@@ -227,17 +227,51 @@ CAPABILITIES['moli-1.1.7']={
     'tested':'fetch --dump markdown --wait-until done；最终结果为准，失败重试链单独保留。',
 }
 
-def render_capabilities(out, names, *, table, cell, link):
-    labels={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-1.1.11':'Moli 1.1.11'}
-    unknown = sorted(set(names) - set(CAPABILITIES))
+def task_capabilities(out, names, records):
+    """Describe the configured native task routes, without upgrading product claims."""
+    from .report_interfaces import browser_task_interface_matrix
+    from .methods import native_browser_engine, browser_method_registry
+    measured=[r for r in records if r.get('provider_metadata',{}).get('output_contract')]
+    if (not measured or not all(native_browser_engine(name) in {'moli','lightpanda','obscura','chromium','kitesurf'} for name in names)
+            or not (out/'dataset.json').is_file()):return None
+    dataset=json.loads((out/'dataset.json').read_text())
+    cases={case['id']:case for case in dataset['cases']}
+    matrix=browser_task_interface_matrix(cases,names)
+    configured={}
+    for name in names:
+        engine=native_browser_engine(name)
+        row={**CAPABILITIES[engine]}
+        row.update(
+            scope=matrix['capabilities'][name],
+            web=c('支持','原生网页正文输出' if engine!='chromium' else '原生 DOM 加共同 HTML 转换'),
+            document=c('原生输出','直接使用正文接口或浏览器内查看器文字；不使用外部 PDF/DOCX 解析器'),
+            image=c('资源地址 / 字节','原生 DOM 接口读取资源地址；直接文件通过原生响应取得'),
+            av=c('资源与元数据','原生接口读取地址、页面元数据或原始字节；不做媒体理解'),
+            file=c('原生获取','使用该浏览器原始响应或附件接口，按固定规则验收字节'),
+            structure='按任务交付 Markdown、文档正文、资源地址、媒体元数据或原始文件。',
+            notes='浏览器负责访问与原生产物获取；资源读取脚本由评测提供，通过原生接口读取已加载内容；只有 Chromium 使用标准 HTML 转 Markdown 包。这些调用步骤不会被写成浏览器内置能力。完整分类及边界见报告解读的接口表。',
+            tested='接口按任务输入预选；获取、等待、转换与解析共享 45 秒预算。失败不切换引擎，不按评分结果选择更好的返回。')
+        source='task-native-'+name
+        source_url={'moli':'https://github.com/lexmount/moli','lightpanda':'https://github.com/lightpanda-io/browser','obscura':'https://github.com/h4ckf0r0day/obscura','chromium':'https://developer.chrome.com/docs/automation-and-testing/headless','kitesurf':'https://developers.cloudflare.com/browser-run/kitesurf/'}[engine]
+        source_url=browser_method_registry()[name].get('source_url',source_url)
+        SOURCES[source]=(name+' · 官方接口',source_url)
+        row['sources']=[source]
+        configured[name]=row
+    return configured
+
+def render_capabilities(out, names, *, table, cell, link, records=()):
+    labels={'moli-1.0.6':'Moli 1.0.6','moli':'Moli','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-1.1.11':'Moli 1.1.11'}
+    configured=task_capabilities(out,names,records)
+    capabilities=configured or CAPABILITIES
+    unknown = sorted(set(names) - set(capabilities))
     evidence = {'checked_at': CHECKED_AT, 'scope': '官方契约/固定源码能力，不是实测成绩',
-                'sources': SOURCES, 'methods': {n: CAPABILITIES[n] for n in names if n in CAPABILITIES}, 'unreviewed': unknown}
+                'sources': SOURCES, 'methods': {n: capabilities[n] for n in names if n in capabilities}, 'unreviewed': unknown}
     (out / 'adoption' / 'capabilities.json').write_text(json.dumps(evidence, ensure_ascii=False, indent=2)+'\n')
     content_rows, runtime_rows, details = [], [], []
     for name in names:
-        if name not in CAPABILITIES:
+        if name not in capabilities:
             continue
-        row = CAPABILITIES[name]
+        row = capabilities[name]
         method = cell(link('#capability-'+name, labels.get(name,name)))
         values = []
         for key in ['web', 'document', 'image', 'av', 'file']:
@@ -249,11 +283,13 @@ def render_capabilities(out, names, *, table, cell, link):
         sources = ' · '.join(link(SOURCES[s][1], SOURCES[s][0]+' ↗') for s in row['sources'])
         details.append(f'<details class="interface-panel" id="capability-{escape(name)}"><summary>{escape(labels.get(name,name))} · 范围与官方依据</summary>'+
                        f'<p><strong>对应接口：</strong>{escape(row["scope"])}</p><p>{escape(row["notes"])}</p>'+
-                       f'<p><strong>本轮配置：</strong>{escape(row["tested"])}</p><p class="source-note">{sources}</p></details>')
+                       f'<p><strong>登记配置：</strong>{escape(row["tested"])}</p><p class="source-note">{sources}</p></details>')
     legend = ('<p>原有资料核对日期：'+CHECKED_AT+'；本版新增 Cloudflare 与 Firecrawl 接口核对日期：'+ROUTE_CHECKED_AT+'。托管服务按官方文档；内置工具按固定源码。此处说明可选能力，<strong>不是实测成绩</strong>；没有启用的选项不补算进榜单。</p>'
               '<dl class="capability-legend"><div><dt>支持 / 需配置</dt><dd>有对应实现或契约；需配置表示要启用额外模式。</dd></div>'
               '<div><dt>仅链接 / 有限支持</dt><dd>仅返回地址，或只覆盖指定输入、正文区域。</dd></div>'
               '<div><dt>无此能力 / 未声明</dt><dd>前者有明确实现边界；后者是官方资料不足，不能当作不支持。</dd></div></dl>')
+    if configured:
+        legend='<p>下表说明本报告配置的接口与处理边界，浏览器版本及固定来源见“环境与复现”。共同解析、资源读取脚本和 HTML 转换由评测提供，不计作浏览器内置能力。接口可用不代表每题都能完成；实测结果见结果分析。</p>'
     content = ('<p class="source-note">能力声明不是实测任务成绩；任务通过按登记的稳定内容锚点与字段结构等规则判定，不证明频繁变化值的事实准确性或实时性。文档列指 PDF / Office 中的文字；普通 TXT 不等于文档解析。图片、音视频列说明网页资源取得方式，<strong>不代表视觉理解或转写</strong>；直接媒体 URL 能否取得字节看原文件列。原文件不是页面正文、截图或下载链接本身。</p>'+
                table(['方法 / 依据', '静态网站正文', '文档文字', '图片资源', '音视频资源', '原文件'], content_rows, cls='capability-matrix', metrics=[]))
     runtime = table(['方法 / 依据', 'JS 渲染', '输入范围', '结构化输出', '访问与会话'], runtime_rows, cls='capability-runtime', metrics=[])

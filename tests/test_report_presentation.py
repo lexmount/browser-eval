@@ -1,4 +1,5 @@
 import tempfile
+import json
 from pathlib import Path
 import unittest
 from harness.web_fetch.report import EXTRA,active_tracks,failure_category,filter_controls,case_attrs,failure_filters,overall_ranking,overview_matched_latency,provider_configuration,review_cell,table,write
@@ -30,6 +31,14 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('调用矩阵尚不完整',overview_matched_latency(records[1:],cases))
 
  def row(self,**kw):return dict({'ok':True,'metrics':{'content_pass':False,'length_pass':True}},**kw)
+ def test_provider_filter_defaults_to_the_complete_population(self):
+  controls=filter_controls([('provider','方法',[('one','One'),('two','Two')])])
+  self.assertIn('data-filter="provider" aria-label="方法"><option value="">全部</option>',controls)
+ def test_case_search_includes_identifier_and_source_url(self):
+  c={'id':'case-a','name':'Readable title','url':'https://example.com/source','category':'test','task_kind':'body'}
+  r=self.row(provider='one',case_id='case-a')
+  attrs=case_attrs(r,c)
+  self.assertIn('data-search="case-a Readable title https://example.com/source ',attrs)
  def test_result_default_failure(self):
   controls=filter_controls([('result','结果',[('pass','任务通过'),('fail','任务失败')])])
   self.assertIn('value="fail" selected',controls)
@@ -159,7 +168,11 @@ class ReportRevisionTests(unittest.TestCase):
   chromium=provider_configuration('chromium',[{'provider_type':'headless_markdown','provider_metadata':{'extractor':'node-html-markdown','output_contract':'markdown'}}],default)
   self.assertIn('rawBase64',firecrawl)
   self.assertNotIn('Exa、Tavily、Firecrawl',builtin)
-  self.assertIn('Chromium 渲染 DOM',chromium)
+  self.assertIn('渲染 DOM',chromium)
+  self.assertIn('node-html-markdown 2.0.0',chromium)
+  moli=provider_configuration('moli',[{'provider_type':'headless_markdown','provider_metadata':{'extractor':'node-html-markdown','output_contract':'markdown'}}],default)
+  self.assertNotIn('Chromium',moli)
+  self.assertIn('node-html-markdown 2.0.0',moli)
  def test_dynamic_cohort_copy_has_english_translations(self):
   from harness.web_fetch.report_i18n import translate_text
   self.assertEqual(translate_text('90 个案例 · 12 种方法 · 4类分榜与一个综合通过率总榜。'),
@@ -280,3 +293,35 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('<pre><img src="data:image/png;base64,YQ==" alt="文章目录"></pre>',translated)
   outside=localize_html(markup,PurePosixPath('attempts/example.html'))
   self.assertIn('src="data:image/png;base64,YQ==" data-en-src="data:image/png;base64,Yg=="',outside)
+
+class MeasuredInterfaceIdentityTests(unittest.TestCase):
+ def render(self, records, name='moli'):
+  import json
+  from harness.web_fetch.report_interfaces import render_interfaces
+  with tempfile.TemporaryDirectory() as directory:
+   out=Path(directory);(out/'adoption').mkdir();(out/'answer.md').write_text('Body')
+   rows=[{'case_id':'static-simple','attempt_id':str(i),'artifact_path':'answer.md',**r} for i,r in enumerate(records)]
+   render_interfaces(out,rows)
+   return json.loads((out/'adoption/interfaces'/f'{name}.json').read_text())
+ def test_generic_moli_uses_observed_release_and_task_adapter(self):
+  record={'provider':'moli','provider_type':'moli_webfetch','provider_metadata':{'reported_version':'moli 1.1.15'}}
+  output=self.render([record]);access=output['access']
+  self.assertIn('/tag/v1.1.15',access['links'][0][1])
+  self.assertNotIn('1.1.5',str(access))
+  self.assertEqual(output['interface']['source'],'harness/web_fetch/providers/moli.py')
+  old={'provider':'moli-1.0.6','provider_type':'headless_markdown','provider_metadata':{'reported_version':'moli 1.0.6'}}
+  output=self.render([old],'moli-1.0.6')
+  self.assertIn('1.0.6',output['access']['links'][0][1])
+  self.assertEqual(output['interface'],json.loads(json.dumps(SPECS['moli-1.0.6'])))
+ def test_unknown_or_mixed_generic_versions_do_not_invent_a_release(self):
+  rows=[{'provider':'moli','provider_metadata':{'reported_version':'moli '+v}} for v in ('1.1.14','1.1.15')]
+  for records in ([],rows):
+   self.assertNotIn('/tag/',str(self.render(records)['access']))
+ def test_native_metadata_envelopes_keep_native_output_and_actual_cli_examples(self):
+  engines=[('lightpanda','lightpanda_json','--json'),('obscura','obscura_eval','--eval')]
+  for name,format_name,flag in engines:
+   record={'provider':name,'provider_type':'headless_markdown','provider_metadata':{'native_metadata':{'format':format_name,'script_sha256':'a'*64,'script_path':'/private/local-script.js'}}}
+   output=self.render([record],name)
+   self.assertIn(flag,output['interface']['entry'])
+   self.assertNotIn('/private/local-script.js',str(output))
+   if name=='obscura':self.assertNotIn('--dump',str(output['interface']['request']))

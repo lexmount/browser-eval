@@ -25,7 +25,16 @@ uv run --frozen python scripts/run_certified_benchmark.py risk-control \
   --output "$BROWSER_EVAL_DATA_HOME/evidence/risk-control/<new-run-id>"
 ```
 
-Output must be a new directory under the data root. The certified entry point is `scripts/run_certified_benchmark.py risk-control`; direct `--execute` on the execution script is rejected. A new run under the current profile has exactly 100 logical results and no automatic retries, retaining complete hash-bound debug stderr outside Git. Historical evidence additionally contains three user-authorized calls after DNS failures: 103 physical calls in total. The final response is authoritative, all call costs remain recorded and no best-response selection is allowed.
+输出目录必须是新的，并位于数据目录下。正式入口固定为
+`scripts/run_certified_benchmark.py risk-control`；直接对执行脚本使用 `--execute` 会被拒绝。
+当前 profile 的新正式运行恰有 100 个逻辑结果，且不自动重试，并为每次调用在 Git 外保留完整、
+哈希绑定的 debug stderr。保留的历史证据另有 3 个 DNS 失败后的用户授权补调，因此保留 103 次
+物理调用；每例固定采用最后一次响应，全部调用耗时均计入，不能择优。运行前后 Moli 身份必须
+一致；profile、已编译的数据集、规则和 provider 配置也会在调用前后核验。
+普通重跑不读取历史资格原文，也不重做入选审核；修改题目、参考或规则时，才由构建器
+核验相应来源。新运行生成 `frozen-input-verification.json` 和 v2 认证回执。
+生成报告前校验 `certification.json` 对 profile、dataset、results、manifest、execution、
+冻结输入核验回执和完整日志的绑定。历史 v1 回执继续按原证据契约读取，不改写或升级。
 
 Moli identity must remain unchanged before and after calls. Each of the 100 declared references is checked before and after execution; missing, changed or incomplete scope stops certification. Report builds verify `certification.json` bindings to the profile, dataset, results, manifest, execution, reference-verification receipts and complete logs.
 

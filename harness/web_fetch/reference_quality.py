@@ -1,7 +1,7 @@
 """Deterministic reference preparation; original source bytes remain evidence."""
 import re
-from dataclasses import dataclass
 import unicodedata
+from dataclasses import dataclass
 
 
 def clean_reference_text(text: str) -> str:
@@ -89,26 +89,41 @@ class MarkdownLink:
 _MAX_MARKDOWN_LINK_SPAN = 8192
 
 
-def _closing(text: str, start: int, opening: str, closing: str) -> int | None:
-    depth = 1
-    index = start + 1
-    limit = min(len(text), start + _MAX_MARKDOWN_LINK_SPAN)
-    while index < limit:
-        if text[index] == "\\":
-            index += 2
+def markdown_delimiter_pairs(text, *, maximum_span=None):
+    """Index escaped, nested Markdown delimiters once, including malformed prose."""
+    pairs = {}
+    stacks = {'[': [], '(': []}
+    escaped_starts = {'[': {}, '(': {}}
+    openings = {']': '[', ')': '('}
+    i = 0
+    while i < len(text):
+        char = text[i]
+        if char == "\\":
+            # Existing callers may begin at an escaped opening delimiter.
+            # Such an opening does not nest inside another candidate, but it
+            # shares that depth's next close when parsed as the link start.
+            if i + 1 < len(text) and text[i + 1] in stacks:
+                opening = text[i + 1]
+                escaped_starts[opening].setdefault(len(stacks[opening]), []).append(i + 1)
+            i += 2
             continue
-        if text[index] == opening:
-            depth += 1
-        elif text[index] == closing:
-            depth -= 1
-            if not depth:
-                return index
-        index += 1
-    return None
+        if char in stacks:
+            stacks[char].append(i)
+        elif char in openings:
+            opening = openings[char]
+            starts = escaped_starts[opening].pop(len(stacks[opening]), [])
+            if stacks[opening]:
+                starts.append(stacks[opening].pop())
+            for start in starts:
+                if maximum_span is None or i - start < maximum_span:
+                    pairs[start] = i
+        i += 1
+    return pairs
 
 
 def markdown_links(text: str) -> list[MarkdownLink]:
     """Return explicit balanced Markdown links without guessing from bare URLs."""
+    pairs = markdown_delimiter_pairs(text, maximum_span=_MAX_MARKDOWN_LINK_SPAN)
     links: list[MarkdownLink] = []
     index = 0
     while index < len(text):
@@ -117,7 +132,7 @@ def markdown_links(text: str) -> list[MarkdownLink]:
         if text[start:start + 1] != "[":
             index += 1
             continue
-        label_end = _closing(text, start, "[", "]")
+        label_end = pairs.get(start)
         if label_end is None:
             index += 1
             continue
@@ -127,7 +142,7 @@ def markdown_links(text: str) -> list[MarkdownLink]:
         if text[destination_start:destination_start + 1] != "(":
             index += 1
             continue
-        destination_end = _closing(text, destination_start, "(", ")")
+        destination_end = pairs.get(destination_start)
         if destination_end is None:
             index += 1
             continue

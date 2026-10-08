@@ -168,9 +168,9 @@ def test_certified_native_preparation_uses_bound_external_dataset_bytes(inputs, 
     assert prepared['cases'] == json.loads(original)['cases']
     assert not dataset.exists()
     assert read_dataset_bytes(dataset) == original
-    from harness.web_fetch.source_capture import main as collect_sources
-    assert commands[0][0] is collect_sources
-    assert commands[0][1][0] == str(work / 'input-dataset.json')
+    from harness.web_fetch import reference_freeze
+    assert commands[0][0] is reference_freeze.main
+    assert str(work / 'input-dataset.json') in commands[0][1]
 
 
 @pytest.mark.parametrize("with_source_tree", [True, False])

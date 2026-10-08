@@ -105,6 +105,6 @@ include = ["harness*"]
 "harness.environments.webarena" = ["runtime/*.ini"]
 
 [tool.setuptools.data-files]
-"share/browser-harness-eval" = ["evaluation/scoring-regressions.json"]
+"share/browser-harness-eval" = ["evaluation/scoring-regressions.json", "configs/providers.headless.json"]
 "share/browser-harness-eval/webmainbench" = ["evaluation/webmainbench-full/scoring-regressions.json"]
 "share/browser-harness-eval/public-webarena" = ["evaluation/browser-use-public/adoption-evidence.json", "evaluation/browser-use-public/benchmark-catalog.json", "evaluation/browser-use-public/report-changes.json"]

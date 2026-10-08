@@ -46,12 +46,30 @@ def load_scoring_regressions(path: Path | None = None) -> dict[str, dict[str, An
             raise ValueError(f"{identifier}: artifact must be synthetic text")
         if not isinstance(row.get("ok"), bool) or not isinstance(row.get("expected_task_pass"), bool):
             raise ValueError(f"{identifier}: expected verdict fields must be booleans")
+        if "expected_task_measured" in row and not isinstance(row["expected_task_measured"], bool):
+            raise ValueError(f"{identifier}: expected_task_measured must be a boolean")
         if not isinstance(row.get("expected_metrics", {}), dict):
             raise ValueError(f"{identifier}: expected_metrics must be an object")
         rows[identifier] = row
     if {row["failure_mode"] for row in rows.values()} != FAILURE_MODES:
         raise ValueError("Scoring regression registry must guard both false positives and false negatives")
     return rows
+
+
+def active_scoring_regressions(path: Path | None = None) -> dict[str, dict[str, Any]]:
+    """Run current policy controls while preserving immutable historical inputs."""
+    path = default_registry_path() if path is None else path
+    rows = load_scoring_regressions(path)
+    mapping = json.loads(path.read_text()).get("superseded_cases", {})
+    if not isinstance(mapping, dict):
+        raise ValueError("Scoring supersessions must map explicit control IDs")
+    for old, new in mapping.items():
+        if old not in rows or new not in rows or old == new or new in mapping:
+            raise ValueError("Invalid scoring policy supersession")
+        if any(rows[old].get(field) != rows[new].get(field) for field in
+               ("case", "artifact", "ok", "metadata", "title", "final_url")):
+            raise ValueError("Policy supersession must preserve synthetic inputs")
+    return {key: row for key, row in rows.items() if key not in mapping}
 
 
 def require_scoring_regressions(identifiers: list[str] | tuple[str, ...], *,

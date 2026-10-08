@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import json
-from copy import deepcopy
 import re
 from collections.abc import Mapping
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
@@ -23,20 +23,22 @@ _SAFE_SELECTOR = re.compile(
 def native_fetch_dataset(dataset: dict) -> dict:
     """Select default WebFetch execution without changing scenario acceptance.
 
-    ``dynamic`` is the selector-guided execution track, not merely a description
-    of a site's contents. A native-completion experiment uses the ordinary web
-    execution track while retaining the original family and every scoring rule.
+    Keep the task family independent of completion strategy. An explicit
+    version-3 native contract selects ordinary provider completion without
+    selectors, delays, extraction hints or changes to acceptance rules.
     """
     result = deepcopy(dataset)
     for case in result['cases']:
         if case.get('retrieval_hints'):
-            raise ValueError('Native fetch cannot discard declared retrieval hints: ' + case['id'])
+            try:
+                plan = parse_retrieval_hints(case.get('track', 'web'), case['retrieval_hints'], identifier=case['id'])
+            except ValueError as error:
+                raise ValueError('Native fetch cannot discard declared retrieval hints: ' + case['id']) from error
+            if plan is not None:
+                raise ValueError('Native fetch cannot discard declared retrieval hints: ' + case['id'])
         if case.get('track') == 'dynamic':
-            case['track'] = 'web'
+            case['retrieval_hints'] = {'version': 3, 'mode': 'native'}
             case.setdefault('source_benchmark', {})['scenario_track'] = 'dynamic'
-    if 'dynamic' in result.get('coverage_plan', {}):
-        dynamic = result['coverage_plan'].pop('dynamic')
-        result['coverage_plan']['web'] = list(dict.fromkeys(result['coverage_plan'].get('web', []) + dynamic))
     result.setdefault('comparison', {})['retrieval_mode'] = 'native_default_completion'
     return result
 
@@ -177,6 +179,12 @@ def parse_retrieval_hints(
     if not isinstance(hints, Mapping):
         raise ValueError(f"{identifier}: retrieval_hints must be an object")
     version = hints.get("version")
+    if isinstance(version, int) and not isinstance(version, bool) and version == 3:
+        if set(hints) != {"version", "mode"} or hints["mode"] != "native":
+            raise ValueError(
+                f"{identifier}: native retrieval_hints must contain only version=3 and mode=native"
+            )
+        return None
     expected_keys = (
         {"version", "wait_until", "completion", "extraction"}
         if version == 2 and not isinstance(version, bool)

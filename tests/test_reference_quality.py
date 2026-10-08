@@ -1,3 +1,5 @@
+import subprocess
+import sys
 import unittest
 from harness.web_fetch.reference_quality import (audit_reference, clean_reference_text,
     blocked_page_hits, markdown_link_destinations, markdown_links, reference_anchor_in_text,
@@ -7,6 +9,36 @@ from harness.web_fetch.models import execution_id
 
 
 class ReferenceQualityTests(unittest.TestCase):
+    def test_unmatched_markdown_brackets_preserve_body_scoring_within_budget(self):
+        code = """
+from harness.web_fetch.scoring import score_attempt
+case = {'id': 'body', 'url': 'https://example.test/', 'track': 'web',
+        'acceptance_contract': {'version': 1, 'schema': 'body_text',
+            'minimum_records': 0, 'stable_text_anchors': [
+                {'id': 'body', 'alternatives': ['Source prose']}]}}
+for brackets in ('[' * 20000, '[x](' * 5000):
+    for present in (True, False):
+        text = ('Source prose' if present else 'Unrelated prose') + brackets
+        result = score_attempt(case, text.encode(), ok=True)
+        assert result['content_pass'] is present
+"""
+        result = subprocess.run([sys.executable, '-c', code], capture_output=True,
+                                text=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_nested_and_escaped_link_delimiters_retain_existing_destinations(self):
+        samples = [
+            (r'\[Docs](/guide)', 'Docs', '/guide'),
+            (r'[Docs \[with note](/guide)', r'Docs \[with note', '/guide'),
+            ('[Docs [nested]](/guide(a))', 'Docs [nested]', '/guide(a)'),
+            (r'[Docs](/guide\))', 'Docs', r'/guide\)'),
+        ]
+        for text, label, destination in samples:
+            with self.subTest(text=text):
+                self.assertEqual([(link.label, link.destination)
+                                  for link in markdown_links(text)],
+                                 [(label, destination)])
+
     def test_script_payload_shell_rejects_state_dump_but_not_readable_js_article(self):
         state = '\n'.join(
             f'window.__STATE{i}__ = {{"article":"Required readable sentence {i}",'

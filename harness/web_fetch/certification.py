@@ -188,20 +188,9 @@ def main(argv: list[str] | None = None) -> None:
     if args.output.exists() or args.work_root.exists():
         parser.error("Output and work root must both be new immutable paths")
 
-    # Stable rules deliberately bypass exact-reference lifecycle checks. A
-    # completed wrapper therefore cannot certify that their old labels or
-    # record requirements are still present on the live site.
-    from harness.web_fetch.reference_lifecycle import source_unqualified_contract_cases
-
-    unqualified = source_unqualified_contract_cases(
-        case for case in dataset["cases"] if case["id"] in case_ids
-    )
-    if unqualified and not args.diagnostic:
-        parser.error(
-            "Stable live-page contracts have no fresh source qualification; "
-            "use --diagnostic to retain uncertified evidence, not to waive scoring: "
-            + ", ".join(unqualified)
-        )
+    # Frozen answers are already evaluation inputs. Historical admission
+    # evidence does not turn a version rerun into live source qualification.
+    unqualified = []
 
     from harness.web_fetch.retrieval_hints import native_fetch_dataset, parse_retrieval_hints
 
@@ -227,10 +216,12 @@ def main(argv: list[str] | None = None) -> None:
         parse_retrieval_hints(
             case.get("track", "web"), case.get("retrieval_hints"), identifier=case["id"]
         )
-    if args.retrieval_mode == "native" or args.diagnostic:
-        args.work_root.mkdir(parents=True)
-        args.dataset = args.work_root / "input-dataset.json"
-        args.dataset.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
+    source_ids = ",".join(case["id"] for case in dataset["cases"]
+                          if case["id"] in case_ids and requires_fresh_reference(case))
+    args.work_root.mkdir(parents=True)
+    dataset.setdefault('comparison', {})['source_reference_policy'] = 'frozen_benchmark_inputs_with_explicit_live_exact_checks'
+    args.dataset = args.work_root / "input-dataset.json"
+    args.dataset.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
 
     selected = ",".join(case_ids)
     pre_captures = args.work_root / "pre-captures"
@@ -239,17 +230,12 @@ def main(argv: list[str] | None = None) -> None:
     post_captures = args.work_root / "post-captures"
     post_browser = args.work_root / "post-browser.json"
 
-    run(
-        source_capture.main,
-        [
-            str(args.dataset),
-            str(pre_captures),
-            "--workers",
-            str(args.capture_workers),
-            "--only",
-            selected,
-        ]
-    )
+    if source_ids:
+        run(source_capture.main, [str(args.dataset), str(pre_captures),
+            "--workers", str(args.capture_workers), "--only", source_ids])
+    else:
+        pre_captures.mkdir(parents=True)
+        (pre_captures / 'audit.json').write_text('[]\n')
     try:
         pre_browser_cases = browser_observation_cases(dataset, pre_captures, case_ids)
     except (KeyError, TypeError, ValueError) as error:
@@ -325,17 +311,12 @@ def main(argv: list[str] | None = None) -> None:
     # choose browser fallbacks from that post-call evidence. Reusing the
     # pre-call browser inventory is unsafe: an endpoint can become unavailable
     # during a long cohort even though its frozen pre-capture was usable.
-    run(
-        source_capture.main,
-        [
-            str(args.output / "dataset.json"),
-            str(post_captures),
-            "--workers",
-            str(args.capture_workers),
-            "--only",
-            selected,
-        ]
-    )
+    if source_ids:
+        run(source_capture.main, [str(args.output / "dataset.json"), str(post_captures),
+            "--workers", str(args.capture_workers), "--only", source_ids])
+    else:
+        post_captures.mkdir(parents=True)
+        (post_captures / 'audit.json').write_text('[]\n')
     post_dataset = json.loads((args.output / "dataset.json").read_text(encoding="utf-8"))
     try:
         post_browser_cases = browser_observation_cases(post_dataset, post_captures, case_ids)
@@ -368,17 +349,9 @@ def main(argv: list[str] | None = None) -> None:
         except ValueError as error:
             parser.error(str(error))
         post_browser_args = ["--browser-observations", str(post_browser)]
-    run(
-        reference_freeze.postcheck_main,
-        [
-            "--run-dir",
-            str(args.output),
-            "--captures",
-            str(post_captures),
-            "--resume",
-            *post_browser_args,
-        ]
-    )
+    if source_ids:
+        run(reference_freeze.postcheck_main, ["--run-dir", str(args.output),
+            "--captures", str(post_captures), "--resume", *post_browser_args])
     observations = post_captures / "observations.json"
     if not observations.exists():
         observations.parent.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,9 @@
 """Interfaces actually used by the benchmark, not a claim to cover entire SDKs."""
 import json
+import re
 from html import escape
 from .safety import contained_path
+from .methods import native_browser_engine, browser_method_registry
 
 URL='https://example.com/'
 HEADLESS_ACCESS={
@@ -14,21 +16,21 @@ HEADLESS_ACCESS={
  'lightpanda':{'account':'不需要供应商账号或 API Key。','configuration':'从官方项目获取二进制，配置 LIGHTPANDA_BINARY；不使用托管服务凭据。','env_vars':['LIGHTPANDA_BINARY'],'links':[('官方项目与安装说明','https://github.com/lightpanda-io/browser')]},
  'obscura':{'account':'不需要供应商账号或 API Key。','configuration':'从官方项目获取程序及配套 worker，配置 OBSCURA_BINARY。','env_vars':['OBSCURA_BINARY'],'links':[('官方项目与安装说明','https://github.com/h4ckf0r0day/obscura')]},
  'moli-1.0.6':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.0.6 release 获取二进制，配置 MOLI_1_0_6_BINARY；发布归档与可执行文件均校验 SHA-256。','env_vars':['MOLI_1_0_6_BINARY'],'links':[('Moli 1.0.6 正式发布','https://github.com/lexmount/moli/releases/tag/v1.0.6')]},
- 'moli':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.5 release 获取二进制，配置 MOLI_BINARY；不是 Lexmount 云服务接口。','env_vars':['MOLI_BINARY'],'links':[('Moli 1.1.5 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.5')]},
+ 'moli':{'account':'不需要供应商账号或 API Key。','configuration':'安装与本报告版本和 SHA-256 一致的二进制，配置 MOLI_BINARY；详见“环境与复现”。','env_vars':['MOLI_BINARY'],'links':[('官方项目与安装说明','https://github.com/lexmount/moli')]},
  'moli-1.1.7':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.7 release 获取二进制，配置 MOLI_1_1_7_BINARY。','env_vars':['MOLI_1_1_7_BINARY'],'links':[('Moli 1.1.7 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.7')]},
  'moli-1.1.11':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.11 release 获取二进制，配置 MOLI_1_1_11_BINARY。','env_vars':['MOLI_1_1_11_BINARY'],'links':[('Moli 1.1.11 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.11')]},
  'moli-pr643':{'account':'不需要供应商账号或 API Key。','configuration':'从 Moli PR #643 的固定源码提交构建，配置 MOLI_PR643_BINARY；此方法是候选构建版。','env_vars':['MOLI_PR643_BINARY'],'links':[('Moli 源码 PR','https://github.com/lexmount/moli/pull/643')]},
  'moli-1.1.3':{'account':'不需要供应商账号或 API Key。','configuration':'从官方 v1.1.3 release 获取二进制，配置 MOLI_1_1_3_BINARY；发布包与可执行文件均校验 SHA-256。','env_vars':['MOLI_1_1_3_BINARY'],'links':[('Moli 1.1.3 正式发布','https://github.com/lexmount/moli/releases/tag/v1.1.3')]},
- 'chromium':{'account':'不需要 Google 账号或 API Key；不加载个人登录会话。','configuration':'通过 Playwright 安装匹配的 Chromium，配置 CHROMIUM_BINARY。','env_vars':['CHROMIUM_BINARY'],'links':[('官方浏览器安装说明','https://playwright.dev/python/docs/browsers')]},
+ 'chromium':{'account':'不需要 Google 账号或 API Key；不加载个人登录会话。','configuration':'安装与本报告版本和 SHA-256 一致的浏览器，配置 CHROMIUM_BINARY；详见“环境与复现”。','env_vars':['CHROMIUM_BINARY'],'links':[('Chrome for Testing','https://googlechromelabs.github.io/chrome-for-testing/'),('官方浏览器安装说明','https://playwright.dev/python/docs/browsers')]},
 }
 def spec(entry,auth,params,fields,request,source,notes):
  return dict(entry=entry,auth=auth,params=params,fields=fields,request=request,source=source,notes=notes)
 SPECS={
  'moli-webfetch':spec('CLI · 按任务预选 Markdown、JSON 诊断、DOM eval 或裸响应路线','本地二进制；无 API Key',
- [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','普通正文','直接取得 Markdown'),('--eval','动态 / 资源页 / DOCX','一次返回有界记录文本、结构化 URL 或页面运行时文档字节'),('--wait-until / --wait-selector / --wait-script','string','使用预声明的生命周期或动态完成条件'),('--timeout / --http-timeout','number','毫秒；导航、HTTP、进程与本地文档解析共享同一端到端预算'),('--block-private-networks','flag','默认启用；仅对冻结公开测试域名的精确白名单省略')],
+ [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','普通正文','直接取得 Markdown'),('--eval','动态 / 资源页 / 嵌入文档','读取预声明范围；资源和嵌入文档使用各浏览器共用的脚本'),('--wait-until / --wait-selector / --wait-script','string','使用预声明的生命周期或动态完成条件'),('--timeout / --http-timeout','number','毫秒；导航、HTTP、进程与本地文档解析共享同一端到端预算'),('--block-private-networks','flag','默认启用；仅对冻结公开测试域名的精确白名单省略')],
  [('stdout','UTF-8 string / bytes','Markdown、eval 结果或直接文件原始字节'),('stderr','string','独立诊断；不混入正文'),('exit_code','integer','0 表示工具请求完成；正文或文件为空仍由任务规则单独判失败'),('status_code / final_url','可能未提供','CLI 未提供时保持未知，不伪造 HTTP 200 或最终 URL')],
- {'ordinary_body':'moli fetch --dump markdown … URL','challenge':'moli fetch --dump json --trace-network … URL → 最终 DOM 本地转 Markdown','dynamic_or_resource_page':'moli fetch --eval <answer-free expression> <bounded wait> … URL','direct_pdf_or_media':'moli fetch … URL','direct_docx':'moli fetch --eval <runtime fetch bytes> … URL'},
- 'harness/web_fetch/providers/moli.py','普通正文使用 Markdown；动态完成条件与正文提取范围分离。直接 PDF 与媒体使用不带 --dump 的原始响应路线；DOCX 因当前 Moli CLI 的 OOXML 误分类，在同一次 CLI 运行中由页面运行时二次 fetch 原始字节并明确披露。文档解析计入同一截止预算；私网保护默认开启，只对冻结公开测试域名使用精确白名单；不在失败后切换格式或借用其他 provider。'),
+ {'ordinary_or_popular_body':'moli fetch --dump markdown … URL','exact_page_identity':'moli fetch --dump markdown … URL；官方同次日志无法确认最终网址时保留空值','dynamic_or_resource_page':'moli fetch --eval <answer-free expression> <bounded wait> … URL','direct_document_or_file':'Moli 原生 CDP → 原始响应；附件事件 → 同一 Moli 原始附件接口；文档 → 原生正文接口'},
+ 'harness/web_fetch/providers/moli.py','普通正文使用 Markdown；动态完成条件与正文提取范围分离。直接文档使用 Moli 原生正文接口；文件使用原生 CDP 的原始响应；附件事件使用同一二进制的原始附件接口，计入同一时限。图片、视频资源只从已取得的 DOM 中读取，不另抓模块挖掘链接。文档原生文字读取计入同一截止预算；私网保护默认开启，只对冻结公开测试域名使用精确白名单；不在失败后切换格式或借用其他 provider。'),
  'lexmount-global':spec('POST https://api.lexmount.com/v1/extract','X-API-Key: <API_KEY>；X-Project-Id: <PROJECT_ID>',
  [('extract.url','string · 必填','目标网页 URL'),('extract.engine','string · 可选','指定提取引擎；本轮不传，使用服务端选择')],
  [('result.main_text','string','正文 → content'),('result.title / final_url','string','页面标题 / 最终地址'),('result.links / images','array','页面链接和图片 → provider_metadata'),('result.status_code','number','源站状态；与 HTTP API 状态分开'),('metadata.server_elapsed_ms','number','服务端耗时')],
@@ -78,22 +80,22 @@ SPECS['kitesurf']=spec(
  [('url','string','唯一任务输入'),('gotoOptions.waitUntil','string','networkidle2'),('browser','query','kitesurf'),('timeout','seconds','45 秒客户端端到端截止')],
  [('result','string','Cloudflare 原生 Markdown → content'),('success / errors','boolean / array','接口状态与错误'),('browser_ms_used','number-like','服务端浏览器计费时间；不等于客户端耗时')],
  {'url':URL,'gotoOptions':{'waitUntil':'networkidle2'}},'harness/web_fetch/providers/cloudflare.py',
- '账号版 Browser Run 原生 Markdown 路径。客户端耗时包含公网往返、远端排队与执行；browser_ms_used 仅作附加诊断。')
+ '正文使用账号版 Browser Run 原生 Markdown；图片、视频资源通过指定 Kitesurf 的官方 CDP 执行共用 DOM 脚本，可读取已加载的同源 iframe。直接文档使用官方 Markdown 接口，嵌入文档通过该 CDP 读取已加载的查看器文字；直接文件通过 CDP 获取原始响应。Workers AI 文档转换不计入 Kitesurf 成绩。客户端耗时包含公网往返、排队与执行。')
 for engine,wait in (('lightpanda','done'),('obscura','load + adaptive settle'),('moli','done')):
  SPECS[engine]=spec(
   'CLI · '+engine+' fetch --dump markdown','本地独立浏览器；不需要供应商 API Key',
   [('URL','string','唯一任务输入'),('--dump','string','markdown'),('wait_until','string',wait),('timeout','seconds','45 秒外层截止；CLI 参数按各自单位换算')],
   [('stdout','UTF-8 string','浏览器原生 Markdown → content'),('native_markdown_ms','number','CLI 调用及原生序列化阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
   {'url':URL,'engine':engine,'timeout':45,'wait_until':wait,'dump':'markdown'},'harness/web_fetch/providers/headless_worker.py',
-  '不点击、不滚动、不补抓资源，不在失败后切换引擎或输出模式。CLI 未提供可靠 HTTP 状态和最终 URL 时保持空值。')
+  '正文使用原生 Markdown。文件使用浏览器已有的原始响应接口；资源与嵌入文档使用共用 DOM 脚本。嵌入文档只读取浏览器内已经加载的文字，不下载后外部解析。不在失败后切换引擎或请求外部服务补正文。接口未提供 HTTP 状态或最终 URL 时保留空值。')
 def moli_release_spec(version):
  base=SPECS['moli']
  return {**base,
- 'entry':f'CLI · Moli {version} 普通网页 Markdown / 直接文档与媒体自动原始响应',
- 'params':[('URL','string · 必填','唯一任务输入'),('--dump markdown','普通网页正文','直接取得 Markdown'),('不传 --dump','直接文档或媒体','由 CLI 自动选择原始响应或序列化页面；不附加页面等待参数'),('timeout','seconds','45 秒外层端到端截止；文档解析包含在内')],
+ 'entry':f'CLI · Moli {version} 普通网页 Markdown / 直接文档与文件原生字节读取',
+ 'params':[('URL','string · 必填','唯一任务输入'),('--dump markdown','普通网页正文','直接取得 Markdown'),('原始字节接口','直接文档或文件','使用固定版本公开支持的接口；实际路线与原始字节见逐次记录'),('timeout','seconds','45 秒外层端到端截止；文档解析包含在内')],
  'fields':[('stdout','UTF-8 string / bytes','普通网页为 Markdown；直接文件为原始字节'),('document_extractor','string','直接文档正文使用的本地解析器'),('raw_stdout_path / sha256','string','保存的原始文档或媒体证据'),('file_evaluation','object','文件格式、长度和目标 SHA-256 验收')],
- 'request':{'ordinary_web':'moli fetch --dump markdown --wait-until done --timeout 45000 URL','direct_document_or_media':'moli fetch --timeout 45000 --http-timeout 45000 URL','version':version},
- 'notes':f'本方法只使用官方 {version} 发行二进制，与其他 Moli 版本分开计分。普通网页使用原生 Markdown；直接文档与媒体的裸 fetch 路线在正式二进制上实测确认。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。不在失败后切换引擎或输出模式。'}
+ 'request':{'ordinary_web':'moli fetch --dump markdown --wait-until done --timeout 45000 URL','direct_document_or_media':'原始字节接口；具体 CDP、响应或附件路线见逐次调用记录','version':version},
+ 'notes':f'本方法只使用官方 {version} 发行二进制，与其他 Moli 版本分开计分。普通网页使用原生 Markdown；直接文档与文件的原始字节和接口路线保留在逐次记录中。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。不在失败后切换引擎或输出模式。'}
 SPECS['moli-1.0.6']=moli_release_spec('1.0.6')
 SPECS['moli']=moli_release_spec('1.1.5')
 SPECS['moli-1.1.7']=moli_release_spec('1.1.7')
@@ -101,10 +103,157 @@ SPECS['moli-1.1.3']=moli_release_spec('1.1.3')
 SPECS['moli-1.1.11']=moli_release_spec('1.1.11')
 SPECS['chromium']=spec(
  'Playwright · Chromium → DOM HTML → node-html-markdown','本地独立浏览器；不需要 Google 账号，不加载个人会话',
- [('url','string','唯一任务输入'),('wait_until','string','domcontentloaded'),('timeout','seconds','45 秒端到端截止'),('converter','string','node-html-markdown 2.0.0')],
+ [('url','string','唯一任务输入'),('wait_until','string','load'),('timeout','seconds','45 秒端到端截止'),('converter','string','node-html-markdown 2.0.0')],
  [('content','string','转换后的 Markdown'),('rendered_html_path / sha256','string','转换前 DOM HTML 证据'),('fetch_html_ms / conversion_ms','number','分阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
- {'url':URL,'engine':'chromium','timeout':45,'wait_until':'domcontentloaded','dump':'html','converter':'node-html-markdown 2.0.0'},'harness/web_fetch/providers/headless_worker.py',
- 'Chromium/CDP 没有原生 Markdown 输出，因此取完整渲染 DOM 后转换；转换计入端到端耗时，HTML 与转换器版本、哈希均保留。')
+ {'url':URL,'engine':'chromium','timeout':45,'wait_until':'load','dump':'html','converter':'node-html-markdown 2.0.0'},'harness/web_fetch/providers/headless_worker.py',
+ '网页正文取完整渲染 DOM 后转为 Markdown；图片、视频资源使用共用 DOM 脚本。直接文档使用浏览器自身返回的页面内容，嵌入文档读取已加载的查看器文字；不使用外部文档解析器。转换、下载和解析均计入耗时；原始字节、HTML 与转换器哈希均保留。')
+
+def method_provenance(out):
+ path=out/'implementation-provenance.json'
+ return {item['binary_sha256']:item for item in json.loads(path.read_text()).get('implementations',[])} if path.is_file() else {}
+
+
+def method_version(record, provenance=None):
+ """Use executable identity, never a different engine's CDP compatibility number."""
+ meta=record.get('provider_metadata') or {}
+ name=record.get('provider')
+ if name=='kitesurf':return 'Beta · 托管后端版本未公开'
+ bound=(provenance or {}).get(meta.get('binary_sha256'),{})
+ if bound.get('version'):return bound['version']
+ if meta.get('reported_version'):return meta['reported_version']
+ value=meta.get('browser_version')
+ if name in {'moli','lightpanda','obscura'} and re.fullmatch(r'\d+\.\d+\.\d+\.\d+',str(value)):
+  return None
+ return value or meta.get('binary_version') or meta.get('moli_version') or meta.get('library_version') or meta.get('version')
+
+
+def method_access(name, records):
+ engine=native_browser_engine(name) or name
+ access=HEADLESS_ACCESS.get(name) or HEADLESS_ACCESS.get(engine)
+ if access and engine!=name:
+  source=browser_method_registry()[name].get('source_url')
+  return {**access,'configuration':'使用本轮绑定提交构建的二进制；提交、构建环境与 SHA-256 见环境与复现。','links':[(name+' · 源码分支',source)] if source else access['links']}
+ if access is None or name!='moli':return access
+ versions=set()
+ for row in records:
+  if row['provider']!=name:continue
+  match=re.fullmatch(r'moli (\d+\.\d+\.\d+)',row.get('provider_metadata',{}).get('reported_version',''))
+  if match:versions.add(match.group(1))
+ if len(versions)!=1:return access
+ version=next(iter(versions))
+ return {**access,'links':[(f'Moli {version}',f'https://github.com/lexmount/moli/releases/tag/v{version}')]}
+
+
+def method_spec(name, record):
+ engine=native_browser_engine(name) or name
+ if record and record.get('provider_type')=='moli_webfetch':
+  base=SPECS['moli-webfetch']
+  return {**base,'entry':'CLI · Moli · 按任务预选原生正文、DOM eval 或原始响应接口'} if name not in SPECS else base
+ base=SPECS.get(name) or SPECS[engine]
+ meta=(record or {}).get('provider_metadata',{})
+ if name=='moli':
+  match=re.fullmatch(r'moli (\d+\.\d+\.\d+)',meta.get('reported_version',''))
+  if match:base=moli_release_spec(match.group(1))
+  else:
+   base={**base,'entry':'CLI · Moli','request':{k:v for k,v in base['request'].items() if k!='version'}}
+  return {**base,'notes':'实际版本、配置和调用路线见“环境与复现”及逐次调用记录。'}
+ if name=='chromium' and meta.get('navigation_wait_until') in {'load','domcontentloaded','networkidle','commit'}:
+  wait=meta['navigation_wait_until']
+  return {**base,'request':{**base['request'],'wait_until':wait},
+          'params':[(key,kind,wait if key=='wait_until' else description)
+                    for key,kind,description in base['params']]}
+ native={k:v for k,v in meta.get('native_metadata',{}).items() if k in {'format','script_sha256'}}
+ format_name=native.get('format')
+ if (name,format_name) not in {('lightpanda','lightpanda_json'),('obscura','obscura_eval')}:return base
+ command=('lightpanda fetch URL --dump markdown --json' if name=='lightpanda'
+          else 'obscura fetch URL --eval <upstream-native-markdown-and-location>')
+ request={**base['request'],'command':command,'native_metadata':native}
+ if name=='obscura':request.pop('dump',None)
+ return {**base,'entry':'CLI · '+command,'request':request,
+         'params':[row for row in base['params'] if name!='obscura' or row[0]!='--dump'],
+         'notes':'正文保留同一次调用的原生 Markdown 和最终地址。Lightpanda 解包原生 JSON；Obscura 执行固定哈希的官方 Markdown 脚本。直接文件分别使用 Lightpanda CDP 与 Obscura --dump original；资源和嵌入文档使用共用 DOM 读取脚本，不外部解析文档；获取与输出处理均计入耗时。'}
+
+
+
+def browser_task_interface_matrix(cases, providers):
+ """Describe selected task routes without receiving answers or measured scores."""
+ from collections import Counter
+ from types import SimpleNamespace
+ from .providers.headless import output_mode_for_case
+ capabilities={
+  'moli':'内置 Rust Markdown 转换；CLI --dump markdown。最终网址仅使用同次官方日志可明确确认的值；无法确认时保留空值，不切换 JSON 或共同转换。',
+  'lightpanda':'内置 Markdown 转换；CLI --dump markdown --json，同时返回正文、最终网址及错误信息。',
+  'obscura':'内置 Markdown 与 LP.getMarkdown 共用官方 JS 实现；本次执行固定版本的同一脚本，并在同次 --eval 中返回最终网址。',
+  'chromium':'没有直接输出 Markdown 的原生接口；取得渲染后的 DOM，再使用共同的 node-html-markdown 2.0.0。',
+  'kitesurf':'官方 Browser Run /markdown?browser=kitesurf 返回 Markdown；这是托管服务的转换能力，不是客户端共同转换。',
+ }
+ markdown={
+  'moli':'CLI fetch --dump markdown → 内置转换 → Markdown',
+  'lightpanda':'CLI fetch --dump markdown --json → 内置转换 → 解包 Markdown',
+  'obscura':'CLI --eval 官方固定版本脚本与 location.href → 官方转换 → Markdown',
+  'chromium':'Playwright/CDP 导航 → 最终 DOM → 共同转换 → Markdown',
+  'kitesurf':'/markdown?browser=kitesurf → 官方托管转换 → Markdown',
+ }
+ original={
+  'moli':'原生 CDP 响应；附件事件使用同一 Moli 原始附件接口',
+  'lightpanda':'原生 CDP Response.body()',
+  'obscura':'CLI fetch --dump original（原始 HTTP 响应，不运行页面 JS）',
+  'chromium':'Playwright/CDP 原始响应或原生下载',
+  'kitesurf':'指定 Kitesurf 的官方 CDP 原始响应',
+ }
+ resource={
+  'moli':'CLI --eval 执行共用 DOM 元素读取脚本',
+  'lightpanda':'原生 CDP 执行共用 DOM 元素读取脚本',
+  'obscura':'CLI --eval 执行共用 DOM 元素读取脚本；内置 assets 缺少所需 srcset/picture 地址',
+  'chromium':'Playwright/CDP 执行共用 DOM 元素读取脚本',
+  'kitesurf':'指定 Kitesurf 的官方 CDP 执行共用 DOM 元素读取脚本',
+ }
+ runtime={'moli':'原生 CDP','obscura':'原生 CDP','lightpanda':'原生 CDP',
+          'chromium':'Playwright/CDP','kitesurf':'指定 Kitesurf 的官方 CDP'}
+ waits={
+  'moli':'CLI 等待 done',
+  'lightpanda':'Markdown CLI 等待 done',
+  'obscura':'CLI 使用官方默认 load 加自适应静默等待（最多 5 秒）',
+  'chromium':'页面提取等待 load',
+  'kitesurf':'Markdown API 等待 networkidle2',
+ }
+ tracks=[]
+ for case in cases.values():
+  track=case.get('track','web')
+  if track not in tracks:tracks.append(track)
+ from .report import TRACKS
+ order=list(TRACKS)
+ tracks.sort(key=lambda track:order.index(track) if track in order else len(order))
+ rows=[]
+ for track in tracks:
+  group=[case for case in cases.values() if case.get('track','web')==track]
+  cells={}
+  for provider in providers:
+   engine=native_browser_engine(provider)
+   if engine not in capabilities:raise ValueError('Unregistered native browser participant: '+provider)
+   parts=[];counts=Counter()
+   for case in group:
+    mode=output_mode_for_case(engine,'headless_markdown',SimpleNamespace(
+     url=case['url'],track=track,task_kind=case.get('task_kind','body')))
+    counts[mode]+=1
+   for mode,count in counts.items():
+    if mode=='markdown':description=markdown[engine]+('；文档必须由此接口直接返回文字，不使用外部 PDF/DOCX 解析器' if track=='document' else '')
+    elif mode=='document':description=original[engine]+' → 原始 PDF/DOCX → 共同 pypdf / DOCX XML 解析 → 文档正文'
+    elif mode=='file':description=original[engine]+' → 原始文件字节（不转 Markdown）'
+    elif mode=='resource':description=resource[engine]+' → 图片或视频资源地址（不转 Markdown）'
+    elif mode=='document_page':description=runtime[engine]+' 读取嵌入文档 → 已加载 PDF 查看器原生文字，或页面可见文字 → 文档正文；不下载后另行解析'
+    elif mode=='media_metadata':description=runtime[engine]+' 执行共用脚本，读取正文、作者及 JSON-LD → 页面正文与媒体元数据（不转 Markdown）'
+    else:raise ValueError('Unsupported browser task interface mode: '+mode)
+    wait=('读取原始响应或下载文件，不等待查看器绘制' if mode in {'file','document'} else waits[engine])
+    if mode not in {'file','document','markdown'}:
+     if engine in {'lightpanda','kitesurf'} or (engine=='obscura' and mode in {'document_page','media_metadata'}):
+      wait='CDP 页面提取等待 load'
+    if mode=='document_page':wait+='；随后等待查看器文档就绪或页面内容'
+    parts.append({'count':count,'mode':mode,'description':description,'wait':wait})
+   cells[provider]=parts
+  rows.append({'track':track,'count':len(group),'cells':cells})
+ return {'providers':providers,'capabilities':{name:capabilities[native_browser_engine(name)] for name in providers},'rows':rows}
+
 
 def render_interfaces(out,records):
  from .artifacts import record_public_call_log_bindings, verify_public_call_log
@@ -113,19 +262,20 @@ def render_interfaces(out,records):
  def pre(value):return '<pre>'+escape(value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,indent=2))+'</pre>'
  def fields(rows):return '<dl class="interface-fields">'+''.join('<div><dt><code>'+escape(k)+'</code> <small>'+escape(t)+'</small></dt><dd>'+escape(d)+'</dd></div>' for k,t,d in rows)+'</dl>'
  measured={r['provider'] for r in records}
- names=sorted(SPECS,key=lambda name:(name not in measured,name))
+ names=sorted(set(SPECS)|{name for name in measured if native_browser_engine(name)},key=lambda name:(name not in measured,name))
  body='<p>按本轮适配器介绍，不混用完整产品能力。输入示例展示正文配置，资源配置差异单列；它们不是每条历史请求的逐字回放。各调用所属批次及实际配置见“环境与复现”。输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
  if native_default:
   body='<p>已测方法的输入展示保存的公开调用字段，输出展示同一次调用的实际节选。完整配置、原始响应和日志见环境与调用详情。未参评方法保留仓库登记示例。</p>'
  for i,name in enumerate(names):
-  s=SPECS[name];r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next((r for r in records if r['provider']==name),None))
+  r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next((r for r in records if r['provider']==name),None))
+  s=method_spec(name,r)
   if r and native_default:
    bindings=record_public_call_log_bindings(r)
    if not bindings:
     raise ValueError("Measured native interface requires a saved call log: "+name)
    request=json.loads(verify_public_call_log(out,bindings[-1]).read_text())["request"]
    s={**s,"params":[],"request":request,"notes":"此处展示该次公开调用记录保存的请求字段；完整配置和日志见环境与调用详情。产品内部超时以冻结配置和实际请求为准。"}
-  access=HEADLESS_ACCESS.get(name)
+  access=method_access(name,records)
   if r:
    content=contained_path(out,r['artifact_path']).read_text();sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)
   else:sample={'measurement':None,'note':'仓库登记接口，未纳入本轮；此处不提供虚构的运行输出。'}
@@ -135,7 +285,7 @@ def render_interfaces(out,records):
   body+=f'<details class="interface-panel" id="interface-{name}"'+(' open' if i==0 else '')+'><summary>'+escape(name)+'</summary>'
   body+='<p class="interface-endpoint"><code>'+escape(s['entry'])+'</code></p><p class="source-note">'+escape(s['auth'])+'</p>'
   if access:
-   body+='<h3>账号与获取入口</h3><p>'+escape(access['account'])+'</p><p>'+escape(access['configuration'])+'</p><p>'+ ' · '.join('<a href="'+escape(url,quote=True)+'">'+escape(label)+'</a>' for label,url in access['links'])+'</p><p class="source-note">官方说明核验：2026-09-07。只列账号要求、获取入口与占位符，不公开真实凭据。</p>'
+   body+='<h3>账号与获取入口</h3><p>'+escape(access['account'])+'</p><p>'+escape(access['configuration'])+'</p><p>'+ ' · '.join('<a href="'+escape(url,quote=True)+'">'+escape(label)+'</a>' for label,url in access['links'])+'</p><p class="source-note">实际版本和接口见运行记录；下方链接指向官方说明。</p>'
   sample_label='本轮输出节选 · 统一记录' if r else '本轮未执行'
   body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'])+('<h4>本轮保存的调用字段</h4>' if r and native_default else '<h4>调用输入示例</h4>')+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
   measured_link='<a href="../attempts/'+escape(r['attempt_id'])+'.html">该次完整输出与判定 →</a>' if r else '未纳入本轮；参数说明为仓库登记模式，不计入本轮结果'

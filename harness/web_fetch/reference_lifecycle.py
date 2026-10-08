@@ -81,29 +81,22 @@ def _not_future(value, now: datetime) -> datetime:
     return checked
 
 
-def source_unqualified_contract_cases(cases) -> list[str]:
-    """Invariant rule validation is not current source-solvability evidence.
-
-    The generic lifecycle does not currently qualify live acceptance contracts.
-    Specialized frozen-input tracks have their own certificates and boundaries.
-    """
-    return [_get(case, 'id') for case in cases if _get(case, 'acceptance_contract', {})]
-
-
 def requires_fresh_reference(case) -> bool:
+    """Existing answers stay frozen unless the task explicitly selects live checks."""
     contract = _get(case, "acceptance_contract", {})
     if contract:
-        # This mode evaluates invariant rules, not equality with live values.
-        # Validate before choosing it; snapshot-bound runs retain all checks.
         from .stable_tasks import validate_acceptance_contract
         validate_acceptance_contract(contract)
         return False
-    # Tiny synthetic fixtures intentionally have no independent verification.
-    # Production body cases carry this metadata, including invalid attestations.
-    return (_get(case, "track", "web") in {"web", "dynamic", "challenge"}
+    verification = _get(case, "source_verification", {}) or {}
+    mode = verification.get("reference_mode", "frozen")
+    if mode not in {"frozen", "live_exact"}:
+        raise ReferenceLifecycleError("Unknown reference mode; use frozen or live_exact")
+    return (mode == "live_exact"
+            and _get(case, "track", "web") in {"web", "dynamic", "challenge"}
             and _get(case, "task_kind", "body") == "body"
             and bool((_get(case, "ground_truth_main_content", "") or "").strip())
-            and bool(_get(case, "source_verification", {})))
+            and bool(verification))
 
 
 def expected_providers(dataset, case):
@@ -881,6 +874,34 @@ def valid_scoring_revision(source) -> bool:
         return before, after
 
     reference_edges = set()
+    presentation_path = root/'report-binding-revisions.json'
+    if presentation_path.is_file():
+        try:
+            presentation_rows = json.loads(presentation_path.read_text())
+            if not isinstance(presentation_rows, list):
+                return False
+            for receipt in presentation_rows:
+                edge = revision_edge(receipt)
+                if (edge is None or receipt.get('kind') != 'report_interpretation_binding_revision'
+                        or receipt.get('provider_calls') != 0 or edge[0][1] != edge[1][1]):
+                    return False
+                snapshots = []
+                for side, binding in zip(('input', 'output'), edge):
+                    raw = contained_path(root, receipt[f'{side}_dataset_path']).read_bytes()
+                    if sha256(raw) != binding[0]:
+                        return False
+                    document = json.loads(raw)
+                    if not isinstance(document, dict):
+                        return False
+                    document.get('comparison', {}).pop('report_interpretation', None)
+                    if not document.get('comparison'):
+                        document.pop('comparison', None)
+                    snapshots.append(document)
+                if snapshots[0] != snapshots[1]:
+                    return False
+                reference_edges.add(edge)
+        except (OSError, ValueError, TypeError, KeyError):
+            return False
     reference_path = root/'reference-revisions.json'
     if reference_path.is_file():
         try:

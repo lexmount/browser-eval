@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.metrics import task_passed
+from harness.web_fetch.metrics import task_passed, task_measured
 from harness.web_fetch.reference_lifecycle import (
     reference_revision_cases,
     scoring_revision_history_sha256,
@@ -12,14 +12,65 @@ from harness.web_fetch.reference_lifecycle import (
 )
 from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.scoring_regressions import (
-    load_scoring_regressions,
-    require_scoring_regressions,
+    active_scoring_regressions, require_scoring_regressions,
     valid_correction_provenance,
 )
 from harness.web_fetch.scoring_revision import correction_provenance
 
 
 class ScoringRegressionTests(unittest.TestCase):
+    def test_policy_supersession_preserves_inputs_and_rejects_changed_body(self):
+        document=json.loads((Path(__file__).resolve().parents[1]/'evaluation/scoring-regressions.json').read_text())
+        self.assertTrue(document['superseded_cases'])
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'controls.json'
+            path.write_text(json.dumps(document))
+            current=active_scoring_regressions(path)
+            old,new=next(iter(document['superseded_cases'].items()))
+            self.assertNotIn(old,current)
+            self.assertIn(new,current)
+            for field,value in (('artifact','Changed body'),('final_url','https://different.test/')):
+                changed=json.loads(json.dumps(document))
+                next(row for row in changed['cases'] if row['id']==new)[field]=value
+                path.write_text(json.dumps(changed))
+                with self.subTest(field=field),self.assertRaises(ValueError):
+                    active_scoring_regressions(path)
+            changed=json.loads(json.dumps(document))
+            changed['superseded_cases'][old]='nonexistent-control'
+            path.write_text(json.dumps(changed))
+            with self.assertRaises(ValueError):
+                active_scoring_regressions(path)
+
+    def test_report_prose_rebinding_preserves_scoring_history_and_rejects_task_edits(self):
+        from harness.web_fetch.scoring_revision import rebind_report_interpretation
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            raw = b'{"cases": [{"id": "a", "url": "https://example.test"}]}\n'
+            (root/'dataset.json').write_bytes(raw)
+            (root/'results.jsonl').write_bytes(b'')
+            receipt = {'kind': 'audited_scoring_rule_revision', 'provider_calls': 0,
+                       'changed_cases': [], 'task_decision_changes': [],
+                       'input_dataset_sha256': 'a'*64, 'input_results_sha256': 'b'*64,
+                       'output_dataset_sha256': hashlib.sha256(raw).hexdigest(),
+                       'output_results_sha256': hashlib.sha256(b'').hexdigest()}
+            history = json.dumps([receipt]).encode()
+            (root/'scoring-revisions.json').write_bytes(history)
+            (root/'article.json').write_bytes(b'{}')
+            rebind_report_interpretation(root, {'path': 'article.json',
+                'sha256': hashlib.sha256(b'{}').hexdigest()})
+            self.assertTrue(valid_scoring_revision(root))
+            self.assertEqual((root/'scoring-revisions.json').read_bytes(), history)
+            self.assertEqual((root/'results.jsonl').read_bytes(), b'')
+            dataset = json.loads((root/'dataset.json').read_text())
+            dataset['cases'][0]['url'] = 'https://different.test'
+            changed = json.dumps(dataset).encode()
+            revisions = json.loads((root/'report-binding-revisions.json').read_text())
+            revisions[0]['output_dataset_sha256'] = hashlib.sha256(changed).hexdigest()
+            (root/revisions[0]['output_dataset_path']).write_bytes(changed)
+            (root/'dataset.json').write_bytes(changed)
+            (root/'report-binding-revisions.json').write_text(json.dumps(revisions))
+            self.assertFalse(valid_scoring_revision(root))
+
     def test_historical_blind_review_keeps_revision_chain_readable_after_new_anomaly_rule(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
@@ -58,7 +109,7 @@ class ScoringRegressionTests(unittest.TestCase):
             self.assertTrue(valid_scoring_revision(root))
 
     def test_every_registered_false_verdict_control_runs_through_shared_scorer(self):
-        rows = load_scoring_regressions()
+        rows = active_scoring_regressions()
         root_modes = {}
         for identifier, row in rows.items():
             with self.subTest(regression=identifier):
@@ -71,6 +122,8 @@ class ScoringRegressionTests(unittest.TestCase):
                     row["ok"], metrics, row["case"].get("task_kind", "body")
                 )
                 self.assertEqual(verdict, row["expected_task_pass"])
+                if "expected_task_measured" in row:
+                    self.assertEqual(task_measured(metrics), row["expected_task_measured"])
                 for key, expected in row.get("expected_metrics", {}).items():
                     self.assertEqual(metrics.get(key), expected, key)
                 root_modes.setdefault(row["root_cause"], set()).add(row["failure_mode"])

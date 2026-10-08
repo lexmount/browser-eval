@@ -6,17 +6,16 @@ Passing establishes the declared output structure, not factual source fidelity.
 """
 from __future__ import annotations
 
-from datetime import date, datetime
-from html import unescape
 import hashlib
 import math
 import re
 import unicodedata
+from datetime import date, datetime
+from html import unescape
 from urllib.parse import urlsplit
 
 from .dynamic_lists import extract_named_entries, named_entry_source_pair_hash
-from .reference_quality import clean_reference_text
-
+from .reference_quality import clean_reference_text, markdown_delimiter_pairs
 
 SCHEMA_FIELDS = {
     "table_row": (),
@@ -62,29 +61,13 @@ def _key(text):
 _CARD_BOUNDARY = "\ue000"
 
 
-def _closing(text, start, opening, closing):
-    depth = 1
-    i = start + 1
-    while i < len(text):
-        if text[i] == "\\":
-            i += 2
-            continue
-        if text[i] == opening:
-            depth += 1
-        elif text[i] == closing:
-            depth -= 1
-            if not depth:
-                return i
-        i += 1
-    return None
-
-
 def _unwrap_links(text, schema):
     """Unwrap balanced inline links, including multiline card labels.
 
     Only explicit markup creates boundaries; text from separate cards is never
     flattened together. Image alt text is not a substitute for a visible title.
     """
+    pairs = markdown_delimiter_pairs(text)
     output, i = [], 0
     while i < len(text):
         image = text.startswith("![", i)
@@ -93,9 +76,9 @@ def _unwrap_links(text, schema):
             output.append(text[i])
             i += 1
             continue
-        end = _closing(text, start, "[", "]")
+        end = pairs.get(start)
         destination = end + 1 if end is not None else len(text)
-        close = _closing(text, destination, "(", ")") if text[destination:destination + 1] == "(" else None
+        close = pairs.get(destination) if text[destination:destination + 1] == "(" else None
         if close is None:
             output.append(text[i])
             i += 1
@@ -539,7 +522,8 @@ def _parse_records(visible, schema):
 def _non_record_visible(content, contract, records, base_url):
     """Remove owned record links, without erasing identical navigation text."""
     from urllib.parse import urljoin
-    from .dynamic_lists import named_entry_identity, _scoped_html
+
+    from .dynamic_lists import _scoped_html, named_entry_identity
     from .reference_quality import markdown_links
 
     identities = {named_entry_identity(r['fields']['url'], contract)

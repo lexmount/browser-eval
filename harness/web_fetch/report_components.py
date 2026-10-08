@@ -160,8 +160,9 @@ def task_pass_guide(track, base='', cases=None):
     text = rules.get(track, '按案例中登记的验收规则逐项检查。')
     coverage=[c['body_requirements'] for c in (cases or {}).values() if c.get('body_requirements')]
     if coverage:
-        thresholds=' / '.join(f'{v:.0%}' for v in sorted({r['minimum_coverage'] for r in coverage}))
-        text+=f' 已登记正文覆盖规则的案例，还须在最多 {max(len(r["regions"]) for r in coverage)} 个参考区域中逐区达到 {thresholds} 词语计数覆盖，不能只返回标题或开头。'
+        text+=' 已登记正文覆盖规则的案例，按各例指定的比较单位、区域门槛和通过区域数验收，不能只返回标题或开头。'
+        if any(r.get('unit')=='region_compact_hexagram_recall' for r in coverage):
+            text+=' 字符六元组规则忽略排版空白，保留文字顺序；各区域的要求见题目详情。'
     for c in (cases or {}).values():
         fields=c.get('acceptance_contract',{}).get('field_minimum_records',{})
         if fields:
@@ -234,7 +235,7 @@ def examples():
             ('结构怎么测','至少 3 个有名称的本站详情链接，按地址去重。仅网址、导航按钮和登录提示不计入；频繁变化的条目名称、名次、价格或 ID 不固定为旧快照取值，不免除登记的稳定内容核对。'),
             ('怎样算通过','稳定内容锚点与必需字段、类型、唯一性和数量全部通过。通过不证明变化值的事实准确性或实时性；缺少完整、可比的参考时完整度、纯净度和 F1 为 —。<a href="../datasets/challenge-10-justwatch.html">查看参考与实测 →</a>'),
         ]),
-        ('risk_control','历史访问受限网址内容',[
+        ('risk_control','风控网站正文',[
             ('任务','打开指定网址，取得首次自动加载出的目标正文、列表和真实链接，不进行点击、输入、滚动、翻页或登录。'),
             ('核对依据','按独立保存的目标页面证据登记稳定文字、完整正文分区，以及名称—链接、路径、字段、去重和数量要求。'),
             ('怎么测','先排除请求失败、空返回、验证或拦截页面和页面外壳，再逐项检查本例声明的稳定文字、正文覆盖与组合规则。'),
@@ -272,7 +273,7 @@ SCHEMA_LABELS = {
     'quote':'引文列表', 'product':'商品列表', 'catalog_product':'商品目录',
     'review':'评论列表', 'name_description':'名称与说明', 'api_operation':'接口摘要',
     'taxonomy_family':'科名列表', 'named_link':'具名详情入口',
-    'linked_product':'具名商品详情', 'page_identity':'页面身份',
+    'linked_product':'具名商品详情', 'page_identity':'目标页面核对',
 }
 FIELD_REQUIREMENTS = {
     'magnitude':('震级','有效的数字震级，不固定某次地震的数值。'),
@@ -329,7 +330,7 @@ def stable_rule_description(c):
         return ('页面正文按登记的稳定文字锚点核验；新闻、日期、轮播卡片、仓库状态等'
                 '易变内容不固定为答案。历史完整快照只作诊断，不进入全文质量汇总。')
     if contract['schema'] == 'page_identity':
-        return '页面身份：所有独立登记的稳定文字组均须命中；不声明或虚构条目数量。'
+        return '目标页面核对：指定的稳定文字组都须命中；不要求页面包含固定条目数。'
     maximum = contract.get('maximum_records')
     limit = f'至少 {contract["minimum_records"]} 条' + (f'，最多 {maximum} 条' if maximum is not None else '')
     return (f'{SCHEMA_LABELS.get(contract["schema"], contract["schema"])}：{limit}完整且唯一的记录。'
@@ -337,7 +338,7 @@ def stable_rule_description(c):
             '频繁变化的名单和价格不固定旧快照取值；通过不证明这些变化值真实或最新。')
 
 
-def stable_contract_details(c):
+def stable_contract_details(c, *, evidence_root=None):
     from .stable_tasks import SCHEMA_FIELDS, UNIQUE_FIELDS
     contract = c['acceptance_contract']
     schema = contract['schema']
@@ -374,8 +375,10 @@ def stable_contract_details(c):
                   or c.get('source_benchmark',{}).get('stable_annotation',{}))
     evidence = ((c.get('stable_text_evidence') or {}).get('path')
                 or annotation.get('anchor_evidence'))
+    if evidence and evidence_root is not None and not (evidence_root/evidence).is_file():
+        evidence = None
     provenance = ('<p>独立文字依据：<a href="../'+escape(evidence,quote=True)+'">查看限定范围原文</a>。'
-        '这些核对项验证文字是否保留，不证明整页正文完整，也不以榜单当前成员为答案。</p>') if evidence else ('<p>本例未登记稳定文字依据；文字核对覆盖不计算，已执行的列表规则与结果仍保留。</p>' if annotation else '')
+        '这些核对项验证文字是否保留，不证明整页正文完整，也不以榜单当前成员为答案。</p>') if evidence else ('<p>固定文字核对项见下方；本报告未附早期标注的原始页面文件。</p>' if annotation and anchors else '<p>本例未登记稳定文字依据；文字核对覆盖不计算，已执行的列表规则与结果仍保留。</p>' if annotation else '')
     return ('<p>'+escape(stable_rule_description(c))+'</p>'+requirements
             + provenance
             + ('<h3>稳定文本锚点</h3><p>每组至少命中一种允许表达，所有组均须通过。</p><ul>'+anchors+'</ul>' if anchors else '')

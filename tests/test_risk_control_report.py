@@ -57,7 +57,7 @@ def test_full_risk_control_matrix_builds_existing_interactive_report(tmp_path, c
     guide = (report / 'guide/index.html').read_text()
     assert '本报告包含 100 个任务' in guide
     assert '静态网站正文：0' not in guide
-    assert "历史访问受限网址" in home
+    assert "风控网站正文" in home
     assert "风控网站内容" not in home
     assert "资格只解释样本来源" in home
     assert "组合规则结果" in detail

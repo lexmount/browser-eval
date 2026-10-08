@@ -41,6 +41,30 @@ from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 
 
+class BrowserCohortRegistryTests(unittest.TestCase):
+    def test_generic_method_name_uses_observed_version_without_an_old_release_label(self):
+        from harness.web_fetch.methods import method_page_model
+        from harness.web_fetch.report_methods import display_name
+        for version in ('1.1.15','1.2.0'):
+            records=[{'provider_type':'moli_webfetch','provider_metadata':{'reported_version':'moli '+version}}]
+            model=method_page_model('moli',display_name('moli'),records)
+            self.assertIn('Moli '+version,model['title'])
+            self.assertNotIn('1.1.5',model['title'])
+
+
+    def test_task_specific_moli_adapter_keeps_browser_report_routes(self):
+        from harness.web_fetch.report import is_headless_cohort
+        from harness.web_fetch.report_explainer import _is_headless_comparison, supports_authored_explainer
+        records = [{'provider_type': 'moli_webfetch'}, {'provider_type': 'headless_markdown'}]
+        self.assertTrue(is_headless_cohort(records))
+        self.assertTrue(_is_headless_comparison(records))
+        self.assertFalse(supports_authored_explainer({'risk': {'track': 'risk_control'}}))
+        for unrelated in ([], [{'provider_type': 'moli_webfetch'}],
+                          records + [{'provider_type': 'firecrawl'}]):
+            self.assertFalse(is_headless_cohort(unrelated))
+            self.assertFalse(_is_headless_comparison(unrelated))
+
+
 class HeadlessReportTests(unittest.TestCase):
     def test_resource_cards_name_each_actual_metric_winner(self):
         providers = ['moli', 'lightpanda', 'obscura', 'chromium']
@@ -78,7 +102,7 @@ class HeadlessReportTests(unittest.TestCase):
         self.assertTrue(result['winner_tied'])
         english = localize_html(page, PurePosixPath('guide/index.html'))
         self.assertIn('Resource-efficiency co-leaders in this run', english)
-        self.assertIn('Moli 1.1.1, Lightpanda, Obscura, Chromium', english)
+        self.assertIn('Moli, Lightpanda, Obscura, Chromium', english)
         self.assertNotIn('资源效率并列领先', english)
 
     def test_resource_table_excludes_unobservable_remote_provider(self):
@@ -265,6 +289,9 @@ class HeadlessReportTests(unittest.TestCase):
         annotated = record | {'diagnosis': {'independent_source_check': 'available'},
                               'title_quality': {'score': 0.5}, 'failure_category': 'label'}
         self.assertEqual(binding(cases, annotated), expected)
+        local = record | {'provider_metadata': record['provider_metadata'] | {
+            'local_report_complete_diagnostic_links': True}}
+        self.assertEqual(binding(cases, local), expected)
         mutations = [record | {'ok': False}, record | {'elapsed_ms': 11},
                      record | {'metrics': record['metrics'] | {'content_pass': False}},
                      record | {'metrics': record['metrics'] | {'content_sha256': 'changed'}},
@@ -525,7 +552,7 @@ class HeadlessReportTests(unittest.TestCase):
         now=datetime.now(timezone.utc)
         case={'id':'body','name':'Body','url':'https://example.test/body','track':'web',
             'task_kind':'body','ground_truth_main_content':'Reference body',
-            'source_verification':{'state':'valid','method':'independent fixture',
+            'source_verification':{'state':'valid','reference_mode':'live_exact','method':'independent fixture',
                 'checked_at':(now-timedelta(seconds=10)).isoformat(),
                 'reference_sha256':sha256('Reference body')}}
         dataset={'cases':[case],'coverage_plan':{'web':['p']}}
@@ -594,3 +621,216 @@ class HeadlessReportTests(unittest.TestCase):
             with self.assertRaises(ReferenceLifecycleError):
                 build_report(root/'diagnostic',root/'report')
             self.assertFalse((root/'report').exists())
+
+class CurrentBrowserArticleTests(unittest.TestCase):
+    def example(self, root):
+        from harness.web_fetch.report_explainer import _digest, _headless_article_input
+        cases={cid:{'id':cid,'name':cid,'track':track,'url':'https://example.com/'+cid,
+                    'ground_truth_main_content':'Expected complete body'}
+               for cid,track in [('web-case','web'),('risk-case','risk_control')]}
+        rows=[]
+        for name,values in [('moli',[(True,10),(False,30)]),('lightpanda',[(True,20),(True,40)])]:
+            for (cid,case),(passed,ms) in zip(cases.items(),values):
+                attempt=name+'__'+cid
+                artifact='artifacts/'+attempt+'.txt'
+                (root/artifact).parent.mkdir(exist_ok=True)
+                (root/artifact).write_text('Expected complete body' if passed else 'Access denied')
+                (root/'attempts').mkdir(exist_ok=True)
+                (root/'attempts'/f'{attempt}.html').write_text('<p>Canonical result and error</p>')
+                rows.append({'provider':name,'provider_type':'headless_markdown','case_id':cid,
+                             'attempt_id':attempt,'artifact_path':artifact,'ok':passed,'elapsed_ms':ms,
+                             'started_at':'2026-10-09T00:00:00Z','provider_metadata':{},
+                             'error_type':None if passed else 'http_status',
+                             'error_message':None if passed else 'Origin returned HTTP 403',
+                             'metrics':{'content_pass':passed}})
+        content={'schema':'webfetch_browser_interpretation/1',
+                 'evidence_sha256':_digest(_headless_article_input(cases,rows,['moli','lightpanda'])),
+                 'title':'浏览器结果解读','intro':'相同任务和规则下的测量。',
+                 'scoring':'正文和最终页面地址都属于验收范围。','conclusions':'结合正文与交付结果选择方法。',
+                 'providers':{name:{'explanation':'这一节解释实际返回的内容。',
+                                    'specimen_case_id':'risk-case'} for name in ['moli','lightpanda']}}
+        p=root/'report-assets/content.json';p.parent.mkdir();p.write_text(json.dumps(content,ensure_ascii=False))
+        binding={'path':'report-assets/content.json','sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
+        return cases,rows,binding
+
+    def test_new_cohort_has_dynamic_families_populations_and_evidence(self):
+        from harness.web_fetch.report_explainer import render_explainer, check_current_browser_article
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cases,rows,binding=self.example(root)
+            body=render_explainer(root,cases,rows,content_binding=binding)
+            (root/'guide/index.html').write_text(body)
+            model=check_current_browser_article(root,cases,rows,binding)
+            self.assertEqual(model['cases'],2)
+            self.assertEqual(model['stats']['moli']['pass_rate'],0.5)
+            self.assertEqual(model['stats']['moli']['all']['mean'],20)
+            self.assertEqual(model['stats']['moli']['successful']['mean'],10)
+            self.assertEqual(model['stats']['lightpanda']['successful']['n'],2)
+            self.assertIn('风控网站正文',body)
+            self.assertIn('Origin returned HTTP 403',body)
+            self.assertIn('独立结果审查：0/4',body)
+            self.assertNotIn('150 道',body)
+            self.assertNotIn('1.1.5',body)
+
+    def test_release_rejects_wrong_highlights_values_and_missing_evidence(self):
+        from harness.web_fetch.report_explainer import render_explainer, check_current_browser_article
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cases,rows,binding=self.example(root)
+            body=render_explainer(root,cases,rows,content_binding=binding)
+            page=root/'guide/index.html';page.write_text(body)
+            changes=[body.replace(' data-winner="true"','',1),
+                     body.replace('data-value="0.5"','data-value="0.9"',1),
+                     body.replace('data-browser-error="moli"','data-removed="moli"',1),
+                     body.replace('../attempts/moli__risk-case.html','../attempts/absent.html',1),
+                     body.replace('data-count="1"','data-count="9"',1),
+                     body.replace('data-browser-interface="moli"','data-removed-interface="moli"',1),
+                     body.replace('data-case-count="1"','data-case-count="9"',1),
+                     body.replace('CLI fetch --dump markdown → 内置转换 → Markdown','共同转换 → Markdown',1),
+                     body.replace('等待：CLI 等待 done','等待：不等待',1)]
+            for changed in changes:
+                with self.subTest(change=changes.index(changed)):
+                    page.write_text(changed)
+                    with self.assertRaises(ValueError):check_current_browser_article(root,cases,rows,binding)
+            page.write_text(body)
+            (root/'attempts/moli__risk-case.html').unlink()
+            with self.assertRaisesRegex(ValueError,'target is broken'):
+                check_current_browser_article(root,cases,rows,binding)
+
+    def test_new_content_cannot_hide_incomplete_matrix_or_changed_measurements(self):
+        from harness.web_fetch.report_explainer import render_explainer, _digest, _headless_article_input
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cases,rows,binding=self.example(root)
+            changed=deepcopy(rows);changed[0]['elapsed_ms']=100
+            with self.assertRaisesRegex(ValueError,'evidence changed'):
+                render_explainer(root,cases,changed,content_binding=binding)
+            p=root/binding['path'];content=json.loads(p.read_text())
+            content['evidence_sha256']=_digest(_headless_article_input(cases,rows[:-1],['moli','lightpanda']))
+            p.write_text(json.dumps(content));binding['sha256']=hashlib.sha256(p.read_bytes()).hexdigest()
+            with self.assertRaisesRegex(ValueError,'complete declared matrix'):
+                render_explainer(root,cases,rows[:-1],content_binding=binding)
+
+    def test_public_builder_materializes_bound_prose_and_preserves_scores(self):
+        from harness.web_fetch.config import load_dataset
+        from harness.web_fetch.providers.fixture import FixtureProvider
+        from harness.web_fetch.runner import run_evaluation
+        from harness.web_fetch.report_build import build_report
+        from harness.web_fetch.report_explainer import _digest, _headless_article_input, check_current_browser_article
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'evidence';report=root/'report'
+            dataset={'schema_version':1,'id':'synthetic-browser-cohort','name':'Synthetic cohort',
+                     'tool':'web_fetch','cases':[
+                         {'id':cid,'name':cid+'\u2028正文\u0085保留','category':'test','track':track,
+                          'url':'https://example.com/'+cid,'expected_any':['Expected body'],
+                          'required_facts':[{'id':'body','label':'正文','alternatives':['Expected body']}],
+                          'source_verification':{'selector':'main'},
+                          'source_benchmark':{'stable_annotation':{
+                              'anchor_evidence':'sources/retired-qualification.txt',
+                              'anchor_evidence_sha256':'0'*64}}}
+                         for cid,track in [('web-case','web'),('risk-case','risk_control')]],
+                     'coverage_plan':{'web':['moli','lightpanda'],'risk_control':['moli','lightpanda']},
+                     'comparison':{'kind':'synthetic_browser_report','require_independent_result_review':False,
+                         'timeout_seconds':5,'runs_per_case':1,'concurrency':1,'conversion':'offline fixture',
+                         'reference_binding_mode':'frozen_task_contracts','publication_state':'verified',
+                         'unverified_reference_cases':[]}}
+            input_path=root/'dataset.json';input_path.write_text(json.dumps(dataset))
+            configuration=root/'providers.json';configuration.write_text('{}')
+            metadata,cases=load_dataset(input_path)
+            rows,_=run_evaluation(output_dir=source,dataset_meta=metadata,dataset_path=input_path,
+                                 cases=cases,providers=[FixtureProvider('moli',{'type':'fixture','fail_cases':['risk-case']}),
+                                                       FixtureProvider('lightpanda',{'type':'fixture'})],
+                                 provider_config_path=configuration,runs=1,timeout=5,delay=0)
+            measured=json.loads((source/'dataset.json').read_text());case_map={c['id']:c for c in measured['cases']}
+            content={'schema':'webfetch_browser_interpretation/1',
+                     'evidence_sha256':_digest(_headless_article_input(case_map,rows,['moli','lightpanda'])),
+                     'title':'新一轮浏览器结果','intro':'统一规则的合成测试。',
+                     'scoring':'正文必须满足题目要求。','conclusions':'完整比较所有调用。',
+                     'providers':{name:{'specimen_case_id':'risk-case','explanation':'展示实际调用及程序验收结果。'} for name in ['moli','lightpanda']}}
+            content_path=source/'report-assets/content.json';content_path.parent.mkdir();content_path.write_text(json.dumps(content,ensure_ascii=False))
+            binding={'path':'report-assets/content.json','sha256':hashlib.sha256(content_path.read_bytes()).hexdigest()}
+            provenance=source/'implementation-provenance.json'
+            provenance.write_text(json.dumps({'schema_version':1,'implementations':[
+                {'provider':'moli','binary_sha256':'synthetic','version':'synthetic'}]}))
+            measured['comparison']['implementation_provenance']={
+                'path':'implementation-provenance.json','sha256':hashlib.sha256(provenance.read_bytes()).hexdigest()}
+            measured['comparison']['report_interpretation']=binding
+            (source/'dataset.json').write_text(json.dumps(measured))
+            before=(source/'results.jsonl').read_bytes()
+            build_report(source,report)
+            self.assertEqual((report/'results.jsonl').read_bytes(),before)
+            analysis=(report/'analysis/index.html').read_text()
+            self.assertNotIn('已核验判定',analysis,
+                             'A machine-only cohort must not claim independently reviewed verdicts')
+            self.assertIn('程序判定',analysis)
+            self.assertEqual((report/binding['path']).read_bytes(),content_path.read_bytes())
+            self.assertEqual((report/'implementation-provenance.json').read_bytes(),provenance.read_bytes())
+            check_current_browser_article(report,case_map,rows,binding)
+            from bs4 import BeautifulSoup
+            offline=BeautifulSoup((report/'guide/article.html').read_text(),'html.parser')
+            self.assertFalse(offline.select('script,link[rel="stylesheet"]'))
+            for anchor in offline.select('a[href]'):
+                self.assertTrue(anchor['href'].startswith(('http://','https://','#')))
+                if anchor['href'].startswith('#'):
+                    self.assertIsNotNone(offline.find(id=anchor['href'][1:]))
+            for row in rows:
+                if row['case_id']=='risk-case':
+                    detail=offline.find(id='offline-result-'+row['attempt_id'])
+                    self.assertIsNotNone(detail)
+                    self.assertIn(row['attempt_id'],detail.get_text())
+            self.assertIn('新一轮浏览器结果',(report/'index.html').read_text())
+            home=(report/'index.html').read_text()
+            self.assertLess(home.index('id="overall-ranking"'),home.index('id="overview"'))
+            self.assertNotIn('达标率',(report/'datasets/index.html').read_text())
+            self.assertNotIn('全部方法执行结果',(report/'datasets/risk-case.html').read_text())
+            self.assertIn('../analysis/index.html#inspect?query=risk-case',(report/'datasets/risk-case.html').read_text())
+            self.assertIn('查看各方法执行结果',(report/'datasets/risk-case.html').read_text())
+            self.assertNotIn('其余六种方法',(report/'accounts/index.html').read_text())
+            self.assertTrue('Moli 1.1.1 的普通网页' not in (report/'adoption/index.html').read_text(),'Measured-method introduction retained an old generic version')
+
+            # Exercise the published CLI and release gate with a compact profile,
+            # without duplicating complete task/reference content into Git.
+            import subprocess, sys
+            from harness.web_fetch.storage import frozen_input_bindings
+            manifest=json.loads((source/'manifest.json').read_text())
+            (source/'execution.json').write_text(json.dumps({'batches':[manifest]}))
+            profile={'schema_version':1,'dataset_id':measured['id'],
+                     'comparison_kind':measured['comparison']['kind'],'case_count':2,
+                     'case_ids_sha256':hashlib.sha256(json.dumps([c['id'] for c in measured['cases']],
+                         separators=(',',':'),ensure_ascii=True).encode()).hexdigest(),
+                     'providers':['moli','lightpanda'],
+                     **{k:v for k,v in measured['comparison'].items() if k!='kind'},
+                     'case_inventory':{track:[c['id'] for c in measured['cases'] if c['track']==track]
+                                       for track in ['web','risk_control']},
+                     'frozen_inputs':frozen_input_bindings(source)}
+            repository=Path(__file__).resolve().parents[1]
+            with tempfile.TemporaryDirectory(prefix='report-profile-test-',dir=repository/'evaluation') as profile_dir:
+                profile_path=Path(profile_dir)/'current-report.json'
+                measured['comparison']['reproduction_profile']=profile_path.relative_to(repository).as_posix()
+                measured['comparison']['report_output']='reports/synthetic-browser'
+                (source/'dataset.json').write_text(json.dumps(measured))
+                profile['frozen_inputs']=frozen_input_bindings(source)
+                profile_path.write_text(json.dumps(profile))
+                cli_report=root/'cli-report'
+                build=subprocess.run([sys.executable,'scripts/build_report.py','--profile',str(profile_path),
+                                      '--evidence',str(source),'--output',str(cli_report)],
+                                     cwd=repository,capture_output=True,text=True)
+                self.assertEqual(build.returncode,0,build.stderr)
+                gate=subprocess.run([sys.executable,'scripts/check_report.py',str(cli_report),
+                                     '--profile',str(profile_path)],cwd=repository,capture_output=True,text=True)
+                self.assertEqual(gate.returncode,0,gate.stderr+gate.stdout)
+                revision_gate=subprocess.run([sys.executable,'scripts/check_report_revision.py',str(cli_report)],
+                                             cwd=repository,capture_output=True,text=True)
+                self.assertEqual(revision_gate.returncode,0,revision_gate.stderr+revision_gate.stdout)
+                self.assertIn(measured['comparison']['reproduction_profile'],(cli_report/'reproduce/index.html').read_text())
+                manifest_path=cli_report/'report-manifest.json';original_manifest=manifest_path.read_bytes()
+                for mutation in ('renderer','dataset_sha256'):
+                    manifest=json.loads(original_manifest)
+                    if mutation=='renderer':manifest['template']['renderer']='copied_renderer.py'
+                    else:manifest['dataset_sha256']='0'*64
+                    manifest_path.write_text(json.dumps(manifest))
+                    rejected=subprocess.run([sys.executable,'scripts/check_report.py',str(cli_report),
+                                             '--profile',str(profile_path)],cwd=repository,capture_output=True,text=True)
+                    self.assertNotEqual(rejected.returncode,0)
+                manifest_path.write_bytes(original_manifest)
+            content_path.write_text('{}')
+            with self.assertRaisesRegex(ValueError,'differs from binding'):
+                build_report(source,root/'tampered-report')
+            self.assertFalse((root/'tampered-report').exists())

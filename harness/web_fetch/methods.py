@@ -1,7 +1,36 @@
 from __future__ import annotations
 
+import json
+import importlib.metadata
 import re
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
+
+
+@lru_cache(maxsize=1)
+def browser_method_registry():
+    """Use the execution registry for release and source-build participants."""
+    path = Path(__file__).resolve().parents[2] / "configs/providers.headless.json"
+    if not path.is_file():
+        from harness.distribution import installed_data_path
+        try:
+            path = installed_data_path("share/browser-harness-eval/providers.headless.json")
+        except importlib.metadata.PackageNotFoundError:
+            return {}
+        except ValueError as error:
+            if str(error).startswith('Distribution must declare one data file:'):
+                return {}
+            raise
+    return json.loads(path.read_text())["providers"]
+
+
+def native_browser_engine(name):
+    return browser_method_registry().get(name, {}).get("engine")
+
+
+def browser_method_label(name):
+    return browser_method_registry().get(name, {}).get("label", name)
 
 
 METHOD_REGISTRY: dict[str, dict[str, Any]] = {
@@ -25,6 +54,13 @@ METHOD_REGISTRY: dict[str, dict[str, Any]] = {
 }
 
 
+def is_browser_comparison(records: list[dict[str, Any]]) -> bool:
+    """Recognize browser cohorts independently of their task-specific adapters."""
+    types = {row.get("provider_type") for row in records}
+    return bool(types & {"headless_html", "headless_markdown"}) and types <= {
+        "headless_html", "headless_markdown", "moli_webfetch"}
+
+
 def method_info(provider_type: str) -> dict[str, Any]:
     return METHOD_REGISTRY.get(provider_type, {"endpoint":"未记录","contract":"未知","output":"未知","freshness":"未知","leaderboard":"未分类"})
 
@@ -34,7 +70,7 @@ ROUTE_LABELS = {
     "lightpanda_native_markdown": "Lightpanda CLI 直接返回 Markdown",
     "obscura_native_markdown": "Obscura CLI 直接返回 Markdown",
     "moli_native_markdown": "Moli CLI 直接返回 Markdown",
-    "node-html-markdown": "Chromium 渲染 DOM → node-html-markdown 2.0.0",
+    "node-html-markdown": "浏览器渲染 DOM → node-html-markdown 2.0.0",
 }
 
 

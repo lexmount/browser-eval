@@ -202,7 +202,7 @@ def _install_report_tree(staging: Path, output: Path):
 
 
 def build_report(source: Path, output: Path, *, include_english: bool = False,
-                 local_audit: bool = False, authored_interpretation: bool = False,
+                 local_audit: bool = False, authored_interpretation: bool | None = None,
                  diagnostic_preview: bool = False, language: str | None = None) -> Path:
     from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
@@ -224,6 +224,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     if not local_audit:
         require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
+    if authored_interpretation is None:
+        authored_interpretation = bool(dataset.get('comparison', {}).get('report_interpretation'))
     records = load_jsonl(contained_path(source,'results.jsonl'))
     validate_report_ids(dataset,records)
     require_risk_control_certification(source, dataset, records)
@@ -264,7 +266,10 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     for c in cases.values():
         annotation=c.get('source_benchmark',{}).get('stable_annotation',{})
         if annotation.get('anchor_evidence_sha256'):
-            if local_audit:
+            if (local_audit or dataset.get('comparison', {}).get('reference_binding_mode') == 'frozen_task_contracts'
+                    or dataset.get('comparison', {}).get('source_reference_policy') in {
+                        'frozen_acceptance_contracts_with_live_exact_reference_checks',
+                        'frozen_benchmark_inputs_with_explicit_live_exact_checks'}):
                 # The two historical dynamic cohorts retain their own source
                 # audit receipts.  Do not reinterpret those revisions with the
                 # newer origin/main release gate in a local merged view.
@@ -442,12 +447,17 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 text=[r for r in subset if r['metrics'].get('content_check_coverage') is not None]
                 row['text_checked_attempts']=len(text)
                 row['text_checked_cases']=len({r['case_id'] for r in text})
-        for name,data in [('dataset.json',dataset),('execution.json',{'batches':manifests}),('summary.json',summary)]:
+        # Preserve frozen input bytes across build and release profile checks.
+        shutil.copy2(contained_path(source,'dataset.json'), staging/'dataset.json')
+        for name,data in [('execution.json',{'batches':manifests}),('summary.json',summary)]:
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
         if (source / 'certification.json').is_file():
             shutil.copy2(source / 'certification.json', staging / 'certification.json')
             if dataset.get('comparison', {}).get('kind') == 'risk_control_100_moli':
-                for name in ('dataset.json', 'manifest.json', 'execution.json', 'reference-proof-verification.json'):
+                from .risk_control import risk_control_verification_binding
+                receipt = json.loads((source / 'certification.json').read_text())
+                verification_name, _ = risk_control_verification_binding(receipt)
+                for name in ('dataset.json', 'manifest.json', 'execution.json', verification_name):
                     shutil.copy2(contained_path(source, name), staging / name)
         reliability=assess_reliability(dataset,records)
         (staging/'reliability.json').write_text(json.dumps(reliability,ensure_ascii=False,indent=2)+'\n')
@@ -459,10 +469,25 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if local_audit:
             if (source/'local-evidence').is_dir():
                 shutil.copytree(source/'local-evidence', staging/'local-evidence')
+        content_binding = dataset.get('comparison', {}).get('report_interpretation')
+        if content_binding is not None:
+            copy_bound_assets(source, staging, {content_binding['path']: content_binding['sha256']})
         copy_methodology_assets(staging)
-        provenance=Path(__file__).resolve().parents[2]/'research/headless-implementation-provenance.json'
-        if provenance.is_file():
-            shutil.copy2(provenance,staging/'implementation-provenance.json')
+        implementation_binding = dataset.get('comparison', {}).get('implementation_provenance')
+        if implementation_binding is not None:
+            if implementation_binding['path'] != 'implementation-provenance.json':
+                raise ValueError('Implementation provenance uses implementation-provenance.json')
+            copy_bound_assets(source, staging, {
+                implementation_binding['path']: implementation_binding['sha256']})
+        else:
+            provenance=Path(__file__).resolve().parents[2]/'research/headless-implementation-provenance.json'
+            if provenance.is_file():
+                payload=json.loads(provenance.read_text())
+                hashes={r.get('provider_metadata',{}).get('binary_sha256') for r in records}
+                matched=[item for item in payload.get('implementations',[]) if item.get('binary_sha256') in hashes]
+                if matched:
+                    (staging/'implementation-provenance.json').write_text(json.dumps(
+                        {**payload,'implementations':matched},ensure_ascii=False,indent=2)+'\n')
         if (source/'scoring-revisions.json').is_file():
             scoring_path = source/'scoring-revisions.json'
             scoring_revisions = json.loads(scoring_path.read_text())
@@ -483,6 +508,12 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 shutil.copy2(archived, target)
         if (source/'reference-revisions.json').is_file():
             shutil.copy2(source/'reference-revisions.json', staging/'reference-revisions.json')
+        if (source/'report-binding-revisions.json').is_file():
+            receipts = json.loads((source/'report-binding-revisions.json').read_text())
+            bindings = {row[f'{side}_dataset_path']: row[f'{side}_dataset_sha256']
+                        for row in receipts for side in ('input', 'output')}
+            copy_bound_assets(source, staging, bindings)
+            shutil.copy2(source/'report-binding-revisions.json', staging/'report-binding-revisions.json')
         if (source/'latency-corrections.json').is_file():
             shutil.copy2(source/'latency-corrections.json', staging/'latency-corrections.json')
         if (source/'request-status-corrections.json').is_file():
@@ -493,18 +524,21 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')
         if dataset.get("comparison", {}).get("kind") == "uniform_native_local_measurement":
             shutil.copy2(source / "local-run-contract.json", staging / "local-run-contract.json")
-            from harness.reporting.templates import resolve_template
-            (staging / "report-manifest.json").write_text(json.dumps({
-                "schema_version": 1, "template": resolve_template("webfetch"),
-                "evidence_state": "local_measurement", "certified": False,
-                "languages": ["zh", "en"] if include_english else ["zh"], "provider_calls_added": 0,
-                "dataset_sha256": hashlib.sha256((source / "dataset.json").read_bytes()).hexdigest(),
-                "results_sha256": hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest(),
-            }, ensure_ascii=False, indent=2))
         generate(staging,dataset,records,manifests,include_english=include_english,
                  authored_interpretation=authored_interpretation)
         if language is not None:
             select_report_language(staging, language)
+        from harness.reporting.templates import resolve_template
+        from harness.report_languages import generated_languages
+        nonpublication = diagnostic_preview or dataset.get('comparison', {}).get('kind') == 'uniform_native_local_measurement'
+        template_manifest = {'schema_version': 1, 'template': None if nonpublication else resolve_template('webfetch'),
+            'dataset_sha256': hashlib.sha256((staging/'dataset.json').read_bytes()).hexdigest(),
+            'results_sha256': hashlib.sha256((staging/'results.jsonl').read_bytes()).hexdigest(),
+            'generated_languages': generated_languages(staging)}
+        if dataset.get('comparison', {}).get('kind') == 'uniform_native_local_measurement':
+            template_manifest.update(evidence_state='local_measurement', certified=False,
+                languages=template_manifest['generated_languages'], provider_calls_added=0)
+        (staging/'report-manifest.json').write_text(json.dumps(template_manifest, ensure_ascii=False, indent=2)+'\n')
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.
         _install_report_tree(staging, output)

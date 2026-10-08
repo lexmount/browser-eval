@@ -325,7 +325,7 @@ class CloudflareMarkdownProvider(Provider):
                 account_id=account_id,
                 http_timeout=http_timeout,
             )
-        if _uses_direct_document_route(case):
+        if _uses_direct_document_route(case) and self.config.get("browser") != "kitesurf":
             return self._fetch_direct_document(
                 case,
                 account_id=account_id,
@@ -348,12 +348,12 @@ class CloudflareMarkdownProvider(Provider):
             request_body.get("gotoOptions", {}).pop("timeout", None)
             request_body.pop("actionTimeout", None)
         wait_metadata = None
+        plan = None
         if case.track == "dynamic" and not native_default_case(case) and "url" in request_body:
             try:
                 if not math.isfinite(timeout) or timeout <= 0:
                     raise ValueError
                 plan = plan_for_case(case)
-                assert plan is not None
             except (KeyError, TypeError, ValueError):
                 return ProviderResult(
                     False,
@@ -362,6 +362,7 @@ class CloudflareMarkdownProvider(Provider):
                     error_message="invalid dynamic retrieval_hints v1",
                 )
 
+        if plan is not None:
             # The Markdown endpoint exposes waitForSelector, but no selector-count
             # or arbitrary-function wait. Use only independently declared,
             # answer-free readiness signals and disclose unsupported semantics.
@@ -457,7 +458,7 @@ class CloudflareMarkdownProvider(Provider):
             # Task scoring, not request classification, decides its usefulness.
             content=content if envelope_success else "",
             status_code=response.status,
-            final_url=meta.get("finalUrl") or case.url,
+            final_url=meta.get("finalUrl"),
             title=meta.get("title"),
             error_type=error_type,
             error_message=error_message,
@@ -504,7 +505,8 @@ class CloudflareMarkdownProvider(Provider):
                   ["video", "video source", "audio", "audio source", "iframe", "a[href]"])
         )
         response = request(
-            f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/scrape",
+            f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/scrape"
+            + ("?" + urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""),
             method="POST",
             timeout=http_timeout,
             max_bytes=int(self.config.get("max_bytes", 20_000_000)),
@@ -555,6 +557,9 @@ class CloudflareMarkdownProvider(Provider):
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
                 "route": "browser_rendering_scrape_resources",
+                "browser": self.config.get("browser"),
+                "endpoint_route": "/browser-rendering/scrape" + ("?" + urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""),
+                "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 "request_method": "POST",
                 "request_summary": {
                     "selectors": selectors,

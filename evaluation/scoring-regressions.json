@@ -21777,6 +21777,163 @@
   "expected_metrics": {
     "stable_unique_record_count": 0
   }
+},
+{
+  "id": "unmatched-markdown-brackets-retains-required-prose",
+  "category": "format-normalization",
+  "root_cause": "Repeated suffix scans for unclosed Markdown delimiters make ordinary prose quadratic; indexing delimiters must preserve visible text and anchor decisions.",
+  "failure_mode": "false-negative",
+  "case": {
+    "url": "https://example.test/body",
+    "acceptance_contract": {
+      "version": 1,
+      "schema": "body_text",
+      "minimum_records": 0,
+      "stable_text_anchors": [
+        {
+          "id": "body",
+          "alternatives": [
+            "Source prose"
+          ]
+        }
+      ]
+    }
+  },
+  "artifact": "Source prose [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [label]( [label]( [label]( [label]( [label]( [label]( [label]( [label](",
+  "ok": true,
+  "expected_task_pass": true,
+  "expected_metrics": {
+    "stable_task_pass": true
+  }
+},
+{
+  "id": "unmatched-markdown-brackets-cannot-supply-missing-prose",
+  "category": "format-normalization",
+  "root_cause": "Repeated suffix scans for unclosed Markdown delimiters make ordinary prose quadratic; indexing delimiters must preserve visible text and anchor decisions.",
+  "failure_mode": "false-positive",
+  "case": {
+    "url": "https://example.test/body",
+    "acceptance_contract": {
+      "version": 1,
+      "schema": "body_text",
+      "minimum_records": 0,
+      "stable_text_anchors": [
+        {
+          "id": "body",
+          "alternatives": [
+            "Source prose"
+          ]
+        }
+      ]
+    }
+  },
+  "artifact": "Unrelated prose [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [ [label]( [label]( [label]( [label]( [label]( [label]( [label]( [label](",
+  "ok": true,
+  "expected_task_pass": false,
+  "expected_metrics": {
+    "stable_task_pass": false
+  }
+},
+{
+  "id": "required-final-url-missing-is-a-measured-failure",
+  "category": "task-predicate",
+  "root_cause": "missing_provider_observation_is_not_missing_benchmark_reference",
+  "failure_mode": "false-positive",
+  "case": {
+    "url": "https://example.test/start",
+    "track": "risk_control",
+    "task_kind": "body",
+    "source_benchmark": {
+      "risk_control": {
+        "navigation_contract": {
+          "requested_url": "https://example.test/start",
+          "observed_final_url": "https://example.test/final"
+        }
+      }
+    },
+    "acceptance_contract": {
+      "version": 1,
+      "schema": "body_text",
+      "minimum_records": 0,
+      "stable_text_anchors": [
+        {
+          "id": "body",
+          "alternatives": [
+            "Required body"
+          ]
+        }
+      ]
+    }
+  },
+  "artifact": "Required body",
+  "ok": true,
+  "expected_task_pass": false,
+  "expected_task_measured": true,
+  "expected_metrics": {
+    "page_identity_required": true,
+    "page_identity_status": "unavailable"
+  }
+},
+{
+  "id": "required-final-url-present-keeps-valid-body",
+  "category": "task-predicate",
+  "root_cause": "missing_provider_observation_is_not_missing_benchmark_reference",
+  "failure_mode": "false-negative",
+  "case": {
+    "url": "https://example.test/start",
+    "track": "risk_control",
+    "task_kind": "body",
+    "source_benchmark": {
+      "risk_control": {
+        "navigation_contract": {
+          "requested_url": "https://example.test/start",
+          "observed_final_url": "https://example.test/final"
+        }
+      }
+    },
+    "acceptance_contract": {
+      "version": 1,
+      "schema": "body_text",
+      "minimum_records": 0,
+      "stable_text_anchors": [
+        {
+          "id": "body",
+          "alternatives": [
+            "Required body"
+          ]
+        }
+      ]
+    }
+  },
+  "artifact": "Required body",
+  "ok": true,
+  "expected_task_pass": true,
+  "expected_task_measured": true,
+  "expected_metrics": {
+    "page_identity_required": true,
+    "page_identity_status": "verified"
+  },
+  "final_url": "https://example.test/final"
+},
+    {"id":"content-policy-dynamic-final-page-mismatch-cannot-be-counted-as-a-pass","category":"acceptance-contract","root_cause":"dynamic_page_identity_alignment","failure_mode":"false-negative","case":{"url":"https://example.test/start","evaluation_url":"https://example.test/start","expected_final_url":"https://example.test/en/catalog","target_language":"en-US","target_region":"US","track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"identity","alternatives":["Catalog"]}]}},"artifact":"Catalog","ok":true,"final_url":"https://example.test/fr/catalog","metadata":{"route":"dynamic_selected_text","document_language":"fr"},"expected_task_pass":true,"expected_metrics":{"page_identity_status":"mismatch","final_url_consistent":false,"language_consistent":false,"page_identity_required":false}},
+    {"id":"content-policy-dynamic-search-query-mismatch-is-a-different-page","category":"acceptance-contract","root_cause":"dynamic_page_query_identity","failure_mode":"false-negative","case":{"url":"https://example.test/search?q=Mario","evaluation_url":"https://example.test/search?q=Mario","expected_final_url":"https://example.test/search?q=Mario","target_language":"ja-JP","target_region":"JP","track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"identity","alternatives":["Search results"]}]}},"artifact":"Search results","ok":true,"final_url":"https://example.test/search?q=Zelda","metadata":{"route":"dynamic_selected_text","document_language":"ja"},"expected_task_pass":true,"expected_metrics":{"page_identity_status":"mismatch","final_url_consistent":false,"page_identity_required":false}},
+    {"id":"content-policy-dynamic-source-document-language-mismatch-is-not-verified","category":"acceptance-contract","root_cause":"declared_document_language_vs_visible_language","failure_mode":"false-negative","case":{"url":"https://example.test/rtl","evaluation_url":"https://example.test/rtl","expected_final_url":"https://example.test/rtl","target_language":"ar","expected_document_language":"en","target_region":"US","track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"arabic-content","alternatives":["الشخص"]}]}},"artifact":"الشخص","ok":true,"final_url":"https://example.test/rtl","metadata":{"route":"dynamic_selected_text","document_language":"fr"},"expected_task_pass":true,"expected_metrics":{"page_identity_status":"mismatch","language_consistent":false,"page_identity_required":false}},
+    {"id":"content-policy-dynamic-undeclared-source-language-rejects-declared-language","category":"acceptance-contract","root_cause":"source_document_language_absent","failure_mode":"false-negative","case":{"url":"https://example.test/untagged","evaluation_url":"https://example.test/untagged","expected_final_url":"https://example.test/untagged","target_language":"en","target_region":"US","expected_document_language_present":false,"track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Visible content"]}]}},"artifact":"Visible content","ok":true,"final_url":"https://example.test/untagged","metadata":{"route":"dynamic_selected_text","document_language":"en"},"expected_task_pass":true,"expected_metrics":{"page_identity_status":"mismatch","language_consistent":false,"page_identity_required":false}},
+    {"id":"content-policy-required-final-url-missing-is-a-measured-failure","category":"task-predicate","root_cause":"body_fetch_does_not_require_final_url","failure_mode":"false-negative","case":{"url":"https://example.test/start","track":"risk_control","task_kind":"body","source_benchmark":{"risk_control":{"navigation_contract":{"requested_url":"https://example.test/start","observed_final_url":"https://example.test/final"}}},"acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"Required body","ok":true,"expected_task_pass":true,"expected_task_measured":true,"expected_metrics":{"page_identity_required":false,"page_identity_status":"unavailable"}},
+    {"id":"content-policy-required-final-url-present-keeps-valid-body","category":"task-predicate","root_cause":"body_fetch_does_not_require_final_url","failure_mode":"false-negative","case":{"url":"https://example.test/start","track":"risk_control","task_kind":"body","source_benchmark":{"risk_control":{"navigation_contract":{"requested_url":"https://example.test/start","observed_final_url":"https://example.test/final"}}},"acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"Required body","ok":true,"expected_task_pass":true,"expected_task_measured":true,"expected_metrics":{"page_identity_required":false,"page_identity_status":"verified"},"final_url":"https://example.test/final"},
+    {"category":"acceptance-contract","root_cause":"body_fetch_does_not_require_final_url","case":{"url":"https://example.test/start","track":"risk_control","task_kind":"body","source_benchmark":{"risk_control":{"navigation_contract":{"requested_url":"https://example.test/start","observed_final_url":"https://example.test/final"}}},"acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Target article content"]}]}},"ok":true,"expected_task_measured":true,"expected_metrics":{"page_identity_required":false},"id":"body-without-final-url-passes","artifact":"Target article content","expected_task_pass":true,"failure_mode":"false-negative"},
+    {"category":"acceptance-contract","root_cause":"body_fetch_does_not_require_final_url","case":{"url":"https://example.test/start","track":"risk_control","task_kind":"body","source_benchmark":{"risk_control":{"navigation_contract":{"requested_url":"https://example.test/start","observed_final_url":"https://example.test/final"}}},"acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Target article content"]}]}},"ok":true,"expected_task_measured":true,"expected_metrics":{"page_identity_required":false},"id":"verification-page-without-final-url-fails","artifact":"Please sign in to continue","expected_task_pass":false,"failure_mode":"false-positive"},
+    {"id":"wrong-body-content-policy-dynamic-final-page-mismatch-cannot-be-counted-as-a-pass","category":"acceptance-contract","root_cause":"dynamic_page_identity_alignment","failure_mode":"false-positive","case":{"url":"https://example.test/start","evaluation_url":"https://example.test/start","expected_final_url":"https://example.test/en/catalog","target_language":"en-US","target_region":"US","track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"identity","alternatives":["Catalog"]}]}},"artifact":"Unrelated page text","ok":true,"final_url":"https://example.test/fr/catalog","metadata":{"route":"dynamic_selected_text","document_language":"fr"},"expected_task_pass":false,"expected_metrics":{"page_identity_status":"mismatch","final_url_consistent":false,"language_consistent":false,"page_identity_required":false}},
+    {"id":"wrong-body-content-policy-dynamic-search-query-mismatch-is-a-different-page","category":"acceptance-contract","root_cause":"dynamic_page_query_identity","failure_mode":"false-positive","case":{"url":"https://example.test/search?q=Mario","evaluation_url":"https://example.test/search?q=Mario","expected_final_url":"https://example.test/search?q=Mario","target_language":"ja-JP","target_region":"JP","track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"identity","alternatives":["Search results"]}]}},"artifact":"Unrelated page text","ok":true,"final_url":"https://example.test/search?q=Zelda","metadata":{"route":"dynamic_selected_text","document_language":"ja"},"expected_task_pass":false,"expected_metrics":{"page_identity_status":"mismatch","final_url_consistent":false,"page_identity_required":false}},
+    {"id":"wrong-body-content-policy-dynamic-source-document-language-mismatch-is-not-verified","category":"acceptance-contract","root_cause":"declared_document_language_vs_visible_language","failure_mode":"false-positive","case":{"url":"https://example.test/rtl","evaluation_url":"https://example.test/rtl","expected_final_url":"https://example.test/rtl","target_language":"ar","expected_document_language":"en","target_region":"US","track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"arabic-content","alternatives":["الشخص"]}]}},"artifact":"Unrelated page text","ok":true,"final_url":"https://example.test/rtl","metadata":{"route":"dynamic_selected_text","document_language":"fr"},"expected_task_pass":false,"expected_metrics":{"page_identity_status":"mismatch","language_consistent":false,"page_identity_required":false}},
+    {"id":"wrong-body-content-policy-dynamic-undeclared-source-language-rejects-declared-language","category":"acceptance-contract","root_cause":"source_document_language_absent","failure_mode":"false-positive","case":{"url":"https://example.test/untagged","evaluation_url":"https://example.test/untagged","expected_final_url":"https://example.test/untagged","target_language":"en","target_region":"US","expected_document_language_present":false,"track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Visible content"]}]}},"artifact":"Unrelated page text","ok":true,"final_url":"https://example.test/untagged","metadata":{"route":"dynamic_selected_text","document_language":"en"},"expected_task_pass":false,"expected_metrics":{"page_identity_status":"mismatch","language_consistent":false,"page_identity_required":false}}
+],
+  "superseded_cases": {
+  "dynamic-final-page-mismatch-cannot-be-counted-as-a-pass": "content-policy-dynamic-final-page-mismatch-cannot-be-counted-as-a-pass",
+  "dynamic-search-query-mismatch-is-a-different-page": "content-policy-dynamic-search-query-mismatch-is-a-different-page",
+  "dynamic-source-document-language-mismatch-is-not-verified": "content-policy-dynamic-source-document-language-mismatch-is-not-verified",
+  "dynamic-undeclared-source-language-rejects-declared-language": "content-policy-dynamic-undeclared-source-language-rejects-declared-language",
+  "required-final-url-missing-is-a-measured-failure": "content-policy-required-final-url-missing-is-a-measured-failure",
+  "required-final-url-present-keeps-valid-body": "content-policy-required-final-url-present-keeps-valid-body"
 }
-]
 }

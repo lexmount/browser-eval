@@ -1,4 +1,5 @@
 import json
+import tempfile
 from copy import deepcopy
 from pathlib import Path
 
@@ -10,21 +11,30 @@ from harness.web_fetch.retrieval_hints import complete_text_wait_value, parse_re
 
 def test_native_execution_keeps_dynamic_scenario_and_acceptance_without_injected_hints():
     from copy import deepcopy
-    from harness.web_fetch.retrieval_hints import native_fetch_dataset
+
     from harness.web_fetch.models import EvalCase
-    from harness.web_fetch.retrieval_hints import plan_for_case
+    from harness.web_fetch.retrieval_hints import native_fetch_dataset, plan_for_case
     dataset={'tool':'web_fetch','coverage_plan':{'dynamic':['browser']},'cases':[
         {'id':'native-page','name':'Dynamic site','url':'https://example.com/',
          'category':'dynamic_content','track':'dynamic','expected_any':[],
          'task_kind':'body','acceptance_contract':{'version':1,'schema':'body_text'},
          'min_content_chars':1000}]}
-    original=deepcopy(dataset);selected=native_fetch_dataset(dataset)
+    original = deepcopy(dataset)
+    selected = native_fetch_dataset(dataset)
     assert dataset==original
+    assert selected['cases'][0]['track']=='dynamic'
+    assert selected['coverage_plan']==original['coverage_plan']
     assert selected['cases'][0]['category']=='dynamic_content'
     assert selected['cases'][0]['source_benchmark']['scenario_track']=='dynamic'
     assert selected['cases'][0]['acceptance_contract']==original['cases'][0]['acceptance_contract']
     assert selected['cases'][0]['min_content_chars']==1000
     assert plan_for_case(EvalCase(**selected['cases'][0])) is None
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / 'dataset.json'
+        path.write_text(json.dumps(selected))
+        _, cases = load_dataset(path)
+        assert cases[0].track == 'dynamic'
+        assert plan_for_case(cases[0]) is None
     dataset['cases'][0]['retrieval_hints']={'version':1,'completion':{'selector':'.record'}}
     with pytest.raises(ValueError,match='cannot discard'):
         native_fetch_dataset(dataset)
@@ -250,3 +260,36 @@ def test_native_default_contract_must_be_valid(tmp_path):
     case["acceptance_contract"] = {"version": 1, "schema": "unknown"}
     with pytest.raises(ValueError):
         load_dataset(_write_dataset(tmp_path, case))
+@pytest.mark.parametrize("hints", [
+    {"version": 3, "mode": "native", "completion": {"selector": ".answer"}},
+    {"version": 3, "mode": "native", "answer_text": "expected answer"},
+    {"version": 3, "mode": "guided"},
+    {"version": 3},
+])
+def test_native_completion_cannot_carry_answer_or_selector_hints(hints):
+    with pytest.raises(ValueError, match="native retrieval_hints"):
+        parse_retrieval_hints("dynamic", hints)
+
+
+def test_native_contract_does_not_waive_missing_dynamic_execution_contract():
+    assert parse_retrieval_hints("dynamic", {"version": 3, "mode": "native"}) is None
+    with pytest.raises(ValueError, match="require retrieval_hints"):
+        parse_retrieval_hints("dynamic", None)
+
+
+@pytest.mark.parametrize("version", [True, 3.0, "3", None])
+def test_native_completion_version_requires_an_integer(version):
+    with pytest.raises(ValueError):
+        parse_retrieval_hints("dynamic", {"version": version, "mode": "native"})
+
+
+def test_worker_accepts_explicit_native_dynamic_contract_without_injected_plan():
+    from harness.web_fetch.providers.headless_worker import require_normalized_retrieval_plan
+    assert require_normalized_retrieval_plan({
+        "track": "dynamic", "retrieval_plan": None,
+        "retrieval_hints": {"version": 3, "mode": "native"}}) is None
+    with pytest.raises(ValueError, match="explicit native contract"):
+        require_normalized_retrieval_plan({"track": "dynamic", "retrieval_plan": None})
+    with pytest.raises(ValueError, match="native completion"):
+        require_normalized_retrieval_plan({"track": "dynamic", "retrieval_plan": {"selector": "body"},
+            "retrieval_hints": {"version": 3, "mode": "native"}})

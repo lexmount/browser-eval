@@ -233,3 +233,103 @@ class StorageTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class FrozenProfileInputsTests(unittest.TestCase):
+    def test_report_answers_must_match_independently_bound_pre_call_input(self):
+        from harness.web_fetch.storage import frozen_input_bindings, require_frozen_case_source
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'pre-call.json';profile_path=root/'profile.json'
+            original={'cases':[{'id':'a','url':'https://example.com','ground_truth_main_content':'Fixed answer',
+                                'source_verification':{'reference_sha256':hashlib.sha256(b'Earlier capture').hexdigest()}}]}
+            source.write_text(json.dumps(original))
+            current={**original,'comparison':{'report_interpretation':{'path':'report-assets/article.json'}}}
+            (root/'dataset.json').write_text(json.dumps(current))
+            profile={'source_native_dataset_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),
+                     'frozen_inputs':frozen_input_bindings(root)}
+            profile_path.write_text(json.dumps(profile))
+            require_frozen_case_source(root,profile_path,source)
+            source.write_text(json.dumps({**original,'cases':[{'id':'a','ground_truth_main_content':'Changed answer'}]}))
+            with self.assertRaisesRegex(ValueError,'source binding'):
+                require_frozen_case_source(root,profile_path,source)
+            source.write_text(json.dumps(original))
+            current['cases']=[{**original['cases'][0],'ground_truth_main_content':'Changed answer'}]
+            (root/'dataset.json').write_text(json.dumps(current))
+            with self.assertRaisesRegex(ValueError,'frozen input bindings'):
+                require_frozen_case_source(root,profile_path,source)
+            # Rebinding a generated report still cannot bless an answer change.
+            profile['frozen_inputs']=frozen_input_bindings(root)
+            profile_path.write_text(json.dumps(profile))
+            with self.assertRaisesRegex(ValueError,'answers differ from pre-call'):
+                require_frozen_case_source(root,profile_path,source)
+            current['cases']=original['cases'];(root/'dataset.json').write_text(json.dumps(current))
+            profile['frozen_inputs']=frozen_input_bindings(root);profile.pop('source_native_dataset_sha256')
+            profile_path.write_text(json.dumps(profile))
+            with self.assertRaisesRegex(ValueError,'both source and report input bindings'):
+                require_frozen_case_source(root,profile_path,source)
+
+    def test_registered_native_browser_cannot_omit_interface_gate(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            dataset={'id':'native','cases':[{'id':'a','url':'https://example.test/paper.pdf','track':'document'}],
+                     'coverage_plan':{'document':['moli']},'comparison':{'kind':'headless_markdown',
+                     'timeout_seconds':45,'runs_per_case':1,'concurrency':1,'conversion':'native',
+                     'reference_binding_mode':'frozen_inputs','publication_state':'verified',
+                     'unverified_reference_cases':[],'require_independent_result_review':False}}
+            (root/'dataset.json').write_text(json.dumps(dataset))
+            row={'attempt_id':'moli__a','provider':'moli','case_id':'a',
+                 'provider_metadata':{'route':'ordinary_markdown','output':'markdown'}}
+            (root/'results.jsonl').write_text(json.dumps(row)+'\n')
+            profile={'dataset_id':'native','comparison_kind':'headless_markdown','case_count':1,
+                     'case_ids_sha256':hashlib.sha256(b'["a"]').hexdigest(),'providers':['moli'],
+                     **{k:v for k,v in dataset['comparison'].items() if k!='kind'}}
+            path=root/'profile.json';path.write_text(json.dumps(profile))
+            with self.assertRaisesRegex(ValueError,'requires native_task_route_contract'):
+                require_current_report_profile(root,path)
+            profile['native_task_route_contract']=4
+            path.write_text(json.dumps(profile));require_current_report_profile(root,path)
+            row['provider_metadata']['document_extractor']='pypdf'
+            (root/'results.jsonl').write_text(json.dumps(row)+'\n')
+            with self.assertRaisesRegex(ValueError,'Native task route contract violated'):
+                require_current_report_profile(root,path)
+
+    def test_composed_dataset_binds_all_current_inputs_without_raw_qualification_files(self):
+        from harness.web_fetch.storage import frozen_input_bindings, require_current_report_profile
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            dataset={'id':'composed','cases':[{'id':'a','track':'web'}],
+                     'coverage_plan':{'web':['p']},
+                     'comparison':{'kind':'headless_markdown','timeout_seconds':45,'runs_per_case':1,
+                         'concurrency':1,'conversion':'native','reference_binding_mode':'frozen_inputs',
+                         'publication_state':'verified','unverified_reference_cases':[],
+                         'require_independent_result_review':False}}
+            (root/'dataset.json').write_text(json.dumps(dataset))
+            (root/'results.jsonl').write_text(json.dumps({'attempt_id':'p__a','provider':'p','case_id':'a','content':'First\u0085middle\u2028last\u2029paragraph'}, ensure_ascii=False)+'\n')
+            profile={'dataset_id':'composed','comparison_kind':'headless_markdown','case_count':1,
+                     'case_ids_sha256':hashlib.sha256(b'["a"]').hexdigest(),'providers':['p'],
+                     **{k:v for k,v in dataset['comparison'].items() if k!='kind'},
+                     'frozen_inputs':frozen_input_bindings(root),'case_inventory':{'web':['a']}}
+            path=root/'profile.json';path.write_text(json.dumps(profile))
+            require_current_report_profile(root,path)
+            profile['case_inventory']={'web':['wrong-case']}
+            path.write_text(json.dumps(profile))
+            with self.assertRaisesRegex(ValueError,'case_inventory'):
+                require_current_report_profile(root,path)
+            profile['case_inventory']={'web':['a']}
+            path.write_text(json.dumps(profile))
+            (root/'sources').mkdir();(root/'sources/reference.txt').write_text('Changed current input')
+            with self.assertRaisesRegex(ValueError,'frozen input bindings'):
+                require_current_report_profile(root,path)
+            (root/'sources/reference.txt').unlink()
+            dataset['cases'][0]['url']='https://different.example/'
+            (root/'dataset.json').write_text(json.dumps(dataset))
+            with self.assertRaisesRegex(ValueError,'frozen input bindings'):
+                require_current_report_profile(root,path)
+
+    def test_input_binding_rejects_symlinked_assets(self):
+        from harness.web_fetch.storage import frozen_input_bindings
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'dataset.json').write_text('{}')
+            (root/'outside.txt').write_text('body');(root/'sources').mkdir()
+            (root/'sources/link.txt').symlink_to(root/'outside.txt')
+            with self.assertRaisesRegex(ValueError,'symlinks'):
+                frozen_input_bindings(root)

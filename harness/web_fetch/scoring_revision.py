@@ -224,6 +224,43 @@ def _revise_unlocked(
     return receipt
 
 
+def rebind_report_interpretation(source: Path, binding: dict):
+    """Bind presentation content while preserving the scored output bytes."""
+    from .reference_lifecycle import valid_scoring_revision
+    source = source.resolve()
+    if not valid_scoring_revision(source):
+        raise ValueError('Report binding requires a valid existing scoring chain')
+    if set(binding) != {'path', 'sha256'}:
+        raise ValueError('Invalid report interpretation binding')
+    asset = contained_path(source, binding['path'])
+    if hashlib.sha256(asset.read_bytes()).hexdigest() != binding['sha256']:
+        raise ValueError('Report interpretation content hash mismatch')
+    dataset_path = contained_path(source, 'dataset.json')
+    before = dataset_path.read_bytes()
+    dataset = json.loads(before)
+    dataset.setdefault('comparison', {})['report_interpretation'] = binding
+    after = (json.dumps(dataset, ensure_ascii=False, indent=2)+'\n').encode()
+    results_hash = hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()
+    receipt = {'kind': 'report_interpretation_binding_revision', 'provider_calls': 0,
+               'input_results_sha256': results_hash, 'output_results_sha256': results_hash}
+    for side, raw in (('input', before), ('output', after)):
+        digest = hashlib.sha256(raw).hexdigest()
+        relative = f'revision-history/dataset-{digest}.json'
+        target = contained_path(source, relative)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() and target.read_bytes() != raw:
+            raise ValueError('Dataset history collision')
+        target.write_bytes(raw)
+        receipt[f'{side}_dataset_sha256'] = digest
+        receipt[f'{side}_dataset_path'] = relative
+    path = source/'report-binding-revisions.json'
+    history = json.loads(path.read_text()) if path.exists() else []
+    history.append(receipt)
+    path.write_text(json.dumps(history, ensure_ascii=False, indent=2)+'\n')
+    dataset_path.write_bytes(after)
+    return receipt
+
+
 def revise(
     source: Path,
     canonical_path: Path,

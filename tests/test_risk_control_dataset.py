@@ -13,7 +13,6 @@ from harness.web_fetch.report_build import require_risk_control_certification
 from harness.web_fetch.risk_control import main as run_risk_control
 from harness.web_fetch.risk_control import (
     measured_risk_control_dataset,
-    reference_proof_snapshot,
     require_complete_diagnostic_logs,
 )
 from harness.web_fetch.risk_control_dataset import (
@@ -354,32 +353,24 @@ def test_direct_formal_execution_is_rejected_before_provider_validation(tmp_path
         run_risk_control(["--execute", "--output", str(tmp_path / "run")])
 
 
-def test_reference_proof_snapshot_requires_exact_unchanged_100_file_scope(tmp_path):
-    roots = {"proofs": tmp_path}
-    cases = []
-    for index in range(100):
-        identifier = f"case-{index:03d}"
-        path = tmp_path / f"{identifier}.txt"
-        path.write_text(f"evidence {index}\n")
-        cases.append(
-            {
-                "id": identifier,
-                "source_benchmark": {
-                    "risk_control": {
-                        "reference_proof": {
-                            "root": "proofs",
-                            "path": path.name,
-                            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-                        }
-                    }
-                },
-            }
-        )
-    before = reference_proof_snapshot(cases, roots)
-    assert before["case_count"] == 100
-    (tmp_path / "case-042.txt").write_text("changed\n")
-    with pytest.raises(ValueError, match="Changed reference proof: case-042"):
-        reference_proof_snapshot(cases, roots)
+def test_frozen_execution_inputs_do_not_require_historical_source_files(tmp_path):
+    from harness.web_fetch.risk_control import frozen_risk_control_input_snapshot
+    profile = json.loads(RUN_PROFILE.read_text())
+    profile_path = tmp_path / "evaluation/risk-control/run-profile.json"
+    profile_path.parent.mkdir(parents=True)
+    profile_path.write_bytes(RUN_PROFILE.read_bytes())
+    bindings = [profile["dataset"], *profile["source_bindings"].values(),
+                {"path": profile["provider"]["config_path"]}]
+    for binding in bindings:
+        target = tmp_path / binding["path"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(read_frozen_dataset_bytes(ROOT / binding["path"]) if binding == profile['dataset'] else (ROOT / binding["path"]).read_bytes())
+    # There is no qualification data home or browser.txt tree in this fixture.
+    snapshot = frozen_risk_control_input_snapshot(profile_path)
+    assert snapshot["case_count"] == 100
+    (tmp_path / profile["dataset"]["path"]).write_text('{"cases": []}')
+    with pytest.raises(ValueError, match="Changed frozen input"):
+        frozen_risk_control_input_snapshot(profile_path)
 
 
 def certified_report_fixture(tmp_path):
@@ -1035,3 +1026,30 @@ def test_certified_report_preserves_certificate_bound_files(tmp_path, capsys):
                  "reference-proof-verification.json", "certification.json"):
         assert (report / name).read_bytes() == (tmp_path / name).read_bytes()
     require_risk_control_certification(report, measured, records)
+
+
+def test_new_risk_certification_uses_frozen_inputs_and_preserves_old_receipts(tmp_path):
+    from harness.web_fetch.risk_control import frozen_risk_control_input_snapshot
+    dataset, records, receipt, manifest, execution = certified_report_fixture(tmp_path)
+    snapshot = frozen_risk_control_input_snapshot(RUN_PROFILE)
+    verification = {"schema_version": 1, "kind": "risk_control_frozen_input_verification",
+                    "before": snapshot, "after": snapshot, "unchanged": True}
+    path = tmp_path / "frozen-input-verification.json"
+    path.write_text(json.dumps(verification))
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    manifest.pop("reference_proof_verification_sha256")
+    manifest["frozen_input_verification_sha256"] = digest
+    receipt.pop("reference_proof_verification_sha256")
+    receipt.update(kind="certified_risk_control_100_moli_v2",
+                   frozen_input_verification_sha256=digest)
+    (tmp_path / "reference-proof-verification.json").unlink()
+    rewrite_certified_report_fixture(tmp_path, records, receipt, manifest, execution)
+    require_risk_control_certification(tmp_path, dataset, records)
+    verification["after"] = {**snapshot, "case_count": 99}
+    path.write_text(json.dumps(verification))
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    manifest["frozen_input_verification_sha256"] = digest
+    receipt["frozen_input_verification_sha256"] = digest
+    rewrite_certified_report_fixture(tmp_path, records, receipt, manifest, execution)
+    with pytest.raises(ValueError, match="frozen input verification"):
+        require_risk_control_certification(tmp_path, dataset, records)

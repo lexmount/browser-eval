@@ -1,6 +1,5 @@
 import base64
 import hashlib
-import json
 import os
 import sys
 import tempfile
@@ -147,11 +146,11 @@ class MoliTests(unittest.TestCase):
                 self.assertTrue(task_passed(True,metrics,'body'))
 
     def test_resource_route_enumerates_bounded_same_origin_frame_documents(self):
-        from harness.web_fetch.providers.moli import _RESOURCE_PAGE_EXPRESSION
+        from harness.web_fetch.task_outputs import RESOURCE_PAGE_EXPRESSION
 
-        self.assertIn("frame.contentDocument", _RESOURCE_PAGE_EXPRESSION)
-        self.assertIn("roots.length < 16", _RESOURCE_PAGE_EXPRESSION)
-        self.assertNotIn("pic_trulli", _RESOURCE_PAGE_EXPRESSION)
+        self.assertIn("frame.contentDocument", RESOURCE_PAGE_EXPRESSION)
+        self.assertIn("roots.length < 16", RESOURCE_PAGE_EXPRESSION)
+        self.assertNotIn("pic_trulli", RESOURCE_PAGE_EXPRESSION)
 
     def test_cancellation_between_popen_and_handle_registration_is_latched(self):
         import subprocess
@@ -163,8 +162,9 @@ class MoliTests(unittest.TestCase):
 
         def launch(*args, **kwargs):
             process = original(*args, **kwargs)
-            children.append(process)
-            provider.cancel()  # Real child exists but fetch has not received its handle.
+            if args and args[0][0] == str(self.binary):
+                children.append(process)
+                provider.cancel()  # Real child exists but fetch has not received its handle.
             return process
 
         provider.begin_call()
@@ -406,80 +406,49 @@ class MoliTests(unittest.TestCase):
         self.assertTrue(result.ok, repr(result))
         self.assertEqual(result.metadata["route"], "ordinary_markdown")
 
-    def test_challenge_route_uses_one_json_trace_and_converts_final_dom(self):
-        envelope = {
-            "final_url": "https://example.com/final",
-            "status": 200,
-            "title": "Catalog",
-            "headers": [{"name": "content-type", "value": "text/html"}],
-            "redirect_chain": [
-                {
-                    "from_url": "https://example.com/start",
-                    "to_url": "https://example.com/final",
-                    "status": 302,
-                }
-            ],
-            "html": '<main><a href="/item/1">Real product</a></main>',
-            "network": {
-                "main_document": {"status": 200, "redirected": True, "redirect_count": 1},
-                "subresources": [{"ok": False, "error_text": "blocked"}],
-            },
-        }
+    def test_popular_site_uses_native_markdown_without_local_conversion(self):
         provider = self.provider(
-            "import json,sys\n"
-            'assert "--dump" in sys.argv and sys.argv[sys.argv.index("--dump")+1]=="json"\n'
-            'assert "--trace-network" in sys.argv and "--eval" not in sys.argv\n'
-            f"print({json.dumps(envelope)!r})"
-        )
-        result = provider.fetch(self.case_with(track="challenge", task_kind="structure"), 10)
+            'import sys\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
+            'assert "--trace-network" not in sys.argv and "--eval" not in sys.argv\n'
+            'print("# Native catalog\\n\\n[Real product](/item/1)")')
+        self.assertEqual(provider.validate(), [])
+        with patch("harness.web_fetch.providers.moli.subprocess.run", side_effect=AssertionError("Local converter must not run")):
+            result = provider.fetch(self.case_with(track="challenge", task_kind="structure"), 10)
         self.assertTrue(result.ok, repr(result))
-        self.assertIn("[Real product]", result.content)
-        self.assertEqual(result.status_code, 200)
-        self.assertEqual(result.final_url, "https://example.com/final")
-        self.assertEqual(result.title, "Catalog")
-        self.assertEqual(result.metadata["route"], "challenge_json_trace")
-        self.assertEqual(result.metadata["network_trace"]["failed_subresource_count"], 1)
-        self.assertEqual(
-            result.metadata["network_trace"]["response_header_names"], ["content-type"]
-        )
-        self.assertIn("_raw_stdout_b64", result.metadata)
+        self.assertEqual(result.content, "# Native catalog\n\n[Real product](/item/1)\n")
+        self.assertEqual(result.metadata["route"], "ordinary_markdown")
+        self.assertEqual(result.metadata["output"], "markdown")
+        self.assertFalse(result.metadata["network_trace_requested"])
 
-    def test_page_identity_uses_same_call_json_for_single_and_multihop_redirects(self):
+    def test_required_final_url_never_switches_native_markdown_to_json(self):
         from harness.web_fetch.scoring import score_attempt
         from harness.web_fetch.metrics import task_passed
-        for hops in (1, 2):
-            with self.subTest(hops=hops):
+        for supplied_url in (None, 'https://example.com/document'):
+            with self.subTest(final_url=supplied_url):
                 final='https://example.com/document'
-                envelope={'final_url':final,'status':200,'title':'Article',
-                          'html':'<main>Complete required body</main>',
-                          'redirect_chain':[{'from_url':'https://example.com/redirect',
-                                             'to_url':final,'status':302}]*hops}
+                log = (f'DEBUG fetch request complete method=GET url={self.case.url} final_url={final} status=200' if supplied_url else '')
                 provider=self.provider(
                     'import sys\n'
-                    'assert sys.argv[sys.argv.index("--dump")+1]=="json"\n'
+                    'assert sys.argv[sys.argv.index("--dump")+1]=="markdown"\n'
                     'assert "--trace-network" not in sys.argv\n'
-                    'print("DEBUG fetch request complete method=GET url=https://cdn.example.com/app.js final_url=https://cdn.example.com/app.js status=200",file=sys.stderr)\n'
-                    f'print({json.dumps(envelope)!r})')
+                    f'print({log!r},file=sys.stderr)\n'
+                    'print("Complete required body")')
                 case=self.case_with(track='risk_control',task_kind='body',
                     source_benchmark={'risk_control':{'navigation_contract':{'requested_url':self.case.url,'observed_final_url':final,'target_language':'en'}}})
                 result=provider.fetch(case,10)
                 self.assertTrue(result.ok,repr(result))
-                self.assertEqual(result.final_url,final)
-                self.assertEqual(result.metadata['final_url_source'],'same_call_json')
-                self.assertEqual(result.metadata['output'],'final_dom_html+local_markdown')
-                self.assertFalse(result.metadata['network_trace_requested'])
+                self.assertEqual(result.final_url,supplied_url)
+                self.assertEqual(result.content.strip(),'Complete required body')
+                self.assertEqual(result.metadata['route'],'ordinary_markdown')
+                self.assertEqual(result.metadata['output'],'markdown')
                 config={'id':'article','url':case.url,'track':'risk_control','task_kind':'body',
                         'source_benchmark':case.source_benchmark,
                         'acceptance_contract':{'version':1,'schema':'body_text','minimum_records':0,
                           'stable_text_anchors':[{'id':'body','alternatives':['Complete required body']}]}}
                 metrics=score_attempt(config,result.content.encode(),ok=result.ok,
                                       status_code=result.status_code,final_url=result.final_url)
-                self.assertEqual(metrics['page_identity_status'],'verified')
                 self.assertTrue(task_passed(result.ok,metrics,'body'))
-                wrong=score_attempt(config,result.content.encode(),ok=True,status_code=200,
-                                    final_url='https://cdn.example.com/app.js')
-                self.assertEqual(wrong['page_identity_status'],'mismatch')
-                self.assertFalse(task_passed(True,wrong,'body'))
 
     def test_legacy_multihop_log_does_not_select_interleaved_resource(self):
         log=(
@@ -493,43 +462,40 @@ class MoliTests(unittest.TestCase):
             'DEBUG published standalone replacement Document page_id=1\n')
         self.assertIsNone(_diagnostic_main_document_url(log,'https://example.com/start'))
 
-    def test_challenge_http_error_keeps_body_but_request_fails(self):
-        envelope = {
-            "final_url": "https://example.com/gate",
-            "status": 403,
-            "title": "Access denied",
-            "headers": [],
-            "redirect_chain": [],
-            "html": "<h1>Access denied</h1>",
-            "network": {},
-        }
-        provider = self.provider(f"print({json.dumps(envelope)!r})")
+    def test_popular_site_native_http_error_keeps_body_but_request_fails(self):
+        provider = self.provider('print("**Error:** Forbidden\\n\\n**403**: Forbidden")')
         result = provider.fetch(self.case_with(track="challenge", task_kind="structure"), 10)
         self.assertFalse(result.ok)
         self.assertEqual(result.error_type, "api_error")
         self.assertEqual(result.status_code, 403)
-        self.assertIn("Access denied", result.content)
+        self.assertIn("Forbidden", result.content)
 
-    def test_page_json_runtime_error_is_not_a_serialization_error(self):
-        for exit_code in (0, 1):
-            with self.subTest(exit_code=exit_code):
-                provider = self.provider(
-                    'import sys\n'
-                    'print("SSL connect error: connection reset", file=sys.stderr)\n'
-                    f'sys.exit({exit_code})\n')
-                result = provider.fetch(self.case_with(track="challenge", task_kind="structure"), 10)
-                self.assertFalse(result.ok)
-                self.assertEqual(result.error_type, 'tool_error' if exit_code else 'invalid_output')
-                if exit_code:
-                    self.assertIn('SSL connect error', result.error_message)
-                self.assertEqual(result.metadata['exit_code'], exit_code)
-                self.assertEqual(result.metadata['raw_stdout_sha256'], hashlib.sha256(b'').hexdigest())
+    def test_native_markdown_runtime_error_keeps_official_stderr(self):
+        provider = self.provider('import sys\nprint("SSL connect error: connection reset", file=sys.stderr)\nsys.exit(1)\n')
+        result = provider.fetch(self.case_with(track="risk_control", task_kind="body", source_benchmark={"risk_control":{"navigation_contract":{"requested_url":self.case.url,"observed_final_url":"https://example.com/final"}}}), 10)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_type, 'tool_error')
+        self.assertIn('SSL connect error', result.error_message)
+        self.assertEqual(result.metadata['route'], 'ordinary_markdown')
 
     def test_dynamic_task_without_hints_fails_closed(self):
         provider = self.provider('raise AssertionError("should not run")')
         result = provider.fetch(self.case_with(track="dynamic"), 10)
         self.assertFalse(result.ok)
         self.assertEqual(result.error_type, "configuration")
+
+    def test_dynamic_native_completion_keeps_native_markdown_route(self):
+        provider = self.provider(
+            'import sys\n'
+            'assert "--eval" not in sys.argv and "--wait-selector" not in sys.argv\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
+            'print("# Native body")'
+        )
+        result = provider.fetch(self.case_with(track="dynamic", retrieval_hints={
+            "version": 3, "mode": "native"}), 10)
+        self.assertTrue(result.ok, result.error_message)
+        self.assertEqual(result.content, "# Native body\n")
+        self.assertEqual(result.metadata["output"], "markdown")
 
     def test_dynamic_task_prefers_predeclared_selector_without_answer_leakage(self):
         provider = self.provider(
@@ -832,8 +798,7 @@ class MoliTests(unittest.TestCase):
             'assert "--dump" not in sys.argv\n'
             'assert "--eval" in sys.argv\n'
             'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "[src],[href],[data],[poster],[srcset]" in expression\n'
-            'assert "astro-island[component-url]" in expression\n'
+            'assert "fetch(" not in expression\n'
             'assert not ({"--image","--video","--media","--resource"} & set(sys.argv))\n'
             'print("{\\"links\\":[\\"https://example.com/movie.mp4\\"]}")'
         )
@@ -843,316 +808,19 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["output"], "structured_resource_urls")
         self.assertIn("movie.mp4", result.content)
 
-    def test_resource_contract_takes_priority_over_page_family(self):
-        for track, path in (("challenge", "/page"), ("document", "/document.pdf"),
-                            ("document", "/document.docx"), ("document", "/viewer.html"),
-                            ("video", "/page"), ("image", "/page")):
-            with self.subTest(track=track, path=path):
+    def test_document_urls_use_native_text_without_external_parsing(self):
+        for url in ("https://example.com/paper.pdf", "https://example.com/file.docx"):
+            with self.subTest(url=url):
                 provider = self.provider(
-                    'import sys\n'
-                    'assert "--eval" in sys.argv and "--dump" not in sys.argv\n'
-                    'assert "--trace-network" not in sys.argv\n'
-                    'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-                    'assert "[src],[href],[data],[poster],[srcset]" in expression\n'
-                    'print("{\\"links\\":[\\"https://example.com/movie.mp4\\"]}")'
-                )
-                with patch("harness.web_fetch.providers.moli.require_converter",
-                           side_effect=AssertionError("resource discovery must not convert Markdown")):
-                    result = provider.fetch(self.case_with(
-                        track=track, url="https://example.com" + path, task_kind="resource"), 10)
+                    "import sys\n"
+                    'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
+                    'assert "--eval" not in sys.argv\n'
+                    'print("Native document text")')
+                result = provider.fetch(self.case_with(url=url, track="document"), 2)
                 self.assertTrue(result.ok, repr(result))
-                self.assertEqual(result.metadata["route"], "resource_page_runtime")
-                self.assertEqual(result.metadata["output"], "structured_resource_urls")
-                self.assertFalse(result.metadata["network_trace_requested"])
-                self.assertEqual(json.loads(result.content)["links"], ["https://example.com/movie.mp4"])
-
-    def test_file_contract_never_initializes_page_conversion(self):
-        for track in ("challenge", "document", "video", "image"):
-            with self.subTest(track=track):
-                provider = self.provider(
-                    'import sys\n'
-                    'assert "--dump" not in sys.argv and "--eval" not in sys.argv\n'
-                    'assert "--trace-network" not in sys.argv\n'
-                    'sys.stdout.buffer.write(b"fixture-file")'
-                )
-                with patch("harness.web_fetch.providers.moli.require_converter",
-                           side_effect=AssertionError("file delivery must not convert Markdown")):
-                    result = provider.fetch(self.case_with(track=track, task_kind="file"), 10)
-                self.assertTrue(result.ok, repr(result))
-                self.assertEqual(result.files[0]["data"], b"fixture-file")
-                self.assertEqual(result.metadata["route"], "raw_file")
-                self.assertEqual(result.metadata["output"], "raw_bytes")
-                self.assertFalse(result.metadata["network_trace_requested"])
-
-    def test_dynamic_resource_honors_declared_completion(self):
-        provider = self.provider(
-            'import sys\n'
-            'assert sys.argv[sys.argv.index("--wait-selector")+1]=="main article"\n'
-            'assert sys.argv.count("--wait-until")==1\n'
-            'assert sys.argv[sys.argv.index("--wait-until")+1]=="domcontentloaded"\n'
-            'assert sys.argv[sys.argv.index("--delay-ms")+1]=="999"\n'
-            'assert sys.argv[sys.argv.index("--timeout")+1]=="3000"\n'
-            'assert "[src],[href],[data],[poster],[srcset]" in sys.argv[sys.argv.index("--eval")+1]\n'
-            'import json\nprint(json.dumps(dict(links=["https://example.com/image.png"])))'
-        )
-        result = provider.fetch(self.case_with(
-            track="dynamic", task_kind="resource", retrieval_hints={
-                "version": 1, "wait_until": "domcontentloaded", "completion": {
-                    "selector": "main article", "minimum_count": 1,
-                    "timeout_ms": 3000, "delay_ms": 999,
-                },
-            }), 10)
-        self.assertTrue(result.ok, repr(result))
-        self.assertEqual(result.metadata["route"], "resource_page_runtime")
-        self.assertEqual(result.metadata["wait"]["selector"], "main article")
-        self.assertEqual(result.metadata["wait"]["completion_support"], "exact")
-
-    def test_dynamic_file_cannot_discard_valid_dom_completion(self):
-        marker = Path(self.directory.name) / "fetch-executed"
-        provider = self.provider(
-            f'from pathlib import Path\nPath({str(marker)!r}).write_text("executed")\n'
-            'print("unexpected output")'
-        )
-        result = provider.fetch(self.case_with(
-            track="dynamic", task_kind="file", retrieval_hints={
-                "version": 1, "wait_until": "load", "completion": {
-                    "selector": "main", "minimum_count": 1,
-                    "timeout_ms": 3000, "delay_ms": 0,
-                },
-            }), 10)
-        self.assertFalse(marker.exists())
-        self.assertFalse(result.ok)
-        self.assertEqual(result.error_type, "configuration")
-        self.assertIn("DOM completion", result.error_message)
-
-    def test_resource_route_cannot_discard_declared_text_extraction(self):
-        marker = Path(self.directory.name) / "fetch-executed"
-        provider = self.provider(
-            f'from pathlib import Path\nPath({str(marker)!r}).write_text("executed")\n'
-            'print("unexpected output")'
-        )
-        result = provider.fetch(self.case_with(
-            track="dynamic", task_kind="resource", retrieval_hints={
-                "version": 2, "wait_until": "load", "completion": {
-                    "selector": "main", "minimum_count": 1,
-                    "timeout_ms": 3000, "delay_ms": 0,
-                },
-                "extraction": {"selector": "article", "maximum_count": 2,
-                               "exclude_selectors": [], "fallback": "empty"},
-            }), 10)
-        self.assertFalse(marker.exists())
-        self.assertFalse(result.ok)
-        self.assertEqual(result.error_type, "configuration")
-        self.assertIn("Declared text extraction", result.error_message)
-
-    def test_scoring_answers_do_not_change_execution(self):
-        provider = self.provider('import json, sys\nprint(json.dumps(sys.argv[1:]))')
-        original = provider.fetch(self.case, 2)
-        changed = provider.fetch(self.case_with(
-            id="unrelated-id", name="Unrelated label", expected_any=["secret-answer"],
-            reference_answer="secret-reference", required_facts=["secret-fact"],
-            ground_truth_main_content="secret-body", expected_resources=["secret-resource"],
-        ), 2)
-        self.assertTrue(original.ok, repr(original))
-        self.assertTrue(changed.ok, repr(changed))
-        self.assertEqual(original.content, changed.content)
-        self.assertEqual(original.metadata["route"], changed.metadata["route"])
-
-    def test_file_task_preserves_binary_stdout(self):
-        from dataclasses import replace
-
-        provider = self.provider(
-            "import sys\n"
-            'assert "--dump" not in sys.argv\n'
-            'assert "--wait-until" not in sys.argv\n'
-            'assert sys.argv[1:6]==["fetch","--timeout","2000","--http-timeout","2000"]\n'
-            'sys.stdout.buffer.write(b"\\x89PNG\\r\\n\\x1a\\n" + b"x"*40)'
-        )
-        result = provider.fetch(replace(self.case, task_kind="file"), 2)
-        self.assertTrue(result.ok)
-        self.assertEqual(result.files[0]["data"], b"\x89PNG\r\n\x1a\n" + b"x" * 40)
-        self.assertEqual(result.content, "")
-        self.assertIsNone(result.metadata["dump"])
-        self.assertIsNone(result.metadata["wait_until"])
-        self.assertIsNone(result.metadata["wait"])
-        self.assertEqual(result.metadata["route"], "raw_file")
-        self.assertEqual(result.metadata["output"], "raw_bytes")
-
-    def test_direct_pdf_body_uses_raw_fetch_and_extracts_inside_call(self):
-        import io
-        from dataclasses import replace
-
-        from pypdf import PdfWriter
-
-        output = io.BytesIO()
-        writer = PdfWriter()
-        writer.add_blank_page(width=72, height=72)
-        writer.write(output)
-        encoded = repr(output.getvalue())
-        provider = self.provider(
-            "import sys\n"
-            'assert "--dump" not in sys.argv\n'
-            'assert "--wait-until" not in sys.argv\n'
-            'assert "--http-timeout" in sys.argv\n'
-            f"sys.stdout.buffer.write({encoded})"
-        )
-        document = replace(
-            self.case,
-            url="https://example.com/fixed.PDF?download=1#page=2",
-            track="document",
-        )
-        result = provider.fetch(document, 2)
-        self.assertTrue(result.ok)  # The request completed; the blank PDF still fails task scoring.
-        self.assertIsNone(result.error_type)
-        self.assertEqual(result.metadata["document_extractor"], "pypdf")
-        self.assertEqual(result.metadata["dump"], None)
-        self.assertEqual(result.metadata["route"], "raw_document")
-        self.assertEqual(result.metadata["output"], "raw_document_bytes+local_text")
-        self.assertIn("_raw_stdout_b64", result.metadata)
-
-    def test_docx_runtime_fetch_extracts_valid_ooxml_and_discloses_second_request(self):
-        from dataclasses import replace
-
-        document_bytes = b"PK\x03\x04fixture"
-        encoded = base64.b64encode(document_bytes).decode("ascii")
-        provider = self.provider(
-            "import json,sys\n"
-            'assert "--eval" in sys.argv and "--dump" not in sys.argv\n'
-            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "fetch(location.href" in expression and "arrayBuffer" in expression\n'
-            f'print(json.dumps({{"kind":"document_base64","source":'
-            f'"https://example.com/demo.docx","status":200,'
-            f'"content_type":"application/vnd.openxmlformats-officedocument.'
-            f'wordprocessingml.document","data":"{encoded}"}}))'
-        )
-        document = replace(
-            self.case,
-            url="https://example.com/demo.docx",
-            track="document",
-        )
-        with patch(
-            "harness.web_fetch.providers.moli.extract_document_text",
-            return_value=("DOCX body", "python-docx"),
-        ):
-            result = provider.fetch(document, 2)
-        self.assertTrue(result.ok, repr(result))
-        self.assertEqual(result.content, "DOCX body")
-        self.assertEqual(result.status_code, 200)
-        self.assertEqual(result.metadata["route"], "document_runtime_fetch")
-        self.assertEqual(result.metadata["output"], "runtime_document_base64+local_text")
-        self.assertTrue(result.metadata["document_runtime_second_http_fetch"])
-        self.assertEqual(base64.b64decode(result.metadata["_raw_stdout_b64"]), document_bytes)
-
-    def test_docx_runtime_fetch_rejects_non_ooxml_envelope_and_preserves_evidence(self):
-        from dataclasses import replace
-
-        raw = b'{"kind":"document_base64","data":"bm90LW9veG1s"}'
-        provider = self.provider(f"import sys\nsys.stdout.buffer.write({raw!r})")
-        document = replace(
-            self.case,
-            url="https://example.com/demo.docx",
-            track="document",
-        )
-        result = provider.fetch(document, 2)
-        self.assertFalse(result.ok)
-        self.assertEqual(result.error_type, "invalid_output")
-        self.assertEqual(result.content, "")
-        self.assertEqual(result.metadata["raw_stdout_sha256"], hashlib.sha256(raw).hexdigest())
-        self.assertEqual(base64.b64decode(result.metadata["_raw_stdout_b64"]), raw)
-
-    def test_docx_runtime_local_extraction_must_finish_inside_call_budget(self):
-        import time
-
-        encoded = base64.b64encode(b"PK\x03\x04fixture").decode("ascii")
-        provider = self.provider(
-            f'import json\nprint(json.dumps({{"kind":"document_base64","data":"{encoded}"}}))'
-        )
-        document = self.case_with(url="https://example.com/demo.docx", track="document")
-
-        real_clock = time.monotonic
-        for extraction_seconds, expected_ok in ((0.1, True), (11, False)):
-            with self.subTest(extraction_seconds=extraction_seconds):
-                elapsed = [0.0]
-
-                def extract(_raw):
-                    elapsed[0] += extraction_seconds
-                    return "extracted content", "fixture"
-
-                clock = SimpleNamespace(monotonic=lambda: real_clock() + elapsed[0])
-                with (
-                    patch("harness.web_fetch.providers.moli.time", clock),
-                    patch("harness.web_fetch.providers.moli.extract_document_text",
-                          side_effect=extract) as extractor,
-                ):
-                    result = provider.fetch(document, 10)
-                extractor.assert_called_once()
-                self.assertEqual(result.ok, expected_ok)
-                if expected_ok:
-                    self.assertEqual(result.content, "extracted content")
-                else:
-                    self.assertEqual(result.error_type, "timeout")
-                    self.assertIn("runtime extraction", result.error_message)
-
-    def test_document_extraction_must_finish_inside_the_call_budget(self):
-        import time
-
-        provider = self.provider('import sys\nsys.stdout.buffer.write(b"%PDF-fixture")')
-        document = self.case_with(url="https://example.com/fixed.pdf", track="document")
-
-        def slow_extract(_raw):
-            time.sleep(3.2)
-            return "late content", "fixture"
-
-        with patch(
-            "harness.web_fetch.providers.moli.extract_document_text",
-            side_effect=slow_extract,
-        ):
-            result = provider.fetch(document, 3)
-        self.assertFalse(result.ok)
-        self.assertEqual(result.error_type, "timeout")
-        self.assertIn("extraction", result.error_message)
-
-    def test_pdfjs_viewer_uses_runtime_document_text(self):
-        provider = self.provider(
-            "import json,sys\n"
-            'assert "--dump" not in sys.argv and "--eval" in sys.argv\n'
-            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "PDFViewerApplication" in expression and "getTextContent" in expression\n'
-            'print(json.dumps({"kind":"text","source":"https://example.com/paper.pdf",'
-            '"text":"TraceMonkey nested trace trees"}))'
-        )
-        result = provider.fetch(
-            self.case_with(
-                url="https://mozilla.github.io/pdf.js/web/viewer.html", track="document"
-            ),
-            2,
-        )
-        self.assertTrue(result.ok, repr(result))
-        self.assertEqual(result.content, "TraceMonkey nested trace trees")
-        self.assertEqual(result.metadata["route"], "document_page_runtime")
-        self.assertEqual(result.metadata["document_extractor"], "pdfjs_runtime")
-
-    def test_embedded_pdf_page_returns_bytes_for_local_extraction(self):
-        encoded = base64.b64encode(b"%PDF-fixture").decode("ascii")
-        provider = self.provider(
-            "import json,sys\n"
-            'assert "--dump" not in sys.argv and "--eval" in sys.argv\n'
-            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "embed[src],iframe[src],object[data],a[href]" in expression\n'
-            f'print(json.dumps({{"kind":"pdf_base64","source":"https://example.com/sample.pdf",'
-            f'"data":"{encoded}"}}))'
-        )
-        with patch(
-            "harness.web_fetch.providers.moli.extract_document_text",
-            return_value=("embedded PDF text", "fixture"),
-        ):
-            result = provider.fetch(
-                self.case_with(url="https://pdfobject.com/static/", track="document"), 2
-            )
-        self.assertTrue(result.ok, repr(result))
-        self.assertEqual(result.content, "embedded PDF text")
-        self.assertEqual(result.metadata["document_extractor"], "fixture")
-        self.assertEqual(result.metadata["embedded_document_url"], "https://example.com/sample.pdf")
+                self.assertEqual(result.content.strip(), "Native document text")
+                self.assertEqual(result.metadata["route"], "ordinary_markdown")
+                self.assertNotIn("document_extractor", result.metadata)
 
     def test_invalid_dynamic_hints_fail_before_process(self):
         for hints in (
@@ -1195,7 +863,9 @@ class MoliTests(unittest.TestCase):
              "diagnostic_log_too_large", True),
         ]:
             with self.subTest(expected=expected):
-                result = self.provider(script, **config).fetch(self.case, 2)
+                provider = self.provider(script, **config)
+                self.assertEqual(provider.validate(), [])
+                result = provider.fetch(self.case, 2)
                 self.assertFalse(result.ok)
                 self.assertEqual(result.error_type, expected)
                 self.assertEqual("_diagnostic_log_b64" in result.metadata, retained)
@@ -1271,47 +941,77 @@ class MoliTests(unittest.TestCase):
         self.assertIn(b"DEBUG actual fixture CLI started", raw)
         self.assertNotIn(b"late answer", raw)
         self.assertIn(b"native_cli_start", raw)
+    def test_timeout_stops_a_browser_child_in_an_independent_session(self):
+        import signal, time
+        pid_file = Path(self.directory.name) / 'detached-child.pid'
+        marker = Path(self.directory.name) / 'orphan-work'
+        child_source = ('import time; from pathlib import Path; time.sleep(2); '
+                        + 'Path(' + repr(str(marker)) + ').write_text("orphan")')
+        script = ('import subprocess, time\nfrom pathlib import Path\n'
+                  + 'child = subprocess.Popen([sys.executable, "-c", ' + repr(child_source)
+                  + '], start_new_session=True)\n'
+                  + 'Path(' + repr(str(pid_file)) + ').write_text(str(child.pid))\n'
+                  + 'time.sleep(10)\n')
+        try:
+            provider = self.provider(script)
+            self.assertEqual(provider.validate(), [])
+            result = provider.fetch(self.case, 1)
+            self.assertEqual(result.error_type, 'timeout')
+            self.assertTrue(pid_file.exists(), 'fixture did not start the independent browser child')
+            time.sleep(2.1)
+            self.assertFalse(marker.exists(), 'browser child continued physical work after timeout')
+        finally:
+            if pid_file.exists():
+                try:
+                    os.killpg(int(pid_file.read_text()), signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
 
     def test_timeout_is_failure(self):
         result = self.provider("import time\ntime.sleep(10)").fetch(self.case, 0.05)
         self.assertEqual(result.error_type, "timeout")
 
-    def test_process_group_permission_error_falls_back_to_direct_kill(self):
+    def test_cancel_does_not_abandon_descendants_when_group_signalling_is_forbidden(self):
         process = Mock(pid=123)
         process.poll.return_value = None
-        with patch(
-            "harness.web_fetch.providers.moli.os.killpg",
-            side_effect=PermissionError("group signal forbidden"),
-        ):
-            from harness.web_fetch.providers.moli import MoliWebFetchProvider
-
-            MoliWebFetchProvider._kill(process)
-        process.kill.assert_called_once_with()
-
-    def test_cancel_swallows_direct_kill_oserror(self):
-        process = Mock(pid=123)
-        process.poll.return_value = None
-        process.kill.side_effect = OSError("direct signal forbidden")
         provider = self.provider('print("unused")')
         provider._active_process = process
-        with patch(
-            "harness.web_fetch.providers.moli.os.killpg",
-            side_effect=PermissionError("group signal forbidden"),
-        ):
+        with patch('harness.web_fetch.providers.base.subprocess.run',
+                   return_value=SimpleNamespace(stdout='123 1 123\n124 123 124\n')), patch(
+                   'harness.web_fetch.providers.base.os.killpg',
+                   side_effect=PermissionError('group signal forbidden')):
             provider.cancel()
+        process.kill.assert_not_called()
+        self.assertIsNone(process.poll(), 'unresolved physical work must remain visible to the deadline boundary')
 
-    def test_cancel_permission_error_does_not_replace_deadline_timeout(self):
+    def test_cancel_does_not_signal_an_unobservable_process_tree(self):
+        process = Mock(pid=123)
+        process.poll.return_value = None
+        provider = self.provider('print("unused")')
+        provider._active_process = process
+        with patch('harness.web_fetch.providers.base.subprocess.run',
+                   side_effect=OSError('process inventory unavailable')), patch(
+                   'harness.web_fetch.providers.base.os.killpg') as signal_group:
+            provider.cancel()
+        signal_group.assert_not_called()
+        process.kill.assert_not_called()
+
+    def test_cancel_permission_error_preserves_timeout_and_unresolved_worker(self):
         from harness.web_fetch.call_boundary import fetch_with_deadline
-
-        provider = self.provider("import time\ntime.sleep(10)")
-        with patch(
-            "harness.web_fetch.providers.moli.os.killpg",
-            side_effect=PermissionError("group signal forbidden"),
-        ):
-            result, worker = fetch_with_deadline(provider, self.case, 0.05)
-        self.assertFalse(result.ok)
-        self.assertEqual(result.error_type, "timeout")
-        worker.join(1)
+        provider = self.provider('import time\ntime.sleep(10)')
+        worker = None
+        try:
+            with patch('harness.web_fetch.providers.base.os.killpg',
+                       side_effect=PermissionError('group signal forbidden')):
+                result, worker = fetch_with_deadline(provider, self.case, .1)
+            self.assertFalse(result.ok)
+            self.assertEqual(result.error_type, 'timeout')
+            self.assertTrue(worker.is_alive(), 'failed cleanup must not hide remaining physical work')
+        finally:
+            provider.cancel()
+            if worker is not None:
+                worker.join(2)
+                self.assertFalse(worker.is_alive())
 
     def test_url_and_config_validation_before_process(self):
         provider = self.provider('raise AssertionError("should not run")')

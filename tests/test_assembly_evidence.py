@@ -141,7 +141,7 @@ def test_assembly_copies_only_certificate_bound_reference_checks(tmp_path, damag
     text = 'Expected independent article'
     case = EvalCase('one', 'One', 'https://example.invalid/', 'synthetic', ['Expected'],
                     ground_truth_main_content=text,
-                    source_verification={'state': 'valid', 'method': 'independent source capture',
+                    source_verification={'reference_mode': 'live_exact', 'state': 'valid', 'method': 'independent source capture',
                         'checked_at': datetime.now(timezone.utc).isoformat(),
                         'reference_sha256': hashlib.sha256(text.encode()).hexdigest(),
                         'reference_scope': 'Complete article'})

@@ -35,6 +35,92 @@ from .safety import (
     validate_report_ids,
 )
 
+def recover_completed_batch(source: Path, manifest: dict, records: list[dict]) -> dict:
+    """Bind all flushed calls from an interrupted fixed-answer physical batch.
+
+    The source manifest stays unchanged. The returned boundary describes only
+    saved completed calls, and explicitly retains the original unfinished state.
+    It never supplies missing live-reference certification or chooses scores.
+    """
+    from datetime import datetime
+    from .artifacts import public_call_log_binding, verify_public_call_log
+    from .reference_lifecycle import requires_fresh_reference
+
+    if (manifest.get("schema_version") != 1 or manifest.get("tool") != "web_fetch"
+            or manifest.get("completed_at") or manifest.get("attempt_ids") is not None
+            or not records):
+        raise ValueError("Recovery requires an interrupted versioned physical batch")
+    parameters = manifest.get("parameters", {})
+    if parameters.get("runs") != 1 or parameters.get("max_failure_retries") != 0:
+        raise ValueError("Interrupted recovery requires one call per logical result")
+
+    def verified_input(path, digest):
+        path = Path(path)
+        if path.is_symlink() or not path.is_file():
+            raise ValueError("Recovery input is missing or unsafe")
+        raw = path.read_bytes()
+        if not digest or hashlib.sha256(raw).hexdigest() != digest:
+            raise ValueError("Recovery input hash changed")
+        return raw
+
+    input_raw = verified_input(manifest["dataset"]["source"], manifest.get("dataset_sha256"))
+    verified_input(manifest["provider_config_source"], manifest.get("provider_config_sha256"))
+    dataset = json.loads((source / "dataset.json").read_bytes())
+    original_cases = {case["id"]: case for case in json.loads(input_raw)["cases"]}
+    cases = {case["id"]: case for case in dataset["cases"]}
+    if (len(cases) != len(dataset["cases"])
+            or any(original_cases.get(identifier) != case for identifier, case in cases.items())):
+        raise ValueError("Recovery task differs from frozen pre-call input")
+    providers = {provider["name"]: provider for provider in manifest["providers"]}
+    lower = datetime.fromisoformat(manifest["started_at"])
+    ends, identities = [], set()
+    for row in records:
+        key = (row["provider"], row["case_id"])
+        if (key in identities or key[0] not in providers or key[1] not in cases
+                or row["run"] != 1 or row["provider_type"] != providers[key[0]]["type"]):
+            raise ValueError("Interrupted result has duplicate or undeclared identity")
+        identities.add(key)
+        if requires_fresh_reference(cases[key[1]]):
+            raise ValueError("Interrupted live-reference calls require their full certificate")
+        started, ended = (datetime.fromisoformat(row[field])
+                          for field in ("started_at", "completed_at"))
+        binding = public_call_log_binding(row.get("provider_metadata", {}).get("call_log"))
+        if not binding:
+            raise ValueError("Interrupted result has no completed physical call log")
+        log = json.loads(verify_public_call_log(source, binding).read_bytes())
+        if any(log["identity"].get(field) != row[field]
+               for field in ("attempt_id", "provider", "provider_type", "case_id", "run")):
+            raise ValueError("Interrupted result does not match its physical call identity")
+        timing = log["timing"]
+        if (log["identity"]["physical_attempt"] != 1
+                or not lower <= started <= datetime.fromisoformat(timing["started_at"])
+                <= datetime.fromisoformat(timing["completed_at"]) <= ended
+                or timing["elapsed_ms"] != row["elapsed_ms"]):
+            raise ValueError("Interrupted result does not match its completed call timing")
+        artifact = contained_path(source, row["artifact_path"])
+        digest = row["metrics"]["content_sha256"]
+        if (artifact.is_symlink() or not artifact.is_file()
+                or hashlib.sha256(artifact.read_bytes()).hexdigest() != digest
+                or log["output"]["path"] != row["artifact_path"]
+                or log["output"]["sha256"] != digest):
+            raise ValueError("Interrupted result output differs from completed physical call")
+        verify_record_artifacts(source, row)
+        ends.append(ended)
+    batch = deepcopy(manifest)
+    batch.update(completed_at=max(ends).isoformat(), attempt_count=len(records),
+                 attempt_ids=[row["attempt_id"] for row in records])
+    batch["recovery"] = {
+        "kind": "all-saved-completed-calls-from-interrupted-batch",
+        "original_batch_completed": False,
+        "source_manifest_sha256": hashlib.sha256((source / "manifest.json").read_bytes()).hexdigest(),
+        "source_results_sha256": hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest(),
+        "source_dataset_sha256": hashlib.sha256((source / "dataset.json").read_bytes()).hexdigest(),
+        "pending_logical_results": len(cases) * len(providers) - len(records),
+        "selection": "every persisted completed call, regardless of pass or fail",
+        "boundary": "last saved call completion; original full batch did not complete",
+    }
+    return batch
+
 
 def add_provider_run(canonical: Path, incoming: Path, provider: str, implementation=None, *, track=None):
     for root in (canonical, incoming):
@@ -258,19 +344,23 @@ def _project_batches(
 
 
 def _project_provider_run(source: Path, output: Path, provider: str, reference_root: Path | None = None,
-            case_ids: set[str] | None = None) -> None:
+            case_ids: set[str] | None = None, *, retain_completed: bool = False) -> None:
     source, output = source.resolve(), output.resolve()
     reference_root = (reference_root or source).resolve()
     if output.exists():
         raise ValueError("Projection destination exists: " + str(output))
     dataset = json.loads((source / "dataset.json").read_text())
+    all_records = _records(source)
+    if retain_completed:
+        if case_ids is not None:
+            raise ValueError("Interrupted recovery cannot select a case subset")
+        case_ids = {row["case_id"] for row in all_records if row["provider"] == provider}
     if case_ids is not None:
         known = {case["id"] for case in dataset["cases"]}
         if not case_ids or case_ids - known:
             raise ValueError("Projection case IDs are empty or unknown")
         dataset["cases"] = [case for case in dataset["cases"] if case["id"] in case_ids]
     cases = {case["id"]: case for case in dataset["cases"]}
-    all_records = _records(source)
     selected = [row for row in all_records
                 if row["provider"] == provider and row["case_id"] in cases]
     expected = set(cases)
@@ -282,6 +372,10 @@ def _project_provider_run(source: Path, output: Path, provider: str, reference_r
 
     source_batches, source_kind, source_document_bytes = _source_batches(source)
     source_document_sha256 = hashlib.sha256(source_document_bytes).hexdigest()
+    if retain_completed:
+        if source_kind != "manifest" or len(source_batches) != 1:
+            raise ValueError("Interrupted recovery requires one physical source manifest")
+        source_batches = [recover_completed_batch(source, source_batches[0], all_records)]
     dataset["coverage_plan"] = {
         track: [provider] for track, providers in dataset["coverage_plan"].items()
         if provider in providers
@@ -340,7 +434,7 @@ def _project_provider_run(source: Path, output: Path, provider: str, reference_r
 
 def project_provider_run(source: Path, output: Path, provider: str,
                          reference_root: Path | None = None,
-                         case_ids: set[str] | None = None) -> None:
+                         case_ids: set[str] | None = None, *, retain_completed: bool = False) -> None:
     """Expose a new projection only after its complete evidence passes validation."""
     for root in (source, reference_root or source):
         reject_evidence_symlinks(root)
@@ -353,7 +447,8 @@ def project_provider_run(source: Path, output: Path, provider: str,
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='.' + output.name + '-', dir=output.parent) as work:
         staging = Path(work) / 'evidence'
-        _project_provider_run(source, staging, provider, reference_root, case_ids)
+        _project_provider_run(source, staging, provider, reference_root, case_ids,
+                              retain_completed=retain_completed)
         staging.replace(output)
 
 
@@ -362,6 +457,8 @@ def projection_main(argv=None) -> None:
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--provider", required=True)
+    parser.add_argument("--retain-completed", action="store_true",
+                        help="Retain every saved completed call from an interrupted fixed-answer batch")
     parser.add_argument("--case-ids", help="Optional comma-separated explicit subset")
     parser.add_argument("--reference-root", type=Path,
                         help="Root containing frozen sources/list-references when the live run omits them")
@@ -372,7 +469,8 @@ def projection_main(argv=None) -> None:
         if any(not value for value in values) or len(set(values)) != len(values):
             parser.error('Case IDs must be nonempty and unique')
         case_ids = set(values)
-    project_provider_run(args.source, args.output, args.provider, args.reference_root, case_ids)
+    project_provider_run(args.source, args.output, args.provider, args.reference_root, case_ids,
+                         retain_completed=args.retain_completed)
     print(f"Projected {args.provider}: {args.output}")
 
 

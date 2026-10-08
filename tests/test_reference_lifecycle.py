@@ -32,11 +32,40 @@ class ReferenceLifecycleTests(unittest.TestCase):
         self.now = datetime(2026, 9, 3, 12, tzinfo=timezone.utc)
         self.case = EvalCase(id="body", name="Body", url="https://example.test/body",
             category="static", expected_any=["Price"], ground_truth_main_content="Price 10 dollars",
-            source_verification={"state": "valid", "method": "independent source capture",
+            source_verification={"state": "valid", "reference_mode": "live_exact", "method": "independent source capture",
                 "checked_at": (self.now - timedelta(minutes=1)).isoformat(),
                 "reference_sha256": sha256("Price 10 dollars"), "reference_scope": "Complete article"})
         self.dataset_path = self.root / "dataset.json"
         self.run = self.root / "run"
+
+    def test_frozen_body_answer_does_not_imply_live_reference_checks(self):
+        from harness.web_fetch.reference_lifecycle import requires_fresh_reference
+        verification = {key: value for key, value in self.case.source_verification.items()
+                        if key != 'reference_mode'}
+        verification['checked_at'] = '2020-01-01T00:00:00Z'
+        case = replace(self.case, source_verification=verification)
+        original = deepcopy(case.__dict__)
+        self.assertFalse(requires_fresh_reference(case))
+        self.assertIsNone(self.checks(case))
+        self.assertEqual(case.__dict__, original)
+        self.assertFalse((self.root / 'sources').exists())
+
+    def test_live_reference_checks_require_an_explicit_mode(self):
+        from harness.web_fetch.reference_lifecycle import requires_fresh_reference
+        case = replace(self.case, source_verification={
+            **self.case.source_verification, 'reference_mode': 'live_exact'})
+        self.assertTrue(requires_fresh_reference(case))
+        self.assertIsNotNone(self.checks(case))
+        stale = replace(case, source_verification={
+            **case.source_verification, 'checked_at': '2020-01-01T00:00:00Z'})
+        with self.assertRaises(ReferenceLifecycleError):
+            self.checks(stale)
+
+    def test_misspelled_reference_mode_is_rejected(self):
+        case = replace(self.case, source_verification={
+            **self.case.source_verification, 'reference_mode': 'live_excat'})
+        with self.assertRaisesRegex(ReferenceLifecycleError, 'reference mode'):
+            self.checks(case)
 
     def write_json(self, path, value):
         path.parent.mkdir(parents=True, exist_ok=True)

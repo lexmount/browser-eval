@@ -26,6 +26,16 @@ def require_review_rounds(data):
     return rounds
 
 
+def published_releases(releases, *, require_state=False):
+    public=[]
+    for release in releases:
+        state=release.get('publication_state',None if require_state else 'published')
+        if state not in {'published','unpublished'}:
+            raise ValueError('Unknown release publication state')
+        if state=='published':public.append(release)
+    return public
+
+
 def select_cohort_history(data, dataset, records):
     """Select public history for the measured cohort, including legacy untagged entries.
 
@@ -40,7 +50,7 @@ def select_cohort_history(data, dataset, records):
         kind='headless_markdown'
     if not kind:kind='generic'
     headless=kind in {'headless_html','headless_markdown'}
-    releases=data.get('releases',[])
+    releases=published_releases(data.get('releases',[]), require_state=data.get('schema_version',2)>=3)
     boundary=next((i for i,row in enumerate(releases) if row.get('id')==HEADLESS_HISTORY_START),None)
     selected=[]
     for index,release in enumerate(releases):
@@ -74,7 +84,7 @@ def require_revision_release_bindings(history, releases):
     for receipt in history:
         digest = receipt.get('input_results_sha256')
         matches = []
-        for release in releases:
+        for release in published_releases(releases):
             declared = release.get('scoring_revision_input_sha256')
             declared = declared if isinstance(declared, list) else [declared]
             if digest in declared:
@@ -92,7 +102,7 @@ def release_details(release, table, cell, esc):
 
 def localized_release_history(data, kind):
     """Select one report's release records, newest first, with complete EN labels."""
-    releases = [row for row in data.get('releases', []) if kind in row.get('comparison_kinds', [])]
+    releases = [row for row in published_releases(data.get('releases', []), require_state=data.get('schema_version',2)>=3) if kind in row.get('comparison_kinds', [])]
     if not releases or len({row['id'] for row in releases}) != len(releases):
         raise ValueError(kind + ' release history is absent or has duplicate IDs')
     for row in releases:

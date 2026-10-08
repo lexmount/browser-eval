@@ -59,3 +59,26 @@ def test_runner_rejects_extra_attempts_before_preflight(tmp_path, runs, retries)
             cases=[EvalCase("one", "one", "https://example.com/", "control", [])], providers=[provider], provider_config_path=tmp_path / "absent-providers.json",
             runs=runs, timeout=45, delay=0, max_failure_retries=retries)
     assert not (tmp_path / "run").exists()
+
+
+def test_native_dataset_marker_reaches_real_runner_without_per_case_assistance(tmp_path):
+    from harness.web_fetch.retrieval_hints import native_fetch_dataset
+    from harness.web_fetch.runner import run_evaluation
+    from harness.web_fetch.config import load_dataset
+    source = {"id": "native-dynamic", "tool": "web_fetch", "cases": [{"id": "dynamic", "name": "Dynamic",
+        "url": "https://example.com/", "category": "dynamic", "track": "dynamic", "expected_any": ["fixture"]}]}
+    dataset = native_fetch_dataset(source)
+    assert native_fetch_dataset(dataset) == dataset
+    path = tmp_path / "dataset.json"
+    path.write_text(json.dumps(dataset))
+    _, cases = load_dataset(path)
+    provider = build_provider("native", {"type": "fixture", "uniform_native_parameters": True})
+    config = tmp_path / "providers.json"
+    config.write_text(json.dumps({"providers": {"native": {"type": "fixture", "uniform_native_parameters": True}}}))
+    rows, _ = run_evaluation(output_dir=tmp_path / "run", dataset_meta=dataset, dataset_path=path,
+        cases=cases, providers=[provider], provider_config_path=config, runs=1, timeout=45, delay=0)
+    assert len(rows) == 1 and rows[0]["ok"]
+    for extra in ({"selector": ".answer"}, {"delay_ms": 10}, {"completion": {}}, {"mode": "guided"}):
+        changed = replace(cases[0], retrieval_hints={**cases[0].retrieval_hints, **extra})
+        with pytest.raises(ValueError):
+            provider.check_native_call(changed)

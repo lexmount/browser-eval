@@ -29,6 +29,138 @@ from harness.web_fetch.review_execution import (
 from harness.web_fetch.runner import run_evaluation
 
 
+class NativeMetadataTests(unittest.TestCase):
+    def test_kitesurf_page_tasks_share_native_projection_and_cdp_completion(self):
+        from harness.web_fetch.task_outputs import resource_expression, DOCUMENT_PAGE_EXPRESSION, MEDIA_METADATA_EXPRESSION
+        for track,kind,url,expression in (
+            ('image','resource','https://example.com/',resource_expression('image')),
+            ('video','resource','https://example.com/',resource_expression('video')),
+            ('document','body','https://example.com/viewer/',DOCUMENT_PAGE_EXPRESSION),
+            ('video','body','https://example.com/watch',MEDIA_METADATA_EXPRESSION),
+        ):
+            with self.subTest(track=track,kind=kind):
+                provider=HeadlessProvider('kitesurf',{'type':'headless_markdown','engine':'kitesurf',
+                    'account_id':'account','api_token':'token','wait_until':'networkidle2'})
+                case=EvalCase('case','Case',url,'public',[],track=track,task_kind=kind)
+                raw=json.dumps({'ok':True,'content':'public output','metadata':{}}).encode()
+                with patch.object(provider,'_run_local_worker',return_value=(raw,'',None,0,len(raw),0)) as worker, \
+                        patch('harness.web_fetch.providers.cloudflare.CloudflareMarkdownProvider.fetch',side_effect=AssertionError('Top-level scrape loses frame content')):
+                    result=provider.fetch(case,45)
+                request=worker.call_args.args[1]
+                self.assertEqual(request['wait_until'],'load')
+                self.assertFalse(request['remote_markdown_api'])
+                self.assertIn('browser=kitesurf',request['endpoint'])
+                self.assertEqual(result.metadata['output_projection_sha256'],hashlib.sha256(expression.encode()).hexdigest())
+
+    def test_native_envelope_preserves_content_and_actual_destination(self):
+        from types import SimpleNamespace
+        for engine, envelope in (
+            ('lightpanda', {'content': '# Body', 'url': 'https://example.com/final', 'http_status': 200}),
+            ('obscura', {'content': '# Body', 'final_url': 'https://example.com/final', 'title': 'Body'}),
+        ):
+            with self.subTest(engine=engine), tempfile.TemporaryDirectory() as directory:
+                script = Path(directory) / 'native.js'
+                script.write_text('"# Body"')
+                metadata = {'format': 'lightpanda_json'} if engine == 'lightpanda' else {
+                    'format': 'obscura_eval', 'script_path': str(script),
+                    'script_sha256': hashlib.sha256(script.read_bytes()).hexdigest()}
+                request = {'engine': engine, 'binary': '/browser', 'url': 'https://example.com/start',
+                           'timeout': 5, 'output_mode': 'markdown', 'native_metadata': metadata}
+                response = SimpleNamespace(returncode=0, stdout=json.dumps(envelope).encode(), stderr=b'')
+                with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=response) as run:
+                    result = fetch(request)
+                self.assertTrue(result['ok'], result)
+                self.assertEqual(result['content'], '# Body')
+                self.assertEqual(result['final_url'], 'https://example.com/final')
+                self.assertEqual(base64.b64decode(result['metadata']['_raw_stdout_b64']), response.stdout)
+                command = run.call_args.args[0]
+                if engine == 'lightpanda':
+                    self.assertIn('--json', command)
+                else:
+                    self.assertNotIn('--dump', command)
+                    self.assertIn('location.href', command[command.index('--eval')+1])
+
+    def test_missing_destination_does_not_invent_requested_url(self):
+        from types import SimpleNamespace
+        request = {'engine': 'lightpanda', 'binary': '/browser', 'url': 'https://example.com/start',
+                   'timeout': 5, 'output_mode': 'markdown',
+                   'native_metadata': {'format': 'lightpanda_json'}}
+        response = SimpleNamespace(returncode=0, stdout=b'{"content":"Body"}', stderr=b'')
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=response):
+            result = fetch(request)
+        self.assertTrue(result['ok'])
+        self.assertIsNone(result['final_url'])
+        response.stdout = b'{"url":"https://example.com/final"}'
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=response):
+            result = fetch(request)
+        self.assertFalse(result['ok'])
+        self.assertIn('string content', result['error_message'])
+
+    def test_modified_vendor_script_is_rejected_before_browser_call(self):
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / 'native.js'
+            script.write_text('"changed"')
+            with self.assertRaisesRegex(ValueError, 'hash mismatch'):
+                cli_command('obscura', '/browser', 'https://example.com/', 5, 'markdown',
+                            native_metadata={'format': 'obscura_eval', 'script_path': str(script),
+                                             'script_sha256': '0'*64})
+
+
+    def test_isolated_resource_worker_needs_no_host_script_path(self):
+        from types import SimpleNamespace
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / 'native.js'
+            script.write_text('"# Isolated body"')
+            digest = hashlib.sha256(script.read_bytes()).hexdigest()
+            provider = HeadlessProvider('obscura', {
+                'type': 'headless_markdown', 'engine': 'obscura',
+                'resource_sample_interval_ms': 50,
+                'resource_container_image': 'fixture:local', 'resource_binary': '/browser',
+                'native_metadata': {'format': 'obscura_eval', 'script_path': str(script),
+                                    'script_sha256': digest},
+            })
+            captured = []
+            class IsolatedWorker:
+                def run(self, request, timeout):
+                    captured.append(request)
+                    # Model the container boundary: the host source file is
+                    # unavailable when the worker constructs its browser call.
+                    script.unlink()
+                    response = SimpleNamespace(returncode=0, stderr=b'', stdout=json.dumps({
+                        'content': '# Isolated body', 'final_url': 'https://example.com/final'}).encode())
+                    with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=response) as command:
+                        result = fetch(request)
+                    if result['ok']:
+                        self.expression = command.call_args.args[0][command.call_args.args[0].index('--eval') + 1]
+                    return ContainerCall(stdout=json.dumps(result).encode(), stderr=b'', exit_code=0,
+                        duration_ms=1, resource={'cpu_ms': 1, 'memory_peak_bytes': 2, 'network_rx_bytes': 3},
+                        environment={'backend': 'docker_cgroup_v2'})
+            runner = IsolatedWorker()
+            identity = {'binary_sha256': 'a'*64, 'reported_version': 'obscura 0.2.4',
+                        'version_probe_error': None}
+            case = EvalCase('case', 'Case', 'https://example.com/start', 'web', [])
+            with patch.object(provider, '_resource_runner', return_value=runner), \
+                 patch.object(provider, 'implementation_identity', return_value=identity):
+                result = provider.fetch(case, 1)
+            self.assertTrue(result.ok, result.error_message)
+            self.assertEqual(result.content, '# Isolated body')
+            self.assertEqual(result.final_url, 'https://example.com/final')
+            self.assertEqual(result.metadata['native_metadata']['script_sha256'], digest)
+            self.assertNotIn('script_path', captured[0]['native_metadata'])
+            self.assertIn('location.href', runner.expression)
+            self.assertIn('"# Isolated body"', runner.expression)
+
+    def test_altered_in_transit_native_script_is_rejected_before_browser_launch(self):
+        request = {'engine': 'obscura', 'binary': '/browser', 'url': 'https://example.com/',
+                   'timeout': 1, 'output_mode': 'markdown',
+                   'native_metadata': {'format': 'obscura_eval', 'script_source': '"changed"',
+                                       'script_sha256': hashlib.sha256(b'"original"').hexdigest()}}
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run') as command:
+            result = fetch(request)
+        self.assertFalse(result['ok'])
+        self.assertIn('hash mismatch', result['error_message'])
+        command.assert_not_called()
+
 class HeadlessTests(unittest.TestCase):
     def test_resource_mode_routes_remote_client_through_isolated_container(self):
         provider = HeadlessProvider('kitesurf', {
@@ -419,52 +551,9 @@ class HeadlessTests(unittest.TestCase):
         for name in ('moli-1.0.6', 'moli', 'moli-1.1.3'):
             with self.subTest(provider=name):
                 self.assertEqual(output_mode_for_case('moli', 'headless_markdown', pdf),
-                                 'document')
+                                 'markdown')
                 self.assertEqual(output_mode_for_case('moli', 'headless_markdown', image),
                                  'file')
-
-    def test_moli_raw_pdf_is_extracted_and_preserved(self):
-        from types import SimpleNamespace
-        raw = b'%PDF-fixture'
-        request = dict(engine='moli', binary='/moli', url='https://example.com/paper.pdf',
-                       timeout=1, output_mode='document')
-        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=SimpleNamespace(
-                returncode=0, stdout=raw, stderr=b'')), patch(
-                'harness.web_fetch.providers.headless_worker.extract_document_text', return_value=('Paper body', 'pypdf')):
-            result = fetch(request)
-        self.assertTrue(result['ok'])
-        self.assertEqual(result['content'], 'Paper body')
-        self.assertEqual(result['metadata']['document_extractor'], 'pypdf')
-        self.assertEqual(result['metadata']['raw_stdout_sha256'], hashlib.sha256(raw).hexdigest())
-        self.assertIn('_raw_stdout_b64', result['metadata'])
-
-    def test_moli_raw_file_is_returned_without_text_decoding(self):
-        from types import SimpleNamespace
-        raw = b'\x89PNG\r\n\x1a\n' + b'payload'
-        request = dict(engine='moli', binary='/moli', url='https://example.com/image.png',
-                       timeout=1, output_mode='file')
-        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=SimpleNamespace(
-                returncode=0, stdout=raw, stderr=b'')):
-            result = fetch(request)
-        self.assertTrue(result['ok'])
-        self.assertEqual(result['content'], '')
-        self.assertEqual(result['files_b64'], [base64.b64encode(raw).decode('ascii')])
-
-    def test_moli_document_html_fallback_remains_a_scored_text_answer(self):
-        from types import SimpleNamespace
-        request = dict(engine='moli', binary='/moli', url='https://example.com/file.docx',
-                       timeout=1, output_mode='document')
-        completed = [
-            SimpleNamespace(returncode=0, stdout=b'<h1>Unsupported document</h1>', stderr=b''),
-            SimpleNamespace(returncode=0, stdout='v1'.encode(), stderr=b''),
-            SimpleNamespace(returncode=0, stdout=b'# Unsupported document\n', stderr=b''),
-        ]
-        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', side_effect=completed):
-            result = fetch(request)
-        self.assertTrue(result['ok'])
-        self.assertEqual(result['content'], '# Unsupported document\n')
-        self.assertEqual(result['metadata']['document_response'],
-                         'serialized_html_not_raw_document')
 
     def test_unknown_cli_rejected(self):
         with self.assertRaises(ValueError):

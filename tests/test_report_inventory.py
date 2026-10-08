@@ -35,7 +35,7 @@ class ReportInventoryTests(unittest.TestCase):
             root/'dataset.json': json.dumps(self.dataset),
             root/'results.jsonl': '\n'.join(json.dumps(r, ensure_ascii=False) for r in self.records),
             root/'execution.json': json.dumps({'batches': [{'attempt_ids': [r['attempt_id'] for r in self.records]}]}),
-            root/'index.html': '<h2>6 类任务概览</h2> 本类最高： 判分完整性 <h2>综合通过率总榜</h2> <h2>6 类分榜</h2>',
+            root/'index.html': '<h2>综合通过率总榜</h2> <h2>6 类任务概览</h2> 本类最高： 判分完整性 <h2>6 类分榜</h2>',
             root/'methodology/index.html': '计入耗时 不计入耗时 供应商上报的服务端耗时只作附加证据 形成可送入统一评分器的最终答案',
             ROOT/'configs/evaluation-inventory.json': json.dumps(self.inventory),
         }

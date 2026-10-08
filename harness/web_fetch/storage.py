@@ -54,6 +54,26 @@ def require_selection_history(evidence: Path) -> None:
         )
 
 
+def frozen_input_bindings(evidence: Path) -> dict[str, str]:
+    """Compact publication binding for a composed, frozen dataset and its assets."""
+    dataset = evidence / "dataset.json"
+    if evidence.is_symlink() or dataset.is_symlink():
+        raise ValueError("Frozen input bindings reject symlinks")
+    auxiliary = {}
+    for name in ("sources", "list-references"):
+        tree = evidence / name
+        if tree.is_symlink():
+            raise ValueError("Frozen input bindings reject symlinks")
+        for path in tree.rglob("*"):
+            if path.is_symlink():
+                raise ValueError("Frozen input bindings reject symlinks")
+            if path.is_file():
+                auxiliary[path.relative_to(evidence).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return {"dataset_sha256": hashlib.sha256(dataset.read_bytes()).hexdigest(),
+            "auxiliary_sha256": hashlib.sha256(json.dumps(auxiliary, sort_keys=True,
+                separators=(",", ":")).encode()).hexdigest()}
+
+
 def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
     """Reject a report build when its frozen inputs differ from Git."""
     from .reference_inputs import input_tree, read_dataset_bytes
@@ -93,6 +113,25 @@ def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
             raise ValueError(f"Persistent evidence differs from canonical input tree: {relative}")
 
 
+def require_frozen_case_source(evidence: Path, profile_path: Path, source: Path) -> None:
+    """Verify all task bytes against the profile-bound pre-call dataset."""
+    profile = json.loads(profile_path.read_text())
+    expected_hash = profile.get("source_native_dataset_sha256")
+    if not expected_hash or not profile.get("frozen_inputs"):
+        raise ValueError("Pre-call case verification requires both source and report input bindings")
+    if source.is_symlink() or not source.is_file():
+        raise ValueError("Pre-call dataset must be a regular, non-symlink file")
+    raw = source.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != expected_hash:
+        raise ValueError("Pre-call dataset differs from the profile source binding")
+    if frozen_input_bindings(evidence) != profile["frozen_inputs"]:
+        raise ValueError("Report differs from frozen input bindings")
+    original = json.loads(raw)
+    current = json.loads((evidence / "dataset.json").read_bytes())
+    if current.get("cases") != original.get("cases") or not original.get("cases"):
+        raise ValueError("Report task definitions or answers differ from pre-call input")
+
+
 def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     """Reject evidence from another valid cohort when building the current report."""
     profile = json.loads(profile_path.read_text())
@@ -100,6 +139,8 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
         raise ValueError("WCXB evidence uses the certified cohort validator, not the legacy current-report profile validator")
     dataset = json.loads((evidence / "dataset.json").read_text())
     records = load_jsonl(evidence / "results.jsonl")
+    if profile.get("frozen_inputs") is not None and frozen_input_bindings(evidence) != profile["frozen_inputs"]:
+        raise ValueError("Evidence differs from the profile frozen input bindings")
     comparison = dataset.get("comparison", {})
     providers = set(profile["providers"])
     if len(providers) != len(profile["providers"]):
@@ -108,6 +149,11 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     cases = dataset.get("cases", [])
     case_ids = [case.get("id") for case in cases]
     failures = []
+    if profile.get("frozen_inputs") is not None:
+        inventory = {track: [case['id'] for case in cases if case.get('track', 'web') == track]
+                     for track in {case.get('track', 'web') for case in cases}}
+        if profile.get('case_inventory') != inventory:
+            failures.append('case_inventory')
     if dataset.get("id") != profile["dataset_id"]:
         failures.append("dataset_id")
     if len(dataset.get("cases", [])) != profile["case_count"]:
@@ -179,6 +225,15 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     attempt_ids = [row.get("attempt_id") for row in records]
     if any(not identifier for identifier in attempt_ids) or len(attempt_ids) != len(set(attempt_ids)):
         failures.append("attempt_ids")
+    route_contract = profile.get("native_task_route_contract")
+    from .methods import native_browser_engine
+    if profile.get("comparison_kind") == "headless_markdown" and any(native_browser_engine(name) for name in providers) and route_contract is None:
+        raise ValueError("Native browser report requires native_task_route_contract")
+    if route_contract is not None:
+        if route_contract != 4:
+            raise ValueError("Unsupported native task route contract")
+        from .task_outputs import require_native_task_routes
+        require_native_task_routes(cases, records)
     resource_profile = profile.get("resource_profile") or {}
     if resource_profile.get("required"):
         resource_root = evidence / "resource-cohort"

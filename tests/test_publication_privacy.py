@@ -18,6 +18,35 @@ from harness.web_fetch.publication_privacy import project_file, publication_risk
 
 
 class PublicationPrivacyTests(unittest.TestCase):
+    def test_header_at_end_of_json_text_cannot_consume_following_record_fields(self):
+        record={'body':'RFC example: Authorization: Basic PRIVATE_CANARY',
+                'metrics':{'passed':False,'count':7},'case_id':'rfc-example'}
+        raw=(json.dumps(record)+'\n').encode()
+        projected, receipt=project_file('results.jsonl',raw)
+        result=json.loads(projected)
+        self.assertEqual(result['metrics'],record['metrics'])
+        self.assertEqual(result['case_id'],record['case_id'])
+        self.assertNotIn('PRIVATE_CANARY',result['body'])
+        self.assertIsNone(publication_risk(projected))
+        self.assertEqual(project_file('results.jsonl',projected),(projected,None))
+        self.assertEqual(receipt['replacements'],1)
+
+    def test_entity_encoded_query_equals_in_rendered_text_and_links_are_projected(self):
+        for equals in ('&#61;', '&#x3d;', '&equals;'):
+            with self.subTest(equals=equals):
+                url='https://example.test/video?category'+equals+'news&amp;x-signature'+equals+'PRIVATE_CANARY'
+                raw=('<p>'+url+'</p><a href="'+url+'">video</a>').encode()
+                self.assertEqual(publication_risk(raw), 'sensitive URL query value')
+                projected, receipt=project_file('attempts/case.html',raw)
+                self.assertNotIn(b'PRIVATE_CANARY', projected)
+                self.assertIsNone(publication_risk(projected))
+                self.assertEqual(receipt['replacements'],2)
+                soup=BeautifulSoup(projected,'html.parser')
+                self.assertEqual(soup.a['href'], 'https://example.test/video?category=news&x-signature=[REDACTED]')
+                self.assertEqual(project_file('attempts/case.html',projected),(projected,None))
+                clean=('<p>https://example.test/video?category'+equals+'news&amp;page'+equals+'2</p>').encode()
+                self.assertEqual(project_file('attempts/case.html',clean),(clean,None))
+
     def test_entity_escaped_fields_inside_json_logs_preserve_json_and_mask_values(self):
         for quote in ('&quot;','&#34;','&#x22;','&apos;','&#39;','&#x27;'):
             with self.subTest(quote=quote):
@@ -281,6 +310,8 @@ class PublicationPrivacyTests(unittest.TestCase):
                 '<pre data-kind="call-log">{"event":"complete"}</pre></dialog></body></html>')
             (source / 'attempts/browser__file-case__r001.html').write_text(
                 '<html><body><h2>目标文件与实际返回</h2>'
+                '<pre>DEBUG href="/not-a-report-link.css" '
+                '&lt;link href="/another-diagnostic.css"&gt;</pre>'
                 '<pre data-kind="metadata">{"field":"parsed"}</pre>'
                 '<pre data-kind="metadata">{&quot;access_token&quot;:&quot;canary-private-123&quot;}</pre>'
                 '<pre data-kind="metadata">{"field":"response"}</pre></body></html>')

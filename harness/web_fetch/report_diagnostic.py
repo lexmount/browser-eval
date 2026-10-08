@@ -260,9 +260,9 @@ def diagnostic_findings(row, files):
         add('truncated', '输出声明被截断', '完整的任务内容', '；'.join(metrics['declared_truncation_hits']))
     if metrics.get('script_payload_shell'):
         add('shell', '只有脚本或页面框架', '目标正文', '保存评分识别到脚本或空框架')
-    if metrics.get('page_identity_status') in ('mismatch', 'unknown', 'not_verified') or any(
+    if (metrics.get('page_identity_required') and metrics.get('page_identity_status') in ('mismatch', 'unknown', 'not_verified', 'unavailable')) or any(
             k in str(row.get('failure', '')) for k in ('page_identity_not_verified', 'page_identity_mismatch')):
-        add('identity', '页面身份未满足要求', '最终网址和页面语言符合任务',
+        add('identity', '最终网址或页面语言未满足要求', '最终网址和页面语言符合任务',
             '最终网址：' + str(log.get('final_url') or '记录未提供') + '；页面语言：' + str(metrics.get('observed_document_language') or log.get('document_language') or '记录未提供'))
     for check in metrics.get('stable_anchor_results') or []:
         if check.get('pass') is False:

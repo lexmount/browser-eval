@@ -13,11 +13,12 @@ from urllib.parse import quote, urlsplit
 from harness.record_io import parse_jsonl
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 
-from .metrics import percentile, task_passed
 from .report_resources import render_resource_comparison
+from .metrics import task_passed, percentile
+from .methods import is_browser_comparison
+from .scoring import score_attempt
 from .report_style import STYLE
 from .safety import contained_path, safe_identifier
-from .scoring import score_attempt
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
 HEADLESS_TITLE = '五类浏览器、七种方法取同一批网页：速度、正文与交付边界'
@@ -25,15 +26,15 @@ from .publication_target import public_report_url
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
-TRACK_NAMES = {'web': '静态网站正文', 'document': '文档文字', 'image': '图片',
-               'video': '视频', 'challenge': '热门网站正文', 'dynamic': '动态网站正文'}
+from .report import TRACKS as TRACK_NAMES
+
 PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'cloudflare-markdown': 'Cloudflare Markdown', 'exa': 'Exa',
                   'langchain-webbase': 'LangChain WebBaseLoader', 'firecrawl': 'Firecrawl',
                   'crawl4ai': 'Crawl4AI', 'openclaw-built-in': 'OpenClaw',
                   'deepseek-harness-built-in': 'DeepSeek Harness', 'tavily': 'Tavily',
                   'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区',
-                  'moli-1.0.6': 'Moli 1.0.6', 'moli': 'Moli 1.1.5',
+                  'moli-1.0.6': 'Moli 1.0.6', 'moli': 'Moli 1.1.5', 'moli-pr919': 'Moli · PR #919',
                   'moli-1.1.3': 'Moli 1.1.3', 'moli-1.1.11': 'Moli 1.1.11'}
 
 METHODOLOGY_FIGURES = (
@@ -459,7 +460,7 @@ def _dynamic_section(data, cases):
 
 
 def _is_headless_comparison(records):
-    return bool(records) and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records)
+    return is_browser_comparison(records)
 
 
 def article_title(records):
@@ -524,11 +525,16 @@ def headless_evidence(cases, records):
 def _headless_article_input(cases, records, providers):
     """Bind measured article inputs while ignoring report-only annotations."""
     derived_fields = {'diagnosis', 'failure_category', 'title_quality'}
+    def measured_record(record):
+        result = {key: value for key, value in record.items() if key not in derived_fields}
+        if 'provider_metadata' in result:
+            result['provider_metadata'] = {key: value for key, value in result['provider_metadata'].items()
+                if key != 'local_report_complete_diagnostic_links'}
+        return result
     return {
         'cases': cases,
         'records': sorted(
-            [{key: value for key, value in record.items() if key not in derived_fields}
-             for record in records if record['provider'] in providers],
+            [measured_record(record) for record in records if record['provider'] in providers],
             key=lambda record: record['attempt_id']),
     }
 
@@ -749,14 +755,319 @@ def _render_headless(out, cases, records):
     return body + '<aside id="evidence" class="m-downloads"><a href="article.html" download="moli-web-fetch.html">下载独立 HTML</a> · <a href="interpretation-evidence.json" download>本文计算明细</a></aside>'
 
 
+def current_browser_article_model(out, cases, records, binding):
+    """Bind new cohort prose to measured inputs; derive every comparison value."""
+    path = contained_path(out, binding['path'])
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != binding['sha256']:
+        raise ValueError('Browser interpretation content hash mismatch')
+    content = json.loads(raw)
+    providers = sorted({row['provider'] for row in records})
+    if content.get('schema') != 'webfetch_browser_interpretation/1':
+        raise ValueError('Unsupported browser interpretation content schema')
+    if content.get('evidence_sha256') != _digest(_headless_article_input(cases, records, providers)):
+        raise ValueError('Browser interpretation evidence changed')
+    if set(content.get('providers', {})) != set(providers):
+        raise ValueError('Browser interpretation must explain every participant')
+    if not cases or not providers or any(c.get('track', 'web') not in TRACK_NAMES for c in cases.values()):
+        raise ValueError('Browser interpretation requires supported nonempty task families')
+    expected = {(name, cid) for name in providers for cid in cases}
+    indexed = {(row['provider'], row['case_id']): row for row in records}
+    if len(indexed) != len(records) or set(indexed) != expected:
+        raise ValueError('Browser interpretation requires the complete declared matrix')
+    def passed(row):
+        return task_passed(row['ok'], row['metrics'], cases[row['case_id']].get('task_kind', 'body'))
+    def distribution(rows):
+        times = [row['elapsed_ms'] for row in rows]
+        return {'n': len(rows), 'mean': statistics.mean(times) if times else None,
+                'p50': statistics.median(times) if times else None,
+                'p95': percentile(times, .95) if times else None}
+    tracks = [track for track in TRACK_NAMES if any(c.get('track', 'web') == track for c in cases.values())]
+    stats = {}
+    from .report_interfaces import method_provenance, method_version
+    provenance = method_provenance(out)
+    for name in providers:
+        rows = [indexed[name, cid] for cid in cases]
+        successes = [row for row in rows if passed(row)]
+        failures = [row for row in rows if not passed(row)]
+        chapter = content['providers'][name]
+        specimen = indexed.get((name, chapter.get('specimen_case_id')))
+        if specimen is None or (failures and passed(specimen)):
+            raise ValueError('Browser chapter requires an evidenced failure specimen when failures exist')
+        explanation = chapter.get('explanation')
+        if not isinstance(explanation, str) or not explanation.strip():
+            raise ValueError('Browser chapter requires a measured explanation')
+        versions = sorted({str(method_version(row,provenance) or '') for row in rows} - {''})
+        groups = {track: [row for row in rows if cases[row['case_id']].get('track', 'web') == track] for track in tracks}
+        stats[name] = {'version': ' / '.join(versions) if versions else '托管服务，内部版本未公开' if name == 'kitesurf' else '未提供版本',
+                       'passed': len(successes), 'pass_rate': len(successes)/len(cases),
+                       'tracks': {track: {'passed': sum(passed(row) for row in subset), 'n': len(subset)} for track,subset in groups.items()},
+                       'all': distribution(rows), 'successful': distribution(successes),
+                       'failure_counts': dict(Counter(row.get('error_type') or 'acceptance' for row in failures)),
+                       'specimen': specimen}
+    for field in ('title', 'intro', 'scoring', 'conclusions'):
+        if not isinstance(content.get(field), str) or not content[field].strip():
+            raise ValueError('Browser interpretation is missing prose: ' + field)
+    tracks = [track for track in TRACK_NAMES if any(c.get('track', 'web') == track for c in cases.values())]
+    return {'content': content, 'providers': providers, 'stats': stats, 'tracks': tracks,
+            'cases': len(cases), 'results': len(records)}
+
+
+def _offline_browser_article(body, out, cases, model):
+    """Embed specimen evidence; an independent download needs no report host."""
+    from bs4 import BeautifulSoup
+    from .artifacts import record_public_call_log_bindings, verify_public_call_log
+    document = BeautifulSoup(body, 'html.parser')
+    for script in document.select('script'):
+        script.decompose()
+    targets = {}
+    appendices = []
+    def evidence(path, anchor, title, payload):
+        if path in targets:
+            return
+        targets[path] = '#'+anchor
+        appendices.append('<details class="wrap" id="'+escape(anchor)+'"><summary>'
+                          +escape(title)+'</summary>'+payload+'</details>')
+    for name in model['providers']:
+        row = model['stats'][name]['specimen']
+        case = cases[row['case_id']]
+        evidence('../datasets/'+case['id']+'.html', 'offline-task-'+case['id'],
+                 '任务与固定验收规则 · '+case['id'],
+                 '<pre>'+escape(json.dumps(case,ensure_ascii=False,indent=2))+'</pre>')
+        raw = contained_path(out,row['artifact_path']).read_text(encoding='utf-8',errors='replace')
+        payload = '<h3>完整实际返回</h3><pre data-standalone-output="'+escape(name)+'">'+escape(raw)+'</pre>'
+        payload += '<h3>结果与评分</h3><pre>'+escape(json.dumps(row,ensure_ascii=False,indent=2))+'</pre>'
+        for binding in record_public_call_log_bindings(row):
+            log = verify_public_call_log(out,binding).read_text()
+            payload += '<h3>调用日志</h3><pre>'+escape(log)+'</pre>'
+        evidence('../attempts/'+row['attempt_id']+'.html', 'offline-result-'+row['attempt_id'],
+                 '完整结果与调用证据 · '+name, payload)
+    if (out/'result-review.json').is_file():
+        evidence('../review/index.html','offline-review','独立审查记录',
+                 '<pre>'+escape((out/'result-review.json').read_text())+'</pre>')
+    for anchor in document.select('a[href]'):
+        href = anchor['href']
+        if href in targets:
+            anchor['href'] = targets[href]
+        elif not href.startswith(('https://','http://','#')):
+            raise ValueError('Independent article has an unbound evidence target: '+href)
+    return str(document)+''.join(appendices)
+
+
+def _render_current_browser_article(out, cases, records, binding):
+    model = current_browser_article_model(out, cases, records, binding)
+    content, names, stats = model['content'], model['providers'], model['stats']
+    from .methods import browser_method_label, native_browser_engine
+    engine_count = len({native_browser_engine(name) or name for name in names})
+    def label(name):
+        return escape(browser_method_label(name) if browser_method_label(name) != name else name.title())
+    def paragraph(value):
+        return '<p>' + escape(value).replace('\n\n', '</p><p>') + '</p>'
+    def section(title, body, anchor):
+        return '<section class="section" id="'+anchor+'"><h2>'+escape(title)+'</h2>'+body+'</section>'
+    def metric(name, key, value, values, higher=False, suffix=''):
+        valid = [v for v in values if v is not None]
+        extreme = (max(valid) if higher else min(valid)) if valid else None
+        winner = value is not None and value == extreme and valid.count(extreme) == 1
+        text = '—' if value is None else (f'{value:.1%}' if key == 'pass_rate' or key.startswith('family_') else f'{value:,.0f}{suffix}')
+        return ('<span data-browser-metric="'+escape(key)+'" data-provider="'+escape(name)
+                +'" data-value="'+('' if value is None else str(value))+'"'
+                + (' data-winner="true" class="good"' if winner else '')+'>'+text+'</span>')
+    def latency_table(population):
+        return _table(['浏览器', '样本数', '平均耗时 · ms', 'P50 · ms', 'P95 · ms'], [
+            (label(name), str(stats[name][population]['n']), *(
+                metric(name, population+'_'+key, stats[name][population][key],
+                       [stats[n][population][key] for n in names]) for key in ('mean','p50','p95')))
+            for name in names], '同一行三个耗时指标使用相同样本；每个逻辑结果只计一次。')
+    body = '<article class="wrap browser-interpretation" data-browser-interpretation="1"><h1>'+escape(content['title'])+'</h1>'
+    dates = sorted({row['started_at'][:10] for row in records})
+    body += '<p class="tiny">调用日期：'+escape('、'.join(dates))+'</p>'
+    body += '<p class="lead">'+str(model['cases'])+' 个任务；'+str(engine_count)+' 种浏览器、'+str(len(names))+' 种配置，'+str(model['results'])+' 个逻辑结果。</p>'+paragraph(content['intro'])
+    body += section('整体任务通过率', _table(['浏览器','实测版本','通过数 / 总数','任务通过率'], [
+        (label(name), escape(stats[name]['version']), f'{stats[name]["passed"]}/{model["cases"]}',
+         metric(name,'pass_rate',stats[name]['pass_rate'],[stats[n]['pass_rate'] for n in names],True))
+        for name in names], '全体任务每题等权；通过表示满足该题的正文、结构、资源或文件验收规则。'), 'overall')
+    def family_cell(name, track):
+        group = stats[name]['tracks'][track]
+        rate = group['passed']/group['n']
+        values = [stats[n]['tracks'][track]['passed']/stats[n]['tracks'][track]['n'] for n in names]
+        return f"{group['passed']}/{group['n']}<br>" + metric(name,'family_'+track,rate,values,True)
+    body += section('各专项结果', _table(['任务类型',*(label(name) for name in names)], [
+        (escape(TRACK_NAMES[track]), *(family_cell(name,track) for name in names))
+        for track in model['tracks']], '分组单元格为通过数 / 该组总数及通过率；专项结果不能代替整体排名。'), 'families')
+    from .report_interfaces import browser_task_interface_matrix
+    interfaces = browser_task_interface_matrix(cases, names)
+    native = _table(['浏览器','Markdown 能力与本次调用'], [
+        ('<span style="white-space:nowrap">'+label(name)+'</span>', escape(interfaces['capabilities'][name])) for name in names], 'Markdown 能力指网页转换；不代表 PDF、DOCX 或媒体文件解析能力。')
+    route_rows = []
+    for row in interfaces['rows']:
+        cells = []
+        for name in names:
+            parts = row['cells'][name]
+            cells.append('<div data-browser-interface="'+escape(name)+'" data-track="'+escape(row['track'])+'">'
+                         + '<br><br>'.join('<span data-route-mode="'+escape(part['mode'])+'" data-case-count="'+str(part['count'])+'">'
+                           +str(part['count'])+' 题：'+escape(part['description'])+'<br>等待：'+escape(part['wait'])+'</span>' for part in parts)+'</div>')
+        route_rows.append((escape(TRACK_NAMES[row['track']])+f" · {row['count']} 题", *cells))
+    matrix = _table(['任务类型',*(label(name) for name in names)], route_rows, '每格列出获取接口、额外处理及最终输出；同类中的不同交付格式分别列出题数。')
+    body += section('各类任务的获取与转换方式',
+        '<p>按题目类型使用参评浏览器合适的官方原生接口。正文直接采用该接口返回的文字；不会改取 HTML、JSON DOM 或文档字节后替它提取正文。Chromium 没有原生 Markdown，网页 HTML 使用标准转换包。下表按固定任务输入列出实际选择的处理链，失败不补成成功，也不切换引擎。每例完成了哪些步骤、返回什么内容，均可在结果详情中查看。文档正文、资源地址、原始文件和媒体元数据有各自的交付格式，不强行转成 Markdown。</p>'
+        +native+'<div class="browser-interface-matrix">'+matrix+'</div>'
+        +'<p>Obscura 的正文提取脚本与官方 CLI、LP.getMarkdown 相同；评测包装只附加最终网址和标题，不修改转换算法。JSON 包装只解包原生输出，不改写内容。只有 Chromium 的网页 HTML 使用 node-html-markdown 2.0.0；所有浏览器都不使用外部 PDF/DOCX 解析器补正文。资源脚本只读取已加载页面，嵌入文档只读浏览器内已加载的查看器文字。最终网址作为辅助信息，不单独决定正文任务是否通过。获取、等待、转换、解析与附件读取计入同一 45 秒预算。Moli 附件的原生 CDP 导航与原始附件接口是两步操作，次数和耗时保留在结果记录，不因评分失败而触发。所有结果采用同一评分器和固定验收规则。</p>', 'interfaces')
+    flow = 'flowchart LR\n A[同一目标网址与验收规则] --> B[各浏览器原生访问与提取]\n B --> C[保留完整输出与调用日志]\n C --> D[统一评分]\n D --> E[整体与专项结果]'
+    fallback = ' → '.join('<span class="tag">'+x+'</span>' for x in ('目标网址与规则','浏览器原生访问','完整输出与日志','统一评分','整体与专项'))
+    mechanism = '<div class="wmb-flow"><div data-wmb-flow-fallback>'+fallback+'</div><pre class="mermaid" hidden>'+escape(flow)+'</pre></div>'
+    body += section('怎样判断一次获取是否可用', mechanism+paragraph(content['scoring']), 'scoring')
+    body += section('全部调用的耗时', '<p>所有浏览器使用相同任务分母，包含成功与失败调用。耗时较短只说明更快返回，不等于更高的任务通过率。</p>'+latency_table('all'), 'all-latency')
+    body += section('通过任务的耗时', '<p>只计各浏览器自己通过的任务。各行样本可能不同，须结合通过数阅读；这张表不改变任务范围或整体排名。</p>'+latency_table('successful'), 'successful-latency')
+    resource = contained_path(out, 'resource-cohort/resource-comparison.json')
+    if resource.is_file():
+        table, explanation = _render_article_resources(json.loads(resource.read_text()), names)
+        body += section('客户端资源消耗', table+paragraph(explanation), 'resources')
+    errors = {'acceptance':'内容或交付验收未通过','timeout':'访问或提取超时',
+              'browser_exit':'浏览器进程返回错误','browser_error':'浏览器访问或运行错误',
+              'http_status':'网页返回错误状态','empty_response':'返回内容为空','tool_error':'工具执行错误'}
+    for name in names:
+        stat, chapter = stats[name], content['providers'][name]
+        counts = stat['failure_counts']
+        distribution = _table(['程序分类','未通过数量'], [
+            (escape(errors.get(key, key)), '<span data-browser-failure="'+escape(name)+'" data-category="'+escape(key)+'" data-count="'+str(count)+'">'+str(count)+'</span>')
+            for key,count in sorted(counts.items())], f'{name} 的全部未通过结果，每个结果归入一个程序分类。') if counts else '<p>本轮所有任务均通过。</p>'
+        row = stat['specimen'];case = cases[row['case_id']]
+        raw = contained_path(out,row['artifact_path']).read_text(encoding='utf-8',errors='replace')
+        reference = case.get('ground_truth_main_content') or case.get('reference_answer') or json.dumps({
+            key:case[key] for key in ('required_facts','body_requirements','acceptance_contract','expected_resources','resource_output_contract') if case.get(key)},ensure_ascii=False,indent=2)
+        error = row.get('error_message') or ('未满足完整验收规则；逐项期望与实际值见结果详情。' if counts else '满足该题验收规则。')
+        example = '<details open data-browser-specimen="'+escape(name)+'"><summary>'+escape(case.get('name',case['id']))+' · '+escape(case['id'])+'</summary>'
+        example += '<p><a href="'+escape(case['url'],quote=True)+'">原始页面</a> · <a href="../datasets/'+escape(case['id'],quote=True)+'.html">任务与验收规则</a> · <a data-browser-result="'+escape(name)+'" href="../attempts/'+escape(row['attempt_id'],quote=True)+'.html">完整结果、评分与日志</a></p>'
+        example += '<h4>参考范围或验收要求（节选）</h4><pre>'+escape(reference[:1800])+'</pre><h4>实际返回（节选）</h4><pre>'+escape(raw[:1800])+'</pre><h4>程序返回或验收结果</h4><pre data-browser-error="'+escape(name)+'">'+escape(error)+'</pre></details>'
+        body += section((browser_method_label(name) if browser_method_label(name) != name else name.title())+'：'+str(stat['passed'])+'/'+str(model['cases'])+' 题通过',
+                        '<div data-browser-chapter="'+escape(name)+'">'+paragraph(chapter['explanation'])+distribution+example+'</div>', 'browser-'+name)
+    review_path = contained_path(out,'result-review.json')
+    review = json.loads(review_path.read_text()) if review_path.is_file() else None
+    body += section('结论与审查范围', paragraph(content['conclusions'])+
+                    ('<p>独立审查范围见<a href="../review/index.html">审查记录</a>，未审查结果仍按程序验收结果展示。</p>' if review else
+                     '<p>独立结果审查：0/'+str(model['results'])+'。未经独立复判的程序通过结果：'+str(sum(stats[n]['passed'] for n in names))+'。本轮报告使用统一评分器的原始验收结果。</p>'), 'conclusions')
+    body += '</article><script>document.addEventListener("DOMContentLoaded",()=>{if(typeof wmbRenderFlow==="function")wmbRenderFlow()});</script>'
+    evidence = {'schema':'webfetch_browser_interpretation_evidence/1','input_sha256':content['evidence_sha256'],
+                'cases':model['cases'],'results':model['results'],'providers':names,'interfaces':interfaces,
+                'stats':{n:{k:v for k,v in stats[n].items() if k!='specimen'} for n in names}}
+    guide = contained_path(out,'guide');guide.mkdir(parents=True,exist_ok=True)
+    (guide/'interpretation-evidence.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n')
+    from .report import EXTRA
+    standalone = _offline_browser_article(body,out,cases,model)
+    (guide/'article.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escape(content['title'])+'</title><style>'+STYLE+EXTRA+'</style></head><body>'+standalone+'</body></html>')
+    return body+'<aside class="wrap"><a href="article.html" download>下载独立 HTML</a> · <a href="interpretation-evidence.json">本文计算明细</a></aside>'
+
+
+def check_current_browser_article(out, cases, records, binding):
+    """Verify numerical populations, unique highlights and complete drilldowns."""
+    from html.parser import HTMLParser
+    from urllib.parse import urlsplit
+    model = current_browser_article_model(out, cases, records, binding)
+    from .report_interfaces import browser_task_interface_matrix
+    interfaces = browser_task_interface_matrix(cases, model['providers'])
+    expected_interfaces = {(name,row['track']):[(part['mode'],part['count'],str(part['count'])+' 题：'+part['description']+'等待：'+part['wait']) for part in row['cells'][name]]
+                           for row in interfaces['rows'] for name in model['providers']}
+    expected = {}
+    failures = {}
+    for name in model['providers']:
+        stats = model['stats'][name]
+        expected[name, 'pass_rate'] = stats['pass_rate']
+        for population in ('all','successful'):
+            for key in ('mean','p50','p95'):
+                expected[name, population+'_'+key] = stats[population][key]
+        for track, group in stats['tracks'].items():
+            expected[name, 'family_'+track] = group['passed']/group['n']
+        failures.update({(name,key):count for key,count in stats['failure_counts'].items()})
+    class Inspect(HTMLParser):
+        def __init__(self):
+            super().__init__();self.metrics=[];self.failures=[];self.chapters=[];self.errors=[];self.links=[];self.active=None
+            self.interfaces={};self.interface=None;self.route=None
+        def handle_starttag(self, tag, attrs):
+            data=dict(attrs)
+            if 'data-browser-interface' in data:
+                self.interface=(data['data-browser-interface'],data['data-track'])
+                if self.interface in self.interfaces:raise ValueError('Duplicate browser task interface')
+                self.interfaces[self.interface]=[]
+            if 'data-route-mode' in data:
+                if self.interface is None:raise ValueError('Browser route has no task interface')
+                self.route=[data['data-route-mode'],int(data['data-case-count']),'']
+                self.interfaces[self.interface].append(self.route)
+            if 'data-browser-metric' in data:
+                self.active=[data,''];self.metrics.append(self.active)
+            if 'data-browser-failure' in data:
+                self.failures.append((data['data-browser-failure'],data['data-category'],int(data['data-count'])))
+            if 'data-browser-chapter' in data:self.chapters.append(data['data-browser-chapter'])
+            if 'data-browser-error' in data:self.errors.append(data['data-browser-error'])
+            if 'data-browser-result' in data:self.links.append((data['data-browser-result'],data.get('href')))
+        def handle_data(self,text):
+            if self.active is not None:self.active[1]+=text
+            if self.route is not None:self.route[2]+=text
+        def handle_endtag(self,tag):
+            if tag=='span':self.active=None;self.route=None
+    for relative in ('guide/index.html','guide/article.html'):
+        page=contained_path(out,relative)
+        inspect=Inspect();inspect.feed(page.read_text())
+        actual_interfaces={key:[tuple(part) for part in parts] for key,parts in inspect.interfaces.items()}
+        if actual_interfaces != expected_interfaces:
+            raise ValueError('Browser task interface matrix is missing or differs from declared tasks')
+        actual={}
+        for data,text in inspect.metrics:
+            key=(data['data-provider'],data['data-browser-metric'])
+            if key in actual or key not in expected:raise ValueError('Duplicate or unknown browser metric')
+            value=expected[key]
+            if data.get('data-value') != ('' if value is None else str(value)):
+                raise ValueError('Browser metric value differs from evidence')
+            peers=[v for (name,metric),v in expected.items() if metric==key[1] and v is not None]
+            high=key[1]=='pass_rate' or key[1].startswith('family_')
+            extreme=(max(peers) if high else min(peers)) if peers else None
+            winner=value is not None and value==extreme and peers.count(extreme)==1
+            if (data.get('data-winner')=='true') != winner:
+                raise ValueError('Browser metric unique highlight is missing or wrong')
+            visible='—' if value is None else (f'{value:.1%}' if high else f'{value:,.0f}')
+            if text.strip()!=visible:raise ValueError('Visible browser metric differs from evidence')
+            actual[key]=value
+        if actual != expected:raise ValueError('Browser metric population is incomplete')
+        if len(inspect.failures)!=len(failures) or {(n,k):v for n,k,v in inspect.failures}!=failures:
+            raise ValueError('Browser failure distribution differs from evidence')
+        for values in (inspect.chapters,inspect.errors):
+            if Counter(values)!=Counter(model['providers']):raise ValueError('Browser chapter or program error evidence is missing')
+        if Counter(n for n,link in inspect.links)!=Counter(model['providers']):
+            raise ValueError('Browser result drilldown is missing')
+        for name,link in inspect.links:
+            attempt = model['stats'][name]['specimen']['attempt_id']
+            expected_link = '#offline-result-'+attempt if relative.endswith('article.html') else '../attempts/'+attempt+'.html'
+            if link!=expected_link or (not link.startswith('#') and not (page.parent/urlsplit(link).path).is_file()):
+                raise ValueError('Browser result evidence target is broken')
+        if relative.endswith('article.html'):
+            from bs4 import BeautifulSoup
+            offline = BeautifulSoup(page.read_text(),'html.parser')
+            if offline.select('script,link[rel="stylesheet"]'):
+                raise ValueError('Independent article requires external runtime')
+            for name in model['providers']:
+                row = model['stats'][name]['specimen']
+                anchor = offline.find(id='offline-result-'+row['attempt_id'])
+                output = anchor.select_one('[data-standalone-output]') if anchor else None
+                if output is None or output.get_text() != contained_path(out,row['artifact_path']).read_text(encoding='utf-8',errors='replace'):
+                    raise ValueError('Independent article omits complete specimen output')
+    return model
+
+
 def supports_authored_explainer(cases):
     """Do not apply a mixed-track article to a different task family."""
-    return all(case.get('track', 'web') in TRACK_NAMES for case in cases.values())
+    # Historical authored prose has no risk-control chapter. New bound cohort
+    # content is selected before this legacy presentation guard.
+    return all(case.get('track', 'web') in set(TRACK_NAMES) - {'risk_control'} for case in cases.values())
 
 
-def render_explainer(out, cases, records, *, table=None, cell=None, link=None, authored=True):
+def render_explainer(out, cases, records, *, table=None, cell=None, link=None, authored=True, content_binding=None):
     """One authored body; only image URL serialization differs for the offline export."""
     out = Path(out)
+    dataset_path = out / 'dataset.json'
+    if content_binding is None and dataset_path.is_file():
+        content_binding = json.loads(dataset_path.read_text()).get('comparison', {}).get('report_interpretation')
+    if authored and content_binding is not None:
+        return _render_current_browser_article(out, cases, records, content_binding)
     if (not authored or not supports_authored_explainer(cases)
             or (records and all(row.get('provider_type') == 'fixture' for row in records))):
         passes = sum(task_passed(row['ok'], row['metrics'],

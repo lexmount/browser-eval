@@ -9,6 +9,26 @@ from harness.web_fetch.report_interfaces import SPECS
 
 
 class CapabilityTests(unittest.TestCase):
+    def test_native_cohort_discloses_native_document_output_without_external_processing(self):
+        from harness.web_fetch.report_capabilities import task_capabilities
+        with tempfile.TemporaryDirectory() as directory:
+            out=Path(directory)
+            (out/'dataset.json').write_text(json.dumps({'cases':[
+                {'id':'body','url':'https://example.com/','track':'web','task_kind':'body'},
+                {'id':'pdf','url':'https://example.com/a.pdf','track':'document','task_kind':'body'}]}))
+            names=['moli','lightpanda','obscura','chromium','kitesurf']
+            claims=task_capabilities(out,names,[{'provider_metadata':{'output_contract':'readable_document_text'}}])
+            for name in names:
+                self.assertEqual(claims[name]['document']['status'],'原生输出')
+                self.assertIn('资源读取脚本由评测提供',claims[name]['notes'])
+                self.assertIn('不使用外部 PDF/DOCX 解析器',claims[name]['document']['detail'])
+                self.assertNotIn('没有 PDF / Office 解析器',claims[name]['document']['detail'])
+            self.assertIn('--eval',claims['obscura']['scope'])
+            self.assertIn('JSON',claims['moli']['scope'])
+            self.assertIn('browser=kitesurf',claims['kitesurf']['scope'])
+            self.assertEqual(CAPABILITIES['lightpanda']['document']['status'],'未声明')
+            self.assertIsNone(task_capabilities(out,['firecrawl'],[{'provider_metadata':{'output_contract':'markdown'}}]))
+
     def test_source_backed_capabilities_link_to_current_pinned_revisions(self):
         expected = {
             'claw': '12c4bdf7482f24c85b011e9d858fdec3c245101c',

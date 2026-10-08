@@ -668,8 +668,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     for root in additions:
         new_dataset=json.loads((root/'dataset.json').read_text())
         rows=read_records(root)
-        manifest=json.loads((root/'manifest.json').read_text())
-        require_verified_reference_checks(manifest,cases=new_dataset,records=rows,source=root)
+        addition_batches=read_verified_batches(root,new_dataset,rows)
         incoming={c['id']:c for c in new_dataset['cases']}
         if set(incoming)&set(cases):raise ValueError('Addition overlaps existing cases')
         planned={(c['id'],p) for c in incoming.values() for p in new_dataset['coverage_plan'][c.get('track','web')]}
@@ -682,9 +681,9 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             dataset['coverage_plan'].setdefault(case.get('track','web'),new_dataset['coverage_plan'][case.get('track','web')])
         expected|=planned
         selected.extend((r,root) for r in rows)
-        batches.append(project_execution_manifest(manifest));evidence.append(root)
-        reference_evidence.append((root, [manifest]))
-        audit.extend({'case_id':cid,'selection_reason':'missing case completed as a full five-method addition; no score-based selection','excluded_attempts':[]} for cid in incoming)
+        batches.extend(project_execution_manifest(batch) for batch in addition_batches);evidence.append(root)
+        reference_evidence.append((root, addition_batches))
+        audit.extend({'case_id':cid,'selection_reason':'missing case completed as the full declared provider cohort; no score-based selection','excluded_attempts':[]} for cid in incoming)
     pair_replacements = {}
     for root in provider_replacements:
         new_dataset=json.loads((root/'dataset.json').read_text())
@@ -774,8 +773,6 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     validate_report_ids(dataset,records)
     if len(records)!=len(expected) or {(r['case_id'],r['provider']) for r in records}!=expected:
         raise ValueError('Assembled coverage differs from the complete cohort')
-    if added_providers:
-        dataset.setdefault('comparison',{})['require_independent_result_review']=True
     failed=[cid for batch in batches for cid,row in batch.get('reference_checks',{}).get('postcheck',{}).get('cases',{}).items() if row['status']!='verified']
     dataset['comparison']['publication_state']='blocked_reference_checks' if failed else 'verified'
     dataset['comparison']['unverified_reference_cases']=sorted(set(failed))

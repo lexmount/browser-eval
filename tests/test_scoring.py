@@ -63,7 +63,7 @@ class ScoringTests(unittest.TestCase):
                                         final_url="https://example.test/page")
         self.assertEqual(observed_tagged["page_identity_status"], "mismatch")
 
-    def test_risk_control_requires_declared_page_identity(self):
+    def test_risk_control_acceptance_uses_content_not_final_url(self):
         navigation = {
             "risk_control": {
                 "navigation_contract": {
@@ -85,14 +85,14 @@ class ScoringTests(unittest.TestCase):
             source_benchmark=navigation,
         )
         wrong = score_attempt(c, b"Expected", ok=True, final_url="https://other.test/")
-        self.assertTrue(wrong["page_identity_required"])
+        self.assertFalse(wrong["page_identity_required"])
         self.assertEqual(wrong["page_identity_status"], "mismatch")
         self.assertTrue(task_measured(wrong))
-        self.assertFalse(task_passed(True, wrong))
+        self.assertTrue(task_passed(True, wrong))
         missing = score_attempt(c, b"Expected", ok=True)
         self.assertEqual(missing["page_identity_status"], "unavailable")
-        self.assertFalse(task_measured(missing))
-        self.assertFalse(task_passed(True, missing))
+        self.assertTrue(task_measured(missing))
+        self.assertTrue(task_passed(True, missing))
         failed = score_attempt(c, b"", ok=False)
         self.assertEqual(failed["page_identity_status"], "unavailable")
         self.assertTrue(task_measured(failed))
@@ -190,6 +190,23 @@ class ScoringTests(unittest.TestCase):
                                  result.content.encode(), ok=result.ok, metadata=result.metadata)
         self.assertFalse(task_passed(result.ok, measured))
         self.assertEqual(measured["content_check_coverage"], 0)
+
+    def test_kitesurf_document_urls_reach_native_markdown_without_ai_conversion(self):
+        for url in ('https://example.test/paper.pdf', 'https://example.test/file.docx',
+                    'https://example.test/plain.txt'):
+            with self.subTest(url=url):
+                provider=CloudflareMarkdownProvider('kitesurf', {'account_id':'account',
+                    'api_token':'token','browser':'kitesurf'})
+                with patch('harness.web_fetch.providers.cloudflare.request', return_value=HttpResponse(
+                    200,'https://example.test/api',{},b'{"success":true,"result":"Native document text"}')) as request, \
+                    patch.object(provider,'_fetch_direct_document',side_effect=AssertionError('external AI conversion forbidden')):
+                    result=provider.fetch(case(url=url,track='document'),1)
+                self.assertTrue(result.ok,repr(result))
+                self.assertEqual(result.content,'Native document text')
+                request.assert_called_once()
+                endpoint=request.call_args.args[0]
+                self.assertIn('/browser-rendering/markdown?browser=kitesurf',endpoint)
+                self.assertNotIn('/ai/',endpoint)
 
     def test_dataclass_and_dict_inputs_produce_same_metrics_without_mutation(self):
         c = case(required_facts=[{"id": "a", "alternatives": ["Alpha"]}])

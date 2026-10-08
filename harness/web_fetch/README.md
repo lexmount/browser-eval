@@ -135,12 +135,21 @@ checks where applicable, and one authoritative task predicate. Live execution an
 offline rescoring use the same entry point. Case contracts define the differences;
 provider identity never selects a more lenient evaluator.
 
-Live stable-contract cohorts use `scripts/run_certified_benchmark.py --diagnostic`.
-The stable-rule path does not qualify the current site's solvability; the generic
-entry therefore rejects such a cohort before external work unless its diagnostic
-state is explicit. This does not waive any scoring requirement. For a declared
-native-completion experiment, add `--retrieval-mode native`: it preserves all
-acceptance rules and rejects existing retrieval hints rather than dropping them.
+Reruns of an unchanged compiled stable-contract dataset use
+`scripts/run_certified_benchmark.py` normally: freeze existing task and acceptance
+rule bytes without recovering historical qualification files or rechecking
+admission. Source qualification is required when adding tasks or changing
+references or acceptance rules. Live exact-reference cases retain their pre/post
+reference checks. Use `--diagnostic` only when a diagnostic run is intended; its
+outputs cannot be upgraded to certified evidence. For declared native completion,
+add `--retrieval-mode native`: it preserves acceptance rules and rejects existing
+selector-guided retrieval hints rather than dropping them.
+Dynamic task families stay `dynamic`: the explicit
+`retrieval_hints: {"version": 3, "mode": "native"}` contract selects each
+provider's ordinary completion without injecting selectors, extraction hints or
+extra waits. It accepts no other fields. Selecting native mode again preserves
+this marker unchanged; the runner validates it through the same strict parser.
+Version 1/2 selector-guided contracts keep their existing meaning.
 The diagnostic report accepts a `webfetch_diagnostic_inputs/1` manifest naming
 complete runs, independently captured whole-page observations and hash-bound
 per-case reviews. The supported builder adapts these inputs, preserves scored
@@ -389,7 +398,8 @@ tasks use one `--dump json --trace-network` call and convert its final DOM to
 Markdown within the same deadline while retaining only a public-safe trace
 summary. Dynamic,
 resource-page, and embedded-document tasks use one bounded `--eval` call for
-their declared rendered output. Direct file tasks use bare `moli fetch URL`,
+their declared rendered output. Resource and document-page expressions are
+shared with the other browsers; resource extraction makes no additional requests. Direct file tasks use bare `moli fetch URL`,
 without `--dump` or page-wait flags, so the evaluator can receive and verify
 original bytes. No alternate provider or output-format fallback is used after
 a failed call. The seven-method cohort's direct PDF and DOCX body route is
@@ -695,14 +705,15 @@ logs, requests or bare URLs.
 `uniform_native_parameters: true` selects the fixed-native body/structure policy for web and dynamic tasks. Choose documented native extraction options once per method (for example Tavily advanced, Cloudflare networkidle2, Crawl4AI iframe/overlay options, native freshness and capacity options). The caller deadline is 45 seconds; product connection, navigation and extraction timers retain their native defaults. HTTP-client deadlines and worker cancellation enforce collection time, not product-side budgets. CowAgent globals are never patched.
 
 Per-case retrieval hints and auxiliary document/media/challenge routes are rejected before invocation in this mode. Cross-provider fallback, injected extraction algorithms and answer synthesis are prohibited. Caller failure retries follow the shared [retry policy](#retries); historical cohorts retain their frozen retry budgets. Keep the native response envelope and its declared answer; the product may still impose its own limits or internal retries. Prepare a new frozen invocation profile after a policy change; preserve previous measurements and do not infer revised scores without calls.
-### Main-document identity on declared navigation tasks
 
-When a body task declares `source_benchmark.risk_control.navigation_contract`,
-Moli uses the existing `fetch --dump json` final-DOM route, without network tracing,
-except in fixed-native mode, which preserves the same native Markdown route for every case.
-The same response binds `final_url`, HTTP status and HTML; the existing local
-Markdown conversion stays inside the call deadline. It adds no second fetch.
-Ordinary body tasks without that requirement retain native Markdown output.
+### 原生内容接口与评测边界
+
+给定网址的正文任务验收返回的目标内容，不要求接口返回最终网址或 HTML 语言标签。
+最终网址、HTTP 状态和语言标签保留为辅助诊断；缺失这些字段本身不扣分。
+登录页、验证页、错误页、空正文、缺少题目要求的文字或字段仍然失败。
+验收规则对所有选手一致，禁止从标准答案补正文或推断缺失输出。
+
+### Main-document identity on declared navigation tasks
 
 Legacy debug GET completion rows do not bind redirect request owners or Location
 headers. Their order, a challenge query hint, or the first completion after a
@@ -815,3 +826,40 @@ physical-call output, uses the final declared response, verifies hashes and
 exposes the directory only after the entire matrix passes. Unbound review
 receipts cannot authorize a new assembly. Existing published reports retain
 their frozen evidence and are restored from their pinned release.
+按任务类型预选官方支持的正文、资源或原始文件接口。JSON 包装中的原生 Markdown
+可以解包；不能把 JSON DOM、HTML 或下载的 PDF/DOCX 另行转换成选手的正文成绩。
+Chromium 没有原生 Markdown，网页 HTML 使用固定版本的 node-html-markdown；此例外
+不授权外部文档解析器。浏览器内已经加载的 PDF 查看器可通过原生脚本接口读取文字，
+不得下载嵌入文件后交给外部解析器。图片、视频的原始文件交付只验收字节，不冒充正文提取。
+
+Lightpanda 使用 `--dump markdown --json` 的原生正文；Obscura 使用其固定官方
+`HTML_TO_MARKDOWN_JS`，脚本哈希必须与所测版本绑定；Kitesurf 使用显式指定该浏览器
+的官方 `/markdown` 或 CDP 接口。Moli 正文使用原生 Markdown，资源或嵌入文档可用
+原生脚本/CDP 读取对应输出；禁止失败后切换为 HTML 或 JSON 再替它加工正文。
+
+`output_mode_for_case` 负责路线选择，`browser_task_interface_matrix` 使用同一选择器
+生成每类任务与每种浏览器的接口表。`require_native_task_routes` 检查实测路线与外部
+转换标记；当前报告配置必须启用该门禁，检查失败时不得汇总或发布。
+改变调用接口应冻结完整受影响范围、保留旧调用并通过认证入口补跑；只改共享评分时
+离线重算所有选手，不重复请求网站。合成正反测试必须同时覆盖正确正文缺少网址和错误正文。
+
+方法名与浏览器引擎分开登记在 `configs/providers.headless.json`。同一浏览器的发布版和分支构建分别计分，
+原生路线检查、接口表和官方能力说明共用该登记的引擎；未知方法不能跳过检查。
+报告分别统计浏览器引擎和执行配置，同一引擎的多个版本不算成多种浏览器。
+资源属性中的单个 URL 保留完整地址；只有 `srcset` 按候选及描述符解析，URL 中间的逗号不能拆开。
+分支构建在调用前固定来源提交、基线提交、构建环境和二进制 SHA-256。新增配置只调用完整固定题库，
+旧配置的原始结果保持不变。不同日期的批次用于展示各自任务完成情况；代码带来的耗时变化须另按同窗配对协议测量。
+
+### 已编译评测集的重跑
+
+`scripts/run_certified_benchmark.py` 直接使用冻结的题目与验收规则。已有固定答案或稳定规则的题目
+不重新审核入选资格，不读取历史资格调查原文，也不因旧归档缺失而改成诊断结果。
+新增题目、修改参考或验收规则时，仍须通过相应构建与修订流程核验来源。
+固定答案不会因为有来源核验信息、旧核验日期或缺少新版验收契约而自动变成实时参考。
+只有题目明确声明 `source_verification.reference_mode: live_exact`，才执行调用前冻结和调用后核验。
+没有该声明时，执行器保持题库中的答案和评分规则不变。明确修订参考答案仍走独立的参考修订入口。
+
+已授权的错误修正应自动完成：先查明共享原因并添加必要的正反测试，再冻结受影响的完整调用范围，经认证入口补跑。
+接口、版本或执行错误需要新调用；评分或展示错误只重算或重建。不能为提高分数挑选失败题重试，
+不能让无关题目重复调用，也不能把已有题库的重跑变成重新收集资格证明。保留旧结果及修订影响。
+评测配置错误或适配器在调用前拦截属于执行问题，不能当作浏览器能力失败发布；原生路线门禁拒绝 `configuration` 结果。供应商实际调用返回的错误仍按原规则保留。

@@ -52,6 +52,12 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_task_family_names_and_order_share_the_report_registry(self):
+        from harness.web_fetch.report_explainer import TRACK_NAMES
+        self.assertIs(TRACK_NAMES, TRACKS)
+        self.assertEqual(list(TRACKS), ['web','dynamic','challenge','risk_control','document','image','video'])
+        self.assertEqual(TRACKS['risk_control'], '风控网站正文')
+
     def test_all_call_latency_keeps_failed_calls_and_rejects_partial_matrix(self):
         c=case('body',kind='body')
         rows=[record(c,passed=True,elapsed=100),record(c,passed=False,elapsed=900)]
@@ -412,7 +418,9 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertIn(phrase,detail)
             self.assertNotIn('正文未评测',detail)
             self.assertNotIn('评分方式',detail)
-            self.assertIn('100.0%',(out/'datasets/index.html').read_text())
+            self.assertIn('100.0%',(out/'index.html').read_text())
+            self.assertNotIn('<th>达标率</th>',(out/'datasets/index.html').read_text())
+            self.assertIn('../analysis/index.html#inspect?query=list',(out/'datasets/list.html').read_text())
             self.assertNotIn('正文未评测',(out/'datasets/list.html').read_text())
             for page in ['index.html', 'datasets/list.html']:
                 self.assertIn('稳定标题、栏目、说明', (out/page).read_text())
@@ -524,6 +532,19 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertIn(phrase,rendered)
             self.assertTrue((out/'public-logs/fixture/retried/run-001-physical-001.stderr.log').is_file())
             self.assertTrue((out/'public-logs/fixture/retried/run-001-physical-002.stderr.log').is_file())
+
+    def test_failure_log_exposes_complete_runtime_error_and_actual_method_identity(self):
+        r=record(case());r.update(ok=False,error_type='timeout',error_message='Full runtime error '+('details '*100),
+            provider_metadata={'browser_version':'155.0.8059.39','binary_sha256':'actual-hash'})
+        with tempfile.TemporaryDirectory() as directory:
+            rendered=run_log_section(Path(directory),r,'')
+        self.assertIn(r['error_message'],rendered)
+        self.assertIn('<h3>程序错误</h3>',rendered)
+        self.assertIn('timeout',rendered)
+        self.assertIn('155.0.8059.39',rendered)
+        self.assertIn('actual-hash',rendered)
+        self.assertNotIn('Moli 版本',rendered)
+        self.assertNotIn('Markdown 输出',rendered)
 
     def test_run_log_section_uses_supplied_output_when_artifact_path_is_absent(self):
         c=case('unpersisted','body','web');r=record(c);r.pop('artifact_path')
@@ -815,6 +836,31 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertEqual(failure_category(r,c),label)
                 self.assertIn((label,label),failure_filters([r],{'list':c})[1][2])
                 self.assertIn('data-failure-category="'+label+'"',attempt_row(r,c)[0])
+
+    def test_fixed_contract_rules_survive_absent_historical_attachment(self):
+        from harness.web_fetch.report_components import stable_contract_details
+        c=case();c['acceptance_contract']={'schema':'named_link','minimum_records':3,
+            'hosts':['example.com'],'entry_path':'/items/.*',
+            'stable_text_anchors':[{'id':'heading','alternatives':['Fixed heading']}]}
+        c['source_benchmark']['stable_annotation']={'anchor_evidence':'sources/early.txt'}
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            rendered=stable_contract_details(c,evidence_root=root)
+            self.assertIn('Fixed heading',rendered)
+            self.assertNotIn('href="../sources/early.txt"',rendered)
+            (root/'sources').mkdir();(root/'sources/early.txt').write_text('Fixed heading')
+            self.assertIn('href="../sources/early.txt"',stable_contract_details(c,evidence_root=root))
+
+    def test_body_coverage_explanation_uses_the_declared_unit_and_region_rules(self):
+        c=case(kind='body',track='web');c['body_requirements']={
+            'unit':'region_compact_hexagram_recall','minimum_coverage':.8,
+            'minimum_floor':.6,'minimum_region_passes':4,
+            'regions':[{'id':str(i),'text':'reference'} for i in range(5)]}
+        rendered=task_pass_guide('web',cases={c['id']:c})
+        self.assertIn('字符六元组',rendered)
+        self.assertIn('通过区域数',rendered)
+        self.assertNotIn('词语计数覆盖',rendered)
+        self.assertNotIn('逐区达到 80%',rendered)
 
     def test_schema_fields_are_explained_without_internal_version_or_empty_sections(self):
         from harness.web_fetch.report_components import stable_contract_details, FIELD_REQUIREMENTS

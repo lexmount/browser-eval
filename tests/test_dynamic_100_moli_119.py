@@ -65,11 +65,19 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert len(revision["dynamic_dataset"]["changes"]) == 9
     assert hashlib.sha256(historical.encode()).hexdigest() == receipt["bindings"]["dataset_sha256"]
     scorer_revision = revision["shared_scorer"]
+    known_sources = {scorer_revision['revised_sha256']}
     for followup in revision.get('shared_scorer_followups', []):
         assert followup['predecessor_source_sha256'] == scorer_revision['revised_sha256']
         assert followup['provider_calls'] == 0
         assert set(scorer_revision['regression_ids']) <= set(followup['regression_ids'])
         scorer_revision = {**scorer_revision, **followup}
+        known_sources.add(followup['revised_sha256'])
+    for parallel in revision.get('shared_scorer_parallel_followups', []):
+        assert parallel['predecessor_source_sha256'] in known_sources
+        assert parallel['provider_calls'] == 0
+        assert any(row.get('parallel_predecessor_source_sha256') == parallel['revised_sha256']
+                   for row in revision['shared_scorer_followups'])
+        assert set(parallel['regression_ids']) <= set(scorer_revision['regression_ids'])
     assert scorer_revision["main_baseline_sha256"] == compatibility["bindings"]["scoring_source_sha256"]
     assert scorer_revision["revised_sha256"] == SCORING_SOURCE_SHA256
     assert scorer_revision["scoring_regressions_sha256"] == hashlib.sha256(

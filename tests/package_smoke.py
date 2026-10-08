@@ -1536,7 +1536,7 @@ def verify_certified_cohort(root):
                 'category': 'web', 'track': 'web', 'task_kind': 'body',
                 'expected_any': ['Independent fact 0'],
                 'ground_truth_main_content': reference,
-                'source_verification': {'method': 'independent HTTP capture'}}
+                'source_verification': {'reference_mode': 'live_exact', 'method': 'independent HTTP capture'}}
         (stage / 'tasks.json').write_text(json.dumps({'schema_version': 1,
             'id': 'certification-control', 'name': 'Certification control', 'tool': 'web_fetch',
             'cases': [case], 'coverage_plan': {'web': ['fixture']}}))
