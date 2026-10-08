@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import importlib
 import json
@@ -10,6 +11,7 @@ import sys
 import types
 from collections import defaultdict
 from pathlib import Path
+from threading import RLock
 
 from harness.record_io import load_jsonl
 
@@ -36,24 +38,41 @@ def load_records(path: Path, expected_sha256: str = DATASET_SHA256) -> dict[str,
     return records
 
 
-def official_calculator(
-    repo: Path, cache_dir: Path, expected_commit: str = SCORER_COMMIT
-):
-    commit = subprocess.run(
-        ["git", "-C", str(repo), "rev-parse", "HEAD"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
-    if commit != expected_commit:
-        raise ValueError(f"Official scorer commit mismatch: {commit}")
-    package = types.ModuleType("webmainbench")
-    package.__path__ = [str(repo / "webmainbench")]
-    sys.modules["webmainbench"] = package
-    calculator_type = importlib.import_module(
-        "webmainbench.metrics.calculator"
-    ).MetricCalculator
-    return calculator_type({"use_llm": False, "cache_dir": str(cache_dir)})
+_SCORER_IMPORT_LOCK = RLock()
+
+
+def official_calculator(repo: Path, cache_dir: Path, expected_commit: str = SCORER_COMMIT):
+    """Load the declared clean checkout without reusing another scorer's modules."""
+    with _SCORER_IMPORT_LOCK:
+        commit = subprocess.check_output(
+            ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True,
+        ).strip()
+        if commit != expected_commit:
+            raise ValueError(f"Official scorer commit mismatch: {commit}")
+        status = subprocess.check_output(
+            ["git", "-C", str(repo), "status", "--porcelain", "--untracked-files=no"], text=True,
+        )
+        if status:
+            raise ValueError("Official scorer requires a clean tracked checkout")
+        previous = {name: value for name, value in sys.modules.items()
+                    if name == "webmainbench" or name.startswith("webmainbench.")}
+        for name in previous:
+            del sys.modules[name]
+        try:
+            importlib.invalidate_caches()
+            package = types.ModuleType("webmainbench")
+            package.__path__ = [str(repo.resolve() / "webmainbench")]
+            sys.modules["webmainbench"] = package
+            calculator_type = importlib.import_module(
+                "webmainbench.metrics.calculator"
+            ).MetricCalculator
+            return calculator_type({"use_llm": False, "cache_dir": str(cache_dir)})
+        except BaseException:
+            for name in list(sys.modules):
+                if name == "webmainbench" or name.startswith("webmainbench."):
+                    del sys.modules[name]
+            sys.modules.update(previous)
+            raise
 
 
 def metric_dict(value) -> dict:
@@ -81,6 +100,85 @@ def aggregate(rows: list[dict]) -> dict:
     }
     scores["overall"] = sum(scores[name] for name in CORE_METRICS) / len(CORE_METRICS)
     return {"scores": scores, "denominators": counts}
+
+
+def zero(name: str, content_type: str) -> dict:
+    return {"score": 0.0, "success": True,
+            "details": {"content_type": content_type,
+                        "prediction_source": "extraction_failure"}}
+
+
+def revised_metrics(old: dict, scorer, predicted: str, reference: str,
+                    meta: dict, ok: bool, reference_changed: bool = False) -> dict:
+    """Recompute every affected metric with the bound corrected scorer.
+
+    A failed provider call is represented by an empty prediction.  The scorer
+    decides metric applicability from the frozen reference metadata, so an
+    applicable failure remains a zero while an inapplicable metric remains
+    unavailable.  Text edit is reused only when its implementation and
+    reference are unchanged; corrected references are rescored.
+    """
+    candidate = predicted if ok else ""
+    result = {}
+    if ok and not reference_changed and old.get("text_edit", {}).get("success"):
+        result["text_edit"] = copy.deepcopy(old["text_edit"])
+    else:
+        result["text_edit"] = metric_dict(
+            scorer.metrics["text_edit"].calculate(candidate, reference)
+        )
+    for name in ("code_edit", "formula_edit"):
+        result[name] = metric_dict(scorer.metrics[name].calculate(
+            candidate,
+            reference,
+            predicted_content_list=None,
+            groundtruth_content_list=None,
+            groundtruth_feature_scope=meta,
+        ))
+    table_edit = scorer.metrics["table_edit"].calculate(
+        candidate,
+        reference,
+        predicted_content_list=None,
+        groundtruth_content_list=None,
+        groundtruth_feature_scope=meta,
+    )
+    result["table_edit"] = metric_dict(table_edit)
+    result["table_TEDS"] = metric_dict(scorer.metrics["table_TEDS"].calculate(
+        candidate,
+        reference,
+        predicted_content_list=None,
+        groundtruth_content_list=None,
+        table_edit_result=table_edit,
+        groundtruth_feature_scope=meta,
+    ))
+    applicable = {
+        "code_edit": bool(meta.get("code")),
+        "formula_edit": bool(meta.get("equation")),
+        "table_edit": bool(meta.get("table")),
+        "table_TEDS": bool(meta.get("table")),
+    }
+    for name, is_applicable in applicable.items():
+        availability = result[name].get("details", {}).get("availability")
+        if (is_applicable and not result[name].get("success")
+                and availability != "reference_not_applicable"):
+            error = result[name].get("error")
+            result[name] = zero(name, name.removesuffix("_edit").replace("_TEDS", ""))
+            result[name]["details"].update({
+                "prediction_source": "metric_error",
+                "scorer_error": error,
+            })
+    successful = {name: value["score"] for name, value in result.items()
+                  if value.get("success")}
+    result["overall"] = {
+        "score": sum(successful.values()) / len(successful) if successful else 0.0,
+        "success": bool(successful),
+        "details": {
+            "source": "average_of_all_metrics",
+            "successful_metrics": len(successful),
+            "failed_metrics": len(CORE_METRICS) - len(successful),
+            "individual_scores": successful,
+        },
+    }
+    return result
 
 
 def main() -> None:

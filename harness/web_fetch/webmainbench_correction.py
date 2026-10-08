@@ -10,15 +10,23 @@ import os
 import shutil
 import subprocess
 import sys
+import sysconfig
+import tempfile
 import types
 from pathlib import Path
 
 from harness.record_io import load_jsonl
 from harness.web_fetch.webmainbench_certification import verify_shard
 from harness.web_fetch.webmainbench_diagnostics import corrected_distance
-from harness.web_fetch.webmainbench_scoring import load_records, metric_dict, official_calculator
+from harness.web_fetch.webmainbench_scoring import (
+    aggregate,
+    load_records,
+    metric_dict,
+    official_calculator,
+    revised_metrics,
+)
 
-from .safety import contained_path
+from .safety import contained_path, reject_evidence_symlinks, safe_identifier
 
 
 def digest(path):
@@ -162,10 +170,11 @@ def write(path, value):
 
 def copy_contained_artifact(source_root, source_relative, output_root, output_relative):
     """Copy one evidence artifact without allowing either path to escape its root."""
-    source = contained_path(source_root, source_relative)
-    destination = contained_path(output_root, output_relative)
+    source = contained_path(source_root, source_relative, reject_symlinks=True)
+    destination = contained_path(output_root, output_relative, reject_symlinks=True)
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, destination)
+    return destination
     return destination
 
 
@@ -434,3 +443,445 @@ def certify_case_correction(argv=None):
             "physical_sha256": digest(args.output / "physical-attempts.jsonl"),
         },
     )
+
+
+REGISTRY = (ROOT / "evaluation/webmainbench-full/scoring-regressions.json"
+            if (ROOT / "pyproject.toml").is_file() else
+            Path(sysconfig.get_path("data")) / "share/browser-harness-eval/webmainbench/scoring-regressions.json")
+
+
+def text_digest(value):
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def load_corrected_cases(path):
+    rows = read_rows(path)
+    ids = [row["track_id"] for row in rows]
+    if not ids or len(ids) != len(set(ids)):
+        raise ValueError("Corrected dataset must contain unique track IDs")
+    for identifier in ids:
+        safe_identifier(identifier)
+    return dict(zip(ids, rows))
+
+
+def _stage_offline_revision(source, output, operation):
+    if output.exists() or output.is_symlink():
+        raise ValueError("Correction output already exists")
+    if output.resolve().is_relative_to(source.resolve()):
+        raise ValueError("Correction output must be outside its source evidence")
+    reject_evidence_symlinks(source)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=f".{output.name}-revision-", dir=output.parent) as work:
+        staging = Path(work) / "evidence"
+        receipt = operation(staging)
+        if output.exists() or output.is_symlink():
+            raise ValueError("Correction output appeared during staging")
+        staging.rename(output)
+    return receipt
+
+
+def revise_dataset_scoring(source, corrected_dataset, manifest_path, scorer_repo, scorer_commit, output):
+    """Apply an authority-bound full-population revision into a new evidence directory."""
+    return _stage_offline_revision(source, output, lambda staging: _revise_dataset_scoring(
+        source, corrected_dataset, manifest_path, scorer_repo, scorer_commit, staging))
+
+
+def rescore_case_correction(source, corrected_dataset, scorer_repo, scorer_commit, output):
+    """Recompute a certified case correction without rewriting its provider calls."""
+    return _stage_offline_revision(source, output, lambda staging: _rescore_case_correction(
+        source, corrected_dataset, scorer_repo, scorer_commit, staging))
+
+
+CONTROL_IDS = (
+    "prediction-only-code-does-not-expand-population",
+    "missing-reference-scoped-code-scores-zero",
+    "raw-html-pre-is-scorable-code",
+    "layout-indented-prose-is-not-code",
+)
+
+
+def copy_correction_sources(corrections: dict, manifest_path: Path,
+                            correction_source: Path) -> None:
+    """Copy declared replacement files without allowing either root to escape."""
+    for item in corrections.values():
+        if item.get("replacement_file"):
+            copy_contained_artifact(
+                manifest_path.parent,
+                item["replacement_file"],
+                correction_source,
+                item["replacement_file"],
+            )
+
+
+def prepare_correction_source(destination: Path) -> None:
+    """Replace inherited provenance when correcting an already corrected cohort."""
+    if destination.exists():
+        shutil.rmtree(destination)
+    destination.mkdir()
+
+
+def json_digest(value) -> str:
+    raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return text_digest(raw)
+
+
+def validate_controls(scorer) -> None:
+    document = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    rows = {row["id"]: row for row in document["cases"]}
+    if document.get("schema_version") != 1 or set(rows) != set(CONTROL_IDS):
+        raise ValueError("WebMainBench scoring regression registry changed")
+    modes = {}
+    for identifier in CONTROL_IDS:
+        row = rows[identifier]
+        result = scorer.metrics["code_edit"].calculate(
+            row["predicted"], row["reference"],
+            groundtruth_feature_scope=row["meta"],
+        )
+        if result.success != row["expected_success"]:
+            raise ValueError("Scoring regression success mismatch: " + identifier)
+        if "expected_score" in row and result.score != row["expected_score"]:
+            raise ValueError("Scoring regression score mismatch: " + identifier)
+        modes.setdefault(row["root_cause"], set()).add(row["failure_mode"])
+    if any(value != {"false-positive", "false-negative"} for value in modes.values()):
+        raise ValueError("Each WebMainBench scoring root cause requires paired controls")
+
+
+def validate_population_binding(source: Path, source_dataset: dict,
+                                corrected_rows: list[dict], manifest: dict) -> None:
+    """Bind authority-declared corrections to the complete ordered 545-row dataset."""
+    validate_correction_authority(manifest)
+    if manifest.get("schema_version") != 3:
+        raise ValueError("Invalid dataset correction manifest")
+    cases = {case["id"]: case for case in source_dataset.get("cases", [])}
+    original_rows = []
+    for corrected in corrected_rows:
+        case_id = corrected.get("track_id") or corrected.get("id")
+        if case_id not in cases:
+            raise ValueError("Corrected dataset contains an unknown case")
+        row = copy.deepcopy(corrected)
+        row["groundtruth_content"] = contained_path(
+            source, f"references/{case_id}.md"
+        ).read_text(encoding="utf-8")
+        row["meta"] = copy.deepcopy(cases[case_id].get("meta"))
+        original_rows.append(row)
+    for label, rows, binding in (
+        ("input", original_rows, manifest.get("input_population", {})),
+        ("output", corrected_rows, manifest.get("output_population", {})),
+    ):
+        ids = [row.get("track_id") or row.get("id") for row in rows]
+        valid = (len(rows) == binding.get("row_count") and len(ids) == len(set(ids))
+                 and json_digest(ids) == binding.get("ordered_track_ids_sha256")
+                 and json_digest(rows) == binding.get("rows_sha256"))
+        already_corrected = label == "input" and rows == corrected_rows
+        if not valid and not already_corrected:
+            raise ValueError(f"Dataset correction {label} population binding mismatch")
+
+
+def validate_correction_authority(manifest: dict) -> None:
+    """Reject reference changes whose declared authority depends on method outcomes."""
+    if manifest.get("schema_version") != 3:
+        raise ValueError("Dataset corrections require decision-authority schema v3")
+    contracts = manifest.get("decision_contracts")
+    if not isinstance(contracts, dict) or not contracts:
+        raise ValueError("Dataset corrections require decision contracts")
+    for contract in contracts.values():
+        evidence = contract.get("required_source_evidence") if isinstance(contract, dict) else None
+        if not isinstance(contract, dict) or contract.get("changed_field") not in {
+            "groundtruth_content", "meta",
+        }:
+            raise ValueError("Decision contract has an unsupported changed field")
+        if (not isinstance(evidence, list) or "task_contract" not in evidence
+                or not any(isinstance(value, str) and (
+                    value.startswith("frozen_") or value.startswith("original_")
+                ) for value in evidence)):
+            raise ValueError("Decision contract lacks method-independent source authority")
+    forbidden = {"method_score", "method_result", "provider_score", "provider_result"}
+
+    def contains_forbidden_key(value) -> bool:
+        if isinstance(value, dict):
+            return bool(forbidden & set(value)) or any(
+                contains_forbidden_key(item) for item in value.values()
+            )
+        if isinstance(value, list):
+            return any(contains_forbidden_key(item) for item in value)
+        return False
+
+    for correction in manifest.get("corrections", []):
+        if correction.get("decision_contract") not in contracts:
+            raise ValueError("Dataset correction lacks a declared decision contract")
+        if not isinstance(correction.get("rationale"), str) or not correction["rationale"].strip():
+            raise ValueError("Dataset correction lacks an evidence-based rationale")
+        if contains_forbidden_key(correction):
+            raise ValueError("Method outcomes cannot authorize dataset corrections")
+        fields = set()
+        if any(key in correction for key in (
+            "original_groundtruth_sha256", "replacement_sha256", "replacement_file",
+        )):
+            fields.add("groundtruth_content")
+        if any(key in correction for key in ("original_meta_sha256", "replacement_meta")):
+            fields.add("meta")
+        declared = contracts[correction["decision_contract"]]["changed_field"]
+        if fields != {declared}:
+            raise ValueError("Correction fields differ from its decision contract")
+
+
+def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path: Path,
+          scorer_repo: Path, scorer_commit: str, output: Path) -> dict:
+    if output.exists():
+        raise ValueError("Scoring correction output already exists")
+    source_dataset = json.loads((source / "dataset.json").read_text(encoding="utf-8"))
+    source_cases = {case["id"]: case for case in source_dataset["cases"]}
+    corrected = load_corrected_cases(corrected_dataset)
+    if len(source_cases) != 545 or set(source_cases) != set(corrected):
+        raise ValueError("Corrected dataset population differs")
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    validate_population_binding(source, source_dataset, list(corrected.values()), manifest)
+    corrections = {row["track_id"]: row for row in manifest.get("corrections", [])}
+    if len(corrections) != len(manifest.get("corrections", [])):
+        raise ValueError("Invalid dataset correction manifest")
+    changed_references, changed_metadata = set(), set()
+    for case_id, before in source_cases.items():
+        after = corrected[case_id]
+        if after["url"] != before["url"] or text_digest(after["html"]) != before["input_html_sha256"]:
+            raise ValueError("Frozen input changed: " + case_id)
+        reference_changed = text_digest(after["groundtruth_content"]) != before["reference_sha256"]
+        metadata_changed = after.get("meta") != before.get("meta")
+        if reference_changed:
+            changed_references.add(case_id)
+        if metadata_changed:
+            changed_metadata.add(case_id)
+        if reference_changed or metadata_changed:
+            item = corrections.get(case_id)
+            if not item or item["url"] != before["url"] or item.get("html_sha256") != before["input_html_sha256"]:
+                raise ValueError("Correction binding mismatch: " + case_id)
+            declared = manifest["decision_contracts"][item["decision_contract"]]["changed_field"]
+            actual_fields = ({"groundtruth_content"} if reference_changed else set()) | (
+                {"meta"} if metadata_changed else set()
+            )
+            if actual_fields != {declared}:
+                raise ValueError("Changed dataset fields differ from decision contract: " + case_id)
+            if reference_changed and (
+                item.get("original_groundtruth_sha256") != before["reference_sha256"]
+                or item.get("replacement_sha256") != text_digest(after["groundtruth_content"])
+            ):
+                raise ValueError("Reference correction mismatch: " + case_id)
+            if metadata_changed and (
+                item.get("original_meta_sha256") != json_digest(before.get("meta"))
+                or item.get("replacement_meta") != after.get("meta")
+            ):
+                raise ValueError("Metadata correction mismatch: " + case_id)
+    newly_changed = changed_references | changed_metadata
+    for case_id in set(corrections) - newly_changed:
+        item = corrections[case_id]
+        before = source_cases[case_id]
+        already_applied = (
+            item.get("replacement_sha256") == before.get("reference_sha256")
+            or item.get("replacement_meta") == before.get("meta")
+        )
+        if not already_applied:
+            raise ValueError("Correction manifest scope differs from changed dataset fields")
+    if not newly_changed <= set(corrections):
+        raise ValueError("Changed dataset field lacks a declared correction")
+
+    records = read_rows(source / "results.jsonl")
+    providers = source_dataset["coverage_plan"]["static_html"]
+    expected = {(provider, case_id) for provider in providers for case_id in source_cases}
+    if len(records) != len(expected) or {(r["provider"], r["case_id"]) for r in records} != expected:
+        raise ValueError("Scoring correction requires the complete method-case matrix")
+    with tempfile.TemporaryDirectory(prefix="webmainbench-scoring-cache-") as cache:
+        scorer = official_calculator(scorer_repo, Path(cache), scorer_commit)
+        validate_controls(scorer)
+        revised = []
+        for record in records:
+            row = copy.deepcopy(record)
+            artifact = contained_path(source, row["artifact_path"])
+            if digest(artifact) != row["output_sha256"]:
+                raise ValueError("Provider artifact changed: " + row["attempt_id"])
+            case = corrected[row["case_id"]]
+            predicted = artifact.read_text(encoding="utf-8") if row.get("ok") else ""
+            metrics = revised_metrics(row["metrics"], scorer, predicted,
+                                      case["groundtruth_content"], case["meta"], bool(row.get("ok")),
+                                      row["case_id"] in changed_references)
+            row["pre_scoring_correction_metrics"] = copy.deepcopy(row["metrics"])
+            row["metrics"] = metrics
+            row["meta"] = copy.deepcopy(case["meta"])
+            row["reference_sha256"] = text_digest(case["groundtruth_content"])
+            revised.append(row)
+
+    summaries = json.loads((source / "score-summaries.json").read_text(encoding="utf-8"))
+    for provider in providers:
+        provider_rows = [row for row in revised if row["provider"] == provider]
+        summary = summaries[provider]
+        summary["pre_scoring_correction_aggregate"] = copy.deepcopy(summary["official_aggregate"])
+        summary["official_aggregate"] = aggregate(provider_rows)
+        from .webmainbench_case_correction import dimensions
+        summary["dimensions"] = dimensions(provider_rows)
+        summary["scorer"]["repository"] = "https://github.com/lexmount/WebMainBench"
+        summary["scorer"]["commit"] = scorer_commit
+        summary["scorer"]["population"] = "shared reference-defined populations"
+
+    shutil.copytree(source, output)
+    if not (output / "original-results.jsonl").exists():
+        shutil.copy2(source / "results.jsonl", output / "original-results.jsonl")
+    shutil.copy2(source / "results.jsonl", output / "pre-scoring-correction-results.jsonl")
+    shutil.copy2(source / "dataset.json", output / "pre-scoring-correction-dataset.json")
+    results_path = output / "results.jsonl"
+    results_path.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in revised),
+                            encoding="utf-8")
+    for case_id, case in source_cases.items():
+        corrected_case = corrected[case_id]
+        case["meta"] = copy.deepcopy(corrected_case["meta"])
+        case["reference_sha256"] = text_digest(corrected_case["groundtruth_content"])
+        case["reference_chars"] = len(corrected_case["groundtruth_content"])
+        if case_id in changed_references:
+            contained_path(output / "references", f"{case_id}.md").write_text(
+                corrected_case["groundtruth_content"], encoding="utf-8")
+    source_dataset["source_dataset_sha256"] = digest(corrected_dataset)
+    dataset_path = output / "dataset.json"
+    dataset_path.write_text(json.dumps(source_dataset, ensure_ascii=False, indent=2) + "\n",
+                            encoding="utf-8")
+    (output / "score-summaries.json").write_text(
+        json.dumps(summaries, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    correction_source = output / "scoring-correction-source"
+    prepare_correction_source(correction_source)
+    shutil.copy2(manifest_path, correction_source / manifest_path.name)
+    shutil.copy2(REGISTRY, correction_source / REGISTRY.name)
+    copy_correction_sources(corrections, manifest_path, correction_source)
+    receipt = {
+        "schema_version": 1,
+        "kind": "webmainbench_shared_population_scoring_correction",
+        "provider_calls": 0,
+        "logical_results": len(revised),
+        "providers": providers,
+        "changed_reference_cases": sorted(changed_references),
+        "changed_metadata_cases": sorted(changed_metadata),
+        "regression_ids": list(CONTROL_IDS),
+        "regression_registry_sha256": digest(REGISTRY),
+        "root_causes": [
+            "TEDS passed a serialized label to APTED and lacked a bounded exact-workspace path.",
+            "Code extraction omitted inline and raw-HTML representations.",
+            "Specialized metric denominators depended on each method's output.",
+            "Extraction failures disappeared from metric aggregates.",
+            "The dataset correction manifest did not bind the complete ordered population.",
+        ],
+        "scorer_repository": "https://github.com/lexmount/WebMainBench",
+        "scorer_commit": scorer_commit,
+        "manifest_sha256": digest(manifest_path),
+        "corrected_dataset_sha256": digest(corrected_dataset),
+        "input_results_sha256": digest(source / "results.jsonl"),
+        "output_results_sha256": digest(results_path),
+        "input_dataset_sha256": digest(source / "dataset.json"),
+        "output_dataset_sha256": digest(dataset_path),
+    }
+    (output / "scoring-correction.json").write_text(
+        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return receipt
+
+
+def _rescore_case_correction(source: Path, corrected_dataset: Path, scorer_repo: Path,
+          scorer_commit: str, output: Path) -> dict:
+    if output.exists():
+        raise ValueError("Refusing to replace case-correction evidence: " + str(output))
+    certificate = json.loads((source / "certificate.json").read_text(encoding="utf-8"))
+    if (certificate.get("kind") != "webmainbench_origin_correction_v1"
+            or certificate.get("preflight") != certificate.get("postflight")
+            or certificate.get("results_sha256") != digest(source / "results.jsonl")
+            or certificate.get("physical_sha256") != digest(source / "physical-attempts.jsonl")):
+        raise ValueError("Invalid source case-correction certificate")
+    cases = load_corrected_cases(corrected_dataset)
+    case_id = certificate["preflight"]["case_id"]
+    case = cases[case_id]
+    plan = certificate["preflight"]
+    if (text_digest(case["html"]) != plan["input_html_sha256"]
+            or text_digest(case["groundtruth_content"]) != plan["reference_sha256"]):
+        raise ValueError("Case rescoring must preserve its certified input and reference")
+    rows = load_jsonl(source / "results.jsonl")
+    if ({row["provider"] for row in rows} != set(certificate["preflight"]["providers"])
+            or len(rows) != len(set(certificate["preflight"]["providers"]))
+            or any(row["case_id"] != case_id for row in rows)):
+        raise ValueError("Case-correction result scope mismatch")
+    physical = read_rows(source / "physical-attempts.jsonl")
+    if len({row["attempt_id"] for row in physical}) != len(physical):
+        raise ValueError("Duplicate correction physical call")
+    for call in physical:
+        if (call["track_id"] != case_id or call["provider"] not in plan["providers"]
+                or digest(contained_path(source, call["physical_artifact_path"], reject_symlinks=True))
+                != call["output_sha256"]):
+            raise ValueError("Correction physical evidence changed")
+    if any(sum(call["provider"] == row["provider"] for call in physical)
+           != row["physical_attempt_count"] for row in rows):
+        raise ValueError("Correction physical calls are incomplete")
+    with tempfile.TemporaryDirectory(prefix="webmainbench-case-rescore-") as cache:
+        scorer = official_calculator(scorer_repo, Path(cache), scorer_commit)
+        validate_controls(scorer)
+        revised = []
+        for original in rows:
+            row = copy.deepcopy(original)
+            artifact = contained_path(source, row["artifact_path"])
+            if digest(artifact) != row["output_sha256"]:
+                raise ValueError("Case-correction provider artifact changed")
+            predicted = artifact.read_text(encoding="utf-8") if row.get("ok") else ""
+            row["pre_scoring_correction_metrics"] = copy.deepcopy(row["metrics"])
+            row["metrics"] = revised_metrics(
+                row["metrics"], scorer, predicted, case["groundtruth_content"],
+                case["meta"], bool(row.get("ok")), False,
+            )
+            row["meta"] = copy.deepcopy(case["meta"])
+            row["reference_sha256"] = text_digest(case["groundtruth_content"])
+            revised.append(row)
+    shutil.copytree(source, output)
+    result_path = output / "results.jsonl"
+    result_path.write_text(
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in revised), encoding="utf-8"
+    )
+    certificate["results_sha256"] = digest(result_path)
+    (output / "certificate.json").write_text(
+        json.dumps(certificate, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    receipt = {
+        "schema_version": 1,
+        "kind": "webmainbench_case_correction_scoring_revision",
+        "regression_ids": list(CONTROL_IDS),
+        "regression_registry_sha256": digest(REGISTRY),
+        "root_cause": "Specialized metric populations and failed-call scoring use the shared corrected scorer.",
+        "provider_calls": 0,
+        "logical_results": len(revised),
+        "case_id": case_id,
+        "providers": certificate["preflight"]["providers"],
+        "scorer_repository": "https://github.com/lexmount/WebMainBench",
+        "scorer_commit": scorer_commit,
+        "corrected_dataset_sha256": digest(corrected_dataset),
+        "input_results_sha256": digest(source / "results.jsonl"),
+        "output_results_sha256": digest(result_path),
+    }
+    (output / "scoring-correction.json").write_text(
+        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    return receipt
+
+
+def scoring_revision_main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source", required=True, type=Path)
+    parser.add_argument("--corrected-dataset", required=True, type=Path)
+    parser.add_argument("--manifest", required=True, type=Path)
+    parser.add_argument("--scorer-repo", required=True, type=Path)
+    parser.add_argument("--scorer-commit", required=True)
+    parser.add_argument("--output", required=True, type=Path)
+    args = parser.parse_args()
+    print(json.dumps(revise_dataset_scoring(args.source, args.corrected_dataset, args.manifest,
+                           args.scorer_repo, args.scorer_commit, args.output),
+                     ensure_ascii=False, indent=2))
+
+
+def case_scoring_main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source", required=True, type=Path)
+    parser.add_argument("--corrected-dataset", required=True, type=Path)
+    parser.add_argument("--scorer-repo", required=True, type=Path)
+    parser.add_argument("--scorer-commit", required=True)
+    parser.add_argument("--output", required=True, type=Path)
+    args = parser.parse_args()
+    print(json.dumps(rescore_case_correction(args.source, args.corrected_dataset, args.scorer_repo,
+                           args.scorer_commit, args.output), ensure_ascii=False, indent=2))

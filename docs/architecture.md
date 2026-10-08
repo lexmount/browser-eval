@@ -101,7 +101,12 @@ WebMainBench cohort certification is owned by `harness/web_fetch/webmainbench_ce
 and WCXB cohort certification. It uses `reference_lifecycle.py` to select browser
 observations from declared provenance and acquisition routes. Risk-control
 execution shares `risk_control.py` with certificate validation. Origin-preserving
-case certification shares `webmainbench_correction.py` with correction application;
+case certification shares `webmainbench_correction.py` with correction application
+and offline scoring revisions. The full-population and certified-case revision
+commands use the same scorer loader and metric adapter in `webmainbench_scoring.py`.
+Revisions are staged before a new evidence directory becomes visible; retained
+calls and source evidence are preserved. The superseded schema-v1 reference writer
+is retired, while historical receipt validation remains supported.
 TEDS revisions share `webmainbench_diagnostics.py` with revision validation.
 Their command paths remain stable. New revision receipts bind the actual shared
 implementation; retained revisions verify their own frozen source copies.

@@ -256,6 +256,13 @@ def main():
     if installed.is_relative_to(args.source_root.resolve()):
         raise ValueError('Package smoke must use an installed distribution outside the checkout')
     verify_package_tree(args.source_root, installed)
+    from harness.web_fetch.webmainbench_correction import CONTROL_IDS, REGISTRY
+
+    assert not REGISTRY.resolve().is_relative_to(args.source_root.resolve())
+    assert {row['id'] for row in json.loads(REGISTRY.read_bytes())['cases']} == set(CONTROL_IDS)
+    for command in ('correct_webmainbench_scoring.py', 'rescore_webmainbench_case_correction.py'):
+        subprocess.run([sys.executable, str(args.source_root / 'scripts' / command), '--help'],
+                       check=True, stdout=subprocess.DEVNULL)
     from harness.web_fetch.markdown import (
         CONVERTER,
         converter_command,

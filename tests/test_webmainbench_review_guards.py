@@ -5,6 +5,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from harness.web_fetch.webmainbench_correction import (
+    copy_contained_artifact,
+    copy_correction_sources,
+)
 from harness.web_fetch.webmainbench_diagnostics import (
     original_official_metrics,
     validate_reference_revision,
@@ -13,8 +17,6 @@ from harness.web_fetch.webmainbench_diagnostics import (
     validate_webmainbench_scoring_revision,
 )
 from scripts.check_webmainbench_report import check_teds_warnings
-from scripts.correct_webmainbench_references import copy_contained_artifact
-from scripts.correct_webmainbench_scoring import copy_correction_sources
 from scripts.review_webmainbench_teds_correction import review
 
 

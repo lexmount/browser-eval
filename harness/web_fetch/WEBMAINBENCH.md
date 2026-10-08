@@ -117,3 +117,15 @@ Reference or scoring corrections use the shared revision contracts and retain
 superseded evidence. Independent result review starts only on explicit request.
 The published report's profile and target bind the exact accepted comparison;
 assembling evidence alone does not authorize a release or change its scores.
+
+`scripts/correct_webmainbench_scoring.py` applies a schema-v3 decision-authority
+manifest to the complete 545-page population. It requires `--source`,
+`--corrected-dataset`, `--manifest`, `--scorer-repo`, `--scorer-commit` and a new
+`--output` directory. `scripts/rescore_webmainbench_case_correction.py` uses the
+same arguments except `--manifest` to rescore an already certified case correction;
+its HTML, reference and physical calls must retain their certified identities.
+Both commands run offline through `harness/web_fetch/webmainbench_correction.py`,
+validate the shared scoring controls and expose the output only after the complete
+revision succeeds. The scorer checkout must match the declared commit and have no
+tracked changes. Historical schema-v1 reference receipts remain readable; new
+reference corrections use the schema-v3 command.

@@ -1,14 +1,18 @@
-import json
 import copy
-from pathlib import Path
-import unittest
+import json
 import tempfile
+import unittest
+from pathlib import Path
 
-from scripts.correct_webmainbench_scoring import (
-    CONTROL_IDS, REGISTRY, json_digest, prepare_correction_source, revised_metrics,
+from harness.web_fetch.webmainbench_correction import (
+    CONTROL_IDS,
+    REGISTRY,
+    json_digest,
+    prepare_correction_source,
     validate_correction_authority,
     validate_population_binding,
 )
+from harness.web_fetch.webmainbench_scoring import revised_metrics
 
 
 class FakeResult:
