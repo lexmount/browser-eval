@@ -231,6 +231,35 @@ parent file hash. Action-count changes additionally require the existing paired 
 qualification receipts. Freezing writes a new manifest and never overwrites an existing
 one; it does not execute or score a browser.
 
+### Public WebArena repair proposals
+
+Repair authoring is optional. It produces pending trajectories for the isolated public
+WebArena track and does not modify canonical tasks, measured outcomes or qualifications.
+`diagnostics.py` builds the authoring input and runs bounded read-only Codex jobs;
+`qualification.py` derives and validates the pending probe or batch.
+
+Build a packet with `scripts/build_webarena_repair_packet.py --suite <suite>
+--attempt <attempt.json> --output <packet.json>`. Packet version 2 separates raw attempt
+provenance from the three author-readable evidence references: screenshot, final page
+and sanitized HAR. The job receives a packet without the raw attempt path. The program
+checks the complete packet against its frozen source before launch. Version 1 packets
+must be regenerated from their original inputs; they are retained as historical evidence
+and are not accepted for new jobs. Read-only execution and these authoring instructions
+do not provide operating-system isolation from every readable file on the host.
+
+`scripts/run_webarena_codex_repairs.py --suite <suite> --packet <packet.json>
+--output-root <new-directory>` accepts repeated `--packet` arguments, `--max-workers`,
+`--timeout-seconds`, `--codex-binary`, `--model` and `--reasoning-effort`. Its receipts bind
+the selected configuration and input hashes. Failed jobs and inputs that change during
+execution leave an incomplete batch rather than a qualification claim.
+
+Use `scripts/build_webarena_repair_probe.py` for one proposal,
+`scripts/build_webarena_repair_batch.py` for a general batch, or
+`scripts/build_webarena_codex_repair_suite.py` for the existing Codex two-pass validation
+protocol. Each takes `--suite`, `--proposal` and `--output`; batch commands accept repeated
+proposals. They validate the resulting suite before exposing a new immutable output.
+Two independent qualification passes remain required by the validation protocol.
+
 ### Remote mutation diagnostics
 
 `scripts/run_remote_mutation_diagnostic.py` exposes the shared diagnostic pipeline. With

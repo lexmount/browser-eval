@@ -417,6 +417,81 @@ def verify_qualification_commands(root: Path, source_root: Path) -> None:
         assert qualification.load_suite(output).tasks[0].task_id == 'a'
 
 
+def verify_repair_commands(root: Path, source_root: Path) -> None:
+    from harness.trajectory_replay.public_webarena import diagnostics, qualification
+
+    assert not Path(diagnostics.__file__).resolve().is_relative_to(source_root.resolve())
+    stage = root / 'repairs'
+    stage.mkdir()
+    suite = json.loads((root / 'qualification/suite.json').read_text())
+    task = suite['tasks'][0]
+    task['source']['verified_evaluators'] = [{
+        'evaluator': 'AgentResponseEvaluator', 'expected': {
+            'task_type': 'retrieve', 'retrieved_data': ['PRIVATE REFERENCE'],
+        },
+    }]
+    suite_path = stage / 'suite.json'
+    suite_path.write_text(json.dumps(suite))
+    screenshot, page, har = stage / 'final.png', stage / 'page.json', stage / 'network.har'
+    screenshot.write_bytes(b'fixture screenshot')
+    page.write_text(json.dumps({'visible_text': 'Observed heading'}))
+    har.write_text(json.dumps({'log': {'entries': []}}))
+    attempt = stage / 'attempt.json'
+    attempt.write_text(json.dumps({
+        'task_id': 'a', 'evidence_directory': str(stage),
+        'error': 'PRIVATE REFERENCE',
+        'trace': [{'action': 'evaluate_result', 'expected': 'PRIVATE REFERENCE'}],
+        'final_page_evidence': {'status': 'complete', **{
+            key: {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+            for key, path in (('screenshot', screenshot), ('page', page))
+        }},
+    }))
+    proposal = {
+        'schema': 'lex_browser_use_repair_proposal/1', 'task_id': 'a',
+        'reason': 'Observe the visible heading',
+        'append_actions': [{'action': 'get_text', 'selector': 'h1', 'save_as': 'heading'}],
+        'response_builder': {'kind': 'observed_shape', 'task_type': 'retrieve',
+                             'shape': [{'$output': 'heading'}]},
+    }
+    proposal_path = stage / 'proposal.json'
+    proposal_path.write_text(json.dumps(proposal))
+    scripts = source_root / 'scripts'
+    packet = stage / 'packet.json'
+    subprocess.run([sys.executable, str(scripts / 'build_webarena_repair_packet.py'),
+                    '--suite', str(suite_path), '--attempt', str(attempt),
+                    '--output', str(packet)], check=True, cwd=stage)
+    assert json.loads(packet.read_text())['schema'] == diagnostics.PACKET_SCHEMA
+    assert 'PRIVATE REFERENCE' not in packet.read_text()
+    for entry in ('build_webarena_repair_probe.py', 'build_webarena_repair_batch.py',
+                  'build_webarena_codex_repair_suite.py'):
+        output = stage / (entry + '.json')
+        subprocess.run([sys.executable, str(scripts / entry), '--suite', str(suite_path),
+                        '--proposal', str(proposal_path), '--output', str(output)],
+                       check=True, cwd=stage)
+        assert qualification.load_suite(output).tasks[0].task_id == 'a'
+    fake = stage / 'fake-codex'
+    fake.write_text('#!' + sys.executable + '\n' +
+        'import json, pathlib, sys\n'
+        'args = sys.argv\n'
+        'packet = pathlib.Path(args[args.index("-C") + 1]) / "packet.json"\n'
+        'value = json.loads(packet.read_text())\n'
+        'assert "provenance_references" not in value\n'
+        'assert "attempt" not in value["evidence_references"]\n'
+        'assert "PRIVATE REFERENCE" not in packet.read_text()\n' +
+        'pathlib.Path(args[args.index("-o") + 1]).write_text(' +
+        repr(json.dumps(proposal)) + ')\n')
+    fake.chmod(0o700)
+    completed = subprocess.run([
+        sys.executable, str(scripts / 'run_webarena_codex_repairs.py'),
+        '--suite', str(suite_path), '--packet', str(packet),
+        '--output-root', str(stage / 'jobs'), '--codex-binary', str(fake),
+        '--model', 'offline-fixture', '--max-workers', '1',
+    ], check=True, cwd=stage, capture_output=True, text=True)
+    summary = json.loads(completed.stdout)
+    assert summary['status'] == 'complete' and summary['qualification_effect'] == 'none'
+    assert summary['model'] == 'offline-fixture'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -461,6 +536,7 @@ def main():
         verify_dynamic_cohort(root, args.source_root)
         verify_review_revisions(root, args.source_root)
         verify_qualification_commands(root, args.source_root)
+        verify_repair_commands(root, args.source_root)
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
                        check=True, cwd=root)
         binary = root / 'browser'

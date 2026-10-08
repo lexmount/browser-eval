@@ -1301,3 +1301,143 @@ def main_requalification_suite(argv=None) -> None:
         predecessor_sha256=hashlib.sha256(suite_bytes).hexdigest(),
     )
     _write_qualified_suite(args.output, result)
+
+
+def build_probe(suite: dict[str, Any], proposal: dict[str, Any]) -> dict[str, Any]:
+    if (not isinstance(proposal, dict)
+            or proposal.get("schema") != "lex_browser_use_repair_proposal/1"):
+        raise ValueError("repair proposal schema is invalid")
+    task_id = str(proposal.get("task_id") or "")
+    matches = [task for task in suite.get("tasks") or [] if str(task.get("id")) == task_id]
+    if len(matches) != 1:
+        raise ValueError("repair proposal must identify exactly one suite task")
+    append_actions = proposal.get("append_actions") or []
+    replace_actions = proposal.get("replace_actions") or []
+    response_builder = proposal.get("response_builder")
+    reason = proposal.get("reason")
+    reason = reason.strip() if isinstance(reason, str) else ""
+    if any(not isinstance(actions, list) or any(not isinstance(row, dict) for row in actions)
+           for actions in (append_actions, replace_actions)):
+        raise ValueError("repair proposal actions must be lists of objects")
+    harness_revalidation = proposal.get("harness_revalidation") is True
+    if harness_revalidation and (
+        append_actions or replace_actions or response_builder is not None
+    ):
+        raise ValueError("harness revalidation cannot modify actions or response builder")
+    if not harness_revalidation and (
+        bool(append_actions) == bool(replace_actions)
+        or not isinstance(response_builder, dict)
+    ):
+        raise ValueError(
+            "repair proposal requires exactly one of append_actions or replace_actions, "
+            "plus response builder and reason"
+        )
+    if not reason:
+        raise ValueError("repair proposal requires a reason")
+
+    task = deepcopy(matches[0])
+    original = deepcopy(task["trajectory"])
+    if not harness_revalidation:
+        if replace_actions:
+            task["trajectory"]["actions"] = deepcopy(replace_actions)
+        else:
+            task["trajectory"]["actions"].extend(deepcopy(append_actions))
+    provenance = dict(task["trajectory"].get("provenance") or {})
+    provenance.update(
+        {
+            "kind": (
+                "harness_revalidation_probe"
+                if harness_revalidation
+                else "codex_repair_probe"
+            ),
+            "original_trajectory_sha256": _proposal_digest(original),
+            "proposal_sha256": _proposal_digest(proposal),
+        }
+    )
+    task["trajectory"]["provenance"] = provenance
+    task["ground_truth"]["expected_actions"] = [
+        action["action"] for action in task["trajectory"]["actions"]
+    ]
+    if not harness_revalidation:
+        task["ground_truth"]["response_builder"] = deepcopy(response_builder)
+    task["ground_truth"]["qualification"] = {
+        "status": "pending",
+        "reason": reason,
+    }
+    result = deepcopy(suite)
+    result["tasks"] = [task]
+    benchmark = dict(result.get("benchmark") or {})
+    benchmark["repair_probe"] = {
+        "task_id": task_id,
+        "proposal_sha256": _proposal_digest(proposal),
+        "non_canonical": True,
+        "harness_revalidation": harness_revalidation,
+    }
+    result["benchmark"] = benchmark
+    return result
+
+
+
+def _proposal_digest(value: Any) -> str:
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def build_proposal_suite(
+    suite: dict[str, Any], proposals: list[dict[str, Any]], *,
+    kind: str = "repair_probe_batch",
+) -> dict[str, Any]:
+    if kind not in {"repair_probe_batch", "codex_repair_validation"}:
+        raise ValueError("unsupported repair batch protocol")
+    if not proposals:
+        raise ValueError("repair batch requires at least one proposal")
+    task_ids = [str(item.get("task_id") or "") for item in proposals]
+    if not all(task_ids) or len(set(task_ids)) != len(task_ids):
+        raise ValueError("repair proposals must have unique non-empty task IDs")
+    result = deepcopy(suite)
+    result["tasks"] = [build_probe(suite, proposal)["tasks"][0] for proposal in proposals]
+    metadata = {"non_canonical": True, "task_count": len(task_ids), "task_ids": task_ids}
+    if kind == "codex_repair_validation":
+        metadata.update({
+            "qualification_required_passes": 2,
+            "proposal_effect": "none_until_both_qualification_passes_succeed",
+        })
+    else:
+        metadata["harness_revalidation"] = False
+    result["benchmark"] = {**(result.get("benchmark") or {}), kind: metadata}
+    return result
+
+
+def main_repair_probe(argv=None) -> None:
+    parser = argparse.ArgumentParser(description="Build a pending one-task repair probe")
+    parser.add_argument("--suite", type=Path, required=True)
+    parser.add_argument("--proposal", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    payload = build_probe(
+        json.loads(args.suite.read_text(encoding="utf-8")),
+        json.loads(args.proposal.read_text(encoding="utf-8")),
+    )
+    _write_qualified_suite(args.output, payload)
+
+
+def _main_proposal_suite(argv, kind: str) -> None:
+    parser = argparse.ArgumentParser(description="Build a pending repair validation batch")
+    parser.add_argument("--suite", type=Path, required=True)
+    parser.add_argument("--proposal", type=Path, action="append", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    result = build_proposal_suite(
+        json.loads(args.suite.read_text(encoding="utf-8")),
+        [json.loads(path.read_text(encoding="utf-8")) for path in args.proposal],
+        kind=kind,
+    )
+    _write_qualified_suite(args.output, result)
+
+
+def main_repair_batch(argv=None) -> None:
+    _main_proposal_suite(argv, "repair_probe_batch")
+
+
+def main_codex_repair_suite(argv=None) -> None:
+    _main_proposal_suite(argv, "codex_repair_validation")
