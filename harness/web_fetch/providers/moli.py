@@ -19,6 +19,7 @@ from pathlib import Path
 from urllib.parse import parse_qsl, quote, urlsplit
 
 from ..document_text import extract_document_text
+from ..markdown import CONVERTER, converter_command, require_converter
 from ..models import EvalCase, ProviderResult
 from ..retrieval_hints import plan_for_case
 from ..safety import validate_http_url
@@ -119,10 +120,6 @@ def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> st
         return None
     return candidate
 
-_HTML_TO_MARKDOWN = Path(__file__).resolve().parents[3] / "scripts/html_to_markdown.mjs"
-_NODE_HTML_MARKDOWN_PACKAGE = (
-    Path(__file__).resolve().parents[3] / "node_modules/node-html-markdown/package.json"
-)
 
 
 _RESOURCE_PAGE_EXPRESSION = r"""
@@ -518,17 +515,11 @@ class MoliWebFetchProvider(Provider):
             and navigation_contract.get("observed_final_url")
         )
         json_page_task = challenge_task or identity_json_task
-        if json_page_task and (
-            not shutil.which("node")
-            or not _HTML_TO_MARKDOWN.is_file()
-            or not _NODE_HTML_MARKDOWN_PACKAGE.is_file()
-        ):
-            return ProviderResult(
-                False,
-                "",
-                error_type="configuration",
-                error_message="Moli JSON page route requires node-html-markdown 2.0.0",
-            )
+        if json_page_task:
+            try:
+                markdown_package = require_converter(self.config.get('node_html_markdown_path'))
+            except ValueError as error:
+                return ProviderResult(False, '', error_type='configuration', error_message=str(error))
         raw_task = file_task or (document_task and not document_runtime_fetch_task)
         timeout_ms = str(max(1, int(timeout * 1000)))
         if raw_task:
@@ -1193,8 +1184,10 @@ class MoliWebFetchProvider(Provider):
                     metadata=metadata,
                 )
             try:
+                metadata['converter_sha256'] = hashlib.sha256(CONVERTER.read_bytes()).hexdigest()
+                metadata['extractor_version'] = '2.0.0'
                 converted = subprocess.run(
-                    [shutil.which("node") or "node", str(_HTML_TO_MARKDOWN)],
+                    converter_command(markdown_package),
                     input=envelope["html"].encode("utf-8"),
                     capture_output=True,
                     timeout=remaining,

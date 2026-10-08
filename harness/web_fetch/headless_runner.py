@@ -179,7 +179,7 @@ def main(argv=None):
             "timeout_seconds": args.timeout,
             "source_dataset_sha256": hashlib.sha256(args.dataset.read_bytes()).hexdigest(),
             "adapter_input_sha256": hashlib.sha256(
-                (ROOT / "scripts/headless_worker.py").read_bytes()
+                (Path(__file__).parent / "providers/headless_worker.py").read_bytes()
             ).hexdigest(),
             "conversion": HEADLESS_CONVERSION,
             "cohort": cohort,

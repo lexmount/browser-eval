@@ -188,6 +188,9 @@ change. Benchmark runs reuse `lex-web-fetch-resource:local` by image ID and do
 not rebuild it; repeated `make resource-image` calls reuse Docker layers. A
 publication run records the image ID and executable hashes, so an unavailable
 or changed image fails closed instead of triggering an implicit download.
+Validation also compares the packaged worker hash with the worker inside the
+declared image before calls. Rebuild the image after worker changes; an older
+worker cannot be reported as the selected host runtime.
 
 The resource cohort dataset and package bind its size, providers, concurrency,
 sample interval, cgroup-v2 backend, CPU/memory limits, network isolation,

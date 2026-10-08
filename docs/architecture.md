@@ -20,6 +20,14 @@ Independent HTTP source capture and HTML extraction belong to `harness/web_fetch
 
 Formal pages cover rankings, datasets, methodology, results, provider descriptions and interface examples, environment, reproduction, and account setup. Source coverage and access restrictions are factual limitations, not a user-assistance workflow.
 
+`providers/headless_worker.py` owns native browser execution and is included in
+the wheel. `markdown.py` owns the pinned converter dependency and command; both
+browser adapters use its packaged JavaScript asset. Resource images must match
+the host worker hash before measured calls. Docker is loaded only for resource
+execution. General CLI reports derive method descriptions from measured records;
+profile-validated repository builds explicitly enable authored interpretation
+and its bound supporting materials in the same report implementation.
+
 The report application owns full rules, interfaces and auditable records. Its tables retain local metric definitions and link to the matching methodology example. The interpretation article owns the argument, mechanism experiments, counterexamples and decision implications; it repeats only enough context to stand alone. The homepage provides quantitative overview and article access, not a second prose summary. Provider integration details belong with their interface examples, not a separate page repeating task boundaries.
 
 ## Browser trajectory replay ownership

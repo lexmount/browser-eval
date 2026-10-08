@@ -102,4 +102,5 @@ if __name__ == '__main__':
         parser.error('a custom --profile requires --output or report_output in the profile')
     output=(args.output or (ROOT/declared_output if declared_output else ROOT/'reports/webfetch'))
     print(build_report(evidence,output,
-                       include_english=args.include_english))
+                       include_english=args.include_english,
+                       authored_interpretation=True))

@@ -1,7 +1,7 @@
 """Provider-centred introduction and reproducible, sample-scoped adoption counts."""
 import json
 from pathlib import Path
-from .methods import method_info
+from .methods import method_info, method_page_model
 from .report_components import tabs,cards
 from .report_interfaces import render_interfaces
 from .report_capabilities import render_capabilities
@@ -52,7 +52,7 @@ def adoption_counts(data,names):
         result.append({'provider':name,'repository_count':len(repos) if sigs is not None else None,'file_count':len(files) if sigs is not None else None,'signatures':sorted(sigs or []),'repositories':list(repos.values())})
     return sorted(result,key=lambda x:(x['repository_count'] is None,-(x['repository_count'] or 0),x['provider']))
 
-def render_methods(out,records,*,hero,section,table,cell,link,esc):
+def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True):
     if records and all(row.get('provider_type') == 'fixture' for row in records):
         body = hero('合成示例适配器', '离线检查安装、评分、证据和报告导航。') + section(
             '示例范围', '<p>返回内容由本地测试适配器生成，不访问网页。成功和失败均为预设场景，不能用来比较浏览器能力。</p>')
@@ -62,6 +62,28 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc):
                 '<p><code>fetch(EvalCase, timeout) → ProviderResult</code></p>'
                 '<p>输入为任务定义与超时预算，输出为预设的内容或错误。完整输出见该方法的结果详情。</p>',
                 'interface-' + name)
+        return body
+    if not authored:
+        body=hero('本轮方法与接口','以下内容来自本轮结果记录与适配器契约。')
+        anchors={'method-guide-pricing'}
+        for name in sorted({row['provider'] for row in records}):
+            selected=[row for row in records if row['provider']==name]
+            model=method_page_model(name,name,selected)
+            anchors.add(model['pricing_anchor'])
+            rows=[]
+            for row in selected:
+                metadata=row.get('provider_metadata',{})
+                values=(row.get('provider_type','未记录'),metadata.get('engine','未记录'),
+                        metadata.get('browser_version') or metadata.get('reported_version') or '未记录',
+                        metadata.get('extractor','未记录'),metadata.get('output_contract','未记录'))
+                if values not in rows:rows.append(values)
+            body+=section(esc(name),'<p>'+link('../providers/'+name+'.html','查看该方法的结果')+'</p>'
+                          +'<p><code>fetch(EvalCase, timeout) → ProviderResult</code></p>'
+                          +table(['适配器类型','记录的引擎','记录的版本','记录的提取方式','记录的输出契约'],
+                                 [('', ''.join(cell(esc(str(value))) for value in row)) for row in rows],metrics=[]),
+                          'interface-'+name)
+        for anchor in sorted(anchors):
+            body+=section('费用信息','<p>本轮结果未绑定价格资料；费用取决于调用方配置与服务账单。</p>',anchor)
         return body
     source=Path(__file__).resolve().parents[2]/'research/provider-adoption.json'
     data=json.loads(source.read_text());names=sorted({r['provider'] for r in records})

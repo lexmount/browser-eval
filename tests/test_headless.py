@@ -6,19 +6,26 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from harness.web_fetch.container_resources import ContainerCall
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers import build_provider
-from harness.web_fetch.providers.headless import _resolve_binary, cli_command, output_mode_for_case
-from harness.web_fetch.providers.headless import HeadlessProvider
-from harness.web_fetch.container_resources import ContainerCall
+from harness.web_fetch.providers.headless import (
+    HeadlessProvider,
+    _resolve_binary,
+    cli_command,
+    output_mode_for_case,
+)
+from harness.web_fetch.providers.headless_worker import fetch
 from harness.web_fetch.runner import run_evaluation
-from scripts.headless_worker import fetch
-from scripts.review_headless_results import anomaly_investigation_packet, independent_attempt
-from scripts.review_headless_results import main as review_main
 from scripts.review_headless_results import (
-    INDEPENDENCE_RULES, RESOURCE_EQUIVALENCE_RULES, SCHEMA,
+    INDEPENDENCE_RULES,
+    RESOURCE_EQUIVALENCE_RULES,
+    SCHEMA,
+    anomaly_investigation_packet,
+    independent_attempt,
     validate_review_evidence,
 )
+from scripts.review_headless_results import main as review_main
 
 
 class HeadlessTests(unittest.TestCase):
@@ -359,7 +366,7 @@ class HeadlessTests(unittest.TestCase):
             ca_cert='/tmp/fixture-ca.pem',
         )
         completed = SimpleNamespace(returncode=0, stdout=b'# output', stderr=b'')
-        with patch('scripts.headless_worker.subprocess.run', return_value=completed) as run:
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=completed) as run:
             result = fetch(request)
         self.assertTrue(result['ok'])
         self.assertEqual(run.call_args.kwargs['env']['SSL_CERT_FILE'], '/tmp/fixture-ca.pem')
@@ -373,7 +380,7 @@ class HeadlessTests(unittest.TestCase):
                                url='https://example.test/page', timeout=1, output_mode='markdown')
                 completed = SimpleNamespace(returncode=code, stdout=b'# body', stderr=diagnostic)
                 with self.subTest(engine=engine, code=code), patch(
-                    'scripts.headless_worker.subprocess.run', return_value=completed
+                    'harness.web_fetch.providers.headless_worker.subprocess.run', return_value=completed
                 ):
                     result = fetch(request)
                 self.assertEqual(result['metadata']['browser_stderr'], diagnostic.decode())
@@ -412,9 +419,9 @@ class HeadlessTests(unittest.TestCase):
         raw = b'%PDF-fixture'
         request = dict(engine='moli', binary='/moli', url='https://example.com/paper.pdf',
                        timeout=1, output_mode='document')
-        with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=SimpleNamespace(
                 returncode=0, stdout=raw, stderr=b'')), patch(
-                'scripts.headless_worker.extract_document_text', return_value=('Paper body', 'pypdf')):
+                'harness.web_fetch.providers.headless_worker.extract_document_text', return_value=('Paper body', 'pypdf')):
             result = fetch(request)
         self.assertTrue(result['ok'])
         self.assertEqual(result['content'], 'Paper body')
@@ -427,7 +434,7 @@ class HeadlessTests(unittest.TestCase):
         raw = b'\x89PNG\r\n\x1a\n' + b'payload'
         request = dict(engine='moli', binary='/moli', url='https://example.com/image.png',
                        timeout=1, output_mode='file')
-        with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=SimpleNamespace(
                 returncode=0, stdout=raw, stderr=b'')):
             result = fetch(request)
         self.assertTrue(result['ok'])
@@ -443,7 +450,7 @@ class HeadlessTests(unittest.TestCase):
             SimpleNamespace(returncode=0, stdout='v1'.encode(), stderr=b''),
             SimpleNamespace(returncode=0, stdout=b'# Unsupported document\n', stderr=b''),
         ]
-        with patch('scripts.headless_worker.subprocess.run', side_effect=completed):
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', side_effect=completed):
             result = fetch(request)
         self.assertTrue(result['ok'])
         self.assertEqual(result['content'], '# Unsupported document\n')
@@ -457,14 +464,14 @@ class HeadlessTests(unittest.TestCase):
     def test_converter_shared_and_nonzero_not_converted(self):
         from types import SimpleNamespace
         request = dict(engine='moli', binary='/binary', url='https://example.com', timeout=1)
-        with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=SimpleNamespace(
                 returncode=0, stdout=b'<h1>Example</h1><p>Body</p>', stderr=b'')):
             result = fetch(request)
             self.assertTrue(result['ok'])
             self.assertIn('Example', result['content'])
             self.assertIn('<h1>', result['html'])
             self.assertEqual(result['metadata']['extractor_version'], '2.0.0')
-        with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=SimpleNamespace(
                 returncode=1, stdout=b'<h1>Partial</h1>', stderr=b'failure')):
             result = fetch(request)
             self.assertFalse(result['ok'])

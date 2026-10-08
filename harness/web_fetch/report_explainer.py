@@ -748,10 +748,10 @@ def supports_authored_explainer(cases):
     return all(case.get('track', 'web') in TRACK_NAMES for case in cases.values())
 
 
-def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
+def render_explainer(out, cases, records, *, table=None, cell=None, link=None, authored=True):
     """One authored body; only image URL serialization differs for the offline export."""
     out = Path(out)
-    if (not supports_authored_explainer(cases)
+    if (not authored or not supports_authored_explainer(cases)
             or (records and all(row.get('provider_type') == 'fixture' for row in records))):
         passes = sum(task_passed(row['ok'], row['metrics'],
                      cases[row['case_id']].get('task_kind', 'body')) for row in records)

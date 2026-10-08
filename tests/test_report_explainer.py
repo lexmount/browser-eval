@@ -421,3 +421,16 @@ class ExplainerTests(unittest.TestCase):
         page=self.render([r for r in self.records if r['provider']=='moli-webfetch'])
         self.assertIn('任务通过',page)
         self.assertNotIn('97 次任务通过',page)
+
+
+class GenericInterpretationTests(unittest.TestCase):
+    def test_custom_headless_result_uses_its_own_scope_without_historical_article(self):
+        case = {'id': 'one', 'track': 'web', 'task_kind': 'body'}
+        record = {'provider': 'custom-browser', 'provider_type': 'headless_markdown',
+                  'case_id': 'one', 'ok': True, 'metrics': {'content_pass': True}}
+        with tempfile.TemporaryDirectory() as work:
+            page = render_explainer(Path(work), {'one': case}, [record], authored=False)
+            self.assertIn('1/1', page)
+            self.assertIn('本报告的任务范围与验收规则', page)
+            self.assertNotIn('Moli', page)
+            self.assertFalse((Path(work) / 'guide/article.html').exists())

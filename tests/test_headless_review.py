@@ -1,18 +1,20 @@
 import json
-from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
-from scripts.headless_worker import fetch
+from harness.web_fetch.providers.headless_worker import fetch
+from scripts.certify_headless_cases import (
+    read_completed_records as read_certification_records,
+)
 from scripts.postcheck_headless import (
     expected_providers,
     load_resumable_observations,
     read_completed_records,
 )
-from scripts.certify_headless_cases import read_completed_records as read_certification_records
 
 
 class HeadlessReviewTests(unittest.TestCase):
@@ -29,7 +31,7 @@ class HeadlessReviewTests(unittest.TestCase):
 
     def test_worker_rejects_unsupported_url_before_browser_launch(self):
         for url in ('file:///etc/passwd','javascript:alert(1)','https://example.com/\n'):
-            with self.subTest(url=url), patch('scripts.headless_worker.subprocess.run') as run:
+            with self.subTest(url=url), patch('harness.web_fetch.providers.headless_worker.subprocess.run') as run:
                 with self.assertRaises(ValueError):
                     fetch({'url':url})
                 run.assert_not_called()

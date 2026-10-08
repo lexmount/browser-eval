@@ -1,4 +1,7 @@
-import { NodeHtmlMarkdown } from 'node-html-markdown';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { NodeHtmlMarkdown } = require(process.argv[2] || 'node-html-markdown');
 
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);

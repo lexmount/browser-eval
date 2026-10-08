@@ -221,7 +221,7 @@ def build_public_benchmark_research(source: Path, output: Path, *, include_engli
 
 
 def build_report(source: Path, output: Path, *, include_english: bool = False,
-                 local_audit: bool = False) -> Path:
+                 local_audit: bool = False, authored_interpretation: bool = False) -> Path:
     source, output = source.resolve(), output.resolve()
     if source == output or output in source.parents:
         raise ValueError('Report output must not contain its evidence source')
@@ -531,7 +531,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 "dataset_sha256": hashlib.sha256((source / "dataset.json").read_bytes()).hexdigest(),
                 "results_sha256": hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest(),
             }, ensure_ascii=False, indent=2))
-        generate(staging,dataset,records,manifests,include_english=include_english)
+        generate(staging,dataset,records,manifests,include_english=include_english,
+                 authored_interpretation=authored_interpretation)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.
         if output.exists():

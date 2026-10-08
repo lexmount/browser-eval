@@ -84,7 +84,7 @@ for engine,wait in (('lightpanda','done'),('obscura','load + adaptive settle'),(
   'CLI · '+engine+' fetch --dump markdown','本地独立浏览器；不需要供应商 API Key',
   [('URL','string','唯一任务输入'),('--dump','string','markdown'),('wait_until','string',wait),('timeout','seconds','45 秒外层截止；CLI 参数按各自单位换算')],
   [('stdout','UTF-8 string','浏览器原生 Markdown → content'),('native_markdown_ms','number','CLI 调用及原生序列化阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
-  {'url':URL,'engine':engine,'timeout':45,'wait_until':wait,'dump':'markdown'},'scripts/headless_worker.py',
+  {'url':URL,'engine':engine,'timeout':45,'wait_until':wait,'dump':'markdown'},'harness/web_fetch/providers/headless_worker.py',
   '不点击、不滚动、不补抓资源，不在失败后切换引擎或输出模式。CLI 未提供可靠 HTTP 状态和最终 URL 时保持空值。')
 def moli_release_spec(version):
  base=SPECS['moli']
@@ -103,7 +103,7 @@ SPECS['chromium']=spec(
  'Playwright · Chromium → DOM HTML → node-html-markdown','本地独立浏览器；不需要 Google 账号，不加载个人会话',
  [('url','string','唯一任务输入'),('wait_until','string','domcontentloaded'),('timeout','seconds','45 秒端到端截止'),('converter','string','node-html-markdown 2.0.0')],
  [('content','string','转换后的 Markdown'),('rendered_html_path / sha256','string','转换前 DOM HTML 证据'),('fetch_html_ms / conversion_ms','number','分阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
- {'url':URL,'engine':'chromium','timeout':45,'wait_until':'domcontentloaded','dump':'html','converter':'node-html-markdown 2.0.0'},'scripts/headless_worker.py',
+ {'url':URL,'engine':'chromium','timeout':45,'wait_until':'domcontentloaded','dump':'html','converter':'node-html-markdown 2.0.0'},'harness/web_fetch/providers/headless_worker.py',
  'Chromium/CDP 没有原生 Markdown 输出，因此取完整渲染 DOM 后转换；转换计入端到端耗时，HTML 与转换器版本、哈希均保留。')
 
 def render_interfaces(out,records):

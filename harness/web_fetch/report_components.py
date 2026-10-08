@@ -1,5 +1,23 @@
 """Small, shared presentation components; never change measured results."""
 from html import escape
+import json
+
+
+def reference_text(case):
+    """Show the frozen reference, or the actual declared acceptance rules."""
+    reference=case.get('ground_truth_main_content') or case.get('reference_answer')
+    if reference:return reference
+    if case.get('task_kind','body')!='body':
+        return '本例按资源或结构规则评分，不以页面短摘要计算全文 F1。'
+    rules=[('最少字符数',case.get('min_content_chars',1))]
+    for key,label in [('expected_any','至少命中一项文字'),('required_facts','必需文字组'),
+                      ('forbidden_any','不得出现的文字'),('required_patterns','格式与数量要求'),
+                      ('body_requirements','正文范围要求'),('acceptance_contract','验收契约')]:
+        if case.get(key):rules.append((label,case[key]))
+    if case.get('required_facts'):
+        rules.append(('必需文字组覆盖下限',case.get('fact_coverage_threshold',1.0)))
+    return '本任务没有全文参考，按以下规则验收：\n'+ '\n'.join(
+        label+'：'+json.dumps(value,ensure_ascii=False,indent=2) for label,value in rules)
 
 
 def tabs(group, panels):

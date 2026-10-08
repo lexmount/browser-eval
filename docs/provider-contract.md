@@ -26,3 +26,21 @@ Providers are also assigned an output contract in `methods.py`. Cleaned
 readable content (`main_text`, Markdown or text) shares one leaderboard.
 Rendered HTML is a separate diagnostic contract; search results, model-bound
 URL context and structured AI extraction require separate datasets.
+
+Native browser configurations use `headless_markdown` or `headless_html`, with
+an explicit `engine`, `binary` and `expected_version`. Method names are labels;
+they do not select executable versions. The worker ships in the Python package,
+so these adapters also run from an installed wheel outside the checkout.
+Native Markdown routes do not require Docker. Resource measurement requires the
+Docker extra and a declared image containing the same worker bytes as the host.
+
+HTML conversion requires Node.js and `node-html-markdown` 2.0.0. A checkout uses
+the package installed by `npm ci`. Installed-wheel users must install that npm
+package separately and set `node_html_markdown_path` to its absolute package
+directory in the provider configuration. The adapter rejects a missing or
+different version before calls; the converter itself ships in the wheel.
+
+The general CLI builds a result report from the supplied dataset and records.
+It does not require project-specific articles, account registries, pricing or
+adoption snapshots. Formal repository builds select those materials explicitly
+after validating their bound profile and evidence.

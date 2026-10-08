@@ -1,3 +1,5 @@
+import hashlib
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -22,6 +24,8 @@ def _client(*, os_type="linux", cgroup="2"):
         "Architecture": "arm64",
     }
     client.version.return_value = {"Version": "29.5.2"}
+    worker = Path(__file__).resolve().parents[1] / 'harness/web_fetch/providers/headless_worker.py'
+    client.containers.run.return_value = hashlib.sha256(worker.read_bytes()).hexdigest().encode() + b'  worker.py\n'
     client.images.get.return_value = SimpleNamespace(
         id="sha256:image",
         attrs={"RepoDigests": ["fixture@sha256:digest"], "Architecture": "arm64"},
@@ -70,6 +74,7 @@ def test_resource_backend_rejects_missing_docker_cli():
 def test_resource_identity_hashes_binary_inside_bound_image():
     client = _client()
     client.containers.run.side_effect = [
+        client.containers.run.return_value,
         b"a" * 64 + b"  /usr/local/bin/moli\n",
         b"moli 1.1.1\n",
     ]
@@ -79,3 +84,13 @@ def test_resource_identity_hashes_binary_inside_bound_image():
     assert identity["binary_sha256"] == "a" * 64
     assert identity["reported_version"] == "moli 1.1.1"
     assert identity["image_id"] == "sha256:image"
+
+
+@pytest.mark.parametrize('observed', [b'', b'b' * 64 + b'  worker.py\n'])
+def test_resource_image_rejects_missing_or_different_worker_before_calls(observed):
+    client = _client()
+    client.containers.run.return_value = observed
+    with patch('harness.web_fetch.container_resources.docker.from_env', return_value=client):
+        with pytest.raises(RuntimeError, match='Resource image worker differs'):
+            ContainerResourceRunner('fixture:local').validate()
+    assert not client.containers.create.called
