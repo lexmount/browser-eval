@@ -323,6 +323,10 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             target = staging/path; target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(raw, target)
             meta = r.get('provider_metadata', {})
+            if not local_audit:
+                # A portable report cannot link to its former sibling private tree.
+                # The full raw logs were verified above and stay in the evidence bundle.
+                meta.pop('local_report_complete_diagnostic_links', None)
             if meta.get('rendered_html_path'):
                 html_source = contained_path(source, meta['rendered_html_path'])
                 if hashlib.sha256(html_source.read_bytes()).hexdigest() != meta.get('rendered_html_sha256'):
@@ -411,6 +415,9 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
         if (source / 'certification.json').is_file():
             shutil.copy2(source / 'certification.json', staging / 'certification.json')
+            if dataset.get('comparison', {}).get('kind') == 'risk_control_100_moli':
+                for name in ('dataset.json', 'manifest.json', 'execution.json', 'reference-proof-verification.json'):
+                    shutil.copy2(contained_path(source, name), staging / name)
         reliability=assess_reliability(dataset,records)
         (staging/'reliability.json').write_text(json.dumps(reliability,ensure_ascii=False,indent=2)+'\n')
         # Keep the downloadable result file byte-identical to the independently

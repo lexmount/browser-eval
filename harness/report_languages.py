@@ -1,6 +1,7 @@
 """Explicit language output contract shared by report tracks."""
 
 import json
+import re
 from pathlib import Path
 
 
@@ -49,3 +50,8 @@ def check_language_contract(root: Path) -> None:
     notice = (root / "en/index.html").read_text(encoding="utf-8")
     if "data-english-not-generated" not in notice or 'href="../index.html"' not in notice:
         raise ValueError("English not-generated notice is missing")
+
+
+def visible_numbers(text: str) -> list[str]:
+    """Read Arabic numeric values next to either Chinese or English prose."""
+    return re.findall(r"\d+(?:[.,]\d+)*(?:%|(?=$|[^A-Za-z0-9_]))", text)

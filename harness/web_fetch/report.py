@@ -1157,8 +1157,6 @@ def stable_answer_panel(contract):
 
 def machine_contract(case):
  contract={key:case[key] for key in ('acceptance_contract','composite_acceptance','body_requirements') if case.get(key)}
- diagnostics=(((case.get('source_benchmark') or {}).get('risk_control') or {}).get('page_context_anchors'))
- if diagnostics:contract['page_context_diagnostics']={'affects_task_pass':False,'anchors':diagnostics}
  return contract
 
 def composite_contract_details(contract):
@@ -1337,8 +1335,6 @@ def reason(r,c):
    failed=[row['id'] for row in m.get('composite_group_results',[]) if not row.get('pass')]
    return '组合规则未满足：'+('、'.join(failed) if failed else '未通过的规则组未登记')+'。'
   success='稳定内容与结构检查通过。' if m.get('stable_anchor_results') or m.get('stable_page_pattern_results') else '条目结构检查通过；本例未设置稳定文字核对点。'
-  if m.get('page_context_anchor_total'):
-   success+=f" 页面外围诊断覆盖 {m.get('page_context_anchor_hits',0)}/{m['page_context_anchor_total']}；该诊断不影响任务通过。"
   if m.get('stable_task_schema') == 'body_text':
    return success if succeeded(r,c) else stable_failure_summary(m)+'。'
   counts=f"检出 {m.get('stable_record_count','—')} 条，字段完整 {m.get('stable_complete_record_count','—')} 条，完整且唯一 {m.get('stable_unique_record_count','—')} 条，要求至少 {m.get('stable_minimum_records','—')} 条。"
@@ -1679,8 +1675,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   cards+=overview_card(records,cases,track,label,names)
  home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类分榜与一个综合通过率总榜。')
  home+=local_audit_banner(dataset)
- from .report_explainer import article_title,render_explainer
- TITLE=article_title(records)
+ from .report_explainer import article_title,render_explainer,supports_authored_explainer
+ TITLE=article_title(records) if supports_authored_explainer(cases) else '本报告的任务范围与验收规则'
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
  write(out,'guide/index.html','报告解读',render_explainer(out,cases,records,table=table,cell=cell,link=link))
  panels=[]
@@ -1944,7 +1940,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    checks_html+=table(['记录字段','有效记录数','至少要求','判定'],[('',cell(esc(x['field']))+cell(str(x['count']))+cell(str(x['minimum']))+cell('通过' if x['pass'] else '未通过')) for x in m['stable_field_results']],metrics=[])
   body+=section('为什么这样判',caveat+checks_html,'decision')
   if m.get('body_region_results'):
-   scoring_text=((str(r.get('title')).strip()+'\n') if r.get('title') and str(r.get('title')).strip() else '')+output
+   scoring_text=output
    region_rows,region_cards=body_region_rows(c,m,scoring_text);rules=c.get('body_requirements',{})
    required=rules.get('minimum_region_passes',len(rules.get('regions',[])))
    region_count=len(rules.get('regions',[]))

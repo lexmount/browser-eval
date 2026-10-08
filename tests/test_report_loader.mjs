@@ -29,6 +29,27 @@ assert.equal(anchors[0].href,'#page=guide%2Farticle.html');
 assert.equal(anchors[1].dataset.download,'guide/article.html');
 console.log('PASS: HTML export downloads while ordinary HTML links navigate');
 
+// Artifact Site injects a site-root base even on nested HTML pages. Native
+// ../ links therefore escape the signed site; the package must use virtual
+// routes and intercept clicks rather than let the injected base resolve them.
+const signedBase='https://artifact.example/api/preview/report~signed-token/';
+assert.equal(new URL('../attempts/example.html',signedBase).pathname,
+ '/api/preview/attempts/example.html');
+const hostedLinks=['../index.html','../attempts/example.html','../datasets/example.html']
+ .map(href=>({dataset:{},getAttribute:()=>href,hasAttribute:()=>false}));
+context.hostedRoot={querySelectorAll:()=>hostedLinks};
+context.location={hash:''};
+vm.runInContext("fixLinks(hostedRoot,'providers/moli.html',{files:{'index.html':{},'attempts/example.html':{},'datasets/example.html':{}}})",context);
+for(const [index,path] of ['index.html','attempts/example.html','datasets/example.html'].entries()){
+ let prevented=false;
+ context.hostedEvent={target:{closest:selector=>selector==='a[href^="#page="]'
+  ?{getAttribute:()=>hostedLinks[index].href}:null},preventDefault(){prevented=true}};
+ await vm.runInContext('downloadClick(hostedEvent)',context);
+ assert.equal(prevented,true);
+ assert.equal(context.location.hash,'#page='+encodeURIComponent(path));
+}
+console.log('PASS: signed site-root hosting supports nested detail and return navigation without escaping the site');
+
 const media=[{getAttribute:()=> '../assets/methodology/scoring.png'},
  {getAttribute:()=> 'data:image/png;base64,AAAA'}];
 context.imageRoot={querySelectorAll:()=>media};

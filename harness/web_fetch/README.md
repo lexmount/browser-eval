@@ -347,3 +347,19 @@ Use short batches when the full provider suite exceeds the time window. The
 cannot change within it. Matching pre/post captures bounds observed drift but
 cannot rule out an unobserved intermediate change. Historical runs lacking this
 protocol remain dated observations and cannot be certified retroactively.
+
+### Main-document identity on declared navigation tasks
+
+When a body task declares `source_benchmark.risk_control.navigation_contract`,
+Moli uses the existing `fetch --dump json` final-DOM route, without network tracing.
+The same response binds `final_url`, HTTP status and HTML; the existing local
+Markdown conversion stays inside the call deadline. It adds no second fetch.
+Ordinary body tasks without that requirement retain native Markdown output.
+
+Legacy debug GET completion rows do not bind redirect request owners or Location
+headers. Their order, a challenge query hint, or the first completion after a
+navigation commit cannot prove a final document URL. Unassociated redirects are
+unavailable, while a non-redirect response matched to the requested navigation
+can supply its explicit final URL. Historical logs and outputs remain immutable.
+The changed route requires a new affected benchmark execution before claiming
+new scores or timings; local fixture validation is not a benchmark rerun.

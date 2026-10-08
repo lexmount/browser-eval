@@ -1276,49 +1276,105 @@
   ],
   "releases": [
     {
+      "id": "2026-10-07-risk-control-historical-presentation",
+      "comparison_kinds": [
+        "risk_control_100_moli"
+      ],
+      "date": "2026-10-07",
+      "title": "更新100例风控历史报告的说明与证据入口",
+      "summary": "保留100题历史结果、103次物理调用和31/100成绩。全部1,599项稳定文字均为必需；修正报告解读、网址识别与日志展示，没有新增供应商调用。历史证据缺少调用前后参考认证，本版不属于新的正式测评。",
+      "changes": [
+        [
+          "报告解读",
+          "通用文章包含本报告未测量的任务和方法。",
+          "改为本批100题的任务范围、必需文字规则和证据入口。",
+          "不再展示不适用的0任务比较。"
+        ],
+        [
+          "网址与日志",
+          "中文网址和百分号编码写法可能未被识别为同一请求；私有日志路径不适合线上报告。",
+          "按同次完整日志复核网址，公开页面指向已保存的公开日志；历史执行记录保持不变。",
+          "仅修正识别和展示，不改变历史评分、输出或耗时。"
+        ],
+        [
+          "证据限制",
+          "结果数量完整不能证明历史参考在调用前后未变化。",
+          "在页面明确标注历史结果未完成正式认证。",
+          "100题、103次物理调用和31/100成绩保持不变。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Update scope notes and evidence links for the 100-case historical risk-control report",
+          "summary": "Retain 100 historical results, 103 physical calls, and the 31/100 score. All 1,599 stable strings are required. Correct the report interpretation, URL identification, and log display without new provider calls. Historical evidence lacks before-and-after reference certification; this edition is not a new certified measurement.",
+          "changes": [
+            [
+              "Report interpretation",
+              "The generic article covered task families and methods absent from this report.",
+              "Explain the scope of these 100 tasks, required text rules, and evidence links.",
+              "Remove inapplicable comparisons with 0 tasks."
+            ],
+            [
+              "URLs and logs",
+              "Chinese URLs and their percent-encoded forms could fail to match; private log paths are unsuitable for a hosted report.",
+              "Recheck URLs against complete same-call logs and link public pages to retained public logs; preserve historical execution records.",
+              "Correct identification and display only, without changing historical scores, outputs, or latency."
+            ],
+            [
+              "Evidence limits",
+              "A complete result count does not prove that historical references remained unchanged before and after calls.",
+              "Label the pages as historical results without formal certification.",
+              "Retain 100 tasks, 103 physical calls, and the 31/100 score."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-09-29-risk-control-review-corrections",
+      "scoring_revision_input_sha256": "4dbcdbcc9232697b0420869c2dc46939e033999ec60ed0edcc4b9278a98209fb",
       "comparison_kinds": [
         "risk_control_100_moli"
       ],
       "date": "2026-09-29",
-      "title": "纠正100例风控评测的页面身份、字段与外围文字规则",
-      "summary": "复核100例风控评测后，最终网址改为正式通过条件，表格字段按声明类型校验，100份外部参考证据在正式调用前后完整核验；页面外围文字改为不影响通过的诊断项。同一批原始返回零调用重算仍为31/100，两题发生方向相反的纠正。",
+      "title": "纠正 100 例风控评测的页面身份、字段与完整页面规则",
+      "summary": "最终网址参与通过判定，表格字段按声明类型校验，1,599 项稳定文字全部必需。同一批历史返回离线重算仍为31/100，原报告100题结论不变；保留100个逻辑结果和103次物理调用。正式运行继续要求调用前后的100份参考文件认证，历史调用没有该认证，不补造。",
       "changes": [
         [
           "页面身份",
           "正文来自错误页面时仍可能通过，Markdown路线也没有登记同次调用的最终网址。",
           "从同次调用debug日志恢复最终网址，并与每题请求网址及独立观察网址核对；已观察到的错误页面计为失败。",
-          "risk-diverse-118由通过改为失败；没有增加网络调用。"
+          "完整日志显示 risk-diverse-118 最终到达声明文档，因此仍为通过；没有增加网络调用。"
         ],
         [
           "验收规则",
-          "表格只检查单元格非空，页面外围文字会否决核心内容正确的结果。",
-          "表格列按文本、整数、日期或版本等声明类型校验；页面外围文字只报告覆盖率，不参与通过。",
-          "risk-diverse-011恢复通过；100题最终成绩净值仍为31/100。"
+          "表格只检查单元格非空，且一度把已登记的导航、按钮和侧栏文字降为非必需诊断项。",
+          "表格列按文本、整数、日期或版本等声明类型校验；1,599 项稳定文字不按页面位置拆分，任一缺失都不能通过。",
+          "risk-diverse-011 因缺少“翻译”仍为失败；100 题最终成绩仍为31/100。"
         ],
         [
           "证据门禁",
-          "正式运行没有在调用前后证明全部100份外部参考文本存在且未变化。",
+          "正式运行没有在调用前后证明全部 100 份外部参考文本存在且未变化。",
           "运行器逐文件核对路径、哈希与字节数，并把前后完全一致的100题清单回执绑定到认证文件。",
           "原始参考文本继续留在Git外；PR不保存网站正文或供应商输出。"
         ]
       ],
       "i18n": {
         "en": {
-          "title": "Correct page identity, typed fields, and page-chrome rules for the 100-case risk-control benchmark",
-          "summary": "The 100-case risk-control audit now makes final-page identity a pass condition, validates table fields by declared type, verifies all 100 external reference files before and after a formal run, and reports page chrome as non-blocking diagnostics. Zero-call rescoring of the same outputs remains 31/100, with two opposite verdict corrections.",
+          "title": "Correct page identity, typed fields, and full-page rules for the 100-case risk-control benchmark",
+          "summary": "Final-page identity and typed table fields are acceptance conditions, and all 1,599 stable strings are required. Offline rescoring remains 31/100 with all 100 original verdicts unchanged, retaining 100 logical results and 103 physical calls. Formal runs still require verification of all 100 references before and after calls; historical calls lack that certification and it is not fabricated.",
           "changes": [
             [
               "Page identity",
               "Content from an unrelated page could pass, and the Markdown route did not record the same call's final URL.",
               "Recover the final URL from the same call's debug log and compare it with each task's requested and independently observed URL; an observed mismatch is a failure.",
-              "risk-diverse-118 changes from pass to fail without an additional network call."
+              "The complete log shows that risk-diverse-118 reaches the declared document, so it remains a pass without an additional network call."
             ],
             [
               "Acceptance rules",
-              "Tables only required non-empty cells, while missing page-chrome text could reject otherwise correct target content.",
-              "Validate table columns as declared text, integer, date, or version fields, and report page-chrome coverage without affecting task acceptance.",
-              "risk-diverse-011 returns to pass; the net score remains 31/100."
+              "Tables only required non-empty cells, and a draft revision demoted declared navigation, button, and sidebar strings to non-blocking diagnostics.",
+              "Validate table columns as declared text, integer, date, or version fields. Keep all 1,599 stable strings in one required contract regardless of page position.",
+              "risk-diverse-011 remains a failure because “Translate” is missing; the 100-case score remains 31/100."
             ],
             [
               "Evidence gate",

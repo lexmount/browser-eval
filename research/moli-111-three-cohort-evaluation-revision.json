@@ -8,15 +8,60 @@
     "historical_sha256": "2a149a7003a43ee4746bf1d11669154506a96172ddfe51f7abb9b2d547fba8b3",
     "revised_sha256": "57a138d2c79c9f107124cad3997a7350aa33e40cee3ac1137c5d627f1db098ce",
     "changes": [
-      {"case_id":"dynamic-057-nutui-jd-com-h5","field":"expected_document_language","value":"en","source_html_sha256":"d1bd723ad1eb1824cdf2be8aba7bb7cea0e6e10727e59637832f6d865480db47"},
-      {"case_id":"dynamic-059-layui-vue-com-zh","field":"expected_document_language","value":"en","source_html_sha256":"0515a90fde8f57e9661fcbafd01dfa89c0e4b957ae361e87bf201f3c53a3eb0f"},
-      {"case_id":"dynamic-058-zh-stable-tdesign-table","field":"expected_document_language","value":"en","source_html_sha256":"37a94443ad87172eb2157143bcefc57f6a51e929dcc6e3354d67f72612482493"},
-      {"case_id":"dynamic-019-selenium-dev-selenium","field":"expected_document_language_present","value":false,"source_html_sha256":"27093e054f88415861dfed19e73c253794d850d18cb87e2513a31ce772ae04b8"},
-      {"case_id":"dynamic-063-s-weibo-com-top","field":"expected_document_language_present","value":false,"source_html_sha256":"93051e8d95c5c9712123835ad763df9693392837a9dcdaf7870a3c77814f9867"},
-      {"case_id":"dynamic-029-029-primevue-basic-treetable","field":"expected_document_language_present","value":false,"source_html_sha256":"2b2e3112c62fcbca16e3359994cccb150534bf2019cee6a7b6d62d4690383106"},
-      {"case_id":"dynamic-030-030-primevue-basic-virtualscroller","field":"expected_document_language_present","value":false,"source_html_sha256":"bb3d0704028f0d886e92a97c472a05129ba2fe0273a2638dc0eba692766786db"},
-      {"case_id":"dynamic-046-en-real-hn-algolia","field":"expected_document_language_present","value":false,"source_html_sha256":"4a09de5a055500eb7427f4f8e48608c8fd600ec28b88fe3fedae0d6c8ce8c5bd"},
-      {"case_id":"dynamic-107-redoc-cafe-api","field":"expected_document_language_present","value":false,"source_html_sha256":"fef1769d7f4ff39f2d65d4ef0adcf603c40a56895b0f5bc6d1463be71dc997e5"}
+      {
+        "case_id": "dynamic-057-nutui-jd-com-h5",
+        "field": "expected_document_language",
+        "value": "en",
+        "source_html_sha256": "d1bd723ad1eb1824cdf2be8aba7bb7cea0e6e10727e59637832f6d865480db47"
+      },
+      {
+        "case_id": "dynamic-059-layui-vue-com-zh",
+        "field": "expected_document_language",
+        "value": "en",
+        "source_html_sha256": "0515a90fde8f57e9661fcbafd01dfa89c0e4b957ae361e87bf201f3c53a3eb0f"
+      },
+      {
+        "case_id": "dynamic-058-zh-stable-tdesign-table",
+        "field": "expected_document_language",
+        "value": "en",
+        "source_html_sha256": "37a94443ad87172eb2157143bcefc57f6a51e929dcc6e3354d67f72612482493"
+      },
+      {
+        "case_id": "dynamic-019-selenium-dev-selenium",
+        "field": "expected_document_language_present",
+        "value": false,
+        "source_html_sha256": "27093e054f88415861dfed19e73c253794d850d18cb87e2513a31ce772ae04b8"
+      },
+      {
+        "case_id": "dynamic-063-s-weibo-com-top",
+        "field": "expected_document_language_present",
+        "value": false,
+        "source_html_sha256": "93051e8d95c5c9712123835ad763df9693392837a9dcdaf7870a3c77814f9867"
+      },
+      {
+        "case_id": "dynamic-029-029-primevue-basic-treetable",
+        "field": "expected_document_language_present",
+        "value": false,
+        "source_html_sha256": "2b2e3112c62fcbca16e3359994cccb150534bf2019cee6a7b6d62d4690383106"
+      },
+      {
+        "case_id": "dynamic-030-030-primevue-basic-virtualscroller",
+        "field": "expected_document_language_present",
+        "value": false,
+        "source_html_sha256": "bb3d0704028f0d886e92a97c472a05129ba2fe0273a2638dc0eba692766786db"
+      },
+      {
+        "case_id": "dynamic-046-en-real-hn-algolia",
+        "field": "expected_document_language_present",
+        "value": false,
+        "source_html_sha256": "4a09de5a055500eb7427f4f8e48608c8fd600ec28b88fe3fedae0d6c8ce8c5bd"
+      },
+      {
+        "case_id": "dynamic-107-redoc-cafe-api",
+        "field": "expected_document_language_present",
+        "value": false,
+        "source_html_sha256": "fef1769d7f4ff39f2d65d4ef0adcf603c40a56895b0f5bc6d1463be71dc997e5"
+      }
     ]
   },
   "shared_scorer_followups": [
@@ -186,6 +231,51 @@
         "html-misplaced-title-missing-body-fails",
         "html-misplaced-title-visible-body-passes"
       ]
+    },
+    {
+      "root_cause": "Retire the diagnostic-only page_context_anchors scoring branch. Declared full-page anchors now use the shared required acceptance contract. Dynamic tasks do not declare page_context_anchors, so their task contracts remain unchanged.",
+      "provider_calls": 0,
+      "predecessor_source_sha256": "347723fc9556b8b6a202744314f9c822edd1e7213182b0af884133fc8b88984c",
+      "revised_sha256": "75faba6b48fc33d4dfbeea4b248037ccba060ade0e820f448c5e7ee9c1bd23ad",
+      "scoring_regressions_sha256": "e2c64c0f552731862403a88a86c4a6dcf5edcc7960ef555af46a24fdf437bc80",
+      "regression_ids": [
+        "html-doctype-hidden-challenge-is-not-visible",
+        "html-doctype-visible-challenge-still-blocks",
+        "html-inline-code-preserves-visible-anchor",
+        "html-hidden-script-cannot-satisfy-anchor",
+        "html-inline-code-counts-for-body-coverage",
+        "html-hidden-script-cannot-satisfy-body-coverage",
+        "html-visible-body-ignores-hidden-challenge-heading",
+        "html-hidden-script-cannot-inflate-visible-length",
+        "html-visible-challenge-heading-blocks-body",
+        "dynamic-undeclared-source-language-can-verify-identity",
+        "dynamic-undeclared-source-language-rejects-declared-language",
+        "long-metadata-title-keeps-visible-html-anchor",
+        "long-metadata-title-cannot-expose-script-anchor",
+        "html-inline-challenge-explanation-is-prose",
+        "html-independent-challenge-heading-still-blocks",
+        "combined-problem-cells-across-sections-pass",
+        "combined-problem-cells-cannot-omit-name",
+        "html-head-title-cannot-supply-body",
+        "html-body-anchor-with-head-title-passes",
+        "card-single-line-distinct-typed-fields-pass",
+        "card-unrelated-quantity-cannot-supply-typed-fields",
+        "metadata-title-body-anchor-missing-fails",
+        "metadata-title-body-anchor-visible-passes",
+        "metadata-title-body-coverage-missing-fails",
+        "metadata-title-body-coverage-visible-passes",
+        "metadata-title-composite-missing-fails",
+        "metadata-title-composite-visible-passes",
+        "legacy-title-marker-missing-fails",
+        "legacy-title-marker-visible-passes",
+        "legacy-title-pattern-missing-fails",
+        "legacy-title-pattern-visible-passes",
+        "html-misplaced-title-missing-body-fails",
+        "html-misplaced-title-visible-body-passes",
+        "declared-page-chrome-is-required-stable-text",
+        "missing-declared-page-chrome-fails-full-page-contract"
+      ],
+      "scope": "Scorer code and registry binding only; no new result recomputation or certification claimed."
     }
   ],
   "shared_scorer": {

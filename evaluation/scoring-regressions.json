@@ -21473,6 +21473,74 @@
     ,{"id":"legacy-title-pattern-missing-fails","category":"format-normalization","root_cause":"legacy_title_is_not_page_text","failure_mode":"false-positive","case":{"url":"https://example.test/order","task_kind":"body","required_patterns":[{"id":"order","pattern":"Order ID [0-9]+","minimum":1}]},"artifact":"Other text","title":"Order ID 123","ok":true,"expected_task_pass":false}
     ,{"id":"legacy-title-pattern-visible-passes","category":"format-normalization","root_cause":"legacy_title_is_not_page_text","failure_mode":"false-negative","case":{"url":"https://example.test/order","task_kind":"body","required_patterns":[{"id":"order","pattern":"Order ID [0-9]+","minimum":1}]},"artifact":"Order ID 123","title":"Other title","ok":true,"expected_task_pass":true}
     ,{"id":"html-misplaced-title-missing-body-fails","category":"format-normalization","root_cause":"html_head_is_not_body","failure_mode":"false-positive","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><title>Required body</title><p>Other text</p></body></html>","ok":true,"expected_task_pass":false}
-    ,{"id":"html-misplaced-title-visible-body-passes","category":"format-normalization","root_cause":"html_head_is_not_body","failure_mode":"false-negative","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><title>Required body</title><p>Required body</p></body></html>","ok":true,"expected_task_pass":true}
+    ,{"id":"html-misplaced-title-visible-body-passes","category":"format-normalization","root_cause":"html_head_is_not_body","failure_mode":"false-negative","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><title>Required body</title><p>Required body</p></body></html>","ok":true,"expected_task_pass":true},
+    {
+      "id": "declared-page-chrome-is-required-stable-text",
+      "category": "acceptance-contract",
+      "root_cause": "declared_full_page_stable_text_scope",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.org/",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.org"
+          ],
+          "entry_path": "/post/\\d+",
+          "stable_text_anchors": [
+            {
+              "id": "navigation",
+              "alternatives": [
+                "翻译"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "翻译\n[文章标题](https://example.org/post/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_anchor_hits": 1,
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "missing-declared-page-chrome-fails-full-page-contract",
+      "category": "acceptance-contract",
+      "root_cause": "declared_full_page_stable_text_scope",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.org/",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.org"
+          ],
+          "entry_path": "/post/\\d+",
+          "stable_text_anchors": [
+            {
+              "id": "navigation",
+              "alternatives": [
+                "翻译"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[文章标题](https://example.org/post/1)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_anchor_hits": 0,
+        "stable_complete_record_count": 1
+      }
+    }
   ]
 }

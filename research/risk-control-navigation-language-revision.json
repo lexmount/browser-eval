@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "kind": "risk_control_navigation_locale_equivalence_revision",
+  "case_id": "risk-diverse-153",
+  "predecessor_revision": "research/risk-control-full-page-rule-revision.json",
+  "independent_observation": {
+    "source": "independent reviewer browser observation",
+    "reviewer": "lanyue-llk",
+    "checked_on": "2026-10-08",
+    "source_url": "https://github.com/lexmount/browser-eval/pull/39#discussion_r4214573453",
+    "page_url": "https://www.lznoip.club/training/66358a5906b752f133d95f9f",
+    "scope": "Language → English; visible navigation; Chinese title and 26 complete rows retained",
+    "local_recapture": "Cerberus prevented this session from viewing the training content; equivalence evidence is the explicitly attributed independent review, not a claimed local capture."
+  },
+  "correction": {
+    "predecessor_dataset_sha256": "18540c639ceb6eb8cdcb5797698cf09be8962d1af502b9a76b3adddedfdabf20",
+    "predecessor_run_profile_sha256": "3eae587efbf834329c5ed023d8ebeaa6fde52febfc90fb0e83fc519e02a0e0c7",
+    "new_dataset_sha256": "d0d038bae0114be107116edd94e501996ba6cda852ac29244c089e15a3e37437",
+    "new_run_profile_sha256": "079d0a171a040dd56342ba737ad9279710bd18a44aefdd23f2208e00c03cc2f1",
+    "provider_calls": 0,
+    "unchanged_case_count": 100,
+    "unchanged_stable_anchor_count": 1600,
+    "equivalent_ui_alternatives_added": {
+      "stable-07": "Home",
+      "stable-08": "Problem Set",
+      "stable-09": "Training",
+      "stable-10": "Contest",
+      "stable-11": "Record",
+      "stable-12": "Ranking",
+      "stable-13": "Login",
+      "stable-14": "Sign Up"
+    },
+    "results_recomputed": false
+  },
+  "tests": [
+    "test_training_page_accepts_the_visible_english_ui_without_dropping_chinese_content",
+    "test_complete_list_passes_public_scorer",
+    "test_complete_training_list_cannot_omit_declared_navigation"
+  ]
+}

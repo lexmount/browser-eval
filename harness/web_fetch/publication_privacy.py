@@ -1,5 +1,7 @@
 """Project supplemental raw HTML for publication without changing scored evidence."""
 import hashlib
+import html
+import json
 import re
 from pathlib import PurePosixPath
 from urllib.parse import unquote_plus
@@ -29,7 +31,7 @@ SENSITIVE_KEY = (
     rb'(?:aws[-_])?secret[-_]?access[-_]?key|client[-_]?secret|secret|credentials?|'
     rb'x[-_]?api[-_]?key|api[-_]?key|password|passwd))'
 )
-EMBEDDED_URL = re.compile(r"(?i)\bhttps?://[^\s<>\"'\x00]+")
+EMBEDDED_URL = re.compile(r"(?i)\bhttps?://[^\s<>\"'\\\x00]+")
 QUERY_SENSITIVE_KEY = re.compile(
     r'(?i)(?:' + SENSITIVE_KEY.decode('ascii') +
     r'|(?:[a-z0-9]+[-_])*(?:signature|sig|signed|auth|key)|'
@@ -54,7 +56,7 @@ REDACTIONS = (
 )
 
 
-def redact_url_queries(text):
+def _redact_plain_url_queries(text):
     """Redact sensitive parameters in URLs embedded in diagnostic prose."""
     replacements = 0
 
@@ -83,6 +85,34 @@ def redact_url_queries(text):
     return EMBEDDED_URL.sub(redact_url, text), replacements
 
 
+_JSON_STRING = re.compile(r'"(?:\\.|[^"\\\x00-\x1f])*"')
+
+
+def redact_url_queries(text):
+    """Decode JSON string escapes before checking URLs; preserve clean bytes."""
+    parts = []
+    cursor = 0
+    replacements = 0
+    for match in _JSON_STRING.finditer(text):
+        prefix, count = _redact_plain_url_queries(text[cursor:match.start()])
+        parts.append(prefix)
+        replacements += count
+        raw = match.group()
+        try:
+            decoded = json.loads(raw)
+        except json.JSONDecodeError:
+            projected, count = _redact_plain_url_queries(raw)
+        else:
+            projected, count = _redact_plain_url_queries(decoded)
+            projected = json.dumps(projected, ensure_ascii=True) if count else raw
+        parts.append(projected)
+        replacements += count
+        cursor = match.end()
+    suffix, count = _redact_plain_url_queries(text[cursor:])
+    parts.append(suffix)
+    return ''.join(parts), replacements + count
+
+
 def auth_matches(data):
     """Return bounded sensitive-field matches, independent of auth scheme."""
     if (PUBLIC_AUTH_EXAMPLE.fullmatch(data.strip())
@@ -103,13 +133,14 @@ def auth_matches(data):
 
 def publication_risk(data):
     """Return a public-bundle risk class without exposing the matched value."""
-    if GOOGLE_KEY.search(data) or OTHER_SECRET.search(data):
+    decoded=html.unescape(data.decode('utf-8',errors='surrogateescape')).encode('utf-8',errors='surrogateescape')
+    if GOOGLE_KEY.search(decoded) or OTHER_SECRET.search(decoded):
         return 'credential-shaped value'
-    if auth_matches(data):
+    if auth_matches(decoded):
         return 'sensitive field value'
-    if redact_url_queries(data.decode('utf-8', errors='surrogateescape'))[1]:
+    if redact_url_queries(decoded.decode('utf-8', errors='surrogateescape'))[1]:
         return 'sensitive URL query value'
-    if LOCAL_USER_PATH.search(data):
+    if LOCAL_USER_PATH.search(decoded):
         return 'machine-local user path'
     return None
 
@@ -121,6 +152,21 @@ def project_file(name, data):
         raise ValueError('Private evidence is not publishable: ' + name)
     if any(part.startswith('.') for part in path.parts):
         raise ValueError('Private/hidden file is not publishable: ' + name)
+    original = data
+    inline_replacements = 0
+    inline_kinds = set()
+    if name.endswith(('.html', '.html.txt')):
+        def project_pre(match):
+            nonlocal inline_replacements
+            body = html.unescape(match[2].decode('utf-8', errors='surrogateescape'))
+            projected, receipt = project_file(name + '.inline.json', body.encode('utf-8', errors='surrogateescape'))
+            if receipt is None:
+                return match[0]
+            inline_replacements += receipt['replacements']
+            inline_kinds.update(receipt['kinds'])
+            safe = html.escape(projected.decode('utf-8', errors='surrogateescape'), quote=False)
+            return match[1] + safe.encode('utf-8', errors='surrogateescape') + match[3]
+        data = re.sub(rb'(<pre\b[^>]*>)(.*?)(</pre>)', project_pre, data, flags=re.I | re.S)
     if OTHER_SECRET.search(data):
         raise ValueError('Potential credential-shaped value in publication file: ' + name)
     google_matches = list(GOOGLE_KEY.finditer(data))
@@ -128,7 +174,7 @@ def project_file(name, data):
     local_matches = list(LOCAL_USER_PATH.finditer(data))
     url_projected, url_replacements = redact_url_queries(
         data.decode('utf-8', errors='surrogateescape'))
-    if not google_matches and not sensitive_matches and not local_matches and not url_replacements:
+    if not google_matches and not sensitive_matches and not local_matches and not url_replacements and not inline_replacements:
         return data, None
     projected = GOOGLE_KEY.sub(b'[REDACTED_GOOGLE_API_KEY]',
                                url_projected.encode('utf-8', errors='surrogateescape'))
@@ -137,10 +183,10 @@ def project_file(name, data):
     projected = LOCAL_USER_PATH.sub(b'/[REDACTED_USER]/', projected)
     categories = []
     kinds = []
-    if google_matches or sensitive_matches or url_replacements:
+    if google_matches or sensitive_matches or url_replacements or "credential" in inline_kinds:
         categories.append('credential-shaped strings in public source or measured content')
         kinds.append('credential')
-    if local_matches:
+    if local_matches or "local_path" in inline_kinds:
         categories.append('machine-local user paths')
         kinds.append('local_path')
     return projected, {
@@ -148,9 +194,9 @@ def project_file(name, data):
         'kinds': kinds,
         'reason': '; '.join(categories),
         'replacements': len(google_matches) + len(sensitive_matches) + len(local_matches)
-                        + url_replacements,
-        'original_sha256': hashlib.sha256(data).hexdigest(),
+                        + url_replacements + inline_replacements,
+        'original_sha256': hashlib.sha256(original).hexdigest(),
         'published_sha256': hashlib.sha256(projected).hexdigest(),
-        'original_bytes': len(data),
+        'original_bytes': len(original),
         'published_bytes': len(projected),
     }

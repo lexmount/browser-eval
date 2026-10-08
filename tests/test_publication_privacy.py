@@ -13,10 +13,65 @@ import zipfile
 from bs4 import BeautifulSoup
 
 from harness.web_fetch.publication_privacy import project_file, publication_risk
-from scripts.check_publication_bundle import scored_output_hash
+from scripts.check_publication_bundle import scored_output_hash, check as check_bundle
 
 
 class PublicationPrivacyTests(unittest.TestCase):
+    def test_json_url_redaction_preserves_escaped_quotes_and_line_boundaries(self):
+        value = {'log': 'src="https://example.test/map?signature=secret"\n下一行\u2028正文'}
+        original = (json.dumps(value, ensure_ascii=True) + '\n').encode()
+        projected, receipt = project_file('results.jsonl', original)
+        self.assertEqual(len(projected.splitlines()), 1)
+        self.assertEqual(json.loads(projected)['log'],
+                         'src="https://example.test/map?signature=[REDACTED]"\n下一行\u2028正文')
+        self.assertIsNotNone(receipt)
+        self.assertNotIn(b'secret', projected)
+        self.assertEqual(json.loads(original), value)
+
+    def test_json_escaped_url_queries_are_scanned_and_projected(self):
+        for url in (
+            'https://example.org/新闻?token=REVIEW_SECRET_123',
+            'https://example.org/path?\u0074oken=REVIEW_SECRET_123',
+            'https://example.org/path?token=值_REVIEW_SECRET_123',
+        ):
+            for slash_escape in (False, True):
+                with self.subTest(url=url, slash_escape=slash_escape):
+                    raw = (json.dumps({'url': url, 'note': 'next "line"\n正文'}, ensure_ascii=True)+'\n').encode()
+                    if slash_escape:
+                        raw=raw.replace(b'/',b'\\/')
+                    self.assertEqual(publication_risk(raw), 'sensitive URL query value')
+                    projected, receipt=project_file('results.jsonl',raw)
+                    self.assertNotIn(b'REVIEW_SECRET_123',projected)
+                    self.assertIsNotNone(receipt)
+                    self.assertIsNone(publication_risk(projected))
+                    self.assertEqual(json.loads(projected)['note'],'next "line"\n正文')
+                    self.assertIn('[REDACTED]',json.loads(projected)['url'])
+                    self.assertEqual(len(projected.splitlines()),1)
+        clean=(json.dumps({'url':'https://example.org/新闻?category=公开'},ensure_ascii=True)+'\n').encode()
+        self.assertIsNone(publication_risk(clean))
+        self.assertEqual(project_file('results.jsonl',clean),(clean,None))
+
+    def test_json_escaped_parameter_name_cannot_bypass_url_scan(self):
+        raw=br'{"url":"https:\/\/example.org/\u65b0?\u0074oken=REVIEW_SECRET_123"}'
+        self.assertEqual(publication_risk(raw),'sensitive URL query value')
+        projected, receipt=project_file('metadata.json',raw)
+        self.assertEqual(json.loads(projected)['url'],'https://example.org/新?token=[REDACTED]')
+        self.assertEqual(receipt['replacements'],1)
+        self.assertIsNone(publication_risk(projected))
+
+    def test_entity_escaped_inline_fields_are_scanned_and_projected(self):
+        original=(b'<html><pre data-kind="metadata">{&quot;records&quot;: 26}</pre>'
+                  b'<pre data-kind="metadata">{&quot;access_token&quot;: &quot;canary-private-123&quot;}</pre></html>')
+        self.assertEqual(publication_risk(original),'sensitive field value')
+        projected, receipt=project_file('attempts/p__case.html',original)
+        self.assertNotIn(b'canary-private-123',projected)
+        self.assertIsNone(publication_risk(projected))
+        self.assertEqual(receipt['replacements'],1)
+        soup=BeautifulSoup(projected,'html.parser')
+        self.assertEqual(json.loads(soup.select('pre')[0].text),{'records':26})
+        self.assertEqual(json.loads(soup.select('pre')[1].text),{'access_token':'[REDACTED]'})
+        self.assertIn(b'canary-private-123',original)
+
     def test_scored_bundle_requires_an_output_hash(self):
         self.assertEqual(scored_output_hash({'output_sha256': 'hash'}), 'hash')
         self.assertEqual(scored_output_hash({'metrics': {'content_sha256': 'fallback'}}), 'fallback')
@@ -172,6 +227,7 @@ class PublicationPrivacyTests(unittest.TestCase):
                 "window.addEventListener('DOMContentLoaded',initReport);\n"
             )
             (source / '.generated-report').write_text('local marker')
+            (source / 'dataset.json').write_text('{}')
             (source / 'reliability.json').write_text('{"complete":true}')
             (source / 'result-review.json').write_text('{"status":"passed","failures":[]}')
             call_logs=[b'{"event":"failed"}\n',b'{"event":"complete"}\n']
@@ -184,6 +240,7 @@ class PublicationPrivacyTests(unittest.TestCase):
                                           'bytes':len(call_log)})
             record = {'attempt_id': 'browser__case__r001', 'case_id': 'case',
                       'artifact_path': 'artifacts/browser/case/run-001.txt',
+                      'output_sha256':hashlib.sha256(b'actual output').hexdigest(),
                       'provider_metadata': {'route':'markdown',
                                             'raw_response_path':'private_artifacts/secret.bin',
                                             'retry':{'attempts':[{'call_log':binding}
@@ -191,6 +248,7 @@ class PublicationPrivacyTests(unittest.TestCase):
                                             'call_log':call_log_bindings[-1]}}
             file_record = {'attempt_id': 'browser__file-case__r001', 'case_id': 'file-case',
                            'artifact_path': 'artifacts/browser/file-case/run-001.txt',
+                           'output_sha256':hashlib.sha256(b'').hexdigest(),
                            'provider_metadata': {}}
             results = json.dumps(record) + '\n' + json.dumps(file_record) + '\n'
             (source / 'results.jsonl').write_text(results)
@@ -213,7 +271,9 @@ class PublicationPrivacyTests(unittest.TestCase):
                 '<pre data-kind="call-log">{"event":"complete"}</pre></dialog></body></html>')
             (source / 'attempts/browser__file-case__r001.html').write_text(
                 '<html><body><h2>目标文件与实际返回</h2>'
-                '<pre data-kind="metadata">{}</pre></body></html>')
+                '<pre data-kind="metadata">{"field":"parsed"}</pre>'
+                '<pre data-kind="metadata">{&quot;access_token&quot;:&quot;canary-private-123&quot;}</pre>'
+                '<pre data-kind="metadata">{"field":"response"}</pre></body></html>')
             (source / 'datasets/md-case.html').write_text(
                 '<html><body><h2>Source metadata</h2><pre>{"level":"hard"}</pre>'
                 '<h2>Official human ground truth</h2><pre>markdown ground truth</pre></body></html>')
@@ -263,8 +323,9 @@ class PublicationPrivacyTests(unittest.TestCase):
                     return data
                 for name in manifest['files']:
                     self.assertNotIn(key, unpack(name))
+                    self.assertNotIn(b'canary-private-123',unpack(name))
                 privacy = json.loads(unpack('publication-privacy.json'))
-                self.assertEqual(len(privacy['files']), 1)
+                self.assertGreaterEqual(len(privacy['files']), 1)
                 self.assertNotIn(b'publication-privacy.json', unpack('index.html'))
                 self.assertNotIn('接口账号使用占位符'.encode(), unpack('index.html'))
                 article = unpack('guide/article.html')
@@ -286,6 +347,13 @@ class PublicationPrivacyTests(unittest.TestCase):
                 self.assertIn(f'data-file="references/{unusual_case}.txt"'.encode(), unusual_page)
                 self.assertNotIn(b'>literal backslash reference</pre>', unusual_page)
                 self.assertNotIn('.generated-report', manifest['files'])
+                file_attempt = unpack('attempts/browser__file-case__r001.html')
+                self.assertIn(b'{"field":"parsed"}', file_attempt)
+                self.assertIn(b'{"field":"response"}', file_attempt)
+            check_bundle(root / 'publish/webfetch-sites.zip',source)
+            (source / 'results.jsonl').write_text(results.replace('"route": "markdown"', '"route": "changed"'))
+            with self.assertRaisesRegex(ValueError, 'results differ from the current source'):
+                check_bundle(root / 'publish/webfetch-sites.zip', source)
 
 
 if __name__ == '__main__':
