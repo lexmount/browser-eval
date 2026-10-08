@@ -272,10 +272,62 @@ for (const extra of [false, true]) {
   }
 }
 
+for (const lang of languages) {
+  const registryTitle = render({ functional_methods: [
+    { label_en: "Moli 2.0.0 · layout off" },
+    { label_en: "Moli 2.1.0 · layout off" },
+    { label_en: "Moli 2.1.0 · layout on" },
+  ] }, lang, "reportTitle()");
+  assert.ok(registryTitle.includes("Moli 2.0.0 / 2.1.0"));
+  assert.ok(!registryTitle.includes("1.1.9"));
+}
+
 if (site) {
   const measured = JSON.parse(
     fs.readFileSync(path.join(site, "data/model.json"), "utf8"),
   );
+  for (const lang of languages) {
+    for (const [off, on, official, layoutNet, versionNet] of [
+      [4, 2, 3, -2, -1], [1, 4, 2, 3, 2], [2, 2, 2, 0, 0],
+    ]) {
+      const compared = {
+        ...measured,
+        fixed_candidates: { "119_off": {}, "119_on": {}, "119_official_on": {} },
+        functional_methods: [
+          ...measured.functional_methods.filter((m) => !m.id.startsWith("119_")),
+          ...[["119_off", off], ["119_on", on], ["119_official_on", official]].map(([id, count]) => ({
+            id, label: id, label_en: id, policy: id.endsWith("_off") ? "fixed_off" : "fixed_on",
+            final_passed_cases: count, direct_cases: 372, inherited_cases: 0,
+          })),
+        ],
+        fixed_case_outcomes: Array.from({ length: 372 }, (_, i) => ({
+          id: `direction-${i}`,
+          passes: { "119_off": i < off ? 3 : 0,
+            "119_on": (off === 2 && on === 2 && official === 2 ? i >= 2 && i < 4 : i < on) ? 3 : 0,
+            "119_official_on": i < official ? 3 : 0 },
+        })),
+        macos_resource: null, official_resource: null, linux_resource_profiles: null,
+      };
+      const html = render(compared, lang, "guidePage()");
+      for (const [from, net] of [["119_off", layoutNet], ["119_official_on", versionNet]]) {
+        const marker = `data-relation-from="${from}" data-relation-to="119_on" data-relation-net="${net}"`;
+        assert.ok(html.includes(marker));
+        const finding = html.slice(html.indexOf(marker)).split("</p>")[0];
+        const signedNet = (net >= 0 ? "+" : "") + net;
+        assert.ok(finding.includes(lang === "zh" ? `净变化 ${signedNet} 题` : `net change ${signedNet} cases`));
+        if (off === 2 && on === 2 && official === 2) {
+          assert.ok(finding.includes(lang === "zh" ? "新增通过 2 题，退步 2 题" : "2 cases gained, 2 lost"));
+        }
+      }
+      if (versionNet < 0) assert.ok(html.includes("#page=fixed%2Fdirection-2"));
+      assert.ok(!html.includes(lang === "zh" ? "固定开启布局显著扩大" : "Fixed layout on substantially expands"));
+    }
+    const linuxIntro = render({ ...measured, linux_resource_profiles: {} }, lang, "reproduceIntro()");
+    assert.ok(linuxIntro.includes("Linux"));
+    assert.ok(!linuxIntro.includes("macOS"));
+    const macIntro = render({ ...measured, linux_resource_profiles: null, macos_resource: {} }, lang, "reproduceIntro()");
+    assert.ok(macIntro.includes("macOS"));
+  }
   for (let lang of languages) {
     for (let page of [
       "home()",

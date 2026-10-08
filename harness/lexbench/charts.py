@@ -31,6 +31,11 @@ def combine_comparisons(methods: list[dict], historical: dict, current: dict | N
             for row in (current or {}).get("configurations", [])
         }
     )
+    missing = [method["id"] for method in methods if method["id"] not in sources]
+    if missing:
+        raise ValueError(
+            "Registered configurations lack resource measurements: " + ", ".join(missing)
+        )
     baseline = sources[historical["baseline"]][0]
     rows = []
     for index, method in enumerate(methods):

@@ -8,6 +8,16 @@ from harness.lexbench import charts as MODULE
 
 
 class MoliVersionResourceChartTests(unittest.TestCase):
+    def test_registered_method_without_resource_measurement_has_a_clear_error(self):
+        historical = {**self.data, "baseline": "114_off"}
+        methods = [
+            {**item, "final_passed_cases": item["passed_cases"]}
+            for item in historical["configurations"]
+        ]
+        methods.append({"id": "unmeasured", "final_passed_cases": 1})
+        with self.assertRaisesRegex(ValueError, "resource.*unmeasured"):
+            MODULE.combine_comparisons(methods, historical, None)
+
     def test_linux_release_results_use_one_baseline_and_keep_point_labels(self):
         historical = {**self.data, "baseline": "114_off"}
         row = {

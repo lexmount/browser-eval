@@ -1,13 +1,11 @@
-# Moli compatibility and resource comparison
+# 阅读与复现报告
 
-The report compares seven fixed configurations: Moli 1.1.4 with layout off, Moli 1.1.8 with layout off and on, Moli 1.1.9 with layout off and on, and patched Moli 1.1.9 with layout off and on. Success rates use the same 372 cases failed by Moli 0.1.1. A case passes only when all three attempts pass. Moli 1.1.4 uses a direct check of the sole candidate and 371 inherited failures, explicitly identified in the report.
+通过静态 HTTP 服务打开 `index.html`。`data/model.json` 记录本报告的配置、任务范围、执行次数和证据索引；通过率与资源消耗使用各自声明的样本范围。逐题页面提供验收规则、实际输出、程序错误和日志。
 
-Resources use a separate 557-task experiment, five calls per task. Each configuration has 2,785 measured calls, paired with the official profiler-off calibration. The chart and overview table use the 1,045-call, 209-task population frozen before execution; the detailed tables also report all 557 tasks. Passing and failing calls remain in both declared populations.
+默认生成中文。`report-languages.json` 记录实际生成的语言；英文未生成时，英文入口显示提示并提供返回链接。显式生成双语时，两种语言共用同一份结果与证据。
 
-All seven resource configurations run in Docker Linux on the Mac host, using Linux ARM64 release binaries and process-tree PSS and CPU measurements. Resource changes use Moli 1.1.4 with layout off as the baseline. Success-rate changes use percentage points. Functional results retain their own binary identities; patched functional outcomes use commit 87c87e95, while patched resource measurements use the f315ff26 release build. The report does not treat these resource runs as new accuracy measurements.
+功能结果与资源测量分别绑定构建身份。核对报告中的二进制哈希和实验条件后再使用结果；不同平台的内存口径分别比较。
 
-Open index.html through a static HTTP server. Chinese is the default edition; `report-languages.json` identifies the generated editions. When English is generated explicitly, both editions share the same report model and evidence. Otherwise the English entry opens a notice with a return link. Charts are rendered by the included Python script; memory and CPU panels can be selected independently. Per-task results retain exact program errors and sanitized grader, output, and protocol logs.
+`reproduction/run.py` 使用 Browser Eval 的共享库。先在源码仓库运行 `uv sync --frozen`，再用该环境运行下载的脚本。用 `--help` 查看所需参数；脚本默认读取旁边的 `cohort.json` 和 `protocol.json`，也可显式指定它们。
 
-New benchmark runs select a fixed `--moli-layout off` (default) or `--moli-layout on` for every attempt. Failed cases keep the selected layout and repetition count. The harness does not schedule layout recovery or replace results from a second batch.
-
-复现入口 `reproduction/run.py` 使用 Browser Eval 的共享库。先在源码仓库执行 `uv sync --frozen`，再用该环境运行下载的脚本。默认读取脚本旁的 `cohort.json` 和 `protocol.json`；也可用 `--cohort`、`--protocol` 指定冻结文件。先用 `--help` 查看所需运行环境；不加 `--execute` 时只校验输入并打印命令。
+复现需要自行准备冻结协议指定的容器镜像、浏览器二进制、驱动输入和依赖。脚本核对输入哈希后打印命令；加 `--execute` 才实际执行。每次执行使用新输出目录，保留原始结果及证书。

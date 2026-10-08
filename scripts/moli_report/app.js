@@ -57,7 +57,6 @@ const D = {
     back: "返回逐题结果",
     close: "关闭",
     unavailable: "未提供",
-    title: "Moli 1.1.4 / 1.1.8 / 1.1.9 · 成功率与资源对比",
     start: "查看逐题结果",
     method: "查看方法",
     metricNote:
@@ -68,7 +67,7 @@ const D = {
     observed: "观测到的采样最大值",
     filterFail: "涉及失败或变化",
     methodIntro:
-      "题目与验收预先冻结，同一构建的两种布局配置只相差是否启用 --layout。默认模式使用低成本模拟几何；--layout 启用按需真实布局，并非持续绘制。可选图片等资源抓取由另一开关控制，未改变。1.1.9 的每个固定配置各测一轮资源，557 题各五次；372 题成功率另测，每题三次。",
+      "题目与验收预先冻结，同一构建的两种布局配置只相差是否启用 --layout。默认模式使用低成本模拟几何；--layout 启用按需真实布局，并非持续绘制。可选图片等资源抓取由另一开关控制，未改变。功能与资源独立测量，任务范围和执行次数分别见对应配置表。",
     analysisIntro: "按相同任务与执行次数配对。成功变化和资源代价分开解读。",
     guideIntro:
       "从 Agent 使用者角度，先看能否完成，再看失败等待和完成任务的资源。",
@@ -132,7 +131,6 @@ const D = {
     back: "Back to task results",
     close: "Close",
     unavailable: "Unavailable",
-    title: "Moli 1.1.4 / 1.1.8 / 1.1.9 · Compatibility and resources",
     start: "Explore task results",
     method: "Read methodology",
     metricNote:
@@ -143,7 +141,7 @@ const D = {
     observed: "Observed sampled maximum",
     filterFail: "Failures or changes",
     methodIntro:
-      "Task contracts were frozen in advance. Within each build, the two layout configurations differ only in Moli's --layout flag. The default uses low-cost mock geometry; --layout enables real geometry on demand rather than continuous painting. Optional image and media fetching is a separate control and was unchanged. Each fixed 1.1.9 configuration has one 557-task resource run with five calls per task. Success is measured separately on 372 cases with three calls per task.",
+      "Task contracts were frozen in advance. Within each build, the two layout configurations differ only in Moli's --layout flag. The default uses low-cost mock geometry; --layout enables real geometry on demand rather than continuous painting. Optional image and media fetching is a separate control and was unchanged. Functional and resource experiments declare their task populations and attempt counts separately in the configuration tables.",
     analysisIntro:
       "Pair the same task and attempt. Outcome changes and resource costs are interpreted separately.",
     guideIntro:
@@ -222,32 +220,29 @@ const metricPopulation = () =>
   zh
     ? `全部 ${M.attempts_per_mode} 次调用，成功与失败都计入；平均、P50 和 P95 使用同一组调用。`
     : `All ${M.attempts_per_mode} predeclared calls, including failures; Mean, P50 and P95 use the same population.`;
-const reportSubtitle = () =>
-  Object.keys(M.fixed_candidates || {}).length
-    ? zh
-      ? `比较 ${M.functional_methods.length} 种固定配置在 ${M.task_count} 个所选用例上的成功率，并展示独立资源实验。`
-      : `Compare ${M.functional_methods.length} fixed configurations on ${M.task_count} selected cases, with separate resource experiments.`
-    : zh
-      ? `比较 Moli 1.1.4 关闭布局、1.1.8 关闭布局与 1.1.8 开启布局对 ${M.task_count} 个所选用例的恢复情况，并配套展示独立资源实验。`
-      : `Compare recovery of ${M.task_count} selected cases with Moli 1.1.4 layout off, Moli 1.1.8 layout off and Moli 1.1.8 layout on, with a separate resource experiment.`;
-const reportVersion = () =>
-  Object.keys(M?.fixed_candidates || {}).length
-    ? "Moli 1.1.4 / 1.1.8 / 1.1.9"
-    : "Moli 1.1.4 / 1.1.8";
-const reportTitle = () =>
-  Object.keys(M?.fixed_candidates || {}).length
-    ? zh
-      ? `${reportVersion()} · 成功率与资源对比`
-      : `${reportVersion()} · Compatibility and resources`
-    : T.title;
+const reportSubtitle = () => zh
+  ? `比较 ${M.functional_methods.length} 种固定配置在 ${M.task_count} 个所选用例上的成功率，并展示独立资源实验。`
+  : `Compare ${M.functional_methods.length} fixed configurations on ${M.task_count} selected cases, with separate resource experiments.`;
+const reportVersion = () => {
+  const versions = [...new Set((M?.functional_methods || []).flatMap((method) =>
+    [...(method.label_en || method.label || "").matchAll(/Moli\s+(\d+\.\d+\.\d+)/g)].map((match) => match[1]),
+  ))];
+  return versions.length ? `Moli ${versions.join(" / ")}` : "Moli";
+};
+const reportTitle = () => zh
+  ? `${reportVersion()} · 成功率与资源对比`
+  : `${reportVersion()} · Compatibility and resources`;
 const datasetIntro = () =>
   zh
     ? `依据 Moli 0.1.1 原始结果选取全部 372 个失败用例，覆盖 15 类驱动；不使用结果决定入选。`
     : `All 372 cases selected from Moli 0.1.1 failures are included across 15 driver types, without selection based on current outcomes.`;
-const reproduceIntro = () =>
-  zh
-    ? `所选用例测试和独立的 557 题资源实验均为诊断实验，不计入完整 1,928 题正式分数。1.1.8 直接覆盖 372 题；1.1.4 使用唯一差异候选题验证。三种固定配置使用 Moli 1.1.4 / 1.1.8 Linux aarch64 发行版；1.1.9 的资源实验均使用 macOS arm64 release 构建。修复版成功率沿用 87c87e95 构建，资源使用 f315ff26 release；两类实验分别绑定二进制 SHA-256。`
-    : `The selected-case evaluation and separate 557-task resource experiment are diagnostic and excluded from the formal 1,928-case score. Moli 1.1.8 directly covers all 372 cases; Moli 1.1.4 uses the sole differential candidate. The three fixed configurations use Moli 1.1.4 / 1.1.8 Linux aarch64 releases. All 1.1.9 resource configurations use macOS arm64 release builds. Patched functional outcomes retain build 87c87e95; resources use release build f315ff26. The two experiments bind their binary hashes separately.`;
+const reproduceIntro = () => {
+  const platforms = M.linux_resource_profiles ? "Linux" :
+    M.macos_resource || M.official_resource ? "Linux / macOS" : "Linux";
+  return zh
+    ? `${M.task_count} 个功能用例；直接测试的用例每题记录 ${M.protocol.k_runs} 次执行。各配置实际测试的范围和沿用既有证据的范围见表。本报告为诊断实验。资源测量环境：${platforms}。功能和资源测试各自记录浏览器的二进制哈希；通过率对应功能测试使用的构建。`
+    : `${M.task_count} functional cases; directly tested cases have ${M.protocol.k_runs} recorded attempts each. The configuration table identifies directly tested cases and verdicts retained from existing evidence. This is a diagnostic experiment. Resource environments: ${platforms}. Functional and resource experiments bind their binary identities separately; success rates apply to the corresponding functional build.`;
+};
 const ms = (v) =>
   v === null || v === undefined
     ? "—"
@@ -356,19 +351,9 @@ function combinedSummaryChart() {
   return `<figure class="summary-chart" data-combined-chart><img src="${base}assets/${chart}" alt="${esc(zh ? `${M.functional_methods.length} 种固定配置的成功率与资源，顺序与总表一致，以 1.1.4 关闭布局为基线` : `${M.functional_methods.length} fixed configurations, aligned with the summary table; baseline: 1.1.4 layout off`)}"></figure>`;
 }
 function resourceBuildNote() {
-  const measurement = M.linux_resource_profiles
-    ? zh
-      ? "资源均使用 Linux ARM64 release 构建，统一测量 PSS 与 CPU。"
-      : "Resources use Linux ARM64 release builds with consistent PSS and CPU measurements. "
-    : zh
-      ? "资源均为 release 构建；macOS RSS 与 Linux PSS 分开比较。"
-      : "Resources use release builds; macOS RSS and Linux PSS are compared separately. ";
-  return (
-    measurement +
-    (zh
-      ? "修复版成功率来自 87c87e95，资源来自 f315ff26；构建身份见评测方法。"
-      : "Patched success uses 87c87e95 and resources use f315ff26; see the method page for build identities.")
-  );
+  return zh
+    ? "资源按执行环境分别比较。功能和资源测试各自记录浏览器构建；通过率对应功能测试使用的构建，哈希和证据见评测方法。"
+    : "Resources are compared within each execution environment. Functional and resource experiments bind build identities separately; success rates apply to the corresponding functional build. See the method page for build identities and evidence.";
 }
 function macosResourceMethods() {
   let result = [];
@@ -1178,7 +1163,7 @@ F --> G</pre></div>`,
     section(
       zh ? "执行与证据" : "Execution and evidence",
       "",
-      `<p>${esc(zh ? "资源实验全局同时只执行一次任务调用。修复版功能结果来自 87c87e95 debug 构建，资源来自 f315ff26 release 构建；成功率仅适用于对应的功能构建。任务定义、程序判定、标准输出与错误日志可从逐题详情检查。未进行独立人工逐次复核。" : "The resource experiment executes one task call globally at a time. Patched functional outcomes use the 87c87e95 debug build; resources use the f315ff26 release build. Success applies to the functional build only. Task definitions, program verdicts, stdout and error logs are available in task details. No independent per-call human review was performed.")}</p><a href="${link("reproduce")}">${esc(T.nav.reproduce)}</a>`,
+      `<p>${esc(zh ? "资源实验全局同时只执行一次任务调用。功能与资源分别绑定构建身份；成功率适用于对应的功能构建。任务定义、程序判定、标准输出与错误日志可从逐题详情检查。未进行独立人工逐次复核。" : "The resource experiment executes one task call globally at a time. Functional and resource measurements bind their build identities separately. Success applies to the corresponding functional build. Task definitions, program verdicts, stdout and error logs are available in task details. No independent per-call human review was performed.")}</p><a href="${link("reproduce")}">${esc(T.nav.reproduce)}</a>`,
     )
   );
 }
@@ -1480,57 +1465,39 @@ function reviewPage() {
   );
 }
 function guidePage() {
-  const patched = M.functional_methods.find((m) => m.id === "119_on");
-  const official = M.functional_methods.find((m) => m.id === "119_official_on");
-  if (!patched || !official) {
-    return (
-      hero(T.nav.guide, reportSubtitle()) +
-      functionalMethodSummary() +
-      combinedSummaryChart() +
-      section(
-        T.nav.method,
-        casePopulation(),
-        `<a href="${link("analysis")}">${esc(T.nav.analysis)}</a> · <a href="${link("method")}">${esc(T.nav.method)}</a> · <a href="${link("review")}">${esc(T.nav.review)}</a>`,
-      )
-    );
-  }
   const relations = fixedRelations();
-  const example = M.fixed_case_outcomes.find(
-    (c) => c.passes["119_official_on"] !== 3 && c.passes["119_on"] === 3,
+  const selected = relations.find((r) => r.counts.gain || r.counts.loss);
+  const example = selected && (M.fixed_case_outcomes || []).find((c) =>
+    (c.passes[selected.a] === M.protocol.k_runs) !== (c.passes[selected.b] === M.protocol.k_runs),
   );
-  const relationText = relations
-    .map(
-      (r) =>
-        `<p><strong>${esc(r.label)}</strong>：${esc(zh ? `新增通过 ${r.counts.gain} 题，退步 ${r.counts.loss} 题。` : `${r.counts.gain} cases gained, ${r.counts.loss} lost.`)}</p>`,
-    )
-    .join("");
+  const methodLabel = (id) => {
+    const method = M.functional_methods.find((m) => m.id === id);
+    return method ? (zh ? method.label : method.label_en) : id;
+  };
+  const relationText = relations.map((r) => {
+    const net = r.counts.gain - r.counts.loss;
+    return `<p data-relation-from="${esc(r.a)}" data-relation-to="${esc(r.b)}" data-relation-net="${net}"><strong>${esc(methodLabel(r.a))} → ${esc(methodLabel(r.b))}</strong>：${esc(zh ? `新增通过 ${r.counts.gain} 题，退步 ${r.counts.loss} 题，通过数净变化 ${signed(net, 0, " 题")}。` : `${r.counts.gain} cases gained, ${r.counts.loss} lost; net change ${signed(net, 0, " cases")}.`)}</p>`;
+  }).join("");
   return (
-    hero(
-      T.nav.guide,
-      zh
-        ? `修复版开启布局通过 ${patched.final_passed_cases}/${M.task_count} 题，1.1.9 开启布局通过 ${official.final_passed_cases}/${M.task_count} 题。`
-        : `Patched layout on passes ${patched.final_passed_cases}/${M.task_count} cases; 1.1.9 layout on passes ${official.final_passed_cases}/${M.task_count}.`,
-    ) +
+    hero(T.nav.guide, reportSubtitle()) +
     functionalMethodSummary() +
     combinedSummaryChart() +
-    section(
-      zh ? "布局与版本分别改变了什么" : "Effects of layout and version",
+    (relations.length ? section(
+      zh ? "配置之间的通过与失败变化" : "Pass and failure changes between configurations",
       "",
-      relationText +
-        `<a href="${link("analysis")}">${esc(zh ? "查看对应的新增通过和失败用例" : "Inspect gained passes and failures")}</a>`,
-    ) +
+      relationText + `<a href="${link("analysis")}">${esc(zh ? "查看对应的新增通过和失败用例" : "Inspect gained passes and failures")}</a>`,
+    ) : "") +
     section(
       zh ? "如何理解一个通过结果" : "What a passed case means",
-      "",
-      `<p>${esc(zh ? "每个任务定义固定操作和验收条件。单次工具返回成功不足以判为用例通过；每次执行必须满足评分器检查，而且三次执行全部通过。" : "Each task defines fixed actions and acceptance conditions. A successful tool response alone is insufficient: the evaluator must accept every execution, and all three attempts must pass.")}</p>${example ? `<p><code>${esc(example.id)}</code> · ${esc(zh ? `1.1.9 开启布局 ${example.passes["119_official_on"]}/3，修复版开启布局 ${example.passes["119_on"]}/3。` : `1.1.9 layout on: ${example.passes["119_official_on"]}/3; patched layout on: ${example.passes["119_on"]}/3.`)} <a href="${link("fixed/" + example.id)}">${esc(zh ? "检查任务要求、实际输出和评分证据" : "Inspect requirements, actual output and evaluator evidence")}</a></p>` : ""}`,
+      casePopulation(),
+      `<p>${esc(zh ? "每个任务定义固定操作和验收条件。单次工具返回成功后，仍须由评分器检查是否满足任务要求。" : "Each task defines fixed actions and acceptance conditions. After a successful tool response, the evaluator checks whether the task requirements were met.")}</p>${example ? `<p><code>${esc(example.id)}</code> · ${esc(methodLabel(selected.a))} ${example.passes[selected.a]}/${M.protocol.k_runs} → ${esc(methodLabel(selected.b))} ${example.passes[selected.b]}/${M.protocol.k_runs} <a href="${link("fixed/" + example.id)}">${esc(zh ? "检查任务要求、实际输出和评分证据" : "Inspect requirements, actual output and evaluator evidence")}</a></p>` : ""}`,
     ) +
     candidateResourceSection() +
     section(
-      zh ? "结论与适用范围" : "Conclusions and scope",
+      zh ? "适用范围与证据" : "Scope and evidence",
       "",
-      `<p>${esc(zh ? "固定开启布局显著扩大了修复版在这组任务上的通过范围；在相同开启布局设置下，修复版比 1.1.9 通过更多任务。资源比较采用 release 构建的同环境测量；修复版功能与资源来自不同构建，两类结论分别适用于对应构建。1.1.4 的验证范围及任务选择条件见评测方法。" : "Fixed layout on substantially expands the patched build's passing coverage on this cohort. Under layout on, the patched build passes more tasks than Moli 1.1.9. The resource comparison uses release builds measured in the same environment. Patched functional and resource results come from different builds, and each conclusion applies to its corresponding build. The method page defines task selection and 1.1.4 coverage.")}</p><a href="${link("method")}">${esc(T.nav.method)}</a>`,
-    ) +
-    `<details class="resource-disclosure"><summary>${esc(zh ? "1.1.8 的补充资源指标" : "Additional 1.1.8 resource metrics")}</summary>${resourceGroups()}${successfulDuration()}</details>`
+      `<p>${esc(reproduceIntro())}</p><p>${esc(T.noHuman)}</p><a href="${link("analysis")}">${esc(T.nav.analysis)}</a> · <a href="${link("method")}">${esc(T.nav.method)}</a> · <a href="${link("review")}">${esc(T.nav.review)}</a>`,
+    )
   );
 }
 function candidateReproductionSection() {

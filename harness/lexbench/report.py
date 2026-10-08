@@ -1447,7 +1447,7 @@ def main(argv=None):
         "environment": json.loads(
             contained_path(RUNS, "environment.json", reject_symlinks=True).read_text()
         ),
-        "title": "Moli 1.1.4 / 1.1.8 / 1.1.9 comparison",
+        "title": "Moli 配置对比",
         "task_count": task_count,
         "attempts_per_mode": call_count,
         "binary_sha256": cohort["moli_sha256"],
