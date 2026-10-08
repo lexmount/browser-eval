@@ -269,3 +269,38 @@ def test_report_real_diagnostics_do_not_claim_missing_debug(tmp_path):
     assert "实际诊断日志" in html
     assert (tmp_path / "logs/real.html").is_file()
     assert "request_sent" in (tmp_path / "logs/real.html").read_text()
+
+
+def test_local_score_correction_preserves_call_facts_and_original_contract(tmp_path):
+    import copy
+    from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+    contract = {'scoring_source_sha256': 'old', 'provider_config_sha256': 'config'}
+    record = {'attempt_id': 'a', 'ok': True, 'latency_ms': 1200,
+              'metrics': {'content_sha256': 'body', 'scoring_source_sha256': SCORING_SOURCE_SHA256},
+              'scoring': {'mode': 'offline_rescore', 'input_results_sha256': 'original',
+                          'rule_revision': False, 'reference_revision': False}}
+    receipt = {'kind': 'offline_generic_parser_correction', 'provider_calls': 0,
+               'original_scoring_source_sha256': 'old',
+               'corrected_scoring_source_sha256': SCORING_SOURCE_SHA256,
+               'original_call_config_sha256': 'config', 'original_results_sha256': 'original',
+               'call_identities': {'a': local_audit.local_measurement_call_sha256(record)}}
+    target = tmp_path / 'local-evidence/scoring-correction.json'
+    _write(target, receipt)
+    local_audit._require_local_scoring_revision(tmp_path, contract, [record])
+    assert contract['scoring_source_sha256'] == 'old'
+    for key, value in [('ok', False), ('latency_ms', 900), ('attempt_id', 'other')]:
+        changed = copy.deepcopy(record)
+        changed[key] = value
+        with pytest.raises(ValueError, match='binding'):
+            local_audit._require_local_scoring_revision(tmp_path, contract, [changed])
+    changed = copy.deepcopy(record)
+    changed['scoring']['rule_revision'] = True
+    with pytest.raises(ValueError, match='changed rules'):
+        local_audit._require_local_scoring_revision(tmp_path, contract, [changed])
+    changed = copy.deepcopy(record)
+    changed['metrics']['content_sha256'] = 'different'
+    with pytest.raises(ValueError, match='binding'):
+        local_audit._require_local_scoring_revision(tmp_path, contract, [changed])
+    _write(target, {**receipt, 'provider_calls': 1})
+    with pytest.raises(ValueError, match='binding'):
+        local_audit._require_local_scoring_revision(tmp_path, contract, [record])

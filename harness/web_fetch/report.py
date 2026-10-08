@@ -1755,7 +1755,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
  if dataset.get('comparison',{}).get('call_chain_audit'):
   TITLE='本轮调用链检查与日志范围'
-  guide=local_call_chain_section(dataset)+section('如何读取本轮结果','<p>这是一轮小范围调用链测试，保留原程序判分。已确认的评分问题和日志缺口单独列明；不能据此推算100题通过率。</p><p>'+link('../analysis/index.html','逐次结果与筛选')+' · '+link('../methodology/index.html','题目与计时规则')+' · '+link('../reproduce/index.html','配置、版本和复现说明')+'</p>')
+  guide=local_call_chain_section(dataset)+section('如何读取本轮结果','<p>这是一轮小范围调用链测试，按保存的实际返回进行机器判分。评分纠正记录和日志缺口单独列明；不能据此推算100题通过率。</p><p>'+link('../analysis/index.html','逐次结果与筛选')+' · '+link('../methodology/index.html','题目与计时规则')+' · '+link('../reproduce/index.html','配置、版本和复现说明')+'</p>')
  else:
   guide=render_explainer(out,cases,records,table=table,cell=cell,link=link)
  write(out,'guide/index.html','报告解读',guide)

@@ -386,18 +386,48 @@ def _require_local_batch_segments(batch):
         raise ValueError("Local measurement segments repeat or omit a call")
 
 
+def local_measurement_call_sha256(record):
+    """Bind measured call facts independently of later scores/report metadata."""
+    derived = {"metrics", "diagnosis", "failure_category", "scoring", "provider_metadata"}
+    facts = {key: value for key, value in record.items() if key not in derived}
+    facts["content_sha256"] = record.get("metrics", {}).get("content_sha256")
+    return _canonical_sha256(facts)
+
+
+def _require_local_scoring_revision(source, contract, records):
+    from .scoring import SCORING_SOURCE_SHA256
+    if contract.get("scoring_source_sha256") == SCORING_SOURCE_SHA256:
+        return
+    receipt = json.loads(contained_path(source, "local-evidence/scoring-correction.json").read_text())
+    if (receipt.get("kind") != "offline_generic_parser_correction"
+            or receipt.get("provider_calls") != 0
+            or receipt.get("original_scoring_source_sha256") != contract.get("scoring_source_sha256")
+            or receipt.get("corrected_scoring_source_sha256") != SCORING_SOURCE_SHA256
+            or receipt.get("original_call_config_sha256") != contract.get("provider_config_sha256")
+            or receipt.get("call_identities") != {
+                r["attempt_id"]: local_measurement_call_sha256(r) for r in records}):
+        raise ValueError("Invalid local scoring correction binding")
+    for record in records:
+        scoring = record.get("scoring", {})
+        if (record.get("metrics", {}).get("scoring_source_sha256") != SCORING_SOURCE_SHA256
+                or scoring.get("mode") != "offline_rescore"
+                or scoring.get("input_results_sha256") != receipt.get("original_results_sha256")
+                or scoring.get("rule_revision") is not False
+                or scoring.get("reference_revision") is not False):
+            raise ValueError("Local scoring correction changed rules or lost its predecessor")
+
+
 def require_local_measurement(source: Path, dataset: dict, records: list[dict]) -> None:
     """Validate a new complete local matrix without claiming independent review."""
     from .reliability import require_reliable
     from .artifacts import verify_record_public_call_logs, record_public_call_log_bindings
-    from .scoring import SCORING_SOURCE_SHA256
     contract = json.loads(contained_path(source, "local-run-contract.json").read_text())
     if (contract.get("schema_version") != 1
             or contract.get("kind") != "uniform_native_local_measurement"
-            or contract.get("scoring_source_sha256") != SCORING_SOURCE_SHA256
             or contract.get("runs") != 1 or contract.get("timeout_seconds") != 45
             or contract.get("max_failure_retries") != 0):
         raise ValueError("Invalid uniform native local measurement contract")
+    _require_local_scoring_revision(source, contract, records)
     canonical = json.loads(_repository_file(contract["dataset_path"]).read_text())
     if (_sha256(_repository_file(contract["dataset_path"])) != contract["dataset_sha256"]
             or dataset["cases"] != canonical["cases"]):
