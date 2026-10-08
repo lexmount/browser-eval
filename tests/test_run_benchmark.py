@@ -1,10 +1,10 @@
 """Track-scoped execution uses the real runner with local fixture providers."""
-from contextlib import redirect_stderr, redirect_stdout
 import io
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch import benchmark_runner as run_benchmark
@@ -64,6 +64,17 @@ class BenchmarkSelectionTests(unittest.TestCase):
         self.assertEqual({p.name for p in (self.output/'sources').iterdir()}, {'dynamic-a','dynamic-b'})
         self.assertFalse((self.output/'workers/fixture-one/web').exists())
 
+    def test_invalid_explicit_config_fails_before_environment_or_dataset_access(self):
+        for config in (self.root / 'missing.json', self.root / 'configs'):
+            with self.subTest(config=config), \
+                    patch.object(run_benchmark, 'load_runtime_env') as environment, \
+                    patch.object(run_benchmark, 'load_dataset') as dataset, \
+                    redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                run_benchmark.main(['--provider-config', str(config), '--output', str(self.output)])
+            environment.assert_not_called()
+            dataset.assert_not_called()
+            self.assertFalse(self.output.exists())
+
     def test_instance_provider_configuration_does_not_mutate_shared_defaults(self):
         import hashlib
         defaults={p:p.read_bytes() for p in (self.root/'configs').iterdir()}
@@ -75,7 +86,8 @@ class BenchmarkSelectionTests(unittest.TestCase):
         self.assertEqual({r['case_id']:r['ok'] for r in rows},
             {'web-a':True,'dynamic-a':True,'dynamic-b':False})
         batches=json.loads((self.output/'execution.json').read_text())['batches']
-        self.assertEqual(len(batches),2)
+        self.assertEqual({attempt for batch in batches for attempt in batch['attempt_ids']},
+                         {row['attempt_id'] for row in rows})
         self.assertTrue(all(b['provider_config_source']==str(config.resolve()) for b in batches))
         self.assertTrue(all(b['provider_config_sha256']==hashlib.sha256(config.read_bytes()).hexdigest() for b in batches))
         self.assertEqual({p:p.read_bytes() for p in defaults},defaults)

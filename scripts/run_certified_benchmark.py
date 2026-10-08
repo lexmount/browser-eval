@@ -170,7 +170,7 @@ def main(argv: list[str] | None = None) -> None:
 
     from harness.web_fetch.retrieval_hints import native_fetch_dataset, parse_retrieval_hints
     if args.retrieval_mode == 'native':
-        original_sha = hashlib.sha256(args.dataset.read_bytes()).hexdigest()
+        original_sha = hashlib.sha256(read_dataset_bytes(args.dataset)).hexdigest()
         dataset = native_fetch_dataset(dataset)
         dataset['comparison']['input_dataset_sha256'] = original_sha
     if args.diagnostic:

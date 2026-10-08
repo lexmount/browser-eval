@@ -34,6 +34,8 @@ def main(argv=None):
     parser.add_argument('--runs',type=int,default=1)
     parser.add_argument('--max-failure-retries',type=int,choices=(0,1),default=0)
     args=parser.parse_args(argv)
+    if args.provider_config and not args.provider_config.is_file():
+        parser.error('--provider-config must be an existing file')
     if args.workers < 1:parser.error('--workers must be positive')
     if args.runs < 1:parser.error('--runs must be positive')
     if not args.validate_only and args.output.exists():parser.error('Output exists; choose an empty directory to avoid overwriting measured evidence')

@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from pathlib import Path
 
 import pytest
 
@@ -90,6 +91,36 @@ def test_external_dataset_preserves_frozen_bytes_and_canonical_evidence_contract
     assert read_dataset_bytes(dataset) == original
     with pytest.raises(ValueError, match="duplicated"):
         check_reference_input_boundary(dataset.parent)
+
+
+def test_certified_native_preparation_uses_bound_external_dataset_bytes(inputs, tmp_path, monkeypatch):
+    from scripts.run_certified_benchmark import main as certified_main
+
+    dataset, manifest_path, source, _ = inputs
+    original = external_dataset(inputs)
+    import_inputs(manifest_path, source)
+    work = tmp_path / 'native-work'
+
+    class CaptureIntercepted(Exception):
+        pass
+
+    commands = []
+
+    def intercept(command):
+        commands.append(command)
+        raise CaptureIntercepted
+
+    monkeypatch.setattr('scripts.run_certified_benchmark.run', intercept)
+    with pytest.raises(CaptureIntercepted):
+        certified_main(['--dataset', str(dataset), '--output', str(tmp_path / 'native-output'),
+                        '--work-root', str(work), '--providers', 'fixture',
+                        '--case-ids', 'case-a', '--retrieval-mode', 'native'])
+    prepared = json.loads((work / 'input-dataset.json').read_bytes())
+    assert prepared['comparison']['input_dataset_sha256'] == sha(original)
+    assert prepared['cases'] == json.loads(original)['cases']
+    assert not dataset.exists()
+    assert read_dataset_bytes(dataset) == original
+    assert Path(commands[0][1]).name == 'collect_source_evidence.py'
 
 
 def test_public_cli_runs_bound_dataset_and_keeps_original_manifest_hash(inputs, tmp_path):

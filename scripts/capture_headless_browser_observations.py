@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
 import hashlib
 import ipaddress
 import json
 import socket
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -24,7 +23,6 @@ from harness.web_fetch.reference_lifecycle import (
     resource_source_scope_identity,
     scope_identity,
 )
-from harness.web_fetch.metrics import normalize_for_match
 from harness.web_fetch.safety import safe_identifier
 from harness.web_fetch.source_capture import extract_html
 

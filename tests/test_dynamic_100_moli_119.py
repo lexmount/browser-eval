@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from harness.web_fetch import local_audit
+from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.report import local_audit_banner, provider_configuration
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch.scoring_regressions import load_scoring_regressions
@@ -39,9 +40,9 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
         assert followup['predecessor_sha256']==expected_hash
         assert followup['provider_calls']==0
         assert followup['source_authority']['provider_output_used'] is False
-        authority=ROOT/followup['source_authority']['path']
-        assert hashlib.sha256(authority.read_bytes()).hexdigest()==followup['source_authority']['sha256']
-        assert json.loads(authority.read_text())['expected_final_url']==followup['value']
+        relative = Path(followup['source_authority']['path']).relative_to('evaluation/sources').as_posix()
+        manifest = json.loads((ROOT / 'evaluation/source-inputs.json').read_text())
+        assert manifest['trees']['sources'][relative] == followup['source_authority']['sha256']
         expected_hash=followup['revised_sha256']
     assert hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest()==expected_hash
     for followup in reversed(revision.get('dynamic_dataset_followups',[])):
@@ -117,11 +118,21 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
 
 
 def require_historical_inputs():
-    from harness.web_fetch.reference_inputs import input_tree
     try:
         input_tree(Path('evaluation/dataset.json'), 'sources')
     except FileNotFoundError:
         pytest.skip('requires externally installed historical reference inputs')
+
+
+def test_dynamic_followup_reference_values_match_bound_external_source():
+    require_historical_inputs()
+    sources = input_tree(ROOT / 'evaluation/dataset.json', 'sources')
+    revision = json.loads(REVISION_PATH.read_text())
+    for followup in revision.get('dynamic_dataset_followups', []):
+        relative = Path(followup['source_authority']['path']).relative_to('evaluation/sources')
+        authority = sources / relative
+        assert hashlib.sha256(authority.read_bytes()).hexdigest() == followup['source_authority']['sha256']
+        assert json.loads(authority.read_text())['expected_final_url'] == followup['value']
 
 
 def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monkeypatch):

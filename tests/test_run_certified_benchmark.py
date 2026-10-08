@@ -11,12 +11,16 @@ from scripts.run_certified_benchmark import main
 
 class CertifiedBenchmarkTests(unittest.TestCase):
     def test_diagnostic_execution_cannot_be_assembled_or_rendered_as_certified(self):
-        from scripts import freeze_headless_references, postcheck_headless, run_benchmark
-        from scripts.finalize_benchmark_run import finalize_aggregate
-        from scripts.assemble_headless import assemble
+        from harness.web_fetch import benchmark_runner as run_benchmark
+        from harness.web_fetch import reference_freeze as freeze_headless_references
+        from harness.web_fetch.assembly import assemble
         from harness.web_fetch.reference_lifecycle import (
-            ReferenceLifecycleError, require_verified_reference_checks)
+            ReferenceLifecycleError,
+            require_verified_reference_checks,
+        )
         from harness.web_fetch.report_build import build_report
+        from scripts import postcheck_headless
+        from scripts.finalize_benchmark_run import finalize_aggregate
         for mode in ('declared', 'native'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 root=Path(directory); dataset=root/'dataset.json'; output=root/'run'
