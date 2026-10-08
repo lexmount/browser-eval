@@ -10,13 +10,14 @@
   "evidence_roots": {
     "legacy20260921": "risk-control/qualification-20260921",
     "diverse20260924": "risk-control/qualification-diverse-20260924",
-    "diverse20260927": "risk-control/qualification-diverse-20260927"
+    "diverse20260927": "risk-control/qualification-diverse-20260927",
+    "zillow20260929": "risk-control/qualification-zillow-20260929"
   },
   "evidence_root_resolution": "Paths are relative to BROWSER_EVAL_DATA_HOME, which defaults to ~/.browser-eval; raw evidence remains outside Git.",
   "files": [
     {
       "path": "cohort/cohort-manifest.json",
-      "sha256": "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e"
+      "sha256": "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26"
     },
     {
       "path": "cohort-policy.json",
@@ -24,7 +25,7 @@
     },
     {
       "path": "cohort/cohort-receipt.json",
-      "sha256": "29e56c1bbc96ae3bdc1abc20b469eee55dfb1f276f390bd585349b1c264a96ac"
+      "sha256": "a5929b62ffb8b64da1ac902c5c5be61a75fa01ed171a497f115de14442a9a872"
     }
   ],
   "source_qualification_receipt_sha256": "acf287f3b54352d1c97fb2b79b8d3d385d11ba44ac4bbfa693163627956e268e",

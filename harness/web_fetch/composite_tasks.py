@@ -73,6 +73,7 @@ def _validate_group(group: dict) -> None:
         "required_literals",
         "fixed_values",
         "link_column",
+        "combined_columns",
     }
     if (
         not isinstance(group, dict)
@@ -96,6 +97,8 @@ def _validate_group(group: dict) -> None:
                 raise ValueError("Invalid composite scope pattern")
             re.compile(group[key])
     kind = group["kind"]
+    if "combined_columns" in group and kind != "table":
+        raise ValueError("Combined columns require a table group")
     minimum = group.get("minimum_records")
     if kind == "literals":
         literals = group.get("required_literals")
@@ -150,6 +153,19 @@ def _validate_group(group: dict) -> None:
             row["id"] for row in columns
         }:
             raise ValueError("Invalid composite table link column")
+        combinations = group.get("combined_columns", [])
+        if not isinstance(combinations, list) or (combinations and kind != "table"):
+            raise ValueError("Invalid combined table columns")
+        for combined in combinations:
+            if (not isinstance(combined, dict) or set(combined) != {"aliases", "pattern"}
+                    or not isinstance(combined["aliases"], list) or not combined["aliases"]
+                    or any(not isinstance(a, str) or not a.strip() for a in combined["aliases"])
+                    or not isinstance(combined["pattern"], str) or not combined["pattern"]):
+                raise ValueError("Invalid combined table columns")
+            pattern = re.compile(combined["pattern"])
+            if (len(pattern.groupindex) < 2 or pattern.groups != len(pattern.groupindex)
+                    or not set(pattern.groupindex) <= {row["id"] for row in columns}):
+                raise ValueError("Combined columns must capture declared fields by name")
     fields = group.get("required_fields", [])
     if not fields_are_valid(fields):
         raise ValueError("Invalid composite required fields")
@@ -422,7 +438,7 @@ def _context_lines(context: str, title: str) -> list[str]:
         if re.match(r"^\s*#{1,6}\s+", raw):
             continue
         line = visible_markdown_links(raw)
-        line = re.sub(r"(?<!\w)([*_]{1,3})(?=\S)(.+?\S)\1(?!\w)", r"\2", line)
+        line = re.sub(r"(?<![\w*_])([*_]{1,3})([^\s*_](?:[^*_\n]*?[^\s*_])?)\1(?![\w*_])", r"\2", line)
         line = line.strip(" \t#>*|-_")
         if not line or _key(line) == title_key or re.fullmatch(r"https?://\S+", line):
             continue
@@ -433,8 +449,21 @@ def _context_lines(context: str, title: str) -> list[str]:
         if split:
             lines.extend((line[: split.start()], line[split.start() :]))
             continue
-        lines.append(line)
+        # Browser innerText may join adjacent inline field/status nodes.
+        # Preserve the visible lexical boundary, not a new record/field value.
+        lines.append(re.sub(r"(?<=[a-z])(?=\d|[A-Z])", " ", line))
     return lines
+
+
+def _field_token_pattern(spec: dict):
+    """Typed card fields own a distinct value span, not an entire layout line."""
+    if spec.get('aliases'):
+        return None
+    if spec['kind'] == 'integer' and spec.get('pattern'):
+        # A number elsewhere in the card cannot prove a numeric labeled field.
+        return re.compile(rf"\b{_AMOUNT}\s*(?:{spec['pattern']})|(?:{spec['pattern']})", re.I)
+    return {'price': _PRICE, 'area': _AREA, 'date_or_time': _DATE_OR_TIME,
+            'version': _VERSION}.get(spec['kind'])
 
 
 def _field_value(
@@ -461,6 +490,11 @@ def _field_value(
             (index, line) for index, line in enumerate(lines) if not used or index not in used
         ]
     for index, value in candidates:
+        if token_pattern := _field_token_pattern(spec):
+            for match in token_pattern.finditer(value):
+                if _value_matches_spec(match[0], spec):
+                    return index, match[0]
+            continue
         if _value_matches_spec(value, spec):
             return index, value
     return None
@@ -470,11 +504,19 @@ def _required_fields(context: str, title: str, *, field_specs: list[dict]) -> bo
     """Require every declared field inside the record block which owns the link."""
     lines = _context_lines(context, title)
     used = set()
+    typed_lines = set()
     for spec in field_specs:
-        result = _field_value(lines, spec, used)
+        typed = _field_token_pattern(spec) is not None
+        result = _field_value(lines, spec, used if typed else used | typed_lines)
         if result is None:
             return False
-        used.add(result[0])
+        index, value = result
+        if typed:
+            # Consume this exact span so fields may share a line, never a value.
+            lines[index] = lines[index].replace(value, ' ' * len(value), 1)
+            typed_lines.add(index)
+        else:
+            used.add(index)
     return True
 
 
@@ -519,22 +561,36 @@ def _table_group(content: str, group: dict) -> dict:
                 for i, header in enumerate(headers)
                 if header in {_key(value) for value in spec["aliases"]}
             ]
-            if len(hits) != 1:
+            if len(hits) > 1:
                 break
-            mapping[spec["id"]] = hits[0]
+            if hits:
+                mapping[spec["id"]] = (hits[0], None)
         else:
+            for combined in group.get("combined_columns", []):
+                pattern = re.compile(combined["pattern"])
+                fields = set(pattern.groupindex)
+                hits = [i for i, header in enumerate(headers)
+                        if header in {_key(a) for a in combined["aliases"]}]
+                if len(hits) == 1 and not fields & mapping.keys():
+                    mapping.update({field: (hits[0], pattern) for field in fields})
+            if set(mapping) != {spec["id"] for spec in required}:
+                continue
             row_index = index + 2 if delimiter == "|" else index + 1
             while row_index < len(lines) and delimiter in lines[row_index]:
                 values = [value.strip() for value in lines[row_index].strip("|").split(delimiter)]
                 if len(values) == len(headers):
-                    row = {field: values[column] for field, column in mapping.items()}
+                    row = {}
+                    for field, (column, pattern) in mapping.items():
+                        match = pattern.fullmatch(visible_markdown_links(values[column])) if pattern else None
+                        row[field] = (match[field] if match else '') if pattern else values[column]
                     if all(
                         _value_matches_spec(row[spec["id"]], spec, whole_cell=True)
                         for spec in required
                     ):
                         records.append(row)
                 row_index += 1
-            break
+            # Every table in the independently declared section contributes;
+            # repeated identities are still counted only once below.
     unique = {_key(row[group["identity_column"]]): row for row in records}
     return {
         "count": len(unique),

@@ -686,14 +686,16 @@ EXTRA+='''
 _RELIABILITY_BANNER=''
 _ENGLISH_GENERATED=False
 
-def write(out,path,title,body):
+def write(out,path,title,body,*,root_links=False):
  depth=len(Path(path).parts)-1;base='../'*depth
+ document_base='<base href="'+(base or './')+'">' if root_links else ''
+ if root_links:base=''
  nav=[('datasets/index.html','评测集'),('methodology/index.html','评测方法'),('analysis/index.html','结果分析'),('review/index.html','核验记录'),('guide/index.html','报告解读'),('adoption/index.html','方法介绍'),('reproduce/index.html','环境与复现'),('changes/index.html','变更记录'),('accounts/index.html','账号与安装')]
  brand=link(base+'index.html','Web Fetch')
  counterpart=(base+'en/'+path if _ENGLISH_GENERATED else base+'en/index.html')
  language=f'<a href="{safe_href(counterpart)}" hreflang="en">English</a>'
  footer='所有分数由本轮调用记录计算。网页与服务可能变化；结论仅适用于本轮样本和配置。'
- page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{_RELIABILITY_BANNER}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
+ page=f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{document_base}<title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}'+''.join(link(base+url,label) for url,label in nav)+f'{language}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main>{_RELIABILITY_BANNER}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
 _RESEARCH_ROUTES=[
@@ -707,6 +709,86 @@ _RESEARCH_ROUTES=[
  ('changes/index.html','变更记录','Changes'),
  ('accounts/index.html','账号与安装','Accounts and setup'),
 ]
+
+def generate_cohort_diagnostic(out, model):
+ """Render live cohort diagnostics through the maintained WebFetch components."""
+ global _RELIABILITY_BANNER,_ENGLISH_GENERATED
+ prior=(_RELIABILITY_BANNER,_ENGLISH_GENERATED)
+ _RELIABILITY_BANNER='<div class="wrap callout"><strong>实时网页诊断</strong><p>'+esc(model['scope_note'])+'</p></div>'
+ _ENGLISH_GENERATED=False
+ out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
+ (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
+ (out/'assets/report.js').write_text(JS+'''
+async function loadDiagnosticEvidence(dialog){for(let pre of dialog.querySelectorAll('pre[data-evidence-file]')){if(pre.dataset.loaded)continue;try{let response=await fetch(pre.dataset.evidenceFile);if(!response.ok)throw Error('HTTP '+response.status);pre.textContent=await response.text();pre.dataset.loaded='1'}catch(error){pre.textContent='完整证据读取失败：'+error.message+'；可使用上方下载链接。'}}}
+document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[data-call-log-open]').forEach(b=>b.addEventListener('click',()=>{openCallLog(b);loadDiagnosticEvidence(document.getElementById(b.dataset.callLogOpen))}));document.querySelectorAll('[data-call-log-close]').forEach(b=>b.addEventListener('click',()=>closeCallLog(b)))});''',encoding='utf-8')
+ groups={g['id']:g for g in model['cohorts']};rows=model['rows'];labels=model['cause_labels']
+ def page(route,title,body):write(out,route,title,body,root_links=True)
+ def detail_link(row):return 'attempts/'+row['id']+'.html'
+ def blocks(name):
+  body=''
+  for block in model.get('pages',{}).get(name,[]):
+   text=''.join('<p>'+esc(p)+'</p>' for p in block['paragraphs'])
+   if block.get('case_ids'):
+    text+='<p class="actions">'+''.join(link('attempts/'+cid+'.html',cid+' →') for cid in block['case_ids'])+'</p>'
+   body+=section(esc(block['title']),text)
+  return body
+ def distribution(counts):
+  return '<figure class="editorial-figure">'+''.join('<div class="editorial-bar-row"><span>'+esc(label)+'</span><div class="editorial-bar-track"><i style="width:'+str(100*n/population)+'%"></i></div><b>'+str(n)+' / '+str(population)+'</b></div>' for label,n,population in counts)+'</figure>'
+ try:
+  cards=''.join('<article class="guide-card"><h3>'+esc(groups[g]['label'] if g in groups else '整体')+'</h3><p><strong>'+str(p)+' / '+str(n)+'</strong> · '+pct(p/n)+'</p></article>' for g,(p,n) in model['metrics'].items())
+  home=hero(esc(model['title']),esc(model['subtitle']))
+  home+=section('三类任务与整体结果','<div class="guide-grid">'+cards+'</div>'+distribution([(groups[g]['label'],*model['metrics'][g]) for g in groups])+'<p>'+esc(model['metric_note'])+'</p>','cohort-results')
+  failures=Counter(r['cause'] for r in rows if not r['initial_pass'])
+  home+=section('未通过项的主要原因',distribution([(labels[k],n,sum(failures.values())) for k,n in failures.most_common(3)])+'<p>'+link('analysis/index.html','查看全部原因与逐项证据 →')+'</p>')
+  audit=model['success_audit'];counts=audit['source_state_counts']
+  home+=section('通过项也经过源页反查',distribution([(model['source_labels'][k],n,audit['audited_passes']) for k,n in counts.items()])+'<p>'+str(audit['audited_passes'])+' 个首轮或诊断通过结果有三方核对记录；当前页面可比较的内容与访问障碍分别记录。'+link('review/index.html','核验范围与结论 →')+'</p>')
+  home+=section('阅读入口','<div class="guide-grid">'+''.join('<article class="guide-card"><h3>'+link(route,title)+'</h3><p>'+text+'</p></article>' for route,title,text in [('datasets/index.html','评测集','查看样本、任务与独立参考要求。'),('analysis/index.html','结果分析','筛选通过、未通过和归因，打开完整证据。'),('guide/index.html','报告解读','理解访问挑战、提取遗漏及评测修订。')])+'</div>')
+  page('index.html',model['title'],home)
+  controls='<div class="filters"><label>组别<select data-filter="cohort"><option value="">全部</option>'+''.join('<option value="'+esc(k)+'">'+esc(g['label'])+'</option>' for k,g in groups.items())+'</select></label><label>结果<select data-filter="result"><option value="fail">未通过</option><option value="pass">通过</option><option value="">全部</option></select></label><label>原因<select data-filter="cause"><option value="">全部</option>'+''.join('<option value="'+esc(k)+'">'+esc(v)+'</option>' for k,v in labels.items())+'</select></label><label>搜索<input data-filter="query" aria-label="搜索样本" placeholder="编号或网址"></label></div><p id="count" role="status"></p>'
+  inventory=[]
+  for r in rows:
+   attrs=' data-cohort="'+esc(r['cohort'])+'" data-result="'+('pass' if r['initial_pass'] else 'fail')+'" data-cause="'+esc(r['cause'])+'" data-search="'+esc(r['url'])+'"'
+   values=cell(link(detail_link(r),r['id']))+cell(esc(groups[r['cohort']]['label']))+cell('通过' if r['initial_pass'] else '未通过')+cell(esc(labels[r['cause']]))+cell(esc(r['followup_status']))+cell(link(detail_link(r),'原因与证据 →'))
+   inventory.append((attrs,values))
+  page('analysis/index.html','结果分析',hero('300 例结果分析' if len(rows)==300 else '结果分析','首轮结果与事后诊断分别保留。筛选成功项可查看三方反查记录。')+section('逐项结果',controls+table(['样本','组别','首轮结果','归因','后续核验','证据'],inventory,'filtered-table',sortable=True))+section('全部未通过归因',table(['原因','项数'],[('',cell(esc(labels[k]))+cell(str(n))) for k,n in failures.items()])))
+  dataset=[]
+  for r in rows:
+   dataset.append((' data-search="'+esc(r['url'])+'"',cell(link('datasets/'+r['id']+'.html',r['id']))+cell(esc(groups[r['cohort']]['label']))+cell(link(r['url'],'实际网页 ↗'))+cell(esc(r['task']))))
+   reference=(out/r['reference']['path']).read_text(encoding='utf-8')
+   page('datasets/'+r['id']+'.html',r['id']+' · 任务与参考',hero(esc(r['id']),esc(r['task']))+section('网页与范围','<p>'+link(r['url'],r['url'])+'</p><p>'+esc(r['reference']['scope'])+'</p>')+section('独立验收要求','<details open><summary>查看参考契约</summary><pre>'+esc(reference)+'</pre></details>')+section('结果入口','<p>'+link(detail_link(r),'查看本例输出与三方核验 →')+'</p>'))
+  dataset_search='<div class="filters"><label>搜索任务<input data-filter="query" aria-label="搜索任务" placeholder="编号、网址或任务"></label></div><p id="count" role="status"></p>'
+  page('datasets/index.html','评测集',hero('网页任务集','每组保留自己的选样与验收范围；任务页不显示测量分数。')+blocks('datasets')+section('全部任务',dataset_search+table(['样本','组别','源页','任务'],dataset,'filtered-table',sortable=True)))
+  for r in rows:
+   dialogs=[]
+   def evidence(target,title,body,kind):
+    dialogs.append('<dialog class="call-log-dialog wmb-detail-dialog" id="'+target+'" aria-labelledby="'+target+'-title"><div class="call-log-shell"><header><h2 id="'+target+'-title">'+esc(title)+'</h2><button type="button" data-call-log-close aria-label="关闭">关闭</button></header><div class="wmb-dialog-content" data-evidence-kind="'+kind+'">'+body+'</div></div></dialog>')
+    return '<button type="button" class="call-log-button" data-call-log-open="'+target+'" aria-haspopup="dialog">'+esc(title)+'</button>'
+   actions=''
+   for field,title in [('reference','标准答案与验收规则'),('first_answer','首轮实际输出'),('answer','诊断输出'),('source','实际浏览器页面'),('log','错误与运行记录')]:
+    if field=='answer' and r[field]==r['first_answer']:continue
+    binding=r.get(field)
+    if binding is None:continue
+    raw=(out/binding['path']).read_text(encoding='utf-8')
+    kind_attr=' data-kind="error"' if field=='log' else ''
+    lazy=' data-evidence-file="'+esc(binding['path'])+'"' if len(raw)>32768 else ''
+    contents='<p>'+link(binding['path'],'下载完整证据')+'</p><p>'+esc(binding.get('scope','保存的调用证据'))+'</p><pre'+kind_attr+lazy+'>'+esc('正在读取完整证据…' if lazy else raw)+'</pre>'
+    actions+=evidence('result-logs' if field=='log' else 'evidence-'+field,title,contents,field)
+   summary='<div data-result-summary><h2>'+('首轮通过' if r['initial_pass'] else '首轮未通过')+'</h2><p>'+esc(labels[r['cause']])+'</p><dl class="diagnostic-fields"><dt>任务 ID</dt><dd>'+esc(r['id'])+'</dd><dt>运行 ID</dt><dd>'+esc(r['run_id'])+'</dd><dt>源页观察时间</dt><dd>'+esc(r.get('source_checked_at') or r.get('success_audit',{}).get('source_checked_at') or '见独立观察记录')+'</dd></dl></div>'
+   body=hero(esc(r['id']),esc(r['task']))+section('结果',summary)+section('原因与处理','<div data-failure-diagnosis><p>'+esc(r['cause_detail'])+'</p><p>后续状态：'+esc(r['followup_status'])+'</p><p>'+esc(r.get('failure') or '保存的检查未记录失败项。')+'</p></div>')
+   if r.get('success_audit'):
+    a=r['success_audit'];audit_rows=[]
+    for title,status_key,actual_key,required_key in [('具名链接','source_named_links_result','source_visible_named_links','source_required_named_links'),('表格行','source_table_result','source_scoped_table_rows','source_required_table_rows')]:
+     status=a.get(status_key,'unavailable');status_label={'not_applicable':'任务无此要求','meets':'满足数量要求','below':'低于数量要求'}.get(status,status)
+     audit_rows.append(('',cell(title)+cell(esc(status_label))+cell(str(a.get(actual_key)) if a.get(actual_key) is not None else '—')+cell(str(a.get(required_key)) if a.get(required_key) is not None else '—')))
+    body+=section('三方核验','<p>'+esc(model['source_labels'][a['source_state']])+'</p>'+table(['检查项','当前源页状态','实际','要求'],audit_rows)+'<p>— 表示无此任务要求或未取得对应数量，不视为通过。</p>')
+   if not r.get('source'):body+=section('源页观察','<p>'+esc(r.get('source_error') or '独立浏览器观察没有取得可下载的目标正文；访问状态见本例核验记录。')+'</p>')
+   body+=section('标准答案、输出与实页证据','<div class="actions wmb-evidence-actions">'+actions+'</div><p>'+link('datasets/'+r['id']+'.html','任务与参考 →')+' · '+link('analysis/index.html','返回结果分析 →')+'</p>')+''.join(dialogs)
+   page(detail_link(r),r['id']+' · 结果','<div data-report-detail="'+('success' if r['initial_pass'] else 'failed')+'" data-task-id="'+esc(r['id'])+'">'+body+'</div>')
+  for name,title in [('methodology','评测方法'),('review','核验记录'),('guide','报告解读'),('reproduce','环境与复现'),('changes','变更记录'),('adoption','方法介绍'),('accounts','账号与安装')]:
+   page(name+'/index.html',title,hero(title,esc(model.get('page_intros',{}).get(name,'')))+blocks(name))
+  page('en/index.html','English edition','<div class="wrap"><h1>English edition not generated</h1><p>'+link('index.html','返回中文报告')+'</p></div>')
+ finally:_RELIABILITY_BANNER,_ENGLISH_GENERATED=prior
+
 
 def _research_links(urls):
  return '<br>'.join(link(url,url.replace('https://','')) for url in urls)
@@ -1858,7 +1940,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    checks_html+=table(['记录字段','有效记录数','至少要求','判定'],[('',cell(esc(x['field']))+cell(str(x['count']))+cell(str(x['minimum']))+cell('通过' if x['pass'] else '未通过')) for x in m['stable_field_results']],metrics=[])
   body+=section('为什么这样判',caveat+checks_html,'decision')
   if m.get('body_region_results'):
-   scoring_text=((str(r.get('title')).strip()+'\n') if r.get('title') and str(r.get('title')).strip() else '')+output
+   scoring_text=output
    region_rows,region_cards=body_region_rows(c,m,scoring_text);rules=c.get('body_requirements',{})
    required=rules.get('minimum_region_passes',len(rules.get('regions',[])))
    region_count=len(rules.get('regions',[]))

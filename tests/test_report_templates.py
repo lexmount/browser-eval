@@ -1,0 +1,248 @@
+"""A fresh session can locate and build supported report types and diagnostics."""
+import copy
+import hashlib
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from harness.reporting.templates import ROOT, resolve_template
+from harness.web_fetch.report_build import build_diagnostic_cohorts
+from harness.web_fetch.report_diagnostic import check_diagnostic_report
+
+
+def diagnostic_example(root):
+    """Two independent scenarios: complete content and a challenge response."""
+    root.mkdir()
+    rows=[]
+    for cid,passed,answer in [('complete',True,'Required article body'),('challenge',False,'Verify you are human')]:
+        bindings={}
+        for kind,text in [('reference','Required article body'),('first_answer',answer),('source','Required article body'),('log','HTTP 200; '+answer)]:
+            relative=f'evidence/{cid}-{kind}.txt'
+            path=root/relative;path.parent.mkdir(exist_ok=True);path.write_text(text)
+            bindings[kind]={'path':relative,'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'scope':'declared task'}
+        rows.append({'id':cid,'cohort':'articles','initial_pass':passed,'run_id':'call-'+cid,
+                     'url':'https://example.com/'+cid,'task':'Read required article body',
+                     'cause':'passed' if passed else 'challenge','cause_detail':'Full content' if passed else 'Challenge page',
+                     'failure':'' if passed else 'Required body missing','followup_status':'Saved call',
+                     'answer':bindings['first_answer'],**bindings})
+    model={'schema':'webfetch_cohort_diagnostic/1','certified':False,'title':'Diagnostic example',
+           'subtitle':'Two scenarios','scope_note':'Diagnostic observations','metric_note':'One pass per task',
+           'cohorts':[{'id':'articles','label':'Articles','case_count':2}],
+           'cause_labels':{'passed':'Passed','challenge':'Challenge'},'source_labels':{},
+           'metrics':{'articles':[1,2],'overall':[1,2]},'rows':rows,
+           'success_audit':{'audited_passes':0,'source_state_counts':{}},'pages':{}}
+    (root/'report.json').write_text(json.dumps(model))
+    return model
+
+
+class ReportTemplateTests(unittest.TestCase):
+    def test_default_webfetch_and_wcxb_use_distinct_authoritative_profiles(self):
+        import shlex
+        from urllib.parse import urlsplit,parse_qs
+        template=resolve_template('webfetch')
+        self.assertEqual(template['profile'],'evaluation/current-report.json')
+        command=shlex.split(template['build'])
+        self.assertEqual(command[command.index('--profile')+1],template['profile'])
+        self.assertEqual(command[command.index('--output')+1],'reports/webfetch')
+        self.assertEqual(template['check'],'make report-check')
+        wcxb=json.loads((ROOT/template['wcxb_profile']).read_text())
+        command=shlex.split(template['wcxb_build'])
+        self.assertEqual(command[command.index('--profile')+1],template['wcxb_profile'])
+        self.assertEqual(command[command.index('--output')+1],'reports/wcxb')
+        self.assertEqual(template['example_profile'],template['wcxb_profile'])
+        self.assertEqual(urlsplit(template['example']).path,'/s/'+wcxb['artifact_hub_site'])
+        self.assertEqual(parse_qs(urlsplit(template['example']).query)['version'],[wcxb['artifact_hub_expected_version']])
+
+    def test_optional_variant_profiles_must_exist_within_the_repository(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'configs').mkdir()
+            registry=json.loads((ROOT/'configs/report-templates.json').read_text())
+            row=registry['tracks']['webfetch']
+            for key in ('renderer','entrypoint','profile','tests',*(key for key in row if key.endswith('_profile'))):
+                path=root/row[key];path.parent.mkdir(parents=True,exist_ok=True);path.write_text('{}')
+            for value in ('missing-profile.json',str(ROOT/'evaluation/wcxb/current-report.json')):
+                row['wcxb_profile']=value
+                (root/'configs/report-templates.json').write_text(json.dumps(registry))
+                with self.assertRaisesRegex(ValueError,'profile'):
+                    resolve_template('webfetch',root=root)
+    def test_all_supported_tracks_resolve_existing_owners_and_pinned_examples(self):
+        for track in ('webfetch','trajectory-replay','browser-use'):
+            with self.subTest(track=track):
+                template=resolve_template(track)
+                self.assertIn('?version=ver_',template['example'])
+                self.assertTrue((ROOT/template['entrypoint']).is_file())
+                self.assertTrue(template['check'])
+
+    def test_unknown_track_cannot_silently_fall_back(self):
+        with self.assertRaisesRegex(ValueError,'Unregistered'):
+            resolve_template('new-report')
+
+    def test_local_nested_pages_resolve_resources_navigation_and_lazy_evidence(self):
+        from bs4 import BeautifulSoup
+        from urllib.parse import urljoin, urlsplit
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            for row in model['rows']:
+                binding=row['first_answer'];raw=('Saved full output\n'*3000).encode()
+                (source/binding['path']).write_bytes(raw)
+                binding['sha256']=hashlib.sha256(raw).hexdigest()
+            (source/'report.json').write_text(json.dumps(model))
+            output=root/'report';build_diagnostic_cohorts(source,output)
+            for route in ('attempts/complete.html','attempts/challenge.html','datasets/complete.html'):
+                soup=BeautifulSoup((output/route).read_text(),'html.parser')
+                document='https://local.test/reports/'+route
+                base=soup.select_one('base[href]')
+                base_url=urljoin(document,base['href']) if base else document
+                for node in soup.select('[href], [src], [data-evidence-file]'):
+                    if node.name=='base':continue
+                    value=node.get('href') or node.get('src') or node.get('data-evidence-file')
+                    resolved=urlsplit(urljoin(base_url,value))
+                    if resolved.netloc!='local.test':continue
+                    self.assertTrue(resolved.path.startswith('/reports/'))
+                    self.assertTrue((output/resolved.path.removeprefix('/reports/')).is_file(),(route,value))
+
+    def test_cohort_chart_uses_each_own_denominator_and_rejects_tampering(self):
+        from bs4 import BeautifulSoup
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            model['rows'][0]['cohort']='small'
+            model['rows'][1]['cohort']='large'
+            extra=copy.deepcopy(model['rows'][1]);extra.update(id='challenge-two',run_id='call-challenge-two')
+            model['rows'].append(extra)
+            model['cohorts']=[{'id':'small','label':'Small','case_count':1},{'id':'large','label':'Large','case_count':2}]
+            model['metrics']={'small':[1,1],'large':[0,2],'overall':[1,3]}
+            (source/'report.json').write_text(json.dumps(model))
+            output=root/'report';build_diagnostic_cohorts(source,output)
+            page=output/'index.html';soup=BeautifulSoup(page.read_text(),'html.parser')
+            bars=soup.select('#cohort-results .editorial-bar-row')
+            self.assertEqual([b.select_one('b').get_text() for b in bars],['1 / 1','0 / 2'])
+            self.assertIn('100',bars[0].select_one('i')['style'])
+            bars[0].select_one('b').string='1 / 2';page.write_text(str(soup))
+            with self.assertRaises(ValueError):check_diagnostic_report(output)
+
+    def test_release_rejects_wrong_document_base_even_when_root_targets_exist(self):
+        from bs4 import BeautifulSoup
+        for mode in ('missing', 'wrong', 'external'):
+            with self.subTest(mode=mode),tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';diagnostic_example(source)
+                output=root/'report';build_diagnostic_cohorts(source,output)
+                page=output/'attempts/challenge.html';soup=BeautifulSoup(page.read_text(),'html.parser')
+                base=soup.select_one('base[href]')
+                if mode=='missing':base.decompose()
+                else:base['href']='./' if mode=='wrong' else 'https://wrong.test/'
+                page.write_text(str(soup))
+                with self.assertRaises(ValueError):check_diagnostic_report(output)
+
+    def test_reference_scope_is_required_before_rendering_or_writing(self):
+        for value in (None, '', '  ', 42, ['partial']):
+            with self.subTest(scope=value),tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                binding=model['rows'][0]['reference']
+                if value is None:binding.pop('scope')
+                else:binding['scope']=value
+                (source/'report.json').write_text(json.dumps(model))
+                with self.assertRaisesRegex(ValueError,'reference.*scope'):
+                    build_diagnostic_cohorts(source,root/'report')
+                self.assertFalse((root/'report').exists())
+
+    def test_malformed_evidence_bindings_fail_at_the_model_boundary(self):
+        for field in ('reference','first_answer','answer','source','log'):
+            for value in ('not-an-object', {'path':'a.txt'}, {'path':None,'sha256':'invalid'}):
+                with self.subTest(field=field,value=value),tempfile.TemporaryDirectory() as temp:
+                    root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                    model['rows'][0][field]=value
+                    (source/'report.json').write_text(json.dumps(model))
+                    with self.assertRaisesRegex(ValueError,field):
+                        build_diagnostic_cohorts(source,root/'report')
+                    self.assertFalse((root/'report').exists())
+
+    def test_large_output_is_retained_and_loaded_from_bound_file(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            binding=model['rows'][0]['first_answer']
+            raw=('Required article body\n'*3000).encode()
+            (source/binding['path']).write_bytes(raw)
+            binding['sha256']=hashlib.sha256(raw).hexdigest()
+            (source/'report.json').write_text(json.dumps(model))
+            output=root/'report';build_diagnostic_cohorts(source,output)
+            self.assertEqual((output/binding['path']).read_bytes(),raw)
+            from bs4 import BeautifulSoup
+            soup=BeautifulSoup((output/'attempts/complete.html').read_text(),'html.parser')
+            panel=soup.select_one('[data-evidence-kind="first_answer"] pre')
+            self.assertEqual(panel['data-evidence-file'],binding['path'])
+
+    def test_release_checks_distinct_diagnostic_output(self):
+        from bs4 import BeautifulSoup
+        for mode in ('missing', 'wrong-file', 'wrong-content'):
+            with self.subTest(mode=mode),tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                relative='evidence/complete-diagnostic.txt'
+                raw=b'Required article body from supplemental call'
+                (source/relative).write_bytes(raw)
+                model['rows'][0]['answer']={'path':relative,'sha256':hashlib.sha256(raw).hexdigest(),'scope':'supplemental call'}
+                (source/'report.json').write_text(json.dumps(model))
+                output=root/'report';build_diagnostic_cohorts(source,output)
+                self.assertEqual(check_diagnostic_report(output)['cases'],2)
+                page=output/'attempts/complete.html'
+                soup=BeautifulSoup(page.read_text(),'html.parser')
+                panel=soup.select_one('[data-evidence-kind="answer"]')
+                if mode=='missing':panel.decompose()
+                elif mode=='wrong-file':panel.select_one('pre')['data-evidence-file']=model['rows'][0]['first_answer']['path']
+                else:panel.select_one('pre').string='Wrong supplemental output'
+                page.write_text(str(soup))
+                with self.assertRaises(ValueError):check_diagnostic_report(output)
+
+    def test_build_preserves_outputs_and_separates_dataset_from_verdicts(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            before={p.relative_to(source):p.read_bytes() for p in source.rglob('*') if p.is_file()}
+            build_diagnostic_cohorts(source,root/'report')
+            self.assertEqual(check_diagnostic_report(root/'report')['cases'],2)
+            for relative,raw in before.items():
+                self.assertEqual((source/relative).read_bytes(),raw)
+                self.assertEqual((root/'report'/relative).read_bytes(),raw)
+            dataset=(root/'report/datasets/complete.html').read_text()
+            self.assertNotIn('首轮通过',dataset)
+            failed=(root/'report/attempts/challenge.html').read_text()
+            self.assertIn('Required body missing',failed)
+            self.assertIn('Verify you are human',failed)
+            manifest=json.loads((root/'report/report-manifest.json').read_text())
+            self.assertEqual(manifest['provider_calls_added'],0)
+            self.assertFalse(manifest['certified'])
+
+    def test_tampered_output_and_summary_are_rejected_before_build(self):
+        for mode in ('output','summary','duplicate','symlink'):
+            with self.subTest(mode=mode),tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                if mode=='output':(source/model['rows'][0]['answer']['path']).write_text('tampered')
+                elif mode=='summary':model['metrics']['overall']=[2,2]
+                elif mode=='duplicate':model['rows'].append(copy.deepcopy(model['rows'][0]))
+                else:
+                    original=source/model['rows'][0]['answer']['path']
+                    original.rename(source/'retained.txt')
+                    original.symlink_to(source/'retained.txt')
+                (source/'report.json').write_text(json.dumps(model))
+                with self.assertRaises(ValueError):build_diagnostic_cohorts(source,root/'report')
+                self.assertFalse((root/'report').exists())
+
+    def test_release_rejects_missing_evidence_dialog_and_parallel_renderer(self):
+        for mode in ('dialog','renderer','verdict','certification','evidence'):
+            with self.subTest(mode=mode),tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';diagnostic_example(source)
+                output=root/'report';build_diagnostic_cohorts(source,output)
+                if mode=='dialog':
+                    path=output/'attempts/challenge.html'
+                    path.write_text(path.read_text().replace('id="result-logs"','id="missing-log"'))
+                elif mode=='evidence':
+                    path=output/'attempts/challenge.html'
+                    path.write_text(path.read_text().replace('Verify you are human','Different output'))
+                elif mode=='verdict':
+                    path=output/'attempts/challenge.html'
+                    path.write_text(path.read_text().replace('data-report-detail="failed"','data-report-detail="success"'))
+                else:
+                    path=output/'report-manifest.json';manifest=json.loads(path.read_text())
+                    if mode=='renderer':manifest['template']['renderer']='work/copied.py'
+                    else:manifest['certified']=True
+                    path.write_text(json.dumps(manifest))
+                with self.assertRaises(ValueError):check_diagnostic_report(output)

@@ -10,7 +10,17 @@ from harness.web_fetch.metrics import evaluate_content, normalize_for_match
 from harness.web_fetch.report_build import require_risk_control_certification
 from harness.web_fetch.risk_control import measured_risk_control_dataset
 from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
-from scripts.build_risk_control_dataset import evidence_roots
+from scripts.build_risk_control_dataset import (
+    BODY_CONTRACTS,
+    COHORT,
+    EXPECTED_COHORT_HASH,
+    EXPECTED_RULE_HASHES,
+    LIST_CONTRACTS,
+    MANIFEST,
+    RULE_FILES,
+    evidence_roots,
+    parse_sections,
+)
 from scripts.run_risk_control_moli import main as run_risk_control
 from scripts.run_risk_control_moli import (
     reference_proof_snapshot,
@@ -22,6 +32,8 @@ DATASET = ROOT / "evaluation/risk-control/dataset.json"
 COHORT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-manifest.json"
 COHORT_RECEIPT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-receipt.json"
 RUN_PROFILE = ROOT / "evaluation/risk-control/run-profile.json"
+LANGUAGE_REVISION = ROOT / "research/risk-control-language-rule-revision.json"
+ZILLOW_REVISION = ROOT / "research/risk-control-zillow-sample-revision.json"
 
 
 @pytest.fixture(scope="module")
@@ -34,9 +46,9 @@ def test_dataset_covers_the_exact_audited_cohort(dataset):
     assert dataset["case_count"] == len(dataset["cases"]) == 100
     assert [case["id"] for case in dataset["cases"]] == [case["id"] for case in cohort["cases"]]
     assert dataset["site_count"] == 74
-    assert dataset["stable_literal_count"] == 1599
+    assert dataset["stable_literal_count"] == 1600
     assert "page_context_literal_count" not in dataset
-    assert dataset["observed_literal_count"] == 1599
+    assert dataset["observed_literal_count"] == 1600
     assert dataset["body_case_count"] == 79
     assert dataset["quantity_case_count"] == 21
     assert dataset["independent_quantity_group_count"] == 27
@@ -44,9 +56,184 @@ def test_dataset_covers_the_exact_audited_cohort(dataset):
     assert dataset["composite_group_count"] == 29
 
 
+def test_training_page_accepts_the_visible_english_ui_without_dropping_chinese_content(dataset):
+    case = next(case for case in dataset["cases"] if case["id"] == "risk-diverse-153")
+    # The live page retains its Chinese training title but renders its UI in
+    # English. Both surfaces are part of the requested page, not a translated
+    # substitute or a relaxed content requirement.
+    visible = (
+        "教材《C++版信息学奥赛一本通编程启蒙》题单\n"
+        "Login to join training plan\n"
+        "Problem Tried AC Difficulty\n"
+        "首页 题库 训练 比赛 评测记录 排名 登录 注册 Language\n"
+        "P1 [例2.1]Hello World 454 122 7\n"
+    )
+    result = evaluate_stable_task(visible, case["acceptance_contract"], case["url"])
+    assert result["stable_task_pass"] is True
+    assert result["stable_anchor_hits"] == result["stable_anchor_total"] == 15
+    without_training_title = evaluate_stable_task(
+        visible.replace("教材《C++版信息学奥赛一本通编程启蒙》题单", ""),
+        case["acceptance_contract"], case["url"],
+    )
+    assert without_training_title["stable_task_pass"] is False
+
+
+def test_training_page_language_alternatives_rebuild_from_rule_review(dataset):
+    section = next(section for section in parse_sections() if section["id"] == "risk-diverse-153")
+    case = next(case for case in dataset["cases"] if case["id"] == section["id"])
+    assert section["stable"] == [
+        anchor["alternatives"] for anchor in case["acceptance_contract"]["stable_text_anchors"]
+    ]
+    assert len(section["stable"]) == 15
+
+
+def test_language_rule_revision_is_the_predecessor_of_the_current_sample_revision():
+    revision = json.loads(LANGUAGE_REVISION.read_text())
+    successor = json.loads(ZILLOW_REVISION.read_text())
+    assert (
+        successor["correction"]["predecessor_dataset_sha256"]
+        == revision["correction"]["new_dataset_sha256"]
+    )
+    assert (
+        successor["correction"]["predecessor_run_profile_sha256"]
+        == revision["correction"]["new_run_profile_sha256"]
+    )
+    assert revision["independent_browser_observation"]["anchor_total"] == 6
+    assert revision["correction"]["provider_calls"] == 0
+
+
+def test_zillow_sample_revision_binds_current_frozen_inputs():
+    revision = json.loads(ZILLOW_REVISION.read_text())
+    successor = json.loads((ROOT/'research/risk-control-training-list-revision.json').read_text())
+    profile = json.loads(RUN_PROFILE.read_text())
+    for key in ('dataset', 'run_profile'):
+        assert revision['correction']['new_'+key+'_sha256'] == successor['correction']['predecessor_'+key+'_sha256']
+    full_page = json.loads((ROOT/'research/risk-control-full-page-rule-revision.json').read_text())
+    assert successor['correction']['new_dataset_sha256'] == full_page['correction']['predecessor_dataset_sha256']
+    assert successor['correction']['new_run_profile_sha256'] == full_page['correction']['predecessor_run_profile_sha256']
+    assert full_page['correction']['new_dataset_sha256'] == hashlib.sha256(DATASET.read_bytes()).hexdigest()
+    assert full_page['correction']['new_run_profile_sha256'] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
+    assert profile["dataset"]["sha256"] == full_page["correction"]["new_dataset_sha256"]
+    assert revision["correction"]["provider_calls"] == 1
+    assert revision["correction"]["rerun_case_ids"] == ["risk-diverse-134"]
+
+
+def test_every_secondary_risk_anchor_is_bound_to_independent_revision(dataset):
+    revision = json.loads(LANGUAGE_REVISION.read_text())
+    case_id = revision["case_id"]
+    declared = revision["correction"]["equivalent_ui_alternatives_added"]
+    observed = {}
+    for case in dataset["cases"]:
+        for anchor in case["acceptance_contract"]["stable_text_anchors"]:
+            for alternative in anchor["alternatives"][1:]:
+                observed[(case["id"], anchor["id"])] = alternative
+    assert observed == {(case_id, anchor_id): text for anchor_id, text in declared.items()}
+    assert len(revision["independent_browser_observation"]["visible_text_sha256"]) == 64
+
+
 def test_external_evidence_roots_honor_data_home(monkeypatch, tmp_path):
     monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path))
     assert all(path.is_relative_to(tmp_path) for path in evidence_roots().values())
+
+
+def test_builder_hash_guards_match_the_current_audited_sources():
+    assert hashlib.sha256(COHORT.read_bytes()).hexdigest() == EXPECTED_COHORT_HASH
+    assert {
+        path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in RULE_FILES
+    } == EXPECTED_RULE_HASHES
+
+
+def test_dataset_and_qualification_manifest_bind_current_source_bytes(dataset):
+    expected_dataset_bindings = {
+        "cohort_manifest_sha256": hashlib.sha256(COHORT.read_bytes()).hexdigest(),
+        "first_30_rules_sha256": hashlib.sha256(RULE_FILES[0].read_bytes()).hexdigest(),
+        "remaining_70_rules_sha256": hashlib.sha256(RULE_FILES[1].read_bytes()).hexdigest(),
+        "list_contracts_sha256": hashlib.sha256(LIST_CONTRACTS.read_bytes()).hexdigest(),
+        "body_contracts_sha256": hashlib.sha256(BODY_CONTRACTS.read_bytes()).hexdigest(),
+    }
+    assert dataset["source_bindings"] == expected_dataset_bindings
+
+    qualification = json.loads(MANIFEST.read_text())
+    qualification_root = MANIFEST.parent.parent
+    for binding in qualification["files"]:
+        path = qualification_root / binding["path"]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == binding["sha256"]
+
+
+def test_zillow_case_binds_location_and_only_requires_visible_card_fields(dataset):
+    case = next(case for case in dataset["cases"] if case["id"] == "risk-diverse-134")
+    assert case["url"] == "https://www.zillow.com/seattle-wa/"
+    anchors = [
+        item["alternatives"][0]
+        for item in case["acceptance_contract"]["stable_text_anchors"]
+    ]
+    assert "Seattle WA Real Estate & Homes For Sale" in anchors
+    fields = case["composite_acceptance"]["groups"][0]["required_fields"]
+    assert [field["id"] for field in fields] == [
+        "price", "bedrooms", "bathrooms", "area"
+    ]
+
+    cards = []
+    for index in range(8):
+        zpid = 10000000 + index
+        cards.append(
+            f"[10{index} Example Avenue, Seattle, WA 9810{index}]"
+            f"(https://www.zillow.com/homedetails/10{index}-Example-Ave-Seattle-WA-9810{index}/"
+            f"{zpid}_zpid/)\n$900,000\n3 bds\n2 ba\n1,800 sqft"
+        )
+    positive = "\n".join(anchors) + "\n\n" + "\n\n".join(cards)
+    accepted = evaluate_content(
+        positive,
+        [],
+        min_content_chars=1,
+        acceptance_contract=case["acceptance_contract"],
+        composite_acceptance=case["composite_acceptance"],
+        base_url=case["url"],
+    )
+    assert accepted["content_pass"] is True
+
+    wrong_location = positive.replace(
+        "Seattle WA Real Estate & Homes For Sale",
+        "Liberal MO Real Estate & Homes For Sale",
+    )
+    assert evaluate_content(
+        wrong_location,
+        [],
+        min_content_chars=1,
+        acceptance_contract=case["acceptance_contract"],
+        composite_acceptance=case["composite_acceptance"],
+        base_url=case["url"],
+    )["content_pass"] is False
+
+    missing_visible_area = positive.replace("1,800 sqft", "", 1)
+    assert evaluate_content(
+        missing_visible_area,
+        [],
+        min_content_chars=1,
+        acceptance_contract=case["acceptance_contract"],
+        composite_acceptance=case["composite_acceptance"],
+        base_url=case["url"],
+    )["content_pass"] is False
+
+
+@pytest.mark.parametrize('fields,expected', [
+    ('3 beds · 2 baths · 1,200 sqft', True),
+    ('3 beds · 2.5 baths · 1,200 sqft', True),
+    ('3 beds 2 baths 1,200 sqft', True),
+    ('5 bds4 ba3,380 sqftActive', True),
+    ('3 beds\n2 baths\n1,200 sqft', True),
+    ('**3** beds · __2__ baths · **1,200** sqft', True),
+    ('1200 sqft beds\n1200 sqft baths\n1200 sqft', False),
+    ('3 beds · 1,200 sqft', False),
+])
+def test_zillow_full_score_requires_distinct_numeric_card_fields(dataset, fields, expected):
+    from harness.web_fetch.scoring import score_attempt
+    case=next(c for c in dataset['cases'] if c['id']=='risk-diverse-134')
+    anchors='\n'.join(a['alternatives'][0] for a in case['acceptance_contract']['stable_text_anchors'])
+    cards=[f'[10{i} Example Avenue](https://www.zillow.com/homedetails/Example/{10000000+i}_zpid/)\n$900,000\n{fields}' for i in range(8)]
+    result=score_attempt(case,(anchors+'\n\n'+'\n\n'.join(cards)).encode(),ok=True,final_url=case['url'])
+    assert result['content_pass'] is expected
+    assert result['composite_group_results'][0]['count']==(8 if expected else 0)
 
 
 def test_compact_cohort_receipt_binds_final_manifest_and_limits_the_claim():

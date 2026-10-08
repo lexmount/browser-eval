@@ -484,14 +484,23 @@ def evaluate_content(
     composite_acceptance: dict | None = None,
     allow_reference_block_exemptions: bool = False,
 ) -> dict[str, Any]:
-    answer_text = ((title.strip() + '\n') if title and title.strip() else '') + content
+    title_prefix = ((title.strip() + '\n') if title and title.strip() else '')
+    visible_content = content
+    is_html = bool(re.match(r'\s*<!doctype\s+html\b', content, re.I) or
+                   re.match(r'\s*<(?:html|body|main|div|section|article)\b', content, re.I))
+    if is_html:
+        # Keep raw HTML for records and links; score prose from visible text.
+        from .dynamic_lists import visible_html_text
+        visible_content = visible_html_text(content)
+    answer_text = title_prefix + visible_content
     from .reference_quality import blocked_page_hits, script_payload_shell
     block_hits = blocked_page_hits(answer_text)
     script_shell = script_payload_shell(answer_text)
     replacement_count, replacement_ratio, encoding_corruption = text_corruption(answer_text)
     truncation_hits = declared_truncation_hits(answer_text)
     folded = normalize_for_match(answer_text)
-    matched = [marker for marker in expected if (text := normalize_for_match(marker)) and text in folded]
+    content_folded = normalize_for_match(visible_content)
+    matched = [marker for marker in expected if (text := normalize_for_match(marker)) and text in content_folded]
     facts = required_facts or []
     from .dynamic_entry_matching import matching_entry_facts
     entry_hits = matching_entry_facts(folded, facts, normalize_for_match, fact_in_text)
@@ -529,32 +538,23 @@ def evaluate_content(
     if acceptance_contract:
         # A historical snapshot cannot exempt an explicit stable-mode block rule.
         reference_exemptions = []
-    forbidden_folded = folded
-    if re.match(r'\s*(?:<!doctype\s+html[^>]*>\s*)?<(?:html|body|main|div|section|article)\b', content, re.I):
-        # Dormant HTML templates and scripts can mention CAPTCHA on a fully
-        # functioning page. Their source code is not a visible blocking notice.
-        # Preserve the supplied title and real page text for this gate.
-        from .dynamic_lists import _scoped_html
-        forbidden_surface = ((title.strip() + '\n') if title and title.strip() else '')
-        forbidden_surface += _scoped_html(content).get_text(' ', strip=True)
-        forbidden_folded = normalize_for_match(forbidden_surface)
     forbidden = [item for item in (forbidden_any or [])
-                 if item not in reference_exemptions and (text := normalize_for_match(item)) and text in forbidden_folded]
+                 if item not in reference_exemptions and (text := normalize_for_match(item)) and text in folded]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in answer_text.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
     legacy_pass = bool(matched) if expected else True
-    length_pass = len(content) >= min_content_chars
+    length_pass = len(visible_content) >= min_content_chars
     content_pass = (legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold
                     and not forbidden and not block_hits and not encoding_corruption
                     and not script_shell)
     pattern_results = []
     for rule in required_patterns or []:
-        count = len(set(re.findall(rule['pattern'], answer_text, re.I)))
+        count = len(set(re.findall(rule['pattern'], visible_content, re.I)))
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
     from .body_coverage import evaluate_body_requirements
-    body_checks = evaluate_body_requirements(answer_text, body_requirements or {})
+    body_checks = evaluate_body_requirements(visible_content, body_requirements or {})
     content_pass = content_pass and body_checks['body_coverage_pass']
     word_precision = word_recall = word_f1 = None
     if ground_truth_main_content:
@@ -609,7 +609,11 @@ def evaluate_content(
         # contract is different: it remains an independent acceptance gate.
         declared_body_pass = bool(result["body_coverage_pass"])
         from .stable_tasks import evaluate_stable_task
-        result.update(evaluate_stable_task(answer_text, acceptance_contract, base_url, links=named_links))
+        # Document metadata remains diagnostic; it cannot supply rendered
+        # page anchors, records, or declared body coverage.
+        result.update(evaluate_stable_task(content, acceptance_contract,
+                                           base_url, links=named_links,
+                                           anchor_text=visible_content if is_html else None))
         if encoding_corruption:
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False
@@ -638,7 +642,7 @@ def evaluate_content(
     if composite_acceptance:
         from .composite_tasks import evaluate_composite_acceptance
         composite = evaluate_composite_acceptance(
-            answer_text, composite_acceptance, base_url=base_url, links=named_links,
+            visible_content, composite_acceptance, base_url=base_url, links=named_links,
         )
         result.update(composite)
         result["content_pass"] = bool(result["content_pass"] and composite["composite_acceptance_pass"])

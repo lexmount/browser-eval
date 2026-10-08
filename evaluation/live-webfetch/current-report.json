@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "track": "webfetch",
+  "variant": "diagnostic-cohorts",
+  "evidence_state": "diagnostic",
+  "certified": false,
+  "model_sha256": "acd4ccb610d2bce40f858609f022641bab72d036c40672e25ad1a768a371d2ff",
+  "report_output": "reports/live-webfetch",
+  "publication": {
+    "host": "https://artifact-site.lexmount.cn",
+    "slug": "5f1BlXJW61lr",
+    "version_id": "ver_11ae6a54971c47c59dfbac196a47eeaa",
+    "share_created": false,
+    "verified_files": 1965,
+    "archive_sha256": "2412b34c3bc98039201bf4da565b4b17bbc8dc13c88a6bad1d2d58815718c83f"
+  }
+}

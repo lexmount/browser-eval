@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "kind": "risk_control_sample_and_visible_field_revision",
+  "case_id": "risk-diverse-134",
+  "reason": "The location-free Zillow route selected an environment-dependent region while the task required at least eight listing cards. The frozen card contract also required house type even though that value was absent from the visible initial-load card.",
+  "independent_observation": {
+    "old_moli_output": "The old route resolved to Liberal MO 64728 and explicitly returned no matching listings.",
+    "new_http_route": "403 with x-px-blocked and px-captcha",
+    "new_browser_route": "Two no-interaction observations each exposed nine unique Seattle listing cards.",
+    "visible_fields": ["price", "bedrooms", "bathrooms", "area"],
+    "nonvisible_embedded_field_removed": "house_type",
+    "external_capture": {
+      "path": "risk-control/qualification-zillow-20260929/risk-diverse-134/capture.json",
+      "sha256": "f8a3fda181d5f30985a281e22746dc41add69a46313cc4a48de72183c5456c0c"
+    },
+    "post_call_source_observation": {
+      "path": "risk-control/qualification-zillow-20260929/risk-diverse-134/post-call-observation.json",
+      "sha256": "11e7eb2cb4b61158aa96af5269b1901dbd517e51f9f8b4c7e404d2dd37a9badb"
+    }
+  },
+  "correction": {
+    "predecessor_dataset_sha256": "ea3ecc02aa1a85395f10f2b96fcb4be2e6717f6e73480bd1e81e705bf61cc7dd",
+    "predecessor_run_profile_sha256": "bad1bf762f3fcba1680db0f545c6f100c29d0f80592fc76ea65fe16f659d67e0",
+    "new_dataset_sha256": "b29fc8fc9d3d41dfc1bc1c7d4edf39b1d5ba7cbfb0e441ff85cf78e117044e84",
+    "new_run_profile_sha256": "e8a49ffa5c58e570beec3e2f306e37afef89b2f4f1a5b62b7e26f6376979e6ba",
+    "changed_fields": [
+      "url",
+      "target_scope",
+      "stable_text_anchors",
+      "reference_proof",
+      "composite_acceptance.required_fields"
+    ],
+    "rerun_case_ids": ["risk-diverse-134"],
+    "inherited_case_count": 99,
+    "provider_calls": 1,
+    "provider": "moli-1.1.11",
+    "result": {
+      "passed": true,
+      "results_sha256": "50883bc1e04bf710aadc67df4eea1f9ac75436e51ea14240144fbc698df40411",
+      "answer_sha256": "6f53c10de4864b9fa4c9e99df4700fd4ba671a853c6f855acb8083cc5033995c",
+      "diagnostic_session_sha256": "4533dae4c0eacc1cfb9dc8c6c37e957d79825994a7a232ff0b55f29030eecab9"
+    }
+  },
+  "regressions": {
+    "production_path": "harness.web_fetch.metrics.evaluate_content",
+    "tests": [
+      "test_zillow_case_binds_location_and_only_requires_visible_card_fields",
+      "test_builder_hash_guards_match_the_current_audited_sources"
+    ],
+    "positive": "Eight Seattle cards with visible price, bedroom, bathroom and area fields pass.",
+    "negative": "The same cards under another location heading fail; one card missing visible area also fails."
+  }
+}

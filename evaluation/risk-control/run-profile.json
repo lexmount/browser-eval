@@ -5,7 +5,7 @@
   "unresolved_case_ids": [],
   "dataset": {
     "path": "evaluation/risk-control/dataset.json",
-    "sha256": "f6a865b3d473c1b73e2d5069f161071e4f0a98176f6507a6d8455b94c3d826ec",
+    "sha256": "18540c639ceb6eb8cdcb5797698cf09be8962d1af502b9a76b3adddedfdabf20",
     "case_count": 100,
     "site_count": 74,
     "case_ids_sha256": "f037b11fa10826f6bdafd1e61ec8663070fe9873ebb891218cf941f67e5012b1"
@@ -13,15 +13,15 @@
   "source_bindings": {
     "qualification_manifest": {
       "path": "evaluation/risk-control/qualification/cohort/input-manifest.json",
-      "sha256": "b1e4fe9a27cb9cb9b1d533dd29d49b9f97af013f88b7a7ded876d48cfe07c9c4"
+      "sha256": "8a61be8ffdf09a4f5ba84ebd2a621243a6b59d726825b1884f9c71295ecffd27"
     },
     "cohort_receipt": {
       "path": "evaluation/risk-control/qualification/cohort/cohort-receipt.json",
-      "sha256": "29e56c1bbc96ae3bdc1abc20b469eee55dfb1f276f390bd585349b1c264a96ac"
+      "sha256": "a5929b62ffb8b64da1ac902c5c5be61a75fa01ed171a497f115de14442a9a872"
     },
     "cohort_manifest": {
       "path": "evaluation/risk-control/qualification/cohort/cohort-manifest.json",
-      "sha256": "89d528b8f09f30c7aa2b21906dcb1a10fb88124695a215af8c82a243556b858e"
+      "sha256": "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26"
     },
     "first_30_rules": {
       "path": "evaluation/risk-control/first-30-rule-review.md",
@@ -29,11 +29,11 @@
     },
     "remaining_70_rules": {
       "path": "evaluation/risk-control/remaining-70-rule-review.md",
-      "sha256": "aca078836fce03764d2dd8c62bb2b697bbc0f5e9af11cfc0df193a667d5625c6"
+      "sha256": "e2450b8b112e86b5b904452eaf30262384df60f5cff246c5850b2df1737c8f0e"
     },
     "list_contracts": {
       "path": "evaluation/risk-control/list-contracts.json",
-      "sha256": "96a73f56db8221204dd27ad9ef37ba2be295fceaec86a7812a45aecde91536fd"
+      "sha256": "4d848525cc47179904443758ccdea39ea12c0e959b07237e4193fe2540a59299"
     },
     "body_contracts": {
       "path": "evaluation/risk-control/body-contracts.json",
@@ -45,7 +45,7 @@
     },
     "rule_completeness_audit": {
       "path": "evaluation/risk-control/rule-completeness-audit-20260929.md",
-      "sha256": "89c7e17fdf93e78c65b05a5e55922915a095883f79225e7c0d32b6e4472ce1e5"
+      "sha256": "b24d16e2d11ead9a2151eead491976b66f13c752667cb8febf3efc4466fb2cf8"
     }
   },
   "provider": {

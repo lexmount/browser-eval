@@ -1,5 +1,13 @@
 # Report and release
 
+## Template discovery and diagnostic models
+
+Run `make report-template TRACK=webfetch` (or `trajectory-replay` / `browser-use`) before authoring. The registry returns the maintained owner, current profile, version-pinned example, build and check commands. A reference report supplies presentation conventions, never evidence or the new publication target. Extend the owner instead of copying its HTML into a temporary renderer.
+
+For explicitly requested live WebFetch diagnostics, use `make webfetch-diagnostic-report EVIDENCE=/absolute/source OUTPUT=/absolute/new-output`. The `webfetch_cohort_diagnostic/1` model contains cohorts, per-case Boolean first-call verdicts, declared summary counts, cause/source labels, review counts and hash-bound reference/output/source/log files. `tests/test_report_templates.py:diagnostic_example` is a runnable two-scenario fixture through the public builder; its test command is registered alongside the variant. The release checker recomputes totals and validates rendered verdicts, complete evidence bindings, dialogs and links. A diagnostic remains diagnostic; this path cannot substitute for a certified build.
+
+For a new report type, first persist a reusable example and scenario-based positive/negative tests, register its owner and release gate, then generate the requested report. Later corrections update the owner and relevant rules when supported by evidence; do not clone a template per run or embed report-specific conclusions in instructions.
+
 ## Language generation
 
 All tracks generate and validate Chinese by default. English requires an explicit manual trigger; do not automatically translate prose, generate English illustrations, render English routes or run English-specific checks. A manifest records which languages were generated. When English is absent, retain only a clear not-generated notice with a return link, and test that control. Remove stale English output and unused translated assets from the new bundle while preserving source translations. Parity and English localization checks apply when the English edition is explicitly generated; Chinese-only releases retain all Chinese evidence, semantics, links and visual gates.

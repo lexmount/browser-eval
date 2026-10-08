@@ -3,7 +3,7 @@ import argparse,json,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from harness.web_fetch.report_build import build_report, build_public_benchmark_research, build_wcxb_report, build_webmainbench_full_report
+from harness.web_fetch.report_build import build_report, build_public_benchmark_research, build_wcxb_report, build_webmainbench_full_report, build_diagnostic_cohorts
 from harness.web_fetch.storage import (
     current_evidence_dir,
     require_canonical_inputs,
@@ -22,11 +22,22 @@ if __name__ == '__main__':
                         help='also generate the English report; Chinese-only is the default')
     parser.add_argument('--local-audit',action='store_true',
                         help='build an explicitly local, non-publishable audit report from bound evidence')
+    parser.add_argument('--diagnostic-cohorts',action='store_true',
+                        help='render an explicitly diagnostic cohort model with the maintained WebFetch template')
     parser.add_argument('--wcxb-source',type=Path)
     parser.add_argument('--wcxb-sample',type=Path)
     parser.add_argument('--wcxb',action='store_true',help='Build the independently bound WCXB report')
     parser.add_argument('--webmainbench-full',action='store_true',help='Build the separately certified complete 545-case report')
     args=parser.parse_args()
+    from harness.reporting.templates import resolve_template
+    resolve_template('webfetch')
+    if args.diagnostic_cohorts:
+        if not args.evidence or not args.output:
+            parser.error('--diagnostic-cohorts requires --evidence and --output')
+        if args.profile or args.local_audit or args.wcxb or args.webmainbench_full or args.public_benchmark_research or args.include_english:
+            parser.error('--diagnostic-cohorts requires its own diagnostic evidence model and Chinese output')
+        print(build_diagnostic_cohorts(args.evidence,args.output))
+        raise SystemExit(0)
     if args.local_audit:
         if not args.evidence or not args.output:
             parser.error('--local-audit requires both --evidence and --output')

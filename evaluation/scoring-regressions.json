@@ -21100,7 +21100,7 @@
         "expected_task_pass": false
     },
     {
-      "id": "record-owned-stable-author-text-visible",
+        "id": "record-owned-stable-author-text-visible",
         "category": "acceptance-contract",
         "root_cause": "source_owned_stable_text_scope",
         "failure_mode": "false-negative",
@@ -21131,64 +21131,10 @@
         "expected_metrics": {
             "stable_anchor_hits": 1,
             "stable_complete_record_count": 1
-      }
-    },
-    {
-      "id": "declared-page-chrome-is-required-stable-text",
-      "category": "acceptance-contract",
-      "root_cause": "declared_full_page_stable_text_scope",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.org/",
-        "task_kind": "body",
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "named_link",
-          "minimum_records": 1,
-          "hosts": ["example.org"],
-          "entry_path": "/post/\\d+",
-          "stable_text_anchors": [
-            {"id": "navigation", "alternatives": ["翻译"]}
-          ]
         }
-      },
-      "artifact": "翻译\n[文章标题](https://example.org/post/1)",
-      "ok": true,
-      "expected_task_pass": true,
-      "expected_metrics": {
-        "stable_anchor_hits": 1,
-        "stable_complete_record_count": 1
-      }
     },
     {
-      "id": "missing-declared-page-chrome-fails-full-page-contract",
-      "category": "acceptance-contract",
-      "root_cause": "declared_full_page_stable_text_scope",
-      "failure_mode": "false-positive",
-      "case": {
-        "url": "https://example.org/",
-        "task_kind": "body",
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "named_link",
-          "minimum_records": 1,
-          "hosts": ["example.org"],
-          "entry_path": "/post/\\d+",
-          "stable_text_anchors": [
-            {"id": "navigation", "alternatives": ["翻译"]}
-          ]
-        }
-      },
-      "artifact": "[文章标题](https://example.org/post/1)",
-      "ok": true,
-      "expected_task_pass": false,
-      "expected_metrics": {
-        "stable_anchor_hits": 0,
-        "stable_complete_record_count": 1
-      }
-    },
-    {
-      "id": "record-owned-stable-author-text-absent",
+        "id": "record-owned-stable-author-text-absent",
         "category": "acceptance-contract",
         "root_cause": "source_owned_stable_text_scope",
         "failure_mode": "false-positive",
@@ -21494,6 +21440,107 @@
         "expected_metrics": {
             "stable_complete_record_count": 0
         }
+    },
+    {"id":"html-doctype-hidden-challenge-is-not-visible","category":"format-normalization","root_cause":"html_visible_forbidden_surface","failure_mode":"false-negative","case":{"url":"https://example.test/products","task_kind":"body","required_facts":[{"id":"products","alternatives":["Available products"]}],"forbidden_any":["CAPTCHA"]},"artifact":"<!DOCTYPE html><!--[if IE 7]><html lang=\"en\"><![endif]--><html><head><script>const gate = 'CAPTCHA';</script></head><body><main><h1>Available products</h1></main></body></html>","ok":true,"expected_task_pass":true,"expected_metrics":{"content_pass":true,"forbidden_hits":[]}},
+    {"id":"html-doctype-visible-challenge-still-blocks","category":"format-normalization","root_cause":"html_visible_forbidden_surface","failure_mode":"false-positive","case":{"url":"https://example.test/products","task_kind":"body","required_facts":[{"id":"products","alternatives":["Available products"]}],"forbidden_any":["CAPTCHA"]},"artifact":"<!DOCTYPE html><html><body><main><h1>Available products</h1><p>CAPTCHA</p></main></body></html>","ok":true,"expected_task_pass":false,"expected_metrics":{"content_pass":false,"forbidden_hits":["CAPTCHA"]}},
+    {"id":"html-inline-code-preserves-visible-anchor","category":"format-normalization","root_cause":"stable_anchor_html_inline_markup","failure_mode":"false-negative","case":{"url":"https://docs.example.test/search","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"search-instruction","alternatives":["Set search: true to enable the search plugin:"]}]}},"artifact":"<!doctype html><html><body><main><p>Set <code>search: true</code> to enable the search plugin:</p></main></body></html>","title":"Search | Documentation","ok":true,"expected_task_pass":true,"expected_metrics":{"stable_anchor_hits":1}},
+    {"id":"html-hidden-script-cannot-satisfy-anchor","category":"format-normalization","root_cause":"stable_anchor_html_inline_markup","failure_mode":"false-positive","case":{"url":"https://docs.example.test/search","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"search-instruction","alternatives":["Set search: true to enable the search plugin:"]}]}},"artifact":"<!doctype html><html><head><script>const help = 'Set search: true to enable the search plugin:';</script></head><body><main><p>Search examples</p></main></body></html>","title":"Search | Documentation","ok":true,"expected_task_pass":false,"expected_metrics":{"stable_anchor_hits":0}},
+    {"id":"html-inline-code-counts-for-body-coverage","category":"format-normalization","root_cause":"body_coverage_html_visible_text","failure_mode":"false-negative","case":{"url":"https://docs.example.test/sorting","task_kind":"body","body_requirements":{"version":3,"unit":"region_compact_hexagram_recall","minimum_coverage":1.0,"minimum_floor":1.0,"minimum_region_passes":1,"regions":[{"id":"instruction","text":"To enable sorting simply add sort true to your config"}]}},"artifact":"<!doctype html><html><body><main><p>To enable sorting, simply add <code>sort: true</code> to your config:</p></main></body></html>","title":"Sorting | Documentation","ok":true,"expected_task_pass":true,"expected_metrics":{"body_coverage_pass":true}},
+    {"id":"html-hidden-script-cannot-satisfy-body-coverage","category":"format-normalization","root_cause":"body_coverage_html_visible_text","failure_mode":"false-positive","case":{"url":"https://docs.example.test/sorting","task_kind":"body","body_requirements":{"version":3,"unit":"region_compact_hexagram_recall","minimum_coverage":1.0,"minimum_floor":1.0,"minimum_region_passes":1,"regions":[{"id":"instruction","text":"To enable sorting simply add sort true to your config"}]}},"artifact":"<!doctype html><html><head><script>const help = 'To enable sorting simply add sort true to your config';</script></head><body><main><p>Sorting examples</p></main></body></html>","title":"Sorting | Documentation","ok":true,"expected_task_pass":false,"expected_metrics":{"body_coverage_pass":false}},
+    {"id":"html-visible-body-ignores-hidden-challenge-heading","category":"format-normalization","root_cause":"html_visible_answer_surface","failure_mode":"false-negative","case":{"url":"https://example.test/","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Visible product catalog"]}]},"min_content_chars":20},"artifact":"<!doctype html><html><head><script>\nCAPTCHA\n</script></head><body><main><p>Visible product catalog is ready.</p></main></body></html>","title":"Products","ok":true,"expected_task_pass":true,"expected_metrics":{"blocked_page":false,"length_pass":true}},
+    {"id":"html-hidden-script-cannot-inflate-visible-length","category":"format-normalization","root_cause":"html_visible_answer_surface","failure_mode":"false-positive","case":{"url":"https://example.test/","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Hello"]}]},"min_content_chars":20},"artifact":"<!doctype html><html><head><script>const hidden = 'This lengthy source code is not the page body';</script></head><body><main>Hello</main></body></html>","title":"Home","ok":true,"expected_task_pass":false,"expected_metrics":{"length_pass":false}},
+    {"id":"html-visible-challenge-heading-blocks-body","category":"format-normalization","root_cause":"html_visible_answer_surface","failure_mode":"false-positive","case":{"url":"https://example.test/","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Welcome"]}]}},"artifact":"<!doctype html><html><body><h1>CAPTCHA</h1><main><p>Welcome</p></main></body></html>","title":"Home","ok":true,"expected_task_pass":false,"expected_metrics":{"blocked_page":true,"stable_blocked_page":true}},
+    {"id":"dynamic-undeclared-source-language-can-verify-identity","category":"acceptance-contract","root_cause":"source_document_language_absent","failure_mode":"false-negative","case":{"url":"https://example.test/untagged","evaluation_url":"https://example.test/untagged","expected_final_url":"https://example.test/untagged","target_language":"en","target_region":"US","expected_document_language_present":false,"track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Visible content"]}]}},"artifact":"Visible content","ok":true,"final_url":"https://example.test/untagged","metadata":{"route":"dynamic_selected_text","document_language":""},"expected_task_pass":true,"expected_metrics":{"page_identity_status":"verified","language_consistent":true}},
+    {"id":"dynamic-undeclared-source-language-rejects-declared-language","category":"acceptance-contract","root_cause":"source_document_language_absent","failure_mode":"false-positive","case":{"url":"https://example.test/untagged","evaluation_url":"https://example.test/untagged","expected_final_url":"https://example.test/untagged","target_language":"en","target_region":"US","expected_document_language_present":false,"track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Visible content"]}]}},"artifact":"Visible content","ok":true,"final_url":"https://example.test/untagged","metadata":{"route":"dynamic_selected_text","document_language":"en"},"expected_task_pass":false,"expected_metrics":{"page_identity_status":"mismatch","language_consistent":false}},
+    {"id":"long-metadata-title-keeps-visible-html-anchor","category":"format-normalization","root_cause":"html_title_prefix_detection","failure_mode":"false-negative","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><p>Required <b>body</b></p></body></html>","title":"Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title ","ok":true,"expected_task_pass":true,"expected_metrics":{"stable_anchor_hits":1}},
+    {"id":"long-metadata-title-cannot-expose-script-anchor","category":"format-normalization","root_cause":"html_title_prefix_detection","failure_mode":"false-positive","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><script>Required body</script><p>Other text</p></body></html>","title":"Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title Metadata title ","ok":true,"expected_task_pass":false,"expected_metrics":{"stable_anchor_hits":0}},
+    {"id":"html-inline-challenge-explanation-is-prose","category":"format-normalization","root_cause":"html_block_line_boundaries","failure_mode":"false-negative","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><p>Required body. If you see <strong>Verify you are human</strong>, complete the verification before continuing.</p></body></html>","ok":true,"expected_task_pass":true,"expected_metrics":{"blocked_page":false,"stable_blocked_page":false}},
+    {"id":"html-independent-challenge-heading-still-blocks","category":"format-normalization","root_cause":"html_block_line_boundaries","failure_mode":"false-positive","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><p>Required body.</p><h1><strong>Verify you are human</strong></h1></body></html>","ok":true,"expected_task_pass":false,"expected_metrics":{"blocked_page":true,"stable_blocked_page":true}},
+    {"id":"combined-problem-cells-across-sections-pass","category":"structured-extraction","root_cause":"composite_table_equivalent_fields","failure_mode":"false-negative","case":{"url":"https://example.test/training","task_kind":"body","composite_acceptance":{"version":1,"groups":[{"id":"problems","kind":"table","minimum_records":3,"start_pattern":"(?m)^Section\\s+1\\.","end_pattern":"(?m)^Section\\s+6\\.","required_columns":[{"id":"number","kind":"text","pattern":"^[A-Z]?[0-9]+$","aliases":["Number"]},{"id":"name","kind":"text","aliases":["Name"]},{"id":"attempts","kind":"integer","aliases":["Tried"]},{"id":"accepted","kind":"integer","aliases":["AC"]},{"id":"difficulty","kind":"integer","aliases":["Difficulty"]}],"identity_column":"number","combined_columns":[{"aliases":["Problem"],"pattern":"^(?P<number>[A-Z]?[0-9]+)\\s+(?P<name>.+)$"}]}]}},"artifact":"Section 1. First\nProblem\tTried\tAC\tDifficulty\nP1 Hello World\t1\t1\t7\nP2 Output Practice\t2\t1\t5\nSection 2. Next\nProblem\tTried\tAC\tDifficulty\nB003 Addition Exercise\t3\t2\t4\nSection 6. End","ok":true,"expected_task_pass":true},
+    {"id":"combined-problem-cells-cannot-omit-name","category":"structured-extraction","root_cause":"composite_table_equivalent_fields","failure_mode":"false-positive","case":{"url":"https://example.test/training","task_kind":"body","composite_acceptance":{"version":1,"groups":[{"id":"problems","kind":"table","minimum_records":3,"start_pattern":"(?m)^Section\\s+1\\.","end_pattern":"(?m)^Section\\s+6\\.","required_columns":[{"id":"number","kind":"text","pattern":"^[A-Z]?[0-9]+$","aliases":["Number"]},{"id":"name","kind":"text","aliases":["Name"]},{"id":"attempts","kind":"integer","aliases":["Tried"]},{"id":"accepted","kind":"integer","aliases":["AC"]},{"id":"difficulty","kind":"integer","aliases":["Difficulty"]}],"identity_column":"number","combined_columns":[{"aliases":["Problem"],"pattern":"^(?P<number>[A-Z]?[0-9]+)\\s+(?P<name>.+)$"}]}]}},"artifact":"Section 1. First\nProblem\tTried\tAC\tDifficulty\nP1 Hello World\t1\t1\t7\nP2 Output Practice\t2\t1\t5\nSection 2. Next\nProblem\tTried\tAC\tDifficulty\nB003\t3\t2\t4\nSection 6. End","ok":true,"expected_task_pass":false}
+    ,{"id":"html-head-title-cannot-supply-body","category":"format-normalization","root_cause":"html_head_is_not_body","failure_mode":"false-positive","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><head><title>Required body</title></head><body><p>Other text</p></body></html>","ok":true,"expected_task_pass":false,"expected_metrics":{"stable_anchor_hits":0}}
+    ,{"id":"html-body-anchor-with-head-title-passes","category":"format-normalization","root_cause":"html_head_is_not_body","failure_mode":"false-negative","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><head><title>Required body</title></head><body><p>Required body</p></body></html>","ok":true,"expected_task_pass":true,"expected_metrics":{"stable_anchor_hits":1}}
+    ,{"id":"card-single-line-distinct-typed-fields-pass","category":"structured-extraction","root_cause":"card_field_span_ownership","failure_mode":"false-negative","case":{"url":"https://example.test/homes","task_kind":"body","composite_acceptance":{"version":1,"groups":[{"id":"homes","kind":"named_link","minimum_records":1,"hosts":["example.test"],"entry_path":"/item/[0-9]+","required_fields":[{"id":"price","kind":"price"},{"id":"beds","kind":"integer","pattern":"\\b(?:bds|beds?)\\b"},{"id":"baths","kind":"integer","pattern":"\\b(?:ba|baths?)\\b"},{"id":"area","kind":"area"}]}]}},"artifact":"[One Main Street](https://example.test/item/1)\n$900,000\n3 beds · 2 baths · 1,200 sqft","ok":true,"expected_task_pass":true}
+    ,{"id":"card-unrelated-quantity-cannot-supply-typed-fields","category":"structured-extraction","root_cause":"card_field_span_ownership","failure_mode":"false-positive","case":{"url":"https://example.test/homes","task_kind":"body","composite_acceptance":{"version":1,"groups":[{"id":"homes","kind":"named_link","minimum_records":1,"hosts":["example.test"],"entry_path":"/item/[0-9]+","required_fields":[{"id":"price","kind":"price"},{"id":"beds","kind":"integer","pattern":"\\b(?:bds|beds?)\\b"},{"id":"baths","kind":"integer","pattern":"\\b(?:ba|baths?)\\b"},{"id":"area","kind":"area"}]}]}},"artifact":"[One Main Street](https://example.test/item/1)\n$900,000\n1200 sqft beds\n1200 sqft baths\n1200 sqft","ok":true,"expected_task_pass":false}
+    ,{"id":"metadata-title-body-anchor-missing-fails","category":"format-normalization","root_cause":"metadata_title_is_not_declared_body","failure_mode":"false-positive","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"Other text","title":"Required body","ok":true,"expected_task_pass":false,"expected_metrics":{"stable_anchor_hits":0}}
+    ,{"id":"metadata-title-body-anchor-visible-passes","category":"format-normalization","root_cause":"metadata_title_is_not_declared_body","failure_mode":"false-negative","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"Required body","title":"Other title","ok":true,"expected_task_pass":true,"expected_metrics":{"stable_anchor_hits":1}}
+    ,{"id":"metadata-title-body-coverage-missing-fails","category":"body-scope","root_cause":"metadata_title_is_not_declared_body","failure_mode":"false-positive","case":{"url":"https://example.test/article","task_kind":"body","body_requirements":{"version":3,"unit":"region_compact_hexagram_recall","minimum_coverage":0.8,"minimum_floor":0.6,"minimum_region_passes":1,"segmentation_method":"balanced_tokens_fallback","regions":[{"id":"body-region-1","text":"required body paragraph explains independent visible source content and complete record ownership","source_text":"required body paragraph explains independent visible source content and complete record ownership","segmentation_method":"balanced_tokens_fallback"}]}},"artifact":"Other text","title":"Required body paragraph explains independent visible source content and complete record ownership.","ok":true,"expected_task_pass":false,"expected_metrics":{"body_coverage_pass":false}}
+    ,{"id":"metadata-title-body-coverage-visible-passes","category":"body-scope","root_cause":"metadata_title_is_not_declared_body","failure_mode":"false-negative","case":{"url":"https://example.test/article","task_kind":"body","body_requirements":{"version":3,"unit":"region_compact_hexagram_recall","minimum_coverage":0.8,"minimum_floor":0.6,"minimum_region_passes":1,"segmentation_method":"balanced_tokens_fallback","regions":[{"id":"body-region-1","text":"required body paragraph explains independent visible source content and complete record ownership","source_text":"required body paragraph explains independent visible source content and complete record ownership","segmentation_method":"balanced_tokens_fallback"}]}},"artifact":"Required body paragraph explains independent visible source content and complete record ownership.","title":"Other title","ok":true,"expected_task_pass":true,"expected_metrics":{"body_coverage_pass":true}}
+    ,{"id":"metadata-title-composite-missing-fails","category":"structured-extraction","root_cause":"metadata_title_is_not_declared_body","failure_mode":"false-positive","case":{"url":"https://example.test/homes","task_kind":"body","composite_acceptance":{"version":1,"groups":[{"id":"homes","kind":"named_link","minimum_records":1,"hosts":["example.test"],"entry_path":"/item/[0-9]+"}]}},"artifact":"Other text","title":"[One Main Street](https://example.test/item/1)","ok":true,"expected_task_pass":false}
+    ,{"id":"metadata-title-composite-visible-passes","category":"structured-extraction","root_cause":"metadata_title_is_not_declared_body","failure_mode":"false-negative","case":{"url":"https://example.test/homes","task_kind":"body","composite_acceptance":{"version":1,"groups":[{"id":"homes","kind":"named_link","minimum_records":1,"hosts":["example.test"],"entry_path":"/item/[0-9]+"}]}},"artifact":"[One Main Street](https://example.test/item/1)","title":"Other title","ok":true,"expected_task_pass":true}
+    ,{"id":"legacy-title-marker-missing-fails","category":"format-normalization","root_cause":"legacy_title_is_not_page_text","failure_mode":"false-positive","case":{"url":"https://example.test/order","task_kind":"body","expected_any":["Order ID 123"]},"artifact":"Other text","title":"Order ID 123","ok":true,"expected_task_pass":false}
+    ,{"id":"legacy-title-marker-visible-passes","category":"format-normalization","root_cause":"legacy_title_is_not_page_text","failure_mode":"false-negative","case":{"url":"https://example.test/order","task_kind":"body","expected_any":["Order ID 123"]},"artifact":"Order ID 123","title":"Other title","ok":true,"expected_task_pass":true}
+    ,{"id":"legacy-title-pattern-missing-fails","category":"format-normalization","root_cause":"legacy_title_is_not_page_text","failure_mode":"false-positive","case":{"url":"https://example.test/order","task_kind":"body","required_patterns":[{"id":"order","pattern":"Order ID [0-9]+","minimum":1}]},"artifact":"Other text","title":"Order ID 123","ok":true,"expected_task_pass":false}
+    ,{"id":"legacy-title-pattern-visible-passes","category":"format-normalization","root_cause":"legacy_title_is_not_page_text","failure_mode":"false-negative","case":{"url":"https://example.test/order","task_kind":"body","required_patterns":[{"id":"order","pattern":"Order ID [0-9]+","minimum":1}]},"artifact":"Order ID 123","title":"Other title","ok":true,"expected_task_pass":true}
+    ,{"id":"html-misplaced-title-missing-body-fails","category":"format-normalization","root_cause":"html_head_is_not_body","failure_mode":"false-positive","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><title>Required body</title><p>Other text</p></body></html>","ok":true,"expected_task_pass":false}
+    ,{"id":"html-misplaced-title-visible-body-passes","category":"format-normalization","root_cause":"html_head_is_not_body","failure_mode":"false-negative","case":{"url":"https://example.test/article","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"body","alternatives":["Required body"]}]}},"artifact":"<html><body><title>Required body</title><p>Required body</p></body></html>","ok":true,"expected_task_pass":true},
+    {
+      "id": "declared-page-chrome-is-required-stable-text",
+      "category": "acceptance-contract",
+      "root_cause": "declared_full_page_stable_text_scope",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.org/",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.org"
+          ],
+          "entry_path": "/post/\\d+",
+          "stable_text_anchors": [
+            {
+              "id": "navigation",
+              "alternatives": [
+                "翻译"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "翻译\n[文章标题](https://example.org/post/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_anchor_hits": 1,
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "missing-declared-page-chrome-fails-full-page-contract",
+      "category": "acceptance-contract",
+      "root_cause": "declared_full_page_stable_text_scope",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.org/",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.org"
+          ],
+          "entry_path": "/post/\\d+",
+          "stable_text_anchors": [
+            {
+              "id": "navigation",
+              "alternatives": [
+                "翻译"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[文章标题](https://example.org/post/1)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_anchor_hits": 0,
+        "stable_complete_record_count": 1
+      }
     }
   ]
 }

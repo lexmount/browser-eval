@@ -16,11 +16,47 @@ from .wcxb_latency import load_full_paired_latency
 from .scoring import SCORING_SOURCE_SHA256
 from .webmainbench_diagnostics import validate_teds_revision_if_present
 from .webmainbench_latency_correction import prior_results_path
-from .webmainbench_latency_diagnostic import load_diagnostic
+from .webmainbench_latency_diagnostic import load_diagnostic as load_latency_diagnostic
 from .artifacts import (
     diagnostic_log_binding, record_public_call_log_bindings, verify_record_private_artifacts,
     verify_public_call_log, verify_record_public_call_logs,
 )
+
+
+def build_diagnostic_cohorts(source: Path, output: Path) -> Path:
+    """Build an explicitly requested diagnostic edition using the WebFetch owner."""
+    from harness.reporting.templates import resolve_template
+    from .report_diagnostic import load_diagnostic, check_diagnostic_report
+    from .report import generate_cohort_diagnostic
+
+    source, output = source.resolve(), output.resolve()
+    if source == output or source.is_relative_to(output) or output.is_relative_to(source) or output.exists():
+        raise ValueError("Diagnostic build requires a new output outside its evidence")
+    template = resolve_template("webfetch")
+    model, files = load_diagnostic(source)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(tempfile.mkdtemp(prefix=".diagnostic-report-", dir=output.parent))
+    try:
+        for relative, raw in files.items():
+            target = contained_path(staging, relative)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(raw)
+        model_bytes = (source / "report.json").read_bytes()
+        (staging / "report.json").write_bytes(model_bytes)
+        generate_cohort_diagnostic(staging, model)
+        manifest = {"schema_version": 1, "template": template,
+                    "evidence_state": "diagnostic", "certified": False,
+                    "languages": ["zh"], "provider_calls_added": 0,
+                    "model_sha256": hashlib.sha256(model_bytes).hexdigest(),
+                    "artifact_hashes": {path: hashlib.sha256(raw).hexdigest()
+                                        for path, raw in files.items()}}
+        (staging / "report-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2))
+        check_diagnostic_report(staging)
+        staging.rename(output)
+    except Exception:
+        shutil.rmtree(staging)
+        raise
+    return output / "index.html"
 
 
 def require_risk_control_certification(source: Path, dataset: dict, records: list[dict]) -> None:
@@ -522,7 +558,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     teds_revision = validate_teds_revision_if_present(source, records)
     summaries = json.loads(contained_path(source, 'score-summaries.json').read_text())
     manifests = json.loads(contained_path(source, 'execution.json').read_text())['batches']
-    latency_diagnostic = load_diagnostic(source, dataset, records, manifests)
+    latency_diagnostic = load_latency_diagnostic(source, dataset, records, manifests)
     review_path = source / 'result-review.json'
     review = json.loads(review_path.read_text()) if review_path.is_file() else None
     if review is not None and review.get('bindings', {}).get('results_jsonl_sha256') != hashlib.sha256(
