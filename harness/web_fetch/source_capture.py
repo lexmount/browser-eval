@@ -20,7 +20,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 
-import requests
 from bs4 import BeautifulSoup
 
 from harness.web_fetch.document_text import extract_document_text
@@ -150,6 +149,8 @@ def extract_html(raw: bytes, url: str):
 
 
 def capture(case, out, resolved_hosts=None):
+    import requests
+
     safe_identifier(case["id"])
     validate_http_url(case["url"])
     dest = contained_path(out, case["id"])

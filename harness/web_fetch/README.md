@@ -49,6 +49,45 @@ IDs, HTTP(S) URLs, required fields, output types and report groups are validated
 on dataset loading and again at execution. `models.py` owns the output-type and
 report-group registry used by configuration, execution and presentation.
 
+## Independent browser observations
+
+`browser_observations.py` owns browser reference capture; the corresponding
+`scripts/capture_headless_browser_observations.py` command only parses the shared
+entry point. Install the `headless-eval` extra and a Playwright Chromium
+browser, or pass `--browser-binary` with an installed Chromium executable.
+New tasks declare their completion and content scope in the task definition:
+
+```json
+{
+  "source_verification": {
+    "browser_observation": {
+      "selector": ".article-card",
+      "minimum": 10,
+      "content_selector": "main",
+      "text_mode": "visible"
+    }
+  }
+}
+```
+
+The completion selector may match multiple elements; the content selector must
+match exactly one container. `visible` captures visible text, `dom` deliberately
+includes preloaded hidden text, and `reference` applies the shared reference-text
+pruning rules without computing CSS visibility. Without a policy, reference capture uses the declared source
+selector or `body`. Whole-page audits use `--observation-scope visible_page` and
+include visible embedded frames. Historical special policies are compact data
+contracts bound to exact frozen task definitions; changing those tasks requires
+an explicit policy rather than silently inheriting behavior from their names.
+
+Navigation and extraction share the per-attempt time budget. Recorded elapsed
+time is never truncated; an observation exceeding the budget cannot satisfy
+completion. `--checkpoint-dir` requires `--browser-binary`: checkpoints bind the
+binary, task, scope, budgets and capture implementation. Changed inputs or
+modified checkpoint contents are rejected. Use a new checkpoint directory for
+a changed experiment. Checkpoints and final outputs are created exclusively and
+cannot replace an existing observation. Store them under the configured data
+home, outside Git.
+
 ## Common text evaluation
 
 Website, dynamic-site, popular-site and document text share `scoring.score_attempt`:

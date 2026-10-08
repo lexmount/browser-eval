@@ -698,6 +698,45 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     assert configured.returncode != 0 and str(expected_selection) in configured.stderr, configured.stderr
 
 
+def verify_browser_observation_capture(root, source_root):
+    from harness.web_fetch import browser_observations as observations
+
+    subprocess.run([
+        sys.executable, str(source_root / 'scripts/capture_headless_browser_observations.py'),
+        '--help',
+    ], check=True, cwd=root, capture_output=True, text=True)
+    registry = json.loads(observations.CONTRACTS.read_bytes())
+    assert registry['schema_version'] == 1
+    assert registry['contracts']['javascript-spa']['capture']['minimum'] == 10
+    task = {'id': 'installed-observation', 'url': 'https://example.invalid/',
+            'source_verification': {'browser_observation': {
+                'selector': '.card', 'minimum': 3, 'content_selector': 'main',
+                'text_mode': 'visible',
+            }}}
+    assert observations.capture_policy(task).minimum == 3
+    assert observations.extract_pruned_selector_text(
+        '<main>Installed reference<nav>Navigation</nav></main>', task['url']
+    ) == 'Installed reference'
+    binary = root / 'observation-browser'
+    binary.write_bytes(b'synthetic installed browser identity')
+    calls = []
+    original = observations.capture_with_retries
+
+    def observe(case, *args, **kwargs):
+        calls.append(case['id'])
+        return {'case_id': case['id'], 'status': 'success', 'content_text': 'Installed capture'}
+
+    observations.capture_with_retries = observe
+    try:
+        options = dict(timeout_ms=1000, attempts=1, browser_binary=str(binary),
+                       checkpoints=root / 'observation-checkpoints')
+        first = observations.capture_batch([task], **options)
+        assert observations.capture_batch([task], **options) == first
+        assert calls == ['installed-observation']
+    finally:
+        observations.capture_with_retries = original
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -745,6 +784,7 @@ def main():
         verify_qualification_commands(root, args.source_root)
         verify_repair_commands(root, args.source_root)
         verify_adjudication_commands(root, args.source_root)
+        verify_browser_observation_capture(root, args.source_root)
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
                        check=True, cwd=root)
         binary = root / 'browser'

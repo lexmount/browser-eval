@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "contracts": {
+    "javascript-spa": {
+      "case_sha256": "14c8df86322fa541385348fdbc5e72ba47838583859f3c65739367c8c3514c11",
+      "capture": {
+        "selector": ".quote",
+        "minimum": 10,
+        "content_selector": "body",
+        "text_mode": "visible",
+        "description": "browser-visible body text after all 10 quote cards rendered"
+      }
+    },
+    "live-025-api-reference": {
+      "case_sha256": "229e88c605cd02a67148317588870b6f42a886d8302e74882d8ba19c5d6ae87d",
+      "capture": {
+        "selector": "main",
+        "minimum": 1,
+        "content_selector": "main",
+        "text_mode": "dom",
+        "description": "rendered main DOM text, including preloaded response-code panels"
+      }
+    }
+  }
+}
