@@ -6,16 +6,17 @@ import copy
 import hashlib
 import importlib
 import json
-from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
 import types
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision
 from harness.web_fetch.webmainbench_scoring import aggregate, metric_dict
@@ -40,7 +41,7 @@ def copy_contained_artifact(source_root: Path, source_relative: str,
 
 
 def read_rows(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return load_jsonl(path, skip_blank=True)
 
 
 def calculator(repo: Path, expected_commit: str, cache: Path):

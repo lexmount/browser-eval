@@ -1,25 +1,41 @@
 """Evidence-first report: measured tracks, canonical cases, no review workflow."""
 from __future__ import annotations
+
 import hashlib
 import html
 import json
 import re
 import shutil
 import statistics
-from collections import Counter,defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
-from urllib.parse import urlsplit,urlencode
-from .metrics import percentile, task_passed, task_measured
-from .methods import ROUTE_LABELS, method_info, method_page_model
+from urllib.parse import urlencode, urlsplit
+
+from harness.record_io import load_jsonl
+
 from .accounts import report_access_registry
+from .failure_diagnosis import diagnose
+from .methods import ROUTE_LABELS, method_info, method_page_model
+from .metrics import percentile, task_measured, task_passed
+from .models import TRACKS, execution_id
+from .report_components import (
+ basis_label,
+ examples,
+ metric_guide,
+ metric_legend,
+ reference_label,
+ reference_status,
+ reference_text,
+ sources_panel,
+ stable_contract_details,
+ tabs,
+ task_instruction,
+)
 from .report_interfaces import HEADLESS_ACCESS
 from .report_methods import PROFILES, adoption_counts
-from .report_style import STYLE
-from .report_components import tabs, metric_guide, metric_legend, examples, reference_status, basis_label, reference_label, reference_text, sources_panel, stable_contract_details, task_instruction
-from .failure_diagnosis import diagnose
-from .safety import contained_path, safe_href, validate_report_ids
-from .models import TRACKS, execution_id
 from .report_resources import render_resource_comparison
+from .report_style import STYLE
+from .safety import contained_path, safe_href, validate_report_ids
 from .webmainbench_diagnostics import ERROR_PAGE
 
 PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-pr643':'Moli 1.1.7 · PR #643','moli-1.1.11':'Moli 1.1.11'}
@@ -56,7 +72,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
  from .wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
  _, selected_latency = load_full_paired_latency(out/'research/wcxb-full-paired-latency', profile, set(by_case))
  paired_latency = summarize_full_paired_latency(selected_latency, set(by_case))
- timing_rows=[json.loads(line) for line in (out/'research/wcxb-full-paired-latency/calls.jsonl').read_text().splitlines()]
+ timing_rows=load_jsonl(out/'research/wcxb-full-paired-latency/calls.jsonl')
  first_round={(row['case'],row['method']):row for row in timing_rows if row['round']==0}
  first_round_delta=sum(first_round[case,'pr']['elapsed_ms']-first_round[case,'release']['elapsed_ms']
                        for case in by_case)/case_count
@@ -993,7 +1009,7 @@ def generate_public_benchmark_research(out:Path,research:dict,*,include_english:
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
  (out/'assets/report.js').write_text(JS,encoding='utf-8')
- from .report_changes import localized_release_history, render_localized_release_history, ROOT
+ from .report_changes import ROOT, localized_release_history, render_localized_release_history
  release_history=localized_release_history(
   json.loads((ROOT/'research/report-changes.json').read_text(encoding='utf-8')),
   'public_benchmark_research')
@@ -1229,7 +1245,8 @@ def _call_log_excerpt(item):
 def _body_region_evidence(content,contract):
  """Map canonical scorer allocations to complete lines without changing scoring output."""
  from math import ceil
- from .body_coverage import _global_region_allocation,compact_ngrams,tokens
+
+ from .body_coverage import _global_region_allocation, compact_ngrams, tokens
  version=contract['version'];size=6 if version==3 else 3
  units=tokens(content) if version==1 else compact_ngrams(content,size)
  predicted=Counter(units);expected={}
@@ -1390,7 +1407,7 @@ def _stable_field_comparison(metrics,item):
  schema=metrics.get('stable_task_schema')
  if schema!='quote':return None
  from .metrics import normalize_for_match
- from .stable_tasks import SCHEMA_FIELDS,_parse_records,_visible
+ from .stable_tasks import SCHEMA_FIELDS, _parse_records, _visible
  candidates=[]
  for alternative in item.get('alternatives',[]):
   expected=_parse_records(_visible(alternative,schema),schema)
@@ -2959,7 +2976,7 @@ def _wmb_result_detail(r,c,output,reference,labels,metric_labels,failure_notes,c
 
 def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,manifests:list,review:dict|None=None,research:dict|None=None,corrections:dict|None=None,adoption_data:dict|None=None,fixture_correction:dict|None=None,teds_revision:tuple|None=None,anomaly_review:dict|None=None,latency_diagnostic:dict|None=None,*,include_english:bool=False):
  """Render the current WebMainBench report with the established report shell."""
- from .report_changes import render_webmainbench_history, webmainbench_history, ROOT
+ from .report_changes import ROOT, render_webmainbench_history, webmainbench_history
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
  (out/'assets/report.js').write_text(JS,encoding='utf-8')
@@ -3729,7 +3746,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
         result_index[key] = target
         bound_artifact(row["artifact_path"], row["output_sha256"], target)
     physical_path = out / "physical-attempts.jsonl"
-    physical = [json.loads(line) for line in physical_path.read_text(encoding="utf-8").splitlines() if line.strip()] if physical_path.is_file() else []
+    physical = load_jsonl(physical_path, skip_blank=True) if physical_path.is_file() else []
     for attempt in physical:
         case_id = attempt["track_id"]
         target = shard_name(attempt["provider"], case_id)
@@ -3739,7 +3756,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                                       ('superseded-case-calls.jsonl', 'physical_artifact_path')]:
         historical_path = out / historical_name
         if historical_path.is_file():
-            for attempt in (json.loads(line) for line in historical_path.read_text().splitlines()):
+            for attempt in iter(load_jsonl(historical_path)):
                 case_id = attempt.get('case_id', attempt.get('track_id'))
                 target = shard_name(attempt['provider'], case_id)
                 bound_artifact(attempt[path_key], attempt['output_sha256'], target)

@@ -13,6 +13,7 @@ from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.artifacts import (
     materialize_bound_artifacts,
     materialize_reference_checks,
@@ -55,7 +56,7 @@ def _read_json(path: Path) -> dict:
 
 def _read_records(root: Path) -> list[dict]:
     path = contained_path(root, "results.jsonl")
-    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+    rows = load_jsonl(path, skip_blank=True)
     if not all(isinstance(row, dict) for row in rows):
         raise ValueError(f"Invalid result rows: {path}")
     return rows

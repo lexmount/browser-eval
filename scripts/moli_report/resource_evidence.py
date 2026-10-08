@@ -7,9 +7,13 @@ import json
 import math
 import re
 import statistics
+import sys
 from pathlib import Path
 
 from .run_resource_matrix import verify_calls
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.record_io import load_jsonl
 
 
 def digest(path: Path) -> str:
@@ -130,7 +134,7 @@ def load_matrix(directory: Path, builds: dict, summaries: dict) -> dict:
         digest(path)
     protocol = json.loads(protocol_path.read_text())
     receipt = json.loads(receipt_path.read_text())
-    calls = [json.loads(line) for line in calls_path.read_text().splitlines()]
+    calls = load_jsonl(calls_path)
     if receipt["protocol_sha256"] != digest(protocol_path) or receipt[
         "physical_calls_sha256"
     ] != digest(calls_path):
@@ -148,7 +152,7 @@ def load_matrix(directory: Path, builds: dict, summaries: dict) -> dict:
         for filename, expected in receipt["results"][method].items():
             if digest(run / filename) != expected:
                 raise ValueError("resource run changed after certification")
-        rows = [json.loads(line) for line in (run / "results.jsonl").read_text().splitlines()]
+        rows = load_jsonl(run / "results.jsonl")
         hashes = {
             (r["task_id"], r["attempt"]): hashlib.sha256(
                 json.dumps(r, sort_keys=True).encode()

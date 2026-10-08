@@ -1,11 +1,18 @@
 """Supersede selected logical latency values from a complete final diagnostic round."""
-import argparse,hashlib,json,shutil,statistics,sys
-from datetime import datetime,timezone
+import argparse
+import hashlib
+import json
+import shutil
+import statistics
+import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
+from harness.record_io import parse_jsonl
 from harness.web_fetch.reference_lifecycle import scoring_revision_history_sha256
 from scripts.revise_body_scoring import rebind_unchanged_result_review
+
 
 def digest(data):return hashlib.sha256(data).hexdigest()
 def percentile(values,p):
@@ -32,10 +39,10 @@ def main():
  if args.output.exists():raise SystemExit('output already exists: '+str(args.output))
  before=(args.base/'results.jsonl').read_bytes();dataset=(args.base/'dataset.json').read_bytes()
  diagnostic_raw=(args.diagnostic/'results.jsonl').read_bytes()
- diagnostic=[json.loads(line) for line in diagnostic_raw.splitlines()]
+ diagnostic=parse_jsonl(diagnostic_raw)
  selected_round,selected,keys=validated_final_round(diagnostic)
  identities=json.loads((args.diagnostic/'identity.json').read_text())
- records=[json.loads(line) for line in before.splitlines()];by_key={(r['provider'],r['case_id']):r for r in records}
+ records=parse_jsonl(before);by_key={(r['provider'],r['case_id']):r for r in records}
  if not keys<=by_key.keys():raise SystemExit('diagnostic correction scope is incomplete')
  shutil.copytree(args.base,args.output)
  changes=[]

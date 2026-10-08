@@ -6,11 +6,15 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.record_io import load_jsonl
 
 
 def load(path: Path) -> list[dict]:
-    return [json.loads(line) for line in (path / "results.jsonl").read_text(encoding="utf-8").splitlines() if line]
+    return load_jsonl(path / "results.jsonl", skip_blank=True)
 
 
 def main() -> None:

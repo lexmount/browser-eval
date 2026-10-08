@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.record_io import parse_jsonl
 from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import reference_revision_cases
@@ -113,8 +114,8 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
             'Comparison semantics changed; independent result review must be rerun: '
             + ', '.join(sorted(changed_comparison - {'conversion'}))
         )
-    old_rows = {row['attempt_id']: row for row in map(json.loads, before_results.splitlines())}
-    new_rows = {row['attempt_id']: row for row in map(json.loads, after_results.splitlines())}
+    old_rows = {row['attempt_id']: row for row in parse_jsonl(before_results)}
+    new_rows = {row['attempt_id']: row for row in parse_jsonl(after_results)}
     if old_rows.keys() != new_rows.keys():
         raise IndependentReviewRequired(
             'Attempt inventory changed; independent result review must be rerun')
@@ -243,7 +244,7 @@ def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category:
         if fields:
             changed.append({'case_id':identifier, 'fields':fields})
     dataset['cases'] = [updated_cases[case['id']] for case in dataset['cases']]
-    validate_report_ids(dataset, [json.loads(line) for line in before_results.splitlines()])
+    validate_report_ids(dataset, parse_jsonl(before_results))
     dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2)+'\n')
     staged_dataset = read_dataset_bytes(dataset_path)
     try:
@@ -262,7 +263,7 @@ def _revise_unlocked(source: Path, canonical_path: Path, *, root_cause_category:
     # case field. Record those cases too so the review merger re-audits every
     # method for the affected task instead of silently reusing old judgments.
     attempt_cases = {row['attempt_id']: row['case_id']
-                     for row in map(json.loads, before_results.splitlines())}
+                     for row in parse_jsonl(before_results)}
     changed_by_case = {row['case_id']: row for row in changed}
     for decision in decisions:
         case_id = attempt_cases[decision['attempt_id']]

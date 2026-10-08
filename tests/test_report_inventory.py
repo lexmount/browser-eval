@@ -6,7 +6,6 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -34,7 +33,7 @@ class ReportInventoryTests(unittest.TestCase):
         root = Path('/__synthetic_inventory_report__')
         files = {
             root/'dataset.json': json.dumps(self.dataset),
-            root/'results.jsonl': '\n'.join(json.dumps(r) for r in self.records),
+            root/'results.jsonl': '\n'.join(json.dumps(r, ensure_ascii=False) for r in self.records),
             root/'execution.json': json.dumps({'batches': [{'attempt_ids': [r['attempt_id'] for r in self.records]}]}),
             root/'index.html': '<h2>6 类任务概览</h2> 本类最高： 判分完整性 <h2>综合通过率总榜</h2> <h2>6 类分榜</h2>',
             root/'methodology/index.html': '计入耗时 不计入耗时 供应商上报的服务端耗时只作附加证据 形成可送入统一评分器的最终答案',
@@ -48,6 +47,8 @@ class ReportInventoryTests(unittest.TestCase):
             return files[path] if path in files else read_text(path, *args, **kwargs)
 
         def binary(path, *args, **kwargs):
+            if path in files:
+                return files[path].encode('utf-8')
             return b'fixture' if path.is_relative_to(root) else read_bytes(path, *args, **kwargs)
 
         def glob(path, *args, **kwargs):
@@ -58,6 +59,10 @@ class ReportInventoryTests(unittest.TestCase):
             runpy.run_path(str(ROOT/'scripts/check_report.py'), run_name='__main__')
 
     def test_reviewed_inventory_passes(self):
+        self.check()
+
+    def test_unicode_record_strings_preserve_the_reviewed_inventory(self):
+        self.records[0]['provider_metadata'] = {'fixture_text': '文本\u0085内容\u2028段落\u2029结束'}
         self.check()
 
     def test_duplicate_dataset_case_rejected(self):

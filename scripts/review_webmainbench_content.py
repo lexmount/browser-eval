@@ -5,13 +5,17 @@ Review outputs are private evidence, never benchmark verdict replacements.
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
 import json
-from pathlib import Path
 import subprocess
+import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 from bs4 import BeautifulSoup
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.record_io import load_jsonl
 
 
 def sha(path):
@@ -47,8 +51,8 @@ SCHEMA = {'type': 'object', 'additionalProperties': False,
 
 def prepare(evidence, correction, work):
     dataset = json.loads((evidence / 'dataset.json').read_text())
-    rows = [json.loads(s) for s in (evidence / 'results.jsonl').read_text().splitlines()]
-    corrected = [json.loads(s) for s in (correction / 'results.jsonl').read_text().splitlines()]
+    rows = load_jsonl(evidence / 'results.jsonl')
+    corrected = load_jsonl(correction / 'results.jsonl')
     overrides = {(r['provider'], r['case_id']): r for r in corrected}
     by_case = {}
     for row in rows:

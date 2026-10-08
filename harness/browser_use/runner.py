@@ -484,21 +484,20 @@ def _load_completed_attempts(
     if not path.exists():
         return {}
     completed: dict[tuple[str, str, int, int], dict[str, Any]] = {}
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-        if not line.strip():
-            continue
-        row = json.loads(line)
+    from harness.record_io import load_jsonl
+
+    for record_number, row in enumerate(load_jsonl(path, skip_blank=True), 1):
         model = str(row.get("model") or expected_model or "")
         if not model:
-            raise ValueError(f"attempt does not identify its model at {path}:{line_number}")
+            raise ValueError(f"attempt does not identify its model at {path}, record {record_number}")
         if expected_model and model != expected_model:
             raise ValueError(
-                f"attempt model differs from the evidence cohort at {path}:{line_number}"
+                f"attempt model differs from the evidence cohort at {path}, record {record_number}"
             )
         row["model"] = model
         key = (model, str(row["engine"]), int(row["task_id"]), int(row["attempt"]))
         if key in completed:
-            raise ValueError(f"duplicate attempt at {path}:{line_number}: {key}")
+            raise ValueError(f"duplicate attempt at {path}, record {record_number}: {key}")
         completed[key] = row
     return completed
 

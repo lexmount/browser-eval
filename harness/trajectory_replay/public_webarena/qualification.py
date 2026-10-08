@@ -281,12 +281,9 @@ def build_repair_queue(
     )
     if not paths:
         raise ValueError("qualification evidence paths are required")
-    rows = [
-        json.loads(line)
-        for path in paths
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    from harness.record_io import load_jsonl
+
+    rows = [row for path in paths for row in load_jsonl(path, skip_blank=True)]
     by_task: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         if (

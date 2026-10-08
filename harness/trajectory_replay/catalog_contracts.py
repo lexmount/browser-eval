@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 from webarena_verified.types.task import WebArenaSite
 
+from harness.record_io import load_jsonl
 from harness.trajectory_replay.public_webarena.suite import load_suite
 from harness.trajectory_replay.remote_runtime import (
     file_sha256,
@@ -353,7 +354,7 @@ def completed_task_ids(progress_path: Path, execution_order: list[int]) -> set[i
 
     if not progress_path.exists():
         return set()
-    rows = [json.loads(line) for line in progress_path.read_text(encoding="utf-8").splitlines()]
+    rows = load_jsonl(progress_path)
     observed = [row.get("task_id") for row in rows]
     if observed != execution_order[: len(observed)]:
         raise ValueError("progress is not a strict prefix of the declared execution order")

@@ -21,6 +21,8 @@ from typing import Any
 from PIL import Image
 
 from harness.fix_log import load_fix_log
+from harness.record_io import load_jsonl
+from harness.report_languages import write_language_contract
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 
 from .failure_cause_review import (
@@ -47,7 +49,6 @@ from .publication import (
     trajectory_label,
 )
 from .report_i18n import localize_html, write_english_report
-from harness.report_languages import write_language_contract
 from .selection import PilotSelection, load_pilot, validate_against_official
 
 ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli 1.1.3"}
@@ -123,7 +124,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _read_attempts(evidence: Path) -> list[dict[str, Any]]:
     path = evidence / "attempts.jsonl"
     return (
-        [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+        load_jsonl(path, skip_blank=True)
         if path.is_file()
         else []
     )

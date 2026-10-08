@@ -4,8 +4,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.record_io import load_jsonl
 
 
 def digest(path: Path) -> str:
@@ -22,7 +26,7 @@ def main() -> None:
     reviews = [json.loads(path.read_text(encoding="utf-8"))
                for path in (args.prior_review, args.new_review)]
     dataset = json.loads((args.evidence / "dataset.json").read_text(encoding="utf-8"))
-    rows = [json.loads(line) for line in (args.evidence / "results.jsonl").read_text(encoding="utf-8").splitlines()]
+    rows = load_jsonl(args.evidence / "results.jsonl")
     providers = dataset["coverage_plan"]["static_html"]
     groups = [set(review.get("providers", [])) for review in reviews]
     if (any(review.get("status") != "passed" or review.get("failures") for review in reviews)

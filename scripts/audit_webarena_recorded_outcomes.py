@@ -12,6 +12,7 @@ import hashlib
 import importlib.metadata
 import importlib.resources
 import json
+import sys
 import tempfile
 import zipfile
 from collections import Counter
@@ -20,6 +21,9 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from webarena_verified import WebArenaVerified
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.record_io import parse_jsonl
 
 SITE_PORTS = {
     "map": (3000,),
@@ -46,7 +50,7 @@ def _network_requests(path: Path) -> list[dict[str, Any]]:
             raise ValueError(f"{path.name}: expected exactly one trace.network")
         return [
             row["snapshot"]["request"]
-            for row in (json.loads(line) for line in archive.read(matches[0]).decode().splitlines())
+            for row in iter(parse_jsonl(archive.read(matches[0]).decode()))
             if row.get("type") == "resource-snapshot"
         ]
 

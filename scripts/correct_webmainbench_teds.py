@@ -5,20 +5,26 @@ import argparse
 import copy
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
 import tempfile
 import types
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.record_io import load_jsonl
 from harness.web_fetch.metrics import task_passed
-from harness.web_fetch.scoring import score_attempt
-from harness.web_fetch.scoring_regressions import build_correction_provenance, load_scoring_regressions
 from harness.web_fetch.safety import contained_path
-from harness.web_fetch.webmainbench_diagnostics import require_valid_teds_for_release
-from harness.web_fetch.webmainbench_diagnostics import validate_teds_revision
+from harness.web_fetch.scoring import score_attempt
+from harness.web_fetch.scoring_regressions import (
+    build_correction_provenance,
+    load_scoring_regressions,
+)
+from harness.web_fetch.webmainbench_diagnostics import (
+    require_valid_teds_for_release,
+    validate_teds_revision,
+)
 from harness.web_fetch.webmainbench_scoring import aggregate, metric_dict, official_calculator
 
 CONTROLS = ['ordered-tree-identical-nested-content-is-perfect',
@@ -73,13 +79,13 @@ def main():
     source = args.source
     dataset = json.loads((source / 'dataset.json').read_text())
     summaries = json.loads((source / 'score-summaries.json').read_text())
-    records = [json.loads(line) for line in (source / 'results.jsonl').read_text().splitlines()]
+    records = load_jsonl(source / 'results.jsonl')
     inherited = {}
     inherited_receipt_sha256 = None
     if args.prior_corrected:
         validate_teds_revision(args.prior_corrected)
         inherited = {row['attempt_id']: row for row in
-                     (json.loads(line) for line in (args.prior_corrected / 'results.jsonl').read_text().splitlines())}
+                     iter(load_jsonl(args.prior_corrected / 'results.jsonl'))}
         inherited_receipt_sha256 = digest(args.prior_corrected / 'teds-correction.json')
     if any(path.is_symlink() for path in source.rglob('*')):
         raise ValueError('Refusing symlinked correction evidence')

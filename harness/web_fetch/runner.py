@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import load_jsonl
+
 from .artifacts import (
     PRIVATE_ARTIFACT_ROOT,
     PUBLIC_CALL_LOG_ROOT,
@@ -829,11 +831,7 @@ def run_evaluation(
 
 
 def load_records(run_dir: Path) -> list[dict[str, Any]]:
-    return [
-        json.loads(line)
-        for line in contained_path(run_dir, "results.jsonl").read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    return load_jsonl(contained_path(run_dir, "results.jsonl"), skip_blank=True)
 
 
 def rescore_evaluation(

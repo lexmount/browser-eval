@@ -1,5 +1,12 @@
 # Architecture
 
+`harness/record_io.py` owns UTF-8 JSONL framing across tracks. Finalized evidence
+uses strict readers; live certification may ignore only an unterminated final
+JSON fragment or incomplete UTF-8 character. LF and CRLF delimit records;
+Unicode line separators inside strings remain part of the value. Readers do not
+rewrite persisted bytes, and callers that append evidence parse their existing
+byte snapshot through the same owner.
+
 - Each track’s current profile selects its dataset, participants, evidence bindings and publication target. `evaluation/dataset.json` is the historical live-URL Web Fetch task set.
 - Providers fetch content without scoring it. Credentials are expanded locally and never published.
 - `metrics.py` and `dynamic_lists.py` evaluate persisted output. Task success depends on the task kind: body, resource, file or dynamic structure.

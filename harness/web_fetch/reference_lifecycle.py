@@ -14,6 +14,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import load_jsonl, parse_jsonl
+
 from .metrics import normalize_for_match, normalize_resource_url
 from .reference_inputs import input_tree
 from .render_evidence import validate_render_reference
@@ -585,7 +587,7 @@ def finalize_reference_checks(run_dir: Path, observations_path: Path, now=None) 
     if evidence_path.exists() and evidence_path.read_bytes() != raw:
         raise ReferenceLifecycleError("Postcheck evidence hash pointer mismatch")
     records_raw = contained_path(root, "results.jsonl").read_bytes()
-    records = [json.loads(line) for line in records_raw.splitlines() if line.strip()]
+    records = parse_jsonl(records_raw, skip_blank=True)
     dataset_raw = contained_path(root, "dataset.json").read_bytes()
     dataset_cases = json.loads(dataset_raw)["cases"]
     cases = {_get(c, "id"): c for c in dataset_cases}
@@ -682,7 +684,7 @@ def valid_scoring_revision(source) -> bool:
     records = None
     try:
         dataset = json.loads((root/'dataset.json').read_text())
-        records = [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+        records = load_jsonl(root/'results.jsonl')
     except (OSError, ValueError, TypeError):
         dataset = None
         records = None
@@ -701,7 +703,7 @@ def valid_scoring_revision(source) -> bool:
             from .result_review import require_result_review
             if dataset is None or records is None:
                 dataset = json.loads((root/'dataset.json').read_text())
-                records = [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+                records = load_jsonl(root/'results.jsonl')
             assembled_review_valid = require_result_review(root, dataset, records) is not None
         except (OSError, ValueError, TypeError, KeyError, StopIteration):
             assembled_review_valid = False
@@ -825,7 +827,7 @@ def latency_correction_original_elapsed(source, *, records=None) -> dict[tuple[s
     results_path = root / "results.jsonl"
     if not receipt_path.is_file():
         if records is None:
-            records = ([json.loads(line) for line in results_path.read_bytes().splitlines()]
+            records = (load_jsonl(results_path)
                        if results_path.is_file() else [])
         if any(row.get('provider_metadata', {}).get('latency_correction') for row in records):
             raise ReferenceLifecycleError("Invalid latency correction: missing bound receipt")
@@ -834,7 +836,7 @@ def latency_correction_original_elapsed(source, *, records=None) -> dict[tuple[s
         raise ReferenceLifecycleError("Latency correction receipt has no bound results")
     try:
         receipt = json.loads(receipt_path.read_text())
-        records = [json.loads(line) for line in results_path.read_text().splitlines()]
+        records = load_jsonl(results_path)
     except (OSError, ValueError, TypeError) as error:
         raise ReferenceLifecycleError("Invalid latency correction receipt") from error
     if (not isinstance(receipt, dict)

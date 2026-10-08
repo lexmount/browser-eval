@@ -1,7 +1,12 @@
 """Acceptance checks for compact metrics, filters and provider-centred adoption."""
-import json,sys
+import json
+import sys
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from harness.record_io import load_jsonl
+
 out=Path(sys.argv[1]) if len(sys.argv)>1 else ROOT/'reports/webfetch'
 if (out/'sample-manifest.json').is_file():
     from check_wcxb_report import check
@@ -10,6 +15,7 @@ if (out/'sample-manifest.json').is_file():
     raise SystemExit(0)
 dataset=json.loads((out/'dataset.json').read_text())
 from bs4 import BeautifulSoup
+
 if dataset.get('comparison',{}).get('kind')=='webmainbench_frozen_html_to_markdown':
     from check_webmainbench_report import check_revision
     check_revision(out)
@@ -57,13 +63,15 @@ for path in out.rglob('*.html'):
         expected_failure='Failure class' if is_english else '失败分类'
         assert expected_failure in [h.get_text() for h in soup.select('#filtered-table th')],path
 counts=json.loads((out/'adoption/counts.json').read_text())['methods']
-names={json.loads(line)['provider'] for line in (out/'results.jsonl').read_text().splitlines()}
+names={row['provider'] for row in load_jsonl(out/'results.jsonl')}
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.report_methods import PROFILES
+
 assert {item['provider'] for item in counts}==set(PROFILES)|names
 interfaces=BeautifulSoup((out/'adoption/index.html').read_text(),'html.parser').select('.interface-panel[id^="interface-"]')
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.report_interfaces import SPECS
+
 assert len(interfaces)==len(SPECS) and sum(p.has_attr('open') for p in interfaces)==bool(interfaces)
 for panel in interfaces:
     assert len(panel.select('pre'))==2

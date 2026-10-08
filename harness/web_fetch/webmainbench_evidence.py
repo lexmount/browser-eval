@@ -8,6 +8,8 @@ import json
 import shutil
 from pathlib import Path
 
+from harness.record_io import load_jsonl
+
 from .safety import contained_path, safe_identifier
 
 
@@ -103,11 +105,7 @@ def digest(path: Path) -> str:
 
 
 def read_jsonl(path: Path) -> list[dict]:
-    return [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    return load_jsonl(path, skip_blank=True)
 
 
 def require_unique_attempt_ids(rows: list[dict], label: str) -> None:

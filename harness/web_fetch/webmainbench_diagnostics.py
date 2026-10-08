@@ -1,7 +1,9 @@
 """Shared investigation signals; these do not change official scores."""
-import re
 import hashlib
 import json
+import re
+
+from harness.record_io import load_jsonl
 
 from .safety import contained_path
 from .scoring_regressions import valid_correction_provenance
@@ -61,8 +63,8 @@ def validate_teds_revision(root):
     for path, expected in receipt['source_code_sha256'].items():
         if digest(contained_path(root / 'correction-source', path)) != expected:
             raise ValueError('TEDS correction source hash mismatch')
-    original = [json.loads(line) for line in (root / 'original-results.jsonl').read_text().splitlines()]
-    current = [json.loads(line) for line in teds_output_path.read_text().splitlines()]
+    original = load_jsonl(root / 'original-results.jsonl')
+    current = load_jsonl(teds_output_path)
     if len(original) != expected_count or len(current) != expected_count:
         raise ValueError('TEDS correction scope mismatch')
     if len({row['attempt_id'] for row in current}) != expected_count:
@@ -110,8 +112,8 @@ def validate_reference_revision(root):
             or receipt.get('prior_evidence_dataset_sha256') != hashlib.sha256(prior_dataset.read_bytes()).hexdigest()
             or receipt.get('output_evidence_dataset_sha256') != hashlib.sha256(current_dataset.read_bytes()).hexdigest()):
         raise ValueError('Invalid WebMainBench reference correction binding')
-    previous = [json.loads(line) for line in prior_results.read_text().splitlines()]
-    current = [json.loads(line) for line in current_results.read_text().splitlines()]
+    previous = load_jsonl(prior_results)
+    current = load_jsonl(current_results)
     if len(previous) != receipt.get('logical_results') or len(current) != len(previous):
         raise ValueError('Reference correction result scope mismatch')
     corrections = {item['track_id']: item for item in receipt.get('corrections', [])}
@@ -154,8 +156,8 @@ def validate_webmainbench_scoring_revision(root):
             or receipt.get('input_dataset_sha256') != hashlib.sha256(before_dataset.read_bytes()).hexdigest()
             or receipt.get('output_dataset_sha256') != hashlib.sha256(after_dataset.read_bytes()).hexdigest()):
         raise ValueError('Invalid WebMainBench shared-population correction binding')
-    before = [json.loads(line) for line in before_results.read_text().splitlines()]
-    after = [json.loads(line) for line in after_results.read_text().splitlines()]
+    before = load_jsonl(before_results)
+    after = load_jsonl(after_results)
     if len(before) != len(after) or len(after) != receipt.get('logical_results'):
         raise ValueError('WebMainBench scoring correction result scope mismatch')
     allowed = {'metrics', 'meta', 'reference_sha256',

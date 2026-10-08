@@ -5,6 +5,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from harness.record_io import parse_jsonl
+
 from .safety import contained_path
 
 
@@ -31,8 +33,8 @@ def validate_latency_correction(root: Path) -> dict | None:
             or receipt.get('selected_round') != 2
             or receipt.get('changed_result_count') != 400):
         raise ValueError('Invalid WebMainBench latency correction binding')
-    previous = [json.loads(line) for line in prior_bytes.decode('utf-8').splitlines() if line.strip()]
-    current = [json.loads(line) for line in current_bytes.decode('utf-8').splitlines() if line.strip()]
+    previous = parse_jsonl(prior_bytes.decode('utf-8'), skip_blank=True)
+    current = parse_jsonl(current_bytes.decode('utf-8'), skip_blank=True)
     if len(previous) != len(current) or len(current) != 1200:
         raise ValueError('WebMainBench latency correction changed result inventory')
     changes = receipt.get('changes')

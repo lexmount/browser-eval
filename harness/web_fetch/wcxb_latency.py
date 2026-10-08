@@ -7,6 +7,8 @@ import math
 import statistics
 from pathlib import Path
 
+from harness.record_io import parse_jsonl
+
 
 def load_full_paired_latency(root: Path, profile: dict, valid_cases: set[str]) -> tuple[dict, dict]:
     """Validate a complete, preselected final-round timing correction."""
@@ -35,7 +37,7 @@ def load_full_paired_latency(root: Path, profile: dict, valid_cases: set[str]) -
             or any(not isinstance(value, (int, float)) or not math.isfinite(value)
                    or value > load_limit for value in load_checks)):
         raise ValueError('WCXB full paired latency protocol or identity differs')
-    calls = [json.loads(line) for line in calls_bytes.splitlines()]
+    calls = parse_jsonl(calls_bytes)
     expected = {(case, round_number, method)
                 for case in valid_cases for round_number in (0, 1) for method in expected_bins}
     lookup = {(row.get('case'), row.get('round'), row.get('method')): row for row in calls}

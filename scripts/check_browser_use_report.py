@@ -11,7 +11,9 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from PIL import Image
-from harness.report_languages import generated_languages, check_language_contract
+
+from harness.record_io import load_jsonl
+from harness.report_languages import check_language_contract, generated_languages
 
 
 class _VisibleTextParser(HTMLParser):
@@ -60,7 +62,6 @@ from harness.browser_use.report import (
     _public_execution,
 )
 from harness.browser_use.selection import load_pilot
-
 
 FORBIDDEN_READER_TERMS = (
     "模型内完整配对",
@@ -622,11 +623,7 @@ def check(
     article_heading = "程序判分落点与复核根因"
     if article_heading not in rendered_pages[report_dir / "index.html"]:
         raise ValueError("homepage must contain the authored interpretation")
-    public_results = [
-        json.loads(line)
-        for line in (report_dir / "data/results.jsonl").read_text(encoding="utf-8").splitlines()
-        if line
-    ]
+    public_results = load_jsonl(report_dir / "data/results.jsonl", skip_blank=True)
     if len(public_results) != len(logical_rows):
         raise ValueError("public result projection must cover every logical result")
     evidence_index = json.loads(

@@ -10,9 +10,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.record_io import load_jsonl, parse_jsonl
+from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 from harness.web_fetch.render_evidence import validate_render_reference
 from harness.web_fetch.safety import contained_path, validate_report_ids
-from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 
 
 def frozen_case(case):
@@ -158,9 +159,9 @@ def append(source, reference, measured, checks):
             raise ValueError('Evidence trees must not contain symlinks')
     dataset = json.loads((source/'dataset.json').read_text())
     supplement = json.loads((reference/'dataset.json').read_text())
-    records = [json.loads(s) for s in (measured/'results.jsonl').read_text().splitlines()]
+    records = load_jsonl(measured/'results.jsonl')
     previous_bytes = (source/'results.jsonl').read_bytes()
-    previous = [json.loads(s) for s in previous_bytes.splitlines()]
+    previous = parse_jsonl(previous_bytes)
     validate_report_ids(supplement, records)
     reference_cases = cases_by_id(supplement)
     if any(c.get('track') != 'dynamic' for c in reference_cases.values()):
@@ -298,6 +299,6 @@ def append(source, reference, measured, checks):
 
 
 if __name__=='__main__':
-    from harness.web_fetch.storage import current_evidence_dir,data_home
+    from harness.web_fetch.storage import current_evidence_dir, data_home
     append(current_evidence_dir(),data_home()/'runs/dynamic-content-reference',data_home()/'runs/dynamic-content-measured',
            json.loads((ROOT/'research/dynamic-completion-checks.json').read_text()))

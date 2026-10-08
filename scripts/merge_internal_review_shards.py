@@ -5,13 +5,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.result_review import require_result_review
 
@@ -26,8 +27,7 @@ def merge_reviews(evidence: Path, shard_paths: list[Path], output: Path, *,
                   allow_confirmed_errors: bool = False) -> dict:
     evidence = evidence.resolve()
     dataset = json.loads((evidence / "dataset.json").read_text())
-    records = [json.loads(line) for line in
-               (evidence / "results.jsonl").read_text().splitlines()]
+    records = load_jsonl(evidence / "results.jsonl")
     cases = {case["id"]: case for case in dataset["cases"]}
     by_id = {record["attempt_id"]: record for record in records}
     if len(by_id) != len(records):

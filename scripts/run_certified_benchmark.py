@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.record_io import load_jsonl
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 
 
@@ -325,7 +326,7 @@ def run_wcxb(argv: list[str]) -> None:
             if any(path.is_symlink() for path in old_dir.rglob('*')):
                 raise ValueError("WCXB prior evidence contains a symlink: " + provider)
             execution = json.loads((old_dir / 'execution.json').read_text())
-            rows = [json.loads(line) for line in (old_dir / 'results.jsonl').read_text().splitlines()]
+            rows = load_jsonl(old_dir / 'results.jsonl')
             if (execution['run_id'] != item['run_id'] or execution['implementation_identity'] != item['identity']
                     or execution['case_count'] != len(selected) or execution['source_dataset_sha256'] != before
                     or execution['selection_manifest']['sha256'] != sample_before
@@ -359,7 +360,7 @@ def run_wcxb(argv: list[str]) -> None:
         if (execution["case_count"] != len(selected) or execution["source_dataset_sha256"] != before
                 or execution["selection_manifest"]["sha256"] != sample_before):
             raise ValueError("Incomplete or drifted WCXB provider cohort: " + provider)
-        rows = [json.loads(line) for line in (output / "results.jsonl").read_text(encoding="utf-8").splitlines()]
+        rows = load_jsonl(output / "results.jsonl")
         if len(rows) != len(selected) or {row["track_id"] for row in rows} != expected_ids:
             raise ValueError("Incomplete WCXB result matrix: " + provider)
         runs.append({"provider": provider, "run_id": execution["run_id"],

@@ -7,17 +7,21 @@ import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from harness.reporting.presentation import check_presentation
 from bs4 import BeautifulSoup
-from harness.web_fetch.report import STYLE, EXTRA, JS
-from harness.web_fetch.metrics import percentile
-from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE, validate_teds_revision_if_present
-from harness.web_fetch.safety import contained_path
-from harness.web_fetch.webmainbench_evidence import retry_chain_matches
-from harness.web_fetch.webmainbench_latency_correction import prior_results_path, validate_latency_correction
-from harness.web_fetch.report_changes import ROOT, webmainbench_history
-from harness.report_languages import check_language_contract, generated_languages
 
+from harness.record_io import load_jsonl
+from harness.report_languages import check_language_contract, generated_languages
+from harness.reporting.presentation import check_presentation
+from harness.web_fetch.metrics import percentile
+from harness.web_fetch.report import EXTRA, JS, STYLE
+from harness.web_fetch.report_changes import ROOT, webmainbench_history
+from harness.web_fetch.safety import contained_path
+from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE, validate_teds_revision_if_present
+from harness.web_fetch.webmainbench_evidence import retry_chain_matches
+from harness.web_fetch.webmainbench_latency_correction import (
+    prior_results_path,
+    validate_latency_correction,
+)
 
 PROVIDERS = {"kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium"}
 CORE = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
@@ -30,7 +34,7 @@ def digest(path: Path) -> str:
 
 
 def read_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return load_jsonl(path, skip_blank=True)
 
 
 def close(left: float, right: float) -> bool:

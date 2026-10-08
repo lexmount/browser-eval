@@ -4,8 +4,10 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
-from pathlib import Path
 import shutil
+from pathlib import Path
+
+from harness.record_io import load_jsonl
 
 from .safety import contained_path
 
@@ -15,7 +17,7 @@ def digest(path):
 
 
 def read_rows(path):
-    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    return load_jsonl(path, skip_blank=True)
 
 
 def validate(root: Path, original_rows: list[dict], expected_parent: str) -> tuple[dict, list, list]:
@@ -57,8 +59,8 @@ def validate(root: Path, original_rows: list[dict], expected_parent: str) -> tup
 
 def apply(root: Path, staging: Path, original_rows: list, summaries: dict, *,
           validation_rows: list | None = None, expected_parent: str | None = None) -> tuple[list, dict]:
-    from harness.web_fetch.webmainbench_scoring import aggregate
     from harness.web_fetch.webmainbench_case_correction import dimensions
+    from harness.web_fetch.webmainbench_scoring import aggregate
     certificate, replacements, calls = validate(
         root,
         validation_rows if validation_rows is not None else original_rows,

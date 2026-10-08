@@ -8,6 +8,8 @@ import statistics
 from copy import deepcopy
 from pathlib import Path
 
+from harness.record_io import load_jsonl
+
 from .artifacts import verify_record_artifacts
 from .metrics import percentile, task_passed
 from .reference_lifecycle import require_verified_reference_checks
@@ -147,7 +149,7 @@ def load_cohort(root: Path) -> tuple[dict, list[dict], list[dict], dict]:
     dataset_path = contained_path(root, 'dataset.json', reject_symlinks=True)
     results_path = contained_path(root, 'results.jsonl', reject_symlinks=True)
     dataset = json.loads(dataset_path.read_text())
-    records = [json.loads(line) for line in results_path.read_text().splitlines()]
+    records = load_jsonl(results_path)
     execution = contained_path(root, 'execution.json', reject_symlinks=True)
     batches = (json.loads(execution.read_text())['batches'] if execution.is_file()
                else [json.loads(contained_path(root, 'manifest.json', reject_symlinks=True).read_text())])

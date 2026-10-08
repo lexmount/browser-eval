@@ -5,10 +5,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 import zipfile
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.record_io import parse_jsonl
 
 
 def _sha256(path: Path) -> str:
@@ -20,7 +24,7 @@ def _records(path: Path, name: str) -> list[dict[str, Any]]:
         matches = [value for value in archive.namelist() if value.endswith(name)]
         if len(matches) != 1:
             raise ValueError(f"{path.name}: expected exactly one {name}")
-        return [json.loads(line) for line in archive.read(matches[0]).decode().splitlines()]
+        return parse_jsonl(archive.read(matches[0]).decode())
 
 
 def verify_exclusions(

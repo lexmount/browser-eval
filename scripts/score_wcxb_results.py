@@ -11,10 +11,11 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
-from harness.web_fetch.wcxb_dataset import validate_manifest
+from harness.record_io import load_jsonl
 from harness.web_fetch.safety import contained_path
+from harness.web_fetch.wcxb_dataset import validate_manifest
 from harness.web_fetch.wcxb_latency import load_full_paired_latency
+from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
 
 
 def digest(path: Path) -> str:
@@ -139,11 +140,11 @@ def main() -> None:
             bound = next(x for x in certificate["providers"] if x["provider"] == provider)
             if digest(run_dir / "results.jsonl") != bound["results_sha256"]:
                 raise ValueError("Certified results changed: " + provider)
-            rows = [json.loads(line) for line in (run_dir / "results.jsonl").read_text().splitlines()]
+            rows = load_jsonl(run_dir / "results.jsonl")
             if len(rows) != case_count or {row["track_id"] for row in rows} != set(ground_truth):
                 raise ValueError("Incomplete WCXB rows: " + provider)
             physical_file = run_dir / 'physical-attempts.jsonl'
-            physical = [json.loads(line) for line in physical_file.read_text().splitlines() if line]
+            physical = load_jsonl(physical_file, skip_blank=True)
             by_case = {}
             for call in physical:
                 by_case.setdefault(call['track_id'], []).append(call)

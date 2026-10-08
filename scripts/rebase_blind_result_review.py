@@ -10,13 +10,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.result_review import require_result_review, review_input_identity
 
@@ -26,7 +27,7 @@ def _sha(path: Path) -> str:
 
 
 def _rows(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    return load_jsonl(path, skip_blank=True)
 
 
 def rebase(current: Path, reviewed: Path, output: Path, adjudications: Path | None,

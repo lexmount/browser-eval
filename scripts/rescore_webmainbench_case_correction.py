@@ -5,14 +5,15 @@ import argparse
 import copy
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
 import tempfile
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.safety import contained_path
 from scripts.correct_webmainbench_references import calculator
 from scripts.correct_webmainbench_scoring import revised_metrics, text_digest
@@ -34,11 +35,11 @@ def apply(source: Path, corrected_dataset: Path, scorer_repo: Path,
         raise ValueError("Invalid source case-correction certificate")
     cases = {
         row["track_id"]: row
-        for row in (json.loads(line) for line in corrected_dataset.read_text(encoding="utf-8").splitlines())
+        for row in iter(load_jsonl(corrected_dataset))
     }
     case_id = certificate["preflight"]["case_id"]
     case = cases[case_id]
-    rows = [json.loads(line) for line in (source / "results.jsonl").read_text().splitlines()]
+    rows = load_jsonl(source / "results.jsonl")
     if ({row["provider"] for row in rows} != set(certificate["preflight"]["providers"])
             or any(row["case_id"] != case_id for row in rows)):
         raise ValueError("Case-correction result scope mismatch")

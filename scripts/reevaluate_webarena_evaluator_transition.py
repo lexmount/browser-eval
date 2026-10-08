@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from harness.record_io import load_jsonl
 from harness.trajectory_replay.catalog_contracts import file_sha256, verify_physical_evidence
 from harness.trajectory_replay.evaluator_transition import (
     RECEIPT_SCHEMA,
@@ -75,7 +76,7 @@ def main() -> None:
         )
         if source is None:
             continue
-        for row in map(json.loads, progress_path.read_text(encoding="utf-8").splitlines()):
+        for row in load_jsonl(progress_path):
             if row.get("status") != "pass":
                 continue
             evaluation_path = verify_physical_evidence(directory, row)

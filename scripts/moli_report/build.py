@@ -28,6 +28,8 @@ from moli_report.summarize_linux_resource_profiles import (  # noqa: E402
 from plot_moli_version_resources import combine_comparisons, render_chart  # noqa: E402
 from runner.resources import duration_calibration  # noqa: E402
 
+from harness.record_io import load_jsonl
+
 RUNS = ROOT / "runs/moli-1.1.8-failures-linux"
 SRC = pathlib.Path(__file__).resolve().parent
 OUT = ROOT / "reports/moli-1.1.8-failures-site"
@@ -121,7 +123,7 @@ def read_run(name: str):
         for f in ("run_manifest.json", "results.jsonl", "host_summary.json")
     )
     m = json.loads((p / "run_manifest.json").read_text())
-    rows = [json.loads(x) for x in (p / "results.jsonl").read_text().splitlines()]
+    rows = load_jsonl(p / "results.jsonl")
     assert m["run_id"] == label[name]
     assert (
         len(rows) == call_count
@@ -448,9 +450,7 @@ for mode in ("off", "on"):
         directory = RUNS / f"cold_{i:02d}_{mode}"
         manifest = json.loads((directory / "run_manifest.json").read_text())
         assert manifest["engines"]["moli"]["sha256"] == cohort["moli_sha256"]
-        values = [
-            json.loads(line) for line in (directory / "cold_start.jsonl").read_text().splitlines()
-        ]
+        values = load_jsonl(directory / "cold_start.jsonl")
         assert len(values) == 1 and values[0]["status"] == "ready"
         starts.extend(values)
     cold_start[mode] = {
@@ -532,7 +532,7 @@ host_context = {
 }
 observation_file = RUNS / "macos-observations.jsonl"
 if observation_file.exists():
-    observations = [json.loads(line) for line in observation_file.read_text().splitlines()]
+    observations = load_jsonl(observation_file)
 
     def timestamp(value):
         return datetime.datetime.fromisoformat(value).timestamp()
@@ -599,9 +599,7 @@ assert set(version_protocol["functional_tasks"]) == set(selected) and len(
 ) == len(selected)
 functional_114 = VERSION_RUNS / "114_off_differential_candidate_20260920"
 functional_manifest = json.loads((functional_114 / "run_manifest.json").read_text())
-functional_rows = [
-    json.loads(line) for line in (functional_114 / "results.jsonl").read_text().splitlines()
-]
+functional_rows = load_jsonl(functional_114 / "results.jsonl")
 candidate_114 = "v4_cdp_emulation_setdefaultbackgroundcoloroverride"
 assert (
     functional_manifest["completion_status"] == "completed"

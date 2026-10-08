@@ -1,12 +1,13 @@
 """Write a clearly scoped, unpublished diagnostic summary from retained calls."""
 import argparse
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from harness.web_fetch.report_explainer import headless_evidence, TRACK_NAMES
+from harness.record_io import load_jsonl
+from harness.web_fetch.report_explainer import TRACK_NAMES, headless_evidence
 
 
 def paired_latency_row(pair):
@@ -23,7 +24,7 @@ def main():
     parser.add_argument('output',type=Path)
     args=parser.parse_args()
     dataset=json.loads((args.source/'dataset.json').read_text())
-    all_rows=[json.loads(line) for line in (args.source/'results.jsonl').read_text().splitlines()]
+    all_rows=load_jsonl(args.source/'results.jsonl')
     blocked=set(dataset['comparison']['unverified_reference_cases'])
     cases={c['id']:c for c in dataset['cases'] if c['id'] not in blocked}
     rows=[r for r in all_rows if r['case_id'] in cases]

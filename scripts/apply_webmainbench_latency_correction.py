@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness.record_io import parse_jsonl
 from harness.web_fetch.webmainbench_latency_correction import validate_latency_correction
 from harness.web_fetch.webmainbench_latency_diagnostic import _repeat_calls
 from scripts.run_certified_webmainbench_latency import snapshot
@@ -79,7 +80,7 @@ def main() -> None:
         raise ValueError('Moli final round is incomplete')
     prior_path = args.base / 'results.jsonl'
     old_bytes = prior_path.read_bytes()
-    records = [json.loads(line) for line in old_bytes.splitlines() if line.strip()]
+    records = parse_jsonl(old_bytes, skip_blank=True)
     changes = []
     for record in records:
         version = {'moli': '1.1.5', 'moli-1.1.7': '1.1.7'}.get(record['provider'])

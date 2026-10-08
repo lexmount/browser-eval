@@ -1,20 +1,24 @@
 """Independently review every selected attempt with Codex or Claude; resumable by case batch."""
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
-from pathlib import Path
 import re
-import subprocess
 import shutil
+import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.record_io import load_jsonl
+from harness.web_fetch.anomaly_review import (
+    TRIGGER_VERSION,
+    detect_anomalies,
+    require_anomaly_review,
+)
 from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.result_review import review_answer_metadata, review_raw_artifacts
-from harness.web_fetch.anomaly_review import (
-    TRIGGER_VERSION, detect_anomalies, require_anomaly_review)
 
 SCHEMA = {
     'type': 'object', 'additionalProperties': False,
@@ -238,7 +242,7 @@ def main():
     work = args.work.resolve(); work.mkdir(parents=True, exist_ok=True)
     dataset = json.loads((evidence/'dataset.json').read_text())
     cases = {case['id']: case for case in dataset['cases']}
-    records = [json.loads(line) for line in (evidence/'results.jsonl').read_text().splitlines()]
+    records = load_jsonl(evidence/'results.jsonl')
     deterministic_anomalies = (detect_anomalies(evidence, records, dataset)
                                if dataset.get('comparison', {}).get('require_anomaly_review', False)
                                else {})

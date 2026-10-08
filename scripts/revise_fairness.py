@@ -1,16 +1,19 @@
 """Audited offline correction: preserve call identity and record before/after scores."""
+import argparse
 import hashlib
 import json
-import sys
 import subprocess
-import argparse
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from correct_evaluation_contracts import correct
 from rescore_content import rescore
-from harness.web_fetch.metrics import task_passed, task_measured
+
+from harness.record_io import load_jsonl, parse_jsonl
+from harness.web_fetch.metrics import task_measured, task_passed
 from harness.web_fetch.storage import current_evidence_dir
 
 
@@ -20,10 +23,10 @@ def run(source, baseline_ref=None):
                 if baseline_ref else (source/name).read_bytes())
     original = baseline('results.jsonl')
     dataset = baseline('dataset.json')
-    before = [json.loads(line) for line in original.splitlines()]
+    before = parse_jsonl(original)
     correct(source)
     rescore(source)
-    after = [json.loads(line) for line in (source/'results.jsonl').read_bytes().splitlines()]
+    after = load_jsonl(source/'results.jsonl')
     changes = []
     for old, new in zip(before, after, strict=True):
         for key in ('attempt_id', 'started_at', 'elapsed_ms', 'artifact_path'):

@@ -1,16 +1,17 @@
 """Assemble measured batches for append; never call providers or alter scores."""
 import argparse
-from copy import deepcopy
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
+from copy import deepcopy
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from scripts.append_dynamic_content import cases_by_id, frozen_case
+from harness.record_io import load_jsonl
 from harness.web_fetch.safety import contained_path, validate_report_ids
+from scripts.append_dynamic_content import cases_by_id, frozen_case
 
 
 def merge(reference, runs, output):
@@ -21,7 +22,7 @@ def merge(reference, runs, output):
         actual = json.loads((run/'dataset.json').read_text())
         if expected != {k:frozen_case(c) for k,c in cases_by_id(actual).items()}:
             raise ValueError('Run differs from frozen cases')
-        rows = [json.loads(line) for line in (run/'results.jsonl').read_text().splitlines()]
+        rows = load_jsonl(run/'results.jsonl')
         validate_report_ids(dataset, rows)
         for row in rows:
             path = contained_path(run, row['artifact_path'])

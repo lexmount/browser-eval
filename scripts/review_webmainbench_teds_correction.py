@@ -4,13 +4,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.web_fetch.scoring_regressions import valid_correction_provenance
+from harness.record_io import load_jsonl
 from harness.web_fetch.safety import contained_path
+from harness.web_fetch.scoring_regressions import valid_correction_provenance
 from harness.web_fetch.webmainbench_diagnostics import require_valid_teds_for_release
 
 
@@ -32,8 +33,8 @@ def review(source, corrected):
             raise ValueError('Correction implementation snapshot changed: ' + relative)
     if digest(corrected / 'original-results.jsonl') != receipt['input_results_sha256']:
         raise ValueError('Original official records were not preserved byte-for-byte')
-    before = [json.loads(line) for line in (source / 'results.jsonl').read_text().splitlines()]
-    after = [json.loads(line) for line in (corrected / 'results.jsonl').read_text().splitlines()]
+    before = load_jsonl(source / 'results.jsonl')
+    after = load_jsonl(corrected / 'results.jsonl')
     expected_count = len(json.loads((source / 'dataset.json').read_text())['cases']) * len(receipt['scope']['providers'])
     if len(before) != expected_count or len(after) != len(before):
         raise ValueError('Correction must cover the complete declared matrix')

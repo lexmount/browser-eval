@@ -1,18 +1,18 @@
 """Rebind a complete blind review after non-judgmental dataset metadata changes."""
 import argparse
-from datetime import datetime, timezone
 import hashlib
 import json
-from pathlib import Path
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from scripts.revise_body_scoring import rebind_unchanged_result_review
-from harness.web_fetch.result_review import require_result_review
+from harness.record_io import parse_jsonl
 from harness.web_fetch.reference_lifecycle import scoring_revision_history_sha256
-
+from harness.web_fetch.result_review import require_result_review
+from scripts.revise_body_scoring import rebind_unchanged_result_review
 
 ALLOWED_REVISION_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts', 'acceptance_contract',
@@ -31,7 +31,7 @@ def rebind_revision_receipts(evidence: Path, prior_dataset: bytes, results: byte
     current_dataset = (evidence / 'dataset.json').read_bytes()
     old_hash, new_hash, results_hash = digest(prior_dataset), digest(current_dataset), digest(results)
     current_document = json.loads(current_dataset)
-    records = [json.loads(line) for line in results.splitlines()]
+    records = parse_jsonl(results)
     review = require_result_review(evidence, current_document, records)
     if review is None:
         raise ValueError('Independent result review is required for metadata rebinding')

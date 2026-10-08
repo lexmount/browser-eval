@@ -1,13 +1,19 @@
 """Freeze and rerun all ten dynamic tasks, with independent reference verification."""
-import argparse,json,shutil,sys
+import argparse
+import json
+import shutil
+import sys
 from dataclasses import replace
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
-from harness.web_fetch.config import load_dataset,load_provider_config,load_runtime_env
+from harness.record_io import load_jsonl
+from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
+from harness.web_fetch.list_verification import verify_list
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.runner import run_evaluation
-from harness.web_fetch.list_verification import verify_list
-from harness.web_fetch.storage import current_evidence_dir,data_home
+from harness.web_fetch.storage import current_evidence_dir, data_home
+
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
@@ -33,7 +39,7 @@ def main():
             p.write_text(json.dumps(ref,ensure_ascii=False,indent=2)+'\n')
         references[c.id]=json.loads(p.read_text())
     configpath=ROOT/'configs/providers.resources.json';config=load_provider_config(configpath)
-    old=[json.loads(l) for l in (source/'results.jsonl').read_text().splitlines()]
+    old=load_jsonl(source/'results.jsonl')
     names=sorted({r['provider'] for r in old})
     providers=[build_provider(n,config[n]) for n in names]
     meta={**dataset,'cases':[c for c in dataset['cases'] if c.get('task_kind')=='structure']}

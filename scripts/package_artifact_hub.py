@@ -20,9 +20,11 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
+from harness.record_io import load_jsonl
 from harness.reporting.packs import write_packs
 from harness.reporting.links import validate_virtual_links
 from harness.web_fetch.publication_privacy import project_file
+
 SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetch'
 ARCHIVE=Path(sys.argv[2]).resolve() if len(sys.argv)>2 else ROOT/'publish/webfetch-sites.zip'
 (ROOT/'publish').mkdir(exist_ok=True)
@@ -171,7 +173,7 @@ def build():
    review=json.loads((SOURCE/'result-review.json').read_text())
    assert review.get('status')=='passed' and not review.get('failures'), \
           'Refusing to package an incomplete or unreviewed benchmark report'
-   records_for_release=[json.loads(x) for x in (SOURCE/'results.jsonl').read_text().splitlines()]
+   records_for_release=load_jsonl(SOURCE/'results.jsonl')
    case_ids={row['id'] for row in dataset.get('cases',[])}
    providers=set(review.get('providers',[]))
    assert len(case_ids)==review.get('sample_case_count')==200, 'Current sample/review size mismatch'
@@ -185,7 +187,7 @@ def build():
   assert reliability.get('complete') is True, 'Refusing to package an incomplete or unjudged benchmark report'
  DEST.mkdir(parents=True,exist_ok=True)
  (DEST/'data').mkdir(exist_ok=True)
- records=[json.loads(x) for x in (SOURCE/'results.jsonl').read_text().splitlines()]
+ records=load_jsonl(SOURCE/'results.jsonl')
  by_attempt={r['attempt_id']:(i,r) for i,r in enumerate(records)}
  scored_paths={r['artifact_path'] for r in records}
  files={};blocks={};raw_blocks={};original={};pages={};redactions=[]

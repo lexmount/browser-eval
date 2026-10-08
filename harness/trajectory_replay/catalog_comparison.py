@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import load_jsonl
 from harness.trajectory_replay.catalog_contracts import (
     TRUSTED_RECORDED_HOSTS,
     apply_action_overrides,
@@ -143,11 +144,7 @@ def _progress_index(evidence_root: Path) -> dict[str, tuple[Path, dict[int, dict
         if progress.is_symlink() or progress.parent.is_symlink():
             raise ValueError(f"catalog progress is symlinked: {progress}")
         digest = file_sha256(progress)
-        rows = [
-            json.loads(line)
-            for line in progress.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
+        rows = load_jsonl(progress, skip_blank=True)
         by_task = {int(row["task_id"]): row for row in rows}
         if len(by_task) != len(rows):
             raise ValueError(f"catalog progress contains duplicate task ids: {progress}")

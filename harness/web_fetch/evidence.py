@@ -10,6 +10,8 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from harness.record_io import load_jsonl, parse_jsonl
+
 from .artifacts import (
     materialize_bound_artifacts,
     materialize_reference_checks,
@@ -19,10 +21,6 @@ from .artifacts import (
 from .reference_inputs import input_tree
 from .reference_lifecycle import require_verified_reference_checks
 from .safety import contained_path, reject_evidence_symlinks, safe_identifier, validate_report_ids
-
-
-def parse_records(raw):
-    return [json.loads(line) for line in raw.splitlines()]
 
 
 def add_provider_run(canonical: Path, incoming: Path, provider: str, implementation=None, *, track=None):
@@ -48,7 +46,7 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
     incoming_bytes = (incoming / "results.jsonl").read_bytes()
     if original and not original.endswith(b"\n"):
         raise ValueError("Canonical JSONL must end with newline")
-    existing, records = parse_records(original), parse_records(incoming_bytes)
+    existing, records = parse_jsonl(original), parse_jsonl(incoming_bytes)
     validate_report_ids(dataset, existing + records)
     cases = {c["id"] for c in selected}
     if any(r["provider"] == provider and r['case_id'] in cases for r in existing):
@@ -144,7 +142,7 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
 
 
 def _records(path: Path) -> list[dict]:
-    return [json.loads(line) for line in (path / "results.jsonl").read_text().splitlines()]
+    return load_jsonl(path / "results.jsonl")
 
 
 def _source_batches(source: Path) -> tuple[list[dict], str, bytes]:

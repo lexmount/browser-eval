@@ -1,20 +1,25 @@
 """Apply reviewed mixed task rules and rescore saved outputs, without API calls."""
-from datetime import datetime, timezone
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
 import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.record_io import load_jsonl, parse_jsonl
 from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.safety import contained_path, validate_report_ids
-from harness.web_fetch.stable_annotations import annotate_case, bind_annotation_evidence, CASE_ANNOTATIONS
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
-from scripts.rescore_content import rescore
+from harness.web_fetch.stable_annotations import (
+    CASE_ANNOTATIONS,
+    annotate_case,
+    bind_annotation_evidence,
+)
 from harness.web_fetch.storage import current_evidence_dir
+from scripts.rescore_content import rescore
 
 
 def apply(source: Path):
@@ -22,7 +27,7 @@ def apply(source: Path):
     originals = {name: contained_path(source, name).read_bytes()
                  for name in ('dataset.json', 'results.jsonl')}
     dataset = json.loads(originals['dataset.json'])
-    records = [json.loads(line) for line in originals['results.jsonl'].splitlines()]
+    records = parse_jsonl(originals['results.jsonl'])
     validate_report_ids(dataset, records)
     old_cases = {c['id']: c for c in dataset['cases']}
     ids = set(old_cases) & CASE_ANNOTATIONS.keys()
@@ -53,7 +58,7 @@ def apply(source: Path):
         dataset['cases'] = [updated[c['id']] for c in dataset['cases']]
         (staging/'dataset.json').write_text(json.dumps(dataset, ensure_ascii=False, indent=2)+'\n')
         rescore(staging, case_ids=ids)
-        new_records = [json.loads(line) for line in (staging/'results.jsonl').read_text().splitlines()]
+        new_records = load_jsonl(staging/'results.jsonl')
         changes = []
         for old, new in zip(records, new_records):
             if old['case_id'] not in ids:

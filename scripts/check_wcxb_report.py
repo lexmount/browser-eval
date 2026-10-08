@@ -8,10 +8,13 @@ import shutil
 import sys
 import tempfile
 from collections import Counter
-from bs4 import BeautifulSoup
 from html.parser import HTMLParser
 from pathlib import Path
+
+from bs4 import BeautifulSoup
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.record_io import load_jsonl
 from harness.reporting.presentation import check_presentation
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.storage import data_home
@@ -250,7 +253,7 @@ def check(root: Path) -> None:
     require(sample.get('scope') == 'qualified_test', 'WCXB current selection is not source-qualified')
     certificate = json.loads((root / 'certification.json').read_text())
     summary = json.loads((root / 'wcxb-score-summary.json').read_text())
-    scores = [json.loads(line) for line in (root / 'wcxb-scores.jsonl').read_text().splitlines() if line]
+    scores = load_jsonl(root / 'wcxb-scores.jsonl', skip_blank=True)
     sample_hash = digest(sample_file)
     require(sample_hash == profile['sample_manifest_sha256'] == summary['sample_sha256'], 'WCXB sample hash differs')
     require(sample_hash == certificate['sample_sha256_before'] == certificate['sample_sha256_after'], 'WCXB sample changed during calls')
@@ -291,7 +294,10 @@ def check(root: Path) -> None:
     require(not optional['builds']['release']['description_present']
             and optional['builds']['candidate']['description_present'],
             'WCXB optional UI-stripping finding is not supported')
-    from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
+    from harness.web_fetch.wcxb_latency import (
+        load_full_paired_latency,
+        summarize_full_paired_latency,
+    )
     _, selected_latency = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, case_ids)
     paired_latency = summarize_full_paired_latency(selected_latency, case_ids)
     for provider, method in (('moli', 'release'), ('moli-pr643', 'pr')):

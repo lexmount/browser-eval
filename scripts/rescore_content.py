@@ -1,24 +1,28 @@
 """Recompute shared task metrics from immutable evidence; never call providers."""
-from datetime import datetime, timezone
 import hashlib
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
+from harness.record_io import parse_jsonl
 from harness.web_fetch.failure_diagnosis import diagnose
-from harness.web_fetch.models import execution_id
 from harness.web_fetch.metrics import summarize
-from harness.web_fetch.response_input import apply_request_status
-from harness.web_fetch.report import succeeded, failure_category
-from harness.web_fetch.safety import contained_path, validate_report_ids
+from harness.web_fetch.models import execution_id
 from harness.web_fetch.reference_lifecycle import (
-    check_case_equivalent_reference_binding, check_case_reference_binding,
-    check_case_scoring_revision_binding, check_case_reference_revision_binding,
-    requires_fresh_reference, ReferenceLifecycleError,
+    ReferenceLifecycleError,
+    check_case_equivalent_reference_binding,
+    check_case_reference_binding,
+    check_case_reference_revision_binding,
+    check_case_scoring_revision_binding,
+    requires_fresh_reference,
 )
+from harness.web_fetch.report import failure_category, succeeded
+from harness.web_fetch.response_input import apply_request_status
+from harness.web_fetch.safety import contained_path, validate_report_ids
+from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 
 
 def rescore(source, case_ids=None, *, allow_rule_revision=False,
@@ -28,7 +32,7 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False,
     dataset = json.loads(dataset_bytes)
     path = contained_path(source, 'results.jsonl')
     original_results = path.read_bytes()
-    records = [json.loads(line) for line in original_results.splitlines()]
+    records = parse_jsonl(original_results)
     validate_report_ids(dataset, records)
     cases = {c['id']: c for c in dataset['cases']}
     execution = contained_path(source, 'execution.json')

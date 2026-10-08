@@ -10,6 +10,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import load_jsonl
 from harness.trajectory_replay.public_webarena.diagnostics import diagnose_summary
 from harness.trajectory_replay.public_webarena.metrics import summarize_attempts
 from harness.trajectory_replay.public_webarena.report import write_latest_report
@@ -17,11 +18,7 @@ from harness.trajectory_replay.public_webarena.result_audit import audit_result_
 
 
 def _read_rows(path: Path) -> list[dict[str, Any]]:
-    return [
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    return load_jsonl(path, skip_blank=True)
 
 
 def _sha256(path: Path) -> str:

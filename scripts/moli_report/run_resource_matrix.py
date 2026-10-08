@@ -17,6 +17,9 @@ import time
 import traceback
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.record_io import load_jsonl
+
 
 def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -244,9 +247,7 @@ def execute(protocol_path: Path, output: Path) -> None:
                 != len(protocol["task_ids"]) * protocol["attempts"]
             ):
                 raise ValueError("incomplete run manifest")
-            rows = [
-                json.loads(line) for line in (run_dir / "results.jsonl").read_text().splitlines()
-            ]
+            rows = load_jsonl(run_dir / "results.jsonl")
             row_hashes = {
                 (row["task_id"], row["attempt"]): hashlib.sha256(
                     json.dumps(row, sort_keys=True).encode()

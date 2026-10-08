@@ -8,6 +8,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.artifacts import (
     copy_cohort_evidence,
     materialize_bound_artifacts,
@@ -48,7 +49,7 @@ def _selected_record(selected, key):
 
 
 def read_records(root):
-    return [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+    return load_jsonl(root/'results.jsonl')
 
 
 def has_bound_direct_scoring_revision(root):
@@ -814,8 +815,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     for cid in replacement_cases:
         target=output/'diagnostics'/'replaced-cases'/cid;target.mkdir(parents=True)
         rows=[r for r in original if r['case_id']==cid]
-        # JSONL readers split on Unicode line separators too. Binary/image
-        # diagnostics can contain NEL/U+2028, so keep every record ASCII-safe.
+        # Keep the existing diagnostic serialization stable for downstream tools.
         (target/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in rows))
         certificate=certificates/cid
         if certificate.exists():

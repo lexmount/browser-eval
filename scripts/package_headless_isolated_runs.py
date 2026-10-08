@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import shutil
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 from harness.web_fetch.safety import contained_path, validate_report_ids
 
@@ -37,7 +38,7 @@ def main() -> None:
             raise ValueError("Child dataset identity mismatch")
         comparison = comparison or dataset.get("comparison", {})
         cases.extend(dataset["cases"])
-        child_rows = [json.loads(line) for line in (child / "results.jsonl").read_text().splitlines()]
+        child_rows = load_jsonl(child / "results.jsonl")
         if len(child_rows) != 1 or child_rows[0]["provider"] != provider:
             raise ValueError("Child result identity mismatch")
         child_batches = json.loads((child / "execution.json").read_text())["batches"]

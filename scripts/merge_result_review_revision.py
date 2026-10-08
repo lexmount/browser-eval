@@ -8,15 +8,19 @@ independently re-reviewed.
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import sys
 import tempfile
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.web_fetch.result_review import require_blind_result_review, require_result_review
-from harness.web_fetch.result_review import review_input_identity
+from harness.record_io import load_jsonl, parse_jsonl
 from harness.web_fetch.metrics import task_passed
+from harness.web_fetch.result_review import (
+    require_blind_result_review,
+    require_result_review,
+    review_input_identity,
+)
 
 
 def sha(path):
@@ -68,7 +72,7 @@ def _validate_before_install(dataset_bytes, results_bytes, review, *, anomaly_ga
         (root/'result-review.json').write_text(
             json.dumps(review, ensure_ascii=False, indent=2)+'\n')
         dataset = json.loads(dataset_bytes)
-        records = [json.loads(line) for line in results_bytes.splitlines()]
+        records = parse_jsonl(results_bytes)
         validator = require_result_review if anomaly_gate else require_blind_result_review
         validator(root, dataset, records)
 
@@ -87,7 +91,7 @@ def _install_review(evidence, review, *, anomaly_gate=True):
     finally:
         temporary.unlink(missing_ok=True)
     dataset = json.loads(dataset_bytes)
-    records = [json.loads(line) for line in results_bytes.splitlines()]
+    records = parse_jsonl(results_bytes)
     validator = require_result_review if anomaly_gate else require_blind_result_review
     validator(evidence, dataset, records)
     return target
@@ -95,7 +99,7 @@ def _install_review(evidence, review, *, anomaly_gate=True):
 
 def merge(evidence: Path, prior_path: Path, supplemental_evidence: Path):
     dataset=json.loads((evidence/'dataset.json').read_text())
-    records=[json.loads(line) for line in (evidence/'results.jsonl').read_text().splitlines()]
+    records=load_jsonl(evidence/'results.jsonl')
     receipts=json.loads((evidence/'scoring-revisions.json').read_text())
     prior=json.loads(prior_path.read_text())
     current_bindings={'dataset_sha256':sha(evidence/'dataset.json'),
@@ -109,7 +113,7 @@ def merge(evidence: Path, prior_path: Path, supplemental_evidence: Path):
     if not changed_cases <= set(current_cases):
         raise ValueError('Scoring revision changed cases are absent from current dataset')
     subset_dataset=json.loads((supplemental_evidence/'dataset.json').read_text())
-    subset_records=[json.loads(line) for line in (supplemental_evidence/'results.jsonl').read_text().splitlines()]
+    subset_records=load_jsonl(supplemental_evidence/'results.jsonl')
     supplemental=require_blind_result_review(
         supplemental_evidence,subset_dataset,subset_records)
     supplemental_protocol=supplemental.get('review_protocol',{})
@@ -184,9 +188,9 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
     reviewer, while invalidating all providers for a changed task.
     """
     current_dataset=json.loads((evidence/'dataset.json').read_text())
-    current_records=[json.loads(line) for line in (evidence/'results.jsonl').read_text().splitlines()]
+    current_records=load_jsonl(evidence/'results.jsonl')
     prior_dataset=json.loads((prior_evidence/'dataset.json').read_text())
-    prior_records=[json.loads(line) for line in (prior_evidence/'results.jsonl').read_text().splitlines()]
+    prior_records=load_jsonl(prior_evidence/'results.jsonl')
     if prior_review_path is None:
         # The current anomaly detector may intentionally be stricter than the
         # one available when the prior blind review was recorded. Reuse only
@@ -238,7 +242,7 @@ def merge_refresh(evidence: Path, prior_evidence: Path,
         raise ValueError('Refresh has no attempts requiring supplemental review')
 
     subset_dataset=json.loads((supplemental_evidence/'dataset.json').read_text())
-    subset_records=[json.loads(line) for line in (supplemental_evidence/'results.jsonl').read_text().splitlines()]
+    subset_records=load_jsonl(supplemental_evidence/'results.jsonl')
     supplemental=require_blind_result_review(
         supplemental_evidence,subset_dataset,subset_records)
     if supplemental is None:

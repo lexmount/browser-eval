@@ -3,23 +3,24 @@
 from __future__ import annotations
 
 import argparse
-from copy import deepcopy
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
+from copy import deepcopy
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
+from harness.record_io import load_jsonl
 from harness.web_fetch.reference_inputs import read_dataset_bytes
+from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 from harness.web_fetch.safety import contained_path, validate_report_ids
 
 
 def rows(root: Path) -> list[dict]:
-    return [json.loads(line) for line in (root / "results.jsonl").read_text().splitlines()]
+    return load_jsonl(root / "results.jsonl")
 
 
 def equivalent_task(left: dict, right: dict) -> bool:

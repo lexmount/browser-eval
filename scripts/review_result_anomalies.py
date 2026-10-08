@@ -1,19 +1,19 @@
 """Investigate anomalies after an already-recorded blind result review."""
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import copy
 import json
-from pathlib import Path
 import shutil
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.record_io import load_jsonl
 from harness.web_fetch.anomaly_review import LAYERS, TRIGGER_VERSION, detect_anomalies
 from harness.web_fetch.result_review import require_blind_result_review, require_result_review
 from scripts.review_headless_results import anomaly_investigation_packet, chunks
-
 
 LAYER_SCHEMA = {'type':'object','additionalProperties':False,'properties':{
     'status':{'enum':['verified','defect','not_applicable','insufficient']},
@@ -218,7 +218,7 @@ def main():
     args=parser.parse_args()
     evidence=args.evidence.resolve();work=args.work.resolve();work.mkdir(parents=True,exist_ok=True)
     dataset=json.loads((evidence/'dataset.json').read_text())
-    records=[json.loads(line) for line in (evidence/'results.jsonl').read_text().splitlines()]
+    records=load_jsonl(evidence/'results.jsonl')
     prior=json.loads((evidence/'result-review.json').read_text())
     require_blind_result_review(evidence,dataset,records,prior)
     reviewer={row['attempt_id']:row.get('reviewer_anomalies',[]) for row in prior['attempts']}

@@ -13,6 +13,9 @@ from pathlib import Path
 
 from .run_linux_resource_profiles import sha256
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from harness.record_io import load_jsonl
+
 
 def stats(values: list[float]) -> dict:
     if not values or any(not math.isfinite(v) or v < 0 for v in values):
@@ -86,7 +89,7 @@ def summarize(directory: Path) -> dict:
                 if sha256(run / filename) != binding[key]:
                     raise ValueError("resource run changed after completion")
             manifest = json.loads((run / "run_manifest.json").read_text())
-            rows = [json.loads(line) for line in (run / "results.jsonl").read_text().splitlines()]
+            rows = load_jsonl(run / "results.jsonl")
             if (
                 manifest["completion_status"] != "completed"
                 or manifest["resource_profile"]["mode"] != phase

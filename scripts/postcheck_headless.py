@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from harness.web_fetch.record_io import read_completed_records
+from harness.record_io import read_completed_records
 from harness.web_fetch.reference_lifecycle import (
     requires_fresh_reference,
     scope_identity,

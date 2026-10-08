@@ -25,13 +25,13 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 
+from harness.record_io import parse_jsonl
 from harness.web_fetch.config import load_provider_config, load_runtime_env
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.providers.headless import LOOPBACK_SANDBOX_PROFILE
 from harness.web_fetch.runner import classify_exception
-
 
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"
@@ -75,7 +75,7 @@ def load_source(
     actual = sha256_bytes(payload)
     if actual != expected_sha256:
         raise ValueError(f"Unexpected WebMainBench-545 SHA-256: {actual}")
-    records = [json.loads(line) for line in payload.splitlines() if line.strip()]
+    records = parse_jsonl(payload, skip_blank=True)
     if len(records) != 545:
         raise ValueError(f"Expected 545 records, found {len(records)}")
     if len({record["track_id"] for record in records}) != 545:

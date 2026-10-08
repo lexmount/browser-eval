@@ -5,19 +5,19 @@ projection retains exact attempt IDs/records and the source manifest bytes.
 No failed postcheck is overwritten and no observation timestamp is invented.
 """
 import argparse
-from copy import deepcopy
-from datetime import datetime, timezone
 import hashlib
 import json
-from pathlib import Path
 import sys
 import time
+from copy import deepcopy
+from datetime import datetime, timezone
+from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
+from harness.record_io import read_completed_records
 from harness.web_fetch.reference_lifecycle import finalize_reference_checks
 from harness.web_fetch.safety import safe_identifier
-from harness.web_fetch.record_io import read_completed_records
 
 
 def certify_case(run, output, case, records, observation):

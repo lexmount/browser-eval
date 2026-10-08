@@ -9,28 +9,29 @@ audited revision chain.
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
 import hashlib
 import json
-from pathlib import Path
 import re
 import shutil
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness.record_io import load_jsonl
+from harness.web_fetch.artifacts import artifact_bindings
 from harness.web_fetch.failure_diagnosis import diagnose
 from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.reference_lifecycle import (
-    scoring_revision_history_sha256, valid_scoring_revision,
+    scoring_revision_history_sha256,
+    valid_scoring_revision,
 )
-from harness.web_fetch.result_review import require_result_review
 from harness.web_fetch.report import failure_category
+from harness.web_fetch.result_review import require_result_review
 from harness.web_fetch.safety import contained_path
 from scripts.revise_body_scoring import rebind_unchanged_result_review
-from harness.web_fetch.artifacts import artifact_bindings
-
 
 PROVIDER = "deepseek-harness-built-in"
 HEADER = re.compile(r"Fetched (https?://\S+) \(HTTP ([1-5][0-9][0-9])\)")
@@ -42,7 +43,7 @@ def digest(raw: bytes) -> str:
 
 
 def records(root: Path) -> list[dict]:
-    return [json.loads(line) for line in (root / "results.jsonl").read_text().splitlines()]
+    return load_jsonl(root / "results.jsonl")
 
 
 def encode(rows: list[dict]) -> bytes:

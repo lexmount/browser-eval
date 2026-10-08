@@ -2,18 +2,20 @@
 from __future__ import annotations
 
 import argparse
-import html as html_module
 import hashlib
+import html as html_module
 import json
 import re
 import sys
 import time
 from pathlib import Path
+
 from bs4 import BeautifulSoup
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.config import load_provider_config, load_runtime_env
 from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
@@ -194,7 +196,7 @@ def main() -> None:
         raise ValueError('Resume manifest does not match current diagnostic controls')
     manifest_path.write_text(expected_manifest, encoding='utf-8')
     result_path = args.output / 'results.jsonl'
-    existing = [json.loads(line) for line in result_path.read_text(encoding='utf-8').splitlines() if line.strip()] if result_path.exists() else []
+    existing = load_jsonl(result_path, skip_blank=True) if result_path.exists() else []
     completed = {(row['case_id'], row['variant']) for row in existing}
     if len(completed) != len(existing):
         raise ValueError('Duplicate diagnostic result identity')

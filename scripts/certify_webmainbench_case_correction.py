@@ -5,18 +5,19 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
 import types
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.web_fetch.webmainbench_scoring import load_records, official_calculator, metric_dict
-from scripts.correct_webmainbench_teds import corrected_distance
-from harness.web_fetch.webmainbench_certification import verify_shard
+from harness.record_io import load_jsonl
 from harness.web_fetch.safety import contained_path
+from harness.web_fetch.webmainbench_certification import verify_shard
+from harness.web_fetch.webmainbench_scoring import load_records, metric_dict, official_calculator
+from scripts.correct_webmainbench_teds import corrected_distance
 
 
 def digest(path):
@@ -24,7 +25,7 @@ def digest(path):
 
 
 def rows(path):
-    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    return load_jsonl(path, skip_blank=True)
 
 
 def write(path, value):

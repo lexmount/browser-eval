@@ -7,9 +7,9 @@ import json
 import shutil
 from pathlib import Path
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_evidence import retry_chain_matches
-
 
 NEW_PROVIDER = "moli-1.1.7"
 DATASET_ID = "webmainbench-545-preselected-200-six-methods"
@@ -20,7 +20,7 @@ def digest(path: Path) -> str:
 
 
 def read_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return load_jsonl(path, skip_blank=True)
 
 
 def write_json(path: Path, value: object) -> None:

@@ -14,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.record_io import parse_jsonl
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import requires_fresh_reference
 from harness.web_fetch.safety import contained_path, validate_report_ids
@@ -157,7 +158,7 @@ def revise(source: Path, canonical_path: Path, *, root_cause_category: str,
                     "reason": "independent reference extraction/normalization correction",
                 })
     dataset["cases"] = updated
-    records = [json.loads(line) for line in before_results.splitlines()]
+    records = parse_jsonl(before_results)
     validate_report_ids(dataset, records)
     dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
     # Keep the independently retained corrected source files beside the revised

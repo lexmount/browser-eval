@@ -10,6 +10,7 @@ from pathlib import Path
 from string import Template
 from urllib.parse import quote, urlsplit
 
+from harness.record_io import parse_jsonl
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 
 from .metrics import percentile, task_passed
@@ -671,7 +672,7 @@ def _render_headless(out, cases, records):
         if hashlib.sha256(raw).hexdigest() != speed['bindings'][name + '_sha256']:
             raise ValueError('Article speed source evidence changed; review latency prose before rebuilding')
         speed_inputs[name] = (json.loads(raw) if name == 'dataset'
-                              else [json.loads(line) for line in raw.splitlines() if line.strip()])
+                              else parse_jsonl(raw, skip_blank=True))
     main_speed = _article_speed_population(cases, records, selected,
         execution_scope='Historical authoritative main-evaluation calls assembled across dates and batches; includes declared latency corrections. Not a same-window controlled speed comparison.')
     paired_speed = _article_speed_population(

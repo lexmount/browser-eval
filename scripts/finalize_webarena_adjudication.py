@@ -8,6 +8,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import load_jsonl
 from harness.trajectory_replay.public_webarena.qualification import (
     QUALIFICATION_SCHEMA,
     task_contract_sha256,
@@ -16,9 +17,7 @@ from harness.trajectory_replay.public_webarena.qualification import (
 
 
 def _rows(path: Path) -> list[dict[str, Any]]:
-    return [
-        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
-    ]
+    return load_jsonl(path, skip_blank=True)
 
 
 def _default_skip_reason(decision: dict[str, Any]) -> str:

@@ -8,12 +8,15 @@ from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit
+
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from harness.web_fetch.reliability import require_reliable
-from harness.web_fetch.reference_lifecycle import validate_resource_source_evidence
-from harness.web_fetch.storage import require_canonical_inputs, require_current_report_profile
+from harness.record_io import load_jsonl
 from harness.report_languages import check_language_contract, generated_languages, visible_numbers
+from harness.web_fetch.reference_lifecycle import validate_resource_source_evidence
+from harness.web_fetch.reliability import require_reliable
+from harness.web_fetch.storage import require_canonical_inputs, require_current_report_profile
 from scripts.report_asset_parity import ArticleAssetParity
+
 
 class Tables(HTMLParser):
  def __init__(self):super().__init__();self.in_th=False;self.first=False;self.headers=[]
@@ -89,7 +92,7 @@ if (root/'sample-manifest.json').is_file() and (root/'certification.json').is_fi
  from scripts.check_wcxb_report import check
  check(root)
  raise SystemExit(0)
-d=json.loads((root/'dataset.json').read_text());rs=[json.loads(l) for l in (root/'results.jsonl').read_text().splitlines()]
+d=json.loads((root/'dataset.json').read_text());rs=load_jsonl(root/'results.jsonl')
 check_language_contract(root)
 has_english='en' in generated_languages(root)
 if d.get('comparison',{}).get('kind')=='webmainbench_frozen_html_to_markdown':

@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from harness.record_io import load_jsonl
 from harness.reporting.assets import copy_bound_assets
 
 from .artifacts import (
@@ -192,7 +193,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     if not local_audit:
         require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
-    records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
+    records = load_jsonl(contained_path(source,'results.jsonl'))
     validate_report_ids(dataset,records)
     require_risk_control_certification(source, dataset, records)
     cases = {c['id']:c for c in dataset['cases']}
@@ -215,7 +216,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if speed.get('bindings',{}).get('results_sha256') != hashlib.sha256((speed_root/'results.jsonl').read_bytes()).hexdigest():
             raise ValueError('Speed comparison result binding mismatch')
         speed_dataset=json.loads((speed_root/'dataset.json').read_text())
-        speed_records=[json.loads(line) for line in (speed_root/'results.jsonl').read_text().splitlines()]
+        speed_records=load_jsonl(speed_root/'results.jsonl')
         speed_execution=speed_root/'execution.json'
         if speed_execution.is_file():
             speed_batches=json.loads(speed_execution.read_text()).get('batches', [])
@@ -564,7 +565,7 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
 def build_webmainbench_report(source: Path, output: Path, *, include_english: bool = False) -> Path:
     """Build the current public-benchmark report without legacy task predicates."""
     dataset = json.loads(contained_path(source, 'dataset.json').read_text())
-    records = [json.loads(line) for line in contained_path(source, 'results.jsonl').read_text().splitlines() if line.strip()]
+    records = load_jsonl(contained_path(source, 'results.jsonl'), skip_blank=True)
     teds_revision = validate_teds_revision_if_present(source, records)
     summaries = json.loads(contained_path(source, 'score-summaries.json').read_text())
     manifests = json.loads(contained_path(source, 'execution.json').read_text())['batches']
@@ -600,7 +601,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     parent = data_home() / 'public-benchmarks/webmainbench-545/WebMainBench_545.jsonl'
     if not parent.is_file() or hashlib.sha256(parent.read_bytes()).hexdigest() != dataset['source_dataset_sha256']:
         raise ValueError('Frozen WebMainBench parent dataset is unavailable or differs from the bound source hash')
-    parent_rows = [json.loads(line) for line in parent.read_text(encoding='utf-8').splitlines() if line.strip()]
+    parent_rows = load_jsonl(parent, skip_blank=True)
     source_html = {row['track_id']: row['html'] for row in parent_rows if row['track_id'] in case_ids}
     if set(source_html) != case_ids:
         raise ValueError('Frozen source HTML does not cover the current 200-page sample')
@@ -934,7 +935,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     released = next(x for x in certificate['providers'] if x['provider'] == 'moli')
     if released['identity'].get('binary_sha256') != profile['release_binary_sha256']:
         raise ValueError('WCXB released Moli binary differs from the current report profile')
-    rows = [json.loads(line) for line in (source / 'wcxb-scores.jsonl').read_text().splitlines() if line]
+    rows = load_jsonl(source / 'wcxb-scores.jsonl', skip_blank=True)
     case_ids = {r['track_id'] for r in records}
     correction_root = source / 'latency-correction'
     correction_receipt = correction_root / 'receipt.json'
@@ -1014,7 +1015,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             if manifest['run_id'] != batch['run_id'] or manifest['source_dataset_sha256'] != corpus_hash:
                 raise ValueError('WCXB run identity changed: ' + provider)
             identities[provider] = manifest['implementation_identity']
-            raw_rows = [json.loads(line) for line in results_file.read_text().splitlines() if line]
+            raw_rows = load_jsonl(results_file, skip_blank=True)
             if len(raw_rows) != len(records):
                 raise ValueError('WCXB provider results incomplete: ' + provider)
             for row in raw_rows:

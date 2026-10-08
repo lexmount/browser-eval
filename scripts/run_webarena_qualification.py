@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import load_jsonl
 from harness.trajectory_replay.public_webarena.cli import task_ids_from_scope
 from harness.trajectory_replay.public_webarena.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from harness.trajectory_replay.public_webarena.qualification import build_repair_queue
@@ -143,11 +144,7 @@ def validate_completed_shard(
         or protocol.get("qualification_required_passes") != qualification_required_passes
     ):
         raise ValueError(f"{shard['id']}: qualification manifest contract mismatch")
-    rows = [
-        json.loads(line)
-        for line in required["attempts.jsonl"].read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    rows = load_jsonl(required["attempts.jsonl"], skip_blank=True)
     if len(rows) != len(expected_ids) or {str(row.get("task_id")) for row in rows} != set(
         expected_ids
     ):

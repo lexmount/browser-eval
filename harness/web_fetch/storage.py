@@ -7,6 +7,8 @@ import os
 from collections import Counter
 from pathlib import Path
 
+from harness.record_io import load_jsonl
+
 
 def data_home() -> Path:
     configured = os.environ.get("BROWSER_EVAL_DATA_HOME")
@@ -96,7 +98,7 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     if profile.get("comparison_kind") == "wcxb_frozen_html_to_markdown":
         raise ValueError("WCXB evidence uses the certified cohort validator, not the legacy current-report profile validator")
     dataset = json.loads((evidence / "dataset.json").read_text())
-    records = [json.loads(line) for line in (evidence / "results.jsonl").read_text().splitlines()]
+    records = load_jsonl(evidence / "results.jsonl")
     comparison = dataset.get("comparison", {})
     providers = set(profile["providers"])
     if len(providers) != len(profile["providers"]):
@@ -181,8 +183,7 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
         resource_root = evidence / "resource-cohort"
         try:
             resource_dataset = json.loads((resource_root / "dataset.json").read_text())
-            resource_records = [json.loads(line) for line in
-                                (resource_root / "results.jsonl").read_text().splitlines()]
+            resource_records = load_jsonl(resource_root / "results.jsonl")
             resource_summary = json.loads((resource_root / "resource-comparison.json").read_text())
         except (FileNotFoundError, json.JSONDecodeError):
             failures.append("resource_profile_missing")

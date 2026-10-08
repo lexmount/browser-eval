@@ -15,7 +15,11 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.record_io import load_jsonl
 
 
 def sha256(path: Path) -> str:
@@ -193,7 +197,7 @@ def run_one(protocol: dict, output: Path, method: str, phase: str) -> dict:
     with (output / f"{run_id}.log").open("w") as log:
         subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=True)
     manifest = json.loads((run_dir / "run_manifest.json").read_text())
-    rows = [json.loads(line) for line in (run_dir / "results.jsonl").read_text().splitlines()]
+    rows = load_jsonl(run_dir / "results.jsonl")
     expected = collections.Counter(
         (task, attempt)
         for task in protocol["task_ids"]

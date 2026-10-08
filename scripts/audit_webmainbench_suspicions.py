@@ -6,15 +6,15 @@ of a defective reference, runner, or scorer.
 from __future__ import annotations
 
 import argparse
-from collections import defaultdict
 import hashlib
 import json
-from pathlib import Path
 import re
+from collections import defaultdict
+from pathlib import Path
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.webmainbench_diagnostics import ERROR_PAGE
-
 
 QUERY_NAVIGATION = re.compile(r"(?:window\.)?location\.search\s*(?:\+?=)")
 ORIGIN_NAVIGATION = re.compile(r"(?:window\.)?location\.href\s*=\s*(?:[A-Za-z_$][\w$]*|['\"](?:https?:)?//)")
@@ -23,7 +23,7 @@ SCORE_CLIFF_PEER = .5
 
 
 def read_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return load_jsonl(path, skip_blank=True)
 
 
 def digest(text: str) -> str:

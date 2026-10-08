@@ -9,6 +9,7 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
+from harness.record_io import load_jsonl
 from harness.reporting.presentation import check_presentation
 from harness.web_fetch.report import ERROR_PAGE
 from harness.web_fetch.safety import contained_path
@@ -163,7 +164,7 @@ def check(root: Path) -> None:
                     "result_count": case_count * provider_count}:
         raise ValueError("Incomplete WebMainBench report manifest")
     dataset = json.loads((root / "dataset.json").read_text(encoding="utf-8"))
-    records = [json.loads(line) for line in (root / "results.jsonl").read_text(encoding="utf-8").splitlines()]
+    records = load_jsonl(root / "results.jsonl")
     correction_binding = repo / 'evaluation/webmainbench-full/case-correction-binding.json'
     if correction_binding.exists():
         receipt = json.loads((root / 'case-correction.json').read_text())
@@ -363,7 +364,7 @@ def check(root: Path) -> None:
             content = shards[shard_path]["blobs"].get(blob_hash)
             if not isinstance(content, str) or hashlib.sha256(content.encode()).hexdigest() != expected_hash:
                 raise ValueError("Frozen task evidence changed: " + path)
-    physical = [json.loads(line) for line in (root / "physical-attempts.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    physical = load_jsonl(root / "physical-attempts.jsonl", skip_blank=True)
     for attempt in physical:
         path = attempt["physical_artifact_path"]
         shard_path = artifact_index.get(path)

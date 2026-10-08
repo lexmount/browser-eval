@@ -7,6 +7,8 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from harness.record_io import load_jsonl
+
 
 def repair_task_scope(artifacts: Path) -> dict[str, object]:
     """Narrow a pre-fix manifest to its fully attempted, non-skipped scope."""
@@ -17,11 +19,7 @@ def repair_task_scope(artifacts: Path) -> dict[str, object]:
         raise ValueError(f"superseded manifest already exists: {backup_path}")
     original_bytes = manifest_path.read_bytes()
     manifest = json.loads(original_bytes)
-    attempts = [
-        json.loads(line)
-        for line in attempts_path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    attempts = load_jsonl(attempts_path, skip_blank=True)
     attempted_ids = {str(row["task_id"]) for row in attempts}
     declared = list(manifest.get("suite") or [])
     declared_ids = {str(row["task_id"]) for row in declared}

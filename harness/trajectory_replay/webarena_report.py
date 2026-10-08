@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urlsplit
 
+from harness.record_io import load_jsonl
 from harness.trajectory_replay.catalog_contracts import (
     LEGACY_CATALOG_CONTRACTS_SCHEMA,
     LEGACY_CATALOG_REPORT_SCHEMA,
@@ -2213,7 +2214,7 @@ def _catalog_progress_index(evidence_root: Path) -> tuple[dict[str, Path], dict[
     rows_by_digest: dict[str, dict[int, dict]] = {}
     for progress in evidence_root.glob("*/progress.jsonl"):
         digest = _catalog_file_sha256(progress)
-        rows = [json.loads(line) for line in progress.read_text(encoding="utf-8").splitlines()]
+        rows = load_jsonl(progress)
         directories[digest] = progress.parent
         rows_by_digest[digest] = {int(row["task_id"]): row for row in rows}
     return directories, rows_by_digest

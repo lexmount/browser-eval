@@ -2,12 +2,15 @@
 from __future__ import annotations
 
 import argparse
-import json
+import sys
 import threading
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.record_io import load_jsonl
 
 
 def binary_from_env(path: Path) -> str:
@@ -32,7 +35,7 @@ def check(root: Path, browser_binary: str) -> None:
     thread.start()
     checked = 0
     try:
-        score_rows = [json.loads(line) for line in (root / 'wcxb-scores.jsonl').read_text().splitlines() if line]
+        score_rows = load_jsonl(root / 'wcxb-scores.jsonl', skip_blank=True)
         providers = list(dict.fromkeys(row['provider'] for row in score_rows))
         if len(providers) < 2:
             raise ValueError('WCXB visual comparison requires at least two providers')

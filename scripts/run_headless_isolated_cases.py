@@ -10,12 +10,13 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path
 import subprocess
 import sys
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from harness.record_io import load_jsonl
 
 
 def main() -> None:
@@ -46,10 +47,10 @@ def main() -> None:
             command.extend(["--env-file", str(args.env_file)])
         completed = subprocess.run(command, cwd=ROOT, env=os.environ.copy())
         result_path = destination / "results.jsonl"
-        rows = result_path.read_text().splitlines() if result_path.is_file() else []
+        rows = load_jsonl(result_path) if result_path.is_file() else []
         if len(rows) != 1:
             raise RuntimeError(f"{case_id}: child retained {len(rows)} logical results")
-        record = json.loads(rows[0])
+        record = rows[0]
         if record.get("provider") != args.provider or record.get("case_id") != case_id:
             raise RuntimeError(f"{case_id}: child result identity mismatch")
         receipts.append({

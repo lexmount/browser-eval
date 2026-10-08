@@ -9,12 +9,13 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
+from harness.record_io import load_jsonl, parse_jsonl
+
 from .metrics import percentile
 from .safety import contained_path
 from .webmainbench_diagnostics import ERROR_PAGE
 from .webmainbench_evidence import retry_chain_matches
 from .webmainbench_latency_correction import prior_results_path
-
 
 RUNS = {'moli-115-control': 'moli', 'moli-117-repeat': 'moli-1.1.7'}
 
@@ -31,7 +32,7 @@ def verified_bytes(root: Path, filename: str, expected: str) -> bytes:
 
 
 def read_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines() if line.strip()]
+    return load_jsonl(path, skip_blank=True)
 
 
 def stats(values: list[float]) -> dict:
@@ -51,8 +52,8 @@ def _repeat_calls(root: Path, binding: dict, cases: dict, source_sha256: str,
                   expected_count: int, expected_rounds: int) -> tuple[dict, list[dict]]:
     directory = contained_path(root, binding['directory'])
     selection = json.loads(verified_bytes(directory, 'selection.json', binding['selection_json_sha256']))
-    calls = [json.loads(line) for line in verified_bytes(directory, 'calls.jsonl',
-             binding['calls_jsonl_sha256']).splitlines() if line.strip()]
+    calls = parse_jsonl(verified_bytes(directory, 'calls.jsonl',
+             binding['calls_jsonl_sha256']), skip_blank=True)
     selected = selection['case_ids']
     if (len(selected) != expected_count or len(set(selected)) != expected_count
             or not set(selected).issubset(cases) or selection['rounds'] != expected_rounds
@@ -155,9 +156,9 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
                 or execution['implementation_identity']['binary_sha256'] !=
                    original_execution['implementation_identity']['binary_sha256']):
             raise ValueError('Latency run changed input, binary, or execution contract: ' + label)
-        rows = [json.loads(line) for line in files['results.jsonl'].splitlines() if line.strip()]
+        rows = parse_jsonl(files['results.jsonl'], skip_blank=True)
         physical = defaultdict(list)
-        for attempt in (json.loads(line) for line in files['physical-attempts.jsonl'].splitlines() if line.strip()):
+        for attempt in iter(parse_jsonl(files['physical-attempts.jsonl'], skip_blank=True)):
             physical[attempt['track_id']].append(attempt)
         if len(rows) != len(cases) or {row['track_id'] for row in rows} != set(cases) or set(physical) != set(cases):
             raise ValueError('Latency rerun is missing declared cases: ' + label)
@@ -193,8 +194,8 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
                    all_rows['moli-115-control'][case_id]['elapsed_ms'] for case_id in common]
     mechanism = contained_path(root, 'mechanism')
     selection = json.loads(verified_bytes(mechanism, 'selection.json', manifest['mechanism']['selection_json_sha256']))
-    calls = [json.loads(line) for line in verified_bytes(mechanism, 'calls.jsonl',
-             manifest['mechanism']['calls_jsonl_sha256']).splitlines() if line.strip()]
+    calls = parse_jsonl(verified_bytes(mechanism, 'calls.jsonl',
+             manifest['mechanism']['calls_jsonl_sha256']), skip_blank=True)
     selected = selection['case_ids']
     if (len(selected) != 40 or len(set(selected)) != 40 or not set(selected).issubset(cases)
             or len(calls) != 4 * len(selected)
@@ -235,8 +236,8 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
         run = contained_path(root, 'failure-retest/' + version)
         files = {name: verified_bytes(run, name, digest_value) for name, digest_value in item['files'].items()}
         execution = json.loads(files['execution.json'])
-        rows = [json.loads(line) for line in files['results.jsonl'].splitlines() if line.strip()]
-        attempts = [json.loads(line) for line in files['physical-attempts.jsonl'].splitlines() if line.strip()]
+        rows = parse_jsonl(files['results.jsonl'], skip_blank=True)
+        attempts = parse_jsonl(files['physical-attempts.jsonl'], skip_blank=True)
         if (len(rows) != 1 or len(attempts) != 2 or rows[0]['track_id'] != failed_case
                 or rows[0]['provider'] != RUNS[label] or rows[0]['ok'] or any(attempt['ok'] for attempt in attempts)
                 or not retry_chain_matches(rows[0], attempts)

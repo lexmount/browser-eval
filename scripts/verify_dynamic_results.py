@@ -1,10 +1,14 @@
 """Apply independent detail evidence to the fixed first-three verification contract."""
-import json,sys
+import json
+import sys
 from collections import Counter
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
+from harness.record_io import load_jsonl
 from harness.web_fetch.list_verification import verify_list
 from harness.web_fetch.storage import current_evidence_dir
+
 
 def main():
     source=current_evidence_dir();dataset=json.loads((source/'dataset.json').read_text());cases={c['id']:c for c in dataset['cases']}
@@ -20,7 +24,7 @@ def main():
             if any(host in item['url'] for host in c['source_benchmark']['hosts']):
                 if item not in ref['items']:ref['items'].append(item)
         path.write_text(json.dumps(ref,ensure_ascii=False,indent=2)+'\n');references[c['id']]=ref
-    records=[json.loads(l) for l in (source/'results.jsonl').read_text().splitlines()]
+    records=load_jsonl(source/'results.jsonl')
     for r in records:
         if r['case_id'] not in references:continue
         c=cases[r['case_id']]

@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
+from harness.record_io import load_jsonl
 from harness.web_fetch.config import load_dataset
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
@@ -47,7 +48,7 @@ def check(root,rescore=False):
             require(cases[cid]['body_requirements']==original[cid].get('body_requirements'),
                     ('Body requirements differ from canonical task rule',cid))
     require_current_report_profile(root, ROOT/'evaluation/current-report.json')
-    records=[json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+    records=load_jsonl(root/'results.jsonl')
     provider_configs=json.loads((ROOT/'configs/providers.headless.json').read_text())['providers']
     names=set(provider_configs)
     provenance={row['binary_sha256']:row for row in json.loads(

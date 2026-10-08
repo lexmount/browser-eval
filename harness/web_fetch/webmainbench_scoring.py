@@ -11,6 +11,8 @@ import types
 from collections import defaultdict
 from pathlib import Path
 
+from harness.record_io import load_jsonl
+
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
 CORE_METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
@@ -97,7 +99,7 @@ def main() -> None:
         raise ValueError("Scored evidence exists; refusing to overwrite")
 
     source = load_records(args.dataset, args.expected_dataset_sha256)
-    logical = [json.loads(line) for line in (args.evidence / "results.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    logical = load_jsonl(args.evidence / "results.jsonl", skip_blank=True)
     if len({row["track_id"] for row in logical}) != len(logical):
         raise ValueError("Logical results contain duplicate track IDs")
     calculator = official_calculator(

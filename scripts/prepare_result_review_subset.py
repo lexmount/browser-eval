@@ -2,20 +2,21 @@
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from harness.web_fetch.safety import contained_path
-from harness.web_fetch.result_review import require_blind_result_review, review_input_identity
+from harness.record_io import load_jsonl
 from harness.web_fetch.artifacts import artifact_bindings
+from harness.web_fetch.result_review import require_blind_result_review, review_input_identity
+from harness.web_fetch.safety import contained_path
 
 
 def _records(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    return load_jsonl(path, skip_blank=True)
 
 
 def refresh_review_attempt_ids(evidence: Path, prior_evidence: Path) -> set[str]:

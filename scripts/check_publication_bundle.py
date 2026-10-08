@@ -4,17 +4,23 @@ import base64
 import gzip
 import hashlib
 import json
-from pathlib import Path
 import sys
 import zipfile
+from functools import lru_cache
+from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from harness.web_fetch.publication_privacy import project_file, publication_risk
 from harness.reporting.links import validate_virtual_links
-from harness.web_fetch.webmainbench_diagnostics import require_valid_teds_for_release, validate_teds_revision_if_present
-from harness.web_fetch.webmainbench_latency_correction import validate_latency_correction
 from bs4 import BeautifulSoup
+
+from harness.record_io import parse_jsonl
+from harness.web_fetch.publication_privacy import project_file, publication_risk
+from harness.web_fetch.webmainbench_diagnostics import (
+    require_valid_teds_for_release,
+    validate_teds_revision_if_present,
+)
+from harness.web_fetch.webmainbench_latency_correction import validate_latency_correction
 
 
 def scored_output_hash(row: dict) -> str:
@@ -59,7 +65,7 @@ def check(archive,source,overlay=None):
         results_raw=data('results.jsonl')
         if results_raw != project_file('results.jsonl',(source/'results.jsonl').read_bytes())[0]:
             raise ValueError('Published results differ from the current source evidence')
-        rows=[json.loads(line) for line in results_raw.splitlines()]
+        rows=parse_jsonl(results_raw)
         require_valid_teds_for_release(rows)
         latency_receipt = validate_latency_correction(source)
         if latency_receipt is not None:

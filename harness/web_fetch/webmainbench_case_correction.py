@@ -9,9 +9,14 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.safety import contained_path
-from harness.web_fetch.webmainbench_scoring import aggregate, CORE_METRICS, SCORER_COMMIT, DATASET_SHA256
-
+from harness.web_fetch.webmainbench_scoring import (
+    CORE_METRICS,
+    DATASET_SHA256,
+    SCORER_COMMIT,
+    aggregate,
+)
 
 PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium")
 AXES = ("language", "level", "table", "code", "equation")
@@ -22,7 +27,7 @@ def digest(path: Path) -> str:
 
 
 def read_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return load_jsonl(path, skip_blank=True)
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> None:

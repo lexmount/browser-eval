@@ -9,6 +9,7 @@ from pathlib import Path
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 from webarena_verified.types.task import WebArenaSite
 
+from harness.record_io import load_jsonl
 from harness.trajectory_replay.catalog_contracts import (
     ACCEPTANCE_SCHEMA,
     EXECUTION_CONTRACT_RUN_SCHEMAS,
@@ -65,7 +66,7 @@ def _read_run(directory: Path) -> tuple[dict, list[dict]]:
     if any(path.is_symlink() or not path.is_file() for path in (binding_path, progress_path)):
         raise ValueError(f"run binding or progress is missing: {directory}")
     binding = json.loads(binding_path.read_text(encoding="utf-8"))
-    rows = [json.loads(line) for line in progress_path.read_text(encoding="utf-8").splitlines()]
+    rows = load_jsonl(progress_path)
     order = binding.get("execution_order")
     if (
         binding.get("schema") not in RUN_SCHEMAS

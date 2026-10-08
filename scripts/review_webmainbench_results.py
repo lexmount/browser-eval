@@ -5,11 +5,14 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 from rapidfuzz.distance import Levenshtein
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.record_io import load_jsonl
 
 PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium")
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
@@ -23,7 +26,7 @@ def digest(path: Path) -> str:
 
 
 def lines(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return load_jsonl(path, skip_blank=True)
 
 
 def normalized_edit(predicted: str, reference: str) -> float | None:

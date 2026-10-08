@@ -9,8 +9,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness.record_io import load_jsonl
 from harness.web_fetch.safety import contained_path
-
 
 PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "moli-1.1.7", "chromium")
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
@@ -21,7 +21,7 @@ def digest(path: Path) -> str:
 
 
 def read_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return load_jsonl(path, skip_blank=True)
 
 
 def copy_scored_artifact(source_root: Path, output_root: Path, row: dict) -> None:
@@ -48,7 +48,7 @@ def main() -> None:
     review = json.loads(args.review.read_text(encoding="utf-8"))
     if review.get("status") != "passed":
         raise ValueError("Independent result review has not passed")
-    source_records = [json.loads(line) for line in args.dataset.read_text(encoding="utf-8").splitlines() if line.strip()]
+    source_records = load_jsonl(args.dataset, skip_blank=True)
     if len(source_records) != 545:
         raise ValueError("WebMainBench source must contain 545 rows")
     sample = json.loads(args.sample_manifest.read_text(encoding="utf-8"))

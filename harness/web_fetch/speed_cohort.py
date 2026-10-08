@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.artifacts import materialize_task_references
 from harness.web_fetch.metrics import percentile, task_passed
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
@@ -137,7 +138,7 @@ def main(argv=None):
     args=parser.parse_args(argv);root=args.run
     dataset=json.loads((root/'dataset.json').read_text())
     cases={c['id']:c for c in dataset['cases']}
-    records=[json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+    records=load_jsonl(root/'results.jsonl')
     execution_path=root/'execution.json'
     if not execution_path.is_file():
         raise ValueError('Speed cohort requires aggregate execution.json')

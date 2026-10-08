@@ -6,28 +6,31 @@ been blindly reviewed and the complete corrected matrix passes anomaly review.
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness.record_io import load_jsonl
 from harness.web_fetch.failure_diagnosis import diagnose
 from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.providers.cloudflare import _interface_error, _origin_status
 from harness.web_fetch.providers.moli import _markdown_http_error_status
-from harness.web_fetch.reference_lifecycle import scoring_revision_history_sha256, valid_scoring_revision
-from harness.web_fetch.result_review import require_result_review
+from harness.web_fetch.reference_lifecycle import (
+    scoring_revision_history_sha256,
+    valid_scoring_revision,
+)
 from harness.web_fetch.report import failure_category
 from harness.web_fetch.response_input import apply_request_status
+from harness.web_fetch.result_review import require_result_review
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 from scripts.revise_saved_request_status import rebind_references
-
 
 PROVIDERS = ("cloudflare-markdown", "moli-webfetch")
 RECEIPT = "request-status-corrections.json"
@@ -38,7 +41,7 @@ def digest(raw: bytes) -> str:
 
 
 def records(root: Path) -> list[dict]:
-    return [json.loads(line) for line in (root / "results.jsonl").read_text().splitlines()]
+    return load_jsonl(root / "results.jsonl")
 
 
 def encode(rows: list[dict]) -> bytes:
