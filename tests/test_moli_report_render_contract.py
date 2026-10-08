@@ -11,5 +11,11 @@ class MoliReportRenderContractTests(unittest.TestCase):
         node = shutil.which("node")
         if node is None:
             self.skipTest("Node.js is required for report component checks")
-        script = Path(__file__).with_name("moli_report_render_contract.cjs")
-        subprocess.run([node, str(script)], check=True, capture_output=True, text=True)
+        root = Path(__file__).resolve().parents[1]
+        script = root / "harness/lexbench/assets/render_contract.cjs"
+        subprocess.run(
+            [node, str(script), "--app", str(root / "scripts/moli_report/app.js")],
+            check=True,
+            capture_output=True,
+            text=True,
+        )

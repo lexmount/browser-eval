@@ -45,7 +45,7 @@ def verify_package_tree(source_root: Path, package_root: Path) -> None:
             raise ValueError('Installed package differs from current source bytes: ' + name)
 
 
-def verify_lexbench_package(root: Path) -> None:
+def verify_lexbench_package(root: Path, renderer: Path) -> None:
     from harness.lexbench.pack import package
 
     source = root / 'lexbench-source'
@@ -57,6 +57,7 @@ def verify_lexbench_package(root: Path) -> None:
         path.write_text(f'<script defer src="{prefix}mermaid.min.js"></script>')
     for name in ('app.js', 'style.css', 'mermaid.min.js', 'mermaid-LICENSE.txt'):
         (source / name).write_text(name)
+    (source / 'app.js').write_bytes(renderer.read_bytes())
     (source / 'evidence.bin').write_bytes(bytes(range(256)))
     destination = root / 'lexbench-package'
     summary = package(source, destination, pack_limit=80)
@@ -70,6 +71,12 @@ def verify_lexbench_package(root: Path) -> None:
     assert (destination / 'bundle-loader.js').is_file()
     for name in ('index.html', 'en.html', 'en/index.html'):
         assert 'bundle-loader.js' in (destination / name).read_text()
+    from harness.lexbench import verification
+    contract = Path(verification.__file__).with_name('assets') / 'render_contract.cjs'
+    subprocess.run(['node', str(contract), '--app', str(source / 'app.js')],
+                   check=True, cwd=root, capture_output=True, text=True)
+    subprocess.run([sys.executable, '-m', 'harness.lexbench.verification', '--help'],
+                   check=True, cwd=root, capture_output=True, text=True)
     subprocess.run([sys.executable, '-m', 'harness.lexbench.pack', '--help'],
                    check=True, cwd=root, capture_output=True, text=True)
 
@@ -92,7 +99,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
-        verify_lexbench_package(root)
+        verify_lexbench_package(root, args.source_root / 'scripts/moli_report/app.js')
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
                        check=True, cwd=root)
         binary = root / 'browser'

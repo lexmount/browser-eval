@@ -5,9 +5,11 @@ const assert = require("node:assert/strict"),
   path = require("node:path");
 const siteFlag = process.argv.indexOf("--site"),
   site = siteFlag >= 0 ? process.argv[siteFlag + 1] : null;
+const appFlag = process.argv.indexOf("--app");
 const app = site
   ? path.join(site, "app.js")
-  : path.join(__dirname, "../scripts/moli_report/app.js");
+  : appFlag >= 0 ? process.argv[appFlag + 1] : null;
+if (!app) throw Error("Supply --site or --app for the report renderer");
 const source = fs
   .readFileSync(app, "utf8")
   .split(/async function render\(\)\s*\{/)[0];

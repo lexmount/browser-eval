@@ -123,7 +123,10 @@ The report application owns full rules, interfaces and auditable records. Its ta
 
 `harness/lexbench/` owns the retained Lexbench comparison adapter: report assembly,
 resource matrices, saved-profile aggregation, evidence validation, charts and
-static evidence packaging. The package loader is an installed library asset.
+static evidence packaging. `verification.py` owns static validation, release
+profile bindings and executable negative controls. Its rendering contract and the
+package loader are installed library assets, with no runtime dependency on
+`tests/`. Imports and help commands do not read report evidence.
 Packaging rejects linked source directories and nested output, builds in a
 temporary sibling directory and exposes the output only after every file and
 catalog has been written successfully.
