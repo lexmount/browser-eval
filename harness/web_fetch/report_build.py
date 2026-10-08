@@ -10,7 +10,9 @@ from harness.reporting.assets import copy_bound_assets
 from .artifacts import (
     copy_cohort_evidence,
     diagnostic_log_binding,
+    materialize_reference_checks,
     record_public_call_log_bindings,
+    reject_evidence_symlinks,
     verify_public_call_log,
     verify_record_private_artifacts,
     verify_record_public_call_logs,
@@ -374,17 +376,14 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 r['diagnosis']=diagnose(r,cases[r['case_id']],text)
             r['failure_category'] = failure_category(r, cases[r['case_id']])
         for folder in ['sources','list-references','reference-checks']:
-            tree=contained_path(source,folder)
+            tree=contained_path(source,folder,reject_symlinks=True)
             if tree.exists():
-                for child in tree.rglob('*'):
-                    if child.is_symlink():
-                        raise ValueError('Evidence trees must not contain symlinks')
+                reject_evidence_symlinks(tree)
         if (source/'sources').exists():
             shutil.copytree(source/'sources', staging/'sources')
         if (source/'list-references').exists():
             shutil.copytree(source/'list-references',staging/'list-references')
-        if (source/'reference-checks').exists():
-            shutil.copytree(source/'reference-checks', staging/'reference-checks')
+        materialize_reference_checks(staging, source, manifests)
         if speed_root.exists():
             copy_cohort_evidence(
                 speed_root, staging/'speed-cohort', speed_dataset, speed_records, speed_batches,

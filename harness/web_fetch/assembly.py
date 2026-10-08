@@ -11,6 +11,8 @@ from pathlib import Path
 from harness.web_fetch.artifacts import (
     copy_cohort_evidence,
     materialize_bound_artifacts,
+    materialize_reference_checks,
+    reject_evidence_symlinks,
 )
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
@@ -554,6 +556,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         (not source_manifest or source_manifest.get('projection',{}).get('kind') ==
          'complete-provider-from-retained-incomplete-matrix'))
     replacement_cases={};batches=[];evidence=[];selected=[];audit=[]
+    reference_evidence=[]
     if assembled_input:
         prior_batches=json.loads((run/'execution.json').read_text())['batches']
         require_verified_reference_checks(prior_batches,cases=dataset,records=original,source=run,
@@ -562,6 +565,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             allow_scoring_rule_revision=valid_scoring_revision(run))
         batches.extend(public_manifest(batch) for batch in prior_batches)
         evidence.append(run)
+        reference_evidence.append((run, prior_batches))
         prior_audit=run/'selection-audit.json'
         if prior_audit.is_file():
             inherited=json.loads(prior_audit.read_text())
@@ -594,6 +598,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                 if before!=after else 'fresh complete matched cohort after failed reference certificate; no score-based selection'),
                 'excluded_attempts':[{k:r[k] for k in ('attempt_id','run_id','started_at','elapsed_ms')} for r in original if r['case_id']==target_id]})
         batches.extend(public_manifest(batch) for batch in replacement_batches);evidence.append(root)
+        reference_evidence.append((root, replacement_batches))
         selected.extend((r,root) for r in rows)
     for cid,case in cases.items():
         if cid in replacement_cases:continue
@@ -604,6 +609,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             if {r['attempt_id']:r for r in read_records(cert)}!={r['attempt_id']:r for r in rows}:
                 raise ValueError('Certificate records differ from original call records: '+cid)
             batches.append(public_manifest(manifest));evidence.append(cert)
+            reference_evidence.append((cert, [manifest]))
         selected.extend((r,run) for r in rows)
     stable=[r for r in original if not requires_fresh_reference(canonical_cases.get(r['case_id'],cases[r['case_id']])) and r['case_id'] not in replacement_cases]
     if stable and not assembled_input:
@@ -630,6 +636,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         expected|=planned
         selected.extend((r,root) for r in rows)
         batches.append(public_manifest(manifest));evidence.append(root)
+        reference_evidence.append((root, [manifest]))
         audit.extend({'case_id':cid,'selection_reason':'missing case completed as a full five-method addition; no score-based selection','excluded_attempts':[]} for cid in incoming)
     pair_replacements = {}
     for root in provider_replacements:
@@ -658,6 +665,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                 'selection_reason':'predeclared provider implementation replacement; complete scope selected without score-based retries',
                 'excluded_attempts':[{k:old[k] for k in ('attempt_id','run_id','started_at','elapsed_ms')}]})
         batches.extend(public_manifest(batch) for batch in replacement_batches);evidence.append(root)
+        reference_evidence.append((root, replacement_batches))
     added_providers=set()
     for root in provider_additions:
         new_dataset=json.loads((root/'dataset.json').read_text())
@@ -684,6 +692,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         added_providers|=providers
         selected.extend((r,root) for r in rows)
         batches.extend(public_manifest(batch) for batch in addition_batches);evidence.append(root)
+        reference_evidence.append((root, addition_batches))
         audit.extend({'provider':provider,
                       'selection_reason':'predeclared full-case provider addition; no score-based retries',
                       'excluded_attempts':[]} for provider in sorted(providers))
@@ -729,6 +738,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     output.mkdir(parents=True)
     for folder in ('sources','list-references'):
         source_tree = input_tree(canonical_dataset, folder) if canonical_dataset else run/folder
+        reject_evidence_symlinks(source_tree)
         shutil.copytree(source_tree,output/folder)
     for cid,(_,root) in replacement_cases.items() if not canonical else []:
         # This is a newly created assembly tree, not previously measured output.
@@ -736,9 +746,8 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         shutil.copytree(root/'sources'/cid,target,dirs_exist_ok=True)
     for row,root in selected:
         materialize_bound_artifacts(output, root, [row])
-    for root in evidence:
-        if (root/'reference-checks').exists():
-            shutil.copytree(root/'reference-checks',output/'reference-checks',dirs_exist_ok=True)
+    for root, source_batches in reference_evidence:
+        materialize_reference_checks(output, root, source_batches)
     # Keep rejected calls, scores and certificates available outside rankings.
     for cid in replacement_cases:
         target=output/'diagnostics'/'replaced-cases'/cid;target.mkdir(parents=True)
@@ -763,8 +772,9 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                 raise ValueError('Assembled input has no execution batch for replaced case: '+cid)
             (target/'execution.json').write_text(json.dumps(
                 {'batches':rejected_batches},ensure_ascii=False,indent=2)+'\n')
-        if (certificate/'reference-checks').exists():
-            shutil.copytree(certificate/'reference-checks',target/'reference-checks')
+        if (certificate/'manifest.json').is_file():
+            materialize_reference_checks(target, certificate,
+                [json.loads((certificate/'manifest.json').read_text())])
         materialize_bound_artifacts(target, run, rows)
     for name,payload in [('dataset.json',dataset),('execution.json',{'batches':batches}),('selection-audit.json',audit)]:
         (output/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n')
@@ -884,8 +894,7 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
                    *(provider_replacements or []), *(provider_additions or []),
                    *([speed_cohort] if speed_cohort else []),
                    *([resource_cohort] if resource_cohort else [])]:
-        if source.is_symlink():
-            raise ValueError('Evidence root must not be a symlink')
+        reject_evidence_symlinks(source)
         for name in ('dataset.json', 'results.jsonl', 'manifest.json', 'execution.json'):
             contained_path(source, name, reject_symlinks=True)
     if output.exists():raise ValueError('Destination exists; evidence must not be overwritten')

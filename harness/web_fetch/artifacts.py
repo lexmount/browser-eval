@@ -356,18 +356,47 @@ def materialize_bound_artifacts(output: Path, source_root: Path, records: list[d
         verify_record_public_call_logs(output, record)
 
 
+def reject_evidence_symlinks(root: Path) -> None:
+    """Never follow file or directory links while materializing evidence."""
+    if root.is_symlink():
+        raise ValueError('Evidence root must not be a symlink')
+    if any(path.is_symlink() for path in root.rglob('*')):
+        raise ValueError('Evidence tree contains a symlink')
+
+
+def materialize_reference_checks(output: Path, source: Path, batches: list[dict]) -> None:
+    """Retain only hash-bound observations named by the execution certificates."""
+    for batch in batches:
+        post = batch.get('reference_checks', {}).get('postcheck', {})
+        if not post:
+            continue
+        relative, digest = post.get('evidence_path'), post.get('evidence_sha256')
+        if (not isinstance(digest, str) or len(digest) != 64
+                or any(char not in '0123456789abcdef' for char in digest)
+                or relative != f'reference-checks/observations-{digest}.json'):
+            raise ValueError('Reference check has an invalid evidence binding')
+        path = contained_path(source, relative, reject_symlinks=True)
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            raise ValueError('Reference check evidence differs from its certificate')
+        target = contained_path(output, relative, reject_symlinks=True)
+        if target.exists():
+            if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                raise ValueError('Conflicting reference check evidence')
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target)
+        if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+            raise ValueError('Copied reference check evidence changed')
+
+
 def copy_cohort_evidence(source, target, dataset, records, batches, *,
                          summary_name, include_private=False, include_metadata=True):
     """Copy declared comparison evidence; publication excludes private envelopes."""
     if summary_name not in {'speed-comparison.json', 'resource-comparison.json'}:
         raise ValueError('Unsupported comparison summary')
     source = Path(source)
-    if source.is_symlink():
-        raise ValueError('Comparison cohort root must not be a symlink')
+    reject_evidence_symlinks(source)
     source_root = source.resolve()
-    for child in source.rglob('*'):
-        if child.is_symlink():
-            raise ValueError('Comparison cohort contains a symlink')
 
     allowed = set()
     if include_metadata:
@@ -383,10 +412,6 @@ def copy_cohort_evidence(source, target, dataset, records, batches, *,
         allowed.update(relative for relative, _ in artifact_bindings(record))
         if include_private:
             allowed.update(binding['path'] for binding in record_private_bindings(record))
-    for batch in batches:
-        relative = batch.get('reference_checks', {}).get('postcheck', {}).get('evidence_path')
-        if relative:
-            allowed.add(relative)
     for case in dataset.get('cases', []):
         case_id = case['id']
         source_dir = contained_path(source, 'sources/' + case_id)
@@ -398,6 +423,7 @@ def copy_cohort_evidence(source, target, dataset, records, batches, *,
             allowed.add(reference.relative_to(source_root).as_posix())
 
     target.mkdir(parents=True)
+    materialize_reference_checks(target, source, batches)
     for relative in sorted(allowed):
         source_file = contained_path(source, relative, reject_symlinks=True)
         if not source_file.is_file():

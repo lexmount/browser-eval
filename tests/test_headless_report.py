@@ -409,8 +409,11 @@ class HeadlessReportTests(unittest.TestCase):
                      'raw_response_sha256':hashlib.sha256(private).hexdigest(),
                      'raw_response_bytes':len(private)}}
             dataset={'cases':[{'id':'body'}]}
+            observation=b'{}'
+            observation_hash=hashlib.sha256(observation).hexdigest()
+            observation_path=f'reference-checks/observations-{observation_hash}.json'
             batches=[{'reference_checks':{'postcheck':{
-                'evidence_path':'reference-checks/postcheck.json'}}}]
+                'evidence_path':observation_path,'evidence_sha256':observation_hash}}}]
             required={
                 'dataset.json':json.dumps(dataset).encode(),
                 'results.jsonl':(json.dumps(row)+'\n').encode(),
@@ -418,7 +421,7 @@ class HeadlessReportTests(unittest.TestCase):
                 'speed-comparison.json':b'{}',
                 'result-review.json':b'{}',
                 'scoring-revisions.json':b'[]',
-                'reference-checks/postcheck.json':b'{}',
+                observation_path:observation,
                 'sources/body/source.txt':b'independent source',
                 'list-references/body.json':b'{}',
             }
@@ -427,11 +430,13 @@ class HeadlessReportTests(unittest.TestCase):
                 path.write_bytes(payload)
             secret=source/'worker-secrets/session-token.txt'
             secret.parent.mkdir();secret.write_text('must not copy')
+            (source/'reference-checks/private-note.txt').write_text('synthetic private note')
 
             _copy_speed_bundle(source,target,dataset,[row],batches)
 
             for relative in (*required,artifact_path,private_path):
                 self.assertTrue((target/relative).is_file(),relative)
+            self.assertFalse((target/'reference-checks/private-note.txt').exists())
             self.assertFalse((target/'worker-secrets').exists())
 
     def test_speed_bundle_rejects_any_symlink_even_when_unreferenced(self):

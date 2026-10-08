@@ -25,6 +25,9 @@ these modules. Assembly preserves all physical-call outputs, auxiliary files and
 public call logs, rejects symlinks and conflicting bytes, and exposes its new
 output directory only after validation succeeds. Canonical source and list
 references resolve through their hash-bound external-input manifest when present.
+Reference-check observations are copied from each source batch's certificate by
+path and SHA-256; adjacent notes and undeclared observations stay outside the
+assembly. The same copier serves refresh assembly, reports, speed and resource comparison bundles.
 
 `resource_cohort.py` validates the declared resource-method matrix, finite
 measurements and common execution environment, and rebuilds the resource summary

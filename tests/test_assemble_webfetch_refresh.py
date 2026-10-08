@@ -6,10 +6,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.refresh_assembly import assemble, expected_refresh_pairs
-from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 from harness.web_fetch.reference_lifecycle import reference_revision_cases, valid_scoring_revision
+from harness.web_fetch.refresh_assembly import assemble, expected_refresh_pairs
 from harness.web_fetch.scoring_regressions import build_correction_provenance
+from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 
 PROVIDERS = [
     "cloudflare-markdown",
@@ -337,6 +337,38 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
         self.assertTrue({("crawl4ai", case["id"]) for case in self.canonical_cases} <= pairs)
         self.assertIn(("tavily", "document-03"), pairs)
         self.assertIn(("cowagent-built-in", "document-05"), pairs)
+
+    def test_refresh_excludes_undeclared_reference_check_files(self) -> None:
+        for root in (self.baseline, self.main):
+            (root / 'reference-checks').mkdir(exist_ok=True)
+            (root / 'reference-checks/private-note.txt').write_text('synthetic private note')
+        output = self.root / 'assembled-reference-boundary'
+        assemble(self.baseline, [self.main], self.speed, output,
+                 canonical_dataset=self.canonical_path, plan=self.plan_path)
+        self.assertFalse((output / 'reference-checks/private-note.txt').exists())
+
+    def test_refresh_rejects_reference_tree_symlinks(self) -> None:
+        actual = self.root / 'same-reference.txt'
+        actual.write_text('synthetic source')
+        trees = [(root, folder) for root in (self.baseline, self.main)
+                 for folder in ('sources', 'list-references', 'reference-checks')]
+        trees += [(self.canonical_path.parent, folder)
+                  for folder in ('sources', 'list-references')]
+        for index, (root, folder) in enumerate(trees):
+            with self.subTest(root=root.name, folder=folder):
+                directory = root / folder
+                directory.mkdir(exist_ok=True)
+                link = directory / 'linked'
+                link.symlink_to(actual)
+                output = self.root / f'rejected-reference-{index}'
+                try:
+                    with self.assertRaisesRegex(ValueError, '[Ss]ymlink'):
+                        assemble(self.baseline, [self.main], self.speed, output,
+                                 canonical_dataset=self.canonical_path, plan=self.plan_path)
+                    self.assertFalse(output.exists())
+                    self.assertFalse(list(self.root.glob(f'.{output.name}-*')))
+                finally:
+                    link.unlink()
 
     def test_pair_only_refresh_scope_allows_empty_matched_case_lists(self) -> None:
         matrix = self.plan["main_matrix"]

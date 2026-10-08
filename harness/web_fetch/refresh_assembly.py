@@ -15,6 +15,8 @@ from pathlib import Path
 
 from harness.web_fetch.artifacts import (
     materialize_bound_artifacts,
+    materialize_reference_checks,
+    reject_evidence_symlinks,
     verify_record_artifacts,
 )
 from harness.web_fetch.assembly import (
@@ -859,13 +861,12 @@ def _assemble(
         source = input_tree(canonical_path, folder)
         if not source.is_dir():
             raise ValueError(f"Canonical input tree is missing: {folder}")
+        reject_evidence_symlinks(source)
         shutil.copytree(source, output / folder)
     _copy_artifacts(output, selected)
-    for root in [baseline, *main_reruns]:
-        if (root / "reference-checks").is_dir():
-            shutil.copytree(
-                root / "reference-checks", output / "reference-checks", dirs_exist_ok=True
-            )
+    materialize_reference_checks(output, baseline, baseline_batches)
+    for source_batches, _rows, root, _path in rerun_batches:
+        materialize_reference_checks(output, root, source_batches)
 
     selected_baseline = [row for row, root in selected if root == baseline]
     batches = _prune_shadowed_batch_attempts(deepcopy(baseline_batches), selected_baseline)
@@ -949,11 +950,9 @@ def assemble(
     plan: Path = ROOT / "evaluation/current-rerun.json",
 ) -> None:
     """Validate into a sibling staging directory and expose the result atomically."""
-    if speed_cohort.is_symlink():
-        raise ValueError("Speed cohort root must not be a symlink")
+    reject_evidence_symlinks(speed_cohort)
     for root in [baseline, *main_reruns]:
-        if root.is_symlink():
-            raise ValueError("Evidence root must not be a symlink")
+        reject_evidence_symlinks(root)
         for name in ("dataset.json", "results.jsonl", "manifest.json", "execution.json"):
             contained_path(root, name, reject_symlinks=True)
     baseline = baseline.resolve()
