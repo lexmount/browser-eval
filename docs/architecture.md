@@ -23,6 +23,14 @@ artifacts receive hash bindings at collection. `artifacts.py` enumerates and
 verifies those bindings before aggregation, rejects symlinks and collisions,
 and never replaces a missing or mismatched binding with a newly computed hash.
 
+`harness/web_fetch/result_review.py` owns review validation, score-only rebinding,
+supplemental-review merging and installation. Its two revision commands are thin
+entry points. Reuse requires unchanged task definitions and reviewer-visible
+evidence; changed inputs require independently recorded supplemental judgments.
+Installation validates the candidate before replacing the review, rejects linked
+targets, and checks that evidence and the destination remain unchanged while
+staging. These operations neither call providers nor start independent review.
+
 Web Fetch evidence assembly belongs to `harness/web_fetch/assembly.py`.
 `refresh_assembly.py` validates a predeclared refresh plan and uses the same
 artifact boundary and speed-bundle copier. `speed_cohort.py` owns the complete

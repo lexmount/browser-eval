@@ -3,20 +3,110 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from harness.web_fetch.result_review import (
     IndependentReviewRequired,
     archive_superseded_result_review,
+    install_result_review,
+    merge_refresh_reviews,
+    merge_scoring_reviews,
+    rebase_review,
     rebind_unchanged_result_review,
     require_blind_result_review,
     require_result_review,
     review_input_identity,
 )
-from scripts.merge_result_review_revision import merge, merge_refresh, merge_replacement
-from scripts.rebase_blind_result_review import rebase
 
 
 class ResultReviewTests(unittest.TestCase):
+    def test_rebase_cannot_overwrite_inputs_or_prior_review(self):
+        for name in ('dataset.json', 'results.jsonl', 'result-review.json'):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                _, _, review = self.fixture(root)
+                review['attempts'][0]['agent_evidence'] = 'Observed synthetic answer'
+                (root / 'result-review.json').write_text(json.dumps(review))
+                before = {path.name: path.read_bytes() for path in root.iterdir()}
+                with self.assertRaisesRegex(ValueError, 'must not overwrite its source evidence'):
+                    rebase_review(root, root, root / name, None, install=True)
+                self.assertEqual({path.name: path.read_bytes() for path in root.iterdir()}, before)
+
+    def test_review_install_failure_preserves_previous_file_and_cleans_staging(self):
+        for failure in ('write', 'replace', 'input-change', 'output-change'):
+            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                _, _, review = self.fixture(root)
+                target = root / 'result-review.json'
+                target.write_text('previous review')
+                dumps = json.dumps
+
+                def serialize(value, **kwargs):
+                    if failure == 'write':
+                        raise OSError('synthetic serialization failure')
+                    if failure == 'input-change':
+                        (root / 'results.jsonl').write_text('{}\n')
+                    if failure == 'output-change':
+                        target.write_text('concurrent review')
+                    return dumps(value, **kwargs)
+
+                if failure == 'replace':
+                    context = patch.object(Path, 'replace', side_effect=OSError('synthetic replace failure'))
+                else:
+                    context = patch('harness.web_fetch.result_review.json.dumps', side_effect=serialize)
+                with context, self.assertRaises((OSError, ValueError)):
+                    install_result_review(root, review)
+                self.assertEqual(target.read_text(),
+                                 'concurrent review' if failure == 'output-change' else 'previous review')
+                self.assertEqual(list(root.glob('.result-review-*.tmp')), [])
+                if failure == 'input-change':
+                    self.assertEqual((root / 'results.jsonl').read_text(), '{}\n')
+
+    def test_review_install_rejects_linked_target_without_touching_external_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, _, review = self.fixture(root)
+            outside = root / 'outside.json'
+            outside.write_text('unrelated file')
+            (root / 'result-review.json').symlink_to(outside)
+            with self.assertRaisesRegex(ValueError, 'Symlinked evidence'):
+                install_result_review(root, review)
+            self.assertEqual(outside.read_text(), 'unrelated file')
+
+    def test_rebase_rejection_preserves_installed_review_and_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            current, reviewed = root / 'current', root / 'reviewed'
+            current.mkdir()
+            reviewed.mkdir()
+            dataset, records, prior = self.fixture(reviewed)
+            prior['schema_version'] = 999
+            prior['attempts'][0]['agent_evidence'] = 'Observed synthetic answer'
+            (reviewed / 'result-review.json').write_text(json.dumps(prior))
+            (current / 'dataset.json').write_bytes((reviewed / 'dataset.json').read_bytes())
+            (current / 'results.jsonl').write_bytes((reviewed / 'results.jsonl').read_bytes())
+            installed = current / 'result-review.json'
+            installed.write_text('previous installed review')
+            output = root / 'output.json'
+            output.write_text('previous staged review')
+            with self.assertRaisesRegex(ValueError, 'Unsupported result review schema'):
+                rebase_review(current, reviewed, output, None, install=True)
+            self.assertEqual(installed.read_text(), 'previous installed review')
+            self.assertEqual(output.read_text(), 'previous staged review')
+
+    def test_merge_does_not_follow_a_preexisting_temporary_symlink(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            evidence, prior, supplement, _ = self.multistage_revision_fixture(root)
+            outside = root / 'outside.json'
+            outside.write_text('unrelated file')
+            temporary = evidence / '.result-review.json.merge-tmp'
+            temporary.symlink_to(outside)
+            merge_scoring_reviews(evidence, prior, supplement)
+            self.assertEqual(outside.read_text(), 'unrelated file')
+            self.assertTrue(temporary.is_symlink())
+            self.assertFalse((evidence / 'result-review.json').is_symlink())
+
     def test_review_identity_binds_raw_response_stdout_and_files(self):
         record={'provider':'p','case_id':'a','provider_metadata':{
             'raw_response_path':'private_artifacts/p/a.response.bin',
@@ -167,7 +257,7 @@ class ResultReviewTests(unittest.TestCase):
                              'final_verdict':None,'adjudication':None}]}
             (reviewed/'result-review.json').write_text(json.dumps(review))
             output=root/'rebased.json'
-            result=rebase(current,reviewed,output,None,install=True)
+            result=rebase_review(current,reviewed,output,None,install=True)
             self.assertEqual(result['attempts'][0]['machine_verdict'],'fail')
             self.assertEqual(result['attempts'][0]['agent_verdict'],'fail')
             self.assertEqual(result['attempts'][0]['reviewer_anomalies'],
@@ -178,7 +268,7 @@ class ResultReviewTests(unittest.TestCase):
             changed=json.loads(json.dumps(new));changed['metrics']['content_sha256']='b'*64
             (current/'results.jsonl').write_text(json.dumps(changed)+'\n')
             with self.assertRaisesRegex(ValueError,'Reviewer-visible evidence changed'):
-                rebase(current,reviewed,output,None)
+                rebase_review(current,reviewed,output,None)
 
     def test_nonjudgmental_dataset_metadata_can_rebind_but_cases_cannot(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -288,7 +378,7 @@ class ResultReviewTests(unittest.TestCase):
                 'reviewer':{'agent':'Codex'},'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
                 'attempts':[{'attempt_id':'p__a__r001','machine_verdict':'pass','agent_verdict':'pass','final_verdict':'pass'}]}
             (supplement/'result-review.json').write_text(json.dumps(supplemental))
-            merge(evidence,prior_path,supplement)
+            merge_scoring_reviews(evidence,prior_path,supplement)
             merged=json.loads((evidence/'result-review.json').read_text())
             self.assertEqual(merged['attempts'][0]['machine_verdict'],'pass')
             self.assertEqual(merged['review_protocol']['scoring_rule_revision_review']['reviewed_attempts'],1)
@@ -371,7 +461,7 @@ class ResultReviewTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             evidence,prior_path,supplement,_=self.multistage_revision_fixture(root)
-            merge(evidence,prior_path,supplement)
+            merge_scoring_reviews(evidence,prior_path,supplement)
             merged=json.loads((evidence/'result-review.json').read_text())
             revision=merged['review_protocol']['scoring_rule_revision_review']
             self.assertEqual(revision['changed_cases'],['a','b'])
@@ -387,7 +477,7 @@ class ResultReviewTests(unittest.TestCase):
             receipts[1]['input_results_sha256']='broken'
             (evidence/'scoring-revisions.json').write_text(json.dumps(receipts))
             with self.assertRaisesRegex(ValueError,'chain is broken'):
-                merge(evidence,prior_path,supplement)
+                merge_scoring_reviews(evidence,prior_path,supplement)
             self.assertFalse((evidence/'result-review.json').exists())
 
     def test_multistage_revision_rejects_omitted_changed_case(self):
@@ -410,7 +500,7 @@ class ResultReviewTests(unittest.TestCase):
                                 if '__a__' in row['attempt_id']]
             (supplement/'result-review.json').write_text(json.dumps(review))
             with self.assertRaisesRegex(ValueError,'every current changed task'):
-                merge(evidence,prior_path,supplement)
+                merge_scoring_reviews(evidence,prior_path,supplement)
             self.assertFalse((evidence/'result-review.json').exists())
 
     def test_multistage_revision_rejects_current_hash_mismatch(self):
@@ -420,7 +510,7 @@ class ResultReviewTests(unittest.TestCase):
             receipts[-1]['output_results_sha256']='not-current'
             (evidence/'scoring-revisions.json').write_text(json.dumps(receipts))
             with self.assertRaisesRegex(ValueError,'does not end at current evidence'):
-                merge(evidence,prior_path,supplement)
+                merge_scoring_reviews(evidence,prior_path,supplement)
             self.assertFalse((evidence/'result-review.json').exists())
 
     def test_multistage_revision_rejects_each_preinstall_gate(self):
@@ -469,7 +559,7 @@ class ResultReviewTests(unittest.TestCase):
                     prior_path.write_text(json.dumps(prior))
 
                 with self.assertRaisesRegex(ValueError, message):
-                    merge(evidence, prior_path, supplement)
+                    merge_scoring_reviews(evidence, prior_path, supplement)
                 self.assertFalse((evidence/'result-review.json').exists())
 
     def test_matrix_refresh_reuses_only_identical_task_and_result_pairs(self):
@@ -538,7 +628,7 @@ class ResultReviewTests(unittest.TestCase):
                     'attempt_id':row['attempt_id'],'machine_verdict':verdict,
                     'agent_verdict':verdict,'final_verdict':verdict})
             (supplement/'result-review.json').write_text(json.dumps(supplemental))
-            merge_refresh(current_root,prior_root,supplement,
+            merge_refresh_reviews(current_root,prior_root,supplement,
                           prior_review_path=prior_root/'result-review.json')
             merged=json.loads((current_root/'result-review.json').read_text())
             refresh=merged['review_protocol']['matrix_refresh_review']
@@ -554,7 +644,7 @@ class ResultReviewTests(unittest.TestCase):
             changed=json.loads(json.dumps(new_records));changed[2]['provider_metadata']={'images':['https://example.test/also-new.png']}
             (current_root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in changed))
             with self.assertRaisesRegex(ValueError,'exactly every non-reusable current attempt'):
-                merge_replacement(current_root,prior_root,supplement)
+                merge_refresh_reviews(current_root,prior_root,supplement)
 
     def test_matrix_refresh_stages_blind_review_before_full_anomaly_investigation(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -584,7 +674,7 @@ class ResultReviewTests(unittest.TestCase):
                                  'final_verdict':'fail'}]}
                 if path != current:
                     (path/'result-review.json').write_text(json.dumps(review))
-            merge_refresh(current,prior,supplement)
+            merge_refresh_reviews(current,prior,supplement)
             merged=json.loads((current/'result-review.json').read_text())
             require_blind_result_review(current,new_dataset,[record],merged)
             with self.assertRaisesRegex(ValueError,'cover every'):

@@ -180,6 +180,23 @@ input plus the required root cause and executable regression IDs. Neither
 operation calls providers. Declared evidence must remain present, unmodified
 and free of symbolic links before scores can be rewritten.
 
+Existing independent judgments can be retained after a score-only correction
+with `scripts/rebase_blind_result_review.py`. It requires identical task and
+reviewer-visible inputs, retains the independent verdicts, and requires explicit
+adjudication for remaining disagreements. `--output` stages a validated blind
+review; `--install` also requires the complete publication review checks.
+The output cannot overwrite input evidence or the prior review.
+
+`scripts/merge_result_review_revision.py` combines a prior complete review with
+already recorded supplemental judgments. Use `--prior-review` for a bound scoring
+revision chain, or `--prior-evidence` for a refreshed result matrix. Changed tasks
+invalidate reviews across all methods; rerun outputs invalidate the affected
+attempts. Both commands validate before installation and leave the installed
+review unchanged on validation or write failure. They do not initiate a review;
+independent review still requires an explicit request.
+A merged blind review still needs any anomaly investigation required by the
+dataset before publication.
+
 For a heterogeneous same-window
 cohort, keep every predeclared call and report all-call latency (one shared task
 denominator) separately from successful-call latency (each method's conditional

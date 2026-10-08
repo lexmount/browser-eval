@@ -54,6 +54,67 @@ def verify_package_tree(source_root: Path, package_root: Path) -> None:
             raise ValueError('Installed package differs from current source bytes: ' + name)
 
 
+def verify_review_revisions(root: Path) -> None:
+    from copy import deepcopy
+
+    from harness.web_fetch.result_review import (
+        merge_refresh_reviews,
+        rebase_review,
+        require_result_review,
+    )
+
+    dataset = {'comparison': {'require_independent_result_review': True},
+               'cases': [{'id': name, 'task_kind': 'body'} for name in ('a', 'b')]}
+    records = [{'attempt_id': f'custom__{name}__r001', 'provider': 'custom',
+                'case_id': name, 'ok': True, 'metrics': {'content_pass': True}}
+               for name in ('a', 'b')]
+
+    def bundle(name, document, rows, *, reviewed):
+        path = root / name
+        path.mkdir()
+        (path / 'dataset.json').write_text(json.dumps(document))
+        (path / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+        if reviewed:
+            review = {'schema_version': 1, 'reviewer': {'agent': 'synthetic control'},
+                      'bindings': {
+                          'dataset_sha256': hashlib.sha256((path / 'dataset.json').read_bytes()).hexdigest(),
+                          'results_sha256': hashlib.sha256((path / 'results.jsonl').read_bytes()).hexdigest()},
+                      'review_protocol': {'scope': 'all', 'machine_judgments_withheld': True},
+                      'attempts': []}
+            for row in rows:
+                verdict = 'pass' if row['metrics']['content_pass'] else 'fail'
+                review['attempts'].append({
+                    'attempt_id': row['attempt_id'], 'machine_verdict': verdict,
+                    'agent_verdict': verdict, 'final_verdict': verdict,
+                    'agent_evidence': 'Independent synthetic answer control'})
+            (path / 'result-review.json').write_text(json.dumps(review))
+        return path
+
+    prior = bundle('review-prior', dataset, records, reviewed=True)
+    corrected = deepcopy(records)
+    corrected[0]['metrics']['content_pass'] = False
+    current = bundle('review-current', dataset, corrected, reviewed=False)
+    review = json.loads((prior / 'result-review.json').read_text())
+    review['attempts'][0].update(agent_verdict='fail', final_verdict=None)
+    (prior / 'result-review.json').write_text(json.dumps(review))
+    before = (current / 'results.jsonl').read_bytes()
+    rebased = rebase_review(current, prior, root / 'rebased-review.json', None, install=True)
+    assert rebased['attempts'][0]['agent_verdict'] == 'fail'
+    assert (current / 'results.jsonl').read_bytes() == before
+    require_result_review(current, dataset, corrected)
+
+    revised_dataset = deepcopy(dataset)
+    revised_dataset['cases'][0]['expected_any'] = ['new independent requirement']
+    refreshed = bundle('review-refreshed', revised_dataset, corrected, reviewed=False)
+    subset = {**revised_dataset, 'cases': [revised_dataset['cases'][0]]}
+    supplemental = bundle('review-supplemental', subset, corrected[:1], reviewed=True)
+    merge_refresh_reviews(refreshed, current, supplemental)
+    merged = require_result_review(refreshed, revised_dataset, corrected)
+    assert merged['review_protocol']['matrix_refresh_review']['retained_attempts'] == 1
+    assert merged['review_protocol']['matrix_refresh_review']['reviewed_attempts'] == 1
+    assert (refreshed / 'results.jsonl').read_bytes() == before
+
+
 def verify_lexbench_package(root: Path, renderer: Path) -> None:
     from harness.lexbench.pack import package
 
@@ -191,6 +252,7 @@ def main():
         root = Path(work)
         verify_lexbench_package(root, args.source_root / 'scripts/moli_report/app.js')
         verify_dynamic_cohort(root, args.source_root)
+        verify_review_revisions(root)
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
                        check=True, cwd=root)
         binary = root / 'browser'
@@ -242,7 +304,8 @@ def main():
         for module in ('rescoring', 'scoring_revision', 'reference_revision'):
             subprocess.run([sys.executable, '-m', 'harness.web_fetch.' + module, '--help'],
                            check=True, cwd=root, capture_output=True, text=True)
-        for script in ('rescore_content.py', 'revise_body_scoring.py', 'revise_reference_evidence.py'):
+        for script in ('rescore_content.py', 'revise_body_scoring.py', 'revise_reference_evidence.py',
+                       'merge_result_review_revision.py', 'rebase_blind_result_review.py'):
             subprocess.run([sys.executable, str(args.source_root / 'scripts' / script), '--help'],
                            check=True, cwd=root, capture_output=True, text=True)
         rescore(root / 'cohort')
@@ -301,7 +364,7 @@ def main():
                                    text=True, capture_output=True, check=True, cwd=root)
         assert '# 中文标题' in converted.stdout and '独立内容' in converted.stdout
         assert not CONVERTER.resolve().is_relative_to(Path(__file__).resolve().parents[1])
-    print('Installed wheel: exact source inventory, native worker, scoring, '
+    print('Installed wheel: exact source inventory, native worker, scoring, review revisions, '
           'evidence assembly, Lexbench packaging and HTML conversion passed')
 
 
