@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import socket
@@ -14,6 +15,7 @@ import traceback
 import urllib.request
 import uuid
 from pathlib import Path
+from typing import Any
 from urllib.parse import urlsplit
 
 from webarena_verified.types.task import WebArenaSite
@@ -42,6 +44,7 @@ from harness.trajectory_replay.remote_runtime import (
     selected_task_ids,
     validate_method_identity,
     validate_remote_cohort_reset_receipt,
+    validate_remote_reset_receipt,
 )
 from harness.trajectory_replay.retrieval_acceptance import build_actual_response, validate_contract
 from harness.trajectory_replay.webarena_corrections import (
@@ -50,13 +53,24 @@ from harness.trajectory_replay.webarena_corrections import (
     evaluate_corrected_contract,
     load_corrections,
 )
+from harness.trajectory_replay.webarena_plan import (
+    COMPLETION_CANDIDATES,
+    NAVIGATION_CONTEXT_LOSS,
+    compile_mutation_observer,
+    compile_mutation_readiness,
+    mutation_observer_retry_policy,
+    replay_site_hosts,
+    verify_compiled_mutation_proposal,
+)
 from harness.trajectory_replay.webarena_replay import (
+    _candidate,
     _capture_failure_ui_state,
     _clear_browser_state,
     _click_was_dispatched_before_navigation_timeout,
     _execute_replay_call,
     _json_sha256,
     _replay_step_status,
+    select_tasks,
 )
 
 NETWORK_SETTLE_MS = 2_000
@@ -1155,3 +1169,350 @@ def _execute_cohort(args: argparse.Namespace) -> int:
     }
     _write(args.output / "receipt.json", receipt)
     return 0 if certified else 1
+
+
+def execute_mutation_readiness(
+    tool: Any, readiness: dict[str, Any], script: str
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    index = readiness["before_original_action"]
+    arguments = {"action": "evaluate", "script": script}
+    started = time.perf_counter()
+    try:
+        status, result = _execute_replay_call(tool, arguments)
+    except Exception as exc:
+        status, result = "error", f"{type(exc).__name__}: {exc}"
+    row = {
+        "index": f"before-{index}",
+        "kind": "pre_action_readiness",
+        "arguments": arguments,
+        "status": status,
+        "result": result,
+        "duration_ms": round((time.perf_counter() - started) * 1000, 3),
+    }
+    if status != "success":
+        row["validation_error"] = "BrowserTool readiness evaluate failed"
+        return row, None
+    try:
+        observed = json.loads(result)
+    except json.JSONDecodeError:
+        row["validation_error"] = "Readiness result is not JSON"
+        return row, None
+    if readiness["kind"] == "same_origin_magento_product_type":
+        proven = (
+            isinstance(observed, dict) and observed.get("ready") is True
+            and observed.get("productId") == readiness["product_id"]
+            and observed.get("productType") == readiness["expected_type"]
+            and observed.get("sourceCount") == 1
+        )
+        error = "Readiness result did not prove the frozen product identity and type"
+    else:
+        proven = (
+            isinstance(observed, dict) and observed.get("ready") is True
+            and observed.get("module") == readiness["module"]
+            and observed.get("method") == readiness["deferred_method"]
+            and isinstance(observed.get("after"), dict)
+            and observed["after"].get("state") == "resolved"
+        )
+        error = "Readiness result did not prove resolved Deferred"
+    if not proven:
+        row["validation_error"] = error
+        return row, observed if isinstance(observed, dict) else None
+    return row, observed
+
+
+def main_mutation_diagnostic(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--task", type=int, required=True)
+    parser.add_argument("--proposal", type=Path)
+    parser.add_argument("--emit-proposal", type=Path)
+    parser.add_argument("--check-proposal", action="store_true")
+    parser.add_argument("--site-map", type=Path)
+    parser.add_argument("--reset-receipt", type=Path)
+    parser.add_argument("--binary", type=Path)
+    parser.add_argument("--cdp")
+    parser.add_argument("--cowagent-repo", type=Path)
+    parser.add_argument("--seeds", type=Path, required=True)
+    parser.add_argument("--source-root", type=Path, required=True)
+    parser.add_argument("--output", type=Path)
+    args = parser.parse_args(argv)
+    if args.emit_proposal and args.check_proposal:
+        parser.error("choose either --emit-proposal or --check-proposal")
+    if args.emit_proposal:
+        if args.proposal or args.output or args.cdp:
+            parser.error("proposal emission cannot also execute a browser diagnostic")
+    elif args.check_proposal:
+        if not args.proposal or args.output or args.cdp:
+            parser.error("proposal check needs --proposal and no browser execution arguments")
+    else:
+        physical = ("proposal", "site_map", "reset_receipt", "binary", "cdp",
+                    "cowagent_repo", "output")
+        missing = [name for name in physical if getattr(args, name) is None]
+        if missing:
+            parser.error(f"physical diagnostic requires: {', '.join(missing)}")
+        if urlsplit(args.cdp).hostname not in {"127.0.0.1", "localhost", "::1"}:
+            parser.error("a dedicated local CDP endpoint is required")
+    return run_mutation_diagnostic(args)
+
+
+def run_mutation_diagnostic(args: argparse.Namespace) -> int:
+    previous_path = list(sys.path)
+    previous_mask = os.umask(0o077)
+    try:
+        return _execute_mutation_diagnostic(args)
+    finally:
+        sys.path[:] = previous_path
+        os.umask(previous_mask)
+
+
+def _execute_mutation_diagnostic(args: argparse.Namespace) -> int:
+    dataset_path = (
+        args.source_root / "evaluation/trajectory-replay/webarena-verified/trajectories.json"
+    )
+    completion_path = args.source_root / COMPLETION_CANDIDATES
+    input_paths = {
+        "seeds_sha256": args.seeds, "dataset_sha256": dataset_path,
+        "completion_candidates_sha256": completion_path,
+    }
+    if args.proposal is not None:
+        input_paths["proposal_sha256"] = args.proposal
+    if not args.emit_proposal and not args.check_proposal:
+        input_paths.update({
+            "binary_sha256": args.binary, "site_map_sha256": args.site_map,
+            "reset_receipt_sha256": args.reset_receipt,
+        })
+    frozen_hashes = {name: checked_file_sha256(path, name) for name, path in input_paths.items()}
+
+    def inputs_stable() -> bool:
+        try:
+            return all(checked_file_sha256(path, name) == frozen_hashes[name]
+                       for name, path in input_paths.items())
+        except (OSError, ValueError):
+            return False
+
+    manifest = json.loads(args.seeds.read_text(encoding="utf-8"))
+    dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
+    if dataset.get("provenance", {}).get("seed_manifest_sha256") != file_sha256(args.seeds):
+        raise ValueError("qualified trajectories are not bound to these frozen seeds")
+    task_seed = select_tasks(manifest, [args.task])[0]
+    canonical = _candidate(task_seed)
+    qualified = [row for row in dataset.get("trajectories", []) if row.get("task_id") == args.task]
+    if len(qualified) != 1 or qualified[0].get("tool_calls") != canonical.get("tool_calls"):
+        raise ValueError("selected task differs from its qualified trajectory")
+    source_calls = canonical["tool_calls"]
+    frozen_completion_sha256 = frozen_hashes["completion_candidates_sha256"]
+    readiness, readiness_script = compile_mutation_readiness(
+        completion_path, args.task, len(source_calls)
+    )
+    observer_rule, compiled_observer = compile_mutation_observer(
+        completion_path, args.task, len(source_calls)
+    )
+    if not inputs_stable():
+        raise ValueError("Frozen inputs changed during input compilation")
+    if args.emit_proposal:
+        if compiled_observer is None or observer_rule is None:
+            raise ValueError("task has no compiled completion observer")
+        proposal = {
+            "task_id": args.task,
+            "tool_calls": source_calls + [{"action": "evaluate", "script": compiled_observer}],
+            "expected_completion": observer_rule["expected_completion"],
+            "observer_contract_sha256": hashlib.sha256(compiled_observer.encode()).hexdigest(),
+            "completion_candidates_sha256": frozen_completion_sha256,
+        }
+        path = args.emit_proposal.absolute()
+        if path.exists() or path.is_symlink():
+            raise ValueError("proposal output exists")
+        _write(path, proposal)
+        print(json.dumps({"status": "proposal_emitted", "path": str(path),
+                          "sha256": file_sha256(path), "physical_calls": 0}))
+        return 0
+    proposal = json.loads(args.proposal.read_text(encoding="utf-8"))
+    proposed_calls = proposal.get("tool_calls")
+    if (
+        proposal.get("task_id") != args.task
+        or not isinstance(proposed_calls, list)
+        or proposed_calls[: len(source_calls)] != source_calls
+        or len(proposed_calls) != len(source_calls) + 1
+        or proposed_calls[-1].get("action") != "evaluate"
+        or not isinstance(proposal.get("expected_completion"), str)
+    ):
+        raise ValueError("proposal must preserve the canonical actions and add one observer")
+    verify_compiled_mutation_proposal(proposal, observer_rule, compiled_observer, completion_path)
+    policy = mutation_observer_retry_policy(
+        proposal.get("observer_retry_policy"), len(source_calls), compiled_observer
+    )
+    if not inputs_stable():
+        raise ValueError("Frozen inputs changed during proposal validation")
+    if args.check_proposal:
+        print(json.dumps({"status": "proposal_valid", "task_id": args.task,
+                          "proposal_sha256": file_sha256(args.proposal),
+                          "completion_candidates_sha256": file_sha256(completion_path),
+                          "pre_action_readiness": readiness is not None,
+                          "physical_calls": 0}))
+        return 0
+    output = args.output.absolute()
+    if output.is_symlink():
+        raise ValueError("diagnostic output is symlinked")
+    sites = load_remote_sites(args.site_map)
+    benchmark = remote_benchmark(sites)
+    task = benchmark.get_task(args.task)
+    if not task.is_mutate_task:
+        raise ValueError("this diagnostic accepts mutation tasks only")
+    reset = validate_remote_reset_receipt(
+        args.reset_receipt,
+        required_sites=set(task.sites),
+        site_map_sha256=file_sha256(args.site_map),
+    )
+    if reset["task_id"] != args.task:
+        raise ValueError("reset receipt belongs to another task")
+    evaluators = [item.model_dump(mode="json") for item in task.eval]
+    if not any(item.get("evaluator") == "NetworkEventEvaluator" for item in evaluators):
+        raise ValueError("mutation task has no official network event evaluator")
+    if any(
+        item.get("evaluator") not in {"NetworkEventEvaluator", "AgentResponseEvaluator"}
+        for item in evaluators
+    ):
+        raise ValueError("mutation task has an unsupported official evaluator")
+    calls = rebind_remote_calls(
+        proposed_calls, sites, replay_site_hosts(source_calls)
+    )
+    starts = list(benchmark.config.render_url(list(task.start_urls), list(task.sites)))
+    if not inputs_stable():
+        raise ValueError("Frozen inputs changed during diagnostic preflight")
+    output.mkdir(parents=True, exist_ok=False, mode=0o700)
+    if str(args.cowagent_repo.resolve()) not in sys.path:
+        sys.path.insert(0, str(args.cowagent_repo.resolve()))
+    recorder = CdpHarRecorder()
+    har = output / "network.har"
+    trace: list[dict[str, Any]] = []
+    receipt: dict[str, Any] = {
+        "schema": "lex_webarena_remote_mutation_diagnostic/1",
+        "run_id": uuid.uuid4().hex,
+        "task_id": args.task,
+        "scope": "diagnostic_only",
+        "promotable": False,
+        **frozen_hashes,
+        "source_calls_sha256": _json_sha256(source_calls),
+        "source_action_count": len(source_calls),
+        "executed_action_count": len(calls),
+        "pre_action_readiness": readiness,
+        "pre_action_script_sha256": (
+            hashlib.sha256(readiness_script.encode()).hexdigest()
+            if readiness_script is not None else None
+        ),
+        "recorded_agent_response_used": False,
+        "status": "running",
+    }
+    tool = None
+    service = None
+    started = time.perf_counter()
+    try:
+        from agent.tools.browser.browser_tool import BrowserTool  # noqa: PLC0415
+
+        tool = BrowserTool(config=browser_tool_config(args.cdp))
+        _write(output / "receipt.json", receipt)
+        service = tool._get_service()
+        _clear_browser_state(
+            service, {f"{urlsplit(url).scheme}://{urlsplit(url).netloc}" for url in sites.values()}
+        )
+        receipt["viewport"] = prepare_browser_viewport(service)
+        receipt["login_retries"] = login_context(service, tuple(task.sites), benchmark, starts)
+        service._submit(lambda: recorder.start(service._context))
+        for index, arguments in enumerate(calls, 1):
+            if readiness is not None and index == readiness["before_original_action"]:
+                guard_row, observed_guard = execute_mutation_readiness(
+                    tool, readiness, readiness_script
+                )
+                trace.append(guard_row)
+                _write(output / "trace.json", trace)
+                if observed_guard is not None:
+                    _write(output / "pre-action-readiness.json", observed_guard)
+                if guard_row.get("validation_error"):
+                    raise RuntimeError(
+                        f"pre-action readiness before {index} failed: "
+                        f"{guard_row['validation_error']}"
+                    )
+            action_started = time.perf_counter()
+            observer_attempts = []
+            if index == len(calls) and policy:
+                for number in range(1, policy["max_observer_attempts"] + 1):
+                    status, result = _execute_replay_call(tool, arguments)
+                    observer_attempts.append(
+                        {"attempt": number, "status": status, "result": result}
+                    )
+                    if status == "success" or result != NAVIGATION_CONTEXT_LOSS:
+                        break
+                    if number < policy["max_observer_attempts"]:
+                        service._submit(
+                            lambda: service._page.wait_for_load_state(
+                                "domcontentloaded",
+                                timeout=policy["navigation_ready_timeout_ms"],
+                            )
+                        )
+            else:
+                status, result = _execute_replay_call(tool, arguments)
+            trace.append({
+                "index": index,
+                "arguments": arguments,
+                "status": status,
+                "result": result,
+                "observer_attempts": observer_attempts,
+                "duration_ms": round((time.perf_counter() - action_started) * 1000, 3),
+            })
+            _write(output / "trace.json", trace)
+            if status != "success":
+                raise RuntimeError(f"replay action {index} failed")
+        service._submit(lambda: recorder.stop(service._context, har))
+        observed = json.loads(trace[-1]["result"])
+        _write(output / "completion-observation.json", observed)
+        if observed.get("completion") != proposal["expected_completion"]:
+            raise RuntimeError("completion observer did not prove the expected saved state")
+        response = {"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None}
+        evaluation = benchmark.evaluate_task(
+            task_id=args.task, agent_response=response, network_trace=har
+        )
+        _write(output / "evaluation.json", evaluation.model_dump(mode="json"))
+        receipt["official_score"] = evaluation.score
+        receipt["official_status"] = str(evaluation.status)
+        receipt["status"] = (
+            "diagnostic_pass" if evaluation.score == 1 and not recorder.errors
+            else "diagnostic_fail"
+        )
+    except Exception:
+        receipt["status"] = "diagnostic_incomplete"
+        receipt["error"] = traceback.format_exc()
+    finally:
+        if service is not None:
+            try:
+                service._submit(lambda: recorder.stop(service._context, har))
+            except Exception:
+                pass
+            try:
+                service._submit(
+                    lambda: service._page.screenshot(path=str(output / "last-page.png"))
+                )
+            except Exception:
+                pass
+        if tool is not None:
+            try:
+                tool.close()
+            except Exception:
+                receipt["status"] = "diagnostic_incomplete"
+                receipt["cleanup_error"] = traceback.format_exc()
+        receipt["completed_action_count"] = sum(
+            row["status"] == "success" and row.get("kind") != "pre_action_readiness"
+            for row in trace
+        )
+        receipt["input_hashes_stable"] = inputs_stable()
+        if not receipt["input_hashes_stable"]:
+            receipt["status"] = "diagnostic_incomplete"
+            receipt["error"] = "Frozen inputs changed during the diagnostic"
+        receipt["har_errors"] = recorder.errors
+        receipt["duration_ms"] = round((time.perf_counter() - started) * 1000, 3)
+        receipt["evidence"] = {
+            path.name: file_sha256(path)
+            for path in output.iterdir()
+            if path.is_file() and path.name != "receipt.json"
+        }
+        _write(output / "receipt.json", receipt)
+    print(json.dumps({"status": receipt["status"], "output": str(output)}))
+    return 0 if receipt["status"] == "diagnostic_pass" else 1

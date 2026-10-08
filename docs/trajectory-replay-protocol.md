@@ -214,6 +214,21 @@ assets and starting, inspecting, or stopping a pinned site. Site data may live o
 daemon under `/data`; measured browsers and agent containers remain on the resource-controlled
 browser daemon. This daemon split is a storage and isolation choice, not a benchmark-specific fork.
 
+### Remote mutation diagnostics
+
+`scripts/run_remote_mutation_diagnostic.py` exposes the shared diagnostic pipeline. With
+`--emit-proposal` it appends a compiled completion observer to the unchanged canonical actions;
+`--check-proposal` verifies that proposal without opening a browser. Both modes require the frozen
+seed manifest and its matching qualified dataset under an explicit `--source-root`.
+
+Physical execution additionally requires a task-bound reset receipt, site map, browser binary,
+CowAgent checkout and dedicated local CDP endpoint. Only a verified compiled final observer can
+be retried after the exact declared navigation-context error. The retry count and navigation
+readiness timeout must be bounded; canonical mutation actions are executed at most once.
+Frozen inputs are checked before execution and after cleanup. Failures retain traces, available
+network evidence and a terminal diagnostic receipt. A diagnostic pass is never a formal benchmark
+result or a qualification promotion.
+
 ## Formal measurement
 
 Only eligible tasks enter the paired run. Chromium and Moli receive the same task revision,

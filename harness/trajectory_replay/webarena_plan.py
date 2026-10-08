@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
@@ -363,3 +364,290 @@ def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -
         "qualification_engine": qualification_engine,
         "trusted_source_site_hosts": trusted_source_site_hosts,
     }
+
+
+NAVIGATION_CONTEXT_LOSS = (
+    "Evaluate failed: Page.evaluate: Execution context was destroyed, "
+    "most likely because of a navigation"
+)
+COMPLETION_CANDIDATES = (
+    "evaluation/trajectory-replay/webarena-verified/mutation-completion-candidates.json"
+)
+
+
+
+def _render_observation_script(script: str, values: dict[str, Any]) -> str:
+    """Insert JSON literals once without interpreting their contents as template tokens."""
+    tokens = re.compile(r"\b(?:" + "|".join(re.escape(key) for key in values) + r")\b")
+    return tokens.sub(lambda match: json.dumps(values[match.group()]), script)
+
+
+def compile_mutation_readiness(
+    candidate_path: Path, task_id: int, source_call_count: int
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Compile a bounded, read-only AMD readiness check from a frozen rule."""
+    payload = json.loads(candidate_path.read_text(encoding="utf-8"))
+    if payload.get("schema") != "webarena_mutation_completion_candidates/1":
+        raise ValueError("unknown mutation completion candidate schema")
+    rules = [row for row in payload.get("rules", []) if row.get("task_id") == task_id]
+    if len(rules) != 1:
+        raise ValueError("expected one task-bound mutation completion candidate")
+    rule = rules[0]
+    if rule.get("action_count") != source_call_count:
+        raise ValueError("readiness rule is not bound to canonical action count")
+    readiness = rule.get("pre_action_readiness")
+    if readiness is None:
+        return None, None
+    if isinstance(readiness, dict) and readiness.get("kind") == "same_origin_magento_product_type":
+        if (
+            set(readiness) != {"kind", "before_original_action", "path", "product_id",
+                               "expected_type", "timeout_ms"}
+            or readiness["before_original_action"] != 1
+            or type(readiness["product_id"]) is not int
+            or readiness["product_id"] <= 0
+            or type(readiness["timeout_ms"]) is not int
+            or not 1 <= readiness["timeout_ms"] <= 30000
+            or not isinstance(readiness["path"], str)
+            or re.fullmatch(r"/admin/catalog/product/edit/id/\d+/", readiness["path"]) is None
+            or readiness["path"] != (
+                f"/admin/catalog/product/edit/id/{readiness['product_id']}/"
+            )
+            or not isinstance(readiness["expected_type"], str)
+            or re.fullmatch(r"[a-z][a-z0-9_]*", readiness["expected_type"]) is None
+        ):
+            raise ValueError("invalid Magento product state precondition")
+        script = r"""async () => {
+          const path = PATH;
+          const productId = PRODUCT_ID;
+          const expectedType = EXPECTED_TYPE;
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), TIMEOUT);
+          try {
+            const response = await fetch(path, {method:'GET', credentials:'same-origin',
+              redirect:'error', cache:'no-store', signal:controller.signal});
+            const finalURL = new URL(response.url);
+            if (response.status !== 200 || response.redirected ||
+                finalURL.origin !== location.origin || finalURL.pathname !== path)
+              throw new Error('fresh_product_edit_get_not_same_origin_200');
+            const doc = new DOMParser().parseFromString(await response.text(),'text/html');
+            const sources = [];
+            for (const node of doc.querySelectorAll('script[type="text/x-magento-init"]')) {
+              const init = JSON.parse(node.textContent);
+              for (const entry of Object.values(init)) {
+                const source = entry?.['Magento_Ui/js/core/app']?.components
+                  ?.product_form?.children?.product_form_data_source;
+                if (source) sources.push(source);
+              }
+            }
+            if (sources.length !== 1) throw new Error('product_data_source_not_unique');
+            const product = sources[0]?.config?.data?.product;
+            const actualId = product?.current_product_id;
+            const submitURL = new URL(sources[0]?.config?.submit_url, response.url);
+            const route = submitURL.pathname.match(
+              /^\/admin\/catalog\/product\/save\/id\/(\d+)\/type\/([a-z][a-z0-9_]*)\/store\/\d+\/set\/\d+\/$/);
+            const actualType = route?.[2] ?? null;
+            if (String(actualId) !== String(productId) || actualType !== expectedType)
+              throw new Error('product_identity_or_type_mismatch:' + JSON.stringify({
+                actualId:actualId ?? null, actualType:actualType ?? null}));
+            if (submitURL.origin !== location.origin ||
+                route?.[1] !== String(productId) || submitURL.search)
+              throw new Error('product_save_route_not_same_origin_or_identity');
+            return {ready:true, productId, productType:actualType,
+              responseURL:response.url, sourceCount:sources.length};
+          } finally { clearTimeout(timer); }
+        }"""
+        script = _render_observation_script(script, {
+            "PATH": readiness["path"], "PRODUCT_ID": readiness["product_id"],
+            "EXPECTED_TYPE": readiness["expected_type"], "TIMEOUT": readiness["timeout_ms"],
+        })
+        return readiness, script
+    if not isinstance(readiness, dict) or set(readiness) != {
+        "kind", "before_original_action", "module", "deferred_method", "timeout_ms"
+    }:
+        raise ValueError("unsupported pre-action readiness fields")
+    index = readiness["before_original_action"]
+    timeout = readiness["timeout_ms"]
+    module = readiness["module"]
+    method = readiness["deferred_method"]
+    if (
+        readiness["kind"] != "amd_deferred_ready"
+        or type(index) is not int or not 1 <= index <= source_call_count
+        or type(timeout) is not int or not 1 <= timeout <= 30000
+        or not isinstance(module, str)
+        or re.fullmatch(r"[A-Za-z0-9_./-]+", module) is None
+        or not isinstance(method, str)
+        or re.fullmatch(r"[A-Za-z_$][A-Za-z0-9_$]*", method) is None
+    ):
+        raise ValueError("invalid bounded AMD readiness contract")
+    script = """async () => {
+      const moduleName = MODULE;
+      const methodName = METHOD;
+      const timeoutMs = TIMEOUT;
+      const started = Date.now();
+      const before = {defined: !!(window.requirejs &&
+        requirejs.defined(moduleName))};
+      if (typeof require !== 'function') throw new Error('AMD require is unavailable');
+      const withTimeout = promise => Promise.race([promise,
+        new Promise((_, reject) => setTimeout(
+          () => reject(new Error('AMD initialization readiness timed out')),
+          Math.max(0, timeoutMs - (Date.now() - started))))]);
+      const component = await withTimeout(new Promise((resolve, reject) =>
+        require([moduleName], resolve, reject)));
+      if (!component || typeof component[methodName] !== 'function')
+        throw new Error('AMD initialization deferred is unavailable');
+      const deferred = component[methodName]();
+      if (!deferred || typeof deferred.done !== 'function' ||
+          typeof deferred.fail !== 'function' || typeof deferred.state !== 'function')
+        throw new Error('AMD initialization method did not return a Deferred');
+      before.state = deferred.state();
+      await withTimeout(new Promise((resolve, reject) =>
+        deferred.done(resolve).fail(reject)));
+      const after = {state: deferred.state(), defined: requirejs.defined(moduleName)};
+      if (after.state !== 'resolved' || !after.defined)
+        throw new Error('AMD initialization was not resolved');
+      return {ready: true, module: moduleName, method: methodName,
+        before, after, wait_ms: Date.now() - started};
+    }"""
+    script = _render_observation_script(script, {
+        "MODULE": module, "METHOD": method, "TIMEOUT": timeout,
+    })
+    return readiness, script
+
+
+def compile_mutation_observer(
+    candidate_path: Path, task_id: int, source_call_count: int
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Compile the read-only final observer when the rule opts in."""
+    payload = json.loads(candidate_path.read_text(encoding="utf-8"))
+    rules = [row for row in payload.get("rules", []) if row.get("task_id") == task_id]
+    if payload.get("schema") != "webarena_mutation_completion_candidates/1" or len(rules) != 1:
+        raise ValueError("unknown or ambiguous mutation completion candidate")
+    rule = rules[0]
+    if rule.get("action_count") != source_call_count:
+        raise ValueError("completion observer is not bound to canonical action count")
+    if "observer_compiler" not in rule:
+        return None, None
+    observer = rule.get("observer")
+    if (
+        rule["observer_compiler"] != "same_origin_authenticated_item_html/1"
+        or not isinstance(observer, dict)
+        or observer.get("kind") != "same_origin_get_html"
+        or observer.get("href_origin") != "response_url_origin"
+        or observer.get("require_same_origin_sign_out_href") is not True
+        or observer.get("require_same_origin_edit_href") is not True
+        or observer.get("require_product_name_and_edit_link_in_same_item") is not True
+        or observer.get("require_exactly_one_matching_item") is not True
+        or type(rule.get("observer_timeout_ms")) is not int
+        or not 1 <= rule["observer_timeout_ms"] <= 30000
+        or rule.get("expected_completion") != "persisted_wishlist_item_observed"
+    ):
+        raise ValueError("unsupported compiled completion observer contract")
+    for key in ("path", "within", "require_authenticated_sign_out_path",
+                "product_name", "edit_href_path_pattern"):
+        if not isinstance(observer.get(key), str) or not observer[key]:
+            raise ValueError(f"completion observer lacks {key}")
+    for key in ("path", "require_authenticated_sign_out_path"):
+        value = observer[key]
+        parsed = urlsplit(value)
+        if (
+            not value.startswith("/") or value.startswith("//") or "\\" in value
+            or parsed.scheme or parsed.netloc or parsed.fragment
+            or any(ord(character) < 32 or ord(character) == 127 for character in value)
+        ):
+            raise ValueError(f"completion observer has invalid {key}")
+    script = """(async () => {
+      const path = PATH;
+      const within = WITHIN;
+      const signOutPath = SIGNOUT;
+      const productName = PRODUCT;
+      const editPath = new RegExp(EDIT);
+      const timeoutMs = TIMEOUT;
+      const started = Date.now();
+      const origin = location.origin;
+      const normalized = value => (value || '').replace(/\\s+/g, ' ').trim();
+      const sameOriginPath = (href, base) => {
+        try { const url = new URL(href, base);
+          return url.origin === origin ? url.pathname : null; }
+        catch (_) { return null; }
+      };
+      let last = null;
+      while (Date.now() - started <= timeoutMs) {
+        try {
+          const response = await fetch(path, {method: 'GET', credentials: 'same-origin',
+            redirect: 'error', cache: 'no-store'});
+          if (response.status !== 200 || response.redirected ||
+              new URL(response.url).origin !== origin)
+            throw new Error('same-origin GET did not return HTTP 200');
+          const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+          const signedIn = [...doc.querySelectorAll('a[href]')].filter(link =>
+            normalized(link.textContent) === 'Sign Out' &&
+            sameOriginPath(link.getAttribute('href'), response.url) === signOutPath).length === 1;
+          const items = [...doc.querySelectorAll(within)];
+          const matching = items.filter(item => {
+            const links = [...item.querySelectorAll('a[href]')];
+            const named = links.some(link => normalized(link.textContent) === productName);
+            const edit = links.some(link => normalized(link.textContent) === 'Edit' &&
+              editPath.test(sameOriginPath(link.getAttribute('href'), response.url) || ''));
+            return named && edit;
+          });
+          last = {signedIn, itemCount: items.length, matchingItems: matching.length};
+          if (signedIn && matching.length === 1)
+            return {completion: 'persisted_wishlist_item_observed', ...last,
+              elapsedMs: Date.now() - started};
+        } catch (error) { last = {error: String(error)}; }
+        if (Date.now() - started >= timeoutMs) break;
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      throw new Error('Persisted completion not observed: ' + JSON.stringify(last));
+    })()"""
+    replacements = {
+        "PATH": observer["path"], "WITHIN": observer["within"],
+        "SIGNOUT": observer["require_authenticated_sign_out_path"],
+        "PRODUCT": observer["product_name"], "EDIT": observer["edit_href_path_pattern"],
+        "TIMEOUT": rule["observer_timeout_ms"],
+    }
+    script = _render_observation_script(script, replacements)
+    return rule, script
+
+
+def verify_compiled_mutation_proposal(
+    proposal: dict[str, Any], rule: dict[str, Any] | None,
+    compiled_script: str | None, candidate_path: Path
+) -> None:
+    if compiled_script is None:
+        return
+    if rule is None or (
+        proposal["tool_calls"][-1].get("script") != compiled_script
+        or proposal.get("expected_completion") != rule["expected_completion"]
+        or proposal.get("observer_contract_sha256")
+        != hashlib.sha256(compiled_script.encode()).hexdigest()
+        or proposal.get("completion_candidates_sha256") != _sha256(candidate_path)
+    ):
+        raise ValueError("proposal observer is stale or differs from the completion contract")
+
+
+def mutation_observer_retry_policy(
+    policy: Any, source_call_count: int, compiled_script: str | None
+) -> dict[str, Any]:
+    """Only retry a bound compiled observation; canonical mutation calls are never retried."""
+    if policy is None or policy == {}:
+        return {}
+    fields = {
+        "after_frozen_call_count", "retry_only_final_read_only_observer", "retryable_error_exact",
+        "max_observer_attempts", "original_action_retries", "navigation_ready_timeout_ms",
+    }
+    if (
+        not isinstance(policy, dict) or set(policy) != fields or compiled_script is None
+        or type(policy.get("after_frozen_call_count")) is not int
+        or policy["after_frozen_call_count"] != source_call_count
+        or policy["retry_only_final_read_only_observer"] is not True
+        or policy["retryable_error_exact"] != NAVIGATION_CONTEXT_LOSS
+        or type(policy["max_observer_attempts"]) is not int
+        or not 1 <= policy["max_observer_attempts"] <= 3
+        or type(policy["original_action_retries"]) is not int
+        or policy["original_action_retries"] != 0
+        or type(policy["navigation_ready_timeout_ms"]) is not int
+        or not 1 <= policy["navigation_ready_timeout_ms"] <= 30_000
+    ):
+        raise ValueError("observer retry policy requires a bounded compiled read-only observer")
+    return policy
