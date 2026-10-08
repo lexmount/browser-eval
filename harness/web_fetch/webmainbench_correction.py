@@ -445,9 +445,11 @@ def certify_case_correction(argv=None):
     )
 
 
-REGISTRY = (ROOT / "evaluation/webmainbench-full/scoring-regressions.json"
-            if (ROOT / "pyproject.toml").is_file() else
-            installed_data_path("share/browser-harness-eval/webmainbench/scoring-regressions.json"))
+def regression_registry_path() -> Path:
+    """Keep optional revision data lookup out of ordinary library imports."""
+    if (ROOT / "pyproject.toml").is_file():
+        return ROOT / "evaluation/webmainbench-full/scoring-regressions.json"
+    return installed_data_path("share/browser-harness-eval/webmainbench/scoring-regressions.json")
 
 
 def text_digest(value):
@@ -510,7 +512,7 @@ def json_digest(value) -> str:
 
 
 def validate_controls(scorer) -> None:
-    document = json.loads(REGISTRY.read_text(encoding="utf-8"))
+    document = json.loads(regression_registry_path().read_text(encoding="utf-8"))
     rows = {row["id"]: row for row in document["cases"]}
     if document.get("schema_version") != 1 or set(rows) != set(CONTROL_IDS):
         raise ValueError("WebMainBench scoring regression registry changed")
@@ -730,7 +732,7 @@ def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path
     correction_source = output / "scoring-correction-source"
     prepare_correction_source(correction_source)
     shutil.copy2(manifest_path, correction_source / manifest_path.name)
-    shutil.copy2(REGISTRY, correction_source / REGISTRY.name)
+    shutil.copy2(regression_registry_path(), correction_source / regression_registry_path().name)
     copy_correction_sources(corrections, manifest_path, correction_source)
     receipt = {
         "schema_version": 1,
@@ -741,7 +743,7 @@ def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path
         "changed_reference_cases": sorted(changed_references),
         "changed_metadata_cases": sorted(changed_metadata),
         "regression_ids": list(CONTROL_IDS),
-        "regression_registry_sha256": digest(REGISTRY),
+        "regression_registry_sha256": digest(regression_registry_path()),
         "root_causes": [
             "TEDS passed a serialized label to APTED and lacked a bounded exact-workspace path.",
             "Code extraction omitted inline and raw-HTML representations.",
@@ -827,7 +829,7 @@ def _rescore_case_correction(source: Path, corrected_dataset: Path, scorer_repo:
         "schema_version": 1,
         "kind": "webmainbench_case_correction_scoring_revision",
         "regression_ids": list(CONTROL_IDS),
-        "regression_registry_sha256": digest(REGISTRY),
+        "regression_registry_sha256": digest(regression_registry_path()),
         "root_cause": "Specialized metric populations and failed-call scoring use the shared corrected scorer.",
         "provider_calls": 0,
         "logical_results": len(revised),

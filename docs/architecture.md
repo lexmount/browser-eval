@@ -122,6 +122,16 @@ Installed scoring registries are located through distribution records in
 `storage.py`; they do not assume the interpreter and package share a prefix.
 The package gate runs both base and WebMainBench-extra installations outside the
 checkout, including the complete offline TEDS revision and audit path.
+
+`wcxb_report_check.py` owns the WCXB release checks; the checker command, common
+report commands and publisher call this shared module. An installed checker takes
+`--authority-root` to read the repository's bound WCXB profile. Report editions
+share the route-inventory contract in `harness/report_languages.py`: Chinese-only
+builds require the English notice, while explicitly generated English requires a
+complete matching inventory. Locale-specific number spacing does not change the
+measurement comparison.
+Optional revision registries are resolved when a revision loads them; importing
+the ordinary offline harness does not require those external data files.
 Their command paths remain stable. New revision receipts bind the actual shared
 implementation; retained revisions verify their own frozen source copies.
 

@@ -13,11 +13,11 @@ from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.reporting.links import check as check_links
 from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.publication import upload_large_archive, verify_published_tree
 from harness.web_fetch.publication_target import require_publication_version
-from harness.reporting.links import check as check_links
-from scripts.check_wcxb_report import check as check_report
+from harness.web_fetch.wcxb_report_check import check as check_report
 
 
 def package(source: Path, archive: Path) -> dict[str, str]:
@@ -39,7 +39,7 @@ def main() -> None:
     parser.add_argument('--source', type=Path, default=ROOT / 'reports/wcxb')
     args = parser.parse_args()
     source = args.source.resolve()
-    check_report(source)
+    check_report(source, authority_root=ROOT)
     check_links(source)
     profile_path = ROOT / 'evaluation/wcxb/current-report.json'
     profile = json.loads(profile_path.read_text())

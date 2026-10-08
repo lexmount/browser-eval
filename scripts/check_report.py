@@ -88,8 +88,8 @@ if args.profile:
  require_current_report_profile(root,profile_path)
  canonical=profile_path.parent if (profile_path.parent/'dataset.json').is_file() else repository/'evaluation'
  require_canonical_inputs(root,canonical)
-if (root/'sample-manifest.json').is_file() and (root/'certification.json').is_file():
- from scripts.check_wcxb_report import check
+if (root/'wcxb-score-summary.json').is_file():
+ from harness.web_fetch.wcxb_report_check import check
  check(root)
  raise SystemExit(0)
 d=json.loads((root/'dataset.json').read_text());rs=load_jsonl(root/'results.jsonl')

@@ -8,8 +8,8 @@ sys.path.insert(0, str(ROOT))
 from harness.record_io import load_jsonl
 
 out=Path(sys.argv[1]) if len(sys.argv)>1 else ROOT/'reports/webfetch'
-if (out/'sample-manifest.json').is_file():
-    from check_wcxb_report import check
+if (out/'wcxb-score-summary.json').is_file():
+    from harness.web_fetch.wcxb_report_check import check
     check(out)
     print('PASS: WCXB release scope and report acceptance checks verified')
     raise SystemExit(0)

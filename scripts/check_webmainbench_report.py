@@ -10,7 +10,11 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 
 from harness.record_io import load_jsonl
-from harness.report_languages import check_language_contract, generated_languages
+from harness.report_languages import (
+    check_language_contract,
+    generated_languages,
+    localized_report_routes,
+)
 from harness.reporting.presentation import check_presentation
 from harness.web_fetch.metrics import percentile
 from harness.web_fetch.report import EXTRA, JS, STYLE
@@ -202,9 +206,9 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         raise ValueError("WebMainBench execution manifest provider set mismatch")
 
     zh = {path.relative_to(root) for path in root.rglob("*.html") if "en" not in path.relative_to(root).parts}
-    en = {Path(*path.relative_to(root).parts[1:]) for path in (root / "en").rglob("*.html")}
-    if zh != en or len(zh) != 16 + len(cases) + len(records):
-        raise ValueError("WebMainBench bilingual route inventory mismatch")
+    localized_report_routes(root, {path.as_posix() for path in zh})
+    if len(zh) != 16 + len(cases) + len(records):
+        raise ValueError("WebMainBench route inventory mismatch")
     analysis = BeautifulSoup((root / "analysis/index.html").read_text(encoding="utf-8"),"html.parser")
     if (len(analysis.select('table[data-wmb-table] tbody tr')) != len(records)
             or {tag.get('data-wmb-filter') for tag in analysis.select('[data-wmb-filter]')} != {
@@ -462,11 +466,11 @@ def check_report(root: Path, dataset: dict | None = None, records: list[dict] | 
         if len(method_page.select('table[data-wmb-table] tbody tr')) != 200:
             raise ValueError(provider + ": filtered per-method result inventory is incomplete")
     for relative in zh:
-        zh_soup = BeautifulSoup((root / relative).read_text(encoding="utf-8"), "html.parser")
-        en_soup = BeautifulSoup((root / "en" / relative).read_text(encoding="utf-8"), "html.parser")
-        if Counter(tag.name for tag in zh_soup.find_all()) != Counter(tag.name for tag in en_soup.find_all()):
+        editions = [BeautifulSoup((root / prefix / relative).read_text(encoding="utf-8"), "html.parser")
+                    for prefix in prefixes]
+        if len(editions) == 2 and Counter(tag.name for tag in editions[0].find_all()) != Counter(tag.name for tag in editions[1].find_all()):
             raise ValueError("WebMainBench bilingual semantic-shape mismatch: " + str(relative))
-        for soup in (zh_soup, en_soup):
+        for soup in editions:
             for table in soup.select("table"):
                 width = len(table.select("thead th"))
                 if any(len(row.find_all("td", recursive=False)) != width for row in table.select("tbody > tr")):

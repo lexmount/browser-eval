@@ -61,6 +61,22 @@ def check_language_contract(root: Path) -> None:
         raise ValueError("English not-generated notice is missing")
 
 
+def localized_report_routes(root: Path, expected: set[str]) -> dict[str, dict[str, Path]]:
+    """Check complete route inventories for the explicitly generated editions."""
+    check_language_contract(root)
+    inventories = {}
+    for language in generated_languages(root):
+        base = root if language == 'zh' else root / 'en'
+        routes = {path.relative_to(base).as_posix(): path for path in base.rglob('*.html')
+                  if language != 'zh' or path.relative_to(base).parts[0] != 'en'}
+        if set(routes) != expected:
+            raise ValueError(f'{language} report route inventory differs: '
+                             f'missing={sorted(expected - set(routes))[:5]}, '
+                             f'extra={sorted(set(routes) - expected)[:5]}')
+        inventories[language] = routes
+    return inventories
+
+
 def visible_numbers(text: str) -> list[str]:
     """Read Arabic numeric values next to either Chinese or English prose."""
     return re.findall(r"\d+(?:[.,]\d+)*(?:%|(?=$|[^A-Za-z0-9_]))", text)

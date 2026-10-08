@@ -108,7 +108,7 @@ def test_case_revision_preserves_source_and_physical_calls(certified_case, tmp_p
     assert revised[0]["pre_scoring_correction_metrics"] == rows[0]["metrics"]
     assert revised[0]["metrics"]["text_edit"]["score"] == 1
     assert receipt["provider_calls"] == 0
-    assert receipt["regression_registry_sha256"] == correction.digest(correction.REGISTRY)
+    assert receipt["regression_registry_sha256"] == correction.digest(correction.regression_registry_path())
     assert receipt["regression_ids"] == list(correction.CONTROL_IDS)
     for name in ("first.md", "second.md"):
         assert (output / name).read_bytes() == before[Path(name)]
@@ -273,7 +273,7 @@ def test_full_population_revision_is_atomic(certified_case, tmp_path, monkeypatc
         original = correction.shutil.copy2
 
         def fail_registry(src, dst, *args, **kwargs):
-            if Path(src) == correction.REGISTRY:
+            if Path(src) == correction.regression_registry_path():
                 raise OSError("registry copy failed")
             return original(src, dst, *args, **kwargs)
 

@@ -319,6 +319,30 @@ def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = F
         'custom']['original_official_aggregate'] == summary
 
 
+def verify_release_check_helpers(root: Path, source_root: Path) -> None:
+    from harness.report_languages import localized_report_routes, write_language_contract
+    from harness.web_fetch.wcxb_report_check import require_analysis_controls
+
+    pages = root / 'release-check'
+    (pages / 'analysis').mkdir(parents=True)
+    (pages / 'index.html').write_text('<html lang="zh"><p>合成报告</p></html>')
+    (pages / 'analysis/index.html').write_text('<html lang="zh"><p>结果</p></html>')
+    write_language_contract(pages, include_english=False)
+    assert set(localized_report_routes(pages, {'index.html', 'analysis/index.html'})) == {'zh'}
+    require_analysis_controls('''<select id="compare-baseline"></select>
+        <input name="compare-provider"><select id="compare-relation"></select>
+        <tbody id="comparison-rows"></tbody><dialog id="diagnosis-dialog">
+        <button data-call-log-close>Close</button><a data-diagnosis-link>Evidence</a></dialog>
+        <table><tr data-provider="custom"><td><button data-diagnosis-open>Diagnose</button>
+        </td></tr></table>''', 1)
+    command = [sys.executable, str(source_root / 'scripts/check_wcxb_report.py')]
+    subprocess.run([*command, '--help'], check=True, stdout=subprocess.DEVNULL)
+    rejected = subprocess.run([*command, str(pages), '--authority-root', str(source_root)],
+                              capture_output=True, text=True)
+    assert rejected.returncode != 0 and 'sample-manifest.json' in rejected.stderr
+    assert 'release authority is missing' not in rejected.stderr
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -341,8 +365,9 @@ def main():
     if installed.is_relative_to(args.source_root.resolve()):
         raise ValueError('Package smoke must use an installed distribution outside the checkout')
     verify_package_tree(args.source_root, installed)
-    from harness.web_fetch.webmainbench_correction import CONTROL_IDS, REGISTRY
+    from harness.web_fetch.webmainbench_correction import CONTROL_IDS, regression_registry_path
 
+    REGISTRY = regression_registry_path()
     assert not REGISTRY.resolve().is_relative_to(args.source_root.resolve())
     assert {row['id'] for row in json.loads(REGISTRY.read_bytes())['cases']} == set(CONTROL_IDS)
     for command in ('correct_webmainbench_scoring.py', 'rescore_webmainbench_case_correction.py'):
@@ -356,6 +381,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
+        verify_release_check_helpers(root, args.source_root)
         verify_teds_revision(root, args.source_root, with_writer=args.webmainbench)
         verify_lexbench_package(root, args.source_root / 'scripts/moli_report/app.js')
         verify_dynamic_cohort(root, args.source_root)
@@ -404,9 +430,12 @@ def main():
         assert len(cohort) == 1 and cohort[0]['metrics']['content_pass']
         assert (root / 'cohort' / cohort[0]['artifact_path']).is_file()
         from harness.web_fetch.rescoring import rescore
-        from harness.web_fetch.scoring_regressions import DEFAULT_REGISTRY, load_scoring_regressions
+        from harness.web_fetch.scoring_regressions import (
+            default_registry_path,
+            load_scoring_regressions,
+        )
         from harness.web_fetch.scoring_revision import revise
-        assert not DEFAULT_REGISTRY.is_relative_to(args.source_root.resolve())
+        assert not default_registry_path().resolve().is_relative_to(args.source_root.resolve())
         assert load_scoring_regressions()
         for module in ('rescoring', 'scoring_revision', 'reference_revision'):
             subprocess.run([sys.executable, '-m', 'harness.web_fetch.' + module, '--help'],
