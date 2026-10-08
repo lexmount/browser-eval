@@ -3,8 +3,8 @@
 import copy
 import unittest
 
-from scripts.moli_report.resource_evidence import validate_matrix
-from scripts.moli_report.run_resource_matrix import schedule
+from harness.lexbench.resource_evidence import validate_matrix
+from harness.lexbench.resource_matrix import schedule
 
 
 class ResourceEvidenceTests(unittest.TestCase):

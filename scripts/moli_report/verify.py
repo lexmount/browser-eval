@@ -13,10 +13,10 @@ import subprocess
 import sys
 import tempfile
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
-from moli_report.resource_evidence import validate_matrix  # noqa: E402
-from moli_report.summarize_linux_resource_profiles import validate_summary  # noqa: E402
-from plot_moli_version_resources import combine_comparisons, render_chart  # noqa: E402
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
+from harness.lexbench.charts import combine_comparisons, render_chart  # noqa: E402
+from harness.lexbench.resource_evidence import validate_matrix  # noqa: E402
+from harness.lexbench.resource_summary import validate_summary  # noqa: E402
 
 parser = argparse.ArgumentParser()
 parser.add_argument(

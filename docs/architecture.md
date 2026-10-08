@@ -101,6 +101,22 @@ and its bound supporting materials in the same report implementation.
 
 The report application owns full rules, interfaces and auditable records. Its tables retain local metric definitions and link to the matching methodology example. The interpretation article owns the argument, mechanism experiments, counterexamples and decision implications; it repeats only enough context to stand alone. The homepage provides quantitative overview and article access, not a second prose summary. Provider integration details belong with their interface examples, not a separate page repeating task boundaries.
 
+## Lexbench comparison adapter
+
+`harness/lexbench/` owns the retained Lexbench comparison adapter: report assembly,
+resource matrices, saved-profile aggregation, evidence validation and charts.
+Its command scripts delegate to these owners. Benchmark-specific schemas and
+frozen historical populations remain in the adapter; browser execution and Web
+Fetch scoring retain their existing owners.
+
+`harness/resource_calibration.py` pairs profiler-on/off calls and validates their
+experimental provenance without importing code from evidence directories. It
+retains the frozen upstream calculation and result schema, rejects partial or
+duplicate pairing and invalid durations, and ships its Apache-2.0 attribution and
+license. Saved runner files are hash-verified as provenance. Only an explicitly
+requested measurement executes the declared external driver. Historical calls,
+collectors and certificates retain their original bytes.
+
 ## Browser trajectory replay ownership
 
 Both browser tracks use `harness/environments/webarena/runtime.py` for site preparation, execution locks, login and viewport contracts, and `harness/environments/webarena/har.py` for network evidence. These modules do not import either track’s Agent or replay runner. Track runners own orchestration and verdicts.

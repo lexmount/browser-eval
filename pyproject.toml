@@ -101,5 +101,6 @@ build-backend = "setuptools.build_meta"
 include = ["harness*"]
 
 [tool.setuptools.package-data]
+"harness" = ["licenses/*.txt"]
 "harness.web_fetch" = ["data/*.json", "templates/*.html", "assets/methodology/*.png", "html_to_markdown.mjs"]
 "harness.environments.webarena" = ["runtime/*.ini"]

@@ -7,12 +7,10 @@ import json
 import math
 import re
 import statistics
-import sys
 from pathlib import Path
 
-from .run_resource_matrix import verify_calls
+from .resource_matrix import verify_calls
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness.record_io import load_jsonl
 
 

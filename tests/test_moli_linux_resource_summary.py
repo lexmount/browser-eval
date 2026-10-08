@@ -1,7 +1,7 @@
 import copy
 import unittest
 
-from scripts.moli_report.summarize_linux_resource_profiles import validate_summary
+from harness.lexbench.resource_summary import validate_summary
 
 
 class LinuxResourceSummaryTests(unittest.TestCase):

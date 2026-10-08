@@ -1,16 +1,10 @@
-import importlib.util
 import math
 import re
 import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "scripts" / "plot_moli_version_resources.py"
-SPEC = importlib.util.spec_from_file_location("plot_moli_version_resources", SCRIPT)
-MODULE = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
-SPEC.loader.exec_module(MODULE)
+from harness.lexbench import charts as MODULE
 
 
 class MoliVersionResourceChartTests(unittest.TestCase):
