@@ -569,6 +569,8 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     commands = [
         ('check_webarena_replay_report.py', [str(linked)]),
         ('check_browser_use_report.py', [str(linked), '--evidence', str(root)]),
+        ('check_browser_use_visual.py', [str(linked)]),
+        ('check_webarena_replay_visual.py', [str(linked)]),
     ]
     for command, arguments in commands:
         entry = str(source_root / 'scripts' / command)

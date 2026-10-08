@@ -4,7 +4,6 @@ import hashlib
 import json
 from pathlib import Path
 
-import scripts.package_browser_use_artifact_hub as packager
 import scripts.publish_browser_use_artifact_hub as publisher
 
 
@@ -110,48 +109,3 @@ def test_bind_published_version_advances_profile_and_attestation(
 
     assert json.loads(profile.read_text())["publication"]["expected_version"] == "ver_new"
     assert json.loads(attestation.read_text())["profile_sha256"] == _sha256(profile)
-
-
-def test_packaging_reuses_visual_gate_bound_to_current_report(monkeypatch, tmp_path: Path) -> None:
-    report = tmp_path / "report"
-    report.mkdir()
-    (report / "index.html").write_text("report", encoding="utf-8")
-    evidence = [tmp_path / "evidence-a", tmp_path / "evidence-b"]
-    receipt = tmp_path / "visual.json"
-    receipt.write_text(
-        json.dumps(
-            {
-                "schema": "lex_browser_use_visual_qa/1",
-                "report_tree_sha256": packager.tree_sha256(report),
-                "states_checked": 112,
-                "failures": [],
-            }
-        ),
-        encoding="utf-8",
-    )
-    calls = []
-
-    monkeypatch.setattr(
-        packager,
-        "check",
-        lambda report_dir, evidence_dirs, selection, *, require_complete: calls.append(
-            ("report", report_dir, evidence_dirs, selection, require_complete)
-        ),
-    )
-    monkeypatch.setattr(
-        packager, "check_links", lambda report_dir: calls.append(("links", report_dir))
-    )
-    monkeypatch.setattr(
-        packager,
-        "check_visual",
-        lambda report_dir, receipt_path: calls.append(("visual", report_dir, receipt_path)),
-    )
-
-    packager.validate_release(report, evidence, receipt)
-
-    assert [call[0] for call in calls] == ["report", "links"]
-    assert calls[0][-1] is True
-
-    (report / "index.html").write_text("changed", encoding="utf-8")
-    packager.validate_release(report, evidence, receipt)
-    assert calls[-1] == ("visual", report, receipt)

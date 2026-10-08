@@ -259,6 +259,16 @@ pages; a missing configuration does not authorize an unmeasured comparison.
 
 ## Browser trajectory replay ownership
 
+Visual release checks belong to `harness/browser_use/report_visual.py` and
+`harness/trajectory_replay/webarena_report_visual.py`. Both use
+`harness/reporting/visual.py` for browser discovery, input hashes, complete
+viewport/theme coverage and atomic receipt installation. Current receipts bind
+the report tree, checker sources, browser bytes and every rendered state; partial
+or historical receipts require a new check. Source changes during rendering
+prevent installation. Browser Use serves evidence over local HTTP, and both
+tracks include success/failure details and the absent-English notice in their
+visual scope. The original tree-digest encodings remain unchanged.
+
 `harness/browser_use/report_check.py` and
 `harness/trajectory_replay/webarena_report_check.py` own their report integrity
 and semantic checks; command files and packaging call these same owners.

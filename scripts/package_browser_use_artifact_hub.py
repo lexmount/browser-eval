@@ -10,13 +10,9 @@ import zipfile
 from pathlib import Path
 
 from harness.browser_use.report_check import check
-
-if __package__:
-    from harness.reporting.links import check as check_links
-    from scripts.check_browser_use_visual import check as check_visual
-else:  # Direct execution adds scripts/, not the repository root.
-    from check_browser_use_visual import check as check_visual
-    from check_report_links import check as check_links
+from harness.browser_use.report_visual import check as check_visual
+from harness.browser_use.report_visual import receipt_is_current
+from harness.reporting.links import check as check_links
 
 ATTESTATION = Path("publish/browser-use-sites.attestation.json")
 PROFILE = Path("evaluation/browser-use/current-report.json")
@@ -51,16 +47,7 @@ def validate_release(report: Path, evidence: list[Path], visual_receipt: Path) -
         require_complete=True,
     )
     check_links(report)
-    try:
-        visual = json.loads(visual_receipt.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        visual = {}
-    if (
-        visual.get("schema") != "lex_browser_use_visual_qa/1"
-        or visual.get("report_tree_sha256") != tree_sha256(report)
-        or visual.get("failures")
-        or int(visual.get("states_checked") or 0) <= 0
-    ):
+    if not receipt_is_current(report, visual_receipt):
         check_visual(report, visual_receipt)
 
 

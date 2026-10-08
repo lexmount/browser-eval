@@ -1,20 +1,16 @@
-import importlib.util
 import http.server
 import json
 import threading
 import urllib.error
 import urllib.request
-import pytest
 from pathlib import Path
 
-_SCRIPT = Path(__file__).parents[2] / "scripts/check_webarena_replay_visual.py"
-_SPEC = importlib.util.spec_from_file_location("check_webarena_replay_visual", _SCRIPT)
-assert _SPEC is not None and _SPEC.loader is not None
-_MODULE = importlib.util.module_from_spec(_SPEC)
-_SPEC.loader.exec_module(_MODULE)
+import pytest
+
+from harness.trajectory_replay import webarena_report_visual as _MODULE
+
 _routes = _MODULE._routes
 _first_failed_key = _MODULE._first_failed_key
-_first_fix_id = _MODULE._first_fix_id
 
 
 def test_private_preview_fixture_denies_assets_without_version(tmp_path):
@@ -49,10 +45,12 @@ def test_private_preview_fixture_denies_assets_without_version(tmp_path):
 
 
 def test_hosted_preview_errors_identify_missing_file_and_version():
-    message = _MODULE._hosted_preview_error_message([
-        (404, "/api/preview/replay/assets/report.css"),
-        (404, "/api/preview/replay~fixture/assets/missing.css"),
-    ])
+    message = _MODULE._hosted_preview_error_message(
+        [
+            (404, "/api/preview/replay/assets/report.css"),
+            (404, "/api/preview/replay~fixture/assets/missing.css"),
+        ]
+    )
     assert "asset requested without preview version" in message
     assert "missing file on versioned preview" in message
     assert "/api/preview/replay~fixture/assets/missing.css" in message
@@ -107,7 +105,12 @@ def test_routes_include_integrated_and_offline_article_in_both_languages(tmp_pat
     _write_results(tmp_path, [{"key": "chromium-1", "status": "pass"}])
     (tmp_path / "report-manifest.json").write_text(json.dumps({"interpretation": True}))
     routes = _routes(tmp_path)
-    assert {"interpretation.html", "article.html", "en/interpretation.html", "en/article.html"} <= set(routes)
+    assert {
+        "interpretation.html",
+        "article.html",
+        "en/interpretation.html",
+        "en/article.html",
+    } <= set(routes)
 
 
 def test_routes_include_failure_detail_and_evidence(tmp_path) -> None:
@@ -151,7 +154,6 @@ def test_current_routes_exclude_legacy_fix_detail(tmp_path) -> None:
 
     routes = _routes(tmp_path)
 
-    assert _first_fix_id(tmp_path) == "fixture-fix"
     assert "fix/fixture-fix.html" not in routes
     assert "en/fix/fixture-fix.html" not in routes
     assert len(routes) == 10
@@ -167,10 +169,14 @@ def test_current_routes_exclude_legacy_diagnostic_overview(tmp_path) -> None:
     (tmp_path / "diagnostics.html").write_text("fixture", encoding="utf-8")
     (tmp_path / "en/diagnostics.html").write_text("fixture", encoding="utf-8")
     (tmp_path / "data/diagnostic-closure.json").write_text(
-        json.dumps({"entries": [
-            {"task_id": 108, "generation": "current_b96"},
-            {"task_id": 29, "generation": "inherited_mixed_build"},
-        ]}),
+        json.dumps(
+            {
+                "entries": [
+                    {"task_id": 108, "generation": "current_b96"},
+                    {"task_id": 29, "generation": "inherited_mixed_build"},
+                ]
+            }
+        ),
         encoding="utf-8",
     )
     routes = _routes(tmp_path)
@@ -178,3 +184,94 @@ def test_current_routes_exclude_legacy_diagnostic_overview(tmp_path) -> None:
     for task_id in (108, 29):
         assert f"diagnostic/{task_id}.html" not in routes
         assert f"en/diagnostic/{task_id}.html" not in routes
+
+
+def test_chinese_visual_matrix_includes_english_notice(tmp_path):
+    _write_results(tmp_path, [])
+    (tmp_path / "report-manifest.json").write_text('{"languages":["zh"]}')
+    assert "en/index.html" in _routes(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [
+        "none",
+        "missing-state",
+        "wrong-theme",
+        "missing-height",
+        "viewer-error",
+        "missing-topology-field",
+        "low-contrast",
+        "source",
+        "browser",
+    ],
+)
+def test_current_replay_receipt_binds_full_visual_scope(tmp_path, monkeypatch, damage):
+    from harness.reporting.visual import checker_sources, file_sha256
+
+    report = tmp_path / "report"
+    report.mkdir()
+    _write_results(report, [])
+    (report / "report-manifest.json").write_text('{"languages":["zh"]}')
+    routes = [
+        "index.html",
+        "dataset.html",
+        "results.html",
+        "environment.html",
+        "review.html",
+        "en/index.html",
+    ]
+    for route in routes:
+        path = report / route
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("<html>fixture</html>")
+    binary = tmp_path / "browser"
+    binary.write_text("synthetic binary")
+    monkeypatch.setenv("BROWSER_USE_VISUAL_BROWSER", str(binary))
+    receipt = tmp_path / "visual.json"
+    value = {
+        "schema": "lex_webarena_replay_visual_qa/4",
+        "report_tree_sha256": _MODULE._tree_sha256(report),
+        "checker_sources": checker_sources(Path(_MODULE.__file__)),
+        "browser_executable": str(binary),
+        "browser_sha256": file_sha256(binary),
+        "route_classes": 6,
+        "states_checked": 24,
+        "failures": [],
+        "states": [
+            {
+                "route": route,
+                "width": width,
+                "height": height,
+                "theme": theme,
+                "overflow": 0,
+                "clipped": [],
+                "tiny": [],
+                "low_contrast_headers": [],
+                "viewerError": False,
+                "topologyMissing": False,
+                "rawMermaid": False,
+            }
+            for route in routes
+            for width, height in ((1440, 1000), (390, 844))
+            for theme in ("light", "dark")
+        ],
+    }
+    if damage == "missing-state":
+        value["states"].pop()
+    elif damage == "wrong-theme":
+        value["states"][0]["theme"] = "unmeasured"
+    elif damage == "missing-height":
+        del value["states"][0]["height"]
+    elif damage == "viewer-error":
+        value["states"][0]["viewerError"] = True
+    elif damage == "missing-topology-field":
+        del value["states"][0]["topologyMissing"]
+    elif damage == "low-contrast":
+        value["states"][0]["low_contrast_headers"] = [["white", "white"]]
+    elif damage == "source":
+        value["checker_sources"]["visual.py"] = "0" * 64
+    elif damage == "browser":
+        binary.write_text("changed binary")
+    receipt.write_text(json.dumps(value))
+    assert _MODULE.receipt_is_current(report, receipt) is (damage == "none")

@@ -12,13 +12,13 @@ from pathlib import Path
 from harness.trajectory_replay.report_compaction import validate_compact_report
 from harness.trajectory_replay.webarena_report import require_all_reference_validity
 from harness.trajectory_replay.webarena_report_check import check as check_report
+from harness.trajectory_replay.webarena_report_visual import check as check_visual
+from harness.trajectory_replay.webarena_report_visual import receipt_is_current
 
 if __package__:
     from scripts.build_webarena_replay_report import _bound_dataset_path
-    from scripts.check_webarena_replay_visual import check as check_visual
 else:
     from build_webarena_replay_report import _bound_dataset_path
-    from check_webarena_replay_visual import check as check_visual
 
 PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")
 REVIEW = Path("research/trajectory-replay-failure-review.json")
@@ -49,16 +49,7 @@ def tree_sha256(root: Path) -> str:
 
 def validate_release(report: Path, visual_receipt: Path) -> dict[str, int]:
     summary = check_report(report)
-    try:
-        visual = json.loads(visual_receipt.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        visual = {}
-    if (
-        visual.get("schema") != "lex_webarena_replay_visual_qa/3"
-        or visual.get("report_tree_sha256") != tree_sha256(report)
-        or visual.get("failures")
-        or int(visual.get("states_checked") or 0) <= 0
-    ):
+    if not receipt_is_current(report, visual_receipt):
         check_visual(report, visual_receipt)
     return summary
 
