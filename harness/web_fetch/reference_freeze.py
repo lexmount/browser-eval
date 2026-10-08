@@ -3,28 +3,35 @@ import argparse
 import hashlib
 import json
 import shutil
+import time
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path, PureWindowsPath
 from urllib.parse import parse_qs, urlsplit
 
+from harness.record_io import read_completed_records
 from harness.web_fetch.artifacts import materialize_task_references
 from harness.web_fetch.body_coverage import body_requirements
 from harness.web_fetch.metrics import normalize_for_match
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
+    completed_case_records,
+    reference_cases,
+    requires_browser_observation,
     requires_fresh_reference,
     scope_identity,
+    timestamp,
 )
 from harness.web_fetch.reference_quality import (
     clean_reference_text,
     reference_anchor_in_text,
 )
 from harness.web_fetch.scoring_regressions import valid_correction_provenance
+from harness.web_fetch.source_capture import capture
 
 ROOT = Path(__file__).resolve().parents[2]
 
-RENDERED_REFERENCE_CASES = {'javascript-spa', 'live-025-api-reference'}
 REFERENCE_PROMOTION_REGRESSION_IDS = {
     'reference-scope-retains-main-content',
     'reference-scope-excludes-site-chrome',
@@ -187,7 +194,7 @@ def compute_reference_update(dataset, captures, observations=None):
                     for fact in case.get('required_facts',[]))
             if not recoverable:
                 continue
-        if cid in RENDERED_REFERENCE_CASES and cid not in observations:
+        if requires_browser_observation(case) and cid not in observations:
             raise ValueError('Reference requires independent browser observation: '+cid)
         if cid in observations:
             row=observations[cid]
@@ -234,6 +241,9 @@ def compute_reference_update(dataset, captures, observations=None):
         case['source_verification'].update(state='valid',checked_at=timestamp,
             selector=selector,method=method,
             reference_sha256=hashlib.sha256(text.encode()).hexdigest())
+        if 'observation_route' in case['source_verification']:
+            case['source_verification']['observation_route'] = (
+                'browser' if cid in observations else 'http')
         if cid not in observations:
             case['source_verification'].update(http_status=row['status'],
                 source_snapshot_sha256=row['sha256'],
@@ -344,3 +354,69 @@ def main(argv=None):
     (args.output/'reference-refresh.json').write_text(
         json.dumps(refresh,ensure_ascii=False,indent=2)+'\n')
     print('Frozen exact-reference cases:',sum(requires_fresh_reference(c) for c in dataset['cases']),'; changed full-text references:', len(changes))
+
+
+def load_resumable_observations(checkpoint, cases):
+    if not checkpoint.exists():
+        return {}
+    return {row['case_id']:row for row in json.loads(checkpoint.read_text())
+            if row.get('case_id') in cases}
+
+
+def postcheck_main(argv=None):
+    p=argparse.ArgumentParser(
+        description='Acquire independent post-call observations for completed matched cases.')
+    p.add_argument('--run-dir',type=Path,required=True)
+    p.add_argument('--captures',type=Path,required=True)
+    p.add_argument('--browser-observations',type=Path,
+                   help='Post-call browser observations for browser-contract or HTTP-unavailable references')
+    p.add_argument('--timeout',type=int,default=3600)
+    p.add_argument('--resume',action='store_true')
+    args=p.parse_args(argv)
+    dataset=json.loads((args.run_dir/'dataset.json').read_text())
+    if args.timeout < 0:
+        p.error('--timeout must be nonnegative')
+    cases=reference_cases(dataset)
+    if args.captures.exists() and not args.resume:p.error('Capture destination exists')
+    args.captures.mkdir(parents=True,exist_ok=args.resume)
+    pending={};done={};started=time.monotonic()
+    checkpoint=args.captures/'observations.json'
+    if args.resume and checkpoint.exists():
+        done=load_resumable_observations(checkpoint,cases)
+    def observe(case):
+        begin=time.monotonic()
+        existing=args.captures/case['id']/'evidence.json'
+        row=json.loads(existing.read_text()) if args.resume and existing.exists() else capture(case,args.captures)
+        text_path=args.captures/case['id']/'reference.txt'
+        return {'case_id':case['id'],'independent':True,
+            'checked_at':row['checked_at'],
+            'content_text':text_path.read_text() if text_path.exists() else '',
+            'scope_identity':scope_identity(case),
+            'completion':{'satisfied':row.get('status')==200 and not row.get('missing_facts'),
+                          'elapsed_ms':(time.monotonic()-begin)*1000,'timeout_ms':120000}}
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        while len(done)<len(cases):
+            records=read_completed_records(args.run_dir/'results.jsonl')
+            for cid,case in cases.items():
+                relevant=completed_case_records(dataset,case,records)
+                if relevant is None or cid in done or cid in pending:
+                    continue
+                rows=(json.loads(args.browser_observations.read_text())
+                      if args.browser_observations and args.browser_observations.exists() else {})
+                if requires_browser_observation(case) or cid in rows:
+                    if cid not in rows:continue
+                    row=rows.get(cid,{})
+                    latest=max(timestamp(r.get('completed_at',r['started_at'])) for r in relevant)
+                    if timestamp(row.get('checked_at'))>latest:
+                        done[cid]={'case_id':cid,**row,'scope_identity':scope_identity(case)}
+                    continue
+                pending[cid]=pool.submit(observe,case)
+            for cid,future in list(pending.items()):
+                if future.done():
+                    done[cid]=future.result();del pending[cid]
+            (args.captures/'observations.json').write_text(json.dumps(list(done.values()),ensure_ascii=False,indent=2)+'\n')
+            if len(done)<len(cases):
+                if time.monotonic()-started>=args.timeout:
+                    raise TimeoutError('Post-call observation deadline')
+                time.sleep(1)
+    print('Post-call observations complete:',len(done),flush=True)

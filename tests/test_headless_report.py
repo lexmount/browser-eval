@@ -1,32 +1,44 @@
-from copy import deepcopy
-from datetime import datetime, timedelta, timezone
 import hashlib
 import json
-from pathlib import Path
-from pathlib import PurePosixPath
 import tempfile
 import unittest
-
-from harness.web_fetch.reference_lifecycle import (preflight_reference_checks, sha256,
-    require_verified_reference_checks, valid_scoring_revision)
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
-from harness.web_fetch.report_explainer import (
-    _digest, _headless_article_input, _article_speed_population,
-    _render_article_resources, headless_evidence, render_explainer)
-from harness.web_fetch.report_resources import GROUPS, render_resource_comparison
-from harness.web_fetch.report_i18n import localize_html
-from scripts.certify_headless_cases import certify_case
-from harness.web_fetch.assembly import (assemble, copy_bound_review, copy_projected_review,
-                                       copy_scoring_revision_history,
-                                       read_verified_batches,
-                                       bind_assembled_scoring_revision,
-                                       bind_missing_assembled_scoring_gap,
-                                       _selected_record,
-                                       _copy_speed_bundle,
-                                       _prune_shadowed_batch_attempts,
-                                       _project_provider_subset)
-from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
+from pathlib import Path, PurePosixPath
 from unittest.mock import patch
+
+from harness.web_fetch.assembly import (
+    _copy_speed_bundle,
+    _project_provider_subset,
+    _prune_shadowed_batch_attempts,
+    _selected_record,
+    assemble,
+    bind_assembled_scoring_revision,
+    bind_missing_assembled_scoring_gap,
+    copy_bound_review,
+    copy_projected_review,
+    copy_scoring_revision_history,
+    read_verified_batches,
+)
+from harness.web_fetch.evidence import certify_case
+from harness.web_fetch.reference_lifecycle import (
+    preflight_reference_checks,
+    require_verified_reference_checks,
+    sha256,
+    valid_scoring_revision,
+)
+from harness.web_fetch.report_explainer import (
+    _article_speed_population,
+    _digest,
+    _headless_article_input,
+    _render_article_resources,
+    headless_evidence,
+    render_explainer,
+)
+from harness.web_fetch.report_i18n import localize_html
+from harness.web_fetch.report_resources import GROUPS, render_resource_comparison
+from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 
 
 class HeadlessReportTests(unittest.TestCase):
@@ -530,6 +542,7 @@ class HeadlessReportTests(unittest.TestCase):
             'checked_at':(now-timedelta(seconds=1)).isoformat(),
             'scope_identity':checks['cases']['body']['scope_identity'],
             'completion':{'satisfied':True,'elapsed_ms':100,'timeout_ms':1000}}
+        (root/'results.jsonl').write_text(json.dumps(record)+'\n')
         return case,record,observation
 
     def test_case_projection_preserves_live_binding_and_record(self):

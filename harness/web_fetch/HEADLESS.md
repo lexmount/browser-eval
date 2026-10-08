@@ -162,6 +162,20 @@ The reference lifecycle in [README.md](README.md) is mandatory. Independently
 capture ordinary pages, separately observe browser-dependent complete scopes,
 freeze the references, execute, then postcheck:
 
+Reference acquisition follows `source_verification.observation_route` (`http`
+or `browser`). Existing frozen inputs that name independent visible/rendered
+browser DOM acquisition retain that browser requirement. Task identifiers do
+not select the acquisition route. A browser-bound reference needs independent
+browser observations for both freeze and postcheck; an HTTP response cannot
+silently replace them.
+
+Postcheck and per-case certification use the same fresh-reference population
+across `web`, `dynamic` and `challenge`, and the case's declared provider cohort.
+They wait for missing logical results and reject duplicate or undeclared
+providers. Certificate sidecars retain the physical run's records and original
+manifest; response artifacts remain in the physical run for assembly. A failed
+reference check remains failed when the command resumes.
+
 ```sh
 uv run --frozen python scripts/freeze_headless_references.py --captures CAPTURES --output FROZEN --browser-observations PRE.json
 uv run --frozen python scripts/run_headless_benchmark.py --dataset FROZEN/dataset.json --output RUN --workers 5

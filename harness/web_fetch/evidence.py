@@ -5,12 +5,13 @@ import hashlib
 import json
 import shutil
 import tempfile
+import time
 from collections import Counter
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from harness.record_io import load_jsonl, parse_jsonl
+from harness.record_io import load_jsonl, parse_jsonl, read_completed_records
 
 from .artifacts import (
     materialize_bound_artifacts,
@@ -19,7 +20,13 @@ from .artifacts import (
     verify_record_artifacts,
 )
 from .reference_inputs import input_tree
-from .reference_lifecycle import require_verified_reference_checks
+from .reference_lifecycle import (
+    completed_case_records,
+    expected_providers,
+    finalize_reference_checks,
+    reference_cases,
+    require_verified_reference_checks,
+)
 from .safety import contained_path, reject_evidence_symlinks, safe_identifier, validate_report_ids
 
 
@@ -382,3 +389,118 @@ def addition_main(argv=None) -> None:
     count = add_provider_run(current_evidence_dir(), args.run_dir, args.provider,
                              implementation, track=args.track)
     print('Added', count, 'records')
+
+
+def certify_case(run, output, case, records, observation):
+    """Create a reference certificate sidecar; artifacts remain in the physical run."""
+    source_raw=contained_path(run,'manifest.json',reject_symlinks=True).read_bytes()
+    source=json.loads(source_raw)
+    cid=safe_identifier(case['id'])
+    if source.get('reference_checks',{}).get('status')!='awaiting_postcheck' or 'postcheck' in source.get('reference_checks',{}):
+        raise ValueError('Only an unfinished live preflight can be partitioned')
+    binding=source.get('reference_checks',{}).get('cases',{}).get(cid)
+    if not binding:
+        raise ValueError('No original pre-call reference binding: '+cid)
+    if any(r['case_id']!=cid for r in records):
+        raise ValueError('Mixed case records')
+    dataset=json.loads(contained_path(run,'dataset.json',reject_symlinks=True).read_bytes())
+    if [row for row in dataset['cases'] if row['id']==cid] != [case]:
+        raise ValueError('Case differs from the physical run dataset')
+    expected=expected_providers(dataset,case)
+    if completed_case_records(dataset,case,records) is None:
+        raise ValueError('Incomplete matched-provider cohort')
+    raw=contained_path(run,'results.jsonl',reject_symlinks=True).read_bytes()
+    persisted=completed_case_records(dataset,case,parse_jsonl(raw,allow_incomplete_tail=True))
+    if persisted is None or sorted(persisted,key=lambda row:row['provider']) != sorted(records,key=lambda row:row['provider']):
+        raise ValueError('Certificate records differ from the physical run')
+    destination=contained_path(output,cid,reject_symlinks=True)
+    if destination.exists():
+        raise FileExistsError(destination)
+    manifest=deepcopy(source)
+    # End of this assembly operation, not a newly invented call timestamp.
+    # perf_counter starts before the wall-clock call timestamp in the runner;
+    # start + elapsed can therefore slightly exceed recorded completed_at.
+    manifest.update(attempt_count=len(records),attempt_ids=[r['attempt_id'] for r in records],
+        completed_at=datetime.now(timezone.utc).isoformat())
+    manifest['reference_checks']={k:deepcopy(v) for k,v in source['reference_checks'].items()
+        if k not in ('cases','postcheck','callcheck_error')}
+    # Preserve the original preflight status; never clear a failed lifecycle.
+    manifest['reference_checks']['cases']={cid:deepcopy(binding)}
+    manifest['projection']={'kind':'completed-case-from-live-preflight',
+        'source_manifest_sha256':hashlib.sha256(source_raw).hexdigest(),
+        'source_manifest_path':'source-manifest.json',
+        'created_at':datetime.now(timezone.utc).isoformat(),
+        'original_attempt_ids_preserved':True}
+    dataset['cases']=[case]
+    dataset['coverage_plan']={case.get('track','web'):sorted(expected)}
+    manifest.setdefault('dataset',{})['case_count']=1
+    output.mkdir(parents=True,exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='.'+cid+'-',dir=output) as work:
+        staging=Path(work)/'certificate'
+        staging.mkdir()
+        (staging/'source-manifest.json').write_bytes(source_raw)
+        for name,payload in [('manifest.json',manifest),('dataset.json',dataset),('observations.json',[observation])]:
+            (staging/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n')
+        (staging/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
+        result=finalize_reference_checks(staging,staging/'observations.json')
+        staging.replace(destination)
+    print(cid,result['status'],flush=True)
+    return result
+
+
+def certification_main(argv=None):
+    parser=argparse.ArgumentParser(
+        description='Certify completed matched cases from their original live preflight.')
+    parser.add_argument('--run-dir',type=Path,required=True)
+    parser.add_argument('--observations',type=Path,required=True)
+    parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--timeout',type=int,default=2700)
+    args=parser.parse_args(argv)
+    dataset=json.loads((args.run_dir/'dataset.json').read_text())
+    if args.timeout < 0:
+        parser.error('--timeout must be nonnegative')
+    cases=reference_cases(dataset)
+    if not cases:
+        return
+    deadline=time.monotonic()+args.timeout
+    while True:
+        try:
+            observations=json.loads(args.observations.read_text())
+        except (FileNotFoundError,json.JSONDecodeError):
+            if time.monotonic()>=deadline:
+                raise TimeoutError('Case certification deadline')
+            time.sleep(1);continue
+        records=read_completed_records(args.run_dir/'results.jsonl')
+        for observation in observations:
+            cid=safe_identifier(observation['case_id'])
+            if cid not in cases:
+                if cid not in {case['id'] for case in dataset['cases']}:
+                    raise ValueError('Unknown observation case: '+cid)
+                continue
+            relevant=completed_case_records(dataset,cases[cid],records)
+            if relevant is None:
+                continue
+            destination=contained_path(args.output,cid,reject_symlinks=True)
+            if destination.exists():
+                manifest=json.loads((destination/'manifest.json').read_bytes())
+                original=(destination/'source-manifest.json').read_bytes()
+                previous=json.loads(original)
+                current=json.loads((args.run_dir/'manifest.json').read_bytes())
+                # A live run legitimately adds completion metadata after a
+                # case certificate is created. Its preflight, configuration
+                # and calls must still match the retained source snapshot.
+                for payload in (previous,current):
+                    for key in ('attempt_count','attempt_ids','completed_at'):
+                        payload.pop(key,None)
+                if (manifest.get('projection',{}).get('source_manifest_sha256') !=
+                        hashlib.sha256(original).hexdigest() or previous != current
+                        or json.loads((destination/'dataset.json').read_bytes())['cases'] != [cases[cid]]
+                        or sorted(load_jsonl(destination/'results.jsonl'),key=lambda row:row['provider']) !=
+                           sorted(relevant,key=lambda row:row['provider'])):
+                    raise ValueError('Existing certificate belongs to different evidence: '+cid)
+                continue
+            certify_case(args.run_dir,args.output,cases[cid],relevant,observation)
+        if all((args.output/cid/'manifest.json').exists() for cid in cases):return
+        if time.monotonic()>=deadline:
+            raise TimeoutError('Case certification deadline')
+        time.sleep(1)

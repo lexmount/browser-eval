@@ -13,13 +13,13 @@ class CertifiedBenchmarkTests(unittest.TestCase):
     def test_diagnostic_execution_cannot_be_assembled_or_rendered_as_certified(self):
         from harness.web_fetch import benchmark_runner as run_benchmark
         from harness.web_fetch import reference_freeze as freeze_headless_references
+        from harness.web_fetch import reference_freeze as postcheck_headless
         from harness.web_fetch.assembly import assemble
         from harness.web_fetch.reference_lifecycle import (
             ReferenceLifecycleError,
             require_verified_reference_checks,
         )
         from harness.web_fetch.report_build import build_report
-        from scripts import postcheck_headless
         from scripts.finalize_benchmark_run import finalize_aggregate
         for mode in ('declared', 'native'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
@@ -46,7 +46,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                         with patch.object(run_benchmark,'load_runtime_env'):
                             run_benchmark.main(command[2:])
                     elif script=='postcheck_headless.py':
-                        with patch('sys.argv',command[1:]):postcheck_headless.main()
+                        with patch('sys.argv',command[1:]):postcheck_headless.postcheck_main()
                     elif script=='finalize_benchmark_run.py':
                         finalize_aggregate(output,root/'work/post-captures/observations.json')
                     else:self.fail('Unexpected external stage: '+script)

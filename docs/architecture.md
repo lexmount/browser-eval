@@ -48,6 +48,14 @@ computation, browser observations and promotion validation belong to
 `reference_freeze.py`. Their command scripts expose the same public arguments,
 and promotion tools import the shared module rather than another command script.
 
+`reference_freeze.py` also owns post-call observation acquisition;
+`evidence.py` owns live per-case reference certificate projection. Their command
+files only invoke the shared owners. Both use `reference_lifecycle.py` for the
+fresh-reference task population, provider coverage and acquisition-route
+contract. Certificates are sidecars to the physical run, retain its exact
+manifest and logical records, and appear only after finalization completes.
+Resuming cannot reuse a certificate for changed calls or replace a failed check.
+
 `evidence.py` owns provider append and complete-provider projection. Both verify
 all physical-call artifacts and reference observations through `artifacts.py`.
 Append retains existing JSONL bytes, updates declared method coverage, and swaps

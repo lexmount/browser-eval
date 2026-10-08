@@ -1,19 +1,21 @@
 import hashlib
 import json
-from pathlib import Path
 import tempfile
 import unittest
 from datetime import datetime, timezone
+from pathlib import Path
 
 from harness.web_fetch.body_coverage import body_requirements
+from harness.web_fetch.reference_freeze import (
+    _digest_json,
+    _require_promotion,
+    compute_reference_update,
+    main,
+)
 from harness.web_fetch.reference_lifecycle import scope_identity
 from harness.web_fetch.scoring_regressions import build_correction_provenance
-from harness.web_fetch.reference_freeze import (
-    _digest_json, _require_promotion, compute_reference_update, main,
-)
 from scripts.prepare_reference_promotion import prepare
 from scripts.promote_reference_candidate import _change_for_case, promote
-
 
 ROOT_CAUSE=('The independent reference selector included mutable site chrome, so '
             'browser-rendered main content must be retained and bound separately.')
@@ -248,7 +250,8 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
               'ground_truth_main_content':old,
               'body_requirements':body_requirements(old),'required_facts':[],
               'source_verification':{'state':'valid','checked_at':checked,
-                  'method':'fixture','selector':'body','reference_sha256':
+                  'method':'Independent visible browser DOM; complete declared scope',
+                  'selector':'body','reference_sha256':
                   hashlib.sha256(old.encode()).hexdigest()}}
         dataset={'cases':[case],'coverage_plan':{'web':['p']}}
         dataset_path=root/'dataset.json'

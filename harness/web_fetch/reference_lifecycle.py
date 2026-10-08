@@ -106,6 +106,60 @@ def requires_fresh_reference(case) -> bool:
             and bool(_get(case, "source_verification", {})))
 
 
+def expected_providers(dataset, case):
+    """Require an explicit, unambiguous matched cohort for a reference check."""
+    names = dataset.get('coverage_plan', {}).get(_get(case, 'track', 'web'))
+    if (not isinstance(names, list) or not names
+            or any(not isinstance(name, str) for name in names)
+            or len(names) != len(set(names))):
+        raise ValueError('Reference checks require a nonempty unique provider coverage plan')
+    return {safe_identifier(name) for name in names}
+
+
+def reference_cases(dataset):
+    """Select the same live reference population for acquisition and certification."""
+    cases, seen = {}, set()
+    for case in dataset['cases']:
+        identifier = safe_identifier(case['id'])
+        if identifier in seen:
+            raise ValueError('Duplicate reference case: ' + identifier)
+        seen.add(identifier)
+        if requires_fresh_reference(case):
+            expected_providers(dataset, case)
+            requires_browser_observation(case)
+            cases[identifier] = case
+    return cases
+
+
+def requires_browser_observation(case):
+    """Select reference acquisition from declared provenance, never a task ID."""
+    verification = _get(case, 'source_verification', {}) or {}
+    route = verification.get('observation_route')
+    if route not in (None, 'http', 'browser'):
+        raise ValueError('Reference observation_route must be http or browser')
+    # Existing frozen inputs already name these acquisition methods. Preserve
+    # their meaning without changing their historical bytes or task identifiers.
+    browser = verification.get('method') in {
+        'Independent visible browser DOM; complete declared scope',
+        'Independent rendered browser DOM; complete declared scope',
+    }
+    if browser and route == 'http':
+        raise ValueError('HTTP observation route contradicts browser reference provenance')
+    return browser or route == 'browser'
+
+
+def completed_case_records(dataset, case, records):
+    """Return one logical result per declared method, or wait for missing results."""
+    expected = expected_providers(dataset, case)
+    relevant = [row for row in records if row['case_id'] == _get(case, 'id')]
+    methods = [row['provider'] for row in relevant]
+    if set(methods) - expected:
+        raise ValueError('Undeclared provider in reference-check cohort')
+    if len(methods) != len(set(methods)):
+        raise ValueError('Duplicate provider in reference-check cohort')
+    return relevant if set(methods) == expected else None
+
+
 def scope_identity(case) -> dict[str, Any]:
     verification = _get(case, "source_verification", {}) or {}
     benchmark = _get(case, "source_benchmark", {}) or {}

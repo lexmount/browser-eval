@@ -6,16 +6,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from harness.record_io import read_completed_records
 from harness.web_fetch.providers.headless_worker import fetch
-from harness.web_fetch.reference_inputs import read_dataset_bytes
-from scripts.certify_headless_cases import (
-    read_completed_records as read_certification_records,
-)
-from scripts.postcheck_headless import (
-    expected_providers,
+from harness.web_fetch.reference_freeze import (
     load_resumable_observations,
-    read_completed_records,
 )
+from harness.web_fetch.reference_inputs import read_dataset_bytes
+from harness.web_fetch.reference_lifecycle import expected_providers
 
 
 class HeadlessReviewTests(unittest.TestCase):
@@ -38,7 +35,6 @@ class HeadlessReviewTests(unittest.TestCase):
                 run.assert_not_called()
 
     def test_partial_tail_only(self):
-        self.assertIs(read_completed_records,read_certification_records)
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'results.jsonl'
             path.write_text('{"case_id":"a"}\n{"case_')

@@ -9,7 +9,12 @@ import pytest
 
 from harness.web_fetch.artifacts import artifact_bindings, verify_record_artifacts
 from harness.web_fetch.assembly import _copy_speed_bundle, assemble, copy_projected_review
-from harness.web_fetch.evidence import add_provider_run, project_provider_run, projection_main
+from harness.web_fetch.evidence import (
+    add_provider_run,
+    certify_case,
+    project_provider_run,
+    projection_main,
+)
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.reference_lifecycle import (
@@ -19,7 +24,6 @@ from harness.web_fetch.reference_lifecycle import (
 )
 from harness.web_fetch.runner import run_evaluation
 from harness.web_fetch.speed_cohort import build_summary, derive_aggregate
-from scripts.certify_headless_cases import certify_case
 
 
 def reviewed_corrected_matrix(tmp_path, *, fresh=True):
