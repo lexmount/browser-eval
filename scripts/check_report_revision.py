@@ -17,8 +17,8 @@ dataset=json.loads((out/'dataset.json').read_text())
 from bs4 import BeautifulSoup
 
 if dataset.get('comparison',{}).get('kind')=='webmainbench_frozen_html_to_markdown':
-    from check_webmainbench_report import check_revision
-    check_revision(out)
+    from harness.web_fetch.webmainbench_report_check import check_sample_report
+    check_sample_report(out)
     print('PASS: WebMainBench preselected-200 release scope and report acceptance checks verified')
     raise SystemExit(0)
 for path in out.rglob('*.html'):

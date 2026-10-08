@@ -96,9 +96,9 @@ d=json.loads((root/'dataset.json').read_text());rs=load_jsonl(root/'results.json
 check_language_contract(root)
 has_english='en' in generated_languages(root)
 if d.get('comparison',{}).get('kind')=='webmainbench_frozen_html_to_markdown':
- from scripts.check_webmainbench_report import check_report
- check_report(root,d,rs)
- print('PASS: WebMainBench preselected-200 matrix, sample, scores, retries, bilingual routes and reference assets verified')
+ from harness.web_fetch.webmainbench_report_check import check_sample_report
+ check_sample_report(root,d,rs)
+ print('PASS: WebMainBench preselected-200 matrix, sample, scores, retries, declared-language routes and reference assets verified')
  raise SystemExit(0)
 if args.presentation_binding and d.get('comparison',{}).get('kind')!='uniform_native_local_measurement':
  parser.error('presentation binding requires a frozen uniform-native diagnostic snapshot')

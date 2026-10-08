@@ -135,6 +135,13 @@ the ordinary offline harness does not require those external data files.
 Their command paths remain stable. New revision receipts bind the actual shared
 implementation; retained revisions verify their own frozen source copies.
 
+`webmainbench_report_check.py` owns both the frozen sample and complete-cohort
+release checks. The sample and full commands select their respective check;
+common report commands call the sample check directly. Both accept an explicit
+`--authority-root` for repository profiles, release records and publication
+bindings when run from an installed package. Frozen sample-specific requirements
+remain separate from the complete cohort's participant registry and bindings.
+
 `dynamic_cohort.py` owns measured dynamic-supplement assembly and append. Both
 stages use the shared artifact boundary for primary outputs, auxiliary files,
 retained retry evidence, private artifacts and reference observations. Assembly

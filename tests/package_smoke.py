@@ -341,6 +341,18 @@ def verify_release_check_helpers(root: Path, source_root: Path) -> None:
                               capture_output=True, text=True)
     assert rejected.returncode != 0 and 'sample-manifest.json' in rejected.stderr
     assert 'release authority is missing' not in rejected.stderr
+    for script, error in (
+        ('check_webmainbench_report.py', 'dataset.json'),
+        ('check_webmainbench_full_report.py', 'Exactly one method-cohort binding'),
+    ):
+        command = [sys.executable, str(source_root / 'scripts' / script)]
+        subprocess.run([*command, '--help'], check=True, stdout=subprocess.DEVNULL)
+        unbound = subprocess.run([*command, str(pages)], capture_output=True, text=True)
+        assert unbound.returncode != 0 and 'release authority is missing' in unbound.stderr
+        rejected = subprocess.run([*command, str(pages), '--authority-root', str(source_root)],
+                                  capture_output=True, text=True)
+        assert rejected.returncode != 0 and error in rejected.stderr, rejected.stderr
+        assert 'release authority is missing' not in rejected.stderr
 
 
 def main():

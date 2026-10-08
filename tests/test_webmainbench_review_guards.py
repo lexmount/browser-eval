@@ -17,7 +17,7 @@ from harness.web_fetch.webmainbench_diagnostics import (
     validate_teds_revision_if_present,
     validate_webmainbench_scoring_revision,
 )
-from scripts.check_webmainbench_report import check_teds_warnings
+from harness.web_fetch.webmainbench_report_check import check_teds_warnings
 
 
 class WebMainBenchReviewGuardsTests(unittest.TestCase):
