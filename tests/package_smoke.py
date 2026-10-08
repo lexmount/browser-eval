@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import subprocess
@@ -44,6 +45,35 @@ def verify_package_tree(source_root: Path, package_root: Path) -> None:
             raise ValueError('Installed package differs from current source bytes: ' + name)
 
 
+def verify_lexbench_package(root: Path) -> None:
+    from harness.lexbench.pack import package
+
+    source = root / 'lexbench-source'
+    source.mkdir()
+    for name in ('index.html', 'en.html', 'en/index.html'):
+        path = source / name
+        path.parent.mkdir(exist_ok=True)
+        prefix = '../' if name.startswith('en/') else ''
+        path.write_text(f'<script defer src="{prefix}mermaid.min.js"></script>')
+    for name in ('app.js', 'style.css', 'mermaid.min.js', 'mermaid-LICENSE.txt'):
+        (source / name).write_text(name)
+    (source / 'evidence.bin').write_bytes(bytes(range(256)))
+    destination = root / 'lexbench-package'
+    summary = package(source, destination, pack_limit=80)
+    assert summary['bundled_files'] == 1
+    catalog = json.loads((destination / 'bundle-manifest.json').read_text())['files']
+    entry = catalog['evidence.bin']
+    payload = gzip.decompress((destination / entry['pack']).read_bytes())
+    data = payload[entry['offset']:entry['offset'] + entry['size']]
+    assert data == bytes(range(256))
+    assert hashlib.sha256(data).hexdigest() == entry['sha256']
+    assert (destination / 'bundle-loader.js').is_file()
+    for name in ('index.html', 'en.html', 'en/index.html'):
+        assert 'bundle-loader.js' in (destination / name).read_text()
+    subprocess.run([sys.executable, '-m', 'harness.lexbench.pack', '--help'],
+                   check=True, cwd=root, capture_output=True, text=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -62,6 +92,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
+        verify_lexbench_package(root)
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
                        check=True, cwd=root)
         binary = root / 'browser'
@@ -133,7 +164,7 @@ def main():
         assert '# 中文标题' in converted.stdout and '独立内容' in converted.stdout
         assert not CONVERTER.resolve().is_relative_to(Path(__file__).resolve().parents[1])
     print('Installed wheel: exact source inventory, native worker, scoring, '
-          'evidence assembly and HTML conversion passed')
+          'evidence assembly, Lexbench packaging and HTML conversion passed')
 
 
 if __name__ == '__main__':

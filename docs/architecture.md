@@ -122,7 +122,11 @@ The report application owns full rules, interfaces and auditable records. Its ta
 ## Lexbench comparison adapter
 
 `harness/lexbench/` owns the retained Lexbench comparison adapter: report assembly,
-resource matrices, saved-profile aggregation, evidence validation and charts.
+resource matrices, saved-profile aggregation, evidence validation, charts and
+static evidence packaging. The package loader is an installed library asset.
+Packaging rejects linked source directories and nested output, builds in a
+temporary sibling directory and exposes the output only after every file and
+catalog has been written successfully.
 Its command scripts delegate to these owners. Benchmark-specific schemas and
 frozen historical populations remain in the adapter; browser execution and Web
 Fetch scoring retain their existing owners.
