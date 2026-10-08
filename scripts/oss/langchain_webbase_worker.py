@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 from importlib.metadata import version
@@ -20,6 +21,9 @@ for line in sys.stdin:
     if not line.strip():
         continue
     request = json.loads(line)
+    if request.get("log_level") == "debug":
+        logging.basicConfig(level=logging.DEBUG, stream=sys.stderr, force=True)
+        logging.getLogger("urllib3").setLevel(logging.DEBUG)
     dns_trace = []
     dns_mode = request.get("dns_mode", "system")
     try:

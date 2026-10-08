@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import os
 import json
 import multiprocessing
 import sys
@@ -334,7 +335,7 @@ async def main() -> None:
         browser_type="chromium",
         chrome_channel="chrome",
         headless=True,
-        verbose=False,
+        verbose=os.environ.get("BROWSER_EVAL_LOG_LEVEL") == "debug",
         accept_downloads=True,
         downloads_path=download_dir.name,
     )

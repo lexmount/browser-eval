@@ -106,8 +106,11 @@ class SubprocessJsonlProvider(Provider):
         command = [self._resolve_token(part) for part in self.config["command"]]
         env = os.environ.copy()
         env.update({str(k): self._resolve_token(v) for k, v in self.config.get("env", {}).items()})
+        if self.config.get("log_level") == "debug": env["BROWSER_EVAL_LOG_LEVEL"] = "debug"
         env["BROWSER_EVAL_HARNESS_ROOT"] = str(Path(__file__).resolve().parents[3])
         cwd = str(Path(str(self.config.get("repo_path", "."))).expanduser().resolve())
+        sink = getattr(self, "_active_diagnostics", None)
+        if sink: sink.emit("caller", "worker_start", command=command, cwd=cwd)
         self._process = subprocess.Popen(
             command,
             cwd=cwd,
@@ -132,12 +135,16 @@ class SubprocessJsonlProvider(Provider):
     def _drain_stdout(self, process: subprocess.Popen[str]) -> None:
         assert process.stdout is not None
         for line in process.stdout:
+            sink = getattr(self, "_active_diagnostics", None)
+            if sink: sink.emit("native_process_stdout", "stream_line", text=line)
             self._stdout_queue.put(line)
         self._stdout_queue.put(None)
 
     def _drain_stderr(self, process: subprocess.Popen[str]) -> None:
         assert process.stderr is not None
         for line in process.stderr:
+            sink = getattr(self, "_active_diagnostics", None)
+            if sink: sink.emit("native_process_stderr", "stream_line", text=line)
             size = len(line.encode("utf-8", "replace"))
             limit = max(1, int(self.config.get("max_bytes", 20_000_000)))
             with self._stderr_lock:
@@ -193,11 +200,14 @@ class SubprocessJsonlProvider(Provider):
                 error_message=str(error),
             )
         deadline = time.monotonic() + timeout
+        self._active_diagnostics = getattr(self, "_call_diagnostics", None)
         process = self._start()
         assert process.stdin is not None and process.stdout is not None
         stderr_cursor = self._stderr_cursor()
         request = {
             "url": case.url,
+            "log_level": self.config.get("log_level"),
+            "diagnostic_path": str(self._active_diagnostics.path) if self._active_diagnostics else None,
             "timeout_seconds": timeout,
             "uniform_native_parameters": bool(self.config.get("uniform_native_parameters")),
             "max_bytes": int(self.config.get("max_bytes", 20_000_000)),
@@ -207,6 +217,7 @@ class SubprocessJsonlProvider(Provider):
             "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
             "retrieval_mode": "native_default" if native_default_case(case) else "declared_plan",
         }
+        if self._active_diagnostics: self._active_diagnostics.emit("caller", "worker_request_sent", request=request)
         process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
         process.stdin.flush()
 

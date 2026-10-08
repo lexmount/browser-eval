@@ -11,6 +11,7 @@ from pathlib import Path
 
 from ..models import EvalCase, ProviderResult
 from .base import Provider
+from ..diagnostics import diagnostic_context
 from .runtime_identity import validate_runtime_identity
 
 
@@ -73,7 +74,7 @@ class CowAgentBuiltinProvider(Provider):
             raise ValueError("timeout must be positive and finite")
         native_timeout = module.DEFAULT_TIMEOUT
         tool = module.WebFetch({"cwd": str(workspace)})
-        with public_dns_context(dns_mode, timeout) as dns_trace:
+        with diagnostic_context(getattr(self, "_call_diagnostics", None), names=("log",)), public_dns_context(dns_mode, timeout) as dns_trace:
             result = tool.execute({"url": case.url})
         raw = json.dumps({"status": result.status, "result": result.result,
                           "ext_data": result.ext_data, "display": result.display},

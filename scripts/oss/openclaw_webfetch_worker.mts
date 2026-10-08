@@ -13,6 +13,10 @@ async function createTool(request: any, signal: AbortSignal, dnsTraces: any[]) {
   const dnsMode = request.dns_mode ?? "system";
   if (!["system", "public_doh"].includes(dnsMode)) throw new Error("dns_mode must be system or public_doh");
   const helper = dnsMode === "public_doh" ? await import(pathToFileURL(path.join(process.env.BROWSER_EVAL_HARNESS_ROOT!, "scripts/oss/public_dns.mjs")).href) : undefined;
+  if (request.log_level === "debug") {
+    const { applyLoggingConfig } = await import(pathToFileURL(path.join(process.env.OPENCLAW_REPO!, "src/logging/logger.ts")).href);
+    applyLoggingConfig({ level: "debug", consoleLevel: "silent", consoleStyle: "json", file: request.diagnostic_path + ".openclaw.log" });
+  }
   const tool = createWebFetchTool({
     lookupFn: helper?.createPublicDnsLookup(signal, dnsTraces),
     config: {

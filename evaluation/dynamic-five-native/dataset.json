@@ -1,0 +1,515 @@
+{
+  "schema_version": 1,
+  "id": "dynamic-five-native-debug",
+  "name": "动态网站5案例 · 10方法调用链小范围测试",
+  "tool": "web_fetch",
+  "generated_at": "2026-09-23T13:08:01.422066+00:00",
+  "providers": [
+    "moli-webfetch",
+    "firecrawl",
+    "tavily",
+    "exa",
+    "cloudflare-markdown",
+    "cowagent-built-in",
+    "openclaw-built-in",
+    "deepseek-harness-built-in",
+    "langchain-webbase",
+    "crawl4ai"
+  ],
+  "coverage_plan": {
+    "dynamic": [
+      "moli-webfetch",
+      "firecrawl",
+      "tavily",
+      "exa",
+      "cloudflare-markdown",
+      "cowagent-built-in",
+      "openclaw-built-in",
+      "deepseek-harness-built-in",
+      "langchain-webbase",
+      "crawl4ai"
+    ]
+  },
+  "provider_calls_planned": 50,
+  "runs_per_case": 1,
+  "timeout_ms": 45000,
+  "workers": 1,
+  "retry_policy": "one physical call per case; no failure retries",
+  "approval_status": "local measurements only; no independent result review",
+  "comparison": {
+    "kind": "uniform_native_local_measurement",
+    "publication_state": "local_audit_only_not_for_release"
+  },
+  "cases": [
+    {
+      "id": "replacement-zh-ant-form",
+      "name": "zh ant form",
+      "url": "https://procomponents.ant.design/components/form",
+      "evaluation_url": "https://procomponents.ant.design/components/form",
+      "expected_final_url": "https://procomponents.ant.design/components/form/",
+      "target_language": "zh-CN",
+      "expected_document_language": "",
+      "target_region": "CN",
+      "category": "Dynamic websites",
+      "description": "目标是 ProForm 中文 API 正文。四个合理正文区域覆盖主要参数和后续章节；旧当前采集只有外壳，后来独立自动加载观察保存了完整正文。HTTP 文档响应使用末尾斜杠。",
+      "expected_any": [],
+      "required_facts": [],
+      "forbidden_any": [],
+      "min_content_chars": 1,
+      "ground_truth_main_content": "ProForm\n\nProForm 是对 antd Form 的再封装，如果你想要自定义表单元素，ProForm 与 antd 的方法是相同的，你仍然可以用 FormItem + 自定义组件的方式来自定义。当然这样不会影响到别的组件，QueryFilter 等组件同理。\nantd 的 Form api 查看这里，initialValues 相关知识查看这里\n\n参数\t说明\t类型\t默认值\nonFinish\t提交表单且数据验证成功后回调事件，支持 Promise，会自动设置按钮的加载效果\t(formData: T) => Promise<boolean | void> | void\t-\nonReset\t点击重置按钮的回调\t(e) => void\t-\nsubmitter\t提交按钮相关配置\tSubmitterProps<{form?: FormInstance<any>}> | false\ttrue\nloading\t表单按钮的 loading 状态\tboolean\t-\nonLoadingChange\tloading 状态改变时的回调\t(loading: boolean) => void\t-\nformRef\t获取表单所使用的 form，ProFormInstance 相比 antd Form 增加了格式化数据的方法\tReact.MutableRefObject<(ProFormInstance<T> & { nativeElement?: HTMLElement; focus?: () => void }) | undefined> | React.RefObject<(ProFormInstance<T> & { nativeElement?: HTMLElement; focus?: () => void }) | undefined>\t-\nsyncToUrl\t同步参数到 url 上，url 只支持 string，在使用之前最好读一下url 中的参数类型\tboolean | ((values: T, type: 'get' | 'set') => T)\t-\nsyncToUrlAsImportant\t当 syncToUrl 为 true，在页面回显示时，以url上的参数为主，默认为false\tboolean\tfalse\nextraUrlParams\t额外的 url 参数\tRecord<string, any>\t-\nsyncToInitialValues\t同步结果到 initialValues，默认为 true，如果为 false，form.reset 的时候将会忽略从 url 上获取的数据\tboolean\ttrue\nomitNil\tProForm 会自动清空 null 和 undefined 的数据，如果你约定了 nil 代表某种数据，可以设置为 false 关闭此功能\tboolean\ttrue\ndateFormatter\t自动格式化数据，主要是 dayjs 的表单，支持 string 和 number 两种模式，此外还支持指定函数进行格式化。\tstring | 'string' | 'number' | ((value: dayjs.Dayjs, valueType: string) => string | number) | false\t'string'\nonInit\t表单初始化成功，比如布局，label等计算完成\t(values: T, form: ProFormInstance<any>) => void\t-\nparams\t发起网络请求的参数，与 request 配合使用\tU\t-\nrequest\t发起网络请求的参数，返回值会覆盖给 initialValues\tProRequestData<T, U>\t-\nisKeyPressSubmit\t是否使用回车提交\tboolean\t-\nformKey\t用于控制form 是否相同的key，高阶用法\tstring\t-\nautoFocusFirstInput\t自动 focus 表单第一个输入框，只对有 input 的类型有效\tboolean\ttrue\nreadonly\t是否只读模式，对所有表单项生效，优先低于表单项的 readonly\tboolean\t-\ngrid\t开启栅格化模式，宽度默认百分比，请使用 colProps 控制宽度 查看示例\tboolean\tfalse\nrowProps\t开启 grid 模式时传递给 Row, 仅在ProFormGroup, ProFormList, ProFormFieldSet 中有效\tRowProps\t{ gutter: 8 }\ncolProps\t开启 grid 模式时传递给 Col, 仅在ProFormGroup, ProFormList, ProFormFieldSet 中有效\tColProps\t{ xs: 24 }\n(...)\t注意 LightFilter 和 QueryFilter 仅支持除 wrapperCol | labelCol | layout 外的其他 antd Form 组件参数\t-\t-\nProFormInstance\n\nProFormInstance 与 antd 的 form 相比增加了一些能力。\n\ntsx\n/**\n   * 获取被 ProForm 格式化后的所有数据\n   * @param nameList boolean\n   * @param omitNil boolean 是否忽略 null 和 undefined\n   * @returns T\n   *\n   * @example  getFieldsFormatValue() ->返回所有数据\n   * @example  getFieldsFormatValue(true) ->返回所有数据，即使没有被 form 托管的\n   * @example  getFieldsFormatValue(true, true) ->返回所有数据，忽略 null 和 undefined\n   */\n  getFieldsFormatValue?: (nameList?: true, omitNil?: boolean) => T;\n  /**\n   * 获取被 ProForm 格式化后的单个数据\n   * @param nameList (string|number)[]\n   * @returns T\n   * @example {a:{b:value}} -> getFieldFormatValue(['a', 'b']) -> value\n   */\n  /** 获取格式化之后的单个数据 */\n  getFieldFormatValue?: (nameList?: NamePath) => T;\n  /**\n   * 获取被 ProForm 格式化后的单个数据, 包含他的 name\n   * @param nameList (string|number)[]\n   * @returns T\n   * @example\n   * {a:{b:value}} -> getFieldFormatValueObject(['a', 'b']) -> {a:{b:value}}\n   */\n  getFieldFormatValueObject?: (nameList?: NamePath) => T;\n  /**\n   *验字段后返回格式化之后的所有数据\n   * @param nameList (string|number)[]\n   * @returns T\n   *\n   * @example validateFieldsReturnFormatValue -> {a:{b:value}}\n   */\n  validateFieldsReturnFormatValue?: (nameList?: NamePath[]) => Promise<T>;\nProForm.Group\n参数\t说明\t类型\t默认值\ntitle\t标题\tstring\t-\nchildren\t表单控件或者其他元素\tReact.ReactNode\t-\nsubmitter\n\n虽然我们希望不要对 submitter 进行修改，但在使用中修改是很常见的需求，ProForm 的各个组件都使用了同样的 API 来支持需求。\n\n参数\t说明\t类型\t默认值\nonSubmit\t提交方法\t()=>void\t-\nonReset\t重置方法\t()=>void\t-\nsearchConfig\t搜索的配置，一般用来配置文本\t{resetText,submitText}\t-\nsubmitButtonProps\t提交按钮的 props\tButtonProps\t-\nresetButtonProps\t重置按钮的 props\tButtonProps\t-\nrender\t自定义操作的渲染\tfalse|(props,dom:JSX[])=>ReactNode[]\t-\n\nrender 的第二个参数是默认的 dom 数组，第一个是提交按钮，第二个是重置按钮。\n\ntsx\n<ProForm\n  submitter={{\n    // 配置按钮文本\n    searchConfig: {\n      resetText: '重置',\n      submitText: '提交',\n    },\n    // 配置按钮的属性\n    resetButtonProps: {\n      style: {\n        // 隐藏重置按钮\n        display: 'none',\n      },\n    },\n    submitButtonProps: {},\n\n// 完全自定义整个区域\n    render: (props, doms) => {\n      console.log(props);\n      return [\n        <button\n          type=\"button\"\n          key=\"rest\"\n          onClick={() => props.form?.resetFields()}\n        >\n          重置\n        </button>,\n        <button\n          type=\"button\"\n          key=\"submit\"\n          onClick={() => props.form?.submit?.()}\n        >\n          提交\n        </button>,\n      ];\n    },\n  }}\n/>\nformRef\n\n该属性是 ProForm 在原有的 Antd 的 FormInstance 的基础上做的一个上层分装，增加了一些更加便捷的方法。使用方式如下：",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "track": "dynamic",
+      "task_kind": "body",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "body_text",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "rule25-49b0d4f602b0",
+            "alternatives": [
+              "ProForm 是对 antd Form 的再封装"
+            ]
+          },
+          {
+            "id": "rule25-f6881eececaa",
+            "alternatives": [
+              "ProFormInstance 与 antd 的 form 相比增加了一些能力"
+            ]
+          },
+          {
+            "id": "rule25-d2b6055a3378",
+            "alternatives": [
+              "虽然我们希望不要对 submitter 进行修改，但在使用中修改是很常见的需求"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {
+        "version": 3,
+        "unit": "region_compact_hexagram_recall",
+        "minimum_coverage": 0.8,
+        "minimum_floor": 0.6,
+        "minimum_region_passes": 3,
+        "segmentation_method": "reviewed_sections",
+        "regions": [
+          {
+            "id": "body-region-1",
+            "text": "proform proform 是 对 antd form 的 再 封 装 如 果 你 想 要 自 定 义 表 单 元 素 proform 与 antd 的 方 法 是 相 同 的 你 仍 然 可 以 用 formitem 自 定 义 组 件 的 方 式 来 自 定 义 当 然 这 样 不 会 影 响 到 别 的 组 件 queryfilter 等 组 件 同 理 antd 的 form api 查 看 这 里 initialvalues 相 关 知 识 查 看 这 里",
+            "source_text": "ProForm\n\nProForm 是对 antd Form 的再封装，如果你想要自定义表单元素，ProForm 与 antd 的方法是相同的，你仍然可以用 FormItem + 自定义组件的方式来自定义。当然这样不会影响到别的组件，QueryFilter 等组件同理。\nantd 的 Form api 查看这里，initialValues 相关知识查看这里",
+            "segmentation_method": "reviewed_sections"
+          },
+          {
+            "id": "body-region-2",
+            "text": "参 数 说 明 类 型 默 认 值 onfinish 提 交 表 单 且 数 据 验 证 成 功 后 回 调 事 件 支 持 promise 会 自 动 设 置 按 钮 的 加 载 效 果 formdata t promise boolean void void onreset 点 击 重 置 按 钮 的 回 调 e void submitter 提 交 按 钮 相 关 配 置 submitterprops form forminstance any false true loading 表 单 按 钮 的 loading 状 态 boolean onloadingchange loading 状 态 改 变 时 的 回 调 loading boolean void formref 获 取 表 单 所 使 用 的 form proforminstance 相 比 antd form 增 加 了 格 式 化 数 据 的 方 法 react mutablerefobject proforminstance t nativeelement htmlelement focus void undefined react refobject proforminstance t nativeelement htmlelement focus void undefined synctourl 同 步 参 数 到 url 上 url 只 支 持 string 在 使 用 之 前 最 好 读 一 下 url 中 的 参 数 类 型 boolean values t type get set t synctourlasimportant 当 synctourl 为 true 在 页 面 回 显 示 时 以 url 上 的 参 数 为 主 默 认 为 false boolean false extraurlparams 额 外 的 url 参 数 record string any synctoinitialvalues 同 步 结 果 到 initialvalues 默 认 为 true 如 果 为 false form reset 的 时 候 将 会 忽 略 从 url 上 获 取 的 数 据 boolean true omitnil proform 会 自 动 清 空 null 和 undefined 的 数 据 如 果 你 约 定 了 nil 代 表 某 种 数 据 可 以 设 置 为 false 关 闭 此 功 能 boolean true dateformatter 自 动 格 式 化 数 据 主 要 是 dayjs 的 表 单 支 持 string 和 number 两 种 模 式 此 外 还 支 持 指 定 函 数 进 行 格 式 化 string string number value dayjs dayjs valuetype string string number false string oninit 表 单 初 始 化 成 功 比 如 布 局 label 等 计 算 完 成 values t form proforminstance any void params 发 起 网 络 请 求 的 参 数 与 request 配 合 使 用 u request 发 起 网 络 请 求 的 参 数 返 回 值 会 覆 盖 给 initialvalues prorequestdata t u iskeypresssubmit 是 否 使 用 回 车 提 交 boolean formkey 用 于 控 制 form 是 否 相 同 的 key 高 阶 用 法 string autofocusfirstinput 自 动 focus 表 单 第 一 个 输 入 框 只 对 有 input 的 类 型 有 效 boolean true readonly 是 否 只 读 模 式 对 所 有 表 单 项 生 效 优 先 低 于 表 单 项 的 readonly boolean grid 开 启 栅 格 化 模 式 宽 度 默 认 百 分 比 请 使 用 colprops 控 制 宽 度 查 看 示 例 boolean false rowprops 开 启 grid 模 式 时 传 递 给 row 仅 在 proformgroup proformlist proformfieldset 中 有 效 rowprops gutter 8 colprops 开 启 grid 模 式 时 传 递 给 col 仅 在 proformgroup proformlist proformfieldset 中 有 效 colprops xs 24 注 意 lightfilter 和 queryfilter 仅 支 持 除 wrappercol labelcol layout 外 的 其 他 antd form 组 件 参 数 proforminstance",
+            "source_text": "参数\t说明\t类型\t默认值\nonFinish\t提交表单且数据验证成功后回调事件，支持 Promise，会自动设置按钮的加载效果\t(formData: T) => Promise<boolean | void> | void\t-\nonReset\t点击重置按钮的回调\t(e) => void\t-\nsubmitter\t提交按钮相关配置\tSubmitterProps<{form?: FormInstance<any>}> | false\ttrue\nloading\t表单按钮的 loading 状态\tboolean\t-\nonLoadingChange\tloading 状态改变时的回调\t(loading: boolean) => void\t-\nformRef\t获取表单所使用的 form，ProFormInstance 相比 antd Form 增加了格式化数据的方法\tReact.MutableRefObject<(ProFormInstance<T> & { nativeElement?: HTMLElement; focus?: () => void }) | undefined> | React.RefObject<(ProFormInstance<T> & { nativeElement?: HTMLElement; focus?: () => void }) | undefined>\t-\nsyncToUrl\t同步参数到 url 上，url 只支持 string，在使用之前最好读一下url 中的参数类型\tboolean | ((values: T, type: 'get' | 'set') => T)\t-\nsyncToUrlAsImportant\t当 syncToUrl 为 true，在页面回显示时，以url上的参数为主，默认为false\tboolean\tfalse\nextraUrlParams\t额外的 url 参数\tRecord<string, any>\t-\nsyncToInitialValues\t同步结果到 initialValues，默认为 true，如果为 false，form.reset 的时候将会忽略从 url 上获取的数据\tboolean\ttrue\nomitNil\tProForm 会自动清空 null 和 undefined 的数据，如果你约定了 nil 代表某种数据，可以设置为 false 关闭此功能\tboolean\ttrue\ndateFormatter\t自动格式化数据，主要是 dayjs 的表单，支持 string 和 number 两种模式，此外还支持指定函数进行格式化。\tstring | 'string' | 'number' | ((value: dayjs.Dayjs, valueType: string) => string | number) | false\t'string'\nonInit\t表单初始化成功，比如布局，label等计算完成\t(values: T, form: ProFormInstance<any>) => void\t-\nparams\t发起网络请求的参数，与 request 配合使用\tU\t-\nrequest\t发起网络请求的参数，返回值会覆盖给 initialValues\tProRequestData<T, U>\t-\nisKeyPressSubmit\t是否使用回车提交\tboolean\t-\nformKey\t用于控制form 是否相同的key，高阶用法\tstring\t-\nautoFocusFirstInput\t自动 focus 表单第一个输入框，只对有 input 的类型有效\tboolean\ttrue\nreadonly\t是否只读模式，对所有表单项生效，优先低于表单项的 readonly\tboolean\t-\ngrid\t开启栅格化模式，宽度默认百分比，请使用 colProps 控制宽度 查看示例\tboolean\tfalse\nrowProps\t开启 grid 模式时传递给 Row, 仅在ProFormGroup, ProFormList, ProFormFieldSet 中有效\tRowProps\t{ gutter: 8 }\ncolProps\t开启 grid 模式时传递给 Col, 仅在ProFormGroup, ProFormList, ProFormFieldSet 中有效\tColProps\t{ xs: 24 }\n(...)\t注意 LightFilter 和 QueryFilter 仅支持除 wrapperCol | labelCol | layout 外的其他 antd Form 组件参数\t-\t-\nProFormInstance",
+            "segmentation_method": "reviewed_sections"
+          },
+          {
+            "id": "body-region-3",
+            "text": "proforminstance 与 antd 的 form 相 比 增 加 了 一 些 能 力 tsx 获 取 被 proform 格 式 化 后 的 所 有 数 据 param namelist boolean param omitnil boolean 是 否 忽 略 null 和 undefined returns t example getfieldsformatvalue 返 回 所 有 数 据 example getfieldsformatvalue true 返 回 所 有 数 据 即 使 没 有 被 form 托 管 的 example getfieldsformatvalue true true 返 回 所 有 数 据 忽 略 null 和 undefined getfieldsformatvalue namelist true omitnil boolean t 获 取 被 proform 格 式 化 后 的 单 个 数 据 param namelist string number returns t example a b value getfieldformatvalue a b value 获 取 格 式 化 之 后 的 单 个 数 据 getfieldformatvalue namelist namepath t 获 取 被 proform 格 式 化 后 的 单 个 数 据 包 含 他 的 name param namelist string number returns t example a b value getfieldformatvalueobject a b a b value getfieldformatvalueobject namelist namepath t 验 字 段 后 返 回 格 式 化 之 后 的 所 有 数 据 param namelist string number returns t example validatefieldsreturnformatvalue a b value validatefieldsreturnformatvalue namelist namepath promise t proform group 参 数 说 明 类 型 默 认 值 title 标 题 string children 表 单 控 件 或 者 其 他 元 素 react reactnode submitter",
+            "source_text": "ProFormInstance 与 antd 的 form 相比增加了一些能力。\n\ntsx\n/**\n   * 获取被 ProForm 格式化后的所有数据\n   * @param nameList boolean\n   * @param omitNil boolean 是否忽略 null 和 undefined\n   * @returns T\n   *\n   * @example  getFieldsFormatValue() ->返回所有数据\n   * @example  getFieldsFormatValue(true) ->返回所有数据，即使没有被 form 托管的\n   * @example  getFieldsFormatValue(true, true) ->返回所有数据，忽略 null 和 undefined\n   */\n  getFieldsFormatValue?: (nameList?: true, omitNil?: boolean) => T;\n  /**\n   * 获取被 ProForm 格式化后的单个数据\n   * @param nameList (string|number)[]\n   * @returns T\n   * @example {a:{b:value}} -> getFieldFormatValue(['a', 'b']) -> value\n   */\n  /** 获取格式化之后的单个数据 */\n  getFieldFormatValue?: (nameList?: NamePath) => T;\n  /**\n   * 获取被 ProForm 格式化后的单个数据, 包含他的 name\n   * @param nameList (string|number)[]\n   * @returns T\n   * @example\n   * {a:{b:value}} -> getFieldFormatValueObject(['a', 'b']) -> {a:{b:value}}\n   */\n  getFieldFormatValueObject?: (nameList?: NamePath) => T;\n  /**\n   *验字段后返回格式化之后的所有数据\n   * @param nameList (string|number)[]\n   * @returns T\n   *\n   * @example validateFieldsReturnFormatValue -> {a:{b:value}}\n   */\n  validateFieldsReturnFormatValue?: (nameList?: NamePath[]) => Promise<T>;\nProForm.Group\n参数\t说明\t类型\t默认值\ntitle\t标题\tstring\t-\nchildren\t表单控件或者其他元素\tReact.ReactNode\t-\nsubmitter",
+            "segmentation_method": "reviewed_sections"
+          },
+          {
+            "id": "body-region-4",
+            "text": "虽 然 我 们 希 望 不 要 对 submitter 进 行 修 改 但 在 使 用 中 修 改 是 很 常 见 的 需 求 proform 的 各 个 组 件 都 使 用 了 同 样 的 api 来 支 持 需 求 参 数 说 明 类 型 默 认 值 onsubmit 提 交 方 法 void onreset 重 置 方 法 void searchconfig 搜 索 的 配 置 一 般 用 来 配 置 文 本 resettext submittext submitbuttonprops 提 交 按 钮 的 props buttonprops resetbuttonprops 重 置 按 钮 的 props buttonprops render 自 定 义 操 作 的 渲 染 false props dom jsx reactnode render 的 第 二 个 参 数 是 默 认 的 dom 数 组 第 一 个 是 提 交 按 钮 第 二 个 是 重 置 按 钮 tsx proform submitter 配 置 按 钮 文 本 searchconfig resettext 重 置 submittext 提 交 配 置 按 钮 的 属 性 resetbuttonprops style 隐 藏 重 置 按 钮 display none submitbuttonprops 完 全 自 定 义 整 个 区 域 render props doms console log props return button type button key rest onclick props form resetfields 重 置 button button type button key submit onclick props form submit 提 交 button formref 该 属 性 是 proform 在 原 有 的 antd 的 forminstance 的 基 础 上 做 的 一 个 上 层 分 装 增 加 了 一 些 更 加 便 捷 的 方 法 使 用 方 式 如 下",
+            "source_text": "虽然我们希望不要对 submitter 进行修改，但在使用中修改是很常见的需求，ProForm 的各个组件都使用了同样的 API 来支持需求。\n\n参数\t说明\t类型\t默认值\nonSubmit\t提交方法\t()=>void\t-\nonReset\t重置方法\t()=>void\t-\nsearchConfig\t搜索的配置，一般用来配置文本\t{resetText,submitText}\t-\nsubmitButtonProps\t提交按钮的 props\tButtonProps\t-\nresetButtonProps\t重置按钮的 props\tButtonProps\t-\nrender\t自定义操作的渲染\tfalse|(props,dom:JSX[])=>ReactNode[]\t-\n\nrender 的第二个参数是默认的 dom 数组，第一个是提交按钮，第二个是重置按钮。\n\ntsx\n<ProForm\n  submitter={{\n    // 配置按钮文本\n    searchConfig: {\n      resetText: '重置',\n      submitText: '提交',\n    },\n    // 配置按钮的属性\n    resetButtonProps: {\n      style: {\n        // 隐藏重置按钮\n        display: 'none',\n      },\n    },\n    submitButtonProps: {},\n\n// 完全自定义整个区域\n    render: (props, doms) => {\n      console.log(props);\n      return [\n        <button\n          type=\"button\"\n          key=\"rest\"\n          onClick={() => props.form?.resetFields()}\n        >\n          重置\n        </button>,\n        <button\n          type=\"button\"\n          key=\"submit\"\n          onClick={() => props.form?.submit?.()}\n        >\n          提交\n        </button>,\n      ];\n    },\n  }}\n/>\nformRef\n\n该属性是 ProForm 在原有的 Antd 的 FormInstance 的基础上做的一个上层分装，增加了一些更加便捷的方法。使用方式如下：",
+            "segmentation_method": "reviewed_sections"
+          }
+        ]
+      },
+      "source_verification": {
+        "state": "valid",
+        "method": "Independent first-load rendered visible target and initial HTTP response",
+        "checked_at": "2026-09-23T11:46:52.955266+00:00",
+        "verification_scope": "main, .markdown",
+        "initial_response_sha256": "59016c35b581f0641e593ee0c3649c50082de2b4ef1c3299553dc40f6d6a0bab",
+        "rendered_target_sha256": "737157c11c3e204235441cf7a68e5e751fb2dff8d77a61c770c4ba46fe04d433",
+        "reference_sha256": "737157c11c3e204235441cf7a68e5e751fb2dff8d77a61c770c4ba46fe04d433",
+        "rule_sha256": "fb9f1d430ac8414df8f263faae947f69cb285cd0ea16e18086d1aefad7b747e4",
+        "review_evidence_sha256": "fe71f64e3197cb6b95bfbfe04c694024726cca91551859a677e7884a8c969a8d"
+      },
+      "rule_review": {
+        "status": "resolved",
+        "case_class": "stable_body",
+        "provider_output_used": false,
+        "independent_review_revision": "independent-r9-20260924"
+      }
+    },
+    {
+      "id": "replacement-en-mui-sorting",
+      "name": "en mui sorting",
+      "url": "https://mui.com/x/react-data-grid/sorting/",
+      "evaluation_url": "https://mui.com/x/react-data-grid/sorting/",
+      "expected_final_url": "https://mui.com/x/react-data-grid/sorting/",
+      "target_language": "en-US",
+      "expected_document_language": "",
+      "target_region": "US",
+      "category": "Dynamic websites",
+      "description": "目标是 MUI Data Grid 排序文档。四个自然正文区域可识别排序功能及配置，不依赖演示行值；原规则可用。",
+      "expected_any": [],
+      "required_facts": [],
+      "forbidden_any": [],
+      "min_content_chars": 1,
+      "ground_truth_main_content": "Data Grid - SortingEasily sort your rows based on one or several criteria.\nSorting is enabled by default to the Data Grid users and works out of the box without any explicit configuration.\nUsers can set a sorting rule simply by clicking on a column header.\nFollowing clicks change the column's sorting direction. You can see the applied direction on the header's arrow indicator.\nThe Data Grid can only sort the rows according to one criterion at a time.\nTo use multi-sorting, you need to upgrade to Pro plan or above.\nMulti-sorting The following demo lets you sort the rows according to several criteria at the same time.\nBy default, users need to hold down the Ctrl or Shift (use ⌘ Command on macOS) key while clicking the column header.\nThis lets users click on multiple column headers to add them as sorting criteria without needing to hold down modifier keys.\ninitialState={initialState}\n\nmultipleColumnsSortingMode=\"always\"\n/>Press Enter to start editingPass sorting rules to the Data GridStructure of the modelThe sort model is a list of sorting items.\n\nEach item represents a sorting rule and is composed of several elements:\nsortingItem.field: the field on which the rule applies.\nsortingItem.sort: the direction of the sorting ('asc', 'desc', null or undefined). If null or undefined, the rule doesn't apply.\nInitialize the sort modelSorting is enabled by default to the user.\nBut if you want to set an initial sorting order, simply provide the model to the initialState prop.\n\nsortModel: [{ field: 'rating', sort: 'desc' }],\nYou can use the onSortModelChange prop to listen to changes in the sorting rules and update the prop accordingly.\n\n<DataGrid disableColumnSorting />\nTo disable sorting on a column, set the sortable property of GridColDef to false.\nIn the following demo, the user cannot sort the rating column from the UI.\n\n<DataGrid columns={[...columns, { field: 'rating', sortable: false }]} />\nIn the following demo, the firstName column is not sortable by the default grid UI, but it is sorted programmatically by a custom built UI.\nAscendingDescendingNoneIDFirst nameLast nameAge6Melisandre1504AryaStark112CerseiLannister315DaenerysTargaryen7FerraraClifford449HarveyRoxie653JaimeLannister311JonSnow148RossiniFrances36Rows per page:1001–9 of 9 Edit in ChatJSTSShow codeCustom comparatorA comparator determines how two cell values should be sorted.\nEach column type comes with a default comparator method.\nYou can re-use them by importing the following functions:\ngridStringOrNumberComparator (used by the string and singleSelect columns)\n\ngridNumberComparator (used by the number and boolean columns)\n\ngridDateComparator (used by the date and date-time columns)\nTo extend or modify this behavior in a specific column, you can pass in a custom comparator, and override the sortComparator property of the GridColDef interface.\nCreate a comparator from scratchIn the following demo, the \"Created on\" column sorting is based on the day of the month of the createdOn field.\nIt is a fully custom sorting comparator.\nThe sorting is based on isAdmin and then on name, if necessary. It re-uses the built-in sorting comparator.\nWhile this is sufficient for most use cases, it is possible to define an asymmetric comparator using the getSortComparator() function – it receives the sorting direction as an argument and returns a comparator function.\nIn the demo below, the getSortComparator() function is used in the \"Quantity\" column to keep the null values at the bottom when sorting is applied (regardless of the sorting direction):\nconst sortingOrder = ['asc', 'desc', null];\nIn practice, when you click a column that is not sorted, it will sort ascending (asc).\nThe next click will make it sort descending (desc). Another click will remove the sort (null), reverting to the order that the data was provided in.\nFor all columnsThe default sort order can be overridden for all columns with the sortingOrder prop.\nIn the following demo, columns are only sortable in descending or ascending order.\n\nconst columns: GridColDef = [\n{ field: 'rating', sortingOrder: ['desc', 'asc', null] },\nsortingMode=\"server\"",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "track": "dynamic",
+      "task_kind": "body",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "body_text",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "rule25-8c14a2a41ffa",
+            "alternatives": [
+              "Data Grid - Sorting"
+            ]
+          },
+          {
+            "id": "rule25-8f2f1c92439c",
+            "alternatives": [
+              "Sorting is enabled by default to the Data Grid users and works out of the box without any explicit configuration."
+            ]
+          },
+          {
+            "id": "rule25-62ec7700f2c4",
+            "alternatives": [
+              "Single and multi-sorting"
+            ]
+          }
+        ]
+      },
+      "body_requirements": {
+        "version": 3,
+        "unit": "region_compact_hexagram_recall",
+        "minimum_coverage": 0.8,
+        "minimum_floor": 0.6,
+        "minimum_region_passes": 3,
+        "segmentation_method": "declared_sections",
+        "regions": [
+          {
+            "id": "body-region-1",
+            "text": "data grid sortingeasily sort your rows based on one or several criteria sorting is enabled by default to the data grid users and works out of the box without any explicit configuration users can set a sorting rule simply by clicking on a column header following clicks change the column s sorting direction you can see the applied direction on the header s arrow indicator the data grid can only sort the rows according to one criterion at a time to use multi sorting you need to upgrade to pro plan or above multi sorting the following demo lets you sort the rows according to several criteria at the same time by default users need to hold down the ctrl or shift use command on macos key while clicking the column header this lets users click on multiple column headers to add them as sorting criteria without needing to hold down modifier keys initialstate initialstate",
+            "source_text": "Data Grid - SortingEasily sort your rows based on one or several criteria.\nSorting is enabled by default to the Data Grid users and works out of the box without any explicit configuration.\nUsers can set a sorting rule simply by clicking on a column header.\nFollowing clicks change the column's sorting direction. You can see the applied direction on the header's arrow indicator.\nThe Data Grid can only sort the rows according to one criterion at a time.\nTo use multi-sorting, you need to upgrade to Pro plan or above.\nMulti-sorting The following demo lets you sort the rows according to several criteria at the same time.\nBy default, users need to hold down the Ctrl or Shift (use ⌘ Command on macOS) key while clicking the column header.\nThis lets users click on multiple column headers to add them as sorting criteria without needing to hold down modifier keys.\ninitialState={initialState}",
+            "segmentation_method": "declared_sections"
+          },
+          {
+            "id": "body-region-2",
+            "text": "multiplecolumnssortingmode always press enter to start editingpass sorting rules to the data gridstructure of the modelthe sort model is a list of sorting items each item represents a sorting rule and is composed of several elements sortingitem field the field on which the rule applies sortingitem sort the direction of the sorting asc desc null or undefined if null or undefined the rule doesn t apply initialize the sort modelsorting is enabled by default to the user but if you want to set an initial sorting order simply provide the model to the initialstate prop sortmodel field rating sort desc you can use the onsortmodelchange prop to listen to changes in the sorting rules and update the prop accordingly datagrid disablecolumnsorting to disable sorting on a column set the sortable property of gridcoldef to false in the following demo the user cannot sort the rating column from the ui",
+            "source_text": "multipleColumnsSortingMode=\"always\"\n/>Press Enter to start editingPass sorting rules to the Data GridStructure of the modelThe sort model is a list of sorting items.\n\nEach item represents a sorting rule and is composed of several elements:\nsortingItem.field: the field on which the rule applies.\nsortingItem.sort: the direction of the sorting ('asc', 'desc', null or undefined). If null or undefined, the rule doesn't apply.\nInitialize the sort modelSorting is enabled by default to the user.\nBut if you want to set an initial sorting order, simply provide the model to the initialState prop.\n\nsortModel: [{ field: 'rating', sort: 'desc' }],\nYou can use the onSortModelChange prop to listen to changes in the sorting rules and update the prop accordingly.\n\n<DataGrid disableColumnSorting />\nTo disable sorting on a column, set the sortable property of GridColDef to false.\nIn the following demo, the user cannot sort the rating column from the UI.",
+            "segmentation_method": "declared_sections"
+          },
+          {
+            "id": "body-region-3",
+            "text": "datagrid columns columns field rating sortable false in the following demo the firstname column is not sortable by the default grid ui but it is sorted programmatically by a custom built ui ascendingdescendingnoneidfirst namelast nameage6melisandre1504aryastark112cerseilannister315daenerystargaryen7ferraraclifford449harveyroxie653jaimelannister311jonsnow148rossinifrances36rows per page 1001 9 of 9 edit in chatjstsshow codecustom comparatora comparator determines how two cell values should be sorted each column type comes with a default comparator method you can re use them by importing the following functions gridstringornumbercomparator used by the string and singleselect columns gridnumbercomparator used by the number and boolean columns",
+            "source_text": "<DataGrid columns={[...columns, { field: 'rating', sortable: false }]} />\nIn the following demo, the firstName column is not sortable by the default grid UI, but it is sorted programmatically by a custom built UI.\nAscendingDescendingNoneIDFirst nameLast nameAge6Melisandre1504AryaStark112CerseiLannister315DaenerysTargaryen7FerraraClifford449HarveyRoxie653JaimeLannister311JonSnow148RossiniFrances36Rows per page:1001–9 of 9 Edit in ChatJSTSShow codeCustom comparatorA comparator determines how two cell values should be sorted.\nEach column type comes with a default comparator method.\nYou can re-use them by importing the following functions:\ngridStringOrNumberComparator (used by the string and singleSelect columns)\n\ngridNumberComparator (used by the number and boolean columns)",
+            "segmentation_method": "declared_sections"
+          },
+          {
+            "id": "body-region-4",
+            "text": "griddatecomparator used by the date and date time columns to extend or modify this behavior in a specific column you can pass in a custom comparator and override the sortcomparator property of the gridcoldef interface create a comparator from scratchin the following demo the created on column sorting is based on the day of the month of the createdon field it is a fully custom sorting comparator the sorting is based on isadmin and then on name if necessary it re uses the built in sorting comparator while this is sufficient for most use cases it is possible to define an asymmetric comparator using the getsortcomparator function it receives the sorting direction as an argument and returns a comparator function in the demo below the getsortcomparator function is used in the quantity column to keep the null values at the bottom when sorting is applied regardless of the sorting direction const sortingorder asc desc null in practice when you click a column that is not sorted it will sort ascending asc the next click will make it sort descending desc another click will remove the sort null reverting to the order that the data was provided in for all columnsthe default sort order can be overridden for all columns with the sortingorder prop in the following demo columns are only sortable in descending or ascending order const columns gridcoldef field rating sortingorder desc asc null sortingmode server",
+            "source_text": "gridDateComparator (used by the date and date-time columns)\nTo extend or modify this behavior in a specific column, you can pass in a custom comparator, and override the sortComparator property of the GridColDef interface.\nCreate a comparator from scratchIn the following demo, the \"Created on\" column sorting is based on the day of the month of the createdOn field.\nIt is a fully custom sorting comparator.\nThe sorting is based on isAdmin and then on name, if necessary. It re-uses the built-in sorting comparator.\nWhile this is sufficient for most use cases, it is possible to define an asymmetric comparator using the getSortComparator() function – it receives the sorting direction as an argument and returns a comparator function.\nIn the demo below, the getSortComparator() function is used in the \"Quantity\" column to keep the null values at the bottom when sorting is applied (regardless of the sorting direction):\nconst sortingOrder = ['asc', 'desc', null];\nIn practice, when you click a column that is not sorted, it will sort ascending (asc).\nThe next click will make it sort descending (desc). Another click will remove the sort (null), reverting to the order that the data was provided in.\nFor all columnsThe default sort order can be overridden for all columns with the sortingOrder prop.\nIn the following demo, columns are only sortable in descending or ascending order.\n\nconst columns: GridColDef = [\n{ field: 'rating', sortingOrder: ['desc', 'asc', null] },\nsortingMode=\"server\"",
+            "segmentation_method": "declared_sections"
+          }
+        ]
+      },
+      "source_verification": {
+        "state": "valid",
+        "method": "Independent first-load rendered visible target and initial HTTP response",
+        "checked_at": "2026-09-23T10:54:21.274544+00:00",
+        "verification_scope": "main",
+        "initial_response_sha256": "b3e1f0fec14acbf436532331fca653f5c22cf64dbcb5a1c31e1a560033c9d438",
+        "rendered_target_sha256": "6ccacc2c43a2f91945a976704d146731b1f2c0a734858445331b194af7777240",
+        "reference_sha256": "88454719b55a31ab0623c8ba247e2d31a504bfd392cde831c8738086e1aa90ce",
+        "rule_sha256": "885655d208e860b7a0b2a25314847721d196d634d9f76fa2252a011f85072303",
+        "review_evidence_sha256": "fe71f64e3197cb6b95bfbfe04c694024726cca91551859a677e7884a8c969a8d"
+      },
+      "rule_review": {
+        "status": "resolved",
+        "case_class": "stable_body",
+        "provider_output_used": false,
+        "independent_review_revision": "independent-r9-20260924"
+      }
+    },
+    {
+      "id": "replacement-fix3-fr-fr-datapass-stats",
+      "name": "fix3 fr fr datapass stats",
+      "url": "https://datapass.api.gouv.fr/stats",
+      "evaluation_url": "https://datapass.api.gouv.fr/stats",
+      "expected_final_url": "https://datapass.api.gouv.fr/stats",
+      "target_language": "fr-FR",
+      "expected_document_language": "",
+      "target_region": "FR",
+      "category": "Dynamic websites",
+      "description": "目标是法语 DataPass 统计页。稳定说明正文加必需指标标签和值，数值本身不冻结；去掉数值不能通过，原规则可用。",
+      "expected_any": [],
+      "required_facts": [],
+      "forbidden_any": [],
+      "min_content_chars": 1,
+      "ground_truth_main_content": "Demandes soumises. Demandes validées. Demandes refusées.\n\nDurée de remplissage d’une nouvelle demande. 50% durent moins de. 80% durent moins de.\n\nDélai de première réponse à une demande. 50% au bout de. 80% au bout de.\n\nDélai de réponse définitive à une demande. 50% au bout de. 80% au bout de.\n\nÉvolution des demandes en attente de réponse. Transcription.",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "track": "dynamic",
+      "task_kind": "body",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "body_text",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "rule25-0bf844218b02",
+            "alternatives": [
+              "Statistiques DataPass"
+            ]
+          },
+          {
+            "id": "rule25-4802d191f83c",
+            "alternatives": [
+              "Demandes soumises"
+            ]
+          },
+          {
+            "id": "rule25-8bf1e5b90db4",
+            "alternatives": [
+              "Évolution des demandes en attente de réponse"
+            ]
+          }
+        ],
+        "page_patterns": [
+          "Demandes\\s+soumises(?:[^\\S\\r\\n]|[#>*_`])*(?:\\r?\\n(?:[^\\S\\r\\n]|[#>*_`])*){1,4}[0-9][0-9\\s.,]*(?=\\r?\\n|$)",
+          "Demandes\\s+validées(?:[^\\S\\r\\n]|[#>*_`])*(?:\\r?\\n(?:[^\\S\\r\\n]|[#>*_`])*){1,4}[0-9][0-9\\s.,]*(?=\\r?\\n|$)",
+          "Demandes\\s+refusées(?:[^\\S\\r\\n]|[#>*_`])*(?:\\r?\\n(?:[^\\S\\r\\n]|[#>*_`])*){1,4}[0-9][0-9\\s.,]*(?=\\r?\\n|$)",
+          "Durée\\s+de\\s+remplissage\\s+d’une\\s+nouvelle\\s+demande(?:[^\\S\\r\\n]|[#>*_`])*(?:\\r?\\n(?:[^\\S\\r\\n]|[#>*_`])*){1,4}50%\\s+durent\\s+moins\\s+de(?:[^\\S\\r\\n]|[#>*_`])*(?:\\r?\\n(?:[^\\S\\r\\n]|[#>*_`])*){1,4}[0-9]+\\s+(?:minute|minutes|heure|heures)(?=\\r?\\n|$)",
+          "Délai\\s+de\\s+première\\s+réponse\\s+à\\s+une\\s+demande(?:[^\\S\\r\\n]|[#>*_`])*(?:\\r?\\n(?:[^\\S\\r\\n]|[#>*_`])*){1,4}50%\\s+au\\s+bout\\s+de(?:[^\\S\\r\\n]|[#>*_`])*(?:\\r?\\n(?:[^\\S\\r\\n]|[#>*_`])*){1,4}[0-9]+\\s+(?:jour|jours|heure|heures)(?=\\r?\\n|$)",
+          "Délai\\s+de\\s+réponse\\s+définitive\\s+à\\s+une\\s+demande(?:[^\\S\\r\\n]|[#>*_`])*(?:\\r?\\n(?:[^\\S\\r\\n]|[#>*_`])*){1,4}50%\\s+au\\s+bout\\s+de(?:[^\\S\\r\\n]|[#>*_`])*(?:\\r?\\n(?:[^\\S\\r\\n]|[#>*_`])*){1,4}[0-9]+\\s+(?:jour|jours|heure|heures)(?=\\r?\\n|$)"
+        ]
+      },
+      "body_requirements": {
+        "version": 3,
+        "unit": "region_compact_hexagram_recall",
+        "minimum_coverage": 0.8,
+        "minimum_floor": 0.6,
+        "minimum_region_passes": 1,
+        "segmentation_method": "paragraphs",
+        "regions": [
+          {
+            "id": "body-region-1",
+            "text": "demandes soumises demandes validées demandes refusées durée de remplissage d une nouvelle demande 50 durent moins de 80 durent moins de",
+            "source_text": "Demandes soumises. Demandes validées. Demandes refusées.\n\nDurée de remplissage d’une nouvelle demande. 50% durent moins de. 80% durent moins de.",
+            "segmentation_method": "paragraphs"
+          },
+          {
+            "id": "body-region-2",
+            "text": "délai de première réponse à une demande 50 au bout de 80 au bout de délai de réponse définitive à une demande 50 au bout de 80 au bout de évolution des demandes en attente de réponse transcription",
+            "source_text": "Délai de première réponse à une demande. 50% au bout de. 80% au bout de.\n\nDélai de réponse définitive à une demande. 50% au bout de. 80% au bout de.\n\nÉvolution des demandes en attente de réponse. Transcription.",
+            "segmentation_method": "paragraphs"
+          }
+        ]
+      },
+      "source_verification": {
+        "state": "valid",
+        "method": "Independent first-load rendered visible target and initial HTTP response",
+        "checked_at": "2026-09-23T12:08:44.965379+00:00",
+        "verification_scope": "main#content",
+        "initial_response_sha256": "0edbdcc9a7fe441a07be2b975f6a25f8842b312a571354ce992121cd49822a58",
+        "rendered_target_sha256": "033e076a2a107d4b39ee7616e87a7f1e57f4030e19981e7e1e9fa2d93e8719f3",
+        "reference_sha256": "1cbdbf0068b4ec8f03e3ac60304554f92969974be46b0a967b216e8b385a0fad",
+        "rule_sha256": "9554e15d81764b8b74eead141b0cd4656bd173d2570c7979e186919b55c433f2",
+        "review_evidence_sha256": "fe71f64e3197cb6b95bfbfe04c694024726cca91551859a677e7884a8c969a8d"
+      },
+      "rule_review": {
+        "status": "resolved",
+        "case_class": "stable_body",
+        "provider_output_used": false,
+        "independent_review_revision": "independent-r9-20260924"
+      }
+    },
+    {
+      "id": "replacement-ja-nintendo-mario",
+      "name": "ja nintendo mario",
+      "url": "https://www.nintendo.com/jp/search/index.html?q=Mario",
+      "evaluation_url": "https://www.nintendo.com/jp/search/index.html?q=Mario",
+      "expected_final_url": "https://www.nintendo.com/jp/search/index.html?q=Mario",
+      "target_language": "ja-JP",
+      "expected_document_language": "",
+      "target_region": "JP",
+      "category": "Dynamic websites",
+      "description": "目标是日文 Mario 搜索结果的软件详情。原规则把页面外链接和正在加载区域凑数，且与 Zelda 共用泛化锚点；只计实际软件结果的8个不同详情页，最低7个，并核对 q=Mario 页面身份。",
+      "expected_any": [],
+      "required_facts": [],
+      "forbidden_any": [],
+      "min_content_chars": 1,
+      "ground_truth_main_content": "",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "track": "dynamic",
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "named_link",
+        "minimum_records": 7,
+        "hosts": [
+          "www.nintendo.com",
+          "www.nintendo.co.jp",
+          "store-jp.nintendo.com"
+        ],
+        "entry_path": "/(?:jp/(?:games/(?:switch2|zelda)/[^?#]+|switch/[^?#]+|my-mario/app/index\\.html)|item/software/D[0-9]+|zelda/[^?#]+|character/zelda/[^?#]+|switch/[^?#]+)",
+        "stable_text_anchors": [
+          {
+            "id": "rule25-740e4325c2c2",
+            "alternatives": [
+              "ゲームソフトをさがす"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "rule25-112f4528726b",
+            "alternatives": [
+              "ページをさがす"
+            ],
+            "match_scope": "non_record_lines"
+          },
+          {
+            "id": "rule25-0e3206dde854",
+            "alternatives": [
+              "すべてのページ"
+            ],
+            "match_scope": "non_record_lines"
+          }
+        ],
+        "entry_scope": {
+          "html_selector": ".nc3-as-result--soft:not(.is-loading) a[href]",
+          "start_pattern": "^ゲームソフトをさがす\\s*$",
+          "end_pattern": "^すべて見る"
+        }
+      },
+      "body_requirements": {},
+      "source_verification": {
+        "state": "valid",
+        "method": "Independent first-load rendered visible target and initial HTTP response",
+        "checked_at": "2026-09-23T10:54:25.125981+00:00",
+        "verification_scope": ".nc3-as-result--soft, main, body",
+        "initial_response_sha256": "977a9a509e767d5a0723f918221074aa75b8266ea50da6e32364269431d33d15",
+        "rendered_target_sha256": "6d62fca08b72ad26e79cea741eedb4b50848f83768b47b588f0bc5756cff7e53",
+        "reference_sha256": null,
+        "rule_sha256": "4a743db3413d99187e6099d8206f7db372cbee5dc4070b50681b4aa5c04e0863",
+        "review_evidence_sha256": "fe71f64e3197cb6b95bfbfe04c694024726cca91551859a677e7884a8c969a8d"
+      },
+      "rule_review": {
+        "status": "resolved",
+        "case_class": "changing_list",
+        "provider_output_used": false,
+        "independent_review_revision": "independent-r9-20260924"
+      }
+    },
+    {
+      "id": "replacement-fix2-ar-mantine-rtl",
+      "name": "fix2 ar mantine rtl",
+      "url": "https://orwa-mahmoud.github.io/adapttable/demo/mantine/rtl/",
+      "evaluation_url": "https://orwa-mahmoud.github.io/adapttable/demo/mantine/rtl/",
+      "expected_final_url": "https://orwa-mahmoud.github.io/adapttable/demo/mantine/rtl/",
+      "target_language": "ar",
+      "expected_document_language": "en",
+      "target_region": "global",
+      "category": "Dynamic websites",
+      "description": "目标是阿拉伯语 Mantine RTL 表格。原正文相似度在预算整列丢失时仍通过；现在要求同一行的人名、状态、双年份时间线、美元预算和进度，五行至少四行。HTML 声明 lang=en。",
+      "expected_any": [],
+      "required_facts": [],
+      "forbidden_any": [],
+      "min_content_chars": 1,
+      "ground_truth_main_content": "",
+      "task_prompt": "Fetch the declared public page and return its first-load target content as Markdown.",
+      "track": "dynamic",
+      "task_kind": "structure",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "table_row",
+        "minimum_records": 4,
+        "stable_text_anchors": [
+          {
+            "id": "rule25-4572423beba1",
+            "alternatives": [
+              "الشخص"
+            ]
+          },
+          {
+            "id": "rule25-85e1aba54cb0",
+            "alternatives": [
+              "الجدول الزمني"
+            ]
+          },
+          {
+            "id": "rule25-b8e06be133ff",
+            "alternatives": [
+              "الميزانية"
+            ]
+          }
+        ],
+        "table_columns": [
+          {
+            "name": "person",
+            "label": "الشخص",
+            "type": "text"
+          },
+          {
+            "name": "status",
+            "label": "الحالة",
+            "type": "text"
+          },
+          {
+            "name": "timeline",
+            "label": "الجدول الزمني",
+            "type": "text",
+            "pattern": "[\\s\\S]*\\d{4}[\\s\\S]*\\d{4}[\\s\\S]*"
+          },
+          {
+            "name": "budget",
+            "label": "الميزانية",
+            "type": "text",
+            "pattern": "[\\u200e\\u200f\\s]*\\d[\\d,]*\\s*US\\$"
+          },
+          {
+            "name": "progress",
+            "label": "الحمل",
+            "type": "token",
+            "pattern": ".*%.*"
+          }
+        ],
+        "record_identity_fields": [
+          "person"
+        ],
+        "table_scope": {
+          "row_selector": "table tbody tr",
+          "cell_selector": "td",
+          "start_pattern": "^الشخص\\s*$",
+          "end_pattern": "^Powered by",
+          "plain_row_pattern": "^(?P<person>[^\\t]+)\\t(?P<status>[^\\t]+)\\t(?P<timeline>[^\\t]+)\\t(?P<budget>[^\\t]+)\\t(?P<progress>[^\\t]+)$",
+          "plain_multiline_row_pattern": "(?m)^[^\\n]{1,4}\\n(?P<person>[^\\n]+)\\n[^\\n]+\\n\\n(?P<status>[^\\n]+)\\n\\n(?P<timeline>\\d+[^\\n]+\\n→[^\\n]+)\\n\\s*(?P<budget>[^\\n]+)\\n\\n(?P<progress>[^\\n]+)"
+        }
+      },
+      "body_requirements": {},
+      "source_verification": {
+        "state": "valid",
+        "method": "Independent first-load rendered visible target and initial HTTP response",
+        "checked_at": "2026-09-23T10:54:46.696399+00:00",
+        "verification_scope": "main table, table",
+        "initial_response_sha256": "c8b8acd918dec4b3a224a3a0fa3c6e26fbcc8a98c084b81db5d6c27184b76a3a",
+        "rendered_target_sha256": "a55b512b2b551256fcbc86f1fe376ef848d02f7233f6cf61a3c1bd51f666759d",
+        "reference_sha256": null,
+        "rule_sha256": "553b82d15f9a595614b606a6e4040764a60ef4369ec1dc71dd261d2ad810a733",
+        "review_evidence_sha256": "fe71f64e3197cb6b95bfbfe04c694024726cca91551859a677e7884a8c969a8d"
+      },
+      "rule_review": {
+        "status": "resolved",
+        "case_class": "structured_rows",
+        "provider_output_used": false,
+        "independent_review_revision": "independent-r9-20260924"
+      }
+    }
+  ],
+  "current_runtime": {
+    "provider": "moli-webfetch",
+    "reported_version": "moli 1.1.9",
+    "binary_sha256": "79699e50476118a7a5d1a36775f52d4106801fd5bc803727fd317501faa840cd"
+  }
+}

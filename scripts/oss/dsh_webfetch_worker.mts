@@ -53,6 +53,8 @@ for await (const line of rl) {
   if (!line.trim()) continue;
   const request = JSON.parse(line);
   dnsTraces = [];
+  const debug = (event: string, fields: any = {}) => { if (request.log_level === "debug") process.stderr.write(JSON.stringify({ source: "caller_worker", event, at: new Date().toISOString(), ...fields }) + "\n"); };
+  debug("native_tool_invocation_started", { url: request.url, internal_debug: "not_exposed_by_locked_fetch_implementation" });
   try {
     const { ctx, maxBytes, timeoutMs, dnsMode } = await contextFor(request);
     const controller = new AbortController();
@@ -70,6 +72,7 @@ for await (const line of rl) {
     }
     const { projectDeclaredFetch } = await import(pathToFileURL(path.join(process.env.BROWSER_EVAL_HARNESS_ROOT!, "scripts/oss/dsh_output.mjs")).href);
     const projected = projectDeclaredFetch(out);
+    debug("native_tool_returned", { ok: projected.ok, body_kind: projected.source_body_kind, dns_resolutions: dnsTraces });
     process.stdout.write(JSON.stringify({
       ...projected,
       raw_tool_response: out,
@@ -81,6 +84,7 @@ for await (const line of rl) {
     }) + "\n");
   } catch (error: any) {
     const message = String(error?.message ?? error);
+    debug("native_tool_error", { name: error?.name, message, stack: error?.stack });
     process.stdout.write(JSON.stringify({
       ok: false,
       raw_tool_error: { name: error?.name, message, code: error?.code },

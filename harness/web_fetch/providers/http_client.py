@@ -9,6 +9,7 @@ from email.message import Message
 from typing import Any
 
 from ..safety import validate_http_url
+from ..diagnostics import emit
 
 
 @dataclass
@@ -61,6 +62,7 @@ def request(
         data = json.dumps(json_body).encode("utf-8")
         final_headers.setdefault("Content-Type", "application/json")
     req = urllib.request.Request(url, data=data, headers=final_headers, method=method)
+    emit("http_request_started", url=url, method=method, headers=final_headers, json_body=json_body, timeout=timeout)
     try:
         response = urllib.request.build_opener(HttpOnlyRedirectHandler()).open(req, timeout=timeout)
     except urllib.error.HTTPError as error:
@@ -69,6 +71,7 @@ def request(
         body = response.read(max_bytes + 1)
         if len(body) > max_bytes:
             raise ValueError(f"response exceeded max_bytes={max_bytes}")
+        emit("http_response_received", status=response.status, url=response.geturl(), headers=dict(response.headers.items()), body_bytes=len(body), body=body.decode("utf-8", "replace"))
         return HttpResponse(
             status=response.status,
             url=response.geturl(),

@@ -27,6 +27,7 @@ from .reference_lifecycle import (
 )
 from .safety import contained_path, safe_identifier
 from .call_boundary import fetch_with_deadline
+from .diagnostics import CallDiagnostics
 from .response_input import apply_request_status
 from .artifacts import (
     PRIVATE_ARTIFACT_ROOT, PUBLIC_CALL_LOG_ROOT, diagnostic_log_binding, raw_response_binding,
@@ -581,6 +582,11 @@ def run_evaluation(
                         physical_begin = time.perf_counter()
                         pending = None
                         caught_exception = None
+                        diagnostics = None
+                        if provider.config.get("log_level") == "debug":
+                            diagnostics = CallDiagnostics(output_dir / "private_artifacts" / "live-logs" / provider.name / case.id / f"run-{run_number:03d}-physical-{physical_attempt:03d}.jsonl", attempt_id)
+                            diagnostics.emit("caller", "call_started", provider=provider.name, case_id=case.id, url=case.url, timeout_seconds=timeout)
+                        provider._call_diagnostics = diagnostics
                         try:
                             result, pending = fetch_with_deadline(provider, case, timeout)
                         except Exception as error:  # each physical failure remains inspectable
@@ -605,6 +611,8 @@ def run_evaluation(
                                 metadata=allowed_diagnostic,
                             )
                         wall_elapsed_ms = round((time.perf_counter() - physical_begin) * 1000, 2)
+                        if diagnostics is not None:
+                            diagnostics.finish(result)
                         # Cancellable adapters may need a bounded post-deadline
                         # unwind. That cleanup determines quarantine safety but
                         # is not part of the answer latency.
