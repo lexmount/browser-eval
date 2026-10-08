@@ -133,10 +133,10 @@ def check(root: Path) -> None:
         raise ValueError('Shared-population scoring correction differs from repository binding')
     home_html = (root / 'index.html').read_text(encoding='utf-8')
     methodology_html = (root / 'methodology/index.html').read_text(encoding='utf-8')
-    if ('https://github.com/lexmount/WebMainBench/tree/lexmain' not in home_html
+    if ('https://github.com/lexmount/WebMainBench/tree/lex-main' not in home_html
             or scoring_receipt['scorer_commit'] not in methodology_html
-            or 'Lexmain 修正评分器提交' not in methodology_html):
-        raise ValueError('Public report does not identify the bound Lexmain scorer')
+            or 'lex-main 修正评分器提交' not in methodology_html):
+        raise ValueError('Public report does not identify the bound lex-main scorer')
     releases = json.loads((Path(__file__).resolve().parents[1] / 'research/report-changes.json').read_text(encoding='utf-8'))['releases']
     expected_releases = [item for item in releases if 'webmainbench_frozen_html_to_markdown' in item.get('comparison_kinds', [])]
     history = BeautifulSoup((root / 'history/index.html').read_text(encoding='utf-8'), 'html.parser')

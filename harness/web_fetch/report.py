@@ -3244,7 +3244,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                   anchor("index.html", "WebMainBench · 545") + '</strong><nav>' + links + '</nav>' + anchor("en/index.html", "English") +
                   '<button onclick="theme()">切换主题</button></div></header><main class="wrap">' + body +
                   '</main><footer class="wrap">WebMainBench 545 例 · ' + str(len(providers)) + ' 种方法 · ' +
-                  anchor("https://github.com/lexmount/WebMainBench/tree/lexmain", "Lexmain 数据与评分器") + '</footer></body></html>')
+                  anchor("https://github.com/lexmount/WebMainBench/tree/lex-main", "lex-main 数据与评分器") + '</footer></body></html>')
         target = out / route
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(markup, encoding="utf-8")
@@ -3504,13 +3504,13 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
          '<section class="hero"><h1>测量与评分方法</h1><p>' + prose('method_lead') + '</p></section>' +
          '<section class="panel"><h2>输入</h2><p>' + prose('method_input') + '</p><p>数据 SHA-256：<code>' +
          esc(profile["source_dataset_sha256"]) + '</code>。原始评分器提交：<code>' + esc(profile["official_scorer_commit"]) +
-         '</code>' + (('；Lexmain 修正评分器提交：<code>' + esc(scoring_correction['scorer_commit']) + '</code>') if scoring_correction else '') +
+         '</code>' + (('；lex-main 修正评分器提交：<code>' + esc(scoring_correction['scorer_commit']) + '</code>') if scoring_correction else '') +
          '。</p></section><section class="panel"><h2>失败重试</h2><p>本轮共 ' + str(len(records) + retry_count) +
          ' 次物理调用，包含 ' + str(retry_count) + ' 次失败后的重试；其中 ' + str(recovered_count) +
          ' 条重试后返回成功，' + str(final_request_failures) +
          ' 条最终请求失败均调用两次。返回成功但正文为空或为错误页的结果不触发请求失败重试。</p></section>' +
          '<section class="panel"><h2>评分</h2><p>' + prose('method_scoring') + '</p><p>' + prose('method_correction') + '</p>' +
-         ((anchor("teds-correction.json", "历史 TEDS 修正收据") + " · " + anchor("teds-correction-review.json", "历史修正复核")) if (out / "teds-correction.json").is_file() else anchor("scoring-correction.json", "Lexmain 统一评分修正收据")) + "</section>" +
+         ((anchor("teds-correction.json", "历史 TEDS 修正收据") + " · " + anchor("teds-correction-review.json", "历史修正复核")) if (out / "teds-correction.json").is_file() else anchor("scoring-correction.json", "lex-main 统一评分修正收据")) + "</section>" +
          '<section><h2>调用接口</h2>' + table(['方法', '本轮调用方式'], interface_rows) + '</section>' +
          '<p class="note">' + prose('kitesurf_version_note') + '</p>' +
          '<section class="panel"><h2>公开采用证据</h2><p>' + prose('adoption_lead') + ' 截至 ' + esc(adoption['cutoff'][:10]) +

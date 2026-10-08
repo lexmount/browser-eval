@@ -94,7 +94,7 @@ def verify_shard(shard: Path, provider: str, case_ids: set[str], profile: dict) 
             "execution_sha256": digest(shard / "execution.json")}
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--source", type=Path, required=True)
@@ -102,7 +102,7 @@ def main() -> None:
     parser.add_argument("--profile", type=Path, default=ROOT / "evaluation/webmainbench-full/current-report.json")
     parser.add_argument("--binary-source", type=Path,
                         help="Exact clean source checkout used to build a profile-bound candidate binary")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.output_root.exists():
         parser.error("Output root already exists; cohort evidence is immutable")
     profile = json.loads(args.profile.read_text(encoding="utf-8"))

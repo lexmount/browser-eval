@@ -10,6 +10,12 @@ from scripts.run_certified_benchmark import main
 
 
 class CertifiedBenchmarkTests(unittest.TestCase):
+    def test_dispatches_complete_webmainbench_certification(self) -> None:
+        arguments = ["--output-root", "/tmp/run", "--source", "/tmp/source.jsonl"]
+        with patch("scripts.run_certified_webmainbench_full.main") as invoked:
+            main(["webmainbench-full", *arguments])
+        invoked.assert_called_once_with(arguments)
+
     @staticmethod
     def write_capture(captures: Path, case_id: str, *, status: int = 200,
                       text: str = "reference") -> None:

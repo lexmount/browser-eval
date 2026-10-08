@@ -45,6 +45,13 @@ def copy_correction_sources(corrections: dict, manifest_path: Path,
             )
 
 
+def prepare_correction_source(destination: Path) -> None:
+    """Replace inherited provenance when correcting an already corrected cohort."""
+    if destination.exists():
+        shutil.rmtree(destination)
+    destination.mkdir()
+
+
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -165,8 +172,9 @@ def revised_metrics(old: dict, scorer, predicted: str, reference: str,
 
 def validate_population_binding(source: Path, source_dataset: dict,
                                 corrected_rows: list[dict], manifest: dict) -> None:
-    """Bind schema-v2 corrections to the complete ordered 545-row dataset."""
-    if manifest.get("schema_version") != 2:
+    """Bind authority-declared corrections to the complete ordered 545-row dataset."""
+    validate_correction_authority(manifest)
+    if manifest.get("schema_version") != 3:
         raise ValueError("Invalid dataset correction manifest")
     cases = {case["id"]: case for case in source_dataset.get("cases", [])}
     original_rows = []
@@ -191,6 +199,54 @@ def validate_population_binding(source: Path, source_dataset: dict,
         already_corrected = label == "input" and rows == corrected_rows
         if not valid and not already_corrected:
             raise ValueError(f"Dataset correction {label} population binding mismatch")
+
+
+def validate_correction_authority(manifest: dict) -> None:
+    """Reject reference changes whose declared authority depends on method outcomes."""
+    if manifest.get("schema_version") != 3:
+        raise ValueError("Dataset corrections require decision-authority schema v3")
+    contracts = manifest.get("decision_contracts")
+    if not isinstance(contracts, dict) or not contracts:
+        raise ValueError("Dataset corrections require decision contracts")
+    for contract in contracts.values():
+        evidence = contract.get("required_source_evidence") if isinstance(contract, dict) else None
+        if not isinstance(contract, dict) or contract.get("changed_field") not in {
+            "groundtruth_content", "meta",
+        }:
+            raise ValueError("Decision contract has an unsupported changed field")
+        if (not isinstance(evidence, list) or "task_contract" not in evidence
+                or not any(isinstance(value, str) and (
+                    value.startswith("frozen_") or value.startswith("original_")
+                ) for value in evidence)):
+            raise ValueError("Decision contract lacks method-independent source authority")
+    forbidden = {"method_score", "method_result", "provider_score", "provider_result"}
+
+    def contains_forbidden_key(value) -> bool:
+        if isinstance(value, dict):
+            return bool(forbidden & set(value)) or any(
+                contains_forbidden_key(item) for item in value.values()
+            )
+        if isinstance(value, list):
+            return any(contains_forbidden_key(item) for item in value)
+        return False
+
+    for correction in manifest.get("corrections", []):
+        if correction.get("decision_contract") not in contracts:
+            raise ValueError("Dataset correction lacks a declared decision contract")
+        if not isinstance(correction.get("rationale"), str) or not correction["rationale"].strip():
+            raise ValueError("Dataset correction lacks an evidence-based rationale")
+        if contains_forbidden_key(correction):
+            raise ValueError("Method outcomes cannot authorize dataset corrections")
+        fields = set()
+        if any(key in correction for key in (
+            "original_groundtruth_sha256", "replacement_sha256", "replacement_file",
+        )):
+            fields.add("groundtruth_content")
+        if any(key in correction for key in ("original_meta_sha256", "replacement_meta")):
+            fields.add("meta")
+        declared = contracts[correction["decision_contract"]]["changed_field"]
+        if fields != {declared}:
+            raise ValueError("Correction fields differ from its decision contract")
 
 
 def apply(source: Path, corrected_dataset: Path, manifest_path: Path,
@@ -223,6 +279,12 @@ def apply(source: Path, corrected_dataset: Path, manifest_path: Path,
             item = corrections.get(case_id)
             if not item or item["url"] != before["url"] or item.get("html_sha256") != before["input_html_sha256"]:
                 raise ValueError("Correction binding mismatch: " + case_id)
+            declared = manifest["decision_contracts"][item["decision_contract"]]["changed_field"]
+            actual_fields = ({"groundtruth_content"} if reference_changed else set()) | (
+                {"meta"} if metadata_changed else set()
+            )
+            if actual_fields != {declared}:
+                raise ValueError("Changed dataset fields differ from decision contract: " + case_id)
             if reference_changed and (
                 item.get("original_groundtruth_sha256") != before["reference_sha256"]
                 or item.get("replacement_sha256") != text_digest(after["groundtruth_content"])
@@ -313,7 +375,7 @@ def apply(source: Path, corrected_dataset: Path, manifest_path: Path,
     (output / "score-summaries.json").write_text(
         json.dumps(summaries, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     correction_source = output / "scoring-correction-source"
-    correction_source.mkdir()
+    prepare_correction_source(correction_source)
     shutil.copy2(manifest_path, correction_source / manifest_path.name)
     shutil.copy2(REGISTRY, correction_source / REGISTRY.name)
     copy_correction_sources(corrections, manifest_path, correction_source)

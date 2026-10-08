@@ -82,7 +82,7 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
                ],
                "variant_labels": {
                    "moli-pr785-fixed": "Moli 1.1.9 · PR785 修复版",
-                   "moli-content-fixed": "Moli 1.1.11 · PR919 修复版",
+                   "moli-content-fixed": "Moli 1.1.11 · PR919 721bd2e 实测版",
                },
                "source_dataset_sha256": "a" * 64, "official_scorer_commit": "b" * 40}
     profile["versions"]["moli"] = "1.0'</script><script>bad()"
@@ -139,7 +139,7 @@ def test_full_report_renders_seven_way_details_and_failure_evidence(tmp_path: Pa
     home = check_presentation((tmp_path / "index.html").read_text(encoding="utf-8"))
     assert '?v=' in home.select_one('link[rel="stylesheet"]')['href']
     assert home.select_one('link[rel="stylesheet"]')['href'].split('?v=', 1)[1] == home.select_one('script[src]')['src'].split('?v=', 1)[1]
-    assert home.find('a', href='https://github.com/lexmount/WebMainBench/tree/lexmain') is not None
+    assert home.find('a', href='https://github.com/lexmount/WebMainBench/tree/lex-main') is not None
     assert len(home.select('td[data-metric-direction="max"]')) == 42
     assert len(home.select('td[data-metric-direction="max"] .comparison-winner')) == 6
     assert home.select_one('td[data-target-body-provider="chromium"]').get_text(strip=True) == "0/545"
