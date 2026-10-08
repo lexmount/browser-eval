@@ -211,6 +211,29 @@ def _note_malformed_markdown_destinations(content, base_url, diagnostics):
             break
 
 
+def _text_scope_boundary(content, pattern):
+    """Match literal text or an equivalent standalone Markdown heading.
+
+    Return offsets in the original answer so record syntax and boundaries are
+    never flattened. Preserve the declared anchors, including intentional
+    prefix-only end boundaries; do not replace them with substring search.
+    """
+    from .reference_quality import visible_markdown_links
+    candidates=[]
+    raw=re.search(pattern,content,re.M)
+    if raw:candidates.append((raw.start(),raw.end()))
+    offset=0
+    for line in content.splitlines(keepends=True):
+        visible=visible_markdown_links(line).strip()
+        visible=re.sub(r'^#{1,6}\s+','',visible)
+        visible=re.sub(r'([*_]{1,2})(.+?)\1',r'\2',visible)
+        visible=re.sub(r'\s+#+\s*$','',visible).strip()
+        if re.match(pattern,visible,re.M):
+            candidates.append((offset,offset+len(line)))
+        offset+=len(line)
+    return min(candidates) if candidates else None
+
+
 def _scope_named_content(content, scope):
     """Apply one declared HTML or text scope and return owned name/link pairs."""
     owned_items = []
@@ -229,14 +252,14 @@ def _scope_named_content(content, scope):
                 owned_items.append((destinations.pop(), titles[0].get_text(' ', strip=True)))
         return '', owned_items, True
     if scope.get('start_pattern'):
-        start = re.search(scope['start_pattern'], content, re.M)
+        start = _text_scope_boundary(content, scope['start_pattern'])
         if not start:
             return '', [], False
-        content = content[start.end():]
+        content = content[start[1]:]
     if scope.get('end_pattern'):
-        end = re.search(scope['end_pattern'], content, re.M)
+        end = _text_scope_boundary(content, scope['end_pattern'])
         if end:
-            content = content[:end.start()]
+            content = content[:end[0]]
     if scope.get('auxiliary_links_end_pattern'):
         from .reference_quality import markdown_links
         lines = content.splitlines()
@@ -325,6 +348,12 @@ def _markdown_named_items(content, contract, scope):
         for previous in reversed(markdown_links(prefix)):
             prefix=prefix[:previous.start]+prefix[previous.end:]
         prefix=prefix.strip()
+        # Emphasized numeric ranks remain list markup. Do not strip arbitrary
+        # underscores: recommendation prose and unmatched markup stay invalid.
+        prefix=re.sub(r'(?<!\w)(_{1,2})(\d+)\1(?=$|\s|[.)])',r'\2',prefix)
+        # CommonMark escapes change punctuation spelling, not list ownership.
+        # Normalize only this prefix; words still fail the prose exclusion.
+        prefix=re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])',r'\1',prefix)
         line_end=content.find('\n',link.end)
         line=content[line_start:None if line_end < 0 else line_end]
         line_links=markdown_links(line)

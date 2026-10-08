@@ -64,6 +64,22 @@ class BenchmarkSelectionTests(unittest.TestCase):
         self.assertEqual({p.name for p in (self.output/'sources').iterdir()}, {'dynamic-a','dynamic-b'})
         self.assertFalse((self.output/'workers/fixture-one/web').exists())
 
+    def test_instance_provider_configuration_does_not_mutate_shared_defaults(self):
+        import hashlib
+        defaults={p:p.read_bytes() for p in (self.root/'configs').iterdir()}
+        config=self.root/'instance-provider.json'
+        config.write_text(json.dumps({'providers':{'instance-only':{
+            'type':'fixture','fail_cases':['dynamic-b']}}}))
+        self.run_main(['--providers','instance-only','--provider-config',str(config),'--measure-only'])
+        rows=[json.loads(s) for s in (self.output/'results.jsonl').read_text().splitlines()]
+        self.assertEqual({r['case_id']:r['ok'] for r in rows},
+            {'web-a':True,'dynamic-a':True,'dynamic-b':False})
+        batches=json.loads((self.output/'execution.json').read_text())['batches']
+        self.assertEqual(len(batches),2)
+        self.assertTrue(all(b['provider_config_source']==str(config.resolve()) for b in batches))
+        self.assertTrue(all(b['provider_config_sha256']==hashlib.sha256(config.read_bytes()).hexdigest() for b in batches))
+        self.assertEqual({p:p.read_bytes() for p in defaults},defaults)
+
     def test_validate_only_does_not_measure_build_or_write(self):
         with patch.object(run_benchmark, 'run_evaluation') as run:
             build = self.run_main(['--track','dynamic','--providers','fixture-one','--validate-only'])

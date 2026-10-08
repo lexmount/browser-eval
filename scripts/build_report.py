@@ -31,12 +31,18 @@ if __name__ == '__main__':
     args=parser.parse_args()
     from harness.reporting.templates import resolve_template
     resolve_template('webfetch')
+    if args.profile:
+        args.profile=(ROOT/args.profile).resolve() if not args.profile.is_absolute() else args.profile.resolve()
+        if not args.profile.is_relative_to((ROOT/'evaluation').resolve()):
+            parser.error('--profile must stay under evaluation/')
+        if json.loads(args.profile.read_text()).get('variant') == 'diagnostic-cohorts':
+            args.diagnostic_cohorts=True
     if args.diagnostic_cohorts:
-        if not args.evidence or not args.output:
-            parser.error('--diagnostic-cohorts requires --evidence and --output')
-        if args.profile or args.local_audit or args.wcxb or args.webmainbench_full or args.public_benchmark_research or args.include_english:
+        if not args.output or (not args.evidence and not args.profile):
+            parser.error('diagnostic build requires --output and evidence or a bound profile')
+        if args.local_audit or args.wcxb or args.webmainbench_full or args.public_benchmark_research or args.include_english:
             parser.error('--diagnostic-cohorts requires its own diagnostic evidence model and Chinese output')
-        print(build_diagnostic_cohorts(args.evidence,args.output))
+        print(build_diagnostic_cohorts(args.evidence,args.output,profile=args.profile))
         raise SystemExit(0)
     if args.local_audit:
         if not args.evidence or not args.output:
@@ -65,9 +71,7 @@ if __name__ == '__main__':
             args.public_benchmark_research,output,include_english=args.include_english))
         raise SystemExit(0)
     if args.profile:
-        profile_path=(ROOT/args.profile).resolve() if not args.profile.is_absolute() else args.profile.resolve()
-        if not profile_path.is_relative_to((ROOT/'evaluation').resolve()):
-            parser.error('--profile must stay under evaluation/')
+        profile_path=args.profile
     else:
         profile_path=ROOT/('evaluation/wcxb/current-report.json' if args.wcxb else 'evaluation/current-report.json')
     profile=json.loads(profile_path.read_text())

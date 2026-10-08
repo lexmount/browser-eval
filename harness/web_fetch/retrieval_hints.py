@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -17,6 +18,27 @@ _SAFE_SELECTOR = re.compile(
     r"(?:(?:[.#][A-Za-z_][A-Za-z0-9_-]*)|"
     r"(?:\s*>\s*|\s+)(?:[A-Za-z][A-Za-z0-9_-]*|[.#][A-Za-z_][A-Za-z0-9_-]*))*$"
 )
+
+
+def native_fetch_dataset(dataset: dict) -> dict:
+    """Select default WebFetch execution without changing scenario acceptance.
+
+    ``dynamic`` is the selector-guided execution track, not merely a description
+    of a site's contents. A native-completion experiment uses the ordinary web
+    execution track while retaining the original family and every scoring rule.
+    """
+    result = deepcopy(dataset)
+    for case in result['cases']:
+        if case.get('retrieval_hints'):
+            raise ValueError('Native fetch cannot discard declared retrieval hints: ' + case['id'])
+        if case.get('track') == 'dynamic':
+            case['track'] = 'web'
+            case.setdefault('source_benchmark', {})['scenario_track'] = 'dynamic'
+    if 'dynamic' in result.get('coverage_plan', {}):
+        dynamic = result['coverage_plan'].pop('dynamic')
+        result['coverage_plan']['web'] = list(dict.fromkeys(result['coverage_plan'].get('web', []) + dynamic))
+    result.setdefault('comparison', {})['retrieval_mode'] = 'native_default_completion'
+    return result
 
 
 @dataclass(frozen=True)

@@ -23,20 +23,36 @@ from .artifacts import (
 )
 
 
-def build_diagnostic_cohorts(source: Path, output: Path) -> Path:
+def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | None = None) -> Path:
     """Build an explicitly requested diagnostic edition using the WebFetch owner."""
     from harness.reporting.templates import resolve_template
-    from .report_diagnostic import load_diagnostic, check_diagnostic_report
+    from .report_diagnostic import load_diagnostic, check_diagnostic_report, prepare_diagnostic_evidence
     from .report import generate_cohort_diagnostic
 
+    if profile is not None:
+        configuration = json.loads(profile.read_text())
+        binding = configuration.get('diagnostic_input')
+        if binding:
+            from .storage import data_home
+            selected = source or contained_path(data_home(), binding['path'])
+            if (not selected.is_file() or selected.is_symlink()
+                    or hashlib.sha256(selected.read_bytes()).hexdigest() != binding['sha256']):
+                raise ValueError('Diagnostic instance input differs from its profile binding')
+            source = selected
+    if source is None:
+        raise ValueError('Diagnostic instance needs evidence or a bound diagnostic_input')
     source, output = source.resolve(), output.resolve()
+    input_sha256 = hashlib.sha256(source.read_bytes()).hexdigest() if source.is_file() else None
     if source == output or source.is_relative_to(output) or output.is_relative_to(source) or output.exists():
         raise ValueError("Diagnostic build requires a new output outside its evidence")
     template = resolve_template("webfetch")
-    model, files = load_diagnostic(source)
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=".diagnostic-report-", dir=output.parent))
     try:
+        if source.is_file():
+            prepare_diagnostic_evidence(source,staging)
+            source=staging
+        model, files = load_diagnostic(source)
         for relative, raw in files.items():
             target = contained_path(staging, relative)
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -48,10 +64,11 @@ def build_diagnostic_cohorts(source: Path, output: Path) -> Path:
                     "evidence_state": "diagnostic", "certified": False,
                     "languages": ["zh"], "provider_calls_added": 0,
                     "model_sha256": hashlib.sha256(model_bytes).hexdigest(),
+                    "input_sha256": input_sha256,
                     "artifact_hashes": {path: hashlib.sha256(raw).hexdigest()
                                         for path, raw in files.items()}}
         (staging / "report-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2))
-        check_diagnostic_report(staging)
+        check_diagnostic_report(staging, profile=profile)
         staging.rename(output)
     except Exception:
         shutil.rmtree(staging)
@@ -196,6 +213,9 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     if output.exists() and not (output/marker).is_file():
         raise ValueError(f'Refusing to replace an unmarked directory: {output}')
     dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
+    if not local_audit:
+        from .reference_lifecycle import require_certifiable_evidence
+        require_certifiable_evidence(dataset_probe)
     if dataset_probe.get('comparison', {}).get('kind') == 'webmainbench_frozen_html_to_markdown':
         return build_webmainbench_report(source, output, include_english=include_english)
     if not local_audit:

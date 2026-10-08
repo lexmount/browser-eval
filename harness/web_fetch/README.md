@@ -40,6 +40,47 @@ checks where applicable, and one authoritative task predicate. Live execution an
 offline rescoring use the same entry point. Case contracts define the differences;
 provider identity never selects a more lenient evaluator.
 
+Live stable-contract cohorts use `scripts/run_certified_benchmark.py --diagnostic`.
+The stable-rule path does not qualify the current site's solvability; the generic
+entry therefore rejects such a cohort before external work unless its diagnostic
+state is explicit. This does not waive any scoring requirement. For a declared
+native-completion experiment, add `--retrieval-mode native`: it preserves all
+acceptance rules and rejects existing retrieval hints rather than dropping them.
+The diagnostic report accepts a `webfetch_diagnostic_inputs/1` manifest naming
+complete runs, independently captured whole-page observations and hash-bound
+per-case reviews. The supported builder adapts these inputs, preserves scored
+originals, binds any public redaction and runs the maintained release checks.
+
+### Report instances
+
+Live WebFetch reports are data instances, not renderer subclasses. An instance's
+`evaluation/<instance>/current-report.json` binds its complete `cohort_plan`,
+implementation, external `diagnostic_input` (data-home-relative path and SHA-256),
+and publication target. The input manifest owns cohort evidence paths, reviewed
+findings, explanatory prose and examples. It does not contain rendering code.
+
+```bash
+uv run --frozen python scripts/build_report.py --profile evaluation/<instance>/current-report.json --output <new-report-directory>
+uv run --frozen python scripts/check_diagnostic_report.py <new-report-directory> --profile evaluation/<instance>/current-report.json
+```
+
+Set `BROWSER_EVAL_DATA_HOME` when the external evidence uses a nondefault root.
+Changing a run, version, group, sample, explanation or example updates instance
+data and bindings; it does not require editing Python, HTML, skills or a private
+assembly script. Shared execution, scoring, evidence adaptation, rendering and
+release validation remain separate owners. A demonstrated shared defect or a
+genuinely new measurement contract may require code and behavioral tests; an
+ordinary report refresh does not. Certified and diagnostic evidence keep their
+different validation contracts rather than gaining interchangeable labels.
+Provider versions and runtime settings can also be instance-local: pass
+`--provider-config <instance-provider.json>` to the certified/diagnostic execution
+entry. The shared runner retains its exact configuration hash in each execution
+batch; changing one instance does not overwrite another report's defaults.
+Use Artifact Site's official CLI for transport and recovery, supplying the
+profile-bound host, slug and expected version. An update does not create a share.
+After export, `check_diagnostic_report.py --deployed-archive <export.zip>` compares
+the complete deployed tree with the locally checked instance, byte for byte.
+
 The answer envelope accepts body text and explicitly paired name/link records
 from the returned `links` field (including internal/external groups). Arbitrary
 logs, request echoes and bare URLs are not named entities. HTML and Markdown

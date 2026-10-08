@@ -17,6 +17,19 @@ from scripts.check_publication_bundle import scored_output_hash, check as check_
 
 
 class PublicationPrivacyTests(unittest.TestCase):
+    def test_entity_escaped_fields_inside_json_logs_preserve_json_and_mask_values(self):
+        for quote in ('&quot;','&#34;','&#x22;','&apos;','&#39;','&#x27;'):
+            with self.subTest(quote=quote):
+                text=f'embedded configuration {{{quote}token{quote}: {quote}canary-private-123{quote}}}'
+                raw=json.dumps({'stderr':text,'records':26}).encode()
+                self.assertEqual(publication_risk(raw),'sensitive field value')
+                projected,receipt=project_file('logs/call.json',raw)
+                self.assertNotIn(b'canary-private-123',projected)
+                self.assertEqual(json.loads(projected)['records'],26)
+                self.assertIsNone(publication_risk(projected))
+                self.assertEqual(receipt['replacements'],1)
+                self.assertEqual(project_file('logs/call.json',projected),(projected,None))
+
     def test_json_url_redaction_preserves_escaped_quotes_and_line_boundaries(self):
         value = {'log': 'src="https://example.test/map?signature=secret"\n下一行\u2028正文'}
         original = (json.dumps(value, ensure_ascii=True) + '\n').encode()

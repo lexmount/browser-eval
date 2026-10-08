@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import io
 import json
 import os
 import sys
@@ -15,7 +14,7 @@ from urllib.parse import quote
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from harness.web_fetch.artifact_auth import load_token
-from harness.web_fetch.publication import upload_large_archive
+from harness.web_fetch.publication import upload_large_archive, verify_published_tree
 from harness.web_fetch.publication_target import require_publication_version
 from scripts.check_report_links import check as check_links
 from scripts.check_wcxb_report import check as check_report
@@ -96,13 +95,7 @@ def main() -> None:
         raise ValueError('Published WCXB version does not open at the report home page')
 
     _, exported = request('/api/sites/' + quote(slug, safe='') + '/export')
-    with zipfile.ZipFile(io.BytesIO(exported)) as bundle:
-        remote_names = {name for name in bundle.namelist() if not name.endswith('/')}
-        if remote_names != set(digests):
-            raise ValueError('Deployed WCXB file inventory differs from the submitted report')
-        for name, digest in digests.items():
-            if hashlib.sha256(bundle.read(name)).hexdigest() != digest:
-                raise ValueError('Deployed WCXB file differs: ' + name)
+    verify_published_tree(source, exported)
     title = 'WCXB 五款浏览器主内容提取报告 · 504 页评测'
     request('/api/sites/' + quote(slug, safe=''), json.dumps({'title': title}, ensure_ascii=False).encode(),
             'application/json', method='PATCH')

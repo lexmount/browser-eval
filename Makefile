@@ -2,6 +2,7 @@ UV ?= uv
 PY := $(UV) run --frozen python
 TEST_PY := $(UV) run --frozen --all-extras python
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
+DIAGNOSTIC_PROFILE ?= evaluation/live-webfetch/current-report.json
 
 .PHONY: setup import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check popular-sites-report popular-sites-report-check wcxb-release-check resource-image public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish webarena-catalog-report webarena-catalog-release-check public-webarena-report public-webarena-report-audit public-webarena-report-release
 
@@ -20,9 +21,9 @@ report-template: runtime-check
 	$(PY) scripts/report_template.py "$(TRACK)"
 
 webfetch-diagnostic-report: runtime-check
-	@test -n "$(EVIDENCE)" -a -n "$(OUTPUT)"
-	$(PY) scripts/build_report.py --diagnostic-cohorts --evidence "$(EVIDENCE)" --output "$(OUTPUT)"
-	$(PY) scripts/check_diagnostic_report.py "$(OUTPUT)"
+	@test -n "$(OUTPUT)"
+	$(PY) scripts/build_report.py --profile "$(DIAGNOSTIC_PROFILE)" $(if $(EVIDENCE),--evidence "$(EVIDENCE)") --output "$(OUTPUT)"
+	$(PY) scripts/check_diagnostic_report.py "$(OUTPUT)" --profile "$(DIAGNOSTIC_PROFILE)"
 
 naming-check: runtime-check
 	$(PY) scripts/check_track_naming.py

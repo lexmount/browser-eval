@@ -45,11 +45,16 @@ LINE_SENSITIVE_VALUE = re.compile(
     rb'(?im)(^|[ \t])(' + SENSITIVE_KEY + rb'[ \t]*[:=])'
     rb'(?![ \t]*(?:<|\[))[ \t]*[^\s,;]+'
 )
+ENTITY_SENSITIVE_VALUE = re.compile(
+    rb'(?i)((&quot;|&#0*34;|&#x0*22;|&apos;|&#0*39;|&#x0*27;)'
+    + SENSITIVE_KEY + rb'\2\s*:\s*\2)(?!<|\[)([^\r\n]*?)(\2)'
+)
 LOCAL_USER_PATH = re.compile(
     rb'(?<![A-Za-z0-9])(?:/(?:Users|home)/[^/\s"\'<>]+/|/root/)'
 )
 
 REDACTIONS = (
+    (ENTITY_SENSITIVE_VALUE, 'sensitive_field', rb'\1[REDACTED]\4'),
     (AUTH_SENSITIVE_VALUE, 'sensitive_field', rb'\1[REDACTED]'),
     (JSON_SENSITIVE_VALUE, 'sensitive_field', rb'\1[REDACTED]\3'),
     (LINE_SENSITIVE_VALUE, 'sensitive_field', rb'\1\2 [REDACTED]'),
@@ -119,7 +124,7 @@ def auth_matches(data):
             or PUBLIC_AUTH_PLACEHOLDER.fullmatch(data.strip())):
         return []
     matches = sorted(
-        [*AUTH_SENSITIVE_VALUE.finditer(data), *JSON_SENSITIVE_VALUE.finditer(data),
+        [*ENTITY_SENSITIVE_VALUE.finditer(data), *AUTH_SENSITIVE_VALUE.finditer(data), *JSON_SENSITIVE_VALUE.finditer(data),
          *LINE_SENSITIVE_VALUE.finditer(data)],
         key=lambda match: (match.start(), -match.end()),
     )

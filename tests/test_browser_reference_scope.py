@@ -1,5 +1,6 @@
 """Browser reference capture must preserve scope and isolate case failures."""
 import json
+import os
 
 import pytest
 
@@ -13,6 +14,90 @@ from scripts.capture_headless_browser_observations import (
     resolve_public_host,
 )
 from harness.web_fetch.reference_lifecycle import resource_source_scope_identity
+
+
+@pytest.mark.skipif(not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'), reason='explicit Chromium binary required')
+def test_live_browser_audit_includes_visible_iframe_not_hidden_iframe():
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+    class Page(BaseHTTPRequestHandler):
+        def do_GET(self):
+            html=(b'<body>Child visible text<div style="display:none">Hidden child text</div></body>'
+                  if self.path=='/child' else b'<body>Parent text<iframe src="/child"></iframe><iframe style="display:none" srcdoc="Hidden frame text"></iframe></body>')
+            self.send_response(200);self.send_header('Content-Type','text/html');self.end_headers();self.wfile.write(html)
+        def log_message(self,*args):pass
+    server=ThreadingHTTPServer(('127.0.0.1',0),Page)
+    thread=Thread(target=server.serve_forever,daemon=True);thread.start()
+    try:
+        case={'id':'frames','url':f'http://127.0.0.1:{server.server_port}/','task_kind':'body'}
+        row=browser_capture.capture(case,10000,os.environ['BROWSER_EVAL_TEST_BROWSER_BINARY'],observation_scope='visible_page')
+        assert 'Parent text' in row['content_text']
+        assert 'Child visible text' in row['content_text']
+        assert 'Hidden child text' not in row['content_text']
+        assert 'Hidden frame text' not in row['content_text']
+        assert len(row['visible_frames'])==1
+    finally:
+        server.shutdown();server.server_close();thread.join()
+
+
+@pytest.mark.skipif(not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'), reason='explicit Chromium binary required')
+def test_live_browser_whole_page_audit_keeps_visible_chrome_but_not_hidden_text():
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+    class Page(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path=='/start':
+                self.send_response(302);self.send_header('Location','/page');self.end_headers();return
+            html=b'''<html lang="en"><title>Audit fixture</title><body><nav>Images</nav>
+            <main>Article content</main><footer>Terms</footer>
+            <div style="display:none">Hidden answer</div>
+            <script>setTimeout(()=>{const p=document.createElement('p');p.textContent='Delayed visible text';document.body.append(p)},100)</script>
+            </body></html>'''
+            self.send_response(200);self.send_header('Content-Type','text/html');self.end_headers();self.wfile.write(html)
+        def log_message(self,*args):pass
+    server=ThreadingHTTPServer(('127.0.0.1',0),Page)
+    thread=Thread(target=server.serve_forever,daemon=True);thread.start()
+    try:
+        url=f'http://127.0.0.1:{server.server_port}/start'
+        case={'id':'page-audit','url':url,'task_kind':'body'}
+        binary=os.environ['BROWSER_EVAL_TEST_BROWSER_BINARY']
+        audit=browser_capture.capture(case,10000,binary,observation_scope='visible_page')
+        assert audit['content_text']=='Images\nArticle content\nTerms\n\nDelayed visible text'
+        assert 'Hidden answer' not in audit['content_text']
+        assert audit['final_url']==url.replace('/start','/page')
+        assert audit['title']=='Audit fixture'
+        assert audit['document_language']=='en'
+        assert 'Hidden answer' in audit['outer_html']
+        reference=browser_capture.capture(case,10000,binary)
+        assert 'Article content' in reference['content_text']
+        assert 'Images' not in reference['content_text']
+        assert 'Terms' not in reference['content_text']
+    finally:
+        server.shutdown();server.server_close();thread.join()
+
+
+def test_browser_audit_resume_is_input_bound_and_preserves_access_failures(tmp_path, monkeypatch):
+    calls=[]
+    def observe(case, *args, **kwargs):
+        calls.append(case['id'])
+        return {'case_id':case['id'],'status':'failure' if case['id']=='blocked' else 'success',
+                'content_text':'Verify you are human' if case['id']=='blocked' else 'Article body'}
+    monkeypatch.setattr(browser_capture,'capture_with_retries',observe)
+    cases=[{'id':k,'url':'https://example.com/'+k} for k in ('article','blocked')]
+    options=dict(timeout_ms=1000,attempts=1,observation_scope='visible_page',checkpoints=tmp_path)
+    first=browser_capture.capture_batch(cases,**options)
+    assert browser_capture.capture_batch(cases,**options)==first
+    assert calls==['article','blocked']
+    assert first['blocked']['status']=='failure'
+    with pytest.raises(ValueError,match='inputs changed'):
+        browser_capture.capture_batch(cases,**{**options,'timeout_ms':2000})
+    cases[0]['url']='https://example.com/changed'
+    with pytest.raises(ValueError,match='inputs changed'):
+        browser_capture.capture_batch(cases,**options)
+    saved=tmp_path/'blocked.json';data=json.loads(saved.read_text())
+    data['observation']['status']='success';saved.write_text(json.dumps(data))
+    with pytest.raises(ValueError,match='observation changed'):
+        browser_capture.capture_batch([cases[1]],**options)
 
 
 def test_rendered_wikipedia_selector_preserves_main_article_text():
