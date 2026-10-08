@@ -41,6 +41,14 @@ computation, browser observations and promotion validation belong to
 `reference_freeze.py`. Their command scripts expose the same public arguments,
 and promotion tools import the shared module rather than another command script.
 
+`evidence.py` owns provider append and complete-provider projection. Both verify
+all physical-call artifacts and reference observations through `artifacts.py`.
+Append retains existing JSONL bytes, updates declared method coverage, and swaps
+the validated private bundle atomically. Projection creates a separate bundle
+only after validation; its command scripts contain no execution or copy logic.
+Assembly reads aggregate execution batches after append, while a complete physical
+run awaiting postcheck retains the independent per-case certificate path.
+
 `resource_cohort.py` validates the declared resource-method matrix, finite
 measurements and common execution environment, and rebuilds the resource summary
 from its original records. Assembly and report packaging share the comparison

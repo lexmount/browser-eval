@@ -551,11 +551,14 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     expected={(c['id'],p) for c in cases.values() for p in dataset['coverage_plan'][c.get('track','web')]}
     if len(original)!=len(expected) or {(r['case_id'],r['provider']) for r in original}!=expected:
         raise ValueError('Original run has incomplete coverage')
-    source_manifest = (json.loads((run/'manifest.json').read_text())
-                       if (run/'manifest.json').exists() else {})
-    assembled_input=((run/'execution.json').exists() and
-        (not source_manifest or source_manifest.get('projection',{}).get('kind') ==
-         'complete-provider-from-retained-incomplete-matrix'))
+    source_manifest=(json.loads((run/'manifest.json').read_text())
+                     if (run/'manifest.json').exists() else {})
+    live_physical_run=(source_manifest.get('reference_checks',{}).get('status') ==
+                       'awaiting_postcheck'
+                       and source_manifest.get('attempt_count') == len(original)
+                       and set(source_manifest.get('attempt_ids',[])) ==
+                       {row['attempt_id'] for row in original})
+    assembled_input=(run/'execution.json').exists() and not live_physical_run
     replacement_cases={};batches=[];evidence=[];selected=[];audit=[]
     reference_evidence=[]
     if assembled_input:

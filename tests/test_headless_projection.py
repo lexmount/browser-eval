@@ -1,11 +1,11 @@
 import hashlib
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
-from scripts.project_headless_provider import project
+from harness.web_fetch.evidence import project_provider_run
 
 
 class HeadlessProviderProjectionTests(unittest.TestCase):
@@ -45,7 +45,7 @@ class HeadlessProviderProjectionTests(unittest.TestCase):
                     "cases": {identifier: {"reference_sha256": identifier} for identifier in ("a", "b")}}}
             (source / "manifest.json").write_text(json.dumps(manifest))
 
-            project(source, output, "p", references)
+            project_provider_run(source, output, "p", references)
 
             projected = json.loads((output / "dataset.json").read_text())
             self.assertEqual(projected["coverage_plan"], {"web": ["p"]})
@@ -58,7 +58,7 @@ class HeadlessProviderProjectionTests(unittest.TestCase):
                              "all frozen cases for one provider; no score-based selection")
 
             subset = root / "subset"
-            project(source, subset, "p", references, {"b"})
+            project_provider_run(source, subset, "p", references, {"b"})
             subset_dataset = json.loads((subset / "dataset.json").read_text())
             self.assertEqual([case["id"] for case in subset_dataset["cases"]], ["b"])
             subset_rows = [json.loads(line) for line in
@@ -150,8 +150,8 @@ class HeadlessProviderProjectionTests(unittest.TestCase):
                 batches.append(batch)
             (source / "execution.json").write_text(json.dumps({"batches": batches}))
 
-            with patch("scripts.project_headless_provider.require_verified_reference_checks") as verify:
-                project(source, output, "p")
+            with patch("harness.web_fetch.evidence.require_verified_reference_checks") as verify:
+                project_provider_run(source, output, "p")
 
             self.assertEqual(verify.call_count, 2)
             self.assertFalse((output / "manifest.json").exists())
@@ -176,7 +176,7 @@ class HeadlessProviderProjectionTests(unittest.TestCase):
             (source / "dataset.json").write_text(json.dumps(dataset))
             (source / "results.jsonl").write_text(json.dumps({"provider": "p", "case_id": "a"}) + "\n")
             with self.assertRaisesRegex(ValueError, "incomplete"):
-                project(source, root / "out", "p")
+                project_provider_run(source, root / "out", "p")
 
 
 if __name__ == "__main__":
