@@ -22,7 +22,7 @@ from harness.web_fetch.artifacts import (
     materialize_private_artifacts, record_private_bindings,
     verify_record_private_artifacts,
 )
-from scripts.run_benchmark import artifact_bindings
+from harness.web_fetch.artifacts import artifact_bindings
 from harness.web_fetch.scoring_regressions import (
     build_correction_provenance, valid_correction_provenance,
 )

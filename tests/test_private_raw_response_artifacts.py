@@ -12,7 +12,7 @@ from harness.web_fetch.artifacts import (
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.runner import run_evaluation
-from scripts.run_benchmark import artifact_bindings, materialize_worker_artifacts
+from harness.web_fetch.artifacts import artifact_bindings, materialize_worker_artifacts
 
 
 class RawEnvelopeProvider(Provider):

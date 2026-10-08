@@ -178,6 +178,12 @@ and top-level execution file carry verified postchecks:
 uv run --frozen python scripts/run_certified_benchmark.py --dataset evaluation/dataset.json --output RUN --work-root WORK --providers METHOD --case-ids ID1,ID2 --browser-binary /absolute/path/to/chromium
 ```
 
+Use `--provider-config /absolute/path/providers.json` to select one provider
+configuration for the entire requested scope. The certified wrapper forwards
+it to the shared runner while retaining all reference checks. Without this
+option, the repository's existing task-group configurations apply. Diagnostic
+`scripts/run_benchmark.py` runs support the same option and remain uncertified.
+
 After selecting and freezing the resource cohort, run it separately and keep the
 same postcheck and independent all-attempt review gates:
 

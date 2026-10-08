@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 from harness.web_fetch.safety import contained_path
 from harness.web_fetch.result_review import require_blind_result_review, review_input_identity
-from scripts.run_benchmark import artifact_bindings
+from harness.web_fetch.artifacts import artifact_bindings
 
 
 def _records(path: Path) -> list[dict]:

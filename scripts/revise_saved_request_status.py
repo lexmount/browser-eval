@@ -29,7 +29,7 @@ from harness.web_fetch.result_review import require_result_review
 from harness.web_fetch.report import failure_category
 from harness.web_fetch.safety import contained_path
 from scripts.revise_body_scoring import rebind_unchanged_result_review
-from scripts.run_benchmark import artifact_bindings
+from harness.web_fetch.artifacts import artifact_bindings
 
 
 PROVIDER = "deepseek-harness-built-in"

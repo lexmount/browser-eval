@@ -50,6 +50,14 @@ def main():
         scoped = json.loads((root / 'run/dataset.json').read_text())
         assert scoped['coverage_plan'] == {'web': ['custom']}
         assert scoped['comparison']['publication_state'] == 'diagnostic_not_for_release'
+        from harness.web_fetch.benchmark_runner import main as run_cohort
+        run_cohort(['--dataset', str(dataset), '--provider-config', str(config),
+                    '--providers', 'custom', '--env-file', str(env),
+                    '--output', str(root / 'cohort'), '--workers', '1', '--measure-only'])
+        cohort = [json.loads(line) for line in
+                  (root / 'cohort/results.jsonl').read_text().splitlines()]
+        assert len(cohort) == 1 and cohort[0]['metrics']['content_pass']
+        assert (root / 'cohort' / cohort[0]['artifact_path']).is_file()
         from harness.reporting.links import check
         check(root / 'run/report')
         reference = (root / 'run/report/references/one.txt').read_text()

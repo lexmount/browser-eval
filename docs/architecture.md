@@ -8,6 +8,14 @@
 
 The persistent evidence bundle's `execution.json` associates selected attempts with their actual runtime parameters and timestamps. Measurements retain original content hashes. Reference evidence retains its source and licensing scope; source capture alone does not authorize redistribution. Signed-in raw HTML and private account information are excluded.
 
+Task-scoped Web Fetch execution belongs to `harness/web_fetch/benchmark_runner.py`;
+`scripts/run_benchmark.py` is its command entry. An explicit `--provider-config`
+selects one configuration for the requested task scope. Repository defaults
+retain their separate webpage and resource configurations. Physical-call
+artifacts receive hash bindings at collection. `artifacts.py` enumerates and
+verifies those bindings before aggregation, rejects symlinks and collisions,
+and never replaces a missing or mismatched binding with a newly computed hash.
+
 WebMainBench cohort certification is owned by `harness/web_fetch/webmainbench_certification.py`; scoring and score verification by `webmainbench_scoring.py`; full-cohort aggregation by `webmainbench_assembly.py`; and shared result-matrix, variant-identity and physical-call checks by `webmainbench_evidence.py`. Their command files delegate to these modules. Evidence-copy boundaries reject file and directory symlinks as well as escaping paths.
 
 Complete WebMainBench comparisons assemble the baseline and every registry-declared variant directly from their certified cohorts. Participant counts come from profiles and the registry throughout assembly, rendering and release checks. Only declared evidence enters the package; assembly commits a new directory after all checks pass. Replacing a cohort creates a new package and retains the previous one. See [the WebMainBench guide](../harness/web_fetch/WEBMAINBENCH.md) for the supported commands and historical binding format.

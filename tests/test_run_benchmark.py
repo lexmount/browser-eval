@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from scripts import run_benchmark
+from harness.web_fetch import benchmark_runner as run_benchmark
 from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.providers.firecrawl import FirecrawlProvider
@@ -86,6 +86,20 @@ class BenchmarkSelectionTests(unittest.TestCase):
         run.assert_not_called()
         build.assert_not_called()
         self.assertFalse(self.output.exists())
+
+    def test_explicit_provider_config_does_not_use_repository_scope_files(self):
+        import shutil
+        custom = self.root / 'custom-providers.json'
+        custom.write_text(json.dumps({'providers': {'custom': {'type': 'fixture'}}}))
+        shutil.rmtree(self.root / 'configs')
+        self.run_main(['--track', 'dynamic', '--providers', 'custom',
+                       '--provider-config', str(custom)])
+        records = [json.loads(line) for line in
+                   (self.output / 'results.jsonl').read_text().splitlines()]
+        self.assertEqual({(row['provider'], row['case_id']) for row in records},
+                         {('custom', 'dynamic-a'), ('custom', 'dynamic-b')})
+        batches = json.loads((self.output / 'execution.json').read_text())['batches']
+        self.assertTrue(all(batch['provider_config_source'] == str(custom.resolve()) for batch in batches))
 
     def test_capacity_preflight_receives_whole_worst_case_before_output_or_fetch(self):
         capacity_calls = []
@@ -227,6 +241,8 @@ class BenchmarkSelectionTests(unittest.TestCase):
                         'artifacts/p/c/run-000.txt', 'artifacts/p/c/run-000.bin',
                     ],
                     'content_sha256': digest(files['artifacts/p/c/run-000.txt']),
+                    'artifact_sha256': {relative: digest(content) for relative, content in files.items()
+                                        if 'run-000.' in relative},
                 }]},
             },
         }

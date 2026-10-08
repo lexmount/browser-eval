@@ -9,7 +9,7 @@ from contextlib import ExitStack, redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from scripts import run_benchmark as benchmark
+from harness.web_fetch import benchmark_runner as benchmark
 from scripts import run_local_dynamic_builtins as local
 
 OTHER9 = ("lexmount-global", "lexmount-cn", "firecrawl", "tavily", "exa",

@@ -365,7 +365,7 @@ def test_reference_update_commands_reject_pinned_inputs_before_writes(inputs, tm
 def test_runner_rejects_missing_bound_inputs_before_provider_preflight_or_output(
     inputs, tmp_path, monkeypatch
 ):
-    from scripts import run_benchmark
+    from harness.web_fetch import benchmark_runner as run_benchmark
 
     dataset, _, _, _ = inputs
     monkeypatch.setattr(run_benchmark, "load_runtime_env", lambda *args: None)
@@ -388,6 +388,29 @@ def test_runner_rejects_missing_bound_inputs_before_provider_preflight_or_output
             ]
         )
     assert not output.exists()
+
+
+def test_cohort_copies_bound_external_list_references(inputs, tmp_path):
+    from harness.web_fetch import benchmark_runner
+
+    dataset, manifest_path, source, manifest = inputs
+    reference = source / 'list-references/case-a.json'
+    reference.parent.mkdir()
+    reference.write_bytes(b'{"source":"independent synthetic input"}')
+    manifest['trees']['list-references'] = {'case-a.json': sha(reference.read_bytes())}
+    external_dataset(inputs)
+    import_inputs(manifest_path, source)
+    config = tmp_path / 'providers.json'
+    config.write_text(json.dumps({'providers': {'fixture': {'type': 'fixture'}}}))
+    env = tmp_path / 'empty.env'
+    env.write_text('')
+    output = tmp_path / 'run'
+    benchmark_runner.main(['--dataset', str(dataset), '--provider-config', str(config),
+        '--providers', 'fixture', '--env-file', str(env), '--output', str(output),
+        '--measure-only', '--workers', '1'])
+    assert not (dataset.parent / 'list-references').exists()
+    assert (output / 'list-references/case-a.json').read_bytes() == reference.read_bytes()
+    assert (output / 'sources/case-a/reference.txt').read_bytes() == b'independent fixture'
 
 
 def test_repository_gate_rejects_reintroduced_external_source_copies(inputs):

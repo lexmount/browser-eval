@@ -686,6 +686,13 @@ def run_evaluation(
                             for item in result.metadata.get('file_evaluation', {}).get('files', [])
                             if item.get('artifact_path')
                         )
+                        artifact_hashes = {
+                            relative: hashlib.sha256(contained_path(
+                                output_dir, relative, reject_symlinks=True).read_bytes()).hexdigest()
+                            for relative in artifact_paths
+                        }
+                        if artifact_hashes[artifact_rel.as_posix()] != measured['content_sha256']:
+                            raise ValueError('Persisted output differs from scored bytes')
                         private_artifacts = []
                         private_binding = raw_response_binding(result.metadata)
                         if private_binding:
@@ -707,6 +714,7 @@ def run_evaluation(
                             'content_sha256': measured['content_sha256'],
                             'artifact_path': artifact_rel.as_posix(),
                             'artifact_paths': artifact_paths,
+                            'artifact_sha256': artifact_hashes,
                             'call_log': call_log,
                             **({'private_artifacts': private_artifacts} if private_artifacts else {}),
                         })

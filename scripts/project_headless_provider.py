@@ -23,7 +23,7 @@ sys.path.insert(0, str(ROOT))
 from harness.web_fetch.artifacts import materialize_private_artifacts
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 from harness.web_fetch.safety import contained_path, validate_report_ids
-from scripts.run_benchmark import artifact_bindings
+from harness.web_fetch.artifacts import artifact_bindings
 
 
 def _records(path: Path) -> list[dict]:

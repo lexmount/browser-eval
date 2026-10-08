@@ -39,7 +39,7 @@ from scripts.assemble_headless import _prune_shadowed_batch_attempts  # noqa: E4
 from scripts.package_headless_speed import (
     build_summary as build_speed_summary,  # noqa: E402
 )
-from scripts.run_benchmark import artifact_bindings  # noqa: E402
+from harness.web_fetch.artifacts import artifact_bindings  # noqa: E402
 
 
 def _sha256(path: Path) -> str:

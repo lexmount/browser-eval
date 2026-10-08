@@ -14,7 +14,6 @@ from typing import Any, Iterable
 
 from .safety import contained_path
 
-
 PRIVATE_ARTIFACT_ROOT = "private_artifacts"
 PUBLIC_CALL_LOG_ROOT = "call-logs"
 
@@ -282,3 +281,68 @@ def materialize_private_artifacts(
             else:
                 shutil.copy2(origin, target)
                 verify_private_binding(destination, binding)
+
+
+def artifact_bindings(record: dict[str, Any]) -> list[tuple[str, str]]:
+    """Enumerate declared public evidence, including every retained physical call."""
+    bindings = {}
+
+    def add(relative, digest):
+        if relative in bindings and bindings[relative] != digest:
+            raise ValueError('Artifact has conflicting hash bindings: ' + relative)
+        bindings[relative] = digest
+
+    add(record['artifact_path'], record['metrics']['content_sha256'])
+    metadata = record.get('provider_metadata', {})
+    for path_key, hash_key in (('rendered_html_path', 'rendered_html_sha256'),
+                               ('raw_stdout_path', 'raw_stdout_sha256')):
+        if metadata.get(path_key):
+            add(metadata[path_key], metadata[hash_key])
+    for item in metadata.get('file_evaluation', {}).get('files', []):
+        if item.get('artifact_path'):
+            add(item['artifact_path'], item['sha256'])
+    for attempt in metadata.get('retry', {}).get('attempts', []):
+        hashes = attempt.get('artifact_sha256', {})
+        primary_digest = attempt.get('content_sha256') or hashes.get(attempt['artifact_path'])
+        if not primary_digest:
+            raise ValueError('Retry artifact has no hash binding: ' + attempt['artifact_path'])
+        add(attempt['artifact_path'], primary_digest)
+        for relative in attempt.get('artifact_paths', []):
+            digest = hashes.get(relative)
+            if relative == attempt['artifact_path']:
+                digest = digest or primary_digest
+            if not digest:
+                raise ValueError('Retry artifact has no hash binding: ' + relative)
+            add(relative, digest)
+    for binding in record_public_call_log_bindings(record):
+        add(binding['path'], binding['sha256'])
+    return list(bindings.items())
+
+
+def materialize_worker_artifacts(output: Path, worker: Path, records: list[dict]) -> None:
+    """Verify acquisition-time authority before copying declared worker evidence."""
+    copies = {}
+    for record in records:
+        verify_record_private_artifacts(worker, record)
+        logs = {binding['path']: binding for binding in record_public_call_log_bindings(record)}
+        for relative, digest in artifact_bindings(record):
+            source = contained_path(worker, relative, reject_symlinks=True)
+            target = contained_path(output, relative, reject_symlinks=True)
+            if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != digest:
+                raise ValueError('Worker artifact differs from its result binding: ' + relative)
+            if relative in logs:
+                verify_public_call_log(worker, logs[relative])
+            if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                raise ValueError('Aggregate artifact collision: ' + relative)
+            if relative in copies and copies[relative][2] != digest:
+                raise ValueError('Aggregate artifact collision: ' + relative)
+            copies[relative] = (source, target, digest)
+    materialize_private_artifacts(output, worker, records)
+    for source, target, digest in copies.values():
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.exists():
+            shutil.copy2(source, target)
+        if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+            raise ValueError('Copied worker artifact changed: ' + str(target.relative_to(output)))
+    for record in records:
+        verify_record_public_call_logs(output, record)
