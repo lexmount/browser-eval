@@ -1,13 +1,17 @@
 """Re-extract an explicitly selected source snapshot, without fetching a provider."""
-import argparse,hashlib,json,sys
+import argparse
+import hashlib
+import json
+import sys
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from harness.web_fetch.storage import current_evidence_dir
-from collect_source_evidence import extract_html
-from harness.web_fetch.reference_quality import clean_reference_text,audit_reference
 from harness.web_fetch.metrics import normalize_for_match
-from harness.web_fetch.safety import contained_path,safe_identifier
+from harness.web_fetch.reference_quality import audit_reference, clean_reference_text
+from harness.web_fetch.safety import contained_path, safe_identifier
+from harness.web_fetch.source_capture import extract_html
+from harness.web_fetch.storage import current_evidence_dir
 
 
 def refresh(source,case_id):

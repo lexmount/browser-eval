@@ -1,14 +1,14 @@
 import hashlib
 import importlib.util
 import json
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 
 @unittest.skipUnless(importlib.util.find_spec('bs4') and importlib.util.find_spec('requests'),'requires reference-audit extra')
 class SourceExtractionTests(unittest.TestCase):
     def test_wikipedia_navbox_drift_does_not_change_article_reference(self):
-        from scripts.collect_source_evidence import extract_html
+        from harness.web_fetch.source_capture import extract_html
         def extract(navbox,body='Stable article prose'):
             raw=('''<html><head><title>Article</title></head><body>
             <div id="mw-content-text"><div class="mw-parser-output">
@@ -29,7 +29,7 @@ class SourceExtractionTests(unittest.TestCase):
         self.assertNotIn('Generic',original)
 
     def test_wikipedia_oldid_excludes_live_excerpt_transclusion_only(self):
-        from scripts.collect_source_evidence import extract_html
+        from harness.web_fetch.source_capture import extract_html
         def extract(url):
             raw = b'''<html><body><div id="mw-content-text">
             <div class="mw-parser-output"><p>Stable revision prose</p>
@@ -47,7 +47,7 @@ class SourceExtractionTests(unittest.TestCase):
         self.assertIn('Mutable external excerpt', live)
 
     def test_excludes_w3schools_share_controls_from_article_reference(self):
-        from scripts.collect_source_evidence import extract_html
+        from harness.web_fetch.source_capture import extract_html
         raw = b'''<html><body><main id="main"><h1>HTML Tables</h1>
         <div class="ws-share ws-share--float"><span>Share</span>
         <button><span class="ws-copied-toast">Link Copied</span></button></div>
@@ -60,7 +60,7 @@ class SourceExtractionTests(unittest.TestCase):
         self.assertNotIn('Link Copied', text)
 
     def test_excludes_mdn_last_modified_timestamp_but_keeps_article_body(self):
-        from scripts.collect_source_evidence import extract_html
+        from harness.web_fetch.source_capture import extract_html
         raw = b'''<html><body><main><article>
         <p>WebSocket article body</p>
         <p class="article-footer__last-modified">This page was last modified on
@@ -71,7 +71,7 @@ class SourceExtractionTests(unittest.TestCase):
         self.assertEqual(text, 'WebSocket article body')
 
     def test_excludes_lexmount_breadcrumb_and_adjacent_page_cards(self):
-        from scripts.collect_source_evidence import extract_html
+        from harness.web_fetch.source_capture import extract_html
         raw = b'''<html><body><article>
         <div class="text-sm text-fd-muted-foreground">WebFetch API</div>
         <h1>Quick Start</h1><div class="prose flex-1">Request body</div>
@@ -83,7 +83,7 @@ class SourceExtractionTests(unittest.TestCase):
         self.assertEqual(text, 'Quick Start\nRequest body')
 
     def test_feishu_uses_article_structure_not_navigation(self):
-        from scripts.collect_source_evidence import extract_html
+        from harness.web_fetch.source_capture import extract_html
         payload={'article':[{'html':{'html':'<article>正文 <b>AI</b> <span>此处是{{icon_info_outlined}}icon</span><table><tr><td>指标</td><td>含义</td></tr></table></article>'}}], 'faq':[{'question':'问题？','answer':'折叠回答'}]}
         raw=('<title>标题</title><nav>商城会员导航</nav><script>window._templateValue = '+json.dumps(payload)+';</script>').encode()
         _,text,selector,_=extract_html(raw,'https://www.feishu.cn/hc/example')
@@ -94,7 +94,7 @@ class SourceExtractionTests(unittest.TestCase):
         self.assertNotEqual(selector,'body')
 
     def test_saved_reference_keeps_body_and_source_integrity(self):
-        from scripts.collect_source_evidence import extract_html
+        from harness.web_fetch.source_capture import extract_html
         path=Path('evaluation/sources/lm-feishu-help/source.html.txt');raw=path.read_bytes()
         digest=hashlib.sha256(raw).hexdigest()
         _,text,_,_=extract_html(raw,'https://www.feishu.cn/hc/example')

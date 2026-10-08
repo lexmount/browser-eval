@@ -232,6 +232,28 @@ defined separately in [HEADLESS.md](HEADLESS.md).
 The installed console command is `browser-harness-eval`. There is no legacy
 Python package or compatibility entrypoint.
 
+## Independent source capture
+
+Install the `reference-audit` extra for HTTP and document capture. Select the
+dataset scope explicitly and write outside the source checkout:
+
+```sh
+uv run --frozen --extra reference-audit python scripts/collect_source_evidence.py \
+  /absolute/path/dataset.json /absolute/path/new-captures \
+  --only case-a,case-b --workers 2
+```
+
+The destination must be new. The command validates case IDs before requests,
+retains source bytes and hashes, and records HTTP failures as `needs_review`.
+Unknown or repeated IDs are rejected. If a worker is interrupted, no partial
+capture package is committed. An optional repeated `--resolve HOST=IP` records
+an explicit DNS override and restores the resolver after the batch.
+
+`source_capture.py` owns capture and HTML extraction; all reference consumers
+use this module. Document extraction reuses `document_text.py`. Capture does
+not update the dataset, approve ground truth or certify provider calls. The
+certified runner owns pre-call and post-call capture and reference validation.
+
 ## Dynamic-content ground-truth protocol
 
 Keep dynamic-content results separate from the existing body/access/resource

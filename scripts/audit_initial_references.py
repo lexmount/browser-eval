@@ -7,19 +7,19 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-from importlib.metadata import version
 import json
-from pathlib import Path
 import re
 import sys
+from importlib.metadata import version
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from scripts.collect_source_evidence import extract_html
-from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.reference_quality import clean_reference_text
 from harness.web_fetch.safety import contained_path, safe_identifier
+from harness.web_fetch.scoring import score_attempt
+from harness.web_fetch.source_capture import extract_html
 
 
 def sha256(raw: bytes) -> str:
@@ -175,7 +175,7 @@ def audit_dataset(dataset: Path) -> dict:
         "method": "extract_html(saved initial bytes, case URL), then clean_reference_text; exact Unicode comparison to current dataset reference",
         "js_executed": False, "network_used": False, "provider_outputs_used": False,
         "implementation_sha256": {name: sha256((ROOT / name).read_bytes()) for name in (
-            "scripts/audit_initial_references.py", "scripts/collect_source_evidence.py",
+            "scripts/audit_initial_references.py", "harness/web_fetch/source_capture.py",
             "harness/web_fetch/reference_quality.py", "harness/web_fetch/metrics.py",
         )},
         "runtime": {"python": sys.version.split()[0], "beautifulsoup4": version("beautifulsoup4")},

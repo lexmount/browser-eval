@@ -10,9 +10,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from collect_source_evidence import extract_html
 from harness.web_fetch.body_coverage import body_requirements
 from harness.web_fetch.reference_quality import clean_reference_text
+from harness.web_fetch.source_capture import extract_html
 from harness.web_fetch.storage import current_evidence_dir
 
 

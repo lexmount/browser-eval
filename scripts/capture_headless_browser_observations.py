@@ -8,23 +8,24 @@ from datetime import datetime, timezone
 import hashlib
 import ipaddress
 import json
-from pathlib import Path
 import socket
 import sys
 import time
+from datetime import datetime, timezone
+from pathlib import Path
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.web_fetch.metrics import normalize_for_match
 from harness.web_fetch.reference_lifecycle import (
     _resource_target_matches,
     resource_source_scope_identity,
     scope_identity,
 )
 from harness.web_fetch.metrics import normalize_for_match
-from scripts.collect_source_evidence import extract_html
 from harness.web_fetch.safety import safe_identifier
-
+from harness.web_fetch.source_capture import extract_html
 
 COMPLETION = {
     'javascript-spa': {

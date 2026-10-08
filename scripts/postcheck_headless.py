@@ -4,18 +4,21 @@ This is part of the measurement protocol, not provider output-based reference
 construction. Only case IDs and completion times are read from result records.
 """
 import argparse
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
 import json
-from pathlib import Path
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from scripts.collect_source_evidence import capture
-from harness.web_fetch.reference_lifecycle import scope_identity, requires_fresh_reference
 from harness.web_fetch.record_io import read_completed_records
+from harness.web_fetch.reference_lifecycle import (
+    requires_fresh_reference,
+    scope_identity,
+)
+from harness.web_fetch.source_capture import capture
+
 
 def load_resumable_observations(checkpoint, cases):
     if not checkpoint.exists():
