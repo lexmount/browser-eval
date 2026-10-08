@@ -10,6 +10,7 @@ import shutil
 import tempfile
 from pathlib import Path
 
+from harness.report_languages import check_language_contract, generated_languages
 from harness.reporting.packs import write_packs
 
 
@@ -36,6 +37,10 @@ def package(source: Path, destination: Path, pack_limit: int = 8 * 1024 * 1024) 
     ):
         raise ValueError("Report bundle contains an excluded path")
     files = [path for path in paths if path.is_file()]
+    check_language_contract(source)
+    languages = generated_languages(source)
+    if "en" not in languages and list((source / "assets").glob("*-en.svg")):
+        raise ValueError("Chinese-only report contains stale English charts")
     physical = {
         "index.html",
         "en.html",
@@ -48,6 +53,8 @@ def package(source: Path, destination: Path, pack_limit: int = 8 * 1024 * 1024) 
     physical.update(
         p.relative_to(source).as_posix() for p in files if p.is_relative_to(source / "assets")
     )
+    if (source / "report-languages.json").is_file():
+        physical.add("report-languages.json")
     if not all((source / name).is_file() for name in physical):
         raise ValueError("Report is missing a required entry or runtime asset")
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -59,6 +66,15 @@ def package(source: Path, destination: Path, pack_limit: int = 8 * 1024 * 1024) 
             target.parent.mkdir(parents=True, exist_ok=True)
             if name.endswith(".html"):
                 text = (source / name).read_text()
+                if name in {"en.html", "en/index.html"} and "en" not in languages:
+                    return_link = "../index.html" if name.startswith("en/") else "index.html"
+                    if (
+                        "data-english-not-generated" not in text
+                        or f'href="{return_link}"' not in text
+                    ):
+                        raise ValueError("English not-generated notice is missing")
+                    target.write_text(text)
+                    continue
                 prefix = "../" if name.startswith("en/") else ""
                 marker = f'<script defer src="{prefix}mermaid.min.js"></script>'
                 if text.count(marker) != 1:

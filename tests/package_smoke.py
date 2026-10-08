@@ -71,6 +71,21 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
     assert (destination / 'bundle-loader.js').is_file()
     for name in ('index.html', 'en.html', 'en/index.html'):
         assert 'bundle-loader.js' in (destination / name).read_text()
+    from harness.report_languages import check_language_contract, write_language_contract
+
+    (source / 'en/index.html').unlink()
+    write_language_contract(source, include_english=False)
+    notice = (source / 'en/index.html').read_text()
+    (source / 'en.html').write_text(
+        notice.replace('href="../index.html"', 'href="index.html"')
+    )
+    chinese_package = root / 'lexbench-chinese-package'
+    package(source, chinese_package)
+    check_language_contract(chinese_package)
+    assert (chinese_package / 'report-languages.json').is_file()
+    for name in ('en.html', 'en/index.html'):
+        assert 'data-english-not-generated' in (chinese_package / name).read_text()
+        assert 'bundle-loader.js' not in (chinese_package / name).read_text()
     from harness.lexbench import reproduction, resource_profiles, verification
     subprocess.run([sys.executable, "-m", "harness.lexbench.reproduction", "--help"],
                    check=True, cwd=root, capture_output=True, text=True)

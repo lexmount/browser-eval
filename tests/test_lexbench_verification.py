@@ -442,3 +442,68 @@ def test_three_configuration_report_passes_evidence_and_render_release_checks(re
     assert summary["verified_calls"] == 4482
     assert summary["negative_controls"] == 19
     assert summary["result"] == "pass"
+
+
+def chinese_only_report(report):
+    from harness.report_languages import write_language_contract
+
+    site, model = report
+    (site / "en/index.html").unlink()
+    for path in (site / "assets").glob("*-en.svg"):
+        path.unlink()
+    write_language_contract(site, include_english=False)
+    (site / "en.html").write_text(
+        (site / "en/index.html").read_text().replace('href="../index.html"', 'href="index.html"')
+    )
+    return site, model
+
+
+def test_chinese_only_report_passes_release_checks_without_english_charts(report):
+    from harness.lexbench.verification import verify
+
+    site, _ = chinese_only_report(report)
+    summary = verify(site)
+    assert summary["result"] == "pass"
+    assert not list((site / "assets").glob("*-en.svg"))
+
+
+@pytest.mark.parametrize("stale", ["en/guide.html", "assets/moli-all-success-resources-en.svg"])
+def test_chinese_only_report_rejects_stale_english(report, stale):
+    site, model = chinese_only_report(report)
+    save(site, stale, b"stale English output")
+    with pytest.raises(ValueError, match="[Ee]nglish"):
+        validate(model, site)
+
+
+@pytest.mark.parametrize("include_english", [False, True])
+def test_requested_editions_are_generated_and_verified_end_to_end(report, include_english):
+    import shutil
+
+    from harness.lexbench.report import write_presentation
+    from harness.lexbench.verification import verify
+    from harness.report_languages import generated_languages
+
+    site, model = report
+    shutil.rmtree(site / "en")
+    shutil.rmtree(site / "assets")
+    options = {"include_english": True} if include_english else {}
+    write_presentation(
+        ROOT / "scripts/moli_report", site,
+        model["combined_comparison"], model["version_comparison"], **options,
+    )
+    assert generated_languages(site) == (("zh", "en") if include_english else ("zh",))
+    assert len(list((site / "assets").glob("*.svg"))) == (4 if include_english else 2)
+    assert 'lang="zh-CN"' in (site / "index.html").read_text()
+    for entry in ("en.html", "en/index.html"):
+        html = (site / entry).read_text()
+        assert ('lang="en"' in html) is include_english
+        assert ("data-english-not-generated" in html) is not include_english
+    assert verify(site)["result"] == "pass"
+
+
+def test_build_command_requires_explicit_option_for_english():
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts/moli_report/build.py"), "--help"],
+        check=True, capture_output=True, text=True,
+    )
+    assert "--include-english" in result.stdout

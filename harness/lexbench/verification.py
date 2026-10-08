@@ -15,6 +15,7 @@ import tempfile
 from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.resource_evidence import validate_matrix
 from harness.lexbench.resource_summary import validate_summary
+from harness.report_languages import check_language_contract, generated_languages
 from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, safe_identifier
 
 
@@ -32,6 +33,18 @@ def fail(message):
 
 def validate(model, site, check_files=True):
     reject_evidence_symlinks(site)
+    check_language_contract(site)
+    languages = generated_languages(site)
+    if "en" not in languages:
+        if list((site / "assets").glob("*-en.svg")):
+            fail("Chinese-only report contains stale English charts")
+        notice = site / "en.html"
+        if (
+            not notice.is_file()
+            or "data-english-not-generated" not in notice.read_text()
+            or 'href="index.html"' not in notice.read_text()
+        ):
+            fail("English flat-entry not-generated notice is missing")
     if model.get("schema") != "moli_layout_report/2":
         fail("schema")
     if any(
@@ -158,7 +171,7 @@ def validate(model, site, check_files=True):
     if json.loads((site / "data/combined-comparison.json").read_text()) != combined:
         fail("combined chart data target")
     with tempfile.TemporaryDirectory() as directory:
-        for language in ("zh", "en"):
+        for language in languages:
             expected = pathlib.Path(directory) / f"{language}.svg"
             render_chart(combined, expected, ("memory", "cpu"), language)
             actual = site / f"assets/moli-all-success-resources-{language}.svg"
@@ -503,7 +516,7 @@ def validate(model, site, check_files=True):
                     row[change], (row[value] / baseline[value] - 1) * 100
                 ):
                     fail("macOS chart metric or change")
-        for lang in ("zh", "en"):
+        for lang in languages:
             path = site / f"assets/moli-macos-success-resources-{lang}.svg"
             if (
                 not path.is_file()
@@ -728,7 +741,9 @@ def validate(model, site, check_files=True):
             fail("correction scope")
         if not near(sum(x["cpu_total_ms"] for x in rows), correction["old_cpu_ms"]):
             fail("correction CPU")
-    for path, language in [(site / "index.html", "zh-CN"), (site / "en/index.html", "en")]:
+    for path, language in [(site / "index.html", "zh-CN")] + (
+        [(site / "en/index.html", "en")] if "en" in languages else []
+    ):
         if not path.is_file() or f'lang="{language}"' not in path.read_text():
             fail("locale shell")
     for asset in ("app.js", "style.css"):
@@ -749,6 +764,8 @@ def validate(model, site, check_files=True):
         ),
     }
     for chart_name, (chart, title) in charts.items():
+        if chart_name not in languages:
+            continue
         if (
             not chart.is_file()
             or '<title id="title">' not in chart.read_text()

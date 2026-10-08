@@ -5,6 +5,7 @@ import pytest
 
 from harness.report_languages import (
     check_language_contract,
+    english_notice,
     generated_languages,
     write_language_contract,
 )
@@ -33,6 +34,13 @@ def test_explicit_english_retains_generated_pages(tmp_path):
     check_language_contract(tmp_path)
 
 
+def test_flat_notice_returns_within_the_report_root():
+    notice = english_notice(nested=False)
+    assert 'href="index.html"' in notice
+    assert 'new URL("./",b.href)' in notice
+    assert "../index.html" not in notice
+
+
 def test_default_rejects_accidentally_generated_english(tmp_path):
     (tmp_path / "en").mkdir()
     (tmp_path / "en/index.html").write_text("unrequested")
@@ -51,6 +59,8 @@ class VisibleNumbersTests(unittest.TestCase):
         from harness.report_languages import visible_numbers
         expected = ["100", "103", "31", "100", "1,599", "80%"]
         self.assertEqual(visible_numbers("100题、103次调用，31/100，1,599项，80%"), expected)
-        self.assertEqual(visible_numbers("100 tasks, 103 calls, 31/100, 1,599 items, 80%"), expected)
+        self.assertEqual(
+            visible_numbers("100 tasks, 103 calls, 31/100, 1,599 items, 80%"), expected
+        )
         self.assertNotEqual(visible_numbers("100题"), visible_numbers("99 tasks"))
         self.assertNotEqual(visible_numbers("100题"), visible_numbers("all tasks"))

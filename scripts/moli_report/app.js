@@ -1669,7 +1669,7 @@ function setNav(page) {
         `<a href="${link(k)}" ${page === k ? 'aria-current="page"' : ""}>${esc(v)}</a>`,
     )
     .join("");
-  let other = zh ? "en.html" : "index.html";
+  let other = zh ? "en/index.html" : "index.html";
   document.getElementById("language").href = base + other + location.hash;
   document.getElementById("language").textContent = zh ? "EN" : "中文";
   document.querySelector(".skip").textContent = zh

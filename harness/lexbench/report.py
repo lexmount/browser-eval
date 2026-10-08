@@ -16,6 +16,7 @@ BENCH_ROOT = pathlib.Path(
     os.environ.get("LEXBENCH_REPORT_RUNNER_ROOT", ROOT / "work/moli-1.1.8-failures-linux")
 )
 from harness.record_io import load_jsonl
+from harness.report_languages import english_notice, generated_languages, write_language_contract
 from harness.resource_calibration import duration_calibration
 from harness.web_fetch.safety import contained_path, safe_identifier
 
@@ -33,6 +34,41 @@ VERSION_RUNS = ROOT / "runs/moli-114-118-memory-repro"
 DEFAULT_FUNCTIONAL_CORRECTION = ROOT / "runs/moli-method-corrections-20260920"
 
 
+def write_presentation(source, output, combined, version, macos=None, *, include_english=False):
+    """Materialize only requested editions; translation sources remain reusable."""
+    write_language_contract(output, include_english=include_english)
+    languages = generated_languages(output)
+    assets = output / "assets"
+    assets.mkdir(exist_ok=True)
+    comparisons = [
+        ("all", combined, ("memory", "cpu")),
+        ("version", version, ("pss", "cpu")),
+    ]
+    if macos:
+        comparisons.append(("macos", macos, ("rss", "cpu")))
+    for name, comparison, metrics in comparisons:
+        for language in languages:
+            render_chart(
+                comparison, assets / f"moli-{name}-success-resources-{language}.svg",
+                metrics, language,
+            )
+    entries = [("zh-CN", "", "index.html")]
+    if include_english:
+        entries.extend([("en", "", "en.html"), ("en", "../", "en/index.html")])
+    else:
+        # Retain the published flat entry as a notice for existing external links.
+        (output / "en.html").write_text(english_notice(nested=False))
+    template = (source / "index.html").read_text()
+    for language, base, entry in entries:
+        target = output / entry
+        target.parent.mkdir(exist_ok=True)
+        shell = template.replace("{{lang}}", language).replace("{{base}}", base)
+        for name in ("style.css", "app.js"):
+            digest = hashlib.sha256((source / name).read_bytes()).hexdigest()[:12]
+            shell = shell.replace(name, f"{name}?v={digest}")
+        target.write_text(shell)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -44,6 +80,9 @@ def main(argv=None):
     parser.add_argument("--summary", type=pathlib.Path)
     parser.add_argument("--source", type=pathlib.Path, default=DEFAULT_SOURCE)
     parser.add_argument("--output", type=pathlib.Path, default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--include-english", action="store_true", help="Also generate English pages and charts"
+    )
     parser.add_argument(
         "--vendor-dir", type=pathlib.Path, default=ROOT / "reports/moli-1.1.8-failures-src"
     )
@@ -1499,54 +1538,17 @@ def main(argv=None):
     (OUT / "data/version-comparison.json").write_text(
         json.dumps(version_comparison, ensure_ascii=False, indent=2) + "\n"
     )
-    (OUT / "assets").mkdir()
     (OUT / "data/combined-comparison.json").write_text(
         json.dumps(combined_comparison, ensure_ascii=False, indent=2) + "\n"
     )
-    for language in ("zh", "en"):
-        render_chart(
-            combined_comparison,
-            OUT / f"assets/moli-all-success-resources-{language}.svg",
-            ("memory", "cpu"),
-            language,
-        )
     if macos_comparison:
-        for language in ("zh", "en"):
-            render_chart(
-                macos_comparison,
-                OUT / f"assets/moli-macos-success-resources-{language}.svg",
-                ("rss", "cpu"),
-                language,
-            )
         (OUT / "data/macos-comparison.json").write_text(
             json.dumps(macos_comparison, ensure_ascii=False, indent=2) + "\n"
         )
-    render_chart(
-        version_comparison,
-        OUT / "assets/moli-version-success-resources-zh.svg",
-        ("pss", "cpu"),
-        "zh",
+    write_presentation(
+        SRC, OUT, combined_comparison, version_comparison, macos_comparison,
+        include_english=args.include_english,
     )
-    render_chart(
-        version_comparison,
-        OUT / "assets/moli-version-success-resources-en.svg",
-        ("pss", "cpu"),
-        "en",
-    )
-    for language, base, entry in [
-        ("zh-CN", "", "index.html"),
-        ("en", "", "en.html"),
-        ("en", "../", "en/index.html"),
-    ]:
-        target = OUT / entry
-        target.parent.mkdir(exist_ok=True)
-        shell = (
-            (SRC / "index.html").read_text().replace("{{lang}}", language).replace("{{base}}", base)
-        )
-        shell = shell.replace(
-            "style.css", f"style.css?v={sha((SRC / 'style.css').read_bytes())[:12]}"
-        ).replace("app.js", f"app.js?v={sha((SRC / 'app.js').read_bytes())[:12]}")
-        target.write_text(shell)
     for name in ("app.js", "style.css", "README.md"):
         shutil.copy2(SRC / name, OUT / name)
     for name, digest in {

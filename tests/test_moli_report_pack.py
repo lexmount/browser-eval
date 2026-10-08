@@ -58,6 +58,25 @@ class MoliReportPackTests(unittest.TestCase):
                 MODULE.package(root / "source", root / "package")
             self.assertFalse((root / "package").exists())
 
+    def test_chinese_notice_is_physical_and_works_without_runtime(self):
+        from harness.report_languages import write_language_contract
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            self.create_report(source)
+            (source / "en/index.html").unlink()
+            write_language_contract(source, include_english=False)
+            notice = (source / "en/index.html").read_text()
+            (source / "en.html").write_text(
+                notice.replace('href="../index.html"', 'href="index.html"')
+            )
+            MODULE.package(source, root / "package")
+            for name in ("en.html", "en/index.html"):
+                self.assertEqual((root / "package" / name).read_text(), (source / name).read_text())
+                self.assertNotIn("bundle-loader.js", (root / "package" / name).read_text())
+            self.assertTrue((root / "package/report-languages.json").is_file())
+
     def test_rejects_symlinked_source_directory(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

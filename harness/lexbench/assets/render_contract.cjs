@@ -6,6 +6,10 @@ const assert = require("node:assert/strict"),
 const siteFlag = process.argv.indexOf("--site"),
   site = siteFlag >= 0 ? process.argv[siteFlag + 1] : null;
 const appFlag = process.argv.indexOf("--app");
+const languagePath = site && path.join(site, "report-languages.json");
+const languages = languagePath && fs.existsSync(languagePath)
+  ? JSON.parse(fs.readFileSync(languagePath, "utf8")).languages : ["zh", "en"];
+assert.ok(JSON.stringify(languages) === '["zh"]' || JSON.stringify(languages) === '["zh","en"]');
 const app = site
   ? path.join(site, "app.js")
   : appFlag >= 0 ? process.argv[appFlag + 1] : null;
@@ -99,7 +103,7 @@ const model = {
     { id: "c", passes: { "119_off": 0, "119_on": 3, "119_official_on": 0 } },
   ],
 };
-for (let lang of ["zh", "en"]) {
+for (let lang of languages) {
   const html = render(model, lang, "candidateResourceSection()");
   resourceHighlights(html);
   assert.throws(() => resourceHighlights(html.replace("num winner", "num")));
@@ -133,7 +137,7 @@ for (let lang of ["zh", "en"]) {
   });
 }
 console.log(
-  "PASS: bilingual fixed methods, gains/losses, resource extrema, ties, percentages and negative controls",
+  "PASS: fixed methods, gains/losses, resource extrema, ties, percentages and negative controls; languages=" + languages.join(","),
 );
 
 // Adding layout-off 1.1.9 must preserve registry order everywhere and retain
@@ -161,7 +165,7 @@ const sevenModel = {
     "official_release",
   ),
 };
-for (const lang of ["zh", "en"]) {
+for (const lang of languages) {
   const ids = Array.from(
     render(sevenModel, lang, "macosResourceMethods().map(row => row.id)"),
   );
@@ -212,7 +216,7 @@ const linuxModel = {
     evidence: { url: "data/linux.json", sha256: "a".repeat(64) },
   },
 };
-for (const lang of ["zh", "en"]) {
+for (const lang of languages) {
   const html = render(linuxModel, lang, "candidateResourceSection()");
   resourceHighlights(html);
   assert.deepEqual(
@@ -256,7 +260,7 @@ for (const extra of [false, true]) {
       direct_cases: 372, inherited_cases: 0,
     })),
   };
-  for (const lang of ["zh", "en"]) {
+  for (const lang of languages) {
     for (const page of ["home()", "guidePage()"]) {
       const html = render(diagnostic, lang, page);
       assert.equal((html.match(/data-functional-method=/g) || []).length, ids.length);
@@ -272,7 +276,7 @@ if (site) {
   const measured = JSON.parse(
     fs.readFileSync(path.join(site, "data/model.json"), "utf8"),
   );
-  for (let lang of ["zh", "en"]) {
+  for (let lang of languages) {
     for (let page of [
       "home()",
       "guidePage()",
