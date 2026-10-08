@@ -107,7 +107,11 @@ commands use the same scorer loader and metric adapter in `webmainbench_scoring.
 Revisions are staged before a new evidence directory becomes visible; retained
 calls and source evidence are preserved. The superseded schema-v1 reference writer
 is retired, while historical receipt validation remains supported.
-TEDS revisions share `webmainbench_diagnostics.py` with revision validation.
+TEDS revisions and their integrity audits share `webmainbench_diagnostics.py`
+with revision validation. Both audit and validation check the complete declared
+method-by-task matrix. Audits use the shared aggregation rules, including metrics
+with no applicable samples, reject non-finite scores and install a receipt only
+after checking the evidence again.
 Their command paths remain stable. New revision receipts bind the actual shared
 implementation; retained revisions verify their own frozen source copies.
 

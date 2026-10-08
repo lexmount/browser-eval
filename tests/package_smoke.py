@@ -236,6 +236,43 @@ def verify_dynamic_cohort(root: Path, source_root: Path) -> None:
     assert (output / 'artifacts/stdout.txt').read_bytes() == b'process output'
 
 
+def verify_teds_revision(root: Path, source_root: Path) -> None:
+    from harness.web_fetch import webmainbench_diagnostics as diagnostics
+    from harness.web_fetch.scoring_regressions import build_correction_provenance
+    from harness.web_fetch.webmainbench_scoring import aggregate
+
+    source, corrected = root / 'teds-source', root / 'teds-corrected'
+    source.mkdir()
+    corrected.mkdir()
+    metrics = {name: {'score': 0.5, 'success': True, 'details': {}} for name in (
+        'text_edit', 'code_edit', 'formula_edit', 'table_edit', 'table_TEDS', 'overall')}
+    row = {'attempt_id': 'custom__one', 'provider': 'custom', 'case_id': 'one',
+           'ok': True, 'artifact_path': 'one.md', 'metrics': metrics,
+           'output_sha256': hashlib.sha256(b'synthetic response').hexdigest()}
+    original = json.dumps(row) + '\n'
+    for directory in (source, corrected):
+        (directory / 'one.md').write_bytes(b'synthetic response')
+        (directory / 'dataset.json').write_text(json.dumps({'cases': [{'id': 'one'}]}))
+    (source / 'results.jsonl').write_text(original)
+    (corrected / 'original-results.jsonl').write_text(original)
+    (corrected / 'results.jsonl').write_text(json.dumps({**row, 'official_metrics': metrics}) + '\n')
+    summary = aggregate([row])
+    (corrected / 'score-summaries.json').write_text(json.dumps({
+        'custom': {'official_aggregate': summary, 'original_official_aggregate': summary}}))
+    receipt = {'schema_version': 2, 'provider_calls': 0, 'source_code_sha256': {},
+               'input_results_sha256': diagnostics.digest(source / 'results.jsonl'),
+               'output_results_sha256': diagnostics.digest(corrected / 'results.jsonl'),
+               'dataset_sha256': diagnostics.digest(corrected / 'dataset.json'),
+               'scope': {'logical_results': 1, 'providers': ['custom']}, 'changed_scores': [],
+               'correction_provenance': build_correction_provenance(
+                   'structured-extraction', diagnostics.ROOT_CAUSE, diagnostics.CONTROLS)}
+    (corrected / 'teds-correction.json').write_text(json.dumps(receipt))
+    subprocess.run([sys.executable, str(source_root / 'scripts/review_webmainbench_teds_correction.py'),
+                    '--source', str(source), '--corrected', str(corrected)], check=True)
+    _, audit = diagnostics.validate_teds_revision(corrected)
+    assert audit['status'] == 'passed' and audit['provider_calls'] == 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -271,6 +308,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
+        verify_teds_revision(root, args.source_root)
         verify_lexbench_package(root, args.source_root / 'scripts/moli_report/app.js')
         verify_dynamic_cohort(root, args.source_root)
         verify_review_revisions(root, args.source_root)

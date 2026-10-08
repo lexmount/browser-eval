@@ -129,3 +129,11 @@ validate the shared scoring controls and expose the output only after the comple
 revision succeeds. The scorer checkout must match the declared commit and have no
 tracked changes. Historical schema-v1 reference receipts remain readable; new
 reference corrections use the schema-v3 command.
+
+The retained sample's TEDS-only revision uses `scripts/correct_webmainbench_teds.py`.
+`scripts/review_webmainbench_teds_correction.py --source <original-evidence>
+--corrected <revised-evidence>` checks its complete declared matrix, unchanged
+provider evidence and aggregate arithmetic. Both commands delegate to
+`webmainbench_diagnostics.py`. This is a deterministic integrity check; independent
+result review is a separate, explicitly requested activity. The audit command
+preserves an existing receipt and rejects evidence that changes before installation.
