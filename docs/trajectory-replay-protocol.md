@@ -214,6 +214,23 @@ assets and starting, inspecting, or stopping a pinned site. Site data may live o
 daemon under `/data`; measured browsers and agent containers remain on the resource-controlled
 browser daemon. This daemon split is a storage and isolation choice, not a benchmark-specific fork.
 
+### Candidate replay inputs
+
+Use `scripts/run_webarena_catalog.py` for declared task subsets and candidate action
+revisions. Its catalog, action overrides, environment inputs and evidence validation
+use the same contracts as complete catalog runs. A diagnostic subset does not establish
+a formal complete-cohort score.
+
+The historical 36-task input protocol remains available through
+`scripts/freeze_original36_candidate_cohort.py`. `--reference-root` resolves its relative
+candidate paths without depending on the working directory. Overrides are hash-bound;
+when a stabilization names a different qualified parent, `stabilization_reversions`
+declares the one-based action index, current action type and exact parent call for each
+change. Reconstructing those calls and their canonical digest must reproduce the entire
+parent file hash. Action-count changes additionally require the existing paired browser
+qualification receipts. Freezing writes a new manifest and never overwrites an existing
+one; it does not execute or score a browser.
+
 ### Remote mutation diagnostics
 
 `scripts/run_remote_mutation_diagnostic.py` exposes the shared diagnostic pipeline. With
