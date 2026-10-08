@@ -103,7 +103,8 @@ class MoliTests(unittest.TestCase):
         provider = self.provider(
             "import sys\n"
             'expected=["fetch","--dump","markdown","--wait-until","done",'
-            '"--timeout","2000","--http-timeout","2000","--block-private-networks",'
+            '"--timeout","2000","--http-timeout","2000","--http-connect-timeout","2000",'
+            '"--http-max-response-size","20000000","--block-private-networks",'
             '"https://example.com/?a=1&b=2"]\n'
             "assert sys.argv[1:]==expected\n"
             'print("# Example Domain")\n'

@@ -396,3 +396,5 @@ from UI messages, logs, scripts or later requests. Binding
 raw tool value cannot be retroactively reconstructed or rescored as this route.
 
 共享 HTTP 调用预算原样传入底层客户端及支持的服务端超时参数，不预留持久化时间而提前扣减（45 秒即 45000 毫秒）。外层仍以完整输入到答案处理的截止时间判断；迟到答案被舍弃，尚未退出的不可取消请求会隔离该方法并记明未执行范围，不能并发遗弃请求或额外增加答案预算。
+
+本地 DNS 公平性预检也包括 Moli 与 Crawl4AI。Moli 当前适配器只声明 system 模式；在系统返回特殊地址或与其他本地方法混用 DNS 模式时，必须停止在调用前，不能将四方法的 public_doh 修复当成全本地方法环境已恢复。Moli 原生 HTTP 连接超时和响应字节上限也接收共享预算。Crawl4AI 正文路由保留完整原生 model_dump 回包，最终 URL 优先使用其声明的 redirected_url；评分正文仍为原生 raw_markdown。

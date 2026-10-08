@@ -386,10 +386,13 @@ async def main() -> None:
                 files = encode_downloads(result.downloaded_files, download_dir.name)
                 output = {
                     "ok": bool(result.success),
+                    # Preserve HTML, canonical Markdown, headers and native errors
+                    # privately; answer selection remains raw_markdown.
+                    "raw_tool_response": result.model_dump(mode="json"),
                     "content": markdown,
                     "files": files,
                     "status_code": result.status_code,
-                    "final_url": result.url,
+                    "final_url": result.redirected_url or result.url,
                     "error_type": None if result.success else "crawl_error",
                     "error_message": None if result.success else result.error_message,
                     "metadata": {

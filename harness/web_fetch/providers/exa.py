@@ -123,6 +123,10 @@ class ExaContentsProvider(Provider):
         else:
             error_type, error_message = "empty_content", "Exa returned no extractable text"
         result_extras = (result.get("extras") or {}) if ok else {}
+        # Current API declares a breakdown object; retain legacy numeric totals.
+        cost = payload.get("costDollars")
+        if isinstance(cost, dict):
+            cost = cost.get("total")
         return ProviderResult(
             ok=ok,
             content=content,
@@ -144,9 +148,9 @@ class ExaContentsProvider(Provider):
                 "url_error": public_url_error,
                 "livecrawl_timeout_ms": livecrawl_timeout_ms,
                 "cost_dollars": (
-                    payload.get("costDollars")
-                    if isinstance(payload.get("costDollars"), (int, float))
-                    and not isinstance(payload.get("costDollars"), bool)
+                    cost
+                    if isinstance(cost, (int, float))
+                    and not isinstance(cost, bool)
                     else None
                 ),
                 "extras": result_extras,

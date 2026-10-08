@@ -764,6 +764,19 @@ class ProviderTest(unittest.TestCase):
             if key != "_raw_response_b64"
         }))
 
+    @patch("harness.web_fetch.providers.exa.request")
+    def test_exa_retains_declared_cost_total_without_changing_answer(self, mock_request):
+        for cost, expected in (({"total": 0.003, "contents": {"text": 0.003}}, 0.003),
+                               (0.002, 0.002), ({"total": True}, None), ({}, None)):
+            with self.subTest(cost=cost):
+                payload = {"results": [{"url": self.case.url, "text": "Native body"}],
+                           "statuses": [{"status": "success"}], "costDollars": cost}
+                mock_request.return_value = HttpResponse(200, self.case.url, {}, json.dumps(payload).encode())
+                result = ExaContentsProvider("exa", {"api_key": "x"}).fetch(self.case, 45)
+                self.assertEqual(result.metadata["cost_dollars"], expected)
+                self.assertTrue(result.ok)
+                self.assertEqual(result.content, "Native body")
+
     def test_all_synchronous_http_adapters_forward_full_outer_deadline_budget(self) -> None:
         providers = (
             ("harness.web_fetch.providers.http.request", HttpProvider("http", {})),

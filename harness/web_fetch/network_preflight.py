@@ -33,7 +33,7 @@ def require_usable_public_dns(audit):
 def preflight_guarded_providers(providers, cases):
     """Require one declared DNS environment for all supported native callers."""
     from .network_dns import lookup_public_dns, validate_dns_mode
-    native = {"openclaw_builtin", "deepseek_harness_builtin", "cowagent_builtin", "langchain_webbase"}
+    native = {"openclaw_builtin", "deepseek_harness_builtin", "cowagent_builtin", "langchain_webbase", "moli_webfetch", "crawl4ai"}
     selected = [provider for provider in providers if provider.type in native]
     if not selected:
         return None

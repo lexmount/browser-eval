@@ -503,6 +503,10 @@ class NativeFileWorkerTests(unittest.TestCase):
                 return SimpleNamespace(
                     success=True,
                     markdown=SimpleNamespace(raw_markdown="ready"),
+                    redirected_url="https://example.com/final",
+                    model_dump=lambda **kwargs: {"html": "<main>ready</main>",
+                                                  "markdown": {"raw_markdown": "ready"},
+                                                  "success": True},
                     downloaded_files=[],
                     status_code=200,
                     url=url,
@@ -545,6 +549,9 @@ class NativeFileWorkerTests(unittest.TestCase):
         self.assertEqual(config.page_timeout, 30000)
         self.assertEqual(config.delay_before_return_html, 0.25)
         payload = json.loads(output.getvalue())
+        self.assertEqual(payload["final_url"], "https://example.com/final")
+        self.assertEqual(payload["raw_tool_response"]["html"], "<main>ready</main>")
+        self.assertEqual(payload["raw_tool_response"]["markdown"]["raw_markdown"], payload["content"])
         self.assertEqual(
             payload["metadata"]["completion"],
             {

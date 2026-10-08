@@ -83,3 +83,14 @@ class NetworkPreflightTests(unittest.TestCase):
         with patch('harness.web_fetch.network_dns.lookup_public_dns', side_effect=socket.gaierror('failure')):
             with self.assertRaisesRegex(ValueError, 'Public DNS preflight failed'):
                 preflight_guarded_providers([provider], [SimpleNamespace(url='https://example.com/')])
+
+    def test_browser_workers_cannot_bypass_shared_dns_gate(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from harness.web_fetch.network_preflight import preflight_guarded_providers
+        fake = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('198.18.0.1', 443))]
+        for kind in ('moli_webfetch', 'crawl4ai'):
+            with self.subTest(kind=kind), patch('socket.getaddrinfo', return_value=fake):
+                with self.assertRaisesRegex(ValueError, 'synthetic'):
+                    preflight_guarded_providers([SimpleNamespace(type=kind, config={})],
+                                               [SimpleNamespace(url='https://example.com/')])

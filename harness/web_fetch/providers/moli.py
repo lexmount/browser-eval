@@ -338,6 +338,8 @@ class MoliWebFetchProvider(Provider):
 
     def _configuration_errors(self, binary: str | None) -> list[str]:
         errors = []
+        if self.config.get("dns_mode", "system") != "system":
+            errors.append("dns_mode (Moli currently requires a usable system DNS environment)")
         if not binary:
             errors.append("binary (set MOLI_BINARY or install moli on PATH)")
         expected_version = self.config.get("expected_reported_version")
@@ -632,6 +634,9 @@ class MoliWebFetchProvider(Provider):
                     timeout_ms,
                 ]
             )
+        # Forward the common limits to the native transport as well as stdout.
+        command.extend(["--http-connect-timeout", timeout_ms,
+                        "--http-max-response-size", str(int(self.config.get("max_bytes", 20_000_000)))])
         block_private_networks = bool(self.config.get("block_private_networks", True))
         requested_host = (urlsplit(case.url).hostname or "").casefold()
         private_network_guard_exception = block_private_networks and requested_host in set(
@@ -649,6 +654,8 @@ class MoliWebFetchProvider(Provider):
         diagnostic_read_limit = diagnostic_limit if retain_diagnostic else limit
         metadata = {
             "dump": dump,
+            "http_connect_timeout_ms": int(timeout_ms),
+            "http_max_response_bytes": int(self.config.get("max_bytes", 20_000_000)),
             "route": (
                 "raw_file"
                 if file_task
