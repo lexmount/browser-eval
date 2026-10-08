@@ -242,6 +242,23 @@ A full matrix rerun is required only when a global task input, call boundary or
 shared implementation dependency changes. The assembly manifest must retain
 which physical calls were replaced and why.
 
+To assemble certified evidence or retain a declared subset of browsers, use the
+same command. Exclusion changes the publication matrix; source calls remain in
+the original evidence directory.
+
+```sh
+uv run --frozen python scripts/assemble_headless.py --run-dir RUN --certificates CERTIFICATES --output ASSEMBLED
+uv run --frozen python scripts/assemble_headless.py --run-dir RUN --certificates CERTIFICATES --exclude-providers METHOD1 METHOD2 --output SUBSET
+```
+
+Assembly verifies and copies declared call artifacts and reference observations,
+then exposes the new directory only after validation. An existing independent
+review can follow unchanged retained attempts; changed evidence needs a separate
+review. Historical timing corrections keep their original measurement protocol
+and get a derived receipt bound to the retained records. No browser calls or
+independent reviews run as part of assembly. Supply `--speed-cohort SPEED` to
+apply the same browser exclusion to a packaged same-window speed cohort.
+
 Result verification is an opt-in stage after assembly: do not start it until the
 user explicitly requests review. The default scope is machine failures; use
 `--scope all --confirm-full-review` only after an explicit full-review request.

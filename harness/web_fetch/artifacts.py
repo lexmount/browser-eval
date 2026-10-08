@@ -431,11 +431,14 @@ def copy_cohort_evidence(source, target, dataset, records, batches, *,
     if include_metadata:
         allowed.update({'dataset.json', 'results.jsonl', summary_name})
         for optional in ('execution.json', 'manifest.json', 'scoring-revisions.json',
-                         'reference-revisions.json'):
+                         'reference-revisions.json', 'latency-corrections.json'):
             if (source / optional).is_file():
                 allowed.add(optional)
         if include_private and (source / 'result-review.json').is_file():
             allowed.add('result-review.json')
+        if 'latency-corrections.json' in allowed:
+            from .reference_lifecycle import latency_correction_original_elapsed
+            latency_correction_original_elapsed(source)
     for record in records:
         verify_record_artifacts(source, record)
         allowed.update(relative for relative, _ in artifact_bindings(record))

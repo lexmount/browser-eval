@@ -810,7 +810,7 @@ def valid_scoring_revision(source) -> bool:
     )
 
 
-def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
+def latency_correction_original_elapsed(source, *, records=None) -> dict[tuple[str, str], float]:
     """Return original timings for a receipt bound to current corrected results.
 
     Reference certificates describe the content-producing call.  A later paired
@@ -824,6 +824,11 @@ def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
     receipt_path = root / "latency-corrections.json"
     results_path = root / "results.jsonl"
     if not receipt_path.is_file():
+        if records is None:
+            records = ([json.loads(line) for line in results_path.read_bytes().splitlines()]
+                       if results_path.is_file() else [])
+        if any(row.get('provider_metadata', {}).get('latency_correction') for row in records):
+            raise ReferenceLifecycleError("Invalid latency correction: missing bound receipt")
         return {}
     if not results_path.is_file():
         raise ReferenceLifecycleError("Latency correction receipt has no bound results")
@@ -847,12 +852,15 @@ def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
     covered: dict[tuple[str, str], float] = {}
     for change in receipt["changes"]:
         if not isinstance(change, dict):
-            return {}
+            raise ReferenceLifecycleError("Invalid latency correction entry")
         key = (change.get("provider"), change.get("case_id"))
         before, after = change.get("before_ms"), change.get("after_ms")
         record = by_key.get(key)
         correction = (record or {}).get("provider_metadata", {}).get("latency_correction", {})
-        if (key in covered or not all(isinstance(value, (int, float)) for value in (before, after))
+        if (key in covered or not all(isinstance(value, (int, float))
+                                      and not isinstance(value, bool)
+                                      and math.isfinite(value) and value >= 0
+                                      for value in (before, after))
                 or record is None or record.get("elapsed_ms") != after
                 or correction.get("kind") != "documented_final_round_supersession"
                 or correction.get("original_elapsed_ms") != before
@@ -860,6 +868,10 @@ def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
                 or correction.get("diagnostic_results_sha256") != receipt.get("diagnostic_results_sha256")):
             raise ReferenceLifecycleError("Invalid latency correction entry")
         covered[key] = before
+    expected = {key for key, row in by_key.items()
+                if row.get('provider_metadata', {}).get('latency_correction')}
+    if set(covered) != expected:
+        raise ReferenceLifecycleError("Invalid latency correction coverage")
     return covered
 
 
@@ -1119,7 +1131,7 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
 
     allow_scoring_rule_revision = (allow_scoring_rule_revision or valid_scoring_revision(source))
     revised_references = reference_revision_cases(source)
-    original_latency = latency_correction_original_elapsed(source)
+    original_latency = latency_correction_original_elapsed(source, records=records)
     try:
         for batch in manifests:
             if not isinstance(batch, dict):

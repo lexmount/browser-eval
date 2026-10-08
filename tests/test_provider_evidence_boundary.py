@@ -8,16 +8,150 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from harness.web_fetch.artifacts import artifact_bindings, verify_record_artifacts
-from harness.web_fetch.assembly import assemble
+from harness.web_fetch.assembly import _copy_speed_bundle, assemble, copy_projected_review
 from harness.web_fetch.evidence import add_provider_run, project_provider_run, projection_main
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.reference_lifecycle import (
     finalize_reference_checks,
+    latency_correction_original_elapsed,
     require_verified_reference_checks,
 )
 from harness.web_fetch.runner import run_evaluation
+from harness.web_fetch.speed_cohort import build_summary, derive_aggregate
 from scripts.certify_headless_cases import certify_case
+
+
+def reviewed_corrected_matrix(tmp_path, *, fresh=True):
+    definition = dataset(fresh)
+    source, incoming = tmp_path / 'source', tmp_path / 'incoming'
+    make_run(source, 'old', definition)
+    make_run(incoming, 'new', definition)
+    add_provider_run(source, incoming, 'new')
+    rows = [json.loads(line) for line in (source / 'results.jsonl').read_bytes().splitlines()]
+    changes = []
+    for row in rows:
+        before = row['elapsed_ms']
+        row['elapsed_ms'] += 60000
+        row['provider_metadata']['latency_correction'] = {
+            'kind': 'documented_final_round_supersession',
+            'original_elapsed_ms': before, 'corrected_elapsed_ms': row['elapsed_ms'],
+            'diagnostic_results_sha256': 'a' * 64}
+        changes.append({'provider': row['provider'], 'case_id': row['case_id'],
+                        'before_ms': before, 'after_ms': row['elapsed_ms']})
+    (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    (source / 'latency-corrections.json').write_text(json.dumps({
+        'schema_version': 1,
+        'selection': 'same four cases for all three Moli versions; final round always selected, never best-of',
+        'diagnostic_results_sha256': 'a' * 64,
+        'output_results_sha256': hashlib.sha256((source / 'results.jsonl').read_bytes()).hexdigest(),
+        'task_decision_changes': 0, 'superseded_logical_results': len(changes),
+        'changes': changes, 'diagnostic_summary': {'old': {'calls': 2}, 'new': {'calls': 2}}}))
+    (source / 'result-review.json').write_text(json.dumps({
+        'schema_version': 1,
+        'bindings': {name + '_sha256': hashlib.sha256((source / filename).read_bytes()).hexdigest()
+                     for name, filename in [('dataset', 'dataset.json'), ('results', 'results.jsonl')]},
+        'review_protocol': {'scope': 'all', 'machine_judgments_withheld': True},
+        'attempts': [{'attempt_id': row['attempt_id'], 'machine_verdict': 'pass',
+                      'agent_verdict': 'pass', 'final_verdict': 'pass'} for row in rows]}))
+    return source, rows
+
+
+@pytest.mark.parametrize('excluded', [[], ['new']])
+def test_assembly_preserves_corrected_timing_chronology_and_review_scope(tmp_path, excluded):
+    source, rows = reviewed_corrected_matrix(tmp_path)
+    before = {path.relative_to(source): path.read_bytes()
+              for path in source.rglob('*') if path.is_file()}
+    (source / 'worker-notes.txt').write_text('private synthetic note')
+    output = tmp_path / 'output'
+    assemble(source, tmp_path / 'certificates', [], output, exclude_providers=excluded)
+    retained = [row for row in rows if row['provider'] not in excluded]
+    assert [json.loads(line) for line in (output / 'results.jsonl').read_bytes().splitlines()] == retained
+    originals = latency_correction_original_elapsed(output)
+    assert set(originals) == {(row['provider'], row['case_id']) for row in retained}
+    batches = json.loads((output / 'execution.json').read_text())['batches']
+    assert {attempt for batch in batches for attempt in batch['attempt_ids']} == {
+        row['attempt_id'] for row in retained}
+    require_verified_reference_checks(batches,
+        cases=json.loads((output / 'dataset.json').read_text()), records=retained, source=output)
+    assert not (output / 'worker-notes.txt').exists()
+    for row in retained:
+        verify_record_artifacts(output, row)
+    review = json.loads((output / 'result-review.json').read_text())
+    assert {row['attempt_id'] for row in review['attempts']} == {row['attempt_id'] for row in retained}
+    for relative, raw in before.items():
+        assert (source / relative).read_bytes() == raw
+    receipt = json.loads((output / 'latency-corrections.json').read_text())
+    assert set(receipt['diagnostic_summary']) == {row['provider'] for row in retained}
+
+
+@pytest.mark.parametrize('damage', ['wrong-original', 'missing-receipt', 'missing-entry', 'non-object',
+                                  'negative', 'infinite', 'boolean'])
+def test_assembly_rejects_tampered_timing_receipt_without_output(tmp_path, damage):
+    source, _ = reviewed_corrected_matrix(tmp_path)
+    receipt = json.loads((source / 'latency-corrections.json').read_text())
+    if damage == 'wrong-original':
+        receipt['changes'][0]['before_ms'] += 1
+    elif damage == 'missing-entry':
+        receipt['changes'].pop()
+        receipt['superseded_logical_results'] -= 1
+    elif damage == 'non-object':
+        receipt['changes'][0] = None
+    elif damage != 'missing-receipt':
+        invalid = {'negative': -1, 'infinite': float('inf'), 'boolean': True}[damage]
+        receipt['changes'][0]['before_ms'] = invalid
+        rows = [json.loads(line) for line in (source / 'results.jsonl').read_bytes().splitlines()]
+        rows[0]['provider_metadata']['latency_correction']['original_elapsed_ms'] = invalid
+        (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+        receipt['output_results_sha256'] = hashlib.sha256((source / 'results.jsonl').read_bytes()).hexdigest()
+    (source / 'latency-corrections.json').write_text(json.dumps(receipt))
+    if damage == 'missing-receipt':
+        (source / 'latency-corrections.json').unlink()
+    output = tmp_path / 'output'
+    with pytest.raises(ValueError, match='Invalid latency correction|Call outside batch time bounds'):
+        assemble(source, tmp_path / 'certificates', [], output, exclude_providers=['new'])
+    assert not output.exists()
+    assert not list(tmp_path.glob('.output-*'))
+
+
+def test_review_projection_rejects_changed_attempt_even_with_same_identity(tmp_path):
+    source, rows = reviewed_corrected_matrix(tmp_path)
+    output = tmp_path / 'output'
+    output.mkdir()
+    (output / 'dataset.json').write_bytes((source / 'dataset.json').read_bytes())
+    rows[0]['metrics']['content_pass'] = False
+    (output / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    with pytest.raises(ValueError, match='changed attempt evidence'):
+        copy_projected_review(source, output, [])
+    assert not (output / 'result-review.json').exists()
+
+
+@pytest.mark.parametrize('excluded', [[], ['new']])
+def test_speed_copy_preserves_timing_corrections_for_retained_calls(tmp_path, excluded):
+    source, rows = reviewed_corrected_matrix(tmp_path, fresh=False)
+    definition = json.loads((source / 'dataset.json').read_text())
+    execution = json.loads((source / 'execution.json').read_text())
+    batches = execution['batches']
+    # A synthetic common-window cohort, without running real browser methods.
+    start = min(batch['started_at'] for batch in batches)
+    end = max(batch['completed_at'] for batch in batches)
+    for batch in batches:
+        batch.update(started_at=start, completed_at=end)
+    aggregate = derive_aggregate(definition, batches)
+    execution.update(schema_version=1, aggregate=aggregate)
+    (source / 'execution.json').write_text(json.dumps(execution))
+    summary = build_summary(definition, rows, batches, aggregate)
+    summary['bindings'] = {name + '_sha256': hashlib.sha256((source / filename).read_bytes()).hexdigest()
+                           for name, filename in [('dataset', 'dataset.json'), ('results', 'results.jsonl')]}
+    (source / 'speed-comparison.json').write_text(json.dumps(summary))
+    output = tmp_path / 'speed'
+    _copy_speed_bundle(source, output, definition, rows, batches, excluded_providers=excluded)
+    assert set(latency_correction_original_elapsed(output)) == {
+        (row['provider'], row['case_id']) for row in rows if row['provider'] not in excluded}
+    retained = [json.loads(line) for line in (output / 'results.jsonl').read_bytes().splitlines()]
+    require_verified_reference_checks(json.loads((output / 'execution.json').read_text())['batches'],
+                                       cases=json.loads((output / 'dataset.json').read_text()),
+                                       records=retained, source=output)
 
 
 def make_run(root, provider, dataset, *, certify=True):

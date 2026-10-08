@@ -49,6 +49,13 @@ only after validation; its command scripts contain no execution or copy logic.
 Assembly reads aggregate execution batches after append, while a complete physical
 run awaiting postcheck retains the independent per-case certificate path.
 
+Provider subsets use the same `assemble_headless.py --exclude-providers` boundary.
+Assembly reuses an existing review only for unchanged retained attempt records;
+it does not judge new or modified evidence. Timing corrections retain their
+original selection protocol and diagnostic binding. A derived receipt binds the
+retained unchanged attempts and exact output hash, with the source receipt hash.
+Missing entries and non-finite, negative or boolean timing values are rejected.
+
 `resource_cohort.py` validates the declared resource-method matrix, finite
 measurements and common execution environment, and rebuilds the resource summary
 from its original records. Assembly and report packaging share the comparison

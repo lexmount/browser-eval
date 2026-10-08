@@ -16,6 +16,7 @@ from harness.web_fetch.artifacts import (
 )
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
+    latency_correction_original_elapsed,
     reference_revision_cases,
     require_verified_reference_checks,
     requires_fresh_reference,
@@ -119,6 +120,48 @@ def copy_scoring_revision_history(source, output):
     return True
 
 
+def copy_projected_latency_correction(source, output):
+    """Bind validated historical timing corrections to unchanged retained attempts."""
+    path = source / 'latency-corrections.json'
+    if not path.is_file():
+        return False
+    latency_correction_original_elapsed(source)
+    receipt = json.loads(path.read_bytes())
+    source_rows = {(row['provider'], row['case_id']): row for row in read_records(source)}
+    output_rows = {(row['provider'], row['case_id']): row for row in read_records(output)}
+    changes = []
+    for change in receipt['changes']:
+        key = (change['provider'], change['case_id'])
+        prior, current = source_rows[key], output_rows.get(key)
+        if current is None or current['attempt_id'] != prior['attempt_id']:
+            continue
+        if current != prior:
+            raise ValueError('Latency projection changed a retained measured attempt')
+        changes.append(change)
+    if not changes:
+        return False
+    receipt['changes'] = changes
+    receipt['superseded_logical_results'] = len(changes)
+    receipt['output_results_sha256'] = hashlib.sha256((output / 'results.jsonl').read_bytes()).hexdigest()
+    if isinstance(receipt.get('diagnostic_summary'), dict):
+        retained = {change['provider'] for change in changes}
+        receipt['diagnostic_summary'] = {name: value for name, value in receipt['diagnostic_summary'].items()
+                                         if name in retained}
+    # The historical selection protocol describes the original measurement.
+    # Keep it verbatim and describe this offline projection separately.
+    receipt['projection'] = {
+        'kind': 'immutable_attempt_subset', 'provider_calls': 0,
+        'source_receipt_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
+        'source_results_sha256': hashlib.sha256((source / 'results.jsonl').read_bytes()).hexdigest(),
+        'retained_attempt_ids': [output_rows[(change['provider'], change['case_id'])]['attempt_id']
+                                 for change in changes],
+    }
+    target = output / 'latency-corrections.json'
+    target.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + '\n')
+    latency_correction_original_elapsed(output)
+    return True
+
+
 def copy_projected_review(source, output, excluded_providers):
     """Project a valid review onto a provider-subset without re-judging attempts."""
     prior=source/'result-review.json'
@@ -130,6 +173,9 @@ def copy_projected_review(source, output, excluded_providers):
     output_records=read_records(output)
     if source_dataset.get('cases') != output_dataset.get('cases'):
         raise ValueError('Cannot project a result review across changed cases')
+    original = {row['attempt_id']: row for row in source_records}
+    if any(row != original.get(row['attempt_id']) for row in output_records):
+        raise ValueError('Cannot project a result review across changed attempt evidence')
     review=json.loads(prior.read_text())
     retained={row['attempt_id'] for row in output_records}
     reviewed={row.get('attempt_id') for row in review.get('attempts',[])}
@@ -337,13 +383,14 @@ def _provider_request_contract(case, provider):
     return value
 
 
-def _prune_shadowed_batch_attempts(batches, records):
+def _prune_shadowed_batch_attempts(batches, records, original_latency=None):
     """Keep an attempt ID only in the batch whose time bounds contain the selected call.
 
     Attempt IDs are stable provider/case identities and can recur in a deliberate
     implementation rerun. Time bounds disambiguate the selected physical call.
     """
     by_id={r['attempt_id']:r for r in records}
+    original_latency = original_latency or {}
     result=[]
     for batch in batches:
         start=datetime.fromisoformat(batch['started_at'])
@@ -354,7 +401,8 @@ def _prune_shadowed_batch_attempts(batches, records):
             if not record:
                 continue
             began=datetime.fromisoformat(record['started_at'])
-            finished=max(began+timedelta(milliseconds=record['elapsed_ms']),
+            elapsed = original_latency.get((record.get('provider'), record['case_id']), record['elapsed_ms'])
+            finished=max(began+timedelta(milliseconds=elapsed),
                 datetime.fromisoformat(record.get('completed_at',record['started_at'])))
             if start<=began<=finished<=end:
                 kept.append(attempt_id)
@@ -383,7 +431,7 @@ def _prune_shadowed_batch_attempts(batches, records):
     return result
 
 
-def _project_provider_subset(dataset, records, batches, audit, excluded_providers):
+def _project_provider_subset(dataset, records, batches, audit, excluded_providers, original_latency=None):
     """Return a complete publication matrix with explicitly excluded providers removed."""
     excluded=set(excluded_providers)
     if not excluded:
@@ -421,7 +469,7 @@ def _project_provider_subset(dataset, records, batches, audit, excluded_provider
             value['excluded_attempts']=[attempt for attempt in value['excluded_attempts']
                 if attempt_provider(attempt.get('attempt_id')) not in excluded]
         projected_audit.append(value)
-    projected_batches=_prune_shadowed_batch_attempts(batches,kept_records)
+    projected_batches=_prune_shadowed_batch_attempts(batches,kept_records,original_latency)
     projected.setdefault('comparison',{})['excluded_providers']=sorted(excluded)
     projected['comparison']['provider_projection']=(
         'Explicit publication projection only; provider adapters and immutable source calls are retained outside this bundle.')
@@ -491,6 +539,7 @@ def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_provider
     source_execution=json.loads((source/'execution.json').read_text())
     source_aggregate=source_execution.get('aggregate')
     projected_dataset,projected_rows,projected_batches=dataset,rows,batches
+    original_latency = latency_correction_original_elapsed(source)
     if excluded_providers:
         source_summary=json.loads((source/'speed-comparison.json').read_text())
         rebuilt=build_speed_summary(dataset,rows,batches,source_aggregate)
@@ -500,7 +549,7 @@ def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_provider
                     'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()}):
             raise ValueError('Speed comparison is not bound to its complete source cohort')
         projected_dataset,projected_rows,projected_batches,_=_project_provider_subset(
-            deepcopy(dataset),rows,batches,[],excluded_providers)
+            deepcopy(dataset),rows,batches,[],excluded_providers,original_latency)
 
     copy_cohort_evidence(source, target, projected_dataset, projected_rows, projected_batches,
                          summary_name='speed-comparison.json', include_private=True,
@@ -524,6 +573,7 @@ def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_provider
         copy_projected_review(source,target,excluded_providers)
         _write_projected_reference_revisions(
             source,target,{case['id'] for case in projected_dataset.get('cases',[])})
+        copy_projected_latency_correction(source,target)
         require_verified_reference_checks(projected_batches,cases=projected_dataset,
             records=projected_rows,source=target,allow_scoring_rule_revision=True)
 
@@ -715,13 +765,16 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     # attempts retain their existing relative order after the source rows.
     source_order={row['attempt_id']:index for index,row in enumerate(original)}
     records.sort(key=lambda row: source_order.get(row['attempt_id'], len(source_order)))
-    batches=_prune_shadowed_batch_attempts(batches,records)
+    timings_by_root = {root: latency_correction_original_elapsed(root) for root in {root for _, root in selected}}
+    original_latency = {(row['provider'], row['case_id']): timings_by_root[root][(row['provider'], row['case_id'])]
+                        for row, root in selected if (row['provider'], row['case_id']) in timings_by_root[root]}
+    batches=_prune_shadowed_batch_attempts(batches,records,original_latency)
     if provider_replacements:
         dataset['comparison']['reference_binding_mode']='equivalent_reference_bytes_with_independent_batch_captures'
     for track in dataset.get('coverage_plan',{}):
         dataset['coverage_plan'][track]=list(dict.fromkeys(dataset['coverage_plan'][track]+sorted(added_providers)))
     dataset,records,batches,audit=_project_provider_subset(
-        dataset,records,batches,audit,exclude_providers)
+        dataset,records,batches,audit,exclude_providers,original_latency)
     retained_attempt_ids={row['attempt_id'] for row in records}
     selected=[(row,root) for row,root in selected
               if row['attempt_id'] in retained_attempt_ids]
@@ -737,7 +790,11 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     dataset['comparison']['unverified_reference_cases']=sorted(set(failed))
     has_reference_revisions=any(reference_revision_cases(root) for root in evidence)
     if not retain_unverified and not has_reference_revisions:
-        require_verified_reference_checks(batches,cases=dataset,records=records,
+        # Certificate chronology uses the content-producing call's validated
+        # timing. Persisted rows retain their corrected published timing.
+        physical_records = [{**row, 'elapsed_ms': original_latency.get(
+            (row['provider'], row['case_id']), row['elapsed_ms'])} for row in records]
+        require_verified_reference_checks(batches,cases=dataset,records=physical_records,
             equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
             'equivalent_reference_bytes_with_independent_batch_captures',
             allow_scoring_rule_revision=valid_scoring_revision(run))
@@ -772,7 +829,8 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             (target/'manifest.json').write_text(json.dumps(rejected,ensure_ascii=False,indent=2)+'\n')
         else:
             rejected_batches=_prune_shadowed_batch_attempts(
-                [public_manifest(batch) for batch in prior_batches],rows)
+                [public_manifest(batch) for batch in prior_batches],rows,
+                latency_correction_original_elapsed(run))
             if not rejected_batches:
                 raise ValueError('Assembled input has no execution batch for replaced case: '+cid)
             (target/'execution.json').write_text(json.dumps(
@@ -785,8 +843,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         (output/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n')
     (output/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in records))
     copy_scoring_revision_history(run, output)
-    if (run/'latency-corrections.json').is_file():
-        shutil.copy2(run/'latency-corrections.json',output/'latency-corrections.json')
+    copy_projected_latency_correction(run, output)
     # Consolidate independently validated source reference-correction receipts
     # and bind them to the exact assembled dataset/results pair.
     revision_rows=[]
@@ -858,7 +915,10 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                 and not review_copied):
             raise ValueError('Provider projection requires a projectable independent result review')
     else:
-        copy_bound_review(run,output)
+        copied = copy_bound_review(run,output)
+        if not copied and not any((replacements, additions, provider_replacements,
+                                   provider_additions, canonical_dataset)):
+            copy_projected_review(run,output,[])
     bind_assembled_scoring_revision(output)
     if speed_cohort:
         if not (speed_cohort/'speed-comparison.json').is_file():
