@@ -259,6 +259,16 @@ pages; a missing configuration does not authorize an unmeasured comparison.
 
 ## Browser trajectory replay ownership
 
+Report publication belongs to `harness/browser_use/report_publish.py` and
+`harness/trajectory_replay/webarena_report_publish.py`; their commands only parse
+and delegate through these owners. Both upload a private, byte-exact archive
+snapshot and guard its original archive, attestation and publication authority
+before remote writes and final local binding. Full exported ZIP inventories must
+match the frozen archive, including unique paths. Browser Use excludes its local
+`.generated-report` rebuild marker from the upload while retaining it in the
+guarded source tree. Its publication title comes from the current profile and
+its preview uses the validated same-origin share token.
+
 Report packaging belongs to `harness/browser_use/report_package.py` and
 `harness/trajectory_replay/webarena_report_package.py`. They share
 `harness/reporting/publication.py`: freeze report and authority inputs before

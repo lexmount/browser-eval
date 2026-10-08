@@ -2,12 +2,17 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
+import re
 import shutil
 import tempfile
+import urllib.parse
 import zipfile
 from collections.abc import Callable, Sequence
+from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 
 from harness.web_fetch.safety import (
@@ -15,6 +20,41 @@ from harness.web_fetch.safety import (
     evidence_tree_identity,
     reject_evidence_symlinks,
 )
+
+
+@dataclass(frozen=True)
+class PublicationSnapshot:
+    archive: Path
+    sha256: str
+    sources: dict
+
+    def check(self) -> None:
+        if any(_identity(path) != value for path, value in self.sources.items()):
+            raise ValueError('publication inputs changed after validation')
+        if _identity(self.archive) != self.sha256:
+            raise ValueError('frozen publication archive changed')
+
+
+@contextmanager
+def snapshot_publication(archive: Path, *, inputs: Sequence[Path]):
+    """Upload a private byte-exact copy while guarding the release authority."""
+    sources = {path: _identity(path) for path in dict.fromkeys((archive, *inputs))}
+    with tempfile.TemporaryDirectory(prefix='publication-snapshot-') as work:
+        frozen = Path(work) / 'archive.zip'
+        shutil.copyfile(archive, frozen)
+        snapshot = PublicationSnapshot(frozen, sources[archive], sources)
+        snapshot.check()
+        yield snapshot
+
+
+def archive_inventory(source: Path | bytes) -> dict[str, str]:
+    """Compare exported ZIPs without accepting duplicate paths or extracting files."""
+    with zipfile.ZipFile(io.BytesIO(source) if isinstance(source, bytes) else source) as archive:
+        members = [item for item in archive.infolist() if not item.is_dir()]
+        names = [item.filename for item in members]
+        if not names or len(names) != len(set(names)):
+            raise ValueError('publication ZIP requires nonempty unique file paths')
+        return {item.filename: hashlib.sha256(archive.read(item)).hexdigest() for item in members}
 
 
 def _identity(path: Path):
@@ -41,6 +81,7 @@ def package_archive(
     inputs: Sequence[Path],
     validate: Callable[[], None],
     attest: Callable[[Path], dict],
+    excluded: Sequence[str] = (),
     max_files: int | None = None,
     max_bytes: int | None = None,
 ) -> dict:
@@ -63,8 +104,11 @@ def package_archive(
     output = output.parent.resolve() / output.name
     receipt = receipt.parent.resolve() / receipt.name
     before = {path: _identity(path) for path in dict.fromkeys((report, *inputs))}
-    inventory = before[report]
-    if (not isinstance(inventory, dict) or not inventory
+    complete = before[report]
+    if not isinstance(complete, dict):
+        raise ValueError('publication source must be a directory')
+    inventory = {name: digest for name, digest in complete.items() if name not in excluded}
+    if (not inventory
             or (max_files is not None and len(inventory) > max_files)):
         raise ValueError(f'publication file count is outside the permitted range: {max_files}')
     for name in inventory:
@@ -136,3 +180,20 @@ def package_archive(
                     target.unlink(missing_ok=True)
             raise
     return result
+
+
+def public_share_context(base: str, share_url: str) -> tuple[str, str]:
+    target = urllib.parse.urlsplit(share_url)
+    authority = urllib.parse.urlsplit(base)
+    if (
+        target.scheme != authority.scheme
+        or target.netloc != authority.netloc
+        or not target.path.startswith("/v/")
+        or target.query
+        or target.fragment
+    ):
+        raise ValueError("publication has no valid same-origin public share URL")
+    token = target.path.removeprefix("/v/")
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", token):
+        raise ValueError("publication has no valid public share token")
+    return target.path, token

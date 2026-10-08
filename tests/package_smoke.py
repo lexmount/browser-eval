@@ -581,7 +581,9 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
                                   capture_output=True, text=True)
         assert rejected.returncode != 0 and 'symlink' in rejected.stderr.lower(), rejected.stderr
     for command in ('package_browser_use_artifact_hub.py',
-                    'package_webarena_replay_artifact_site.py'):
+                    'package_webarena_replay_artifact_site.py',
+                    'publish_browser_use_artifact_hub.py',
+                    'publish_webarena_replay_artifact_site.py'):
         subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
                        check=True, cwd=root, stdout=subprocess.DEVNULL)
     from harness.reporting.publication import package_archive

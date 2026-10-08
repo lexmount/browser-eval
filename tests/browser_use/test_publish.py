@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-import scripts.publish_browser_use_artifact_hub as publisher
+from harness.browser_use import report_publish as publisher
 
 
 def _sha256(path: Path) -> str:
@@ -57,7 +57,7 @@ def test_validate_package_requires_and_checks_every_evidence_root(
         evidence = tmp_path / model
         evidence.mkdir()
         files = {}
-        for name in ("manifest.json", "attempts.jsonl"):
+        for name in ("manifest.json", "run-config.json", "attempts.jsonl", "result-review.json"):
             path = evidence / name
             path.write_text(f"{model}:{name}", encoding="utf-8")
             files[name] = _sha256(path)

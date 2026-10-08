@@ -132,6 +132,8 @@ def test_track_package_uses_frozen_gates_and_preserves_previous_release(
     (report / 'report-manifest.json').write_text(json.dumps({
         'dataset_sha256': file_sha256(dataset), 'results_sha256': file_sha256(results)
     }))
+    if track == 'browser-use':
+        (report / '.generated-report').write_text('browser-use-report/2\n')
     def validate(*args, **kwargs):
         if damage == 'report':
             (report / 'index.html').write_text('changed after gate')
@@ -161,6 +163,8 @@ def test_track_package_uses_frozen_gates_and_preserves_previous_release(
     else:
         result = package()
         assert result['archive_sha256'] == file_sha256(output)
+        with zipfile.ZipFile(output) as archive:
+            assert '.generated-report' not in archive.namelist()
         assert result['report_tree_sha256'] == (
             autonomous.tree_sha256(report) if track == 'browser-use' else replay.tree_sha256(report)
         )

@@ -75,6 +75,7 @@ def package(
         validate=lambda: validate_release(report, evidence, visual_receipt,
                                           authority_root=authority),
         attest=attest,
+        excluded=(".generated-report",),
     )
 
 
