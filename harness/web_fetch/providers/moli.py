@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from contextlib import ExitStack
 import hashlib
 import json
 import math
@@ -338,8 +339,12 @@ class MoliWebFetchProvider(Provider):
 
     def _configuration_errors(self, binary: str | None) -> list[str]:
         errors = []
-        if self.config.get("dns_mode", "system") != "system":
-            errors.append("dns_mode (Moli currently requires a usable system DNS environment)")
+        from ..network_dns import validate_dns_mode, validate_native_dns_library
+        try:
+            if validate_dns_mode(self.config.get("dns_mode", "system")) == "public_doh":
+                validate_native_dns_library(self.config.get("native_dns_library"))
+        except ValueError as error:
+            errors.append(str(error))
         if not binary:
             errors.append("binary (set MOLI_BINARY or install moli on PATH)")
         expected_version = self.config.get("expected_reported_version")
@@ -378,6 +383,8 @@ class MoliWebFetchProvider(Provider):
                 "local_report_complete_diagnostic_links (requires retain_complete_diagnostic_log)"
             )
         allowlist = self.config.get("private_network_allowlist_hosts", [])
+        if self.config.get("uniform_native_parameters") and allowlist:
+            errors.append("private_network_allowlist_hosts cannot vary uniform native parameters")
         if (
             not isinstance(allowlist, list)
             or any(
@@ -441,6 +448,10 @@ class MoliWebFetchProvider(Provider):
                         "reported_version": reported_version,
                         "binary_sha256": binary_sha256,
                     }
+                    if self.config.get("dns_mode", "system") == "public_doh":
+                        from ..network_dns import validate_native_dns_library
+                        _, binding = validate_native_dns_library(self.config.get("native_dns_library"))
+                        self._implementation_identity["native_dns"] = binding
         return errors
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
@@ -742,7 +753,20 @@ class MoliWebFetchProvider(Provider):
                 metadata=metadata,
             )
         # Spool artifacts to files rather than retaining arbitrary CLI output in RAM.
-        with tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as diagnostic:
+        with ExitStack() as dns_stack, tempfile.TemporaryFile() as output, tempfile.TemporaryFile() as diagnostic:
+            from ..network_dns import NativeDnsBroker, validate_native_dns_library
+            dns_broker = None
+            process_environment = None
+            metadata["dns_mode"] = self.config.get("dns_mode", "system")
+            if metadata["dns_mode"] == "public_doh":
+                library, binding = validate_native_dns_library(self.config.get("native_dns_library"))
+                dns_broker = dns_stack.enter_context(NativeDnsBroker())
+                remaining = call_deadline - time.monotonic()
+                if remaining <= 0:
+                    return ProviderResult(False, "", error_type="timeout", error_message="Moli fetch exceeded time budget", metadata=metadata)
+                dns_broker.begin_call(remaining)
+                process_environment = dns_broker.environment(library)
+                metadata["native_dns_binding"] = binding
             try:
                 process = subprocess.Popen(
                     command,
@@ -750,6 +774,7 @@ class MoliWebFetchProvider(Provider):
                     stdout=output,
                     stderr=diagnostic,
                     start_new_session=os.name == "posix",
+                    env=process_environment,
                 )
                 with self._process_lock:
                     self._active_process = process
@@ -788,6 +813,8 @@ class MoliWebFetchProvider(Provider):
                 if stopped:
                     self._kill(process)
                     process.wait()
+                if dns_broker is not None:
+                    metadata["dns_queries"] = list(dns_broker.traces)
                 stdout_bytes = os.fstat(output.fileno()).st_size
                 stderr_bytes = os.fstat(diagnostic.fileno()).st_size
                 output.seek(0)

@@ -368,19 +368,32 @@ envelopes remain insufficient for an exact raw-response audit.
 
 
 For native caller comparisons, `dns_mode` is explicitly `system` (default) or
-`public_doh`. OpenClaw, DeepSeek, CowAgent and LangChain must declare the same mode
+`public_doh`. All six local methods (Moli, Crawl4AI, OpenClaw, DeepSeek, CowAgent and
+LangChain) must declare the same mode
 when selected together. `public_doh` uses the fixed
 [Cloudflare JSON DoH endpoint](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/)
-for every hostname and redirect, not a case allowlist or failure fallback. It
-queries A and AAAA without product retries; DNS time counts inside the existing
+for every hostname and redirect, not a case allowlist or failure fallback.
+Native Chrome uses the same endpoint with its DNS wire-format client; other
+callers query A and AAAA through the JSON client. No caller retries are added; DNS time counts inside the existing
 call deadline. Python resolution is scoped to the calling thread and restored;
 Node uses the products' resolver interfaces. Native private-address checks and
 address pinning remain active where the product provides them. CowAgent's native
 SSRF setting is preserved (the pinned implementation defaults to disabled).
-Do not apply this option to workers without an implemented resolver seam.
+Moli on Darwin uses a process-local native resolver bridge. Build it explicitly
+outside Git with `uv run --frozen python scripts/build_native_dns.py
+~/.browser-eval/toolchains/native-dns/libbrowser-eval-dns.dylib`, and configure
+`native_dns_library` (or `MOLI_NATIVE_DNS_LIBRARY` in the example). The adapter
+checks the library hash, current source hashes and architecture before calls;
+changed source requires rebuilding. It never compiles during a measured call.
+Crawl4AI's browser route starts the configured Chrome channel with a temporary
+strict-DoH profile and connects through its native CDP interface. The original
+native launch arguments are preserved; there is no system-DNS fallback for
+page hosts. The fixed DoH endpoint itself uses system DNS for bootstrap. Browser
+startup and DNS remain inside the outer call deadline. Non-browser Crawl4AI
+file/PDF routes explicitly reject this mode. No global DNS setting is changed.
 
 A public-DNS configuration must bind `scripts/oss/public_dns.mjs` for the Node
-workers, `harness/web_fetch/network_dns.py` for CowAgent/LangChain, and DeepSeek's
+workers, `harness/web_fetch/network_dns.py` for CowAgent/LangChain/Crawl4AI, and DeepSeek's
 native `src/network.ts` in `required_paths`, using the normal `{harness_root}`
 and `{repo_path}` tokens. The preflight checks all selected case hosts with that
 resolver before product calls; mixed modes, failed resolution or synthetic answers
@@ -397,6 +410,6 @@ raw tool value cannot be retroactively reconstructed or rescored as this route.
 
 共享 HTTP 调用预算原样传入底层客户端及支持的服务端超时参数，不预留持久化时间而提前扣减（45 秒即 45000 毫秒）。外层仍以完整输入到答案处理的截止时间判断；迟到答案被舍弃，尚未退出的不可取消请求会隔离该方法并记明未执行范围，不能并发遗弃请求或额外增加答案预算。
 
-本地 DNS 公平性预检也包括 Moli 与 Crawl4AI。Moli 当前适配器只声明 system 模式；在系统返回特殊地址或与其他本地方法混用 DNS 模式时，必须停止在调用前，不能将四方法的 public_doh 修复当成全本地方法环境已恢复。Moli 原生 HTTP 连接超时和响应字节上限也接收共享预算。Crawl4AI 正文路由保留完整原生 model_dump 回包，最终 URL 优先使用其声明的 redirected_url；评分正文仍为原生 raw_markdown。
+本地 DNS 公平性预检覆盖全部六种本地方法，必须统一选择 system 或 public_doh。Moli 在 Darwin 上通过已绑定源码及哈希的进程内解析库支持 public_doh；Crawl4AI 正文浏览器路由使用指定 Chrome 的独立安全 DNS 配置目录。系统模式仍会在发现特殊地址时停止，不能混用模式或关闭产品安全检查。Moli 原生 HTTP 连接超时和响应字节上限也接收共享预算。Crawl4AI 正文路由保留完整原生 model_dump 回包，最终 URL 优先使用其声明的 redirected_url；评分正文仍为原生 raw_markdown。
 
 评测入口不会继承父进程的 API Key、API Token 或账户 ID；这些值只从仓库 .env 读取。普通运行路径变量仍可由调用环境提供，外部 --env-file 不能引入评测凭据。Crawl4AI 的最终 HTTP 状态优先读取原生 redirected_status_code，原始状态另存；原生 links 的 internal/external 名称和地址对直接进入共有 links 输入，不从日志、请求或裸 URL 补造名称。

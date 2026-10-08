@@ -86,3 +86,59 @@ class NetworkDnsTests(unittest.TestCase):
         with public_dns_context('system', 45) as traces:
             self.assertIs(socket.getaddrinfo, original)
         self.assertEqual(traces, [])
+
+
+class CrawlBrowserDnsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_channel_native_arguments_strict_dns_and_cleanup(self):
+        import pathlib
+        import sys
+        from types import SimpleNamespace
+        from harness.web_fetch.network_dns import crawl4ai_public_dns_browser, DNS_ENDPOINT
+        observed = {}
+        class Config:
+            chrome_channel = "chrome"
+            def clone(self, **kwargs):
+                return SimpleNamespace(**kwargs)
+        class Manager:
+            def __init__(self, config):
+                pass
+            def _build_browser_args(self):
+                return {"channel": "chrome", "headless": True, "args": ["native-flag"]}
+        class Context:
+            browser = SimpleNamespace(version="frozen-native-version")
+            async def close(self):
+                observed["closed"] = True
+        class Chromium:
+            async def launch_persistent_context(self, directory, **kwargs):
+                observed.update(directory=directory, arguments=kwargs)
+                profile = pathlib.Path(directory)
+                observed["settings"] = json.loads((profile / "Local State").read_text())
+                (profile / "DevToolsActivePort").write_text("12345\n/browser-endpoint\n")
+                return Context()
+        class Driver:
+            async def __aenter__(self):
+                return SimpleNamespace(chromium=Chromium())
+            async def __aexit__(self, *args):
+                observed["driver_closed"] = True
+        modules = {"playwright.async_api": SimpleNamespace(async_playwright=Driver),
+                   "crawl4ai.browser_manager": SimpleNamespace(BrowserManager=Manager)}
+        with patch.dict(sys.modules, modules):
+            with self.assertRaisesRegex(RuntimeError, "call failed"):
+                async with crawl4ai_public_dns_browser(Config()) as (config, metadata):
+                    self.assertEqual(config.cdp_url, "http://127.0.0.1:12345")
+                    self.assertFalse(metadata["system_dns_fallback"])
+                    self.assertEqual(metadata["browser_version"], "frozen-native-version")
+                    raise RuntimeError("call failed")
+        self.assertEqual(observed["arguments"]["channel"], "chrome")
+        self.assertIn("native-flag", observed["arguments"]["args"])
+        self.assertEqual(observed["settings"]["dns_over_https"],
+                         {"mode": "secure", "templates": DNS_ENDPOINT + "{?dns}"})
+        self.assertTrue(observed["closed"] and observed["driver_closed"])
+        self.assertFalse(pathlib.Path(observed["directory"]).exists())
+
+    async def test_rejects_changed_browser_channel(self):
+        from types import SimpleNamespace
+        from harness.web_fetch.network_dns import crawl4ai_public_dns_browser
+        with self.assertRaisesRegex(ValueError, "frozen Chrome channel"):
+            async with crawl4ai_public_dns_browser(SimpleNamespace(chrome_channel="chromium")):
+                self.fail("different browser must not start")

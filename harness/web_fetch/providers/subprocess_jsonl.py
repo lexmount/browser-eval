@@ -72,11 +72,11 @@ class SubprocessJsonlProvider(Provider):
             mode = validate_dns_mode(self.config.get("dns_mode", "system"))
         except ValueError as error:
             return [str(error)]
-        if mode == "public_doh" and self.type not in {"openclaw_builtin", "deepseek_harness_builtin", "langchain_webbase"}:
+        if mode == "public_doh" and self.type not in {"openclaw_builtin", "deepseek_harness_builtin", "langchain_webbase", "crawl4ai"}:
             return ["public_doh is not supported by this worker"]
         missing, identity = validate_runtime_identity(self.config, self._resolve_token)
         if mode == "public_doh":
-            required = {"{harness_root}/harness/web_fetch/network_dns.py"} if self.type == "langchain_webbase" else {"{harness_root}/scripts/oss/public_dns.mjs"}
+            required = {"{harness_root}/harness/web_fetch/network_dns.py"} if self.type in {"langchain_webbase", "crawl4ai"} else {"{harness_root}/scripts/oss/public_dns.mjs"}
             if self.type == "deepseek_harness_builtin":
                 required.add("{repo_path}/packages/web/web-fetch-http/src/network.ts")
             if not required.issubset(set(self.config.get("required_paths", []))):

@@ -12,6 +12,9 @@ from importlib.metadata import version
 from pathlib import Path
 from urllib.parse import urlsplit
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from harness.web_fetch.network_dns import validate_dns_mode, crawl4ai_public_dns_browser
+
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig
 from crawl4ai.async_configs import HTTPCrawlerConfig
 from crawl4ai.async_crawler_strategy import AsyncHTTPCrawlerStrategy
@@ -334,6 +337,8 @@ async def main() -> None:
         downloads_path=download_dir.name,
     )
     crawler = None
+    browser_dns_mode = None
+    dns_metadata = {"dns_mode": "system"}
     async with AsyncExitStack() as stack:
         stack.enter_context(download_dir)
         while True:
@@ -349,6 +354,9 @@ async def main() -> None:
                 # Guard every worker route, including file/PDF branches that do
                 # not otherwise construct browser completion settings.
                 require_normalized_retrieval_plan(request)
+                requested_dns_mode = validate_dns_mode(request.get("dns_mode", "system"))
+                if requested_dns_mode == "public_doh" and (request.get("task_kind") == "file" or is_direct_pdf_document(request)):
+                    raise ValueError("Crawl4AI public_doh supports the browser route only")
                 if request.get("task_kind") == "file":
                     output = await fetch_file(request, download_dir.name)
                     print(json.dumps(output, ensure_ascii=True), flush=True)
@@ -357,7 +365,14 @@ async def main() -> None:
                     output = await fetch_pdf_document(request)
                     print(json.dumps(output, ensure_ascii=True), flush=True)
                     continue
+                if browser_dns_mode is not None and browser_dns_mode != requested_dns_mode:
+                    raise ValueError("worker DNS mode cannot change after browser startup")
                 if crawler is None:
+                    if requested_dns_mode == "public_doh":
+                        browser_config, dns_metadata = await stack.enter_async_context(
+                            crawl4ai_public_dns_browser(browser_config)
+                        )
+                    browser_dns_mode = requested_dns_mode
                     crawler = await stack.enter_async_context(
                         AsyncWebCrawler(config=browser_config)
                     )
@@ -398,6 +413,7 @@ async def main() -> None:
                     "metadata": {
                         "implementation": "crawl4ai.AsyncWebCrawler",
                         "library_version": LIBRARY_VERSION,
+                        "dns_environment": dns_metadata,
                         "images": result.media.get("images", []),
                         "videos": result.media.get("videos", []),
                         "audios": result.media.get("audios", []),

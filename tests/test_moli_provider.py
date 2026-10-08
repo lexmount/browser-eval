@@ -236,6 +236,8 @@ class MoliTests(unittest.TestCase):
             'import sys\nassert "--block-private-networks" in sys.argv\nprint("guarded")',
             private_network_allowlist_hosts=["allowed.example"],
         )
+        # Measurement starts after runtime preparation, as in the runner.
+        self.assertEqual(provider.validate(), [])
         result = provider.fetch(self.case, 2)
         self.assertTrue(result.ok, repr(result))
         self.assertFalse(result.metadata["private_network_guard_exception"])
@@ -277,6 +279,8 @@ class MoliTests(unittest.TestCase):
             'assert "--eval" not in sys.argv\n'
             'print("ordinary body")'
         )
+        # Measurement starts after runtime preparation, as in the runner.
+        self.assertEqual(provider.validate(), [])
         result = provider.fetch(self.case_with(track="static", task_kind="body"), 2)
         self.assertTrue(result.ok, repr(result))
         self.assertEqual(result.metadata["route"], "ordinary_markdown")
@@ -1061,3 +1065,14 @@ class MoliTests(unittest.TestCase):
             side_effect=PermissionError("not executable"),
         ):
             self.assertEqual(provider.fetch(self.case, 2).error_type, "configuration")
+
+
+class UniformMoliParameterTests(unittest.TestCase):
+    def test_uniform_route_rejects_host_specific_guard_exceptions(self):
+        from harness.web_fetch.providers.moli import MoliWebFetchProvider
+        provider = MoliWebFetchProvider("moli", {
+            "uniform_native_parameters": True,
+            "private_network_allowlist_hosts": ["specific.example"],
+        })
+        self.assertIn("private_network_allowlist_hosts cannot vary uniform native parameters",
+                      provider._configuration_errors(None))

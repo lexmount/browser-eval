@@ -4,6 +4,8 @@
     "moli-webfetch": {
       "type": "moli_webfetch",
       "binary": "${MOLI_BINARY:-moli}",
+      "dns_mode": "system",
+      "native_dns_library": "${MOLI_NATIVE_DNS_LIBRARY}",
       "expected_reported_version": "moli 1.1.4",
       "expected_binary_sha256": "dbce6cc79b97eeb558416707a642ca20b9b1b8d6731655a695059d334adb6d5b",
       "wait_until": "done",
@@ -175,7 +177,7 @@
       "command": ["${OSS_PYTHON:-.venv/bin/python}", "{harness_root}/scripts/oss/crawl4ai_worker.py"],
       "expected_python_version": "Python 3.11.12",
       "expected_library_versions": {"crawl4ai": "0.9.3"},
-      "required_paths": ["{harness_root}/scripts/oss/crawl4ai_worker.py"]
+      "required_paths": ["{harness_root}/scripts/oss/crawl4ai_worker.py", "{harness_root}/harness/web_fetch/network_dns.py"]
     }
   }
 }
