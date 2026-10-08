@@ -11,6 +11,27 @@ from urllib.parse import unquote, urljoin, urlsplit
 from .safety import contained_path, safe_identifier, validate_http_url
 
 
+def _saved_implementation_identity(record, batches):
+    metadata = record['provider_metadata']
+    direct = (metadata.get('reported_version'), metadata.get('binary_sha256'))
+    if all(direct):
+        return direct
+    if any(direct) or record.get('ok') or record.get('error_type') != 'timeout':
+        raise ValueError('Missing provider implementation identity')
+    # Older deadline boundaries discarded worker metadata. The execution
+    # receipt still binds this exact attempt to its preflight-verified binary.
+    identities = []
+    for batch in batches:
+        if record['attempt_id'] in batch.get('attempt_ids', []):
+            for provider in batch.get('providers', []):
+                if provider.get('name') == record['provider']:
+                    identity = provider.get('implementation_identity', {})
+                    identities.append((identity.get('reported_version'), identity.get('binary_sha256')))
+    if len(identities) != 1 or not all(identities[0]):
+        raise ValueError('Timeout attempt has no uniquely bound implementation identity')
+    return identities[0]
+
+
 def prepare_diagnostic_evidence(spec_path, output):
     """Adapt complete saved cohorts and bound reviews, never make provider calls."""
     from .artifacts import verify_record_private_artifacts, verify_record_public_call_logs
@@ -59,13 +80,18 @@ def prepare_diagnostic_evidence(spec_path, output):
                 or not execution.get('aggregate',{}).get('completed_at')):
             raise ValueError('Incomplete saved execution receipt')
         require_verified_reference_checks(execution['batches'],cases=cases,records=records,source=run)
-        identities={(r['provider_metadata'].get('reported_version'),r['provider_metadata'].get('binary_sha256')) for r in records}
+        identities={_saved_implementation_identity(r,execution['batches']) for r in records}
         if len(identities)!=1 or any(not v for v in next(iter(identities))):
             raise ValueError('Missing or mixed provider implementation identity')
         version,binary_sha=next(iter(identities))
         cohorts.append(dict(id=cohort['id'],label=cohort['label'],case_count=len(cases),version=version))
         provenance.append(dict(cohort=cohort['id'],**expected_bindings,
             review_sha256=hashlib.sha256(review_path.read_bytes()).hexdigest(),binary_sha256=binary_sha))
+        revision_path = run / 'scoring-revisions.json'
+        if revision_path.is_file():
+            revision_raw = revision_path.read_bytes()
+            provenance[-1]['scoring_revision_sha256'] = hashlib.sha256(revision_raw).hexdigest()
+            provenance[-1]['scoring_revisions'] = json.loads(revision_raw)
         for record in records:
             cid=safe_identifier(record['case_id']);case=cases[cid];audit=reviewed[cid];observation=observations[cid]
             if audit.get('reviewed') is not True or not all(audit.get(k) for k in ('cause','cause_detail','followup_status','source_state')):
@@ -86,7 +112,7 @@ def prepare_diagnostic_evidence(spec_path, output):
             log['provider_identity']=dict(reported_version=version,binary_sha256=binary_sha)
             reference=save('reference/'+cid+'.json',encode(case),'调用前冻结的完整任务和验收契约；不是网页全部内容的逐字标准答案。')
             source=save('source/'+cid+'.json',encode({k:v for k,v in observation.items() if k!='outer_html'}),
-                '独立 Chromium 的可见整页文字及访问记录；隐藏 DOM 不作为可见答案。访问失败时保留错误，不算目标正文。')
+                '独立浏览器的可见文字及访问记录；具体范围和补充观察见记录，隐藏 DOM 不作为可见答案。访问失败时保留错误，不算目标正文。')
             row=dict(id=cid,cohort=cohort['id'],url=case['url'],task=case.get('task_prompt') or case.get('name') or cid,
                 run_id=record['run_id'],initial_pass=task_passed(record['ok'],record['metrics']),
                 first_answer=answer,answer=answer,reference=reference,source=source,
@@ -96,6 +122,8 @@ def prepare_diagnostic_evidence(spec_path, output):
                 source_checked_at=observation.get('checked_at'),reviewed=True,source_state=audit['source_state'])
             if row['initial_pass']:
                 row['success_audit']={k:v for k,v in audit.items() if k.startswith('source_')}
+            if audit.get('independent_verdict'):
+                row['independent_verdict'] = audit['independent_verdict']
             rows.append(row)
     model.update(schema='webfetch_cohort_diagnostic/1',certified=False,cohorts=cohorts,rows=rows,provenance=provenance)
     model['metrics']={g['id']:[sum(r['initial_pass'] for r in rows if r['cohort']==g['id']),g['case_count']] for g in cohorts}
@@ -126,6 +154,8 @@ def diagnostic_reference_excerpt(row, files):
         parts.append('验收内容：'+schemas.get(contract['schema'],contract['schema']))
     if contract.get('minimum_records'):
         parts.append('至少 '+str(contract['minimum_records'])+' 条完整、唯一的记录')
+    if contract.get('table_columns'):
+        parts.append('每行必需字段：'+'；'.join(c['label'] for c in contract['table_columns']))
     anchors=contract.get('stable_text_anchors',[])+case.get('required_facts',[])
     if anchors:parts.append('必需文字：'+'；'.join(' / '.join(a.get('alternatives') or [a.get('id','')]) for a in anchors))
     if case.get('min_content_chars'):parts.append('内容长度至少 '+str(case['min_content_chars'])+' 个字符')
@@ -152,6 +182,20 @@ def diagnostic_source_excerpt(row, files):
         return observation['content_text']
     errors = [e.get('message') or e.get('type', '') for e in observation.get('attempt_errors', [])]
     return '未取得可见目标正文。'+('\n'+'\n'.join(errors) if errors else '')
+
+
+def diagnostic_specimen_excerpt(row, field, files, model):
+    """Select a relevant verbatim window; a focus cannot invent evidence."""
+    if field=='reference':text=diagnostic_reference_excerpt(row,files)
+    elif field=='source':text=diagnostic_source_excerpt(row,files)
+    else:text=files[row[field]['path']].decode('utf-8')
+    focus=model.get('interpretation_focus',{}).get(row['id'],{}).get(field)
+    start=0
+    if focus:
+        if not isinstance(focus,str) or focus not in text:
+            raise ValueError('Interpretation focus absent from bound evidence: '+row['id']+'/'+field)
+        start=max(0,text.index(focus)-60)
+    return ('…' if start else '')+text[start:start+600]+('…' if len(text)>start+600 else '')
 
 
 def diagnostic_findings(row, files):
@@ -210,6 +254,11 @@ def diagnostic_findings(row, files):
         add('records', '列表或表格不完整',
             '至少 ' + str(metrics.get('stable_minimum_records', '记录未提供')) + ' 条完整且唯一的记录',
             str(metrics.get('stable_unique_record_count', '记录未提供')) + ' 条完整且唯一的记录')
+    for check in metrics.get('stable_field_results') or []:
+        if check.get('pass') is False:
+            add('records', '记录缺少必需字段',
+                str(check.get('field', '未提供字段'))+'：至少 '+str(check.get('minimum', '记录未提供'))+' 条记录提供该字段',
+                str(check.get('count', '记录未提供'))+' 条记录提供该字段')
     for group in metrics.get('composite_group_results') or []:
         if group.get('pass') is False:
             add('records', '记录组不完整', str(group.get('id', '记录组')) + '：至少 ' + str(group.get('minimum', '记录未提供')) + ' 条合格记录',
@@ -404,6 +453,17 @@ def check_diagnostic_report(output):
         raise ValueError('Interpretation headline differs from measured outcome')
     if [r.get_text() for r in guide.select('[data-summary-group]')] != [r.get_text() for r in summaries]:
         raise ValueError('Interpretation summary differs from measured outcome')
+    causes = Counter(r['cause'] for r in model['rows'] if not r['initial_pass'])
+    cause_rows = guide.select('#guide-reviewed-causes tbody tr')
+    if len(cause_rows) != len(causes):
+        raise ValueError('Interpretation lacks reviewed failure distribution')
+    for rendered, (cause, count) in zip(cause_rows, causes.most_common()):
+        cells = rendered.select('td')
+        expected_case=next(r for r in model['rows'] if not r['initial_pass'] and r['cause']==cause)
+        if (cells[1].get_text() != model['cause_labels'][cause]
+                or cells[2].get_text() != f'{count} / {sum(causes.values())}'
+                or not cells[3].select_one('a[href="attempts/'+expected_case['id']+'.html"]')):
+            raise ValueError('Interpretation reviewed counts differ from per-case review')
     examples = model.get('interpretation_case_ids')
     if examples is None:
         examples = [next(r['id'] for r in model['rows'] if not r['initial_pass'])] if expected_counts else []
@@ -423,13 +483,7 @@ def check_diagnostic_report(output):
             field = panel['data-specimen-field'];binding = row.get(field)
             if binding and panel.get('data-sha256') != binding['sha256']:
                 raise ValueError('Interpretation specimen evidence binding differs')
-            if field == 'reference':
-                preview = diagnostic_reference_excerpt(row, files)
-            elif field == 'source':
-                preview = diagnostic_source_excerpt(row, files)
-            else:
-                preview = files[binding['path']].decode('utf-8') if binding else row.get('source_error') or '未取得目标正文，不能据此判定工具或参考错误。'
-            expected_preview = preview[:600]+('…' if len(preview)>600 else '')
+            expected_preview = diagnostic_specimen_excerpt(row,field,files,model)
             if panel.select_one('pre').get_text() != expected_preview:
                 raise ValueError('Interpretation specimen differs from bound evidence')
     for row in model["rows"]:

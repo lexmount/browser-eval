@@ -17,6 +17,30 @@ from harness.web_fetch.reference_lifecycle import resource_source_scope_identity
 
 
 @pytest.mark.skipif(not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'), reason='explicit Chromium binary required')
+def test_live_browser_audit_includes_visible_iframe_not_hidden_iframe():
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+    class Page(BaseHTTPRequestHandler):
+        def do_GET(self):
+            html=(b'<body>Child visible text<div style="display:none">Hidden child text</div></body>'
+                  if self.path=='/child' else b'<body>Parent text<iframe src="/child"></iframe><iframe style="display:none" srcdoc="Hidden frame text"></iframe></body>')
+            self.send_response(200);self.send_header('Content-Type','text/html');self.end_headers();self.wfile.write(html)
+        def log_message(self,*args):pass
+    server=ThreadingHTTPServer(('127.0.0.1',0),Page)
+    thread=Thread(target=server.serve_forever,daemon=True);thread.start()
+    try:
+        case={'id':'frames','url':f'http://127.0.0.1:{server.server_port}/','task_kind':'body'}
+        row=browser_capture.capture(case,10000,os.environ['BROWSER_EVAL_TEST_BROWSER_BINARY'],observation_scope='visible_page')
+        assert 'Parent text' in row['content_text']
+        assert 'Child visible text' in row['content_text']
+        assert 'Hidden child text' not in row['content_text']
+        assert 'Hidden frame text' not in row['content_text']
+        assert len(row['visible_frames'])==1
+    finally:
+        server.shutdown();server.server_close();thread.join()
+
+
+@pytest.mark.skipif(not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'), reason='explicit Chromium binary required')
 def test_live_browser_whole_page_audit_keeps_visible_chrome_but_not_hidden_text():
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
     from threading import Thread

@@ -10,6 +10,25 @@ from scripts.run_certified_benchmark import main
 
 
 class CertifiedBenchmarkTests(unittest.TestCase):
+    def test_stable_rules_alone_cannot_be_mistaken_for_live_source_certification(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);dataset=root/'dataset.json'
+            dataset.write_text(json.dumps({'cases':[{'id':'stable','acceptance_contract':{
+                'version':1,'schema':'body_text','minimum_records':0,
+                'stable_text_anchors':[{'id':'a','alternatives':['Required label']} ]}}]}))
+            arguments=['--dataset',str(dataset),'--output',str(root/'run'),
+                       '--work-root',str(root/'work'),'--providers','p','--case-ids','stable']
+            with patch('scripts.run_certified_benchmark.run') as invoked:
+                with self.assertRaises(SystemExit):main(arguments)
+            invoked.assert_not_called()
+            def completed(command):
+                script=Path(command[1]).name
+                if script=='collect_source_evidence.py':self.write_capture(Path(command[3]),'stable')
+                if script=='run_benchmark.py':self.write_output_dataset(command,dataset)
+            with patch('scripts.run_certified_benchmark.run',side_effect=completed):
+                main([*arguments,'--diagnostic'])
+            self.assertEqual(json.loads(dataset.read_text())['cases'][0]['acceptance_contract']['stable_text_anchors'][0]['alternatives'],['Required label'])
+
     def test_dispatches_complete_webmainbench_certification(self) -> None:
         arguments = ["--output-root", "/tmp/run", "--source", "/tmp/source.jsonl"]
         with patch("scripts.run_certified_webmainbench_full.main") as invoked:

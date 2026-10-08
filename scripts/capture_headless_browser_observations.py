@@ -223,6 +223,21 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
                     # must not inherit article-reference pruning or hidden tabs.
                     content = content_locator.inner_text(timeout=timeout_ms)
                     observation_method = 'visible_whole_page_inner_text'
+                    frames=[]
+                    for frame in page.frames:
+                        if frame == page.main_frame:continue
+                        try:
+                            current=frame;shown=True
+                            while current.parent_frame is not None:
+                                if not current.frame_element().is_visible():shown=False;break
+                                current=current.parent_frame
+                            if not shown:continue
+                            remaining=max(1,int((begin+timeout_ms/1000-time.monotonic())*1000))
+                            text=frame.locator('body').inner_text(timeout=remaining)
+                            frames.append({'url':frame.url,'status':'success','content_text':text})
+                            if text.strip():content+='\n\n[可见嵌入页面：'+frame.url+']\n'+text
+                        except Exception as error:
+                            frames.append({'url':frame.url,'status':'failure','error':str(error)[:1000]})
                 elif rule and rule.get('include_hidden_dom_text'):
                     content = content_locator.text_content(timeout=timeout_ms) or ''
                     observation_method = 'rendered_dom_text_including_preloaded_hidden_panels'
@@ -266,7 +281,7 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
         'checked_at': datetime.now(timezone.utc).isoformat(),
         'content_text': content, 'selector': rule['description'] if rule else selector,
         'observation_method': observation_method,
-        **({'outer_html': outer_html, 'settle_budget_ms': 2000}
+        **({'outer_html': outer_html, 'settle_budget_ms': 2000,'visible_frames':frames}
            if observation_scope == 'visible_page' else {}),
         'observed_records': count, 'scope_identity': scope_identity(case),
         'observer': {

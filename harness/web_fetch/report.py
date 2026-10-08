@@ -714,7 +714,7 @@ _RESEARCH_ROUTES=[
 
 def generate_cohort_diagnostic(out, model):
  """Render live cohort diagnostics through the maintained WebFetch components."""
- from .report_diagnostic import diagnostic_findings, diagnostic_failure_counts, diagnostic_cohort_summary, diagnostic_reference_excerpt, diagnostic_source_excerpt, FAILURE_TYPES
+ from .report_diagnostic import diagnostic_findings, diagnostic_failure_counts, diagnostic_cohort_summary, diagnostic_specimen_excerpt, FAILURE_TYPES
  global _RELIABILITY_BANNER,_ENGLISH_GENERATED
  prior=(_RELIABILITY_BANNER,_ENGLISH_GENERATED)
  _RELIABILITY_BANNER='<div class="wrap callout"><strong>实时网页诊断</strong><p>'+esc(model['scope_note'])+'</p></div>'
@@ -730,6 +730,7 @@ def generate_cohort_diagnostic(out, model):
 .diagnostic-specimen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .diagnostic-specimen>div{min-width:0;background:var(--panel2);padding:16px;border-radius:10px}
 .diagnostic-specimen pre{max-height:240px;font-size:13px}
+.section p{overflow-wrap:anywhere}
 @media(max-width:800px){.diagnostic-specimen{grid-template-columns:1fr}}
 '''
  (out/'assets/style.css').write_text(STYLE+EXTRA+diagnostic_style,encoding='utf-8')
@@ -763,6 +764,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[da
    summary_rows.append((' data-summary-group="'+esc(s['id'])+'"',values))
   home+=section('各类任务的结果',table(['任务组','Moli 版本','任务数','调用成功','任务通过','平均耗时（秒）','P50 耗时（秒）','P95 耗时（秒）'],summary_rows,'cohort-summary',sortable=True)+distribution([(groups[g]['label'],*model['metrics'][g]) for g in groups])+'<p>调用成功只表示请求交付成功，任务通过还要求满足正文、文字和结构验收。三项耗时均统计该组全部调用；P50 为中位数，P95 为第 95 百分位。未保存完整耗时的组显示 —。</p><p>'+esc(model['metric_note'])+'</p>','cohort-results')
   failures=Counter(r['cause'] for r in rows if not r['initial_pass'])
+  home+=blocks('overview')
   home+=section('未通过的输出主要缺什么',distribution([(FAILURE_TYPES[k],n,sum(failures.values())) for k,n in failure_types.most_common(3)])+'<p>分母为全部 '+str(sum(failures.values()))+' 个首轮未通过任务。同一任务可以缺少文字和记录，各类数量不能相加。'+link('analysis/index.html','查看失败类型及具体样本 →')+'</p>')
   audit=model['success_audit'];counts=audit['source_state_counts']
   home+=section('通过项也经过源页反查',distribution([(model['source_labels'][k],n,audit['audited_passes']) for k,n in counts.items()])+'<p>'+str(audit['audited_passes'])+' 个通过结果有三方核对记录；当前页面可比较的内容与访问障碍分别记录。'+link('review/index.html','核验范围与结论 →')+'</p>')
@@ -780,6 +782,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[da
    example=next(r for r in rows if any(f['kind']==kind for f in findings[r['id']]))
    type_rows.append((' data-failure-type="'+kind+'" data-count="'+str(n)+'"',cell(link('analysis/index.html#issue='+kind,FAILURE_TYPES[kind]))+cell(str(n)+' / '+str(sum(failures.values())))+cell(link(detail_link(example),urlsplit(example['url']).hostname or example['id']))))
   analysis=hero(str(len(rows))+' 例结果分析','先看输出违反了哪些要求，再看独立核验能解释到哪一步。')
+  analysis+=blocks('analysis')
   analysis+=section('失败类型与数量',table(['首轮未满足的要求','受影响任务数','样本证据'],type_rows)+'<p>按首轮调用的保存评分统计；一个任务可涉及多种失败，数量不能相加。点击类型可筛选全部相关任务。</p>','failure-types')
   analysis+=section('独立核验取得了什么',table(['核验线索','未通过任务数'],[('',cell(esc(labels[k]))+cell(str(n))) for k,n in failures.items()])+'<p>这些线索与上面的输出缺陷分开统计。独立浏览器也被拦截，只能证明此次核验遇到访问障碍；后来补抓通过，也不能证明首轮失败的内部原因。</p>')
   analysis+=section('逐项结果',controls+table(['网站与样本','组别','首轮结果','失败类型','核验线索','证据'],inventory,'filtered-table',sortable=True),'failure-inventory')
@@ -787,21 +790,22 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[da
   guide=hero('Moli 在这些网页上取得了什么',str(model['metrics']['overall'][0])+' / '+str(len(rows))+' 个首次调用满足当时的完整验收要求；以下为指定样本的诊断结果。')
   guide+=section('结果与计量范围',table(['任务组','Moli 版本','任务数','调用成功','任务通过','平均耗时（秒）','P50 耗时（秒）','P95 耗时（秒）'],summary_rows,'guide-summary',sortable=True)+'<p>'+esc(model['metric_note'])+' 耗时统计每组全部调用（含失败），P50 是中位数；未留存完整计时的组不计算耗时。</p>','guide-results')
   guide+=section('失败最常违反哪些要求',table(['输出缺陷','受影响的未通过任务'],[('',cell(link('analysis/index.html#issue='+k,FAILURE_TYPES[k]))+cell(str(n)+' / '+str(sum(failures.values())))) for k,n in failure_types.most_common()])+'<p>同一任务可涉及多个缺陷，数量不能相加。缺少文字是输出与验收不符的事实，不等于已经查明 Moli 的内部故障。</p>')
+  guide+=section('核验后的失败归类',table(['核验结论','未通过任务数','样本证据'],[
+   ('',cell(esc(labels[k]))+cell(str(n)+' / '+str(sum(failures.values())))+cell(link(detail_link(next(r for r in rows if not r['initial_pass'] and r['cause']==k)),'查看具体要求、输出与源页')))
+   for k,n in failures.most_common()])+'<p>每个未通过任务只归入一类，合计等于全部未通过任务。访问受限、参考范围不符和输出遗漏分别处理，不把当前源页不可访问当作引擎故障证据。</p>','guide-reviewed-causes')
   examples=model.get('interpretation_case_ids')
   if examples is None:
    examples=[next(r['id'] for r in rows if not r['initial_pass'])] if failures else []
    if any(r['initial_pass'] for r in rows):examples.append(next(r['id'] for r in rows if r['initial_pass']))
   for cid in examples:
    r=next(r for r in rows if r['id']==cid)
-   expected=diagnostic_reference_excerpt(r,files)
    panels=''
-   for title,field,preview in [('验收要求','reference',expected),('首轮实际输出','first_answer',None),('独立源页观察','source',None)]:
+   for title,field in [('验收要求','reference'),('首轮实际输出','first_answer'),('独立源页观察','source')]:
     binding=r.get(field)
-    if preview is None:
-     preview=(out/binding['path']).read_text(encoding='utf-8') if binding else r.get('source_error') or '未取得目标正文，不能据此判定工具或参考错误。'
-     if field=='source':preview=diagnostic_source_excerpt(r,{binding['path']:preview.encode('utf-8')} if binding else {})
-    excerpt=preview[:600]+('…' if len(preview)>600 else '')
-    panels+='<div data-specimen-field="'+field+'"'+(' data-sha256="'+binding['sha256']+'"' if binding else '')+'><h3>'+title+'</h3><pre>'+esc(excerpt)+'</pre><p>'+esc(binding.get('scope','') if binding else '独立观察未取得目标正文')+'</p></div>'
+    specimen_files={r[f]['path']:(out/r[f]['path']).read_bytes() for f in ('reference','first_answer','source') if r.get(f)}
+    excerpt=diagnostic_specimen_excerpt(r,field,specimen_files,model)
+    empty_note='<p>输出为空（0 字节）。</p>' if field=='first_answer' and not excerpt else ''
+    panels+='<div data-specimen-field="'+field+'"'+(' data-sha256="'+binding['sha256']+'"' if binding else '')+'><h3>'+title+'</h3>'+empty_note+'<pre>'+esc(excerpt)+'</pre><p>'+esc(binding.get('scope','') if binding else '独立观察未取得目标正文')+'</p></div>'
    guide+=section((urlsplit(r['url']).hostname or cid)+'：'+('通过' if r['initial_pass'] else '未通过'),'<div data-interpretation-case="'+esc(cid)+'"><p>'+esc(r['task'])+'</p><div class="diagnostic-specimen">'+panels+'</div><p>'+esc(r['cause_detail'])+'</p><p>'+link(detail_link(r),'查看完整标准答案、输出、实页与日志 →')+'</p></div>')
   guide+=blocks('guide')
   guide+=section('结论与核验范围','<p>'+esc(model['scope_note'])+'</p><p>源页观察与输出检查分别保留。独立浏览器遇到验证页或访问异常时，不将其算作 Moli 已通过，也不据此断定工具有错。'+link('review/index.html','查看核验范围和处理结果 →')+'</p>','guide-conclusions')

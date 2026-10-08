@@ -136,6 +136,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--reference-promotion", type=Path)
     parser.add_argument('--retrieval-mode', choices=('declared', 'native'), default='declared',
                         help='Explicitly select ordinary native fetch instead of selector-guided dynamic execution')
+    parser.add_argument('--diagnostic', action='store_true',
+                        help='Retain an explicitly uncertified cohort when stable rules have no live source qualification')
     args = parser.parse_args(argv)
     if args.browser_capture_attempts < 1:
         parser.error("--browser-capture-attempts must be at least 1")
@@ -149,6 +151,17 @@ def main(argv: list[str] | None = None) -> None:
         parser.error("Unknown case IDs: " + ", ".join(sorted(set(case_ids) - known)))
     if args.output.exists() or args.work_root.exists():
         parser.error("Output and work root must both be new immutable paths")
+
+    # Stable rules deliberately bypass exact-reference lifecycle checks. A
+    # completed wrapper therefore cannot certify that their old labels or
+    # record requirements are still present on the live site.
+    from harness.web_fetch.reference_lifecycle import source_unqualified_contract_cases
+    unqualified = source_unqualified_contract_cases(
+        case for case in dataset['cases'] if case['id'] in case_ids)
+    if unqualified and not args.diagnostic:
+        parser.error('Stable live-page contracts have no fresh source qualification; '
+                     'use --diagnostic to retain uncertified evidence, not to waive scoring: '
+                     + ', '.join(unqualified))
 
     from harness.web_fetch.retrieval_hints import native_fetch_dataset, parse_retrieval_hints
     if args.retrieval_mode == 'native':
@@ -240,7 +253,7 @@ def main(argv: list[str] | None = None) -> None:
         observations.write_text("[]\n", encoding="utf-8")
     run([python, "scripts/finalize_benchmark_run.py", "--run-dir", str(args.output),
          "--observations", str(observations)])
-    print("Certified benchmark cohort:", args.output)
+    print("Diagnostic benchmark cohort:" if args.diagnostic else "Certified benchmark cohort:", args.output)
 
 
 def run_wcxb(argv: list[str]) -> None:

@@ -40,6 +40,17 @@ checks where applicable, and one authoritative task predicate. Live execution an
 offline rescoring use the same entry point. Case contracts define the differences;
 provider identity never selects a more lenient evaluator.
 
+Live stable-contract cohorts use `scripts/run_certified_benchmark.py --diagnostic`.
+The stable-rule path does not qualify the current site's solvability; the generic
+entry therefore rejects such a cohort before external work unless its diagnostic
+state is explicit. This does not waive any scoring requirement. For a declared
+native-completion experiment, add `--retrieval-mode native`: it preserves all
+acceptance rules and rejects existing retrieval hints rather than dropping them.
+The diagnostic report accepts a `webfetch_diagnostic_inputs/1` manifest naming
+complete runs, independently captured whole-page observations and hash-bound
+per-case reviews. The supported builder adapts these inputs, preserves scored
+originals, binds any public redaction and runs the maintained release checks.
+
 The answer envelope accepts body text and explicitly paired name/link records
 from the returned `links` field (including internal/external groups). Arbitrary
 logs, request echoes and bare URLs are not named entities. HTML and Markdown

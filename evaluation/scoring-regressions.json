@@ -21542,5 +21542,62 @@
         "stable_complete_record_count": 1
       }
     }
+    ,{
+      "id":"emphasized-numeric-rank-is-valid-entry",
+      "category":"format-normalization",
+      "root_cause":"balanced_numeric_rank_emphasis",
+      "failure_mode":"false-negative",
+      "case":{"url":"https://example.test/catalog","task_kind":"body","acceptance_contract":{"version":1,"schema":"named_link","minimum_records":1,"hosts":["example.test"],"entry_path":"/item/\\d+"}},
+      "artifact":"* _10_ [A new paper](/item/10) [Journal](/journal/1)",
+      "ok":true,"expected_task_pass":true,"expected_metrics":{"stable_unique_record_count":1}
+    },{
+      "id":"emphasized-recommendation-is-not-list-entry",
+      "category":"format-normalization",
+      "root_cause":"balanced_numeric_rank_emphasis",
+      "failure_mode":"false-positive",
+      "case":{"url":"https://example.test/catalog","task_kind":"body","acceptance_contract":{"version":1,"schema":"named_link","minimum_records":1,"hosts":["example.test"],"entry_path":"/item/\\d+"}},
+      "artifact":"Read _10_ [A new paper](/item/10)",
+      "ok":true,"expected_task_pass":false,"expected_metrics":{"stable_unique_record_count":0}
+    },{
+      "id":"markdown-heading-opens-declared-list-scope",
+      "category":"format-normalization",
+      "root_cause":"markdown_heading_scope_boundaries",
+      "failure_mode":"false-negative",
+      "case":{"url":"https://example.test/catalog","task_kind":"body","acceptance_contract":{"version":1,"schema":"named_link","minimum_records":1,"hosts":["example.test"],"entry_path":"/item/\\d+","entry_scope":{"html_selector":"main","start_pattern":"^News\\s*$","end_pattern":"^Related items\\s*$"}}},
+      "artifact":"## News\n[A new article](/item/1)\n## [Related **items**](/archive)\n[Outside article](/item/2)",
+      "ok":true,"expected_task_pass":true,"expected_metrics":{"stable_unique_record_count":1}
+    },{
+      "id":"outside-section-links-do-not-fill-declared-scope",
+      "category":"format-normalization",
+      "root_cause":"markdown_heading_scope_boundaries",
+      "failure_mode":"false-positive",
+      "case":{"url":"https://example.test/catalog","task_kind":"body","acceptance_contract":{"version":1,"schema":"named_link","minimum_records":1,"hosts":["example.test"],"entry_path":"/item/\\d+","entry_scope":{"html_selector":"main","start_pattern":"^News\\s*$","end_pattern":"^Related items\\s*$"}}},
+      "artifact":"[Outside before](/item/1)\n## News\n## [Related **items**](/archive)\n[Outside after](/item/2)",
+      "ok":true,"expected_task_pass":false,"expected_metrics":{"stable_unique_record_count":0}
+    }
+    ,{
+      "id":"inline-layout-breaks-preserve-table-fields","category":"format-normalization",
+      "root_cause":"inline_break_table_cell_layout","failure_mode":"false-negative",
+      "case":{"url":"https://example.test/table","task_kind":"body","acceptance_contract":{"version":1,"schema":"table_row","minimum_records":1,"table_columns":[{"name":"name","label":"Name","type":"text"},{"name":"age","label":"Age","type":"integer"}],"record_identity_fields":["name"],"table_scope":{"row_selector":"tbody tr","cell_selector":"td","start_pattern":"(?m)^(?=\\|\\s*Name\\s*\\|)","end_pattern":"(?m)^End$","plain_row_pattern":"(?P<name>[A-Za-z]+)\\s+(?P<age>\\d+)"}}},
+      "artifact":"| Name<br><br> | Age<br> |\n| --- | --- |\n| Alice<br> | 25<br> |\nEnd",
+      "ok":true,"expected_task_pass":true,"expected_metrics":{"stable_unique_record_count":1}
+    },{
+      "id":"inline-layout-breaks-do-not-repair-missing-table-fields","category":"format-normalization",
+      "root_cause":"inline_break_table_cell_layout","failure_mode":"false-positive",
+      "case":{"url":"https://example.test/table","task_kind":"body","acceptance_contract":{"version":1,"schema":"table_row","minimum_records":1,"table_columns":[{"name":"name","label":"Name","type":"text"},{"name":"age","label":"Age","type":"integer"}],"record_identity_fields":["name"],"table_scope":{"row_selector":"tbody tr","cell_selector":"td","start_pattern":"(?m)^(?=\\|\\s*Name\\s*\\|)","end_pattern":"(?m)^End$","plain_row_pattern":"(?P<name>[A-Za-z]+)\\s+(?P<age>\\d+)"}}},
+      "artifact":"| Name<br> | Age<br> |\n| --- | --- |\n| Alice<br> | <br> |\nEnd",
+      "ok":true,"expected_task_pass":false,"expected_metrics":{"stable_unique_record_count":0}
+    }
+    ,{
+      "id":"declared-redirect-link-base-resolves-relative-records","category":"acceptance-contract",
+      "root_cause":"independently_declared_document_link_base","failure_mode":"false-negative",
+      "case":{"url":"https://old.example/","task_kind":"body","acceptance_contract":{"version":1,"schema":"named_link","minimum_records":1,"hosts":["new.example"],"entry_path":"/article/\\d+","link_base_url":"https://new.example/"}},
+      "artifact":"[A new article](/article/1)","ok":true,"expected_task_pass":true,"expected_metrics":{"stable_unique_record_count":1}
+    },{
+      "id":"declared-redirect-link-base-does-not-allow-other-hosts","category":"acceptance-contract",
+      "root_cause":"independently_declared_document_link_base","failure_mode":"false-positive",
+      "case":{"url":"https://old.example/","task_kind":"body","acceptance_contract":{"version":1,"schema":"named_link","minimum_records":1,"hosts":["new.example"],"entry_path":"/article/\\d+","link_base_url":"https://new.example/"}},
+      "artifact":"[A new article](https://outside.example/article/1)","ok":true,"expected_task_pass":false,"expected_metrics":{"stable_unique_record_count":0}
+    }
   ]
 }

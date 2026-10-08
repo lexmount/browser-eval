@@ -37,6 +37,27 @@ def diagnostic_example(root):
 
 
 class ReportTemplateTests(unittest.TestCase):
+    def test_old_timeout_identity_requires_exact_attempt_bound_preflight_receipt(self):
+        from harness.web_fetch.report_diagnostic import _saved_implementation_identity
+        record=dict(attempt_id='timed-out',provider='moli',ok=False,error_type='timeout',provider_metadata={})
+        batch=dict(attempt_ids=['timed-out'],providers=[dict(name='moli',implementation_identity={
+            'reported_version':'moli 1.1.15','binary_sha256':'a'*64})])
+        self.assertEqual(_saved_implementation_identity(record,[batch]),('moli 1.1.15','a'*64))
+        for bad in ([],[dict(batch,attempt_ids=['another'])],[dict(batch,providers=[])],[batch,batch]):
+            with self.assertRaises(ValueError):_saved_implementation_identity(record,bad)
+        with self.assertRaises(ValueError):_saved_implementation_identity(dict(record,ok=True),[batch])
+
+    def test_interpretation_focus_is_verbatim_and_missing_focus_rejects_release(self):
+        from harness.web_fetch.report_diagnostic import diagnostic_specimen_excerpt
+        row={'id':'table','first_answer':{'path':'answer.txt'}}
+        files={'answer.txt':b'Navigation\n'*100+b'| Name | Age |\n| Alice | 25 |'}
+        model={'interpretation_focus':{'table':{'first_answer':'| Name | Age |'}}}
+        excerpt=diagnostic_specimen_excerpt(row,'first_answer',files,model)
+        self.assertIn('| Alice | 25 |',excerpt)
+        self.assertNotEqual(excerpt,files['answer.txt'].decode()[:600])
+        model['interpretation_focus']['table']['first_answer']='Invented table'
+        with self.assertRaises(ValueError):diagnostic_specimen_excerpt(row,'first_answer',files,model)
+
     def test_interpretation_shows_requirements_and_actual_browser_error_not_metadata(self):
         from harness.web_fetch.report_diagnostic import diagnostic_reference_excerpt, diagnostic_source_excerpt
         row={'reference':{'path':'task.json'},'source':{'path':'source.json'}}
@@ -128,6 +149,17 @@ class ReportTemplateTests(unittest.TestCase):
                      'process':{'exit_code':exit_code,'stderr':'DEBUG starting\nError: fetch failed\nReason: SSL connection reset'}}
                 finding=diagnostic_findings(row,{'call.json':json.dumps(log).encode()})[0]
                 self.assertEqual(finding['actual'],'Error: fetch failed\nReason: SSL connection reset' if exit_code else 'JSON could not be parsed')
+
+    def test_required_record_fields_and_page_patterns_explain_their_own_failures(self):
+        from harness.web_fetch.report_diagnostic import diagnostic_findings
+        row={'initial_pass':False,'log':{'path':'call.json'}}
+        log={'ok':True,'metrics':{'stable_field_results':[{'field':'shipping','count':0,'minimum':13,'pass':False}],
+             'stable_page_pattern_results':[{'pattern':'Required heading','pass':False}]}}
+        findings=diagnostic_findings(row,{'call.json':json.dumps(log).encode()})
+        self.assertIn('shipping：至少 13',findings[0]['expected'])
+        self.assertEqual(findings[0]['actual'],'0 条记录提供该字段')
+        self.assertEqual(findings[1]['expected'],'Required heading')
+        self.assertEqual(findings[1]['actual'],'未匹配到该结构模式')
 
     def test_summary_uses_all_calls_and_never_a_partial_latency_population(self):
         from bs4 import BeautifulSoup
@@ -377,7 +409,7 @@ class ReportTemplateTests(unittest.TestCase):
                 self.assertFalse((root/'report').exists())
 
     def test_release_rejects_missing_evidence_dialog_and_parallel_renderer(self):
-        for mode in ('dialog','renderer','verdict','certification','evidence','guide','guide_evidence','guide_summary'):
+        for mode in ('dialog','renderer','verdict','certification','evidence','guide','guide_evidence','guide_summary','guide_causes'):
             with self.subTest(mode=mode),tempfile.TemporaryDirectory() as temp:
                 root=Path(temp);source=root/'source';diagnostic_example(source)
                 output=root/'report';build_diagnostic_cohorts(source,output)
@@ -394,6 +426,7 @@ class ReportTemplateTests(unittest.TestCase):
                     path=output/'guide/index.html';text=path.read_text()
                     if mode=='guide':text=text.replace('id="guide-results"','id="missing-outcome"')
                     elif mode=='guide_evidence':text=text.replace('Verify you are human','Invented output')
+                    elif mode=='guide_causes':text=text.replace('id="guide-reviewed-causes"','id="missing-causes"')
                     else:text=text.replace('1 / 2','2 / 2',1)
                     path.write_text(text)
                 else:

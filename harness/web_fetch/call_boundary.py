@@ -66,12 +66,23 @@ def fetch_with_deadline(provider, case, timeout):
         cleanup_seconds = max(0.0, float(provider.cancellation_cleanup_seconds))
         if cleanup_seconds:
             worker.join(cleanup_seconds)
+        metadata={}
+        # Cancellation may finish the adapter's diagnostic collection. Retain
+        # that evidence, but never resurrect its late body/status or timing.
+        if not worker.is_alive():
+            try:
+                _, late=output.get_nowait()
+            except queue.Empty:
+                late=None
+            if isinstance(late,ProviderResult):
+                metadata.update(late.metadata)
+        metadata['_answer_elapsed_ms']=answer_elapsed_ms
         return ProviderResult(
             False,
             '',
             error_type='timeout',
             error_message=str(value),
-            metadata={'_answer_elapsed_ms': answer_elapsed_ms},
+            metadata=metadata,
         ), worker
     if isinstance(value, Exception):
         raise value

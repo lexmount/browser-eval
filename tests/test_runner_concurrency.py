@@ -22,6 +22,31 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_deadline_retains_cancelled_process_diagnostics_never_late_answer(self):
+        from harness.web_fetch.call_boundary import fetch_with_deadline
+        class Cancelled(Provider):
+            def __init__(self):
+                super().__init__('cancelled',{})
+                self.release=threading.Event()
+            @property
+            def cancellation_cleanup_seconds(self):return .2
+            def fetch(self,case,timeout):
+                self.release.wait(1)
+                return ProviderResult(True,'late answer',metadata={
+                    'exit_code':-9,'stderr':'connection pending before cancellation',
+                    'stderr_bytes':38,'stdout_bytes':11,'reported_version':'fixture 1',
+                    '_answer_elapsed_ms':99999})
+            def cancel(self):self.release.set()
+        case=EvalCase('case','Case','https://example.com','static',[])
+        result,worker=fetch_with_deadline(Cancelled(),case,.02)
+        self.assertFalse(worker.is_alive())
+        self.assertFalse(result.ok)
+        self.assertEqual(result.content,'')
+        self.assertEqual(result.error_type,'timeout')
+        self.assertEqual(result.metadata['exit_code'],-9)
+        self.assertIn('connection pending',result.metadata['stderr'])
+        self.assertLess(result.metadata['_answer_elapsed_ms'],100)
+
     def test_capacity_hook_is_optional_and_runs_once_per_logical_provider(self):
         calls = []
 

@@ -78,6 +78,15 @@ def _not_future(value, now: datetime) -> datetime:
     return checked
 
 
+def source_unqualified_contract_cases(cases) -> list[str]:
+    """Invariant rule validation is not current source-solvability evidence.
+
+    The generic lifecycle does not currently qualify live acceptance contracts.
+    Specialized frozen-input tracks have their own certificates and boundaries.
+    """
+    return [_get(case, 'id') for case in cases if _get(case, 'acceptance_contract', {})]
+
+
 def requires_fresh_reference(case) -> bool:
     contract = _get(case, "acceptance_contract", {})
     if contract:
