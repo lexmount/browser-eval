@@ -38,6 +38,22 @@ def diagnostic_example(root):
 
 
 class ReportTemplateTests(unittest.TestCase):
+    def test_body_failure_quotes_frozen_reference_not_matching_fragments(self):
+        from harness.web_fetch.report_diagnostic import diagnostic_findings
+        row={'initial_pass':False,'log':{'path':'log.json'},'reference':{'path':'reference.json'}}
+        files={'log.json':json.dumps({'metrics':{'body_coverage_pass':False,
+            'body_region_results':[{'id':'intro','pass':False,'minimum':.8,'coverage':.04,
+                'unmatched_reference_passages':[{'text':'befo port a bug'}]}]}}).encode(),
+            'reference.json':json.dumps({'body_requirements':{'regions':[
+                {'id':'intro','text':'Before you report a bug,\nplease read our guide.'}]}}).encode()}
+        finding=diagnostic_findings(row,files)[0]
+        self.assertIn('Before you report a bug, please read our guide.',finding['expected'])
+        self.assertNotIn('befo port',finding['expected'])
+        self.assertEqual(finding['actual'],'实际覆盖率 4.0%')
+        files['reference.json']=b'{}'
+        self.assertIn('见标准答案',diagnostic_findings(row,files)[0]['expected'])
+        self.assertNotIn('befo port',diagnostic_findings(row,files)[0]['expected'])
+
     def test_release_privacy_gate_also_checks_unreferenced_extra_files(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);diagnostic_example(root/'source')

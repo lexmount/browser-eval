@@ -269,9 +269,18 @@ def diagnostic_findings(row, files):
         if check.get('pass') is False:
             add('text', '缺少必需事实', ' / '.join(check.get('alternatives') or [check.get('id', '未提供')]), '首轮输出未匹配到该事实')
     if metrics.get('body_coverage_pass') is False:
+        try:
+            reference = json.loads(files[row['reference']['path']])
+            reference_regions = {r['id']: r.get('text', '') for r in
+                reference.get('body_requirements', {}).get('regions', [])}
+        except (KeyError, ValueError, TypeError, AttributeError):
+            reference_regions = {}
         regions = [r for r in metrics.get('body_region_results', []) if r.get('pass') is False]
         for region in regions:
-            sample = ' '.join(p.get('text', '') for p in region.get('unmatched_reference_passages', []))[:300]
+            # Matcher fragments have normalized/deleted characters and are not
+            # readable quotations. Display frozen source text, never reconstruct
+            # a supposed sentence from the score's unmatched character spans.
+            sample = re.sub(r'\s+', ' ', reference_regions.get(region.get('id'), '')).strip()[:300]
             add('body', '正文分区未达覆盖要求',
                 str(region.get('id', '正文分区')) + '：覆盖率至少 ' + str(round(100 * region.get('minimum', 0), 1)) + '%；参考内容：' + (sample or '见标准答案'),
                 '实际覆盖率 ' + str(round(100 * region.get('coverage', 0), 1)) + '%')
