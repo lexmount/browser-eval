@@ -4,6 +4,7 @@ import hashlib
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from harness.reporting.templates import ROOT, resolve_template
@@ -37,6 +38,91 @@ def diagnostic_example(root):
 
 
 class ReportTemplateTests(unittest.TestCase):
+    def test_release_privacy_gate_also_checks_unreferenced_extra_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);diagnostic_example(root/'source')
+            output=root/'output';build_diagnostic_cohorts(root/'source',output)
+            (output/'extra.txt').write_text('token=canary-private-value')
+            with self.assertRaisesRegex(ValueError,'privacy scan'):
+                check_diagnostic_report(output)
+
+    def test_different_report_instances_reuse_one_renderer_and_component_contract(self):
+        from bs4 import BeautifulSoup
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)
+            for size in (1,2,3):
+                source=root/f'instance-{size}';model=diagnostic_example(source)
+                prototype=copy.deepcopy(model['rows']);model['rows']=[];model['cohorts']=[]
+                model['metrics']={};plan=[]
+                model['title']=f'独立报告实例 {size}'
+                model['pages']={'guide':[{'title':'本实例的解释','paragraphs':[f'该实例包含 {size} 个任务组。']}]}
+                for index in range(size):
+                    key=f'family-{index}'
+                    model['cohorts'].append(dict(id=key,label=key,case_count=2,version='OtherFetch 9'))
+                    model['rows'] += [dict(row,id=f'{row["id"]}-{index}',cohort=key) for row in prototype]
+                    model['metrics'][key]=[1,2]
+                    ids=sorted(r['id'] for r in model['rows'] if r['cohort']==key)
+                    plan.append(dict(id=key,case_count=2,case_ids_sha256=hashlib.sha256(
+                        ('\n'.join(ids)+'\n').encode()).hexdigest()))
+                model['metrics']['overall']=[size,size*2]
+                (source/'report.json').write_text(json.dumps(model))
+                profile=root/f'profile-{size}.json';profile.write_text(json.dumps(
+                    dict(variant='diagnostic-cohorts',cohort_plan=plan)))
+                output=root/f'output-{size}'
+                build_diagnostic_cohorts(source,output,profile=profile)
+                check_diagnostic_report(output,profile=profile)
+                home=BeautifulSoup((output/'index.html').read_text(),'html.parser')
+                self.assertEqual(len(home.select('[data-summary-group]')),size)
+                self.assertIn(model['title'],home.get_text())
+                self.assertIn('OtherFetch 9',home.get_text())
+                guide=(output/'guide/index.html').read_text()
+                self.assertIn(f'该实例包含 {size} 个任务组。',guide)
+                self.assertNotIn('Moli',home.get_text()+guide)
+
+    def test_planned_matrix_rejects_a_self_consistent_but_incomplete_report(self):
+        from harness.web_fetch.report_diagnostic import require_diagnostic_scope
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);base=diagnostic_example(root/'example')
+            plan={'variant':'diagnostic-cohorts','cohort_plan':[
+                dict(id='articles',case_count=2,case_ids_sha256=hashlib.sha256(
+                    b'challenge\ncomplete\n').hexdigest())]}
+            profile=root/'profile.json';profile.write_text(json.dumps(plan))
+            output=root/'valid';build_diagnostic_cohorts(root/'example',output,profile=profile)
+            check_diagnostic_report(output,profile=profile)
+            complete=copy.deepcopy(base)
+            for group,cid in [('dynamic','dynamic-case'),('risk','risk-case')]:
+                complete['cohorts'].append(dict(id=group,label=group,case_count=1))
+                complete['rows'].append(dict(base['rows'][0],id=cid,cohort=group))
+                plan['cohort_plan'].append(dict(id=group,case_count=1,
+                    case_ids_sha256=hashlib.sha256((cid+'\n').encode()).hexdigest()))
+            require_diagnostic_scope(complete,plan)
+            # Internally consistent two-group totals cannot satisfy a
+            # separately frozen three-group scope.
+            for missing in ('articles','dynamic','risk'):
+                bad=copy.deepcopy(complete)
+                bad['cohorts']=[g for g in bad['cohorts'] if g['id']!=missing]
+                bad['rows']=[r for r in bad['rows'] if r['cohort']!=missing]
+                with self.assertRaisesRegex(ValueError,'planned matrix'):
+                    require_diagnostic_scope(bad,plan)
+            bad=copy.deepcopy(complete);bad['rows'][-1]['id']='same-count-wrong-case'
+            with self.assertRaisesRegex(ValueError,'case scope'):
+                require_diagnostic_scope(bad,plan)
+            profile.write_text(json.dumps(plan))
+            with self.assertRaisesRegex(ValueError,'planned matrix'):
+                build_diagnostic_cohorts(root/'example',root/'incomplete',profile=profile)
+            self.assertFalse((root/'incomplete').exists())
+            identity=dict(reported_version='moli 1.1.15',binary_sha256='a'*64)
+            plan['implementation']=identity
+            for group in complete['cohorts']:group['version']=identity['reported_version']
+            complete['provenance']=[dict(cohort=g['id'],binary_sha256='a'*64) for g in complete['cohorts']]
+            require_diagnostic_scope(complete,plan)
+            for field in ('version','binary'):
+                bad=copy.deepcopy(complete)
+                if field=='version':bad['cohorts'][-1]['version']='moli 1.1.11'
+                else:bad['provenance'][-1]['binary_sha256']='b'*64
+                with self.assertRaisesRegex(ValueError,'implementation'):
+                    require_diagnostic_scope(bad,plan)
+
     def test_old_timeout_identity_requires_exact_attempt_bound_preflight_receipt(self):
         from harness.web_fetch.report_diagnostic import _saved_implementation_identity
         record=dict(attempt_id='timed-out',provider='moli',ok=False,error_type='timeout',provider_metadata={})
@@ -105,6 +191,22 @@ class ReportTemplateTests(unittest.TestCase):
             self.assertEqual(model['cohorts'][0]['version'],'moli 1.1.15')
             self.assertEqual(files[model['rows'][0]['first_answer']['path']],b'Required article body')
             self.assertNotIn('Private DOM',files[model['rows'][0]['source']['path']].decode())
+            # One instance profile supplies the input, scope and implementation;
+            # a new report does not need its own assembly script.
+            profile=root/'instance-profile.json'
+            profile.write_text(json.dumps(dict(variant='diagnostic-cohorts',
+                diagnostic_input=dict(path='input.json',sha256=hashlib.sha256(spec.read_bytes()).hexdigest()),
+                cohort_plan=[dict(id='articles',case_count=2,case_ids_sha256=hashlib.sha256(
+                    ('\n'.join(sorted(c['id'] for c in cases))+'\n').encode()).hexdigest())])))
+            with patch.dict('os.environ',{'BROWSER_EVAL_DATA_HOME':str(root)}):
+                bound_output=root/'profiled-output'
+                build_diagnostic_cohorts(None,bound_output,profile=profile)
+                check_diagnostic_report(bound_output,profile=profile)
+                original_spec=spec.read_bytes();spec.write_text(spec.read_text()+'\n')
+                with self.assertRaisesRegex(ValueError,'input differs'):
+                    build_diagnostic_cohorts(None,root/'stale-input',profile=profile)
+                self.assertFalse((root/'stale-input').exists())
+                spec.write_bytes(original_spec)
             # Publishing can redact sensitive links, but must not change the
             # scored answer or silently claim the public view is byte-identical.
             answer_path=run/records[0]['artifact_path'];original=answer_path.read_bytes()

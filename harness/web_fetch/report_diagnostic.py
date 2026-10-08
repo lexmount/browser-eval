@@ -11,6 +11,33 @@ from urllib.parse import unquote, urljoin, urlsplit
 from .safety import contained_path, safe_identifier, validate_http_url
 
 
+def require_diagnostic_scope(model, profile):
+    """Compare the report with an independent planned population, not itself."""
+    if profile.get('variant') != 'diagnostic-cohorts':
+        raise ValueError('Expected a diagnostic cohort profile')
+    plan = profile.get('cohort_plan', [])
+    expected = {g['id']: g for g in plan}
+    groups = {g['id']: g for g in model['cohorts']}
+    if not expected or len(expected) != len(plan) or set(groups) != set(expected):
+        raise ValueError('Report cohort scope differs from the planned matrix')
+    for key, group in expected.items():
+        ids = sorted(r['id'] for r in model['rows'] if r['cohort'] == key)
+        digest = hashlib.sha256(('\n'.join(ids) + '\n').encode()).hexdigest()
+        if (len(ids) != group['case_count'] or len(set(ids)) != len(ids)
+                or groups[key]['case_count'] != len(ids)
+                or digest != group['case_ids_sha256']):
+            raise ValueError('Report case scope differs from the planned matrix: ' + key)
+    identity = profile.get('implementation')
+    if identity:
+        provenance = {g['cohort']: g for g in model.get('provenance', [])}
+        if set(provenance) != set(expected):
+            raise ValueError('Planned implementation provenance is incomplete')
+        for key in expected:
+            if (groups[key].get('version') != identity['reported_version']
+                    or provenance[key].get('binary_sha256') != identity['binary_sha256']):
+                raise ValueError('Report implementation differs from the planned matrix: ' + key)
+
+
 def _saved_implementation_identity(record, batches):
     metadata = record['provider_metadata']
     direct = (metadata.get('reported_version'), metadata.get('binary_sha256'))
@@ -390,14 +417,21 @@ def load_diagnostic(source):
     return model, files
 
 
-def check_diagnostic_report(output):
+def check_diagnostic_report(output, profile=None):
     """Enforce the shared reader structure and evidence dialogs at release."""
     from bs4 import BeautifulSoup
     from scripts.report_presentation_contract import check_presentation
+    from .publication_privacy import publication_risk
 
     output = Path(output)
     model, files = load_diagnostic(output)
+    if profile is not None:
+        require_diagnostic_scope(model, json.loads(Path(profile).read_text()))
     manifest = json.loads((output / "report-manifest.json").read_text())
+    if profile is not None:
+        binding = json.loads(Path(profile).read_text()).get('diagnostic_input')
+        if binding and manifest.get('input_sha256') != binding['sha256']:
+            raise ValueError('Rendered diagnostic instance does not bind the planned input')
     if manifest["template"]["track"] != "webfetch" or manifest["template"]["renderer"] != "harness/web_fetch/report.py":
         raise ValueError("Diagnostic report bypassed its registered template")
     if manifest["model_sha256"] != hashlib.sha256((output / "report.json").read_bytes()).hexdigest():
@@ -531,6 +565,11 @@ def check_diagnostic_report(output):
             target = _local_target(output, route, soup, value)
             if not target.is_file():
                 raise ValueError("Broken report target: " + value)
+    for path in output.rglob('*'):
+        if path.is_symlink():
+            raise ValueError('Public report must not contain symlinks')
+        if path.is_file() and (risk := publication_risk(path.read_bytes())):
+            raise ValueError('Public report privacy scan: ' + path.relative_to(output).as_posix() + ': ' + risk)
     return {"cases": len(model["rows"]), "core_routes": len(core), "status": "passed"}
 
 

@@ -14,8 +14,9 @@
       "wcxb_check": "make wcxb-release-check",
       "tests": "tests/test_headless_report.py",
       "variants": ["certified", "wcxb", "local-audit", "diagnostic-cohorts"],
-      "diagnostic_build": "make webfetch-diagnostic-report EVIDENCE=/absolute/path OUTPUT=/absolute/new-output",
+      "diagnostic_build": "make webfetch-diagnostic-report DIAGNOSTIC_PROFILE=evaluation/live-webfetch/current-report.json OUTPUT=/absolute/new-output",
       "diagnostic_profile": "evaluation/live-webfetch/current-report.json",
+      "diagnostic_check": "uv run --frozen python scripts/check_diagnostic_report.py /absolute/output --profile evaluation/live-webfetch/current-report.json",
       "diagnostic_example": "tests/test_report_templates.py:diagnostic_example",
       "diagnostic_example_check": "uv run --frozen python -m unittest tests.test_report_templates"
     },

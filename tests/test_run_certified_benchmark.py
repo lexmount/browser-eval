@@ -83,6 +83,9 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 },
             }]}))
             output, work = root / "run", root / "work"
+            config = root / "instance-provider.json"
+            config.write_text('{"providers": {"p": {"type": "fixture"}}}')
+            original_config = config.read_bytes()
 
             def completed(command):
                 script = Path(command[1]).name
@@ -99,7 +102,12 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             with patch("scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(output),
                       "--work-root", str(work), "--providers", "p",
-                      "--case-ids", "javascript-spa", "--browser-binary", "/chrome"])
+                      "--case-ids", "javascript-spa", "--browser-binary", "/chrome",
+                      "--provider-config", str(config)])
+            benchmark = next(call.args[0] for call in invoked.call_args_list
+                             if Path(call.args[0][1]).name == 'run_benchmark.py')
+            self.assertEqual(benchmark[benchmark.index('--provider-config') + 1], str(config))
+            self.assertEqual(config.read_bytes(), original_config)
             scripts = [Path(call.args[0][1]).name for call in invoked.call_args_list]
             self.assertEqual(scripts, [
                 "collect_source_evidence.py", "capture_headless_browser_observations.py",

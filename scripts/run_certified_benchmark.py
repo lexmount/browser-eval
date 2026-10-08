@@ -133,12 +133,15 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--browser-capture-attempts", type=int, default=2)
     parser.add_argument("--browser-binary")
     parser.add_argument("--env-file", type=Path)
+    parser.add_argument("--provider-config", type=Path,help="Instance-specific provider settings passed unchanged to the shared runner")
     parser.add_argument("--reference-promotion", type=Path)
     parser.add_argument('--retrieval-mode', choices=('declared', 'native'), default='declared',
                         help='Explicitly select ordinary native fetch instead of selector-guided dynamic execution')
     parser.add_argument('--diagnostic', action='store_true',
                         help='Retain an explicitly uncertified cohort when stable rules have no live source qualification')
     args = parser.parse_args(argv)
+    if args.provider_config and not args.provider_config.is_file():
+        parser.error('--provider-config must be an existing file')
     if args.browser_capture_attempts < 1:
         parser.error("--browser-capture-attempts must be at least 1")
 
@@ -216,6 +219,8 @@ def main(argv: list[str] | None = None) -> None:
                  "--case-ids", selected, "--workers", str(args.workers), "--measure-only"]
     if args.env_file:
         benchmark.extend(["--env-file", str(args.env_file)])
+    if args.provider_config:
+        benchmark.extend(["--provider-config", str(args.provider_config)])
     run(benchmark)
 
     # Re-capture HTTP evidence after every provider call has completed, then

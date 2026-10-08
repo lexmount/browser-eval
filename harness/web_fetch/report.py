@@ -762,7 +762,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[da
    values=cell(esc(g['label']))+cell(esc(g.get('version') or '见调用记录'))+cell(str(n),n)+cell('—' if s['delivered'] is None else str(s['delivered'])+' / '+str(n),-1 if s['delivered'] is None else s['delivered'])+cell(str(s['accepted'])+' / '+str(n),s['accepted'])
    values+=''.join(cell('—' if s[k] is None else f'{s[k]/1000:.2f}',-1 if s[k] is None else s[k]) for k in ('mean_ms','p50_ms','p95_ms'))
    summary_rows.append((' data-summary-group="'+esc(s['id'])+'"',values))
-  home+=section('各类任务的结果',table(['任务组','Moli 版本','任务数','调用成功','任务通过','平均耗时（秒）','P50 耗时（秒）','P95 耗时（秒）'],summary_rows,'cohort-summary',sortable=True)+distribution([(groups[g]['label'],*model['metrics'][g]) for g in groups])+'<p>调用成功只表示请求交付成功，任务通过还要求满足正文、文字和结构验收。三项耗时均统计该组全部调用；P50 为中位数，P95 为第 95 百分位。未保存完整耗时的组显示 —。</p><p>'+esc(model['metric_note'])+'</p>','cohort-results')
+  home+=section('各类任务的结果',table(['任务组','实现版本','任务数','调用成功','任务通过','平均耗时（秒）','P50 耗时（秒）','P95 耗时（秒）'],summary_rows,'cohort-summary',sortable=True)+distribution([(groups[g]['label'],*model['metrics'][g]) for g in groups])+'<p>调用成功只表示请求交付成功，任务通过还要求满足正文、文字和结构验收。三项耗时均统计该组全部调用；P50 为中位数，P95 为第 95 百分位。未保存完整耗时的组显示 —。</p><p>'+esc(model['metric_note'])+'</p>','cohort-results')
   failures=Counter(r['cause'] for r in rows if not r['initial_pass'])
   home+=blocks('overview')
   home+=section('未通过的输出主要缺什么',distribution([(FAILURE_TYPES[k],n,sum(failures.values())) for k,n in failure_types.most_common(3)])+'<p>分母为全部 '+str(sum(failures.values()))+' 个首轮未通过任务。同一任务可以缺少文字和记录，各类数量不能相加。'+link('analysis/index.html','查看失败类型及具体样本 →')+'</p>')
@@ -787,9 +787,9 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[da
   analysis+=section('独立核验取得了什么',table(['核验线索','未通过任务数'],[('',cell(esc(labels[k]))+cell(str(n))) for k,n in failures.items()])+'<p>这些线索与上面的输出缺陷分开统计。独立浏览器也被拦截，只能证明此次核验遇到访问障碍；后来补抓通过，也不能证明首轮失败的内部原因。</p>')
   analysis+=section('逐项结果',controls+table(['网站与样本','组别','首轮结果','失败类型','核验线索','证据'],inventory,'filtered-table',sortable=True),'failure-inventory')
   page('analysis/index.html','结果分析',analysis)
-  guide=hero('Moli 在这些网页上取得了什么',str(model['metrics']['overall'][0])+' / '+str(len(rows))+' 个首次调用满足当时的完整验收要求；以下为指定样本的诊断结果。')
-  guide+=section('结果与计量范围',table(['任务组','Moli 版本','任务数','调用成功','任务通过','平均耗时（秒）','P50 耗时（秒）','P95 耗时（秒）'],summary_rows,'guide-summary',sortable=True)+'<p>'+esc(model['metric_note'])+' 耗时统计每组全部调用（含失败），P50 是中位数；未留存完整计时的组不计算耗时。</p>','guide-results')
-  guide+=section('失败最常违反哪些要求',table(['输出缺陷','受影响的未通过任务'],[('',cell(link('analysis/index.html#issue='+k,FAILURE_TYPES[k]))+cell(str(n)+' / '+str(sum(failures.values())))) for k,n in failure_types.most_common()])+'<p>同一任务可涉及多个缺陷，数量不能相加。缺少文字是输出与验收不符的事实，不等于已经查明 Moli 的内部故障。</p>')
+  guide=hero('这些网页的提取结果',str(model['metrics']['overall'][0])+' / '+str(len(rows))+' 个首次调用满足当时的完整验收要求；以下为指定样本的诊断结果。')
+  guide+=section('结果与计量范围',table(['任务组','实现版本','任务数','调用成功','任务通过','平均耗时（秒）','P50 耗时（秒）','P95 耗时（秒）'],summary_rows,'guide-summary',sortable=True)+'<p>'+esc(model['metric_note'])+' 耗时统计每组全部调用（含失败），P50 是中位数；未留存完整计时的组不计算耗时。</p>','guide-results')
+  guide+=section('失败最常违反哪些要求',table(['输出缺陷','受影响的未通过任务'],[('',cell(link('analysis/index.html#issue='+k,FAILURE_TYPES[k]))+cell(str(n)+' / '+str(sum(failures.values())))) for k,n in failure_types.most_common()])+'<p>同一任务可涉及多个缺陷，数量不能相加。缺少文字是输出与验收不符的事实，不等于已经查明被测工具的内部故障。</p>')
   guide+=section('核验后的失败归类',table(['核验结论','未通过任务数','样本证据'],[
    ('',cell(esc(labels[k]))+cell(str(n)+' / '+str(sum(failures.values())))+cell(link(detail_link(next(r for r in rows if not r['initial_pass'] and r['cause']==k)),'查看具体要求、输出与源页')))
    for k,n in failures.most_common()])+'<p>每个未通过任务只归入一类，合计等于全部未通过任务。访问受限、参考范围不符和输出遗漏分别处理，不把当前源页不可访问当作引擎故障证据。</p>','guide-reviewed-causes')
@@ -808,7 +808,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[da
     panels+='<div data-specimen-field="'+field+'"'+(' data-sha256="'+binding['sha256']+'"' if binding else '')+'><h3>'+title+'</h3>'+empty_note+'<pre>'+esc(excerpt)+'</pre><p>'+esc(binding.get('scope','') if binding else '独立观察未取得目标正文')+'</p></div>'
    guide+=section((urlsplit(r['url']).hostname or cid)+'：'+('通过' if r['initial_pass'] else '未通过'),'<div data-interpretation-case="'+esc(cid)+'"><p>'+esc(r['task'])+'</p><div class="diagnostic-specimen">'+panels+'</div><p>'+esc(r['cause_detail'])+'</p><p>'+link(detail_link(r),'查看完整标准答案、输出、实页与日志 →')+'</p></div>')
   guide+=blocks('guide')
-  guide+=section('结论与核验范围','<p>'+esc(model['scope_note'])+'</p><p>源页观察与输出检查分别保留。独立浏览器遇到验证页或访问异常时，不将其算作 Moli 已通过，也不据此断定工具有错。'+link('review/index.html','查看核验范围和处理结果 →')+'</p>','guide-conclusions')
+  guide+=section('结论与核验范围','<p>'+esc(model['scope_note'])+'</p><p>源页观察与输出检查分别保留。独立浏览器遇到验证页或访问异常时，不将其算作被测工具已通过，也不据此断定工具有错。'+link('review/index.html','查看核验范围和处理结果 →')+'</p>','guide-conclusions')
   page('guide/index.html','报告解读',guide)
   dataset=[]
   for r in rows:

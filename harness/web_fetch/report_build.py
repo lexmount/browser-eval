@@ -23,13 +23,26 @@ from .artifacts import (
 )
 
 
-def build_diagnostic_cohorts(source: Path, output: Path) -> Path:
+def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | None = None) -> Path:
     """Build an explicitly requested diagnostic edition using the WebFetch owner."""
     from harness.reporting.templates import resolve_template
     from .report_diagnostic import load_diagnostic, check_diagnostic_report, prepare_diagnostic_evidence
     from .report import generate_cohort_diagnostic
 
+    if profile is not None:
+        configuration = json.loads(profile.read_text())
+        binding = configuration.get('diagnostic_input')
+        if binding:
+            from .storage import data_home
+            selected = source or contained_path(data_home(), binding['path'])
+            if (not selected.is_file() or selected.is_symlink()
+                    or hashlib.sha256(selected.read_bytes()).hexdigest() != binding['sha256']):
+                raise ValueError('Diagnostic instance input differs from its profile binding')
+            source = selected
+    if source is None:
+        raise ValueError('Diagnostic instance needs evidence or a bound diagnostic_input')
     source, output = source.resolve(), output.resolve()
+    input_sha256 = hashlib.sha256(source.read_bytes()).hexdigest() if source.is_file() else None
     if source == output or source.is_relative_to(output) or output.is_relative_to(source) or output.exists():
         raise ValueError("Diagnostic build requires a new output outside its evidence")
     template = resolve_template("webfetch")
@@ -51,10 +64,11 @@ def build_diagnostic_cohorts(source: Path, output: Path) -> Path:
                     "evidence_state": "diagnostic", "certified": False,
                     "languages": ["zh"], "provider_calls_added": 0,
                     "model_sha256": hashlib.sha256(model_bytes).hexdigest(),
+                    "input_sha256": input_sha256,
                     "artifact_hashes": {path: hashlib.sha256(raw).hexdigest()
                                         for path, raw in files.items()}}
         (staging / "report-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2))
-        check_diagnostic_report(staging)
+        check_diagnostic_report(staging, profile=profile)
         staging.rename(output)
     except Exception:
         shutil.rmtree(staging)
