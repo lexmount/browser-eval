@@ -228,13 +228,24 @@ def verify_dynamic_cohort(root: Path, source_root: Path) -> None:
               'metrics': {'content_sha256': hashlib.sha256(b'answer').hexdigest()}}
     records = (json.dumps(record) + '\r\n').encode()
     (measured / 'results.jsonl').write_bytes(records)
+    config_hash = hashlib.sha256(b'synthetic custom configuration').hexdigest()
     (measured / 'execution.json').write_text(json.dumps({'batches': [{
         'dataset': {'case_count': 1}, 'providers': [{'name': 'fixture', 'type': 'fixture'}],
         'attempt_count': 1, 'attempt_ids': [record['attempt_id']],
+        'provider_config_source': '/home/private/custom.json',
+        'provider_config_sha256': config_hash,
+        'runtime_identity_record': {'provider_config_sha256': config_hash},
     }]}))
+    (measured / 'runtime-identity.json').write_text('{"provider_config_sha256": "unrelated"}')
     merge(reference, [measured], output)
     assert (output / 'results.jsonl').read_bytes() == records
     assert (output / 'artifacts/stdout.txt').read_bytes() == b'process output'
+    batch = json.loads((output / 'execution.json').read_text())['batches'][0]
+    assert batch['provider_config_source'] == 'custom.json'
+    assert batch['provider_config_path_omitted'] is True
+    assert batch['provider_config_sha256'] == config_hash
+    assert batch['runtime_identity_record'] == {'provider_config_sha256': config_hash}
+    assert 'runtime_identity_sha256' not in batch
 
 
 def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = False) -> None:

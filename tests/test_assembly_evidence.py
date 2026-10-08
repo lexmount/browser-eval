@@ -53,6 +53,26 @@ def test_assembly_preserves_all_physical_call_evidence(source, tmp_path):
         assert (target / relative).read_bytes() == (root / relative).read_bytes()
 
 
+@pytest.mark.parametrize('config_source', ['configs/custom.json', '/home/private/custom.json'])
+def test_assembly_retains_config_identity_while_omitting_local_paths(source, tmp_path, config_source):
+    root, _ = source
+    path = root / 'manifest.json'
+    manifest = json.loads(path.read_text())
+    manifest['provider_config_source'] = config_source
+    manifest['provider_config_sha256'] = hashlib.sha256(b'custom configuration').hexdigest()
+    path.write_text(json.dumps(manifest))
+    original = path.read_bytes()
+    target = tmp_path / 'assembled'
+    assemble(root, tmp_path / 'certificates', [], target)
+    projected = json.loads((target / 'execution.json').read_text())['batches'][0]
+    assert projected['provider_config_source'] == (
+        'custom.json' if config_source.startswith('/') else config_source
+    )
+    assert projected['provider_config_sha256'] == manifest['provider_config_sha256']
+    assert 'hostname' not in projected['environment']
+    assert path.read_bytes() == original
+
+
 def test_assembly_and_report_include_only_current_task_references(source, tmp_path):
     root, _ = source
     files = {'sources/one/reference.txt': b'selected source',

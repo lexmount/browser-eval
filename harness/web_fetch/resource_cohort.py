@@ -5,10 +5,10 @@ import hashlib
 import json
 import math
 import statistics
-from copy import deepcopy
 from pathlib import Path
 
 from harness.record_io import load_jsonl
+from harness.web_fetch.publication_privacy import project_execution_manifest
 
 from .artifacts import verify_record_artifacts
 from .metrics import percentile, task_passed
@@ -176,13 +176,12 @@ def validate_cohort(root: Path) -> tuple[dict, list[dict], list[dict]]:
 
 def package(root: Path) -> dict:
     _, _, batches, summary = load_cohort(root)
+    public_batches = [project_execution_manifest(batch) for batch in batches]
     target = contained_path(root, 'resource-comparison.json', reject_symlinks=True)
     target.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + '\n')
     if not (root / 'execution.json').is_file():
-        public_batch = deepcopy(batches[0])
-        (public_batch.get('environment') or {}).pop('hostname', None)
         (root / 'execution.json').write_text(
-            json.dumps({'batches': [public_batch]}, ensure_ascii=False, indent=2) + '\n')
+            json.dumps({'batches': public_batches}, ensure_ascii=False, indent=2) + '\n')
     return summary
 
 

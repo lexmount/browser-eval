@@ -147,6 +147,13 @@ stages use the shared artifact boundary for primary outputs, auxiliary files,
 retained retry evidence, private artifacts and reference observations. Assembly
 exposes a new directory only after copying succeeds; append retains its rollback
 boundary. Original JSONL record bytes and scoring values remain unchanged.
+Dynamic, ordinary and resource-cohort packaging share execution metadata
+projection in `publication_privacy.py`. It omits hostnames and local source
+directories, marks omitted paths and retains recorded file names, safe relative paths
+and hashes. It never substitutes a repository configuration for a measured run
+or infers missing hashes. Each batch retains its declared runtime identity;
+conflicting configuration hashes are rejected. An undeclared adjacent identity
+file cannot replace that identity or become evidence for another batch.
 `risk_control_dataset.py` owns the frozen risk-control definition compiler. Its
 command accepts an explicit definition directory and output; importing it or
 requesting help does not read historical inputs. Task rules and source hashes

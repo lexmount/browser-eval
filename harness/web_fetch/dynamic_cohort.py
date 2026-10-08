@@ -6,7 +6,6 @@ import json
 import math
 import shutil
 import tempfile
-from copy import deepcopy
 from dataclasses import fields
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +17,7 @@ from harness.web_fetch.artifacts import (
     verify_record_artifacts,
 )
 from harness.web_fetch.models import EvalCase
+from harness.web_fetch.publication_privacy import project_execution_manifest
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 from harness.web_fetch.render_evidence import validate_render_reference
 from harness.web_fetch.safety import (
@@ -403,21 +403,7 @@ def merge(reference, runs, output):
         require_verified_reference_checks(
             original_batches, cases=reference_cases, records=rows, source=run
         )
-        for batch in original_batches:
-            public = deepcopy(batch)
-            # Retain original measurements while omitting host/private path metadata.
-            public.get("environment", {}).pop("hostname", None)
-            public["dataset"]["source"] = "frozen-dynamic-supplement/dataset.json"
-            public["provider_config_source"] = "configs/providers.resources.json"
-            identity = run / "runtime-identity.json"
-            if identity.exists():
-                identity_bytes = identity.read_bytes()
-                public["runtime_identity_record"] = json.loads(identity_bytes)
-                public["runtime_identity_sha256"] = hashlib.sha256(identity_bytes).hexdigest()
-                public["provider_config_source"] = (
-                    "isolated local overrides; see runtime_identity_record.provider_config_sha256"
-                )
-            batches.append(public)
+        batches.extend(project_execution_manifest(batch) for batch in original_batches)
         sources.append((run, rows, original_batches, raw_records))
         records.extend(rows)
     validate_report_ids(dataset, records)

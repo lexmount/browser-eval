@@ -31,6 +31,40 @@ class DynamicMergeTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256((self.output/record['artifact_path']).read_bytes()).hexdigest(),
                              record['metrics']['content_sha256'])
 
+    def test_retains_each_batch_configuration_without_claiming_repository_defaults(self):
+        for index, batch in enumerate(self.fixture.batches):
+            batch['provider_config_sha256'] = hashlib.sha256(str(index).encode()).hexdigest()
+        self.fixture.save()
+        before = self.fixture.snapshot(self.fixture.measured)
+        self.assemble()
+        batches = json.loads((self.output / 'execution.json').read_text())['batches']
+        for original, projected in zip(self.fixture.batches, batches, strict=True):
+            for key in ('provider_config_source', 'provider_config_sha256', 'runtime_identity_record'):
+                self.assertEqual(projected[key], original[key])
+        self.assertEqual(before, self.fixture.snapshot(self.fixture.measured))
+
+    def test_undeclared_identity_sidecar_cannot_replace_batch_provenance(self):
+        sidecar = self.fixture.measured / 'runtime-identity.json'
+        sidecar.write_text('{"provider_config_sha256": "unrelated", "fixture": "other run"}')
+        self.assemble()
+        batches = json.loads((self.output / 'execution.json').read_text())['batches']
+        for original, projected in zip(self.fixture.batches, batches, strict=True):
+            self.assertEqual(projected['runtime_identity_record'], original['runtime_identity_record'])
+            self.assertNotIn('runtime_identity_sha256', projected)
+            self.assertNotIn('provider_config_sha256', projected)
+        self.assertFalse((self.output / sidecar.name).exists())
+
+    def test_conflicting_declared_config_identity_cannot_be_assembled(self):
+        batch = self.fixture.batches[0]
+        batch['provider_config_sha256'] = 'a' * 64
+        batch['runtime_identity_record']['provider_config_sha256'] = 'b' * 64
+        self.fixture.save()
+        before = self.fixture.snapshot(self.fixture.measured)
+        with self.assertRaisesRegex(ValueError, 'Conflicting provider configuration hashes'):
+            self.assemble()
+        self.assertFalse(self.output.exists())
+        self.assertEqual(self.fixture.snapshot(self.fixture.measured), before)
+
     def test_rejects_changed_raw_evidence_before_creating_output(self):
         path = self.fixture.measured / self.fixture.records[0]['artifact_path']
         path.write_text('tampered')

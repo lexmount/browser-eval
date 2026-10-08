@@ -72,6 +72,39 @@ def test_resource_assembly_and_report_copy_only_declared_evidence(runs, tmp_path
         assert (cohort / 'resource-comparison.json').read_bytes() == (resource / 'resource-comparison.json').read_bytes()
 
 
+def test_resource_package_omits_local_paths_without_changing_config_hash(tmp_path):
+    root = tmp_path / 'resource'
+    make_run(root, 5, resource=True)
+    path = root / 'manifest.json'
+    manifest = json.loads(path.read_text())
+    manifest['provider_config_source'] = '/home/private/resource-custom.json'
+    manifest['provider_config_sha256'] = hashlib.sha256(b'custom resources').hexdigest()
+    path.write_text(json.dumps(manifest))
+    original = path.read_bytes()
+    package(root)
+    batch = json.loads((root / 'execution.json').read_text())['batches'][0]
+    assert batch['provider_config_source'] == 'resource-custom.json'
+    assert batch['provider_config_sha256'] == manifest['provider_config_sha256']
+    assert 'hostname' not in batch['environment']
+    assert path.read_bytes() == original
+
+
+def test_resource_identity_conflict_does_not_write_partial_package_metadata(tmp_path):
+    root = tmp_path / 'resource'
+    make_run(root, 5, resource=True)
+    path = root / 'manifest.json'
+    manifest = json.loads(path.read_text())
+    manifest['provider_config_sha256'] = 'a' * 64
+    manifest['runtime_identity_record'] = {'provider_config_sha256': 'b' * 64}
+    path.write_text(json.dumps(manifest))
+    original = path.read_bytes()
+    with pytest.raises(ValueError, match='Conflicting provider configuration hashes'):
+        package(root)
+    assert not (root / 'resource-comparison.json').exists()
+    assert not (root / 'execution.json').exists()
+    assert path.read_bytes() == original
+
+
 @pytest.mark.parametrize('damage', ['summary-binding', 'summary-value', 'linked-artifact', 'missing-auxiliary'])
 def test_invalid_resource_comparison_fails_without_exposing_output(runs, tmp_path, damage):
     base, resource, records = runs

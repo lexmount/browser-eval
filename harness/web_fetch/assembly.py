@@ -15,6 +15,7 @@ from harness.web_fetch.artifacts import (
     materialize_reference_checks,
     materialize_task_references,
 )
+from harness.web_fetch.publication_privacy import project_execution_manifest
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
     latency_correction_original_elapsed,
@@ -341,19 +342,6 @@ def read_verified_batches(root, dataset, rows):
     return batches
 
 
-def public_manifest(manifest):
-    result=deepcopy(manifest)
-    result.get('environment',{}).pop('hostname',None)
-    result.setdefault('dataset',{})['source']='evaluation/headless/dataset.json (assembled frozen cases)'
-    result['provider_config_source']='configs/providers.headless.json'
-    if 'projection' in result:
-        result['projection'].pop('source_manifest_path',None)
-        result['projection']['source_manifest_retained_in_local_run']=True
-        if result['projection'].get('kind')=='completed-case-from-live-preflight':
-            result['dataset']['case_count']=len(result['reference_checks']['cases'])
-    return result
-
-
 def _without_reference(case):
     value=deepcopy(case)
     value.pop('source_verification',None);value.pop('ground_truth_main_content',None)
@@ -618,7 +606,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
             'equivalent_reference_bytes_with_independent_batch_captures',
             allow_scoring_rule_revision=valid_scoring_revision(run))
-        batches.extend(public_manifest(batch) for batch in prior_batches)
+        batches.extend(project_execution_manifest(batch) for batch in prior_batches)
         evidence.append(run)
         reference_evidence.append((run, prior_batches))
         prior_audit=run/'selection-audit.json'
@@ -653,7 +641,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             audit.append({'case_id':cid,'replaces_case_id':target_id,'selection_reason':('canonical task/reference correction with a complete matched cohort; no score-based selection'
                 if before!=after else 'fresh complete matched cohort after failed reference certificate; no score-based selection'),
                 'excluded_attempts':[{k:r[k] for k in ('attempt_id','run_id','started_at','elapsed_ms')} for r in original if r['case_id']==target_id]})
-        batches.extend(public_manifest(batch) for batch in replacement_batches);evidence.append(root)
+        batches.extend(project_execution_manifest(batch) for batch in replacement_batches);evidence.append(root)
         reference_evidence.append((root, replacement_batches))
         selected.extend((r,root) for r in rows)
     for cid,case in cases.items():
@@ -664,7 +652,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             manifest=json.loads((cert/'manifest.json').read_text())
             if {r['attempt_id']:r for r in read_records(cert)}!={r['attempt_id']:r for r in rows}:
                 raise ValueError('Certificate records differ from original call records: '+cid)
-            batches.append(public_manifest(manifest));evidence.append(cert)
+            batches.append(project_execution_manifest(manifest));evidence.append(cert)
             reference_evidence.append((cert, [manifest]))
         selected.extend((r,run) for r in rows)
     stable=[r for r in original if not requires_fresh_reference(canonical_cases.get(r['case_id'],cases[r['case_id']])) and r['case_id'] not in replacement_cases]
@@ -674,7 +662,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         manifest.update(attempt_count=len(stable),attempt_ids=[r['attempt_id'] for r in stable])
         manifest['dataset']['case_count']=len({r['case_id'] for r in stable})
         manifest['projection']={'kind':'non-snapshot-cases-only','source_manifest_sha256':hashlib.sha256((run/'manifest.json').read_bytes()).hexdigest()}
-        batches.append(public_manifest(manifest))
+        batches.append(project_execution_manifest(manifest))
     for root in additions:
         new_dataset=json.loads((root/'dataset.json').read_text())
         rows=read_records(root)
@@ -692,7 +680,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             dataset['coverage_plan'].setdefault(case.get('track','web'),new_dataset['coverage_plan'][case.get('track','web')])
         expected|=planned
         selected.extend((r,root) for r in rows)
-        batches.append(public_manifest(manifest));evidence.append(root)
+        batches.append(project_execution_manifest(manifest));evidence.append(root)
         reference_evidence.append((root, [manifest]))
         audit.extend({'case_id':cid,'selection_reason':'missing case completed as a full five-method addition; no score-based selection','excluded_attempts':[]} for cid in incoming)
     pair_replacements = {}
@@ -721,7 +709,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             audit.append({'case_id':row['case_id'],'provider':row['provider'],
                 'selection_reason':'predeclared provider implementation replacement; complete scope selected without score-based retries',
                 'excluded_attempts':[{k:old[k] for k in ('attempt_id','run_id','started_at','elapsed_ms')}]})
-        batches.extend(public_manifest(batch) for batch in replacement_batches);evidence.append(root)
+        batches.extend(project_execution_manifest(batch) for batch in replacement_batches);evidence.append(root)
         reference_evidence.append((root, replacement_batches))
     added_providers=set()
     for root in provider_additions:
@@ -748,7 +736,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         expected|=planned
         added_providers|=providers
         selected.extend((r,root) for r in rows)
-        batches.extend(public_manifest(batch) for batch in addition_batches);evidence.append(root)
+        batches.extend(project_execution_manifest(batch) for batch in addition_batches);evidence.append(root)
         reference_evidence.append((root, addition_batches))
         audit.extend({'provider':provider,
                       'selection_reason':'predeclared full-case provider addition; no score-based retries',
@@ -819,17 +807,17 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         (target/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in rows))
         certificate=certificates/cid
         if certificate.exists():
-            rejected=public_manifest(json.loads((certificate/'manifest.json').read_text()))
+            rejected=project_execution_manifest(json.loads((certificate/'manifest.json').read_text()))
             (target/'manifest.json').write_text(json.dumps(rejected,ensure_ascii=False,indent=2)+'\n')
         elif (run/'manifest.json').exists():
-            rejected=public_manifest(json.loads((run/'manifest.json').read_text()))
+            rejected=project_execution_manifest(json.loads((run/'manifest.json').read_text()))
             rejected.pop('reference_checks',None)
             rejected.update(attempt_count=len(rows),attempt_ids=[r['attempt_id'] for r in rows])
             rejected['projection']={'kind':'replaced-non-snapshot-case','source_manifest_sha256':hashlib.sha256((run/'manifest.json').read_bytes()).hexdigest()}
             (target/'manifest.json').write_text(json.dumps(rejected,ensure_ascii=False,indent=2)+'\n')
         else:
             rejected_batches=_prune_shadowed_batch_attempts(
-                [public_manifest(batch) for batch in prior_batches],rows,
+                [project_execution_manifest(batch) for batch in prior_batches],rows,
                 latency_correction_original_elapsed(run))
             if not rejected_batches:
                 raise ValueError('Assembled input has no execution batch for replaced case: '+cid)
