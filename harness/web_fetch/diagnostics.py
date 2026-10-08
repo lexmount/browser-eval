@@ -28,7 +28,8 @@ class CallDiagnostics:
             row={"at":datetime.now(timezone.utc).isoformat(),"call_id":self.call_id,"source":source,"event":event,**redact(fields)}
             self.file.write(json.dumps(row,ensure_ascii=False,default=str)+"\n");self.file.flush()
     def finish(self, result):
-        self.emit("caller", "collection_completed", ok=result.ok,error_type=result.error_type)
+        self.emit("caller", "collection_completed", ok=result.ok, error_type=result.error_type,
+                  error_message=result.error_message)
         with self.lock:
             self.closed=True;self.file.close()
         raw=self.path.read_bytes()

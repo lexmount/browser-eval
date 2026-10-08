@@ -1,6 +1,7 @@
 import base64
 import json
 import logging
+import pytest
 from unittest.mock import patch
 from harness.web_fetch.diagnostics import CallDiagnostics, diagnostic_context
 from harness.web_fetch.models import ProviderResult
@@ -53,3 +54,70 @@ def test_timeout_retains_product_stderr_even_without_returned_metadata(tmp_path)
     raw=base64.b64decode(result.metadata["_diagnostic_log_b64"])
     assert b"DEBUG native processing started" in raw
     assert result.content==""
+
+
+@pytest.mark.parametrize('outcome', ['content', 'unmatched', 'empty', 'product_error', 'network_error', 'startup_error', 'timeout'])
+def test_runner_keeps_real_observations_for_every_outcome(tmp_path, outcome):
+    import hashlib
+    import threading
+    from dataclasses import asdict
+    from harness.web_fetch.models import EvalCase
+    from harness.web_fetch.providers.base import Provider
+    from harness.web_fetch.runner import run_evaluation
+
+    class ObservedFixture(Provider):
+        def __init__(self):
+            super().__init__('fixture', {'type': 'fixture', 'log_level': 'debug'})
+            self.stop = threading.Event()
+            self.calls = 0
+        def begin_call(self):
+            if outcome == 'startup_error':
+                raise OSError('fixture startup unavailable')
+        def fetch(self, case, timeout):
+            self.calls += 1
+            logging.getLogger('urllib3').debug('actual fixture log before ' + outcome)
+            if outcome == 'network_error':
+                raise ConnectionError('fixture connection refused')
+            if outcome == 'timeout':
+                self.stop.wait(2)
+                return ProviderResult(True, 'late answer')
+            if outcome == 'product_error':
+                return ProviderResult(False, '', error_type='fixture_error', error_message='fixture product rejected request')
+            return ProviderResult(True, 'Expected' if outcome == 'content' else 'Other content' if outcome == 'unmatched' else '')
+        def cancel(self):
+            self.stop.set()
+        @property
+        def cancellation_cleanup_seconds(self):
+            return 0.5
+
+    case = EvalCase('case', 'Case', 'https://example.invalid/', 'static', ['Expected'])
+    dataset = {'tool': 'web_fetch', 'cases': [asdict(case)]}
+    source = tmp_path / 'dataset.json';source.write_text(json.dumps(dataset))
+    config = tmp_path / 'providers.json';config.write_text('{}')
+    provider = ObservedFixture()
+    records, _ = run_evaluation(output_dir=tmp_path/'evidence', dataset_meta=dataset,
+        dataset_path=source, cases=[case], providers=[provider], provider_config_path=config,
+        runs=1, timeout=0.1, delay=0)
+    assert len(records) == 1
+    record = records[0];meta = record['provider_metadata']
+    raw = (tmp_path/'evidence'/meta['diagnostic_log_path']).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == meta['diagnostic_log_sha256']
+    assert len(raw) == meta['diagnostic_log_bytes']
+    assert not meta['diagnostic_log_truncated']
+    rows = [json.loads(line) for line in raw.splitlines()]
+    assert rows[0]['event'] == 'call_started'
+    assert rows[-1]['event'] == 'collection_completed'
+    assert len({r['call_id'] for r in rows}) == 1
+    assert provider.calls == (0 if outcome == 'startup_error' else 1)
+    if outcome != 'startup_error':
+        assert ('actual fixture log before '+outcome).encode() in raw
+    if outcome in {'startup_error','product_error'}:
+        assert ('fixture startup unavailable' if outcome=='startup_error' else 'fixture product rejected request').encode() in raw
+    if outcome == 'network_error':
+        assert b'fixture connection refused' in raw
+    if outcome == 'timeout':
+        assert record['error_type'] == 'timeout'
+        assert (tmp_path/'evidence'/record['artifact_path']).read_bytes() == b''
+        assert b'late answer' not in raw
+    assert record['ok'] == (outcome in {'content', 'unmatched', 'empty'})
+    assert record['metrics']['content_pass'] == (outcome == 'content')
