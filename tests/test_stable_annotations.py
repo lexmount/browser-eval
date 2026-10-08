@@ -1,14 +1,21 @@
 """Reviewed registry against independent source text, never provider outputs."""
-from copy import deepcopy
 import json
-from pathlib import Path
 import re
 import unittest
+from copy import deepcopy
+from pathlib import Path
 
 from harness.web_fetch.metrics import fact_in_text, normalize_for_match
-from harness.web_fetch.stable_annotations import annotate_case, CASE_ANNOTATIONS, SNAPSHOT_METRIC_SCOPE
-from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
-
+from harness.web_fetch.reference_inputs import input_tree
+from harness.web_fetch.stable_annotations import (
+    CASE_ANNOTATIONS,
+    SNAPSHOT_METRIC_SCOPE,
+    annotate_case,
+)
+from harness.web_fetch.stable_tasks import (
+    evaluate_stable_task,
+    validate_acceptance_contract,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 from harness.web_fetch.storage import current_evidence_dir
@@ -25,16 +32,28 @@ def current_general_evidence():
 
 
 class StableAnnotationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        try:
+            cls.sources = input_tree(ROOT / 'evaluation/dataset.json', 'sources')
+        except FileNotFoundError:
+            cls.sources = None
+
+    def require_sources(self):
+        if self.sources is None:
+            self.skipTest('requires externally installed historical reference inputs')
+        return self.sources
+
     def case(self, identifier):
         rule = CASE_ANNOTATIONS[identifier]
         return {"id": identifier, "url": rule["url"], "track": rule["track"],
             "task_prompt": "Original historical instructions", "required_facts": [{"id": "old", "alternatives": ["Old literal"]}],
-            "ground_truth_main_content": self.reference(identifier),
+            "ground_truth_main_content": "Independent reference fixture",
             "source_verification": {"reference_sha256": "original hash", "checked_at": "2000-01-01T00:00:00Z"},
             "source_benchmark": {"original_metadata": "preserve"}}
 
     def reference(self, identifier):
-        return (ROOT / "evaluation/sources" / identifier / "reference.txt").read_text()
+        return (self.require_sources() / identifier / "reference.txt").read_text()
 
     def score(self, identifier, text):
         annotated = annotate_case(self.case(identifier))
@@ -92,8 +111,8 @@ class StableAnnotationTests(unittest.TestCase):
             evidence = annotated["source_benchmark"]["stable_annotation"]["anchor_evidence"]
             self.assertEqual(bool(evidence), bool(annotated["acceptance_contract"]["stable_text_anchors"]))
             if evidence:
-                self.assertTrue((ROOT / "evaluation" / evidence).is_file())
-            reference = normalize_for_match((ROOT / 'evaluation' / evidence).read_text()) if evidence else ''
+                self.assertTrue((self.require_sources().parent / evidence).is_file())
+            reference = normalize_for_match((self.require_sources().parent / evidence).read_text()) if evidence else ''
             for anchor in annotate_case(self.case(identifier))["acceptance_contract"]["stable_text_anchors"]:
                 self.assertTrue(any(fact_in_text(reference, normalize_for_match(value)) for value in anchor["alternatives"]),
                                 (identifier, anchor["id"]))

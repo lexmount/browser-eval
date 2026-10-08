@@ -5,16 +5,17 @@ caller. A completed certificate describes one run, not freshness for another.
 """
 from __future__ import annotations
 
-from copy import deepcopy
-from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import math
 import re
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from .metrics import normalize_for_match, normalize_resource_url
+from .reference_inputs import input_tree
 from .render_evidence import validate_render_reference
 from .safety import contained_path, safe_identifier
 
@@ -184,9 +185,9 @@ def validate_resource_source_evidence(case, dataset_path: Path) -> dict | None:
     if evidence_path != expected_path or not isinstance(evidence_hash, str) \
             or re.fullmatch(r"[0-9a-f]{64}", evidence_hash) is None:
         raise ReferenceLifecycleError(f"{identifier}: resource evidence binding is missing")
-    root = Path(dataset_path).parent
+    root = input_tree(Path(dataset_path), "sources")
     try:
-        evidence_raw = contained_path(root, evidence_path).read_bytes()
+        evidence_raw = contained_path(root, f"{identifier}/evidence.json").read_bytes()
         if sha256(evidence_raw) != evidence_hash:
             raise ReferenceLifecycleError(
                 f"{identifier}: resource evidence SHA-256 mismatch", "reference_changed")
@@ -219,7 +220,7 @@ def validate_resource_source_evidence(case, dataset_path: Path) -> dict | None:
                 or re.fullmatch(r"[0-9a-f]{64}", browser_binding["sha256"]) is None):
             raise ReferenceLifecycleError(f"{identifier}: invalid browser observation binding")
         try:
-            folder = contained_path(root, Path("sources") / identifier)
+            folder = contained_path(root, identifier)
             observation_raw = contained_path(folder, browser_binding["path"]).read_bytes()
             if sha256(observation_raw) != browser_binding["sha256"]:
                 raise ReferenceLifecycleError(
@@ -338,8 +339,8 @@ def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
         completion = render.get("completion", {})
         _completion(completion)
         _fresh(completion.get("checked_at"), now)
-        source = Path("sources") / identifier
-        root = Path(dataset_path).parent
+        source = Path(identifier)
+        root = input_tree(Path(dataset_path), "sources")
         try:
             initial = contained_path(root, source / "initial.html.txt").read_bytes()
             rendered_raw = contained_path(root, source / "rendered.txt").read_bytes()
@@ -369,7 +370,7 @@ def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
         if count is not None and (evidence.get("expected_entries") != count or evidence.get("observed_entries") != count):
             raise ReferenceLifecycleError(f"{identifier}: incomplete declared source scope")
         binding["render_evidence"] = deepcopy(render)
-        binding["source_files_sha256"] = {str(source / name): sha256(raw) for name, raw in (
+        binding["source_files_sha256"] = {str(Path("sources") / source / name): sha256(raw) for name, raw in (
             ("initial.html.txt", initial), ("rendered.txt", rendered_raw),
             ("reference.txt", reference_raw), ("evidence.json", evidence_raw))}
     return binding
@@ -377,6 +378,7 @@ def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
 
 def preflight_reference_checks(cases, dataset_path: Path, now=None) -> dict | None:
     """Read-only preflight; call before creating outputs or invoking providers."""
+    input_tree(dataset_path, "sources")
     checked = _now(now)
     bindings = {}
     for case in cases:

@@ -1,17 +1,16 @@
 """Frozen supplements stay separate; all measurement/runtime calls are mocked."""
-from contextlib import ExitStack, redirect_stderr, redirect_stdout
 import hashlib
 import io
 import json
 import os
-from pathlib import Path
 import tempfile
 import unittest
+from contextlib import ExitStack, redirect_stderr, redirect_stdout
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 from scripts import run_benchmark as benchmark
 from scripts import run_local_dynamic_builtins as local
-
 
 OTHER9 = ("lexmount-global", "lexmount-cn", "firecrawl", "tavily", "exa",
           "cloudflare-markdown", "langchain-webbase", "crawl4ai", "moli-webfetch")
@@ -222,10 +221,13 @@ class SupplementDatasetTests(unittest.TestCase):
         for path in (self.paths.deepseek / worker, self.root / "scripts/oss/dsh_webfetch_worker.mts"):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("mock runtime")
+        real_is_file = Path.is_file
+        runtime_roots = (self.root / "external", self.root / "scripts", self.root / "harness")
         with ExitStack() as stack:
             stack.enter_context(patch.dict(os.environ, local.clean_environment(
                 self.output, self.paths, temporary), clear=True))
-            stack.enter_context(patch.object(Path, "is_file", return_value=True))
+            stack.enter_context(patch.object(Path, "is_file", lambda path:
+                real_is_file(path) or any(path.is_relative_to(root) for root in runtime_roots)))
             stack.enter_context(patch.object(local, "digest", return_value=hashlib.sha256(
                 self.content.encode()).hexdigest()))
             stack.enter_context(patch.object(local, "version", return_value="mock-version"))

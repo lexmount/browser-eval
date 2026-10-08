@@ -16,6 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.reference_quality import clean_reference_text
 from harness.web_fetch.safety import contained_path, safe_identifier
 from harness.web_fetch.scoring import score_attempt
@@ -55,12 +56,13 @@ def reconstruct_quotes_json(raw: bytes, case: dict) -> dict:
     }
 
 
-def audit_case(case: dict, evaluation: Path) -> dict:
+def audit_case(case: dict, evaluation: Path, *, sources: Path | None = None) -> dict:
     # Normalize macOS' /var -> /private/var alias before containment and
     # publication-path checks so temporary evaluation roots stay comparable.
     evaluation = evaluation.resolve()
     identifier = safe_identifier(case["id"])
-    folder = contained_path(evaluation, f"sources/{identifier}")
+    sources = sources or input_tree(evaluation / "dataset.json", "sources")
+    folder = contained_path(sources, identifier)
     candidates = [contained_path(folder, name) for name in (
         "current-source.html.txt", "initial.html.txt", "source.html.txt")]
     source = next((path for path in candidates if path.is_file()), None)
@@ -72,7 +74,9 @@ def audit_case(case: dict, evaluation: Path) -> dict:
     def public_path(path):
         if path is None:return None
         try:return path.relative_to(ROOT).as_posix()
-        except ValueError:return path.relative_to(evaluation).as_posix()
+        except ValueError:
+            prefix = evaluation.relative_to(ROOT).as_posix() + "/" if evaluation.is_relative_to(ROOT) else ""
+            return prefix + "sources/" + path.relative_to(sources).as_posix()
     reference = case.get("ground_truth_main_content")
     has_reference = isinstance(reference, str) and bool(reference.strip())
     verification = case.get("source_verification") or {}
@@ -166,7 +170,8 @@ def audit_dataset(dataset: Path) -> dict:
     dataset = dataset.resolve()
     raw = dataset.read_bytes()
     data = json.loads(raw)
-    rows = [audit_case(case, dataset.parent) for case in data["cases"]]
+    sources = input_tree(dataset, "sources")
+    rows = [audit_case(case, dataset.parent, sources=sources) for case in data["cases"]]
     return {
         "schema_version": 1,
         "dataset_path": (dataset.relative_to(ROOT).as_posix()
@@ -204,7 +209,7 @@ def main() -> None:
         if args.output:
             output = args.output.resolve()
             # Never let an artifact overwrite the dataset or its source evidence.
-            if output == args.dataset.resolve() or output.is_relative_to(args.dataset.resolve().parent / "sources"):
+            if output == args.dataset.resolve() or output.is_relative_to(input_tree(args.dataset, "sources")):
                 raise ValueError("Output overlaps audit input")
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_text(serialized, encoding="utf-8")

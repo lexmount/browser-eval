@@ -1,13 +1,18 @@
 """Normalize scoring references and audit all facts without touching raw snapshots."""
-import hashlib,json,sys
+import hashlib
+import json
+import sys
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from harness.web_fetch.reference_quality import clean_reference_text,audit_reference
 from harness.web_fetch.metrics import normalize_for_match
+from harness.web_fetch.reference_inputs import require_mutable_inputs
+from harness.web_fetch.reference_quality import audit_reference, clean_reference_text
 
 
 def prepare(path):
+    require_mutable_inputs(path)
     dataset=json.loads(path.read_text());changes=[];issues=[];synced=[]
     for c in dataset['cases']:
         raw=c.get('ground_truth_main_content','')

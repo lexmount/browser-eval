@@ -12,6 +12,7 @@ run.log
 /reports/
 /evaluation/artifacts/
 /evaluation/history/
+/evaluation/sources/
 /evaluation/results.jsonl
 /evaluation/execution.json
 /evaluation/file-rerun-selection.json

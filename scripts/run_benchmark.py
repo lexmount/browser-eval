@@ -7,18 +7,25 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
+
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from harness.web_fetch.config import load_dataset,load_provider_config,load_runtime_env
-from harness.web_fetch.providers import build_provider
-from harness.web_fetch.runner import preflight_declared_capacity, run_evaluation
-from harness.web_fetch.report_build import build_report
-from harness.web_fetch.safety import contained_path
-from harness.web_fetch.storage import data_home
 from harness.web_fetch.artifacts import (
-    materialize_private_artifacts, record_public_call_log_bindings,
+    materialize_private_artifacts,
+    record_public_call_log_bindings,
     verify_public_call_log,
 )
+from harness.web_fetch.config import (
+    load_dataset,
+    load_provider_config,
+    load_runtime_env,
+)
+from harness.web_fetch.providers import build_provider
+from harness.web_fetch.reference_inputs import input_tree
+from harness.web_fetch.report_build import build_report
+from harness.web_fetch.runner import preflight_declared_capacity, run_evaluation
+from harness.web_fetch.safety import contained_path
+from harness.web_fetch.storage import data_home
 
 
 def artifact_bindings(record):
@@ -122,6 +129,7 @@ def main(argv=None):
         selected=set(requested)
         cases=[case for case in cases if case.id in selected]
         dataset={**dataset,'cases':[case for case in dataset['cases'] if case['id'] in selected]}
+    sources = input_tree(args.dataset, 'sources')
     selected_tracks={case.track for case in cases}
     planned={name for track in selected_tracks for name in dataset.get('coverage_plan',{}).get(track,[])}
     names=[n.strip() for n in args.providers.split(',') if n.strip()] if args.providers else sorted(planned)
@@ -187,7 +195,7 @@ def main(argv=None):
         (args.output/name).write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n')
     (args.output/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
     for case in cases:
-        source=args.dataset.parent/'sources'/case.id
+        source=sources/case.id
         if source.exists():shutil.copytree(source,args.output/'sources'/case.id)
         reference=args.dataset.parent/'list-references'/(case.id+'.json')
         if reference.exists():

@@ -1,9 +1,9 @@
 """Persistent locations for measured evidence that must not live in Git."""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
-import hashlib
 from collections import Counter
 from pathlib import Path
 
@@ -53,6 +53,8 @@ def require_selection_history(evidence: Path) -> None:
 
 def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
     """Reject a report build when its frozen inputs differ from Git."""
+    from .reference_inputs import input_tree
+
     for relative in (Path("dataset.json"), Path("sources"), Path("list-references")):
         expected = canonical / relative
         actual = evidence / relative
@@ -73,6 +75,7 @@ def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
             if unexpected:
                 raise ValueError(f"Persistent evidence has unknown dataset fields: {sorted(unexpected)}")
             continue
+        expected = input_tree(canonical / "dataset.json", str(relative))
         expected_files = {
             path.relative_to(expected): path.read_bytes()
             for path in expected.rglob("*")

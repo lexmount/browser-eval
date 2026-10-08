@@ -8,19 +8,21 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from harness.web_fetch.reference_lifecycle import requires_fresh_reference
 from harness.web_fetch.body_coverage import body_requirements
+from harness.web_fetch.reference_inputs import require_mutable_inputs
+from harness.web_fetch.reference_lifecycle import requires_fresh_reference
 from harness.web_fetch.reference_quality import clean_reference_text
 
 
 def merge(canonical_path: Path, runs: list[Path], skip: set[str], only_changed=False) -> list[str]:
+    require_mutable_inputs(canonical_path)
     canonical = json.loads(canonical_path.read_text())
     indexed = {case["id"]: case for case in canonical["cases"]}
     updated = []

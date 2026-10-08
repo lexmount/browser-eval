@@ -94,8 +94,13 @@ class SourceExtractionTests(unittest.TestCase):
         self.assertNotEqual(selector,'body')
 
     def test_saved_reference_keeps_body_and_source_integrity(self):
+        from harness.web_fetch.reference_inputs import input_tree
         from harness.web_fetch.source_capture import extract_html
-        path=Path('evaluation/sources/lm-feishu-help/source.html.txt');raw=path.read_bytes()
+        try:
+            sources = input_tree(Path('evaluation/dataset.json'), 'sources')
+        except FileNotFoundError:
+            self.skipTest('requires externally installed historical reference inputs')
+        path=sources/'lm-feishu-help/source.html.txt';raw=path.read_bytes()
         digest=hashlib.sha256(raw).hexdigest()
         _,text,_,_=extract_html(raw,'https://www.feishu.cn/hc/example')
         self.assertIn('所有飞书 aily 工作流应用中',text.replace('\n',''))

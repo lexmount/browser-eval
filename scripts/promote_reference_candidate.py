@@ -3,20 +3,24 @@
 from __future__ import annotations
 
 import argparse
-from copy import deepcopy
 import hashlib
 import json
-from pathlib import Path
 import shutil
 import sys
+from copy import deepcopy
+from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 
+from harness.web_fetch.reference_inputs import require_mutable_inputs
 from harness.web_fetch.safety import contained_path  # noqa: E402
 from scripts.freeze_headless_references import (  # noqa: E402
-    _require_promotion, browser_observation_bytes, compute_reference_update,
-    load_browser_observations, select_freeze_cases,
+    _require_promotion,
+    browser_observation_bytes,
+    compute_reference_update,
+    load_browser_observations,
+    select_freeze_cases,
 )
 
 
@@ -30,6 +34,7 @@ def _change_for_case(changes, case_id):
 def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target,
             browser_observations=None,browser_observation_directory=None,
             research_root=None,sources_root=None):
+    require_mutable_inputs(canonical_path)
     canonical_bytes=canonical_path.read_bytes();canonical=json.loads(canonical_bytes)
     receipt=json.loads(receipt_path.read_text())
     case_ids=[change['case_id'] for change in receipt.get('changes',[])]
@@ -102,7 +107,7 @@ def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target
 
     target.parent.mkdir(parents=True,exist_ok=True)
     shutil.copy2(receipt_path,target)
-    sources_root=(sources_root or ROOT/'evaluation'/'sources').resolve()
+    sources_root=(sources_root or canonical_path.parent/'sources').resolve()
     for case_id,(raw,reference,capture_record,observation) in prepared.items():
         source=contained_path(sources_root,case_id);source.mkdir(parents=True,exist_ok=True)
         # A promoted valid reference supersedes an earlier unavailable marker;

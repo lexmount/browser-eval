@@ -6,20 +6,21 @@ builds reports, installs dependencies, or overwrites an existing run directory.
 from __future__ import annotations
 
 import argparse
-from copy import deepcopy
-from dataclasses import dataclass
 import hashlib
-from importlib.metadata import version
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
+from copy import deepcopy
+from dataclasses import dataclass
+from importlib.metadata import version
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.storage import data_home
 
 NAMES = ("cowagent-built-in", "openclaw-built-in", "deepseek-harness-built-in")
@@ -144,12 +145,13 @@ def run_child(output: Path, runtime_paths: RuntimePaths, track: str, temporary: 
             if os.environ.get(key) != clean_environment(output, runtime_paths, temporary).get(key))))
     from harness.web_fetch.config import load_dataset
     from harness.web_fetch.providers import build_provider
+    from harness.web_fetch.reference_lifecycle import preflight_reference_checks
     from harness.web_fetch.render_evidence import validate_render_reference
     from harness.web_fetch.runner import run_evaluation
-    from harness.web_fetch.reference_lifecycle import preflight_reference_checks
 
     raw = dataset_path.read_bytes()
     dataset = selected_dataset(json.loads(raw), track)
+    source_tree = input_tree(dataset_path, 'sources')
     preflight_reference_checks(dataset["cases"], dataset_path)
     case_ids = {case["id"] for case in dataset["cases"]}
     config = resolved_config(json.loads((ROOT / "configs/providers.resources.json").read_text()), output, runtime_paths)
@@ -157,7 +159,7 @@ def run_child(output: Path, runtime_paths: RuntimePaths, track: str, temporary: 
     write_json(output / "providers.json", config)
     audits = {}
     for case in dataset["cases"]:
-        source = dataset_path.parent / "sources" / case["id"]
+        source = source_tree / case["id"]
         shutil.copytree(source, output / "sources" / case["id"])
         saved = output / "sources" / case["id"]
         audit = validate_render_reference(case, (saved / "initial.html.txt").read_bytes(),

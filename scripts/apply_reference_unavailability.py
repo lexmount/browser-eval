@@ -8,10 +8,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+
+from harness.web_fetch.reference_inputs import require_mutable_inputs
 
 
 def apply(dataset_path: Path, captures: Path, case_ids: set[str]) -> list[dict]:
+    require_mutable_inputs(dataset_path)
     data = json.loads(dataset_path.read_text())
     audit = {row["case_id"]: row for row in json.loads((captures / "audit.json").read_text())}
     cases = {case["id"]: case for case in data["cases"]}

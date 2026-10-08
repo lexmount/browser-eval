@@ -23,19 +23,22 @@ from harness.web_fetch.artifacts import (  # noqa: E402
     record_private_bindings,
     verify_record_private_artifacts,
 )
+from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.reference_lifecycle import (  # noqa: E402
     reference_revision_cases,
     require_verified_reference_checks,
     valid_scoring_revision,
 )
+from harness.web_fetch.safety import contained_path, validate_report_ids  # noqa: E402
 from harness.web_fetch.scoring_regressions import (  # noqa: E402
     build_correction_provenance,
     load_scoring_regressions,
     valid_correction_provenance,
 )
-from harness.web_fetch.safety import contained_path, validate_report_ids  # noqa: E402
 from scripts.assemble_headless import _prune_shadowed_batch_attempts  # noqa: E402
-from scripts.package_headless_speed import build_summary as build_speed_summary  # noqa: E402
+from scripts.package_headless_speed import (
+    build_summary as build_speed_summary,  # noqa: E402
+)
 from scripts.run_benchmark import artifact_bindings  # noqa: E402
 
 
@@ -912,7 +915,7 @@ def _assemble(
 
     output.mkdir(parents=True)
     for folder in ("sources", "list-references"):
-        source = canonical_path.parent / folder
+        source = input_tree(canonical_path, folder)
         if not source.is_dir():
             raise ValueError(f"Canonical input tree is missing: {folder}")
         shutil.copytree(source, output / folder)

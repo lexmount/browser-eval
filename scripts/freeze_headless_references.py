@@ -1,21 +1,27 @@
 """Freeze independent references; require explicit promotion for scope changes."""
 import argparse
-from copy import deepcopy
-from datetime import datetime, timezone
 import hashlib
 import json
-from pathlib import Path, PureWindowsPath
 import shutil
 import sys
+from copy import deepcopy
+from datetime import datetime, timezone
+from pathlib import Path, PureWindowsPath
 from urllib.parse import parse_qs, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.web_fetch.metrics import normalize_for_match
 from harness.web_fetch.body_coverage import body_requirements
-from harness.web_fetch.reference_lifecycle import requires_fresh_reference
-from harness.web_fetch.reference_lifecycle import scope_identity
-from harness.web_fetch.reference_quality import clean_reference_text, reference_anchor_in_text
+from harness.web_fetch.metrics import normalize_for_match
+from harness.web_fetch.reference_inputs import input_tree
+from harness.web_fetch.reference_lifecycle import (
+    requires_fresh_reference,
+    scope_identity,
+)
+from harness.web_fetch.reference_quality import (
+    clean_reference_text,
+    reference_anchor_in_text,
+)
 from harness.web_fetch.scoring_regressions import valid_correction_provenance
 
 RENDERED_REFERENCE_CASES = {'javascript-spa', 'live-025-api-reference'}
@@ -292,13 +298,15 @@ def main(argv=None):
         )
     except (OSError,ValueError,json.JSONDecodeError) as error:
         p.error(str(error))
+    input_trees = {folder: input_tree(args.dataset, folder) for folder in ('sources', 'list-references')}
     args.output.mkdir(parents=True)
     for folder in ('sources', 'list-references'):
         if folder=='sources':
             for case in dataset['cases']:
-                source=ROOT/'evaluation'/folder/case['id']
+                source=input_trees[folder]/case['id']
                 if source.exists():shutil.copytree(source,args.output/folder/case['id'])
-        else:shutil.copytree(ROOT/'evaluation'/folder, args.output/folder)
+        elif input_trees[folder].exists():
+            shutil.copytree(input_trees[folder], args.output/folder)
     for case in dataset['cases']:
         if not requires_fresh_reference(case):
             continue

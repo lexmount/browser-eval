@@ -1,15 +1,23 @@
 import hashlib
 import json
+import tempfile
 import unittest
 from collections import Counter
 from pathlib import Path
-import tempfile
+
 from harness.web_fetch.config import load_dataset
-from harness.web_fetch.reference_quality import audit_reference
 from harness.web_fetch.metrics import normalize_for_match
+from harness.web_fetch.reference_inputs import input_tree
+from harness.web_fetch.reference_quality import audit_reference
 
 
 class GroundTruthTest(unittest.TestCase):
+    def require_sources(self):
+        try:
+            return input_tree(Path('evaluation/dataset.json'), 'sources')
+        except FileNotFoundError:
+            self.skipTest('requires externally installed historical reference inputs')
+
     def test_full_reference_provenance_cannot_point_to_another_site(self):
         case = {
             'id':'copied-source', 'name':'copied-source', 'url':'https://example.com/page',
@@ -44,12 +52,8 @@ class GroundTruthTest(unittest.TestCase):
                 self.assertEqual(hashlib.sha256(c['ground_truth_main_content'].encode()).hexdigest(),c['source_verification']['reference_sha256'])
                 self.assertNotIn('full-text reference unavailable',
                                  c['source_verification'].get('note','').casefold(),c['id'])
-                if c['track']=='dynamic':
-                    from harness.web_fetch.render_evidence import validate_render_reference
-                    folder=Path('evaluation/sources')/c['id']
-                    audit=validate_render_reference(c,(folder/'initial.html.txt').read_bytes(),(folder/'rendered.txt').read_text())
-                    self.assertTrue(audit['valid'],audit['errors'])
-                else:self.assertEqual(audit_reference(c['ground_truth_main_content'],c['required_facts'],normalize=normalize_for_match),[],c['id'])
+                if c['track'] != 'dynamic':
+                    self.assertEqual(audit_reference(c['ground_truth_main_content'],c['required_facts'],normalize=normalize_for_match),[],c['id'])
             elif c['track']=='challenge':
                 self.assertEqual(c['task_kind'],'structure')
                 self.assertEqual(c['required_facts'],[])
@@ -60,19 +64,32 @@ class GroundTruthTest(unittest.TestCase):
             elif c['task_kind']=='file':self.assertFalse(c['content_score_applicable'])
             elif c['task_kind']=='resource':self.assertTrue(c['expected_resources'])
 
+    def test_dynamic_references_match_frozen_capture(self):
+        from harness.web_fetch.render_evidence import validate_render_reference
+
+        sources = self.require_sources()
+        data, _ = load_dataset(Path('evaluation/dataset.json'))
+        for case in data['cases']:
+            if case['track'] != 'dynamic' or case['source_verification'].get('state') == 'unavailable':
+                continue
+            folder = sources / case['id']
+            audit = validate_render_reference(case, (folder / 'initial.html.txt').read_bytes(),
+                                              (folder / 'rendered.txt').read_text())
+            self.assertTrue(audit['valid'], audit['errors'])
+
     def test_restricted_tasks_retain_existing_evidence(self):
         data,_=load_dataset(Path('evaluation/dataset.json'))
         by={c['id']:c for c in data['cases']}
         for cid,count in [('challenge-04',30),('challenge-06',15)]:
             self.assertEqual(by[cid]['source_verification']['state'],'restricted')
-            self.assertEqual(len(json.loads((Path('evaluation/sources')/cid/'items.json').read_text())),count)
+            self.assertEqual(len(json.loads((self.require_sources()/cid/'items.json').read_text())),count)
             self.assertNotIn('需用户辅助',by[cid]['source_verification']['note'])
 
     def test_document_references_match_frozen_sources_and_embedded_provenance(self):
         from harness.web_fetch.document_text import extract_document_text
         data,_=load_dataset(Path('evaluation/dataset.json'))
         cases={c['id']:c for c in data['cases']}
-        sources=Path('evaluation/sources')
+        sources=self.require_sources()
         direct={
             'document-01':'source.pdf','document-02':'source.pdf','document-03':'source.pdf',
             'document-04':'source.pdf','document-05':'source.docx','document-06':'source.pdf',
@@ -97,7 +114,6 @@ class GroundTruthTest(unittest.TestCase):
         embedded07=json.loads((sources/'document-07'/'evidence.json').read_text())['embedded_document']
         linked=(sources/'document-07'/embedded07['evidence_path']).resolve()
         self.assertEqual(hashlib.sha256(linked.read_bytes()).hexdigest(),embedded07['sha256'])
-        embedded08=json.loads((sources/'document-08'/'evidence.json').read_text())['embedded_document']
         self.assertIn('/pdf/sample-3pp.pdf',(sources/'document-08'/'source.html.txt').read_text())
 
     def test_feishu_help_acceptance_is_content_not_table_markup(self):

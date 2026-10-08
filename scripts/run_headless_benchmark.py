@@ -2,18 +2,22 @@
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import re
 import shutil
 import sys
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
+from harness.web_fetch.config import (
+    load_dataset,
+    load_provider_config,
+    load_runtime_env,
+)
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.providers.headless import HEADLESS_CONVERSION
+from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.runner import run_evaluation
-
 
 EXPECTED_PROVIDER_VERSIONS = {
     'moli-1.0.6': '1.0.6',
@@ -69,6 +73,7 @@ def main():
             parser.error('Resource measurement requires --workers 1 to avoid local CPU contention')
     load_runtime_env(args.env_file)
     dataset, cases = load_dataset(args.dataset)
+    input_trees = {folder: input_tree(args.dataset, folder) for folder in ('sources', 'list-references')}
     if args.tracks:
         cases = [c for c in cases if c.track in args.tracks.split(',')]
     if args.case_ids:
@@ -174,8 +179,8 @@ def main():
             'observed_extractors': extractors,
         }
     for folder in ('sources', 'list-references'):
-        if (args.dataset.parent/folder).exists():
-            shutil.copytree(args.dataset.parent/folder, args.output/folder)
+        if input_trees[folder].exists():
+            shutil.copytree(input_trees[folder], args.output/folder)
     manifest = json.loads((args.output/'manifest.json').read_text())
     manifest['dataset']['source'] = 'evaluation/dataset.json'
     manifest['provider_config_source'] = 'configs/providers.headless.json'

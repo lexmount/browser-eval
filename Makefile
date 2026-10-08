@@ -34,6 +34,10 @@ naming-check: runtime-check
 test-python: runtime-check
 	$(TEST_PY) -m pytest tests -q
 
+.PHONY: test-reference-inputs
+test-reference-inputs: runtime-check
+	$(TEST_PY) -m pytest tests -q --require-reference-inputs
+
 test-ui:
 	node tests/test_report_ui.mjs
 	node tests/test_report_loader.mjs

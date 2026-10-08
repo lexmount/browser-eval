@@ -4,12 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch import local_audit
 from harness.web_fetch.report import local_audit_banner, provider_configuration
-from harness.web_fetch.stable_tasks import validate_acceptance_contract
+from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch.scoring_regressions import load_scoring_regressions
-
+from harness.web_fetch.stable_tasks import validate_acceptance_contract
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_PATH = ROOT / "evaluation/dynamic-content-100-moli-webfetch/dataset.json"
@@ -117,7 +116,16 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert dataset["comparison"]["local_audit_receipt"] == RECEIPT_PATH.relative_to(ROOT).as_posix()
 
 
+def require_historical_inputs():
+    from harness.web_fetch.reference_inputs import input_tree
+    try:
+        input_tree(Path('evaluation/dataset.json'), 'sources')
+    except FileNotFoundError:
+        pytest.skip('requires externally installed historical reference inputs')
+
+
 def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monkeypatch):
+    require_historical_inputs()
     dataset = _dataset()
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
     registry = json.loads((ROOT / "evaluation/scoring-regressions.json").read_text())
@@ -191,6 +199,7 @@ def test_local_audit_banner_depends_on_dataset_publication_state():
 
 
 def test_dynamic_100_repository_evidence_and_scoring_revision_are_exact():
+    require_historical_inputs()
     dataset = _dataset()
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
     local_audit._require_repository_bindings(dataset, receipt)

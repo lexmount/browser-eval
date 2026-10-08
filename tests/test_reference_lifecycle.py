@@ -1,19 +1,25 @@
 """Synthetic clocks and captures only: no network, browsers or real providers."""
+import json
+import tempfile
+import unittest
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-import json
 from pathlib import Path
-import tempfile
-import unittest
 from unittest.mock import Mock, patch
 
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.reference_lifecycle import (
-    ReferenceLifecycleError, check_case_equivalent_reference_binding,
-    check_case_reference_binding, check_case_reference_fresh, finalize_reference_checks,
-    preflight_reference_checks, require_verified_reference_checks,
-    resource_source_scope_identity, sha256, validate_resource_source_evidence,
+    ReferenceLifecycleError,
+    check_case_equivalent_reference_binding,
+    check_case_reference_binding,
+    check_case_reference_fresh,
+    finalize_reference_checks,
+    preflight_reference_checks,
+    require_verified_reference_checks,
+    resource_source_scope_identity,
+    sha256,
+    validate_resource_source_evidence,
 )
 from harness.web_fetch.runner import rescore_evaluation, run_evaluation
 from scripts import run_local_dynamic_builtins as local
@@ -251,10 +257,24 @@ class ReferenceLifecycleTests(unittest.TestCase):
 
     def test_dynamic_requires_complete_hash_bound_pair(self):
         case = self.dynamic_case()
-        self.assertIn("source_files_sha256", self.checks(case)["cases"]["body"])
+        binding = self.checks(case)["cases"]["body"]["source_files_sha256"]
+        self.assertEqual(set(binding), {
+            "sources/body/initial.html.txt", "sources/body/rendered.txt",
+            "sources/body/reference.txt", "sources/body/evidence.json",
+        })
+        for relative, expected in binding.items():
+            self.assertEqual(sha256((self.root / relative).read_bytes()), expected)
         (self.root / "sources/body/rendered.txt").write_text("Price")
         with self.assertRaisesRegex(ReferenceLifecycleError, "hash/content"):
             self.checks(case)
+
+    def test_capture_location_does_not_change_frozen_certificate_bindings(self):
+        case = self.dynamic_case()
+        original = self.checks(case)
+        external = self.root / "external-sources"
+        (self.root / "sources").rename(external)
+        with patch("harness.web_fetch.reference_lifecycle.input_tree", return_value=external):
+            self.assertEqual(self.checks(case), original)
 
     def test_dynamic_failed_stale_or_missing_completion(self):
         case = self.dynamic_case()

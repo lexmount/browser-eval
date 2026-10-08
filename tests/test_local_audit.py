@@ -16,17 +16,37 @@ def _write(path, value):
 
 
 def test_frozen_scoring_controls_allow_additions_but_reject_edits(tmp_path, monkeypatch):
-    root = local_audit.ROOT
-    dataset = json.loads((root / 'evaluation/dynamic-content-100-moli-webfetch/dataset.json').read_text())
-    receipt = json.loads((root / 'research/dynamic-100-moli-119-local-audit.json').read_text())
+    original_root = local_audit.ROOT
+    receipt = json.loads((original_root / 'research/dynamic-100-moli-119-local-audit.json').read_text())
+    root = tmp_path / 'repo'
+    bindings = receipt['repository_evidence']
+    scoring_path = root / bindings['scoring_revision_path']
+    scoring_path.parent.mkdir(parents=True)
+    scoring_path.write_bytes((original_root / bindings['scoring_revision_path']).read_bytes())
+    scoring = json.loads(scoring_path.read_text())
+    dataset = {'id': scoring['dataset_id'], 'cases': [{'id': 'fixture'}]}
+    reference = root / 'evaluation/sources/fixture/reference.txt'
+    reference.parent.mkdir(parents=True)
+    reference.write_text('Independent synthetic reference')
+    inventory = [{
+        'case_id': 'fixture', 'path': 'evaluation/sources/fixture/reference.txt',
+        'sha256': _digest(reference), 'bytes': reference.stat().st_size,
+        'purpose': 'frozen scoring reference',
+    }]
+    source_manifest = root / bindings['source_manifest_path']
+    _write(source_manifest, {
+        'schema_version': 1, 'kind': 'dataset_source_evidence_inventory',
+        'dataset_id': dataset['id'], 'dataset_sha256': receipt['bindings']['dataset_sha256'],
+        'files': inventory,
+        'scope': {'dataset_cases': 1, 'cases_with_source_evidence': 1, 'files': 1},
+    })
+    bindings['source_manifest_sha256'] = _digest(source_manifest)
     relative = 'evaluation/scoring-regressions.json'
-    controls = json.loads((root / relative).read_text())
+    controls = json.loads((original_root / relative).read_text())
     controls['cases'].append({'id': 'new-independent-control'})
-    path = tmp_path / 'controls.json'
+    path = root / relative
     _write(path, controls)
-    original_file = local_audit._repository_file
-    monkeypatch.setattr(local_audit, '_repository_file',
-                        lambda name: path if name == relative else original_file(name))
+    monkeypatch.setattr(local_audit, 'ROOT', root)
     local_audit._require_repository_bindings(dataset, receipt)
     controls['cases'][0]['artifact'] = 'changed frozen evidence'
     _write(path, controls)
