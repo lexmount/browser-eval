@@ -15,6 +15,13 @@ from urllib.parse import urlsplit, urlunsplit
 
 import docker
 
+from harness.environments.browser import (
+    ENGINE_PORTS,
+    configured_browser_images,
+    published_endpoint,
+    start_browser_container,
+    wait_cdp,
+)
 from harness.environments.webarena.har import CdpHarRecorder
 from harness.environments.webarena.runtime import (
     SITE_PORTS,
@@ -36,14 +43,7 @@ from harness.environments.webarena.runtime import (
     site_container_manager,
     verify_session_viewport,
 )
-from harness.trajectory_replay.metrics import DockerStatsResources, ResourceSampler
-from harness.trajectory_replay.runner import (
-    ENGINE_IMAGES,
-    ENGINE_PORTS,
-    _published_endpoint,
-    _start_browser_container,
-    _wait_cdp,
-)
+from harness.resource_accounting import DockerStatsResources, ResourceSampler
 from harness.trajectory_replay.webarena_corrections import (
     apply_correction,
     check_replay_assertions,
@@ -55,6 +55,8 @@ from harness.trajectory_replay.webarena_plan import (
     replay_calls_binding_sha256,
     replay_site_hosts,
 )
+
+ENGINE_IMAGES = configured_browser_images()
 
 RECEIPT_SCHEMA = "lex_webarena_trajectory_replay_suite/1"
 
@@ -1499,8 +1501,9 @@ def run_replay_suite(  # noqa: PLR0913
                 receipt["method_teardown"] = method_teardown
                 _write_receipt(receipt_path, receipt)
                 network = client.networks.create(f"lex-webarena-replay-{run_id}-{engine}")
-                container = _start_browser_container(
+                container = start_browser_container(
                     client,
+                    image=ENGINE_IMAGES[engine], cdp_port=ENGINE_PORTS[engine],
                     engine=engine,
                     run_id=f"replay-{run_id}",
                     cpus=cpus,
@@ -1508,10 +1511,10 @@ def run_replay_suite(  # noqa: PLR0913
                     network=network.name,
                 )
                 container.reload()
-                http_endpoint = _published_endpoint(
+                http_endpoint = published_endpoint(
                     container, engine=engine, cdp_port=ENGINE_PORTS[engine]
                 )
-                endpoint = _wait_cdp(http_endpoint, container=container)
+                endpoint = wait_cdp(http_endpoint, container=container)
                 benchmark = configure_benchmark(hostname=container_host_gateway(container))
                 session = {
                     "id": uuid.uuid4().hex[:12],
@@ -1564,10 +1567,10 @@ def run_replay_suite(  # noqa: PLR0913
                         # cannot leak into the final physical execution.
                         container.restart()
                         container.reload()
-                        http_endpoint = _published_endpoint(
+                        http_endpoint = published_endpoint(
                             container, engine=engine, cdp_port=ENGINE_PORTS[engine]
                         )
-                        endpoint = _wait_cdp(http_endpoint, container=container)
+                        endpoint = wait_cdp(http_endpoint, container=container)
                         prior_attempt = attempt
                         session = {
                             "id": uuid.uuid4().hex[:12],

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
+from harness.environments.browser import configured_browser_images
 from harness.environments.webarena.runtime import (
     SITE_PORTS,
 )
@@ -18,7 +19,6 @@ from harness.trajectory_replay.browser_use_seeds import (
     extract_browser_calls,
 )
 from harness.trajectory_replay.retrieval_acceptance import load_contracts
-from harness.trajectory_replay.runner import ENGINE_IMAGES
 
 PROFILE_SCHEMA = "lex_webarena_trajectory_replay_profile/1"
 SEED_SCHEMA = "lex_browser_use_replay_seeds/2"
@@ -261,7 +261,7 @@ def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -
         not methods
         or len(method_ids) != len(set(method_ids))
         or len(engines) != len(set(engines))
-        or any(engine not in ENGINE_IMAGES for engine in engines)
+        or any(engine not in configured_browser_images() for engine in engines)
     ):
         raise ValueError("trajectory replay methods must be unique registered engines")
 

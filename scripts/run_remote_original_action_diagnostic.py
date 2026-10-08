@@ -63,7 +63,7 @@ def main() -> int:
         rebind_remote_calls,
         remote_benchmark,
     )
-    from harness.trajectory_replay.runner import _external_websocket_url  # noqa: PLC0415
+    from harness.environments.browser import external_websocket_url  # noqa: PLC0415
     from harness.trajectory_replay.webarena_replay import _execute_replay_call  # noqa: PLC0415
     os.umask(0o077)
     output = args.output.resolve()
@@ -177,7 +177,7 @@ def main() -> int:
                     advertised = str(json.load(reply).get("webSocketDebuggerUrl") or "")
                 if not advertised:
                     raise RuntimeError("Docker CDP response omitted webSocketDebuggerUrl")
-                cdp_endpoint = _external_websocket_url(endpoint, advertised)
+                cdp_endpoint = external_websocket_url(endpoint, advertised)
             tool = BrowserTool(config=browser_tool_config(cdp_endpoint))
             service = tool._get_service()
             receipt["browser"] = cdp_metadata(endpoint)

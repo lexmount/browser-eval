@@ -12,6 +12,7 @@ class BlockTrackImports(importlib.abc.MetaPathFinder):
         if fullname.startswith(('harness.browser_use', 'harness.trajectory_replay')):
             raise AssertionError('Environment loaded a track: ' + fullname)
 sys.meta_path.insert(0, BlockTrackImports())
+from harness.environments.browser import start_browser_container, wait_cdp
 from harness.environments.webarena.runtime import (
     browser_tool_config, browser_session_contract, configure_benchmark,
     PHP_FPM_COMPAT_CONFIG,

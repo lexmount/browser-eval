@@ -22,6 +22,13 @@ from webarena_verified import WebArenaVerified
 from webarena_verified.environments.container.manager import ContainerManager
 
 from harness.container_isolation import require_linux_cgroup_v2
+from harness.environments.browser import (
+    ENGINE_PORTS,
+    configured_browser_images,
+    published_endpoint,
+    start_browser_container,
+    wait_cdp,
+)
 from harness.environments.webarena.har import CdpHarRecorder
 from harness.environments.webarena.runtime import (
     PHYSICAL_EXECUTION_LOCK_NAMESPACE,
@@ -49,16 +56,11 @@ from harness.resource_accounting import (
     DockerStatsResources,
     ResourceSampler,
 )
-from harness.trajectory_replay.runner import (
-    ENGINE_IMAGES,
-    ENGINE_PORTS,
-    _published_endpoint,
-    _start_browser_container,
-    _wait_cdp,
-)
 
 from .model import OpenAIResponsesModel
 from .selection import PilotTask, load_pilot, validate_against_official
+
+ENGINE_IMAGES = configured_browser_images()
 
 SCHEMA = "lex_browser_use_attempt/1"
 # The official all-in-one shopping image restores Magento, MariaDB and
@@ -585,8 +587,9 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
         for engine in ENGINE_IMAGES:
             network = client.networks.create(f"lex-browser-use-{run_id}-{engine}")
             networks[engine] = network
-            container = _start_browser_container(
+            container = start_browser_container(
                 client,
+                image=ENGINE_IMAGES[engine], cdp_port=ENGINE_PORTS[engine],
                 engine=engine,
                 run_id=f"agent-{run_id}",
                 cpus=args.cpus,
@@ -596,10 +599,10 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             containers[engine] = container
             container.reload()
             image_metadata[engine] = docker_image_metadata(container.image)
-            http_endpoint = _published_endpoint(
+            http_endpoint = published_endpoint(
                 container, engine=engine, cdp_port=ENGINE_PORTS[engine]
             )
-            endpoints[engine] = _wait_cdp(http_endpoint, container=container)
+            endpoints[engine] = wait_cdp(http_endpoint, container=container)
             browser_metadata[engine] = cdp_metadata(http_endpoint)
 
         gateway_addresses = {

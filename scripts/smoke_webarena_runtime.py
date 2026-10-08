@@ -15,14 +15,13 @@ import docker
 from playwright.sync_api import sync_playwright
 
 from harness.trajectory_replay.public_webarena.har import CdpHarRecorder
+from harness.environments.browser import (
+    ENGINE_PORTS, published_endpoint, start_browser_container, wait_cdp,
+)
 from harness.trajectory_replay.public_webarena.runner import (
     ENGINE_IMAGES,
-    ENGINE_PORTS,
     _cleanup_runtime,
-    _published_endpoint,
-    _start_browser_container,
     _validate_measured_resource_controls,
-    _wait_cdp,
 )
 from harness.trajectory_replay.public_webarena.webarena_environment import WebArenaEnvironment
 
@@ -105,8 +104,9 @@ def main() -> None:
         browsers: dict[str, Any] = {}
         playwright = sync_playwright().start()
         try:
-            container = _start_browser_container(
+            container = start_browser_container(
                 client,
+                image=ENGINE_IMAGES[engine], cdp_port=ENGINE_PORTS[engine],
                 engine=engine,
                 run_id=run_id,
                 cpus=args.cpus,
@@ -115,11 +115,11 @@ def main() -> None:
             )
             containers[engine] = container
             container.reload()
-            endpoint = _published_endpoint(
+            endpoint = published_endpoint(
                 container, engine=engine, cdp_port=ENGINE_PORTS[engine]
             )
             browser = playwright.chromium.connect_over_cdp(
-                _wait_cdp(endpoint, timeout_seconds=30, container=container)
+                wait_cdp(endpoint, timeout_seconds=30, container=container)
             )
             browsers[engine] = browser
             page = browser.contexts[0].pages[0]

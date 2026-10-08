@@ -9,14 +9,13 @@ import docker
 import pytest
 from playwright.sync_api import sync_playwright
 
-from harness.trajectory_replay.runner import (
-    ENGINE_IMAGES,
+from harness.environments.browser import (
     ENGINE_PORTS,
-    _cleanup_runtime,
-    _published_endpoint,
-    _start_browser_container,
-    _wait_cdp,
+    published_endpoint,
+    start_browser_container,
+    wait_cdp,
 )
+from harness.trajectory_replay.runner import ENGINE_IMAGES, _cleanup_runtime
 
 pytestmark = [
     pytest.mark.real_smoke,
@@ -42,8 +41,9 @@ def test_real_browser_opens_public_page_and_extracts_heading(engine: str) -> Non
     browsers = {}
     playwright = sync_playwright().start()
     try:
-        container = _start_browser_container(
+        container = start_browser_container(
             client,
+            image=ENGINE_IMAGES[engine], cdp_port=ENGINE_PORTS[engine],
             engine=engine,
             run_id=run_id,
             cpus=1.0,
@@ -52,12 +52,12 @@ def test_real_browser_opens_public_page_and_extracts_heading(engine: str) -> Non
         )
         containers[engine] = container
         container.reload()
-        endpoint = _published_endpoint(
+        endpoint = published_endpoint(
             container,
             engine=engine,
             cdp_port=ENGINE_PORTS[engine],
         )
-        websocket_url = _wait_cdp(endpoint, timeout_seconds=30, container=container)
+        websocket_url = wait_cdp(endpoint, timeout_seconds=30, container=container)
         browser = playwright.chromium.connect_over_cdp(websocket_url)
         browsers[engine] = browser
         page = browser.contexts[0].pages[0]
