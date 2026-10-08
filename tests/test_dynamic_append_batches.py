@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.append_dynamic_content import append
+from harness.web_fetch.dynamic_cohort import append
 
 
 def dump(path, value):
@@ -122,7 +122,7 @@ class DynamicAppendBatchesTests(unittest.TestCase):
     def rejects(self, message):
         self.save()
         before = self.snapshot()
-        with patch('scripts.append_dynamic_content.tempfile.mkdtemp') as staging:
+        with patch('harness.web_fetch.dynamic_cohort.tempfile.mkdtemp') as staging:
             with self.assertRaisesRegex(ValueError, message):
                 self.run_append()
             staging.assert_not_called()

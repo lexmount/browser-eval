@@ -90,6 +90,16 @@ TEDS revisions share `webmainbench_diagnostics.py` with revision validation.
 Their command paths remain stable. New revision receipts bind the actual shared
 implementation; retained revisions verify their own frozen source copies.
 
+`dynamic_cohort.py` owns measured dynamic-supplement assembly and append. Both
+stages use the shared artifact boundary for primary outputs, auxiliary files,
+retained retry evidence, private artifacts and reference observations. Assembly
+exposes a new directory only after copying succeeds; append retains its rollback
+boundary. Original JSONL record bytes and scoring values remain unchanged.
+`risk_control_dataset.py` owns the frozen risk-control definition compiler. Its
+command accepts an explicit definition directory and output; importing it or
+requesting help does not read historical inputs. Task rules and source hashes
+retain their frozen authority.
+
 `webmainbench_latency_correction.py` owns the retained sample's latency
 certification, application and validation. New cohorts retain a hash-bound copy
 of the certifier captured before calls; consumers verify those bytes without

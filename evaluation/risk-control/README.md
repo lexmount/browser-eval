@@ -27,6 +27,9 @@ uv run --frozen python scripts/run_certified_benchmark.py risk-control --env-fil
 新的输出路径，不能覆盖已冻结的输入。第二条命令只校验 profile、
 数据集、Moli 1.1.11 版本和二进制 SHA-256，不发起 provider 调用。
 
+编译器位于 `harness.web_fetch.risk_control_dataset`。在安装包或其他工作目录中调用时，
+用 `--definition-dir` 显式指定本目录的规则与资格清单副本；冻结规则的哈希检查保持不变。
+
 ## 正式执行
 
 ```sh

@@ -278,6 +278,26 @@ certified runner owns pre-call and post-call capture and reference validation.
 
 ## Dynamic-content ground-truth protocol
 
+已测量的动态补充批次使用同一共享模块合并和追加。显式传入私有输入目录；
+合并输出必须是新目录。以下命令不调用供应商，也不重新评分：
+
+```sh
+uv run --frozen python scripts/merge_dynamic_supplement.py \
+  --reference /absolute/path/frozen-reference \
+  --runs /absolute/path/run-a /absolute/path/run-b \
+  --output /absolute/path/new-assembled-supplement
+uv run --frozen python scripts/append_dynamic_content.py \
+  --source /absolute/path/current-evidence \
+  --reference /absolute/path/frozen-reference \
+  --measured /absolute/path/new-assembled-supplement \
+  --checks /absolute/path/independent-completion-checks.json
+```
+
+合并保留原始记录字节、辅助输出、重试工件、私有响应和已认证的参考后检文件。
+追加前检查任务规则、完整方法覆盖及独立完成条件；任务规则改变时不能沿用旧测量。
+复制失败不会暴露新合并目录，追加失败保留原证据。两条命令均可用 `--help` 查看参数。
+它们不产生新的认证，正式发布仍须通过对应轨道的配置和发布检查。
+
 Keep dynamic-content results separate from the existing body/access/resource
 tracks. A category named `javascript_rendering`, a browser success, an HTTP
 failure, or an empty static extractor result does not establish that JavaScript

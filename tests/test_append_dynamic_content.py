@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.append_dynamic_content import append
+from harness.web_fetch.dynamic_cohort import append
 
 
 def dump(path, value):
@@ -19,6 +19,22 @@ def digest(text):
 
 
 class AppendDynamicContentTests(unittest.TestCase):
+    def test_append_preserves_auxiliary_bytes_and_original_incoming_records(self):
+        raw = b'auxiliary output'
+        relative = 'artifacts/extra/raw-stdout.txt'
+        path = self.measured / relative
+        path.parent.mkdir(parents=True)
+        path.write_bytes(raw)
+        self.records[0].setdefault('provider_metadata', {}).update(
+            raw_stdout_path=relative, raw_stdout_sha256=hashlib.sha256(raw).hexdigest())
+        incoming = b'\r\n'.join(json.dumps(row, separators=(', ', ': ')).encode()
+                               for row in self.records) + b'\r\n'
+        (self.measured / 'results.jsonl').write_bytes(incoming)
+        previous = (self.source / 'results.jsonl').read_bytes()
+        self.run_append()
+        self.assertEqual((self.source / relative).read_bytes(), raw)
+        self.assertEqual((self.source / 'results.jsonl').read_bytes(), previous + incoming)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
@@ -84,7 +100,7 @@ class AppendDynamicContentTests(unittest.TestCase):
 
     def assert_preflight_rejects(self, message=None):
         before = self.snapshot()
-        with patch('scripts.append_dynamic_content.tempfile.mkdtemp', wraps=tempfile.mkdtemp) as stage:
+        with patch('harness.web_fetch.dynamic_cohort.tempfile.mkdtemp', wraps=tempfile.mkdtemp) as stage:
             with self.assertRaises(ValueError) as caught:
                 self.run_append()
             if message:
@@ -217,7 +233,7 @@ class AppendDynamicContentTests(unittest.TestCase):
                 (Path(dst)/'rendered.txt').write_text('changed after preflight')
             return result
 
-        with patch('scripts.append_dynamic_content.shutil.copytree', corrupt_copy):
+        with patch('harness.web_fetch.dynamic_cohort.shutil.copytree', corrupt_copy):
             with self.assertRaisesRegex(ValueError, 'Staged source evidence'):
                 self.run_append()
         self.assertEqual(self.snapshot(), before)
@@ -225,7 +241,7 @@ class AppendDynamicContentTests(unittest.TestCase):
 
     def test_staging_write_failure_keeps_original(self):
         before = self.snapshot()
-        with patch('scripts.append_dynamic_content.shutil.copy2', side_effect=OSError('copy failed')):
+        with patch('harness.web_fetch.dynamic_cohort.shutil.copy2', side_effect=OSError('copy failed')):
             with self.assertRaisesRegex(OSError, 'copy failed'):
                 self.run_append()
         self.assertEqual(self.snapshot(), before)

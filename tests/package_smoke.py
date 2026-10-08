@@ -108,6 +108,50 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
                    check=True, cwd=root, capture_output=True, text=True)
 
 
+def verify_dynamic_cohort(root: Path, source_root: Path) -> None:
+    from harness.web_fetch.dynamic_cohort import merge
+    from harness.web_fetch.risk_control_dataset import load_cohort, parse_sections
+
+    for script in ('append_dynamic_content.py', 'merge_dynamic_supplement.py',
+                   'build_risk_control_dataset.py'):
+        subprocess.run([sys.executable, str(source_root / 'scripts' / script), '--help'],
+                       cwd=root, check=True, capture_output=True, text=True)
+    definitions = source_root / 'evaluation/risk-control'
+    sections = parse_sections(tuple(definitions / name for name in
+                                   ('first-30-rule-review.md', 'remaining-70-rule-review.md')))
+    _, cases = load_cohort(definitions / 'qualification/cohort/cohort-manifest.json')
+    assert [section['id'] for section in sections] == [case['id'] for case in cases]
+    reference, measured, output = (root / name for name in ('dynamic-reference', 'dynamic-run',
+                                                           'dynamic-assembled'))
+    reference.mkdir()
+    measured.mkdir()
+    dataset = {'cases': [{'id': 'one', 'name': 'One', 'url': 'https://example.invalid/',
+                          'category': 'dynamic', 'track': 'dynamic'}]}
+    for directory in (reference, measured):
+        (directory / 'dataset.json').write_text(json.dumps(dataset))
+    metadata = {}
+    for name, raw in [('result', b'answer'), ('stdout', b'process output')]:
+        relative = f'artifacts/{name}.txt'
+        path = measured / relative
+        path.parent.mkdir(exist_ok=True)
+        path.write_bytes(raw)
+        if name == 'stdout':
+            metadata = {'raw_stdout_path': relative,
+                        'raw_stdout_sha256': hashlib.sha256(raw).hexdigest()}
+    record = {'attempt_id': 'fixture__one__r001', 'provider': 'fixture', 'case_id': 'one',
+              'artifact_path': 'artifacts/result.txt', 'provider_metadata': metadata,
+              'metrics': {'content_sha256': hashlib.sha256(b'answer').hexdigest()}}
+    records = (json.dumps(record) + '\r\n').encode()
+    (measured / 'results.jsonl').write_bytes(records)
+    (measured / 'execution.json').write_text(json.dumps({'batches': [{
+        'dataset': {'case_count': 1}, 'providers': [{'name': 'fixture', 'type': 'fixture'}],
+        'attempt_count': 1, 'attempt_ids': [record['attempt_id']],
+    }]}))
+    merge(reference, [measured], output)
+    assert (output / 'results.jsonl').read_bytes() == records
+    assert (output / 'artifacts/stdout.txt').read_bytes() == b'process output'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -137,6 +181,7 @@ def main():
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
         verify_lexbench_package(root, args.source_root / 'scripts/moli_report/app.js')
+        verify_dynamic_cohort(root, args.source_root)
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
                        check=True, cwd=root)
         binary = root / 'browser'

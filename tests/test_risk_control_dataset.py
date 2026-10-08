@@ -16,8 +16,7 @@ from harness.web_fetch.risk_control import (
     reference_proof_snapshot,
     require_complete_diagnostic_logs,
 )
-from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
-from scripts.build_risk_control_dataset import (
+from harness.web_fetch.risk_control_dataset import (
     BODY_CONTRACTS,
     COHORT,
     EXPECTED_COHORT_HASH,
@@ -28,6 +27,7 @@ from scripts.build_risk_control_dataset import (
     evidence_roots,
     parse_sections,
 )
+from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
 from tests.conftest import read_frozen_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -165,6 +165,25 @@ def test_builder_hash_guards_match_the_current_audited_sources():
     assert {
         path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in RULE_FILES
     } == EXPECTED_RULE_HASHES
+
+
+def test_compiler_reads_explicit_definitions_without_checkout_defaults(tmp_path, monkeypatch):
+    from harness.web_fetch import risk_control_dataset as compiler
+
+    rule = tmp_path / "rules.md"
+    rule.write_text(RULE_FILES[0].read_text())
+    expected = compiler.parse_sections((RULE_FILES[0],))
+    monkeypatch.setattr(compiler, "RULE_FILES", (tmp_path / "absent.md",))
+    assert compiler.parse_sections((rule,)) == expected
+    manifest = tmp_path / "input-manifest.json"
+    manifest.write_text('{"evidence_roots":{"reference":"independent-inputs"}}')
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data"))
+    assert compiler.evidence_roots(manifest) == {
+        "reference": tmp_path / "data/independent-inputs"
+    }
+    cohort = tmp_path / "cohort.json"
+    cohort.write_bytes(COHORT.read_bytes())
+    assert compiler.load_cohort(cohort) == compiler.load_cohort(COHORT)
 
 
 def test_dataset_and_qualification_manifest_bind_current_source_bytes(dataset):
