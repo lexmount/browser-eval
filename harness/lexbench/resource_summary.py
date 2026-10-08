@@ -9,11 +9,11 @@ import math
 import statistics
 from pathlib import Path
 
-from .resource_evidence import digest as sha256
-
 from harness.record_io import load_jsonl
 from harness.resource_calibration import duration_calibration
 from harness.web_fetch.safety import contained_path
+
+from .resource_evidence import digest as sha256
 
 
 def stats(values: list[float]) -> dict:
@@ -28,6 +28,22 @@ def stats(values: list[float]) -> dict:
         "min": min(values),
         "max": max(values),
     }
+
+
+def validate_population(protocol: dict) -> tuple[set, set]:
+    expected = {(task, attempt) for task in protocol["task_ids"] for attempt in range(1, 6)}
+    chart = {(item["task_id"], item["attempt"]) for item in protocol["chart_keys"]}
+    chart_tasks = {task for task, _ in chart}
+    if (
+        len(expected) != 2785
+        or len(chart) != len(protocol["chart_keys"])
+        or len(chart) != 1045
+        or len(chart_tasks) != 209
+        or chart != {(task, attempt) for task in chart_tasks for attempt in range(1, 6)}
+        or not chart.issubset(expected)
+    ):
+        raise ValueError("resource population mismatch")
+    return expected, chart
 
 
 def summarize(directory: Path) -> dict:
@@ -59,18 +75,7 @@ def summarize(directory: Path) -> dict:
     for name, expected_hash in protocol["input_files"].items():
         if sha256(contained_path(runner, name, reject_symlinks=True)) != expected_hash:
             raise ValueError(f"resource runner changed: {name}")
-    expected = {(task, attempt) for task in protocol["task_ids"] for attempt in range(1, 6)}
-    chart = {(item["task_id"], item["attempt"]) for item in protocol["chart_keys"]}
-    chart_tasks = {task for task, _ in chart}
-    if (
-        len(expected) != 2785
-        or len(chart) != len(protocol["chart_keys"])
-        or len(chart) != 1045
-        or len(chart_tasks) != 209
-        or chart != {(task, attempt) for task in chart_tasks for attempt in range(1, 6)}
-        or not chart.issubset(expected)
-    ):
-        raise ValueError("resource population mismatch")
+    expected, chart = validate_population(protocol)
     configurations = {}
     measurements = {}
     for method, config in protocol["configs"].items():

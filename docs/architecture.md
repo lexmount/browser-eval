@@ -123,7 +123,12 @@ The report application owns full rules, interfaces and auditable records. Its ta
 
 `harness/lexbench/` owns the retained Lexbench comparison adapter: report assembly,
 resource matrices, saved-profile aggregation, evidence validation, charts and
-static evidence packaging. `reproduction.py` owns frozen layout command preparation
+static evidence packaging. `resource_profiles.py` owns the frozen Linux profile
+queue, while `resource_matrix.py` owns the separate rotating-call experiment.
+Their protocols retain distinct execution order and sampling contracts. Linux
+collection and aggregation share one population validator; collection freezes
+protocol and source bytes and stops the queue when either changes.
+`reproduction.py` owns frozen layout command preparation
 and execution; report bundles copy that same source. It verifies task scope,
 input hashes and the captured runtime before execution, preserves existing runs
 and rechecks inputs afterward. `verification.py` owns static validation, release
