@@ -39,13 +39,10 @@ class HttpOnlyRedirectHandler(urllib.request.HTTPRedirectHandler):
 
 
 def inner_timeout_budget(outer_timeout: float) -> float:
-    """Leave the runner time to observe completion and persist a result."""
+    """Forward the full shared budget; the runner rejects late answers."""
     if not math.isfinite(outer_timeout) or outer_timeout <= 0:
         raise ValueError("outer timeout must be positive and finite")
-    reserve = max(1.0, min(5.0, outer_timeout * 0.1))
-    if reserve >= outer_timeout:
-        return outer_timeout / 2
-    return outer_timeout - reserve
+    return outer_timeout
 
 
 def request(

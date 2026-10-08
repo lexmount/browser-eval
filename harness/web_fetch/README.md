@@ -365,3 +365,34 @@ SSRF guards, rewrite selected URLs, or classify this environment rejection as a
 product retrieval failure. Full native tool/worker envelopes are retained privately
 with hashes, separately from scored answer text. Historical outputs without those
 envelopes remain insufficient for an exact raw-response audit.
+
+
+For native caller comparisons, `dns_mode` is explicitly `system` (default) or
+`public_doh`. OpenClaw, DeepSeek, CowAgent and LangChain must declare the same mode
+when selected together. `public_doh` uses the fixed
+[Cloudflare JSON DoH endpoint](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/)
+for every hostname and redirect, not a case allowlist or failure fallback. It
+queries A and AAAA without product retries; DNS time counts inside the existing
+call deadline. Python resolution is scoped to the calling thread and restored;
+Node uses the products' resolver interfaces. Native private-address checks and
+address pinning remain active where the product provides them. CowAgent's native
+SSRF setting is preserved (the pinned implementation defaults to disabled).
+Do not apply this option to workers without an implemented resolver seam.
+
+A public-DNS configuration must bind `scripts/oss/public_dns.mjs` for the Node
+workers, `harness/web_fetch/network_dns.py` for CowAgent/LangChain, and DeepSeek's
+native `src/network.ts` in `required_paths`, using the normal `{harness_root}`
+and `{repo_path}` tokens. The preflight checks all selected case hosts with that
+resolver before product calls; mixed modes, failed resolution or synthetic answers
+stop execution. The system DNS mode continues to reject synthetic answers.
+
+DeepSeek's public output schema declares `value.body.kind` and
+`value.body.content`; `content[].text` is its model-facing render. The adapter
+passes the declared HTML/text body verbatim to shared scoring and retains the
+rendered text and full tool envelope privately. An empty declared body stays
+empty; a missing body is an invalid response. It does not reconstruct content
+from UI messages, logs, scripts or later requests. Binding
+`scripts/oss/dsh_output.mjs` is required for this projection. Old calls without the
+raw tool value cannot be retroactively reconstructed or rescored as this route.
+
+共享 HTTP 调用预算原样传入底层客户端及支持的服务端超时参数，不预留持久化时间而提前扣减（45 秒即 45000 毫秒）。外层仍以完整输入到答案处理的截止时间判断；迟到答案被舍弃，尚未退出的不可取消请求会隔离该方法并记明未执行范围，不能并发遗弃请求或额外增加答案预算。

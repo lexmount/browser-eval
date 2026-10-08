@@ -38,6 +38,7 @@ class SubprocessJsonlProvider(Provider):
                 "{repo_path}/packages/web/web-fetch-http/src/provider.ts",
                 "{repo_path}/pnpm-lock.yaml",
                 "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
+                "{harness_root}/scripts/oss/dsh_output.mjs",
                 "{harness_root}/scripts/oss/dsh_webfetch_worker.mts",
             },
         },
@@ -66,7 +67,20 @@ class SubprocessJsonlProvider(Provider):
     def validate(self) -> list[str]:
         if hasattr(self, "_implementation_identity"):
             del self._implementation_identity
+        from ..network_dns import validate_dns_mode
+        try:
+            mode = validate_dns_mode(self.config.get("dns_mode", "system"))
+        except ValueError as error:
+            return [str(error)]
+        if mode == "public_doh" and self.type not in {"openclaw_builtin", "deepseek_harness_builtin", "langchain_webbase"}:
+            return ["public_doh is not supported by this worker"]
         missing, identity = validate_runtime_identity(self.config, self._resolve_token)
+        if mode == "public_doh":
+            required = {"{harness_root}/harness/web_fetch/network_dns.py"} if self.type == "langchain_webbase" else {"{harness_root}/scripts/oss/public_dns.mjs"}
+            if self.type == "deepseek_harness_builtin":
+                required.add("{repo_path}/packages/web/web-fetch-http/src/network.ts")
+            if not required.issubset(set(self.config.get("required_paths", []))):
+                missing.append("locked public DNS helper paths")
         locked = self._LOCKED_RUNTIMES.get(self.type)
         if locked:
             if self.config.get("expected_repo_revision") != locked["revision"]:
@@ -92,6 +106,7 @@ class SubprocessJsonlProvider(Provider):
         command = [self._resolve_token(part) for part in self.config["command"]]
         env = os.environ.copy()
         env.update({str(k): self._resolve_token(v) for k, v in self.config.get("env", {}).items()})
+        env["BROWSER_EVAL_HARNESS_ROOT"] = str(Path(__file__).resolve().parents[3])
         cwd = str(Path(str(self.config.get("repo_path", "."))).expanduser().resolve())
         self._process = subprocess.Popen(
             command,
@@ -184,6 +199,7 @@ class SubprocessJsonlProvider(Provider):
             "url": case.url,
             "timeout_seconds": timeout,
             "max_bytes": int(self.config.get("max_bytes", 20_000_000)),
+            "dns_mode": self.config.get("dns_mode", "system"),
             "task_kind": case.task_kind,
             "track": case.track,
             "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
@@ -270,6 +286,12 @@ class SubprocessJsonlProvider(Provider):
                 "_raw_response_b64": base64.b64encode(line.encode("utf-8")).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(line.encode("utf-8")).hexdigest(),
                 "raw_response_bytes": len(line.encode("utf-8")),
+                "request_summary": {
+                    **dict((payload.get("metadata") or {}).get("request_summary") or {}),
+                    "caller_timeout_seconds": request["timeout_seconds"],
+                    "caller_max_bytes": request["max_bytes"],
+                    "caller_dns_mode": request["dns_mode"],
+                },
                 "_answer_elapsed_ms": round((time.perf_counter() - answer_begin) * 1000, 2),
                 **self._request_stderr(stderr_cursor),
                 "stdout": "".join(worker_logs),

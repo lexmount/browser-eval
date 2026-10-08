@@ -489,6 +489,9 @@ def run_evaluation(
             for p in sorted(Path(__file__).parent.rglob('*.py')))).hexdigest(),
         "provider_config_sha256": hashlib.sha256(provider_config_path.read_bytes()).hexdigest() if provider_config_path.is_file() else None,
         "dataset_sha256": hashlib.sha256(dataset_path.read_bytes()).hexdigest() if dataset_path.is_file() else None,
+        "network_preflight": ({"dns_mode": network_audit["dns_mode"],
+                               "sha256": hashlib.sha256((output_dir / 'network-preflight.json').read_bytes()).hexdigest()}
+                              if network_audit is not None else None),
         "unexecuted": [],
         "deadline_policy": "end_to_end_answer; non_cancellable_adapter_quarantined",
         "public_call_log_schema_version": 1,

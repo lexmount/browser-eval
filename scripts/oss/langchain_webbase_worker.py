@@ -5,6 +5,9 @@ import json
 import os
 import sys
 from importlib.metadata import version
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
 
 os.environ.setdefault("USER_AGENT", "browser-harness-eval/1.0")
 
@@ -17,6 +20,8 @@ for line in sys.stdin:
     if not line.strip():
         continue
     request = json.loads(line)
+    dns_trace = []
+    dns_mode = request.get("dns_mode", "system")
     try:
         loader = WebBaseLoader(
             web_paths=(request["url"],),
@@ -24,7 +29,9 @@ for line in sys.stdin:
             continue_on_failure=False,
             raise_for_status=True,
         )
-        docs = loader.load()
+        dns_mode = validate_dns_mode(request.get("dns_mode", "system"))
+        with public_dns_context(dns_mode, request["timeout_seconds"]) as dns_trace:
+            docs = loader.load()
         content = "\n\n".join(doc.page_content for doc in docs)
         metadata = docs[0].metadata if docs else {}
         output = {
@@ -38,6 +45,8 @@ for line in sys.stdin:
                 "document_count": len(docs),
                 "document_metadata": metadata,
                 "timeout_seconds": request["timeout_seconds"],
+                "dns_mode": dns_mode,
+                "dns_resolutions": dns_trace,
             },
         }
     except Exception as error:
@@ -47,6 +56,7 @@ for line in sys.stdin:
             "error_type": type(error).__name__,
             "error_message": str(error),
             "metadata": {"implementation": "langchain_community.WebBaseLoader",
-                         "library_version": LIBRARY_VERSION},
+                         "library_version": LIBRARY_VERSION, "dns_mode": dns_mode,
+                         "dns_resolutions": dns_trace, "timeout_seconds": request["timeout_seconds"]},
         }
     print(json.dumps(output, ensure_ascii=False), flush=True)

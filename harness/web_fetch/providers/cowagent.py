@@ -39,9 +39,16 @@ class CowAgentBuiltinProvider(Provider):
     def validate(self) -> list[str]:
         root = Path(str(self.config.get("repo_path", "."))).expanduser().resolve()
         def resolve(value):
-            return str(value).replace("{repo_path}", str(root))
+            return str(value).replace("{repo_path}", str(root)).replace("{harness_root}", str(Path(__file__).resolve().parents[3]))
 
+        from ..network_dns import validate_dns_mode
+        try:
+            mode = validate_dns_mode(self.config.get("dns_mode", "system"))
+        except ValueError as error:
+            return [str(error)]
         missing, identity = validate_runtime_identity(self.config, resolve)
+        if mode == "public_doh" and "{harness_root}/harness/web_fetch/network_dns.py" not in self.config.get("required_paths", []):
+            missing.append("locked public DNS helper paths")
         if self.config.get("expected_repo_revision") != self._LOCKED_REVISION:
             missing.append(f"repo revision {self._LOCKED_REVISION}")
         if not self._REQUIRED_PATHS.issubset(set(self.config.get("required_paths", []))):
@@ -51,6 +58,8 @@ class CowAgentBuiltinProvider(Provider):
         return missing
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        from ..network_dns import public_dns_context, validate_dns_mode
+        dns_mode = validate_dns_mode(self.config.get("dns_mode", "system"))
         root = Path(str(self.config["repo_path"])).expanduser().resolve()
         from ..storage import data_home
         workspace = Path(str(self.config.get(
@@ -71,7 +80,8 @@ class CowAgentBuiltinProvider(Provider):
             module.DEFAULT_TIMEOUT = timeout
             try:
                 tool = module.WebFetch({"cwd": str(workspace)})
-                result = tool.execute({"url": case.url})
+                with public_dns_context(dns_mode, timeout) as dns_trace:
+                    result = tool.execute({"url": case.url})
             finally:
                 module.DEFAULT_TIMEOUT = native_timeout
         raw = json.dumps({"status": result.status, "result": result.result,
@@ -87,6 +97,9 @@ class CowAgentBuiltinProvider(Provider):
             error_message=None if ok else content,
             metadata={
                 "tool_status": result.status,
+                "dns_mode": dns_mode,
+                "dns_resolutions": dns_trace,
+                "request_summary": {"caller_timeout_seconds": timeout, "caller_dns_mode": dns_mode},
                 "source_file": str(root / "agent/tools/web_fetch/web_fetch.py"),
                 "cowagent_default_timeout_seconds": native_timeout,
                 "effective_timeout_seconds": timeout,

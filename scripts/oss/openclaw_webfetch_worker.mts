@@ -6,11 +6,15 @@ delete process.env.FIRECRAWL_API_KEY;
 const repo = process.env.OPENCLAW_REPO ?? process.cwd();
 const source = pathToFileURL(path.join(repo, "src/agents/tools/web-fetch.ts")).href;
 const { createWebFetchTool } = await import(source);
-function createTool(request: any) {
+async function createTool(request: any, signal: AbortSignal, dnsTraces: any[]) {
   const maxBytes = Number(request.max_bytes ?? 20000000);
   const timeoutSeconds = Number(request.timeout_seconds);
   if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0 || !Number.isFinite(timeoutSeconds) || timeoutSeconds <= 0) throw new Error("Invalid shared fetch limits");
+  const dnsMode = request.dns_mode ?? "system";
+  if (!["system", "public_doh"].includes(dnsMode)) throw new Error("dns_mode must be system or public_doh");
+  const helper = dnsMode === "public_doh" ? await import(pathToFileURL(path.join(process.env.BROWSER_EVAL_HARNESS_ROOT!, "scripts/oss/public_dns.mjs")).href) : undefined;
   const tool = createWebFetchTool({
+    lookupFn: helper?.createPublicDnsLookup(signal, dnsTraces),
     config: {
       tools: {
         web: {
@@ -28,16 +32,17 @@ function createTool(request: any) {
     sandboxed: false,
   });
   if (!tool) throw new Error("OpenClaw web_fetch is disabled");
-  return { tool, maxBytes, timeoutSeconds };
+  return { tool, maxBytes, timeoutSeconds, dnsMode };
 }
 
 const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
 for await (const line of rl) {
   if (!line.trim()) continue;
   const request = JSON.parse(line);
+  const dnsTraces: any[] = [];
   try {
-    const { tool, maxBytes, timeoutSeconds } = createTool(request);
-    const signal = AbortSignal.timeout(Math.ceil(timeoutSeconds * 1000));
+    const signal = AbortSignal.timeout(Math.ceil(Number(request.timeout_seconds) * 1000));
+    const { tool, maxBytes, timeoutSeconds, dnsMode } = await createTool(request, signal, dnsTraces);
     const out = await tool.execute("browser-harness-eval", {
       url: request.url,
       extractMode: "markdown",
@@ -57,6 +62,8 @@ for await (const line of rl) {
         content_type: details.contentType,
         truncated: details.truncated,
         timeout_seconds: timeoutSeconds,
+        dns_mode: dnsMode,
+        dns_resolutions: dnsTraces,
         max_response_bytes: maxBytes,
         max_output_chars: maxBytes,
         fallback_provider_disabled: true,
@@ -73,7 +80,7 @@ for await (const line of rl) {
       error_type: "tool_error",
       error_message: message,
       final_url: request.url,
-      metadata: { implementation: "OpenClaw createWebFetchTool", fallback_provider_disabled: true },
+      metadata: { implementation: "OpenClaw createWebFetchTool", fallback_provider_disabled: true, dns_mode: request.dns_mode ?? "system", dns_resolutions: dnsTraces, timeout_seconds: request.timeout_seconds },
     }) + "\n");
   }
 }

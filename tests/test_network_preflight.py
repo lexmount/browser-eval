@@ -51,3 +51,35 @@ class NetworkPreflightTests(unittest.TestCase):
                                runs=1, timeout=45, delay=0)
             self.assertEqual(calls, [])
             self.assertFalse(output.exists())
+
+
+    def test_public_dns_mode_uses_real_resolver_and_records_mode(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from harness.web_fetch.network_preflight import preflight_guarded_providers
+        provider = SimpleNamespace(type='openclaw_builtin', config={'dns_mode': 'public_doh'})
+        with patch('harness.web_fetch.network_dns.lookup_public_dns', return_value=[('185.199.108.153', 4)]) as resolve:
+            audit = preflight_guarded_providers([provider], [SimpleNamespace(url='https://example.com/')])
+        self.assertEqual(audit['dns_mode'], 'public_doh')
+        self.assertFalse(audit['hosts'][0]['synthetic'])
+        self.assertEqual(resolve.call_count, 1)
+
+    def test_mixed_native_dns_modes_fail_before_resolution(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from harness.web_fetch.network_preflight import preflight_guarded_providers
+        providers = [SimpleNamespace(type='openclaw_builtin', config={'dns_mode': 'public_doh'}),
+                     SimpleNamespace(type='langchain_webbase', config={})]
+        with patch('harness.web_fetch.network_preflight.inspect_system_dns') as resolve:
+            with self.assertRaisesRegex(ValueError, 'same dns_mode'):
+                preflight_guarded_providers(providers, [])
+        resolve.assert_not_called()
+
+    def test_public_dns_resolver_failure_stops_before_product_calls(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from harness.web_fetch.network_preflight import preflight_guarded_providers
+        provider = SimpleNamespace(type='cowagent_builtin', config={'dns_mode': 'public_doh'})
+        with patch('harness.web_fetch.network_dns.lookup_public_dns', side_effect=socket.gaierror('failure')):
+            with self.assertRaisesRegex(ValueError, 'Public DNS preflight failed'):
+                preflight_guarded_providers([provider], [SimpleNamespace(url='https://example.com/')])

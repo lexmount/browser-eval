@@ -29,7 +29,7 @@ naming-check: runtime-check
 
 test-python: runtime-check
 	$(TEST_PY) -m unittest discover -s tests -v
-	$(TEST_PY) -m pytest tests/test_local_audit.py tests/test_dynamic_100_moli_119.py tests/test_three_cohort_review_followup.py tests/test_training_list_contract.py tests/test_risk_control_dataset.py tests/test_composite_tasks.py -q
+	$(TEST_PY) -m pytest tests/test_local_audit.py tests/test_dynamic_100_moli_119.py tests/test_three_cohort_review_followup.py tests/test_training_list_contract.py tests/test_risk_control_dataset.py tests/test_composite_tasks.py tests/test_cowagent_budget.py -q
 	$(TEST_PY) -m pytest tests/browser_use -q
 	$(TEST_PY) -m pytest tests/environments tests/test_manage_webarena_rainbond_pool.py -q
 	$(TEST_PY) -m pytest tests/trajectory_replay -q
@@ -43,7 +43,7 @@ fixture-smoke: runtime-check
 	$(PY) -m harness.web_fetch validate --providers fixture
 	@tmp=$$(mktemp -d); $(PY) -m harness.web_fetch run --dataset configs/fixture-dataset.json --providers fixture --runs 1 --delay 0 --output "$$tmp/run"
 
-test: test-python test-ui
+test: test-python test-ui test-native-adapters
 
 ci: naming-check test fixture-smoke
 
@@ -181,3 +181,7 @@ webmainbench-assemble: runtime-check
 	@test -n "$(REVIEW)" || (echo 'REVIEW=/absolute/path/to/passed-review.json is required' >&2; exit 2)
 	@test -n "$(OUTPUT)" || (echo 'OUTPUT=/absolute/path/to/assembled-evidence is required' >&2; exit 2)
 	$(PY) scripts/assemble_webmainbench_evidence.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --review "$(REVIEW)" --output "$(OUTPUT)"
+
+.PHONY: test-native-adapters
+test-native-adapters:
+	node --test tests/test_public_dns.mjs tests/test_dsh_output.mjs

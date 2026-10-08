@@ -31,10 +31,27 @@ def require_usable_public_dns(audit):
 
 
 def preflight_guarded_providers(providers, cases):
-    """Apply the same environment gate to every entry point using guarded tools."""
-    guarded = {"openclaw_builtin", "deepseek_harness_builtin", "cowagent_builtin"}
-    if not any(provider.type in guarded for provider in providers):
+    """Require one declared DNS environment for all supported native callers."""
+    from .network_dns import lookup_public_dns, validate_dns_mode
+    native = {"openclaw_builtin", "deepseek_harness_builtin", "cowagent_builtin", "langchain_webbase"}
+    selected = [provider for provider in providers if provider.type in native]
+    if not selected:
         return None
-    audit = inspect_system_dns([case.url for case in cases])
+    modes = {validate_dns_mode(provider.config.get("dns_mode", "system")) for provider in selected}
+    if len(modes) != 1:
+        raise ValueError("Selected native callers must declare the same dns_mode")
+    mode = modes.pop()
+    if mode == "system":
+        audit = inspect_system_dns([case.url for case in cases])
+    else:
+        def resolve(host, port, **kwargs):
+            return [(socket.AF_INET if family == 4 else socket.AF_INET6,
+                     socket.SOCK_STREAM, 6, '', (address, port))
+                    for address, family in lookup_public_dns(host, timeout=45)]
+        audit = inspect_system_dns([case.url for case in cases], resolver=resolve)
+        failed = [row["host"] for row in audit["hosts"] if row.get("dns_error")]
+        if failed:
+            raise ValueError("Public DNS preflight failed for: " + ", ".join(failed))
+    audit["dns_mode"] = mode
     require_usable_public_dns(audit)
     return audit

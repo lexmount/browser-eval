@@ -1,4 +1,6 @@
 import readline from "node:readline";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { Context } from "@deepseek-ai/cordis";
 import { ToolCallId } from "@deepseek-ai/dsh-llm";
 import SystemPrompt from "@deepseek-ai/dsh-system-prompt";
@@ -10,23 +12,39 @@ import * as TimeoutPolicy from "@deepseek-ai/dsh-tool-call-timeout-policy";
 
 let ctx: Context | undefined;
 let activeLimits = "";
+let dnsTraces: any[] = [];
 async function contextFor(request: any) {
   const maxBytes = Number(request.max_bytes ?? 20000000);
   const timeoutMs = Math.ceil(Number(request.timeout_seconds) * 1000);
   if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0 || !Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) throw new Error("Invalid shared fetch limits");
-  const key = `${maxBytes}:${timeoutMs}`;
+  const dnsMode = request.dns_mode ?? "system";
+  if (!["system", "public_doh"].includes(dnsMode)) throw new Error("dns_mode must be system or public_doh");
+  const key = `${maxBytes}:${timeoutMs}:${dnsMode}`;
   if (!ctx || key !== activeLimits) {
     if (ctx) await ctx.fiber.dispose();
     ctx = new Context();
     await ctx.plugin(SystemPrompt);
     await ctx.plugin(ToolRuntime);
     await ctx.plugin(WebRuntime, { fetchProvider: WebFetchHttp.LOCAL_FETCH_PROVIDER_ID });
-    await ctx.plugin(WebFetchHttp, { maxResponseBytes: maxBytes, maxBodyChars: maxBytes, timeoutMs });
+    if (dnsMode === "system") {
+      await ctx.plugin(WebFetchHttp, { maxResponseBytes: maxBytes, maxBodyChars: maxBytes, timeoutMs });
+    } else {
+      const { createPublicDnsLookup } = await import(pathToFileURL(path.join(process.env.BROWSER_EVAL_HARNESS_ROOT!, "scripts/oss/public_dns.mjs")).href);
+      const { resolvePublicAddresses } = await import("@deepseek-ai/dsh-web-fetch-http/src/network.ts");
+      // Use the exported native HTTP provider, native validator and native pinning.
+      // DNS is the only environment seam changed; redirect policy is unchanged.
+      await ctx.plugin({ name: "shared-dns-environment", inject: ["web"], apply(context: Context) {
+        context.web.registerFetchProvider(new WebFetchHttp.HttpFetchProvider({
+          maxResponseBytes: maxBytes, maxBodyChars: maxBytes, timeoutMs,
+          maxRedirects: 5, userAgent: WebFetchHttp.DEFAULT_USER_AGENT,
+        }, (hostname, signal) => resolvePublicAddresses(hostname, signal, createPublicDnsLookup(signal, dnsTraces))));
+      }});
+    }
     await ctx.plugin(TimeoutPolicy);
     await ctx.plugin(ToolWeb, { search: false, fetch: true, fetchTimeoutMs: timeoutMs, fetchMaxOutputChars: maxBytes + 20000 });
     activeLimits = key;
   }
-  return { ctx, maxBytes, timeoutMs };
+  return { ctx, maxBytes, timeoutMs, dnsMode };
 }
 
 let counter = 0;
@@ -34,49 +52,32 @@ const rl = readline.createInterface({ input: process.stdin, crlfDelay: Infinity 
 for await (const line of rl) {
   if (!line.trim()) continue;
   const request = JSON.parse(line);
+  dnsTraces = [];
   try {
-    const { ctx, maxBytes, timeoutMs } = await contextFor(request);
+    const { ctx, maxBytes, timeoutMs, dnsMode } = await contextFor(request);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), Math.ceil(request.timeout_seconds * 1000));
-    const out = await ctx.tools.execute({
-      signal: controller.signal,
-      callId: ToolCallId(`browser-harness-${++counter}`),
-      name: "web_fetch",
-      arguments: { url: request.url },
-    });
-    clearTimeout(timer);
-    const content = out.content.map((block: any) => block.type === "text" ? block.text : "").join("");
-    // ToolRuntime returns the declared presentation projection on `meta` and,
-    // for successful calls, the exact declared output on `value`.  Do not read
-    // the durable event shape here: it deliberately does not contain `value`.
-    const meta: any = out.meta && typeof out.meta === "object" ? out.meta : {};
-    const value: any = !out.isError && out.value && typeof out.value === "object" ? out.value : {};
-    const statusCode = Number.isInteger(value.statusCode)
-      ? value.statusCode
-      : (Number.isInteger(meta.statusCode) ? meta.statusCode : undefined);
-    const finalUrl = typeof value.url === "string" && value.url
-      ? value.url
-      : (typeof meta.url === "string" && meta.url ? meta.url : undefined);
-    const missingStatus = !out.isError && statusCode === undefined;
-    const httpError = statusCode !== undefined && (statusCode < 200 || statusCode >= 300);
-    const ok = !out.isError && !missingStatus && !httpError;
-    const errorType = out.isError
-      ? (out.error?.info?.code ?? "tool_error")
-      : (missingStatus ? "invalid_response" : (httpError ? "http_status" : undefined));
-    const errorMessage = out.isError
-      ? content
-      : (missingStatus
-          ? "DeepSeek Harness web_fetch returned no HTTP status"
-          : (httpError ? `Origin returned HTTP ${statusCode}` : undefined));
+    let out;
+    try {
+      out = await ctx.tools.execute({
+        signal: controller.signal,
+        callId: ToolCallId(`browser-harness-${++counter}`),
+        name: "web_fetch",
+        arguments: { url: request.url },
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+    const { projectDeclaredFetch } = await import(pathToFileURL(path.join(process.env.BROWSER_EVAL_HARNESS_ROOT!, "scripts/oss/dsh_output.mjs")).href);
+    const projected = projectDeclaredFetch(out);
     process.stdout.write(JSON.stringify({
-      ok,
-      content,
+      ...projected,
       raw_tool_response: out,
-      status_code: statusCode,
-      final_url: finalUrl,
-      error_type: errorType,
-      error_message: errorMessage,
-      metadata: { implementation: "DeepSeek Harness ctx.tools.execute(web_fetch)", presentation_meta: meta, timeout_ms: timeoutMs, max_response_bytes: maxBytes, max_body_chars: maxBytes, max_output_chars: maxBytes + 20000 },
+      metadata: { implementation: "DeepSeek Harness ctx.tools.execute(web_fetch)",
+        output_projection: "declared_body", source_body_kind: projected.source_body_kind,
+        truncated: projected.truncated, dns_mode: dnsMode, dns_resolutions: dnsTraces,
+        timeout_ms: timeoutMs, max_response_bytes: maxBytes, max_body_chars: maxBytes,
+        max_output_chars: maxBytes + 20000 },
     }) + "\n");
   } catch (error: any) {
     const message = String(error?.message ?? error);
@@ -86,7 +87,7 @@ for await (const line of rl) {
       content: message,
       error_type: error?.code ?? "tool_error",
       error_message: message,
-      metadata: { implementation: "DeepSeek Harness ctx.tools.execute(web_fetch)" },
+      metadata: { implementation: "DeepSeek Harness ctx.tools.execute(web_fetch)", dns_mode: request.dns_mode ?? "system", dns_resolutions: dnsTraces, timeout_ms: Math.ceil(Number(request.timeout_seconds) * 1000) },
     }) + "\n");
   }
 }

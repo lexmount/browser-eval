@@ -58,3 +58,21 @@ Do not treat changed reference text or a list of flipped verdicts as a completed
 For a local URL-only comparison, verify the product's supported inner timeout and byte/character limits, not only the outer runner deadline or configuration JSON. Forward the shared limits through every worker and record the effective limits. A caller-created cap that truncates the fetched HTML before conversion is a measurement defect; retain the old calls and correct the affected complete method scope, rather than changing individual failed cases.
 
 Run `harness.web_fetch.network_preflight.inspect_system_dns` before comparing local guarded fetchers with hosted products. Synthetic addresses in `198.18.0.0/15` make the environment unsuitable for this comparison: stop before product calls and restore a real-public-address DNS environment. Do not weaken product safety guards or replace individual case URLs to work around it. Retain the complete final worker response envelope as private evidence, alongside the normalized answer and public call log. Verify positive controls through the actual product entry point; existing scored outputs alone cannot prove that no response fields were dropped.
+
+
+An explicitly frozen `public_doh` environment is a valid process-scoped DNS
+correction when system DNS returns synthetic addresses. Apply one mode to all
+supported native callers in the cohort, resolve every hostname with the same
+rule, include DNS time in the shared call budget, bind resolver source files,
+and verify both public retrieval and native rejection of private DNS answers.
+Do not silently fall back to another resolver or disable a product guard. Record
+unsupported methods and the local/hosted network asymmetry; do not imply the
+machine's global DNS was changed.
+
+Audit the declared structured output separately from model/UI presentation.
+When a public schema exposes a complete HTML/text body, preserve it as the answer
+rather than keeping only a lossy display projection. Preserve both fields in
+private evidence. Never rescue an empty declared body from a nonempty display
+message. Reproject retained full responses without new product calls when only
+this selection changed; missing historical envelopes require fresh calls across
+the full declared correction scope before claiming revised benchmark scores.
