@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -183,3 +184,23 @@ def validate_runtime_identity(
     if python is not None:
         identity["python"] = python
     return missing, None if missing else identity
+
+
+def version_number(value):
+    match = re.search(r"\d+(?:\.\d+)+", value or "")
+    return match.group(0) if match else value
+
+
+def require_expected_provider_versions(identities, configs):
+    """Fail before measurement if a versioned provider slot is mislabeled."""
+    for name, identity in identities.items():
+        expected = configs[name].get("expected_version")
+        if expected is None:
+            continue
+        if not isinstance(expected, str) or not re.fullmatch(r"\d+(?:\.\d+)+", expected):
+            raise ValueError(name + ": expected_version must be a numeric version")
+        reported = version_number(identity.get("reported_version"))
+        if reported != expected:
+            raise ValueError(
+                f"{name}: expected version {expected}, reported {reported or 'unavailable'}"
+            )

@@ -15,11 +15,12 @@ import tempfile
 import time
 from pathlib import Path
 
+from ..container_resources import ContainerResourceRunner
 from ..models import EvalCase, ProviderResult
 from ..retrieval_hints import plan_for_case
 from ..safety import validate_http_url
-from ..container_resources import ContainerResourceRunner
 from .base import Provider
+from .runtime_identity import require_expected_provider_versions
 
 ENGINES = ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium')
 LOOPBACK_SANDBOX_PROFILE = (
@@ -29,7 +30,7 @@ LOOPBACK_SANDBOX_PROFILE = (
     '(allow network-outbound (remote ip "localhost:*"))'
 )
 HEADLESS_CONVERSION = (
-    'Native Markdown for Kitesurf, Lightpanda, Obscura and Moli 1.1.1; direct '
+    'Native Markdown for Kitesurf, Lightpanda, Obscura and Moli; direct '
     'Moli documents/media use automatic raw output; Chromium '
     'whole-DOM HTML via node-html-markdown 2.0.0'
 )
@@ -241,7 +242,7 @@ class HeadlessProvider(Provider):
                 except Exception as exc:
                     errors.append('docker_cgroup_v2:' + str(exc))
             self._resolved_binary = self.config.get('resource_binary')
-            return errors
+            return self._expected_version_errors(errors)
         binary = _resolve_binary(engine, self.config.get('binary'))
         if engine != 'kitesurf' and not binary:
             errors.append('binary')
@@ -261,6 +262,15 @@ class HeadlessProvider(Provider):
             package = Path(__file__).resolve().parents[3] / 'node_modules/node-html-markdown/package.json'
             if not package.is_file():
                 errors.append('node-html-markdown')
+        return self._expected_version_errors(errors)
+
+    def _expected_version_errors(self, errors):
+        if not errors and self.config.get('expected_version') is not None:
+            try:
+                require_expected_provider_versions(
+                    {self.name: self.implementation_identity()}, {self.name: self.config})
+            except ValueError as error:
+                errors.append(str(error))
         return errors
 
     def _resource_runner(self):

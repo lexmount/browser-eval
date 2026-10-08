@@ -284,7 +284,7 @@ def test_headless_runner_rejects_missing_inputs_before_provider_or_output(
 ):
     import sys
 
-    from scripts import run_headless_benchmark
+    from harness.web_fetch import headless_runner as run_headless_benchmark
 
     dataset, _, _, _ = inputs
     output = tmp_path / "headless-run"

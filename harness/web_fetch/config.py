@@ -109,9 +109,13 @@ def load_dataset(path: Path) -> tuple[dict[str, Any], list[EvalCase]]:
     return payload, cases
 
 
-def load_provider_config(path: Path) -> dict[str, dict[str, Any]]:
+def load_provider_settings(path: Path) -> dict[str, Any]:
     payload = expand_env(load_json(path))
     providers = payload.get("providers", {})
-    if not providers:
+    if not isinstance(providers, dict) or not providers:
         raise ValueError("provider config must define providers")
-    return providers
+    return payload
+
+
+def load_provider_config(path: Path) -> dict[str, dict[str, Any]]:
+    return load_provider_settings(path)["providers"]

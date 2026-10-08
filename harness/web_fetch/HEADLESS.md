@@ -128,6 +128,29 @@ archive is labelled post-hoc; it is not rewritten as run-time provenance.
 
 ## Run and preserve evidence
 
+`harness/web_fetch/headless_runner.py` owns cohort selection, execution and
+implementation checks. The command in `scripts/` delegates to it.
+`configs/providers.headless.json` declares the method registry and the `main`
+and `resources` cohorts. A new browser release changes this configuration,
+without adding a runner or a browser-name branch. Historical evidence keeps
+its original configuration hash.
+
+Each cohort declares an ordered `providers` list and may supply
+`provider_overrides`. The resource cohort declares its container image and
+container binary paths; its Moli 1.1.1 pin is independent of the main cohort's
+Moli 1.1.5 pin. `expected_version` matches the first numeric version in the
+observed version output. A missing or different pinned version fails before
+provider calls. Both cohorts retain executable hashes and reject changes
+during execution.
+
+Use `--cohort NAME` to select a declared cohort and `--providers NAME1,NAME2`
+to select registered methods explicitly. A configuration without cohorts uses
+all its registered methods. Custom configurations supply their own resource
+image and binary paths; the runner does not infer them from method names.
+Unknown or duplicate methods, task IDs and task families are rejected before
+calls. The execution receipt records the selected cohort and actual input
+filenames rather than claiming the repository's default inputs.
+
 The reference lifecycle in [README.md](README.md) is mandatory. Independently
 capture ordinary pages, separately observe browser-dependent complete scopes,
 freeze the references, execute, then postcheck:

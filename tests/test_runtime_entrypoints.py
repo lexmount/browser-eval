@@ -1,14 +1,17 @@
-from pathlib import Path
 import hashlib
 import json
 import re
 import tempfile
 import unittest
+from pathlib import Path
 
+from harness.web_fetch.headless_runner import require_expected_provider_versions
+from harness.web_fetch.publication_target import (
+    current_publication_target,
+    require_publication_site,
+    require_publication_version,
+)
 from scripts.check_track_naming import repository_contract_findings
-from scripts.run_headless_benchmark import require_expected_provider_versions
-from harness.web_fetch.publication_target import current_publication_target, require_publication_site, require_publication_version
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -69,13 +72,15 @@ class RuntimeEntrypointTests(unittest.TestCase):
             "moli": {"reported_version": "moli 1.1.5"},
             "moli-1.1.3": {"reported_version": "moli 1.1.3"},
         }
-        require_expected_provider_versions(valid)
+        configs = {name: {'expected_version': version} for name, version in (
+            ('moli-1.0.6', '1.0.6'), ('moli', '1.1.5'), ('moli-1.1.3', '1.1.3'))}
+        require_expected_provider_versions(valid, configs)
         for value in (None, "moli 1.1.3"):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 require_expected_provider_versions({
                     **valid,
                     "moli": {"reported_version": value},
-                })
+                }, configs)
 
     def test_ci_uses_the_same_make_entrypoint(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
