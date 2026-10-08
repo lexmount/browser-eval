@@ -49,7 +49,23 @@ fixture-smoke: runtime-check
 
 test: test-python test-ui test-native-adapters
 
-ci: naming-check test fixture-smoke
+ci: naming-check test fixture-smoke package-check
+
+.PHONY: package-check
+package-check: runtime-check
+	@set -eu; \
+	project_root="$$(pwd)"; \
+	package_build="$$(mktemp -d)"; \
+	package_run="$$(mktemp -d)"; \
+	trap 'rm -rf "$$package_build" "$$package_run"' EXIT; \
+	$(UV) build --out-dir "$$package_build"; \
+	set -- "$$package_build"/*.whl; \
+	test "$$#" -eq 1; test -f "$$1"; \
+	wheel="$$1"; \
+	cd "$$package_run"; \
+	$(UV) run --no-project --isolated --python 3.11 --with "$$wheel" \
+	  python "$$project_root/tests/package_smoke.py" --source-root "$$project_root" \
+	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown"
 
 report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)

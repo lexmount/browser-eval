@@ -2,17 +2,58 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
+
+
+def verify_package_tree(source_root: Path, package_root: Path) -> None:
+    """Require the installed library's exact current source and declared assets."""
+    source = source_root / 'harness'
+    if source.is_symlink() or package_root.is_symlink():
+        raise ValueError('Package roots must not be symlinked')
+    expected = {path.relative_to(source).as_posix(): path for path in source.rglob('*.py')}
+    project = tomllib.loads((source_root / 'pyproject.toml').read_text())
+    for package, patterns in project['tool']['setuptools'].get('package-data', {}).items():
+        for directory in source_root.glob(package.replace('.', '/')):
+            for pattern in patterns:
+                for path in directory.glob(pattern):
+                    if path.is_file():
+                        expected[path.relative_to(source).as_posix()] = path
+    observed = {}
+    for path in package_root.rglob('*'):
+        if path.is_symlink():
+            raise ValueError('Installed package contains a symlink')
+        relative = path.relative_to(package_root)
+        if path.is_file() and '__pycache__' not in relative.parts:
+            observed[relative.as_posix()] = path
+    if set(expected) != set(observed):
+        raise ValueError('Installed package inventory differs from current source: '
+                         f'missing={sorted(set(expected) - set(observed))}; '
+                         f'extra={sorted(set(observed) - set(expected))}')
+    for name, path in expected.items():
+        if path.is_symlink():
+            raise ValueError('Package source contains a symlink: ' + name)
+        source_hash = hashlib.sha256(path.read_bytes()).digest()
+        installed_hash = hashlib.sha256(observed[name].read_bytes()).digest()
+        if source_hash != installed_hash:
+            raise ValueError('Installed package differs from current source bytes: ' + name)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
+    parser.add_argument('--source-root', type=Path, required=True)
     args = parser.parse_args()
+    import harness.web_fetch
+    installed = Path(harness.web_fetch.__file__).resolve().parents[1]
+    if installed.is_relative_to(args.source_root.resolve()):
+        raise ValueError('Package smoke must use an installed distribution outside the checkout')
+    verify_package_tree(args.source_root, installed)
     from harness.web_fetch.markdown import (
         CONVERTER,
         converter_command,
@@ -21,8 +62,12 @@ def main():
 
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
+        subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
+                       check=True, cwd=root)
         binary = root / 'browser'
-        binary.write_text('#!/bin/sh\nif [ "$1" = "--version" ]; then printf "fixture 7.4.0\\n"; else printf "Independent fixture output\\n"; fi\n')
+        binary.write_text('#!/bin/sh\nif [ "$1" = "--version" ]; '
+                          'then printf "fixture 7.4.0\\n"; '
+                          'else printf "Independent fixture output\\n"; fi\n')
         binary.chmod(0o700)
         dataset = root / 'dataset.json'
         dataset.write_text(json.dumps({'tool': 'web_fetch', 'id': 'fixture',
@@ -45,7 +90,8 @@ def main():
             '--env-file', str(env), '--output', str(root / 'run'), '--delay', '0',
             '--fail-on-failure',
         ], check=True, cwd=root)
-        records = [json.loads(line) for line in (root / 'run/results.jsonl').read_text().splitlines()]
+        records = [json.loads(line)
+                   for line in (root / 'run/results.jsonl').read_text().splitlines()]
         assert len(records) == 1 and records[0]['metrics']['content_pass']
         assert records[0]['provider_metadata']['worker_sha256']
         scoped = json.loads((root / 'run/dataset.json').read_text())
@@ -68,7 +114,8 @@ def main():
                      (root / 'assembled/results.jsonl').read_text().splitlines()]
         assert assembled == cohort
         for relative, _ in artifact_bindings(cohort[0]):
-            assert (root / 'assembled' / relative).read_bytes() == (root / 'cohort' / relative).read_bytes()
+            assert ((root / 'assembled' / relative).read_bytes()
+                    == (root / 'cohort' / relative).read_bytes())
         subprocess.run([sys.executable, '-c',
                         'from harness.web_fetch.resource_cohort import main; main(["--help"])'],
                        check=True, cwd=root, capture_output=True, text=True)
@@ -80,11 +127,13 @@ def main():
         assert '验收规则（无全文参考）' in detail
         assert '检查下列目标资源' not in detail
         package = require_converter(str(args.node_html_markdown_path))
-        converted = subprocess.run(converter_command(package), input='<h1>中文标题</h1><p>独立内容</p>',
+        converted = subprocess.run(converter_command(package),
+                                   input='<h1>中文标题</h1><p>独立内容</p>',
                                    text=True, capture_output=True, check=True, cwd=root)
         assert '# 中文标题' in converted.stdout and '独立内容' in converted.stdout
         assert not CONVERTER.resolve().is_relative_to(Path(__file__).resolve().parents[1])
-    print('Installed wheel: native worker, scoring, evidence assembly and HTML conversion passed')
+    print('Installed wheel: exact source inventory, native worker, scoring, '
+          'evidence assembly and HTML conversion passed')
 
 
 if __name__ == '__main__':
