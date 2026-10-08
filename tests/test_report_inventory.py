@@ -67,19 +67,19 @@ class ReportInventoryTests(unittest.TestCase):
 
     def test_duplicate_dataset_case_rejected(self):
         self.dataset['cases'].append(copy.deepcopy(self.dataset['cases'][-1]))
-        with self.assertRaisesRegex(AssertionError, 'Duplicate dataset case'):
+        with self.assertRaisesRegex(ValueError, 'Duplicate dataset case'):
             self.check()
 
     def test_duplicate_inventory_case_rejected(self):
         self.inventory['dynamic']['case_ids'].append(self.inventory['dynamic']['case_ids'][0])
-        with self.assertRaisesRegex(AssertionError, 'Duplicate inventory case'):
+        with self.assertRaisesRegex(ValueError, 'Duplicate inventory case'):
             self.check()
 
     def test_deleted_case_and_records_rejected(self):
         cid = self.inventory['dynamic']['case_ids'][-1]
         self.dataset['cases'] = [c for c in self.dataset['cases'] if c['id'] != cid]
         self.records = [r for r in self.records if r['case_id'] != cid]
-        with self.assertRaisesRegex(AssertionError, 'reviewed independent inventory'):
+        with self.assertRaisesRegex(ValueError, 'reviewed independent inventory'):
             self.check()
 
 

@@ -180,6 +180,16 @@ installing derived scores. It stages retained retry responses privately and
 guards consumed inputs through installation. Existing scores are immutable;
 handled installation failures remove only outputs created by that operation.
 
+`harness/web_fetch/report_check.py` owns the shared report acceptance entry,
+`scripts/check_report.py` and `scripts/check_report_revision.py`. Both delegate
+WCXB and WebMainBench to their maintained validators; the shared owner checks
+the legacy Web Fetch evidence, inventory and generated
+pages itself. `--authority-root` selects the repository containing reviewed
+profiles and inventories; `--profile` stays under that repository's `evaluation/`
+directory. Checks remain active with Python optimization enabled. Manifest-bound
+editorial image parity belongs to `harness/reporting/article_assets.py` and is
+loaded only when an English edition exists.
+
 `harness/web_fetch/reference_inputs.py` resolves dataset-bound source inputs and the complete historical dataset. `evaluation/source-inputs.json` binds the dataset, its compact task catalog and every external input by SHA-256. Dataset readers preserve the exact original bytes; source readers verify the installed inventory before using it. Missing or changed inputs cannot fall back to a checkout copy or the non-executable catalog. Custom datasets without a manifest use their own adjacent inputs. Import and reconstruction commands are documented in [reference inputs](reference-inputs.md).
 
 `harness/web_fetch/headless_runner.py` selects browser cohorts from provider configuration and delegates calls to the shared runner. Method lists, version pins, container images and binary paths belong to that configuration. Cohort overrides keep resource and ordinary browser experiments distinct; neither method labels nor a fixed participant count select runtime behavior. Version checks belong to `providers/runtime_identity.py` and run through `HeadlessProvider.validate()` for both specialized and generic entry points.

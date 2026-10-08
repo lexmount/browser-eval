@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.report_asset_parity import ArticleAssetParity
+from harness.reporting.article_assets import ArticleAssetParity
 
 
 class ArticleAssetParityTest(unittest.TestCase):
@@ -52,4 +52,21 @@ class ArticleAssetParityTest(unittest.TestCase):
     def test_asset_bytes_must_match_manifest(self):
         (self.root / 'assets/editorial/en.png').write_bytes(b'Changed PNG')
         with self.assertRaisesRegex(ValueError, 'differs from manifest'):
+            ArticleAssetParity(self.root, self.manifest)
+
+
+    def test_duplicate_slots_are_rejected(self):
+        document = json.loads(self.manifest.read_bytes())
+        document['figures'] *= 2
+        self.manifest.write_text(json.dumps(document))
+        with self.assertRaisesRegex(ValueError, 'Duplicate article figure'):
+            ArticleAssetParity(self.root, self.manifest)
+
+    def test_linked_identical_asset_is_rejected(self):
+        path = self.root / 'assets/editorial/en.png'
+        alternate = self.root / 'alternate.png'
+        alternate.write_bytes(path.read_bytes())
+        path.unlink()
+        path.symlink_to(alternate)
+        with self.assertRaisesRegex(ValueError, '[Ss]ymlink'):
             ArticleAssetParity(self.root, self.manifest)

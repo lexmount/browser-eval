@@ -757,6 +757,26 @@ def verify_wcxb_scoring(root, source_root):
     ], check=True, cwd=root, capture_output=True, text=True)
 
 
+def verify_report_acceptance(root, source_root):
+    from harness.web_fetch.report_check import check, check_revision
+
+    fixture = runpy.run_path(str(source_root / 'tests/report_check_fixture.py'))
+    report, authority = fixture['create_report'](root / 'report-acceptance', english=True)
+    assert check(report, authority_root=authority).startswith('PASS:')
+    command = [sys.executable, '-O', str(source_root / 'scripts/check_report.py'),
+               str(report), '--authority-root', str(authority)]
+    subprocess.run(command, check=True, cwd=root, capture_output=True, text=True)
+    (report / 'artifacts/one.txt').write_text('changed output')
+    result = subprocess.run(command, cwd=root, capture_output=True, text=True)
+    assert result.returncode != 0 and 'PASS:' not in result.stdout
+    presentation, authority = fixture['create_revision_report'](root / 'report-presentation')
+    assert check_revision(presentation, authority_root=authority).startswith('PASS:')
+    subprocess.run([
+        sys.executable, '-O', str(source_root / 'scripts/check_report_revision.py'),
+        str(presentation), '--authority-root', str(authority),
+    ], check=True, cwd=root, capture_output=True, text=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -806,6 +826,7 @@ def main():
         verify_adjudication_commands(root, args.source_root)
         verify_browser_observation_capture(root, args.source_root)
         verify_wcxb_scoring(root, args.source_root)
+        verify_report_acceptance(root, args.source_root)
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
                        check=True, cwd=root)
         binary = root / 'browser'
