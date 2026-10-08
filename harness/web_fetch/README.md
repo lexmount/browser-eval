@@ -150,8 +150,7 @@ Historical records without `raw_file_pass` are unmeasured even if their HTTP
 request failed: all report/summary denominators and failure filters exclude them.
 The three result filters remain pass/fail/all; unmeasured rows appear in all.
 
-`scripts/correct_evaluation_contracts.py` applies reviewed scope and contract
-changes without reading provider outputs. `scripts/rescore_content.py` recomputes
+`scripts/rescore_content.py` recomputes
 all applicable records through the shared scorer without supplier calls.
 Known scoring failure modes have compact synthetic positive and negative controls
 in `evaluation/scoring-regressions.json`; CI executes every control through the
@@ -163,6 +162,15 @@ command with a concrete `--root-cause-category`,
 those controls before touching evidence and writes their IDs plus FP/FN direction
 counts into the revision receipt. Directly editing stored verdicts is not a
 supported correction path.
+
+Reference corrections use `harness.web_fetch.reference_revision`; the
+`revise_reference_evidence.py` command invokes that same owner. It validates
+existing revision histories before any change, stages the full evidence bundle,
+and copies only the selected cases' corrected reference inputs. A failed copy,
+score or receipt write leaves the original bundle intact. Success retains the
+predecessor beside the evidence directory under `.NAME-reference-history-*/original`;
+these private copies preserve prior references and are excluded from the report.
+
 Offline rescoring and scoring revisions are available through
 `uv run --frozen python -m harness.web_fetch.rescoring --help` and
 `uv run --frozen python -m harness.web_fetch.scoring_revision --help`. The existing
@@ -172,10 +180,7 @@ input plus the required root cause and executable regression IDs. Neither
 operation calls providers. Declared evidence must remain present, unmodified
 and free of symbolic links before scores can be rewritten.
 
-`scripts/revise_fairness.py --baseline-ref <original-commit>` also records original
-and revised scores in the persistent bundle's `scoring-revisions.json`, checking original
-output hashes, identities and timing. Historical hard deadlines and timing
-overhead cannot be retroactively certified. For a heterogeneous same-window
+For a heterogeneous same-window
 cohort, keep every predeclared call and report all-call latency (one shared task
 denominator) separately from successful-call latency (each method's conditional
 subset). The all-method common-pass intersection is diagnostic only: never

@@ -20,7 +20,12 @@ from harness.web_fetch.artifacts import (
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 from harness.web_fetch.render_evidence import validate_render_reference
-from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, validate_report_ids
+from harness.web_fetch.safety import (
+    commit_staged_evidence,
+    contained_path,
+    reject_evidence_symlinks,
+    validate_report_ids,
+)
 from harness.web_fetch.storage import current_evidence_dir, data_home
 
 
@@ -349,17 +354,7 @@ def append(source, reference, measured, checks):
         materialize_bound_artifacts(staged, measured, records)
         for name, content in outputs.items():
             (staged / name).write_bytes(content)
-        source.rename(backup)
-        try:
-            staged.rename(source)
-        except BaseException:
-            try:
-                backup.rename(source)
-            except BaseException as recovery_error:
-                raise RuntimeError(
-                    f"Rollback failed; original data retained at {backup}"
-                ) from recovery_error
-            raise
+        commit_staged_evidence(source, staged, backup)
         committed = True
     finally:
         # Never delete the sole original if rollback itself failed.

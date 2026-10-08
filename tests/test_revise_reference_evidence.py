@@ -1,10 +1,11 @@
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 
-from scripts.revise_reference_evidence import (
-    equivalent_source_verification, reference_fields_for_case,
+from harness.web_fetch.reference_revision import (
+    equivalent_source_verification,
+    reference_fields_for_case,
     scoring_relevant_reference_change,
 )
 from scripts.revise_cloudflare_saved_response import reference_revision_path
@@ -72,6 +73,15 @@ class ReviseReferenceEvidenceTests(unittest.TestCase):
         fields=reference_fields_for_case(old,new)
         self.assertIn("ground_truth_evidence",fields)
         self.assertNotIn("body_requirements",fields)
+
+
+    def test_requested_field_scope_does_not_mutate_later_revision_rules(self):
+        old = {"ground_truth_main_content": "old"}
+        new = {"ground_truth_main_content": "new"}
+        selected = reference_fields_for_case(old, new)
+        selected &= {"ground_truth_evidence"}
+        self.assertIn("ground_truth_main_content", reference_fields_for_case(old, new))
+        self.assertIn("body_requirements", reference_fields_for_case(old, new))
 
 
 if __name__ == "__main__":

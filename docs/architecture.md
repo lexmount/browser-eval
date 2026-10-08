@@ -143,6 +143,15 @@ call logs before changing persisted scores. `result_review.py` owns review
 identity, validation, verdict-neutral rebinding and superseded-review archives.
 A score change cannot reuse a review whose inputs or machine verdict changed.
 
+`reference_revision.py` owns reference-only corrections. It validates prior
+revision bindings and acquisition artifacts, stages the complete change, copies
+only selected task references from their bound input tree, and uses the shared
+`safety.py` promotion boundary. The same boundary serves provider and dynamic
+cohort append. Failed promotion restores the predecessor; failed recovery keeps
+its original directory. Successful reference corrections retain their complete
+predecessor in a private sibling `.NAME-reference-history-*/original` directory.
+These predecessors are outside the current bundle and public package.
+
 The scoring regression registry remains authoritative at
 `evaluation/scoring-regressions.json`. Distribution builds install those exact
 bytes under `share/browser-harness-eval`, allowing installed offline revisions

@@ -70,3 +70,18 @@ def validate_report_ids(dataset, records):
     for record in records:
         for key in ['provider', 'case_id', 'attempt_id']:
             safe_identifier(record[key])
+
+
+def commit_staged_evidence(source: Path, staged: Path, backup: Path) -> None:
+    """Install a validated replacement, retaining the sole original on recovery failure."""
+    source.rename(backup)
+    try:
+        staged.rename(source)
+    except BaseException:
+        try:
+            backup.rename(source)
+        except BaseException as recovery_error:
+            raise RuntimeError(
+                f"Rollback failed; original data retained at {backup}"
+            ) from recovery_error
+        raise

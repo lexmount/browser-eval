@@ -239,10 +239,10 @@ def main():
         from harness.web_fetch.scoring_revision import revise
         assert not DEFAULT_REGISTRY.is_relative_to(args.source_root.resolve())
         assert load_scoring_regressions()
-        for module in ('rescoring', 'scoring_revision'):
+        for module in ('rescoring', 'scoring_revision', 'reference_revision'):
             subprocess.run([sys.executable, '-m', 'harness.web_fetch.' + module, '--help'],
                            check=True, cwd=root, capture_output=True, text=True)
-        for script in ('rescore_content.py', 'revise_body_scoring.py'):
+        for script in ('rescore_content.py', 'revise_body_scoring.py', 'revise_reference_evidence.py'):
             subprocess.run([sys.executable, str(args.source_root / 'scripts' / script), '--help'],
                            check=True, cwd=root, capture_output=True, text=True)
         rescore(root / 'cohort')
@@ -257,6 +257,23 @@ def main():
         assert revised['metrics'] == cohort[0]['metrics']
         assert revised['attempt_id'] == cohort[0]['attempt_id']
         cohort = [revised]
+        from harness.web_fetch.reference_revision import revise as revise_reference
+        canonical_reference = root / 'canonical-reference.json'
+        document = json.loads((root / 'cohort/dataset.json').read_bytes())
+        document['cases'][0]['ground_truth_evidence'] = {'kind': 'synthetic_installation_control'}
+        canonical_reference.write_text(json.dumps(document))
+        before_reference = (root / 'cohort/results.jsonl').read_bytes()
+        reference_receipt = revise_reference(
+            root / 'cohort', canonical_reference,
+            root_cause_category='reference-evidence',
+            root_cause='Independent installation control records corrected reference attribution.',
+            regression_ids=['reference-scope-retains-main-content'],
+        )
+        assert reference_receipt['provider_calls'] == 0
+        assert reference_receipt['task_decision_changes'] == []
+        assert (root / 'cohort/results.jsonl').read_bytes() == before_reference
+        predecessor, = root.glob('.cohort-reference-history-*/original')
+        assert (predecessor / 'results.jsonl').read_bytes() == before_reference
         from harness.web_fetch.artifacts import artifact_bindings
         from harness.web_fetch.assembly import assemble
         for directory in ('sources', 'list-references'):

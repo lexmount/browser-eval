@@ -27,7 +27,13 @@ from .reference_lifecycle import (
     reference_cases,
     require_verified_reference_checks,
 )
-from .safety import contained_path, reject_evidence_symlinks, safe_identifier, validate_report_ids
+from .safety import (
+    commit_staged_evidence,
+    contained_path,
+    reject_evidence_symlinks,
+    safe_identifier,
+    validate_report_ids,
+)
 
 
 def add_provider_run(canonical: Path, incoming: Path, provider: str, implementation=None, *, track=None):
@@ -133,12 +139,7 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
         require_verified_reference_checks(execution['batches'], cases=dataset,
                                           records=existing + records, source=staging)
         swap = Path(tempfile.mkdtemp(prefix=".evidence-swap-", dir=canonical.parent))
-        canonical.rename(swap / "original")
-        try:
-            staging.rename(canonical)
-        except BaseException:
-            (swap / "original").rename(canonical)
-            raise
+        commit_staged_evidence(canonical, staging, swap / "original")
         shutil.rmtree(swap)
         return len(records)
     finally:
