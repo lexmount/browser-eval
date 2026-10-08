@@ -1,6 +1,8 @@
 """Track-independent semantic checks for comparison cells and result evidence UI."""
 import math
 from collections import defaultdict
+from html.parser import HTMLParser
+
 from bs4 import BeautifulSoup
 
 
@@ -48,3 +50,29 @@ def check_presentation(html):
             if detail.select_one('[data-failure-diagnosis]') is None or detail.select_one('#result-logs pre[data-kind="error"], #result-logs [data-log-unavailable]') is None:
                 raise ValueError('Failed result lacks diagnosis or exact error evidence')
     return soup
+
+
+class _VisibleTextParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.hidden_depth = 0
+        self.parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() in {"script", "style", "pre", "code"}:
+            self.hidden_depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() in {"script", "style", "pre", "code"} and self.hidden_depth:
+            self.hidden_depth -= 1
+
+    def handle_data(self, data: str) -> None:
+        if not self.hidden_depth:
+            self.parts.append(data)
+
+
+def visible_text(html: str) -> str:
+    """Extract authored prose, excluding scripts, styles and verbatim evidence blocks."""
+    parser = _VisibleTextParser()
+    parser.feed(html)
+    return " ".join(parser.parts)

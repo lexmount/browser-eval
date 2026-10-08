@@ -34,8 +34,7 @@ from harness.trajectory_replay.webarena_report import (
     build_webarena_replay_report,
     require_all_reference_validity,
 )
-from scripts.build_webarena_replay_report import _bound_dataset_path
-from scripts.check_webarena_replay_report import (
+from harness.trajectory_replay.webarena_report_check import (
     _check_affected36_comparison,
     _check_core_comparison,
     _check_english_localization,
@@ -45,9 +44,10 @@ from scripts.check_webarena_replay_report import (
     _contains_local_path_outside_web_url,
     _semantic_page_inventory,
 )
-from scripts.check_webarena_replay_report import (
+from harness.trajectory_replay.webarena_report_check import (
     check as check_report,
 )
+from scripts.build_webarena_replay_report import _bound_dataset_path
 
 
 def test_report_build_requires_hash_bound_corrected_dataset(tmp_path: Path) -> None:
@@ -189,6 +189,21 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
         check_report(output)
     environment_path.write_text(original_environment)
     assert not (output / "diagnostics.html").exists()
+    assert check_report(output)["html_pages"] == 20 + 2 * extra_methods
+    # Byte-identical links must not bypass the publication boundary.
+    linked_report = tmp_path / "linked-report"
+    linked_report.symlink_to(output, target_is_directory=True)
+    with pytest.raises(ValueError, match="[Ss]ymlink"):
+        check_report(linked_report)
+    for relative in ("index.html", "report-manifest.json"):
+        artifact = output / relative
+        retained = tmp_path / (artifact.name + ".retained")
+        artifact.rename(retained)
+        artifact.symlink_to(retained)
+        with pytest.raises(ValueError, match="[Ss]ymlink"):
+            check_report(output)
+        artifact.unlink()
+        retained.rename(artifact)
     assert check_report(output)["html_pages"] == 20 + 2 * extra_methods
     home = output / "index.html"
     original_home = home.read_text()

@@ -11,14 +11,13 @@ from pathlib import Path
 
 from harness.trajectory_replay.report_compaction import validate_compact_report
 from harness.trajectory_replay.webarena_report import require_all_reference_validity
+from harness.trajectory_replay.webarena_report_check import check as check_report
 
 if __package__:
     from scripts.build_webarena_replay_report import _bound_dataset_path
-    from scripts.check_webarena_replay_report import check as check_report
     from scripts.check_webarena_replay_visual import check as check_visual
 else:
     from build_webarena_replay_report import _bound_dataset_path
-    from check_webarena_replay_report import check as check_report
     from check_webarena_replay_visual import check as check_visual
 
 PROFILE = Path("evaluation/trajectory-replay/webarena-verified/current-run.json")

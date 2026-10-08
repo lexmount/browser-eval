@@ -9,12 +9,12 @@ import json
 import zipfile
 from pathlib import Path
 
+from harness.browser_use.report_check import check
+
 if __package__:
-    from scripts.check_browser_use_report import check
-    from scripts.check_browser_use_visual import check as check_visual
     from harness.reporting.links import check as check_links
+    from scripts.check_browser_use_visual import check as check_visual
 else:  # Direct execution adds scripts/, not the repository root.
-    from check_browser_use_report import check
     from check_browser_use_visual import check as check_visual
     from check_report_links import check as check_links
 

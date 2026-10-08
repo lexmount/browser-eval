@@ -17,6 +17,7 @@ from typing import Any
 from urllib.parse import urlencode, urlsplit
 
 from harness.record_io import load_jsonl
+from harness.reporting.privacy import LOCAL_PATH_RE, WEB_URL_RE
 from harness.trajectory_replay.catalog_contracts import (
     LEGACY_CATALOG_CONTRACTS_SCHEMA,
     LEGACY_CATALOG_REPORT_SCHEMA,
@@ -39,9 +40,6 @@ from harness.trajectory_replay.webarena_review import (
     load_validated_failure_review,
     programmatic_failure,
 )
-
-LOCAL_PATH_RE = re.compile(r"/(?:Users|home|root|private|tmp|var|opt)/[^\s\"']+")
-WEB_URL_RE = re.compile(r"https?://[^\s\"']+")
 
 # This notice describes one retained historical cohort, not trajectory replay in
 # general.  Keying all three immutable inputs prevents a future requalified run

@@ -8,7 +8,10 @@ from bs4 import BeautifulSoup
 
 from harness.trajectory_replay.interpretation import render_interpretation, standalone_document
 from harness.trajectory_replay.webarena_report import _add_interpretation_navigation, _shell
-from scripts.check_webarena_replay_report import _check_interpretation, _text_without_verified_embedded_images
+from harness.trajectory_replay.webarena_report_check import (
+    _check_interpretation,
+    _text_without_verified_embedded_images,
+)
 
 
 def test_interpretation_is_reachable_from_summary_and_nested_evidence(tmp_path):

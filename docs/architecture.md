@@ -259,6 +259,17 @@ pages; a missing configuration does not authorize an unmeasured comparison.
 
 ## Browser trajectory replay ownership
 
+`harness/browser_use/report_check.py` and
+`harness/trajectory_replay/webarena_report_check.py` own their report integrity
+and semantic checks; command files and packaging call these same owners.
+Both reject linked report trees before reading artifacts. Browser Use additionally
+rejects linked source evidence and accepts `--authority-root` for its repository
+profile, default selection, bound failure-cause review and remediation inventory.
+An installed checker requires that explicit authority; it does not search the
+working directory for another profile. Replay validation reads the public
+bundle's own manifest and evidence. These checks neither run browsers nor change
+measured results.
+
 Both browser tracks use `harness/environments/webarena/runtime.py` for site preparation, execution locks, login and viewport contracts, and `harness/environments/webarena/har.py` for network evidence. These modules do not import either track’s Agent or replay runner. Track runners own orchestration and verdicts.
 
 `harness/environments/browser.py` owns container launch and CDP readiness. Callers select the image, port and resource limits explicitly. Resource sampling comes directly from `harness/resource_accounting.py`. The isolated public WebArena replay retains its own evaluator-compatible, redacted network recording contract under `harness/trajectory_replay/public_webarena/har.py`.

@@ -111,7 +111,7 @@ def test_matrix_rejects_ambiguous_populations(rows, message):
 
 @pytest.mark.parametrize("mutation", ["missing", "wrong-count", "wrong-target", "missing-cell", "wrong-total"])
 def test_release_gate_rejects_broken_matrix(mutation):
-    from scripts.check_webarena_replay_report import _check_failure_matrix
+    from harness.trajectory_replay.webarena_report_check import _check_failure_matrix
 
     rows = [_row("one", 1, "zero_area_target_geometry")]
     page = failure_category_matrix({"one": {"label": "One"}}, rows, "en") + '<div id="result-inventory"></div>'

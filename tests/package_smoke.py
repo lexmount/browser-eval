@@ -559,6 +559,53 @@ def verify_adjudication_commands(root: Path, source_root: Path) -> None:
         assert candidate.tool_calls[-1]['selector'] == 'main h1'
 
 
+
+def verify_browser_report_checks(root: Path, source_root: Path) -> None:
+    """Invoke installed checkers through their public commands outside the checkout."""
+    report = root / 'linked-report-source'
+    report.mkdir()
+    linked = root / 'linked-report'
+    linked.symlink_to(report, target_is_directory=True)
+    commands = [
+        ('check_webarena_replay_report.py', [str(linked)]),
+        ('check_browser_use_report.py', [str(linked), '--evidence', str(root)]),
+    ]
+    for command, arguments in commands:
+        entry = str(source_root / 'scripts' / command)
+        subprocess.run([sys.executable, entry, '--help'], check=True,
+                       cwd=root, stdout=subprocess.DEVNULL)
+        rejected = subprocess.run([sys.executable, entry, *arguments], cwd=root,
+                                  capture_output=True, text=True)
+        assert rejected.returncode != 0 and 'symlink' in rejected.stderr.lower(), rejected.stderr
+    entry = str(source_root / 'scripts/check_browser_use_report.py')
+    missing = subprocess.run([
+        sys.executable, entry, str(report), '--evidence', str(report),
+        '--authority-root', str(root),
+    ], cwd=root, capture_output=True, text=True)
+    assert missing.returncode != 0 and '--authority-root' in missing.stderr, missing.stderr
+    authority = root / 'authority'
+    profile = authority / 'evaluation/browser-use/current-report.json'
+    profile.parent.mkdir(parents=True)
+    profile.write_text(json.dumps({
+        'schema': 'lex_browser_use_current_report/2',
+        'engines': ['fixture'], 'engine_labels': {'fixture': 'Fixture'},
+        'models': ['fixture'], 'model_labels': {'fixture': 'Fixture'},
+        'baseline_engine': 'fixture',
+    }))
+    implicit = subprocess.run([
+        sys.executable, entry, str(report), '--evidence', str(report),
+    ], cwd=authority, capture_output=True, text=True)
+    assert implicit.returncode != 0 and '--authority-root' in implicit.stderr, implicit.stderr
+    (report / 'manifest.json').write_text(json.dumps({'protocol': {'model': 'fixture'}}))
+    (report / 'attempts.jsonl').write_text('')
+    configured = subprocess.run([
+        sys.executable, entry, str(report), '--evidence', str(report),
+        '--authority-root', str(authority),
+    ], cwd=root, capture_output=True, text=True)
+    expected_selection = authority / 'evaluation/browser-use/webarena-verified-pilot.json'
+    assert configured.returncode != 0 and str(expected_selection) in configured.stderr, configured.stderr
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -597,6 +644,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
+        verify_browser_report_checks(root, args.source_root)
         verify_release_check_helpers(root, args.source_root)
         verify_teds_revision(root, args.source_root, with_writer=args.webmainbench)
         verify_lexbench_package(root, args.source_root / 'scripts/moli_report/app.js')

@@ -21,14 +21,14 @@ from harness.browser_use.report import (
     _verification_html,
     build_report,
 )
-from harness.browser_use.report_i18n import localize_html
-from harness.browser_use.selection import load_pilot
-from scripts.check_browser_use_report import (
+from harness.browser_use.report_check import (
     FORBIDDEN_READER_TERMS,
     _check_execution_artifacts,
     _check_public_privacy,
     _check_reader_facing_ux,
 )
+from harness.browser_use.report_i18n import localize_html
+from harness.browser_use.selection import load_pilot
 
 
 def _fix_log_fixture(tmp_path: Path) -> tuple[dict, dict]:
@@ -636,12 +636,14 @@ def test_failure_scope_summary_does_not_merge_browser_evidence_into_agent() -> N
 
 
 def test_trace_screenshot_labels_count_only_publishable_frames(tmp_path: Path) -> None:
+    from PIL import Image
+
     trace = tmp_path / "trace.zip"
     image_payloads = {}
     frames = (("large-a", (1280, 720)), ("small", (320, 200)), ("large-b", (1280, 720)))
     for sha1, size in frames:
         buffer = report_module.BytesIO()
-        report_module.Image.new("RGB", size, "white").save(buffer, format="JPEG")
+        Image.new("RGB", size, "white").save(buffer, format="JPEG")
         image_payloads[sha1] = buffer.getvalue()
     events = b"\n".join(
         json.dumps({"type": "screencast-frame", "sha1": sha1, "timestamp": index}).encode()
