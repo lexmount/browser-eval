@@ -176,14 +176,19 @@ class RuntimeEntrypointTests(unittest.TestCase):
 
     def test_dsh_worker_uses_execution_result_contract_and_fails_non_2xx(self) -> None:
         worker = (ROOT / 'scripts/oss/dsh_webfetch_worker.mts').read_text()
-        self.assertNotIn('out.output', worker)
-        self.assertIn('out.meta', worker)
-        self.assertIn('out.value', worker)
-        self.assertIn('statusCode < 200 || statusCode >= 300', worker)
-        self.assertIn('missingStatus ? "invalid_response"', worker)
-        self.assertNotIn('meta.url ?? request.url', worker)
+        helper = (ROOT / 'scripts/oss/dsh_output.mjs').read_text()
+        self.assertIn('projectDeclaredFetch(out)', worker)
+        self.assertNotIn('out.output', helper)
+        self.assertIn('out.meta', helper)
+        self.assertIn('out.value', helper)
+        self.assertIn('body.content', helper)
+        self.assertIn('statusCode < 200 || statusCode >= 300', helper)
+        self.assertIn('missingStatus ? "invalid_response"', helper)
+        self.assertNotIn('meta.url ?? request.url', helper)
         self.assertNotIn('final_url: request.url', worker)
-        self.assertNotIn('error?.stack', worker)
+        # A captured stderr traceback is useful; it must not replace the answer.
+        self.assertNotIn('content: error?.stack', worker)
+        self.assertIn('debug("native_tool_error"', worker)
 
     def test_openclaw_worker_does_not_publish_exception_stacks(self) -> None:
         worker = (ROOT / 'scripts/oss/openclaw_webfetch_worker.mts').read_text()

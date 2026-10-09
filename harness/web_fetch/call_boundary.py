@@ -5,6 +5,7 @@ import threading
 import time
 
 from .models import ProviderResult
+from .diagnostics import diagnostic_context, emit
 from .response_input import answer_input
 
 
@@ -47,8 +48,15 @@ def fetch_with_deadline(provider, case, timeout):
     begin = time.perf_counter()
     def work():
         try:
-            value = prepare_answer(provider.fetch(case, timeout), case)
+            with diagnostic_context(getattr(provider, "_call_diagnostics", None)):
+                emit("provider_invoked", url=case.url, timeout_seconds=timeout)
+                fetched = provider.fetch(case, timeout)
+                emit("provider_returned", ok=fetched.ok, content_chars=len(fetched.content))
+                value = prepare_answer(fetched, case)
+                emit("answer_prepared", content_chars=len(value.prepared_answer[0]))
         except Exception as error:
+            sink=getattr(provider, "_call_diagnostics", None)
+            if sink: sink.emit("caller", "provider_exception", type=type(error).__name__, message=str(error))
             value = error
         output.put((time.perf_counter(), value))
     worker = threading.Thread(target=work, daemon=True, name='webfetch-answer')

@@ -75,7 +75,7 @@ def test_lexmount_dynamic_uses_all_in_one_extract_with_domstable_engine(mock_req
             },
         }
     }
-    assert mock_request.call_args.kwargs["timeout"] == 40.5
+    assert mock_request.call_args.kwargs["timeout"] == 45.0
     assert result.ok is True
     assert result.content == "Example rendered rows"
     assert result.metadata["route"] == "v1_extract_dynamic"
@@ -107,8 +107,8 @@ def test_lexmount_dynamic_timeout_is_capped_by_client_deadline(mock_request):
     ).fetch(dynamic_case(timeout_ms=60_000), 12.5)
 
     extract = mock_request.call_args.kwargs["json_body"]["extract"]
-    assert extract["options"]["timeout_ms"] == 11_250
-    assert result.metadata["wait"]["timeout_ms"] == 11_250
+    assert extract["options"]["timeout_ms"] == 12_500
+    assert result.metadata["wait"]["timeout_ms"] == 12_500
 
 
 @patch("harness.web_fetch.providers.lexmount.request")
@@ -167,8 +167,8 @@ def test_cloudflare_maps_networkidle_and_caps_provider_timeout(mock_request):
         case, 12.5
     )
     body = mock_request.call_args.kwargs["json_body"]
-    assert body["gotoOptions"] == {"waitUntil": "networkidle2", "timeout": 11_250}
-    assert body["actionTimeout"] == 11_250
+    assert body["gotoOptions"] == {"waitUntil": "networkidle2", "timeout": 12_500}
+    assert body["actionTimeout"] == 12_500
 
 
 @patch("harness.web_fetch.providers.cloudflare.request")
@@ -179,12 +179,12 @@ def test_cloudflare_caps_declared_completion_at_actual_inner_http_cutoff(mock_re
     ).fetch(dynamic_case(timeout_ms=60_000), 45)
 
     body = mock_request.call_args.kwargs["json_body"]
-    assert mock_request.call_args.kwargs["timeout"] == 40.5
-    assert body["gotoOptions"]["timeout"] == 40_500
-    assert body["actionTimeout"] == 40_500
-    assert body["waitForSelector"]["timeout"] == 40_500
-    assert result.metadata["wait"]["timeout_ms"] == 40_500
-    assert result.metadata["wait"]["client_http_timeout_ms"] == 40_500
+    assert mock_request.call_args.kwargs["timeout"] == 45.0
+    assert body["gotoOptions"]["timeout"] == 45_000
+    assert body["actionTimeout"] == 45_000
+    assert body["waitForSelector"]["timeout"] == 45_000
+    assert result.metadata["wait"]["timeout_ms"] == 45_000
+    assert result.metadata["wait"]["client_http_timeout_ms"] == 45_000
 
 
 @patch("harness.web_fetch.providers.firecrawl.request")
@@ -303,10 +303,10 @@ def test_firecrawl_wait_for_delay_is_bounded_by_inner_deadline(mock_request):
     ).fetch(dynamic_case(timeout_ms=30_000, delay_ms=10_000), 2)
 
     body = mock_request.call_args.kwargs["json_body"]
-    assert mock_request.call_args.kwargs["timeout"] == 1.0
-    assert body["timeout"] == 1000
-    assert body["waitFor"] == 999
-    assert result.metadata["wait"]["delay_ms"] == 999
+    assert mock_request.call_args.kwargs["timeout"] == 2.0
+    assert body["timeout"] == 2000
+    assert body["waitFor"] == 1999
+    assert result.metadata["wait"]["delay_ms"] == 1999
     assert result.metadata["wait"]["requested_delay_ms"] == 10_000
 
 
@@ -372,7 +372,7 @@ def test_firecrawl_does_not_claim_rejected_actions_were_enforced(mock_request):
 
 
 @patch("harness.web_fetch.providers.firecrawl.request")
-def test_firecrawl_server_timeout_never_exceeds_reserved_http_deadline(mock_request):
+def test_firecrawl_server_timeout_never_exceeds_shared_http_deadline(mock_request):
     mock_request.return_value = HttpResponse(
         200, "u", {}, b'{"success":true,"data":{"markdown":"Example"}}'
     )
@@ -380,8 +380,8 @@ def test_firecrawl_server_timeout_never_exceeds_reserved_http_deadline(mock_requ
         dynamic_case(timeout_ms=60_000), 45
     )
 
-    assert mock_request.call_args.kwargs["timeout"] == 40.5
-    assert mock_request.call_args.kwargs["json_body"]["timeout"] == 40_500
+    assert mock_request.call_args.kwargs["timeout"] == 45.0
+    assert mock_request.call_args.kwargs["json_body"]["timeout"] == 45_000
 
 
 @patch("harness.web_fetch.providers.firecrawl.request")

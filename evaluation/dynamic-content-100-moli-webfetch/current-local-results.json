@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "comparison_kind": "uniform_native_local_measurement",
+  "publication_state": "local_audit_only_not_for_release",
+  "case_count": 100,
+  "result_count": 1000,
+  "providers": [
+    "cloudflare-markdown",
+    "cowagent-built-in",
+    "crawl4ai",
+    "deepseek-harness-built-in",
+    "exa",
+    "firecrawl",
+    "langchain-webbase",
+    "moli-webfetch",
+    "openclaw-built-in",
+    "tavily"
+  ],
+  "moli_version": "1.1.15",
+  "results_sha256": "43e50a24319045de8a3dc3490f42f6d63b406ec6d9059c39c1898672b404befd",
+  "frozen_dataset_sha256": "e3929e4783f9d831dfeed7cd0cc764ccf3f4375c0bfe7c800a564dfe94226a93",
+  "measured_scoring_source_sha256": "36eb6897e0f8a837666506eac63c0ca56b8a8fd771f8ef587a50272c310ea90a",
+  "measured_scoring_git_revision": "e3b93f7ca830594fa0921cd8c6c158d690f6868e",
+  "evidence_binding": "BROWSER_EVAL_DATA_HOME/runs/dynamic-100-fixed-native-20261009/current-local-report.json",
+  "source_reverified": false,
+  "review_scope": "caller and saved evidence review; passing results are not independently blind reviewed",
+  "frozen_case_definition_git_revision": "e3b93f7ca830594fa0921cd8c6c158d690f6868e",
+  "canonical_case_file_sha256": "57a138d2c79c9f107124cad3997a7350aa33e40cee3ac1137c5d627f1db098ce",
+  "publication": {
+    "kind": "user_requested_shared_diagnostic_snapshot",
+    "base_url": "https://artifact-site.lexmount.cn",
+    "slug": "Z-u5zFVCzQtR",
+    "share_url": "https://artifact-site.lexmount.cn/v/1ANxNR7tF-pzFTX0oTD0htODuZQ65LQk",
+    "version_id": "ver_80e52686ca384257b5408eb9c12e9e92",
+    "archive_sha256": "6cd91da352e3d7bbb673fa73841f856471613b79d0d404abf924898c989b0caf",
+    "results_sha256": "43e50a24319045de8a3dc3490f42f6d63b406ec6d9059c39c1898672b404befd",
+    "certified": false,
+    "previous_version_id": "ver_a0c30956aaa949deb0f0efed49564dd0",
+    "baseline_archive_sha256": "e3676e15e4fff6d6a207231480db15cdb0e006d8b36cccbc3cf14d0b7b245169",
+    "archive_binding": "BROWSER_EVAL_DATA_HOME/runs/dynamic-100-fixed-native-20261009/artifact-site-presentation-updated.zip",
+    "manifest_sha256": "3bf4c40cd4f9fc0ad9185b479c37fb513523aa8af4cceffbe0c692151adfc52c",
+    "incremental_update": {
+      "physical_files": [
+        "loader.js",
+        "manifest.json"
+      ],
+      "uploaded_bytes": 10367701,
+      "unchanged_content_packs": 460,
+      "provider_calls_added": 0,
+      "scores_changed": false
+    }
+  }
+}

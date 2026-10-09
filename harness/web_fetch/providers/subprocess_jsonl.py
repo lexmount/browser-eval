@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import hashlib
 import os
 import queue
 import subprocess
@@ -11,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from ..models import EvalCase, ProviderResult
-from ..retrieval_hints import plan_for_case
+from ..retrieval_hints import plan_for_case, native_default_case
 from .base import Provider
 from .runtime_identity import validate_runtime_identity
 
@@ -37,6 +38,7 @@ class SubprocessJsonlProvider(Provider):
                 "{repo_path}/packages/web/web-fetch-http/src/provider.ts",
                 "{repo_path}/pnpm-lock.yaml",
                 "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
+                "{harness_root}/scripts/oss/dsh_output.mjs",
                 "{harness_root}/scripts/oss/dsh_webfetch_worker.mts",
             },
         },
@@ -65,7 +67,20 @@ class SubprocessJsonlProvider(Provider):
     def validate(self) -> list[str]:
         if hasattr(self, "_implementation_identity"):
             del self._implementation_identity
+        from ..network_dns import validate_dns_mode
+        try:
+            mode = validate_dns_mode(self.config.get("dns_mode", "system"))
+        except ValueError as error:
+            return [str(error)]
+        if mode == "public_doh" and self.type not in {"openclaw_builtin", "deepseek_harness_builtin", "langchain_webbase", "crawl4ai"}:
+            return ["public_doh is not supported by this worker"]
         missing, identity = validate_runtime_identity(self.config, self._resolve_token)
+        if mode == "public_doh":
+            required = {"{harness_root}/harness/web_fetch/network_dns.py"} if self.type in {"langchain_webbase", "crawl4ai"} else {"{harness_root}/scripts/oss/public_dns.mjs"}
+            if self.type == "deepseek_harness_builtin":
+                required.add("{repo_path}/packages/web/web-fetch-http/src/network.ts")
+            if not required.issubset(set(self.config.get("required_paths", []))):
+                missing.append("locked public DNS helper paths")
         locked = self._LOCKED_RUNTIMES.get(self.type)
         if locked:
             if self.config.get("expected_repo_revision") != locked["revision"]:
@@ -91,7 +106,11 @@ class SubprocessJsonlProvider(Provider):
         command = [self._resolve_token(part) for part in self.config["command"]]
         env = os.environ.copy()
         env.update({str(k): self._resolve_token(v) for k, v in self.config.get("env", {}).items()})
+        if self.config.get("log_level") == "debug": env["BROWSER_EVAL_LOG_LEVEL"] = "debug"
+        env["BROWSER_EVAL_HARNESS_ROOT"] = str(Path(__file__).resolve().parents[3])
         cwd = str(Path(str(self.config.get("repo_path", "."))).expanduser().resolve())
+        sink = getattr(self, "_active_diagnostics", None)
+        if sink: sink.emit("caller", "worker_start", command=command, cwd=cwd)
         self._process = subprocess.Popen(
             command,
             cwd=cwd,
@@ -116,12 +135,16 @@ class SubprocessJsonlProvider(Provider):
     def _drain_stdout(self, process: subprocess.Popen[str]) -> None:
         assert process.stdout is not None
         for line in process.stdout:
+            sink = getattr(self, "_active_diagnostics", None)
+            if sink: sink.emit("native_process_stdout", "stream_line", text=line)
             self._stdout_queue.put(line)
         self._stdout_queue.put(None)
 
     def _drain_stderr(self, process: subprocess.Popen[str]) -> None:
         assert process.stderr is not None
         for line in process.stderr:
+            sink = getattr(self, "_active_diagnostics", None)
+            if sink: sink.emit("native_process_stderr", "stream_line", text=line)
             size = len(line.encode("utf-8", "replace"))
             limit = max(1, int(self.config.get("max_bytes", 20_000_000)))
             with self._stderr_lock:
@@ -165,6 +188,7 @@ class SubprocessJsonlProvider(Provider):
         }
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        self.check_native_call(case)
         answer_begin = time.perf_counter()
         try:
             retrieval_plan = plan_for_case(case)
@@ -176,16 +200,24 @@ class SubprocessJsonlProvider(Provider):
                 error_message=str(error),
             )
         deadline = time.monotonic() + timeout
+        self._active_diagnostics = getattr(self, "_call_diagnostics", None)
         process = self._start()
         assert process.stdin is not None and process.stdout is not None
         stderr_cursor = self._stderr_cursor()
         request = {
             "url": case.url,
+            "log_level": self.config.get("log_level"),
+            "diagnostic_path": str(self._active_diagnostics.path) if self._active_diagnostics else None,
             "timeout_seconds": timeout,
+            "uniform_native_parameters": bool(self.config.get("uniform_native_parameters")),
+            "max_bytes": int(self.config.get("max_bytes", 20_000_000)),
+            "dns_mode": self.config.get("dns_mode", "system"),
             "task_kind": case.task_kind,
             "track": case.track,
             "retrieval_plan": retrieval_plan.worker_dict() if retrieval_plan else None,
+            "retrieval_mode": "native_default" if native_default_case(case) else "declared_plan",
         }
+        if self._active_diagnostics: self._active_diagnostics.emit("caller", "worker_request_sent", request=request)
         process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
         process.stdin.flush()
 
@@ -264,6 +296,15 @@ class SubprocessJsonlProvider(Provider):
             error_message=None if ok else str(payload.get("error_message") or "worker failed"),
             metadata={
                 **dict(payload.get("metadata") or {}),
+                "_raw_response_b64": base64.b64encode(line.encode("utf-8")).decode("ascii"),
+                "raw_response_sha256": hashlib.sha256(line.encode("utf-8")).hexdigest(),
+                "raw_response_bytes": len(line.encode("utf-8")),
+                "request_summary": {
+                    **dict((payload.get("metadata") or {}).get("request_summary") or {}),
+                    "caller_timeout_seconds": request["timeout_seconds"],
+                    "caller_max_bytes": request["max_bytes"],
+                    "caller_dns_mode": request["dns_mode"],
+                },
                 "_answer_elapsed_ms": round((time.perf_counter() - answer_begin) * 1000, 2),
                 **self._request_stderr(stderr_cursor),
                 "stdout": "".join(worker_logs),

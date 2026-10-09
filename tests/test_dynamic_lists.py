@@ -212,6 +212,16 @@ class DynamicListTests(unittest.TestCase):
         text = "Watch " + ", or ".join(f"[Title {i}](/item/{i})" for i in range(3)) + "."
         self.assertFalse(self.check(text)["structure_pass"])
 
+    def test_plus_bullets_and_adjacent_multiline_cards_are_lists(self):
+        bullets = "\n".join(f"  + [Title {i}](/item/{i})" for i in range(3))
+        cards = " ".join(f"[Title {i}\nDetails](/item/{i})" for i in range(3))
+        for text in (bullets, cards):
+            with self.subTest(text=text):
+                self.assertTrue(self.check(text)["structure_pass"])
+                self.assertEqual(self.check(text)["named_entry_count"], 3)
+        prose = " + consider ".join(f"[Title {i}\nDetails](/item/{i})" for i in range(3))
+        self.assertFalse(self.check(prose)["structure_pass"])
+
     def test_preserve_access_query_and_scheme(self):
         entries = extract_named_entries(
             "[A title](/item/1?access_token=required&source=feed)",

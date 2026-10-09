@@ -503,12 +503,17 @@ class NativeFileWorkerTests(unittest.TestCase):
                 return SimpleNamespace(
                     success=True,
                     markdown=SimpleNamespace(raw_markdown="ready"),
+                    redirected_url="https://example.com/final",
+                    redirected_status_code=200,
+                    model_dump=lambda **kwargs: {"html": "<main>ready</main>",
+                                                  "markdown": {"raw_markdown": "ready"},
+                                                  "success": True},
                     downloaded_files=[],
                     status_code=200,
                     url=url,
                     error_message="",
                     media={"images": [], "videos": [], "audios": []},
-                    links={"internal": [], "external": []},
+                    links={"internal": [{"href": "https://example.com/record", "text": "Native record"}], "external": []},
                 )
 
         worker = self.load_worker(object, web_crawler=WebCrawler)
@@ -545,6 +550,13 @@ class NativeFileWorkerTests(unittest.TestCase):
         self.assertEqual(config.page_timeout, 30000)
         self.assertEqual(config.delay_before_return_html, 0.25)
         payload = json.loads(output.getvalue())
+        self.assertEqual(payload["final_url"], "https://example.com/final")
+        self.assertEqual(payload["status_code"], 200)
+        from harness.web_fetch.response_input import answer_input
+        _, native_links, _, _ = answer_input(payload["content"].encode(), payload["metadata"])
+        self.assertEqual(native_links, [{"title": "Native record", "url": "https://example.com/record"}])
+        self.assertEqual(payload["raw_tool_response"]["html"], "<main>ready</main>")
+        self.assertEqual(payload["raw_tool_response"]["markdown"]["raw_markdown"], payload["content"])
         self.assertEqual(
             payload["metadata"]["completion"],
             {
@@ -638,3 +650,14 @@ class NativeFileWorkerTests(unittest.TestCase):
         self.assertEqual(payload["error_type"], "TimeoutError")
         self.assertEqual(payload["metadata"]["completion"]["strategy"], "css_selector")
         self.assertEqual(payload["metadata"]["completion"]["effective_route_timeout_ms"], 10)
+
+
+def test_native_default_worker_has_no_generated_wait_or_extraction():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("native_crawl_worker", Path("scripts/oss/crawl4ai_worker.py"))
+    worker = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(worker)
+    request = {"track": "dynamic", "retrieval_plan": None, "retrieval_mode": "native_default"}
+    completion, _ = worker.dynamic_completion_config(request)
+    extraction, _ = worker.dynamic_extraction_config(request)
+    assert completion == extraction == {}

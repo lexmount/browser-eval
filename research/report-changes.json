@@ -1276,6 +1276,61 @@
   ],
   "releases": [
     {
+      "id": "2026-10-09-dynamic-1000-native-presentation",
+      "date": "2026-10-09",
+      "comparison_kinds": [
+        "uniform_native_local_measurement"
+      ],
+      "title": "补清 1000 次原生调用的配置与复现说明",
+      "summary": "十种方法的页面说明统一 45 秒外层期限与产品内部默认超时；接口示例展示同一次实测保存的请求和返回。报告说明、执行顺序及冻结评分版本得到补充，成绩与实测文件未变。",
+      "changes": [
+        [
+          "调用示例",
+          "通用示例容易被误认为本轮请求。",
+          "展示保存的真实请求字段与同次输出节选。",
+          "不修改实际请求、输出或判分。"
+        ],
+        [
+          "计时与执行",
+          "产品通用能力及方法间并行的说明不够贴合本轮批次。",
+          "明确每题一次、45 秒外层期限、内部默认计时和方法内部串行；方法间调度以保存批次为准。",
+          "1000 条结果与原有耗时保留。"
+        ],
+        [
+          "复现与更新",
+          "当前评分代码可能与历史成绩绑定的版本不同。",
+          "补充冻结评分提交与只更新说明的入口；线上复用原压缩证据，仅替换变化文件。",
+          "新增产品调用为零；仍为未认证的诊断报告，来源未重采集、通过结果未做独立盲审。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Clarify configuration and reproduction for 1,000 native calls",
+          "summary": "The ten method pages state the 45-second caller deadline and native internal timers. Interface examples use the saved request and response from the same measured call. Scores, timings and evidence are unchanged.",
+          "changes": [
+            [
+              "Call examples",
+              "Generic examples could be mistaken for the measured requests.",
+              "Show saved request fields and output excerpts from the same calls.",
+              "Requests, outputs and scores are unchanged."
+            ],
+            [
+              "Timing and execution",
+              "General product options and cross-method concurrency prose did not describe the saved batches precisely.",
+              "State one call per task, a 45-second caller deadline, native timers and serial calls within each method; use saved batches for cross-method scheduling.",
+              "Keep all 1,000 results and timings."
+            ],
+            [
+              "Reproduction and updates",
+              "The current scorer can differ from the revision bound to historical scores.",
+              "Document the frozen scoring revision and presentation-only refresh; reuse binary evidence packs for incremental publication.",
+              "Zero new provider calls; the snapshot remains diagnostic, without source recapture or independent blind review of passing results."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "webmainbench-545-pr919-721bd2e-authority-20261008",
       "date": "2026-10-08",
       "comparison_kinds": [

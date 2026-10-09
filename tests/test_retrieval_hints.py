@@ -231,3 +231,19 @@ def test_frame_complete_text_wait_checks_child_record_fields():
     assert "frame.contentDocument.querySelectorAll" in plan.wait_value
     assert "nodes.slice(0, 10).every" in plan.wait_value
     assert "innerText.split" in plan.wait_value
+
+
+def test_committed_native_100_dataset_loads_without_wait_or_extraction_overrides():
+    from harness.web_fetch.retrieval_hints import plan_for_case
+    raw, cases = load_dataset(Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json"))
+    assert len(cases) == 100
+    assert all(not c.retrieval_hints and plan_for_case(c) is None for c in cases)
+    assert all("retrieval_hints" not in c for c in raw["cases"])
+
+
+def test_native_default_contract_must_be_valid(tmp_path):
+    case = _case()
+    del case["retrieval_hints"]
+    case["acceptance_contract"] = {"version": 1, "schema": "unknown"}
+    with pytest.raises(ValueError):
+        load_dataset(_write_dataset(tmp_path, case))

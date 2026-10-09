@@ -159,3 +159,350 @@ def test_local_audit_requires_complete_inventory_and_review_lineage(tmp_path, mo
     _write(prior, {"reviewed": False})
     with pytest.raises(ValueError, match="inventory or hashes changed"):
         local_audit.require_local_audit(source, dataset, [record])
+
+
+def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp_path, monkeypatch):
+    from pathlib import Path
+    from harness.web_fetch.config import load_dataset
+    from harness.web_fetch.providers import build_provider
+    from harness.web_fetch.runner import run_evaluation
+    from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+    from harness.web_fetch.report_build import build_report
+    canonical = tmp_path / "repo/evaluation/dataset.json"
+    # Use a genuine committed contract to exercise the production scorer.
+    actual = json.loads(Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json").read_text())["cases"][0]
+    canonical_data = {"tool": "web_fetch", "cases": [actual]}
+    _write(canonical, canonical_data)
+    dataset = {**canonical_data, "id": "local-fixture", "name": "Local fixture",
+               "coverage_plan": {"dynamic": ["fixture"]},
+               "comparison": {"kind": "uniform_native_local_measurement",
+                   "publication_state": "local_audit_only_not_for_release",
+                   "source_reverified": False, "call_chain_audit": {"summary": "fixture"}}}
+    inputs = tmp_path / "inputs/dataset.json"
+    _write(inputs, dataset)
+    config = tmp_path / "inputs/providers.json"
+    _write(config, {"providers": {"fixture": {"type": "fixture"}}})
+    _, cases = load_dataset(inputs)
+    evidence = tmp_path / "evidence"
+    records, _ = run_evaluation(output_dir=evidence, dataset_meta=dataset,
+        dataset_path=inputs, cases=cases, providers=[build_provider("fixture", {"type": "fixture"})],
+        provider_config_path=config, runs=1, timeout=45, delay=0)
+    batch = json.loads((evidence / "manifest.json").read_text())
+    _write(evidence / "execution.json", {"batches": [batch]})
+    _write(evidence / "local-run-contract.json", {
+        "schema_version": 1, "kind": "uniform_native_local_measurement",
+        "dataset_path": "evaluation/dataset.json", "dataset_sha256": _digest(canonical),
+        "scoring_source_sha256": SCORING_SOURCE_SHA256, "providers": ["fixture"],
+        "runs": 1, "timeout_seconds": 45, "max_failure_retries": 0})
+    contract_path = evidence / "local-run-contract.json"
+    contract = json.loads(contract_path.read_text())
+    contract.update(provider_config_sha256=batch["provider_config_sha256"],
+                    runtime_source_sha256=batch["runtime_source_sha256"])
+    _write(contract_path, contract)
+    dataset["comparison"]["local_run_contract_sha256"] = _digest(contract_path)
+    _write(evidence / "dataset.json", dataset)
+    monkeypatch.setattr(local_audit, "ROOT", tmp_path / "repo")
+    assert local_audit.require_local_audit(evidence, dataset, records) is None
+    output = tmp_path / "report"
+    build_report(evidence, output, local_audit=True)
+    home = (output / "index.html").read_text()
+    assert "本地实测版" in home
+    assert "1 个案例 · 1 次调用，机器判分。" in home
+    assert "本轮未重新核验来源。" in home
+    assert "5案例小范围" not in home
+    guide = (output / "guide/index.html").read_text()
+    assert "比例只对应本报告列出的案例与配置" in guide
+    assert "小范围调用链测试" not in guide
+    assert "推算100题" not in guide
+    detail = (output / "attempts" / (records[0]["attempt_id"] + ".html")).read_text()
+    assert "运行日志与证据" in detail
+    assert not (output / "result-review.json").exists()
+    assert json.loads((output / "report-manifest.json").read_text())["certified"] is False
+    english_output = tmp_path / "report-bilingual"
+    build_report(evidence, english_output, local_audit=True, include_english=True)
+    assert json.loads((english_output / "report-manifest.json").read_text())["languages"] == ["zh", "en"]
+    assert (english_output / "en/index.html").is_file()
+    from harness.web_fetch import report_interfaces
+    from harness.web_fetch.artifacts import record_public_call_log_bindings
+    spec = report_interfaces.SPECS["langchain-webbase"]
+    monkeypatch.setattr(report_interfaces, "SPECS", {"fixture": spec})
+    interfaces = report_interfaces.render_interfaces(output, records)
+    assert "本轮保存的调用字段" in interfaces
+    saved = json.loads((output / record_public_call_log_bindings(records[0])[-1]["path"]).read_text())
+    rendered = json.loads((output / "adoption/interfaces/fixture.json").read_text())
+    assert rendered["interface"]["request"] == saved["request"]
+    assert rendered["interface"]["params"] == []
+    assert spec["params"]  # Rendering must not mutate registered examples.
+    from harness.web_fetch.report import provider_page_body
+    method_records = [{**records[0], "provider_type": "firecrawl"}]
+    method_cases = {actual["id"]: actual}
+    page = provider_page_body("firecrawl", method_records, method_cases, [], [], native_default=True)
+    assert "产品内部超时保留默认值" in page
+    assert "Actions" not in page
+    assert "Actions" in provider_page_body("firecrawl", method_records, method_cases, [], [])
+
+    # Explanatory edits of a historical snapshot must preserve every measured
+    # byte, even after the repository scorer has moved on.
+    from harness.web_fetch.report_build import refresh_local_presentation
+    binding_path = tmp_path / "presentation-binding.json"
+    frozen_rows = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+    historical_scorer = "f" * 64
+    for row in frozen_rows:
+        row["metrics"]["scoring_source_sha256"] = historical_scorer
+    (output / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in frozen_rows))
+    manifest = json.loads((output / "report-manifest.json").read_text())
+    manifest["results_sha256"] = _digest(output / "results.jsonl")
+    _write(output / "report-manifest.json", manifest)
+    binding = {"comparison_kind": "uniform_native_local_measurement",
+        "result_count": 1, "case_count": 1, "providers": ["fixture"],
+        "frozen_dataset_sha256": _digest(output / "dataset.json"),
+        "results_sha256": manifest["results_sha256"],
+        "measured_scoring_source_sha256": historical_scorer,
+        "measured_scoring_git_revision": "historical-revision"}
+    _write(binding_path, binding)
+    (output / "changes/index.html").write_text("<html><body>Old release history</body></html>")
+    before = {path.relative_to(output).as_posix(): _digest(path)
+              for path in output.rglob("*") if path.is_file()}
+    refresh_local_presentation(output, binding_path)
+    allowed = {"index.html", "methodology/index.html", "adoption/index.html",
+               "reproduce/index.html", "changes/index.html", "providers/fixture.html",
+               "adoption/interfaces/fixture.json", "report-manifest.json"}
+    for relative, digest in before.items():
+        if relative not in allowed:
+            assert _digest(output / relative) == digest
+    assert _digest(output / "results.jsonl") == binding["results_sha256"]
+    refreshed = json.loads((output / "report-manifest.json").read_text())
+    assert refreshed["certified"] is False
+    assert refreshed["presentation_refresh"]["scores_changed"] is False
+    assert "2026-10-09-dynamic-1000-native-presentation" in (output / "changes/index.html").read_text()
+    assert "changes/index.html" in refreshed["presentation_refresh"]["changed_routes"]
+    _write(binding_path, {**binding, "results_sha256": "0" * 64})
+    with pytest.raises(ValueError, match="input binding changed"):
+        refresh_local_presentation(output, binding_path)
+    _write(binding_path, binding)
+    artifact = output / frozen_rows[0]["artifact_path"]
+    original_output = artifact.read_bytes()
+    artifact.write_bytes(b"altered output")
+    with pytest.raises(ValueError, match="Saved output changed"):
+        refresh_local_presentation(output, binding_path)
+    artifact.write_bytes(original_output)
+
+    # Self-consistent totals must still identify the actual physical calls.
+    import copy
+    changed_batch = copy.deepcopy(batch)
+    changed_batch["attempt_ids"] = ["unrelated-call"]
+    _write(evidence / "execution.json", {"batches": [changed_batch]})
+    with pytest.raises(ValueError, match="execution calls"):
+        local_audit.require_local_audit(evidence, dataset, records)
+    _write(evidence / "execution.json", {"batches": [batch]})
+    changed_records = copy.deepcopy(records)
+    changed_records[0]["attempt_id"] = "other-call"
+    changed_batch = copy.deepcopy(batch)
+    changed_batch["attempt_ids"] = ["other-call"]
+    _write(evidence / "execution.json", {"batches": [changed_batch]})
+    with pytest.raises(ValueError, match="different result"):
+        local_audit.require_local_audit(evidence, dataset, changed_records)
+    _write(evidence / "execution.json", {"batches": [batch]})
+    changed_records = copy.deepcopy(records)
+    changed_records[0]["metrics"]["scoring_source_sha256"] = "stale"
+    with pytest.raises(ValueError, match="scoring implementation"):
+        local_audit.require_local_audit(evidence, dataset, changed_records)
+    artifact = evidence / records[0]["artifact_path"]
+    retained = artifact.with_suffix(".retained")
+    artifact.rename(retained)
+    artifact.symlink_to(retained.name)
+    with pytest.raises(ValueError, match="unsafe"):
+        local_audit.require_local_audit(evidence, dataset, records)
+    artifact.unlink()
+    retained.rename(artifact)
+    with pytest.raises(ValueError, match="incomplete"):
+        local_audit.require_local_audit(evidence, dataset, [])
+    changed = json.loads(json.dumps(dataset))
+    changed["cases"][0]["url"] = "https://other.test/"
+    with pytest.raises(ValueError, match="changed the committed cases"):
+        local_audit.require_local_audit(evidence, changed, records)
+
+
+def test_resumed_local_segments_reject_repeated_calls_and_policy_changes():
+    import copy
+    policy = {"provider_config_sha256": "a", "runtime_source_sha256": "b",
+              "parameters": {"timeout": 45}, "providers": [{"name": "test"}]}
+    first = {**policy, "attempt_ids": ["one"], "attempt_count": 1}
+    second = {**policy, "attempt_ids": ["two"], "attempt_count": 1}
+    batch = {**policy, "attempt_ids": ["one", "two"], "attempt_count": 2,
+             "segments": [first, second]}
+    local_audit._require_local_batch_segments(batch)
+    duplicate = copy.deepcopy(batch)
+    duplicate["segments"][1]["attempt_ids"] = ["one"]
+    with pytest.raises(ValueError, match="repeat or omit"):
+        local_audit._require_local_batch_segments(duplicate)
+    changed = copy.deepcopy(batch)
+    changed["segments"][1]["parameters"] = {"timeout": 90}
+    with pytest.raises(ValueError, match="parameters differ"):
+        local_audit._require_local_batch_segments(changed)
+
+
+def test_local_call_chain_section_discloses_real_log_gaps_and_escapes_text():
+    from harness.web_fetch.report import local_call_chain_section
+    dataset = {"comparison": {"call_chain_audit": {
+        "summary": "原判定保留；评分问题未更正",
+        "methods": [{"provider": "moli-webfetch", "calls": 5, "request_ok": 0,
+            "task_pass": 0, "logs": 5, "native_log_note": "2次原生日志缺失",
+            "assessment": "<原生内部原因未知>"}],
+        "findings": [{"text": "无新增调用"}]}}}
+    html = local_call_chain_section(dataset)
+    assert "2次原生日志缺失" in html and "无新增调用" in html
+    assert "&lt;原生内部原因未知&gt;" in html
+    assert "原判定保留；评分问题未更正" in html
+
+
+def test_report_real_diagnostics_do_not_claim_missing_debug(tmp_path):
+    from harness.web_fetch.report import run_log_section
+    log = tmp_path / "logs/real.txt"
+    log.parent.mkdir()
+    log.write_text('{"source":"caller","event":"request_sent"}\n')
+    record = {"attempt_id": "a", "provider": "moli-webfetch", "case_id": "c",
+              "run": 1, "started_at": "2026-10-08T00:00:00+00:00", "ok": False, "elapsed_ms": 45000,
+              "provider_metadata": {"public_debug_log_path": "logs/real.txt",
+                 "public_debug_log_sha256": _digest(log),
+                 "public_log_note": "原生日志缺失，仅保留调用方事件",
+                 "diagnostic_log_bytes": len(log.read_bytes()),
+                 "diagnostic_log_sha256": _digest(log)}}
+    html = run_log_section(tmp_path, record, "")
+    assert "原生日志缺失，仅保留调用方事件" in html
+    assert "已保存文件未截断；原生日志范围见说明" in html
+    assert "没有保存 debug 日志" not in html
+    assert "实际诊断日志" in html
+    assert (tmp_path / "logs/real.html").is_file()
+    assert "request_sent" in (tmp_path / "logs/real.html").read_text()
+
+
+def test_local_score_correction_preserves_call_facts_and_original_contract(tmp_path):
+    import copy
+    from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+    contract = {'scoring_source_sha256': 'old', 'provider_config_sha256': 'config'}
+    record = {'attempt_id': 'a', 'ok': True, 'latency_ms': 1200,
+              'metrics': {'content_sha256': 'body', 'scoring_source_sha256': SCORING_SOURCE_SHA256},
+              'scoring': {'mode': 'offline_rescore', 'input_results_sha256': 'original',
+                          'rule_revision': False, 'reference_revision': False}}
+    receipt = {'kind': 'offline_generic_parser_correction', 'provider_calls': 0,
+               'original_scoring_source_sha256': 'old',
+               'corrected_scoring_source_sha256': SCORING_SOURCE_SHA256,
+               'original_call_config_sha256': 'config', 'original_results_sha256': 'original',
+               'call_identities': {'a': local_audit.local_measurement_call_sha256(record)}}
+    from harness.web_fetch.scoring_regressions import build_correction_provenance
+    receipt["provenance"] = build_correction_provenance(
+        "structured-extraction", "Equivalent Markdown bullets must retain their named records.",
+        ["markdown-plus-list-keeps-named-records", "markdown-plus-prose-is-not-a-record-list"])
+    target = tmp_path / 'local-evidence/scoring-correction.json'
+    _write(target, receipt)
+    local_audit._require_local_scoring_revision(tmp_path, contract, [record])
+    assert contract['scoring_source_sha256'] == 'old'
+    _write(target, {key: value for key, value in receipt.items() if key != "provenance"})
+    with pytest.raises(ValueError, match="root-cause"):
+        local_audit._require_local_scoring_revision(tmp_path, contract, [record])
+    _write(target, receipt)
+    for key, value in [('ok', False), ('latency_ms', 900), ('attempt_id', 'other')]:
+        changed = copy.deepcopy(record)
+        changed[key] = value
+        with pytest.raises(ValueError, match='binding'):
+            local_audit._require_local_scoring_revision(tmp_path, contract, [changed])
+    changed = copy.deepcopy(record)
+    changed['scoring']['rule_revision'] = True
+    with pytest.raises(ValueError, match='changed rules'):
+        local_audit._require_local_scoring_revision(tmp_path, contract, [changed])
+    changed = copy.deepcopy(record)
+    changed['metrics']['content_sha256'] = 'different'
+    with pytest.raises(ValueError, match='binding'):
+        local_audit._require_local_scoring_revision(tmp_path, contract, [changed])
+    _write(target, {**receipt, 'provider_calls': 1})
+    with pytest.raises(ValueError, match='binding'):
+        local_audit._require_local_scoring_revision(tmp_path, contract, [record])
+
+
+def test_local_runtime_variants_bind_every_method_without_rewriting_manifests():
+    import copy
+    contract = {"providers": ["first", "second"], "runtime_source_sha256": "a" * 64,
+                "runtime_source_sha256_by_provider": {"first": "a" * 64, "second": "b" * 64}}
+    batches = [{"providers": [{"name": name}], "runtime_source_sha256": value}
+               for name, value in contract["runtime_source_sha256_by_provider"].items()]
+    local_audit._require_local_method_bindings(contract, batches, "runtime_source_sha256")
+    for mutation in ("wrong_hash", "duplicate", "missing", "extra_binding"):
+        c, b = copy.deepcopy(contract), copy.deepcopy(batches)
+        if mutation == "wrong_hash": b[1]["runtime_source_sha256"] = "c" * 64
+        if mutation == "duplicate": b[1] = b[0]
+        if mutation == "missing": b.pop()
+        if mutation == "extra_binding": c["runtime_source_sha256_by_provider"]["other"] = "c" * 64
+        with pytest.raises(ValueError):
+            local_audit._require_local_method_bindings(c, b, "runtime_source_sha256")
+    legacy = {"providers": ["first"], "runtime_source_sha256": "a" * 64}
+    local_audit._require_local_method_bindings(legacy, batches[:1], "runtime_source_sha256")
+    with pytest.raises(ValueError):
+        local_audit._require_local_method_bindings({**legacy, "runtime_source_sha256": "b" * 64}, batches[:1], "runtime_source_sha256")
+
+
+def test_terminal_logs_are_separate_from_caller_events_and_not_excerpted():
+    from harness.web_fetch.report import _separate_observed_logs
+    terminal = "\n".join(f"DEBUG actual native line {i}" for i in range(30))
+    raw = '{"source":"caller","event":"call_started"}\n--- native Moli stderr (verbatim, through collection cutoff) ---\n'+terminal+'\n'
+    native, caller = _separate_observed_logs(raw)
+    assert native == terminal
+    assert 'call_started' not in native
+    assert 'call_started' in caller
+    assert 'actual native line 29' in native
+    native, caller = _separate_observed_logs('{"source":"caller","event":"request_sent"}\n')
+    assert native == '' and 'request_sent' in caller
+    native, caller = _separate_observed_logs('{"source":"native_library","message":"actual library error","exception":"actual traceback"}\n')
+    assert native == 'actual library error\nactual traceback' and caller == ''
+
+
+def test_worker_stream_text_is_displayed_without_json_wrapper():
+    from harness.web_fetch.report import _separate_observed_logs
+    raw = '{"source":"native_process_stderr","event":"stream_line","text":"ERROR original process error"}\n{"source":"caller","event":"worker_request_sent"}\n'
+    native, caller = _separate_observed_logs(raw)
+    assert native == 'ERROR original process error'
+    assert 'stream_line' not in native
+    assert 'worker_request_sent' in caller
+
+
+def test_empty_answer_does_not_display_stderr_as_returned_body():
+    from harness.web_fetch.report import empty_output_reason, _error_locator
+    trace = 'DEBUG original setup\n'*100+'Reason: fetch readiness timed out after 25000 ms\n'
+    assert _error_locator(trace) == 'Reason: fetch readiness timed out after 25000 ms'
+    text = empty_output_reason({'error_message':trace,'ok':False},{},'')
+    assert 'timed out' in text and 'DEBUG original setup' not in text
+    assert len(text) < 400
+
+
+def test_local_configuration_variants_preserve_old_batches_and_reject_mismatches():
+    import copy
+    contract = {"providers": ["first", "second"], "provider_config_sha256": "a" * 64,
+                "provider_config_sha256_by_provider": {"first": "a" * 64, "second": "b" * 64}}
+    batches = [{"providers": [{"name": name}], "provider_config_sha256": value}
+               for name, value in contract["provider_config_sha256_by_provider"].items()]
+    local_audit._require_local_method_bindings(contract, batches, "provider_config_sha256")
+    for mutation in ("wrong_hash", "duplicate", "missing", "extra_binding", "invalid_hash"):
+        c, b = copy.deepcopy(contract), copy.deepcopy(batches)
+        if mutation == "wrong_hash": b[1]["provider_config_sha256"] = "c" * 64
+        if mutation == "duplicate": b[1] = b[0]
+        if mutation == "missing": b.pop()
+        if mutation == "extra_binding": c["provider_config_sha256_by_provider"]["other"] = "c" * 64
+        if mutation == "invalid_hash": c["provider_config_sha256_by_provider"]["first"] = "invalid"
+        with pytest.raises(ValueError):
+            local_audit._require_local_method_bindings(c, b, "provider_config_sha256")
+    legacy = {"providers": ["first"], "provider_config_sha256": "a" * 64}
+    local_audit._require_local_method_bindings(legacy, batches[:1], "provider_config_sha256")
+    with pytest.raises(ValueError):
+        local_audit._require_local_method_bindings({**legacy, "provider_config_sha256": "b" * 64}, batches[:1], "provider_config_sha256")
+
+
+def test_worker_protocol_response_is_not_a_runtime_log():
+    from harness.web_fetch.report import _separate_observed_logs, runtime_log_text
+    response = json.dumps({"source":"native_process_stdout", "text":json.dumps({"ok":True,"content":"body","raw_tool_response":{"value":"body"}})})+"\n"
+    progress = json.dumps({"source":"native_process_stdout","text":"[FETCH] actual progress"})+"\n"
+    worker = json.dumps({"source":"native_process_stderr","text":json.dumps({"source":"caller_worker","event":"native_tool_returned"})})+"\n"
+    native,caller = _separate_observed_logs(response+progress+worker)
+    assert native == "[FETCH] actual progress"
+    assert "native_tool_returned" in caller
+    assert "raw_tool_response" not in native+caller
+    assert runtime_log_text(response+progress+worker)==progress+worker

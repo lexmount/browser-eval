@@ -31,7 +31,8 @@ class TavilyExtractProvider(Provider):
         return [] if self.config.get("api_key") else ["api_key"]
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
-        http_timeout = inner_timeout_budget(timeout)
+        self.check_native_call(case)
+        http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         configured_extract_timeout = float(
             self.config.get("extract_timeout_seconds", 60.0)
         )
@@ -45,7 +46,7 @@ class TavilyExtractProvider(Provider):
         # Tavily accepts 1-60 seconds. Production benchmark budgets are above
         # that lower bound; for unusually short diagnostic runs, the client
         # deadline remains authoritative and we omit an invalid API value.
-        if extract_timeout >= 1.0:
+        if extract_timeout >= 1.0 and not self.config.get("uniform_native_parameters"):
             request_body["timeout"] = round(extract_timeout, 3)
         response = request(
             f"{str(self.config.get('base_url', 'https://api.tavily.com')).rstrip('/')}/extract",
@@ -105,7 +106,7 @@ class TavilyExtractProvider(Provider):
                 "requested_include_images": request_body["include_images"],
                 "requested_format": request_body["format"],
                 "extract_timeout_seconds": (
-                    round(extract_timeout, 3) if extract_timeout >= 1.0 else None
+                    request_body.get("timeout")
                 ),
                 "images": (result.get("images") or payload.get("images") or []) if ok else [],
             },

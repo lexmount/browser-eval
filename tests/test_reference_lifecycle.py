@@ -278,6 +278,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
     def mocked_run(self, case=None, **kwargs):
         case = case or self.case
         provider = Mock(name="synthetic provider")
+        provider.config = {}
         provider.name, provider.type, provider.min_interval_seconds = "p", "synthetic", 0
         provider.validate.return_value = []
         provider.fetch.return_value = ProviderResult(ok=True, content=case.ground_truth_main_content)

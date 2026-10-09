@@ -73,6 +73,7 @@ class PageShape(HTMLParser):
 parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('root',type=Path)
 parser.add_argument('--profile',type=Path)
+parser.add_argument('--presentation-binding',type=Path,help='check a frozen diagnostic presentation without upgrading its scorer')
 args=parser.parse_args()
 root=args.root.resolve()
 repository=Path(__file__).resolve().parents[1]
@@ -96,8 +97,20 @@ if d.get('comparison',{}).get('kind')=='webmainbench_frozen_html_to_markdown':
  check_report(root,d,rs)
  print('PASS: WebMainBench preselected-200 matrix, sample, scores, retries, bilingual routes and reference assets verified')
  raise SystemExit(0)
+if args.presentation_binding and d.get('comparison',{}).get('kind')!='uniform_native_local_measurement':
+ parser.error('presentation binding requires a frozen uniform-native diagnostic snapshot')
 names={r['provider'] for r in rs}
-if profile_path and (profile_path.parent/'dataset.json').is_file():
+if d.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
+ from harness.web_fetch.local_audit import require_local_measurement
+ if args.presentation_binding:
+  if args.profile:parser.error("presentation binding cannot certify a release profile")
+  from harness.web_fetch.report_build import validate_local_presentation
+  validate_local_presentation(root,args.presentation_binding)
+ else:
+  require_local_measurement(root,d,rs)
+ inventory={track:{'case_ids':[case['id'] for case in d['cases'] if case.get('track','web')==track], 'providers':providers} for track,providers in d['coverage_plan'].items()}
+ canonical_dataset=repository/json.loads((root/'local-run-contract.json').read_text())['dataset_path']
+elif profile_path and (profile_path.parent/'dataset.json').is_file():
  inventory={track:{'case_ids':[case['id'] for case in d['cases']
                               if case.get('track','web')==track],
                    'providers':providers}
@@ -140,10 +153,20 @@ for c in d['cases']:
  if c['track'] in {'web','dynamic','document'} and not c.get('ground_truth_main_content'):
   unavailable=c.get('source_verification',{}).get('state')=='unavailable'
   stable_checks=bool(c.get('required_facts') or c.get('required_patterns') or c.get('acceptance_contract'))
-  assert unavailable and stable_checks,c['id']
+  if d.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
+   from harness.web_fetch.stable_tasks import validate_acceptance_contract
+   validate_acceptance_contract(c['acceptance_contract'])
+  else:
+   assert unavailable and stable_checks,c['id']
  if c.get('ground_truth_main_content'):
   expected=c['ground_truth_main_content'].encode()
-  assert hashlib.sha256(expected).hexdigest()==c['source_verification']['reference_sha256'],c['id']
+  if d.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
+   # This diagnostic mode preserves the committed scoring text. Historical
+   # reference receipts can bind capture bytes rather than that text field.
+   canonical_case=next(item for item in json.loads(canonical_dataset.read_text())['cases'] if item['id']==c['id'])
+   assert expected==canonical_case['ground_truth_main_content'].encode(),c['id']
+  else:
+   assert hashlib.sha256(expected).hexdigest()==c['source_verification']['reference_sha256'],c['id']
   assert (root/'references'/f"{c['id']}.txt").read_bytes()==expected,c['id']
  assert {r['provider'] for r in rs if r['case_id']==c['id']}==set(plan.get(c.get('track','web'),names)),c['id']
 zh_pages={p.relative_to(root) for p in root.rglob('*.html') if 'en' not in p.relative_to(root).parts}

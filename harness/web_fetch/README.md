@@ -389,10 +389,80 @@ cannot change within it. Matching pre/post captures bounds observed drift but
 cannot rule out an unobserved intermediate change. Historical runs lacking this
 protocol remain dated observations and cannot be certified retroactively.
 
+
+### Native caller limits and DNS
+
+Native workers receive the caller deadline and fixed native capacity options,
+and record effective limits. In fixed-native mode, the outer deadline does not
+override product timers. CowAgent uses its native `DEFAULT_TIMEOUT` unchanged.
+No retry or case-specific retrieval rule is added.
+
+The runner and validation entry point check system DNS before guarded native
+methods execute. Synthetic `198.18.0.0/15` answers stop the comparison before
+product calls. Use an environment with real public DNS answers; do not disable
+SSRF guards, rewrite selected URLs, or classify this environment rejection as a
+product retrieval failure. Full native tool/worker envelopes are retained privately
+with hashes, separately from scored answer text. Historical outputs without those
+envelopes remain insufficient for an exact raw-response audit.
+
+
+For native caller comparisons, `dns_mode` is explicitly `system` (default) or
+`public_doh`. All six local methods (Moli, Crawl4AI, OpenClaw, DeepSeek, CowAgent and
+LangChain) must declare the same mode
+when selected together. `public_doh` uses the fixed
+[Cloudflare JSON DoH endpoint](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/)
+for every hostname and redirect, not a case allowlist or failure fallback.
+Native Chrome uses the same endpoint with its DNS wire-format client; other
+callers query A and AAAA through the JSON client. No caller retries are added; DNS time counts inside the existing
+call deadline. Python resolution is scoped to the calling thread and restored;
+Node uses the products' resolver interfaces. Native private-address checks and
+address pinning remain active where the product provides them. CowAgent's native
+SSRF setting is preserved (the pinned implementation defaults to disabled).
+Moli on Darwin uses a process-local native resolver bridge. Build it explicitly
+outside Git with `uv run --frozen python scripts/build_native_dns.py
+~/.browser-eval/toolchains/native-dns/libbrowser-eval-dns.dylib`, and configure
+`native_dns_library` (or `MOLI_NATIVE_DNS_LIBRARY` in the example). The adapter
+checks the library hash, current source hashes and architecture before calls;
+changed source requires rebuilding. It never compiles during a measured call.
+Crawl4AI's browser route starts the configured Chrome channel with a temporary
+strict-DoH profile and connects through its native CDP interface. The original
+native launch arguments are preserved; there is no system-DNS fallback for
+page hosts. The fixed DoH endpoint itself uses system DNS for bootstrap. Browser
+startup and DNS remain inside the outer call deadline. Non-browser Crawl4AI
+file/PDF routes explicitly reject this mode. No global DNS setting is changed.
+
+A public-DNS configuration must bind `scripts/oss/public_dns.mjs` for the Node
+workers, `harness/web_fetch/network_dns.py` for CowAgent/LangChain/Crawl4AI, and DeepSeek's
+native `src/network.ts` in `required_paths`, using the normal `{harness_root}`
+and `{repo_path}` tokens. The preflight checks all selected case hosts with that
+resolver before product calls; mixed modes, failed resolution or synthetic answers
+stop execution. The system DNS mode continues to reject synthetic answers.
+
+DeepSeek's public output schema declares `value.body.kind` and
+`value.body.content`; `content[].text` is its model-facing render. The adapter
+passes the declared HTML/text body verbatim to shared scoring and retains the
+rendered text and full tool envelope privately. An empty declared body stays
+empty; a missing body is an invalid response. It does not reconstruct content
+from UI messages, logs, scripts or later requests. Binding
+`scripts/oss/dsh_output.mjs` is required for this projection. Old calls without the
+raw tool value cannot be retroactively reconstructed or rescored as this route.
+
+共享 HTTP 调用预算原样传入调用方客户端，不预留持久化时间而提前扣减（45 秒即 45000 毫秒）；固定原生配置模式不覆盖产品服务端超时参数。外层仍以完整输入到答案处理的截止时间判断；迟到答案被舍弃，尚未退出的不可取消请求会隔离该方法并记明未执行范围，不能并发遗弃请求或额外增加答案预算。
+
+本地 DNS 公平性预检覆盖全部六种本地方法，必须统一选择 system 或 public_doh。Moli 在 Darwin 上通过已绑定源码及哈希的进程内解析库支持 public_doh；Crawl4AI 正文浏览器路由使用指定 Chrome 的独立安全 DNS 配置目录。系统模式仍会在发现特殊地址时停止，不能混用模式或关闭产品安全检查。固定原生配置模式中，Moli 内部 HTTP 超时保持默认，响应容量使用预先固定的原生选项。Crawl4AI 正文路由保留完整原生 model_dump 回包，最终 URL 优先使用其声明的 redirected_url；评分正文仍为原生 raw_markdown。
+
+评测入口不会继承父进程的 API Key、API Token 或账户 ID；这些值只从仓库 .env 读取。普通运行路径变量仍可由调用环境提供，外部 --env-file 不能引入评测凭据。Crawl4AI 的最终 HTTP 状态优先读取原生 redirected_status_code，原始状态另存；原生 links 的 internal/external 名称和地址对直接进入共有 links 输入，不从日志、请求或裸 URL 补造名称。
+
+### Fixed native webpage calls
+
+`uniform_native_parameters: true` selects the fixed-native body/structure policy for web and dynamic tasks. Choose documented native extraction options once per method (for example Tavily advanced, Cloudflare networkidle2, Crawl4AI iframe/overlay options, native freshness and capacity options). The caller deadline is 45 seconds; product connection, navigation and extraction timers retain their native defaults. HTTP-client deadlines and worker cancellation enforce collection time, not product-side budgets. CowAgent globals are never patched.
+
+Per-case retrieval hints and auxiliary document/media/challenge routes are rejected before invocation in this mode. No caller failure retry, cross-provider fallback, injected extraction algorithm or answer synthesis is permitted. Keep the native response envelope and its declared answer; the product may still impose its own limits or internal retries. Prepare a new frozen invocation profile after a policy change; preserve previous measurements and do not infer revised scores without calls.
 ### Main-document identity on declared navigation tasks
 
 When a body task declares `source_benchmark.risk_control.navigation_contract`,
-Moli uses the existing `fetch --dump json` final-DOM route, without network tracing.
+Moli uses the existing `fetch --dump json` final-DOM route, without network tracing,
+except in fixed-native mode, which preserves the same native Markdown route for every case.
 The same response binds `final_url`, HTTP status and HTML; the existing local
 Markdown conversion stays inside the call deadline. It adds no second fetch.
 Ordinary body tasks without that requirement retain native Markdown output.

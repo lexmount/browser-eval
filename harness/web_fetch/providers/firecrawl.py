@@ -7,7 +7,7 @@ import math
 from urllib.parse import urlsplit
 
 from ..models import EvalCase, ProviderResult
-from ..retrieval_hints import plan_for_case
+from ..retrieval_hints import plan_for_case, native_default_case
 from .base import Provider
 from .http_client import inner_timeout_budget, request
 
@@ -17,6 +17,8 @@ class FirecrawlProvider(Provider):
     _VIDEO_FORMAT_CREDITS = 5
 
     def validate(self) -> list[str]:
+        if "only_main_content" in self.config and not isinstance(self.config["only_main_content"], bool):
+            return ["only_main_content must be boolean"]
         # Hosted Scrape requires Bearer auth. A separately configured local or
         # self-hosted endpoint may intentionally run without an API key.
         host = urlsplit(str(self.config.get("base_url", "https://api.firecrawl.dev"))).hostname
@@ -91,7 +93,7 @@ class FirecrawlProvider(Provider):
                 "Firecrawl capacity_credits_per_call is below the configured proxy bound"
             )
         try:
-            http_timeout = inner_timeout_budget(timeout)
+            http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         except ValueError as error:
             raise ValueError("invalid Firecrawl capacity preflight timeout") from error
         base_url = str(self.config.get("base_url", "https://api.firecrawl.dev")).rstrip("/")
@@ -128,12 +130,13 @@ class FirecrawlProvider(Provider):
             )
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        self.check_native_call(case)
         base_url = str(self.config.get("base_url", "https://api.firecrawl.dev")).rstrip("/")
         headers = {}
         if self.config.get("api_key"):
             headers["Authorization"] = f"Bearer {self.config['api_key']}"
         try:
-            http_timeout = inner_timeout_budget(timeout)
+            http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         except ValueError:
             return ProviderResult(
                 False,
@@ -168,8 +171,13 @@ class FirecrawlProvider(Provider):
             "formats": requested_formats,
             "maxAge": int(self.config.get("max_age", 0)),
             "proxy": str(self.config.get("proxy", "auto")),
-            "timeout": service_timeout_ms,
+            **({} if self.config.get("uniform_native_parameters") else {"timeout": service_timeout_ms}),
         }
+        # Page-wide contracts can require navigation and footer text. Forward
+        # the native scope switch only when explicitly configured; omission
+        # retains the service default for existing cohorts.
+        if "only_main_content" in self.config:
+            request_body["onlyMainContent"] = self.config["only_main_content"]
         if file_route:
             # The benchmark asks for the original bytes. Disabling Firecrawl's
             # default PDF parser avoids both irrelevant conversion and the
@@ -178,7 +186,7 @@ class FirecrawlProvider(Provider):
         route = "v2_scrape_raw_base64" if file_route else "v2_scrape"
         wait_metadata = None
         dynamic_wait_strategy = None
-        if case.track == "dynamic":
+        if case.track == "dynamic" and not native_default_case(case):
             try:
                 if not math.isfinite(timeout) or timeout <= 0:
                     raise ValueError
@@ -394,7 +402,7 @@ class FirecrawlProvider(Provider):
                 "requested_dynamic_wait_strategy": dynamic_wait_strategy,
                 "requested_cache_max_age_ms": request_body["maxAge"],
                 "requested_parsers": request_body.get("parsers"),
-                "service_timeout_ms": request_body["timeout"],
+                "service_timeout_ms": request_body.get("timeout"),
                 "client_http_timeout_ms": int(http_timeout * 1000),
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),

@@ -27,6 +27,7 @@ from .reference_lifecycle import (
 )
 from .safety import contained_path, safe_identifier
 from .call_boundary import fetch_with_deadline
+from .diagnostics import CallDiagnostics
 from .response_input import apply_request_status
 from .artifacts import (
     PRIVATE_ARTIFACT_ROOT, PUBLIC_CALL_LOG_ROOT, diagnostic_log_binding, raw_response_binding,
@@ -458,6 +459,11 @@ def run_evaluation(
     if resource_sample_interval_ms is not None and resource_sample_interval_ms < 10:
         raise ValueError('resource_sample_interval_ms must be at least 10')
     for provider in providers:
+        if provider.config.get("uniform_native_parameters"):
+            if runs != 1 or max_failure_retries != 0:
+                raise ValueError("fixed native calls require one run and zero caller retries")
+            for case in cases:
+                provider.check_native_call(case)
         safe_identifier(provider.name)
     for case in cases:
         safe_identifier(case.id)
@@ -471,7 +477,12 @@ def run_evaluation(
             raise ValueError(
                 f"provider {provider.name!r} missing configuration: {', '.join(missing)}"
             )
+    from .network_preflight import preflight_guarded_providers
+    network_audit = preflight_guarded_providers(providers, cases)
     output_dir.mkdir(parents=True, exist_ok=True)
+    if network_audit is not None:
+        (output_dir / 'network-preflight.json').write_text(
+            json.dumps(network_audit, ensure_ascii=False, indent=2) + '\n')
     artifacts_dir = output_dir / "artifacts"
     artifacts_dir.mkdir(exist_ok=True)
     started_at = utc_now()
@@ -484,6 +495,9 @@ def run_evaluation(
             for p in sorted(Path(__file__).parent.rglob('*.py')))).hexdigest(),
         "provider_config_sha256": hashlib.sha256(provider_config_path.read_bytes()).hexdigest() if provider_config_path.is_file() else None,
         "dataset_sha256": hashlib.sha256(dataset_path.read_bytes()).hexdigest() if dataset_path.is_file() else None,
+        "network_preflight": ({"dns_mode": network_audit["dns_mode"],
+                               "sha256": hashlib.sha256((output_dir / 'network-preflight.json').read_bytes()).hexdigest()}
+                              if network_audit is not None else None),
         "unexecuted": [],
         "deadline_policy": "end_to_end_answer; non_cancellable_adapter_quarantined",
         "public_call_log_schema_version": 1,
@@ -573,6 +587,11 @@ def run_evaluation(
                         physical_begin = time.perf_counter()
                         pending = None
                         caught_exception = None
+                        diagnostics = None
+                        if provider.config.get("log_level") == "debug":
+                            diagnostics = CallDiagnostics(output_dir / "private_artifacts" / "live-logs" / provider.name / case.id / f"run-{run_number:03d}-physical-{physical_attempt:03d}.jsonl", attempt_id)
+                            diagnostics.emit("caller", "call_started", provider=provider.name, case_id=case.id, url=case.url, timeout_seconds=timeout)
+                        provider._call_diagnostics = diagnostics
                         try:
                             result, pending = fetch_with_deadline(provider, case, timeout)
                         except Exception as error:  # each physical failure remains inspectable
@@ -597,6 +616,8 @@ def run_evaluation(
                                 metadata=allowed_diagnostic,
                             )
                         wall_elapsed_ms = round((time.perf_counter() - physical_begin) * 1000, 2)
+                        if diagnostics is not None:
+                            diagnostics.finish(result)
                         # Cancellable adapters may need a bounded post-deadline
                         # unwind. That cleanup determines quarantine safety but
                         # is not part of the answer latency.

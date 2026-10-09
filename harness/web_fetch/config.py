@@ -8,12 +8,14 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from .models import EvalCase
-from .retrieval_hints import parse_retrieval_hints
+from .retrieval_hints import parse_retrieval_hints, native_default_case
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def _validate_retrieval_hints(item: dict[str, Any]) -> None:
+    if native_default_case(item):
+        return
     parse_retrieval_hints(
         str(item.get("track", "web")),
         item.get("retrieval_hints") if "retrieval_hints" in item else None,
@@ -34,14 +36,25 @@ def _validate_ground_truth_evidence(item: dict[str, Any]) -> None:
             )
 
 
+def _evaluation_credential(name: str) -> bool:
+    return bool(re.fullmatch(r"[A-Z0-9_]+_(?:API_KEY|API_TOKEN|ACCOUNT_ID)", name))
+
+
 def load_runtime_env(path: Path | None = None) -> None:
     """Use the repository .env by default; explicit missing files are errors."""
     selected = path if path is not None else ROOT / ".env"
+    if path is not None and not selected.exists():
+        raise FileNotFoundError(selected)
+    # Credentials may never leak into a run from the parent shell.
+    for key in list(os.environ):
+        if _evaluation_credential(key):
+            os.environ.pop(key)
     if path is not None or selected.exists():
-        load_env_file(selected)
+        load_env_file(selected, override_credentials=True,
+                      credentials_allowed=selected.resolve() == (ROOT / ".env").resolve())
 
 
-def load_env_file(path: Path) -> None:
+def load_env_file(path: Path, *, override_credentials: bool = False, credentials_allowed: bool = True) -> None:
     """Load simple dotenv assignments without evaluating shell code."""
     for raw_line in path.expanduser().read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
@@ -54,7 +67,12 @@ def load_env_file(path: Path) -> None:
         value = value.strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
-        os.environ.setdefault(key, value)
+        if _evaluation_credential(key) and not credentials_allowed:
+            raise ValueError("Evaluation credentials must come from the repository .env")
+        if override_credentials and _evaluation_credential(key):
+            os.environ[key] = value
+        else:
+            os.environ.setdefault(key, value)
 
 
 def expand_env(value: Any) -> Any:

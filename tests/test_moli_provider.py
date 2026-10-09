@@ -201,11 +201,29 @@ class MoliTests(unittest.TestCase):
         values.update(changes)
         return SimpleNamespace(**values)
 
+    def test_fixed_native_cli_omits_internal_timers(self):
+        provider = self.provider(
+            "import sys\n"
+            "assert not {'--timeout', '--http-timeout', '--http-connect-timeout', '--eval'} & set(sys.argv)\n"
+            "assert sys.argv[sys.argv.index('--dump') + 1] == 'markdown'\n"
+            "assert '--dump' in sys.argv and '--http-max-response-size' in sys.argv\n"
+            "print('complete native answer')\n",
+            uniform_native_parameters=True,
+        )
+        self.assertEqual(provider.validate(), [])
+        case = self.case_with(source_benchmark={"risk_control": {"navigation_contract": {
+            "requested_url": self.case.url, "observed_final_url": self.case.url}}})
+        result = provider.fetch(case, 45)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.content, "complete native answer\n")
+        self.assertIsNone(result.metadata["http_connect_timeout_ms"])
+
     def test_cli_contract_and_diagnostics(self):
         provider = self.provider(
             "import sys\n"
             'expected=["fetch","--dump","markdown","--wait-until","done",'
-            '"--timeout","2000","--http-timeout","2000","--block-private-networks",'
+            '"--timeout","2000","--http-timeout","2000","--http-connect-timeout","2000",'
+            '"--http-max-response-size","20000000","--block-private-networks",'
             '"https://example.com/?a=1&b=2"]\n'
             "assert sys.argv[1:]==expected\n"
             'print("# Example Domain")\n'
@@ -300,6 +318,20 @@ class MoliTests(unittest.TestCase):
         self.assertFalse(result.metadata["diagnostic_log_truncated"])
         self.assertTrue(result.metadata["diagnostic_log_process_completed"])
 
+    def test_native_dynamic_uses_markdown_without_generated_wait_or_eval(self):
+        from harness.web_fetch.config import load_dataset
+        _, cases = load_dataset(Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json"))
+        provider = self.provider(
+            "import sys\n"
+            "assert '--eval' not in sys.argv and '--wait-selector' not in sys.argv\n"
+            "assert sys.argv[sys.argv.index('--dump')+1]=='markdown'\n"
+            "print('native answer')",
+            log_level="debug",
+        )
+        result = provider.fetch(cases[0], 2)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.metadata["route"], "dynamic_native_markdown")
+
     def test_network_trace_cannot_change_markdown_scoring_route(self):
         provider = self.provider('raise AssertionError("should not run")', trace_network=True)
         self.assertIn(
@@ -323,6 +355,8 @@ class MoliTests(unittest.TestCase):
             'import sys\nassert "--block-private-networks" in sys.argv\nprint("guarded")',
             private_network_allowlist_hosts=["allowed.example"],
         )
+        # Measurement starts after runtime preparation, as in the runner.
+        self.assertEqual(provider.validate(), [])
         result = provider.fetch(self.case, 2)
         self.assertTrue(result.ok, repr(result))
         self.assertFalse(result.metadata["private_network_guard_exception"])
@@ -364,6 +398,8 @@ class MoliTests(unittest.TestCase):
             'assert "--eval" not in sys.argv\n'
             'print("ordinary body")'
         )
+        # Measurement starts after runtime preparation, as in the runner.
+        self.assertEqual(provider.validate(), [])
         result = provider.fetch(self.case_with(track="static", task_kind="body"), 2)
         self.assertTrue(result.ok, repr(result))
         self.assertEqual(result.metadata["route"], "ordinary_markdown")
@@ -1087,6 +1123,27 @@ class MoliTests(unittest.TestCase):
         self.assertIsNone(result.status_code)
         self.assertIsNone(result.error_type)
 
+    def test_outer_deadline_preserves_live_cli_log_and_rejects_late_answer(self):
+        from harness.web_fetch.call_boundary import fetch_with_deadline
+        from harness.web_fetch.diagnostics import CallDiagnostics
+        provider = self.provider(
+            'import time\nprint("DEBUG actual fixture CLI started", file=sys.stderr, flush=True)\n'
+            'time.sleep(5)\nprint("late answer")',
+            uniform_native_parameters=True, log_level="debug", retain_complete_diagnostic_log=True,
+        )
+        self.assertEqual(provider.validate(), [])
+        sink = CallDiagnostics(Path(self.directory.name) / "call.jsonl", "deadline-call")
+        provider._call_diagnostics = sink
+        result, worker = fetch_with_deadline(provider, self.case, 0.5)
+        sink.finish(result)
+        self.assertEqual(result.error_type, "timeout")
+        self.assertEqual(result.content, "")
+        self.assertFalse(worker.is_alive())
+        raw = base64.b64decode(result.metadata["_diagnostic_log_b64"])
+        self.assertIn(b"DEBUG actual fixture CLI started", raw)
+        self.assertNotIn(b"late answer", raw)
+        self.assertIn(b"native_cli_start", raw)
+
     def test_timeout_is_failure(self):
         result = self.provider("import time\ntime.sleep(10)").fetch(self.case, 0.05)
         self.assertEqual(result.error_type, "timeout")
@@ -1212,3 +1269,14 @@ class MoliTests(unittest.TestCase):
             side_effect=PermissionError("not executable"),
         ):
             self.assertEqual(provider.fetch(self.case, 2).error_type, "configuration")
+
+
+class UniformMoliParameterTests(unittest.TestCase):
+    def test_uniform_route_rejects_host_specific_guard_exceptions(self):
+        from harness.web_fetch.providers.moli import MoliWebFetchProvider
+        provider = MoliWebFetchProvider("moli", {
+            "uniform_native_parameters": True,
+            "private_network_allowlist_hosts": ["specific.example"],
+        })
+        self.assertIn("private_network_allowlist_hosts cannot vary uniform native parameters",
+                      provider._configuration_errors(None))

@@ -59,14 +59,15 @@ class ExaContentsProvider(Provider):
         return [] if self.config.get("api_key") else ["api_key"]
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
-        http_timeout = inner_timeout_budget(timeout)
+        self.check_native_call(case)
+        http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         livecrawl_timeout_ms = min(
             int(self.config.get("livecrawl_timeout_ms", 15_000)),
             max(1, int(http_timeout * 1000)),
         )
         extras = ({"links": 20, "imageLinks": 20}
                   if self.config.get("include_resource_links") else {})
-        if case.acceptance_contract.get("schema") == "named_link":
+        if self.config.get("rich_links_limit") or (case.acceptance_contract.get("schema") == "named_link" and not self.config.get("uniform_native_parameters")):
             # Bare links and surrounding text do not prove record ownership.
             # Exa's richLinks route returns the explicit anchor/URL pair needed
             # by the shared named-link answer contract.
@@ -85,7 +86,7 @@ class ExaContentsProvider(Provider):
                 # live crawl. Keep that provider-side deadline inside the
                 # runner's shorter HTTP budget rather than relying on Exa's
                 # default and letting the client abandon a still-running job.
-                "livecrawlTimeout": livecrawl_timeout_ms,
+                **({} if self.config.get("uniform_native_parameters") else {"livecrawlTimeout": livecrawl_timeout_ms}),
                 **({"extras": extras} if extras else {}),
             },
         )
@@ -123,6 +124,10 @@ class ExaContentsProvider(Provider):
         else:
             error_type, error_message = "empty_content", "Exa returned no extractable text"
         result_extras = (result.get("extras") or {}) if ok else {}
+        # Current API declares a breakdown object; retain legacy numeric totals.
+        cost = payload.get("costDollars")
+        if isinstance(cost, dict):
+            cost = cost.get("total")
         return ProviderResult(
             ok=ok,
             content=content,
@@ -142,11 +147,11 @@ class ExaContentsProvider(Provider):
                 "request_id": payload.get("requestId"),
                 "url_status": public_status,
                 "url_error": public_url_error,
-                "livecrawl_timeout_ms": livecrawl_timeout_ms,
+                "livecrawl_timeout_ms": None if self.config.get("uniform_native_parameters") else livecrawl_timeout_ms,
                 "cost_dollars": (
-                    payload.get("costDollars")
-                    if isinstance(payload.get("costDollars"), (int, float))
-                    and not isinstance(payload.get("costDollars"), bool)
+                    cost
+                    if isinstance(cost, (int, float))
+                    and not isinstance(cost, bool)
                     else None
                 ),
                 "extras": result_extras,

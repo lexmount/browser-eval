@@ -9,6 +9,7 @@ from email.message import Message
 from typing import Any
 
 from ..safety import validate_http_url
+from ..diagnostics import emit
 
 
 @dataclass
@@ -38,14 +39,14 @@ class HttpOnlyRedirectHandler(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-def inner_timeout_budget(outer_timeout: float) -> float:
-    """Leave the runner time to observe completion and persist a result."""
+def inner_timeout_budget(outer_timeout: float, *, native_default: bool = False) -> float:
+    """Keep ordinary calls inside the deadline; native cohorts use the full budget."""
     if not math.isfinite(outer_timeout) or outer_timeout <= 0:
         raise ValueError("outer timeout must be positive and finite")
+    if native_default:
+        return outer_timeout
     reserve = max(1.0, min(5.0, outer_timeout * 0.1))
-    if reserve >= outer_timeout:
-        return outer_timeout / 2
-    return outer_timeout - reserve
+    return outer_timeout / 2 if reserve >= outer_timeout else outer_timeout - reserve
 
 
 def request(
@@ -64,6 +65,7 @@ def request(
         data = json.dumps(json_body).encode("utf-8")
         final_headers.setdefault("Content-Type", "application/json")
     req = urllib.request.Request(url, data=data, headers=final_headers, method=method)
+    emit("http_request_started", url=url, method=method, headers=final_headers, json_body=json_body, timeout=timeout)
     try:
         response = urllib.request.build_opener(HttpOnlyRedirectHandler()).open(req, timeout=timeout)
     except urllib.error.HTTPError as error:
@@ -72,6 +74,7 @@ def request(
         body = response.read(max_bytes + 1)
         if len(body) > max_bytes:
             raise ValueError(f"response exceeded max_bytes={max_bytes}")
+        emit("http_response_received", status=response.status, url=response.geturl(), headers=dict(response.headers.items()), body_bytes=len(body), body=body.decode("utf-8", "replace"))
         return HttpResponse(
             status=response.status,
             url=response.geturl(),

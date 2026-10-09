@@ -54,3 +54,27 @@ Never overwrite old evidence or select a later response because it scores better
 A score-only revision must record old and new dataset/result hashes, changed fields, decision changes, provider call count of zero, reviewer binding, and predecessor history hash. A new provider call must receive a new call identity and must not be described as a scoring correction.
 
 Do not treat changed reference text or a list of flipped verdicts as a completed correction. Record the defect mechanism, not only its symptom, and bind each revision to compact synthetic regression cases that execute the same public scorer and task predicate as live evaluation. Include both a valid equivalent form and a nearby invalid form whenever the defect can create errors in both directions. Validate this provenance before writing the revised dataset or results; missing or unknown regression IDs fail closed.
+
+## Native-worker caller audit
+
+For a local URL-only comparison, verify the product's supported inner timeout and byte/character limits, not only the outer runner deadline or configuration JSON. Record the effective limits. For a fixed-native cohort, the common wall-clock budget belongs to the caller only: omit product timeout overrides and retain native internal timers. Supported capacity and extraction options may be fixed before the run; never patch product globals or supply per-case retrieval hints. A caller-created cap that truncates the fetched HTML before conversion is a measurement defect; retain the old calls and correct the affected complete method scope, rather than changing individual failed cases.
+
+Run `harness.web_fetch.network_preflight.inspect_system_dns` before comparing local guarded fetchers with hosted products. Synthetic addresses in `198.18.0.0/15` make the environment unsuitable for this comparison: stop before product calls and restore a real-public-address DNS environment. Do not weaken product safety guards or replace individual case URLs to work around it. Retain the complete final worker response envelope as private evidence, alongside the normalized answer and public call log. Verify positive controls through the actual product entry point; existing scored outputs alone cannot prove that no response fields were dropped.
+
+
+An explicitly frozen `public_doh` environment is a valid process-scoped DNS
+correction when system DNS returns synthetic addresses. Apply one mode to all
+supported native callers in the cohort, resolve every hostname with the same
+rule, include DNS time in the shared call budget, bind resolver source files,
+and verify both public retrieval and native rejection of private DNS answers.
+Do not silently fall back to another resolver or disable a product guard. Record
+unsupported methods and the local/hosted network asymmetry; do not imply the
+machine's global DNS was changed.
+
+Audit the declared structured output separately from model/UI presentation.
+When a public schema exposes a complete HTML/text body, preserve it as the answer
+rather than keeping only a lossy display projection. Preserve both fields in
+private evidence. Never rescue an empty declared body from a nonempty display
+message. Reproject retained full responses without new product calls when only
+this selection changed; missing historical envelopes require fresh calls across
+the full declared correction scope before claiming revised benchmark scores.

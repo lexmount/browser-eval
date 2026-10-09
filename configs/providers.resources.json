@@ -183,7 +183,8 @@
         "{repo_path}/packages/guard/timeout-policy/lib/index.js",
         "{repo_path}/pnpm-lock.yaml",
         "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
-        "{harness_root}/scripts/oss/dsh_webfetch_worker.mts"
+        "{harness_root}/scripts/oss/dsh_webfetch_worker.mts",
+        "{harness_root}/scripts/oss/dsh_output.mjs"
       ]
     },
     "langchain-webbase": {

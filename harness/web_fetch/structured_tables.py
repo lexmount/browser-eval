@@ -233,9 +233,27 @@ def parse_table_records(content, visible, contract):
         for pattern in scope.get('plain_text_ignored_patterns', []):
             visible = re.sub(pattern, '', visible, flags=re.M)
         start = re.search(scope['start_pattern'], visible, re.M)
-        if not start:
-            return []
-        text = visible[start.end():]
+        if start:
+            text = visible[start.end():]
+        else:
+            # A standalone scope heading may be a cell of a Markdown header.
+            # Keep that header for the same typed-column parser below; never
+            # search arbitrary body cells or bypass a declared scope heading.
+            lines_with_ends = visible.splitlines(keepends=True)
+            offset = 0
+            for index, line in enumerate(lines_with_ends[:-1]):
+                cells = _pipe_cells(line)
+                separators = _pipe_cells(lines_with_ends[index + 1])
+                if ('|' in line and len(cells) == len(separators)
+                        and all(re.fullmatch(r'\s*:?-{3,}:?\s*', cell)
+                                for cell in separators)
+                        and any(re.fullmatch(scope['start_pattern'], cell.strip())
+                                for cell in cells)):
+                    break
+                offset += len(line)
+            else:
+                return []
+            text = visible[offset:]
         end = re.search(scope['end_pattern'], text, re.M)
         if end:
             text = text[:end.start()]

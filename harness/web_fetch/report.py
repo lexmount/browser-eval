@@ -386,11 +386,16 @@ def provider_configuration(name,records,info):
  """Compatibility accessor for the generic method-page model."""
  return method_page_model(name,provider_label(name),records)['configuration']
 
-def provider_page_body(name,records,cases,headers,tracks):
+def provider_page_body(name,records,cases,headers,tracks,*,native_default=False):
  """Render one method page from generic result records and method metadata."""
  model=method_page_model(name,provider_label(name),records)
  controls=filter_controls([('track','类型',tracks),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(records,cases))
- body=hero(esc(model['title']),esc(model['contract']))+section('本轮配置',f'<p><code>{esc(model["endpoint"])}</code></p><p>{esc(model["freshness"])}</p><p>{esc(model["configuration"])}</p>')
+ configuration=f'<p><code>{esc(model["endpoint"])}</code></p>'
+ if native_default:
+  configuration+='<p>本轮统一使用固定原生配置：每题调用一次，外层截止时间 45 秒，产品内部超时保留默认值。具体选项及请求字段见接口示例、冻结配置和该次调用记录。</p>'
+ else:
+  configuration+=f'<p>{esc(model["freshness"])}</p><p>{esc(model["configuration"])}</p>'
+ body=hero(esc(model['title']),esc(model['contract']))+section('本轮配置',configuration)
  body+=section('方法资料','<p class="actions">'+link('../adoption/index.html#'+model['pricing_anchor'],'价格与计费 →')+link('../adoption/index.html#interface-'+name,'接口与示例 →')+'</p>')
  return body+section(f'{len(records)} 条执行记录',controls+table(headers,[attempt_row(r,cases[r['case_id']]) for r in records],'filtered-table'))
 JS=r'''function readTheme(){try{return localStorage.getItem('webfetch-theme')}catch{return 'light'}}
@@ -536,6 +541,17 @@ def call_log_path(record):
  bindings=call_log_bindings(record)
  return bindings[-1][1]['path'] if bindings else None
 
+def _error_locator(message):
+ """Use a retained error line, keeping complete traces in the log section."""
+ text=str(message or '')
+ if len(text)<=300:return text
+ lines=text.splitlines()
+ for line in reversed(lines):
+  if re.search(r'^(?:Reason:|Error:|[\w.]*Error:)|\b(?:timed out|timeout_phase=)',line,re.I):
+   return line[:300]
+ return '错误详情见本次运行日志。'
+
+
 def empty_output_reason(record,case,output):
  if output:return ''
  metadata=record.get('provider_metadata') or {}
@@ -543,7 +559,7 @@ def empty_output_reason(record,case,output):
  if case.get('task_kind')=='file' and delivered:
   return f'本题的最终交付物是 {len(delivered)} 个原始文件；文本输出为空不表示没有交付，文件字节在详情页下方单独列出。'
  if record.get('error_message'):
-  return f'最终输出确实为空。适配器记录的原因：{record["error_message"]}'
+  return f'最终输出确实为空。适配器记录的原因：{_error_locator(record["error_message"])}'
  if not record.get('ok'):
   error_type=record.get('error_type') or '未记录错误类型'
   return f'最终输出确实为空。请求未成功，错误类型为 {error_type}；历史记录没有保存更多错误文字。'
@@ -563,6 +579,59 @@ def _reader_log_excerpt(text):
   if len(selected)>=18:break
  if not selected:selected.update(range(min(12,len(lines))))
  return '\n'.join(f'{index+1:>6}  {lines[index]}' for index in sorted(selected)[:18])
+
+def _worker_response_stream(row):
+ """Recognize saved worker protocol responses, which belong to output evidence."""
+ if not isinstance(row,dict) or row.get('source')!='native_process_stdout':return False
+ try:payload=json.loads(row.get('text',''))
+ except (ValueError,TypeError):return False
+ return isinstance(payload,dict) and isinstance(payload.get('ok'),bool) and any(key in payload for key in ('content','raw_tool_response','error_type'))
+
+def runtime_log_text(text):
+ """Exclude protocol responses from the public log; retain private capture unchanged."""
+ lines=[]
+ for line in text.splitlines(keepends=True):
+  try:row=json.loads(line)
+  except ValueError:row=None
+  if not _worker_response_stream(row):lines.append(line)
+ return ''.join(lines)
+
+def _separate_observed_logs(text):
+ """Separate captured product streams from caller events without inventing steps."""
+ markers=list(re.finditer(r'^--- native [^\n]+ ---\s*$',text,re.M))
+ caller=text[:markers[0].start()] if markers else text
+ native='\n'.join(text[m.end():markers[i+1].start() if i+1<len(markers) else len(text)].lstrip('\n') for i,m in enumerate(markers))
+ events=[];library=[]
+ for line in caller.splitlines():
+  try:row=json.loads(line)
+  except json.JSONDecodeError:
+   events.append(line);continue
+  if _worker_response_stream(row):continue
+  if isinstance(row,dict) and row.get('source') in ('native_process_stderr','native_process_stdout'):
+   stream=str(row.get('text',''))
+   try:payload=json.loads(stream)
+   except ValueError:payload=None
+   if isinstance(payload,dict) and payload.get('source')=='caller_worker':events.append(stream.rstrip('\n'))
+   else:library.append(stream)
+  elif isinstance(row,dict) and row.get('source')=='native_library':
+   library.append(str(row.get('message',''))+(('\n'+str(row['exception'])) if row.get('exception') else ''))
+  else:events.append(line)
+ if library:native+='\n'+'\n'.join(library)
+ return native.strip('\n'), '\n'.join(events)
+
+
+def diagnostic_view_page(out, relative, label, note):
+    """Show the real sanitized text in HTML; retain its original download bytes."""
+    source=contained_path(out,relative)
+    raw=source.read_bytes()
+    view=Path(relative).with_suffix('.html').as_posix()
+    body=(hero(label,'真实保存记录；仅为浏览显示，未增加产品调用。')+
+          section('记录来源','<p>'+esc(note)+'</p><p>'+link('../'+relative,'下载原始公开文件')+
+                  ' · '+str(len(raw))+' 字节 · SHA-256：<code class="break">'+hashlib.sha256(raw).hexdigest()+'</code></p>')+
+          section('完整记录','<pre>'+esc(raw.decode('utf-8','replace'))+'</pre>'))
+    write(out,view,label,body)
+    return view
+
 
 def run_log_section(out,record,output):
  """Render the approved summary → fields → real-log drill-down."""
@@ -616,6 +685,19 @@ def run_log_section(out,record,output):
   diagnostics.append(f'<article><h3>{esc(log["label"])}</h3>{body}</article>')
  complete_label=('是' if any_stderr and not any_truncated else
                  '否（至少一份公开日志已截断）' if any_stderr else '不适用（没有保存 debug 日志）')
+ public_debug=metadata.get('public_debug_log_path')
+ if public_debug:
+  debug_path=contained_path(out,public_debug)
+  debug_bytes=debug_path.read_bytes()
+  if hashlib.sha256(debug_bytes).hexdigest()!=metadata.get('public_debug_log_sha256'):
+   raise ValueError('Public diagnostic log hash mismatch: '+record['attempt_id'])
+  metadata['public_debug_view_path']=diagnostic_view_page(out,public_debug,'已保存的诊断日志',metadata.get('public_log_note') or '仅包含实际观测的日志。')
+  stderr_total=len(debug_bytes);any_stderr=bool(debug_bytes)
+  any_truncated=bool(metadata.get('diagnostic_log_truncated'))
+  complete_label='已保存文件截断；原生日志范围见说明' if any_truncated else '已保存文件未截断；原生日志范围见说明'
+  native_text,caller_text=_separate_observed_logs(debug_bytes.decode("utf-8", "replace"))
+  native_view=('<pre data-log-source="product">'+esc(native_text)+'</pre>' if native_text else '<p data-log-unavailable>本次没有取得产品或依赖库的原生日志。已保存的调用方记录见下方。</p>')
+  diagnostics=[f'<article><h3>实际诊断日志 · 产品与依赖库</h3><p>{esc(metadata.get("public_log_note") or "仅展示真实观测记录；未开放的内部过程不作推断。")}</p><p>返回 JSON 在“原始返回”中单独展示；接入程序记录在下方“调用方事件”中。</p>{native_view}<details><summary>调用方事件（测试程序记录）</summary><pre data-log-source="caller">{esc(caller_text)}</pre></details><p><a href="../{esc(public_debug)}" download>下载运行时日志（已分离返回内容）</a> · 公开 SHA-256：<code class="break">{esc(metadata["public_debug_log_sha256"])}</code> · 原始采集记录 {int(metadata.get("diagnostic_log_bytes") or 0):,} 字节（可含协议返回） · 原始 SHA-256：<code class="break">{esc(metadata.get("diagnostic_log_sha256") or "—")}</code></p></article>']
  version=(metadata.get('reported_version') or metadata.get('binary_version') or
           metadata.get('moli_version') or metadata.get('version') or '—')
  command=metadata.get('command_args') or metadata.get('command') or '—（调用记录未保存可展示的完整命令）'
@@ -629,18 +711,29 @@ def run_log_section(out,record,output):
          f'<dt>退出码</dt><dd>{esc(process.get("exit_code",metadata.get("exit_code","—")))}</dd>'
          f'<dt>Markdown 输出</dt><dd>{output_bytes:,} 字节</dd><dt>运行日志</dt><dd>{top_log_size}</dd>'
          f'<dt>日志是否完整</dt><dd>{complete_label}</dd><dt>运行 ID</dt><dd>{esc(record.get("run_id") or execution_id(record) or "—")}</dd>'
-         f'<dt>Moli 版本</dt><dd>{esc(version)}</dd>')
+         f'<dt>方法版本</dt><dd>{esc(version)}</dd>')
  full_fields=(f'<dt>开始时间</dt><dd>{esc(record.get("started_at") or timing.get("started_at") or "—")}</dd>'
               f'<dt>结束时间</dt><dd>{esc(record.get("completed_at") or timing.get("completed_at") or "—")}</dd>'
-              f'<dt>日志级别</dt><dd>{esc(metadata.get("log_level") or ("已保存 stderr（级别未记录）" if any_stderr else "未开启 debug"))}</dd>'
-              f'<dt>公开日志</dt><dd>{top_log_size}</dd><dt>公开日志脱敏</dt><dd>否</dd>'
-              f'<dt>Moli SHA-256</dt><dd>{esc(metadata.get("binary_sha256") or "—")}</dd>'
+              f'<dt>日志级别</dt><dd>{esc(metadata.get("log_level") or ("已保存真实诊断（原生日志范围见说明）" if public_debug else "已保存 stderr（级别未记录）" if any_stderr else "未开启 debug"))}</dd>'
+              f'<dt>公开日志</dt><dd>{top_log_size}</dd><dt>公开日志脱敏</dt><dd>{"已隐藏凭据与本机路径" if public_debug else "否"}</dd>'
+              f'<dt>方法 SHA-256</dt><dd>{esc(metadata.get("binary_sha256") or "—")}</dd>'
               f'<dt>正式命令</dt><dd>{esc(command)}</dd>')
  diagnostic=''.join(diagnostics) if diagnostics else '<p class="source-note">这次历史调用没有保存可展示的 stderr / debug 日志；不会补造不存在的日志。</p>'
  raw_record=' · '.join(f'<a href="../{esc(log["path"])}" download>下载{esc(log["label"])}记录</a>' for log in logs)
  if artifact_relative:
   if raw_record:raw_record+=' · '
   raw_record+=f'<a href="../{esc(artifact_relative)}" download>下载本次保存的原始输出</a>'
+ public_response=metadata.get('public_response_path')
+ if public_response:
+  response_view=diagnostic_view_page(out,public_response,'完整原始响应','产品实际返回；公开副本已隐藏凭据与本机路径。')
+  if raw_record:raw_record+=' · '
+  raw_record+=f'<a href="../{esc(response_view)}" target="_blank">查看完整 API 响应（已隐藏凭据与本机路径）</a>'
+ if metadata.get("public_log_note"):
+  raw_record+='<p class="source-note">'+esc(metadata["public_log_note"])+'</p>'
+ public_debug=metadata.get('public_debug_log_path')
+ if public_debug:
+  if raw_record:raw_record+=' · '
+  raw_record+=f'<a href="../{esc(metadata.get("public_debug_view_path") or public_debug)}" target="_blank">查看已保存的诊断日志（已隐藏凭据与本机路径）</a>'
  diagnostic_path=metadata.get('diagnostic_log_path')
  if metadata.get('local_report_complete_diagnostic_links') and diagnostic_path:
   if raw_record:raw_record+=' · '
@@ -1179,6 +1272,16 @@ def _position_label(index,total):
  start=round(index*100/total);end=round((index+1)*100/total)
  return f'{names[index]}（标准答案 {start}–{end}%）'
 
+def _body_scoring_text(record, output):
+ """Use the scorer's body input; titles belong only to answer diagnostics."""
+ from .response_input import answer_input
+ content=answer_input(output.encode('utf-8'),record.get('provider_metadata'),
+                      ok=record.get('ok',False),status_code=record.get('status_code'))[0]
+ if re.match(r'\s*(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',content,re.I):
+  from .dynamic_lists import visible_html_text
+  content=visible_html_text(content)
+ return content
+
 def body_region_rows(case, metrics, output):
  from .body_coverage import evaluate_body_requirements
  contract=case.get('body_requirements') or {}
@@ -1415,7 +1518,7 @@ def reason(r,c):
  if not r['ok']:
   if r.get('diagnosis'):return r['diagnosis']['evidence']
   names={'dns':'请求路径中的域名无法解析','timeout':'请求超时','network':'请求路径网络故障','api_error':'供应商接口报错','WEB_BLOCKED_URL':'方法的 URL 安全规则拒绝请求'}
-  return names.get(r.get('error_type'),r.get('error_type') or '请求失败')+': '+str(r.get('error_message') or '')[:300]
+  return names.get(r.get('error_type'),r.get('error_type') or '请求失败')+': '+_error_locator(r.get('error_message'))
  m=r['metrics']
  if m.get('text_encoding_corruption'):
   return f'实际返回存在明显乱码：{m.get("replacement_character_count",0):,} 个替换字符，占 {pct(m.get("replacement_character_ratio"))}；损坏文字不能作为有效正文。'
@@ -1555,6 +1658,19 @@ def matched_latency(groups,cases,base):
    rows.append(('',cell(esc(provider))+cell(ms(statistics.mean(times)))+cell(ms(percentile(times,.5)))))
  links='、'.join(link(base+'datasets/'+key+'.html',cases[key].get('name',key)) for key in sorted(common))
  return '<details><summary>同题耗时 · 全部方法共同通过子集</summary><p>'+note+'</p>'+ (table(['方法','同题均值','同题 P50'],rows,metrics=[])+ '<p>'+links+'</p>' if rows else '')+'</details>'
+
+def overview_all_call_latency(records,cases):
+ names=sorted({r['provider'] for r in records})
+ keys={(r['provider'],r['case_id']) for r in records}
+ if len(keys)!=len(records) or any((name,cid) not in keys for name in names for cid in cases):
+  raise ValueError('All-call latency requires the full common task matrix')
+ rows=[]
+ for name in names:
+  times=[r['elapsed_ms'] for r in records if r['provider']==name]
+  rows.append(('',cell(link('providers/'+name+'.html',provider_label(name)))+cell(str(len(times)))+
+               cell(ms(statistics.mean(times)))+cell(ms(percentile(times,.5)))+cell(ms(percentile(times,.95)))))
+ return (f'<p>每种方法均使用同一组 {len(cases)} 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。各方法串行执行，仍受本地与远程环境、网络和产品内部限制影响。</p>'+
+         table(['方法','调用数','全部调用均值','全部调用 P50','全部调用 P95'],rows,'all-call-latency-table',metrics=[]))
 
 def overview_matched_latency(records,cases):
  from .report_explainer import _article_speed_population
@@ -1715,12 +1831,24 @@ def attempt_row(r,c,base='../'):
  values+=cell(f'<code class="tiny break">{esc(r.get("run_id") or execution_id(r))}</code>')
  return case_attrs(r,c),values
 
+def local_call_chain_section(dataset, prefix="../"):
+ audit=dataset.get('comparison',{}).get('call_chain_audit')
+ if not audit:return ''
+ rows=[]
+ for item in audit.get('methods',[]):
+  rows.append(('',cell(link(prefix+'providers/'+item['provider']+'.html',provider_label(item['provider'])))+cell(str(item['calls']))+cell(str(item['request_ok']))+cell(str(item['task_pass']))+cell(str(item['logs']))+cell(esc(item['native_log_note']))+cell(esc(item['assessment']))))
+ findings=''.join('<p>'+esc(item['text'])+'</p>' for item in audit.get('findings',[]))
+ findings+='<p>'+' · '.join(link(prefix+item['path'],item['label']) for item in audit.get('evidence_links',[]))+'</p>'
+ return section('调用链与日志检查','<p>'+esc(audit.get('summary',''))+'</p>'+table(['方法','调用数','请求成功','题目通过','诊断日志','原生日志范围','检查结论'],rows,metrics=[])+findings,'call-chain-audit')
+
 def local_audit_banner(dataset):
  if dataset.get('comparison',{}).get('publication_state')!='local_audit_only_not_for_release':
   return ''
+ if dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
+  return '<div class="wrap callout"><strong>本地实测版</strong><p>全部方法使用同一组已提交案例和判分规则，每例一次调用，统一45秒外部时限，不设逐例等待或提取参数，不重试。结果为机器判定，未进行独立人工审核；本报告仅供本地查看，不代表正式发布。</p></div>'
  return '<div class="wrap callout"><strong>本地审核版</strong><p>本页合并两个不同日期的 Moli 调用批次，保留每例的真实调用时间。本次仅更换报告展示代码，没有新增 Moli 调用，也不代表正式发布。</p></div>'
 
-def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False):
+def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,presentation_only:bool=False):
  global _RELIABILITY_BANNER,_ENGLISH_GENERATED
  _ENGLISH_GENERATED=include_english
  from .reliability import assess_reliability
@@ -1729,6 +1857,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   _RELIABILITY_BANNER=''
  else:
   _RELIABILITY_BANNER='<div class="wrap reliability failure" role="alert"><strong>报告不可靠：评测未完整</strong><span>'+esc('；'.join(reliability['errors']))+'。本页排名不得用于结论或发布。</span></div>'
+ _RELIABILITY_BANNER+=local_audit_banner(dataset)
+ known=dataset.get('comparison',{}).get('call_chain_audit',{}).get('known_scoring_false_negatives',[])
+ if known:
+  _RELIABILITY_BANNER+='<div class="wrap callout" role="alert"><strong>已确认评分问题</strong><p>'+esc(f'{len(known)}条表格结果被评分程序误判为失败。统计保留原程序判定，当前通过率不得用于产品排名；详情见调用链检查。')+'</p></div>'
  validate_report_ids(dataset,records)
  for path in ['assets/style.css','assets/report.js','references']:
   contained_path(out,path)
@@ -1747,11 +1879,18 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  for track,label in tracks:
   cards+=overview_card(records,cases,track,label,names)
  home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类分榜与一个综合通过率总榜。')
- home+=local_audit_banner(dataset)
+ if dataset.get('comparison',{}).get('call_chain_audit'):
+  source_note='本轮未重新核验来源。' if dataset.get('comparison',{}).get('source_reverified') is False else ''
+  home+=f'<p class="callout">{len(cases)} 个案例 · {len(records)} 次调用，机器判分。'+source_note+link('guide/index.html#call-chain-audit','查看调用链问题和日志留存范围')+'</p>'
  from .report_explainer import article_title,render_explainer,supports_authored_explainer
- TITLE=article_title(records) if supports_authored_explainer(cases) else '本报告的任务范围与验收规则'
+ TITLE='本轮调用链检查与日志范围' if dataset.get('comparison',{}).get('call_chain_audit') else article_title(records) if supports_authored_explainer(cases) else '本报告的任务范围与验收规则'
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
- write(out,'guide/index.html','报告解读',render_explainer(out,cases,records,table=table,cell=cell,link=link))
+ if dataset.get('comparison',{}).get('call_chain_audit'):
+  TITLE='本轮调用链检查与日志范围'
+  guide=local_call_chain_section(dataset)+section('如何读取本轮结果','<p>本轮按保存的实际返回进行机器判分，比例只对应本报告列出的案例与配置。日志可用于复查调用和判分；未经过独立人工审核，不能将失败一概归因于产品内部。</p><p>'+link('../analysis/index.html','逐次结果与筛选')+' · '+link('../methodology/index.html','题目与计时规则')+' · '+link('../reproduce/index.html','配置、版本和复现说明')+'</p>')
+ else:
+  guide=render_explainer(out,cases,records,table=table,cell=cell,link=link)
+ write(out,'guide/index.html','报告解读',guide)
  panels=[]
  for track,label in tracks:
   selected=[c for c in cases.values() if c.get('track','web')==track]
@@ -1759,6 +1898,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
  home+=section(f'{track_label} 类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  home+=section('综合通过率总榜',overall_ranking(records,cases,audit),'overall-ranking')
+ if dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
+  home+=section('同一任务集合的全部调用耗时',overview_all_call_latency(records,cases),'all-call-latency')
  home+=section('全部方法共同成功任务的耗时',overview_matched_latency(records,cases),'overall-matched-latency')
  if (out/'resource-cohort/resource-comparison.json').is_file():
   home+=section('CPU、内存与网络',overview_resources(out),'overall-resources')
@@ -1773,7 +1914,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  dataset_panels=[('cases','案例',anchors+controls+'<p class="source-note">核对依据可点击展开。访问受限不等于网站失效；稳定内容与条目结构按登记契约核验，不固定频繁变化的榜单。动态网站正文按各案例声明的完整范围核验。</p>'+table(['案例','类别','URL','核对依据','参考状态','原访问','达标率'],rows,'filtered-table')),('references','参考状态','<span id="references"></span>'+reference_status(list(cases.values()))),('sources','来源','<span id="sources"></span>'+sources_panel())]
  write(out,'datasets/index.html','评测集',hero('评测集',f'{len(cases)} 个案例，按任务类型查看。')+section('案例与依据',tabs('dataset-hub',dataset_panels)))
  headers=['案例','类型','结果','失败分类','耗时','运行 ID']
- for c in cases.values():
+ for c in ([] if presentation_only else cases.values()):
   v=c.get('source_verification',{});ref=c.get('ground_truth_main_content') or c.get('reference_answer') or '本例按资源或结构规则评分，不以页面短摘要计算全文 F1。'
   (out/'references').mkdir(exist_ok=True);(out/'references'/f'{c["id"]}.txt').write_text(ref)
   if c.get('acceptance_contract'):
@@ -1829,8 +1970,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   body+=section('全部方法执行结果',table(['方法']+headers[1:],[(attrs,values.replace(esc(c['name']),esc(provider_label(r['provider'])),1)) for r in bycase[c['id']] for attrs,values in [attempt_row(r,c)]]))
   write(out,'datasets/'+c['id']+'.html',c['name'],body)
  for name,rs in byprovider.items():
-  write(out,'providers/'+name+'.html',name,provider_page_body(name,rs,cases,headers,tracks))
- for r in records:
+  write(out,'providers/'+name+'.html',name,provider_page_body(name,rs,cases,headers,tracks,native_default=dataset.get("comparison",{}).get("kind")=="uniform_native_local_measurement"))
+ for r in ([] if presentation_only else records):
   c=cases[r['case_id']];m=r['metrics'];ref=c.get('ground_truth_main_content') or c.get('reference_answer') or '检查下列目标资源。'
   output=contained_path(out,r['artifact_path']).read_text(encoding='utf-8',errors='replace')
   rows=[('',cell(k)+cell(v)) for k,v in [('任务 ID',f'<code>{esc(c["id"])}</code>'),('方法',link('../providers/'+r['provider']+'.html',provider_label(r['provider']))),('请求','成功' if r['ok'] else '失败'),('任务结果','通过' if succeeded(r,c) else '未通过'),('HTTP 状态',esc(r.get('status_code'))),('耗时',ms(r['elapsed_ms'])),('全文完整度 / 纯净度 / F1',f'{pct(m.get("word_recall"))} / {pct(m.get("word_precision"))} / {pct(m.get("word_f1"))}'),('输出字符',f'{len(output):,}'),('输出校验值',f'<code class="break">{esc(m.get("content_sha256"))}</code>')]]
@@ -2013,7 +2154,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    checks_html+=table(['记录字段','有效记录数','至少要求','判定'],[('',cell(esc(x['field']))+cell(str(x['count']))+cell(str(x['minimum']))+cell('通过' if x['pass'] else '未通过')) for x in m['stable_field_results']],metrics=[])
   body+=section('为什么这样判',caveat+checks_html,'decision')
   if m.get('body_region_results'):
-   scoring_text=output
+   scoring_text=_body_scoring_text(r,output)
    region_rows,region_cards=body_region_rows(c,m,scoring_text);rules=c.get('body_requirements',{})
    required=rules.get('minimum_region_passes',len(rules.get('regions',[])))
    region_count=len(rules.get('regions',[]))
@@ -2093,6 +2234,7 @@ def write_review_page(out,records):
  write(out,'review/index.html','核验记录',page)
 
 def write_support(out,records,manifests):
+ local_matrix=(out/'dataset.json').is_file() and json.loads((out/'dataset.json').read_text()).get('comparison',{}).get('kind')=='uniform_native_local_measurement'
  headless=is_headless_cohort(records)
  from .report_components import task_contract_guide
  methodology=hero('评测方法','按任务定义验收规则。同组已测方法使用相同的冻结任务与参考，覆盖数量在各榜单列明。')
@@ -2127,11 +2269,16 @@ def write_support(out,records,manifests):
  methodology+=section('计算与边界','''<details><summary>全文评分公式</summary><p>完整度＝取回的参考词数 ÷ 参考词数；纯净度＝匹配的正文词数 ÷ 返回词数；F1＝2 × 完整度 × 纯净度 ÷ 两者之和。英文按词、中文按字，统一大小写与 Unicode 字符形式；Markdown 链接只计文字。对有完整参考的全部案例取平均；请求失败计 0，请求成功但任务未通过仍按实际正文评分，没有参考不计算。</p></details><details><summary>参考范围与公平性</summary><p>网页、文档使用独立保存的参考正文；仓库以 README 为准，列表只覆盖指定的已加载范围，不要求无限滚动或跨页翻页。登录页和验证码不能代替目标正文。参考正文自身包含的“404 Not Found”等术语不作为错误页判据。</p><p>不同方法并行，同一方法串行；正文结束后再测其他任务。Firecrawl 每次完成后冷却 6.1 秒。本报告不是 WCXB 官方榜单。</p><p>媒体网址只证明找到入口，不代表取得文件。文件任务没有另接下载器代替参评方法完成。</p></details>''')
  if headless:
   methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','五种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.1.1 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。Moli 遇到直接 PDF、DOCX、图片或视频 URL 时使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。原始主矩阵未启用失败重试，每次调用有 45 秒端到端预算。运行器可在测量前声明至多一次失败重试：保留全部物理证据和总耗时，并固定采用最后一次结果，不能择优。已确认的命令、版本、裁判、参考或测量错误可按完整声明范围重测并替换权威逻辑结果；旧证据不得删除。历史报告中的 Moli 1.0.6 与 1.1.3 证据继续归档，但不进入当前报告矩阵。方法之间并行、同一方法串行。')
+ if local_matrix:
+  methodology+=section('本轮固定原生配置','<p>每种方法内部串行执行，每题只调用一次，45秒为外层交卷期限。内部加载、连接和处理时间保留产品默认值。允许测试前固定的原生选项，不传入逐题等待、选择器、数量提示或脚本；不补抓、不额外重试。产品返回的正文和原始响应分别保存。</p><p>每种方法内部串行执行；方法之间的调度以执行批次和保存的调用时间为准。分段执行保留每个原始分段，完整调用时间见执行批次。</p>')
+  methodology=methodology.replace('方法之间并行、同一方法串行。','每种方法内部串行；方法之间的调度见执行批次。')
  write(out,'methodology/index.html','评测方法',methodology)
  downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','版本回溯证据')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else [])+([('latency-corrections.json','时延纠正收据')] if (out/'latency-corrections.json').is_file() else [])+([('request-status-corrections.json','请求状态纠正收据')] if (out/'request-status-corrections.json').is_file() else []))
  reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。</p>'
  if headless:
   reproduce='<p>在评测仓库中执行；从明确指定的持久化冻结证据构建，不重新调用浏览器。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>唯一输出目录为 reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。重新测量使用 uv run --frozen python scripts/run_headless_benchmark.py 和 configs/providers.headless.json；先独立采集并冻结参考，再调用，最后做测后核验。完整命令与版本见仓库 harness/web_fetch/HEADLESS.md。</p>'
+ if local_matrix:
+  reproduce='<p>以下命令只从本轮证据重建本地中文报告，不重新调用产品。</p><pre>uv run --frozen python scripts/build_report.py --local-audit --evidence /absolute/path/to/report-evidence --output /absolute/path/to/report\nuv run --frozen python scripts/check_report.py /absolute/path/to/report</pre><p>调用时配置、实现版本与评分器哈希见 '+link('../local-run-contract.json','调用前冻结协议')+'；各次实际请求参数见详情中的真实调用日志。源码中的当前配置与调用时配置可能不同，以冻结协议和原始批次清单为准。凭据只从仓库 .env 读取。</p>'
  common=[]
  for label,path in [('平台',('environment','platform')),('Python',('environment','python')),('超时秒',('parameters','timeout')),('并发方式',('parameters','concurrency_scope'))]:
   values=sorted({str(m.get(path[0],{}).get(path[1],'—')) for m in manifests})
@@ -2146,12 +2293,14 @@ def write_support(out,records,manifests):
                    [r.get('provider_metadata',{}).get('browser_version') or
                     r.get('provider_metadata',{}).get('library_version')]
                    if value})
+  identities=[p.get('implementation_identity',{}) for m in manifests for p in m.get('providers',[]) if p.get('name')==name]
+  versions=versions or sorted({str(identity['repository']['head']) for identity in identities if identity.get('repository',{}).get('head')})
   hashes=sorted({str(r.get('provider_metadata',{}).get('binary_sha256')) for r in subset if r.get('provider_metadata',{}).get('binary_sha256')})
   versions=versions or sorted({provenance[h].get('version') or provenance[h].get('identity') for h in hashes if h in provenance})
   deployments=sorted({str(r.get('provider_metadata',{}).get('deployment','—')) for r in subset})
   timings={provenance[h].get('identity_timing') for h in hashes if h in provenance}
   if not hashes:
-   basis='托管后端未公开版本' if name=='kitesurf' else '无本地二进制'
+   basis='锁定源码修订与文件哈希；见执行批次' if any(identities) else '云端 API 后端未公开版本'
   elif any(t and t.startswith('post_hoc') for t in timings):
    basis='事后与官方归档同哈希；原调用未记版本字符串'
   elif versions:
@@ -2174,6 +2323,8 @@ def write_support(out,records,manifests):
   reproduce+=f'<p>运行配置：<code>configs/providers.headless.json</code>；账号变量名称见本报告“账号”页，实际密钥只放仓库根目录忽略提交的 <code>.env</code>。冻结参考、完整重测与核验门禁见 {link(repo+"/blob/main/harness/web_fetch/HEADLESS.md","仓库复现说明")}。</p>'
  else:
   reproduce+='<p>方法配置、凭据变量和本轮实际版本分别见“方法介绍”“账号”和上方方法版本表；不存在的 headless 专用配置不属于本 cohort。</p>'
+ if local_matrix:
+  reproduce+='<p>重建历史成绩时，先使用本轮绑定的评分提交；当前分支的评分规则可能已经更新。提交号和评分文件哈希见仓库 <code>evaluation/dynamic-content-100-moli-webfetch/current-local-results.json</code> 的 <code>measured_scoring_git_revision</code> 与 <code>measured_scoring_source_sha256</code>。先在该提交的代码目录执行上面的构建命令。只更新已有报告说明时，可在当前代码目录执行以下命令；它保留原评分和实测文件。</p><pre>uv run --frozen python scripts/build_report.py --refresh-presentation evaluation/dynamic-content-100-moli-webfetch/current-local-results.json --output /absolute/path/to/report</pre>'
  support+=section('核心复现指令',reproduce)
  write(out,'reproduce/index.html','环境与复现',support)
  if headless:

@@ -368,6 +368,30 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 target_file = contained_path(staging, file['artifact_path'])
                 target_file.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(binary, target_file)
+            if local_audit:
+                meta["public_log_note"] = dataset.get("comparison", {}).get("call_chain_audit", {}).get("call_log_notes", {}).get(r["attempt_id"], "")
+            if local_audit and meta.get("diagnostic_log_path"):
+                from .runner import _public_text
+                diagnostic_source = contained_path(source, meta["diagnostic_log_path"])
+                from .report import runtime_log_text
+                raw_log = runtime_log_text(diagnostic_source.read_text(encoding="utf-8", errors="replace"))
+                safe_log = _public_text(raw_log, limit=len(raw_log)) or ""
+                public_log = "logs/" + r["attempt_id"] + ".debug.txt"
+                destination = contained_path(staging, public_log)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(safe_log, encoding="utf-8")
+                meta["public_debug_log_path"] = public_log
+                meta["public_debug_log_sha256"] = hashlib.sha256(destination.read_bytes()).hexdigest()
+            if local_audit and meta.get("raw_response_path"):
+                from .runner import _public_text
+                response_source = contained_path(source, meta["raw_response_path"])
+                response_text = response_source.read_text(encoding="utf-8", errors="replace")
+                public_response = "logs/" + r["attempt_id"] + ".response.txt"
+                destination = contained_path(staging, public_response)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text(_public_text(response_text, limit=len(response_text)) or "", encoding="utf-8")
+                meta["public_response_path"] = public_response
+                meta["public_response_sha256"] = hashlib.sha256(destination.read_bytes()).hexdigest()
             for binding in record_public_call_log_bindings(r):
                 log_source = verify_public_call_log(source, binding)
                 call_log = json.loads(log_source.read_text())
@@ -480,6 +504,16 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if (source/'file-rerun-selection.json').is_file():
             shutil.copy2(source/'file-rerun-selection.json', staging/'file-rerun-selection.json')
             shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')
+        if dataset.get("comparison", {}).get("kind") == "uniform_native_local_measurement":
+            shutil.copy2(source / "local-run-contract.json", staging / "local-run-contract.json")
+            from harness.reporting.templates import resolve_template
+            (staging / "report-manifest.json").write_text(json.dumps({
+                "schema_version": 1, "template": resolve_template("webfetch"),
+                "evidence_state": "local_measurement", "certified": False,
+                "languages": ["zh", "en"] if include_english else ["zh"], "provider_calls_added": 0,
+                "dataset_sha256": hashlib.sha256((source / "dataset.json").read_bytes()).hexdigest(),
+                "results_sha256": hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest(),
+            }, ensure_ascii=False, indent=2))
         generate(staging,dataset,records,manifests,include_english=include_english)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.
@@ -1108,4 +1142,83 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
+    return output / 'index.html'
+
+
+def validate_local_presentation(output: Path, binding_path: Path):
+    """Refresh explanatory routes only; never validate or rescore with a new scorer.
+
+    This is a presentation update of an existing hash-bound diagnostic snapshot,
+    not a fresh build or certification. All measured files remain untouched.
+    """
+    from .safety import contained_path
+    output = output.resolve()
+    binding = json.loads(binding_path.read_text())
+    manifest_path = contained_path(output, 'report-manifest.json')
+    manifest = json.loads(manifest_path.read_text())
+    if (binding.get('comparison_kind') != 'uniform_native_local_measurement'
+            or manifest.get('evidence_state') != 'local_measurement'
+            or manifest.get('certified') is not False
+            or manifest.get('languages') != ['zh']
+            or not (output / '.generated-report').is_file()):
+        raise ValueError('Presentation refresh requires a bound Chinese diagnostic snapshot')
+    for name, key in [('dataset.json', 'frozen_dataset_sha256'), ('results.jsonl', 'results_sha256')]:
+        expected = binding.get(key)
+        manifest_key = 'dataset_sha256' if name == 'dataset.json' else key
+        if (not expected or manifest.get(manifest_key) != expected
+                or hashlib.sha256(contained_path(output, name).read_bytes()).hexdigest() != expected):
+            raise ValueError('Presentation input binding changed: ' + name)
+    dataset = json.loads((output / 'dataset.json').read_text())
+    records = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]
+    if (len(records) != binding.get('result_count')
+            or len(dataset['cases']) != binding.get('case_count')
+            or sorted({row['provider'] for row in records}) != sorted(binding['providers'])
+            or any(row['metrics'].get('scoring_source_sha256') != binding.get('measured_scoring_source_sha256') for row in records)):
+        raise ValueError('Presentation refresh cannot change the measured matrix or scoring revision')
+    if any(path.is_symlink() for path in output.rglob("*")):
+        raise ValueError("Presentation snapshot must not contain symlinks")
+    validate_report_ids(dataset, records)
+    if not assess_reliability(dataset, records)['complete']:
+        raise ValueError('Presentation refresh requires the complete declared matrix')
+    for row in records:
+        artifact = contained_path(output, row['artifact_path'])
+        if hashlib.sha256(artifact.read_bytes()).hexdigest() != row['metrics']['content_sha256']:
+            raise ValueError('Saved output changed: ' + row['attempt_id'])
+        verify_record_public_call_logs(output, row)
+    return binding, dataset, records, manifest
+
+
+def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
+    """Install explanatory routes from the single report owner."""
+    output = output.resolve()
+    binding, dataset, records, manifest = validate_local_presentation(output, binding_path)
+    manifest_path = output / "report-manifest.json"
+    # The existing owner renders from saved metrics. Only these explanatory
+    # routes may be installed; result pages, logs and every measured byte stay.
+    routes = ['index.html', 'methodology/index.html', 'adoption/index.html', 'reproduce/index.html', 'changes/index.html']
+    routes += ['providers/' + provider + '.html' for provider in binding['providers']]
+    routes += ['adoption/interfaces/' + provider + '.json' for provider in binding['providers']]
+    with tempfile.TemporaryDirectory(prefix='.presentation-', dir=output.parent) as scratch:
+        staging = Path(scratch) / 'report'
+        shutil.copytree(output, staging)
+        shutil.rmtree(staging / 'en', ignore_errors=True)
+        batches = json.loads((output / 'execution.json').read_text())['batches']
+        generate(staging, dataset, records, batches, presentation_only=True)
+        changed = []
+        for relative in routes:
+            before, after = contained_path(output, relative), contained_path(staging, relative)
+            if not before.is_file() or not after.is_file():
+                raise ValueError('Presentation route missing: ' + relative)
+            if before.read_bytes() != after.read_bytes():
+                changed.append(relative)
+        manifest['presentation_refresh'] = {
+            'provider_calls_added': 0, 'scores_changed': False,
+            'scoring_git_revision': binding['measured_scoring_git_revision'],
+            'scoring_source_sha256': binding['measured_scoring_source_sha256'],
+            'renderer_sha256': hashlib.sha256(Path(__file__).with_name('report.py').read_bytes()).hexdigest(),
+            'changed_routes': sorted(set(changed) | set(manifest.get('presentation_refresh', {}).get('changed_routes', []))),
+        }
+        for relative in changed:
+            shutil.copy2(staging / relative, output / relative)
+        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
     return output / 'index.html'

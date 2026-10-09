@@ -1,6 +1,14 @@
 """English translations for the assigned adoption-report narrative segment."""
 
 TEXT = {
+    "接口声明的 HTML/文本正文；声明为空时保持为空": "Declared HTML/text body; an empty declared body stays empty",
+    "模型展示文本；与声明正文分别保存": "Model-facing display text; saved separately from the declared body",
+    "成功态的规范源站状态与最终 URL": "Canonical origin status and final URL for a successful tool result",
+    "展示投影；仅在规范值缺失时补充状态或 URL": "Display projection; supplies status or URL only when the canonical value is absent",
+    "通过内置 HTTP provider 返回声明正文及展示文本；调用预算和读取字段以保留证据为准。不是 DeepSeek 聊天 API，也没有调用模型生成答案。": "The built-in HTTP provider returns the declared body and display text; retained evidence identifies the call budget and selected fields. This is not the DeepSeek chat API, and no model generated the answer.",
+    "已知 URL → 原生声明 HTML/文本正文 → 共有解析": "Known URL \u2192 native declared HTML/text body \u2192 shared parsing",
+    "声明正文；完整工具回包和展示文本独立保存": "Declared body; the complete tool response and display text are saved separately",
+
     "渲染与 Actions": "Rendering and Actions",
     "单个或批量 URL；Extract 与 Search、Research 是不同接口。": "Single or batch URLs; Extract, Search, and Research are separate APIs.",
     "raw_content 和图片列表；query 可选择相关片段，并非必然返回全文。": "raw_content and an image list; query can select relevant snippets and does not necessarily return the full text.",

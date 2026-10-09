@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import gzip
 import json
@@ -220,7 +221,8 @@ class PublicationPrivacyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for relative in ('scripts/package_artifact_hub.py', 'harness/web_fetch/publication_privacy.py',
-                             'harness/web_fetch/publication_target.py', 'harness/reporting/packs.py'):
+                             'harness/web_fetch/publication_target.py', 'harness/reporting/packs.py',
+                             'harness/reporting/links.py'):
                 target = root / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(repository / relative, target)
@@ -242,6 +244,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / '.generated-report').write_text('local marker')
             (source / 'dataset.json').write_text('{}')
             (source / 'reliability.json').write_text('{"complete":true}')
+            (source / 'report-manifest.json').write_text('{}')
             (source / 'result-review.json').write_text('{"status":"passed","failures":[]}')
             call_logs=[b'{"event":"failed"}\n',b'{"event":"complete"}\n']
             call_log_paths=['call-logs/browser/case/run-001-physical-001.json',
@@ -293,7 +296,9 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'datasets' / f'{unusual_case}.html').write_text(
                 '<html><body><h2>Official human ground truth</h2>'
                 '<pre>literal backslash reference</pre></body></html>')
-            (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><a href="sources/case/source.html.txt">HTML</a></body></html>')
+            (source / 'changes').mkdir()
+            (source / 'changes/index.html').write_text('<html><body>Old history</body></html>')
+            (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><pre>DEBUG href="../../missing.css" data-file="missing-log.txt"</pre><a href="sources/case/source.html.txt">HTML</a></body></html>')
             (source / 'guide/article.html').write_text('<!doctype html><html><body>Article</body></html>')
             key = b'AIzaSy' + b'x' * 33
             raw = b'<script>key="' + key + b'"</script>'
@@ -314,7 +319,7 @@ class PublicationPrivacyTests(unittest.TestCase):
                 )
                 self.assertEqual(manifest['architecture']['kind'],
                                  'single_html_shell_with_lazy_virtual_routes')
-                self.assertEqual(manifest['architecture']['logical_routes'], 6)
+                self.assertEqual(manifest['architecture']['logical_routes'], 7)
                 self.assertEqual(
                     archive.read('report.js').decode().count(
                         "window.addEventListener('report-ready',initReport);"
@@ -364,6 +369,74 @@ class PublicationPrivacyTests(unittest.TestCase):
                 self.assertIn(b'{"field":"parsed"}', file_attempt)
                 self.assertIn(b'{"field":"response"}', file_attempt)
             check_bundle(root / 'publish/webfetch-sites.zip',source)
+            # A small correction keeps all original packed evidence. Only the
+            # loader and complete manifest are sent to the existing site.
+            from unittest.mock import patch
+            import importlib.util
+            with patch.object(sys, 'argv', ['package_artifact_hub.py']):
+                module_spec = importlib.util.spec_from_file_location('incremental_package', Path(__file__).parents[1] / 'scripts/package_artifact_hub.py')
+                module = importlib.util.module_from_spec(module_spec)
+                module_spec.loader.exec_module(module)
+            archive_path = root / 'publish/webfetch-sites.zip'
+            baseline_digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+            old_home = (source / 'index.html').read_bytes()
+            (source / 'index.html').write_text('<html><body>45 秒；实际调用示例</body></html>')
+            (source / 'report-manifest.json').write_text(json.dumps({'presentation_refresh': {
+                'scores_changed': False, 'provider_calls_added': 0, 'changed_routes': ['index.html', 'changes/index.html']}}))
+            (source / 'changes/index.html').write_text('<html><body>New release history</body></html>')
+            delta = root / 'delta'
+            module.build_incremental(source, archive_path, delta)
+            self.assertEqual({path.name for path in delta.iterdir()}, {'loader.js', 'manifest.json', 'update-receipt.json'})
+            patched_manifest = json.loads((delta / 'manifest.json').read_text())
+            self.assertEqual(patched_manifest['blocks'], manifest['blocks'])
+            self.assertEqual(patched_manifest['files']['results.jsonl'], manifest['files']['results.jsonl'])
+            self.assertIn('inline_base64', patched_manifest['files']['index.html'])
+            self.assertIn(b'New release history', base64.b64decode(patched_manifest['files']['changes/index.html']['inline_base64']))
+            self.assertEqual(hashlib.sha256(archive_path.read_bytes()).hexdigest(), baseline_digest)
+            check_bundle(archive_path, source, delta)
+            for index, broken in enumerate(('<a href="missing.html">missing</a>',
+                                           '<pre data-file="missing.json"></pre>',
+                                           '<img src="missing.png">',
+                                           '<img src="results.jsonl">')):
+                with self.subTest(incremental=broken):
+                    (source / 'index.html').write_text('<html><body>' + broken + '</body></html>')
+                    with self.assertRaises((ValueError, AssertionError)):
+                        module.build_incremental(source, archive_path, root / f'broken-delta-{index}')
+                    # Independently reject a hash-valid overlay that bypassed the packager.
+                    poisoned = json.loads((delta / 'manifest.json').read_text())
+                    data = ('<html><body>' + broken + '</body></html>').encode()
+                    poisoned['files']['index.html'].update(inline_base64=base64.b64encode(data).decode(),
+                        size=len(data), sha256=hashlib.sha256(data).hexdigest())
+                    overlay = root / f'poisoned-overlay-{index}'
+                    overlay.mkdir()
+                    (overlay / 'manifest.json').write_text(json.dumps(poisoned))
+                    with self.assertRaisesRegex(ValueError, 'Invalid internal'):
+                        check_bundle(archive_path, source, overlay)
+            (source / 'index.html').write_text('<html><body>45 秒；实际调用示例</body></html>')
+            # Reject a different cohort or an attempt/log rewrite.
+            saved_results = (source / 'results.jsonl').read_bytes()
+            (source / 'results.jsonl').write_bytes(b'changed results')
+            with self.assertRaisesRegex(ValueError, 'cannot replace measured results'):
+                module.build_incremental(source, archive_path, root / 'wrong-cohort')
+            (source / 'results.jsonl').write_bytes(saved_results)
+            (source / 'report-manifest.json').write_text(json.dumps({'presentation_refresh': {
+                'scores_changed': False, 'provider_calls_added': 0, 'changed_routes': ['attempts/browser__case__r001.html']}}))
+            with self.assertRaisesRegex(ValueError, 'Not an explanatory route'):
+                module.build_incremental(source, archive_path, root / 'wrong-route')
+            (source / 'index.html').write_bytes(old_home)
+            shutil.rmtree(module.DEST)
+
+            for broken in ('<a href="missing.html">missing</a>',
+                           '<pre data-file="missing.txt"></pre>',
+                           '<img src="missing.png">'):
+                with self.subTest(broken=broken):
+                    (source / 'index.html').write_text('<html><body>' + broken + '</body></html>')
+                    rejected = subprocess.run(
+                        [sys.executable, str(root / 'scripts/package_artifact_hub.py')],
+                        capture_output=True, env=env,
+                    )
+                    self.assertNotEqual(rejected.returncode, 0)
+                    self.assertIn(b'ValueError', rejected.stderr)
             (source / 'results.jsonl').write_text(results.replace('"route": "markdown"', '"route": "changed"'))
             with self.assertRaisesRegex(ValueError, 'results differ from the current source'):
                 check_bundle(root / 'publish/webfetch-sites.zip', source)

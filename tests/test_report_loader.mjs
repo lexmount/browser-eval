@@ -247,3 +247,20 @@ triggerFocused=false;vm.runInContext('openCallLog(trigger)',dialogContext);
 dialogListeners.get('keydown')({key:'Escape',preventDefault(){}});
 assert.equal(opened,false);assert.equal(triggerFocused,true);
 console.log('PASS: call-record dialog opens accessibly and restores focus when closed');
+
+// A presentation edit changes only the text manifest. Old binary evidence still
+// uses its original pack, and Unicode replacement bytes remain exact.
+const patchRaw=Buffer.from('本轮保存的调用字段\n45 秒');
+const patchContext=vm.createContext({TextDecoder,Uint8Array,atob,
+ window:{addEventListener(){}},document:{addEventListener(){}},
+ fetch:async path=>{assert.equal(path,'manifest.json');return {ok:true,json:async()=>({files:{
+ 'adoption/index.html':{inline_base64:patchRaw.toString('base64'),size:patchRaw.length},
+ 'bad.html':{inline_base64:patchRaw.toString('base64'),size:1},
+ 'old.txt':{parts:['old'],size:3}},blocks:{old:{pack:'data/old.gz',offset:1,size:3}}})}}});
+vm.runInContext(js,patchContext);
+assert.equal(await vm.runInContext("textFile('adoption/index.html')",patchContext),patchRaw.toString());
+await assert.rejects(vm.runInContext("fileBytes('bad.html')",patchContext),/文件长度错误/);
+await assert.rejects(vm.runInContext("fileBytes('missing.html')",patchContext),/文件不存在/);
+vm.runInContext('pack=async()=>new Uint8Array([0,65,66,67,0])',patchContext);
+assert.equal(await vm.runInContext("textFile('old.txt')",patchContext),'ABC');
+console.log('PASS: incremental Unicode routes coexist with unchanged packed evidence; malformed or missing routes fail');
