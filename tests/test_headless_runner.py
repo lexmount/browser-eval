@@ -456,3 +456,77 @@ def test_generic_provider_validation_enforces_the_same_declared_version(tmp_path
         assert (not errors) == accepted
         if not accepted:
             assert "expected version 7.5.0, reported 7.4.0" in errors[0]
+
+
+@pytest.mark.parametrize('state', ['synthetic_example_not_for_release', 'diagnostic'])
+def test_browser_cohort_inherits_source_eligibility(experiment, state):
+    from harness.web_fetch.reference_lifecycle import require_certifiable_evidence
+    from harness.web_fetch.report_build import build_report
+    from harness.web_fetch.report_package import build
+
+    run, path, _, output = experiment
+    dataset = json.loads(path.read_text())
+    comparison = {'publication_state': state, 'evidence_state': 'diagnostic',
+                  'unqualified_reference_cases': ['fixture'],
+                  'source_qualification': {'status': 'not_qualified', 'sha256': 'a' * 64}}
+    dataset['comparison'] = comparison
+    path.write_text(json.dumps(dataset))
+    selected, manifest = run({'providers': {'future': {'type': 'headless_markdown',
+                                                       'expected_version': '9.2.0'}}})
+    for key, value in comparison.items():
+        assert selected['comparison'][key] == value
+    assert manifest['evidence_state'] == 'diagnostic'
+    with pytest.raises(ValueError, match='Diagnostic'):
+        require_certifiable_evidence(selected, [manifest])
+    with pytest.raises(ValueError, match='Diagnostic'):
+        build_report(output, output / 'report')
+    with pytest.raises(ValueError, match='Diagnostic'):
+        build(output, output.parent / 'release.zip')
+
+
+@pytest.mark.parametrize('speed_selection', [False, True])
+def test_synthetic_inputs_remain_non_release_after_selection_and_native_calls(tmp_path, speed_selection):
+    import subprocess
+    from harness.web_fetch.reference_lifecycle import require_certifiable_evidence
+    from harness.web_fetch.report_package import build
+
+    dataset = json.loads((runner.ROOT / 'harness/web_fetch/data/fixture-dataset.json').read_text())
+    original = dataset['cases'][0]
+    dataset['cases'] = [{**original, 'id': f'page-{index}',
+                         'url': f'https://host-{index}.invalid/'} for index in range(5)]
+    tasks = tmp_path / 'tasks.json'
+    tasks.write_text(json.dumps(dataset))
+    if speed_selection:
+        selected = tmp_path / 'selected'
+        result = subprocess.run([sys.executable, '-c',
+            'from harness.web_fetch.speed_cohort import selection_main; selection_main()',
+            '--dataset', str(tasks), '--output', str(selected), '--count', '5'],
+            text=True, capture_output=True)
+        assert result.returncode == 0, result.stdout + result.stderr
+        tasks = selected / 'dataset.json'
+        assert json.loads(tasks.read_text())['comparison']['publication_state'] == (
+            dataset['comparison']['publication_state'])
+    binary = tmp_path / 'browser'
+    binary.write_text('#!/bin/sh\nif [ "$1" = "--version" ]; then\n'
+                      'echo "fixture-browser 7.4.0"\nelse\n'
+                      'echo "Expected fixture content"\nfi\n')
+    binary.chmod(0o700)
+    methods = tmp_path / 'methods.json'
+    methods.write_text(json.dumps({'providers': {'native': {'type': 'headless_markdown',
+        'engine': 'moli', 'binary': str(binary), 'expected_version': '7.4.0'}}}))
+    env = tmp_path / 'empty.env'
+    env.write_text('')
+    output = tmp_path / 'measured'
+    result = subprocess.run([sys.executable, '-c',
+        'from harness.web_fetch.headless_runner import main; main()', '--dataset', str(tasks),
+        '--config', str(methods), '--env-file', str(env), '--output', str(output)],
+        text=True, capture_output=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    saved = json.loads((output / 'dataset.json').read_text())
+    assert saved['comparison']['publication_state'] == dataset['comparison']['publication_state']
+    assert len((output / 'results.jsonl').read_text().splitlines()) == 5
+    with pytest.raises(ValueError, match='Diagnostic'):
+        require_certifiable_evidence(saved)
+    with pytest.raises(ValueError, match='Diagnostic'):
+        build(output, tmp_path / 'published.zip')
+    assert not (tmp_path / 'published.zip').exists()

@@ -599,7 +599,7 @@ def capture_batch(
         return dict(pool.map(observe, cases))
 
 
-def main(*, root: Path | None = None) -> None:
+def main(argv=None, *, root: Path | None = None) -> None:
     root = root or Path.cwd()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset", type=Path, default=root / "evaluation/dataset.json")
@@ -619,7 +619,7 @@ def main(*, root: Path | None = None) -> None:
         "--resolved-ip",
         help="Audited public IP override, mapped only to each current case URL host",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if min(args.attempts, args.timeout_ms, args.workers) < 1:
         parser.error("Attempts, timeout and workers must be positive")
     if args.resolved_ip is not None:

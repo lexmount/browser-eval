@@ -77,7 +77,10 @@ package-check: runtime-check
 	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown" --webmainbench; \
 	$(UV) run --no-project --isolated --python 3.11 --with "$${wheel}[oss-eval]" \
 	  python "$$project_root/tests/package_smoke.py" --source-root "$$project_root" \
-	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown" --oss
+	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown" --oss; \
+	$(UV) run --no-project --isolated --python 3.11 --with "$${wheel}[reference-audit]" \
+	  python "$$project_root/tests/package_smoke.py" --source-root "$$project_root" \
+	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown" --reference-audit
 
 report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)

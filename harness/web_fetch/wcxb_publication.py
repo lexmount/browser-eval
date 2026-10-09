@@ -102,14 +102,19 @@ def publish(*, source: Path, authority_root: Path, work: Path, transport=None) -
     share_path, _ = public_share_context(base, profile.get('artifact_hub_share_url', ''))
     archive, proof = work / 'wcxb-current.zip', work / 'wcxb-package.json'
     attestation = package(source, archive, proof, authority_root=authority_root)
-    operation_hash = hashlib.sha256((base + slug + expected + attestation['archive_sha256']).encode()).hexdigest()
-    journal = work / f'wcxb-update-{operation_hash[:24]}.json'
-    identity = {'base_url': base, 'slug': slug, 'expected_version': expected,
+    identity = {'base_url': base, 'slug': slug,
                 'archive_sha256': attestation['archive_sha256']}
+    # The release identifies the operation; its mutable live version is a guard.
+    operation_hash = hashlib.sha256(json_bytes(identity)).hexdigest()
+    journal = work / f'wcxb-update-{operation_hash[:24]}.json'
     reject_evidence_symlinks(journal)
-    operation = json.loads(journal.read_bytes()) if journal.exists() else dict(identity)
+    operation = (json.loads(journal.read_bytes()) if journal.exists()
+                 else {**identity, 'expected_version': expected})
     if any(operation.get(key) != value for key, value in identity.items()):
         raise ValueError('WCXB publication journal targets another release')
+    if expected not in {operation.get('expected_version'), operation.get('versionId')}:
+        raise ValueError('WCXB publication version differs from its pending operation')
+    expected = operation['expected_version']
 
     def save():
         atomic_write(journal, json_bytes(operation))

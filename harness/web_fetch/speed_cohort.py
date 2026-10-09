@@ -203,9 +203,10 @@ def selection_main():
     except ValueError as error:
         parser.error(str(error))
     result=deepcopy(dataset);result['cases']=selected
-    result['comparison']={'kind':'headless_same_window_speed',
+    from .config import derive_comparison
+    result['comparison']=derive_comparison(dataset, {'kind':'headless_same_window_speed',
         'selection':'Provider-blind reference-length quantile sampling over ordinary web body tasks; at most one case per hostname',
-        'planned_before_calls':True,'case_count':len(selected)}
+        'planned_before_calls':True,'case_count':len(selected)})
     args.output.mkdir(parents=True)
     (args.output/'dataset.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
     materialize_task_references(args.output, {name: input_tree(args.dataset,name)

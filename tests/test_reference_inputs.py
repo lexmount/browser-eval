@@ -2,7 +2,6 @@
 
 import hashlib
 import json
-from pathlib import Path
 
 import pytest
 
@@ -151,8 +150,8 @@ def test_certified_native_preparation_uses_bound_external_dataset_bytes(inputs, 
 
     commands = []
 
-    def intercept(command):
-        commands.append(command)
+    def intercept(stage, arguments):
+        commands.append((stage, arguments))
         raise CaptureIntercepted
 
     monkeypatch.setattr('harness.web_fetch.certification.run', intercept)
@@ -165,7 +164,9 @@ def test_certified_native_preparation_uses_bound_external_dataset_bytes(inputs, 
     assert prepared['cases'] == json.loads(original)['cases']
     assert not dataset.exists()
     assert read_dataset_bytes(dataset) == original
-    assert Path(commands[0][1]).name == 'collect_source_evidence.py'
+    from harness.web_fetch.source_capture import main as collect_sources
+    assert commands[0][0] is collect_sources
+    assert commands[0][1][0] == str(work / 'input-dataset.json')
 
 
 @pytest.mark.parametrize("with_source_tree", [True, False])

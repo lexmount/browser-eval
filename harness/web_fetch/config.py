@@ -118,6 +118,11 @@ def load_dataset(path: Path) -> tuple[dict[str, Any], list[EvalCase]]:
     return payload, cases
 
 
+def derive_comparison(dataset: dict[str, Any], changes: dict[str, Any]) -> dict[str, Any]:
+    """Change execution controls without discarding inherited evidence contracts."""
+    return {**deepcopy(dataset.get('comparison', {})), **deepcopy(changes)}
+
+
 def select_diagnostic_scope(
     dataset: dict[str, Any], cases: list[EvalCase], providers: list[str], *,
     case_ids: str = "", task_kind: str | None = None,
@@ -141,9 +146,10 @@ def select_diagnostic_scope(
     scoped['coverage_plan'] = {track: list(providers) for track in
                                sorted({case.track for case in selected})}
     # A new diagnostic run cannot inherit a historical cohort's certification.
-    scoped['comparison'] = {'kind': 'web_fetch_diagnostic',
+    scoped['comparison'] = derive_comparison(dataset, {'kind': 'web_fetch_diagnostic',
                             'evidence_state': 'diagnostic',
-                            'publication_state': 'diagnostic_not_for_release'}
+                            'publication_state': 'diagnostic_not_for_release'})
+    scoped['comparison'].pop('require_independent_result_review', None)
     return scoped, selected
 
 

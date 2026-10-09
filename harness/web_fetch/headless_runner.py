@@ -7,6 +7,7 @@ from pathlib import Path
 
 from harness.web_fetch.artifacts import materialize_task_references
 from harness.web_fetch.config import (
+    derive_comparison,
     load_dataset,
     load_provider_settings,
     load_runtime_env,
@@ -172,7 +173,7 @@ def main(argv=None):
         "name": cohort_config.get("name", "浏览器 Web Fetch 对比"),
         "cases": [c for c in dataset["cases"] if c["id"] in {x.id for x in cases}],
         "coverage_plan": {c.track: names for c in cases},
-        "comparison": {
+        "comparison": derive_comparison(dataset, {
             "kind": (
                 "headless_client_resource_profile" if resource_profile else "headless_markdown"
             ),
@@ -199,7 +200,7 @@ def main(argv=None):
             "resource_memory": args.resource_memory if resource_profile else None,
             "max_failure_retries": args.max_failure_retries,
             "retry_selection": "final_physical_attempt_is_authoritative",
-        },
+        }),
     }
     records, _ = run_evaluation(
         output_dir=args.output,

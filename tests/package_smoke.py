@@ -1499,6 +1499,72 @@ def verify_full_cohort_commands(root, source_root):
         os.chdir(previous)
 
 
+def verify_certified_cohort(root):
+    """Exercise all installed certification stages with independent local HTTP evidence."""
+    import http.server
+    import threading
+
+    from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
+    from harness.web_fetch.source_capture import extract_html
+
+    text = " ".join(f"Independent fact {index} describes a stable public observation."
+                    for index in range(40))
+    body = ("<html><head><title>Certification fixture</title></head><body><main>"
+            + text + "</main></body></html>").encode()
+    requests = []
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            requests.append(self.path)
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    worker = threading.Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+    try:
+        stage = root / 'certified-cohort'
+        stage.mkdir()
+        url = f'http://127.0.0.1:{server.server_port}/source'
+        reference = extract_html(body, url)[1]
+        case = {'id': 'local-page', 'name': 'Independent local page', 'url': url,
+                'category': 'web', 'track': 'web', 'task_kind': 'body',
+                'expected_any': ['Independent fact 0'],
+                'ground_truth_main_content': reference,
+                'source_verification': {'method': 'independent HTTP capture'}}
+        (stage / 'tasks.json').write_text(json.dumps({'schema_version': 1,
+            'id': 'certification-control', 'name': 'Certification control', 'tool': 'web_fetch',
+            'cases': [case], 'coverage_plan': {'web': ['fixture']}}))
+        (stage / 'methods.json').write_text(json.dumps({'providers': {
+            'fixture': {'type': 'fixture'}}}))
+        (stage / 'empty.env').write_text('')
+        subprocess.run([sys.executable, '-c',
+            'from harness.web_fetch.certification import main; main()',
+            '--dataset', 'tasks.json', '--provider-config', 'methods.json',
+            '--env-file', 'empty.env', '--output', 'run', '--work-root', 'captures',
+            '--providers', 'fixture', '--case-ids', 'local-page', '--workers', '1',
+            '--capture-workers', '1'], cwd=stage, check=True, capture_output=True, text=True)
+        output = stage / 'run'
+        records = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]
+        dataset = json.loads((output / 'dataset.json').read_text())
+        batches = json.loads((output / 'execution.json').read_text())['batches']
+        assert len(records) == 1 and records[0]['provider'] == 'fixture'
+        require_verified_reference_checks(batches, cases=dataset, records=records, source=output)
+        assert requests == ['/source', '/source']
+        assert (stage / 'captures/pre-captures/audit.json').is_file()
+        assert (stage / 'captures/post-captures/audit.json').is_file()
+        assert dataset['cases'][0]['ground_truth_main_content'] == reference
+    finally:
+        server.shutdown()
+        server.server_close()
+        worker.join(timeout=2)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -1507,6 +1573,8 @@ def main():
                         help='Also exercise TEDS writing with the webmainbench-eval extra installed')
     parser.add_argument('--oss', action='store_true',
                         help='Exercise installed OSS libraries against local HTTP fixtures')
+    parser.add_argument('--reference-audit', action='store_true',
+                        help='Exercise installed certification against independent local captures')
     args = parser.parse_args()
     from harness.web_fetch import webmainbench_latency_correction
 
@@ -1540,6 +1608,8 @@ def main():
 
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
+        if args.reference_audit:
+            verify_certified_cohort(root)
         verify_aggregate_finalization(root, args.source_root)
         verify_sample_case_correction(root, args.source_root)
         verify_full_cohort_commands(root, args.source_root)

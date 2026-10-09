@@ -7,11 +7,19 @@ import argparse
 import hashlib
 import json
 import shutil
-import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from harness.record_io import load_jsonl
+from harness.web_fetch import (
+    benchmark_runner,
+    browser_observations,
+    evidence,
+    reference_freeze,
+    source_capture,
+    webmainbench_runner,
+)
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -92,8 +100,9 @@ def validate_browser_observations(path: Path, required_case_ids: list[str]) -> N
         raise ValueError("Required browser observations failed: " + ", ".join(failed))
 
 
-def run(command: list[str]) -> None:
-    subprocess.run(command, cwd=ROOT, check=True)
+def run(stage: Callable[[list[str]], None], arguments: list[str]) -> None:
+    """Execute a maintained stage with explicit arguments in the caller's environment."""
+    stage(arguments)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -221,7 +230,6 @@ def main(argv: list[str] | None = None) -> None:
         args.dataset = args.work_root / "input-dataset.json"
         args.dataset.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
 
-    python = sys.executable
     selected = ",".join(case_ids)
     pre_captures = args.work_root / "pre-captures"
     frozen = args.work_root / "frozen"
@@ -230,9 +238,8 @@ def main(argv: list[str] | None = None) -> None:
     post_browser = args.work_root / "post-browser.json"
 
     run(
+        source_capture.main,
         [
-            python,
-            "scripts/collect_source_evidence.py",
             str(args.dataset),
             str(pre_captures),
             "--workers",
@@ -253,9 +260,8 @@ def main(argv: list[str] | None = None) -> None:
     browser_args: list[str] = []
     if pre_browser_cases:
         run(
+            browser_observations.main,
             [
-                python,
-                "scripts/capture_headless_browser_observations.py",
                 "--dataset",
                 str(args.dataset),
                 "--output",
@@ -277,9 +283,8 @@ def main(argv: list[str] | None = None) -> None:
         ["--reference-promotion", str(args.reference_promotion)] if args.reference_promotion else []
     )
     run(
+        reference_freeze.main,
         [
-            python,
-            "scripts/freeze_headless_references.py",
             "--captures",
             str(pre_captures),
             "--dataset",
@@ -294,8 +299,6 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     benchmark = [
-        python,
-        "scripts/run_benchmark.py",
         "--dataset",
         str(frozen / "dataset.json"),
         "--output",
@@ -312,16 +315,15 @@ def main(argv: list[str] | None = None) -> None:
         benchmark.extend(["--env-file", str(args.env_file)])
     if args.provider_config:
         benchmark.extend(["--provider-config", str(args.provider_config)])
-    run(benchmark)
+    run(benchmark_runner.main, benchmark)
 
     # Re-capture HTTP evidence after every provider call has completed, then
     # choose browser fallbacks from that post-call evidence. Reusing the
     # pre-call browser inventory is unsafe: an endpoint can become unavailable
     # during a long cohort even though its frozen pre-capture was usable.
     run(
+        source_capture.main,
         [
-            python,
-            "scripts/collect_source_evidence.py",
             str(args.output / "dataset.json"),
             str(post_captures),
             "--workers",
@@ -343,9 +345,8 @@ def main(argv: list[str] | None = None) -> None:
     post_browser_args: list[str] = []
     if post_browser_cases:
         run(
+            browser_observations.main,
             [
-                python,
-                "scripts/capture_headless_browser_observations.py",
                 "--dataset",
                 str(args.output / "dataset.json"),
                 "--output",
@@ -364,9 +365,8 @@ def main(argv: list[str] | None = None) -> None:
             parser.error(str(error))
         post_browser_args = ["--browser-observations", str(post_browser)]
     run(
+        reference_freeze.postcheck_main,
         [
-            python,
-            "scripts/postcheck_headless.py",
             "--run-dir",
             str(args.output),
             "--captures",
@@ -380,9 +380,8 @@ def main(argv: list[str] | None = None) -> None:
         observations.parent.mkdir(parents=True, exist_ok=True)
         observations.write_text("[]\n", encoding="utf-8")
     run(
+        evidence.finalize_main,
         [
-            python,
-            "scripts/finalize_benchmark_run.py",
             "--run-dir",
             str(args.output),
             "--observations",
@@ -504,9 +503,8 @@ def run_wcxb(argv: list[str]) -> None:
             continue
         output = args.output_root / provider
         run(
+            webmainbench_runner.main,
             [
-                sys.executable,
-                "scripts/run_webmainbench_benchmark.py",
                 "--benchmark",
                 "wcxb",
                 "--dataset",

@@ -176,3 +176,29 @@ def test_lost_commit_response_recovers_the_same_operation_without_reupload(repor
     result = release.publish(**kwargs, transport=site)
     assert result['versionId'] == 'ver_new'
     assert sum(kw['method'] == 'PUT' for _, kw, _ in site.calls) == uploads
+
+
+def test_profile_binding_interruption_resumes_without_another_commit(report, monkeypatch):
+    kwargs, profile_path, _ = report
+    site = Site()
+    original = release.atomic_write
+    failed = False
+
+    def interrupt(path, payload):
+        nonlocal failed
+        value = json.loads(payload)
+        if path.name.startswith('wcxb-update-') and value.get('verified') and not failed:
+            failed = True
+            raise OSError('interrupted after profile binding')
+        original(path, payload)
+
+    monkeypatch.setattr(release, 'atomic_write', interrupt)
+    with pytest.raises(OSError, match='profile binding'):
+        release.publish(**kwargs, transport=site)
+    assert json.loads(profile_path.read_bytes())['artifact_hub_expected_version'] == 'ver_new'
+    result = release.publish(**kwargs, transport=site)
+    assert result['versionId'] == 'ver_new'
+    assert sum('/commit?' in path for path, _, _ in site.calls) == 1
+    journals = list(kwargs['work'].glob('wcxb-update-*.json'))
+    assert len(journals) == 1
+    assert json.loads(journals[0].read_bytes())['verified'] is True
