@@ -1,3 +1,4 @@
+import copy
 import json
 import unittest
 from pathlib import Path
@@ -29,3 +30,19 @@ class DynamicReferenceTests(unittest.TestCase):
         score=lambda text:evaluate_content(text,[],required_facts=facts,min_content_chars=1)['content_pass']
         self.assertTrue(score('$10 Title Description 1reviews'))
         self.assertFalse(score('$10 Title Description 11reviews'))
+
+    def test_new_observed_values_replace_old_fact_values(self):
+        # Snapshot diagnostics can describe a new independent sample, without
+        # silently changing the separately reviewed stable acceptance contract.
+        captures = json.loads((ROOT/'research/dynamic-expansion-captures.json').read_text())
+        case = next(c for c in captures if c['id'] == 'dynamic-iframe')
+        updated = copy.deepcopy(case['entries'])
+        old = updated[0]
+        updated[0] = 'Updated family name'
+        facts = entry_facts(case['id'], updated)
+        fresh = '\n'.join(updated)
+        stale = '\n'.join(case['entries'])
+        score = lambda text: evaluate_content(text, [], required_facts=facts, min_content_chars=1)
+        self.assertTrue(score(fresh)['content_pass'])
+        self.assertFalse(score(stale)['content_pass'])
+        self.assertNotEqual(old, updated[0])
