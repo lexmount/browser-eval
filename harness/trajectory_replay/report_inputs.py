@@ -2,13 +2,12 @@
 import hashlib
 from pathlib import Path
 
+from harness.web_fetch.safety import unlinked_path
+
 
 def verified_dataset_path(path: Path, digest: str) -> Path:
-    if (
-        path.is_symlink()
-        or any(parent.is_symlink() for parent in path.parents)
-        or not path.is_file()
-    ):
+    path = unlinked_path(path)
+    if not path.is_file():
         raise ValueError("bound corrected dataset is missing or symlinked")
     if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
         raise ValueError("bound corrected dataset changed")

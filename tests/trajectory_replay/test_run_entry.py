@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,9 @@ def wrapper_environment(tmp_path):
     for name, body in {
         "docker": 'echo docker >> "$CALL_LOG"\nexit 0\n',
         "uv": (
+            'if [ "$5" = python ] && [ "$6" = -c ]; then\n'
+            '  shift 5; exec "$TEST_PYTHON" "$@"\n'
+            'fi\n'
             'printf "%s\\n" "$@" >> "$CALL_LOG"\n'
             'while [ "$#" -gt 0 ]; do\n'
             '  if [ "$1" = --output ]; then shift; mkdir "$1"; fi\n'
@@ -34,6 +38,7 @@ def wrapper_environment(tmp_path):
         **os.environ,
         "PATH": str(binaries) + os.pathsep + os.environ["PATH"],
         "CALL_LOG": str(log),
+        "TEST_PYTHON": sys.executable,
         "BROWSER_EVAL_DATA_HOME": str(tmp_path / "data"),
         "BROWSER_USE_EVAL_BUILD_IMAGES": "0",
     }
@@ -153,7 +158,7 @@ def test_shared_runner_rejects_reused_or_linked_output_before_loading_inputs(
 
     monkeypatch.setattr(runner, "load_suite", forbidden)
     monkeypatch.setattr(runner.docker, "from_env", forbidden)
-    with pytest.raises(ValueError, match="[Oo]utput"):
+    with pytest.raises(ValueError, match="[Oo]utput|symlink"):
         runner.run_evaluation(
             suite_path=tmp_path / "missing-suite.json", output_dir=output,
             reports_dir=tmp_path / "report",
@@ -180,7 +185,7 @@ def test_runner_rechecks_destination_after_loading_inputs(tmp_path, monkeypatch,
 
     monkeypatch.setattr(runner, "load_suite", load_suite)
     monkeypatch.setattr(runner.docker, "from_env", lambda: pytest.fail("Browser setup reached"))
-    with pytest.raises(ValueError, match="Output"):
+    with pytest.raises(ValueError, match="Output|symlink"):
         runner.run_evaluation(
             suite_path=tmp_path / "suite.json", output_dir=output,
             reports_dir=output / "report",
@@ -210,3 +215,22 @@ def test_direct_cli_requires_explicit_inputs_and_keeps_report_with_run(monkeypat
     assert calls[0]["reports_dir"] == output / "report"
     assert calls[0]["suite_path"] == "suite.json"
     assert calls[0]["ground_truth_evidence_path"] == "qualification.json"
+
+
+@pytest.mark.skipif(sys.platform != 'darwin', reason='macOS system aliases')
+@pytest.mark.parametrize('alias', ['/tmp', '/var'])
+def test_wrapper_accepts_system_temp_aliases(tmp_path, wrapper_environment, alias):
+    import tempfile
+
+    env, log = wrapper_environment
+    canonical = Path('/private') / Path(alias).name
+    with tempfile.TemporaryDirectory(dir=canonical if alias == '/tmp' else tmp_path) as directory:
+        root = Path(directory)
+        output = Path(alias) / root.relative_to(canonical) / 'new-run'
+        env['BROWSER_USE_EVAL_OUTPUT_DIR'] = str(output)
+        result = subprocess.run(['bash', str(ROOT / 'examples/trajectory_replay/run.sh')],
+                                env=env, capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+        calls = log.read_text().splitlines()
+        assert calls[calls.index('--output') + 1] == str(root / 'new-run')
+        assert (root / 'new-run').is_dir()

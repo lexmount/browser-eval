@@ -102,6 +102,9 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
     """Upload or finish a receipt; remote byte verification is a separate command."""
     if config.mode not in {"create", "update", "reuse"}:
         raise ValueError("Unknown publication mode")
+    if config.operation_namespace == 'webfetch':
+        from .report_package import validate_release
+        validate_release(config.source)
     protected = {config.profile.resolve(), config.archive.resolve(),
                  *(Path(path).resolve() for path in validation_inputs)}
     if config.receipt.resolve() in protected or config.journal.resolve() in protected:

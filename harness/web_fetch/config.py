@@ -142,6 +142,7 @@ def select_diagnostic_scope(
                                sorted({case.track for case in selected})}
     # A new diagnostic run cannot inherit a historical cohort's certification.
     scoped['comparison'] = {'kind': 'web_fetch_diagnostic',
+                            'evidence_state': 'diagnostic',
                             'publication_state': 'diagnostic_not_for_release'}
     return scoped, selected
 

@@ -130,3 +130,76 @@ def test_existing_evidence_is_never_overwritten(experiment):
     assert 'existing evidence is immutable' in result.stderr
     assert paths == []
     assert existing.read_bytes() == b'prior measurements\n'
+
+
+@pytest.mark.parametrize('rescore', [False, True])
+def test_diagnostic_run_rescore_keeps_scope_and_cannot_release(experiment, rescore):
+    from harness.web_fetch import assembly, report_package, report_publish
+    from harness.web_fetch.reference_lifecycle import require_certifiable_evidence
+
+    run, paths, root, _ = experiment
+    original = json.loads((root / 'dataset.json').read_text())
+    original['comparison'] = {}
+    (root / 'dataset.json').write_text(json.dumps(original))
+    result = run('--providers', 'bytes', '--case-ids', 'good')
+    assert result.returncode == 0, result.stdout + result.stderr
+    evidence = root / 'run'
+    before = json.loads((evidence / 'dataset.json').read_text())
+    calls = list(paths)
+    if rescore:
+        result = subprocess.run([sys.executable, '-m', 'harness.web_fetch', 'rescore',
+            str(evidence), '--dataset', str(root / 'dataset.json')],
+            text=True, capture_output=True)
+        assert result.returncode == 0, result.stdout + result.stderr
+    after = json.loads((evidence / 'dataset.json').read_text())
+    assert after['comparison'] == before['comparison']
+    assert after['coverage_plan'] == before['coverage_plan']
+    assert [case['id'] for case in after['cases']] == ['good']
+    assert paths == calls
+    assert '诊断运行 · 非正式评测' in (evidence / 'report/index.html').read_text()
+    manifest = json.loads((evidence / 'manifest.json').read_text())
+    for dataset in (after, {}):
+        with pytest.raises(ValueError, match='Diagnostic'):
+            require_certifiable_evidence(dataset, [manifest])
+    certificates = root / 'certificates'
+    certificates.mkdir()
+    with pytest.raises(ValueError, match='Diagnostic'):
+        assembly.assemble(evidence, certificates, [], root / 'assembled')
+    assert not (root / 'assembled').exists()
+    with pytest.raises(ValueError, match='Diagnostic'):
+        report_package.build(evidence / 'report', root / 'release.zip')
+    assert not (root / 'release.zip').exists()
+    config = report_publish.PublishConfig(root / 'profile.json', root / 'release.zip',
+        evidence / 'report', root / 'receipt.json', root / 'journal.json', 'create')
+    remote = []
+    with pytest.raises(ValueError, match='Diagnostic'):
+        report_publish.publish(config, transport=lambda *args, **kwargs: remote.append(args))
+    assert remote == []
+
+
+@pytest.mark.parametrize('damage', ['missing', 'duplicate', 'url', 'track', 'task_kind'])
+def test_diagnostic_rescore_rejects_changed_execution_scope_before_writes(experiment, damage):
+    run, paths, root, _ = experiment
+    result = run('--providers', 'bytes', '--case-ids', 'good')
+    assert result.returncode == 0, result.stdout + result.stderr
+    evidence = root / 'run'
+    before = {name: (evidence / name).read_bytes()
+              for name in ('dataset.json', 'manifest.json', 'results.jsonl', 'summary.json')}
+    dataset_path = root / 'dataset.json'
+    dataset = json.loads(dataset_path.read_text())
+    good = next(case for case in dataset['cases'] if case['id'] == 'good')
+    if damage == 'missing':
+        dataset['cases'].remove(good)
+    elif damage == 'duplicate':
+        dataset['cases'].append(dict(good))
+    else:
+        good[damage] = {'url': 'https://different.invalid/', 'track': 'another',
+                        'task_kind': 'body'}[damage]
+    dataset_path.write_text(json.dumps(dataset))
+    calls = list(paths)
+    result = subprocess.run([sys.executable, '-m', 'harness.web_fetch', 'rescore',
+        str(evidence), '--dataset', str(dataset_path)], text=True, capture_output=True)
+    assert result.returncode != 0
+    assert paths == calls
+    for name, raw in before.items():
+        assert (evidence / name).read_bytes() == raw

@@ -361,3 +361,17 @@ def test_report_rename_keeps_bound_target_and_receipt(tmp_path, monkeypatch, dam
         assert calls[0].full_url == 'https://reports.example/api/sites/site-one'
         assert json.loads(path.read_text()) == {**receipt, 'title': 'after'}
         assert path.stat().st_mode & 0o777 == 0o600
+
+
+@pytest.mark.parametrize('state', ['diagnostic', 'diagnostic_not_for_release',
+                                  'local_audit_only_not_for_release'])
+@pytest.mark.parametrize('mode', ['create', 'update', 'reuse'])
+def test_diagnostic_source_never_contacts_publication_service(tmp_path, state, mode):
+    config = fixture(tmp_path, mode)
+    (config.source / 'dataset.json').write_text(json.dumps({
+        'comparison': {'publication_state': state}}))
+    service = Service()
+    with pytest.raises(ValueError, match='Diagnostic'):
+        report_publish.publish(config, transport=service, package_check=lambda *args: None)
+    assert service.requests == []
+    assert not config.journal.exists()

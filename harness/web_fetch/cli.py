@@ -50,7 +50,7 @@ def command_run(args: argparse.Namespace) -> int:
         provider_concurrency=args.provider_concurrency,
         max_failure_retries=args.max_failure_retries,
     )
-    report_path = build_report(args.output, args.output / 'report')
+    report_path = build_report(args.output, args.output / 'report', diagnostic_preview=True)
     print(f"Report: {report_path.resolve()}")
     kinds={case.id:case.task_kind for case in cases}
     failures = [r for r in records if not task_passed(r['ok'],r['metrics'],kinds[r['case_id']])]
@@ -58,7 +58,7 @@ def command_run(args: argparse.Namespace) -> int:
 
 
 def command_report(args: argparse.Namespace) -> int:
-    report_path = build_report(args.run_dir, args.run_dir / 'report')
+    report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True)
     print(f"Report: {report_path.resolve()}")
     return 0
 
@@ -66,7 +66,7 @@ def command_report(args: argparse.Namespace) -> int:
 def command_rescore(args: argparse.Namespace) -> int:
     dataset, cases = load_dataset(args.dataset)
     records, _ = rescore_evaluation(run_dir=args.run_dir, dataset_meta=dataset, dataset_path=args.dataset, cases=cases)
-    report_path = build_report(args.run_dir, args.run_dir / 'report')
+    report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True)
     print(f"Rescored {len(records)} persisted attempts; report: {report_path.resolve()}")
     return 0
 

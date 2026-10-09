@@ -22,19 +22,14 @@ if [[ -e "${OUTPUT}" || -L "${OUTPUT}" ]]; then
   echo "Output must be a new directory; existing evidence is immutable: ${OUTPUT}" >&2
   exit 2
 fi
-CHECK_PATH="${OUTPUT}"
-while [[ "${CHECK_PATH}" != / ]]; do
-  if [[ -L "${CHECK_PATH}" ]]; then
-    echo "Output must not contain symlinks: ${OUTPUT}" >&2
-    exit 2
-  fi
-  CHECK_PATH="$(dirname "${CHECK_PATH}")"
-done
-
 cd "${ROOT}"
 
 command -v docker >/dev/null 2>&1 || { echo "docker is required" >&2; exit 2; }
 command -v uv >/dev/null 2>&1 || { echo "uv is required" >&2; exit 2; }
+OUTPUT="$(uv run --frozen --extra browser-use-eval python -c \
+  'import sys; from pathlib import Path; from harness.web_fetch.safety import unlinked_path; print(unlinked_path(Path(sys.argv[1])))' \
+  "${OUTPUT}")"
+REPORTS="${OUTPUT}/report"
 docker info >/dev/null
 
 mkdir -p "$(dirname "${OUTPUT}")"

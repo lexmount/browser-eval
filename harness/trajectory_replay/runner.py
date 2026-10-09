@@ -337,9 +337,8 @@ def run_evaluation(
 ) -> dict[str, Any]:
     if max_retries < 0:
         raise ValueError("max_retries must be non-negative")
-    output = Path(output_dir).absolute()
-    if any(path.is_symlink() for path in (output, *output.parents)):
-        raise ValueError("Output must not contain symlinks")
+    from harness.web_fetch.safety import unlinked_path
+    output = unlinked_path(Path(output_dir))
     if output.exists():
         raise ValueError("Output must be a new directory; existing evidence is immutable")
     suite = load_suite(suite_path)
@@ -348,8 +347,7 @@ def run_evaluation(
         if ground_truth_evidence_path is not None
         else None
     )
-    if any(path.is_symlink() for path in (output, *output.parents)):
-        raise ValueError("Output must not contain symlinks")
+    unlinked_path(output)
     try:
         output.mkdir(parents=True, exist_ok=False)
     except FileExistsError as error:

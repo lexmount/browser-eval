@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -254,3 +256,35 @@ def test_prepare_page_keeps_context_but_replaces_renderer_page(monkeypatch):
         ("viewport", {"width": 1280, "height": 900}),
         ("settle", 1500),
     ]
+
+
+@pytest.mark.skipif(sys.platform != 'darwin', reason='macOS system aliases')
+@pytest.mark.parametrize('alias', ['/tmp', '/var'])
+def test_replay_accepts_system_alias_but_rejects_user_links(tmp_path, monkeypatch, alias):
+    from harness.trajectory_replay.report_inputs import verified_dataset_path
+
+    # pytest's temporary root is inside /private/var on macOS.
+    canonical = Path('/private') / Path(alias).name
+    with tempfile.TemporaryDirectory(dir=canonical if alias == '/tmp' else tmp_path) as directory:
+        root = Path(directory)
+        aliased = Path(alias) / root.relative_to(canonical)
+        dataset = root / 'dataset.json'
+        dataset.write_bytes(b'{}')
+        digest = hashlib.sha256(b'{}').hexdigest()
+        assert verified_dataset_path(aliased / 'dataset.json', digest).read_bytes() == b'{}'
+        seen = []
+        def stop_at_suite(path):
+            seen.append(path)
+            raise RuntimeError('suite reached')
+        monkeypatch.setattr(runner, 'load_suite', stop_at_suite)
+        with pytest.raises(RuntimeError, match='suite reached'):
+            runner.run_evaluation(suite_path=dataset, output_dir=aliased / 'new',
+                                  reports_dir=root / 'report')
+        assert seen == [dataset]
+        link = root / 'user-link'
+        link.symlink_to(root, target_is_directory=True)
+        with pytest.raises(ValueError, match='symlink'):
+            verified_dataset_path(link / 'dataset.json', digest)
+        with pytest.raises(ValueError, match='symlink'):
+            runner.run_evaluation(suite_path=dataset, output_dir=link / 'new',
+                                  reports_dir=root / 'report')

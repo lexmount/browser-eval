@@ -182,7 +182,8 @@ def build_public_benchmark_research(source: Path, output: Path, *, include_engli
 
 
 def build_report(source: Path, output: Path, *, include_english: bool = False,
-                 local_audit: bool = False, authored_interpretation: bool = False) -> Path:
+                 local_audit: bool = False, authored_interpretation: bool = False,
+                 diagnostic_preview: bool = False) -> Path:
     source, output = source.resolve(), output.resolve()
     if source == output or output in source.parents:
         raise ValueError('Report output must not contain its evidence source')
@@ -190,7 +191,9 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     if output.exists() and not (output/marker).is_file():
         raise ValueError(f'Refusing to replace an unmarked directory: {output}')
     dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
-    if not local_audit:
+    diagnostic_preview = (diagnostic_preview and
+        dataset_probe.get('comparison', {}).get('kind') == 'web_fetch_diagnostic')
+    if not local_audit and not diagnostic_preview:
         from .reference_lifecycle import require_certifiable_evidence
         require_certifiable_evidence(dataset_probe)
     if dataset_probe.get('comparison', {}).get('kind') == 'webmainbench_frozen_html_to_markdown':
@@ -289,7 +292,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         raise ValueError('A report requires tasks and measured records')
     execution = source/'execution.json'
     manifests = json.loads(execution.read_text())['batches'] if execution.exists() else [json.loads((source/'manifest.json').read_text())]
-    if not local_audit:
+    if not local_audit and not diagnostic_preview:
         require_verified_reference_checks(manifests, cases=dataset, records=records, source=source,
             equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
             'equivalent_reference_bytes_with_independent_batch_captures')

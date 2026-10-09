@@ -30,6 +30,8 @@ def scored_output_hash(row: dict) -> str:
 
 
 def check(archive, source, overlay=None):
+    from .report_package import validate_release
+    validate_release(source)
     source_files = evidence_tree_identity(source)
     physical = archive_inventory(archive)
     with zipfile.ZipFile(archive) as bundle:

@@ -21,6 +21,7 @@ from harness.web_fetch.reference_lifecycle import (
     latency_correction_original_elapsed,
     reference_revision_cases,
     require_verified_reference_checks,
+    require_certifiable_evidence,
     requires_fresh_reference,
     scoring_revision_history_sha256,
     valid_scoring_revision,
@@ -592,6 +593,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         raise ValueError('Original run has incomplete coverage')
     source_manifest=(json.loads((run/'manifest.json').read_text())
                      if (run/'manifest.json').exists() else {})
+    require_certifiable_evidence(dataset, [source_manifest])
     live_physical_run=(source_manifest.get('reference_checks',{}).get('status') ==
                        'awaiting_postcheck'
                        and source_manifest.get('attempt_count') == len(original)

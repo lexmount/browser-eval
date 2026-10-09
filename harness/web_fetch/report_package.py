@@ -31,6 +31,14 @@ def _require(condition, detail):
 def validate_release(source: Path) -> bool:
     dataset_path = source / "dataset.json"
     dataset = json.loads(dataset_path.read_text()) if dataset_path.exists() else {}
+    from .reference_lifecycle import require_certifiable_evidence
+    manifests = []
+    for name in ('manifest.json', 'execution.json'):
+        path = source / name
+        if path.is_file():
+            value = json.loads(path.read_text())
+            manifests.extend(value.get('batches', [value]))
+    require_certifiable_evidence(dataset, manifests)
     sampled = dataset.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown"
     if not sampled:
         reliability = json.loads((source / "reliability.json").read_text())

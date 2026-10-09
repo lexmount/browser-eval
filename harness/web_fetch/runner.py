@@ -13,6 +13,7 @@ import time
 import traceback
 import urllib.error
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -37,6 +38,7 @@ from .reference_lifecycle import (
     ReferenceLifecycleError,
     check_case_reference_binding,
     check_case_reference_fresh,
+    is_diagnostic_evidence,
     preflight_reference_checks,
 )
 from .diagnostics import CallDiagnostics
@@ -568,7 +570,7 @@ def run_evaluation(
     if reference_checks is not None:
         manifest["reference_checks"] = reference_checks
     comparison = dataset_meta.get('comparison', {})
-    if comparison.get('evidence_state') == 'diagnostic':
+    if is_diagnostic_evidence(dataset_meta):
         manifest['evidence_state'] = 'diagnostic'
         manifest['unqualified_reference_cases'] = sorted(
             set(comparison.get('unqualified_reference_cases', [])) & {case.id for case in cases})
@@ -857,6 +859,23 @@ def rescore_evaluation(
         if expected_hash and hashlib.sha256(contained_path(run_dir, record["artifact_path"]).read_bytes()).hexdigest() != expected_hash:
             raise ValueError("Output integrity failure: " + record["attempt_id"])
     manifest = json.loads(contained_path(run_dir, "manifest.json").read_text(encoding="utf-8"))
+    saved_dataset = json.loads(contained_path(run_dir, "dataset.json").read_text(encoding="utf-8"))
+    if is_diagnostic_evidence(saved_dataset) or is_diagnostic_evidence(manifest):
+        # Scoring inputs may change; the executed population and intent may not.
+        selected_ids = [case['id'] for case in saved_dataset['cases']]
+        revised = {case['id']: case for case in dataset_meta['cases']}
+        if len(revised) != len(dataset_meta['cases']) or not set(selected_ids) <= revised.keys():
+            raise ValueError('Rescore dataset omits or duplicates executed tasks')
+        for original in saved_dataset['cases']:
+            if any(original.get(key) != revised[original['id']].get(key)
+                   for key in ('url', 'track', 'task_kind')):
+                raise ValueError('Rescore changed executed task scope')
+        dataset_meta = deepcopy(dataset_meta)
+        dataset_meta['cases'] = [revised[identifier] for identifier in selected_ids]
+        dataset_meta['coverage_plan'] = deepcopy(saved_dataset['coverage_plan'])
+        dataset_meta['comparison'] = deepcopy(saved_dataset.get('comparison', {}))
+        dataset_meta['comparison']['evidence_state'] = 'diagnostic'
+        cases = [case_by_id[identifier] for identifier in selected_ids]
     # Validate the entire batch before touching metrics, datasets or results.
     # Historical records without a binding retain the legacy rescore behavior.
     bindings = manifest.get("reference_checks", {}).get("cases", {})

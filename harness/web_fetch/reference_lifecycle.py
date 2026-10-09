@@ -1212,14 +1212,26 @@ def check_case_reference_and_scoring_revision_binding(
         )
 
 
+def is_diagnostic_evidence(value) -> bool:
+    """Recognize persisted non-release intent across datasets and execution manifests."""
+    if not isinstance(value, dict):
+        return False
+    comparison = value.get('comparison', {})
+    return any(isinstance(item, dict) and (
+        item.get('evidence_state') == 'diagnostic'
+        or item.get('publication_state') in {
+            'diagnostic', 'diagnostic_not_for_release', 'local_audit_only_not_for_release'}
+        or str(item.get('publication_state', '')).endswith('_not_for_release')
+        or item.get('kind') == 'web_fetch_diagnostic'
+        or item.get('unqualified_reference_cases')
+    ) for item in (value, comparison))
+
+
 def require_certifiable_evidence(dataset=None, manifests=()) -> None:
     """Diagnostic intent survives dataset copies and cannot become certification."""
-    comparison = dataset.get('comparison', {}) if isinstance(dataset, dict) else {}
-    candidates = [comparison, *manifests]
-    if any(isinstance(value, dict) and (
-            value.get('evidence_state') == 'diagnostic'
-            or value.get('publication_state') == 'diagnostic'
-            or value.get('unqualified_reference_cases')) for value in candidates):
+    if isinstance(manifests, dict):
+        manifests = [manifests]
+    if any(is_diagnostic_evidence(value) for value in [dataset, *manifests]):
         raise ReferenceLifecycleError('Diagnostic evidence cannot enter certified assembly or reports')
 
 
