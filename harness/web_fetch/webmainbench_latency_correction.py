@@ -267,7 +267,8 @@ def certify(argv: list[str] | None = None) -> None:
     before = snapshot(args.dataset, args.sample, args.official_evidence)
     command = [
         sys.executable,
-        str(ROOT / "scripts/diagnose_webmainbench_moli_tail.py"),
+        "-m",
+        "harness.web_fetch.webmainbench_latency_diagnostic",
         "--older",
         str(args.older),
         "--newer",

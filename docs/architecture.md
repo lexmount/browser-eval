@@ -159,6 +159,16 @@ inputs changed during analysis are errors. Large inline input failures use the
 same rule for every provider; a signal identifies a case to investigate, not its
 cause or final verdict. An optional output file must be new.
 
+Paired Moli timing uses `scripts/diagnose_webmainbench_moli_tail.py` or
+`python -m harness.web_fetch.webmainbench_latency_diagnostic` with the same arguments.
+`--older-version` and `--newer-version` declare the expected binary versions;
+`--source-sha256` and `--source-count` bind a different frozen source population.
+`--all-cases` includes the complete declared sample. Tail-only selection is
+diagnostic and cannot supply a benchmark ranking. Each run retains every physical
+call, alternates version order, and freezes its executing source beside the output.
+The historical formal correction retains its fixed versions, 200-page scope and
+predeclared final round. Frozen certifier sources remain versioned reproduction inputs.
+
 [CONTRIBUTING.md](../CONTRIBUTING.md) documents the development and package gates.
 Tests use synthetic local inputs for execution, scoring, evidence, report and
 publication boundaries. The package gate builds a wheel from the source archive

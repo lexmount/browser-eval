@@ -1,10 +1,14 @@
 """Verify and summarize append-only Moli latency reruns without changing scored results."""
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import math
 import re
+import random
+import subprocess
+import time
 import statistics
 from collections import defaultdict
 from datetime import datetime
@@ -353,3 +357,219 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
                 'repeat_115_ok': all_rows['moli-115-control'][case_id]['_body_present'],
                 'repeat_117_ok': all_rows['moli-117-repeat'][case_id]['_body_present'],
             } for case_id in sorted(cases)]}
+
+
+def prior_call_rows(path: Path) -> dict[str, dict]:
+    records = load_jsonl(path, skip_blank=True)
+    result = {row["track_id"]: row for row in records}
+    if len(result) != len(records):
+        raise ValueError("Prior calls contain duplicate pages")
+    return result
+
+
+def paired_tail_main(argv=None) -> None:
+    from .providers.headless import LOOPBACK_SANDBOX_PROFILE
+    from .safety import safe_identifier, unlinked_path
+    from .webmainbench_runner import (
+        fixture_server,
+        load_selected_ids,
+        load_source,
+        verify_loopback_sandbox,
+    )
+
+    parser = argparse.ArgumentParser(
+        description="Repeat declared paired Moli latency calls serially."
+    )
+    for name in ("older", "newer", "prior-older", "prior-newer", "dataset", "sample", "output"):
+        parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--older-version", default="1.1.5")
+    parser.add_argument("--newer-version", default="1.1.7")
+    parser.add_argument("--source-sha256")
+    parser.add_argument("--source-count", type=int, default=545)
+    parser.add_argument("--rounds", type=int, default=5)
+    parser.add_argument(
+        "--all-cases",
+        action="store_true",
+        help="Repeat the complete declared sample in balanced version order",
+    )
+    parser.add_argument(
+        "--formal-correction",
+        action="store_true",
+        help="Declare final-round timing authority before calls",
+    )
+    args = parser.parse_args(argv)
+    if args.rounds < (2 if args.all_cases else 3) or args.output.exists():
+        raise ValueError("Insufficient rounds or output directory already exists")
+    if args.formal_correction and (not args.all_cases or args.rounds != 2):
+        raise ValueError("Formal correction requires all 200 pages and exactly two balanced rounds")
+    versions = (args.older_version, args.newer_version)
+    if versions[0] == versions[1]:
+        raise ValueError("Compared versions must be distinct")
+    for version in versions:
+        safe_identifier(version)
+    if args.formal_correction and versions != ("1.1.5", "1.1.7"):
+        raise ValueError("Historical formal correction requires its frozen versions")
+    args.output = unlinked_path(args.output)
+    frozen_source = Path(__file__).read_bytes()
+    binaries = {versions[0]: unlinked_path(args.older), versions[1]: unlinked_path(args.newer)}
+    bound_paths = [
+        args.dataset,
+        args.sample,
+        args.prior_older,
+        args.prior_newer,
+        *binaries.values(),
+    ]
+    bindings = {unlinked_path(path): digest(unlinked_path(path)) for path in bound_paths}
+    for version, binary in binaries.items():
+        result = subprocess.run(
+            [str(binary), "--version"], capture_output=True, text=True, check=True
+        )
+        if result.stdout.strip() != f"moli {version}":
+            raise ValueError("Moli version mismatch: " + version)
+    selected_ids, sample = load_selected_ids(args.sample)
+    if args.formal_correction and sample["case_count"] != 200:
+        raise ValueError("Expected frozen 200-page sample")
+    source_options = {"expected_count": args.source_count}
+    if args.source_sha256:
+        source_options["expected_sha256"] = args.source_sha256
+    source = {
+        row["track_id"]: row for row in load_source(args.dataset, selected_ids, **source_options)
+    }
+    if not source:
+        raise ValueError("Paired timing requires a nonempty sample")
+    for case_id in source:
+        safe_identifier(case_id)
+    prior = {
+        versions[0]: prior_call_rows(args.prior_older),
+        versions[1]: prior_call_rows(args.prior_newer),
+    }
+    if any(set(value) != set(source) for value in prior.values()):
+        raise ValueError("Prior runs do not cover the declared sample")
+    common_successes = {
+        case_id
+        for case_id in source
+        if prior[versions[0]][case_id]["ok"] and prior[versions[1]][case_id]["ok"]
+    }
+    gaps = sorted(
+        common_successes,
+        key=lambda case_id: (
+            prior[versions[1]][case_id]["elapsed_ms"] - prior[versions[0]][case_id]["elapsed_ms"]
+        ),
+        reverse=True,
+    )
+    slow = gaps[:20]
+    controls = (
+        gaps[20:] + sorted(set(source) - common_successes)
+        if args.all_cases
+        else random.Random(117).sample(gaps[20:], min(10, len(gaps[20:])))
+    )
+    cases = slow + controls
+    if not cases:
+        raise ValueError("No common successful pages for tail diagnosis")
+    case_positions = {case_id: index for index, case_id in enumerate(cases)}
+    args.output.mkdir(parents=True)
+    selection = {
+        "kind": "moli_paired_crossover_v1" if args.all_cases else "moli_paired_tail_repetition_v1",
+        "case_ids": cases,
+        "slow_case_ids": slow,
+        "control_case_ids": controls,
+        "rounds": args.rounds,
+        "dataset_sha256": digest(args.dataset),
+        "sample_sha256": digest(args.sample),
+        "prior_sha256": {
+            versions[0]: digest(args.prior_older),
+            versions[1]: digest(args.prior_newer),
+        },
+        "binaries": {v: {"path": str(p), "sha256": digest(p)} for v, p in binaries.items()},
+        "runner_sha256": hashlib.sha256(frozen_source).hexdigest(),
+        "runner_source_path": "runner-source.py",
+        "call": "sandbox-exec loopback-only moli fetch --dump markdown --wait-until done "
+        "--ca-cert CA --timeout 45000 --http-timeout 45000 URL",
+        "order": "one process at a time; page order shuffled by round; each page alternates which version runs first",
+    }
+    if args.formal_correction:
+        selection["authority"] = {
+            "selected_round": 2,
+            "rule": "final_round_for_every_version_and_page; never select a fastest call",
+            "scope": "latency only; preserve original output, scoring and verdict",
+        }
+    (args.output / "runner-source.py").write_bytes(frozen_source)
+    (args.output / "selection.json").write_text(json.dumps(selection, indent=2) + "\n")
+    with fixture_server([source[case_id] for case_id in cases]) as (base, ca_cert):
+        selection["network_probe"] = verify_loopback_sandbox(base, ca_cert, source[cases[0]])
+        (args.output / "selection.json").write_text(json.dumps(selection, indent=2) + "\n")
+        with (args.output / "calls.jsonl").open("w") as stream:
+            for round_index in range(args.rounds):
+                order = cases.copy()
+                random.Random(117 + round_index).shuffle(order)
+                for case_id in order:
+                    call_versions = (
+                        versions
+                        if (round_index + case_positions[case_id]) % 2 == 0
+                        else tuple(reversed(versions))
+                    )
+                    for version in call_versions:
+                        command = [
+                            "/usr/bin/sandbox-exec",
+                            "-p",
+                            LOOPBACK_SANDBOX_PROFILE,
+                            str(binaries[version]),
+                            "fetch",
+                            "--dump",
+                            "markdown",
+                            "--wait-until",
+                            "done",
+                            "--ca-cert",
+                            str(ca_cert),
+                            "--timeout",
+                            "45000",
+                            "--http-timeout",
+                            "45000",
+                            f"{base}/case/{case_id}",
+                        ]
+                        start = time.monotonic()
+                        try:
+                            call = subprocess.run(
+                                command, capture_output=True, timeout=50, check=False
+                            )
+                            status, body, error = call.returncode, call.stdout, call.stderr
+                        except subprocess.TimeoutExpired as exc:
+                            status, body, error = -1, exc.stdout or b"", exc.stderr or b"timeout"
+                        elapsed_ms = round((time.monotonic() - start) * 1000, 2)
+                        target = (
+                            args.output
+                            / "outputs"
+                            / str(round_index + 1)
+                            / version
+                            / (case_id + ".md")
+                        )
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.write_bytes(body)
+                        row = {
+                            "round": round_index + 1,
+                            "case_id": case_id,
+                            "version": version,
+                            "elapsed_ms": elapsed_ms,
+                            "exit_code": status,
+                            "output_sha256": digest(target),
+                            "output_bytes": len(body),
+                            "stderr": error.decode("utf-8", "replace")[-1000:],
+                            "input_html_sha256": hashlib.sha256(
+                                source[case_id]["html"].encode()
+                            ).hexdigest(),
+                        }
+                        stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+                        stream.flush()
+                print(
+                    f"round {round_index + 1}/{args.rounds}: {len(order)} pages, both versions",
+                    flush=True,
+                )
+
+    if Path(__file__).read_bytes() != frozen_source or any(
+        digest(path) != expected for path, expected in bindings.items()
+    ):
+        raise ValueError("Paired timing inputs or runner changed during calls")
+
+
+if __name__ == "__main__":
+    paired_tail_main()
