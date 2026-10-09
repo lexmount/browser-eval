@@ -79,6 +79,24 @@ def copy_alias_artifacts(
                 raise ValueError("Variant artifact changed while copying: " + row[key])
 
 
+def copy_bound(
+    root: Path,
+    output: Path,
+    relative: str,
+    expected: str,
+    *,
+    target_relative: str | None = None,
+) -> None:
+    source = contained_path(root, relative, reject_symlinks=True)
+    if digest(source) != expected:
+        raise ValueError("Evidence artifact changed: " + relative)
+    target = contained_path(output, target_relative or relative, reject_symlinks=True)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, target)
+    if digest(target) != expected:
+        raise ValueError("Evidence changed while copying: " + relative)
+
+
 def require_matrix(rows: list[dict], providers: list[str], case_ids: set[str]) -> None:
     expected = {(provider, case_id) for provider in providers for case_id in case_ids}
     actual = {(row["provider"], row["case_id"]) for row in rows}

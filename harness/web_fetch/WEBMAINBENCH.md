@@ -50,6 +50,33 @@ file alongside `certification.json`, `selection.json`, `calls.jsonl` and outputs
 Source copies are verified as data and never executed. Historical source
 bindings name exact Git revisions rather than the current command file.
 
+## Apply a sample fixture correction
+
+For a proven fixture error in the sample, apply the one-case replacement
+evidence to a new directory:
+
+```bash
+uv run --frozen python scripts/apply_webmainbench_case_correction.py \
+  --source-root /absolute/path/original-provider-shards \
+  --correction 'PROVIDER_ID=/absolute/path/one-case-replacement' \
+  --dataset /absolute/path/WebMainBench_545.jsonl \
+  --sample-manifest evaluation/public-webmainbench-200.json \
+  --profile evaluation/current-report.json \
+  --case-id CASE_ID --output /absolute/path/new-provider-shards
+```
+
+Use the frozen parent profile and repeat `--correction` for every corrected
+provider. The bindings define the correction scope; optional `--providers`
+must name exactly the same providers. The profile defines the complete method
+inventory, source, sample, scorer and execution policy. The command verifies
+the final-call retry chain, implementation identity and every retained response
+hash. Other methods keep their original evidence bytes. Only referenced files
+are copied; invalid or changing inputs leave no partial output. This step
+assembles evidence and does not certify provider calls or publish a report.
+The Make target accepts a single `CORRECTION=PROVIDER_ID=PATH` binding and
+`WEBMAINBENCH_PROFILE` for a different frozen parent profile; use the command
+directly for multiple bindings.
+
 ## Certify, score and assemble the complete comparison
 
 Install the `headless-eval` and `webmainbench-eval` extras, prepare the declared

@@ -15,6 +15,7 @@ from harness.web_fetch.webmainbench_certification import verify_shard
 from harness.web_fetch.webmainbench_evidence import (
     alias_row,
     copy_alias_artifacts,
+    copy_bound,
     digest,
     read_jsonl,
     require_matrix,
@@ -38,24 +39,6 @@ def public_value(value):
         value = re.sub(r"/private/tmp/[^\s:]+", "/redacted-temp", value)
         value = re.sub(r"/(?:var/)?tmp/[^\s:]+", "/redacted-temp", value)
     return value
-
-
-def copy_bound(
-    root: Path,
-    output: Path,
-    relative: str,
-    expected: str,
-    *,
-    target_relative: str | None = None,
-) -> None:
-    source = contained_path(root, relative, reject_symlinks=True)
-    if (root / relative).is_symlink() or digest(source) != expected:
-        raise ValueError("Evidence artifact changed: " + relative)
-    target = contained_path(output, target_relative or relative, reject_symlinks=True)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(source, target)
-    if digest(target) != expected:
-        raise ValueError("Evidence changed while copying: " + relative)
 
 
 def _assemble_cohort(

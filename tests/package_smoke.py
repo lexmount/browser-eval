@@ -1013,6 +1013,34 @@ def verify_aggregate_finalization(root, source_root):
     assert (invalid / 'execution.json').read_bytes() == before
 
 
+def verify_sample_case_correction(root, source_root):
+    from harness.web_fetch import webmainbench_case_correction as correction
+
+    fixture = runpy.run_path(str(source_root / 'tests/webmainbench_case_fixture.py'))
+    retained = fixture['correction_fixture'](root / 'case-revision', providers=('first', 'new-engine'))
+    source, bindings, output, case, _, dataset, manifest, profile = retained
+    # Only the synthetic source hash is substituted; all production validation runs.
+    command = [sys.executable, '-c',
+               'import sys; from pathlib import Path; '
+               'from harness.web_fetch import webmainbench_case_correction as c; '
+               'c.DATASET_SHA256=c.digest(Path(sys.argv.pop(1))); c.main()', str(dataset),
+               '--source-root', str(source), '--output', str(output), '--case-id', case,
+               '--dataset', str(dataset), '--sample-manifest', str(manifest), '--profile', str(profile)]
+    for provider, path in bindings.items():
+        command += ['--correction', f'{provider}={path}']
+    subprocess.run(command, check=True, capture_output=True, text=True, cwd=root)
+    for provider in ('first', 'new-engine'):
+        shard = output / provider
+        for call in correction.read_jsonl(shard / 'physical-attempts.jsonl'):
+            assert correction.digest(shard / call['physical_artifact_path']) == call['output_sha256']
+    assert not list(output.rglob('private-worker.txt'))
+    assert not list(output.rglob('unbound.txt'))
+    marker = (output / 'fixture-correction.json').read_bytes()
+    failed = subprocess.run(command, capture_output=True, text=True, cwd=root)
+    assert failed.returncode != 0
+    assert (output / 'fixture-correction.json').read_bytes() == marker
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -1054,6 +1082,7 @@ def main():
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
         verify_aggregate_finalization(root, args.source_root)
+        verify_sample_case_correction(root, args.source_root)
         verify_cowagent_isolation(root)
         verify_public_trajectory_publication(root, args.source_root)
         verify_oss_workers(root, args.source_root, with_libraries=args.oss)

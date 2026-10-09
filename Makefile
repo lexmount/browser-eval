@@ -2,6 +2,7 @@ UV ?= uv
 PY := $(UV) run --frozen python
 TEST_PY := $(UV) run --frozen --all-extras python
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
+WEBMAINBENCH_PROFILE ?= evaluation/current-report.json
 DIAGNOSTIC_PROFILE ?= evaluation/live-webfetch/current-report.json
 
 .PHONY: setup setup-test import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check popular-sites-report popular-sites-report-check wcxb-release-check resource-image public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish webarena-catalog-report webarena-catalog-release-check public-webarena-report public-webarena-report-audit public-webarena-report-release
@@ -177,7 +178,7 @@ webmainbench-audit: runtime-check
 
 webmainbench-apply-case-correction: runtime-check
 	@test -n "$(RUN_ROOT)" -a -n "$(CORRECTION)" -a -n "$(OUTPUT)" -a -n "$(CASE_ID)" -a -n "$(SOURCE)" || (echo 'RUN_ROOT, CORRECTION, OUTPUT, CASE_ID and SOURCE are required' >&2; exit 2)
-	$(PY) scripts/apply_webmainbench_case_correction.py --source-root "$(RUN_ROOT)" --correction "$(CORRECTION)" --output "$(OUTPUT)" --case-id "$(CASE_ID)" $(if $(PROVIDERS),--providers "$(PROVIDERS)",) --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)"
+	$(PY) scripts/apply_webmainbench_case_correction.py --source-root "$(RUN_ROOT)" --correction "$(CORRECTION)" --output "$(OUTPUT)" --case-id "$(CASE_ID)" $(if $(PROVIDERS),--providers "$(PROVIDERS)",) --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)"
 
 # Diagnostic controls deliberately mutate test inputs and never enter a report cohort.
 webmainbench-navigation-diagnostic: runtime-check

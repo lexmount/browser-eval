@@ -7,8 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.web_fetch.webmainbench_assembly import copy_bound
-from harness.web_fetch.webmainbench_evidence import copy_alias_artifacts
+from harness.web_fetch.webmainbench_evidence import copy_alias_artifacts, copy_bound
 from scripts.assemble_webmainbench_evidence import copy_scored_artifact as assemble_copy
 from scripts.subset_webmainbench_evidence import copy_scored_artifact as subset_copy
 
