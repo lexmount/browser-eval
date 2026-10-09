@@ -299,6 +299,29 @@ Two independent qualification passes remain required by the validation protocol.
 
 ### Remote mutation diagnostics
 
+Offline input and evidence audits use the maintained diagnostic modules:
+
+- `scripts/audit_replay_comparison_inputs.py` inventories the declared comparison
+  matrix, contract changes and optional upstream-fork differences.
+- `scripts/audit_replay_readiness.py` locates adjacent disabled-button snapshots
+  and clicks. It preserves historical verdicts; a snapshot does not establish
+  the target's state when the click was dispatched.
+- `scripts/audit_saved_replay_correction.py` compares correction catalogs on saved
+  evidence. An incomplete execution is never rescored with an invented response.
+- `scripts/audit_replay_cart_assertion.py` runs isolated DOM counterexamples with
+  an explicit browser binary and blocked page requests. It requires Playwright;
+  its results are assertion diagnostics rather than task scores.
+- The isolated public WebArena track uses
+  `scripts/audit_webarena_recorded_outcomes.py` and
+  `scripts/verify_webarena_evaluator_exclusions.py` for hash-bound recording audits.
+  Recording audits inject the official expected answer to isolate network
+  evaluation; they do not represent current-environment browser execution.
+
+File-producing audits require a new output path and reject linked paths before
+execution. They reject inputs that change during inspection. Keep generated
+diagnostics outside Git. Basic log and input audits do not import Playwright or
+WebArena; those dependencies are loaded only by the operations that need them.
+
 `scripts/run_remote_mutation_diagnostic.py` exposes the shared diagnostic pipeline. With
 `--emit-proposal` it appends a compiled completion observer to the unchanged canonical actions;
 `--check-proposal` verifies that proposal without opening a browser. Both modes require the frozen

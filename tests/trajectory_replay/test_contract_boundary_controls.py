@@ -300,7 +300,7 @@ def test_510_revision_receipt_binds_rules_and_candidate():
 
 
 def test_assertion_audit_rejects_changes_outside_declared_step(tmp_path):
-    from scripts.audit_replay_cart_assertion import bound_scripts
+    from harness.trajectory_replay.diagnostics import bound_cart_scripts
     dataset = tmp_path / 'dataset.json'
     candidate = tmp_path / 'candidate.json'
     calls = [{'action': 'evaluate', 'script': 'true'}, {'action': 'evaluate', 'script': '1'}]
@@ -316,8 +316,8 @@ def test_assertion_audit_rejects_changes_outside_declared_step(tmp_path):
         },
     }
     candidate.write_text(json.dumps(payload))
-    assert bound_scripts(dataset, candidate) == ('true', 'false')
+    assert bound_cart_scripts(dataset, candidate) == ('true', 'false')
     revised[1]['script'] = '2'
     candidate.write_text(json.dumps(payload))
     with pytest.raises(ValueError, match='only its declared assertion'):
-        bound_scripts(dataset, candidate)
+        bound_cart_scripts(dataset, candidate)

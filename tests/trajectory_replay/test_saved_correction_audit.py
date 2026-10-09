@@ -3,7 +3,7 @@ import json
 
 import pytest
 
-from scripts.audit_saved_replay_correction import audit_saved_correction
+from harness.trajectory_replay.diagnostics import audit_saved_correction
 
 
 def fixture(tmp_path):

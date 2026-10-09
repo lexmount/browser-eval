@@ -452,6 +452,63 @@ def verify_release_check_helpers(root: Path, source_root: Path) -> None:
         assert 'release authority is missing' not in rejected.stderr
 
 
+def verify_replay_diagnostics(root: Path, source_root: Path) -> None:
+    """Basic installed audits need neither WebArena nor Playwright imports."""
+    from harness.trajectory_replay import diagnostics
+
+    assert not Path(diagnostics.__file__).resolve().is_relative_to(source_root.resolve())
+    subprocess.run([sys.executable, '-c',
+                    'import sys; import harness.trajectory_replay.diagnostics; '
+                    'import harness.trajectory_replay.public_webarena.diagnostics; '
+                    'assert "webarena_verified" not in sys.modules; '
+                    'assert "playwright" not in sys.modules'], check=True, cwd=root)
+    for command in ('audit_replay_readiness.py', 'audit_replay_cart_assertion.py',
+                    'audit_replay_comparison_inputs.py', 'audit_saved_replay_correction.py',
+                    'audit_webarena_recorded_outcomes.py', 'verify_webarena_evaluator_exclusions.py'):
+        subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
+                       check=True, cwd=root, capture_output=True)
+    stage = root / 'replay-diagnostics'
+    stage.mkdir()
+    trace = stage / 'trace.json'
+    trace.write_text(json.dumps([
+        {'index': 1, 'result': 'button disabled: Submit'},
+        {'index': 2, 'arguments': {'action': 'click', 'selector': 'button:has-text("Submit")'}},
+    ]))
+    results = stage / 'results.json'
+    results.write_text(json.dumps({'attempts': [{
+        'participant_id': 'custom', 'task_id': 'one', 'status': 'pass',
+        'evidence': {'trace': {'path': str(trace),
+                             'sha256': hashlib.sha256(trace.read_bytes()).hexdigest()}},
+    }]}))
+    output = stage / 'diagnostic.json'
+    args = [sys.executable, str(source_root / 'scripts/audit_replay_readiness.py'),
+            '--results', str(results), '--output', str(output)]
+    subprocess.run(args, check=True, cwd=stage, capture_output=True)
+    report = json.loads(output.read_bytes())
+    assert report['score_effect'] == 'none' and report['findings'][0]['historical_status'] == 'pass'
+    before = output.read_bytes()
+    assert subprocess.run(args, cwd=stage, capture_output=True).returncode != 0
+    assert output.read_bytes() == before
+    task = stage / 'task-1'
+    task.mkdir()
+    for name in ('network.har', 'trace.json'):
+        (task / name).write_text('{}')
+    sites, before_catalog, after_catalog = [stage / name for name in (
+        'sites.json', 'before.json', 'after.json')]
+    for path in (sites, before_catalog, after_catalog):
+        path.write_text('{}')
+    digest = hashlib.sha256(b'{}').hexdigest()
+    (stage / 'receipt.json').write_text(json.dumps({
+        'method_id': 'custom', 'site_map_sha256': digest, 'results': [{
+            'task_id': 1, 'status': 'fail', 'score': None, 'completed_actions': 0,
+            'action_count': 1, 'evidence_sha256': {'trace': digest, 'network_har': digest}}],
+    }))
+    audit = diagnostics.audit_saved_correction(
+        task_dir=task, task_id=1, site_map=sites,
+        before_catalog=before_catalog, after_catalog=after_catalog)
+    assert audit['browser_calls'] == 0 and audit['evaluation_reached'] is False
+
+
 def verify_qualification_commands(root: Path, source_root: Path) -> None:
     from harness.trajectory_replay.public_webarena import qualification
 
@@ -1392,6 +1449,7 @@ def main():
         verify_review_revisions(root, args.source_root)
         verify_sample_assembly(root, args.source_root)
         verify_qualification_commands(root, args.source_root)
+        verify_replay_diagnostics(root, args.source_root)
         verify_repair_commands(root, args.source_root)
         verify_adjudication_commands(root, args.source_root)
         verify_browser_observation_capture(root, args.source_root)

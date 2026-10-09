@@ -1,9 +1,26 @@
 """Validation at filesystem and URL boundaries shared by runners and reports."""
 import hashlib
+import os
 import re
+import sys
 import tempfile
 from pathlib import Path, PureWindowsPath
 from urllib.parse import urlsplit
+
+
+def unlinked_path(path: Path) -> Path:
+    """Normalize system aliases while rejecting user-created file and parent links."""
+    absolute = Path(path).absolute()
+    if sys.platform == 'darwin':
+        for alias in (Path('/tmp'), Path('/var')):
+            canonical = Path('/private') / alias.name
+            if (absolute.is_relative_to(alias) and alias.is_symlink()
+                    and alias.resolve() == canonical):
+                absolute = canonical / absolute.relative_to(alias)
+                break
+    if any(part.is_symlink() for part in (absolute, *absolute.parents)):
+        raise ValueError('symlinked paths are forbidden')
+    return Path(os.path.abspath(absolute))
 
 
 def reject_evidence_symlinks(root: Path) -> None:

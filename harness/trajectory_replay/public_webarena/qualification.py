@@ -21,7 +21,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from harness.record_io import load_jsonl
-from harness.web_fetch.safety import contained_path, safe_identifier
+from harness.web_fetch.safety import contained_path, safe_identifier, unlinked_path
 
 from .har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from .suite import TRAJECTORY_SCHEMA, TaskSuite, load_suite, validate_selector
@@ -2505,23 +2505,6 @@ def propose_observed_repair(
     }
 
 
-def _proposal_path(path: Path) -> Path:
-    """Reject links before reading inputs or creating derived proposals."""
-    absolute = Path(os.path.abspath(path))
-    # macOS exposes its standard temporary directories through system aliases.
-    # Normalize only those fixed aliases; user-created links remain forbidden.
-    if sys.platform == "darwin":
-        for alias in (Path("/tmp"), Path("/var")):
-            canonical = Path("/private") / alias.name
-            if (absolute.is_relative_to(alias) and alias.is_symlink()
-                    and alias.resolve() == canonical):
-                absolute = canonical / absolute.relative_to(alias)
-                break
-    if any(part.is_symlink() for part in (absolute, *absolute.parents)):
-        raise ValueError("symlinked proposal paths are forbidden")
-    return absolute
-
-
 def main_repair_proposal(argv=None, *, kind: str) -> None:
     """Generate pending proposals with shared input and publication boundaries."""
     config_kinds = {"action_repair", "observed_repair"}
@@ -2554,11 +2537,11 @@ def main_repair_proposal(argv=None, *, kind: str) -> None:
     payloads = {}
     for name in ("suite", "config", "qualification"):
         if hasattr(args, name):
-            path = _proposal_path(getattr(args, name))
+            path = unlinked_path(getattr(args, name))
             content = path.read_bytes()
             inputs[name] = (path, content)
             payloads[name] = json.loads(content)
-    output = _proposal_path(args.output_dir if kind in batch_kinds else args.output)
+    output = unlinked_path(args.output_dir if kind in batch_kinds else args.output)
     if output.exists() or output.is_symlink():
         raise ValueError("proposal output already exists")
     if any(output == path or path.is_relative_to(output) for path, _ in inputs.values()):
@@ -2606,9 +2589,9 @@ def main_repair_proposal(argv=None, *, kind: str) -> None:
             filename = f'{proposal["task_id"]}.json' if kind in batch_kinds else "proposal.json"
             _write_immutable(staging / filename, proposal)
         for path, content in inputs.values():
-            if _proposal_path(path).read_bytes() != content:
+            if unlinked_path(path).read_bytes() != content:
                 raise ValueError("proposal input changed during generation")
-        _proposal_path(output)
+        unlinked_path(output)
         if output.exists() or output.is_symlink():
             raise ValueError("proposal output appeared during generation")
         if kind in batch_kinds:

@@ -39,5 +39,5 @@ def test_wcxb_report_does_not_require_web_fetch_dataset_file(tmp_path, command):
         text=True,
     )
     assert result.returncode != 0
-    assert "not source-qualified" in result.stderr
+    assert "guide/index.html" in result.stderr
     assert "dataset.json" not in result.stderr

@@ -192,7 +192,7 @@ def test_explicit_wcxb_profile_dispatches_to_wcxb_gate(tmp_path):
         text=True,
     )
     assert result.returncode != 0
-    assert "not source-qualified" in result.stderr
+    assert "guide/index.html" in result.stderr
     assert "legacy current-report profile validator" not in result.stderr
 
 

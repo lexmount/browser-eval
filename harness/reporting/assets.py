@@ -8,7 +8,7 @@ import zipfile
 from contextlib import ExitStack
 from pathlib import Path
 
-from harness.web_fetch.safety import contained_path
+from harness.web_fetch.safety import contained_path, unlinked_path
 
 
 def authored_main(raw: bytes) -> str:
@@ -58,9 +58,7 @@ def restore_bound_content(export, binding, destination):
     payload = (json.dumps(content, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
     if hashlib.sha256(payload).hexdigest() != binding['sha256']:
         raise ValueError('Recovered content differs from binding')
-    destination = Path(destination).absolute()
-    if any(path.is_symlink() for path in (destination, *destination.parents)):
-        raise ValueError('Content destination must not contain symlinks')
+    destination = unlinked_path(Path(destination))
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
     try:

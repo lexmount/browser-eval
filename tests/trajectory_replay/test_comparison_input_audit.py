@@ -2,7 +2,7 @@ import copy
 
 import pytest
 
-from scripts.audit_replay_comparison_inputs import (
+from harness.trajectory_replay.diagnostics import (
     audit_dataset_changes,
     audit_inputs,
     validate_contract_annotations,

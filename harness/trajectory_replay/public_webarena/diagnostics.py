@@ -7,20 +7,31 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.metadata
+import importlib.resources
 import json
 import os
 import re
 import subprocess
 import tempfile
 import urllib.request
+import zipfile
 from collections import Counter
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs, urlsplit
 
-from harness.web_fetch.safety import contained_path, safe_identifier
+from harness.record_io import parse_jsonl
+from harness.trajectory_replay.diagnostics import (
+    _check_diagnostic_snapshot,
+    _diagnostic_snapshot,
+    diagnostic_output_path,
+    write_diagnostic,
+)
+from harness.web_fetch.safety import contained_path, safe_identifier, unlinked_path
 
 from .qualification import build_probe, task_contract_sha256
 from .suite import SUPPORTED_ACTIONS, load_suite
@@ -285,7 +296,6 @@ def _json_sha256(value: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
-
 def _file_binding(path: Path) -> dict[str, Any]:
     if path.is_symlink():
         raise ValueError(f"repair evidence file is symlinked: {path}")
@@ -298,7 +308,6 @@ def _file_binding(path: Path) -> dict[str, Any]:
         "sha256": hashlib.sha256(raw).hexdigest(),
         "bytes": len(raw),
     }
-
 
 
 def _contained_evidence_path(directory: Path, name: Any, label: str) -> Path:
@@ -322,7 +331,6 @@ def _redacted_evaluator_contract(task: dict[str, Any]) -> tuple[list[Any], list[
     return contracts, redactions
 
 
-
 def build_packet(
     suite_path: str | Path,
     attempt_path: str | Path,
@@ -334,7 +342,9 @@ def build_packet(
     if hashlib.sha256(suite_raw).hexdigest() != suite_binding["sha256"]:
         raise ValueError("repair suite changed during packet construction")
     return _packet_from_inputs(
-        json.loads(suite_raw), suite_binding["sha256"], Path(attempt_path),
+        json.loads(suite_raw),
+        suite_binding["sha256"],
+        Path(attempt_path),
     )
 
 
@@ -444,7 +454,6 @@ def _packet_from_inputs(suite: dict[str, Any], suite_sha256: str, attempt_file: 
     }
 
 
-
 def _write_immutable(path: Path, payload: dict[str, Any]) -> None:
     content = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -458,7 +467,6 @@ def _write_immutable(path: Path, payload: dict[str, Any]) -> None:
         handle.write(content)
 
 
-
 def main_repair_packet(argv=None) -> None:
     parser = argparse.ArgumentParser(description="Build a redacted repair authoring packet")
     parser.add_argument("--suite", type=Path, required=True)
@@ -468,17 +476,14 @@ def main_repair_packet(argv=None) -> None:
     _write_immutable(args.output, build_packet(args.suite, args.attempt))
 
 
-
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
-
 
 
 def _write_new(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("x", encoding="utf-8") as handle:
         handle.write(content)
-
 
 
 def _load_and_validate_packet(path: Path, suite: dict[str, Any]) -> dict[str, Any]:
@@ -526,8 +531,11 @@ def _load_and_validate_packet(path: Path, suite: dict[str, Any]) -> dict[str, An
     }
     for key, expected in expected_files.items():
         evidence_path = Path(str(references.get(key) or ""))
-        if (evidence_path.is_symlink() or not evidence_path.is_file()
-                or _sha256(evidence_path) != expected):
+        if (
+            evidence_path.is_symlink()
+            or not evidence_path.is_file()
+            or _sha256(evidence_path) != expected
+        ):
             raise ValueError(f"repair packet {key} evidence binding mismatch: {task_id}")
     bound_paths = {
         "screenshot": ((bindings.get("final_page") or {}).get("screenshot") or {}).get("path"),
@@ -544,7 +552,6 @@ def _load_and_validate_packet(path: Path, suite: dict[str, Any]) -> dict[str, An
     if packet != expected_packet:
         raise ValueError(f"repair packet sanitized payload mismatch: {task_id}")
     return packet
-
 
 
 def _prompt(packet_path: Path) -> str:
@@ -587,7 +594,6 @@ files.
 """
 
 
-
 def _validate_proposal(
     suite: dict[str, Any], packet: dict[str, Any], proposal_path: Path
 ) -> dict[str, Any]:
@@ -614,10 +620,14 @@ def _validate_proposal(
     return proposal
 
 
-
 def _command(
-    codex_binary: str, task_directory: Path, screenshot: Path, output_path: Path,
-    *, model: str = MODEL, reasoning_effort: str = REASONING_EFFORT,
+    codex_binary: str,
+    task_directory: Path,
+    screenshot: Path,
+    output_path: Path,
+    *,
+    model: str = MODEL,
+    reasoning_effort: str = REASONING_EFFORT,
 ) -> list[str]:
     return [
         codex_binary,
@@ -641,10 +651,12 @@ def _command(
     ]
 
 
-
 def _changed_repair_inputs(bindings: dict[Path, str]) -> list[str]:
-    return [str(path) for path, sha in bindings.items()
-            if path.is_symlink() or not path.is_file() or _sha256(path) != sha]
+    return [
+        str(path)
+        for path, sha in bindings.items()
+        if path.is_symlink() or not path.is_file() or _sha256(path) != sha
+    ]
 
 
 def _run_repair_job(
@@ -675,8 +687,12 @@ def _run_repair_job(
     raw_output = task_directory / "proposal.raw.json"
     screenshot = Path(packet["evidence_references"]["screenshot"])
     command = _command(
-        codex_binary, task_directory, screenshot, raw_output,
-        model=model, reasoning_effort=reasoning_effort,
+        codex_binary,
+        task_directory,
+        screenshot,
+        raw_output,
+        model=model,
+        reasoning_effort=reasoning_effort,
     )
     command_record = {
         "binary": codex_binary,
@@ -771,7 +787,6 @@ def _run_repair_job(
     return result
 
 
-
 def run_repairs(
     suite_path: Path,
     packet_paths: list[Path],
@@ -784,11 +799,21 @@ def run_repairs(
     reasoning_effort: str = REASONING_EFFORT,
     run_subprocess: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> dict[str, Any]:
-    if (not isinstance(model, str) or not model.strip()
-            or any(ord(char) <= 32 or ord(char) == 127 for char in model)):
+    if (
+        not isinstance(model, str)
+        or not model.strip()
+        or any(ord(char) <= 32 or ord(char) == 127 for char in model)
+    ):
         raise ValueError("repair model must be an explicit non-empty identifier")
     if reasoning_effort not in {
-        "none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra",
+        "none",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra",
     }:
         raise ValueError("unsupported repair reasoning effort")
     if type(max_workers) is not int or not 1 <= max_workers <= MAX_CONCURRENCY:
@@ -807,9 +832,7 @@ def run_repairs(
         raise ValueError("repair suite changed during preflight")
     suite = json.loads(suite_raw)
     packet_hashes = {path: _file_binding(path)["sha256"] for path in packet_paths}
-    packets = [
-        (path, _load_and_validate_packet(path, suite)) for path in packet_paths
-    ]
+    packets = [(path, _load_and_validate_packet(path, suite)) for path in packet_paths]
     task_ids = [str(packet["bindings"]["task_id"]) for _, packet in packets]
     if len(task_ids) != len(set(task_ids)):
         raise ValueError("repair packets must bind unique task IDs")
@@ -840,7 +863,8 @@ def run_repairs(
                 output_root,
                 codex_binary=codex_binary,
                 timeout_seconds=timeout_seconds,
-                model=model, reasoning_effort=reasoning_effort,
+                model=model,
+                reasoning_effort=reasoning_effort,
                 input_hashes=frozen_inputs,
                 run_subprocess=run_subprocess,
             ): str(packet["bindings"]["task_id"])
@@ -851,15 +875,18 @@ def run_repairs(
                 results.append(future.result())
             except Exception as exc:
                 failure = {
-                    "schema": RUN_SCHEMA, "task_id": futures[future],
-                    "status": "worker_failed", "error": f"{type(exc).__name__}: {exc}",
+                    "schema": RUN_SCHEMA,
+                    "task_id": futures[future],
+                    "status": "worker_failed",
+                    "error": f"{type(exc).__name__}: {exc}",
                     "qualification_effect": "none",
                 }
                 results.append(failure)
                 directory = output_root / futures[future]
                 directory.mkdir(exist_ok=True)
                 _write_new(
-                    directory / "result.json", json.dumps(failure, ensure_ascii=False) + "\n",
+                    directory / "result.json",
+                    json.dumps(failure, ensure_ascii=False) + "\n",
                 )
     results.sort(key=lambda row: task_ids.index(str(row["task_id"])))
     drift = _changed_repair_inputs(frozen_inputs)
@@ -885,7 +912,6 @@ def run_repairs(
     return summary
 
 
-
 def main_codex_repairs(argv=None) -> None:
     parser = argparse.ArgumentParser(description="Run bounded read-only repair proposal jobs")
     parser.add_argument("--suite", type=Path, required=True)
@@ -904,8 +930,340 @@ def main_codex_repairs(argv=None) -> None:
         max_workers=args.max_workers,
         codex_binary=args.codex_binary,
         timeout_seconds=args.timeout_seconds,
-        model=args.model, reasoning_effort=args.reasoning_effort,
+        model=args.model,
+        reasoning_effort=args.reasoning_effort,
     )
     print(json.dumps(summary, ensure_ascii=False))
     if summary["status"] != "complete":
         raise SystemExit(1)
+
+
+SITE_PORTS = {
+    "map": (3000,),
+    "shopping": (7770,),
+    "shopping_admin": (7780,),
+    "gitlab": (8023,),
+    "wikipedia": (8080, 8888),
+    "reddit": (9999,),
+}
+
+
+def _recording_sha256(path: Path) -> str:
+    return hashlib.sha256(unlinked_path(path).read_bytes()).hexdigest()
+
+
+def _resource_sha256(resource: Any) -> str:
+    return hashlib.sha256(resource.read_bytes()).hexdigest()
+
+
+def _recorded_network_requests(path: Path) -> list[dict[str, Any]]:
+    return [
+        row["snapshot"]["request"]
+        for row in _recorded_trace_records(path, "trace.network")
+        if row.get("type") == "resource-snapshot"
+    ]
+
+
+def site_origins(requests: list[dict[str, Any]], sites: list[str]) -> dict[str, str]:
+    known_ports = {port for ports in SITE_PORTS.values() for port in ports}
+    by_port: dict[int, Counter[str]] = {port: Counter() for port in known_ports}
+    for request in requests:
+        split = urlsplit(str(request.get("url") or ""))
+        try:
+            port = split.port
+        except ValueError:
+            continue
+        if port in by_port and split.scheme and split.netloc:
+            by_port[port][f"{split.scheme}://{split.netloc}"] += 1
+    result: dict[str, str] = {}
+    for site in sites:
+        candidates: Counter[str] = Counter()
+        for port in SITE_PORTS[site]:
+            candidates.update(by_port[port])
+        if not candidates:
+            raise ValueError(f"official trace contains no origin for {site}")
+        result[site] = candidates.most_common(1)[0][0]
+    return result
+
+
+def _official_dataset() -> list[dict[str, Any]]:
+    resource = importlib.resources.files("webarena_verified").joinpath(
+        "assets/dataset/webarena-verified.json"
+    )
+    return json.loads(resource.read_text(encoding="utf-8"))
+
+
+def audit_recorded_outcomes(
+    catalog_path: Path, trace_dir: Path, suite_path: Path
+) -> dict[str, Any]:
+    from webarena_verified import WebArenaVerified
+
+    catalog_path, trace_dir, suite_path = map(unlinked_path, (catalog_path, trace_dir, suite_path))
+    before_inputs = _diagnostic_snapshot([catalog_path, suite_path])
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    rows = catalog.get("traces") or []
+    if (
+        type(catalog.get("count")) is not int
+        or not rows
+        or catalog["count"] != len(rows)
+        or len({int(row["task_id"]) for row in rows}) != len(rows)
+    ):
+        raise ValueError("catalog must contain its complete unique declared trace population")
+    dataset = {int(task["task_id"]): task for task in _official_dataset()}
+    suite = json.loads(suite_path.read_text(encoding="utf-8"))
+    suite_tasks = {
+        int(str(task["id"]).removeprefix("webarena-")): task for task in suite.get("tasks") or []
+    }
+    if len(suite_tasks) != len(suite.get("tasks") or []) or set(suite_tasks) != {
+        int(row["task_id"]) for row in rows
+    }:
+        raise ValueError("suite and official trace catalog task IDs differ")
+    results: list[dict[str, Any]] = []
+    with tempfile.TemporaryDirectory(prefix="webarena-recorded-audit-") as temporary:
+        config_path = Path(temporary) / "config.json"
+        for row in rows:
+            task_id = int(row["task_id"])
+            task = dataset[task_id]
+            path = contained_path(trace_dir, str(row["file_name"]), reject_symlinks=True)
+            if not path.is_file():
+                raise FileNotFoundError(f"official trace is missing: {path.name}")
+            digest = _recording_sha256(path)
+            before_inputs[path] = digest
+            expected_digest = suite_tasks[task_id]["trajectory"]["provenance"]["source_sha256"]
+            if digest != expected_digest:
+                raise ValueError(f"official trace sha256 mismatch: {path.name}")
+            origins = site_origins(
+                _recorded_network_requests(path), [str(site) for site in task["sites"]]
+            )
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "environments": {
+                            f"__{site.upper()}__": {"urls": [origin]}
+                            for site, origin in origins.items()
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            expected_response = next(
+                evaluator["expected"]
+                for evaluator in task["eval"]
+                if evaluator["evaluator"] == "AgentResponseEvaluator"
+            )
+            implementation = WebArenaVerified(config=config_path)
+            result = implementation.evaluate_task(
+                task_id=task_id,
+                agent_response=expected_response,
+                network_trace=path,
+            )
+            dumped = result.model_dump(mode="json")
+            evaluator_statuses = [
+                {
+                    "evaluator": str(item.get("evaluator_name") or ""),
+                    "status": str(item.get("status") or ""),
+                }
+                for item in dumped.get("evaluators_results") or []
+            ]
+            results.append(
+                {
+                    "task_id": task_id,
+                    "source_trace_sha256": digest,
+                    "status": str(dumped.get("status") or "error"),
+                    "score": float(dumped.get("score") or 0.0),
+                    "evaluator_statuses": evaluator_statuses,
+                }
+            )
+    status_counts = Counter(row["status"] for row in results)
+    dataset_resource = importlib.resources.files("webarena_verified").joinpath(
+        "assets/dataset/webarena-verified.json"
+    )
+    evaluator_resource = importlib.resources.files("webarena_verified").joinpath(
+        "core/evaluation/evaluators/network_event_evaluator.py"
+    )
+    _check_diagnostic_snapshot(before_inputs)
+    return {
+        "schema": "lex_webarena_recorded_outcome_audit/1",
+        "scope": "official_recording_against_official_programmatic_evaluators",
+        "agent_response_policy": "inject_official_expected_response_to_isolate_network_trace",
+        "current_environment_replay": False,
+        "evaluator": {
+            "package": "webarena-verified",
+            "version": importlib.metadata.version("webarena-verified"),
+            "dataset_sha256": _resource_sha256(dataset_resource),
+            "network_evaluator_module_sha256": _resource_sha256(evaluator_resource),
+        },
+        "catalog_sha256": _recording_sha256(catalog_path),
+        "suite_sha256": _recording_sha256(suite_path),
+        "task_count": len(results),
+        "status_counts": dict(sorted(status_counts.items())),
+        "passing_task_ids": [row["task_id"] for row in results if row["status"] == "success"],
+        "failing_task_ids": [row["task_id"] for row in results if row["status"] != "success"],
+        "tasks": results,
+    }
+
+
+def main_recorded_outcomes(argv=None) -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--catalog",
+        type=Path,
+        default=Path("evaluation/browser-use-public/webarena-human-traces.json"),
+    )
+    parser.add_argument("--trace-dir", type=Path, required=True)
+    parser.add_argument(
+        "--suite",
+        type=Path,
+        default=Path("evaluation/browser-use-public/webarena-human-suite.json"),
+    )
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    diagnostic_output_path(args.output)
+    payload = audit_recorded_outcomes(args.catalog, args.trace_dir, args.suite)
+    write_diagnostic(args.output, payload)
+
+
+def _recorded_trace_records(path: Path, name: str) -> list[dict[str, Any]]:
+    with zipfile.ZipFile(path) as archive:
+        matches = [value for value in archive.namelist() if value.endswith(name)]
+        if len(matches) != 1:
+            raise ValueError(f"{path.name}: expected exactly one {name}")
+        return parse_jsonl(archive.read(matches[0]).decode())
+
+
+def verify_exclusions(trace_dir: Path, suite_path: Path, exclusions_path: Path) -> dict[str, Any]:
+    trace_dir, suite_path, exclusions_path = map(
+        unlinked_path, (trace_dir, suite_path, exclusions_path)
+    )
+    before_inputs = _diagnostic_snapshot([suite_path, exclusions_path])
+    suite = json.loads(suite_path.read_text(encoding="utf-8"))
+    exclusions = json.loads(exclusions_path.read_text(encoding="utf-8"))
+    if exclusions.get("schema") != "lex_webarena_evaluator_exclusions/1":
+        raise ValueError("WebArena evaluator exclusions schema is invalid")
+    tasks = {str(row["id"]): row for row in suite.get("tasks") or []}
+    results: list[dict[str, Any]] = []
+    for exclusion in exclusions.get("excluded_tasks") or []:
+        task_id = str(exclusion["task_id"])
+        numeric_id = task_id.removeprefix("webarena-")
+        safe_identifier(numeric_id)
+        path = contained_path(trace_dir, f"{numeric_id}.trace.zip", reject_symlinks=True)
+        if not path.is_file():
+            raise FileNotFoundError(f"{task_id}: official trace is missing")
+        digest = _recording_sha256(path)
+        before_inputs[path] = digest
+        if digest != exclusion.get("source_trace_sha256"):
+            raise ValueError(f"{task_id}: official trace sha256 mismatch")
+        task = tasks.get(task_id)
+        if task is None:
+            raise ValueError(f"{task_id}: task is missing from suite")
+        network = _recorded_trace_records(path, "trace.network")
+        requests = [
+            row["snapshot"]["request"] for row in network if row.get("type") == "resource-snapshot"
+        ]
+        if task_id == "webarena-678":
+            expected_events = [
+                request
+                for request in requests
+                if parse_qs(urlsplit(str(request.get("url") or "")).query).get("namespace")
+                == ["sales_order_grid"]
+            ]
+            passed = not expected_events
+            detail = {"sales_order_grid_event_count": len(expected_events)}
+        elif task_id == "webarena-760":
+            route_paths = sorted(
+                {
+                    urlsplit(str(request.get("url") or "")).path
+                    for request in requests
+                    if "/route/v1/" in str(request.get("url") or "")
+                }
+            )
+            trace_records = _recorded_trace_records(path, "trace.trace")
+            created_pages = sum(
+                row.get("type") == "event"
+                and row.get("class") == "Page"
+                and row.get("method") == "__create__"
+                for row in trace_records
+            )
+            declared_pages = len((task.get("environment") or {}).get("start_urls") or [])
+            actions = (task.get("trajectory") or {}).get("actions") or []
+            max_tab_index = max((int(row.get("tab_index") or 0) for row in actions), default=0)
+            expected_origin = "-75.4716115,40.6022552"
+            passed = (
+                bool(route_paths)
+                and all(expected_origin not in path for path in route_paths)
+                and created_pages > declared_pages
+                and max_tab_index >= declared_pages
+            )
+            detail = {
+                "recorded_route_paths": route_paths,
+                "expected_origin": expected_origin,
+                "created_page_count": created_pages,
+                "declared_start_page_count": declared_pages,
+                "max_action_tab_index": max_tab_index,
+            }
+        elif task_id == "webarena-811":
+            issue_path = "/a11yproject/a11yproject.com/-/issues/1478.json"
+            matching_requests = [
+                request
+                for request in requests
+                if urlsplit(str(request.get("url") or "")).path == issue_path
+            ]
+            methods = sorted(
+                {str(request.get("method") or "").upper() for request in matching_requests}
+            )
+            expected_put_count = sum(
+                str(request.get("method") or "").upper() == "PUT" for request in matching_requests
+            )
+            recorded_get_count = sum(
+                str(request.get("method") or "").upper() == "GET" for request in matching_requests
+            )
+            passed = expected_put_count == 0 and recorded_get_count >= 1
+            detail = {
+                "issue_path": issue_path,
+                "recorded_methods": methods,
+                "expected_put_event_count": expected_put_count,
+                "recorded_get_event_count": recorded_get_count,
+            }
+        else:
+            raise ValueError(f"unsupported evaluator exclusion audit: {task_id}")
+        results.append(
+            {
+                "task_id": task_id,
+                "evidence_id": exclusion["evidence_id"],
+                "source_trace_sha256": digest,
+                "passed": passed,
+                **detail,
+            }
+        )
+    payload = {
+        "schema": "lex_webarena_evaluator_exclusion_audit/1",
+        "suite_sha256": _recording_sha256(suite_path),
+        "exclusions_sha256": _recording_sha256(exclusions_path),
+        "complete": bool(results) and all(row["passed"] for row in results),
+        "checks": results,
+    }
+    if not payload["complete"]:
+        failed = [row["task_id"] for row in results if not row["passed"]]
+        raise RuntimeError(f"WebArena evaluator exclusions were not reproduced: {failed}")
+    _check_diagnostic_snapshot(before_inputs)
+    return payload
+
+
+def main_evaluator_exclusions(argv=None) -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--trace-dir", type=Path, required=True)
+    parser.add_argument(
+        "--suite",
+        type=Path,
+        default=Path("evaluation/browser-use-public/webarena-human-suite.json"),
+    )
+    parser.add_argument(
+        "--exclusions",
+        type=Path,
+        default=Path("evaluation/browser-use-public/webarena-evaluator-exclusions.json"),
+    )
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    diagnostic_output_path(args.output)
+    payload = verify_exclusions(args.trace_dir, args.suite, args.exclusions)
+    write_diagnostic(args.output, payload)

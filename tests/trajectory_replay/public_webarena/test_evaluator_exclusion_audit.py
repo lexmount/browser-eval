@@ -5,7 +5,7 @@ import json
 import zipfile
 from pathlib import Path
 
-from scripts.verify_webarena_evaluator_exclusions import verify_exclusions
+from harness.trajectory_replay.public_webarena.diagnostics import verify_exclusions
 
 ROOT = Path(__file__).resolve().parents[3]
 

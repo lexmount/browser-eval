@@ -1067,18 +1067,29 @@ class MoliTests(unittest.TestCase):
         )
         document = self.case_with(url="https://example.com/demo.docx", track="document")
 
-        def slow_extract(_raw):
-            time.sleep(1.1)
-            return "late content", "fixture"
+        real_clock = time.monotonic
+        for extraction_seconds, expected_ok in ((0.1, True), (11, False)):
+            with self.subTest(extraction_seconds=extraction_seconds):
+                elapsed = [0.0]
 
-        with patch(
-            "harness.web_fetch.providers.moli.extract_document_text",
-            side_effect=slow_extract,
-        ):
-            result = provider.fetch(document, 1)
-        self.assertFalse(result.ok)
-        self.assertEqual(result.error_type, "timeout")
-        self.assertIn("runtime extraction", result.error_message)
+                def extract(_raw):
+                    elapsed[0] += extraction_seconds
+                    return "extracted content", "fixture"
+
+                clock = SimpleNamespace(monotonic=lambda: real_clock() + elapsed[0])
+                with (
+                    patch("harness.web_fetch.providers.moli.time", clock),
+                    patch("harness.web_fetch.providers.moli.extract_document_text",
+                          side_effect=extract) as extractor,
+                ):
+                    result = provider.fetch(document, 10)
+                extractor.assert_called_once()
+                self.assertEqual(result.ok, expected_ok)
+                if expected_ok:
+                    self.assertEqual(result.content, "extracted content")
+                else:
+                    self.assertEqual(result.error_type, "timeout")
+                    self.assertIn("runtime extraction", result.error_message)
 
     def test_document_extraction_must_finish_inside_the_call_budget(self):
         import time
