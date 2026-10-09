@@ -142,6 +142,16 @@ with an ad hoc upload. Command details live in each track's running guide.
 
 ## Verification
 
+Source-grounded content review uses `scripts/review_webmainbench_content.py` with
+`--evidence`, `--correction`, `--work` and an explicit `--provider`. Its scope is
+the complete frozen dataset, including machine passes; comparisons corroborate
+the source evidence. `--prepare-only` creates private, hash-bound reading packets
+without calling a reviewer. Running without that flag performs model review and
+requires a separately authorized full review. The workspace must stay outside
+evidence, and resuming requires the same input bindings and target provider.
+Review findings do not replace official benchmark verdicts. Source outlines omit
+scripts and styles but retain hidden nodes, so they do not prove rendered visibility.
+
 [CONTRIBUTING.md](../CONTRIBUTING.md) documents the development and package gates.
 Tests use synthetic local inputs for execution, scoring, evidence, report and
 publication boundaries. The package gate builds a wheel from the source archive
