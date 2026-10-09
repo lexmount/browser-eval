@@ -17,12 +17,11 @@ from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from webarena_verified.core.evaluation.evaluators import EVALUATOR_REGISTRY
-from webarena_verified.core.utils.checksum import compute_data_file_checksum
-from webarena_verified.types.eval import TaskEvalContext, TaskEvalResult
-from webarena_verified.types.task import WebArenaVerifiedTask
+if TYPE_CHECKING:
+    from webarena_verified.types.eval import TaskEvalResult
+    from webarena_verified.types.task import WebArenaVerifiedTask
 
 from harness.trajectory_replay.webarena_runtime_source import (
     WEBARENA_VERIFIED_FORK_URL,
@@ -182,8 +181,12 @@ def load_corrections(
             raise ValueError(f"task {task_id}: official_revision must be positive")
         if not record.get("preconditions") or not record.get("operations"):
             raise ValueError(f"task {task_id}: preconditions and operations are required")
-        if (record.get("network_event_alternatives") or record.get("reference_receipt")
-                or record.get("root_cause") or record.get("regression_ids")):
+        if (
+            record.get("network_event_alternatives")
+            or record.get("reference_receipt")
+            or record.get("root_cause")
+            or record.get("regression_ids")
+        ):
             regression_ids = record.get("regression_ids")
             if (
                 not record.get("root_cause")
@@ -320,9 +323,7 @@ def apply_correction(
             ):
                 raise ValueError(f"task {task.task_id}: incomplete route-order reference")
         elif observation.get("schema") == "trajectory_replay_navigation_xhr_reference/1":
-            expected_status = original["eval"][1]["expected"]["query_params"][
-                "filters[status]"
-            ][0]
+            expected_status = original["eval"][1]["expected"]["query_params"]["filters[status]"][0]
             if (
                 observation.get("expected_filter_status") != expected_status
                 or observation.get("official_navigation_only")
@@ -334,10 +335,7 @@ def apply_correction(
                 or len(str(observation.get("observed_har_sha256") or "")) != 64
             ):
                 raise ValueError(f"task {task.task_id}: incomplete navigation-XHR reference")
-        elif (
-            observation.get("schema")
-            == "trajectory_replay_repeated_network_event_reference/1"
-        ):
+        elif observation.get("schema") == "trajectory_replay_repeated_network_event_reference/1":
             original_members = original["eval"][2:]
             corrected_members = corrected["eval"][2:]
             member_ids = [row["expected"]["post_data"]["user_id"] for row in original_members]
@@ -366,7 +364,7 @@ def apply_correction(
             if (
                 original.get("intent")
                 != 'Subscribe to the "machine learning" forum from the '
-                'page of the newest post in that forum.'
+                "page of the newest post in that forum."
                 or original_expected.get("url")
                 != [
                     "__REDDIT__/f/machine learning/subscribe.json",
@@ -395,11 +393,9 @@ def apply_correction(
                 or not isinstance(observation.get("browser_call_count"), int)
                 or observation.get("browser_call_count") < 1
                 or not isinstance(bindings, dict)
-                or not {"network_har", "trace", "outputs", "readiness"}
-                <= set(bindings)
+                or not {"network_har", "trace", "outputs", "readiness"} <= set(bindings)
                 or any(
-                    not isinstance(value, str) or len(value) != 64
-                    for value in bindings.values()
+                    not isinstance(value, str) or len(value) != 64 for value in bindings.values()
                 )
                 or not isinstance(comparisons, list)
                 or not comparisons
@@ -427,33 +423,31 @@ def apply_correction(
             issue = observation.get("selected_issue") or {}
             comparisons = observation.get("contract_values") or []
             if (
-                    observation.get("task_intent") != original.get("intent")
-                    or observation.get("browser_call_count") != 1
-                    or not isinstance(bindings, dict)
-                    or not {"network_har", "actual_response", "evaluation", "trace"}
-                    <= set(bindings)
-                    or any(
-                        not isinstance(value, str) or len(value) != 64
-                        for value in bindings.values()
-                    )
-                    or query.get("authenticated_user_id") != query.get("author_id")
-                    or issue.get("author_id") != query.get("authenticated_user_id")
-                    or query.get("title_search") != "feature"
-                    or query.get("order_by") != "created_at"
-                    or query.get("sort") != "desc"
-                    or "feature" not in str(issue.get("title") or "").lower()
-                    or issue.get("state") not in {"opened", "closed"}
-                    or not isinstance(comparisons, list)
-                    or not comparisons
-                    or any(
-                        not isinstance(item, dict)
-                        or not isinstance(item.get("path"), str)
-                        or _resolve(original, item["path"]) != item.get("official")
-                        or _resolve(corrected, item["path"]) != item.get("corrected")
-                        for item in comparisons
-                    )
-                    or observation.get("observed_response", {}).get("retrieved_data")
-                    != [issue.get("state") == "closed"]
+                observation.get("task_intent") != original.get("intent")
+                or observation.get("browser_call_count") != 1
+                or not isinstance(bindings, dict)
+                or not {"network_har", "actual_response", "evaluation", "trace"} <= set(bindings)
+                or any(
+                    not isinstance(value, str) or len(value) != 64 for value in bindings.values()
+                )
+                or query.get("authenticated_user_id") != query.get("author_id")
+                or issue.get("author_id") != query.get("authenticated_user_id")
+                or query.get("title_search") != "feature"
+                or query.get("order_by") != "created_at"
+                or query.get("sort") != "desc"
+                or "feature" not in str(issue.get("title") or "").lower()
+                or issue.get("state") not in {"opened", "closed"}
+                or not isinstance(comparisons, list)
+                or not comparisons
+                or any(
+                    not isinstance(item, dict)
+                    or not isinstance(item.get("path"), str)
+                    or _resolve(original, item["path"]) != item.get("official")
+                    or _resolve(corrected, item["path"]) != item.get("corrected")
+                    for item in comparisons
+                )
+                or observation.get("observed_response", {}).get("retrieved_data")
+                != [issue.get("state") == "closed"]
             ):
                 raise ValueError(f"task {task.task_id}: incomplete live GitLab reference")
         elif observation.get("schema") == "trajectory_replay_gitlab_repository_reference/1":
@@ -474,11 +468,9 @@ def apply_correction(
                 observation.get("task_intent") != original.get("intent")
                 or observation.get("browser_call_count") != 1
                 or not isinstance(bindings, dict)
-                or not {"network_har", "trace", "outputs", "readiness"}
-                <= set(bindings)
+                or not {"network_har", "trace", "outputs", "readiness"} <= set(bindings)
                 or any(
-                    not isinstance(value, str) or len(value) != 64
-                    for value in bindings.values()
+                    not isinstance(value, str) or len(value) != 64 for value in bindings.values()
                 )
                 or query.get("search_term") != topic
                 or query.get("simple") is not True
@@ -517,10 +509,7 @@ def apply_correction(
                 raise ValueError(
                     f"task {task.task_id}: incomplete live GitLab repository reference"
                 )
-        elif (
-            observation.get("schema")
-            == "trajectory_replay_magento_create_options_reference/1"
-        ):
+        elif observation.get("schema") == "trajectory_replay_magento_create_options_reference/1":
             source = observation.get("official_source") or {}
             source_observation = observation.get("source_observation") or {}
             required_option = observation.get("required_option") or {}
@@ -539,8 +528,8 @@ def apply_correction(
                 }
                 or source.get("repository") != "https://github.com/magento/magento2"
                 or source.get("path")
-                != 'app/code/Magento/ConfigurableProduct/view/adminhtml/'
-                'web/js/variations/steps/attributes_values.js'
+                != "app/code/Magento/ConfigurableProduct/view/adminhtml/"
+                "web/js/variations/steps/attributes_values.js"
                 or len(str(source.get("revision") or "")) != 40
                 or len(str(source.get("sha256") or "")) != 64
                 or source_observation
@@ -555,10 +544,7 @@ def apply_correction(
                 raise ValueError(
                     f"task {task.task_id}: incomplete Magento create-options reference"
                 )
-        elif (
-            observation.get("schema")
-            == "trajectory_replay_magento_mass_status_reference/1"
-        ):
+        elif observation.get("schema") == "trajectory_replay_magento_mass_status_reference/1":
             bindings = observation.get("source_evidence_sha256") or {}
             event = observation.get("observed_event") or {}
             official_contract = observation.get("official_contract") or {}
@@ -579,8 +565,7 @@ def apply_correction(
                 }
                 <= set(bindings)
                 or any(
-                    not isinstance(value, str) or len(value) != 64
-                    for value in bindings.values()
+                    not isinstance(value, str) or len(value) != 64 for value in bindings.values()
                 )
                 or official_contract
                 != {
@@ -599,8 +584,7 @@ def apply_correction(
                     "navigation_only": corrected["eval"][1].get("navigation_only"),
                 }
                 or event.get("method") != "POST"
-                or event.get("url")
-                != "__SHOPPING_ADMIN__/catalog/product/massStatus/status/1/"
+                or event.get("url") != "__SHOPPING_ADMIN__/catalog/product/massStatus/status/1/"
                 or event.get("response_status") != 302
                 or event.get("updated_record_count") != 16
                 or event.get("post_data")
@@ -613,33 +597,29 @@ def apply_correction(
                 or observation.get("derivation", {}).get("kind")
                 != "native_magento_filtered_mass_status/1"
             ):
-                raise ValueError(
-                    f"task {task.task_id}: incomplete Magento mass-status reference"
-                )
+                raise ValueError(f"task {task.task_id}: incomplete Magento mass-status reference")
         elif observation.get("derivation", {}).get("kind") == "qualified_catalog_price_range/1":
             source = observation.get("independent_source") or {}
             products = source.get("qualified_products") or []
             if (
-                    observation.get("schema") != "trajectory_replay_revised_reference/1"
-                    or source.get("total_count") != source.get("returned_items")
-                    or type(source.get("total_count")) is not int
-                    or source["total_count"] < len(products)
-                    or not products
-                    or len({row.get("sku") for row in products}) != len(products)
-                    or len({row.get("name") for row in products}) != len(products)
-                    or any(
-                        not row.get("sku")
-                        or not row.get("name")
-                        or type(row.get("price_cents")) is not int
-                        or row["price_cents"] < 0
-                        or row.get("currency") != "USD"
-                        or not row.get("qualification_evidence")
-                        for row in products
-                    )
-            ):
-                raise ValueError(
-                    f"task {task.task_id}: incomplete qualified catalog reference"
+                observation.get("schema") != "trajectory_replay_revised_reference/1"
+                or source.get("total_count") != source.get("returned_items")
+                or type(source.get("total_count")) is not int
+                or source["total_count"] < len(products)
+                or not products
+                or len({row.get("sku") for row in products}) != len(products)
+                or len({row.get("name") for row in products}) != len(products)
+                or any(
+                    not row.get("sku")
+                    or not row.get("name")
+                    or type(row.get("price_cents")) is not int
+                    or row["price_cents"] < 0
+                    or row.get("currency") != "USD"
+                    or not row.get("qualification_evidence")
+                    for row in products
                 )
+            ):
+                raise ValueError(f"task {task.task_id}: incomplete qualified catalog reference")
             prices = [row["price_cents"] for row in products]
             expected = {
                 "task_type": "RETRIEVE",
@@ -654,9 +634,7 @@ def apply_correction(
                 "error_details": None,
             }
             if observation.get("expected_response") != expected:
-                raise ValueError(
-                    f"task {task.task_id}: catalog reference derivation differs"
-                )
+                raise ValueError(f"task {task.task_id}: catalog reference derivation differs")
             corrected["eval"][0]["expected"] = expected
         else:
             raise ValueError(f"task {task.task_id}: unsupported independent reference")
@@ -753,6 +731,10 @@ def evaluate_corrected_contract(
     assertion explicitly opts into ordinary URL/method/query filtering; only
     that network evaluator receives a non-navigate view of the same task.
     """
+    from webarena_verified.core.evaluation.evaluators import EVALUATOR_REGISTRY
+    from webarena_verified.core.utils.checksum import compute_data_file_checksum
+    from webarena_verified.types.eval import TaskEvalContext, TaskEvalResult
+
     task = contract.task
     parsed_response = benchmark._evaluator._parse_agent_response(agent_response)
     # webarena-verified 1.2.3 calls ``.strip()`` on scalar response fields.
@@ -860,3 +842,252 @@ def check_replay_assertions(
             continue
         raise ValueError(f"unsupported replay assertion kind: {kind!r}")
     return tuple(results)
+
+
+def _revision_file_sha256(path: Path) -> str:
+    from harness.web_fetch.safety import unlinked_path
+
+    path = unlinked_path(path)
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"missing or symlinked source: {path}")
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _load_dataset_revision_bindings(path: Path | None = None) -> dict[int, dict[str, Any]]:
+    from harness.web_fetch.safety import contained_path, unlinked_path
+
+    root = Path(__file__).resolve().parents[2]
+    path = unlinked_path(
+        path
+        or root / "evaluation/trajectory-replay/webarena-verified/dataset-revision-bindings.json"
+    )
+    value = json.loads(path.read_bytes())
+    if value.get("schema") != "webarena_dataset_revision_bindings/1":
+        raise ValueError("unsupported dataset revision bindings")
+    records = {}
+    for row in value.get("revisions") or []:
+        task_id = row.get("task_id")
+        if type(task_id) is not int or task_id in records or not row.get("correction_id"):
+            raise ValueError("invalid or duplicate dataset revision binding")
+        for field in ("task_sha256", "source_trajectory_sha256"):
+            if not re.fullmatch(r"[0-9a-f]{64}", str(row.get(field) or "")):
+                raise ValueError("invalid dataset revision hash")
+        for field in ("candidate", "reference"):
+            artifact = row.get(field) or {}
+            contained_path(root, artifact.get("path") or "")
+            if not re.fullmatch(r"[0-9a-f]{64}", str(artifact.get("sha256") or "")):
+                raise ValueError("invalid dataset revision artifact hash")
+        records[task_id] = row
+    return records
+
+
+def revise_dataset(
+    base_path: Path,
+    corrections_path: Path,
+    task_ids: list[int],
+    selection_path: Path | None = None,
+    *,
+    require_current_upstream: bool = True,
+    revision_bindings_path: Path | None = None,
+) -> dict[str, Any]:
+    from harness.environments.webarena.runtime import configure_benchmark
+    from harness.trajectory_replay.retrieval_acceptance import validate_contract
+    from harness.web_fetch.safety import unlinked_path
+
+    base_path = unlinked_path(base_path)
+    corrections_path = unlinked_path(corrections_path)
+    if selection_path is not None:
+        selection_path = unlinked_path(selection_path)
+    binding_path = unlinked_path(
+        revision_bindings_path
+        or Path(__file__).resolve().parents[2]
+        / "evaluation/trajectory-replay/webarena-verified/dataset-revision-bindings.json"
+    )
+    source_hashes = {
+        path: _revision_file_sha256(path)
+        for path in (base_path, corrections_path, binding_path, selection_path)
+        if path is not None
+    }
+
+    if not task_ids or len(task_ids) != len(set(task_ids)):
+        raise ValueError("revision task IDs must be nonempty and unique")
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+    if base.get("schema") != "lex_webarena_verified_trajectory_dataset/1":
+        raise ValueError("unsupported source trajectory dataset")
+    if "revision" in base:
+        raise ValueError("dataset revisions must start from the immutable base")
+    trajectories = base.get("trajectories") or []
+    counts = base.get("counts") or {}
+    if not trajectories or any(
+        type(counts.get(key)) is not int or counts[key] != len(trajectories)
+        for key in ("verified_tasks", "verified_trajectories")
+    ):
+        raise ValueError("revision source population differs from declared counts")
+    rows = {int(row["task_id"]): row for row in trajectories}
+    if len(rows) != len(trajectories) or not set(task_ids) <= set(rows):
+        raise ValueError("revision task not in complete source dataset")
+    if selection_path is not None:
+        selection = json.loads(selection_path.read_text(encoding="utf-8"))
+        selected_ids = [int(row["task_id"]) for row in selection.get("tasks") or []]
+        if (
+            selection.get("schema") != "lex_webarena_verified_pilot/1"
+            or len(selected_ids) != len(set(selected_ids))
+            or not set(selected_ids) <= set(rows)
+            or not set(task_ids) <= set(selected_ids)
+        ):
+            raise ValueError("revision selection is invalid or omits a corrected task")
+        base["trajectories"] = [rows[task_id] for task_id in selected_ids]
+        base["selection_sha256"] = _revision_file_sha256(selection_path)
+        base["counts"]["verified_tasks"] = len(selected_ids)
+        base["counts"]["verified_trajectories"] = len(selected_ids)
+    catalog = load_corrections(
+        corrections_path,
+        require_current_upstream=require_current_upstream,
+    )
+    revision_bindings = _load_dataset_revision_bindings(binding_path)
+    if not set(task_ids) - set(revision_bindings) <= set(catalog.records):
+        raise ValueError("missing reviewed correction")
+    benchmark = configure_benchmark()
+    records = []
+    for task_id in sorted(task_ids):
+        row = rows[task_id]
+        original = benchmark.get_task(task_id)
+        original_data = original.model_dump(mode="json")
+        if task_id in revision_bindings:
+            binding = revision_bindings[task_id]
+            if (
+                _digest(original_data) != binding["task_sha256"]
+                or _digest(row) != binding["source_trajectory_sha256"]
+            ):
+                raise ValueError(f"task {task_id}: revision authority differs from bound inputs")
+            candidate_path = Path(__file__).resolve().parents[2] / binding["candidate"]["path"]
+            reference_path = Path(__file__).resolve().parents[2] / binding["reference"]["path"]
+            for path, artifact in (
+                (candidate_path, binding["candidate"]),
+                (reference_path, binding["reference"]),
+            ):
+                if _revision_file_sha256(path) != artifact["sha256"]:
+                    raise ValueError(f"task {task_id}: revision artifact hash mismatch")
+                source_hashes[path] = artifact["sha256"]
+            candidate = json.loads(candidate_path.read_bytes())
+            candidate_calls = candidate.get("tool_calls")
+            if candidate.get("task_id") != task_id or not isinstance(candidate_calls, list):
+                raise ValueError(f"task {task_id}: corrected source reader is missing")
+            validate_contract(candidate.get("retrieval_contract"), candidate_calls)
+            corrected_data = original_data
+            correction_id = binding["correction_id"]
+            correction_sha256 = binding["reference"]["sha256"]
+            old_sha256 = _digest({"task": row["task"], "evaluation_input": row["evaluation_input"]})
+            new_sha256 = _digest(corrected_data)
+            row["tool_calls"] = candidate_calls
+            row["source"] = {
+                "kind": "corrected_retrieval_candidate_pending_requalification",
+                "path": binding["candidate"]["path"],
+                "sha256": binding["candidate"]["sha256"],
+            }
+        else:
+            if (
+                row["task"]["intent"] != original_data["intent"]
+                or row["evaluation_input"] != original_data["eval"][0]["expected"]
+            ):
+                raise ValueError(f"task {task_id}: source differs from upstream authority")
+            corrected = apply_correction(original, catalog)
+            corrected_data = corrected.task.model_dump(mode="json")
+            correction_id = corrected.correction_id
+            correction_sha256 = corrected.correction_source_sha256
+            old_sha256 = corrected.original_task_sha256
+            new_sha256 = corrected.corrected_task_sha256
+        for key in ("intent", "intent_template_id", "revision", "sites", "start_urls"):
+            row["task"][key] = corrected_data[key]
+        row["task"]["intent_template"] = corrected_data["intent_template"]
+        row["task"]["instantiation_dict"] = corrected_data["instantiation_dict"]
+        row["evaluation_input"] = corrected_data["eval"][0]["expected"]
+        previous = row["verification"]
+        row["verification"] = {
+            "browsers": [],
+            "process_status": "pending_requalification",
+            "evaluator_status": "pending_requalification",
+            "contract": {"kind": "corrected_task_contract"},
+            "model_calls": 0,
+            "prior_receipt_run_ids": previous.get("receipt_run_ids") or [],
+        }
+        records.append(
+            {
+                "task_id": task_id,
+                "correction_id": correction_id,
+                "correction_record_sha256": correction_sha256,
+                "original_task_sha256": old_sha256,
+                "corrected_task_sha256": new_sha256,
+                "task_contract_sha256": hashlib.sha256(
+                    _canonical_json(
+                        {"task": row["task"], "evaluation_input": row["evaluation_input"]}
+                    )
+                ).hexdigest(),
+            }
+        )
+    base["revision"] = {
+        "schema": "webarena_replay_dataset_revision/1",
+        "base_dataset_sha256": _revision_file_sha256(base_path),
+        "correction_catalog_sha256": _revision_file_sha256(corrections_path),
+        "changed_tasks": records,
+        "qualification_status": "pending_full_scope_reference_requalification",
+    }
+    if any(_revision_file_sha256(path) != sha for path, sha in source_hashes.items()):
+        raise ValueError("dataset revision source changed during build")
+    return base
+
+
+def main_dataset_revision(argv=None) -> None:
+    import argparse
+
+    from harness.web_fetch.safety import unlinked_path, write_new_file
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--base", type=Path, required=True)
+    parser.add_argument("--corrections", type=Path, required=True)
+    parser.add_argument("--task-id", type=int, action="append", required=True)
+    parser.add_argument("--selection", type=Path)
+    parser.add_argument("--revision-bindings", type=Path)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--replace-generated", action="store_true")
+    args = parser.parse_args(argv)
+    args.output = unlinked_path(args.output)
+    replacing = args.output.exists()
+    prior_output_sha256 = _revision_file_sha256(args.output) if replacing else None
+    if args.output.exists():
+        if not args.replace_generated or args.output.is_symlink():
+            raise ValueError("revision output exists")
+        previous = json.loads(args.output.read_text(encoding="utf-8"))
+        if previous.get("revision", {}).get(
+            "schema"
+        ) != "webarena_replay_dataset_revision/1" or previous["revision"].get(
+            "base_dataset_sha256"
+        ) != _revision_file_sha256(args.base):
+            raise ValueError("cannot replace a different dataset")
+    result = revise_dataset(
+        args.base,
+        args.corrections,
+        args.task_id,
+        args.selection,
+        revision_bindings_path=args.revision_bindings,
+    )
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    payload = (json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    if replacing:
+        import os
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(dir=args.output.parent, delete=False) as stream:
+            staged = Path(stream.name)
+            try:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+                if _revision_file_sha256(args.output) != prior_output_sha256:
+                    raise ValueError("revision output changed during build")
+                os.replace(staged, args.output)
+            finally:
+                staged.unlink(missing_ok=True)
+    else:
+        write_new_file(args.output, payload)
+    print(json.dumps({"tasks": args.task_id, "sha256": _revision_file_sha256(args.output)}))

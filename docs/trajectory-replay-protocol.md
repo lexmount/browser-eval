@@ -233,6 +233,17 @@ one; it does not execute or score a browser.
 
 ### Qualification decisions and immutable outputs
 
+`scripts/build_revised_webarena_dataset.py` creates a pending dataset revision
+from `--base`, `--corrections` and repeated `--task-id` arguments, with an optional
+`--selection`. Declared counts must match the source population. Fork replacements
+use `--revision-bindings` (default: the repository's `dataset-revision-bindings.json`)
+to bind the upstream task, predecessor trajectory, candidate actions and independent
+reference by hash. Artifact paths are relative to the repository root. The shared
+correction module owns this stage; adding a replacement does not require a task-ID
+branch. The output requires full-scope requalification before measurement. Use a
+new `--output` path; `--replace-generated` is limited to a generated revision of
+the same base dataset and never authorizes replacing measured evidence.
+
 `scripts/build_webarena_native_scope.py` selects a task population before
 qualification or measurement from the declared site image architectures and
 evidence-backed evaluator exclusions. Use explicit `--suite`, `--image-lock`

@@ -466,7 +466,8 @@ def verify_replay_diagnostics(root: Path, source_root: Path) -> None:
     for command in ('audit_replay_readiness.py', 'audit_replay_cart_assertion.py',
                     'audit_replay_comparison_inputs.py', 'audit_saved_replay_correction.py',
                     'audit_webarena_recorded_outcomes.py', 'verify_webarena_evaluator_exclusions.py',
-                    'rescore_saved_retrieval_attempt.py', 'supersede_webarena_task_browser_results.py'):
+                    'rescore_saved_retrieval_attempt.py', 'supersede_webarena_task_browser_results.py',
+                    'build_revised_webarena_dataset.py'):
         subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
                        check=True, cwd=root, capture_output=True)
     stage = root / 'replay-diagnostics'
