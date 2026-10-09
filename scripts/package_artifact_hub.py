@@ -5,24 +5,23 @@ from the same source files. Scored outputs remain byte-identical; supplemental
 HTML may be redacted with separate original/published hashes. Hub injects a root base.
 """
 import base64
+from functools import lru_cache
 import gzip
 import hashlib
 import html
-from html.parser import HTMLParser
 import json
 import mimetypes
-import posixpath
 import re
 import shutil
 import sys
 import tempfile
 import zipfile
 from pathlib import Path
-from urllib.parse import urlsplit, unquote
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.reporting.packs import write_packs
+from harness.reporting.links import validate_virtual_links
 from harness.web_fetch.publication_privacy import project_file
 from harness.web_fetch.publication_target import HUB
 SOURCE=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'reports/webfetch'
@@ -305,27 +304,7 @@ def build():
  # Validate every download and every internal page/file link after transformation.
  for name,digest in original.items():
   assert hashlib.sha256(b''.join(raw_blocks[k] for k in files[name]['parts'])).hexdigest()==digest,name
- class PageLinks(HTMLParser):
-  def __init__(self):
-   super().__init__();self.images=[];self.links=[];self.evidence=[]
-  def handle_starttag(self,tag,attrs):
-   values=dict(attrs)
-   if tag=='img' and values.get('src'):self.images.append(values['src'])
-   if values.get('href'):self.links.append(values['href'])
-   if values.get('data-file'):self.evidence.append(values['data-file'])
- for name,text in pages.items():
-  parsed=PageLinks();parsed.feed(text)
-  for src in parsed.images:
-   u=urlsplit(src)
-   if u.scheme or u.netloc:continue
-   target=posixpath.normpath(posixpath.join(posixpath.dirname(name),unquote(u.path)))
-   assert target in files and files[target]['mime'].startswith('image/'),(name,src,target)
-  for href in parsed.links:
-   u=urlsplit(href)
-   if u.scheme or u.netloc:continue
-   target=posixpath.normpath(posixpath.join(posixpath.dirname(name),unquote(u.path))) if u.path else name
-   assert target in files,(name,href,target)
-  for target in parsed.evidence:assert target in files,(name,target)
+ validate_virtual_links(files, lambda name: pages[name])
  # Verify packed data independently, not just in-memory deduplication.
  for name in sorted({v['pack'] for v in blocks.values()}):
   raw=gzip.decompress((DEST/name).read_bytes())
@@ -361,13 +340,16 @@ def build_incremental(source: Path, baseline: Path, destination: Path):
   manifest=json.loads(bundle.read('manifest.json'))
   if manifest.get('schema_version')!=2:
    raise ValueError('Incremental update requires the lazy-route package')
+  @lru_cache(maxsize=8)
+  def pack(name):
+   return gzip.decompress(bundle.read(name))
   def old_bytes(name):
    file=manifest['files'][name]
    if 'inline_base64' in file:return base64.b64decode(file['inline_base64'],validate=True)
    parts=[]
    for key in file['parts']:
     block=manifest['blocks'][key]
-    raw=gzip.decompress(bundle.read(block['pack']))
+    raw=pack(block['pack'])
     parts.append(raw[block['offset']:block['offset']+block['size']])
    return b''.join(parts)
   if old_bytes('results.jsonl') != project_file('results.jsonl',(source/'results.jsonl').read_bytes())[0]:
@@ -388,7 +370,7 @@ def build_incremental(source: Path, baseline: Path, destination: Path):
    changes[name]=manifest['files'][name]['sha256']
   from harness.web_fetch.safety import contained_path
   for name in routes:
-   allowed=name in {'index.html','methodology/index.html','adoption/index.html','reproduce/index.html','report-manifest.json'} or (
+   allowed=name in {'index.html','methodology/index.html','adoption/index.html','reproduce/index.html','changes/index.html','report-manifest.json'} or (
        name.startswith('providers/') and name.endswith('.html')) or (
        name.startswith('adoption/interfaces/') and name.endswith('.json'))
    if not allowed:raise ValueError('Not an explanatory route: '+name)
@@ -401,6 +383,7 @@ def build_incremental(source: Path, baseline: Path, destination: Path):
    replace(name,data)
   privacy['files']=list(disclosures.values())
   replace('publication-privacy.json',(json.dumps(privacy,ensure_ascii=False,indent=2)+'\n').encode())
+  validate_virtual_links(manifest['files'], old_bytes)
   destination.mkdir(parents=True,exist_ok=False)
   (destination/'loader.js').write_text(LOADER)
   raw=json.dumps(manifest,separators=(',',':')).encode()

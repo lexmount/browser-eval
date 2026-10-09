@@ -1195,7 +1195,7 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
     manifest_path = output / "report-manifest.json"
     # The existing owner renders from saved metrics. Only these explanatory
     # routes may be installed; result pages, logs and every measured byte stay.
-    routes = ['index.html', 'methodology/index.html', 'adoption/index.html', 'reproduce/index.html']
+    routes = ['index.html', 'methodology/index.html', 'adoption/index.html', 'reproduce/index.html', 'changes/index.html']
     routes += ['providers/' + provider + '.html' for provider in binding['providers']]
     routes += ['adoption/interfaces/' + provider + '.json' for provider in binding['providers']]
     with tempfile.TemporaryDirectory(prefix='.presentation-', dir=output.parent) as scratch:

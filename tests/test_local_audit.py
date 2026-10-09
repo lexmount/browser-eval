@@ -260,11 +260,12 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
         "measured_scoring_source_sha256": historical_scorer,
         "measured_scoring_git_revision": "historical-revision"}
     _write(binding_path, binding)
+    (output / "changes/index.html").write_text("<html><body>Old release history</body></html>")
     before = {path.relative_to(output).as_posix(): _digest(path)
               for path in output.rglob("*") if path.is_file()}
     refresh_local_presentation(output, binding_path)
     allowed = {"index.html", "methodology/index.html", "adoption/index.html",
-               "reproduce/index.html", "providers/fixture.html",
+               "reproduce/index.html", "changes/index.html", "providers/fixture.html",
                "adoption/interfaces/fixture.json", "report-manifest.json"}
     for relative, digest in before.items():
         if relative not in allowed:
@@ -273,6 +274,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     refreshed = json.loads((output / "report-manifest.json").read_text())
     assert refreshed["certified"] is False
     assert refreshed["presentation_refresh"]["scores_changed"] is False
+    assert "2026-10-09-dynamic-1000-native-presentation" in (output / "changes/index.html").read_text()
+    assert "changes/index.html" in refreshed["presentation_refresh"]["changed_routes"]
     _write(binding_path, {**binding, "results_sha256": "0" * 64})
     with pytest.raises(ValueError, match="input binding changed"):
         refresh_local_presentation(output, binding_path)

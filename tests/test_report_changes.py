@@ -32,16 +32,14 @@ class ReportChangesTests(unittest.TestCase):
         from harness.web_fetch.report_changes import ROOT
         from harness.web_fetch.report_i18n import translate_text
         data = json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8'))
-        releases = [row for row in data['releases']
-                    if 'webmainbench_frozen_html_to_markdown' not in row.get('comparison_kinds', [])
-                    and 'public_benchmark_research' not in row.get('comparison_kinds', [])
-                    and 'wcxb_frozen_html_to_markdown' not in row.get('comparison_kinds', [])
-                    and 'moli_historical_failure_retest' not in row.get('comparison_kinds', [])
-                    and 'moli_process_tree_resource_profile' not in row.get('comparison_kinds', [])
-                    and 'single_provider_dynamic_native_fetch' not in row.get('comparison_kinds', [])
-                    and 'risk_control_100_moli' not in row.get('comparison_kinds', [])]
-        self.assertEqual(len(releases), 20)
-        for row in releases:
+        from harness.web_fetch.report_changes import select_cohort_history
+        kinds = ('generic', 'headless_markdown', 'web_fetch_methods',
+                 'uniform_native_local_measurement', 'single_provider_dynamic_native_fetch',
+                 'risk_control_100_moli')
+        releases = {row['id']: row for kind in kinds
+                    for row in select_cohort_history(data, {'comparison': {'kind': kind}}, [])['releases']}
+        self.assertTrue(releases)
+        for row in releases.values():
             english = row['i18n']['en']
             for key in ('title', 'summary'):
                 self.assertEqual(translate_text(row[key]), english[key], row['id'])
@@ -59,6 +57,18 @@ class ReportChangesTests(unittest.TestCase):
         release_id = '2026-09-24-dynamic-100-moli-119-local-audit'
         self.assertIn(release_id, {row['id'] for row in dynamic['releases']})
         self.assertNotIn(release_id, {row['id'] for row in generic['releases']})
+
+    def test_fixed_native_history_does_not_leak_into_other_cohorts(self):
+        from harness.web_fetch.report_changes import ROOT, select_cohort_history
+        data = json.loads((ROOT / 'research/report-changes.json').read_text())
+        release_id = '2026-10-09-dynamic-1000-native-presentation'
+        for kind in ('uniform_native_local_measurement', 'generic',
+                     'single_provider_dynamic_native_fetch', 'risk_control_100_moli',
+                     'headless_markdown', 'web_fetch_methods'):
+            with self.subTest(kind=kind):
+                releases = select_cohort_history(data, {'comparison': {'kind': kind}}, [])['releases']
+                self.assertEqual(release_id in {row['id'] for row in releases},
+                                 kind == 'uniform_native_local_measurement')
 
     def test_risk_control_release_is_selected_only_for_its_cohort(self):
         from harness.web_fetch.report_changes import ROOT, select_cohort_history

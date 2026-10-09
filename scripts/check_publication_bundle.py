@@ -11,6 +11,7 @@ import zipfile
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from harness.web_fetch.publication_privacy import project_file, publication_risk
+from harness.reporting.links import validate_virtual_links
 from harness.web_fetch.webmainbench_diagnostics import require_valid_teds_for_release, validate_teds_revision_if_present
 from harness.web_fetch.webmainbench_latency_correction import validate_latency_correction
 from bs4 import BeautifulSoup
@@ -52,6 +53,7 @@ def check(archive,source,overlay=None):
                 raise ValueError('Published file hash differs: '+name)
             risk=publication_risk(raw)
             if risk:raise ValueError('Potential '+risk+' remains: '+name)
+        validate_virtual_links(manifest['files'], data)
         privacy=json.loads(data('publication-privacy.json'))
         privacy_by_path={row['path']:row for row in privacy['files']}
         results_raw=data('results.jsonl')

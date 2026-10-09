@@ -81,6 +81,54 @@ class NetworkDnsTests(unittest.TestCase):
             lookup_public_dns('fixture.example', timeout=0,
                               opener=lambda *args, **kwargs: self.fail('No DNS queries allowed'))
 
+    def test_independent_provider_dns_calls_do_not_share_wait_time(self):
+        original = socket.getaddrinfo
+        entered, release, fast_done = (threading.Event() for _ in range(3))
+        errors, answers = [], {}
+        def slow_resolver(host, timeout):
+            entered.set()
+            if not release.wait(2):
+                raise TimeoutError("slow fixture was not released")
+            return [("127.0.0.1", 4)]
+        def run(name, resolver, timeout):
+            try:
+                with public_dns_context("public_doh", timeout, resolver=resolver):
+                    answers[name] = socket.getaddrinfo(name + ".invalid", 443)[0][4][0]
+            except Exception as error:
+                errors.append(error)
+            finally:
+                if name == "fast": fast_done.set()
+        slow = threading.Thread(target=run, args=("slow", slow_resolver, 2))
+        fast = threading.Thread(target=run, args=("fast", lambda host, timeout: [("127.0.0.2", 4)], .5))
+        slow.start()
+        try:
+            self.assertTrue(entered.wait(1))
+            fast.start()
+            completed_while_slow = fast_done.wait(.2)
+        finally:
+            release.set()
+            slow.join(2)
+            if fast.ident is not None: fast.join(2)
+        self.assertTrue(completed_while_slow, "Fast provider waited for the slow provider")
+        self.assertEqual(errors, [])
+        self.assertEqual(answers, {"fast": "127.0.0.2", "slow": "127.0.0.1"})
+        self.assertIs(socket.getaddrinfo, original)
+
+    def test_nested_dns_scopes_restore_the_outer_resolver_after_error(self):
+        original = socket.getaddrinfo
+        outer = lambda host, timeout: [("127.0.0.1", 4)]
+        inner = lambda host, timeout: [("127.0.0.2", 4)]
+        with public_dns_context("public_doh", 2, resolver=outer) as traces:
+            with self.assertRaisesRegex(RuntimeError, "inner failed"):
+                with public_dns_context("public_doh", 2, resolver=inner):
+                    self.assertEqual(socket.getaddrinfo("inner.invalid", 443)[0][4][0], "127.0.0.2")
+                    raise RuntimeError("inner failed")
+            with public_dns_context("system", 2):
+                socket.getaddrinfo("127.0.0.3", 443)
+            self.assertEqual(socket.getaddrinfo("outer.invalid", 443)[0][4][0], "127.0.0.1")
+            self.assertEqual([row["hostname"] for row in traces], ["outer.invalid"])
+        self.assertIs(socket.getaddrinfo, original)
+
     def test_system_mode_does_not_patch_socket(self):
         original = socket.getaddrinfo
         with public_dns_context('system', 45) as traces:

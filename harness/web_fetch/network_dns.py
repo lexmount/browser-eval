@@ -11,6 +11,14 @@ import urllib.request
 DNS_ENDPOINT = "https://cloudflare-dns.com/dns-query"
 DNS_MODES = {"system", "public_doh"}
 _PATCH_LOCK = threading.Lock()
+_DNS_LOCAL = threading.local()
+_PATCH_USERS = 0
+_SYSTEM_GETADDRINFO = socket.getaddrinfo
+
+
+def _dispatch_lookup(*args, **kwargs):
+    lookup = getattr(_DNS_LOCAL, "lookup", None)
+    return (lookup or _SYSTEM_GETADDRINFO)(*args, **kwargs)
 
 
 def validate_dns_mode(mode):
@@ -67,42 +75,56 @@ def public_dns_context(mode, timeout, *, resolver=None):
     validate_dns_mode(mode)
     traces = []
     if mode == "system":
-        yield traces
-        return
-    resolver = resolver or lookup_public_dns
-    thread_id = threading.get_ident()
-    deadline = time.monotonic() + timeout
-    active = False
-    with _PATCH_LOCK:
-        original = socket.getaddrinfo
-        def lookup(host, port, family=0, type=0, proto=0, flags=0):
-            nonlocal active
-            if threading.get_ident() != thread_id or active or not host:
-                return original(host, port, family, type, proto, flags)
-            host = host.decode() if isinstance(host, bytes) else str(host)
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                raise TimeoutError("DNS query exceeded shared deadline")
-            active = True
-            try:
-                addresses = resolver(host, timeout=remaining)
-            finally:
-                active = False
-            traces.append({"hostname": host, "addresses": [value for value, _ in addresses]})
-            rows = []
-            for address, version in addresses:
-                address_family = socket.AF_INET if version == 4 else socket.AF_INET6
-                if family not in (0, socket.AF_UNSPEC, address_family):
-                    continue
-                rows.extend(original(address, port, address_family, type, proto, flags | socket.AI_NUMERICHOST))
-            if not rows:
-                raise socket.gaierror("DNS returned no addresses for requested family")
-            return rows
-        socket.getaddrinfo = lookup
+        previous = getattr(_DNS_LOCAL, "lookup", None)
+        _DNS_LOCAL.lookup = None
         try:
             yield traces
         finally:
-            socket.getaddrinfo = original
+            _DNS_LOCAL.lookup = previous
+        return
+    global _PATCH_USERS, _SYSTEM_GETADDRINFO
+    resolver = resolver or lookup_public_dns
+    deadline = time.monotonic() + timeout
+    active = False
+    previous = getattr(_DNS_LOCAL, "lookup", None)
+    with _PATCH_LOCK:
+        if _PATCH_USERS == 0:
+            _SYSTEM_GETADDRINFO = socket.getaddrinfo
+            socket.getaddrinfo = _dispatch_lookup
+        _PATCH_USERS += 1
+        original = _SYSTEM_GETADDRINFO
+    def lookup(host, port, family=0, type=0, proto=0, flags=0):
+        nonlocal active
+        if active or not host:
+            return original(host, port, family, type, proto, flags)
+        host = host.decode() if isinstance(host, bytes) else str(host)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("DNS query exceeded shared deadline")
+        active = True
+        try:
+            addresses = resolver(host, timeout=remaining)
+        finally:
+            active = False
+        traces.append({"hostname": host, "addresses": [value for value, _ in addresses]})
+        rows = []
+        for address, version in addresses:
+            address_family = socket.AF_INET if version == 4 else socket.AF_INET6
+            if family not in (0, socket.AF_UNSPEC, address_family):
+                continue
+            rows.extend(original(address, port, address_family, type, proto, flags | socket.AI_NUMERICHOST))
+        if not rows:
+            raise socket.gaierror("DNS returned no addresses for requested family")
+        return rows
+    _DNS_LOCAL.lookup = lookup
+    try:
+        yield traces
+    finally:
+        _DNS_LOCAL.lookup = previous
+        with _PATCH_LOCK:
+            _PATCH_USERS -= 1
+            if _PATCH_USERS == 0:
+                socket.getaddrinfo = _SYSTEM_GETADDRINFO
 
 class NativeDnsBroker:
     """Authenticated loopback bridge for native getaddrinfo consumers.
