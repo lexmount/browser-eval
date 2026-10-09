@@ -281,14 +281,20 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                 or c.get("required_patterns")
                 or c.get("acceptance_contract")
             )
-            if not (unavailable and stable_checks):
+            if local_measurement:
+                from .stable_tasks import validate_acceptance_contract
+                validate_acceptance_contract(c["acceptance_contract"])
+            elif not (unavailable and stable_checks):
                 raise ValueError(c["id"])
         if c.get("ground_truth_main_content"):
             expected = c["ground_truth_main_content"].encode()
-            if (
-                not hashlib.sha256(expected).hexdigest()
-                == c["source_verification"]["reference_sha256"]
-            ):
+            if local_measurement:
+                from .reference_inputs import read_dataset_bytes
+                canonical_cases = {case["id"]: case for case in json.loads(read_dataset_bytes(canonical_dataset))["cases"]}
+                valid_reference = expected == canonical_cases[c["id"]]["ground_truth_main_content"].encode()
+            else:
+                valid_reference = hashlib.sha256(expected).hexdigest() == c["source_verification"]["reference_sha256"]
+            if not valid_reference:
                 raise ValueError(c["id"])
             if not (root / "references" / f"{c['id']}.txt").read_bytes() == expected:
                 raise ValueError(c["id"])
@@ -527,6 +533,7 @@ def main(argv=None, *, authority_root: Path | None = None):
     parser.add_argument("root", type=Path)
     parser.add_argument("--profile", type=Path)
     parser.add_argument("--authority-root", type=Path, default=authority_root or Path.cwd())
+    parser.add_argument("--presentation-binding", type=Path)
     args = parser.parse_args(argv)
     result = check(args.root, authority_root=args.authority_root, profile=args.profile, presentation_binding=args.presentation_binding)
     if result is not None:

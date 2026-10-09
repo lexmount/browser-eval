@@ -603,7 +603,7 @@ page hosts. The fixed DoH endpoint itself uses system DNS for bootstrap. Browser
 startup and DNS remain inside the outer call deadline. Non-browser Crawl4AI
 file/PDF routes explicitly reject this mode. No global DNS setting is changed.
 
-A public-DNS configuration must bind `scripts/oss/public_dns.mjs` for the Node
+A public-DNS configuration must bind `harness/web_fetch/workers/public_dns.mjs` for the Node
 workers, `harness/web_fetch/network_dns.py` for CowAgent/LangChain/Crawl4AI, and DeepSeek's
 native `src/network.ts` in `required_paths`, using the normal `{harness_root}`
 and `{repo_path}` tokens. The preflight checks all selected case hosts with that
@@ -616,7 +616,7 @@ passes the declared HTML/text body verbatim to shared scoring and retains the
 rendered text and full tool envelope privately. An empty declared body stays
 empty; a missing body is an invalid response. It does not reconstruct content
 from UI messages, logs, scripts or later requests. Binding
-`scripts/oss/dsh_output.mjs` is required for this projection. Old calls without the
+`harness/web_fetch/workers/dsh_output.mjs` is required for this projection. Old calls without the
 raw tool value cannot be retroactively reconstructed or rescored as this route.
 
 共享 HTTP 调用预算原样传入调用方客户端，不预留持久化时间而提前扣减（45 秒即 45000 毫秒）；固定原生配置模式不覆盖产品服务端超时参数。外层仍以完整输入到答案处理的截止时间判断；迟到答案被舍弃，尚未退出的不可取消请求会隔离该方法并记明未执行范围，不能并发遗弃请求或额外增加答案预算。

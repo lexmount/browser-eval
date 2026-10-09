@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import vm from 'node:vm';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 
 // Execute the maintained worker with synthetic upstream tool responses. Only
 // external packages, stdin, stdout and timers are substituted; its loop and
@@ -10,19 +12,19 @@ const scenarios = [
   {
     name: 'declared value takes priority over presentation metadata',
     result: {content: [{type: 'text', text: 'Body'}, {type: 'image', text: 'ignored'}],
-      value: {statusCode: 200, url: 'https://final.test/article'},
+      value: {statusCode: 200, url: 'https://final.test/article', body: {kind: 'text', content: 'Body'}},
       meta: {statusCode: 404, url: 'https://presentation.test/'}},
     expected: {ok: true, content: 'Body', status_code: 200, final_url: 'https://final.test/article'},
   },
   {
     name: 'declared presentation projection supplies missing value',
-    result: {content: [{type: 'text', text: ''}], meta: {statusCode: 201, url: 'https://final.test/created'}},
+    result: {value: {body: {kind: 'text', content: ''}}, content: [{type: 'text', text: 'presentation is not the answer'}], meta: {statusCode: 201, url: 'https://final.test/created'}},
     expected: {ok: true, content: '', status_code: 201, final_url: 'https://final.test/created'},
   },
   {
     name: 'HTTP failure cannot become success from an answer header',
     result: {content: [{type: 'text', text: 'Fetched https://requested.test/ (HTTP 200)\nBody'}],
-      value: {statusCode: 404, url: 'https://final.test/missing'}},
+      value: {statusCode: 404, url: 'https://final.test/missing', body: {kind: 'text', content: 'not found'}}},
     expected: {ok: false, status_code: 404, error_type: 'http_status', error_message: 'Origin returned HTTP 404'},
   },
   {
@@ -48,7 +50,7 @@ const scenarios = [
   },
   {
     name: 'the next call remains independent after an exception',
-    result: {content: [{type: 'text', text: 'Next body'}], value: {statusCode: 200}},
+    result: {content: [{type: 'text', text: 'Next body'}], value: {statusCode: 200, body: {kind: 'text', content: 'Next body'}}},
     expected: {ok: true, content: 'Next body', status_code: 200},
   },
 ];
@@ -71,18 +73,28 @@ const readline = {createInterface: () => ({async *[Symbol.asyncIterator]() {
 }})};
 const context = vm.createContext({
   AbortController,
-  process: {stdin: {}, stdout: {write: (line) => outputs.push(JSON.parse(line))}},
+  process: {env: {BROWSER_EVAL_HARNESS_ROOT: path.resolve(path.dirname(process.argv[2]), '../../..')}, stdin: {}, stdout: {write: (line) => outputs.push(JSON.parse(line))}},
   setTimeout: () => {const timer = {}; timers.add(timer); return timer;},
   clearTimeout: (timer) => timers.delete(timer),
 });
 const fixtures = new Map([
   ['node:readline', {default: readline}],
+  ['node:path', {default: path}],
+  ['node:url', {pathToFileURL}],
   ['@deepseek-ai/cordis', {Context}],
   ['@deepseek-ai/dsh-llm', {ToolCallId: (value) => value}],
-  ['@deepseek-ai/dsh-web-fetch-http', {LOCAL_FETCH_PROVIDER_ID: 'synthetic'}],
+  ['@deepseek-ai/dsh-web-fetch-http', {LOCAL_FETCH_PROVIDER_ID: 'synthetic', Config: value => value}],
 ]);
 const source = stripTypeScriptTypes(fs.readFileSync(process.argv[2], 'utf8'));
-const worker = new vm.SourceTextModule(source, {context});
+const worker = new vm.SourceTextModule(source, {context, importModuleDynamically: async specifier => {
+  const exports = await import(specifier);
+  const module = new vm.SyntheticModule(Object.keys(exports), function () {
+    for (const [name, value] of Object.entries(exports)) this.setExport(name, value);
+  }, {context});
+  await module.link(() => {});
+  await module.evaluate();
+  return module;
+}});
 await worker.link((specifier) => {
   const exports = fixtures.get(specifier) ?? {default: {}};
   return new vm.SyntheticModule(Object.keys(exports), function () {

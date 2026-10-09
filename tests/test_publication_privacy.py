@@ -300,9 +300,10 @@ class PublicationPrivacyTests(unittest.TestCase):
             raw_path.write_bytes(raw)
             malicious = 'https://example.test/" onmouseover="alert(1)'
             env = {**os.environ, 'WEBFETCH_REPORT_PUBLIC_URL': malicious}
-            subprocess.run([sys.executable, str(repository / 'scripts/package_artifact_hub.py'),
-                            str(source), str(root / 'publish/webfetch-sites.zip')], check=True,
+            packaged = subprocess.run([sys.executable, str(repository / 'scripts/package_artifact_hub.py'),
+                            str(source), str(root / 'publish/webfetch-sites.zip')],
                            capture_output=True, env=env)
+            self.assertEqual(packaged.returncode, 0, packaged.stderr.decode())
             self.assertEqual(raw_path.read_bytes(), raw)
             with zipfile.ZipFile(root / 'publish/webfetch-sites.zip') as archive:
                 manifest = json.loads(archive.read('manifest.json'))
@@ -366,12 +367,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             check_bundle(root / 'publish/webfetch-sites.zip',source)
             # A small correction keeps all original packed evidence. Only the
             # loader and complete manifest are sent to the existing site.
-            from unittest.mock import patch
-            import importlib.util
-            with patch.object(sys, 'argv', ['package_artifact_hub.py']):
-                module_spec = importlib.util.spec_from_file_location('incremental_package', Path(__file__).parents[1] / 'scripts/package_artifact_hub.py')
-                module = importlib.util.module_from_spec(module_spec)
-                module_spec.loader.exec_module(module)
+            from harness.web_fetch import report_package as module
             archive_path = root / 'publish/webfetch-sites.zip'
             baseline_digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
             old_home = (source / 'index.html').read_bytes()
@@ -389,6 +385,31 @@ class PublicationPrivacyTests(unittest.TestCase):
             self.assertIn(b'New release history', base64.b64decode(patched_manifest['files']['changes/index.html']['inline_base64']))
             self.assertEqual(hashlib.sha256(archive_path.read_bytes()).hexdigest(), baseline_digest)
             check_bundle(archive_path, source, delta)
+            from unittest.mock import patch
+            # An overlay may update explanations, never attempts or packed evidence.
+            for label in ('attempt', 'blocks'):
+                poisoned = json.loads((delta / 'manifest.json').read_text())
+                if label == 'attempt':
+                    key = record['artifact_path']
+                    payload = b'changed measured answer'
+                    poisoned['files'][key] = {'inline_base64': base64.b64encode(payload).decode(),
+                        'size': len(payload), 'sha256': hashlib.sha256(payload).hexdigest(), 'mime': 'text/plain'}
+                else:
+                    poisoned['blocks'][next(iter(poisoned['blocks']))]['offset'] += 1
+                overlay = root / ('illegal-' + label)
+                overlay.mkdir()
+                (overlay / 'manifest.json').write_text(json.dumps(poisoned))
+                with self.assertRaisesRegex(ValueError, 'Incremental overlay changed'):
+                    check_bundle(archive_path, source, overlay)
+            original_build = module._build_incremental
+            def interrupted(*args):
+                original_build(*args)
+                raise OSError('simulated storage interruption')
+            with patch.object(module, '_build_incremental', side_effect=interrupted):
+                with self.assertRaisesRegex(OSError, 'storage interruption'):
+                    module.build_incremental(source, archive_path, root / 'interrupted')
+            self.assertFalse((root / 'interrupted').exists())
+            self.assertEqual(hashlib.sha256(archive_path.read_bytes()).hexdigest(), baseline_digest)
             for index, broken in enumerate(('<a href="missing.html">missing</a>',
                                            '<pre data-file="missing.json"></pre>',
                                            '<img src="missing.png">',
@@ -419,7 +440,6 @@ class PublicationPrivacyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Not an explanatory route'):
                 module.build_incremental(source, archive_path, root / 'wrong-route')
             (source / 'index.html').write_bytes(old_home)
-            shutil.rmtree(module.DEST)
 
             for broken in ('<a href="missing.html">missing</a>',
                            '<pre data-file="missing.txt"></pre>',
@@ -427,7 +447,7 @@ class PublicationPrivacyTests(unittest.TestCase):
                 with self.subTest(broken=broken):
                     (source / 'index.html').write_text('<html><body>' + broken + '</body></html>')
                     rejected = subprocess.run(
-                        [sys.executable, str(root / 'scripts/package_artifact_hub.py')],
+                        [sys.executable, str(repository / 'scripts/package_artifact_hub.py'), str(source), str(root / 'publish/webfetch-sites.zip')],
                         capture_output=True, env=env,
                     )
                     self.assertNotEqual(rejected.returncode, 0)

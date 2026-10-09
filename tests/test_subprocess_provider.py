@@ -141,7 +141,7 @@ class SubprocessProviderTest(unittest.TestCase):
         thread.start()
         self.addCleanup(server.server_close)
         self.addCleanup(server.shutdown)
-        worker = Path(__file__).resolve().parents[1] / 'scripts/oss/langchain_webbase_worker.py'
+        worker = Path(__file__).resolve().parents[1] / 'harness/web_fetch/workers/langchain_webbase_worker.py'
         provider = SubprocessJsonlProvider('fixture', {'command': [sys.executable, str(worker)]})
         self.addCleanup(provider.__del__)
         url = f'http://127.0.0.1:{server.server_port}/'

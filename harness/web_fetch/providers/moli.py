@@ -21,7 +21,7 @@ from urllib.parse import parse_qsl, quote, urlsplit
 from ..document_text import extract_document_text
 from ..markdown import CONVERTER, converter_command, require_converter
 from ..models import EvalCase, ProviderResult
-from ..retrieval_hints import plan_for_case
+from ..retrieval_hints import native_default_case, plan_for_case
 from ..safety import validate_http_url
 from .base import Provider
 
@@ -342,12 +342,13 @@ _ROUTE_OUTPUTS = {
     "challenge_json_trace": "final_dom_html+local_markdown+network_diagnostics",
     "page_identity_json": "final_dom_html+local_markdown",
     "dynamic_selected_text": "selected_records_or_rendered_body_fallback",
+    "dynamic_native_markdown": "markdown",
     "media_metadata_runtime": "visible_text_and_standard_media_metadata",
     "ordinary_markdown": "markdown",
 }
 
 
-def _route_for_case(case: EvalCase) -> str:
+def _route_for_case(case: EvalCase, *, native_default: bool = False) -> str:
     """Select one output contract before applying page-family extraction rules."""
     if case.task_kind == "file":
         return "raw_file"
@@ -364,11 +365,13 @@ def _route_for_case(case: EvalCase) -> str:
     navigation = ((case.source_benchmark or {}).get("risk_control") or {}).get("navigation_contract")
     if case.track == "challenge":
         return "challenge_json_trace"
-    if (case.task_kind == "body" and isinstance(navigation, dict)
+    if (not native_default and case.task_kind == "body" and isinstance(navigation, dict)
             and navigation.get("requested_url") and navigation.get("observed_final_url")):
         return "page_identity_json"
-    if case.track == "dynamic":
+    if case.track == "dynamic" and not native_default_case(case):
         return "dynamic_selected_text"
+    if case.track == "dynamic":
+        return "dynamic_native_markdown"
     if case.track == "video" and case.task_kind == "body":
         return "media_metadata_runtime"
     return "ordinary_markdown"
@@ -526,7 +529,7 @@ class MoliWebFetchProvider(Provider):
                 error_type="configuration",
                 error_message=str(error),
             )
-        route = _route_for_case(case)
+        route = _route_for_case(case, native_default=bool(self.config.get("uniform_native_parameters")))
         if retrieval_plan and (route == "raw_file" or (
             retrieval_plan.version == 2 and route != "dynamic_selected_text"
         )):

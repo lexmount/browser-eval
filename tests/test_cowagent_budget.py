@@ -1,48 +1,47 @@
-import base64
+"""Native timers and tool responses survive the isolated worker boundary."""
 import json
 from pathlib import Path
-from types import SimpleNamespace
-from unittest.mock import patch
-import pytest
+
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider
+from harness.web_fetch.runner import persist_result_artifacts
 
 
-def test_outer_timeout_does_not_override_native_tool_and_raw_envelope_is_retained(tmp_path):
-    calls = []
-    module = SimpleNamespace(DEFAULT_TIMEOUT=30)
-    class WebFetch:
-        def __init__(self, config):
-            pass
-        def execute(self, arguments):
-            calls.append((arguments, module.DEFAULT_TIMEOUT))
-            return SimpleNamespace(status='success', result='native answer',
-                                   ext_data={'native_field': 1}, display='native display')
-    module.WebFetch = WebFetch
-    provider = CowAgentBuiltinProvider('cow', {'repo_path': str(tmp_path), 'workspace': str(tmp_path)})
-    with patch('harness.web_fetch.providers.cowagent.importlib.import_module', return_value=module):
-        result = provider.fetch(EvalCase('one', 'one', 'https://example.com/', 'control', []), 45)
-    assert calls == [({'url': 'https://example.com/'}, 30)]
-    assert module.DEFAULT_TIMEOUT == 30
-    assert result.content == 'native answer'
-    assert result.metadata['effective_timeout_seconds'] == 30
-    from harness.web_fetch.runner import persist_result_artifacts
-    persist_result_artifacts(tmp_path, Path('artifacts/cow/control.txt'), result)
-    raw = json.loads((tmp_path / result.metadata['raw_response_path']).read_bytes())
-    assert raw == {'status': 'success', 'result': 'native answer', 'ext_data': {'native_field': 1}, 'display': 'native display'}
-
-
-def test_native_default_restored_when_tool_raises(tmp_path):
-    module = SimpleNamespace(DEFAULT_TIMEOUT=30)
-    class WebFetch:
-        def __init__(self, config):
-            pass
-        def execute(self, arguments):
-            assert module.DEFAULT_TIMEOUT == 30
+def test_native_timer_and_response_survive_success_failure_and_next_call(tmp_path):
+    package = tmp_path / 'agent/tools/web_fetch'
+    package.mkdir(parents=True)
+    for directory in (tmp_path / 'agent', tmp_path / 'agent/tools', package):
+        (directory / '__init__.py').write_text('')
+    (package / 'web_fetch.py').write_text('''from types import SimpleNamespace
+DEFAULT_TIMEOUT = 30
+class WebFetch:
+    def __init__(self, config): pass
+    def execute(self, arguments):
+        assert DEFAULT_TIMEOUT == 30
+        if arguments['url'].endswith('/error'):
             raise RuntimeError('native failure')
-    module.WebFetch = WebFetch
-    provider = CowAgentBuiltinProvider('cow', {'repo_path': str(tmp_path), 'workspace': str(tmp_path)})
-    with patch('harness.web_fetch.providers.cowagent.importlib.import_module', return_value=module):
-        with pytest.raises(RuntimeError, match='native failure'):
-            provider.fetch(EvalCase('one', 'one', 'https://example.com/', 'control', []), 45)
-    assert module.DEFAULT_TIMEOUT == 30
+        return SimpleNamespace(status='success', result='native answer',
+                               ext_data={'native_field': 1}, display='native display')
+''')
+    provider = CowAgentBuiltinProvider('cow', {'repo_path': str(tmp_path),
+                                             'workspace': str(tmp_path / 'workspace')})
+    try:
+        for suffix in ('success', 'error', 'next'):
+            answer = provider.fetch(EvalCase(suffix, suffix, 'https://example.com/' + suffix,
+                                            'control', []), 45)
+            assert answer.metadata['cowagent_default_timeout_seconds'] == 30
+            if suffix == 'error':
+                assert not answer.ok
+                assert answer.error_type == 'RuntimeError'
+                assert answer.error_message == 'native failure'
+                continue
+            assert answer.ok and answer.content == 'native answer'
+            assert answer.metadata['effective_timeout_seconds'] == 30
+            persist_result_artifacts(tmp_path, Path('artifacts/cow/' + suffix + '.txt'), answer)
+            envelope = json.loads((tmp_path / answer.metadata['raw_response_path']).read_bytes())
+            assert envelope['raw_tool_response'] == {
+                'status': 'success', 'result': 'native answer',
+                'ext_data': {'native_field': 1}, 'display': 'native display',
+            }
+    finally:
+        provider.__del__()

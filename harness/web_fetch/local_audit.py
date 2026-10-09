@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from .metrics import task_passed
-from .reference_inputs import input_tree
+from .reference_inputs import input_tree, read_dataset_bytes
 from .safety import contained_path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -465,8 +465,9 @@ def require_local_measurement(source: Path, dataset: dict, records: list[dict]) 
             or contract.get("max_failure_retries") != 0):
         raise ValueError("Invalid uniform native local measurement contract")
     _require_local_scoring_revision(source, contract, records)
-    canonical = json.loads(_repository_file(contract["dataset_path"]).read_text())
-    if (_sha256(_repository_file(contract["dataset_path"])) != contract["dataset_sha256"]
+    raw = read_dataset_bytes(contained_path(ROOT, contract["dataset_path"], reject_symlinks=True))
+    canonical = json.loads(raw)
+    if (hashlib.sha256(raw).hexdigest() != contract["dataset_sha256"]
             or dataset["cases"] != canonical["cases"]):
         raise ValueError("Local measurement changed the committed cases")
     expected = {(p, c["id"]) for p in contract["providers"] for c in canonical["cases"]}

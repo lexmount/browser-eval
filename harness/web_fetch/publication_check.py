@@ -12,6 +12,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 
 from harness.record_io import parse_jsonl
+from harness.reporting.links import validate_virtual_links
 from harness.reporting.publication import archive_inventory
 from harness.web_fetch.publication_privacy import project_file, publication_risk
 from harness.web_fetch.safety import contained_path, evidence_tree_identity
@@ -34,6 +35,10 @@ def check(archive, source, overlay=None):
     validate_release(source)
     source_files = evidence_tree_identity(source)
     physical = archive_inventory(archive)
+    if overlay:
+        overlay_files = evidence_tree_identity(overlay)
+        if not {"manifest.json"} <= set(overlay_files) or set(overlay_files) - {"manifest.json", "loader.js", "update-receipt.json"}:
+            raise ValueError("Incremental overlay contains undeclared physical files")
     with zipfile.ZipFile(archive) as bundle:
         def read(name):
             patched = overlay / name if overlay else None
@@ -46,6 +51,15 @@ def check(archive, source, overlay=None):
         if shell_assets != ["style.css", "report.js", "loader.js"]:
             raise ValueError("Publication shell must use exact query-free physical asset paths")
         manifest = json.loads(read("manifest.json"))
+
+        baseline = json.loads(bundle.read("manifest.json"))
+        if overlay and (manifest["blocks"] != baseline["blocks"] or set(manifest["files"]) != set(baseline["files"])):
+            raise ValueError("Incremental overlay changed the frozen pack or file inventory")
+        if overlay:
+            from .report_package import explanatory_route
+            for name, entry in manifest["files"].items():
+                if entry != baseline["files"][name] and not (explanatory_route(name) or name == "publication-privacy.json"):
+                    raise ValueError("Incremental overlay changed measured evidence: " + name)
 
         @lru_cache(maxsize=8)
         def pack(name):
@@ -108,6 +122,7 @@ def check(archive, source, overlay=None):
             risk = publication_risk(raw)
             if risk:
                 raise ValueError("Potential " + risk + " remains: " + name)
+        validate_virtual_links(manifest["files"], data)
         privacy = json.loads(data("publication-privacy.json"))
         privacy_by_path = {row["path"]: row for row in privacy["files"]}
         results_raw = data("results.jsonl")

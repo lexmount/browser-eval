@@ -134,23 +134,26 @@ class SubprocessJsonlProvider(Provider):
                          args=(self._process, self._stderr_generation), daemon=True).start()
         return self._process
 
-    @staticmethod
-    def _drain_stdout(process: subprocess.Popen[str], output: queue.Queue[str | None]) -> None:
+    def _drain_stdout(self, process: subprocess.Popen[str], output: queue.Queue[str | None]) -> None:
         assert process.stdout is not None
         for line in process.stdout:
+            sink = getattr(self, "_active_diagnostics", None)
+            if sink and process is self._process:
+                sink.emit("native_process_stdout", "stream_line", text=line)
             output.put(line)
         output.put(None)
 
     def _drain_stderr(self, process: subprocess.Popen[str], generation: object) -> None:
         assert process.stderr is not None
         for line in process.stderr:
-            sink = getattr(self, "_active_diagnostics", None)
-            if sink: sink.emit("native_process_stderr", "stream_line", text=line)
             size = len(line.encode("utf-8", "replace"))
             limit = max(1, int(self.config.get("max_bytes", 20_000_000)))
             with self._stderr_lock:
                 if generation is not self._stderr_generation:
                     return
+                sink = getattr(self, "_active_diagnostics", None)
+                if sink:
+                    sink.emit("native_process_stderr", "stream_line", text=line)
                 self._stderr_sequence += 1
                 self._stderr_total_bytes += size
                 self._stderr_chunks.append(

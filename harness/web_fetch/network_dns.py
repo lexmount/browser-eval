@@ -276,8 +276,8 @@ async def crawl4ai_public_dns_browser(config):
 
 def _native_dns_sources():
     import pathlib
-    root = pathlib.Path(__file__).resolve().parents[2]
-    return [root / "harness/web_fetch/workers/native_dns_darwin.c", pathlib.Path(__file__).resolve()]
+    owner = pathlib.Path(__file__).resolve()
+    return [owner.parent / "workers/native_dns_darwin.c", owner]
 
 
 def validate_native_dns_library(library):

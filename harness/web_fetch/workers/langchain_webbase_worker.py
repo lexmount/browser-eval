@@ -7,7 +7,7 @@ import os
 import sys
 from importlib.metadata import version
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
 
 os.environ.setdefault("USER_AGENT", "browser-harness-eval/1.0")

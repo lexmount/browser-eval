@@ -13,7 +13,7 @@ from importlib.metadata import version
 from pathlib import Path
 from urllib.parse import urlsplit
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from harness.web_fetch.network_dns import validate_dns_mode, crawl4ai_public_dns_browser
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig

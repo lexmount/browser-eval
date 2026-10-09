@@ -190,7 +190,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     from harness.web_fetch.report_build import build_report
     canonical = tmp_path / "repo/evaluation/dataset.json"
     # Use a genuine committed contract to exercise the production scorer.
-    actual = json.loads(Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json").read_text())["cases"][0]
+    actual = json.loads(local_audit.read_dataset_bytes(Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json")))["cases"][0]
     canonical_data = {"tool": "web_fetch", "cases": [actual]}
     _write(canonical, canonical_data)
     dataset = {**canonical_data, "id": "local-fixture", "name": "Local fixture",
@@ -283,6 +283,17 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     (output / "changes/index.html").write_text("<html><body>Old release history</body></html>")
     before = {path.relative_to(output).as_posix(): _digest(path)
               for path in output.rglob("*") if path.is_file()}
+    from unittest.mock import patch
+    original_rename = Path.rename
+    def interrupted_swap(path, target):
+        if Path(target) == output and path.name == 'selected':
+            raise OSError('simulated installation interruption')
+        return original_rename(path, target)
+    with patch.object(Path, 'rename', interrupted_swap):
+        with pytest.raises(OSError, match='installation interruption'):
+            refresh_local_presentation(output, binding_path)
+    assert {path.relative_to(output).as_posix(): _digest(path)
+            for path in output.rglob('*') if path.is_file()} == before
     refresh_local_presentation(output, binding_path)
     allowed = {"index.html", "methodology/index.html", "adoption/index.html",
                "reproduce/index.html", "changes/index.html", "providers/fixture.html",
@@ -294,7 +305,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     refreshed = json.loads((output / "report-manifest.json").read_text())
     assert refreshed["certified"] is False
     assert refreshed["presentation_refresh"]["scores_changed"] is False
-    assert "2026-10-09-dynamic-1000-native-presentation" in (output / "changes/index.html").read_text()
+    assert "Old release history" not in (output / "changes/index.html").read_text()
+    assert "2026-10-09-dynamic-1000-native-presentation" not in (output / "changes/index.html").read_text()
     assert "changes/index.html" in refreshed["presentation_refresh"]["changed_routes"]
     _write(binding_path, {**binding, "results_sha256": "0" * 64})
     with pytest.raises(ValueError, match="input binding changed"):

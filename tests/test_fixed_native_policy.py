@@ -56,6 +56,6 @@ def test_runner_rejects_extra_attempts_before_preflight(tmp_path, runs, retries)
     provider = build_provider("fixture", {"type": "fixture", "uniform_native_parameters": True})
     with pytest.raises(ValueError, match="one run and zero caller retries"):
         run_evaluation(output_dir=tmp_path / "run", dataset_meta={}, dataset_path=tmp_path / "absent.json",
-            cases=[], providers=[provider], provider_config_path=tmp_path / "absent-providers.json",
+            cases=[EvalCase("one", "one", "https://example.com/", "control", [])], providers=[provider], provider_config_path=tmp_path / "absent-providers.json",
             runs=runs, timeout=45, delay=0, max_failure_retries=retries)
     assert not (tmp_path / "run").exists()

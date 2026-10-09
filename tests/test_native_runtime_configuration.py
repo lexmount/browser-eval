@@ -65,6 +65,8 @@ def test_declared_native_installation_is_authoritative(checkout, method, change)
         config.update(method_type=method, command=[str(repo / 'node')],
                       expected_node_version='v30.1.2')
         config['required_paths'].append('{harness_root}/harness/web_fetch/workers/' + worker)
+    if method == 'deepseek_harness_builtin':
+        config['required_paths'].append('{harness_root}/harness/web_fetch/workers/dsh_output.mjs')
     if method == 'openclaw_builtin':
         config.update(package_manager_command=str(repo / 'pnpm'),
                       expected_package_manager_version='15.2.3')

@@ -181,6 +181,21 @@ def build_public_benchmark_research(source: Path, output: Path, *, include_engli
     return output / 'index.html'
 
 
+def _install_report_tree(staging: Path, output: Path):
+    if output.exists():
+        backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
+        output.rename(backup)
+        try:
+            staging.rename(output)
+        except BaseException:
+            backup.rename(output)
+            backup.parent.rmdir()
+            raise
+        shutil.rmtree(backup.parent)
+    else:
+        staging.rename(output)
+
+
 def build_report(source: Path, output: Path, *, include_english: bool = False,
                  local_audit: bool = False, authored_interpretation: bool = False,
                  diagnostic_preview: bool = False) -> Path:
@@ -482,15 +497,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                  authored_interpretation=authored_interpretation)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.
-        if output.exists():
-            backup = Path(tempfile.mkdtemp(prefix='.report-swap-',dir=output.parent))/'report'
-            output.rename(backup)
-            try: staging.rename(output)
-            except BaseException:
-                backup.rename(output)
-                raise
-            shutil.rmtree(backup.parent)
-        else: staging.rename(output)
+        _install_report_tree(staging, output)
     finally:
         if staging.exists(): shutil.rmtree(staging)
     return output/'index.html'
@@ -1163,7 +1170,7 @@ def validate_local_presentation(output: Path, binding_path: Path):
                 or hashlib.sha256(contained_path(output, name).read_bytes()).hexdigest() != expected):
             raise ValueError('Presentation input binding changed: ' + name)
     dataset = json.loads((output / 'dataset.json').read_text())
-    records = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]
+    records = load_jsonl(contained_path(output, 'results.jsonl'))
     if (len(records) != binding.get('result_count')
             or len(dataset['cases']) != binding.get('case_count')
             or sorted({row['provider'] for row in records}) != sorted(binding['providers'])
@@ -1184,7 +1191,9 @@ def validate_local_presentation(output: Path, binding_path: Path):
 
 def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
     """Install explanatory routes from the single report owner."""
-    output = output.resolve()
+    from .safety import unlinked_path, evidence_tree_identity
+    output = unlinked_path(output)
+    before_tree = evidence_tree_identity(output)
     binding, dataset, records, manifest = validate_local_presentation(output, binding_path)
     manifest_path = output / "report-manifest.json"
     # The existing owner renders from saved metrics. Only these explanatory
@@ -1212,7 +1221,14 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
             'renderer_sha256': hashlib.sha256(Path(__file__).with_name('report.py').read_bytes()).hexdigest(),
             'changed_routes': sorted(set(changed) | set(manifest.get('presentation_refresh', {}).get('changed_routes', []))),
         }
+        # Stage the permitted pages into a copy of the original snapshot so no
+        # renderer side effects can change evidence or unrelated routes.
+        selected = Path(scratch) / 'selected'
+        shutil.copytree(output, selected)
         for relative in changed:
-            shutil.copy2(staging / relative, output / relative)
-        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
+            shutil.copy2(staging / relative, selected / relative)
+        (selected / manifest_path.name).write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
+        if evidence_tree_identity(output) != before_tree:
+            raise ValueError('Presentation snapshot changed during rendering')
+        _install_report_tree(selected, output)
     return output / 'index.html'

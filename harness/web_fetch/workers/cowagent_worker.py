@@ -42,7 +42,10 @@ def main():
             content = str(result.result or '')
             ok = result.status == 'success'
             metadata['tool_status'] = result.status
-            response = {'ok': ok, 'content': content, 'metadata': metadata}
+            response = {'ok': ok, 'content': content, 'metadata': metadata,
+                        'raw_tool_response': {'status': result.status, 'result': result.result,
+                            'ext_data': getattr(result, 'ext_data', None),
+                            'display': getattr(result, 'display', None)}}
             if not ok:
                 response.update(error_type='tool_error', error_message=content)
         except Exception as error:
