@@ -6,6 +6,8 @@
 
 行为变化须有场景测试，覆盖应通过和应拒绝的输入。评分修正还须提供共享评分入口的回归控制与修订来源，不直接改写结果。历史实测证据与证书不能因代码重构而重新标定。
 
+`make lint-check` 检查全仓库 Python 文件中的未定义名称、重复字典键、无用导入等基础错误，已接入 `make ci`。现有轨道的风格规则仍由 `pyproject.toml` 中的 Ruff 配置管理。
+
 提交前运行 `make ci`。开发测试使用 CI 中的 Node.js 22，需提供 `node:module.stripTypeScriptTypes`；基础 Python 离线示例不需要 Node.js。涉及报告发布时，另外执行该轨道完整发布检查，包括浏览器中成功与失败详情、证据弹窗、返回导航，以及桌面和窄屏、明暗主题。真实服务测试所需环境见各轨道文档。
 
 `make ci` 包含 `make package-check`：先构建源码包，再从源码包构建 wheel，在仓库外分别验证基础安装、`webmainbench-eval` 和 `oss-eval` 扩展安装，并逐文件核对当前模块和声明的资源。检查包含 TypeScript 工具桥接、合成证据的 TEDS 修订，以及 LangChain 正文提取和 Crawl4AI 文件下载的本地 HTTP 场景，不调用真实评测服务。缺失、过期或额外的安装文件都会被拒绝。单独修改打包配置时，可先运行 `make package-check`。

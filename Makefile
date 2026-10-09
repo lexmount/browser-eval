@@ -31,6 +31,10 @@ webfetch-diagnostic-report: runtime-check
 naming-check: runtime-check
 	$(PY) scripts/check_track_naming.py
 
+.PHONY: lint-check
+lint-check: runtime-check
+	$(TEST_PY) -m ruff check --config 'include=["*.py"]' --select F .
+
 test-python: runtime-check
 	$(TEST_PY) -m pytest tests -q
 
@@ -49,7 +53,7 @@ fixture-smoke: runtime-check
 
 test: test-python test-ui test-native-adapters
 
-ci: naming-check test fixture-smoke package-check
+ci: naming-check lint-check test fixture-smoke package-check
 
 .PHONY: package-check
 package-check: runtime-check

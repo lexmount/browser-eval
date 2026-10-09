@@ -13,7 +13,7 @@ from harness.web_fetch.report import (
     composite_contract_details, composite_result_evidence, failure_category,
     generate, overview_card, ranking, reason, run_log_section,
     stable_anchor_evidence, stable_answer_panel, stable_checks,
-    stable_failure_summary, write_support,
+    write_support,
 )
 from harness.web_fetch.report_components import (
     task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status, task_instruction,
@@ -743,7 +743,6 @@ class ReportBodyScopeTests(unittest.TestCase):
 
     def test_current_canonical_challenge_has_zero_body_coverage(self):
         from harness.web_fetch.storage import current_evidence_dir
-        root=Path(__file__).resolve().parents[1]
         evidence=current_evidence_dir()
         if not (evidence/'results.jsonl').is_file():self.skipTest('requires persisted benchmark evidence')
         cases={c['id']:c for c in json.loads((evidence/'dataset.json').read_text())['cases']}

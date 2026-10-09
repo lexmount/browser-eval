@@ -10,7 +10,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 from harness.record_io import parse_jsonl
-from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import reference_revision_cases, valid_scoring_revision
 from harness.web_fetch.rescoring import rescore

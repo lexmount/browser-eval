@@ -10,7 +10,7 @@ from harness.web_fetch.providers.fixture import FixtureProvider
 from harness.web_fetch.providers.http_client import HttpOnlyRedirectHandler, HttpResponse, request
 from harness.web_fetch.report import case_attrs, dataset_attrs, generate, link, write
 from harness.web_fetch.runner import load_records, rescore_evaluation, run_evaluation
-from harness.web_fetch.safety import contained_path, safe_identifier, validate_report_ids
+from harness.web_fetch.safety import contained_path, safe_identifier
 from harness.web_fetch.webmainbench_correction import copy_contained_artifact
 
 

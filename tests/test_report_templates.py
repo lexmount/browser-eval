@@ -523,7 +523,7 @@ class ReportTemplateTests(unittest.TestCase):
 
     def test_build_preserves_outputs_and_separates_dataset_from_verdicts(self):
         with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            root=Path(temp);source=root/'source';diagnostic_example(source)
             before={p.relative_to(source):p.read_bytes() for p in source.rglob('*') if p.is_file()}
             build_diagnostic_cohorts(source,root/'report')
             self.assertEqual(check_diagnostic_report(root/'report')['cases'],2)

@@ -116,7 +116,7 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
     body=hero('方法介绍','参评方法的官方能力、价格、接口与开源采用；实测表现见各方法执行记录。')
     if records and all(r.get('provider_type') in {'headless_html','headless_markdown'} for r in records):
         body+=section('参评方法',cards([('远程正文接口','Kitesurf 使用 Cloudflare 账户级 Browser Run /markdown API；耗时包含公网往返、远端排队与执行。'),('本地原生产物','Lightpanda、Obscura 与 Moli 1.1.1 的普通网页使用 CLI 正文输出。Moli 的直接文档和媒体 URL 使用裸 fetch：正文任务在预算内解析，文件任务校验字节。'),('本地 DOM 转换','Chromium 152 由 Playwright 取完整渲染 DOM，再用 node-html-markdown 2.0.0 转换。五种方法都不调用模型。')]))
-        body+=section('Kitesurf 能否本地部署',cards([('当前结论','截至 2026-09-07，Cloudflare 尚未发布 Kitesurf 源码或自行部署包；本轮只能通过 Cloudflare 账号版 Browser Run 远程测试，不能把它当作本地开源浏览器。'),('后续意向','Cloudflare 官方博客表示计划在准备好后开源，并希望允许客户部署到自己的账户。这是未来计划，不是当前已有能力。')])+f'<p class="source-note"><a href="https://developers.cloudflare.com/browser-run/kitesurf/">当前官方接入说明</a> · <a href="https://blog.cloudflare.com/kitesurf/">官方开源计划说明</a></p>')
+        body+=section('Kitesurf 能否本地部署',cards([('当前结论','截至 2026-09-07，Cloudflare 尚未发布 Kitesurf 源码或自行部署包；本轮只能通过 Cloudflare 账号版 Browser Run 远程测试，不能把它当作本地开源浏览器。'),('后续意向','Cloudflare 官方博客表示计划在准备好后开源，并希望允许客户部署到自己的账户。这是未来计划，不是当前已有能力。')])+'<p class="source-note"><a href="https://developers.cloudflare.com/browser-run/kitesurf/">当前官方接入说明</a> · <a href="https://blog.cloudflare.com/kitesurf/">官方开源计划说明</a></p>')
     else:
         body+=section('参评方法',cards([('托管 API','Lexmount 两个区域、Firecrawl、Tavily、Exa、Cloudflare；通过各自 API 调用。'),('项目内置','CowAgent、OpenClaw、DeepSeek Harness；按本轮保留的实现与配置执行。'),('本地运行','LangChain WebBaseLoader、Crawl4AI、Moli WebFetch；使用本机网络与运行环境。')]))
     body+=section('能力、价格与接口',tabs('method-guide',[

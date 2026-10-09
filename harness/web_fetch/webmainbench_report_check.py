@@ -689,7 +689,6 @@ def check_sample_report(root: Path, dataset: dict | None = None,
     if (len(dataset_page.select('#wmb-distribution tbody > tr')) == 0
             or dataset_page.select_one('[data-wmb-distribution-filter]') is None):
         raise ValueError("Dataset axis distributions must use one filterable table")
-    home_page = BeautifulSoup((root / "index.html").read_text(encoding="utf-8"), "html.parser")
     timing_variants = [('', '均值耗时 ↕')]
     if 'en' in generated_languages(root):
         timing_variants.append(('en/', 'Mean latency ↕'))

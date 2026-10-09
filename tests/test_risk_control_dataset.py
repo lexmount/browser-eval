@@ -18,7 +18,6 @@ from harness.web_fetch.risk_control import (
 )
 from harness.web_fetch.risk_control_dataset import (
     BODY_CONTRACTS,
-    COHORT,
     EXPECTED_COHORT_HASH,
     EXPECTED_RULE_HASHES,
     LIST_CONTRACTS,

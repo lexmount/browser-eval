@@ -4,7 +4,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import sys
 from collections import Counter, defaultdict
 from html.parser import HTMLParser
 from pathlib import Path

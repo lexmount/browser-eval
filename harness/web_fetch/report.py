@@ -60,8 +60,6 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
  reviewed_results=review_scope['result_count']
  unreviewed_results=result_count-reviewed_results
  exclusion_ids={row['file_id']:row['reason'] for row in summary.get('exclusions',[])}
- missing_body_count=sum(reason=='reference_body_absent_from_frozen_html' for reason in exclusion_ids.values())
- missing_body_subject=(f'{missing_body_count} frozen body was' if missing_body_count==1 else f'{missing_body_count} frozen bodies were')
  source_repository=profile['source_repository'].rstrip('/')
  source_commit=profile['source_commit']
  by_case=defaultdict(dict)
@@ -188,8 +186,6 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
   slice_values={t:{p:sum(by_case[c][p]['f1'] for c,g in ground_truth.items() if g['page_type']==t and c not in exclusion_ids)/type_counts[t] for p in providers} for t in type_counts}
   slices=''.join(f'<tr data-page-type="{esc(t)}"><td>{esc(type_label(lang,t))}</td><td>{type_counts[t]}</td>'+''.join(comparison_cell(slice_values[t][p],f'type-{t}','max',p==unique_winner(slice_values[t],'max'),fmt(slice_values[t][p],score_digits(slice_values[t]))) for p in providers)+'</tr>' for t in sorted(type_counts))
   slice_table='<div class="filters"><label>'+esc(x['type'])+'<select id="home-type"><option value="">'+esc(x['all'])+'</option>'+''.join(f'<option value="{esc(t)}">{esc(type_label(lang,t))}</option>' for t in sorted(type_counts))+'</select></label></div><div class="scroll"><table id="wcxb-types"><thead><tr><th>'+esc(x['type'])+'</th><th>'+('网页数' if lang=='zh' else 'Pages')+'</th>'+''.join(f'<th>{esc(browser_label(p))} F1</th>' for p in providers)+'</tr></thead><tbody>'+slices+'</tbody></table></div>'
-  cards=([('输入：同一批冻结网页',f'质量比较使用 {quality_count} 页有效参考；不访问实时源站。'),('目标：人工主内容','正文与参考文本重合；导航、广告和推荐文字会拉低精确率。'),('分数：逐页词袋 F1','逐页等权平均；请求失败或空输出按实际结果计分。')] if lang=='zh' else [('Input: frozen pages',f'Quality compares the same {quality_count} qualified pages; no live-origin visits.'),('Target: human main content','Surplus navigation, ads and recommendations reduce precision.'),('Score: per-page word F1','Pages have equal weight; request failures and empty outputs retain their measured scores.')])
-  card_html=''.join(f'<div class="panel"><b>{esc(title)}</b><span>{esc(body)}</span></div>' for title,body in cards)
   home=f'<div class="hero"><span class="eyebrow">Web Fetch · WCXB v1.0</span><h1>{esc(x["headline"])}</h1><p>{esc(x["intro"])}</p></div><section><h2>{esc(x["core"])}</h2><p>{esc(lead)}</p><p class="small muted">'+((f'绿色星标是该列唯一最优值。质量和三项耗时均以同一批 {case_count} 页为分母，耗时包含失败重试。P50 是中位数，P95 是 95% 调用不超过的耗时。不同方法的批次跨日期；Moli 两版耗时已用同窗交叉实测纠正。') if lang=='zh' else f'Green stars mark a unique column best. Quality and all three latency measures use the same {case_count} pages; latency includes failed retries. P50 is the median and P95 is the time within which 95% of calls complete. Other methods ran on different dates; the two Moli timings use the corrected same-window crossover.')+f'</p>{core}{latency_context}</section>'+paired+f'<section><h2>{"不同网页类型" if lang=="zh" else "By page type"}</h2><p>{"筛选页面类型；每格是该类型的逐页平均 F1，绿色星标是该行唯一最高值。" if lang=="zh" else "Filter by page type. Each cell is mean page F1; a green star marks the unique row leader."}</p>{slice_table}</section><section class="lead-grid"><div class="panel"><h3>{esc(x["dataset"])}</h3><p>{"查看冻结网页、来源和人工参考。" if lang=="zh" else "Inspect frozen pages, source URLs and references."}</p><a href="{href(lang,"datasets/index.html")}">{esc(x["dataset"])} →</a></div><div class="panel"><h3>{esc(x["results"])}</h3><p>{"筛选逐项结果，查看响应和定位证据。" if lang=="zh" else "Filter individual results and inspect responses and evidence."}</p><a href="{href(lang,"analysis/index.html")}">{esc(x["results"])} →</a></div><div class="panel"><h3>{esc(x["guide"])}</h3><p>{"读懂结果差异与评分边界。" if lang=="zh" else "Understand differences and scoring limits."}</p><a href="{href(lang,"guide/index.html")}">{esc(x["guide"])} →</a></div></section>'
   success_rows=''.join(f'<tr><td>{esc(p)}</td><td>{summary["providers"][p]["success_latency_count"]}/{case_count}</td><td>{format_wcxb_conditional_latency(summary["providers"][p]["success_mean_latency_ms"])}</td><td>{format_wcxb_conditional_latency(summary["providers"][p]["success_p50_latency_ms"])}</td><td>{format_wcxb_conditional_latency(summary["providers"][p]["success_p95_latency_ms"])}</td></tr>' for p in providers)
   if any(summary['providers'][p]['success_latency_count'] != case_count for p in providers):
@@ -779,9 +775,9 @@ def run_log_section(out,record,output):
 def pct(n):return '—' if n is None else f'{n*100:.1f}%'
 def ms(n):return '—' if n is None else f'{n:,.0f} ms'
 def link(url,label):return f'<a href="{esc(safe_href(url))}">{esc(label)}</a>'
-def cell(value,sort=None):return f'<td'+(f' data-sort="{sort}"' if sort is not None else '')+f'>{value}</td>'
+def cell(value,sort=None):return '<td'+(f' data-sort="{sort}"' if sort is not None else '')+f'>{value}</td>'
 def rate(a,b):return pct(a/b) if b else '—'
-def section(title,body,id=''):return f'<section class="section"'+(f' id="{id}"' if id else '')+f'><div class="wrap"><h2>{title}</h2>{body}</div></section>'
+def section(title,body,id=''):return '<section class="section"'+(f' id="{id}"' if id else '')+f'><div class="wrap"><h2>{title}</h2>{body}</div></section>'
 def hero(title,desc):return f'<section class="hero"><div class="wrap"><div class="eyebrow">Web Fetch · 评测报告</div><h1>{title}</h1><p class="lead">{desc}</p></div></section>'
 def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header='序号',default_sort=None):
  head=f'<th>{esc(index_header)}</th>'+''.join(f'<th><button class="sort-button" onclick="sortTable(\'{id}\',{i+1})">{h} ↕</button></th>' if sortable else f'<th>{h}</th>' for i,h in enumerate(headers))
@@ -1860,7 +1856,7 @@ def case_attrs(r,c):
  return dataset_attrs(c)+f' data-provider="{esc(r["provider"])}" data-transport="{"pass" if r["ok"] else "fail"}" data-result="{result}" data-content="{content}" data-resources="{resources}" data-failure-stage="{stage}" data-failure-category="{esc(category)}" data-search="{esc(reason(r,c))}"'
 
 def attempt_row(r,c,base='../',*,label=None):
- m=r['metrics'];state=result_label(r,c)
+ state=result_label(r,c)
  values=cell(link(base+'attempts/'+r['attempt_id']+'.html',c['name'] if label is None else label))+cell(case_track_label(c))+cell(f'<span class="{"good" if succeeded(r,c) else "bad"}">{state}</span>')+cell(esc(failure_category(r,c)))+cell(ms(r['elapsed_ms']))
  values+=cell(f'<code class="tiny break">{esc(r.get("run_id") or execution_id(r))}</code>')
  return case_attrs(r,c),values
@@ -1910,7 +1906,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  tracks=active_tracks(cases);track_count=len(tracks);track_label=track_count_label(track_count)
  audit=json.loads((out/'result-review.json').read_text()) if (out/'result-review.json').is_file() else None
  audited_attempts=review_index(audit)
- dynamic=any(c.get('task_kind')=='structure' for c in cases.values())
  bycase=defaultdict(list);byprovider=defaultdict(list)
  for r in records:bycase[r['case_id']].append(r);byprovider[r['provider']].append(r)
  cards=''
@@ -2130,7 +2125,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
        [('',cell(esc(label))+cell(esc(value))) for label,value in review_rows],
        metrics=[]),'independent-review')
   reference_heading='完整标准答案' if c.get('task_kind')!='structure' else '标准答案与验收规则'
-  reference_kind='reference';reference_download='../references/'+c['id']+'.txt'
+  reference_download='../references/'+c['id']+'.txt'
   source_body=f'<pre data-kind="reference">{esc(ref)}</pre>'
   source_meta=f'{len(ref):,} 字符 · {link(reference_download,"下载完整标准答案")}'
   if not (c.get('ground_truth_main_content') or c.get('reference_answer')) and c.get('task_kind','body')=='body':
@@ -2138,7 +2133,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    source_meta=f'{link(reference_download,"下载验收规则")}；全文完整度、纯净度和 F1 不适用。'
   delivered=r.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[])
   if 'stable_task_pass' in m and c.get('acceptance_contract'):
-   reference_kind='contract';reference_download='../contracts/'+c['id']+'.json'
+   reference_download='../contracts/'+c['id']+'.json'
    contract_text=json.dumps(machine_contract(c),ensure_ascii=False,indent=2)
    source_body=(stable_answer_panel(c['acceptance_contract'])+
                 (composite_contract_details(c['composite_acceptance']) if c.get('composite_acceptance') else '')+
@@ -2170,7 +2165,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
     output_note='实际交付 0 个文件'
   reference_scope=('' if not (c.get('track')=='document' and 0 < len(ref) < 100) else
                    f'<p class="callout"><b>参考范围：</b>这是最小文档解析样本。冻结源文件的全部可提取正文共 {len(ref):,} 个字符，标准答案没有省略。它只验证短文档文字提取，不用于证明多页、表格或附录完整性。</p>')
-  evidence=(f'<p class="evidence-intro">左边是判定时使用的标准答案或明确验收规则，右边是该次调用原样保存的完整输出。两栏都是真实内容，不是摘要；长内容可在栏内滚动。</p>'+reference_scope+
+  evidence=('<p class="evidence-intro">左边是判定时使用的标准答案或明确验收规则，右边是该次调用原样保存的完整输出。两栏都是真实内容，不是摘要；长内容可在栏内滚动。</p>'+reference_scope+
             f'<div class="evidence-compare"><article class="evidence-pane" id="evidence-reference"><header><h3>{esc(reference_heading)}</h3><p>{source_meta}</p></header><div class="pane-body">{source_body}</div></article>'
             f'<article class="evidence-pane" id="evidence-output"><header><h3>实际返回</h3><p>{output_note}</p></header><div class="pane-body">{actual_body}</div></article></div>')
   body+=section('标准答案与实际返回',evidence,'evidence')
@@ -2534,7 +2529,6 @@ def _wmb_matched_latency(records,names,labels,english=False,prefix='../'):
  excluded=sorted({r['case_id'] for r in records}-common)
  rows=[]
  for name in names:
-  stat=data['matched'][name]
   rows.append(('',cell(link(prefix+'providers/'+name+'.html',labels[name]))+''.join(_wmb_timing_cell(data['matched'],name,key) for key in ('mean','p50','p95'))))
  return '<div class="wmb-matched-latency"><h3>'+h(f'同题耗时对照：共同成功的 {len(common)} 页',f'Matched-page timing: {len(common)} pages with success across all methods')+'</h3><p>'+h(f'以下每行使用完全相同的 {len(common)} 页，只取最终成功 fetch 的单次耗时。它用于检查同页速度差异；共同成功页是在运行后确定的，所以不据此给整个 200 页评测排速度名次。',f'Every row uses the same {len(common)} pages and the duration of the final successful fetch only. This diagnoses same-page timing differences. The shared-success subset is determined after execution, so it does not rank speed over the entire 200-page benchmark.')+'</p><p class="source-note">'+_wmb_timing_note(english,matched=True)+'</p>'+table([h('方法','Method'),h('均值耗时','Mean latency'),h('P50 耗时','P50 latency'),h('P95 耗时','P95 latency')],rows,cls='wmb-matched-latency-table',metrics=[])+'<details><summary>'+h(f'未进入同题对照的 {len(excluded)} 页（仍保留在完整结果中）',f'{len(excluded)} pages outside this comparison (retained in the full matrix)')+'</summary><ul>'+''.join('<li>'+link(prefix+'datasets/'+case_id+'.html',case_id)+'</li>' for case_id in excluded)+'</ul></details></div>'
 
@@ -2591,8 +2585,8 @@ def _wmb_latency_rerun(diagnostic,english=False,prefix='',formal_round=None):
                  f'For the {tail_count} pages with the largest initial gaps, each version was called {repetition} more times per page: all {tail_calls} calls succeeded, and output hashes stayed constant within each version. Median timing differed by no more than 20 ms on {tail["within_20_ms"]}/{tail_count} pages; ')+tail_direction+h('下表逐页列出典型耗时和最慢一次，便于区分稳定差异与偶发慢调用。',' The table shows each page’s typical and slowest call.')+'</p>'
  body+='<details><summary>'+h('查看差异最大的 20 页及逐页复测','Inspect all 20 divergent pages and repeated calls')+'</summary>'+table([h('页面','Page'),h('1.1.5 中位耗时','1.1.5 median'),h('1.1.7 中位耗时','1.1.7 median'),h('1.1.5 最慢一次','1.1.5 slowest'),h('1.1.7 最慢一次','1.1.7 slowest')],case_rows,cls='wmb-rerun-cases',metrics=[])+'</details>'
  failure=diagnostic['failure_retest']
- body+='<p>'+h(f'两版各有 1 页未成功，均为同一页。各自独立重测时，首次和一次重试仍因页面脚本跳转原站而失败；禁用页面脚本后两版都返回正文。继续按相同条件重试不能恢复该页；禁用脚本会改变评测条件，因此该页仍计为失败，覆盖率为 199/200。',
-                 f'Both versions failed on the same page. In separate retests, each initial call and retry again failed after the page script navigated to the origin site. Disabling page-authored JavaScript returned body text for both versions. Repeating the same condition did not recover the page; disabling the script changes the test, so this page remains failed and coverage is 199/200.')+' '+link(prefix+'datasets/'+failure['case_id']+'.html',h('查看失败页','Inspect the failed page'))+'</p>'
+ body+='<p>'+h('两版各有 1 页未成功，均为同一页。各自独立重测时，首次和一次重试仍因页面脚本跳转原站而失败；禁用页面脚本后两版都返回正文。继续按相同条件重试不能恢复该页；禁用脚本会改变评测条件，因此该页仍计为失败，覆盖率为 199/200。',
+                 'Both versions failed on the same page. In separate retests, each initial call and retry again failed after the page script navigated to the origin site. Disabling page-authored JavaScript returned body text for both versions. Repeating the same condition did not recover the page; disabling the script changes the test, so this page remains failed and coverage is 199/200.')+' '+link(prefix+'datasets/'+failure['case_id']+'.html',h('查看失败页','Inspect the failed page'))+'</p>'
  body+=table([h('本轮','Rerun'),h('系统采样','System samples'),h('最低空闲 CPU','Minimum idle CPU'),h('最低未用内存','Minimum unused memory'),h('新增 swap-out','New swap-outs')],resource_rows,cls='wmb-rerun-resource',metrics=[])
  body+='<p class="source-note">'+h('下表是此前单批运行期间的宿主机采样，不能代替交叉复测时的逐调用资源测量，也不能证明负载导致慢调用。',
              'The resource samples below come from the preceding separate batches. They are not per-call measurements from the crossover and do not prove host load caused slow calls.')+' '+link(('../' if english else '')+prefix+'latency-diagnostic.json',h('下载逐页复测与证据绑定','Download per-page repeats and evidence bindings'))+'</p>'
@@ -2791,7 +2785,7 @@ def _wmb_comparison(cases,bycase,names,labels,english=False):
  axis_options='<option value="">'+h('全部分类','All categories')+'</option>'+''.join(f'<option value="{axis}">{axis_labels[axis]}</option>' for axis in axes)
  categories=sorted({_wmb_category(case,axis) for case in cases.values() for axis in axes})
  category_options='<option value="">'+h('全部','All')+'</option>'+''.join(f'<option value="{esc(value)}">{esc(value)}</option>' for value in categories)
- checks=''.join(f'<label'+(' class="disabled"' if name==default_a else '')+f'><input type="checkbox" data-wmb-compare-method value="{esc(name)}"'+(' disabled' if name==default_a else ' checked' if name==names[1] else '')+f'> {esc(labels[name])}</label>' for name in names)
+ checks=''.join('<label'+(' class="disabled"' if name==default_a else '')+f'><input type="checkbox" data-wmb-compare-method value="{esc(name)}"'+(' disabled' if name==default_a else ' checked' if name==names[1] else '')+f'> {esc(labels[name])}</label>' for name in names)
  controls='<div class="comparison-controls"><label>'+h('方法 A','Method A')+'<select id="wmb-compare-a" data-wmb-compare-control>'+options+'</select></label><label>'+h('比较条件','Comparison condition')+'<select id="wmb-compare-relation" data-wmb-compare-control>'+relation_options+'</select></label><label>'+h('分类轴','Category axis')+'<select id="wmb-compare-axis" data-wmb-compare-control>'+axis_options+'</select></label><label>'+h('分类','Category')+'<select id="wmb-compare-category" data-wmb-compare-control>'+category_options+'</select></label></div><fieldset class="comparison-methods"><legend>'+h('对比方法（可多选）','Comparison methods (select multiple)')+'</legend><div class="method-checks">'+checks+'</div></fieldset>'
  rows=[]
  for case in cases.values():
