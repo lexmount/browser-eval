@@ -155,6 +155,31 @@ def test_shared_path_guard_checks_links_before_collapsing_parent_segments(tmp_pa
     assert unlinked_path(target / ".." / "output.json") == tmp_path / "output.json"
 
 
+@pytest.mark.parametrize("failure", ["io", "concurrent-output"])
+def test_new_file_writer_cannot_expose_partial_or_replace_concurrent_output(
+    tmp_path, monkeypatch, failure
+):
+    from harness.web_fetch import safety
+
+    output = tmp_path / "new.json"
+    link = safety.os.link
+
+    def install(source, target):
+        if failure == "concurrent-output":
+            output.write_bytes(b"other writer")
+            return link(source, target)
+        raise OSError("synthetic install failure")
+
+    monkeypatch.setattr(safety.os, "link", install)
+    with pytest.raises(OSError):
+        safety.write_new_file(output, b"complete new receipt")
+    if failure == "concurrent-output":
+        assert output.read_bytes() == b"other writer"
+        assert list(tmp_path.iterdir()) == [output]
+    else:
+        assert not list(tmp_path.iterdir())
+
+
 def test_cart_controls_execute_both_assertions_without_network(tmp_path):
     from harness.reporting.visual import browser_executable
 

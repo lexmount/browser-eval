@@ -1,4 +1,4 @@
-# Browser-use reference-trajectory protocol
+# Browser Trajectory Replay protocol
 
 This protocol keeps task data, browser actions, evidence, and scoring identical across browser
 engines while allowing datasets to provide different task-specific oracles.
@@ -232,6 +232,20 @@ qualification receipts. Freezing writes a new manifest and never overwrites an e
 one; it does not execute or score a browser.
 
 ### Qualification decisions and immutable outputs
+
+`scripts/build_webarena_native_scope.py` selects a task population before
+qualification or measurement from the declared site image architectures and
+evidence-backed evaluator exclusions. Use explicit `--suite`, `--image-lock`
+and `--evaluator-exclusions` inputs for a new experiment. The qualification
+shard size is configurable with `--max-tasks-per-shard`; task and browser counts
+are not encoded in the implementation. The command writes only a new output.
+
+`scripts/revise_webarena_method_inputs.py` freezes a reviewed trajectory revision
+from `--prior`, `--revisions` and `--site-map`. Each changed task must identify
+its predecessor action hash, candidate and cause. The compiler checks actual
+predecessor actions, candidate hashes and stable source files, then writes a new
+manifest without modifying prior evidence. A revision that changes action count
+requires an explicit readiness migration when readiness rules are present.
 
 The public WebArena queue, revalidation, finalization and application commands share
 `public_webarena/qualification.py`. Every declared task and decision must occur exactly

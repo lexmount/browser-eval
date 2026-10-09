@@ -12,13 +12,12 @@ import json
 import os
 import re
 import subprocess
-import tempfile
 import urllib.request
 from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from harness.web_fetch.safety import unlinked_path
+from harness.web_fetch.safety import unlinked_path, write_new_file
 
 
 def _diagnostic_digest(path: Path) -> str:
@@ -48,12 +47,7 @@ def diagnostic_output_path(path: Path) -> Path:
 def write_diagnostic(path: Path, payload: dict) -> None:
     """Expose a complete diagnostic receipt without replacing an existing file."""
     target = diagnostic_output_path(path)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=target.parent) as stream:
-        stream.write((json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode())
-        stream.flush()
-        unlinked_path(target)
-        os.link(stream.name, target)
+    write_new_file(target, (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode())
 
 
 def classify_failure(error: str, trace: list[dict[str, Any]]) -> dict[str, Any]:

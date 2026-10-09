@@ -12,7 +12,7 @@ import sys
 import tempfile
 import time
 import uuid
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
@@ -21,7 +21,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from harness.record_io import load_jsonl
-from harness.web_fetch.safety import contained_path, safe_identifier, unlinked_path
+from harness.web_fetch.safety import contained_path, safe_identifier, unlinked_path, write_new_file
 
 from .har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from .suite import TRAJECTORY_SCHEMA, TaskSuite, load_suite, validate_selector
@@ -2598,3 +2598,171 @@ def main_repair_proposal(argv=None, *, kind: str) -> None:
             staging.rename(output)
         else:
             os.link(staging / "proposal.json", output)
+
+
+MAX_TASKS_PER_QUALIFICATION_SHARD = 12
+DEFAULT_EVALUATOR_EXCLUSIONS = Path(
+    "evaluation/browser-use-public/webarena-evaluator-exclusions.json"
+)
+
+
+def build_native_scope(
+    suite_path: Path,
+    image_lock_path: Path,
+    architecture: str,
+    evaluator_exclusions_path: Path | None = DEFAULT_EVALUATOR_EXCLUSIONS,
+    *,
+    max_tasks_per_qualification_shard: int = MAX_TASKS_PER_QUALIFICATION_SHARD,
+) -> dict:
+    if type(max_tasks_per_qualification_shard) is not int or max_tasks_per_qualification_shard < 1:
+        raise ValueError("qualification shard size must be a positive integer")
+    suite_path, image_lock_path = unlinked_path(suite_path), unlinked_path(image_lock_path)
+    if evaluator_exclusions_path is not None:
+        evaluator_exclusions_path = unlinked_path(evaluator_exclusions_path)
+    paths = [suite_path, image_lock_path]
+    if evaluator_exclusions_path is not None:
+        paths.append(evaluator_exclusions_path)
+    sources = {path: path.read_bytes() for path in paths}
+    suite = json.loads(sources[suite_path])
+    image_lock = json.loads(sources[image_lock_path])
+    tasks = suite.get("tasks") or []
+    task_ids = [safe_identifier(task["id"]) for task in tasks]
+    if not task_ids or len(task_ids) != len(set(task_ids)):
+        raise ValueError("native scope task IDs must be nonempty and unique")
+    evaluator_exclusions: dict[str, dict] = {}
+    if evaluator_exclusions_path is not None:
+        payload = json.loads(sources[evaluator_exclusions_path])
+        if payload.get("schema") != "lex_webarena_evaluator_exclusions/1":
+            raise ValueError("WebArena evaluator exclusions schema is invalid")
+        rows = payload.get("excluded_tasks") or []
+        evaluator_exclusions = {str(row["task_id"]): row for row in rows}
+        if len(evaluator_exclusions) != len(rows):
+            raise ValueError("WebArena evaluator exclusions contain duplicate task IDs")
+        suite_ids = {str(task["id"]) for task in suite["tasks"]}
+        unknown = sorted(set(evaluator_exclusions).difference(suite_ids))
+        if unknown:
+            raise ValueError(f"WebArena evaluator exclusions contain unknown tasks: {unknown}")
+        for task_id, row in evaluator_exclusions.items():
+            if not str(row.get("reason") or "").strip() or not str(
+                row.get("evidence_id") or ""
+            ).strip():
+                raise ValueError(f"WebArena evaluator exclusion {task_id} lacks evidence")
+    site_architectures = {
+        site: row["architecture"] for site, row in image_lock["images"].items()
+    }
+    if not isinstance(architecture, str) or not architecture or any(
+        not isinstance(value, str) or not value for value in site_architectures.values()
+    ):
+        raise ValueError("native scope requires declared architectures")
+    included: list[str] = []
+    batch_tasks: dict[tuple[str, ...], list[str]] = defaultdict(list)
+    excluded: list[dict] = []
+    for task in suite["tasks"]:
+        sites = [str(site) for site in task["environment"]["sites"]]
+        if not sites or len(sites) != len(set(sites)) or not set(sites) <= set(site_architectures):
+            raise ValueError(f"task {task['id']} has missing or duplicate site image bindings")
+        incompatible = [site for site in sites if site_architectures[site] != architecture]
+        evaluator_exclusion = evaluator_exclusions.get(str(task["id"]))
+        if evaluator_exclusion is not None:
+            excluded.append(
+                {
+                    "task_id": task["id"],
+                    "sites": sites,
+                    "incompatible_sites": [],
+                    "exclusion_kind": "confirmed_upstream_evaluator_defect",
+                    "reason": str(evaluator_exclusion["reason"]),
+                    "evidence_id": str(evaluator_exclusion["evidence_id"]),
+                }
+            )
+        elif incompatible:
+            excluded.append(
+                {
+                    "task_id": task["id"],
+                    "sites": sites,
+                    "incompatible_sites": incompatible,
+                    "exclusion_kind": "non_native_site_image",
+                    "reason": (
+                        f"official site image is not native {architecture}; "
+                        "cross-architecture emulation is excluded"
+                    ),
+                }
+            )
+        else:
+            task_id = str(task["id"])
+            included.append(task_id)
+            batch_tasks[tuple(sorted(sites))].append(task_id)
+    if any(unlinked_path(path).read_bytes() != raw for path, raw in sources.items()):
+        raise ValueError("native scope input changed during selection")
+    return {
+        "schema": "lex_browser_use_native_scope/1",
+        "architecture": architecture,
+        "selection_stage": "before_trajectory_qualification_and_browser_measurement",
+        "policy": {
+            "engine_independent": True,
+            "native_site_images_only": True,
+            "post_result_deletion_forbidden": True,
+            "qualification_shard_algorithm": "stable_round_robin",
+            "max_tasks_per_qualification_shard": max_tasks_per_qualification_shard,
+        },
+        "suite_sha256": hashlib.sha256(sources[suite_path]).hexdigest(),
+        "image_lock_sha256": hashlib.sha256(sources[image_lock_path]).hexdigest(),
+        "evaluator_exclusions_sha256": (
+            hashlib.sha256(sources[evaluator_exclusions_path]).hexdigest()
+            if evaluator_exclusions_path is not None
+            else None
+        ),
+        "candidate_count": len(suite["tasks"]),
+        "included_count": len(included),
+        "excluded_count": len(excluded),
+        "included_task_ids": included,
+        "qualification_batches": [
+            {
+                "id": "+".join(sites),
+                "sites": list(sites),
+                "task_count": len(task_ids),
+                "shard_count": (
+                    len(task_ids) + max_tasks_per_qualification_shard - 1
+                )
+                // max_tasks_per_qualification_shard,
+                "task_ids": task_ids,
+            }
+            for sites, task_ids in sorted(batch_tasks.items())
+        ],
+        "excluded_tasks": excluded,
+    }
+
+
+def main_native_scope(argv=None) -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--suite",
+        type=Path,
+        default=Path("evaluation/browser-use-public/webarena-human-suite.json"),
+    )
+    parser.add_argument(
+        "--image-lock",
+        type=Path,
+        default=Path("evaluation/browser-use-public/webarena-environment-images.json"),
+    )
+    parser.add_argument("--architecture", default="amd64")
+    parser.add_argument(
+        "--max-tasks-per-shard", type=int, default=MAX_TASKS_PER_QUALIFICATION_SHARD
+    )
+    parser.add_argument(
+        "--evaluator-exclusions",
+        type=Path,
+        default=DEFAULT_EVALUATOR_EXCLUSIONS,
+    )
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    args.output = unlinked_path(args.output)
+    if args.output.exists():
+        raise ValueError("native scope output already exists")
+    payload = build_native_scope(
+        args.suite,
+        args.image_lock,
+        args.architecture,
+        args.evaluator_exclusions,
+        max_tasks_per_qualification_shard=args.max_tasks_per_shard,
+    )
+    write_new_file(args.output, (json.dumps(payload, indent=2, ensure_ascii=False) + "\n").encode())

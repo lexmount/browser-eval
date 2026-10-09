@@ -23,6 +23,19 @@ def unlinked_path(path: Path) -> Path:
     return Path(os.path.abspath(absolute))
 
 
+def write_new_file(path: Path, payload: bytes) -> None:
+    """Expose a complete new file without replacing any existing path."""
+    target = unlinked_path(path)
+    if target.exists():
+        raise ValueError('output already exists')
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(dir=target.parent) as stream:
+        stream.write(payload)
+        stream.flush()
+        unlinked_path(target)
+        os.link(stream.name, target)
+
+
 def reject_evidence_symlinks(root: Path) -> None:
     """Never follow file or directory links while materializing evidence."""
     if root.is_symlink():

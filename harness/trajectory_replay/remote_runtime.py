@@ -24,8 +24,9 @@ from harness.environments.webarena.runtime import (
     SITE_CREDENTIALS,
     SITE_PORTS,
 )
+from harness.trajectory_replay.retrieval_acceptance import digest as retrieval_digest
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
-from harness.web_fetch.safety import contained_path
+from harness.web_fetch.safety import contained_path, unlinked_path, write_new_file
 
 COHORT_RESET_SCOPE = "once_before_method_cohort"
 METHOD_ID = re.compile(r"[a-z0-9][a-z0-9._-]{1,79}\Z")
@@ -370,7 +371,8 @@ def selected_task_ids(path: Path) -> list[int]:
 
 
 def checked_file_sha256(path: Path, label: str = "evidence") -> str:
-    if path.is_symlink() or not path.is_file():
+    path = unlinked_path(path)
+    if not path.is_file():
         raise ValueError(f"missing or symlinked {label}: {path}")
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -931,3 +933,80 @@ def main_freeze_original_failures(argv=None) -> None:
         "quarantined_tasks": result["quarantined"],
         "sha256": checked_file_sha256(args.output),
     }, ensure_ascii=False))
+
+
+def revise_method_inputs(prior: dict, revisions: dict, sites: dict) -> dict:
+    result = copy.deepcopy(prior)
+    rows = {row["task_id"]: row for row in result["tasks"]}
+    if not rows or len(rows) != len(result["tasks"]):
+        raise ValueError("predecessor task set is empty or duplicated")
+    if not revisions or len(set(map(int, revisions))) != len(revisions):
+        raise ValueError("revision task set is empty or duplicated")
+    if not set(map(int, revisions)) <= set(rows):
+        raise ValueError("revision is outside the frozen task set")
+    candidates = {}
+    for row in rows.values():
+        if row["source_calls_sha256"] != retrieval_digest(row["source_actions"]):
+            raise ValueError("predecessor source actions differ from their binding")
+    for key, revision in revisions.items():
+        row = rows[int(key)]
+        if (
+            not revision.get("cause")
+            or revision.get("prior_calls_sha256") != row["source_calls_sha256"]
+        ):
+            raise ValueError("revision lacks a cause or names different predecessor actions")
+        path = unlinked_path(Path(revision["candidate"]))
+        candidates[path] = checked_file_sha256(path, "candidate")
+        candidate = json.loads(path.read_bytes())
+        if candidate["task_id"] != row["task_id"]:
+            raise ValueError("candidate task mismatch")
+        calls = candidate["tool_calls"]
+        if (not isinstance(calls, list) or not calls
+                or any(not isinstance(call, dict) for call in calls)):
+            raise ValueError("candidate actions must be a nonempty list of calls")
+        if "retrieval_contract" in row:
+            validate_contract(candidate["retrieval_contract"], calls)
+            row["retrieval_contract"] = candidate["retrieval_contract"]
+            row["retrieval_contract_source_sha256"] = candidates[path]
+        elif "retrieval_contract" in candidate:
+            raise ValueError("revision changes task type")
+        if row.get("readiness") and len(calls) != len(row["source_actions"]):
+            raise ValueError("step-count revision requires explicit readiness migration")
+        row["source_actions"] = calls
+        row["source_calls_sha256"] = retrieval_digest(calls)
+        row["revision"] = {**revision, "candidate_sha256": candidates[path]}
+    for row in rows.values():
+        row["actions"] = rebind_remote_calls(
+            row["source_actions"], sites, {"127.0.0.1", "192.168.5.2", "host.docker.internal"}
+        )
+        row["bound_calls_sha256"] = retrieval_digest(row["actions"])
+    result["task_ids"] = sorted(rows)
+    result["tasks"] = [rows[n] for n in result["task_ids"]]
+    result["execution_order"] = "ascending_task_id"
+    if any(checked_file_sha256(path) != sha for path, sha in candidates.items()):
+        raise ValueError("candidate input changed during revision")
+    return result
+
+
+def main_revise(argv=None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    for name in ("prior", "revisions", "site-map", "output"):
+        parser.add_argument("--" + name, type=Path, required=True)
+    args = parser.parse_args(argv)
+    args.output = unlinked_path(args.output)
+    if args.output.exists():
+        raise ValueError("output exists; frozen inputs are append-only")
+    bound = {
+        path: checked_file_sha256(path) for path in (args.prior, args.revisions, args.site_map)
+    }
+    prior = json.loads(args.prior.read_text())
+    if prior["site_map_sha256"] != bound[args.site_map]:
+        raise ValueError("site map changed")
+    result = revise_method_inputs(
+        prior, json.loads(args.revisions.read_text()), load_remote_sites(args.site_map)
+    )
+    if any(checked_file_sha256(path) != sha for path, sha in bound.items()):
+        raise ValueError("revision input changed during compilation")
+    result["predecessor_manifest_sha256"] = bound[args.prior]
+    write_new_file(args.output, (json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode())
+    print(json.dumps({"task_count": len(result["tasks"]), "output": str(args.output)}))

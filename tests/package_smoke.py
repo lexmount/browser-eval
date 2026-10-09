@@ -515,6 +515,23 @@ def verify_qualification_commands(root: Path, source_root: Path) -> None:
     assert not Path(qualification.__file__).resolve().is_relative_to(source_root.resolve())
     stage = root / 'qualification'
     stage.mkdir()
+    native_suite, native_images, native_exclusions = [stage / name for name in (
+        'native-suite.json', 'native-images.json', 'native-exclusions.json')]
+    native_suite.write_text(json.dumps({'tasks': [{
+        'id': 'custom-native', 'environment': {'sites': ['custom']}}]}))
+    native_images.write_text(json.dumps({'images': {'custom': {'architecture': 'arm64'}}}))
+    native_exclusions.write_text(json.dumps({
+        'schema': 'lex_webarena_evaluator_exclusions/1', 'excluded_tasks': []}))
+    native_output = stage / 'native-scope.json'
+    native_args = [sys.executable, str(source_root / 'scripts/build_webarena_native_scope.py'),
+                   '--suite', str(native_suite), '--image-lock', str(native_images),
+                   '--evaluator-exclusions', str(native_exclusions), '--architecture', 'arm64',
+                   '--max-tasks-per-shard', '1', '--output', str(native_output)]
+    subprocess.run(native_args, check=True, cwd=stage, capture_output=True)
+    assert json.loads(native_output.read_bytes())['included_task_ids'] == ['custom-native']
+    native_before = native_output.read_bytes()
+    assert subprocess.run(native_args, cwd=stage, capture_output=True).returncode != 0
+    assert native_output.read_bytes() == native_before
     repair_source = stage / 'repair-source.json'
     original_action = {'action': 'fill', 'selector': '#title', 'text': 'Frozen title'}
     repair_source.write_text(json.dumps({'tasks': [{
