@@ -315,3 +315,49 @@ def test_publication_outputs_cannot_replace_archive(tmp_path, field):
     with pytest.raises(ValueError, match='must not replace package inputs'):
         report_publish.publish(config, transport=service)
     assert service.requests == []
+
+
+@pytest.mark.parametrize('damage', ['host', 'slug', 'symlink', 'drift', None])
+def test_report_rename_keeps_bound_target_and_receipt(tmp_path, monkeypatch, damage):
+    import io
+
+    from harness.web_fetch import report_publish
+
+    path = tmp_path / 'receipt.json'
+    receipt = {'base_url': 'https://reports.example', 'slug': 'site-one', 'title': 'before',
+               'version': {'id': 'ver_current'}, 'share_url': 'https://reports.example/s/site-one'}
+    if damage == 'slug':
+        receipt['slug'] = '../other'
+    path.write_text(json.dumps(receipt))
+    before = path.read_bytes()
+    monkeypatch.delenv('ARTIFACT_HUB_BASE_URL', raising=False)
+    monkeypatch.setenv('ARTIFACT_SITE_BASE_URL',
+                       'https://another.example' if damage == 'host' else receipt['base_url'])
+    if damage == 'symlink':
+        link = tmp_path / 'link.json'
+        link.symlink_to(path)
+        path = link
+    calls = []
+    monkeypatch.setattr(report_publish, 'load_token', lambda **kwargs: 'ahp_fixture')
+
+    class Response(io.BytesIO):
+        status = 200
+
+    def request(value, **kwargs):
+        calls.append(value)
+        if damage == 'drift':
+            path.write_bytes(b'concurrent receipt')
+        return Response(json.dumps({'slug': 'site-one', 'title': 'after'}).encode())
+
+    monkeypatch.setattr(report_publish.urllib.request, 'urlopen', request)
+    args = [str(path), '--title', 'after']
+    if damage:
+        with pytest.raises(ValueError):
+            report_publish.rename_main(args)
+        assert path.read_bytes() == (b'concurrent receipt' if damage == 'drift' else before)
+        assert len(calls) == (1 if damage == 'drift' else 0)
+    else:
+        report_publish.rename_main(args)
+        assert calls[0].full_url == 'https://reports.example/api/sites/site-one'
+        assert json.loads(path.read_text()) == {**receipt, 'title': 'after'}
+        assert path.stat().st_mode & 0o777 == 0o600

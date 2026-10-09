@@ -325,8 +325,12 @@ def rename_main(argv=None, *, default_root=None) -> None:
     import argparse
     import json
     import os
+    import re
     import urllib.request
     from pathlib import Path
+
+    from harness.web_fetch.publication_target import validate_service_base
+    from harness.web_fetch.safety import unlinked_path
 
     root = default_root or Path.cwd()
     parser = argparse.ArgumentParser(description=__doc__)
@@ -339,11 +343,18 @@ def rename_main(argv=None, *, default_root=None) -> None:
     parser.add_argument("--title", required=True)
     args = parser.parse_args(argv)
 
-    receipt = json.loads(args.receipt.read_text(encoding="utf-8"))
-    base = os.environ.get(
-        "ARTIFACT_HUB_BASE_URL",
-        receipt.get("base_url", "https://artifact-hub.app.lexmount.com"),
-    ).rstrip("/")
+    path = unlinked_path(args.receipt)
+    before = path.read_bytes()
+    receipt = json.loads(before)
+    base = validate_service_base(receipt.get("base_url"))
+    configured = os.environ.get("ARTIFACT_SITE_BASE_URL") or os.environ.get("ARTIFACT_HUB_BASE_URL")
+    if configured and validate_service_base(configured) != base:
+        raise ValueError("Requested publication service differs from the bound receipt")
+    slug = receipt.get("slug")
+    if not isinstance(slug, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", slug):
+        raise ValueError("Publication receipt requires a valid bound site")
+    if not args.title.strip():
+        raise ValueError("Report title must be nonempty")
     token = load_token(base_url=base)
     request = urllib.request.Request(
         base + "/api/sites/" + receipt["slug"],
@@ -353,11 +364,12 @@ def rename_main(argv=None, *, default_root=None) -> None:
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         data = json.load(response)
+        if data.get("slug", slug) != slug:
+            raise ValueError("Rename response differs from the bound site")
+        if unlinked_path(path).read_bytes() != before:
+            raise ValueError("Publication receipt changed during rename")
         receipt["title"] = data.get("title", args.title)
-        args.receipt.write_text(
-            json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
-        os.chmod(args.receipt, 0o600)
+        atomic_write(path, json_bytes(receipt))
         print(
             json.dumps(
                 {"status": response.status, "title": data.get("title")},

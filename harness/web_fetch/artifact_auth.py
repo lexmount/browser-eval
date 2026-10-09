@@ -118,6 +118,11 @@ def authorize_main(argv=None):
         if backup:print('Previous credential backed up:',backup)
         print('Existing authorization saved to the user credential file; token not displayed.')
         return
+    from harness.web_fetch.publication_target import validate_service_base
+
+    args.base_url = validate_service_base(args.base_url)
+    if args.timeout <= 0:
+        raise ValueError("Device authorization timeout must be positive")
     deadline = time.monotonic() + args.timeout
     while time.monotonic() < deadline:
         request = urllib.request.Request(args.base_url.rstrip('/')+'/api/device/poll',
