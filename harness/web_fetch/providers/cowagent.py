@@ -29,13 +29,14 @@ def _sanitize_public_content(content: str) -> str:
 class CowAgentBuiltinProvider(Provider):
     """Invoke native WebFetch with the shared caller timeout budget."""
 
-    _LOCKED_REVISION = "ed5bb344cfe42cee443c8266ba47ee666d8d7471"
     _REQUIRED_PATHS = {
         "{repo_path}/agent/tools/web_fetch/web_fetch.py",
         "{repo_path}/agent/tools/utils/url_safety.py",
     }
 
     def validate(self) -> list[str]:
+        if hasattr(self, "_implementation_identity"):
+            del self._implementation_identity
         root = Path(str(self.config.get("repo_path", "."))).expanduser().resolve()
         def resolve(value):
             return str(value).replace("{repo_path}", str(root)).replace("{harness_root}", str(Path(__file__).resolve().parents[3]))
@@ -45,14 +46,12 @@ class CowAgentBuiltinProvider(Provider):
             mode = validate_dns_mode(self.config.get("dns_mode", "system"))
         except ValueError as error:
             return [str(error)]
-        missing, identity = validate_runtime_identity(self.config, resolve)
+        missing, identity = validate_runtime_identity(
+            self.config, resolve, required_fields=("expected_repo_revision",),
+            required_paths=self._REQUIRED_PATHS)
         if mode == "public_doh" and "{harness_root}/harness/web_fetch/network_dns.py" not in self.config.get("required_paths", []):
             missing.append("locked public DNS helper paths")
-        if self.config.get("expected_repo_revision") != self._LOCKED_REVISION:
-            missing.append(f"repo revision {self._LOCKED_REVISION}")
-        if not self._REQUIRED_PATHS.issubset(set(self.config.get("required_paths", []))):
-            missing.append("locked required paths")
-        if identity is not None:
+        if identity is not None and not missing:
             self._implementation_identity = identity
         return missing
 

@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -32,10 +33,22 @@ def _command_executable(command: list[Any], repo: Path, resolve_token) -> Path |
 
 
 def validate_runtime_identity(
-    config: dict[str, Any], resolve_token
+    config: dict[str, Any], resolve_token, *, required_fields: Iterable[str] = (),
+    required_paths: Iterable[str] = (), identical_files: Iterable[tuple[str, str]] = (),
 ) -> tuple[list[str], dict[str, Any] | None]:
     """Validate and fingerprint a local implementation without publishing local paths."""
     missing: list[str] = []
+    for field in required_fields:
+        if not isinstance(config.get(field), str) or not config[field].strip():
+            missing.append(field)
+    declared_paths = config.get('required_paths', [])
+    if not isinstance(declared_paths, list) or any(
+        not isinstance(path, str) or not path.strip() for path in declared_paths
+    ):
+        missing.append('required_paths must be a list of nonempty paths')
+        declared_paths = []
+    if not set(required_paths).issubset(declared_paths):
+        missing.append('required runtime paths')
     raw_repo = str(config.get("repo_path", "")).strip()
     if not raw_repo:
         return ["repo_path"], None
@@ -76,7 +89,7 @@ def validate_runtime_identity(
 
     harness_root = Path(__file__).resolve().parents[3]
     file_hashes: dict[str, str] = {}
-    for raw in config.get("required_paths", []):
+    for raw in declared_paths:
         resolved = Path(resolve_token(raw)).expanduser().resolve()
         if not resolved.is_file():
             missing.append(f"required path {raw}")
@@ -89,6 +102,10 @@ def validate_runtime_identity(
             missing.append(f"required path outside runtime roots {raw}")
             continue
         file_hashes[public_name] = _sha256(resolved)
+
+    for source, deployed in identical_files:
+        if not file_hashes.get(source) or file_hashes.get(source) != file_hashes.get(deployed):
+            missing.append(f'runtime files differ: {source}, {deployed}')
 
     node: dict[str, str] | None = None
     expected_node = str(config.get("expected_node_version", "")).strip()

@@ -20,25 +20,25 @@ from .runtime_identity import validate_runtime_identity
 class SubprocessJsonlProvider(Provider):
     """Invoke a persistent repository-native worker over line-delimited JSON."""
 
-    _LOCKED_RUNTIMES = {
+    _RUNTIME_CONTRACTS = {
         "openclaw_builtin": {
-            "revision": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
-            "node_version": "v24.15.0",
-            "package_manager_version": "12.1.0",
-            "paths": {
+            "required_fields": (
+                "expected_repo_revision", "expected_node_version",
+                "expected_package_manager_version",
+            ),
+            "required_paths": {
                 "{repo_path}/src/agents/tools/web-fetch.ts",
                 "{repo_path}/pnpm-lock.yaml",
                 "{harness_root}/scripts/oss/openclaw_webfetch_worker.mts",
             },
         },
         "deepseek_harness_builtin": {
-            "revision": "dd6322d604e00eec1ba5e0c8541159906a21094a",
-            "node_version": "v24.15.0",
+            "required_fields": ("expected_repo_revision", "expected_node_version"),
             "identical_files": [(
                 "harness/scripts/oss/dsh_webfetch_worker.mts",
                 "repo/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
             )],
-            "paths": {
+            "required_paths": {
                 "{repo_path}/packages/web/web-fetch-http/src/provider.ts",
                 "{repo_path}/pnpm-lock.yaml",
                 "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
@@ -78,33 +78,14 @@ class SubprocessJsonlProvider(Provider):
             return [str(error)]
         if mode == "public_doh" and self.type not in {"openclaw_builtin", "deepseek_harness_builtin", "langchain_webbase", "crawl4ai"}:
             return ["public_doh is not supported by this worker"]
-        missing, identity = validate_runtime_identity(self.config, self._resolve_token)
+        missing, identity = validate_runtime_identity(
+            self.config, self._resolve_token, **self._RUNTIME_CONTRACTS.get(self.type, {}))
         if mode == "public_doh":
             required = {"{harness_root}/harness/web_fetch/network_dns.py"} if self.type in {"langchain_webbase", "crawl4ai"} else {"{harness_root}/scripts/oss/public_dns.mjs"}
             if self.type == "deepseek_harness_builtin":
                 required.add("{repo_path}/packages/web/web-fetch-http/src/network.ts")
             if not required.issubset(set(self.config.get("required_paths", []))):
                 missing.append("locked public DNS helper paths")
-        locked = self._LOCKED_RUNTIMES.get(self.type)
-        if locked:
-            if self.config.get("expected_repo_revision") != locked["revision"]:
-                missing.append(f"repo revision {locked['revision']}")
-            if self.config.get("expected_node_version") != locked["node_version"]:
-                missing.append(f"Node {locked['node_version']}")
-            package_manager_version = locked.get("package_manager_version")
-            if (
-                package_manager_version is not None
-                and self.config.get("expected_package_manager_version")
-                != package_manager_version
-            ):
-                missing.append(f"package manager {package_manager_version}")
-            if not locked["paths"].issubset(set(self.config.get("required_paths", []))):
-                missing.append("locked required paths")
-            if identity is not None:
-                hashes = identity["files_sha256"]
-                for source, deployed in locked.get("identical_files", []):
-                    if not hashes.get(source) or hashes.get(source) != hashes.get(deployed):
-                        missing.append(f"runtime files differ: {source}, {deployed}")
         if identity is not None and not missing:
             self._implementation_identity = identity
         return missing

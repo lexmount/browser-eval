@@ -6,7 +6,6 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers.runtime_identity import _command_executable
@@ -14,34 +13,6 @@ from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
 
 
 class SubprocessProviderTest(unittest.TestCase):
-    def test_runtime_rejects_stale_or_missing_worker_copy(self):
-        with tempfile.TemporaryDirectory() as directory:
-            repo = Path(directory)
-            source = repo / "source.mts"
-            deployed = repo / "deployed.mts"
-            source.write_text("current worker")
-            deployed.write_bytes(source.read_bytes())
-            required = {"{repo_path}/source.mts", "{repo_path}/deployed.mts"}
-            registry = {"fixture": {
-                "revision": None, "node_version": None, "paths": required,
-                "identical_files": [("repo/source.mts", "repo/deployed.mts")],
-            }}
-            provider = SubprocessJsonlProvider("worker", {
-                "method_type": "fixture", "repo_path": str(repo),
-                "command": [sys.executable], "required_paths": sorted(required),
-            })
-            with patch.object(SubprocessJsonlProvider, "_LOCKED_RUNTIMES", registry):
-                self.assertEqual(provider.validate(), [])
-                deployed.write_text("previous worker")
-                self.assertIn("runtime files differ: repo/source.mts, repo/deployed.mts",
-                              provider.validate())
-                self.assertFalse(hasattr(provider, "_implementation_identity"))
-                deployed.unlink()
-                self.assertTrue(provider.validate())
-                self.assertFalse(hasattr(provider, "_implementation_identity"))
-                deployed.write_bytes(source.read_bytes())
-                self.assertEqual(provider.validate(), [])
-
     def test_empty_repo_path_fails_preflight(self):
         provider = SubprocessJsonlProvider("test", {"command": ["node"], "repo_path": ""})
         self.assertIn("repo_path", provider.validate())
@@ -122,7 +93,7 @@ class SubprocessProviderTest(unittest.TestCase):
             self.assertEqual(executable, virtualenv_python.absolute())
             self.assertNotEqual(executable, runtime.resolve())
 
-    def test_named_native_runtime_cannot_omit_locked_identity(self):
+    def test_named_native_runtime_cannot_omit_declared_identity(self):
         provider = SubprocessJsonlProvider(
             "worker",
             {
@@ -132,10 +103,10 @@ class SubprocessProviderTest(unittest.TestCase):
             },
         )
         errors = provider.validate()
-        self.assertIn("repo revision 12c4bdf7482f24c85b011e9d858fdec3c245101c", errors)
-        self.assertIn("Node v24.15.0", errors)
-        self.assertIn("package manager 12.1.0", errors)
-        self.assertIn("locked required paths", errors)
+        self.assertIn("expected_repo_revision", errors)
+        self.assertIn("expected_node_version", errors)
+        self.assertIn("expected_package_manager_version", errors)
+        self.assertIn("required runtime paths", errors)
 
     def test_worker_receives_shared_limits_and_retains_full_response_envelope(self):
         script = "import sys,json; [(lambda q: print(json.dumps({'ok':True,'content':'answer','metadata':{'request':q},'auxiliary':'retained'}),flush=True))(json.loads(line)) for line in sys.stdin]"

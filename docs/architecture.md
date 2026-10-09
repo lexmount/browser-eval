@@ -225,6 +225,15 @@ loaded only when an English edition exists.
 
 `harness/web_fetch/headless_runner.py` selects browser cohorts from provider configuration and delegates calls to the shared runner. Method lists, version pins, container images and binary paths belong to that configuration. Cohort overrides keep resource and ordinary browser experiments distinct; neither method labels nor a fixed participant count select runtime behavior. Version checks belong to `providers/runtime_identity.py` and run through `HeadlessProvider.validate()` for both specialized and generic entry points.
 
+Native repository adapters also use `providers/runtime_identity.py`. Their
+contracts declare mandatory identity fields and implementation paths, while
+configuration supplies the expected Git, Node and package-manager versions.
+Preflight checks the actual clean checkout and executables against those values.
+The DeepSeek worker's deployed copy must match the repository worker byte for
+byte. Failed revalidation removes any previously cached identity. Changing
+version pins therefore requires a matching declared configuration, without editing
+the adapter or changing historical evidence and certificates.
+
 Formal pages cover rankings, datasets, methodology, results, provider descriptions and interface examples, environment, reproduction, and account setup. Source coverage and access restrictions are factual limitations, not a user-assistance workflow.
 
 `providers/headless_worker.py` owns native browser execution and is included in
