@@ -695,3 +695,22 @@ verifies exported file bytes and the public share page, then advances only the
 profile's live publication version. A failed export check retains the uploaded
 version in a private operation journal so verification can resume without
 uploading the package again. Publication work files use the configured data home.
+
+## Reference candidates
+
+`reference_freeze.py` owns candidate preparation and reviewed promotion as well
+as reference freezing. The command scripts delegate to that owner. Installed
+callers can inspect both interfaces without a repository checkout:
+
+```bash
+uv run --frozen python -m harness.web_fetch.reference_freeze prepare-promotion --help
+uv run --frozen python -m harness.web_fetch.reference_freeze promote --help
+```
+
+Supply the dataset, independent captures or browser observations, new candidate
+and receipt paths, approval identity, concrete root cause and paired regression
+IDs. Promotion recomputes the candidate from those observations and rejects
+changed bytes or a mismatched approval receipt. It cannot edit a pinned input
+installation. Use explicit `--research-root` and `--sources-root` when promoting
+in an external authoring workspace; these operations do not call providers or
+start an independent review.

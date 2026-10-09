@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
@@ -14,7 +15,7 @@ from harness.record_io import read_completed_records
 from harness.web_fetch.artifacts import materialize_task_references
 from harness.web_fetch.body_coverage import body_requirements
 from harness.web_fetch.metrics import normalize_for_match
-from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
+from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes, require_mutable_inputs
 from harness.web_fetch.reference_lifecycle import (
     completed_case_records,
     load_capture_observation,
@@ -29,7 +30,10 @@ from harness.web_fetch.reference_quality import (
     clean_reference_text,
     reference_anchor_in_text,
 )
-from harness.web_fetch.scoring_regressions import valid_correction_provenance
+from harness.web_fetch.scoring_regressions import (
+    ROOT_CAUSE_CATEGORIES, build_correction_provenance, valid_correction_provenance,
+)
+from harness.web_fetch.safety import contained_path
 from harness.web_fetch.source_capture import capture
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -431,3 +435,229 @@ def postcheck_main(argv=None):
                     raise TimeoutError('Post-call observation deadline')
                 time.sleep(1)
     print('Post-call observations complete:',len(done),flush=True)
+
+
+def prepare_promotion(*,dataset_path,captures,output,approved_by,approved_at,
+            case_ids=None,exclude_case_ids=None,browser_observations=None,
+            browser_observation_directory=None,candidate_output=None,
+            full_canonical_output=None,root_cause_category=None,
+            root_cause=None,regression_ids=()):
+    destinations=[path for path in (output,candidate_output,full_canonical_output)
+                  if path is not None]
+    resolved=[path.resolve() for path in destinations]
+    if any(first.is_relative_to(second) or second.is_relative_to(first)
+           for index,first in enumerate(resolved) for second in resolved[index+1:]):
+        raise ValueError('Promotion destinations must be distinct and must not overlap')
+    if output.exists() or output.is_symlink():
+        raise ValueError('Destination exists; promotion receipts are immutable')
+    for path in (candidate_output,full_canonical_output):
+        if path is not None and (path.exists() or path.is_symlink()):
+            raise ValueError('Destination exists; candidate datasets are immutable')
+    dataset_bytes=read_dataset_bytes(dataset_path)
+    dataset=select_freeze_cases(json.loads(dataset_bytes),case_ids,exclude_case_ids)
+    observations=load_browser_observations(
+        dataset,browser_observations,browser_observation_directory)
+    candidate,changes,_=compute_reference_update(dataset,captures,observations)
+    if not changes:
+        raise ValueError('Captured reference scope is unchanged; no promotion is needed')
+    audit_bytes=(captures/'audit.json').read_bytes()
+    candidate_bytes=(json.dumps(candidate,ensure_ascii=False,indent=2)+'\n').encode()
+    provenance=build_correction_provenance(
+        root_cause_category,root_cause,list(regression_ids))
+    if not REFERENCE_PROMOTION_REGRESSION_IDS.issubset(
+            set(provenance['regression_ids'])):
+        raise ValueError('Reference promotion requires paired scope regressions')
+    receipt={'schema_version':2,'kind':'reference_freeze_promotion',
+        'input_dataset_sha256':hashlib.sha256(dataset_bytes).hexdigest(),
+        'capture_audit_sha256':hashlib.sha256(audit_bytes).hexdigest(),
+        'candidate_dataset_sha256':hashlib.sha256(candidate_bytes).hexdigest(),
+        'changes':changes,'approved_by':approved_by,'approved_at':approved_at,
+        'task_decision_changes':[],
+        'correction_provenance':provenance}
+    _validate_approval(receipt)
+    output.parent.mkdir(parents=True,exist_ok=True)
+    output.write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+    if candidate_output is not None:
+        candidate_output.parent.mkdir(parents=True,exist_ok=True)
+        candidate_output.write_bytes(candidate_bytes)
+    if full_canonical_output is not None:
+        original=json.loads(dataset_bytes)
+        updated={case['id']:case for case in candidate['cases']}
+        original['cases']=[updated.get(case['id'],case) for case in original['cases']]
+        full_canonical_output.parent.mkdir(parents=True,exist_ok=True)
+        full_canonical_output.write_text(
+            json.dumps(original,ensure_ascii=False,indent=2)+'\n')
+    return receipt,candidate_bytes
+
+
+def prepare_promotion_main(argv=None, *, root: Path | None = None):
+    parser=argparse.ArgumentParser(description='Prepare an authorized, hash-bound reference promotion candidate.')
+    parser.add_argument('--dataset',type=Path,default=(root or Path.cwd())/'evaluation/dataset.json')
+    parser.add_argument('--captures',type=Path,required=True)
+    parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--approved-by',required=True)
+    parser.add_argument('--approved-at',required=True)
+    parser.add_argument('--case-ids')
+    parser.add_argument('--exclude-case-ids')
+    parser.add_argument('--browser-observations',type=Path)
+    parser.add_argument('--browser-observation-directory',type=Path)
+    parser.add_argument('--candidate-output',type=Path,
+                        help='Optional exact selected-case dataset expected by freeze')
+    parser.add_argument('--full-canonical-output',type=Path,
+                        help='Optional full dataset candidate with only selected cases promoted')
+    parser.add_argument('--root-cause-category',required=True,
+                        choices=sorted(ROOT_CAUSE_CATEGORIES))
+    parser.add_argument('--root-cause',required=True,
+                        help='Concrete defect mechanism, not the observed score change')
+    parser.add_argument('--regression-id',action='append',required=True,
+                        help='Executable case id from evaluation/scoring-regressions.json; repeat as needed')
+    args=parser.parse_args(argv)
+    try:
+        receipt,_=prepare_promotion(dataset_path=args.dataset,captures=args.captures,
+            output=args.output,approved_by=args.approved_by,approved_at=args.approved_at,
+            case_ids=args.case_ids,exclude_case_ids=args.exclude_case_ids,
+            browser_observations=args.browser_observations,
+            browser_observation_directory=args.browser_observation_directory,
+            candidate_output=args.candidate_output,
+            full_canonical_output=args.full_canonical_output,
+            root_cause_category=args.root_cause_category,
+            root_cause=args.root_cause,regression_ids=args.regression_id)
+    except (OSError,KeyError,ValueError,json.JSONDecodeError) as error:
+        parser.error(str(error))
+    print(json.dumps({'output':str(args.output),'changes':receipt['changes']},
+                     ensure_ascii=False,indent=2))
+
+
+def _change_for_case(changes, case_id):
+    change = next((row for row in changes if row.get('case_id') == case_id), None)
+    if change is None:
+        raise ValueError('Computed reference changes omit promoted case: '+case_id)
+    return change
+
+
+def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target,
+            browser_observations=None,browser_observation_directory=None,
+            research_root=None,sources_root=None):
+    require_mutable_inputs(canonical_path)
+    canonical_bytes=read_dataset_bytes(canonical_path);canonical=json.loads(canonical_bytes)
+    receipt=json.loads(receipt_path.read_text())
+    case_ids=[change['case_id'] for change in receipt.get('changes',[])]
+    if not case_ids or len(case_ids)!=len(set(case_ids)):
+        raise ValueError('Promotion receipt has an invalid affected case inventory')
+    selected=select_freeze_cases(deepcopy(canonical),','.join(case_ids))
+    observations=load_browser_observations(
+        selected,browser_observations,browser_observation_directory)
+    expected,changes,contexts=compute_reference_update(
+        selected,captures,observations)
+    expected_bytes=(json.dumps(expected,ensure_ascii=False,indent=2)+'\n').encode()
+    candidate_bytes=candidate_path.read_bytes()
+    if candidate_bytes!=expected_bytes:
+        raise ValueError('Candidate bytes differ from the shared freeze computation')
+    audit_bytes=(captures/'audit.json').read_bytes()
+    _require_promotion(receipt_path,
+        dataset_sha256=hashlib.sha256(canonical_bytes).hexdigest(),
+        capture_audit_sha256=hashlib.sha256(audit_bytes).hexdigest(),
+        candidate_dataset_sha256=hashlib.sha256(candidate_bytes).hexdigest(),
+        changes=changes)
+    research_root=(research_root or canonical_path.parent/'research'/'reference-freeze-promotions').resolve()
+    target=contained_path(research_root,receipt_target.name)
+    if receipt_target.resolve()!=target or target.exists():
+        raise ValueError('Receipt target must be a new file in research/reference-freeze-promotions')
+
+    updates={case['id']:case for case in expected['cases']}
+    final=deepcopy(canonical)
+    final['cases']=[updates.get(case['id'],case) for case in final['cases']]
+    receipt_bytes=receipt_path.read_bytes();receipt_sha=hashlib.sha256(receipt_bytes).hexdigest()
+    final.setdefault('comparison',{})['reference_freeze_promotion']={
+        'schema_version':1,
+        'receipt':'research/reference-freeze-promotions/'+target.name,
+        'receipt_sha256':receipt_sha,
+        'approved_by':receipt['approved_by'],'approved_at':receipt['approved_at'],
+        'affected_case_ids':case_ids,
+    }
+
+    prepared={}
+    audit={row['case_id']:row for row in json.loads(audit_bytes)}
+    for case_id in case_ids:
+        context=contexts[case_id];row=context['row']
+        change=_change_for_case(changes,case_id)
+        if context['browser_observation']:
+            observation=browser_observation_bytes(row)
+            source_revision=change['source_revision']
+            if (hashlib.sha256(observation).hexdigest()!=
+                    source_revision.get('browser_observation_sha256')):
+                raise ValueError('Browser observation hash changed: '+case_id)
+            if (hashlib.sha256(row['content_text'].encode()).hexdigest()!=
+                    source_revision.get('rendered_content_sha256')):
+                raise ValueError('Rendered browser content hash changed: '+case_id)
+            raw=None;capture_record=None
+        else:
+            raw=(captures/case_id/'source.html').read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=row['sha256']:
+                raise ValueError('Captured source hash changed: '+case_id)
+            capture_record=dict(audit[case_id]);capture_record['missing_facts']=[]
+            capture_record['quality_issues']=[issue for issue in row.get('quality_issues',[])
+                if not (issue.startswith('fact_absent_from_reference:')
+                        or issue.startswith('duplicate_fact:'))]
+            capture_record['state']=('captured' if row.get('status')==200
+                                     and not capture_record['quality_issues'] else 'needs_review')
+            capture_record=(json.dumps(
+                capture_record,ensure_ascii=False,indent=2)+'\n').encode()
+        reference=updates[case_id]['ground_truth_main_content'].encode()
+        if hashlib.sha256(reference).hexdigest()!=change['new_reference_sha256']:
+            raise ValueError('Candidate reference hash changed: '+case_id)
+        prepared[case_id]=(raw,reference,capture_record,
+                           observation if context['browser_observation'] else None)
+
+    target.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copy2(receipt_path,target)
+    sources_root=(sources_root or canonical_path.parent/'sources').resolve()
+    for case_id,(raw,reference,capture_record,observation) in prepared.items():
+        source=contained_path(sources_root,case_id);source.mkdir(parents=True,exist_ok=True)
+        # A promoted valid reference supersedes an earlier unavailable marker;
+        # retaining both would expose contradictory current lifecycle state.
+        (source/'unavailable-reference.json').unlink(missing_ok=True)
+        if observation is not None:
+            for stale in ('current-source.html.txt','current-capture.json'):
+                (source/stale).unlink(missing_ok=True)
+            (source/'current-browser-observation.json').write_bytes(observation)
+        else:
+            (source/'current-browser-observation.json').unlink(missing_ok=True)
+            (source/'current-source.html.txt').write_bytes(raw)
+            (source/'current-capture.json').write_bytes(capture_record)
+        (source/'reference.txt').write_bytes(reference)
+    canonical_path.write_text(json.dumps(final,ensure_ascii=False,indent=2)+'\n')
+    return {'dataset_sha256':hashlib.sha256(read_dataset_bytes(canonical_path)).hexdigest(),
+            'receipt_sha256':receipt_sha,'affected_case_ids':case_ids}
+
+
+def promote_main(argv=None, *, root: Path | None = None):
+    parser=argparse.ArgumentParser(description='Install a reviewed candidate and its independent reference evidence.')
+    parser.add_argument('--canonical',type=Path,default=(root or Path.cwd())/'evaluation/dataset.json')
+    parser.add_argument('--candidate',type=Path,required=True)
+    parser.add_argument('--captures',type=Path,required=True)
+    parser.add_argument('--receipt',type=Path,required=True)
+    parser.add_argument('--receipt-target',type=Path,required=True)
+    parser.add_argument('--research-root',type=Path,default=(root or Path.cwd())/'research/reference-freeze-promotions')
+    parser.add_argument('--sources-root',type=Path)
+    parser.add_argument('--browser-observations',type=Path)
+    parser.add_argument('--browser-observation-directory',type=Path)
+    args=parser.parse_args(argv)
+    try:
+        result=promote(canonical_path=args.canonical,candidate_path=args.candidate,
+            captures=args.captures,receipt_path=args.receipt,
+            receipt_target=args.receipt_target,research_root=args.research_root,sources_root=args.sources_root,
+            browser_observations=args.browser_observations,
+            browser_observation_directory=args.browser_observation_directory)
+    except (OSError,KeyError,ValueError,json.JSONDecodeError) as error:
+        parser.error(str(error))
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1 and sys.argv[1] == 'prepare-promotion':
+        prepare_promotion_main(sys.argv[2:])
+    elif len(sys.argv) > 1 and sys.argv[1] == 'promote':
+        promote_main(sys.argv[2:])
+    else:
+        main()

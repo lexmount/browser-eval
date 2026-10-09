@@ -9,12 +9,11 @@ import pytest
 
 from harness.web_fetch.webmainbench_evidence import copy_alias_artifacts, copy_bound
 from scripts.assemble_webmainbench_evidence import copy_scored_artifact as assemble_copy
-from scripts.subset_webmainbench_evidence import copy_scored_artifact as subset_copy
 
 
 class WebMainBenchEvidenceSafetyTests(unittest.TestCase):
     def test_valid_artifact_copies_and_escaping_paths_do_not(self) -> None:
-        for copy in (assemble_copy, subset_copy):
+        for copy in (assemble_copy,):
             with self.subTest(copy=copy.__module__), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 source = root / "source"

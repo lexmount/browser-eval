@@ -432,7 +432,7 @@ def test_reference_update_commands_reject_pinned_inputs_before_writes(inputs, tm
 
             apply(dataset, tmp_path / "absent", set())
         else:
-            from scripts.promote_reference_candidate import promote
+            from harness.web_fetch.reference_freeze import promote
 
             promote(
                 canonical_path=dataset,

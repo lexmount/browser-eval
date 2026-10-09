@@ -767,6 +767,40 @@ def verify_browser_observation_capture(root, source_root):
         observations.capture_with_retries = original
 
 
+def verify_reference_promotion(root, source_root):
+    fixture = runpy.run_path(str(source_root / 'tests/reference_freeze_fixture.py'))
+    stage = root / 'reference-promotion'
+    stage.mkdir()
+    inputs = fixture['create_promotion_inputs'](stage)
+    receipt, candidate = stage / 'receipt.json', stage / 'candidate.json'
+    prepare = [sys.executable, '-m', 'harness.web_fetch.reference_freeze', 'prepare-promotion',
+               '--dataset', str(inputs['dataset_path']), '--captures', str(inputs['captures']),
+               '--output', str(receipt), '--candidate-output', str(candidate),
+               '--browser-observations', str(inputs['observations_path']),
+               '--approved-by', 'synthetic-independent-review', '--approved-at', inputs['checked_at'],
+               '--root-cause-category', 'reference-evidence', '--root-cause', fixture['ROOT_CAUSE']]
+    for identifier in fixture['REGRESSIONS']:
+        prepare.extend(['--regression-id', identifier])
+    subprocess.run(prepare, cwd=root, check=True, capture_output=True, text=True)
+    before = (receipt.read_bytes(), candidate.read_bytes())
+    repeated = subprocess.run(prepare, cwd=root, capture_output=True, text=True)
+    assert repeated.returncode != 0 and 'immutable' in repeated.stderr
+    assert before == (receipt.read_bytes(), candidate.read_bytes())
+    research = stage / 'research'
+    subprocess.run([sys.executable, '-m', 'harness.web_fetch.reference_freeze', 'promote',
+                    '--canonical', str(inputs['dataset_path']), '--candidate', str(candidate),
+                    '--captures', str(inputs['captures']), '--receipt', str(receipt),
+                    '--receipt-target', str(research / 'promotion.json'),
+                    '--research-root', str(research),
+                    '--browser-observations', str(inputs['observations_path'])],
+                   cwd=root, check=True, capture_output=True, text=True)
+    dataset = json.loads(inputs['dataset_path'].read_bytes())
+    assert dataset['cases'][0]['ground_truth_main_content'] == inputs['new_reference']
+    observed = stage / 'sources/javascript-spa/current-browser-observation.json'
+    assert json.loads(observed.read_bytes()) == inputs['observation']
+    assert (research / 'promotion.json').read_bytes() == receipt.read_bytes()
+
+
 def verify_wcxb_scoring(root, source_root):
     from harness.record_io import load_jsonl
     from harness.web_fetch.wcxb_scoring import score
@@ -1235,6 +1269,7 @@ def main():
         verify_repair_commands(root, args.source_root)
         verify_adjudication_commands(root, args.source_root)
         verify_browser_observation_capture(root, args.source_root)
+        verify_reference_promotion(root, args.source_root)
         verify_wcxb_scoring(root, args.source_root)
         verify_wcxb_rendering(root, args.source_root)
         verify_wcxb_boundaries(root, args.source_root)
