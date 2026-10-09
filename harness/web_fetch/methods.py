@@ -76,7 +76,7 @@ def method_page_model(name: str, label: str, records: list[dict[str, Any]]) -> d
         "freshness": info["freshness"],
         "configuration": report.get(
             "configuration",
-            "本轮使用该方法的默认正文或文件交付路线。未启用额外的理解模型或付费后备方法。",
+            "调用参数与交付路线以本次配置和逐例记录为准。",
         ),
         "pricing_anchor": report.get("pricing_anchor", "method-guide-pricing"),
     }
@@ -88,11 +88,13 @@ def method_page_model(name: str, label: str, records: list[dict[str, Any]]) -> d
         })
         contracts = sorted({str(item.get("output_contract")) for item in metadata
                             if item.get("output_contract")})
-        route = "；".join(extractors) or info["endpoint"]
-        output = "、".join(contracts) or info["output"]
+        route_count = sum(bool(item.get("extractor")) for item in metadata)
+        output_count = sum(bool(item.get("output_contract")) for item in metadata)
+        route = "；".join(extractors) or "未记录"
+        output = "、".join(contracts) or "未记录"
         model["configuration"] = (
-            f"本轮记录的交付路线：{route}；输出契约：{output}。"
-            "未启用额外的理解模型或付费后备方法。"
+            f"交付路线（{route_count}/{len(records)} 条记录）：{route}；"
+            f"输出格式（{output_count}/{len(records)} 条记录）：{output}。"
         )
     for profile in report.get("profiles", []):
         if metadata and all(_metadata_matches(item, profile["metadata_equals"])
