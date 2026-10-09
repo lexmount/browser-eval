@@ -1,74 +1,28 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import sys
+import zipfile
 
 import pytest
 
+from harness.trajectory_replay.public_webarena import release
+from harness.trajectory_replay.public_webarena.publication import (
+    build,
+    check_report_bundle,
+    stage_report,
+)
 from harness.trajectory_replay.public_webarena.report import METRICS
-from scripts import release_webarena_trajectory_report as release
-from scripts.check_webarena_trajectory_report import check_report_bundle
+from tests.public_webarena_fixture import write_report_fixture
 
 
-def test_stage_builds_report_without_mutating_source_evidence(tmp_path):
-    source = tmp_path / "source"
-    (source / "run").mkdir(parents=True)
-    manifest = {
-        "run_id": "run",
-        "suite_sha256": "suite",
-        "protocol": {},
-        "environment": {},
-        "suite": [{"task_id": "task"}],
-    }
-    summary = {
-        "functional": {
-            "chromium": {"physical_attempts": 1, "result_final_passes": 1},
-            "moli": {"physical_attempts": 1, "result_final_passes": 1},
-        },
-        "by_task": {
-            "task": {
-                "attempts": {
-                    engine: [
-                        {
-                            "attempt": 1,
-                            "is_retry": False,
-                            "status": "pass",
-                            "result_status": "pass",
-                            "process_status": "pass",
-                            "combined_status": "pass",
-                            "evidence_status": "pass",
-                            "error": "",
-                            "process_validation": {
-                                "expected_actions": ["click"],
-                                "actual_actions": ["click"],
-                                "all_calls_passed": True,
-                                "passed": True,
-                            },
-                            "validation": [{"status": "success", "score": 1.0}],
-                            "trace": [
-                                {"action": "click", "status": "pass"},
-                                {
-                                    "action": "evaluate_result",
-                                    "status": "pass",
-                                    "checks": [{"status": "success", "score": 1.0}],
-                                },
-                            ],
-                            "network_har": {"status": "complete"},
-                            "final_page_evidence": {"status": "complete"},
-                        }
-                    ]
-                    for engine in ("chromium", "moli")
-                }
-            }
-        },
-        "by_complexity": {},
-        "resource_comparison": {},
-    }
-    (source / "run/manifest.json").write_text(json.dumps(manifest))
-    (source / "run/summary.json").write_text(json.dumps(summary))
+def test_stage_builds_report_without_mutating_source_evidence(tmp_path, monkeypatch):
+    source, profile = write_report_fixture(tmp_path)
     before = (source / "run/summary.json").read_bytes()
 
     staged = tmp_path / "staged"
-    release._stage(source, staged)
+    stage_report(source, staged)
 
     assert (staged / "reports/webarena-trajectory-replay-latest.html").is_file()
     assert (staged / "reports/webarena-trajectory-replay-latest-results.html").is_file()
@@ -82,6 +36,26 @@ def test_stage_builds_report_without_mutating_source_evidence(tmp_path):
     }
     assert (source / "run/summary.json").read_bytes() == before
 
+    authority = json.loads(profile.read_text())
+    archive, receipt = tmp_path / "report.zip", tmp_path / "attestation.json"
+    result = build(staged, archive, receipt, authority=profile)
+    assert result["archive_sha256"] == hashlib.sha256(archive.read_bytes()).hexdigest()
+    with zipfile.ZipFile(archive) as bundle:
+        assert bundle.read("index.html") == bundle.read("webarena-trajectory-replay-latest.html")
+    assert result["results"] == {
+        engine: {"tasks": 1, "passes": 1} for engine in ("chromium", "moli")
+    }
+    monkeypatch.setattr(sys, "argv", ["release", "--formal-root", str(source)])
+    release.main(tmp_path)
+    assert (tmp_path / "publish/webarena-fixed-trajectory.zip").is_file()
+    assert json.loads(profile.read_text()) == authority
+    authority["suite_sha256"] = "wrong"
+    profile.write_text(json.dumps(authority))
+    rejected = tmp_path / "rejected.zip"
+    with pytest.raises(ValueError, match="current report authority mismatch: suite hash"):
+        build(staged, rejected, receipt, authority=profile)
+    assert not rejected.exists()
+
     homepage = staged / "reports/webarena-trajectory-replay-latest.html"
     broken = homepage.read_text(encoding="utf-8").replace(
         'data-preference="neutral">', 'data-preference="neutral"><b class="better">wrong</b>', 1
@@ -91,14 +65,12 @@ def test_stage_builds_report_without_mutating_source_evidence(tmp_path):
         check_report_bundle(staged)
 
 
-def test_profile_is_updated_only_with_verified_publication_values(tmp_path, monkeypatch):
+def test_profile_is_updated_only_with_verified_publication_values(tmp_path):
     profile = tmp_path / "current-report.json"
     profile.write_text(
         json.dumps({"publication": {"version_id": "old", "submitted_files_verified": 1}})
     )
-    monkeypatch.setattr(release, "CURRENT", profile)
-
-    release._update_profile("ver_new", 71)
+    release._update_profile(profile, "ver_new", 71)
 
     current = json.loads(profile.read_text())
     assert current["publication"] == {
@@ -109,7 +81,9 @@ def test_profile_is_updated_only_with_verified_publication_values(tmp_path, monk
 
 def test_verification_command_uses_required_slug_option(tmp_path):
     command = release._verification_command(
-        {"site_slug": "site", "base_url": "https://hub.example"}, tmp_path / "report.zip"
+        {"site_slug": "site", "base_url": "https://hub.example"},
+        tmp_path / "report.zip",
+        tmp_path,
     )
     assert command[2:4] == ["--slug", "site"]
     assert command[-2:] == ["--expected-archive", str(tmp_path / "report.zip")]

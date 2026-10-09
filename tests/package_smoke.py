@@ -17,7 +17,7 @@ from pathlib import Path
 
 def verify_package_tree(source_root: Path, package_root: Path) -> None:
     """Require the installed library's exact current source and declared assets."""
-    from harness.web_fetch.storage import installed_data_path
+    from harness.distribution import installed_data_path
 
     source = source_root / 'harness'
     if source.is_symlink() or package_root.is_symlink():
@@ -823,6 +823,33 @@ def verify_cowagent_isolation(root):
             provider.__del__()
 
 
+def verify_public_trajectory_publication(root, source_root):
+    from harness.trajectory_replay.public_webarena.publication import (
+        build, check_report_bundle, stage_report,
+    )
+
+    write_fixture = runpy.run_path(str(source_root / 'tests/public_webarena_fixture.py'))[
+        'write_report_fixture']
+    source, authority = write_fixture(root / 'public-trajectory')
+    staged = root / 'trajectory-staged'
+    stage_report(source, staged)
+    assert check_report_bundle(staged)['pages'] == 6
+    archive, attestation = root / 'trajectory.zip', root / 'trajectory-attestation.json'
+    result = build(staged, archive, attestation, authority=authority)
+    assert result['archive_sha256'] == hashlib.sha256(archive.read_bytes()).hexdigest()
+    with zipfile.ZipFile(archive) as bundle:
+        assert bundle.read('index.html') == bundle.read('webarena-trajectory-replay-latest.html')
+    profile = json.loads(authority.read_text())
+    profile['suite_sha256'] = 'wrong'
+    authority.write_text(json.dumps(profile))
+    try:
+        build(staged, root / 'rejected.zip', attestation, authority=authority)
+    except ValueError as error:
+        assert 'suite hash' in str(error)
+    else:
+        raise AssertionError('Installed publication accepted a different suite')
+
+
 def verify_oss_workers(root, source_root, *, with_libraries):
     from harness.web_fetch.models import EvalCase
     from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
@@ -972,6 +999,7 @@ def main():
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
         verify_cowagent_isolation(root)
+        verify_public_trajectory_publication(root, args.source_root)
         verify_oss_workers(root, args.source_root, with_libraries=args.oss)
         verify_browser_report_checks(root, args.source_root)
         verify_release_check_helpers(root, args.source_root)

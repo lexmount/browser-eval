@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .storage import installed_data_path
+from harness.distribution import installed_data_path
 
 ROOT = Path(__file__).resolve().parents[2]
 FAILURE_MODES = {"false-positive", "false-negative"}

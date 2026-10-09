@@ -11,10 +11,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from .publication import public_projection
+from harness.distribution import installed_data_path
+
+from .publication import REPORT_STEM, public_projection
 from .result_audit import ResultAuditError, audit_result_set
 
-REPORT_STEM = "webarena-trajectory-replay-latest"
 ROOT = Path(__file__).resolve().parents[3]
 PAGES = tuple(
     (slug, label, f"{REPORT_STEM}{suffix}.html")
@@ -436,10 +437,15 @@ def _is_webarena_manifest(manifest: dict[str, Any]) -> bool:
     )
 
 
+def _report_input(name: str) -> Path:
+    if (ROOT / "pyproject.toml").is_file():
+        return ROOT / "evaluation/browser-use-public" / name
+    return installed_data_path("share/browser-harness-eval/public-webarena/" + name)
+
+
 def _load_public_research() -> tuple[dict[str, Any], dict[str, Any]]:
-    root = ROOT / "evaluation" / "browser-use-public"
-    adoption = json.loads((root / "adoption-evidence.json").read_text(encoding="utf-8"))
-    catalog = json.loads((root / "benchmark-catalog.json").read_text(encoding="utf-8"))
+    adoption = json.loads(_report_input("adoption-evidence.json").read_text(encoding="utf-8"))
+    catalog = json.loads(_report_input("benchmark-catalog.json").read_text(encoding="utf-8"))
     return adoption, catalog
 
 
@@ -1921,7 +1927,7 @@ def _appendix_page(manifest: dict[str, Any]) -> str:
         ["attempts.jsonl SHA-256", str(provenance.get("attempts_sha256") or "未记录")],
         ["summary.json SHA-256", str(provenance.get("summary_sha256") or "未记录")],
     ]
-    change_path = ROOT / "evaluation/browser-use-public/report-changes.json"
+    change_path = _report_input("report-changes.json")
     if not change_path.is_file():
         raise ValueError(f"trajectory report change log is missing: {change_path}")
     change_log = json.loads(change_path.read_text(encoding="utf-8"))

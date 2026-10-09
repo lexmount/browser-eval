@@ -26,7 +26,7 @@ from harness.web_fetch.webmainbench_scoring import (
 )
 
 from .safety import contained_path, safe_identifier, stage_evidence_revision
-from .storage import installed_data_path
+from harness.distribution import installed_data_path
 
 
 def digest(path):
