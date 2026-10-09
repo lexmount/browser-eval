@@ -1,5 +1,6 @@
 """Headless cohort selection and identities, with synthetic providers only."""
 
+import hashlib
 import json
 import sys
 
@@ -8,6 +9,104 @@ import pytest
 from harness.web_fetch import headless_runner as runner
 from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
+
+
+@pytest.mark.parametrize("damage", [None, "duplicate", "missing", "output-hash", "diagnostic"])
+def test_evidence_checker_uses_explicit_custom_population(tmp_path, damage):
+    cases = [
+        {
+            "id": "fixture",
+            "name": "Fixture",
+            "url": "https://example.invalid/",
+            "category": "web",
+            "expected_any": ["fixture"],
+        }
+    ]
+    methods = ["future-a", "future-b"]
+    comparison = {
+        "kind": "headless_markdown",
+        "timeout_seconds": 30,
+        "runs_per_case": 1,
+        "conversion": "synthetic",
+        "concurrency": 1,
+        "reference_binding_mode": None,
+        "publication_state": "reference_verified",
+        "unverified_reference_cases": [],
+        "require_independent_result_review": False,
+    }
+    if damage == "diagnostic":
+        comparison["publication_state"] = "diagnostic"
+    dataset = {
+        "id": "custom",
+        "name": "Custom",
+        "tool": "web_fetch",
+        "cases": cases,
+        "coverage_plan": {"web": methods},
+        "comparison": comparison,
+    }
+    canonical = tmp_path / "canonical.json"
+    canonical.write_text(json.dumps(dataset))
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    (evidence / "dataset.json").write_text(json.dumps(dataset))
+    (evidence / "output.txt").write_text("fixture")
+    rows = [
+        {
+            "provider": name,
+            "case_id": "fixture",
+            "attempt_id": name,
+            "ok": True,
+            "artifact_path": "output.txt",
+            "provider_metadata": {},
+            "metrics": {"content_sha256": hashlib.sha256(b"fixture").hexdigest()},
+        }
+        for name in methods
+    ]
+    if damage == "duplicate":
+        rows[1] = rows[0]
+    elif damage == "missing":
+        rows.pop()
+    elif damage == "output-hash":
+        rows[0]["metrics"]["content_sha256"] = "0" * 64
+    (evidence / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+    (evidence / "execution.json").write_text(
+        json.dumps({"batches": [{"attempt_ids": [row["attempt_id"] for row in rows]}]})
+    )
+    config, provenance, profile = [
+        tmp_path / name for name in ("methods.json", "provenance.json", "profile.json")
+    ]
+    config.write_text(json.dumps({"providers": {name: {} for name in methods}}))
+    provenance.write_text(json.dumps({"implementations": []}))
+    profile.write_text(
+        json.dumps(
+            {
+                **comparison,
+                "comparison_kind": comparison["kind"],
+                "dataset_id": "custom",
+                "case_count": 1,
+                "providers": methods,
+                "case_ids_sha256": hashlib.sha256(b'["fixture"]').hexdigest(),
+            }
+        )
+    )
+    args = [
+        str(evidence),
+        "--canonical-dataset",
+        str(canonical),
+        "--provider-config",
+        str(config),
+        "--provenance",
+        str(provenance),
+        "--report-profile",
+        str(profile),
+    ]
+    before = {path: path.read_bytes() for path in tmp_path.rglob("*") if path.is_file()}
+    if damage:
+        with pytest.raises(ValueError):
+            runner.main_evidence_check(args)
+    else:
+        runner.main_evidence_check(args)
+    assert all(path.read_bytes() == raw for path, raw in before.items())
 
 
 class SyntheticBrowser(Provider):
@@ -99,33 +198,35 @@ def test_custom_registry_defaults_to_its_methods_and_retains_true_input_identity
 
 def test_headless_run_copies_references_only_for_selected_tasks(experiment):
     run, dataset, _, output = experiment
-    files = {'sources/fixture/reference.txt': b'fixture source',
-             'list-references/fixture.json': b'{"case_id":"fixture"}',
-             'sources/other/reference.txt': b'other task source',
-             'list-references/other.json': b'{"case_id":"other"}',
-             'sources/internal-note.txt': b'synthetic private note'}
+    files = {
+        "sources/fixture/reference.txt": b"fixture source",
+        "list-references/fixture.json": b'{"case_id":"fixture"}',
+        "sources/other/reference.txt": b"other task source",
+        "list-references/other.json": b'{"case_id":"other"}',
+        "sources/internal-note.txt": b"synthetic private note",
+    }
     for relative, raw in files.items():
         path = dataset.parent / relative
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(raw)
-    run({'providers': {'future': {'type': 'headless_markdown', 'expected_version': '9.2.0'}}})
+    run({"providers": {"future": {"type": "headless_markdown", "expected_version": "9.2.0"}}})
     for relative, raw in files.items():
-        if '/fixture' in relative:
+        if "/fixture" in relative:
             assert (output / relative).read_bytes() == raw
         else:
             assert not (output / relative).exists()
 
 
-@pytest.mark.parametrize('tree', ['sources', 'list-references'])
+@pytest.mark.parametrize("tree", ["sources", "list-references"])
 def test_headless_rejects_linked_reference_inputs_before_browser_calls(experiment, tree):
     run, dataset, _, output = experiment
     folder = dataset.parent / tree
     folder.mkdir()
-    actual = dataset.parent / 'same-source.txt'
-    actual.write_text('synthetic source')
-    (folder / 'linked').symlink_to(actual)
-    with pytest.raises(ValueError, match='[Ss]ymlink'):
-        run({'providers': {'future': {'type': 'headless_markdown', 'expected_version': '9.2.0'}}})
+    actual = dataset.parent / "same-source.txt"
+    actual.write_text("synthetic source")
+    (folder / "linked").symlink_to(actual)
+    with pytest.raises(ValueError, match="[Ss]ymlink"):
+        run({"providers": {"future": {"type": "headless_markdown", "expected_version": "9.2.0"}}})
     assert not SyntheticBrowser.calls
     assert not output.exists()
 

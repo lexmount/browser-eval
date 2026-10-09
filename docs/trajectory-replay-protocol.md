@@ -324,6 +324,14 @@ Two independent qualification passes remain required by the validation protocol.
 
 ### Remote mutation diagnostics
 
+`scripts/reevaluate_webarena_evaluator_transition.py` checks saved passing
+evidence against the pinned evaluator after an explicitly requested transition.
+It reads declared `--run` directories and writes only a new `--output` receipt.
+Scope, site map, run inputs, progress and consumed evidence must remain unchanged
+throughout the build. Explicit exclusions bind the task, old evaluation hash and
+run-input hash; an exclusion absent from the source passes is rejected. This
+command does not replace historical verdicts or execute browser actions.
+
 `scripts/rescore_saved_retrieval_attempt.py` evaluates a complete saved retrieval
 against an explicitly supplied dataset without browser calls. It reads the current
 task-local result, an agreeing cohort receipt, or the older standalone result

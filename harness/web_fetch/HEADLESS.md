@@ -293,6 +293,13 @@ make report EVIDENCE=/absolute/path/to/evidence
 make report-check
 ```
 
+For another declared cohort, pass `--canonical-dataset`, `--provider-config`,
+`--provenance` and `--report-profile` explicitly. The checker uses those inputs
+for task rules, method coverage, executable identities and the report matrix;
+its defaults reproduce the historical headless comparison. It verifies saved
+outputs without making provider calls or changing verdicts. Explicit diagnostic
+evidence remains ineligible for this formal evidence check.
+
 `.python-version`、`uv.lock`、Makefile 与 CI 共同固定 Python 3.11 和依赖版本。
 正式命令不得改用系统 `python` / `python3`；环境不满足时应立即失败，不能降级执行。
 

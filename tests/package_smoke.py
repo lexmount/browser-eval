@@ -16,6 +16,17 @@ import zipfile
 from pathlib import Path
 
 
+def verify_dependency_metadata(source_root: Path) -> None:
+    from importlib.metadata import requires
+
+    project = tomllib.loads((source_root / 'pyproject.toml').read_text())
+    expected_webarena = next(value for value in project['project']['optional-dependencies']['browser-use-eval']
+                             if value.startswith('webarena-verified '))
+    if not any(value.split(';', 1)[0].strip() == expected_webarena
+               for value in requires('browser-harness-eval') or []):
+        raise ValueError('Installed WebArena dependency differs from declared fork')
+
+
 def verify_package_tree(source_root: Path, package_root: Path) -> None:
     """Require the installed library's exact current source and declared assets."""
     from harness.distribution import installed_data_path
@@ -1473,6 +1484,7 @@ def main():
     if installed.is_relative_to(args.source_root.resolve()):
         raise ValueError('Package smoke must use an installed distribution outside the checkout')
     verify_package_tree(args.source_root, installed)
+    verify_dependency_metadata(args.source_root)
     from harness.web_fetch.webmainbench_correction import CONTROL_IDS, regression_registry_path
 
     REGISTRY = regression_registry_path()

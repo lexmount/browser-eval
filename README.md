@@ -51,6 +51,8 @@ uv sync --frozen --extra oss-eval            # 开源正文提取库
 
 浏览器二进制、Docker、网站部署、模型和供应商账户独立准备，不随 Python 安装包分发。历史实验固定的二进制、Python 补丁版本和源码提交只用于复现对应实验，不应直接当作新实验配置。
 
+`browser-use-eval` 通过 Git 安装固定提交的 WebArena-Verified fork，需要 Git 和网络连接。源码锁文件和安装包使用同一来源；同版本的注册表包不能替代该评估器。
+
 ## 任务、方法与证据
 
 - 新增方法：实现现有 Provider 接口并注册类型，保留统一结果结构与评分规则。见 [适配器契约](docs/provider-contract.md)。

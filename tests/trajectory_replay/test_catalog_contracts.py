@@ -143,8 +143,8 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
     revision = "a" * 40
     fork = "https://github.com/lexmount/webarena-verified.git"
     (repository / "pyproject.toml").write_text(
-        f"[project]\nname='fixture'\n[tool.uv.sources]\n"
-        f"webarena-verified = {{ git = '{fork}', rev = '{revision}' }}\n"
+        f"[project]\nname='fixture'\n[project.optional-dependencies]\n"
+        f"browser-use-eval = ['webarena-verified @ git+{fork}@{revision}']\n"
     )
     (repository / "uv.lock").write_text(
         f"version = 1\n[[package]]\nname = 'webarena-verified'\n"

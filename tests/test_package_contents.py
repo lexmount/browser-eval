@@ -3,7 +3,26 @@ import shutil
 
 import pytest
 
-from tests.package_smoke import verify_package_tree
+from tests.package_smoke import verify_dependency_metadata, verify_package_tree
+
+
+@pytest.mark.parametrize('installed', ['correct', 'registry-version', 'wrong-fork'])
+def test_installed_optional_dependency_preserves_declared_source(tmp_path, monkeypatch, installed):
+    import importlib.metadata
+
+    expected = 'webarena-verified @ git+https://example.invalid/evaluator.git@' + 'a' * 40
+    (tmp_path / 'pyproject.toml').write_text(
+        '[project.optional-dependencies]\nbrowser-use-eval = ["' + expected + '"]\n')
+    requirement = expected if installed == 'correct' else (
+        'webarena-verified==1.2.3' if installed == 'registry-version'
+        else expected.replace('evaluator.git', 'other.git'))
+    monkeypatch.setattr(importlib.metadata, 'requires', lambda name: [
+        requirement + '; extra == "browser-use-eval"'])
+    if installed == 'correct':
+        verify_dependency_metadata(tmp_path)
+    else:
+        with pytest.raises(ValueError, match='dependency differs'):
+            verify_dependency_metadata(tmp_path)
 
 
 @pytest.fixture
