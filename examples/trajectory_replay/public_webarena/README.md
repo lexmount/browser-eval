@@ -9,6 +9,13 @@ The source inventory contains 179 candidate recordings. The current formal suite
 passing answer key: qualification uses independent Chromium runs and the official
 evaluator before a task enters the formal suite.
 
+`scripts/fetch_webarena_traces.py` downloads every entry in its declared `--catalog`
+and records their hashes under the external `--output` directory. The catalog count
+must match its unique task inventory. `scripts/build_webarena_suite.py` imports the
+same catalog using `--trace-dir` and writes a new `--output` file; it refuses to replace
+an existing suite. Importing a different catalog creates candidate tasks and does not
+change the frozen formal suite or qualify its trajectories.
+
 The repository-curated 30 browser-tool cases use
 [`examples/trajectory_replay`](../README.md) and `harness.trajectory_replay`.
 The autonomous Agent evaluation uses `harness.browser_use`. Neither shares this
