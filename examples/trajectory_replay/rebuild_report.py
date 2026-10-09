@@ -15,8 +15,8 @@ from harness.trajectory_replay.suite import load_suite, validate_ground_truth_ev
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--artifacts", default="artifacts/trajectory_replay/latest")
-    parser.add_argument("--reports", default="docs/reports")
+    parser.add_argument("--artifacts", required=True)
+    parser.add_argument("--reports", help="Defaults to the selected run's report directory")
     parser.add_argument("--suite", default="examples/trajectory_replay/tasks.v4.json")
     parser.add_argument(
         "--ground-truth-evidence",
@@ -74,8 +74,9 @@ def main() -> None:
     (artifact_dir / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    write_latest_report(args.reports, manifest=manifest, summary=summary)
-    report_path = Path(args.reports) / "trajectory-replay-evaluation-latest.html"
+    reports = Path(args.reports) if args.reports else artifact_dir / "report"
+    write_latest_report(reports, manifest=manifest, summary=summary)
+    report_path = reports / "trajectory-replay-evaluation-latest.html"
     print(f"Recalculated {len(rows)} attempts; report: {report_path}")
 
 

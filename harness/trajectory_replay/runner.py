@@ -361,14 +361,25 @@ def run_evaluation(
 ) -> dict[str, Any]:
     if max_retries < 0:
         raise ValueError("max_retries must be non-negative")
+    output = Path(output_dir).absolute()
+    if any(path.is_symlink() for path in (output, *output.parents)):
+        raise ValueError("Output must not contain symlinks")
+    if output.exists():
+        raise ValueError("Output must be a new directory; existing evidence is immutable")
     suite = load_suite(suite_path)
     ground_truth_evidence = (
         validate_ground_truth_evidence(suite_path, suite, ground_truth_evidence_path)
         if ground_truth_evidence_path is not None
         else None
     )
-    output = Path(output_dir)
-    output.mkdir(parents=True, exist_ok=True)
+    if any(path.is_symlink() for path in (output, *output.parents)):
+        raise ValueError("Output must not contain symlinks")
+    try:
+        output.mkdir(parents=True, exist_ok=False)
+    except FileExistsError as error:
+        raise ValueError(
+            "Output must be a new directory; existing evidence is immutable"
+        ) from error
     run_id = uuid.uuid4().hex[:12]
     client = docker.from_env()
     containers: dict[str, Any] = {}
