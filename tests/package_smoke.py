@@ -436,7 +436,7 @@ def verify_release_check_helpers(root: Path, source_root: Path) -> None:
     write_inventory(pages, json.loads((source_root / 'evaluation/wcxb/current-report.json').read_bytes()))
     rejected = subprocess.run([*command, str(pages), '--authority-root', str(source_root)],
                               capture_output=True, text=True)
-    assert rejected.returncode != 0 and 'sample-manifest.json' in rejected.stderr
+    assert rejected.returncode != 0 and 'guide/index.html' in rejected.stderr, rejected.stderr
     assert 'release authority is missing' not in rejected.stderr
     for script, error in (
         ('check_webmainbench_report.py', 'dataset.json'),
@@ -941,6 +941,7 @@ def verify_wcxb_rendering(root, source_root):
     """The installed WCXB renderer reads explicit staged inputs, outside the checkout."""
     from harness.report_languages import check_language_contract, generated_languages
     from harness.web_fetch.report import generate_wcxb
+    from harness.web_fetch.wcxb_report_check import check_bound_interpretation
 
     fixture = runpy.run_path(str(source_root / 'tests/wcxb_fixture.py'))
     for english in (False, True):
@@ -948,6 +949,14 @@ def verify_wcxb_rendering(root, source_root):
                                                  english_source=english)
         generate_wcxb(*inputs, include_english=english)
         report = inputs[0]
+        import re
+
+        guide = (report / 'guide/index.html').read_text()
+        assert re.findall(r'<main\b[^>]*>(.*?)</main>', guide, re.S) == [
+            inputs[-1]['guide']['zh']]
+        check_bound_interpretation(report, {'rendered_sha256': {'guide': {
+            lang: hashlib.sha256(body.encode()).hexdigest()
+            for lang, body in inputs[-1]['guide'].items()}}})
         check_language_contract(report)
         assert generated_languages(report) == (('zh', 'en') if english else ('zh',))
         case = (report / 'cases/4017.html').read_text()

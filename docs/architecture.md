@@ -118,6 +118,15 @@ Restoration verifies the declared inventory, content and source bindings before
 creating a new file. It does not replace existing content. Changed measurements
 require updated content bindings rather than reuse of an old interpretation.
 
+WCXB uses `evaluation/wcxb/report-content-binding.json` alongside its certified
+profile. Restore it with the same command, passing the pinned WCXB export and
+`<evidence>/report-assets/report-content.json` as the output. The export may be a
+ZIP or an extracted file tree; both must contain the exact bound interpretation
+pages. The builder binds that prose to the scores, certificate, timing receipts,
+representative review and dataset manifest. It has no embedded article fallback.
+Release checks reject interpretation bodies that differ from the binding; package
+receipts retain the binding hash, and upload snapshots protect it from changes.
+
 Release checks cover evidence, links, semantic presentation and the declared
 languages. A separate visual gate exercises core routes, success and failure
 details, evidence controls, navigation, desktop and narrow widths, and both

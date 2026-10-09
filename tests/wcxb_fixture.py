@@ -306,4 +306,7 @@ def create_report_inputs(tmp_path, *, english_source=True):
     profile['latency_correction_receipt_sha256'] = sha((timing / 'receipt.json').read_bytes())
     summary.update(case_count=len(CASES), quality_case_count=len(CASES))
     identities = {provider: {'reported_version': 'synthetic'} for provider in PROVIDERS}
-    return root, rows, summary, ground_truth, identities, profile
+    content = {"schema_version": 1, "guide": {"zh": "<section><h1>合成报告解读</h1></section>"}}
+    if english_source:
+        content["guide"]["en"] = "<section><h1>Synthetic interpretation</h1></section>"
+    return root, rows, summary, ground_truth, identities, profile, content

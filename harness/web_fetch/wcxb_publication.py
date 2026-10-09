@@ -61,7 +61,9 @@ def package(source: Path, archive: Path, receipt: Path, *, authority_root: Path)
     from harness.web_fetch.wcxb_report_check import check as check_report
 
     profile_path = authority_root / 'evaluation/wcxb/current-report.json'
+    binding_path = authority_root / 'evaluation/wcxb/report-content-binding.json'
     reject_evidence_symlinks(profile_path)
+    reject_evidence_symlinks(binding_path)
     profile = json.loads(profile_path.read_bytes())
     if profile.get('comparison_kind') != 'wcxb_frozen_html_to_markdown':
         raise ValueError('Publication authority is not WCXB')
@@ -78,15 +80,17 @@ def package(source: Path, archive: Path, receipt: Path, *, authority_root: Path)
         return {'schema_version': 1, 'kind': 'wcxb_package',
                 'archive_sha256': hashlib.sha256(staged.read_bytes()).hexdigest(),
                 'profile_sha256': hashlib.sha256(profile_path.read_bytes()).hexdigest(),
+                'content_binding_sha256': hashlib.sha256(binding_path.read_bytes()).hexdigest(),
                 'files': files}
 
-    return package_archive(source, archive, receipt, inputs=[profile_path],
+    return package_archive(source, archive, receipt, inputs=[profile_path, binding_path],
                            validate=validate, attest=attest, excluded=['.generated-report'])
 
 
 def publish(*, source: Path, authority_root: Path, work: Path, transport=None) -> dict:
     """Resume the same staged update and verify every deployed byte before binding it."""
     profile_path = authority_root / 'evaluation/wcxb/current-report.json'
+    binding_path = authority_root / 'evaluation/wcxb/report-content-binding.json'
     reject_evidence_symlinks(profile_path)
     profile_bytes = profile_path.read_bytes()
     profile = json.loads(profile_bytes)
@@ -112,7 +116,7 @@ def publish(*, source: Path, authority_root: Path, work: Path, transport=None) -
         os.chmod(journal, 0o600)
 
     save()
-    with snapshot_publication(archive, inputs=[source, profile_path, proof]) as release:
+    with snapshot_publication(archive, inputs=[source, profile_path, binding_path, proof]) as release:
         def request(path, data=None, content_type=None, auth=True, method=None):
             release.check()
             if profile_path.read_bytes() != profile_bytes:

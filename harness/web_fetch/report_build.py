@@ -916,11 +916,16 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
 
 
 def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: dict, output: Path,
-                      *, include_english: bool = False) -> Path:
+                      *, content_binding: dict, authority_root: Path,
+                      include_english: bool = False) -> Path:
     """Build the one current report from a fully certified WCXB matrix."""
     from harness.web_fetch.wcxb_dataset import validate_manifest
     from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
     source, output = source.resolve(), output.resolve()
+    from harness.reporting.assets import load_bound_content
+    report_content = load_bound_content(
+        source / "report-assets", content_binding,
+        evidence_root=source, authority_root=authority_root)
     certificate = json.loads((source / 'certification.json').read_text())
     summary = json.loads((source / 'wcxb-score-summary.json').read_text())
     records, corpus_hash = load_wcxb_source(corpus)
@@ -1062,7 +1067,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                 'page_type': record['meta']['page_type'],
                 'with': gt.get('with') or [], 'without': gt.get('without') or [],
             }
-        generate_wcxb(staging, rows, summary, ground_truth, identities, profile,
+        generate_wcxb(staging, rows, summary, ground_truth, identities, profile, report_content,
                       include_english=include_english)
         evidence_root = staging / 'evidence'
         evidence_root.mkdir()

@@ -245,6 +245,19 @@ def require_case_summary(html: str | BeautifulSoup, lang: str) -> BeautifulSoup:
     return soup
 
 
+def check_bound_interpretation(root: Path, binding: dict) -> None:
+    from harness.report_languages import generated_languages
+    from harness.reporting.assets import authored_main
+
+    for language in generated_languages(root):
+        route = ('en/' if language == 'en' else '') + 'guide/index.html'
+        page = contained_path(root, route, reject_symlinks=True)
+        body = authored_main(page.read_bytes())
+        expected = binding.get('rendered_sha256', {}).get('guide', {}).get(language)
+        if not expected or hashlib.sha256(body.encode()).hexdigest() != expected:
+            raise ValueError('WCXB interpretation differs from bound content: ' + language)
+
+
 def check(root: Path, *, authority_root: Path | None = None) -> None:
     root = root.resolve()
     repository = (authority_root or ROOT).resolve()
@@ -254,6 +267,9 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     profile = json.loads((repository / 'evaluation/wcxb/current-report.json').read_text())
     from .wcxb_publication import inventory
     inventory(root, profile)
+    binding_path = contained_path(repository, 'evaluation/wcxb/report-content-binding.json',
+                                  reject_symlinks=True)
+    check_bound_interpretation(root, json.loads(binding_path.read_bytes()))
     sample_file = root / 'sample-manifest.json'
     sample = json.loads(sample_file.read_text())
     require(sample.get('scope') == 'qualified_test', 'WCXB current selection is not source-qualified')

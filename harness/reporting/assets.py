@@ -1,14 +1,22 @@
 """Materialize bound report assets from a Git-external source tree."""
 import hashlib
-import io
 import json
 import os
 import re
 import tempfile
 import zipfile
+from contextlib import ExitStack
 from pathlib import Path
 
 from harness.web_fetch.safety import contained_path
+
+
+def authored_main(raw: bytes) -> str:
+    """Return the exact authored body, rejecting absent or ambiguous main elements."""
+    bodies = re.findall(r'<main\b[^>]*>(.*?)</main>', raw.decode('utf-8'), re.S)
+    if len(bodies) != 1:
+        raise ValueError('Authored source must contain one main element')
+    return bodies[0]
 
 
 def restore_bound_content(export, binding, destination):
@@ -16,27 +24,37 @@ def restore_bound_content(export, binding, destination):
     from harness.reporting.packs import read_packed_file
 
     source = binding['source']
-    archive_bytes = Path(export).read_bytes()
     if source['recovery']['kind'] != 'html-main-json-v1':
         raise ValueError('Unsupported content recovery contract')
+    container = source['recovery'].get('container', 'packed')
+    if container not in {'packed', 'files'}:
+        raise ValueError('Unsupported content source container')
     content = {'schema_version': 1}
-    with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
-        if len(archive.namelist()) != len(set(archive.namelist())):
-            raise ValueError('Export contains duplicate file names')
-        # Export ZIP timestamps can change while every virtual file stays fixed.
-        manifest = archive.read('manifest.json')
-        if hashlib.sha256(manifest).hexdigest() != source['manifest_sha256']:
-            raise ValueError('Export manifest differs from the pinned content source')
+    with ExitStack() as stack:
+        export = Path(export)
+        if container == 'files' and export.is_dir():
+            def read_file(name):
+                return contained_path(export, name, reject_symlinks=True).read_bytes()
+        else:
+            archive = stack.enter_context(zipfile.ZipFile(export))
+            if len(archive.namelist()) != len(set(archive.namelist())):
+                raise ValueError('Export contains duplicate file names')
+            if container == 'packed':
+                # ZIP timestamps may change while every virtual file stays fixed.
+                manifest = archive.read('manifest.json')
+                if hashlib.sha256(manifest).hexdigest() != source['manifest_sha256']:
+                    raise ValueError('Export manifest differs from the pinned content source')
+                def read_file(name):
+                    return read_packed_file(archive, name)
+            else:
+                read_file = archive.read
         for field, editions in source['recovery']['fields'].items():
             content[field] = {}
             for language, name in editions.items():
-                raw = read_packed_file(archive, name)
+                raw = read_file(name)
                 if hashlib.sha256(raw).hexdigest() != source['files_sha256'][name]:
                     raise ValueError('Authored source differs from the pinned file')
-                bodies = re.findall(r'<main>(.*?)</main>', raw.decode('utf-8'), re.S)
-                if len(bodies) != 1:
-                    raise ValueError('Authored source must contain one main element')
-                content[field][language] = bodies[0]
+                content[field][language] = authored_main(raw)
     payload = (json.dumps(content, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
     if hashlib.sha256(payload).hexdigest() != binding['sha256']:
         raise ValueError('Recovered content differs from binding')
@@ -89,6 +107,11 @@ def load_bound_content(source, binding, *, evidence_root=None, authority_root=No
     content = json.loads(raw)
     if not isinstance(content, dict):
         raise ValueError('Report content must be an object')
+    for field, editions in binding.get('rendered_sha256', {}).items():
+        for language, expected in editions.items():
+            body = content.get(field, {}).get(language)
+            if not isinstance(body, str) or hashlib.sha256(body.encode()).hexdigest() != expected:
+                raise ValueError('Report content rendered field differs: ' + field + '/' + language)
     return content
 
 

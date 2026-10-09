@@ -186,3 +186,73 @@ def test_offline_recovery_verifies_pinned_export_and_preserves_existing_content(
             assert destination.read_bytes() == b'previous content'
         else:
             assert not destination.exists()
+
+
+@pytest.mark.parametrize('container', ['zip', 'directory'])
+@pytest.mark.parametrize('tamper', ['none', 'source', 'content', 'multiple-main', 'existing'])
+def test_plain_export_recovery_preserves_exact_main_and_rejects_tampering(
+        tmp_path, container, tamper):
+    page = '<html><main class="wrap"><p>Frozen interpretation</p></main></html>'
+    if tamper == 'multiple-main':
+        page += '<main>Ambiguous second body</main>'
+    raw = page.encode()
+    body = '<p>Frozen interpretation</p>'
+    payload = (json.dumps({'schema_version': 1, 'guide': {'zh': body}},
+                         ensure_ascii=False, indent=2) + '\n').encode()
+    binding = {'sha256': hashlib.sha256(payload).hexdigest(), 'source': {
+        'files_sha256': {'guide/index.html': hashlib.sha256(raw).hexdigest()},
+        'recovery': {'kind': 'html-main-json-v1', 'container': 'files',
+                     'fields': {'guide': {'zh': 'guide/index.html'}}},
+    }}
+    if tamper == 'source':
+        raw = b'<main>Changed finding</main>'
+    if tamper == 'content':
+        binding['sha256'] = '0' * 64
+    export = tmp_path / 'export'
+    if container == 'zip':
+        with zipfile.ZipFile(export, 'w') as archive:
+            archive.writestr('guide/index.html', raw)
+    else:
+        (export / 'guide').mkdir(parents=True)
+        (export / 'guide/index.html').write_bytes(raw)
+    destination = tmp_path / 'restored.json'
+    if tamper == 'existing':
+        destination.write_bytes(b'Independent content')
+    if tamper == 'none':
+        restore_bound_content(export, binding, destination)
+        assert destination.read_bytes() == payload
+    else:
+        with pytest.raises((ValueError, FileExistsError)):
+            restore_bound_content(export, binding, destination)
+        if tamper == 'existing':
+            assert destination.read_bytes() == b'Independent content'
+        else:
+            assert not destination.exists()
+
+
+def test_plain_export_directory_rejects_linked_source(tmp_path):
+    export = tmp_path / 'export'
+    export.mkdir()
+    source = tmp_path / 'outside.html'
+    source.write_bytes(b'<main>Frozen interpretation</main>')
+    (export / 'guide.html').symlink_to(source)
+    binding = {'source': {
+        'files_sha256': {'guide.html': hashlib.sha256(source.read_bytes()).hexdigest()},
+        'recovery': {'kind': 'html-main-json-v1', 'container': 'files',
+                     'fields': {'guide': {'zh': 'guide.html'}}},
+    }}
+    with pytest.raises(ValueError, match='Symlinked'):
+        restore_bound_content(export, binding, tmp_path / 'content.json')
+
+
+@pytest.mark.parametrize('wrong', [False, True])
+def test_rendered_field_binding_must_agree_with_authored_content(content_inputs, wrong):
+    source, evidence, authority, binding = content_inputs
+    expected = hashlib.sha256(b'Synthetic finding').hexdigest()
+    binding['rendered_sha256'] = {'guide': {'zh': '0' * 64 if wrong else expected}}
+    if wrong:
+        with pytest.raises(ValueError, match='rendered field differs'):
+            load_bound_content(source, binding, evidence_root=evidence, authority_root=authority)
+    else:
+        assert load_bound_content(source, binding, evidence_root=evidence,
+                                  authority_root=authority)['guide']['zh'] == 'Synthetic finding'

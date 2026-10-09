@@ -21,6 +21,7 @@ def report(tmp_path, monkeypatch):
                'artifact_hub_share_url': 'https://artifacts.example.invalid/v/public-token'}
     profile_path = authority / 'evaluation/wcxb/current-report.json'
     write_json(profile_path, profile)
+    write_json(profile_path.with_name('report-content-binding.json'), {'synthetic': True})
     release.write_inventory(source, profile)
     checks = []
     monkeypatch.setattr('harness.web_fetch.wcxb_report_check.check',
@@ -139,13 +140,16 @@ def test_failed_export_verification_resumes_without_reupload(report):
     assert sum(kw['method'] == 'PUT' for _, kw, _ in site.calls) == uploads
 
 
-def test_profile_drift_during_remote_read_stops_before_staging(report):
+@pytest.mark.parametrize('input_kind', ['profile', 'content-binding'])
+def test_release_authority_drift_during_remote_read_stops_before_staging(report, input_kind):
     kwargs, profile_path, _ = report
     site = Site()
+    path = profile_path if input_kind == 'profile' else profile_path.with_name(
+        'report-content-binding.json')
 
     def drift(*args, **kw):
         result = site(*args, **kw)
-        profile_path.write_bytes(profile_path.read_bytes() + b' ')
+        path.write_bytes(path.read_bytes() + b' ')
         return result
 
     with pytest.raises(ValueError, match='inputs changed'):
