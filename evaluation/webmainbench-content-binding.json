@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "relative_path": "report-content.json",
+  "sha256": "9566219891eb0ec62b9185899e2b74e62c98466b258880d8c598deda6bbb7db9",
+  "evidence": {
+    "dataset.json": "0e00ac4a7f7fc14b7c4c4cc444a906fea8379ab0434fca83af9f68e101fd8600",
+    "results.jsonl": "4c0840a4599fd312b4257b4e8bba5e70f9586680838de0d84747d92fadf5d27b",
+    "score-summaries.json": "00b1c5005afd7bbe72d2f0d02315ae21a72131a6410425144b6ee707b65cb070",
+    "execution.json": "36a96f3f35144d9be7b44c7b7f2f5272ff7c1e17fba053292e01493c7acc9826",
+    "latency-corrections.json": "e859d3788ed6fee03fb3c940fd70251f8f4d3b87a941f0929d007c432d8d4518",
+    "latency-diagnostic.json": "809313b9ff388dfda9a3d188c0eaaa90941f22c68404075e1f1bde90e16ec7f5"
+  },
+  "authority": {
+    "evaluation/public-webmainbench-200.json": "eea643afddd35f3ae4ed85b689b3a89f6a503f8fce878d546fa56c97c26f8044"
+  },
+  "source": {
+    "url": "https://artifact-site.lexmount.cn/s/uTWj6VaWPYCh?version=ver_a9336a40214346d7bc541013e449045f",
+    "version": "ver_a9336a40214346d7bc541013e449045f",
+    "archive_sha256": "dec448978e5ba1d9a7130d99acac023df71999d1a100a11d1b62926e26a64431",
+    "manifest_sha256": "65954d1064a98a356fd30301c16224be15c5f735986512f8d721f6d0cc65d994",
+    "profile_sha256_at_restoration": "e3415ab0c41de4e701292df358e5be7b2932dcdf4187951b911fadca5d67d53d",
+    "recovery": {
+      "kind": "html-main-json-v1",
+      "fields": {
+        "guide": {
+          "zh": "guide/index.html",
+          "en": "en/guide/index.html"
+        }
+      }
+    },
+    "files_sha256": {
+      "guide/index.html": "8e9a03924c6f1b4fc1c5d1a2604e5eac3e58c690e4da3bfbb99d96e70562c9bd",
+      "en/guide/index.html": "e48e41f45a5a9525dc8811b5830b6ce693e95e44f477a32d651fc497468b10f3"
+    }
+  }
+}

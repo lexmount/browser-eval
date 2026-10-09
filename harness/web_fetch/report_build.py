@@ -46,8 +46,13 @@ from .webmainbench_latency_diagnostic import load_diagnostic as load_latency_dia
 def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | None = None) -> Path:
     """Build an explicitly requested diagnostic edition using the WebFetch owner."""
     from harness.reporting.templates import resolve_template
+
     from .report import generate_cohort_diagnostic
-    from .report_diagnostic import check_diagnostic_report, load_diagnostic, prepare_diagnostic_evidence
+    from .report_diagnostic import (
+        check_diagnostic_report,
+        load_diagnostic,
+        prepare_diagnostic_evidence,
+    )
 
     if profile is not None:
         configuration = json.loads(profile.read_text())
@@ -564,6 +569,14 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
 
 def build_webmainbench_report(source: Path, output: Path, *, include_english: bool = False) -> Path:
     """Build the current public-benchmark report without legacy task predicates."""
+    from harness.reporting.assets import copy_bound_assets, load_bound_content
+
+    authority = Path(__file__).resolve().parents[2]
+    content_binding_path = authority / 'evaluation/webmainbench-content-binding.json'
+    content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
+    content_source = data_home() / 'report-assets/webmainbench-sample'
+    report_content = load_bound_content(
+        content_source, content_binding, evidence_root=source, authority_root=authority)
     dataset = json.loads(contained_path(source, 'dataset.json').read_text())
     records = load_jsonl(contained_path(source, 'results.jsonl'), skip_blank=True)
     teds_revision = validate_teds_revision_if_present(source, records)
@@ -650,7 +663,10 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
         if latency_diagnostic is not None:
             (staging / 'latency-diagnostic.json').write_text(
                 json.dumps(latency_diagnostic, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review, latency_diagnostic, include_english=include_english)
+        copy_bound_assets(content_source, staging, {
+            content_binding['relative_path']: content_binding['sha256']})
+        shutil.copy2(content_binding_path, staging / 'report-content-binding.json')
+        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review, latency_diagnostic, include_english=include_english, report_content=report_content)
         (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
@@ -770,8 +786,8 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     content_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/content-binding.json'
     content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
     content_path = data_home() / 'report-assets/webmainbench-full' / content_binding['relative_path']
-    if digest(content_path) != content_binding['sha256']:
-        raise ValueError('Report prose differs from the compact content binding')
+    from harness.reporting.assets import load_bound_content
+    load_bound_content(data_home() / 'report-assets/webmainbench-full', content_binding)
     failure_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/failure-analysis-binding.json'
     failure_binding = json.loads(failure_binding_path.read_text(encoding='utf-8'))
     failure_path = data_home() / 'report-assets/webmainbench-full' / failure_binding['relative_path']

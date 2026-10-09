@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import statistics
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -29,6 +30,25 @@ from harness.web_fetch.webmainbench_latency_correction import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def validate_sample_content(root: Path, *, authority_root: Path) -> None:
+    from harness.reporting.assets import load_bound_content
+
+    expected = contained_path(authority_root, 'evaluation/webmainbench-content-binding.json',
+                              reject_symlinks=True).read_bytes()
+    actual = contained_path(root, 'report-content-binding.json',
+                            reject_symlinks=True).read_bytes()
+    if actual != expected:
+        raise ValueError('Sample report content binding differs from authority')
+    content = load_bound_content(root, json.loads(expected), evidence_root=root,
+                                 authority_root=authority_root)
+    for language in generated_languages(root):
+        route = 'en/guide/index.html' if language == 'en' else 'guide/index.html'
+        page = contained_path(root, route, reject_symlinks=True).read_text(encoding='utf-8')
+        body = re.search(r'<main>(.*)</main>', page, re.S)
+        if body is None or body.group(1) != content['guide'][language]:
+            raise ValueError('Sample guide differs from bound content: ' + language)
 
 
 def authority_directory(authority_root: Path | None, profile: str) -> Path:
@@ -863,6 +883,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
         raise ValueError("Report CSS differs from the reviewed reference-shell extension")
     if digest(root / "assets" / "report.js") != EXPECTED_SCRIPT_SHA256:
         raise ValueError("Report JavaScript differs from the reviewed inspection controls")
+    validate_sample_content(root, authority_root=repo)
 
 
 

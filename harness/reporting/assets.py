@@ -1,7 +1,95 @@
 """Materialize bound report assets from a Git-external source tree."""
 import hashlib
+import io
 import json
+import os
+import re
+import tempfile
+import zipfile
 from pathlib import Path
+
+from harness.web_fetch.safety import contained_path
+
+
+def restore_bound_content(export, binding, destination):
+    """Recover declared authored fields from an immutable, verified export."""
+    from harness.reporting.packs import read_packed_file
+
+    source = binding['source']
+    archive_bytes = Path(export).read_bytes()
+    if source['recovery']['kind'] != 'html-main-json-v1':
+        raise ValueError('Unsupported content recovery contract')
+    content = {'schema_version': 1}
+    with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
+        if len(archive.namelist()) != len(set(archive.namelist())):
+            raise ValueError('Export contains duplicate file names')
+        # Export ZIP timestamps can change while every virtual file stays fixed.
+        manifest = archive.read('manifest.json')
+        if hashlib.sha256(manifest).hexdigest() != source['manifest_sha256']:
+            raise ValueError('Export manifest differs from the pinned content source')
+        for field, editions in source['recovery']['fields'].items():
+            content[field] = {}
+            for language, name in editions.items():
+                raw = read_packed_file(archive, name)
+                if hashlib.sha256(raw).hexdigest() != source['files_sha256'][name]:
+                    raise ValueError('Authored source differs from the pinned file')
+                bodies = re.findall(r'<main>(.*?)</main>', raw.decode('utf-8'), re.S)
+                if len(bodies) != 1:
+                    raise ValueError('Authored source must contain one main element')
+                content[field][language] = bodies[0]
+    payload = (json.dumps(content, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
+    if hashlib.sha256(payload).hexdigest() != binding['sha256']:
+        raise ValueError('Recovered content differs from binding')
+    destination = Path(destination).absolute()
+    if any(path.is_symlink() for path in (destination, *destination.parents)):
+        raise ValueError('Content destination must not contain symlinks')
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=destination.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(payload)
+        os.link(temporary, destination)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    return destination
+
+
+def restore_main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Restore authored content from a pinned export')
+    parser.add_argument('--binding', type=Path, required=True)
+    parser.add_argument('--export', type=Path, required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args()
+    binding = json.loads(args.binding.read_text(encoding='utf-8'))
+    print(restore_bound_content(args.export, binding, args.output))
+
+
+def load_bound_content(source, binding, *, evidence_root=None, authority_root=None):
+    """Read external authored data only for its declared evidence and authority."""
+    if binding.get('schema_version') != 1:
+        raise ValueError('Unsupported report content binding')
+    for root, field in ((evidence_root, 'evidence'), (authority_root, 'authority')):
+        declared = binding.get(field, {})
+        if root is not None and not declared:
+            raise ValueError('Report content lacks ' + field + ' bindings')
+        if declared and root is None:
+            raise ValueError('Report content requires an explicit ' + field + ' root')
+        for name, expected in declared.items():
+            path = contained_path(Path(root), name, reject_symlinks=True)
+            if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+                raise ValueError('Report content ' + field + ' differs: ' + name)
+    path = contained_path(Path(source), binding['relative_path'], reject_symlinks=True)
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != binding['sha256']:
+        raise ValueError('Report content differs from binding')
+    content = json.loads(raw)
+    if not isinstance(content, dict):
+        raise ValueError('Report content must be an object')
+    return content
 
 
 def check_external_asset_boundary(root: Path) -> None:

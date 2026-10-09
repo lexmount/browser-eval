@@ -142,6 +142,37 @@ common report commands call the sample check directly. Both accept an explicit
 bindings when run from an installed package. Frozen sample-specific requirements
 remain separate from the complete cohort's participant registry and bindings.
 
+WebMainBench authored content is external data. The sample's
+`evaluation/webmainbench-content-binding.json` binds `report-content.json` under
+`BROWSER_EVAL_DATA_HOME/report-assets/webmainbench-sample/`, the frozen sample
+manifest and the exact dataset, results, score summaries, execution and timing
+receipts. Its `source` identifies the pinned Artifact Site version and export
+manifest hash for restoration. Obtain that version's export with the existing Artifact
+Site authorization, then run:
+
+```sh
+uv run --frozen python scripts/restore_report_content.py \
+  --binding evaluation/webmainbench-content-binding.json \
+  --export /absolute/path/to/pinned-export.zip \
+  --output /absolute/data-home/report-assets/webmainbench-sample/report-content.json
+```
+
+Recovery verifies the manifest, virtual blocks, source pages and final content
+hash before creating the new content file. It never replaces an existing file.
+The archive hash records the original download; ZIP timestamps may change on
+another export without changing the bound manifest or virtual files.
+Do not substitute the latest report. Public privacy projections retain
+original file identities; projected execution metadata cannot replace the private
+source bytes needed by a rebuild.
+
+`harness/reporting/assets.py` validates authored content for both sample and full
+builds. Sample release checks also compare the rendered main content with the
+bound data. Changed evidence requires newly reviewed content and a new binding;
+publication-target changes alone do not change the frozen sample authority.
+The renderer's unbound mode derives its explanation from the supplied results
+without historical prose or version-specific conclusions. Translation sources
+remain external; only explicitly selected editions are rendered.
+
 `dynamic_cohort.py` owns measured dynamic-supplement assembly and append. Both
 stages use the shared artifact boundary for primary outputs, auxiliary files,
 retained retry evidence, private artifacts and reference observations. Assembly
