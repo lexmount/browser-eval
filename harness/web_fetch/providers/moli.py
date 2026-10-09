@@ -333,6 +333,47 @@ def _dynamic_text_expression(plan) -> str:
     )
 
 
+_ROUTE_OUTPUTS = {
+    "raw_file": "raw_bytes",
+    "document_runtime_fetch": "runtime_document_base64+local_text",
+    "raw_document": "raw_document_bytes+local_text",
+    "document_page_runtime": "document_text_or_embedded_document",
+    "resource_page_runtime": "structured_resource_urls",
+    "challenge_json_trace": "final_dom_html+local_markdown+network_diagnostics",
+    "page_identity_json": "final_dom_html+local_markdown",
+    "dynamic_selected_text": "selected_records_or_rendered_body_fallback",
+    "media_metadata_runtime": "visible_text_and_standard_media_metadata",
+    "ordinary_markdown": "markdown",
+}
+
+
+def _route_for_case(case: EvalCase) -> str:
+    """Select one output contract before applying page-family extraction rules."""
+    if case.task_kind == "file":
+        return "raw_file"
+    if case.task_kind == "resource":
+        return "resource_page_runtime"
+    if case.track == "document":
+        path = urlsplit(case.url).path.casefold()
+        if path.endswith(".docx"):
+            return "document_runtime_fetch"
+        if path.endswith(".pdf") or "/pdf/" in path:
+            return "raw_document"
+        if path.endswith((".html", "/")):
+            return "document_page_runtime"
+    navigation = ((case.source_benchmark or {}).get("risk_control") or {}).get("navigation_contract")
+    if case.track == "challenge":
+        return "challenge_json_trace"
+    if (case.task_kind == "body" and isinstance(navigation, dict)
+            and navigation.get("requested_url") and navigation.get("observed_final_url")):
+        return "page_identity_json"
+    if case.track == "dynamic":
+        return "dynamic_selected_text"
+    if case.track == "video" and case.task_kind == "body":
+        return "media_metadata_runtime"
+    return "ordinary_markdown"
+
+
 class MoliWebFetchProvider(Provider):
     def __init__(self, name, config):
         super().__init__(name, config)
@@ -485,6 +526,18 @@ class MoliWebFetchProvider(Provider):
                 error_type="configuration",
                 error_message=str(error),
             )
+        route = _route_for_case(case)
+        if retrieval_plan and (route == "raw_file" or (
+            retrieval_plan.version == 2 and route != "dynamic_selected_text"
+        )):
+            return ProviderResult(
+                False, "", error_type="configuration",
+                error_message=(
+                    "DOM completion cannot be applied to raw file delivery"
+                    if route == "raw_file" else
+                    "Declared text extraction requires the dynamic text route"
+                ),
+            )
         call_deadline = time.monotonic() + timeout
         binary = self._resolve_binary()
         errors = self._configuration_errors(binary)
@@ -495,26 +548,13 @@ class MoliWebFetchProvider(Provider):
                 False, "", error_type="configuration", error_message="; ".join(errors)
             )
         wait = self.config.get("wait_until", "done")
-        file_task = case.task_kind == "file"
-        document_path = urlsplit(case.url).path.casefold()
-        document_task = case.track == "document" and (
-            document_path.endswith((".pdf", ".docx")) or "/pdf/" in document_path
-        )
-        document_runtime_fetch_task = case.track == "document" and document_path.endswith(".docx")
-        document_page_task = case.track == "document" and (
-            document_path.endswith(".html") or document_path.endswith("/")
-        )
-        media_metadata_task = case.track == "video" and case.task_kind == "body"
-        challenge_task = case.track == "challenge"
-        navigation_contract = ((getattr(case, "source_benchmark", {}) or {}).get(
-            "risk_control") or {}).get("navigation_contract")
-        identity_json_task = bool(
-            not self.config.get("uniform_native_parameters", False)
-            and case.task_kind == "body" and isinstance(navigation_contract, dict)
-            and navigation_contract.get("requested_url")
-            and navigation_contract.get("observed_final_url")
-        )
-        json_page_task = challenge_task or identity_json_task
+        file_task = route == "raw_file"
+        document_task = route in {"raw_document", "document_runtime_fetch"}
+        document_runtime_fetch_task = route == "document_runtime_fetch"
+        document_page_task = route == "document_page_runtime"
+        media_metadata_task = route == "media_metadata_runtime"
+        challenge_task = route == "challenge_json_trace"
+        json_page_task = route in {"challenge_json_trace", "page_identity_json"}
         if json_page_task:
             try:
                 markdown_package = require_converter(self.config.get('node_html_markdown_path'))
@@ -575,43 +615,19 @@ class MoliWebFetchProvider(Provider):
                         "network_trace": "metadata_without_response_bodies" if challenge_task else "not_requested",
                     }
                     dump = "json"
-                elif case.task_kind == "resource":
+                elif route == "resource_page_runtime":
                     wait_arguments = ["--eval", _RESOURCE_PAGE_EXPRESSION, "--wait-until", wait]
                     wait_metadata = {
                         "wait_until": wait,
                         "resource_discovery": "rendered_dom_and_same_origin_component_modules",
                     }
                     dump = None
-                elif case.track == "dynamic" and retrieval_plan is not None:
+                elif route == "dynamic_selected_text":
                     plan = retrieval_plan
                     assert plan is not None
                     wait_arguments = ["--eval", _dynamic_text_expression(plan)]
                     dump = None
-                    wait_arguments.extend(
-                        [
-                            "--wait-selector" if plan.wait_kind == "selector" else "--wait-script",
-                            plan.wait_value,
-                            "--wait-until",
-                            plan.wait_until,
-                        ]
-                    )
-                    if plan.delay_ms:
-                        wait_arguments.extend(["--delay-ms", str(plan.delay_ms)])
                     wait_metadata = {
-                        "strategy": (
-                            "frame_selector_count_script"
-                            if plan.frame_selector
-                            else "selector"
-                            if plan.wait_kind == "selector"
-                            else "selector_count_script"
-                        ),
-                        "selector": plan.selector,
-                        "minimum_count": plan.minimum_count,
-                        "frame_selector": plan.frame_selector,
-                        "delay_ms": plan.delay_ms,
-                        "timeout_ms": plan.timeout_ms,
-                        "wait_until": plan.wait_until,
-                        "completion_support": "exact",
                         "extraction": (
                             "declared_scope_or_rendered_body_fallback"
                             if plan.version == 2
@@ -626,9 +642,6 @@ class MoliWebFetchProvider(Provider):
                             "exclude_selectors": list(plan.extraction_exclude_selectors),
                             "fallback": plan.extraction_fallback,
                         }
-                    if plan.minimum_text_fragments:
-                        wait_metadata["minimum_text_fragments"] = plan.minimum_text_fragments
-                    timeout_ms = str(min(int(timeout_ms), plan.timeout_ms))
                 elif media_metadata_task:
                     wait_arguments = [
                         "--eval",
@@ -651,6 +664,35 @@ class MoliWebFetchProvider(Provider):
                     error_type="configuration",
                     error_message=str(error),
                 )
+            if retrieval_plan:
+                plan = retrieval_plan
+                # Completion is independent of the selected output representation.
+                # Replace the default navigation wait without losing route flags.
+                if "--wait-until" in wait_arguments:
+                    index = wait_arguments.index("--wait-until")
+                    del wait_arguments[index:index + 2]
+                wait_arguments.extend([
+                    "--wait-selector" if plan.wait_kind == "selector" else "--wait-script",
+                    plan.wait_value, "--wait-until", plan.wait_until,
+                ])
+                if plan.delay_ms:
+                    wait_arguments.extend(["--delay-ms", str(plan.delay_ms)])
+                wait_metadata.update({
+                    "strategy": (
+                        "frame_selector_count_script" if plan.frame_selector else
+                        "selector" if plan.wait_kind == "selector" else "selector_count_script"
+                    ),
+                    "selector": plan.selector,
+                    "minimum_count": plan.minimum_count,
+                    "frame_selector": plan.frame_selector,
+                    "delay_ms": plan.delay_ms,
+                    "timeout_ms": plan.timeout_ms,
+                    "wait_until": plan.wait_until,
+                    "completion_support": "exact",
+                })
+                if plan.minimum_text_fragments:
+                    wait_metadata["minimum_text_fragments"] = plan.minimum_text_fragments
+                timeout_ms = str(min(int(timeout_ms), plan.timeout_ms))
             command = [binary, "fetch"]
             if dump is not None:
                 command.extend(["--dump", dump])
@@ -692,50 +734,8 @@ class MoliWebFetchProvider(Provider):
             "http_connect_timeout_ms": None if self.config.get("uniform_native_parameters") else int(timeout_ms),
             "internal_timeout_policy": "native_default" if self.config.get("uniform_native_parameters") else "explicit",
             "http_max_response_bytes": int(self.config.get("max_bytes", 20_000_000)),
-            "route": (
-                "raw_file"
-                if file_task
-                else "document_runtime_fetch"
-                if document_runtime_fetch_task
-                else "raw_document"
-                if document_task
-                else "document_page_runtime"
-                if document_page_task
-                else "resource_page_runtime"
-                if case.task_kind == "resource"
-                else "challenge_json_trace"
-                if challenge_task
-                else "page_identity_json"
-                if identity_json_task
-                else "dynamic_selected_text"
-                if retrieval_plan is not None
-                else "dynamic_native_markdown"
-                if case.track == "dynamic"
-                else "media_metadata_runtime"
-                if media_metadata_task
-                else "ordinary_markdown"
-            ),
-            "output": (
-                "raw_bytes"
-                if file_task
-                else "runtime_document_base64+local_text"
-                if document_runtime_fetch_task
-                else "raw_document_bytes+local_text"
-                if document_task
-                else "document_text_or_embedded_document"
-                if document_page_task
-                else "structured_resource_urls"
-                if case.task_kind == "resource"
-                else "final_dom_html+local_markdown+network_diagnostics"
-                if challenge_task
-                else "final_dom_html+local_markdown"
-                if identity_json_task
-                else "selected_records_or_rendered_body_fallback"
-                if retrieval_plan is not None
-                else "visible_text_and_standard_media_metadata"
-                if media_metadata_task
-                else "markdown"
-            ),
+            "route": route,
+            "output": _ROUTE_OUTPUTS[route],
             "wait": wait_metadata,
             "wait_until": None if raw_task else wait_metadata.get("wait_until"),
             "binary": Path(binary).name,
@@ -909,7 +909,7 @@ class MoliWebFetchProvider(Provider):
                 error_message="Moli fetch exceeded time budget",
                 metadata=metadata,
             )
-        if case.task_kind == "file":
+        if file_task:
             ok = process.returncode == 0
             return ProviderResult(
                 ok,

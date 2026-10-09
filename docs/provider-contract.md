@@ -66,3 +66,16 @@ The general CLI builds a result report from the supplied dataset and records.
 It does not require project-specific articles, account registries, pricing or
 adoption snapshots. Formal repository builds select those materials explicitly
 after validating their bound profile and evidence.
+
+Moli selects one output route from the task's delivery contract before applying
+page-family extraction rules. File tasks return bytes; resource tasks return
+resource URLs even on document or challenge pages. The command, decoder and
+recorded route describe the same selection. Acceptance answers and task labels
+do not become execution arguments.
+
+Dynamic DOM completion applies to text and resource discovery independently of
+output format, including selector/count, frame, delay and timeout constraints.
+The version-2 extraction scope describes text extraction and requires the
+dynamic text route. Combining it with resource discovery is rejected before a
+call. Direct file delivery also rejects DOM completion: it cannot claim a
+rendered-page condition was satisfied while fetching only response bytes.
