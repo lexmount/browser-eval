@@ -14,7 +14,7 @@ from harness.web_fetch.report_components import comparable_body_reference
 from harness.web_fetch.report_explainer import (public_report_url, _bound_initial_audit, _dynamic_section,
     _speed_comparison, collect_evidence, render_explainer)
 from harness.web_fetch.report_style import STYLE
-from scripts.probe_cowagent_text import probe
+from harness.web_fetch.providers.cowagent import probe_extractor
 from harness.web_fetch.storage import current_evidence_dir
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -411,7 +411,7 @@ class ExplainerTests(unittest.TestCase):
     def test_offline_extractor_probe_is_reproducible(self):
         saved = json.loads((ROOT/'research/cowagent-text-probe.json').read_text())
         source = 'class WebFetch:\n'+''.join('    '+line+'\n' for line in saved['extractor_source'].splitlines())
-        result = probe(source)
+        result = probe_extractor(source)
         self.assertEqual(result['output'],saved['output'])
         self.assertEqual(result['observations'],saved['observations'])
         self.assertTrue(result['observations']['navigation_preserved'])
