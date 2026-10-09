@@ -192,17 +192,17 @@ webmainbench-score: runtime-check
 	$(UV) run --frozen --extra webmainbench-eval python scripts/score_webmainbench_results.py --evidence "$(EVIDENCE)" --dataset "$(SOURCE)" --scorer-repo "$(SCORER)"
 
 webmainbench-review: runtime-check
-	@test -n "$(RUN_ROOT)" || (echo 'RUN_ROOT=/absolute/path/to/five-provider-shards is required' >&2; exit 2)
+	@test -n "$(RUN_ROOT)" || (echo 'RUN_ROOT=/absolute/path/to/declared-provider-shards is required' >&2; exit 2)
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
 	@test -n "$(REVIEW)" || (echo 'REVIEW=/absolute/path/to/new-review.json is required' >&2; exit 2)
-	$(UV) run --frozen --extra webmainbench-eval python scripts/review_webmainbench_results.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --output "$(REVIEW)"
+	$(UV) run --frozen --extra webmainbench-eval python scripts/review_webmainbench_results.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)" --output "$(REVIEW)"
 
 webmainbench-assemble: runtime-check
-	@test -n "$(RUN_ROOT)" || (echo 'RUN_ROOT=/absolute/path/to/five-provider-shards is required' >&2; exit 2)
+	@test -n "$(RUN_ROOT)" || (echo 'RUN_ROOT=/absolute/path/to/declared-provider-shards is required' >&2; exit 2)
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
 	@test -n "$(REVIEW)" || (echo 'REVIEW=/absolute/path/to/passed-review.json is required' >&2; exit 2)
 	@test -n "$(OUTPUT)" || (echo 'OUTPUT=/absolute/path/to/assembled-evidence is required' >&2; exit 2)
-	$(PY) scripts/assemble_webmainbench_evidence.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --review "$(REVIEW)" --output "$(OUTPUT)"
+	$(PY) scripts/assemble_webmainbench_evidence.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)" --review "$(REVIEW)" --output "$(OUTPUT)"
 
 .PHONY: test-native-adapters
 test-native-adapters:

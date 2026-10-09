@@ -714,3 +714,38 @@ changed bytes or a mismatched approval receipt. It cannot edit a pinned input
 installation. Use explicit `--research-root` and `--sources-root` when promoting
 in an external authoring workspace; these operations do not call providers or
 start an independent review.
+
+
+## WebMainBench sample evidence
+
+The sample and full-cohort entries use `webmainbench_assembly.py`. A sample's
+profile declares its methods, source hash, sample-manifest hash, scoring commit
+and execution limits. The manifest declares the parent population and selected
+tasks; the assembler does not infer a population from the available shard files.
+Sample execution is serial, with one logical result per method and task.
+
+`review_webmainbench_results.py` is an explicit deterministic audit entry. It
+checks saved evidence without calling a provider or importing the official
+scorer for its independent text, code and formula checks. Its receipt binds the
+profile and every reviewed record, output, summary, execution record and fixture
+certificate. Applicable metric failures count as zero; a metric explicitly marked
+as reference-inapplicable is excluded. This audit does not substitute for a human
+result review.
+
+After an explicitly requested audit has produced a passing receipt, assemble it:
+
+```bash
+uv run --frozen python scripts/assemble_webmainbench_evidence.py \
+  --source-root /absolute/path/provider-shards \
+  --dataset /absolute/path/WebMainBench_545.jsonl \
+  --sample-manifest evaluation/public-webmainbench-200.json \
+  --profile evaluation/current-report.json \
+  --review /absolute/path/passing-review.json \
+  --output /absolute/path/new-assembled-evidence
+```
+
+The output must be new and outside the input evidence. Assembly retains every
+physical-call output, uses the final declared response, verifies hashes and
+exposes the directory only after the entire matrix passes. Unbound review
+receipts cannot authorize a new assembly. Existing published reports retain
+their frozen evidence and are restored from their pinned release.

@@ -190,6 +190,30 @@ def verify_review_revisions(root: Path, source_root: Path) -> None:
                        check=True, cwd=root, capture_output=True, text=True)
 
 
+def verify_sample_assembly(root: Path, source_root: Path) -> None:
+    fixture_module = runpy.run_path(str(source_root / 'tests/webmainbench_sample_fixture.py'))
+    fixture = fixture_module['sample_fixture'](root / 'sample-installation', providers=('native', 'new-engine'))
+    command = [sys.executable, '-c',
+               'from harness.web_fetch.webmainbench_assembly import sample_main; sample_main()',
+               '--source-root', str(fixture['root']), '--dataset', str(fixture['source']),
+               '--sample-manifest', str(fixture['manifest']), '--profile', str(fixture['profile']),
+               '--review', str(fixture['review']), '--output', str(fixture['output'])]
+    subprocess.run(command, check=True, cwd=root, capture_output=True, text=True)
+    rows = [json.loads(line) for line in (fixture['output'] / 'results.jsonl').read_text().splitlines()]
+    calls = [json.loads(line) for line in (fixture['output'] / 'physical-attempts.jsonl').read_text().splitlines()]
+    assert len(rows) == 4 and len(calls) == 6
+    assert {row['provider'] for row in rows} == {'native', 'new-engine'}
+    for row in rows + calls:
+        relative = row.get('physical_artifact_path', row.get('artifact_path'))
+        assert hashlib.sha256((fixture['output'] / relative).read_bytes()).hexdigest() == row['output_sha256']
+    assert not list(fixture['output'].rglob('private-notes.txt'))
+    installed_review = json.loads((fixture['output'] / 'result-review.json').read_bytes())
+    assert installed_review['bindings']['results_jsonl_sha256'] == hashlib.sha256((fixture['output'] / 'results.jsonl').read_bytes()).hexdigest()
+    before = (fixture['output'] / 'results.jsonl').read_bytes()
+    refused = subprocess.run(command, cwd=root, capture_output=True, text=True)
+    assert refused.returncode != 0 and (fixture['output'] / 'results.jsonl').read_bytes() == before
+
+
 def verify_lexbench_package(root: Path, renderer: Path) -> None:
     from harness.lexbench.pack import package
 
@@ -1322,6 +1346,7 @@ def main():
         verify_lexbench_package(root, args.source_root / 'scripts/moli_report/app.js')
         verify_dynamic_cohort(root, args.source_root)
         verify_review_revisions(root, args.source_root)
+        verify_sample_assembly(root, args.source_root)
         verify_qualification_commands(root, args.source_root)
         verify_repair_commands(root, args.source_root)
         verify_adjudication_commands(root, args.source_root)

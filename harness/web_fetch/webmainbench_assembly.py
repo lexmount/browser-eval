@@ -1,4 +1,4 @@
-"""Package only certified, scored WebMainBench-545 evidence for the full report."""
+"""Assemble declared, bound WebMainBench sample and certified full-cohort evidence."""
 
 from __future__ import annotations
 
@@ -20,9 +20,12 @@ from harness.web_fetch.webmainbench_evidence import (
     read_jsonl,
     require_matrix,
     require_unique_attempt_ids,
+    load_sample_contract,
+    scored_shard_bindings,
+    retry_chain_matches,
 )
 from harness.web_fetch.webmainbench_runner import load_source
-from harness.web_fetch.webmainbench_scoring import verify_score
+from harness.web_fetch.webmainbench_scoring import aggregate, verify_score
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -49,39 +52,60 @@ def _assemble_cohort(
     *,
     scorer: Path | None = None,
     materialize_sources: bool = True,
+    sample_manifest: Path | None = None,
+    review_path: Path | None = None,
 ) -> None:
     if output.exists():
         raise ValueError("Output already exists; report evidence is immutable")
     if root.is_symlink() or source.is_symlink() or profile_path.is_symlink():
         raise ValueError("Symlinked aggregate input is forbidden")
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
-    cert_path = root / "cohort-certificate.json"
-    certificate = json.loads(cert_path.read_text(encoding="utf-8"))
-    scoring_certificate_path = root / "scoring-certificate.json"
-    scoring_certificate = json.loads(
-        scoring_certificate_path.read_text(encoding="utf-8")
-    )
-    if (
-        certificate.get("kind") != "certified_webmainbench_545_full_v1"
-        or certificate.get("profile_sha256") != digest(profile_path)
-        or certificate.get("preflight") != certificate.get("postflight")
-        or certificate["preflight"]["source_sha256"] != profile["source_dataset_sha256"]
-        or [row["provider"] for row in certificate["providers"]] != profile["providers"]
-    ):
-        raise ValueError("Complete-cohort certificate or profile mismatch")
-    if (
-        scoring_certificate.get("kind") != "certified_webmainbench_scoring_v1"
-        or scoring_certificate.get("cohort_certificate_sha256") != digest(cert_path)
-        or scoring_certificate.get("source_binding") != certificate["postflight"]
-        or [row["provider"] for row in scoring_certificate["providers"]]
-        != profile["providers"]
-    ):
-        raise ValueError(
-            "Complete scoring certificate differs from the certified cohort"
+    reviewed_sample = sample_manifest is not None
+    sample = None
+    if reviewed_sample:
+        source_records, sample, profile = load_sample_contract(source, sample_manifest, profile_path)
+        review = json.loads(review_path.read_bytes())
+        checks = review.get("checks", [])
+        if (review.get("status") != "passed" or review.get("failures") != []
+                or not checks or any(row.get("status") != "passed" for row in checks)
+                or review.get("profile_sha256") != digest(profile_path)
+                or review.get("dataset_sha256") != profile["source_dataset_sha256"]
+                or review.get("sample_manifest_sha256") != digest(sample_manifest)
+                or review.get("sample_case_count") != profile["case_count"]
+                or review.get("providers") != profile["providers"]
+                or review.get("bindings", {}).get("provider_files_sha256")
+                   != scored_shard_bindings(root, profile["providers"])):
+            raise ValueError("Sample review is incomplete or bound to different evidence")
+        expected_providers = [{"provider": name} for name in profile["providers"]]
+        scored_providers = [None] * len(expected_providers)
+    else:
+        cert_path = root / "cohort-certificate.json"
+        certificate = json.loads(cert_path.read_text(encoding="utf-8"))
+        scoring_certificate_path = root / "scoring-certificate.json"
+        scoring_certificate = json.loads(
+            scoring_certificate_path.read_text(encoding="utf-8")
         )
-    source_records = load_source(
-        source, expected_sha256=profile["source_dataset_sha256"]
-    )
+        if (
+            certificate.get("kind") != "certified_webmainbench_545_full_v1"
+            or certificate.get("profile_sha256") != digest(profile_path)
+            or certificate.get("preflight") != certificate.get("postflight")
+            or certificate["preflight"]["source_sha256"] != profile["source_dataset_sha256"]
+            or [row["provider"] for row in certificate["providers"]] != profile["providers"]
+        ):
+            raise ValueError("Complete-cohort certificate or profile mismatch")
+        if (
+            scoring_certificate.get("kind") != "certified_webmainbench_scoring_v1"
+            or scoring_certificate.get("cohort_certificate_sha256") != digest(cert_path)
+            or scoring_certificate.get("source_binding") != certificate["postflight"]
+            or [row["provider"] for row in scoring_certificate["providers"]]
+            != profile["providers"]
+        ):
+            raise ValueError(
+                "Complete scoring certificate differs from the certified cohort"
+            )
+        source_records = load_source(source, expected_sha256=profile["source_dataset_sha256"])
+        expected_providers = certificate["providers"]
+        scored_providers = scoring_certificate["providers"]
     ids = {safe_identifier(row["track_id"]) for row in source_records}
     if len(ids) != len(source_records) or len(source_records) != profile["case_count"]:
         raise ValueError("Source case inventory mismatch")
@@ -101,24 +125,23 @@ def _assemble_cohort(
         (output / "sources" / (case_id + ".html.txt")).write_text(
             record["html"], encoding="utf-8"
         )
-    for expected, scored_receipt in zip(
-        certificate["providers"], scoring_certificate["providers"]
-    ):
+    for expected, scored_receipt in zip(expected_providers, scored_providers):
         provider = expected["provider"]
         shard = contained_path(root, safe_identifier(provider), reject_symlinks=True)
         if shard.is_symlink() or any(path.is_symlink() for path in shard.rglob("*")):
             raise ValueError(provider + ": symlinked evidence is forbidden")
-        if verify_shard(shard, provider, ids, profile) != expected:
+        measured = verify_shard(shard, provider, ids, profile)
+        if not reviewed_sample and measured != expected:
             raise ValueError(provider + ": certificate differs from measured shard")
         if (
-            scorer is not None
+            not reviewed_sample and scorer is not None
             and verify_score(shard, provider, ids, scorer, profile) != scored_receipt
         ):
             raise ValueError(
                 provider + ": score certificate differs from verified scores"
             )
         rows = read_jsonl(shard / "scored-results.jsonl")
-        if (
+        if not reviewed_sample and (
             scored_receipt["scored_results_sha256"]
             != digest(shard / "scored-results.jsonl")
             or scored_receipt["score_summary_sha256"]
@@ -139,10 +162,16 @@ def _assemble_cohort(
         if (
             summary.get("case_count") != profile["case_count"]
             or summary.get("provider") != provider
-            or summary.get("scorer", {}).get("metric_source_sha256")
-            != scoring_certificate["scorer_source_sha256"]
+            or (not reviewed_sample and summary.get("scorer", {}).get("metric_source_sha256")
+                != scoring_certificate["scorer_source_sha256"])
         ):
             raise ValueError(provider + ": score summary scope mismatch")
+        if reviewed_sample:
+            score_config = {key: value for key, value in profile["metric_config"].items() if key != "reason"}
+            if (summary.get("scorer", {}).get("commit") != profile["official_scorer_commit"]
+                    or summary.get("scorer", {}).get("metric_config") != score_config
+                    or summary.get("official_aggregate") != aggregate(rows)):
+                raise ValueError(provider + ": scored summary differs from declared sample contract")
         logical = {row["track_id"]: row for row in read_jsonl(shard / "results.jsonl")}
         for row in rows:
             base = logical[row["track_id"]]
@@ -158,8 +187,21 @@ def _assemble_cohort(
                 attempt["physical_artifact_path"],
                 attempt["output_sha256"],
             )
+        if reviewed_sample:
+            source_by_id = {row["track_id"]: row for row in source_records}
+            for row in rows:
+                record = source_by_id[row["track_id"]]
+                chain = [call for call in attempts if call["track_id"] == row["track_id"]]
+                if (not retry_chain_matches(row, chain)
+                        or len(chain) > profile["max_failure_retries"] + 1
+                        or row.get("input_html_sha256") != hashlib.sha256(record["html"].encode()).hexdigest()
+                        or row.get("reference_sha256") != hashlib.sha256(record["groundtruth_content"].encode()).hexdigest()):
+                    raise ValueError(provider + ": sample retry or source bindings differ")
         physical.extend(public_value(attempts))
         execution = json.loads((shard / "execution.json").read_text(encoding="utf-8"))
+        if reviewed_sample and any(execution.get(key) != profile[key]
+                                   for key in ("timeout_seconds", "max_failure_retries")):
+            raise ValueError(provider + ": execution differs from the declared sample contract")
         ca = execution.get("fixture_ca_artifact")
         if ca:
             ca_source = contained_path(shard, ca, reject_symlinks=True)
@@ -171,6 +213,12 @@ def _assemble_cohort(
             ca_target = output / "fixture-certificates" / (provider + "-ca.pem")
             shutil.copy2(ca_source, ca_target)
             execution["assembled_fixture_ca_path"] = str(ca_target.relative_to(output))
+        for correction in execution.get("correction_runs", []):
+            if correction.get("fixture_ca_sha256"):
+                target_ca = f"fixture-certificates/{provider}-correction-ca.pem"
+                copy_bound(shard, output, "correction-fixture-ca.pem", correction["fixture_ca_sha256"],
+                           target_relative=target_ca)
+                correction["assembled_fixture_ca_path"] = target_ca
         executions.append(execution)
         summaries[provider] = summary
     expected_pairs = {
@@ -209,6 +257,17 @@ def _assemble_cohort(
         "coverage_plan": {"static_html": profile["providers"]},
         "comparison": profile,
     }
+    if reviewed_sample:
+        comparison_keys = ("timeout_seconds", "runs_per_case", "concurrency", "max_failure_retries",
+                           "source_dataset_sha256", "sample_manifest_sha256", "official_scorer_commit",
+                           "official_metrics", "metric_config", "input_contract", "reference_binding_mode",
+                           "publication_state", "unverified_reference_cases", "require_independent_result_review",
+                           "conversion")
+        dataset["comparison"] = {key: profile[key] for key in comparison_keys if key in profile}
+        dataset["comparison"]["kind"] = profile["comparison_kind"]
+        dataset["sample_manifest_sha256"] = digest(sample_manifest)
+        dataset["sample"] = {key: sample.get(key) for key in ("dataset_id", "sampling", "parent_distribution",
+                                                             "sample_distribution", "quality_audit")}
     (output / "dataset.json").write_text(
         json.dumps(dataset, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -227,8 +286,21 @@ def _assemble_cohort(
         "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in physical),
         encoding="utf-8",
     )
-    shutil.copy2(cert_path, output / "cohort-certificate.json")
-    shutil.copy2(scoring_certificate_path, output / "scoring-certificate.json")
+    if reviewed_sample:
+        review.setdefault("bindings", {})["results_jsonl_sha256"] = digest(output / "results.jsonl")
+        review["assembly"] = {"profile_sha256": digest(profile_path), "source_review_sha256": digest(review_path)}
+        _write_json(output / "result-review.json", review)
+        shutil.copy2(sample_manifest, output / "sample-manifest.json")
+        correction = root / "fixture-correction.json"
+        if correction.exists():
+            receipt = json.loads(correction.read_bytes())
+            if (receipt.get("sample_manifest_sha256") != digest(sample_manifest)
+                    or receipt.get("source_dataset_sha256") != profile["source_dataset_sha256"]):
+                raise ValueError("Fixture correction binding mismatch")
+            shutil.copy2(correction, output / "fixture-correction.json")
+    else:
+        shutil.copy2(cert_path, output / "cohort-certificate.json")
+        shutil.copy2(scoring_certificate_path, output / "scoring-certificate.json")
     shutil.copy2(profile_path, output / "current-report.json")
 
 
@@ -286,6 +358,9 @@ def _cohort_input_files(
                     shard, execution["fixture_ca_artifact"], reject_symlinks=True
                 )
             )
+        for correction in execution.get("correction_runs", []):
+            if correction.get("fixture_ca_sha256"):
+                paths.add(contained_path(shard, "correction-fixture-ca.pem", reject_symlinks=True))
     return paths
 
 
@@ -298,10 +373,16 @@ def assemble(
     registry_path: Path | None = None,
     cohorts: dict[str, Path] | None = None,
     scorer: Path | None = None,
+    sample_manifest: Path | None = None,
+    review_path: Path | None = None,
 ) -> None:
     """Assemble the declared baseline and independently certified variant cohorts."""
-    if output.exists():
+    if output.exists() or output.is_symlink():
         raise ValueError("Output already exists; report evidence is immutable")
+    if bool(sample_manifest) != bool(review_path):
+        raise ValueError("Sample assembly requires both a manifest and a bound review")
+    if sample_manifest and (registry_path or cohorts):
+        raise ValueError("Sample methods must be declared together in their profile")
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
     providers = [safe_identifier(provider) for provider in profile["providers"]]
     if not providers or len(providers) != len(set(providers)):
@@ -353,6 +434,7 @@ def assemble(
         profile_path,
         *cohorts.values(),
         *([registry_path] if registry_path else []),
+        *([sample_manifest, review_path] if sample_manifest else []),
     ):
         if path.is_symlink():
             raise ValueError("Symlinked aggregate input is forbidden")
@@ -361,7 +443,13 @@ def assemble(
             raise ValueError("Symlinked aggregate evidence is forbidden")
         if output.resolve().is_relative_to(path.resolve()):
             raise ValueError("Aggregate output cannot be inside input evidence")
-    inputs = _cohort_input_files(root, profile_path, scorer) | {source}
+    if sample_manifest:
+        inputs = {root / relative for relative in scored_shard_bindings(root, providers)}
+        inputs.update((source, profile_path, sample_manifest, review_path))
+        if (root / "fixture-correction.json").exists():
+            inputs.add(root / "fixture-correction.json")
+    else:
+        inputs = _cohort_input_files(root, profile_path, scorer) | {source}
     if registry_path is not None:
         inputs.add(registry_path)
         for item in variants:
@@ -379,8 +467,10 @@ def assemble(
         prefix=".webmainbench-assemble-", dir=output.parent
     ) as work:
         staging = Path(work) / "package"
-        _assemble_cohort(root, staging, source, profile_path, scorer=scorer)
-        baseline_cert = json.loads((staging / "cohort-certificate.json").read_text())
+        _assemble_cohort(root, staging, source, profile_path, scorer=scorer,
+                         sample_manifest=sample_manifest, review_path=review_path)
+        baseline_cert = (json.loads((staging / "cohort-certificate.json").read_text())
+                         if sample_manifest is None else None)
         rows = read_jsonl(staging / "results.jsonl")
         calls = read_jsonl(staging / "physical-attempts.jsonl")
         summaries = json.loads((staging / "score-summaries.json").read_text())
@@ -544,8 +634,23 @@ def assemble(
             for path, expected in fingerprints.items()
         ):
             raise ValueError("Declared evidence changed during aggregation")
+        if output.exists() or output.is_symlink():
+            raise ValueError("Aggregate output appeared during staging")
         staging.rename(output)
     print(f"Assembled {len(rows)} results and {len(calls)} physical calls", flush=True)
+
+
+def sample_main(argv=None, *, root=None):
+    parser = argparse.ArgumentParser(description="Assemble a profile-declared WebMainBench sample")
+    parser.add_argument("--source-root", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--dataset", type=Path, required=True)
+    parser.add_argument("--sample-manifest", type=Path, required=True)
+    parser.add_argument("--review", type=Path, required=True)
+    parser.add_argument("--profile", type=Path, default=(root or Path.cwd()) / "evaluation/current-report.json")
+    args = parser.parse_args(argv)
+    assemble(args.source_root, args.output, args.dataset, args.profile,
+             sample_manifest=args.sample_manifest, review_path=args.review)
 
 
 def main() -> None:

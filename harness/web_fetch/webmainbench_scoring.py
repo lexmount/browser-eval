@@ -17,6 +17,7 @@ from harness.record_io import load_jsonl
 
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
+METRIC_SOURCE_MANIFEST_SHA256 = "d1a503f7a475da2e118f008f9a63c49cba6fb2378b08de01fb2c3c4c1b96dc31"
 CORE_METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
 
 

@@ -403,3 +403,37 @@ def test_new_certified_variant_replaces_only_its_method_and_preserves_previous_p
         ]
     )
     assert all(digest(path) == expected for path, expected in frozen.items())
+
+
+def test_correction_fixture_ca_is_bound_and_cannot_change_after_copy(evidence, monkeypatch):
+    from harness.web_fetch import webmainbench_assembly as assembly
+
+    directory, baseline, source, scorer, profile = evidence
+    shard = baseline / 'engine-a'
+    ca = shard / 'correction-fixture-ca.pem'
+    ca.write_text('frozen correction CA')
+    execution = json.loads((shard / 'execution.json').read_bytes())
+    execution['correction_runs'] = [{'fixture_ca_sha256': digest(ca)}]
+    write_json(shard / 'execution.json', execution)
+    certificate = json.loads((baseline / 'cohort-certificate.json').read_bytes())
+    certificate['providers'][0] = verify_shard(shard, 'engine-a',
+                                              {row['track_id'] for row in read_jsonl(source)},
+                                              json.loads(profile.read_bytes()))
+    write_json(baseline / 'cohort-certificate.json', certificate)
+    scored = json.loads((baseline / 'scoring-certificate.json').read_bytes())
+    scored['cohort_certificate_sha256'] = digest(baseline / 'cohort-certificate.json')
+    write_json(baseline / 'scoring-certificate.json', scored)
+    output = directory / 'complete-correction-package'
+    assemble(baseline, output, source, profile, scorer=scorer)
+    assert (output / 'fixture-certificates/engine-a-correction-ca.pem').read_bytes() == ca.read_bytes()
+    original = assembly._assemble_cohort
+
+    def collect_then_change(*args, **kwargs):
+        original(*args, **kwargs)
+        ca.write_text('changed after copy')
+
+    monkeypatch.setattr(assembly, '_assemble_cohort', collect_then_change)
+    refused = directory / 'changed-correction-package'
+    with pytest.raises(ValueError, match='changed during aggregation'):
+        assemble(baseline, refused, source, profile, scorer=scorer)
+    assert not refused.exists()

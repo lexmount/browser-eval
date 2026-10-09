@@ -70,15 +70,16 @@ def load_source(
     path: Path,
     selected_ids: set[str] | None = None,
     expected_sha256: str = DATASET_SHA256,
+    *, expected_count: int = 545,
 ) -> list[dict]:
     payload = path.read_bytes()
     actual = sha256_bytes(payload)
     if actual != expected_sha256:
         raise ValueError(f"Unexpected WebMainBench-545 SHA-256: {actual}")
     records = parse_jsonl(payload, skip_blank=True)
-    if len(records) != 545:
-        raise ValueError(f"Expected 545 records, found {len(records)}")
-    if len({record["track_id"] for record in records}) != 545:
+    if type(expected_count) is not int or expected_count <= 0 or len(records) != expected_count:
+        raise ValueError(f"Expected {expected_count} records, found {len(records)}")
+    if len({record["track_id"] for record in records}) != expected_count:
         raise ValueError("WebMainBench track_id values are not unique")
     if selected_ids is not None:
         records = [record for record in records if record["track_id"] in selected_ids]

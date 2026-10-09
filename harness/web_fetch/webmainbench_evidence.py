@@ -158,3 +158,53 @@ def read_method_binding(root: Path) -> tuple[str, dict]:
     ):
         raise ValueError("Unsupported method-cohort binding format")
     return names[0], binding
+
+
+def load_sample_contract(source: Path, manifest_path: Path, profile_path: Path):
+    """Read a predeclared sample and method matrix without assuming its size or providers."""
+    from .webmainbench_runner import load_source
+
+    for path in (source, manifest_path, profile_path):
+        contained_path(path.parent, path.name, reject_symlinks=True)
+    profile = json.loads(profile_path.read_bytes())
+    manifest = json.loads(manifest_path.read_bytes())
+    providers = [safe_identifier(name) for name in profile["providers"]]
+    ids = [safe_identifier(row["track_id"]) for row in manifest.get("cases", [])]
+    if (not providers or len(set(providers)) != len(providers)
+            or not ids or len(set(ids)) != len(ids)
+            or manifest.get("schema_version") != 1
+            or manifest.get("sampling", {}).get("size") != len(ids)
+            or profile.get("case_count") != len(ids)
+            or profile.get("runs_per_case") != 1 or profile.get("concurrency") != 1
+            or profile.get("source_dataset_sha256") != manifest.get("parent", {}).get("sha256")
+            or profile.get("sample_manifest_sha256") != digest(manifest_path)):
+        raise ValueError("Sample manifest and declared profile differ")
+    records = load_source(source, set(ids), profile["source_dataset_sha256"],
+                          expected_count=manifest["parent"].get("records"))
+    return records, manifest, profile
+
+
+def scored_shard_bindings(root: Path, providers: list[str], *, shards=None) -> dict[str, str]:
+    """Bind exactly the review-visible records, summaries, execution and output bytes."""
+    bindings = {}
+    for provider in providers:
+        shard = (contained_path(root, safe_identifier(provider), reject_symlinks=True)
+                 if shards is None else contained_path(shards[provider].parent, shards[provider].name,
+                                                       reject_symlinks=True))
+        paths = {name for name in ("dataset.json", "results.jsonl", "scored-results.jsonl",
+                                  "physical-attempts.jsonl", "score-summary.json", "execution.json")}
+        for name, key in (("results.jsonl", "artifact_path"),
+                          ("scored-results.jsonl", "artifact_path"),
+                          ("physical-attempts.jsonl", "physical_artifact_path")):
+            for row in read_jsonl(contained_path(shard, name, reject_symlinks=True)):
+                paths.add(row[key])
+        execution = json.loads(contained_path(shard, "execution.json", reject_symlinks=True).read_bytes())
+        if execution.get("fixture_ca_artifact"):
+            paths.add(execution["fixture_ca_artifact"])
+        for correction in execution.get("correction_runs", []):
+            if correction.get("fixture_ca_sha256"):
+                paths.add("correction-fixture-ca.pem")
+        for relative in sorted(paths):
+            path = contained_path(shard, relative, reject_symlinks=True)
+            bindings[f"{provider}/{relative}"] = digest(path)
+    return bindings
