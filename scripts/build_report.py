@@ -3,7 +3,7 @@ import argparse,json,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from harness.web_fetch.report_build import build_report, build_public_benchmark_research, build_wcxb_report, build_webmainbench_full_report, build_diagnostic_cohorts
+from harness.web_fetch.report_build import build_report, build_public_benchmark_research, build_wcxb_report, build_webmainbench_full_report, build_diagnostic_cohorts, refresh_local_presentation
 from harness.web_fetch.storage import (
     current_evidence_dir,
     require_canonical_inputs,
@@ -20,6 +20,8 @@ if __name__ == '__main__':
     parser.add_argument('--output',type=Path)
     parser.add_argument('--include-english',action='store_true',
                         help='also generate the English report; Chinese-only is the default')
+    parser.add_argument('--refresh-presentation', type=Path,
+                        help='refresh an existing local report using a hash-bound current-local-results.json; preserve measured evidence')
     parser.add_argument('--local-audit',action='store_true',
                         help='build an explicitly local, non-publishable audit report from bound evidence')
     parser.add_argument('--diagnostic-cohorts',action='store_true',
@@ -31,6 +33,11 @@ if __name__ == '__main__':
     args=parser.parse_args()
     from harness.reporting.templates import resolve_template
     resolve_template('webfetch')
+    if args.refresh_presentation:
+        if not args.output or args.evidence or args.profile or args.local_audit or args.include_english or args.diagnostic_cohorts or args.wcxb or args.webmainbench_full or args.public_benchmark_research:
+            parser.error('--refresh-presentation requires only an existing --output and its result binding')
+        print(refresh_local_presentation(args.output, args.refresh_presentation))
+        raise SystemExit(0)
     if args.profile:
         args.profile=(ROOT/args.profile).resolve() if not args.profile.is_absolute() else args.profile.resolve()
         if not args.profile.is_relative_to((ROOT/'evaluation').resolve()):

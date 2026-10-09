@@ -1,5 +1,6 @@
 """Verify reconstructed public files, scored bytes and explicit redaction hashes."""
 from functools import lru_cache
+import base64
 import gzip
 import hashlib
 import json
@@ -22,17 +23,22 @@ def scored_output_hash(row: dict) -> str:
     return expected
 
 
-def check(archive,source):
+def check(archive,source,overlay=None):
     with zipfile.ZipFile(archive) as bundle:
-        shell=BeautifulSoup(bundle.read('index.html'),'html.parser')
+        def read(name):
+            patched=overlay/name if overlay else None
+            return patched.read_bytes() if patched and patched.is_file() else bundle.read(name)
+        shell=BeautifulSoup(read('index.html'),'html.parser')
         shell_assets=[node.get('src') or node.get('href')
                       for node in shell.select('script[src],link[rel="stylesheet"][href]')]
         if shell_assets != ['style.css','report.js','loader.js']:
             raise ValueError('Publication shell must use exact query-free physical asset paths')
-        manifest=json.loads(bundle.read('manifest.json'))
+        manifest=json.loads(read('manifest.json'))
         @lru_cache(maxsize=8)
-        def pack(name):return gzip.decompress(bundle.read(name))
+        def pack(name):return gzip.decompress(read(name))
         def data(name):
+            if 'inline_base64' in manifest['files'][name]:
+                return base64.b64decode(manifest['files'][name]['inline_base64'],validate=True)
             parts=[]
             for digest in manifest['files'][name]['parts']:
                 block=manifest['blocks'][digest]
@@ -126,4 +132,5 @@ def check(archive,source):
 
 if __name__=='__main__':
     check(Path(sys.argv[1]) if len(sys.argv)>1 else ROOT/'publish/webfetch-sites.zip',
-          Path(sys.argv[2]) if len(sys.argv)>2 else ROOT/'reports/webfetch')
+          Path(sys.argv[2]) if len(sys.argv)>2 else ROOT/'reports/webfetch',
+          Path(sys.argv[3]) if len(sys.argv)>3 else None)

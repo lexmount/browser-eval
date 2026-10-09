@@ -242,6 +242,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / '.generated-report').write_text('local marker')
             (source / 'dataset.json').write_text('{}')
             (source / 'reliability.json').write_text('{"complete":true}')
+            (source / 'report-manifest.json').write_text('{}')
             (source / 'result-review.json').write_text('{"status":"passed","failures":[]}')
             call_logs=[b'{"event":"failed"}\n',b'{"event":"complete"}\n']
             call_log_paths=['call-logs/browser/case/run-001-physical-001.json',
@@ -364,6 +365,42 @@ class PublicationPrivacyTests(unittest.TestCase):
                 self.assertIn(b'{"field":"parsed"}', file_attempt)
                 self.assertIn(b'{"field":"response"}', file_attempt)
             check_bundle(root / 'publish/webfetch-sites.zip',source)
+            # A small correction keeps all original packed evidence. Only the
+            # loader and complete manifest are sent to the existing site.
+            from unittest.mock import patch
+            import importlib.util
+            with patch.object(sys, 'argv', ['package_artifact_hub.py']):
+                module_spec = importlib.util.spec_from_file_location('incremental_package', Path(__file__).parents[1] / 'scripts/package_artifact_hub.py')
+                module = importlib.util.module_from_spec(module_spec)
+                module_spec.loader.exec_module(module)
+            archive_path = root / 'publish/webfetch-sites.zip'
+            baseline_digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
+            old_home = (source / 'index.html').read_bytes()
+            (source / 'index.html').write_text('<html><body>45 秒；实际调用示例</body></html>')
+            (source / 'report-manifest.json').write_text(json.dumps({'presentation_refresh': {
+                'scores_changed': False, 'provider_calls_added': 0, 'changed_routes': ['index.html']}}))
+            delta = root / 'delta'
+            module.build_incremental(source, archive_path, delta)
+            self.assertEqual({path.name for path in delta.iterdir()}, {'loader.js', 'manifest.json', 'update-receipt.json'})
+            patched_manifest = json.loads((delta / 'manifest.json').read_text())
+            self.assertEqual(patched_manifest['blocks'], manifest['blocks'])
+            self.assertEqual(patched_manifest['files']['results.jsonl'], manifest['files']['results.jsonl'])
+            self.assertIn('inline_base64', patched_manifest['files']['index.html'])
+            self.assertEqual(hashlib.sha256(archive_path.read_bytes()).hexdigest(), baseline_digest)
+            check_bundle(archive_path, source, delta)
+            # Reject a different cohort or an attempt/log rewrite.
+            saved_results = (source / 'results.jsonl').read_bytes()
+            (source / 'results.jsonl').write_bytes(b'changed results')
+            with self.assertRaisesRegex(ValueError, 'cannot replace measured results'):
+                module.build_incremental(source, archive_path, root / 'wrong-cohort')
+            (source / 'results.jsonl').write_bytes(saved_results)
+            (source / 'report-manifest.json').write_text(json.dumps({'presentation_refresh': {
+                'scores_changed': False, 'provider_calls_added': 0, 'changed_routes': ['attempts/browser__case__r001.html']}}))
+            with self.assertRaisesRegex(ValueError, 'Not an explanatory route'):
+                module.build_incremental(source, archive_path, root / 'wrong-route')
+            (source / 'index.html').write_bytes(old_home)
+            shutil.rmtree(module.DEST)
+
             for broken in ('<a href="missing.html">missing</a>',
                            '<pre data-file="missing.txt"></pre>',
                            '<img src="missing.png">'):

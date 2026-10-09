@@ -241,6 +241,49 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     assert "Actions" not in page
     assert "Actions" in provider_page_body("firecrawl", method_records, method_cases, [], [])
 
+    # Explanatory edits of a historical snapshot must preserve every measured
+    # byte, even after the repository scorer has moved on.
+    from harness.web_fetch.report_build import refresh_local_presentation
+    binding_path = tmp_path / "presentation-binding.json"
+    frozen_rows = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+    historical_scorer = "f" * 64
+    for row in frozen_rows:
+        row["metrics"]["scoring_source_sha256"] = historical_scorer
+    (output / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in frozen_rows))
+    manifest = json.loads((output / "report-manifest.json").read_text())
+    manifest["results_sha256"] = _digest(output / "results.jsonl")
+    _write(output / "report-manifest.json", manifest)
+    binding = {"comparison_kind": "uniform_native_local_measurement",
+        "result_count": 1, "case_count": 1, "providers": ["fixture"],
+        "frozen_dataset_sha256": _digest(output / "dataset.json"),
+        "results_sha256": manifest["results_sha256"],
+        "measured_scoring_source_sha256": historical_scorer,
+        "measured_scoring_git_revision": "historical-revision"}
+    _write(binding_path, binding)
+    before = {path.relative_to(output).as_posix(): _digest(path)
+              for path in output.rglob("*") if path.is_file()}
+    refresh_local_presentation(output, binding_path)
+    allowed = {"index.html", "methodology/index.html", "adoption/index.html",
+               "reproduce/index.html", "providers/fixture.html",
+               "adoption/interfaces/fixture.json", "report-manifest.json"}
+    for relative, digest in before.items():
+        if relative not in allowed:
+            assert _digest(output / relative) == digest
+    assert _digest(output / "results.jsonl") == binding["results_sha256"]
+    refreshed = json.loads((output / "report-manifest.json").read_text())
+    assert refreshed["certified"] is False
+    assert refreshed["presentation_refresh"]["scores_changed"] is False
+    _write(binding_path, {**binding, "results_sha256": "0" * 64})
+    with pytest.raises(ValueError, match="input binding changed"):
+        refresh_local_presentation(output, binding_path)
+    _write(binding_path, binding)
+    artifact = output / frozen_rows[0]["artifact_path"]
+    original_output = artifact.read_bytes()
+    artifact.write_bytes(b"altered output")
+    with pytest.raises(ValueError, match="Saved output changed"):
+        refresh_local_presentation(output, binding_path)
+    artifact.write_bytes(original_output)
+
     # Self-consistent totals must still identify the actual physical calls.
     import copy
     changed_batch = copy.deepcopy(batch)

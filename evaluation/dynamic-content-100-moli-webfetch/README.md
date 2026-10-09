@@ -35,3 +35,24 @@ historical scores; a newer scorer requires an explicit offline revision receipt.
 The result set is a dated local diagnostic comparison, not a certified release:
 sources were not recaptured for these calls, and the caller/evidence audit does
 not constitute an independent blind review of all passing results.
+
+To update only the explanations of an existing bound Chinese report after the
+scorer has changed, use the current renderer without rescoring:
+
+```bash
+uv run --frozen python scripts/build_report.py \
+  --refresh-presentation evaluation/dynamic-content-100-moli-webfetch/current-local-results.json \
+  --output /absolute/path/to/report
+uv run --frozen python scripts/check_report.py /absolute/path/to/report \
+  --presentation-binding evaluation/dynamic-content-100-moli-webfetch/current-local-results.json
+```
+
+This explicit presentation mode verifies the bound dataset, 1,000 saved results,
+scoring identity, outputs and call logs. It replaces explanatory pages only and
+does not certify the snapshot or accept it as freshly scored evidence.
+
+For a lazy-route package, the incremental packaging option keeps every previous
+binary pack and produces only `loader.js` and `manifest.json` for single-file
+edits on the existing site. Install the backward-compatible loader first and
+the complete replacement manifest second, using the bound expected version for
+each edit. No unchanged evidence pack is uploaded.

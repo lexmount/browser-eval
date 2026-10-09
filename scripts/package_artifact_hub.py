@@ -4,6 +4,7 @@ The original report is untouched. Repeated reference/output HTML is reconstructe
 from the same source files. Scored outputs remain byte-identical; supplemental
 HTML may be redacted with separate original/published hashes. Hub injects a root base.
 """
+import base64
 import gzip
 import hashlib
 import html
@@ -60,6 +61,7 @@ async function pack(name){
 }
 async function fileBytes(path){
  const m=await manifest(),f=m.files[path];if(!f)throw Error(tr('文件不存在：','File not found: ')+path);
+ if(f.inline_base64!==undefined){const bytes=Uint8Array.from(atob(f.inline_base64),c=>c.charCodeAt(0));if(bytes.length!==f.size)throw Error(tr('文件长度错误：','Invalid file length: ')+path);return bytes}
  const result=new Uint8Array(f.size);let offset=0;
  for(const hash of f.parts){const part=m.blocks[hash],bytes=await pack(part.pack);result.set(bytes.subarray(part.offset,part.offset+part.size),offset);offset+=part.size}
  return result;
@@ -349,6 +351,71 @@ def build():
    if path.is_file():z.write(path,path.relative_to(DEST))
  print(archive)
 
+def build_incremental(source: Path, baseline: Path, destination: Path):
+ """Keep every baseline pack; replace explanatory routes in one text manifest.
+
+ The backward-compatible loader is installed first, then the complete manifest.
+ This avoids both binary pack uploads and partially changed report content.
+ """
+ with zipfile.ZipFile(baseline) as bundle:
+  manifest=json.loads(bundle.read('manifest.json'))
+  if manifest.get('schema_version')!=2:
+   raise ValueError('Incremental update requires the lazy-route package')
+  def old_bytes(name):
+   file=manifest['files'][name]
+   if 'inline_base64' in file:return base64.b64decode(file['inline_base64'],validate=True)
+   parts=[]
+   for key in file['parts']:
+    block=manifest['blocks'][key]
+    raw=gzip.decompress(bundle.read(block['pack']))
+    parts.append(raw[block['offset']:block['offset']+block['size']])
+   return b''.join(parts)
+  if old_bytes('results.jsonl') != project_file('results.jsonl',(source/'results.jsonl').read_bytes())[0]:
+   raise ValueError('Incremental update cannot replace measured results')
+  refresh=json.loads((source/'report-manifest.json').read_text()).get('presentation_refresh')
+  if not refresh or refresh.get('scores_changed') is not False or refresh.get('provider_calls_added')!=0:
+   raise ValueError('Incremental update requires a presentation-only receipt')
+  routes=refresh['changed_routes']+['report-manifest.json']
+  privacy=json.loads(old_bytes('publication-privacy.json'))
+  disclosures={item['path']:item for item in privacy['files']}
+  changes={}
+  def replace(name,data):
+   if name not in manifest['files']:raise ValueError('Incremental update cannot add a route: '+name)
+   if data==old_bytes(name):return
+   manifest['files'][name]={'inline_base64':base64.b64encode(data).decode(),
+       'size':len(data),'sha256':hashlib.sha256(data).hexdigest(),
+       'mime':manifest['files'][name]['mime']}
+   changes[name]=manifest['files'][name]['sha256']
+  from harness.web_fetch.safety import contained_path
+  for name in routes:
+   allowed=name in {'index.html','methodology/index.html','adoption/index.html','reproduce/index.html','report-manifest.json'} or (
+       name.startswith('providers/') and name.endswith('.html')) or (
+       name.startswith('adoption/interfaces/') and name.endswith('.json'))
+   if not allowed:raise ValueError('Not an explanatory route: '+name)
+   data,redaction=project_file(name,contained_path(source,name).read_bytes())
+   disclosures.pop(name,None)
+   if redaction:
+    redaction['published_sha256']=hashlib.sha256(data).hexdigest()
+    redaction['published_bytes']=len(data)
+    disclosures[name]=redaction
+   replace(name,data)
+  privacy['files']=list(disclosures.values())
+  replace('publication-privacy.json',(json.dumps(privacy,ensure_ascii=False,indent=2)+'\n').encode())
+  destination.mkdir(parents=True,exist_ok=False)
+  (destination/'loader.js').write_text(LOADER)
+  raw=json.dumps(manifest,separators=(',',':')).encode()
+  (destination/'manifest.json').write_bytes(raw)
+  receipt={'kind':'presentation_only_incremental_update','baseline_archive_sha256':hashlib.sha256(baseline.read_bytes()).hexdigest(),
+      'changed_virtual_files':changes,'physical_files':['loader.js','manifest.json'],
+      'unchanged_content_packs':len({block['pack'] for block in manifest['blocks'].values()}),
+      'provider_calls_added':0,'scores_changed':False,
+      'upload_bytes':sum((destination/name).stat().st_size for name in ['loader.js','manifest.json'])}
+  (destination/'update-receipt.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+  print(json.dumps(receipt,ensure_ascii=False))
+
 if __name__=='__main__':
- try:build()
+ try:
+  if len(sys.argv)==5 and sys.argv[3]=='--incremental':
+   build_incremental(SOURCE,ARCHIVE,Path(sys.argv[4]))
+  else:build()
  finally:shutil.rmtree(DEST)
