@@ -136,3 +136,92 @@ def test_missing_locked_architecture_fails_before_docker_use(tmp_path: Path) -> 
 
     with pytest.raises(ValueError, match="explicitly amd64 or arm64"):
         RuntimeConfig.load(path)
+
+
+@pytest.mark.parametrize("damage", [None, "tile", "route", "fabricated"])
+def test_map_acceptance_checks_full_frozen_contract(tmp_path, monkeypatch, damage):
+    import io
+    import json
+    from urllib.error import HTTPError
+
+    from harness.environments.webarena import map_setup
+
+    class Response(io.BytesIO):
+        status = 200
+
+    def get(url, **kwargs):
+        if url.endswith(("/", "/login", "/api/capabilities")):
+            return Response(b"synthetic entry point")
+        if "/nominatim/search?" in url:
+            data = [
+                {
+                    "lat": "40.44",
+                    "lon": "-79.95",
+                    "address": {"postcode": "15213"},
+                    "display_name": "Carnegie Mellon University",
+                }
+            ]
+        elif "/nominatim/reverse?" in url:
+            data = {"address": {"city": "Pittsburgh"}}
+        elif "/osrm/" in url:
+            data = {"code": "Invalid" if damage == "route" else "Ok", "routes": [{"distance": 100}]}
+        elif "/tile/" in url:
+            return Response(
+                b"not an image" if damage == "tile" else b"\x89PNG\r\n\x1a\n" + b"x" * 200
+            )
+        elif url.endswith("/relation/999999999999"):
+            if damage == "fabricated":
+                return Response(b"fabricated object")
+            raise HTTPError(url, 404, "missing", {}, None)
+        else:
+            names = {
+                "1479729158": "Bei Jing",
+                "172206707": "Chatham University",
+                "2279034": "Carnegie Mellon University",
+                "5475586": "Lake Pontchartrain Causeway",
+            }
+            identifier = url.rsplit("/", 1)[1]
+            return Response(f"<!doctype html>{identifier} {names[identifier]}".encode())
+        return Response(json.dumps(data).encode())
+
+    monkeypatch.setattr(map_setup, "urlopen", get)
+    output = tmp_path / "receipt.json"
+    if damage:
+        with pytest.raises(ValueError):
+            map_setup.map_check_main(["--url", "https://map.example", "--output", str(output)])
+        assert not output.exists()
+        return
+    map_setup.map_check_main(["--url", "https://map.example", "--output", str(output)])
+    receipt = json.loads(output.read_text())
+    assert receipt["status"] == "pass" and len(receipt["checks"]) == 14
+    monkeypatch.setattr(
+        map_setup,
+        "urlopen",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("existing output must fail before HTTP")
+        ),
+    )
+    with pytest.raises(ValueError, match="output already exists"):
+        map_setup.map_check_main(["--url", "https://map.example", "--output", str(output)])
+
+
+def test_map_acceptance_remains_enforced_under_python_optimization():
+    import subprocess
+    import sys
+
+    code = """
+import io
+from harness.environments.webarena import map_setup
+class Response(io.BytesIO):
+    status = 200
+map_setup.urlopen = lambda *args, **kwargs: Response(b'[]')
+try:
+    map_setup.verify_map_endpoint('https://map.example')
+except ValueError as error:
+    if 'CMU search result missing' not in str(error):
+        raise RuntimeError('wrong rejection')
+else:
+    raise RuntimeError('optimized Python skipped acceptance')
+"""
+    result = subprocess.run([sys.executable, "-O", "-c", code], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
