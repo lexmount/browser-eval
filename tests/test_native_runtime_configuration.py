@@ -56,7 +56,7 @@ def test_declared_native_installation_is_authoritative(checkout, method, change)
                     'node_modules/.pnpm/.browser-harness-dsh-worker.mts']
         deployed = repo / required[-1]
         deployed.parent.mkdir(parents=True)
-        shutil.copyfile(ROOT / 'scripts/oss/dsh_webfetch_worker.mts', deployed)
+        shutil.copyfile(ROOT / 'harness/web_fetch/workers/dsh_webfetch_worker.mts', deployed)
     config = {'repo_path': str(repo), 'expected_repo_revision': revision,
               'required_paths': ['{repo_path}/' + name for name in required]}
     if method != 'cowagent_builtin':
@@ -64,7 +64,7 @@ def test_declared_native_installation_is_authoritative(checkout, method, change)
                   else 'dsh_webfetch_worker.mts')
         config.update(method_type=method, command=[str(repo / 'node')],
                       expected_node_version='v30.1.2')
-        config['required_paths'].append('{harness_root}/scripts/oss/' + worker)
+        config['required_paths'].append('{harness_root}/harness/web_fetch/workers/' + worker)
     if method == 'openclaw_builtin':
         config.update(package_manager_command=str(repo / 'pnpm'),
                       expected_package_manager_version='15.2.3')

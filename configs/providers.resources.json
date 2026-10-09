@@ -144,7 +144,7 @@
         "${OPENCLAW_NODE:-node}",
         "--import",
         "tsx",
-        "{harness_root}/scripts/oss/openclaw_webfetch_worker.mts"
+        "{harness_root}/harness/web_fetch/workers/openclaw_webfetch_worker.mts"
       ],
       "env": {
         "OPENCLAW_REPO": "${OPENCLAW_REPO}"
@@ -156,7 +156,7 @@
       "required_paths": [
         "{repo_path}/src/agents/tools/web-fetch.ts",
         "{repo_path}/pnpm-lock.yaml",
-        "{harness_root}/scripts/oss/openclaw_webfetch_worker.mts"
+        "{harness_root}/harness/web_fetch/workers/openclaw_webfetch_worker.mts"
       ]
     },
     "deepseek-harness-built-in": {
@@ -183,8 +183,8 @@
         "{repo_path}/packages/guard/timeout-policy/lib/index.js",
         "{repo_path}/pnpm-lock.yaml",
         "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
-        "{harness_root}/scripts/oss/dsh_webfetch_worker.mts",
-        "{harness_root}/scripts/oss/dsh_output.mjs"
+        "{harness_root}/harness/web_fetch/workers/dsh_webfetch_worker.mts",
+        "{harness_root}/harness/web_fetch/workers/dsh_output.mjs"
       ]
     },
     "langchain-webbase": {
@@ -193,11 +193,11 @@
       "repo_path": ".",
       "command": [
         "${OSS_PYTHON:-.venv/bin/python}",
-        "{harness_root}/scripts/oss/langchain_webbase_worker.py"
+        "{harness_root}/harness/web_fetch/workers/langchain_webbase_worker.py"
       ],
       "expected_python_version": "Python 3.11.12",
       "expected_library_versions": {"langchain-community": "0.3.30"},
-      "required_paths": ["{harness_root}/scripts/oss/langchain_webbase_worker.py"]
+      "required_paths": ["{harness_root}/harness/web_fetch/workers/langchain_webbase_worker.py"]
     },
     "crawl4ai": {
       "type": "subprocess_jsonl",
@@ -205,11 +205,11 @@
       "repo_path": ".",
       "command": [
         "${OSS_PYTHON:-.venv/bin/python}",
-        "{harness_root}/scripts/oss/crawl4ai_worker.py"
+        "{harness_root}/harness/web_fetch/workers/crawl4ai_worker.py"
       ],
       "expected_python_version": "Python 3.11.12",
       "expected_library_versions": {"crawl4ai": "0.9.3"},
-      "required_paths": ["{harness_root}/scripts/oss/crawl4ai_worker.py"]
+      "required_paths": ["{harness_root}/harness/web_fetch/workers/crawl4ai_worker.py"]
     }
   }
 }

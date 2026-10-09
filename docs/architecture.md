@@ -242,6 +242,9 @@ prints go to the retained diagnostic stream; only worker responses enter the
 JSONL protocol. The shared transport enforces deadlines and cancellation.
 Each process retains its own response queue. Diagnostic readers from an earlier
 process cannot append to a restarted process's log window.
+Standalone worker files live in `harness/web_fetch/workers/` and ship with the
+wheel. Keeping them outside the adapter directory prevents direct Python
+execution from shadowing standard-library modules such as `http`.
 
 Formal pages cover rankings, datasets, methodology, results, provider descriptions and interface examples, environment, reproduction, and account setup. Source coverage and access restrictions are factual limitations, not a user-assistance workflow.
 

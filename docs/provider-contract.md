@@ -40,12 +40,27 @@ package separately and set `node_html_markdown_path` to its absolute package
 directory in the provider configuration. The adapter rejects a missing or
 different version before calls; the converter itself ships in the wheel.
 
-Repository-native third-party workers require the pinned upstream checkout and
-runtime declared in the provider configuration. After changing the DSH worker,
+Repository-native third-party workers ship under
+`harness/web_fetch/workers/` in both source and wheel distributions. Commands
+and `required_paths` use `{harness_root}/harness/web_fetch/workers/<worker>`;
+the same configuration resolves package assets outside a checkout. Python
+library workers require the `oss-eval` extra and an explicit interpreter from
+that environment. Upstream checkouts, Node.js, package managers and browser
+binaries remain caller-provided; they are not bundled with the workers.
+
+Native methods require the upstream checkout and runtime versions declared in
+the selected configuration. Copy the example configuration and update its pins
+to match the intended experiment; preflight rejects mismatched installations.
+After changing the DSH worker,
 rerun `scripts/bootstrap_oss_baselines.sh` to refresh its deployed copy. Preflight
 rejects a copy whose bytes differ from the maintained worker before any calls.
 DSH request status comes from the tool's declared output or presentation metadata;
 text embedded in the returned page cannot supply a missing HTTP status.
+
+`make package-check` executes the installed TypeScript bridges with synthetic
+upstream tool responses. Its `oss-eval` installation also retrieves a local HTML
+page through LangChain and a local attachment through Crawl4AI, checking success
+and HTTP failure. These fixtures do not contact public websites or use API keys.
 
 The general CLI builds a result report from the supplied dataset and records.
 It does not require project-specific articles, account registries, pricing or

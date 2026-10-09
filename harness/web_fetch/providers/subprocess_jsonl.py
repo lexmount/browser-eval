@@ -26,7 +26,7 @@ class SubprocessJsonlProvider(Provider):
             "required_paths": {
                 "{repo_path}/agent/tools/web_fetch/web_fetch.py",
                 "{repo_path}/agent/tools/utils/url_safety.py",
-                "{harness_root}/harness/web_fetch/providers/cowagent_worker.py",
+                "{harness_root}/harness/web_fetch/workers/cowagent_worker.py",
             },
         },
         "openclaw_builtin": {
@@ -37,21 +37,21 @@ class SubprocessJsonlProvider(Provider):
             "required_paths": {
                 "{repo_path}/src/agents/tools/web-fetch.ts",
                 "{repo_path}/pnpm-lock.yaml",
-                "{harness_root}/scripts/oss/openclaw_webfetch_worker.mts",
+                "{harness_root}/harness/web_fetch/workers/openclaw_webfetch_worker.mts",
             },
         },
         "deepseek_harness_builtin": {
             "required_fields": ("expected_repo_revision", "expected_node_version"),
             "identical_files": [(
-                "harness/scripts/oss/dsh_webfetch_worker.mts",
+                "harness/harness/web_fetch/workers/dsh_webfetch_worker.mts",
                 "repo/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
             )],
             "required_paths": {
                 "{repo_path}/packages/web/web-fetch-http/src/provider.ts",
                 "{repo_path}/pnpm-lock.yaml",
                 "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
-                "{harness_root}/scripts/oss/dsh_output.mjs",
-                "{harness_root}/scripts/oss/dsh_webfetch_worker.mts",
+                "{harness_root}/harness/web_fetch/workers/dsh_output.mjs",
+                "{harness_root}/harness/web_fetch/workers/dsh_webfetch_worker.mts",
             },
         },
     }
@@ -90,7 +90,7 @@ class SubprocessJsonlProvider(Provider):
         missing, identity = validate_runtime_identity(
             self.config, self._resolve_token, **self._RUNTIME_CONTRACTS.get(self.type, {}))
         if mode == "public_doh":
-            required = {"{harness_root}/harness/web_fetch/network_dns.py"} if self.type in {"cowagent_builtin", "langchain_webbase", "crawl4ai"} else {"{harness_root}/scripts/oss/public_dns.mjs"}
+            required = {"{harness_root}/harness/web_fetch/network_dns.py"} if self.type in {"cowagent_builtin", "langchain_webbase", "crawl4ai"} else {"{harness_root}/harness/web_fetch/workers/public_dns.mjs"}
             if self.type == "deepseek_harness_builtin":
                 required.add("{repo_path}/packages/web/web-fetch-http/src/network.ts")
             if not required.issubset(set(self.config.get("required_paths", []))):

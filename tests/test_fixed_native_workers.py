@@ -22,7 +22,7 @@ def test_langchain_native_requests_have_no_timeout_override():
          patch("importlib.metadata.version", return_value="fixture"), \
          patch("sys.stdin", io.StringIO(json.dumps(REQUEST) + "\n")), \
          patch("sys.stdout", new_callable=io.StringIO) as output:
-        runpy.run_path(str(ROOT / "scripts/oss/langchain_webbase_worker.py"))
+        runpy.run_path(str(ROOT / "harness/web_fetch/workers/langchain_webbase_worker.py"))
     assert seen[0]["requests_kwargs"] == {}
     assert len(seen) == 1
     assert json.loads(output.getvalue())["content"] == "all native text"
@@ -50,7 +50,7 @@ def test_crawl4ai_retains_native_capabilities_and_page_timeout_default():
     with patch.dict(sys.modules, fake), patch("importlib.metadata.version", return_value="fixture"), \
          patch("sys.stdin", io.StringIO(json.dumps(REQUEST) + "\n")), \
          patch("sys.stdout", new_callable=io.StringIO) as output:
-        worker = runpy.run_path(str(ROOT / "scripts/oss/crawl4ai_worker.py"))
+        worker = runpy.run_path(str(ROOT / "harness/web_fetch/workers/crawl4ai_worker.py"))
         asyncio.run(worker["main"]())
     assert len(seen) == 1
     assert "page_timeout" not in seen[0]
@@ -103,7 +103,7 @@ export function createWebFetchTool(options) {
   return {execute: async (id, args) => ({details: {text: 'native answer', status: 200}, options, args})};
 }
 ''')
-    source = (ROOT / 'scripts/oss/openclaw_webfetch_worker.mts').read_text()
+    source = (ROOT / 'harness/web_fetch/workers/openclaw_webfetch_worker.mts').read_text()
     fixture_root = tmp_path / 'openclaw' / 'src/agents/tools'
     fixture_root.mkdir(parents=True)
     (fixture_root / 'web-fetch.ts').write_text(f'export {{ createWebFetchTool }} from {json.dumps(stub.as_uri())};')
@@ -115,7 +115,7 @@ export function createWebFetchTool(options) {
     answer = json.loads(result.stdout)
     assert answer['ok'], answer
     assert answer['raw_tool_response']['options']['config']['tools']['web']['fetch']['cacheTtlMinutes'] == 0
-    source = (ROOT / 'scripts/oss/dsh_webfetch_worker.mts').read_text()
+    source = (ROOT / 'harness/web_fetch/workers/dsh_webfetch_worker.mts').read_text()
     source = '\n'.join(line for line in source.splitlines() if '@deepseek-ai/' not in line or not line.startswith('import '))
     source = f'import {{Context, ToolCallId, SystemPrompt, ToolRuntime, WebRuntime, WebFetchHttp, ToolWeb, TimeoutPolicy}} from {json.dumps(stub.as_uri())};\n' + source
     deep_worker = tmp_path / 'deepseek.mts'

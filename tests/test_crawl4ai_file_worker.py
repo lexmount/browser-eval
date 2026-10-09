@@ -38,7 +38,7 @@ class NativeFileWorkerTests(unittest.TestCase):
         }
         spec = importlib.util.spec_from_file_location(
             "file_worker_test",
-            Path(__file__).resolve().parents[1] / "scripts/oss/crawl4ai_worker.py",
+            Path(__file__).resolve().parents[1] / "harness/web_fetch/workers/crawl4ai_worker.py",
         )
         module = importlib.util.module_from_spec(spec)
         with patch.dict(sys.modules, modules):

@@ -277,7 +277,7 @@ async def crawl4ai_public_dns_browser(config):
 def _native_dns_sources():
     import pathlib
     root = pathlib.Path(__file__).resolve().parents[2]
-    return [root / "scripts/oss/native_dns_darwin.c", pathlib.Path(__file__).resolve()]
+    return [root / "harness/web_fetch/workers/native_dns_darwin.c", pathlib.Path(__file__).resolve()]
 
 
 def validate_native_dns_library(library):

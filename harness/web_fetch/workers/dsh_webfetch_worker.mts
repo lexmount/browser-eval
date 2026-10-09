@@ -30,7 +30,7 @@ async function contextFor(request: any) {
     if (dnsMode === "system") {
       await ctx.plugin(WebFetchHttp, nativeLimits);
     } else {
-      const { createPublicDnsLookup } = await import(pathToFileURL(path.join(process.env.BROWSER_EVAL_HARNESS_ROOT!, "scripts/oss/public_dns.mjs")).href);
+      const { createPublicDnsLookup } = await import(pathToFileURL(path.join(process.env.BROWSER_EVAL_HARNESS_ROOT!, "harness/web_fetch/workers/public_dns.mjs")).href);
       const { resolvePublicAddresses } = await import("@deepseek-ai/dsh-web-fetch-http/src/network.ts");
       // Use the exported native HTTP provider, native validator and native pinning.
       // DNS is the only environment seam changed; redirect policy is unchanged.
@@ -71,7 +71,7 @@ for await (const line of rl) {
     } finally {
       clearTimeout(timer);
     }
-    const { projectDeclaredFetch } = await import(pathToFileURL(path.join(process.env.BROWSER_EVAL_HARNESS_ROOT!, "scripts/oss/dsh_output.mjs")).href);
+    const { projectDeclaredFetch } = await import(pathToFileURL(path.join(process.env.BROWSER_EVAL_HARNESS_ROOT!, "harness/web_fetch/workers/dsh_output.mjs")).href);
     const projected = projectDeclaredFetch(out);
     debug("native_tool_returned", { ok: projected.ok, body_kind: projected.source_body_kind, dns_resolutions: dnsTraces });
     process.stdout.write(JSON.stringify({

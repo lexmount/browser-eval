@@ -23,7 +23,7 @@ class CowAgentBuiltinProvider(SubprocessJsonlProvider):
     def __init__(self, name, config):
         from ..storage import data_home
 
-        worker = Path(__file__).with_name('cowagent_worker.py')
+        worker = Path(__file__).parents[1] / 'workers/cowagent_worker.py'
         workspace = Path(str(config.get(
             "workspace", data_home() / "runs/cowagent-workspace"
         ))).expanduser().resolve()
@@ -34,7 +34,7 @@ class CowAgentBuiltinProvider(SubprocessJsonlProvider):
         paths = derived.get('required_paths', [])
         if isinstance(paths, list):
             derived['required_paths'] = [*paths,
-                '{harness_root}/harness/web_fetch/providers/cowagent_worker.py']
+                '{harness_root}/harness/web_fetch/workers/cowagent_worker.py']
         super().__init__(name, derived)
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:

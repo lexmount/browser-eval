@@ -19,7 +19,7 @@ def providers(tmp_path):
         for package in (repo / 'agent', repo / 'agent/tools', directory):
             (package / '__init__.py').write_text('')
         (directory / 'web_fetch.py').write_text(
-            'from types import SimpleNamespace\nimport time\n'
+            'from types import SimpleNamespace\nimport time\nimport http.client\n'
             'class WebFetch:\n'
             ' def __init__(self, config): self.workspace = config["cwd"]\n'
             ' def execute(self, args):\n'

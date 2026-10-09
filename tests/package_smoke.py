@@ -5,6 +5,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import os
 import runpy
 import subprocess
 import sys
@@ -822,12 +823,122 @@ def verify_cowagent_isolation(root):
             provider.__del__()
 
 
+def verify_oss_workers(root, source_root, *, with_libraries):
+    from harness.web_fetch.models import EvalCase
+    from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
+
+    resolver = SubprocessJsonlProvider('resolver', {'repo_path': str(root)})
+    workers = {}
+    for name in ('openclaw_webfetch_worker.mts', 'dsh_webfetch_worker.mts',
+                 'langchain_webbase_worker.py', 'crawl4ai_worker.py'):
+        path = Path(resolver._resolve_token('{harness_root}/harness/web_fetch/workers/' + name))
+        assert path.is_file() and not path.resolve().is_relative_to(source_root.resolve())
+        workers[name] = path
+    node = __import__('shutil').which('node')
+    assert node is not None
+    subprocess.run([node, '--experimental-vm-modules',
+                    str(source_root / 'tests/test_dsh_worker.mjs'),
+                    str(workers['dsh_webfetch_worker.mts'])], check=True,
+                   capture_output=True, text=True, timeout=30)
+    upstream = root / 'openclaw-fixture'
+    source = upstream / 'src/agents/tools/web-fetch.ts'
+    source.parent.mkdir(parents=True)
+    source.write_text(
+        'export function createWebFetchTool(options) {\n'
+        ' if (options.config.tools.web.fetch.cacheTtlMinutes !== 0) throw Error("cache enabled");\n'
+        ' return {async execute(id, args) { return {details: {text: "Local tool fixture",\n'
+        ' status: 200, finalUrl: args.url}}; }};\n}\n')
+    output = subprocess.run([node, '--experimental-strip-types',
+                             str(workers['openclaw_webfetch_worker.mts'])],
+                            input=json.dumps({'url': 'https://example.invalid/',
+                                              'timeout_seconds': 1}) + '\n',
+                            env={**os.environ, 'OPENCLAW_REPO': str(upstream)},
+                            capture_output=True, text=True, check=True, timeout=15)
+    answer = json.loads(output.stdout)
+    assert answer['ok'] and answer['content'] == 'Local tool fixture'
+    if not with_libraries:
+        return
+
+    import http.server
+    import threading
+
+    payload = b'name,value\nfixture,42\n'
+    requests = []
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            requests.append(self.path)
+            if self.path == '/missing':
+                self.send_error(404)
+                return
+            self.send_response(200)
+            if self.path == '/download.csv':
+                body = payload
+                self.send_header('Content-Type', 'application/octet-stream')
+                self.send_header('Content-Disposition', 'attachment; filename="fixture.csv"')
+            else:
+                body = b'<html><head><title>Local fixture</title></head><body>Local worker fixture</body></html>'
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    providers = []
+    try:
+        base = f'http://127.0.0.1:{server.server_port}'
+        for worker, library, version, route, kind in (
+            ('langchain_webbase_worker.py', 'langchain-community', '0.3.30', '/article', 'body'),
+            ('crawl4ai_worker.py', 'crawl4ai', '0.9.3', '/download.csv', 'file'),
+        ):
+            provider = SubprocessJsonlProvider(library, {
+                'repo_path': str(root), 'command': [sys.executable, str(workers[worker])],
+                'expected_python_version': 'Python ' + sys.version.split()[0],
+                'expected_library_versions': {library: version},
+                'required_paths': ['{harness_root}/harness/web_fetch/workers/' + worker],
+                'env': {'LANGCHAIN_TRACING_V2': 'false', 'LANGSMITH_TRACING': 'false',
+                        'HF_HUB_OFFLINE': '1', 'NO_PROXY': '127.0.0.1,localhost',
+                        'CRAWL4_AI_BASE_DIRECTORY': str(root / 'crawler-cache')},
+            })
+            providers.append(provider)
+            assert provider.validate() == []
+            try:
+                answer = provider.fetch(EvalCase('one', 'One', base + route, kind, [],
+                                                 task_kind=kind), 20)
+            except (RuntimeError, TimeoutError) as error:
+                raise AssertionError({
+                    'worker': worker, 'diagnostics': getattr(error, 'public_metadata', {}),
+                }) from error
+            assert answer.ok, answer
+            if kind == 'file':
+                assert [item['data'] for item in answer.files] == [payload]
+            else:
+                assert 'Local worker fixture' in answer.content
+            failure = provider.fetch(EvalCase('missing', 'Missing', base + '/missing',
+                                              kind, [], task_kind=kind), 20)
+            assert not failure.ok and failure.error_type
+        assert requests == ['/article', '/missing', '/download.csv', '/missing']
+    finally:
+        for provider in providers:
+            provider.__del__()
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
     parser.add_argument('--source-root', type=Path, required=True)
     parser.add_argument('--webmainbench', action='store_true',
                         help='Also exercise TEDS writing with the webmainbench-eval extra installed')
+    parser.add_argument('--oss', action='store_true',
+                        help='Exercise installed OSS libraries against local HTTP fixtures')
     args = parser.parse_args()
     from harness.web_fetch import webmainbench_latency_correction
 
@@ -861,6 +972,7 @@ def main():
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
         verify_cowagent_isolation(root)
+        verify_oss_workers(root, args.source_root, with_libraries=args.oss)
         verify_browser_report_checks(root, args.source_root)
         verify_release_check_helpers(root, args.source_root)
         verify_teds_revision(root, args.source_root, with_writer=args.webmainbench)

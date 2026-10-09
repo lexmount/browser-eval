@@ -75,7 +75,7 @@ class ConfigTest(unittest.TestCase):
         root=Path(__file__).resolve().parents[1]
         self.assertEqual(build_parser().parse_args(['validate']).dataset,root/'harness/web_fetch/data/fixture-dataset.json')
         provider=SubprocessJsonlProvider('test',{'command':['python3'],'repo_path':'.'})
-        self.assertEqual(provider._resolve_token('{harness_root}/scripts/oss/langchain_webbase_worker.py'),str(root/'scripts/oss/langchain_webbase_worker.py'))
+        self.assertEqual(provider._resolve_token('{harness_root}/harness/web_fetch/workers/langchain_webbase_worker.py'),str(root/'harness/web_fetch/workers/langchain_webbase_worker.py'))
 
     def test_hosted_credentials_are_explicitly_and_selectively_imported(self):
         with tempfile.TemporaryDirectory() as directory:
