@@ -203,6 +203,15 @@ Complete WebMainBench comparisons assemble the baseline and every registry-decla
 
 Independent HTTP source capture and HTML extraction belong to `harness/web_fetch/source_capture.py`; its command is `scripts/collect_source_evidence.py`. Reference audits, scope refreshes and browser observations import the same extractor. `document_text.py` owns document extraction for both captured sources and provider responses, with explicit whitespace preservation for source reconstruction. Capture writes a new external evidence directory, validates the complete requested task scope before requests, and retains failed HTTP observations for review. Capture alone neither approves a reference nor certifies a provider result.
 
+`reference_lifecycle.py` owns post-call observation assembly through
+`scripts/build_postcheck_observations.py`. It validates the capture's own task
+scope, independence, completion receipt and content hash before binding it to a
+run. HTTP receipts record total acquisition/extraction time and the completion
+timestamp; captures exceeding the declared 120-second acceptance bound cannot
+qualify a postcheck. Browser-required scopes cannot substitute HTTP captures.
+Older captures without these receipts remain historical evidence and require a
+new independent capture for a new certification.
+
 `harness/web_fetch/wcxb_scoring.py` owns certified WCXB scoring through
 `scripts/score_wcxb_results.py`. Its explicit profile selects the ordered
 participant matrix; certified binary identities select any paired timing roles.

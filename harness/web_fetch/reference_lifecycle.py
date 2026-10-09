@@ -371,6 +371,96 @@ def _completion(completion) -> None:
         raise ReferenceLifecycleError("Independent completion is unbounded or exceeded its deadline")
 
 
+def build_observations(run_dir: Path, captures_root: Path,
+                       browser_observations: Path | None = None) -> list[dict]:
+    """Validate independent post-call receipts without inventing their provenance."""
+    manifest_path = contained_path(run_dir, "manifest.json", reject_symlinks=True)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    bindings = manifest.get("reference_checks", {}).get("cases")
+    if not isinstance(bindings, dict) or not bindings:
+        raise ValueError("Postcheck requires frozen reference bindings")
+    rendered = {}
+    if browser_observations is not None:
+        if browser_observations.is_symlink():
+            raise ValueError("Symlinked browser evidence is forbidden")
+        payload = json.loads(browser_observations.read_text(encoding="utf-8"))
+        rows = (payload.get("observations", list(payload.values()))
+                if isinstance(payload, dict) else payload)
+        if not isinstance(rows, list):
+            raise ValueError("Browser observations must be a list or case mapping")
+        for row in rows:
+            if not isinstance(row, dict):
+                raise ValueError("Browser observation must be an object")
+            identifier = safe_identifier(row.get("case_id"))
+            if identifier in rendered:
+                raise ValueError("Duplicate browser observation: " + identifier)
+            rendered[identifier] = row
+        if isinstance(payload, dict) and "observations" not in payload:
+            if any(key != row.get("case_id") for key, row in payload.items()):
+                raise ValueError("Browser observation mapping identity mismatch")
+        if set(rendered) - set(bindings):
+            raise ValueError("Browser observations contain undeclared cases")
+    observations = []
+    for case_id, binding in bindings.items():
+        safe_identifier(case_id)
+        scope = binding["scope_identity"]
+        if case_id in rendered:
+            row = rendered[case_id]
+            if (row.get("independent") is not True
+                    or row.get("scope_identity") != scope):
+                raise ValueError("Browser observation independence/scope mismatch: " + case_id)
+            timestamp(row.get("checked_at"))
+            _completion(row.get("completion"))
+            observations.append(deepcopy(row))
+            continue
+        if requires_browser_observation(binding):
+            raise ValueError("Browser observation required: " + case_id)
+        folder = contained_path(captures_root, case_id, reject_symlinks=True)
+        evidence_path = contained_path(folder, "evidence.json", reject_symlinks=True)
+        capture = json.loads(evidence_path.read_text(encoding="utf-8"))
+        if (not isinstance(capture, dict) or capture.get("case_id") != case_id
+                or capture.get("url") != scope.get("url")
+                or capture.get("scope_identity") != scope
+                or capture.get("independent") is not True
+                or capture.get("source") != "independent HTTP GET (no provider output)"
+                or capture.get("state") != "captured" or capture.get("status") != 200
+                or capture.get("missing_facts") != [] or capture.get("quality_issues") != []):
+            raise ValueError("Incomplete or out-of-scope post-call capture: " + case_id)
+        timestamp(capture.get("checked_at"))
+        _completion(capture.get("completion"))
+        content_path = contained_path(folder, "reference.txt", reject_symlinks=True)
+        content = content_path.read_text(encoding="utf-8")
+        if not content.strip() or sha256(content) != capture.get("reference_sha256"):
+            raise ValueError("Post-call capture content hash mismatch: " + case_id)
+        observations.append({
+            "case_id": case_id, "independent": True,
+            "checked_at": capture["checked_at"], "content_text": content,
+            "content_sha256": capture["reference_sha256"],
+            "scope_identity": deepcopy(scope),
+            "completion": deepcopy(capture["completion"]),
+        })
+    return observations
+
+
+def observations_main(argv=None) -> None:
+    """Command boundary for assembling independently captured postchecks."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description=build_observations.__doc__)
+    parser.add_argument("--run-dir", type=Path, required=True)
+    parser.add_argument("--captures", type=Path, required=True)
+    parser.add_argument("--browser-observations", type=Path)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    if args.output.exists() or args.output.is_symlink():
+        parser.error("Output exists")
+    observations = build_observations(args.run_dir, args.captures, args.browser_observations)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    with args.output.open("x", encoding="utf-8") as stream:
+        stream.write(json.dumps(observations, ensure_ascii=False, indent=2) + "\n")
+    print("Postcheck observations:", len(observations))
+
+
 def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
     identifier = safe_identifier(_get(case, "id"))
     verification = _get(case, "source_verification")

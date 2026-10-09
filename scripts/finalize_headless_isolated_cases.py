@@ -10,9 +10,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from harness.web_fetch.reference_lifecycle import finalize_reference_checks
+from harness.web_fetch.reference_lifecycle import build_observations, finalize_reference_checks
 from harness.web_fetch.safety import contained_path
-from scripts.build_postcheck_observations import build_observations
 
 
 def main() -> None:

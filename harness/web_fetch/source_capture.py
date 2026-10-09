@@ -18,12 +18,14 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+from time import monotonic
 from urllib.parse import urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 
 from harness.web_fetch.document_text import extract_document_text
 from harness.web_fetch.metrics import normalize_for_match
+from harness.web_fetch.reference_lifecycle import scope_identity
 from harness.web_fetch.reference_quality import audit_reference, clean_reference_text
 from harness.web_fetch.safety import contained_path, safe_identifier, validate_http_url
 
@@ -157,12 +159,15 @@ def capture(case, out, resolved_hosts=None):
     dest.mkdir(parents=True, exist_ok=True)
     host = urlsplit(case["url"]).hostname or ""
     override = (resolved_hosts or {}).get(host)
+    began = monotonic()
+    completion_timeout_ms = 120000
     result = {
         "case_id": case["id"],
         "url": case["url"],
-        "checked_at": datetime.now(timezone.utc).isoformat(),
         "source": "independent HTTP GET (no provider output)",
         "attempts": [],
+        "independent": True,
+        "scope_identity": scope_identity(case),
     }
     if override:
         result["dns_override"] = {
@@ -270,6 +275,15 @@ def capture(case, out, resolved_hosts=None):
         )
     except Exception as e:
         result.update(state="needs_review", error=f"{type(e).__name__}: {e}")
+    elapsed_ms = (monotonic() - began) * 1000
+    result["checked_at"] = datetime.now(timezone.utc).isoformat()
+    result["completion"] = {
+        "satisfied": (result.get("state") == "captured"
+                      and not result.get("missing_facts")
+                      and elapsed_ms <= completion_timeout_ms),
+        "elapsed_ms": elapsed_ms,
+        "timeout_ms": completion_timeout_ms,
+    }
     (dest / "evidence.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2) + "\n"
     )

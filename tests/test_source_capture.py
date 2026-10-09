@@ -94,6 +94,12 @@ def test_capture_commits_complete_independent_http_scope_and_preserves_failures(
             == result["reference_sha256"]
         )
         assert json.loads((directory / "evidence.json").read_text()) == result
+        assert result["independent"] is True
+        assert result["scope_identity"]["case_id"] == result["case_id"]
+        assert result["scope_identity"]["url"] == result["url"]
+        assert result["completion"]["elapsed_ms"] > 0
+        assert result["completion"]["timeout_ms"] == 120000
+        assert result["completion"]["satisfied"] is (result["status"] == 200)
     assert not list(tmp_path.glob(".source-capture-*"))
     saved = {path: path.read_bytes() for path in output.rglob("*") if path.is_file()}
     with pytest.raises(ValueError, match="new directory"):
@@ -230,3 +236,36 @@ def test_shared_docx_extraction_retains_source_whitespace_and_nested_parts():
     assert source == "  Body  \nNested box\nNote\nHeader"
     assert normalized == "Body\nNested box\nNote\nHeader"
     assert source.count("Nested box") == 1
+
+
+def test_real_http_capture_can_bind_a_postcheck_without_inventing_receipts(tmp_path, source_site):
+    from harness.web_fetch.reference_lifecycle import build_observations
+
+    base, _ = source_site
+    dataset = dataset_file(tmp_path, base)
+    captures = tmp_path / "captures"
+    capture = collect(dataset, captures, only=["page"], workers=1)[0]
+    run = tmp_path / "run"
+    run.mkdir()
+    binding = {"scope_identity": capture["scope_identity"],
+               "source_verification": {"observation_route": "http"}}
+    (run / "manifest.json").write_text(json.dumps({"reference_checks": {"cases": {"page": binding}}}))
+    observed = build_observations(run, captures)[0]
+    assert observed["completion"] == capture["completion"]
+    assert observed["checked_at"] == capture["checked_at"]
+    assert observed["content_text"] == "Independent source body"
+    assert observed["content_sha256"] == capture["reference_sha256"]
+
+
+def test_capture_over_completion_bound_retains_failure_receipt(tmp_path, source_site, monkeypatch):
+    from harness.web_fetch import source_capture
+
+    base, _ = source_site
+    dataset = dataset_file(tmp_path, base)
+    ticks = iter([10.0, 131.0])
+    monkeypatch.setattr(source_capture, "monotonic", lambda: next(ticks))
+    result = collect(dataset, tmp_path / "captures", only=["page"], workers=1)[0]
+    assert result["status"] == 200
+    assert result["completion"] == {
+        "satisfied": False, "elapsed_ms": 121000, "timeout_ms": 120000,
+    }
