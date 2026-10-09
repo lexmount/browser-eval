@@ -26,16 +26,20 @@ compatibility shim, not a change to site data or evaluation logic.
 Put `OPENAI_API_KEY`, optional `OPENAI_BASE_URL`, and `COWAGENT_REPO` in this
 repository's `.env`, then run:
 
-    ./examples/browser_use/run.sh
+    ./examples/browser_use/run.sh --model YOUR_MODEL
 
-To validate the pipeline with the currently available GPT-5.6 model before an
-Astra-enabled project is available, keep the evidence cohort separate and run:
+The command requires a model available to your project. `BROWSER_USE_MODEL` can
+provide a default; an explicit `--model` overrides it. To compare another model,
+keep its evidence cohort separate:
 
-    BROWSER_USE_OUTPUT_DIR="${BROWSER_EVAL_DATA_HOME:-$HOME/.browser-eval}/browser-use/gpt-5.6-sol" \
-      ./examples/browser_use/run.sh --model gpt-5.6-sol
+    ./examples/browser_use/run.sh --model YOUR_SECOND_MODEL \
+      --output "${BROWSER_EVAL_DATA_HOME:-$HOME/.browser-eval}/browser-use/second-model"
 
-The selected model is immutable within one evidence directory. GPT-5.6 and
-Astra attempts must never be resumed into or reported as the same cohort.
+The selected model is immutable within one evidence directory. Attempts from
+different models must never be resumed into or reported as the same cohort.
+Relative `--output` and `--selection` paths resolve from the caller's directory.
+Use `./examples/browser_use/run.sh --help` to inspect options without model
+credentials, browser sessions or site preparation.
 To build one layered report from several completed cohorts, pass each directory
 separately. The builder rejects duplicate models and mismatched primary
 browser-task cohorts:
