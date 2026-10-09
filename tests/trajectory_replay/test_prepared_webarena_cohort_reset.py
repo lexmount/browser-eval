@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from harness.trajectory_replay import remote_runtime as prepared
 from harness.trajectory_replay.remote_runtime import file_sha256
-from scripts import use_prepared_webarena_cohort_reset as prepared
 from tests.trajectory_replay.test_aggregate_webarena_three_method_cohorts import _reset_receipt
 
 
@@ -34,7 +34,7 @@ def _invoke(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, receipt: dict) -> P
             "--receipt", str(output),
         ],
     )
-    prepared.main()
+    prepared.main_prepared_reset()
     assert file_sha256(output) == file_sha256(source)
     return output
 
