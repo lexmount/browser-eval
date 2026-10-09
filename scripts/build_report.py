@@ -89,7 +89,8 @@ if __name__ == '__main__':
             parser.error('--evidence is required for the certified WCXB cohort')
         corpus=args.wcxb_source or Path.home()/'.browser-eval/public-benchmarks/wcxb'
         sample=args.wcxb_sample or ROOT/profile['sample_manifest']
-        print(build_wcxb_report(args.evidence,corpus,sample,profile,args.output or ROOT/'reports/wcxb'))
+        print(build_wcxb_report(args.evidence,corpus,sample,profile,args.output or ROOT/'reports/wcxb',
+                                include_english=args.include_english))
         raise SystemExit(0)
     evidence=require_evidence(args.evidence or current_evidence_dir())
     if profile.get('comparison_kind')!='webmainbench_frozen_html_to_markdown':

@@ -3,12 +3,16 @@
 import gzip
 import hashlib
 import json
+import shutil
+from copy import deepcopy
 from pathlib import Path
 
 from harness.web_fetch.wcxb_dataset import validate_manifest
 from harness.web_fetch.webmainbench_runner import load_wcxb_source
 
 EVALUATOR = """import json
+import shutil
+from copy import deepcopy
 from pathlib import Path
 
 def load_ground_truth(split):
@@ -243,3 +247,63 @@ def create_cohort(root: Path, *, paired=False, providers=("alpha", "beta", "gamm
         evidence_root=evidence,
         profile_path=profile_path,
     )
+
+
+PROVIDERS = ('moli', 'kitesurf', 'lightpanda', 'obscura', 'chromium', 'moli-pr643')
+CASES = ('4017', '4461', '5649', '5677')
+
+
+def create_report_inputs(tmp_path, *, english_source=True):
+    from harness.record_io import load_jsonl
+    from harness.web_fetch.wcxb_scoring import score
+
+    cohort = create_cohort(tmp_path / 'cohort', paired=True, providers=PROVIDERS)
+    summary = score(**cohort)
+    original = load_jsonl(cohort['evidence_root'] / 'wcxb-scores.jsonl')
+    profile = json.loads(cohort['profile_path'].read_bytes())
+    profile.update(source_repository='https://example.invalid/synthetic', source_commit='a' * 40,
+                   candidate_source_commit='b' * 40,
+                   versions={provider: 'synthetic' for provider in PROVIDERS})
+    root = tmp_path / 'report'
+    root.mkdir()
+    write_json(root / 'research/wcxb-representative-review.json',
+               {'case_count': 0, 'result_count': 0, 'cases': []})
+    shutil.copy2(Path(__file__).resolve().parents[1] / 'research/provider-adoption.json',
+                 root / 'research/provider-adoption.json')
+    (root / 'content').mkdir()
+    (root / 'content/wcxb-repair-zh.fragment').write_text('<section id="guide-repair">合成样例')
+    if english_source:
+        (root / 'content/wcxb-repair-en.fragment').write_text('<section id="guide-repair">Synthetic specimen')
+    rows, ground_truth, calls = [], {}, []
+    for case in CASES:
+        ground_truth[case] = {'main_content': 'Independent article 0', 'page_type': 'article',
+                              'with': ['Independent'], 'without': ['Forbidden']}
+        target = root / f'inputs/{case}.txt'
+        target.parent.mkdir(exist_ok=True)
+        target.write_text('<main>Independent article 0</main>')
+        for provider in PROVIDERS:
+            row = deepcopy(next(row for row in original
+                                if row['provider'] == provider and row['case_id'] == 'case-000'))
+            row.update(case_id=case, attempt_id=f'{provider}-{case}',
+                       original_url=f'https://example.invalid/{case}')
+            rows.append(row)
+            artifact = root / f'artifacts/{provider}/{case}.txt'
+            artifact.parent.mkdir(parents=True, exist_ok=True)
+            artifact.write_text('Independent article 0')
+    for round_number in (0, 1):
+        for index, case in enumerate(CASES):
+            methods = ('release', 'pr') if (index + round_number) % 2 == 0 else ('pr', 'release')
+            calls.extend({'case': case, 'round': round_number, 'method': method, 'order': order,
+                          'ok': True, 'error_type': None, 'elapsed_ms': 11 if method == 'release' else 13,
+                          'output_sha256': sha(b'Independent article 0')}
+                         for order, method in enumerate(methods, 1))
+    timing = root / 'research/wcxb-full-paired-latency'
+    write_jsonl(timing / 'calls.jsonl', calls)
+    receipt = json.loads((cohort['evidence_root'] / 'latency-correction/receipt.json').read_bytes())
+    receipt.update(case_count=len(CASES), call_count=len(calls),
+                   calls_sha256=sha((timing / 'calls.jsonl').read_bytes()))
+    write_json(timing / 'receipt.json', receipt)
+    profile['latency_correction_receipt_sha256'] = sha((timing / 'receipt.json').read_bytes())
+    summary.update(case_count=len(CASES), quality_case_count=len(CASES))
+    identities = {provider: {'reported_version': 'synthetic'} for provider in PROVIDERS}
+    return root, rows, summary, ground_truth, identities, profile

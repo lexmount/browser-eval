@@ -46,7 +46,7 @@ def format_wcxb_conditional_latency(value: float | None) -> str:
 
 
 def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict,
-                  identities: dict, profile: dict) -> None:
+                  identities: dict, profile: dict, *, include_english: bool = False) -> None:
  """Render the current WCXB comparison from one certified semantic model."""
  from collections import Counter as WordCounter
  providers=list(summary['providers'])
@@ -73,7 +73,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
  first_round={(row['case'],row['method']):row for row in timing_rows if row['round']==0}
  first_round_delta=sum(first_round[case,'pr']['elapsed_ms']-first_round[case,'release']['elapsed_ms']
                        for case in by_case)/case_count
- adoption_data=json.loads((Path(__file__).resolve().parents[2]/'research/provider-adoption.json').read_text())
+ adoption_data=json.loads((out/'research/provider-adoption.json').read_text())
  cloudflare_matches=[(entry['repo'], match['path']) for entry in adoption_data['included']
                      for match in entry['matches'] if match['signature']=='cloudflare-markdown']
  cloudflare_repo_count=len({repo for repo,_ in cloudflare_matches})
@@ -119,7 +119,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
   route=('en/' if lang=='en' else '')+path
   root_prefix='../'*route.count('/')
   nav=''.join(f'<a href="{href(lang,p)}">{esc(x[k])}</a>' for k,p in [('home','index.html'),('dataset','datasets/index.html'),('method','methodology/index.html'),('results','analysis/index.html'),('review','review/index.html'),('guide','guide/index.html'),('adoption','adoption/index.html'),('repro','reproduce/index.html'),('changes','changes/index.html'),('accounts','accounts/index.html')])
-  other=('en/' if lang=='zh' else '')+path
+  other=('en/'+path if include_english else 'en/index.html') if lang=='zh' else path
   head=f'<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="{root_prefix or "./"}"><title>{esc(title)} · WCXB</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header><div class="wrap"><strong><a href="{href(lang,"index.html")}">Web Fetch</a></strong><nav>{nav}</nav><a href="{other}">{"English" if lang=="zh" else "中文"}</a><button onclick="theme()">{esc(x["theme"])}</button></div></header><main class="wrap">{body}</main><footer class="wrap">WCXB v1.0 · {case_count} {"页评测样本" if lang=="zh" else "evaluated test pages"} · CC BY 4.0 · <a href="{source_repository}/tree/{source_commit}">{esc(x["source"])}</a></footer></body></html>'
   target=out/('en' if lang=='en' else '')/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(head,encoding='utf-8')
  def fmt(v,digits=1):return f'{v*100:.{digits}f}%'
@@ -150,7 +150,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
    rounded={name:round(value*100,digits) for name,value in values.items()}
    if unique_winner(rounded,direction)==winner:return digits
   return 4
- for lang in ('zh','en'):
+ for lang in (('zh','en') if include_english else ('zh',)):
   x=L[lang]
   best=max(providers,key=lambda p:summary['providers'][p]['quality_f1']);fast=min(providers,key=lambda p:summary['providers'][p]['mean_latency_ms'])
   metrics=(('quality_precision','max','precision'),('quality_recall','max','recall'),('quality_f1','max','f1'),('mean_latency_ms','min','mean'),('p50_latency_ms','min','p50'),('p95_latency_ms','min','p95'))
@@ -383,6 +383,8 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
    preview_section=f'<section class="panel" id="preview"><h2>{"冻结 HTML 阅读视图" if lang=="zh" else "Frozen HTML reading view"}</h2><p>{preview_note} <a href="{raw_input}">{"下载完整输入与证据 JSON" if lang=="zh" else "Download complete input and evidence JSON"}</a></p>{preview}</section>'
    body=f'<div class="hero"><h1>{esc(case)} · {esc(type_label(lang,gt["page_type"]))}</h1><p class="source"><a href="{href(lang,"cases/"+case+".html#preview")}" title="{"阅读冻结 HTML" if lang=="zh" else "Read frozen HTML"}">{esc(group[providers[0]]["original_url"])}</a></p></div>{qualification}<section><h2>{esc(x["summary"])}</h2><div class="scroll"><table><thead><tr>'+''.join(f'<th>{esc(x[k])}</th>' for k in ('provider','precision','recall','f1'))+f'<th>{"应包含命中" if lang=="zh" else "Required hits"}</th><th>{"应排除误命中" if lang=="zh" else "Forbidden hits"}</th><th>{esc(x["diagnosis"])}</th></tr></thead><tbody>'+same+f'</tbody></table></div></section>{preview_section}<section class="panel" id="reference"><h2>{esc(x["reference"])}</h2><p><a href="{evidence_path}">{"完整证据 JSON" if lang=="zh" else "Complete evidence JSON"}</a> · <a href="{source_link}">{esc(x["source"])} HTML.gz</a></p><details data-output><summary>{"冻结 HTML 输入" if lang=="zh" else "Frozen HTML input"}</summary><pre data-src="{evidence_path}"></pre></details><pre>{esc(readable_output(reference))}</pre></section>'+''.join(panels)
    page(lang,f'cases/{case}.html',case,body)
+ from harness.report_languages import write_language_contract
+ write_language_contract(out, include_english=include_english)
 def provider_label(name):return PROVIDER_LABELS.get(name,name)
 def case_track_label(case):
  if case.get('track','web')=='web':

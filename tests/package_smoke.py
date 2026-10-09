@@ -787,6 +787,24 @@ def verify_wcxb_scoring(root, source_root):
 
 
 
+def verify_wcxb_rendering(root, source_root):
+    """The installed WCXB renderer reads explicit staged inputs, outside the checkout."""
+    from harness.report_languages import check_language_contract, generated_languages
+    from harness.web_fetch.report import generate_wcxb
+
+    fixture = runpy.run_path(str(source_root / 'tests/wcxb_fixture.py'))
+    for english in (False, True):
+        inputs = fixture['create_report_inputs'](root / f'wcxb-render-{english}',
+                                                 english_source=english)
+        generate_wcxb(*inputs, include_english=english)
+        report = inputs[0]
+        check_language_contract(report)
+        assert generated_languages(report) == (('zh', 'en') if english else ('zh',))
+        case = (report / 'cases/4017.html').read_text()
+        assert ('href="en/cases/4017.html"' if english else 'href="en/index.html"') in case
+        assert (report / ('en/cases/4017.html' if english else 'en/index.html')).is_file()
+
+
 def verify_wcxb_boundaries(root, source_root):
     """Installed collection, certification and packaging use caller-owned inputs."""
     import ssl
@@ -1218,6 +1236,7 @@ def main():
         verify_adjudication_commands(root, args.source_root)
         verify_browser_observation_capture(root, args.source_root)
         verify_wcxb_scoring(root, args.source_root)
+        verify_wcxb_rendering(root, args.source_root)
         verify_wcxb_boundaries(root, args.source_root)
         verify_report_acceptance(root, args.source_root)
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],

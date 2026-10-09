@@ -915,7 +915,8 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     return output / 'index.html'
 
 
-def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: dict, output: Path) -> Path:
+def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: dict, output: Path,
+                      *, include_english: bool = False) -> Path:
     """Build the one current report from a fully certified WCXB matrix."""
     from harness.web_fetch.wcxb_dataset import validate_manifest
     from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
@@ -1012,7 +1013,10 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                      staging / 'research/report-changes.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json',
                      staging / 'research/provider-adoption.json')
-        copy_bound_assets(source / 'report-assets', staging, profile['report_assets'])
+        copy_bound_assets(source / 'report-assets', staging, {
+            name: digest for name, digest in profile['report_assets'].items()
+            if include_english or name != 'content/wcxb-repair-en.fragment'
+        })
         (staging / 'references').mkdir()
         (staging / 'inputs').mkdir()
         for case in records:
@@ -1058,7 +1062,8 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                 'page_type': record['meta']['page_type'],
                 'with': gt.get('with') or [], 'without': gt.get('without') or [],
             }
-        generate_wcxb(staging, rows, summary, ground_truth, identities, profile)
+        generate_wcxb(staging, rows, summary, ground_truth, identities, profile,
+                      include_english=include_english)
         evidence_root = staging / 'evidence'
         evidence_root.mkdir()
         evidence_hashes = {}

@@ -11,6 +11,7 @@ from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness.record_io import load_jsonl
+from harness.report_languages import check_language_contract, generated_languages
 
 
 def binary_from_env(path: Path) -> str:
@@ -22,6 +23,8 @@ def binary_from_env(path: Path) -> str:
 
 def check(root: Path, browser_binary: str) -> None:
     root = root.resolve()
+    check_language_contract(root)
+    languages = generated_languages(root)
 
     class Handler(SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
@@ -54,7 +57,7 @@ def check(root: Path, browser_binary: str) -> None:
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(headless=True, executable_path=browser_binary)
             try:
-                for lang in ('zh', 'en'):
+                for lang in languages:
                     for route in routes:
                         for width in (390, 1365):
                             for dark in (False, True):
@@ -167,13 +170,27 @@ def check(root: Path, browser_binary: str) -> None:
                                     checked += 1
                                 finally:
                                     page.close()
+                if 'en' not in languages:
+                    page = browser.new_page(viewport={'width': 390, 'height': 844})
+                    try:
+                        page.goto(f'http://127.0.0.1:{server.server_port}/cases/{case_id}.html',
+                                  wait_until='networkidle')
+                        page.get_by_role('link', name='English', exact=True).click()
+                        if not page.locator('[data-english-not-generated]').is_visible():
+                            raise ValueError('English navigation does not open the not-generated notice')
+                        page.get_by_role('link', name='返回中文报告', exact=True).click()
+                        if not page.url.endswith('/index.html'):
+                            raise ValueError('English notice cannot return to the report root')
+                        checked += 1
+                    finally:
+                        page.close()
             finally:
                 browser.close()
     finally:
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
-    print(f'PASS: {checked} bilingual WCXB route, width and theme combinations')
+    print(f'PASS: {checked} WCXB route, width and theme combinations; languages={languages}')
 
 
 if __name__ == '__main__':
