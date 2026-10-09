@@ -165,7 +165,27 @@ def verify_review_revisions(root: Path, source_root: Path) -> None:
     merged = merge_reviews(sharded, [shard], prior_path, prior_review=prior_path, install=True)
     assert merged['reviewed_attempts'] == 2
     require_result_review(sharded, dataset, corrected)
-    for script in ('prepare_result_review_subset.py', 'merge_internal_review_shards.py'):
+    from harness.web_fetch.reference_lifecycle import valid_scoring_revision
+    from harness.web_fetch.result_review import rebind_metadata_review
+    prior_dataset = root / 'installed-metadata-prior.json'
+    prior_dataset.write_bytes((sharded / 'dataset.json').read_bytes())
+    metadata_dataset = json.loads(prior_dataset.read_bytes())
+    metadata_dataset['name'] = 'Synthetic public title'
+    (sharded / 'dataset.json').write_text(json.dumps(metadata_dataset))
+    (sharded / 'scoring-revisions.json').write_text(json.dumps([{
+        'kind': 'audited_scoring_rule_revision', 'provider_calls': 0,
+        'input_dataset_sha256': 'a' * 64, 'input_results_sha256': 'b' * 64,
+        'output_dataset_sha256': hashlib.sha256(prior_dataset.read_bytes()).hexdigest(),
+        'output_results_sha256': hashlib.sha256((sharded / 'results.jsonl').read_bytes()).hexdigest(),
+        'changed_cases': [], 'task_decision_changes': [],
+    }]))
+    before_metadata_results = (sharded / 'results.jsonl').read_bytes()
+    rebind_metadata_review(sharded, prior_dataset)
+    assert valid_scoring_revision(sharded)
+    assert (sharded / 'results.jsonl').read_bytes() == before_metadata_results
+    assert require_result_review(sharded, metadata_dataset, corrected)['reviewed_attempts'] == 2
+    for script in ('prepare_result_review_subset.py', 'merge_internal_review_shards.py',
+                   'rebind_result_review_metadata.py'):
         subprocess.run([sys.executable, str(source_root / 'scripts' / script), '--help'],
                        check=True, cwd=root, capture_output=True, text=True)
 

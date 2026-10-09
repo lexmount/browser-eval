@@ -1081,3 +1081,84 @@ def prepare_subset_main(argv=None):
     counts = prepare_review_subset(args.evidence, args.output, case_ids=args.case_id,
                                    prior_evidence=args.prior_evidence)
     print(f"cases={counts['cases']} attempts={counts['attempts']} output={args.output}")
+
+
+def rebind_metadata_review(evidence: Path, prior_dataset: Path, *, rebound_at=None):
+    """Rebind neutral metadata in a validated bundle, preserving immutable history."""
+    import shutil
+    from datetime import datetime, timezone
+
+    from .artifacts import verify_record_artifacts
+    from .assembly import bind_assembled_scoring_revision
+    from .reference_inputs import require_mutable_inputs
+    from .reference_lifecycle import valid_reference_revision, valid_scoring_revision
+    from .safety import commit_staged_evidence, evidence_tree_identity
+
+    before = evidence_tree_identity(evidence)
+    evidence = evidence.resolve()
+    require_mutable_inputs(evidence / "dataset.json")
+    prior_path = contained_path(prior_dataset.parent, prior_dataset.name, reject_symlinks=True)
+    prior_bytes = prior_path.read_bytes()
+    current_bytes = (evidence / "dataset.json").read_bytes()
+    current_document, records, _ = _read_review_evidence(evidence)
+    _unique_by(current_document["cases"], "id", "Current dataset")
+    _unique_by(records, "attempt_id", "Current results")
+    prior_document = json.loads(prior_bytes)
+    changed_fields = sorted(key for key in set(prior_document) | set(current_document)
+                            if prior_document.get(key) != current_document.get(key))
+    if not changed_fields:
+        raise ValueError("Dataset metadata is unchanged; rebinding is unnecessary")
+    rebound_at = rebound_at or datetime.now(timezone.utc).isoformat()
+    work = Path(tempfile.mkdtemp(prefix=f".{evidence.name}-metadata-history-", dir=evidence.parent))
+    staged, backup = work / "staged", work / "original"
+    committed = False
+    try:
+        shutil.copytree(evidence, staged)
+        # Validate the complete predecessor against its actual dataset before
+        # reusing a review or extending its receipt chain.
+        (staged / "dataset.json").write_bytes(prior_bytes)
+        require_result_review(staged, prior_document, records)
+        if not valid_scoring_revision(staged):
+            raise ValueError("Scoring revision history is missing, invalid or unbound")
+        reference_path = staged / "reference-revisions.json"
+        if reference_path.exists() and not valid_reference_revision(staged):
+            raise ValueError("Reference revision history is invalid or unbound")
+        for record in records:
+            verify_record_artifacts(staged, record)
+        (staged / "dataset.json").write_bytes(current_bytes)
+        results_bytes = (staged / "results.jsonl").read_bytes()
+        if not rebind_unchanged_result_review(
+            staged / "result-review.json", prior_bytes, results_bytes,
+            current_bytes, results_bytes,
+            rebound_at=rebound_at,
+        ):
+            raise ValueError("result-review.json is missing")
+        if not bind_assembled_scoring_revision(staged):
+            raise ValueError("Metadata update did not extend its scoring revision history")
+        history_path = staged / "scoring-revisions.json"
+        history = json.loads(history_path.read_bytes())
+        history[-1]["scored_at"] = rebound_at
+        history[-1]["metadata_change"] = {"changed_top_level_fields": changed_fields}
+        history_path.write_text(json.dumps(history, ensure_ascii=False, indent=2) + "\n")
+        if not valid_scoring_revision(staged):
+            raise ValueError("Metadata update would leave an invalid scoring history")
+        if reference_path.exists() and not valid_reference_revision(staged):
+            raise ValueError("Metadata update would leave an invalid reference history")
+        checked_prior = contained_path(prior_dataset.parent, prior_dataset.name, reject_symlinks=True)
+        if evidence_tree_identity(evidence) != before or checked_prior.read_bytes() != prior_bytes:
+            raise ValueError("Metadata rebinding inputs changed during staging")
+        commit_staged_evidence(evidence, staged, backup)
+        committed = True
+        return evidence / "result-review.json"
+    finally:
+        # Retain the predecessor on success and the sole original if recovery fails.
+        if not committed and not backup.exists():
+            shutil.rmtree(work, ignore_errors=True)
+
+
+def rebind_metadata_main(argv=None):
+    parser = argparse.ArgumentParser(description="Rebind a blind review after neutral metadata changes")
+    parser.add_argument("--evidence", type=Path, required=True)
+    parser.add_argument("--prior-dataset", type=Path, required=True)
+    args = parser.parse_args(argv)
+    print(rebind_metadata_review(args.evidence, args.prior_dataset))
