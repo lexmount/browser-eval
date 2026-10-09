@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.build_webarena_authoring_suite import build_authoring_suite
+from harness.trajectory_replay.public_webarena.qualification import build_authoring_suite
 
 
 def _task(task_id: str, task_type: str, site: str) -> dict:

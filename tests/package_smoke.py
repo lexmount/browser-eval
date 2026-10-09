@@ -375,6 +375,32 @@ def verify_qualification_commands(root: Path, source_root: Path) -> None:
     assert not Path(qualification.__file__).resolve().is_relative_to(source_root.resolve())
     stage = root / 'qualification'
     stage.mkdir()
+    fixture = runpy.run_path(str(source_root / 'tests/public_webarena_fixture.py'))
+    candidate, decisions = fixture['authoring_suite_fixture']()
+    candidate_path, decisions_path = stage / 'candidate.json', stage / 'decisions.json'
+    candidate_path.write_text(json.dumps(candidate))
+    decisions_path.write_text(json.dumps(decisions))
+    original = candidate_path.read_bytes()
+    for name, entry, arguments in (
+        ('observation', qualification.main_observation_suite, ['--task-ids', 'webarena-1']),
+        ('authoring', qualification.main_authoring_suite,
+         ['--qualification', str(decisions_path)]),
+    ):
+        output = stage / (name + '.json')
+        args = ['--suite', str(candidate_path), '--output', str(output), *arguments]
+        entry(args)
+        derived = output.read_bytes()
+        entry(args)
+        assert output.read_bytes() == derived and candidate_path.read_bytes() == original
+        assert qualification.load_suite(output).tasks[0].task_id == 'webarena-1'
+        output.write_text('retained independent input')
+        try:
+            entry(args)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('Installed derivation replaced an existing input')
+        assert output.read_text() == 'retained independent input'
     suite = stage / 'suite.json'
     suite.write_text(json.dumps({'schema': 'lex_browser_use_tasks/4', 'tasks': [{
         'id': 'a', 'title': 'Candidate', 'difficulty': 'simple', 'tags': ['mutate'],

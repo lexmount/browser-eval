@@ -1849,3 +1849,182 @@ def main_repair_queue(argv=None) -> None:
     payload = build_repair_queue(load_suite(args.suite), args.attempts)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     _write_immutable(args.output, payload)
+
+
+def build_observation_suite(
+    suite: dict[str, Any], task_ids: list[str], *, output_name: str = "repair_page"
+) -> dict[str, Any]:
+    if not task_ids or len(set(task_ids)) != len(task_ids):
+        raise ValueError("task ids must be a non-empty unique list")
+    if not isinstance(output_name, str) or not output_name.strip():
+        raise ValueError("observation output name must be non-empty")
+    selected = []
+    by_id = _qualification_rows(suite.get("tasks"), "id", "source suite")
+    missing = [task_id for task_id in task_ids if task_id not in by_id]
+    if missing:
+        raise ValueError(f"unknown task ids: {missing}")
+    for task_id in task_ids:
+        task = deepcopy(by_id[task_id])
+        if any(action.get("save_as") == output_name for action in task["trajectory"]["actions"]):
+            raise ValueError("observation output already exists in trajectory: " + output_name)
+        task["trajectory"]["actions"].append(
+            {
+                "action": "snapshot",
+                "selector": "body",
+                "save_as": output_name,
+                "max_chars": 40_000,
+            }
+        )
+        task["trajectory"]["provenance"] = {
+            **(task["trajectory"].get("provenance") or {}),
+            "kind": "codex_response_observation_probe",
+            "non_canonical": True,
+        }
+        task["ground_truth"]["expected_actions"] = [
+            action["action"] for action in task["trajectory"]["actions"]
+        ]
+        task["ground_truth"]["response_builder"] = {
+            "kind": "observed_shape",
+            "task_type": "retrieve",
+            "shape": [{"$output": output_name}],
+        }
+        task["ground_truth"]["qualification"] = {"status": "pending"}
+        selected.append(task)
+    result = deepcopy(suite)
+    result["tasks"] = selected
+    result["benchmark"] = {
+        **(result.get("benchmark") or {}),
+        "response_observation_probe": {
+            "non_canonical": True,
+            "task_count": len(selected),
+            "output_name": output_name,
+            "affects_qualification": False,
+        },
+    }
+    return result
+
+
+def main_observation_suite(argv=None) -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--suite", type=Path, required=True)
+    parser.add_argument("--task-ids", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    task_ids = [item.strip() for item in args.task_ids.split(",") if item.strip()]
+    result = build_observation_suite(
+        json.loads(args.suite.read_text(encoding="utf-8")), task_ids
+    )
+    _write_qualified_suite(args.output, result)
+
+
+def build_authoring_suite(
+    suite: dict[str, Any],
+    qualification: dict[str, Any],
+    *,
+    site: str | None = None,
+    target_timeout_ms: int = 5_000,
+    task_ids: set[str] | None = None,
+    task_types: set[str] | None = None,
+    source_dispositions: set[str] | None = None,
+) -> dict[str, Any]:
+    if type(target_timeout_ms) is not int or target_timeout_ms < 1:
+        raise ValueError("authoring target timeout must be positive")
+    allowed_task_types = {"retrieve"} if task_types is None else task_types
+    if not allowed_task_types or not allowed_task_types <= {"retrieve", "navigate"}:
+        raise ValueError("authoring task types must be retrieve and/or navigate")
+    allowed_dispositions = ({"needs_trace_repair"} if source_dispositions is None
+                            else source_dispositions)
+    if not allowed_dispositions or not allowed_dispositions <= {
+        "needs_trace_repair",
+        "needs_response_annotation",
+    }:
+        raise ValueError("unsupported authoring source disposition")
+    qualification_rows = _qualification_rows(
+        qualification.get("tasks"), "task_id", "qualification")
+    dispositions = {identifier: row.get("disposition")
+                    for identifier, row in qualification_rows.items()}
+    selected_ids = []
+    for task in suite.get("tasks") or []:
+        task_id = str(task.get("id"))
+        if dispositions.get(task_id) not in allowed_dispositions:
+            continue
+        if not allowed_task_types.intersection(task.get("tags") or []):
+            continue
+        sites = (task.get("environment") or {}).get("sites") or []
+        if site is not None and site not in sites:
+            continue
+        if task_ids is not None and task_id not in task_ids:
+            continue
+        selected_ids.append(task_id)
+    if task_ids is not None and set(selected_ids) != task_ids:
+        missing = sorted(task_ids.difference(selected_ids))
+        raise ValueError(f"requested authoring tasks are outside the eligible scope: {missing}")
+    if not selected_ids:
+        raise ValueError("no non-mutating trace repairs match the requested authoring scope")
+
+    result = build_observation_suite(suite, selected_ids, output_name="authoring_page")
+    source_by_id = {str(task.get("id")): task for task in suite.get("tasks") or []}
+    for task in result["tasks"]:
+        for action in task["trajectory"]["actions"]:
+            if action.get("selector") is not None or isinstance(action.get("target"), dict):
+                action.setdefault("timeout_ms", target_timeout_ms)
+            if isinstance(action.get("target"), dict):
+                action.setdefault("target_timeout_ms", target_timeout_ms)
+        if "navigate" in (task.get("tags") or []):
+            source_builder = (
+                source_by_id[task["id"]].get("ground_truth") or {}
+            ).get("response_builder")
+            task["ground_truth"]["response_builder"] = deepcopy(
+                source_builder
+                or {
+                    "kind": "null_after_verified_path",
+                    "task_type": "navigate",
+                }
+            )
+    result["benchmark"] = {
+        **(result.get("benchmark") or {}),
+        "trajectory_authoring": {
+            "non_canonical": True,
+            "diagnostic_only": True,
+            "source_dispositions": sorted(allowed_dispositions),
+            "task_types": sorted(allowed_task_types),
+            "site": site,
+            "task_count": len(selected_ids),
+            "diagnostic_target_timeout_ms": target_timeout_ms,
+            "qualification_evidence": False,
+        },
+    }
+    return result
+
+
+def main_authoring_suite(argv=None) -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--suite", type=Path, required=True)
+    parser.add_argument("--qualification", type=Path, required=True)
+    parser.add_argument("--site")
+    parser.add_argument("--target-timeout-ms", type=int, default=5_000)
+    parser.add_argument("--task-ids")
+    parser.add_argument("--task-types", default="retrieve")
+    parser.add_argument("--source-dispositions", default="needs_trace_repair")
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    result = build_authoring_suite(
+        json.loads(args.suite.read_text(encoding="utf-8")),
+        json.loads(args.qualification.read_text(encoding="utf-8")),
+        site=args.site,
+        target_timeout_ms=args.target_timeout_ms,
+        task_ids=(
+            {item.strip() for item in args.task_ids.split(",") if item.strip()}
+            if args.task_ids is not None
+            else None
+        ),
+        task_types={
+            item.strip() for item in args.task_types.split(",") if item.strip()
+        },
+        source_dispositions={
+            item.strip()
+            for item in args.source_dispositions.split(",")
+            if item.strip()
+        },
+    )
+    _write_qualified_suite(args.output, result)

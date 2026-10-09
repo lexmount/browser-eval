@@ -81,3 +81,19 @@ def write_report_fixture(tmp_path: Path) -> tuple[Path, Path]:
     }
     profile.write_text(json.dumps(authority))
     return source, profile
+
+
+def authoring_suite_fixture() -> tuple[dict, dict]:
+    """One valid pending non-mutating task; no browser or evaluator calls."""
+    suite = {"schema": "lex_browser_use_tasks/4", "benchmark": {}, "tasks": [{
+        "id": "webarena-1", "title": "Read the example page", "difficulty": "simple",
+        "tags": ["retrieve"], "environment": {"kind": "self_hosted", "sites": ["map"]},
+        "source": {"url": "https://example.test/source"},
+        "evaluator": {"kind": "webarena_verified", "task_id": 1, "revision": 0},
+        "trajectory": {"schema": "lex_browser_trajectory/1", "provenance": {"kind": "official"},
+                       "actions": [{"action": "navigate", "url": "https://example.test/",
+                                    "save_as": "page"}]},
+        "ground_truth": {"expected_actions": ["navigate"], "qualification": {"status": "pending"}},
+    }]}
+    qualification = {"tasks": [{"task_id": "webarena-1", "disposition": "needs_trace_repair"}]}
+    return suite, qualification
