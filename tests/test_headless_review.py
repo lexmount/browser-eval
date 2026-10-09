@@ -21,11 +21,12 @@ class HeadlessReviewTests(unittest.TestCase):
         self.assertEqual(expected_providers(dataset, {'track': 'resources'}), {'resource-p'})
         self.assertEqual(expected_providers(dataset, {}), {'web-p'})
 
-    def test_resume_discards_observations_outside_exact_reference_scope(self):
+    def test_resume_rejects_observations_outside_exact_reference_scope(self):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'observations.json'
             path.write_text(json.dumps([{'case_id':'exact'},{'case_id':'unavailable'}]))
-            self.assertEqual(set(load_resumable_observations(path,{'exact':{}})),{'exact'})
+            with self.assertRaises(ValueError):
+                load_resumable_observations(path,{'exact':{}})
 
     def test_worker_rejects_unsupported_url_before_browser_launch(self):
         for url in ('file:///etc/passwd','javascript:alert(1)','https://example.com/\n'):

@@ -17,11 +17,13 @@ from harness.web_fetch.metrics import normalize_for_match
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
     completed_case_records,
+    load_capture_observation,
     reference_cases,
     requires_browser_observation,
     requires_fresh_reference,
     scope_identity,
     timestamp,
+    validate_postcheck_observation,
 )
 from harness.web_fetch.reference_quality import (
     clean_reference_text,
@@ -359,8 +361,19 @@ def main(argv=None):
 def load_resumable_observations(checkpoint, cases):
     if not checkpoint.exists():
         return {}
-    return {row['case_id']:row for row in json.loads(checkpoint.read_text())
-            if row.get('case_id') in cases}
+    rows = json.loads(checkpoint.read_text())
+    if not isinstance(rows, list):
+        raise ValueError('Postcheck checkpoint must contain an observation list')
+    done = {}
+    for row in rows:
+        if not isinstance(row, dict) or row.get('case_id') not in cases:
+            raise ValueError('Postcheck checkpoint contains an undeclared case')
+        identifier = row['case_id']
+        if identifier in done:
+            raise ValueError('Duplicate postcheck checkpoint observation: ' + identifier)
+        done[identifier] = validate_postcheck_observation(
+            row, identifier, {'scope_identity': scope_identity(cases[identifier])})
+    return done
 
 
 def postcheck_main(argv=None):
@@ -384,16 +397,13 @@ def postcheck_main(argv=None):
     if args.resume and checkpoint.exists():
         done=load_resumable_observations(checkpoint,cases)
     def observe(case):
-        begin=time.monotonic()
         existing=args.captures/case['id']/'evidence.json'
-        row=json.loads(existing.read_text()) if args.resume and existing.exists() else capture(case,args.captures)
-        text_path=args.captures/case['id']/'reference.txt'
-        return {'case_id':case['id'],'independent':True,
-            'checked_at':row['checked_at'],
-            'content_text':text_path.read_text() if text_path.exists() else '',
-            'scope_identity':scope_identity(case),
-            'completion':{'satisfied':row.get('status')==200 and not row.get('missing_facts'),
-                          'elapsed_ms':(time.monotonic()-begin)*1000,'timeout_ms':120000}}
+        if not (args.resume and existing.exists()):
+            capture(case,args.captures)
+        return load_capture_observation(args.captures, case['id'], {
+            'scope_identity': scope_identity(case),
+            'source_verification': case.get('source_verification', {}),
+        })
     with ThreadPoolExecutor(max_workers=4) as pool:
         while len(done)<len(cases):
             records=read_completed_records(args.run_dir/'results.jsonl')
@@ -406,9 +416,10 @@ def postcheck_main(argv=None):
                 if requires_browser_observation(case) or cid in rows:
                     if cid not in rows:continue
                     row=rows.get(cid,{})
+                    row=validate_postcheck_observation(row,cid,{'scope_identity':scope_identity(case)})
                     latest=max(timestamp(r.get('completed_at',r['started_at'])) for r in relevant)
                     if timestamp(row.get('checked_at'))>latest:
-                        done[cid]={'case_id':cid,**row,'scope_identity':scope_identity(case)}
+                        done[cid]=row
                     continue
                 pending[cid]=pool.submit(observe,case)
             for cid,future in list(pending.items()):

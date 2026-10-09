@@ -212,6 +212,16 @@ qualify a postcheck. Browser-required scopes cannot substitute HTTP captures.
 Older captures without these receipts remain historical evidence and require a
 new independent capture for a new certification.
 
+Live postchecks and resumed checkpoints use the same receipt validation as
+offline observation assembly. They preserve the original acquisition duration
+and reject duplicate, out-of-scope or contradictory observations.
+`evidence.py` owns aggregate finalization through `scripts/finalize_benchmark_run.py`:
+worker batches must cover each declared attempt exactly once and preserve their
+execution metadata. Finalization copies only hash-bound observation files using
+the shared evidence materializer; unrelated worker files stay private. A resumed
+finalization verifies the retained dataset, results and observation hashes before
+reusing a certificate.
+
 `harness/web_fetch/wcxb_scoring.py` owns certified WCXB scoring through
 `scripts/score_wcxb_results.py`. Its explicit profile selects the ordered
 participant matrix; certified binary identities select any paired timing roles.

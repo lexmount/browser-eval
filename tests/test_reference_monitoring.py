@@ -225,3 +225,60 @@ def test_browser_observation_time_is_compared_as_an_instant_across_timezones(tmp
         with pytest.raises(TimeoutError):
             reference_freeze.postcheck_main(arguments)
         assert json.loads((output / 'observations.json').read_bytes()) == []
+
+
+@pytest.mark.parametrize('damage', ['independence', 'scope', 'identity', 'completion'])
+@pytest.mark.parametrize('source', ['browser', 'checkpoint'])
+def test_postcheck_monitor_rejects_invalid_provenance_without_rewriting_it(
+    tmp_path, monkeypatch, damage, source
+):
+    def forbidden(*args):
+        pytest.fail('Invalid retained evidence must fail before new source calls')
+    monkeypatch.setattr(reference_freeze, 'capture', forbidden)
+    run, definition, _, observations = live_run(tmp_path)
+    row = json.loads(observations.read_bytes())[0]
+    if damage == 'independence':
+        row['independent'] = False
+    elif damage == 'scope':
+        row['scope_identity'] = {}
+    elif damage == 'identity':
+        row['case_id'] = 'other'
+    else:
+        row['completion'] = {'satisfied': True, 'elapsed_ms': 1001, 'timeout_ms': 1000}
+    output = tmp_path / 'post'
+    arguments = ['--run-dir', str(run), '--captures', str(output), '--timeout', '0']
+    if source == 'browser':
+        path = tmp_path / 'browser.json'
+        path.write_text(json.dumps({definition['cases'][0]['id']: row}))
+        arguments += ['--browser-observations', str(path)]
+    else:
+        output.mkdir()
+        (output / 'observations.json').write_text(json.dumps([row]))
+        arguments += ['--resume']
+    with pytest.raises(ValueError):
+        reference_freeze.postcheck_main(arguments)
+    if source == 'checkpoint':
+        assert json.loads((output / 'observations.json').read_bytes()) == [row]
+    else:
+        assert not (output / 'observations.json').exists()
+
+
+def test_resumed_http_postcheck_preserves_acquisition_duration(tmp_path):
+    run, definition, _, observations = live_run(tmp_path)
+    row = json.loads(observations.read_bytes())[0]
+    row['completion'] = {'satisfied': True, 'elapsed_ms': 813, 'timeout_ms': 120000}
+    row.update(url=definition['cases'][0]['url'], state='captured', status=200,
+               missing_facts=[], quality_issues=[],
+               source='independent HTTP GET (no provider output)',
+               reference_sha256=hashlib.sha256(row['content_text'].encode()).hexdigest())
+    output = tmp_path / 'post'
+    folder = output / row['case_id']
+    folder.mkdir(parents=True)
+    (folder / 'evidence.json').write_text(json.dumps(row))
+    (folder / 'reference.txt').write_text(row['content_text'])
+    reference_freeze.postcheck_main(['--run-dir', str(run), '--captures', str(output),
+                                    '--resume', '--timeout', '10'])
+    saved = json.loads((output / 'observations.json').read_bytes())[0]
+    assert saved['completion'] == row['completion']
+    assert saved['checked_at'] == row['checked_at']
+    assert saved['content_sha256'] == row['reference_sha256']

@@ -505,3 +505,149 @@ def certification_main(argv=None):
         if time.monotonic()>=deadline:
             raise TimeoutError('Case certification deadline')
         time.sleep(1)
+
+
+def _read(path: Path) -> dict:
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"Expected JSON object: {path}")
+    return value
+
+
+def _attempt_key(batch: dict) -> tuple[str, ...]:
+    if not isinstance(batch, dict):
+        raise ValueError("Execution batch must be an object")
+    attempts = batch.get("attempt_ids")
+    if (not isinstance(attempts, list) or not attempts
+            or any(not isinstance(value, str) or not value for value in attempts)
+            or len(attempts) != len(set(attempts))):
+        raise ValueError("Execution batch has invalid attempt IDs")
+    return tuple(sorted(attempts))
+
+
+def _index_batches(batches: list[dict]) -> dict[tuple[str, ...], dict]:
+    indexed, attempts = {}, set()
+    for batch in batches:
+        key = _attempt_key(batch)
+        if attempts.intersection(key):
+            raise ValueError("Execution batches have duplicate attempt IDs")
+        attempts.update(key)
+        indexed[key] = batch
+    return indexed
+
+
+def _batch_identity(batch: dict) -> dict:
+    """Only the reference-check outcome may change while finalizing a worker."""
+    identity = deepcopy(batch)
+    checks = identity.get("reference_checks")
+    if isinstance(checks, dict):
+        checks.pop("status", None)
+        checks.pop("postcheck", None)
+    return identity
+
+
+def _is_reference_finalization(original: dict, current: dict) -> bool:
+    if _batch_identity(original) != _batch_identity(current):
+        return False
+    checks = original.get("reference_checks")
+    if isinstance(checks, dict) and (
+            checks.get("status") != "awaiting_postcheck" or "postcheck" in checks):
+        return checks == current.get("reference_checks")
+    return True
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _verify_existing_postcheck(worker: Path, manifest: dict,
+                               observations: Path) -> bool:
+    """Accept only the exact verified postcheck left by an interrupted finalize.
+
+    ``finalize_reference_checks`` intentionally refuses to rewrite an existing
+    certificate.  The aggregate step must therefore be resumable after the
+    worker manifest was committed but before the top-level execution file was
+    rebuilt.  Reuse is safe only when the retained receipt still binds the
+    supplied observations and this worker's immutable dataset/results bytes.
+    """
+    checks = manifest.get("reference_checks")
+    postcheck = checks.get("postcheck") if isinstance(checks, dict) else None
+    if not isinstance(postcheck, dict):
+        return False
+    if checks.get("status") != "verified" or postcheck.get("status") != "verified":
+        raise ValueError(f"Retained reference postcheck is not verified: {worker}")
+    expected = {
+        "evidence_sha256": _sha256(observations),
+        "results_sha256": _sha256(worker / "results.jsonl"),
+        "dataset_sha256": _sha256(worker / "dataset.json"),
+    }
+    for field, value in expected.items():
+        if postcheck.get(field) != value:
+            raise ValueError(
+                f"Retained reference postcheck has stale {field}: {worker}")
+    return True
+
+
+def finalize_aggregate(run_dir: Path, observations: Path) -> None:
+    """Finalize workers, merge certificates, and atomically replace execution.json."""
+    reject_evidence_symlinks(run_dir)
+    if observations.is_symlink():
+        raise ValueError("Symlinked postcheck observations are forbidden")
+    run_dir = run_dir.resolve()
+    execution_path = run_dir / "execution.json"
+    execution = _read(execution_path)
+    original = execution.get("batches")
+    if not isinstance(original, list) or not original:
+        raise ValueError("Aggregated run has no execution batches")
+    original_by_key = _index_batches(original)
+
+    manifests = sorted((run_dir / "workers").glob("*/*/manifest.json"))
+    if not manifests:
+        raise ValueError("Aggregated run has no worker manifests")
+    before = [_read(path) for path in manifests]
+    before_by_key = _index_batches(before)
+    if set(before_by_key) != set(original_by_key):
+        raise ValueError("Worker manifests differ from aggregated execution")
+    if any(not _is_reference_finalization(original_by_key[key], batch)
+           for key, batch in before_by_key.items()):
+        raise ValueError("Worker metadata differs from aggregated execution")
+
+    for path, manifest in zip(manifests, before, strict=True):
+        if "reference_checks" in manifest:
+            if _verify_existing_postcheck(path.parent, manifest, observations):
+                continue
+            result = finalize_reference_checks(path.parent, observations)
+            if result.get("status") != "verified":
+                raise ValueError(f"Reference postcheck failed: {path.parent}")
+
+    updated = [_read(path) for path in manifests]
+    updated_by_key = _index_batches(updated)
+    if set(updated_by_key) != set(original_by_key):
+        raise ValueError("Finalized worker manifests changed attempt inventory")
+    if any(not _is_reference_finalization(original_by_key[key], batch)
+           for key, batch in updated_by_key.items()):
+        raise ValueError("Finalized worker metadata changed")
+
+    for path, manifest in zip(manifests, updated, strict=True):
+        materialize_reference_checks(run_dir, path.parent, [manifest])
+
+    rebuilt = {**execution, "batches": [updated_by_key[_attempt_key(batch)] for batch in original]}
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=run_dir,
+                                         prefix=".execution-", suffix=".json", delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(json.dumps(rebuilt, ensure_ascii=False, indent=2) + "\n")
+        temporary.replace(execution_path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    print(f"Finalized aggregate reference checks: {len(updated)} batches")
+
+
+def finalize_main(argv=None) -> None:
+    parser = argparse.ArgumentParser(description=finalize_aggregate.__doc__)
+    parser.add_argument("--run-dir", type=Path, required=True)
+    parser.add_argument("--observations", type=Path, required=True)
+    args = parser.parse_args(argv)
+    finalize_aggregate(args.run_dir, args.observations)

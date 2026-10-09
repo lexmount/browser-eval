@@ -371,6 +371,54 @@ def _completion(completion) -> None:
         raise ReferenceLifecycleError("Independent completion is unbounded or exceeded its deadline")
 
 
+def validate_postcheck_observation(row: dict, case_id: str, binding: dict) -> dict:
+    """Preserve a receipt only when its original provenance matches the frozen task."""
+    if (not isinstance(row, dict) or row.get("case_id") != case_id
+            or row.get("independent") is not True
+            or row.get("scope_identity") != binding["scope_identity"]):
+        raise ValueError("Postcheck observation identity/independence/scope mismatch: " + case_id)
+    timestamp(row.get("checked_at"))
+    _completion(row.get("completion"))
+    content = row.get("content_text")
+    if not isinstance(content, str) or not content.strip():
+        raise ValueError("Postcheck observation has no source content: " + case_id)
+    if "content_sha256" in row and row["content_sha256"] != sha256(content):
+        raise ValueError("Postcheck observation content hash mismatch: " + case_id)
+    return deepcopy(row)
+
+
+def load_capture_observation(captures_root: Path, case_id: str, binding: dict) -> dict:
+    """Load an HTTP capture using its own completion, scope and content binding."""
+    safe_identifier(case_id)
+    scope = binding["scope_identity"]
+    if requires_browser_observation(binding):
+        raise ValueError("Browser observation required: " + case_id)
+    folder = contained_path(captures_root, case_id, reject_symlinks=True)
+    evidence_path = contained_path(folder, "evidence.json", reject_symlinks=True)
+    capture = json.loads(evidence_path.read_text(encoding="utf-8"))
+    if (not isinstance(capture, dict) or capture.get("case_id") != case_id
+            or capture.get("url") != scope.get("url")
+            or capture.get("scope_identity") != scope
+            or capture.get("independent") is not True
+            or capture.get("source") != "independent HTTP GET (no provider output)"
+            or capture.get("state") != "captured" or capture.get("status") != 200
+            or capture.get("missing_facts") != [] or capture.get("quality_issues") != []):
+        raise ValueError("Incomplete or out-of-scope post-call capture: " + case_id)
+    timestamp(capture.get("checked_at"))
+    _completion(capture.get("completion"))
+    content_path = contained_path(folder, "reference.txt", reject_symlinks=True)
+    content = content_path.read_text(encoding="utf-8")
+    if not content.strip() or sha256(content) != capture.get("reference_sha256"):
+        raise ValueError("Post-call capture content hash mismatch: " + case_id)
+    return {
+        "case_id": case_id, "independent": True,
+        "checked_at": capture["checked_at"], "content_text": content,
+        "content_sha256": capture["reference_sha256"],
+        "scope_identity": deepcopy(scope),
+        "completion": deepcopy(capture["completion"]),
+    }
+
+
 def build_observations(run_dir: Path, captures_root: Path,
                        browser_observations: Path | None = None) -> list[dict]:
     """Validate independent post-call receipts without inventing their provenance."""
@@ -403,42 +451,10 @@ def build_observations(run_dir: Path, captures_root: Path,
     observations = []
     for case_id, binding in bindings.items():
         safe_identifier(case_id)
-        scope = binding["scope_identity"]
         if case_id in rendered:
-            row = rendered[case_id]
-            if (row.get("independent") is not True
-                    or row.get("scope_identity") != scope):
-                raise ValueError("Browser observation independence/scope mismatch: " + case_id)
-            timestamp(row.get("checked_at"))
-            _completion(row.get("completion"))
-            observations.append(deepcopy(row))
+            observations.append(validate_postcheck_observation(rendered[case_id], case_id, binding))
             continue
-        if requires_browser_observation(binding):
-            raise ValueError("Browser observation required: " + case_id)
-        folder = contained_path(captures_root, case_id, reject_symlinks=True)
-        evidence_path = contained_path(folder, "evidence.json", reject_symlinks=True)
-        capture = json.loads(evidence_path.read_text(encoding="utf-8"))
-        if (not isinstance(capture, dict) or capture.get("case_id") != case_id
-                or capture.get("url") != scope.get("url")
-                or capture.get("scope_identity") != scope
-                or capture.get("independent") is not True
-                or capture.get("source") != "independent HTTP GET (no provider output)"
-                or capture.get("state") != "captured" or capture.get("status") != 200
-                or capture.get("missing_facts") != [] or capture.get("quality_issues") != []):
-            raise ValueError("Incomplete or out-of-scope post-call capture: " + case_id)
-        timestamp(capture.get("checked_at"))
-        _completion(capture.get("completion"))
-        content_path = contained_path(folder, "reference.txt", reject_symlinks=True)
-        content = content_path.read_text(encoding="utf-8")
-        if not content.strip() or sha256(content) != capture.get("reference_sha256"):
-            raise ValueError("Post-call capture content hash mismatch: " + case_id)
-        observations.append({
-            "case_id": case_id, "independent": True,
-            "checked_at": capture["checked_at"], "content_text": content,
-            "content_sha256": capture["reference_sha256"],
-            "scope_identity": deepcopy(scope),
-            "completion": deepcopy(capture["completion"]),
-        })
+        observations.append(load_capture_observation(captures_root, case_id, binding))
     return observations
 
 

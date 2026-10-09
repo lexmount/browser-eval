@@ -24,7 +24,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             require_verified_reference_checks,
         )
         from harness.web_fetch.report_build import build_report
-        from scripts.finalize_benchmark_run import finalize_aggregate
+        from harness.web_fetch.evidence import finalize_aggregate
         for mode in ('declared', 'native'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 root=Path(directory); dataset=root/'dataset.json'; output=root/'run'

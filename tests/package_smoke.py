@@ -958,6 +958,30 @@ def verify_oss_workers(root, source_root, *, with_libraries):
         thread.join(timeout=2)
 
 
+def verify_aggregate_finalization(root, source_root):
+    from harness.web_fetch.evidence import finalize_aggregate
+
+    fixture = runpy.run_path(str(source_root / 'tests/test_finalize_benchmark_run.py'))
+    valid = root / 'finalize-valid'
+    worker, observations, _, relative = fixture['retained_run'](valid)
+    (worker / 'reference-checks/private-notes.txt').write_text('private diagnostic')
+    finalize_aggregate(valid, observations)
+    finalize_aggregate(valid, observations)
+    assert (valid / relative).read_bytes() == observations.read_bytes()
+    assert not (valid / 'reference-checks/private-notes.txt').exists()
+    invalid = root / 'finalize-corrupt'
+    worker, observations, _, relative = fixture['retained_run'](invalid)
+    (worker / relative).write_text('corrupted independent observation')
+    before = (invalid / 'execution.json').read_bytes()
+    try:
+        finalize_aggregate(invalid, observations)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('Installed finalizer accepted corrupt reference evidence')
+    assert (invalid / 'execution.json').read_bytes() == before
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -998,6 +1022,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
+        verify_aggregate_finalization(root, args.source_root)
         verify_cowagent_isolation(root)
         verify_public_trajectory_publication(root, args.source_root)
         verify_oss_workers(root, args.source_root, with_libraries=args.oss)
