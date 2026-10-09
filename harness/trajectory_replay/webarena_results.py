@@ -621,3 +621,33 @@ def main_aggregate(argv: list[str] | None = None) -> None:
     )
     print(json.dumps({"attempts": len(result["attempts"]),
                       "sha256": checked_file_sha256(args.output)}))
+
+
+def main_merge(argv=None) -> None:
+    import argparse
+    import json
+    from pathlib import Path
+
+    from harness.web_fetch.safety import unlinked_path, write_new_file
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--profile",
+                        default="evaluation/trajectory-replay/webarena-verified/current-run.json")
+    parser.add_argument("--seeds", required=True)
+    parser.add_argument("--qualified-dataset", required=True)
+    parser.add_argument("--base-receipt", required=True)
+    parser.add_argument("--correction-receipt", action="append", default=[])
+    parser.add_argument("--output", required=True)
+    args = parser.parse_args(argv)
+    output = unlinked_path(Path(args.output).expanduser())
+    if output.exists():
+        raise ValueError("output already exists")
+    result = build_effective_results(
+        profile_path=args.profile,
+        seed_manifest_path=args.seeds,
+        qualified_dataset_path=args.qualified_dataset,
+        base_receipt_path=args.base_receipt,
+        correction_receipt_paths=args.correction_receipt,
+    )
+    write_new_file(output, (json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode())
+    print(json.dumps(result["counts"], ensure_ascii=False))

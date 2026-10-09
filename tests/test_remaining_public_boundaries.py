@@ -57,3 +57,26 @@ def test_wcxb_visual_generated_report(tmp_path):
     generate_wcxb(*inputs)
     (inputs[0] / "wcxb-scores.jsonl").write_text("".join(json.dumps(row) + "\n" for row in inputs[1]))
     check_visual(inputs[0], browser_executable())
+
+
+@pytest.mark.parametrize('entry', ['trace-catalog', 'catalog-actions', 'replay-merge'])
+def test_existing_evidence_is_preserved_before_loading_inputs(tmp_path, entry):
+    from harness.trajectory_replay.catalog_action_audit import main_audit
+    from harness.trajectory_replay.public_webarena.webarena import main_catalog
+    from harness.trajectory_replay.webarena_results import main_merge
+
+    output = tmp_path / 'evidence.json'
+    output.write_bytes(b'previous evidence')
+    commands = {
+        'trace-catalog': (main_catalog, ['--folder-html', 'missing', '--webarena-dataset', 'missing',
+                                       '--webarena-commit', 'a', '--verified-dataset', 'missing',
+                                       '--verified-commit', 'b']),
+        'catalog-actions': (main_audit, ['--catalog', 'missing', '--portable-suite', 'missing',
+                                        '--action-overrides', 'missing']),
+        'replay-merge': (main_merge, ['--seeds', 'missing', '--qualified-dataset', 'missing',
+                                     '--base-receipt', 'missing']),
+    }
+    function, args = commands[entry]
+    with pytest.raises(ValueError, match='output already exists'):
+        function([*args, '--output', str(output)])
+    assert output.read_bytes() == b'previous evidence'

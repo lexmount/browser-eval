@@ -712,3 +712,33 @@ def main_audit_traces(argv=None) -> None:
         raise RuntimeError(f"trace download is incomplete: {len(missing)} files missing")
     if unmapped_counts:
         raise RuntimeError(f"unsupported Playwright APIs remain: {dict(unmapped_counts)}")
+
+
+def main_catalog(argv=None) -> None:
+    import argparse
+    import json
+    from pathlib import Path
+
+    from harness.web_fetch.safety import unlinked_path, write_new_file
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--folder-html", type=Path, required=True)
+    parser.add_argument("--webarena-dataset", type=Path, required=True)
+    parser.add_argument("--webarena-commit", required=True)
+    parser.add_argument("--verified-dataset", type=Path, required=True)
+    parser.add_argument("--verified-commit", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    output = unlinked_path(Path(args.output).expanduser())
+    if output.exists():
+        raise ValueError("output already exists")
+
+    files = parse_drive_folder_html(args.folder_html.read_text(encoding="utf-8"))
+    payload = build_trace_catalog(
+        files,
+        original_tasks=json.loads(args.webarena_dataset.read_text(encoding="utf-8")),
+        verified_tasks=json.loads(args.verified_dataset.read_text(encoding="utf-8")),
+        original_commit=args.webarena_commit,
+        verified_commit=args.verified_commit,
+    )
+    write_new_file(output, (json.dumps(payload, indent=2, ensure_ascii=False) + "\n").encode())

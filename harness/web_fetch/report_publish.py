@@ -320,3 +320,47 @@ def main(*, root: Path | None = None):
         )
     )
     print(json.dumps(result, ensure_ascii=False), flush=True)
+
+def rename_main(argv=None, *, default_root=None) -> None:
+    import argparse
+    import json
+    import os
+    import urllib.request
+    from pathlib import Path
+
+    root = default_root or Path.cwd()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "receipt",
+        type=Path,
+        nargs="?",
+        default=root / "publish/artifact-hub-receipt.json",
+    )
+    parser.add_argument("--title", required=True)
+    args = parser.parse_args(argv)
+
+    receipt = json.loads(args.receipt.read_text(encoding="utf-8"))
+    base = os.environ.get(
+        "ARTIFACT_HUB_BASE_URL",
+        receipt.get("base_url", "https://artifact-hub.app.lexmount.com"),
+    ).rstrip("/")
+    token = load_token(base_url=base)
+    request = urllib.request.Request(
+        base + "/api/sites/" + receipt["slug"],
+        data=json.dumps({"title": args.title}).encode(),
+        method="PATCH",
+        headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        data = json.load(response)
+        receipt["title"] = data.get("title", args.title)
+        args.receipt.write_text(
+            json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        os.chmod(args.receipt, 0o600)
+        print(
+            json.dumps(
+                {"status": response.status, "title": data.get("title")},
+                ensure_ascii=False,
+            )
+        )

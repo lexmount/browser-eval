@@ -401,3 +401,61 @@ def main(argv=None):
 
 if __name__ == "__main__":
     main()
+
+
+def resource_links_main(argv=None) -> None:
+    import argparse
+    import json
+    import urllib.error
+    import urllib.request
+    from datetime import datetime, timezone
+    from pathlib import Path
+    from urllib.parse import urljoin
+    from harness.web_fetch.reference_inputs import read_dataset_bytes
+    from harness.web_fetch.safety import unlinked_path, write_new_file
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dataset", type=Path, default=Path("evaluation/dataset.json"))
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--timeout", type=float, default=25)
+    args = parser.parse_args(argv)
+    output = unlinked_path(args.output)
+    if output.exists():
+        raise ValueError("output already exists")
+    dataset_bytes = read_dataset_bytes(args.dataset)
+    dataset = json.loads(dataset_bytes)
+    expected: dict[str, list[str]] = {}
+    for case in dataset["cases"]:
+        for resource in case.get("expected_resources", []):
+            mime_types = [str(item) for item in resource.get("mime_types", [])]
+            for value in resource.get("urls", []):
+                url = urljoin(case["url"], value)
+                if url in expected and set(expected[url]) != set(mime_types):
+                    raise ValueError("conflicting expected MIME types for resource URL")
+                expected[url] = mime_types
+    checks = []
+    for url, expected_mime in sorted(expected.items()):
+        request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "browser-harness-eval/1.0"})
+        try:
+            with urllib.request.urlopen(request, timeout=args.timeout) as response:
+                checks.append({
+                    "url": url,
+                    "status": response.status,
+                    "final_url": response.geturl(),
+                    "content_type": response.headers.get_content_type(),
+                    "expected_mime_types": expected_mime,
+                    "pass": response.status < 400 and response.headers.get_content_type() in expected_mime,
+                })
+        except (urllib.error.URLError, TimeoutError) as error:
+            checks.append({"url": url, "status": None, "final_url": None, "content_type": None, "expected_mime_types": expected_mime, "pass": False, "error": str(error)})
+    payload = {
+        "schema_version": 1,
+        "dataset_sha256": hashlib.sha256(dataset_bytes).hexdigest(),
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "method": "HTTP HEAD；记录最终 URL、状态与 MIME",
+        "checks": checks,
+    }
+    if read_dataset_bytes(args.dataset) != dataset_bytes:
+        raise ValueError("resource reference inputs changed")
+    write_new_file(output, (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode())
+    print(f"checked {len(checks)} resource URLs; passed {sum(item['pass'] for item in checks)}")

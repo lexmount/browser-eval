@@ -1010,3 +1010,47 @@ def main_revise(argv=None) -> None:
     result["predecessor_manifest_sha256"] = bound[args.prior]
     write_new_file(args.output, (json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode())
     print(json.dumps({"task_count": len(result["tasks"]), "output": str(args.output)}))
+
+
+def main_prepared_reset(argv=None) -> None:
+    import os
+    import time
+
+    from harness.web_fetch.safety import unlinked_path, write_new_file
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--method-id", required=True)
+    parser.add_argument("--app-id", required=True, type=int)
+    parser.add_argument("--site-map", required=True, type=Path)
+    parser.add_argument("--receipt", required=True, type=Path)
+    args = parser.parse_args(argv)
+    output = unlinked_path(args.receipt)
+    if output.exists():
+        raise ValueError("output already exists")
+    source_value = os.environ.get("WEBARENA_PREPARED_COHORT_RESET_RECEIPT")
+    if not source_value:
+        raise ValueError("prepared Rainbond cohort reset receipt is required")
+    source = unlinked_path(Path(source_value))
+    source_bytes = source.read_bytes()
+    if source.is_symlink() or not source.is_file() or args.receipt.exists():
+        raise ValueError("prepared reset source or output is invalid")
+    if source.resolve() == args.receipt.resolve():
+        raise ValueError("prepared reset receipt cannot be its own output")
+    receipt = validate_remote_cohort_reset_receipt(
+        source,
+        site_map_sha256=file_sha256(args.site_map),
+        app_id=args.app_id,
+        reset_scope="once_before_method_cohort",
+        site_reset_between_tasks=False,
+    )
+    completed = receipt.get("completed_at_unix")
+    if (
+        receipt.get("method_id") != args.method_id
+        or receipt.get("task_id") is not None
+        or type(completed) not in {int, float}
+        or not time.time() - 1800 <= completed <= time.time()
+    ):
+        raise ValueError("prepared reset is stale or belongs to another method")
+    if source.read_bytes() != source_bytes:
+        raise ValueError("prepared reset receipt changed during validation")
+    write_new_file(output, source_bytes)
