@@ -204,9 +204,14 @@ class SubprocessJsonlProvider(Provider):
             )
         deadline = time.monotonic() + timeout
         self._active_diagnostics = getattr(self, "_call_diagnostics", None)
-        process = self._start()
-        assert process.stdin is not None and process.stdout is not None
+        previous_process = self._process
         stderr_cursor = self._stderr_cursor()
+        process = self._start()
+        if process is not previous_process:
+            # Startup is part of this call, including diagnostics already
+            # consumed by the reader before _start returns.
+            stderr_cursor = (0, 0)
+        assert process.stdin is not None and process.stdout is not None
         request = {
             "url": case.url,
             "log_level": self.config.get("log_level"),
@@ -221,8 +226,20 @@ class SubprocessJsonlProvider(Provider):
             "retrieval_mode": "native_default" if native_default_case(case) else "declared_plan",
         }
         if self._active_diagnostics: self._active_diagnostics.emit("caller", "worker_request_sent", request=request)
-        process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
-        process.stdin.flush()
+        try:
+            process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
+            process.stdin.flush()
+        except OSError as error:
+            # A worker may exit or close stdin before accepting a request.
+            # Retain the actual transport error and the startup diagnostics.
+            self.cancel()
+            process.wait(timeout=self.cancellation_cleanup_seconds)
+            error.public_metadata = {
+                "_answer_elapsed_ms": round((time.perf_counter() - answer_begin) * 1000, 2),
+                **self._request_stderr(stderr_cursor),
+                "exit_code": process.returncode,
+            }
+            raise
 
         worker_logs: list[str] = []
         worker_log_bytes = 0
@@ -339,4 +356,8 @@ class SubprocessJsonlProvider(Provider):
         if process is not None:
             for stream in (process.stdin, process.stdout, process.stderr):
                 if stream is not None:
-                    stream.close()
+                    try:
+                        stream.close()
+                    except OSError:
+                        # Closing buffered stdin can repeat the write failure.
+                        pass
