@@ -785,3 +785,299 @@ def rebase_main():
     print(
         f"reviewed={review['reviewed_attempts']} disagreements={review['disagreements']} unresolved=0"
     )
+
+
+def merge_reviews(evidence: Path, shard_paths: list[Path], output: Path, *,
+                  prior_review: Path | None = None,
+                  adjudications: Path | None = None, install: bool = False,
+                  allow_confirmed_errors: bool = False) -> dict:
+    dataset, records, bindings = _read_review_evidence(evidence, skip_blank=True)
+    installed = contained_path(evidence, "result-review.json", reject_symlinks=True)
+    output = contained_path(output.parent, output.name, reject_symlinks=True)
+    if output.is_relative_to(evidence.resolve()) and not (install and output == installed):
+        raise ValueError("Review output must be outside evidence unless installing result-review.json")
+    inputs = [*shard_paths, *([prior_review] if prior_review else []),
+              *([adjudications] if adjudications else [])]
+    snapshots = {}
+    for path in inputs:
+        safe = contained_path(path.parent, path.name, reject_symlinks=True)
+        if output == safe and output != installed:
+            raise ValueError("Review output must not overwrite an input")
+        snapshots[safe] = safe.read_bytes()
+    original_review = installed.read_bytes() if installed.exists() else None
+
+    def unchanged():
+        if _read_review_evidence(evidence, skip_blank=True)[2] != bindings:
+            raise ValueError("Review evidence changed during merge")
+        for path, original in snapshots.items():
+            safe = contained_path(path.parent, path.name, reject_symlinks=True)
+            if safe.read_bytes() != original:
+                raise ValueError("Review input changed during merge")
+        current = contained_path(evidence, "result-review.json", reject_symlinks=True)
+        if (current.read_bytes() if current.exists() else None) != original_review:
+            raise ValueError("Installed review changed during merge")
+    cases = {case["id"]: case for case in dataset["cases"]}
+    by_id = {record["attempt_id"]: record for record in records}
+    if len(by_id) != len(records):
+        raise ValueError("Evidence contains duplicate attempt IDs")
+
+    prior_rows: dict[str, dict] = {}
+    prior_model = None
+    protocols = []
+    reviewers = []
+    prior_independent = False
+    if prior_review is not None:
+        current_review = installed
+        if _sha256(prior_review) != _sha256(current_review):
+            raise ValueError("Prior review must be the validated review installed in evidence")
+        prior = require_result_review(evidence, dataset, records)
+        if prior["review_protocol"].get("scope") != "machine-failures":
+            raise ValueError("Prior review must cover exactly the machine-failure scope")
+        prior_rows = {row["attempt_id"]: row for row in prior["attempts"]}
+        prior_model = prior.get("reviewer", {}).get("model")
+        protocols.append(prior["review_protocol"])
+        reviewers.append(prior.get("reviewer", {}))
+        prior_independent = (
+            prior["review_protocol"].get("production_scorer_forbidden") is True
+            and prior["review_protocol"].get("direct_artifact_evidence_required") is True
+        )
+        if not prior_independent:
+            raise ValueError("Prior review does not enforce scorer-independent artifact evidence")
+
+    supplied: dict[str, dict] = {}
+    shard_metadata = []
+    for path in shard_paths:
+        safe = contained_path(path.parent, path.name, reject_symlinks=True)
+        shard = json.loads(snapshots[safe])
+        if shard.get("schema_version") == 1 and shard.get("review_protocol", {}).get("scope") == "machine-passes":
+            if (shard["review_protocol"].get("machine_judgments_withheld") is not True
+                    or shard["review_protocol"].get("production_scorer_forbidden") is not True
+                    or shard["review_protocol"].get("direct_artifact_evidence_required") is not True):
+                raise ValueError(f"Review shard is not scorer-independent: {path}")
+            if shard.get("bindings") != bindings:
+                raise ValueError(f"Review shard is bound to different evidence: {path}")
+            providers = shard.get("review_protocol", {}).get("provider_filter", [])
+            rows = [{"attempt_id": row.get("attempt_id"),
+                     "reviewer_verdict": row.get("agent_verdict"),
+                     "rationale": row.get("agent_evidence", "")}
+                    for row in shard.get("attempts", [])]
+        else:
+            raise ValueError(f"Unexpected reviewer in {path}")
+        if not isinstance(shard.get("reviewer"), dict):
+            raise ValueError(f"Review shard must declare reviewer metadata: {path}")
+        protocols.append(shard["review_protocol"])
+        reviewers.append(shard["reviewer"])
+        shard_metadata.append({
+            "path": path.name,
+            "providers": providers,
+            "reviewed": len(rows),
+            "model": shard.get("reviewer", {}).get("model", "task runtime default"),
+            "sha256": hashlib.sha256(snapshots[safe]).hexdigest(),
+        })
+        for row in rows:
+            attempt_id = row.get("attempt_id")
+            if attempt_id in supplied:
+                raise ValueError(f"Duplicate reviewed attempt: {attempt_id}")
+            supplied[attempt_id] = row
+
+    expected = by_id.keys() - prior_rows.keys()
+    if supplied.keys() != expected:
+        missing = sorted(expected - supplied.keys())
+        extra = sorted(supplied.keys() - expected)
+        raise ValueError(f"Review coverage differs; missing={missing[:5]} extra={extra[:5]}")
+
+    adjudicated = json.loads(snapshots[adjudications.resolve()]) if adjudications else {}
+    attempts = []
+    for record in records:
+        if record["attempt_id"] in prior_rows:
+            attempts.append(prior_rows[record["attempt_id"]])
+            continue
+        reviewed = supplied[record["attempt_id"]]
+        machine = "pass" if task_passed(
+            record["ok"], record["metrics"],
+            cases[record["case_id"]].get("task_kind", "body")) else "fail"
+        agent = reviewed.get("reviewer_verdict")
+        if agent not in {"pass", "fail"}:
+            raise ValueError(f"Unresolved agent verdict: {record['attempt_id']}")
+        rationale = reviewed.get("rationale", "").strip()
+        if not rationale:
+            raise ValueError(f"Review evidence is empty: {record['attempt_id']}")
+        adjudication = None
+        if agent != machine:
+            decision = adjudicated.get(record["attempt_id"], {})
+            if decision.get("final_verdict") not in {"pass", "fail"}:
+                raise ValueError(
+                    f"Review disagreement requires adjudication: "
+                    f"{record['attempt_id']} agent={agent} machine={machine}")
+            if decision["final_verdict"] != machine and not allow_confirmed_errors:
+                raise ValueError(
+                    f"Confirmed scoring disagreement requires correction and re-review: "
+                    f"{record['attempt_id']} agent={agent} machine={machine}")
+            adjudication = decision.get("reason")
+        final = ((adjudicated.get(record["attempt_id"], {}) or {}).get("final_verdict")
+                 if agent != machine else machine)
+        attempts.append({
+            "attempt_id": record["attempt_id"],
+            "machine_verdict": machine,
+            "agent_verdict": agent,
+            "agent_evidence": rationale,
+            "final_verdict": final,
+            "adjudication": adjudication,
+        })
+
+    models = sorted({row["model"] for row in shard_metadata} | ({prior_model} if prior_model else set()))
+    confirmed_errors = [row["attempt_id"] for row in attempts
+                        if row["final_verdict"] != row["machine_verdict"]]
+    review = {
+        "schema_version": 1,
+        "bindings": bindings,
+        "reviewer": {
+            "model": ", ".join(models),
+            "sources": reviewers,
+        },
+        "review_protocol": {
+            "machine_judgments_withheld": True,
+            "production_scorer_forbidden": True,
+            "direct_artifact_evidence_required": True,
+            **{key: all(protocol.get(key) is True for protocol in protocols)
+               for key in ("complete_artifact_paths_supplied", "source_answer_metadata_supplied",
+                           "declared_acceptance_evidence_supplied")},
+            "provider_filter": [],
+            "scope": "all",
+            "shards": shard_metadata,
+        },
+        "total_attempts": len(records),
+        "accepted_unreviewed_passes": 0,
+        "expected_attempts": len(records),
+        "reviewed_attempts": len(attempts),
+        "disagreements": sum(row["agent_verdict"] != row["machine_verdict"] for row in attempts),
+        "unresolved": 0,
+        "confirmed_scoring_errors": len(confirmed_errors),
+        "attempts": attempts,
+    }
+    if install and confirmed_errors:
+        raise ValueError("Cannot install a review with confirmed scoring errors")
+    # Confirmed errors are an explicit diagnostic document, never installed certification.
+    if not confirmed_errors:
+        require_result_review(evidence, dataset, records, review)
+    unchanged()
+    write_review_document(output, review, before_replace=unchanged)
+    if install and output != installed:
+        unchanged()
+        install_result_review(evidence, review, skip_blank=True)
+    return review
+
+
+def merge_shards_main(argv=None) -> None:
+    parser = argparse.ArgumentParser(description="Merge hash-bound independent review shards")
+    parser.add_argument("--evidence", type=Path, required=True)
+    parser.add_argument("--shard", type=Path, action="append", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--prior-review", type=Path)
+    parser.add_argument("--adjudications", type=Path)
+    parser.add_argument("--allow-confirmed-errors", action="store_true",
+                        help="Write a non-installable staging review before correcting confirmed score errors")
+    parser.add_argument("--install", action="store_true")
+    args = parser.parse_args(argv)
+    review = merge_reviews(
+        args.evidence, args.shard, args.output,
+        prior_review=args.prior_review, adjudications=args.adjudications,
+        install=args.install, allow_confirmed_errors=args.allow_confirmed_errors,
+    )
+    print(f"reviewed={len(review['attempts'])} disagreements={review['disagreements']} unresolved=0")
+
+
+
+def refresh_review_attempt_ids(evidence: Path, prior_evidence: Path) -> set[str]:
+    """Return attempts whose task or reviewer-visible evidence changed."""
+    current_dataset, current_records, _ = _read_review_evidence(evidence, skip_blank=True)
+    prior_dataset, prior_records, _ = _read_review_evidence(prior_evidence, skip_blank=True)
+    # Selecting the supplemental blind-review scope precedes the post-blind
+    # anomaly gate. Requiring that later gate here creates a circular workflow.
+    prior_review = require_blind_result_review(
+        prior_evidence, prior_dataset, prior_records)
+    current_cases = _unique_by(current_dataset["cases"], "id", "Current dataset")
+    prior_cases = _unique_by(prior_dataset["cases"], "id", "Prior dataset")
+    _unique_by(current_records, "attempt_id", "Current results")
+    previous = _unique_by(prior_records, "attempt_id", "Prior results")
+    prior_judgments = {row["attempt_id"]: row for row in prior_review["attempts"]}
+    return {
+        row["attempt_id"] for row in current_records
+        if prior_cases.get(row["case_id"]) != current_cases[row["case_id"]]
+        or previous.get(row["attempt_id"]) is None
+        or prior_judgments.get(row["attempt_id"]) is None
+        or review_input_identity(previous[row["attempt_id"]]) != review_input_identity(row)
+    }
+
+
+def prepare_review_subset(evidence: Path, output: Path, *, case_ids=None,
+                          prior_evidence: Path | None = None):
+    """Stage a complete hash-verified supplemental scope before exposing its directory."""
+    from .artifacts import materialize_bound_artifacts
+    from .safety import evidence_tree_identity, stage_evidence_revision
+
+    if bool(case_ids) == bool(prior_evidence):
+        raise ValueError("choose exactly one of case_ids or prior_evidence")
+    prior_identity = evidence_tree_identity(prior_evidence) if prior_evidence else None
+
+    def prepare(staging):
+        dataset, all_records, _ = _read_review_evidence(evidence, skip_blank=True)
+        _unique_by(dataset["cases"], "id", "Current dataset")
+        _unique_by(all_records, "attempt_id", "Current results")
+        selected_attempts = (
+            refresh_review_attempt_ids(evidence, prior_evidence)
+            if prior_evidence else None
+        )
+        requested = ({row["case_id"] for row in all_records
+                      if row["attempt_id"] in selected_attempts}
+                     if selected_attempts is not None else set(case_ids))
+        cases = [case for case in dataset.get("cases", []) if case.get("id") in requested]
+        found = {case["id"] for case in cases}
+        if found != requested:
+            raise ValueError("Unknown case IDs: " + ", ".join(sorted(requested - found)))
+        records = [row for row in all_records
+                   if (row["attempt_id"] in selected_attempts
+                       if selected_attempts is not None
+                       else row.get("case_id") in requested)]
+        providers = {row["provider"] for row in all_records}
+        if selected_attempts is not None:
+            expected = len(selected_attempts)
+            if ({row["attempt_id"] for row in records} != selected_attempts
+                    or len(records) != expected):
+                raise ValueError(f"Refresh subset is incomplete: expected {expected}, found {len(records)}")
+        else:
+            expected = len(requested) * len(providers)
+            coverage = {(row["provider"], row["case_id"]) for row in records}
+            expected_coverage = {(provider, case_id) for provider in providers for case_id in requested}
+            if (coverage != expected_coverage or len(records) != expected
+                    or len({row["attempt_id"] for row in records}) != expected):
+                raise ValueError(f"Subset is incomplete: expected {expected}, found {len(records)}")
+
+        staging.mkdir()
+        subset = dict(dataset)
+        subset["cases"] = cases
+        comparison = dict(dataset.get("comparison", {}))
+        comparison["require_independent_result_review"] = True
+        subset["comparison"] = comparison
+        (staging / "dataset.json").write_text(json.dumps(subset, ensure_ascii=False, indent=2) + "\n")
+        (staging / "results.jsonl").write_text(
+            "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in records))
+        materialize_bound_artifacts(staging, evidence, records)
+        if prior_evidence and evidence_tree_identity(prior_evidence) != prior_identity:
+            raise ValueError("Prior review evidence changed during subset preparation")
+        return {"cases": len(cases), "attempts": len(records)}
+
+    return stage_evidence_revision(evidence, output, prepare)
+
+
+def prepare_subset_main(argv=None):
+    parser = argparse.ArgumentParser(description="Prepare hash-verified supplemental review evidence")
+    parser.add_argument("--evidence", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    selection = parser.add_mutually_exclusive_group(required=True)
+    selection.add_argument("--case-id", action="append")
+    selection.add_argument("--prior-evidence", type=Path)
+    args = parser.parse_args(argv)
+    counts = prepare_review_subset(args.evidence, args.output, case_ids=args.case_id,
+                                   prior_evidence=args.prior_evidence)
+    print(f"cases={counts['cases']} attempts={counts['attempts']} output={args.output}")

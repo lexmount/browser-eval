@@ -133,6 +133,43 @@ def verify_review_revisions(root: Path, source_root: Path) -> None:
         assert not (work / 'result-review.json').exists()
 
 
+    from harness.web_fetch.result_review import merge_reviews, prepare_review_subset
+    selected = root / 'installed-review-subset'
+    prepare_review_subset(current, selected, case_ids=['b'])
+    assert json.loads((selected / 'dataset.json').read_text())['cases'] == [{'id': 'b', 'task_kind': 'body'}]
+    assert (selected / 'b.txt').read_bytes() == b''
+    assert not (selected / 'a.txt').exists()
+    changed = root / 'installed-refresh-subset'
+    prepare_review_subset(refreshed, changed, prior_evidence=current)
+    assert json.loads((changed / 'results.jsonl').read_text()) == corrected[0]
+
+    sharded = bundle('installed-shard-evidence', dataset, corrected, reviewed=True)
+    prior_path = sharded / 'result-review.json'
+    failure_review = json.loads(prior_path.read_text())
+    failure_review['review_protocol'].update(
+        scope='machine-failures', production_scorer_forbidden=True,
+        direct_artifact_evidence_required=True)
+    failure_review['attempts'] = failure_review['attempts'][:1]
+    failure_review['reviewer']['model'] = 'synthetic'
+    prior_path.write_text(json.dumps(failure_review))
+    shard = root / 'installed-pass-shard.json'
+    shard.write_text(json.dumps({
+        'schema_version': 1, 'bindings': failure_review['bindings'],
+        'reviewer': {'model': 'synthetic'},
+        'review_protocol': {'scope': 'machine-passes', 'machine_judgments_withheld': True,
+                           'production_scorer_forbidden': True,
+                           'direct_artifact_evidence_required': True},
+        'attempts': [{'attempt_id': corrected[1]['attempt_id'], 'agent_verdict': 'pass',
+                      'agent_evidence': 'Synthetic installation acceptance control'}],
+    }))
+    merged = merge_reviews(sharded, [shard], prior_path, prior_review=prior_path, install=True)
+    assert merged['reviewed_attempts'] == 2
+    require_result_review(sharded, dataset, corrected)
+    for script in ('prepare_result_review_subset.py', 'merge_internal_review_shards.py'):
+        subprocess.run([sys.executable, str(source_root / 'scripts' / script), '--help'],
+                       check=True, cwd=root, capture_output=True, text=True)
+
+
 def verify_lexbench_package(root: Path, renderer: Path) -> None:
     from harness.lexbench.pack import package
 
