@@ -386,11 +386,16 @@ def provider_configuration(name,records,info):
  """Compatibility accessor for the generic method-page model."""
  return method_page_model(name,provider_label(name),records)['configuration']
 
-def provider_page_body(name,records,cases,headers,tracks):
+def provider_page_body(name,records,cases,headers,tracks,*,native_default=False):
  """Render one method page from generic result records and method metadata."""
  model=method_page_model(name,provider_label(name),records)
  controls=filter_controls([('track','类型',tracks),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(records,cases))
- body=hero(esc(model['title']),esc(model['contract']))+section('本轮配置',f'<p><code>{esc(model["endpoint"])}</code></p><p>{esc(model["freshness"])}</p><p>{esc(model["configuration"])}</p>')
+ configuration=f'<p><code>{esc(model["endpoint"])}</code></p>'
+ if native_default:
+  configuration+='<p>本轮统一使用固定原生配置：每题调用一次，外层截止时间 45 秒，产品内部超时保留默认值。具体选项及请求字段见接口示例、冻结配置和该次调用记录。</p>'
+ else:
+  configuration+=f'<p>{esc(model["freshness"])}</p><p>{esc(model["configuration"])}</p>'
+ body=hero(esc(model['title']),esc(model['contract']))+section('本轮配置',configuration)
  body+=section('方法资料','<p class="actions">'+link('../adoption/index.html#'+model['pricing_anchor'],'价格与计费 →')+link('../adoption/index.html#interface-'+name,'接口与示例 →')+'</p>')
  return body+section(f'{len(records)} 条执行记录',controls+table(headers,[attempt_row(r,cases[r['case_id']]) for r in records],'filtered-table'))
 JS=r'''function readTheme(){try{return localStorage.getItem('webfetch-theme')}catch{return 'light'}}
@@ -1664,7 +1669,7 @@ def overview_all_call_latency(records,cases):
   times=[r['elapsed_ms'] for r in records if r['provider']==name]
   rows.append(('',cell(link('providers/'+name+'.html',provider_label(name)))+cell(str(len(times)))+
                cell(ms(statistics.mean(times)))+cell(ms(percentile(times,.5)))+cell(ms(percentile(times,.95)))))
- return (f'<p>每种方法均使用同一组 {len(cases)} 个动态网站任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。各方法串行执行，仍受本地与远程环境、网络和产品内部限制影响。</p>'+
+ return (f'<p>每种方法均使用同一组 {len(cases)} 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。各方法串行执行，仍受本地与远程环境、网络和产品内部限制影响。</p>'+
          table(['方法','调用数','全部调用均值','全部调用 P50','全部调用 P95'],rows,'all-call-latency-table',metrics=[]))
 
 def overview_matched_latency(records,cases):
@@ -1965,7 +1970,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   body+=section('全部方法执行结果',table(['方法']+headers[1:],[(attrs,values.replace(esc(c['name']),esc(provider_label(r['provider'])),1)) for r in bycase[c['id']] for attrs,values in [attempt_row(r,c)]]))
   write(out,'datasets/'+c['id']+'.html',c['name'],body)
  for name,rs in byprovider.items():
-  write(out,'providers/'+name+'.html',name,provider_page_body(name,rs,cases,headers,tracks))
+  write(out,'providers/'+name+'.html',name,provider_page_body(name,rs,cases,headers,tracks,native_default=dataset.get("comparison",{}).get("kind")=="uniform_native_local_measurement"))
  for r in records:
   c=cases[r['case_id']];m=r['metrics'];ref=c.get('ground_truth_main_content') or c.get('reference_answer') or '检查下列目标资源。'
   output=contained_path(out,r['artifact_path']).read_text(encoding='utf-8',errors='replace')
@@ -2265,8 +2270,8 @@ def write_support(out,records,manifests):
  if headless:
   methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。','五种方法每次使用新进程或新上下文。静态网页正文：Kitesurf 走 Cloudflare 账户级 /markdown，Lightpanda、Obscura 与 Moli 1.1.1 使用各自 CLI 正文能力，Chromium 取完整渲染 DOM 后由 node-html-markdown 2.0.0 转换。Moli 遇到直接 PDF、DOCX、图片或视频 URL 时使用不带 --dump 和页面等待参数的自动响应；正文任务在预算内解析可读文字，文件任务直接校验字节。原始主矩阵未启用失败重试，每次调用有 45 秒端到端预算。运行器可在测量前声明至多一次失败重试：保留全部物理证据和总耗时，并固定采用最后一次结果，不能择优。已确认的命令、版本、裁判、参考或测量错误可按完整声明范围重测并替换权威逻辑结果；旧证据不得删除。历史报告中的 Moli 1.0.6 与 1.1.3 证据继续归档，但不进入当前报告矩阵。方法之间并行、同一方法串行。')
  if local_matrix:
-  methodology+=section('本轮固定原生配置','<p>全部方法串行执行，每题只调用一次，45秒为外层交卷期限。内部加载、连接和处理时间保留产品默认值。允许测试前固定的原生选项，不传入逐题等待、选择器、数量提示或脚本；不补抓、不额外重试。产品返回的正文和原始响应分别保存。</p><p>批次清单中的并发字段描述运行器接口；本轮入口使用 workers=1，实际没有方法并行。Cloudflare 剩余未执行案例分进程完成，原始分段信息保留。</p>')
-  methodology=methodology.replace('方法之间并行、同一方法串行。','本轮全部方法串行。')
+  methodology+=section('本轮固定原生配置','<p>每种方法内部串行执行，每题只调用一次，45秒为外层交卷期限。内部加载、连接和处理时间保留产品默认值。允许测试前固定的原生选项，不传入逐题等待、选择器、数量提示或脚本；不补抓、不额外重试。产品返回的正文和原始响应分别保存。</p><p>每种方法内部串行执行；方法之间的调度以执行批次和保存的调用时间为准。分段执行保留每个原始分段，完整调用时间见执行批次。</p>')
+  methodology=methodology.replace('方法之间并行、同一方法串行。','每种方法内部串行；方法之间的调度见执行批次。')
  write(out,'methodology/index.html','评测方法',methodology)
  downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','版本回溯证据')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else [])+([('latency-corrections.json','时延纠正收据')] if (out/'latency-corrections.json').is_file() else [])+([('request-status-corrections.json','请求状态纠正收据')] if (out/'request-status-corrections.json').is_file() else []))
  reproduce='<p>在评测仓库中执行；读取 evaluation/ 的当前实测数据，不调用供应商接口。</p><pre>make setup\nmake report EVIDENCE=/absolute/path/to/evidence\nmake report-check</pre><p>输出目录：reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。凭据仅从本地环境加载，不包含在报告中。</p>'

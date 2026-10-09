@@ -12,6 +12,7 @@ from harness.web_fetch.providers.http_client import HttpResponse
     ("exa_contents", "exa", {"results": [{"url": "https://example.com/", "text": "complete answer"}], "statuses": [{"status": "success"}]}),
     ("firecrawl", "firecrawl", {"success": True, "data": {"markdown": "complete answer", "metadata": {"statusCode": 200}}}),
     ("cloudflare_markdown", "cloudflare", {"success": True, "result": "complete answer"}),
+    ("cloudflare_content", "cloudflare", {"success": True, "result": "complete answer"}),
 ])
 def test_fixed_native_requests_preserve_capabilities_without_product_timers(kind, module, payload):
     provider = build_provider(module, {"type": kind, "uniform_native_parameters": True,

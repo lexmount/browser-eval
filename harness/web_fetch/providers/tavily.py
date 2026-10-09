@@ -32,7 +32,7 @@ class TavilyExtractProvider(Provider):
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         self.check_native_call(case)
-        http_timeout = inner_timeout_budget(timeout)
+        http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         configured_extract_timeout = float(
             self.config.get("extract_timeout_seconds", 60.0)
         )

@@ -208,10 +208,10 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(request_body["formats"], ["rawBase64"])
         self.assertEqual(request_body["parsers"], [])
         self.assertEqual(request_body["proxy"], "auto")
-        self.assertEqual(request_body["timeout"], 45_000)
-        self.assertEqual(mock_request.call_args.kwargs["timeout"], 45.0)
-        self.assertEqual(result.metadata["service_timeout_ms"], 45_000)
-        self.assertEqual(result.metadata["client_http_timeout_ms"], 45_000)
+        self.assertEqual(request_body["timeout"], 40_500)
+        self.assertEqual(mock_request.call_args.kwargs["timeout"], 40.5)
+        self.assertEqual(result.metadata["service_timeout_ms"], 40_500)
+        self.assertEqual(result.metadata["client_http_timeout_ms"], 40_500)
         self.assertEqual(result.metadata["requested_formats"], ["rawBase64"])
         self.assertEqual(result.metadata["requested_proxy"], "auto")
         self.assertIsNone(result.metadata["requested_dynamic_wait_strategy"])
@@ -345,7 +345,7 @@ class ProviderTest(unittest.TestCase):
             "https://api.firecrawl.dev/v2/team/credit-usage",
         )
         self.assertEqual(mock_request.call_args.kwargs["method"], "GET")
-        self.assertEqual(mock_request.call_args.kwargs["timeout"], 10.0)
+        self.assertEqual(mock_request.call_args.kwargs["timeout"], 9.0)
         self.assertNotIn("json_body", mock_request.call_args.kwargs)
 
     @patch("harness.web_fetch.providers.firecrawl.request")
@@ -541,8 +541,8 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(request_body["extract_depth"], "advanced")
         self.assertEqual(request_body["format"], "markdown")
         self.assertFalse(request_body["include_images"])
-        self.assertEqual(request_body["timeout"], 45.0)
-        self.assertEqual(result.metadata["extract_timeout_seconds"], 45.0)
+        self.assertEqual(request_body["timeout"], 40.5)
+        self.assertEqual(result.metadata["extract_timeout_seconds"], 40.5)
         self.assertEqual(result.metadata["requested_extract_depth"], "advanced")
         self.assertFalse(result.metadata["requested_include_images"])
         self.assertEqual(result.metadata["requested_format"], "markdown")
@@ -571,8 +571,8 @@ class ProviderTest(unittest.TestCase):
             "tavily", {"api_key": "x", "extract_timeout_seconds": 60.0}
         ).fetch(self.case, 12.5)
 
-        self.assertEqual(mock_request.call_args.kwargs["timeout"], 12.5)
-        self.assertEqual(mock_request.call_args.kwargs["json_body"]["timeout"], 12.5)
+        self.assertEqual(mock_request.call_args.kwargs["timeout"], 11.25)
+        self.assertEqual(mock_request.call_args.kwargs["json_body"]["timeout"], 11.25)
 
     @patch("harness.web_fetch.providers.tavily.request")
     def test_tavily_empty_and_api_error_responses_are_private_only(self, mock_request) -> None:
@@ -706,9 +706,9 @@ class ProviderTest(unittest.TestCase):
             "exa", {"api_key": "x", "livecrawl_timeout_ms": 30_000}
         ).fetch(self.case, 12.5)
 
-        self.assertEqual(mock_request.call_args.kwargs["timeout"], 12.5)
+        self.assertEqual(mock_request.call_args.kwargs["timeout"], 11.25)
         self.assertEqual(
-            mock_request.call_args.kwargs["json_body"]["livecrawlTimeout"], 12_500
+            mock_request.call_args.kwargs["json_body"]["livecrawlTimeout"], 11_250
         )
 
     @patch("harness.web_fetch.providers.exa.request")
@@ -801,7 +801,7 @@ class ProviderTest(unittest.TestCase):
                 self.assertTrue(result.ok)
                 self.assertEqual(result.content, "Native body")
 
-    def test_all_synchronous_http_adapters_forward_full_outer_deadline_budget(self) -> None:
+    def test_all_synchronous_http_adapters_reserve_outer_deadline_budget(self) -> None:
         providers = (
             ("harness.web_fetch.providers.http.request", HttpProvider("http", {})),
             ("harness.web_fetch.providers.cloudflare.request",
@@ -823,16 +823,17 @@ class ProviderTest(unittest.TestCase):
             with self.subTest(provider=provider.name), patch(request_target) as mock_request:
                 mock_request.return_value = HttpResponse(500, "u", {}, b"{}")
                 provider.fetch(self.case, 45)
-                self.assertEqual(mock_request.call_args.kwargs["timeout"], 45.0)
+                self.assertEqual(mock_request.call_args.kwargs["timeout"], 40.5)
 
     @patch("harness.web_fetch.providers.exa.request")
-    def test_completed_http_timeout_allows_next_case_without_reducing_budget(
+    def test_inner_http_timeout_finishes_before_deadline_and_next_case_runs(
         self, mock_request
     ) -> None:
         seen_timeouts = []
 
         def time_out(*_args, **kwargs):
             seen_timeouts.append(kwargs["timeout"])
+            time.sleep(kwargs["timeout"])
             raise TimeoutError("inner HTTP timeout")
 
         mock_request.side_effect = time_out
@@ -855,7 +856,7 @@ class ProviderTest(unittest.TestCase):
                 delay=0,
             )
             manifest = json.loads((root / "manifest.json").read_text())
-        self.assertEqual(seen_timeouts, [0.4, 0.4])
+        self.assertEqual(seen_timeouts, [0.2, 0.2])
         self.assertEqual(len(records), 2)
         self.assertEqual([record["error_type"] for record in records], ["timeout", "timeout"])
         self.assertEqual(manifest["unexecuted"], [])
@@ -915,10 +916,10 @@ class ProviderTest(unittest.TestCase):
             result.metadata["raw_response_sha256"], hashlib.sha256(body).hexdigest()
         )
         request_body = mock_request.call_args.kwargs["json_body"]
-        self.assertEqual(request_body["gotoOptions"]["timeout"], 45_000)
-        self.assertEqual(request_body["actionTimeout"], 45_000)
-        self.assertEqual(result.metadata["service_timeout_ms"], 45_000)
-        self.assertEqual(result.metadata["client_http_timeout_ms"], 45_000)
+        self.assertEqual(request_body["gotoOptions"]["timeout"], 40_500)
+        self.assertEqual(request_body["actionTimeout"], 40_500)
+        self.assertEqual(result.metadata["service_timeout_ms"], 40_500)
+        self.assertEqual(result.metadata["client_http_timeout_ms"], 40_500)
 
     @patch("harness.web_fetch.providers.cloudflare._post_multipart")
     @patch("harness.web_fetch.providers.cloudflare._get_document")
@@ -962,7 +963,7 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(result.metadata["source_bytes"], len(pdf))
         self.assertEqual(result.metadata["source_content_type"], "application/pdf")
         self.assertLessEqual(
-            mock_post_multipart.call_args.kwargs["timeout"], 45.0
+            mock_post_multipart.call_args.kwargs["timeout"], 40.5
         )
         self.assertEqual(mock_post_multipart.call_args.kwargs["data"], pdf)
         self.assertEqual(

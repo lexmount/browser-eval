@@ -18,7 +18,10 @@ Only the current 1,000 logical results are selected. Superseded Moli releases,
 old Firecrawl outputs and preliminary smoke runs remain private historical
 evidence and are not part of this comparison.
 
-To render the bound evidence without making provider calls:
+To render the bound evidence without making provider calls, first use a checkout
+of the scoring Git revision recorded in `current-local-results.json`. Run the
+following command from that checkout; the current branch intentionally rejects
+older scores without an explicit offline revision receipt:
 
 ```bash
 uv run --frozen python scripts/build_report.py \

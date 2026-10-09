@@ -60,7 +60,7 @@ class ExaContentsProvider(Provider):
 
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         self.check_native_call(case)
-        http_timeout = inner_timeout_budget(timeout)
+        http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         livecrawl_timeout_ms = min(
             int(self.config.get("livecrawl_timeout_ms", 15_000)),
             max(1, int(http_timeout * 1000)),

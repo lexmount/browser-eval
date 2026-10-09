@@ -318,7 +318,7 @@ class CloudflareMarkdownProvider(Provider):
 
     def _fetch_payload(self, case: EvalCase, timeout: float, request_body: dict) -> ProviderResult:
         account_id = str(self.config.get("account_id", ""))
-        http_timeout = inner_timeout_budget(timeout)
+        http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         if case.task_kind == "resource" and case.track in {"image", "video"}:
             return self._fetch_media_resources(
                 case,
@@ -754,7 +754,7 @@ class CloudflareContentProvider(Provider):
     def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
         self.check_native_call(case)
         account_id = str(self.config.get("account_id", ""))
-        http_timeout = inner_timeout_budget(timeout)
+        http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
         response = request(
             f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/content",
@@ -766,9 +766,9 @@ class CloudflareContentProvider(Provider):
                 "url": case.url,
                 "gotoOptions": {
                     "waitUntil": self.config.get("wait_until", "networkidle2"),
-                    "timeout": service_timeout_ms,
+                    **({} if self.config.get("uniform_native_parameters") else {"timeout": service_timeout_ms}),
                 },
-                "actionTimeout": service_timeout_ms,
+                **({} if self.config.get("uniform_native_parameters") else {"actionTimeout": service_timeout_ms}),
             },
         )
         try:

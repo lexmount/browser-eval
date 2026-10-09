@@ -396,6 +396,9 @@ def local_measurement_call_sha256(record):
 
 def _require_local_scoring_revision(source, contract, records):
     from .scoring import SCORING_SOURCE_SHA256
+    if any(r.get("metrics", {}).get("scoring_source_sha256") != SCORING_SOURCE_SHA256
+           for r in records):
+        raise ValueError("Local measurement has a stale scoring implementation")
     if contract.get("scoring_source_sha256") == SCORING_SOURCE_SHA256:
         return
     receipt = json.loads(contained_path(source, "local-evidence/scoring-correction.json").read_text())
@@ -407,6 +410,13 @@ def _require_local_scoring_revision(source, contract, records):
             or receipt.get("call_identities") != {
                 r["attempt_id"]: local_measurement_call_sha256(r) for r in records}):
         raise ValueError("Invalid local scoring correction binding")
+    from .scoring_regressions import build_correction_provenance
+    provenance = receipt.get("provenance") or {}
+    expected_provenance = build_correction_provenance(
+        provenance.get("category"), provenance.get("root_cause"),
+        provenance.get("regression_ids", []), receipt.get("task_verdict_changes", []))
+    if provenance != expected_provenance:
+        raise ValueError("Invalid local scoring correction provenance")
     for record in records:
         scoring = record.get("scoring", {})
         if (record.get("metrics", {}).get("scoring_source_sha256") != SCORING_SOURCE_SHA256
@@ -417,56 +427,31 @@ def _require_local_scoring_revision(source, contract, records):
             raise ValueError("Local scoring correction changed rules or lost its predecessor")
 
 
-def _require_local_runtime_bindings(contract, batches):
-    """Bind each method to its declared measured runtime, retaining real variants."""
-    variants = contract.get("runtime_source_sha256_by_provider")
+def _require_local_method_bindings(contract, batches, field):
+    """Join each method's execution to its declared runtime or configuration."""
+    variants = contract.get(field + "_by_provider")
     expected = set(contract["providers"])
+    label = "runtime" if field == "runtime_source_sha256" else "configuration"
     if variants is not None:
         if (not isinstance(variants, dict) or set(variants) != expected
                 or any(not isinstance(value, str) or len(value) != 64
                        or any(char not in "0123456789abcdef" for char in value)
                        for value in variants.values())):
-            raise ValueError("Invalid local runtime variant bindings")
+            raise ValueError(f"Invalid local {label} variant bindings")
     seen = set()
     for batch in batches:
         providers = batch.get("providers", [])
         if len(providers) != 1:
-            raise ValueError("Local runtime batch must identify one method")
+            raise ValueError(f"Local {label} batch must identify one method")
         name = providers[0].get("name")
         if name not in expected or name in seen:
-            raise ValueError("Local runtime batches repeat or omit a method")
+            raise ValueError(f"Local {label} batches repeat or omit a method")
         seen.add(name)
-        runtime = variants[name] if variants is not None else contract["runtime_source_sha256"]
-        if batch.get("runtime_source_sha256") != runtime:
-            raise ValueError("Local measurement execution runtime differs")
+        digest = variants[name] if variants is not None else contract[field]
+        if batch.get(field) != digest:
+            raise ValueError(f"Local measurement execution {label} differs")
     if seen != expected:
-        raise ValueError("Local runtime batches repeat or omit a method")
-
-
-def _require_local_config_bindings(contract, batches):
-    """Retain original configuration identities when a declared method is rerun."""
-    variants = contract.get("provider_config_sha256_by_provider")
-    expected = set(contract["providers"])
-    if variants is not None:
-        if (not isinstance(variants, dict) or set(variants) != expected
-                or any(not isinstance(value, str) or len(value) != 64
-                       or any(char not in "0123456789abcdef" for char in value)
-                       for value in variants.values())):
-            raise ValueError("Invalid local configuration variant bindings")
-    seen = set()
-    for batch in batches:
-        providers = batch.get("providers", [])
-        if len(providers) != 1:
-            raise ValueError("Local configuration batch must identify one method")
-        name = providers[0].get("name")
-        if name not in expected or name in seen:
-            raise ValueError("Local configuration batches repeat or omit a method")
-        seen.add(name)
-        digest = variants[name] if variants is not None else contract["provider_config_sha256"]
-        if batch.get("provider_config_sha256") != digest:
-            raise ValueError("Local measurement execution configuration differs")
-    if seen != expected:
-        raise ValueError("Local configuration batches repeat or omit a method")
+        raise ValueError(f"Local {label} batches repeat or omit a method")
 
 
 def require_local_measurement(source: Path, dataset: dict, records: list[dict]) -> None:
@@ -495,10 +480,16 @@ def require_local_measurement(source: Path, dataset: dict, records: list[dict]) 
         raise ValueError("Local measurement pre-call contract changed")
     if len(execution["batches"]) != len(contract["providers"]):
         raise ValueError("Local measurement execution scope differs")
-    _require_local_runtime_bindings(contract, execution["batches"])
-    _require_local_config_bindings(contract, execution["batches"])
+    for field in ("runtime_source_sha256", "provider_config_sha256"):
+        _require_local_method_bindings(contract, execution["batches"], field)
     for batch in execution["batches"]:
         _require_local_batch_segments(batch)
+        ids = batch.get("attempt_ids", [])
+        measured_ids = {r["attempt_id"] for r in records
+                        if r["provider"] == batch["providers"][0]["name"]}
+        if (len(ids) != len(set(ids)) or set(ids) != measured_ids
+                or batch.get("attempt_count") != len(measured_ids)):
+            raise ValueError("Local measurement execution calls differ from results")
         if (batch.get("parameters", {}).get("timeout") != 45
                 or batch.get("parameters", {}).get("runs") != 1
                 or batch.get("parameters", {}).get("provider_concurrency") != 1
@@ -507,10 +498,22 @@ def require_local_measurement(source: Path, dataset: dict, records: list[dict]) 
     for record in records:
         if len(record_public_call_log_bindings(record)) != 1:
             raise ValueError("Local measurement requires one complete call log per result")
+        lexical = source
+        for part in Path(record["artifact_path"]).parts:
+            lexical = lexical / part
+            if lexical.is_symlink():
+                raise ValueError("Local measurement output is unsafe")
         artifact = contained_path(source, record["artifact_path"])
         if artifact.is_symlink() or _sha256(artifact) != record["metrics"]["content_sha256"]:
             raise ValueError("Local measurement output changed")
         verify_record_public_call_logs(source, record)
+        binding = record_public_call_log_bindings(record)[0]
+        log = json.loads(contained_path(source, binding["path"]).read_text())
+        if (any(log["identity"][key] != record[key]
+                for key in ("attempt_id", "provider", "case_id", "run"))
+                or log["output"]["path"] != record["artifact_path"]
+                or log["output"]["sha256"] != record["metrics"]["content_sha256"]):
+            raise ValueError("Local measurement call log belongs to a different result")
     return None
 
 

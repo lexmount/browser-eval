@@ -93,7 +93,7 @@ class FirecrawlProvider(Provider):
                 "Firecrawl capacity_credits_per_call is below the configured proxy bound"
             )
         try:
-            http_timeout = inner_timeout_budget(timeout)
+            http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         except ValueError as error:
             raise ValueError("invalid Firecrawl capacity preflight timeout") from error
         base_url = str(self.config.get("base_url", "https://api.firecrawl.dev")).rstrip("/")
@@ -136,7 +136,7 @@ class FirecrawlProvider(Provider):
         if self.config.get("api_key"):
             headers["Authorization"] = f"Bearer {self.config['api_key']}"
         try:
-            http_timeout = inner_timeout_budget(timeout)
+            http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
         except ValueError:
             return ProviderResult(
                 False,

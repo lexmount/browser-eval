@@ -39,11 +39,14 @@ class HttpOnlyRedirectHandler(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
-def inner_timeout_budget(outer_timeout: float) -> float:
-    """Forward the full shared budget; the runner rejects late answers."""
+def inner_timeout_budget(outer_timeout: float, *, native_default: bool = False) -> float:
+    """Keep ordinary calls inside the deadline; native cohorts use the full budget."""
     if not math.isfinite(outer_timeout) or outer_timeout <= 0:
         raise ValueError("outer timeout must be positive and finite")
-    return outer_timeout
+    if native_default:
+        return outer_timeout
+    reserve = max(1.0, min(5.0, outer_timeout * 0.1))
+    return outer_timeout / 2 if reserve >= outer_timeout else outer_timeout - reserve
 
 
 def request(

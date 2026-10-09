@@ -218,6 +218,57 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     assert "运行日志与证据" in detail
     assert not (output / "result-review.json").exists()
     assert json.loads((output / "report-manifest.json").read_text())["certified"] is False
+    english_output = tmp_path / "report-bilingual"
+    build_report(evidence, english_output, local_audit=True, include_english=True)
+    assert json.loads((english_output / "report-manifest.json").read_text())["languages"] == ["zh", "en"]
+    assert (english_output / "en/index.html").is_file()
+    from harness.web_fetch import report_interfaces
+    from harness.web_fetch.artifacts import record_public_call_log_bindings
+    spec = report_interfaces.SPECS["langchain-webbase"]
+    monkeypatch.setattr(report_interfaces, "SPECS", {"fixture": spec})
+    interfaces = report_interfaces.render_interfaces(output, records)
+    assert "本轮保存的调用字段" in interfaces
+    saved = json.loads((output / record_public_call_log_bindings(records[0])[-1]["path"]).read_text())
+    rendered = json.loads((output / "adoption/interfaces/fixture.json").read_text())
+    assert rendered["interface"]["request"] == saved["request"]
+    assert rendered["interface"]["params"] == []
+    assert spec["params"]  # Rendering must not mutate registered examples.
+    from harness.web_fetch.report import provider_page_body
+    method_records = [{**records[0], "provider_type": "firecrawl"}]
+    method_cases = {actual["id"]: actual}
+    page = provider_page_body("firecrawl", method_records, method_cases, [], [], native_default=True)
+    assert "产品内部超时保留默认值" in page
+    assert "Actions" not in page
+    assert "Actions" in provider_page_body("firecrawl", method_records, method_cases, [], [])
+
+    # Self-consistent totals must still identify the actual physical calls.
+    import copy
+    changed_batch = copy.deepcopy(batch)
+    changed_batch["attempt_ids"] = ["unrelated-call"]
+    _write(evidence / "execution.json", {"batches": [changed_batch]})
+    with pytest.raises(ValueError, match="execution calls"):
+        local_audit.require_local_audit(evidence, dataset, records)
+    _write(evidence / "execution.json", {"batches": [batch]})
+    changed_records = copy.deepcopy(records)
+    changed_records[0]["attempt_id"] = "other-call"
+    changed_batch = copy.deepcopy(batch)
+    changed_batch["attempt_ids"] = ["other-call"]
+    _write(evidence / "execution.json", {"batches": [changed_batch]})
+    with pytest.raises(ValueError, match="different result"):
+        local_audit.require_local_audit(evidence, dataset, changed_records)
+    _write(evidence / "execution.json", {"batches": [batch]})
+    changed_records = copy.deepcopy(records)
+    changed_records[0]["metrics"]["scoring_source_sha256"] = "stale"
+    with pytest.raises(ValueError, match="scoring implementation"):
+        local_audit.require_local_audit(evidence, dataset, changed_records)
+    artifact = evidence / records[0]["artifact_path"]
+    retained = artifact.with_suffix(".retained")
+    artifact.rename(retained)
+    artifact.symlink_to(retained.name)
+    with pytest.raises(ValueError, match="unsafe"):
+        local_audit.require_local_audit(evidence, dataset, records)
+    artifact.unlink()
+    retained.rename(artifact)
     with pytest.raises(ValueError, match="incomplete"):
         local_audit.require_local_audit(evidence, dataset, [])
     changed = json.loads(json.dumps(dataset))
@@ -293,10 +344,18 @@ def test_local_score_correction_preserves_call_facts_and_original_contract(tmp_p
                'corrected_scoring_source_sha256': SCORING_SOURCE_SHA256,
                'original_call_config_sha256': 'config', 'original_results_sha256': 'original',
                'call_identities': {'a': local_audit.local_measurement_call_sha256(record)}}
+    from harness.web_fetch.scoring_regressions import build_correction_provenance
+    receipt["provenance"] = build_correction_provenance(
+        "structured-extraction", "Equivalent Markdown bullets must retain their named records.",
+        ["markdown-plus-list-keeps-named-records", "markdown-plus-prose-is-not-a-record-list"])
     target = tmp_path / 'local-evidence/scoring-correction.json'
     _write(target, receipt)
     local_audit._require_local_scoring_revision(tmp_path, contract, [record])
     assert contract['scoring_source_sha256'] == 'old'
+    _write(target, {key: value for key, value in receipt.items() if key != "provenance"})
+    with pytest.raises(ValueError, match="root-cause"):
+        local_audit._require_local_scoring_revision(tmp_path, contract, [record])
+    _write(target, receipt)
     for key, value in [('ok', False), ('latency_ms', 900), ('attempt_id', 'other')]:
         changed = copy.deepcopy(record)
         changed[key] = value
@@ -321,7 +380,7 @@ def test_local_runtime_variants_bind_every_method_without_rewriting_manifests():
                 "runtime_source_sha256_by_provider": {"first": "a" * 64, "second": "b" * 64}}
     batches = [{"providers": [{"name": name}], "runtime_source_sha256": value}
                for name, value in contract["runtime_source_sha256_by_provider"].items()]
-    local_audit._require_local_runtime_bindings(contract, batches)
+    local_audit._require_local_method_bindings(contract, batches, "runtime_source_sha256")
     for mutation in ("wrong_hash", "duplicate", "missing", "extra_binding"):
         c, b = copy.deepcopy(contract), copy.deepcopy(batches)
         if mutation == "wrong_hash": b[1]["runtime_source_sha256"] = "c" * 64
@@ -329,11 +388,11 @@ def test_local_runtime_variants_bind_every_method_without_rewriting_manifests():
         if mutation == "missing": b.pop()
         if mutation == "extra_binding": c["runtime_source_sha256_by_provider"]["other"] = "c" * 64
         with pytest.raises(ValueError):
-            local_audit._require_local_runtime_bindings(c, b)
+            local_audit._require_local_method_bindings(c, b, "runtime_source_sha256")
     legacy = {"providers": ["first"], "runtime_source_sha256": "a" * 64}
-    local_audit._require_local_runtime_bindings(legacy, batches[:1])
+    local_audit._require_local_method_bindings(legacy, batches[:1], "runtime_source_sha256")
     with pytest.raises(ValueError):
-        local_audit._require_local_runtime_bindings({**legacy, "runtime_source_sha256": "b" * 64}, batches[:1])
+        local_audit._require_local_method_bindings({**legacy, "runtime_source_sha256": "b" * 64}, batches[:1], "runtime_source_sha256")
 
 
 def test_terminal_logs_are_separate_from_caller_events_and_not_excerpted():
@@ -375,7 +434,7 @@ def test_local_configuration_variants_preserve_old_batches_and_reject_mismatches
                 "provider_config_sha256_by_provider": {"first": "a" * 64, "second": "b" * 64}}
     batches = [{"providers": [{"name": name}], "provider_config_sha256": value}
                for name, value in contract["provider_config_sha256_by_provider"].items()]
-    local_audit._require_local_config_bindings(contract, batches)
+    local_audit._require_local_method_bindings(contract, batches, "provider_config_sha256")
     for mutation in ("wrong_hash", "duplicate", "missing", "extra_binding", "invalid_hash"):
         c, b = copy.deepcopy(contract), copy.deepcopy(batches)
         if mutation == "wrong_hash": b[1]["provider_config_sha256"] = "c" * 64
@@ -384,11 +443,11 @@ def test_local_configuration_variants_preserve_old_batches_and_reject_mismatches
         if mutation == "extra_binding": c["provider_config_sha256_by_provider"]["other"] = "c" * 64
         if mutation == "invalid_hash": c["provider_config_sha256_by_provider"]["first"] = "invalid"
         with pytest.raises(ValueError):
-            local_audit._require_local_config_bindings(c, b)
+            local_audit._require_local_method_bindings(c, b, "provider_config_sha256")
     legacy = {"providers": ["first"], "provider_config_sha256": "a" * 64}
-    local_audit._require_local_config_bindings(legacy, batches[:1])
+    local_audit._require_local_method_bindings(legacy, batches[:1], "provider_config_sha256")
     with pytest.raises(ValueError):
-        local_audit._require_local_config_bindings({**legacy, "provider_config_sha256": "b" * 64}, batches[:1])
+        local_audit._require_local_method_bindings({**legacy, "provider_config_sha256": "b" * 64}, batches[:1], "provider_config_sha256")
 
 
 def test_worker_protocol_response_is_not_a_runtime_log():

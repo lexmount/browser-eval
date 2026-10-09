@@ -510,7 +510,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             (staging / "report-manifest.json").write_text(json.dumps({
                 "schema_version": 1, "template": resolve_template("webfetch"),
                 "evidence_state": "local_measurement", "certified": False,
-                "languages": ["zh"], "provider_calls_added": 0,
+                "languages": ["zh", "en"] if include_english else ["zh"], "provider_calls_added": 0,
                 "dataset_sha256": hashlib.sha256((source / "dataset.json").read_bytes()).hexdigest(),
                 "results_sha256": hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest(),
             }, ensure_ascii=False, indent=2))

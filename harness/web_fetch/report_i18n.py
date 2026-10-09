@@ -37,6 +37,38 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "已保存的诊断日志": "Saved diagnostic logs",
+    "已保存文件截断；原生日志范围见说明": "Saved file truncated; see native log coverage notes",
+    "已保存文件未截断；原生日志范围见说明": "Saved file not truncated; see native log coverage notes",
+    "本次没有取得产品或依赖库的原生日志。已保存的调用方记录见下方。": "No native product or dependency logs were obtained for this call. Saved caller records appear below.",
+    "实际诊断日志 · 产品与依赖库": "Observed diagnostic logs \u00b7 products and dependencies",
+    "仅展示真实观测记录；未开放的内部过程不作推断。": "Only observed records are shown; unavailable internal steps are not inferred.",
+    "返回 JSON 在“原始返回”中单独展示；接入程序记录在下方“调用方事件”中。": "Returned JSON is shown separately under raw responses. Adapter records appear below under caller events.",
+    "调用方事件（测试程序记录）": "Caller events (test program records)",
+    "下载运行时日志（已分离返回内容）": "Download runtime logs (returned content separated)",
+    "已保存真实诊断（原生日志范围见说明）": "Observed diagnostics saved (see native log coverage notes)",
+    "本轮未重新核验来源。": "Sources were not reverified for this run.",
+    "本地实测版": "Local measured comparison",
+    "全部方法使用同一组已提交案例和判分规则，每例一次调用，统一45秒外部时限，不设逐例等待或提取参数，不重试。结果为机器判定，未进行独立人工审核；本报告仅供本地查看，不代表正式发布。": "All methods use the same committed cases and scoring rules: one call per case, a shared 45-second caller deadline, no per-case wait or extraction parameters, and no retries. Results are machine-scored without independent human review. This report is for local inspection and is not a formal release.",
+    "调用链与日志检查": "Call-chain and log audit",
+    "题目通过": "Task passes",
+    "诊断日志": "Diagnostic logs",
+    "原生日志范围": "Native log coverage",
+    "检查结论": "Audit findings",
+    "如何读取本轮结果": "How to read these results",
+    "本轮按保存的实际返回进行机器判分，比例只对应本报告列出的案例与配置。日志可用于复查调用和判分；未经过独立人工审核，不能将失败一概归因于产品内部。": "Saved outputs are machine-scored. Rates apply only to the cases and configurations listed here. Logs support review of calls and scoring; without independent human review, failures cannot all be attributed to product internals.",
+    "逐次结果与筛选": "Per-call results and filters",
+    "题目与计时规则": "Tasks and timing rules",
+    "配置、版本和复现说明": "Configuration, versions, and reproduction",
+    "本轮固定原生配置": "Fixed native configuration",
+    "每种方法内部串行执行，每题只调用一次，45秒为外层交卷期限。内部加载、连接和处理时间保留产品默认值。允许测试前固定的原生选项，不传入逐题等待、选择器、数量提示或脚本；不补抓、不额外重试。产品返回的正文和原始响应分别保存。": "Each method runs its cases serially, with one call per case and a 45-second caller deadline. Internal loading, connection, and processing timers retain product defaults. Native options may be fixed before testing; no per-case waits, selectors, count hints, or scripts are supplied. No supplemental fetches or caller retries are made. Returned text and raw responses are saved separately.",
+    "每种方法内部串行执行；方法之间的调度以执行批次和保存的调用时间为准。分段执行保留每个原始分段，完整调用时间见执行批次。": "Each method runs serially internally. Execution batches and saved timestamps document scheduling between methods. Segmented executions retain every original segment; see the execution batches for full call times.",
+    "每种方法内部串行；方法之间的调度见执行批次。": "Each method runs serially internally; see execution batches for scheduling between methods.",
+    "本轮统一使用固定原生配置：每题调用一次，外层截止时间 45 秒，产品内部超时保留默认值。具体选项及请求字段见接口示例、冻结配置和该次调用记录。": "This run uses fixed native configurations: one call per case, a 45-second caller deadline, and default product timers. See interface examples, frozen configurations, and individual call records for options and request fields.",
+    "本轮保存的调用字段": "Saved request fields from this run",
+    "此处展示该次公开调用记录保存的请求字段；完整配置和日志见环境与调用详情。产品内部超时以冻结配置和实际请求为准。": "These request fields come from this public call record. See environment and call details for full configurations and logs. Frozen configurations and actual requests determine product timer settings.",
+    "已测方法的输入展示保存的公开调用字段，输出展示同一次调用的实际节选。完整配置、原始响应和日志见环境与调用详情。未参评方法保留仓库登记示例。": "For measured methods, inputs show saved public request fields and outputs show excerpts from the same call. See environment and call details for full configurations, raw responses, and logs. Unmeasured methods retain registered repository examples.",
+    "同一任务集合的全部调用耗时": "All-call latency on the same task set",
     "本报告的任务范围与验收规则": "Task scope and acceptance rules",
     "查看全部任务及验收规则": "View all tasks and acceptance rules",
     "查看结果、实际返回及失败证据": "View results, actual outputs, and failure evidence",
@@ -3312,6 +3344,11 @@ REGEX.insert(0, (
     r"Among the four fully observable local browsers, \1 has the lowest mean CPU time and \2 the lowest mean peak memory. These minima may belong to different browsers; CPU, memory, and task pass rate must not be blended into a composite score. Kitesurf runs remotely, so its row includes only the local request client; its remote upstream traffic is also unavailable, and it cannot enter an engine-resource ranking against local browser process trees.",
 ))
 
+
+REGEX[:0] = [
+    (re.compile(r"^(\d+) 个案例 · (\d+) 次调用，机器判分。本轮未重新核验来源。$"), r"\1 cases · \2 calls, machine-scored. Sources were not reverified for this run."),
+    (re.compile(r"^每种方法均使用同一组 (\d+) 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。各方法串行执行，仍受本地与远程环境、网络和产品内部限制影响。$"), r"Each method uses the same \1 tasks, including passes, failures, errors, and timeouts. Latency runs from input to return for a single call, excluding shared cooldown intervals. Each method runs serially and remains subject to local and remote environments, networks, and product limits."),
+]
 
 def translate_text(value: str) -> str:
     leading = value[:len(value) - len(value.lstrip())]

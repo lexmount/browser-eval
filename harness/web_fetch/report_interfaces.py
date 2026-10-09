@@ -107,13 +107,24 @@ SPECS['chromium']=spec(
  'Chromium/CDP 没有原生 Markdown 输出，因此取完整渲染 DOM 后转换；转换计入端到端耗时，HTML 与转换器版本、哈希均保留。')
 
 def render_interfaces(out,records):
+ from .artifacts import record_public_call_log_bindings, verify_public_call_log
+ dataset_path=out/"dataset.json"
+ native_default=dataset_path.is_file() and json.loads(dataset_path.read_text()).get("comparison",{}).get("kind")=="uniform_native_local_measurement"
  def pre(value):return '<pre>'+escape(value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,indent=2))+'</pre>'
  def fields(rows):return '<dl class="interface-fields">'+''.join('<div><dt><code>'+escape(k)+'</code> <small>'+escape(t)+'</small></dt><dd>'+escape(d)+'</dd></div>' for k,t,d in rows)+'</dl>'
  measured={r['provider'] for r in records}
  names=sorted(SPECS,key=lambda name:(name not in measured,name))
  body='<p>按本轮适配器介绍，不混用完整产品能力。输入示例展示正文配置，资源配置差异单列；它们不是每条历史请求的逐字回放。各调用所属批次及实际配置见“环境与复现”。输出示例取存档调用，经适配器整理后的真实节选，不冒充原始 HTTP 响应。Key 和账号均用占位符。</p>'
+ if native_default:
+  body='<p>已测方法的输入展示保存的公开调用字段，输出展示同一次调用的实际节选。完整配置、原始响应和日志见环境与调用详情。未参评方法保留仓库登记示例。</p>'
  for i,name in enumerate(names):
   s=SPECS[name];r=next((r for r in records if r['provider']==name and r['case_id']=='static-simple'),next((r for r in records if r['provider']==name),None))
+  if r and native_default:
+   bindings=record_public_call_log_bindings(r)
+   if not bindings:
+    raise ValueError("Measured native interface requires a saved call log: "+name)
+   request=json.loads(verify_public_call_log(out,bindings[-1]).read_text())["request"]
+   s={**s,"params":[],"request":request,"notes":"此处展示该次公开调用记录保存的请求字段；完整配置和日志见环境与调用详情。产品内部超时以冻结配置和实际请求为准。"}
   access=HEADLESS_ACCESS.get(name)
   if r:
    content=contained_path(out,r['artifact_path']).read_text();sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)
@@ -126,7 +137,7 @@ def render_interfaces(out,records):
   if access:
    body+='<h3>账号与获取入口</h3><p>'+escape(access['account'])+'</p><p>'+escape(access['configuration'])+'</p><p>'+ ' · '.join('<a href="'+escape(url,quote=True)+'">'+escape(label)+'</a>' for label,url in access['links'])+'</p><p class="source-note">官方说明核验：2026-09-07。只列账号要求、获取入口与占位符，不公开真实凭据。</p>'
   sample_label='本轮输出节选 · 统一记录' if r else '本轮未执行'
-  body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'])+'<h4>调用输入示例</h4>'+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
+  body+='<div class="guide-grid"><article class="guide-card"><h3>输入</h3>'+fields(s['params'])+('<h4>本轮保存的调用字段</h4>' if r and native_default else '<h4>调用输入示例</h4>')+pre(s['request'])+'</article><article class="guide-card"><h3>输出</h3>'+fields(s['fields'])+'<h4>'+sample_label+'</h4>'+pre(sample)+'</article></div>'
   measured_link='<a href="../attempts/'+escape(r['attempt_id'])+'.html">该次完整输出与判定 →</a>' if r else '未纳入本轮；参数说明为仓库登记模式，不计入本轮结果'
   body+='<p>'+escape(s['notes'])+'</p><p class="source-note">核对实现：<code>'+escape(s['source'])+'</code> · '+measured_link+' · <a href="interfaces/'+name+'.json">示例 JSON</a></p></details>'
  return body

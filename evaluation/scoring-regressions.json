@@ -21691,6 +21691,92 @@
       "root_cause":"composite_card_identity_disagrees_on_unreserved_url_encoding", "failure_mode":"false-positive",
       "case":{"url":"https://example.test/","composite_acceptance":{"version":1,"groups":[{"id":"offers","kind":"named_link","minimum_records":2,"hosts":["example.test"],"entry_path":"/item/[0-9]+_detail","required_fields":[{"id":"price","kind":"price"}]}]}},
       "artifact":"[Actual offer](/item/12%5Fdetail)\n\n[Other offer](/item/13_detail)\n\n$120", "ok":true,"expected_task_pass":false
+    },
+{
+  "id": "markdown-table-header-opens-declared-scope",
+  "category": "format-normalization",
+  "root_cause": "markdown_table_header_scope",
+  "failure_mode": "false-negative",
+  "case": {
+    "url": "https://example.test/table",
+    "task_kind": "body",
+    "acceptance_contract": {
+      "version": 1,
+      "schema": "table_row",
+      "minimum_records": 2,
+      "table_columns": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "text"
+        },
+        {
+          "name": "amount",
+          "label": "Amount",
+          "type": "integer"
+        }
+      ],
+      "record_identity_fields": [
+        "name"
+      ],
+      "table_scope": {
+        "row_selector": "table tbody tr",
+        "cell_selector": "td",
+        "start_pattern": "^Name\\s*$",
+        "end_pattern": "^Footer$",
+        "plain_row_pattern": "(?P<name>[^\\t]+)\\t(?P<amount>\\d+)"
+      }
     }
-  ]
+  },
+  "artifact": "| Name | Amount |\n| --- | --- |\n| Alpha | 7 |\n| Beta | 8 |",
+  "ok": true,
+  "expected_task_pass": true,
+  "expected_metrics": {
+    "stable_unique_record_count": 2
+  }
+},
+{
+  "id": "markdown-table-header-cannot-bypass-declared-scope",
+  "category": "format-normalization",
+  "root_cause": "markdown_table_header_scope",
+  "failure_mode": "false-positive",
+  "case": {
+    "url": "https://example.test/table",
+    "task_kind": "body",
+    "acceptance_contract": {
+      "version": 1,
+      "schema": "table_row",
+      "minimum_records": 2,
+      "table_columns": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "text"
+        },
+        {
+          "name": "amount",
+          "label": "Amount",
+          "type": "integer"
+        }
+      ],
+      "record_identity_fields": [
+        "name"
+      ],
+      "table_scope": {
+        "row_selector": "table tbody tr",
+        "cell_selector": "td",
+        "start_pattern": "^Target section$",
+        "end_pattern": "^Footer$",
+        "plain_row_pattern": "(?P<name>[^\\t]+)\\t(?P<amount>\\d+)"
+      }
+    }
+  },
+  "artifact": "| Name | Amount |\n| --- | --- |\n| Alpha | 7 |\n| Beta | 8 |",
+  "ok": true,
+  "expected_task_pass": false,
+  "expected_metrics": {
+    "stable_unique_record_count": 0
+  }
+}
+]
 }
