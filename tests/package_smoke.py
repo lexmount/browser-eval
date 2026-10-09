@@ -1041,6 +1041,57 @@ def verify_sample_case_correction(root, source_root):
     assert (output / 'fixture-correction.json').read_bytes() == marker
 
 
+def verify_full_cohort_commands(root, source_root):
+    from unittest.mock import patch
+
+    from harness.web_fetch import webmainbench_certification as certification
+    from harness.web_fetch.webmainbench_scoring import CORE_METRICS, aggregate
+
+    fixture = runpy.run_path(str(source_root / 'tests/webmainbench_case_fixture.py'))
+    work, profile, records = fixture['certification_fixture'](root / 'full-certification')
+    original = subprocess.run
+    calls = []
+
+    def synthetic_child(command, **kwargs):
+        if '--provider' in command:
+            assert command[1:3] == ['-m', 'harness.web_fetch.webmainbench_runner']
+            provider = command[command.index('--provider') + 1]
+            shard = Path(command[command.index('--output') + 1])
+            fixture['measured_shard'](shard, provider, records, profile)
+        elif '--evidence' in command:
+            assert command[1:3] == ['-m', 'harness.web_fetch.webmainbench_scoring']
+            shard = Path(command[command.index('--evidence') + 1])
+            measured = certification.read_jsonl(shard / 'results.jsonl')
+            scored = [{**row, 'metrics': {name: {'score': 0.5, 'success': True} for name in CORE_METRICS}}
+                      for row in measured]
+            fixture['write_rows'](shard / 'scored-results.jsonl', scored)
+            fixture['write_json'](shard / 'score-summary.json', {
+                'provider': shard.name, 'case_count': len(scored), 'official_aggregate': aggregate(scored),
+                'scorer': {'commit': profile['official_scorer_commit'], 'metric_config': profile['metric_config'],
+                           'metric_source_sha256': certification.scorer_source_binding(work / 'scorer')}})
+        else:
+            return original(command, **kwargs)
+        calls.append(command)
+        assert kwargs.get('cwd', work) == work
+        return subprocess.CompletedProcess(command, 0)
+
+    previous = Path.cwd()
+    try:
+        os.chdir(work)
+        with patch.object(subprocess, 'run', synthetic_child):
+            certification.main(['--source', 'source.jsonl', '--scorer', 'scorer', '--output-root', 'run'])
+            certification.main_score(['--source', 'source.jsonl', '--scorer', 'scorer', '--cohort', 'run'])
+        assert len(calls) == 4
+        assert (work / 'run/scoring-certificate.json').is_file()
+        for module in ('webmainbench_runner', 'webmainbench_scoring', 'webmainbench_certification'):
+            original([sys.executable, '-m', 'harness.web_fetch.' + module, '--help'], check=True,
+                     capture_output=True, text=True, cwd=work)
+        original([sys.executable, '-m', 'harness.web_fetch.webmainbench_certification', 'score', '--help'],
+                 check=True, capture_output=True, text=True, cwd=work)
+    finally:
+        os.chdir(previous)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -1083,6 +1134,7 @@ def main():
         root = Path(work)
         verify_aggregate_finalization(root, args.source_root)
         verify_sample_case_correction(root, args.source_root)
+        verify_full_cohort_commands(root, args.source_root)
         verify_cowagent_isolation(root)
         verify_public_trajectory_publication(root, args.source_root)
         verify_oss_workers(root, args.source_root, with_libraries=args.oss)

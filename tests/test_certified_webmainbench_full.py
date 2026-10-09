@@ -40,9 +40,10 @@ def _cohort(tmp_path: Path) -> Path:
         (shard / logical_path).write_bytes(body)
         (shard / physical_path).write_bytes(body)
         rows.append({"provider": "moli", "track_id": case_id, "ok": True,
+                     "attempt_id": f"moli-{case_id}-logical",
                      "artifact_path": logical_path, "output_sha256": _digest(body),
                      "physical_attempt_count": 1})
-        calls.append({"attempt_id": f"moli-{case_id}-1", "track_id": case_id,
+        calls.append({"provider": "moli", "attempt_id": f"moli-{case_id}-1", "track_id": case_id,
                       "physical_artifact_path": physical_path, "output_sha256": _digest(body)})
     _write_jsonl(shard / "results.jsonl", rows)
     _write_jsonl(shard / "physical-attempts.jsonl", calls)
@@ -76,6 +77,20 @@ def test_changed_physical_output_cannot_be_certified(tmp_path):
                      {"case_count": 2, "source_dataset_sha256": "source"})
 
 
+@pytest.mark.parametrize("filename,key,value", [
+    ("results.jsonl", "provider", "another-method"),
+    ("physical-attempts.jsonl", "provider", "another-method"),
+    ("physical-attempts.jsonl", "track_id", "foreign-case"),
+])
+def test_foreign_method_or_task_cannot_enter_a_cohort(tmp_path, filename, key, value):
+    shard = _cohort(tmp_path)
+    rows = [json.loads(line) for line in (shard / filename).read_text().splitlines()]
+    rows[0][key] = value
+    _write_jsonl(shard / filename, rows)
+    with pytest.raises(ValueError, match="incomplete or mismatched"):
+        verify_shard(shard, "moli", {"one", "two"}, {"case_count": 2, "source_dataset_sha256": "source"})
+
+
 @pytest.mark.parametrize("filename,key", [
     ("results.jsonl", "artifact_path"),
     ("physical-attempts.jsonl", "physical_artifact_path"),
@@ -102,10 +117,10 @@ def test_declared_binary_is_checked_before_calls(tmp_path, monkeypatch):
     binary.write_bytes(b'fixed version')
     binary.chmod(0o755)
     monkeypatch.setenv('MOLI_BINARY', str(binary))
-    verify_declared_binary({'binary_sha256': _digest(b'fixed version')})
+    verify_declared_binary({'binary_sha256': _digest(b'fixed version')}, str(binary))
     binary.write_bytes(b'old version')
     with pytest.raises(ValueError, match='before provider calls'):
-        verify_declared_binary({'binary_sha256': _digest(b'fixed version')})
+        verify_declared_binary({'binary_sha256': _digest(b'fixed version')}, str(binary))
 
 
 def test_candidate_run_requires_declared_clean_source_commit(tmp_path):

@@ -95,7 +95,29 @@ The supported complete-cohort commands are:
   after the current profile's correction, content and review bindings pass.
 
 Run and score each independently declared cohort with its own profile. For
-assembly, provide one baseline root and one `--cohort ID=PATH` argument for
+an installed package, the corresponding commands are:
+
+```bash
+python -m harness.web_fetch.webmainbench_certification \
+  --source /absolute/path/WebMainBench_545.jsonl --scorer /absolute/path/pinned-scorer \
+  --profile /absolute/path/frozen-profile.json --config /absolute/path/providers.json \
+  --env-file /absolute/path/checkout/.env --output-root /absolute/path/new-cohort
+python -m harness.web_fetch.webmainbench_certification score \
+  --source /absolute/path/WebMainBench_545.jsonl --scorer /absolute/path/pinned-scorer \
+  --profile /absolute/path/frozen-profile.json --cohort /absolute/path/new-cohort
+```
+
+All paths are interpreted from the caller's working directory. The default
+profile and provider configuration are `evaluation/webmainbench-full/current-report.json`
+and `configs/providers.headless.json` in that directory. Outside a checkout,
+provide these files explicitly. The frozen profile selects a nonempty, unique
+list of registered methods, their versions and the serial one-run policy for
+all 545 tasks. Dataset names do not select a method list. A profile-bound binary
+uses the executable from the provider configuration. Dirty scorer checkouts
+and changed inputs are rejected. Scoring rechecks every measured shard against
+its original cohort certificate before issuing a scoring certificate.
+
+For assembly, provide one baseline root and one `--cohort ID=PATH` argument for
 every public variant ID in the selected registry:
 
 ```bash

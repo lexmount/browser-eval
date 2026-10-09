@@ -1,7 +1,10 @@
-"""Synthetic frozen sample and one-case replacement evidence; no provider calls."""
+"""Synthetic WebMainBench inputs and evidence; no provider calls."""
 
 import hashlib
 import json
+import subprocess
+
+from harness.web_fetch import webmainbench_certification as certification
 
 from harness.web_fetch import webmainbench_case_correction as correction
 from harness.web_fetch.webmainbench_scoring import CORE_METRICS, SCORER_COMMIT, aggregate
@@ -83,3 +86,56 @@ def correction_fixture(root, providers=("kitesurf", "lightpanda", "obscura", "mo
     selected_provider = providers[-1]
     shard(replacement, selected_provider, records[:1], replacement=True)
     return source, {selected_provider: replacement}, root / "output", "case-0", (selected_provider,), dataset, manifest, profile
+
+
+def certification_fixture(tmp_path):
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    records = [{"track_id": f"case-{i}", "html": f"<p>{i}</p>",
+                "groundtruth_content": str(i), "url": "https://example.test/", "meta": {}}
+               for i in range(545)]
+    write_rows(tmp_path / "source.jsonl", records)
+    scorer = tmp_path / "scorer"
+    (scorer / "webmainbench/metrics").mkdir(parents=True)
+    (scorer / "webmainbench/metrics/metric.py").write_text("frozen scorer")
+    for command in (["git", "init", "-q", str(scorer)],
+                    ["git", "-C", str(scorer), "add", "."],
+                    ["git", "-C", str(scorer), "-c", "user.name=Test", "-c", "user.email=test@example.com",
+                     "commit", "-qm", "synthetic scorer"]):
+        subprocess.run(command, check=True)
+    commit = subprocess.check_output(["git", "-C", str(scorer), "rev-parse", "HEAD"], text=True).strip()
+    profile = {"schema_version": 1, "dataset_id": "independently-declared-comparison", "providers": ["chromium", "obscura"],
+               "versions": {"chromium": "Google Chrome 154.0", "obscura": "0.2.2"},
+               "case_count": 545, "runs_per_case": 1, "concurrency": 1,
+               "timeout_seconds": 45, "max_failure_retries": 1,
+               "source_dataset_sha256": certification.digest(tmp_path / "source.jsonl"),
+               "case_ids_sha256": hashlib.sha256(("\n".join(r["track_id"] for r in records) + "\n").encode()).hexdigest(),
+               "official_scorer_commit": commit, "metric_config": {"use_llm": False}}
+    write_json(tmp_path / "profile.json", profile)
+    write_json(tmp_path / "providers.json", {"providers": {p: {"type": "headless_markdown"} for p in profile["providers"]}})
+    (tmp_path / "credentials.env").write_text("SYNTHETIC_LOCAL_TEST=1\n")
+    (tmp_path / "configs").mkdir()
+    (tmp_path / "configs/providers.headless.json").write_bytes((tmp_path / "providers.json").read_bytes())
+    (tmp_path / "evaluation/webmainbench-full").mkdir(parents=True)
+    (tmp_path / "evaluation/webmainbench-full/current-report.json").write_bytes((tmp_path / "profile.json").read_bytes())
+    return tmp_path, profile, records
+
+
+def measured_shard(root, provider, records, profile):
+    """Local child substitute writes measured-shaped evidence, without browser calls."""
+    (root / "artifacts").mkdir(parents=True)
+    rows, calls = [], []
+    for record in records:
+        case = record["track_id"]
+        relative = f"artifacts/{case}.md"
+        (root / relative).write_text("synthetic response")
+        row = {"provider": provider, "track_id": case, "ok": True,
+               "attempt_id": f"{provider}__{case}__r001", "artifact_path": relative,
+               "output_sha256": certification.digest(root / relative), "physical_attempt_count": 1}
+        rows.append(row)
+        calls.append({"provider": provider, "track_id": case, "attempt_id": f"{provider}__{case}__p01",
+                      "physical_artifact_path": relative, "output_sha256": row["output_sha256"]})
+    write_rows(root / "results.jsonl", rows)
+    write_rows(root / "physical-attempts.jsonl", calls)
+    write_json(root / "execution.json", {"provider": provider, "case_count": len(records),
+                                          "source_dataset_sha256": profile["source_dataset_sha256"]})
+    write_json(root / "dataset.json", {"case_count": len(records), "case_ids": [r["track_id"] for r in records]})
