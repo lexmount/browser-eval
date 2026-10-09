@@ -777,6 +777,51 @@ def verify_report_acceptance(root, source_root):
     ], check=True, cwd=root, capture_output=True, text=True)
 
 
+def verify_cowagent_isolation(root):
+    from harness.web_fetch.models import EvalCase
+    from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider
+
+    providers = []
+    try:
+        for version in ('first', 'second'):
+            repo = root / ('cowagent-' + version)
+            source = repo / 'agent/tools/web_fetch/web_fetch.py'
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                'from types import SimpleNamespace\nclass WebFetch:\n'
+                ' def __init__(self, config): pass\n'
+                ' def execute(self, args):\n'
+                '  return SimpleNamespace(status="success",result="' + version + '")\n')
+            safety = repo / 'agent/tools/utils/url_safety.py'
+            safety.parent.mkdir()
+            safety.write_text('# independent fixture\n')
+            for package in (repo / 'agent', repo / 'agent/tools', source.parent):
+                (package / '__init__.py').write_text('')
+            subprocess.run(['git', 'init', '-q', str(repo)], check=True)
+            subprocess.run(['git', '-C', str(repo), 'add', '.'], check=True)
+            subprocess.run(['git', '-C', str(repo), '-c', 'user.name=Fixture',
+                            '-c', 'user.email=fixture@example.test', 'commit', '-qm', 'fixture'],
+                           check=True)
+            revision = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'],
+                                               text=True).strip()
+            provider = CowAgentBuiltinProvider(version, {
+                'repo_path': str(repo), 'expected_repo_revision': revision,
+                'workspace': str(root / ('workspace-' + version)),
+                'required_paths': ['{repo_path}/agent/tools/web_fetch/web_fetch.py',
+                                   '{repo_path}/agent/tools/utils/url_safety.py'],
+            })
+            providers.append(provider)
+            assert provider.validate() == []
+            assert provider._implementation_identity['python']['executable_sha256']
+            assert any(name.endswith('cowagent_worker.py') for name in
+                       provider._implementation_identity['files_sha256'])
+        case = EvalCase('one', 'One', 'https://example.invalid/', 'text', [])
+        assert [provider.fetch(case, 5).content for provider in providers] == ['first', 'second']
+    finally:
+        for provider in providers:
+            provider.__del__()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--node-html-markdown-path', type=Path, required=True)
@@ -815,6 +860,7 @@ def main():
 
     with tempfile.TemporaryDirectory() as work:
         root = Path(work)
+        verify_cowagent_isolation(root)
         verify_browser_report_checks(root, args.source_root)
         verify_release_check_helpers(root, args.source_root)
         verify_teds_revision(root, args.source_root, with_writer=args.webmainbench)

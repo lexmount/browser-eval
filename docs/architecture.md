@@ -234,6 +234,15 @@ byte. Failed revalidation removes any previously cached identity. Changing
 version pins therefore requires a matching declared configuration, without editing
 the adapter or changing historical evidence and certificates.
 
+CowAgent uses the shared JSONL subprocess transport. Each provider instance
+loads its configured checkout in a separate worker process, preserving upstream
+tool behavior while avoiding Python module-cache collisions between versions.
+The worker source and Python executable are part of runtime identity. Upstream
+prints go to the retained diagnostic stream; only worker responses enter the
+JSONL protocol. The shared transport enforces deadlines and cancellation.
+Each process retains its own response queue. Diagnostic readers from an earlier
+process cannot append to a restarted process's log window.
+
 Formal pages cover rankings, datasets, methodology, results, provider descriptions and interface examples, environment, reproduction, and account setup. Source coverage and access restrictions are factual limitations, not a user-assistance workflow.
 
 `providers/headless_worker.py` owns native browser execution and is included in

@@ -42,7 +42,8 @@ def checkout(tmp_path):
     (method, change)
     for method in ['cowagent_builtin', 'openclaw_builtin', 'deepseek_harness_builtin']
     for change in ['none', 'wrong-revision', 'dirty', 'missing-source']
-] + [('openclaw_builtin', 'wrong-node'), ('openclaw_builtin', 'wrong-manager'),
+] + [('cowagent_builtin', 'wrong-python'),
+     ('openclaw_builtin', 'wrong-node'), ('openclaw_builtin', 'wrong-manager'),
      ('deepseek_harness_builtin', 'wrong-node'), ('deepseek_harness_builtin', 'stale-worker')])
 def test_declared_native_installation_is_authoritative(checkout, method, change):
     repo, revision = checkout
@@ -69,6 +70,7 @@ def test_declared_native_installation_is_authoritative(checkout, method, change)
                       expected_package_manager_version='15.2.3')
     provider = (CowAgentBuiltinProvider if method == 'cowagent_builtin'
                 else SubprocessJsonlProvider)('custom-name', config)
+    config = provider.config
     if change == 'wrong-revision':
         config['expected_repo_revision'] = '0' * 40
     elif change == 'dirty':
@@ -79,6 +81,8 @@ def test_declared_native_installation_is_authoritative(checkout, method, change)
         config['expected_node_version'] = 'v0.0.0'
     elif change == 'wrong-manager':
         config['expected_package_manager_version'] = '0.0.0'
+    elif change == 'wrong-python':
+        config['expected_python_version'] = 'Python 0.0.0'
     elif change == 'stale-worker':
         deployed.write_text('old worker\n')
     errors = provider.validate()

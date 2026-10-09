@@ -21,6 +21,14 @@ class SubprocessJsonlProvider(Provider):
     """Invoke a persistent repository-native worker over line-delimited JSON."""
 
     _RUNTIME_CONTRACTS = {
+        "cowagent_builtin": {
+            "required_fields": ("expected_repo_revision",),
+            "required_paths": {
+                "{repo_path}/agent/tools/web_fetch/web_fetch.py",
+                "{repo_path}/agent/tools/utils/url_safety.py",
+                "{harness_root}/harness/web_fetch/providers/cowagent_worker.py",
+            },
+        },
         "openclaw_builtin": {
             "required_fields": (
                 "expected_repo_revision", "expected_node_version",
@@ -54,6 +62,7 @@ class SubprocessJsonlProvider(Provider):
         self._process: subprocess.Popen[str] | None = None
         self._stdout_queue: queue.Queue[str | None] = queue.Queue()
         self._stderr_lock = threading.Condition()
+        self._stderr_generation = object()
         self._stderr_chunks: list[tuple[int, int, str]] = []
         self._stderr_sequence = 0
         self._stderr_total_bytes = 0
@@ -76,12 +85,12 @@ class SubprocessJsonlProvider(Provider):
             mode = validate_dns_mode(self.config.get("dns_mode", "system"))
         except ValueError as error:
             return [str(error)]
-        if mode == "public_doh" and self.type not in {"openclaw_builtin", "deepseek_harness_builtin", "langchain_webbase", "crawl4ai"}:
+        if mode == "public_doh" and self.type not in {"cowagent_builtin", "openclaw_builtin", "deepseek_harness_builtin", "langchain_webbase", "crawl4ai"}:
             return ["public_doh is not supported by this worker"]
         missing, identity = validate_runtime_identity(
             self.config, self._resolve_token, **self._RUNTIME_CONTRACTS.get(self.type, {}))
         if mode == "public_doh":
-            required = {"{harness_root}/harness/web_fetch/network_dns.py"} if self.type in {"langchain_webbase", "crawl4ai"} else {"{harness_root}/scripts/oss/public_dns.mjs"}
+            required = {"{harness_root}/harness/web_fetch/network_dns.py"} if self.type in {"cowagent_builtin", "langchain_webbase", "crawl4ai"} else {"{harness_root}/scripts/oss/public_dns.mjs"}
             if self.type == "deepseek_harness_builtin":
                 required.add("{repo_path}/packages/web/web-fetch-http/src/network.ts")
             if not required.issubset(set(self.config.get("required_paths", []))):
@@ -113,24 +122,26 @@ class SubprocessJsonlProvider(Provider):
         )
         self._stdout_queue = queue.Queue()
         with self._stderr_lock:
+            self._stderr_generation = object()
             self._stderr_chunks = []
             self._stderr_sequence = 0
             self._stderr_total_bytes = 0
             self._stderr_retained_bytes = 0
         assert self._process.stdout is not None and self._process.stderr is not None
-        threading.Thread(target=self._drain_stdout, args=(self._process,), daemon=True).start()
-        threading.Thread(target=self._drain_stderr, args=(self._process,), daemon=True).start()
+        threading.Thread(target=self._drain_stdout,
+                         args=(self._process, self._stdout_queue), daemon=True).start()
+        threading.Thread(target=self._drain_stderr,
+                         args=(self._process, self._stderr_generation), daemon=True).start()
         return self._process
 
-    def _drain_stdout(self, process: subprocess.Popen[str]) -> None:
+    @staticmethod
+    def _drain_stdout(process: subprocess.Popen[str], output: queue.Queue[str | None]) -> None:
         assert process.stdout is not None
         for line in process.stdout:
-            sink = getattr(self, "_active_diagnostics", None)
-            if sink: sink.emit("native_process_stdout", "stream_line", text=line)
-            self._stdout_queue.put(line)
-        self._stdout_queue.put(None)
+            output.put(line)
+        output.put(None)
 
-    def _drain_stderr(self, process: subprocess.Popen[str]) -> None:
+    def _drain_stderr(self, process: subprocess.Popen[str], generation: object) -> None:
         assert process.stderr is not None
         for line in process.stderr:
             sink = getattr(self, "_active_diagnostics", None)
@@ -138,6 +149,8 @@ class SubprocessJsonlProvider(Provider):
             size = len(line.encode("utf-8", "replace"))
             limit = max(1, int(self.config.get("max_bytes", 20_000_000)))
             with self._stderr_lock:
+                if generation is not self._stderr_generation:
+                    return
                 self._stderr_sequence += 1
                 self._stderr_total_bytes += size
                 self._stderr_chunks.append(
