@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import runpy
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -464,7 +465,8 @@ def verify_replay_diagnostics(root: Path, source_root: Path) -> None:
                     'assert "playwright" not in sys.modules'], check=True, cwd=root)
     for command in ('audit_replay_readiness.py', 'audit_replay_cart_assertion.py',
                     'audit_replay_comparison_inputs.py', 'audit_saved_replay_correction.py',
-                    'audit_webarena_recorded_outcomes.py', 'verify_webarena_evaluator_exclusions.py'):
+                    'audit_webarena_recorded_outcomes.py', 'verify_webarena_evaluator_exclusions.py',
+                    'rescore_saved_retrieval_attempt.py', 'supersede_webarena_task_browser_results.py'):
         subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
                        check=True, cwd=root, capture_output=True)
     stage = root / 'replay-diagnostics'
@@ -507,6 +509,40 @@ def verify_replay_diagnostics(root: Path, source_root: Path) -> None:
         task_dir=task, task_id=1, site_map=sites,
         before_catalog=before_catalog, after_catalog=after_catalog)
     assert audit['browser_calls'] == 0 and audit['evaluation_reached'] is False
+
+
+def verify_replay_supersession(root: Path, source_root: Path) -> None:
+    from harness.trajectory_replay.public_webarena import manifest_repair
+
+    assert not Path(manifest_repair.__file__).resolve().is_relative_to(source_root.resolve())
+    fixture = runpy.run_path(str(source_root / 'tests/public_webarena_fixture.py'))
+    base, correction = fixture['write_supersession_fixture'](root / 'supersession-sources')
+    before = {path.resolve(): path.read_bytes() for source in (base, correction)
+              for path in source.rglob('*') if path.is_file()}
+    output = root / 'supersession'
+    args = [sys.executable, str(source_root / 'scripts/supersede_webarena_task_browser_results.py'),
+            '--base-run', str(base), '--correction-run', str(correction), '--output', str(output),
+            '--replace', 'case-a/moli', '--reason', 'Synthetic installed command correction']
+    subprocess.run(args, check=True, cwd=root, capture_output=True)
+    assert all(path.read_bytes() == raw for path, raw in before.items())
+    run = output / 'run'
+    manifest = json.loads((run / 'manifest.json').read_bytes())
+    source_bytes = (run / 'source-inputs.json').read_bytes()
+    assert manifest['artifact_provenance']['source_inputs_sha256'] == hashlib.sha256(source_bytes).hexdigest()
+    for row in json.loads(source_bytes)['files']:
+        assert (run / row['retained_path']).read_bytes() == before[Path(row['path'])]
+    rows = [json.loads(line) for line in (run / 'attempts.jsonl').read_text().splitlines()]
+    assert [(row['engine'], row['attempt'], row['status']) for row in rows] == [
+        ('chromium', 1, 'pass'), ('moli', 1, 'fail'), ('moli', 2, 'pass')]
+    shutil.rmtree(base)
+    shutil.rmtree(correction)
+    for row in rows:
+        path = Path(row['evidence_directory']) / 'attempt.json'
+        assert json.loads(path.read_bytes()) == row
+        assert hashlib.sha256((run / row['source_attempt_path']).read_bytes()).hexdigest() == row['source_attempt_sha256']
+    before_output = (run / 'manifest.json').read_bytes()
+    assert subprocess.run(args, cwd=root, capture_output=True).returncode != 0
+    assert (run / 'manifest.json').read_bytes() == before_output
 
 
 def verify_qualification_commands(root: Path, source_root: Path) -> None:
@@ -1467,6 +1503,7 @@ def main():
         verify_sample_assembly(root, args.source_root)
         verify_qualification_commands(root, args.source_root)
         verify_replay_diagnostics(root, args.source_root)
+        verify_replay_supersession(root, args.source_root)
         verify_repair_commands(root, args.source_root)
         verify_adjudication_commands(root, args.source_root)
         verify_browser_observation_capture(root, args.source_root)

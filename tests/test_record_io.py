@@ -4,7 +4,25 @@ from dataclasses import asdict
 
 import pytest
 
-from harness.record_io import load_jsonl, parse_jsonl, read_completed_records
+from harness.record_io import load_jsonl, parse_jsonl, read_completed_records, same_json_record
+
+
+@pytest.mark.parametrize('left,right,expected', [
+    ({'ok': False, 'content': '中文'}, {'content': '中文', 'ok': False}, True),
+    ({'ok': False}, {'ok': 0}, False),
+    ({'score': 1}, {'score': True}, False),
+    ({'elapsed': 1}, {'elapsed': 1.0}, False),
+    ([{'ok': True}, {'ok': False}], [{'ok': False}, {'ok': True}], False),
+    ({'content': 'a\u2028b'}, {'content': 'a\u2028b'}, True),
+])
+def test_json_record_agreement_preserves_scalar_types_and_order(left, right, expected):
+    assert same_json_record(left, right) is expected
+
+
+@pytest.mark.parametrize('value', [float('nan'), float('inf'), float('-inf')])
+def test_nonfinite_json_records_cannot_establish_agreement(value):
+    with pytest.raises(ValueError):
+        same_json_record({'score': value}, {'score': value})
 
 
 @pytest.mark.parametrize('separator', ['\u0085', '\u2028', '\u2029'])

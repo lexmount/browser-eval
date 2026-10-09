@@ -2,6 +2,12 @@
 import json
 
 
+def same_json_record(left, right):
+    """Compare JSON records without equating boolean and numeric scalar values."""
+    options = dict(ensure_ascii=False, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    return json.dumps(left, **options) == json.dumps(right, **options)
+
+
 def parse_jsonl(raw: bytes | str, *, skip_blank=False, allow_incomplete_tail=False):
     """Parse LF-delimited records without treating Unicode text as framing.
 

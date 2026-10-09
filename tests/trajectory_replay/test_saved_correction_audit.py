@@ -17,13 +17,24 @@ def fixture(tmp_path):
     before.write_text("{}")
     after.write_text("{}")
     digest = hashlib.sha256(b"{}").hexdigest()
-    receipt = {"method_id": "release", "site_map_sha256": digest, "results": [{
-        "task_id": 448, "status": "fail", "score": None, "completed_actions": 3,
-        "action_count": 8, "evidence_sha256": {"trace": digest, "network_har": digest},
-    }]}
+    receipt = {
+        "method_id": "release",
+        "site_map_sha256": digest,
+        "results": [
+            {
+                "task_id": 448,
+                "status": "fail",
+                "score": None,
+                "completed_actions": 3,
+                "action_count": 8,
+                "evidence_sha256": {"trace": digest, "network_har": digest},
+            }
+        ],
+    }
     (tmp_path / "receipt.json").write_text(json.dumps(receipt))
-    return dict(task_dir=task, task_id=448, site_map=site_map,
-                before_catalog=before, after_catalog=after)
+    return dict(
+        task_dir=task, task_id=448, site_map=site_map, before_catalog=before, after_catalog=after
+    )
 
 
 def test_runtime_failure_is_not_rescored_using_an_invented_success_response(tmp_path):
@@ -33,6 +44,18 @@ def test_runtime_failure_is_not_rescored_using_an_invented_success_response(tmp_
     assert result["browser_calls"] == 0
     assert result["score_changed"] is False
     assert "before" not in result and "after" not in result
+
+
+@pytest.mark.parametrize("counts", [(None, None), (True, True), (0, 0), (3, 8)])
+def test_audit_does_not_treat_invalid_action_counts_as_completed(tmp_path, counts):
+    inputs = fixture(tmp_path)
+    path = tmp_path / "receipt.json"
+    receipt = json.loads(path.read_bytes())
+    row = receipt["results"][0]
+    row["action_count"], row["completed_actions"] = counts
+    path.write_text(json.dumps(receipt))
+    with pytest.raises(ValueError, match="action counts"):
+        audit_saved_correction(**inputs)
 
 
 @pytest.mark.parametrize("change", ["trace", "sites", "missing", "duplicate", "symlink"])

@@ -1245,7 +1245,7 @@ class MoliTests(unittest.TestCase):
         result = self.provider(
             'print("HTTP clients may receive 403: Forbidden. This section explains retries.")'
         ).fetch(self.case, 2)
-        self.assertTrue(result.ok)
+        self.assertTrue(result.ok, repr(result))
         self.assertIsNone(result.status_code)
         self.assertIsNone(result.error_type)
 

@@ -17,6 +17,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import same_json_record
 from harness.web_fetch.safety import unlinked_path, write_new_file
 
 
@@ -710,6 +711,20 @@ def main_comparison_inputs(argv=None) -> None:
     print(json.dumps(audit, ensure_ascii=False, indent=2))
 
 
+def _saved_execution_complete(result: dict, task_id: int) -> bool:
+    if type(result.get("task_id")) is not int or result["task_id"] != task_id:
+        raise ValueError("saved attempt belongs to another task")
+    total, completed = result.get("action_count"), result.get("completed_actions")
+    if (
+        type(total) is not int
+        or total < 1
+        or type(completed) is not int
+        or not 0 <= completed <= total
+    ):
+        raise ValueError("saved attempt has missing or invalid action counts")
+    return completed == total
+
+
 def audit_saved_correction(
     *, task_dir: Path, task_id: int, site_map: Path, before_catalog: Path, after_catalog: Path
 ) -> dict:
@@ -733,7 +748,7 @@ def audit_saved_correction(
     row = rows[0]
     hashes = {}
     names = [("network_har", "network.har"), ("trace", "trace.json")]
-    completed = row["completed_actions"] == row["action_count"]
+    completed = _saved_execution_complete(row, task_id)
     if completed:
         names += [("evaluation", "evaluation.json"), ("actual_response", "actual_response.json")]
     elif row["status"] != "fail" or row.get("score") is not None:
@@ -826,3 +841,94 @@ def main_saved_correction(argv=None) -> None:
     parser.add_argument("--after-catalog", type=Path, required=True)
     args = parser.parse_args(argv)
     print(json.dumps(audit_saved_correction(**vars(args)), ensure_ascii=False, indent=2))
+
+
+def rescore_saved_retrieval(*, task_dir: Path, task_id: int, dataset: Path, site_map: Path) -> dict:
+    task_dir, dataset, site_map = map(unlinked_path, (task_dir, dataset, site_map))
+    sources = _diagnostic_snapshot([dataset, site_map])
+    records = []
+    for path in (task_dir / "result.json", task_dir.parent / "result.json"):
+        path = unlinked_path(path)
+        if path.exists():
+            sources.update(_diagnostic_snapshot([path]))
+            records.append((path, json.loads(path.read_bytes())))
+    receipt_path = unlinked_path(task_dir.parent / "receipt.json")
+    if receipt_path.exists():
+        sources.update(_diagnostic_snapshot([receipt_path]))
+        receipt = json.loads(receipt_path.read_bytes())
+        rows = [row for row in receipt.get("results") or [] if row.get("task_id") == task_id]
+        if len(rows) != 1:
+            raise ValueError("saved diagnostic receipt lacks one task result")
+        if receipt.get("site_map_sha256") != sources[site_map]:
+            raise ValueError("site map differs from saved execution")
+        records.append((receipt_path, rows[0]))
+    if not records or any(not same_json_record(value, records[0][1]) for _, value in records[1:]):
+        raise ValueError("saved result is missing or disagrees with its receipt")
+    result_path, result = records[0]
+    if not _saved_execution_complete(result, task_id):
+        raise ValueError("saved attempt is incomplete or belongs to another task")
+    hashes = result.get("evidence_sha256") or {}
+    names = {
+        "actual_response": "actual_response.json",
+        "network_har": "network.har",
+        "trace": "trace.json",
+        "acceptance": "acceptance.json",
+        "evaluation": "evaluation.json",
+    }
+    for key, name in names.items():
+        path = task_dir / name
+        sources.update(_diagnostic_snapshot([path]))
+        if sources[path] != hashes.get(key):
+            raise ValueError(f"saved {key} evidence changed")
+    actual = json.loads((task_dir / "actual_response.json").read_text(encoding="utf-8"))
+    from webarena_verified.api import WebArenaVerified
+    from webarena_verified.types.config import WebArenaVerifiedConfig
+
+    from harness.trajectory_replay.remote_runtime import load_remote_sites, remote_benchmark
+
+    sites = load_remote_sites(site_map)
+    benchmark = WebArenaVerified(
+        config=WebArenaVerifiedConfig(
+            test_data_file=dataset,
+            environments=remote_benchmark(sites).config.environments,
+        )
+    )
+    official = benchmark.get_task(task_id)
+    if not official.is_retrieve_task:
+        raise ValueError("saved task is not a retrieval task")
+    evaluation = benchmark.evaluate_task(
+        task_id=task_id, agent_response=actual, network_trace=task_dir / "network.har"
+    ).model_dump(mode="json")
+    _check_diagnostic_snapshot(sources)
+    return {
+        "schema": "webarena_saved_retrieval_rescore/1",
+        "task_id": task_id,
+        "browser_calls": 0,
+        "scope": "diagnostic_only",
+        "source_verdict_changed": False,
+        "source_result_sha256": sources[result_path],
+        "source_evaluation_sha256": hashes["evaluation"],
+        "dataset_sha256": sources[dataset],
+        "site_map_sha256": sources[site_map],
+        "score": evaluation["score"],
+        "evaluation": evaluation,
+    }
+
+
+def main_saved_retrieval_rescore(argv=None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--task-dir", type=Path, required=True)
+    parser.add_argument("--task-id", type=int, required=True)
+    parser.add_argument("--dataset", type=Path, required=True)
+    parser.add_argument("--site-map", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    args.output = diagnostic_output_path(args.output)
+    value = rescore_saved_retrieval(
+        task_dir=args.task_dir,
+        task_id=args.task_id,
+        dataset=args.dataset,
+        site_map=args.site_map,
+    )
+    write_diagnostic(args.output, value)
+    print(json.dumps({"task_id": args.task_id, "score": value["score"], "browser_calls": 0}))

@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from harness.record_io import load_jsonl
+from harness.record_io import load_jsonl, same_json_record
 from harness.web_fetch.safety import contained_path, safe_identifier, unlinked_path, write_new_file
 
 from .har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
@@ -219,7 +219,7 @@ def _verify_attempt_projection(row: dict[str, Any], *, allow_missing: bool = Fal
         if allow_missing:
             return False
         raise ValueError("qualification attempt source evidence is missing")
-    if _json_sha256(json.loads(path.read_bytes())) != _json_sha256(row):
+    if not same_json_record(json.loads(path.read_bytes()), row):
         raise ValueError("qualification projection differs from immutable attempt evidence")
     return True
 

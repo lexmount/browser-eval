@@ -313,6 +313,26 @@ Two independent qualification passes remain required by the validation protocol.
 
 ### Remote mutation diagnostics
 
+`scripts/rescore_saved_retrieval_attempt.py` evaluates a complete saved retrieval
+against an explicitly supplied dataset without browser calls. It reads the current
+task-local result, an agreeing cohort receipt, or the older standalone result
+layout; missing action counts and conflicting records are rejected. The saved
+response, HAR and declared evidence must match their hashes and remain unchanged
+during evaluation. Its new output is diagnostic evidence and does not replace
+the saved verdict or certify a new experiment.
+
+For a declared corrective rerun, `scripts/supersede_webarena_task_browser_results.py`
+requires the complete `--replace TASK_ID/ENGINE` scope and an evidenced `--reason`.
+It checks the shared protocol, browser identity, task contract, attempt sequence,
+raw records and bound page evidence. The new run retains every source call and
+its original bytes under `run/source-evidence/`; `run/source-inputs.json` binds
+those files by path and hash. Current attempt locations are rebound to the new
+run with their predecessor hashes, while verdicts, timings and responses remain
+unchanged. Reports and evidence are staged together; failed checks or rendering
+leave no partial output. A later correction must also verify the retained
+history. Formal publication still requires the corresponding new profile and
+release gates; this command does not update historical publication bindings.
+
 Offline input and evidence audits use the maintained diagnostic modules:
 
 - `scripts/audit_replay_comparison_inputs.py` inventories the declared comparison
