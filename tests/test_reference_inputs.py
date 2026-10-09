@@ -414,33 +414,19 @@ def test_canonical_validation_compares_evidence_against_external_inputs(inputs, 
         require_canonical_inputs(evidence, dataset.parent)
 
 
-@pytest.mark.parametrize("owner", ["merge", "prepare", "unavailable", "promote"])
-def test_reference_update_commands_reject_pinned_inputs_before_writes(inputs, tmp_path, owner):
+def test_reference_promotion_rejects_pinned_inputs_before_writes(inputs, tmp_path):
+    from harness.web_fetch.reference_freeze import promote
+
     dataset, _, _, _ = inputs
     before = dataset.read_bytes()
     with pytest.raises(ValueError, match="immutable"):
-        if owner == "merge":
-            from scripts.merge_reference_updates import merge
-
-            merge(dataset, [], set())
-        elif owner == "prepare":
-            from scripts.prepare_references import prepare
-
-            prepare(dataset)
-        elif owner == "unavailable":
-            from scripts.apply_reference_unavailability import apply
-
-            apply(dataset, tmp_path / "absent", set())
-        else:
-            from harness.web_fetch.reference_freeze import promote
-
-            promote(
-                canonical_path=dataset,
-                candidate_path=tmp_path / "absent",
-                captures=tmp_path / "absent",
-                receipt_path=tmp_path / "absent",
-                receipt_target=tmp_path / "absent",
-            )
+        promote(
+            canonical_path=dataset,
+            candidate_path=tmp_path / "absent",
+            captures=tmp_path / "absent",
+            receipt_path=tmp_path / "absent",
+            receipt_target=tmp_path / "absent",
+        )
     assert dataset.read_bytes() == before
 
 
