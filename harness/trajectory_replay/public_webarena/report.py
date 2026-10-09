@@ -430,6 +430,18 @@ def _detail_filename(task_id: str, engine: str) -> str:
     return f"{REPORT_STEM}-task-{task_id.encode().hex()}-{engine.encode().hex()}.html"
 
 
+def report_file_names(summary: dict[str, Any]) -> set[str]:
+    """Declare every output owned by this renderer from its result population."""
+    details = {
+        _detail_filename(str(task_id), str(engine))
+        for task_id, task in (summary.get("by_task") or {}).items()
+        for engine, attempts in (task.get("attempts") or task.get("failures") or {}).items()
+        if attempts
+    }
+    return {f"{REPORT_STEM}.md", f"{REPORT_STEM}-data.json",
+            *(filename for _, _, filename in PAGES), *details}
+
+
 def _is_webarena_manifest(manifest: dict[str, Any]) -> bool:
     return any(
         ((task.get("evaluator") or {}).get("kind") == "webarena_verified")
@@ -2025,7 +2037,11 @@ def write_latest_report(
     audit_name = f"{REPORT_STEM}-data.json"
     detail_pages: dict[str, str] = {}
     results = _results_page(manifest, summary, detail_pages)
-    keep = {f"{REPORT_STEM}.md", audit_name, *(filename for _, _, filename in PAGES), *detail_pages}
+    keep = report_file_names(summary)
+    if set(detail_pages) != keep.difference(
+        {f"{REPORT_STEM}.md", audit_name, *(filename for _, _, filename in PAGES)}
+    ):
+        raise ValueError("report detail inventory differs from the declared result population")
     for pattern in (
         f"{REPORT_STEM}*.md",
         f"{REPORT_STEM}*.html",

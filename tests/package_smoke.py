@@ -857,13 +857,18 @@ def verify_public_trajectory_publication(root, source_root):
     write_fixture = runpy.run_path(str(source_root / 'tests/public_webarena_fixture.py'))[
         'write_report_fixture']
     source, authority = write_fixture(root / 'public-trajectory')
+    (source / 'run/private-worker-notes.txt').write_text('private diagnostics')
     staged = root / 'trajectory-staged'
     stage_report(source, staged)
+    assert {path.name for path in (staged / 'run').iterdir()} == {'manifest.json', 'summary.json'}
     assert check_report_bundle(staged)['pages'] == 6
+    private_name = 'webarena-trajectory-replay-latest-private-notes.txt'
+    (staged / 'reports' / private_name).write_text('private report notes')
     archive, attestation = root / 'trajectory.zip', root / 'trajectory-attestation.json'
     result = build(staged, archive, attestation, authority=authority)
     assert result['archive_sha256'] == hashlib.sha256(archive.read_bytes()).hexdigest()
     with zipfile.ZipFile(archive) as bundle:
+        assert private_name not in bundle.namelist()
         assert bundle.read('index.html') == bundle.read('webarena-trajectory-replay-latest.html')
     profile = json.loads(authority.read_text())
     profile['suite_sha256'] = 'wrong'

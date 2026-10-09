@@ -66,7 +66,7 @@ def main(project_root: Path) -> None:
 
     with tempfile.TemporaryDirectory(prefix="webarena-trajectory-release-") as temporary:
         staged = Path(temporary) / "formal"
-        stage_report(args.formal_root.resolve(), staged)
+        stage_report(args.formal_root, staged)
         semantic_checks = check_report_bundle(staged)
         attestation = build(staged, ARCHIVE, ATTESTATION, authority=CURRENT)
         print(

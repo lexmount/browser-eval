@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
+from harness.web_fetch.safety import contained_path
+
 REPORT_STEM = "webarena-trajectory-replay-latest"
 
 PRIVATE_IPV4 = re.compile(
@@ -39,14 +41,13 @@ def public_projection(value: Any) -> Any:
 
 def export_public_report_bundle(formal_root: Path, output_root: Path) -> Path:
     """Export reports plus only the binding fields needed by the site builder."""
-    manifest = json.loads((formal_root / "run/manifest.json").read_text(encoding="utf-8"))
-    summary = json.loads((formal_root / "run/summary.json").read_text(encoding="utf-8"))
+    manifest = _read_json(contained_path(formal_root, "run/manifest.json", reject_symlinks=True))
+    summary = _read_json(contained_path(formal_root, "run/summary.json", reject_symlinks=True))
+    files = _report_files(formal_root, summary)
     target = output_root / "formal/webarena-public-trajectories"
     reports_target = target / "reports"
     reports_target.mkdir(parents=True, exist_ok=False)
-    for source in sorted((formal_root / "reports").glob(f"{REPORT_STEM}*")):
-        if source.is_symlink() or not source.is_file():
-            raise ValueError(f"unsafe report file: {source}")
+    for source in files:
         shutil.copy2(source, reports_target / source.name)
     run_target = target / "run"
     run_target.mkdir()
@@ -94,13 +95,29 @@ def _sha256(path: Path) -> str:
 def _read_json(path: Path) -> dict:
     if not path.is_file() or path.is_symlink():
         raise ValueError(f"required regular file is missing: {path}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"required JSON object is missing: {path}")
+    return payload
+
+
+def _report_files(formal_root: Path, summary: dict) -> list[Path]:
+    from .report import report_file_names
+
+    files = []
+    for name in sorted(report_file_names(summary)):
+        source = contained_path(formal_root, "reports/" + name, reject_symlinks=True)
+        if not source.is_file():
+            raise ValueError(f"standalone report is missing required file: {name}")
+        files.append(source)
+    return files
 
 
 def _validate_binding(formal_root: Path, authority: Path) -> tuple[dict, dict, dict]:
-    manifest_path = formal_root / "run/manifest.json"
-    summary_path = formal_root / "run/summary.json"
-    audit_path = formal_root / f"reports/{REPORT_STEM}-data.json"
+    manifest_path = contained_path(formal_root, "run/manifest.json", reject_symlinks=True)
+    summary_path = contained_path(formal_root, "run/summary.json", reject_symlinks=True)
+    audit_path = contained_path(
+        formal_root, f"reports/{REPORT_STEM}-data.json", reject_symlinks=True)
     manifest = _read_json(manifest_path)
     summary = _read_json(summary_path)
     audit = _read_json(audit_path)
@@ -182,13 +199,15 @@ def _validate_internal_links(root: Path) -> None:
 
 
 def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Path) -> dict:
-    formal_root = formal_root.resolve()
     manifest, summary, _audit = _validate_binding(formal_root, authority)
-    reports = formal_root / "reports"
-    files = sorted(reports.glob(f"{REPORT_STEM}*"))
-    required = {f"{REPORT_STEM}.html", f"{REPORT_STEM}-research.html", f"{REPORT_STEM}-data.json"}
-    if not required.issubset({path.name for path in files}):
-        raise ValueError("standalone report is missing required pages")
+    files = _report_files(formal_root, summary)
+    inputs = {path.resolve() for path in [
+        *files, authority, formal_root / "run/manifest.json", formal_root / "run/summary.json"]}
+    outputs = {archive.resolve(), attestation.resolve()}
+    if len(outputs) != 2 or inputs.intersection(outputs):
+        raise ValueError("publication outputs must be separate from each other and consumed inputs")
+    if archive.is_symlink() or attestation.is_symlink():
+        raise ValueError("symlinked publication outputs are forbidden")
 
     archive.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="webarena-trajectory-") as temporary:
@@ -310,15 +329,31 @@ def stage_report(formal_root: Path, destination: Path) -> None:
     from .report import write_latest_report
     from .result_audit import audit_result_set
 
-    run = formal_root / "run"
-    if not run.is_dir():
-        raise ValueError(f"formal run is missing: {run}")
-    shutil.copytree(run, destination / "run")
-    (destination / "reports").mkdir()
-    manifest = json.loads((destination / "run/manifest.json").read_text(encoding="utf-8"))
-    summary = json.loads((destination / "run/summary.json").read_text(encoding="utf-8"))
+    if destination.exists() or destination.is_symlink():
+        raise ValueError("report staging destination already exists")
+    if destination.resolve().is_relative_to(formal_root.resolve()):
+        raise ValueError("report staging destination must be outside source evidence")
+    paths = {name: contained_path(formal_root, "run/" + name, reject_symlinks=True)
+             for name in ("manifest.json", "summary.json")}
+    raw = {name: path.read_bytes() for name, path in paths.items()}
+    manifest, summary = (json.loads(raw[name]) for name in ("manifest.json", "summary.json"))
+    if not isinstance(manifest, dict) or not isinstance(summary, dict):
+        raise ValueError("formal report inputs must be JSON objects")
     audit_result_set(manifest, summary)
-    write_latest_report(destination / "reports", manifest=manifest, summary=summary)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".report-stage-", dir=destination.parent) as work:
+        staged = Path(work) / "bundle"
+        (staged / "run").mkdir(parents=True)
+        for name, content in raw.items():
+            (staged / "run" / name).write_bytes(content)
+        write_latest_report(staged / "reports", manifest=manifest, summary=summary)
+        for name, content in raw.items():
+            current = contained_path(formal_root, "run/" + name, reject_symlinks=True)
+            if current.read_bytes() != content:
+                raise ValueError("source evidence changed during report staging: " + name)
+        if destination.exists() or destination.is_symlink():
+            raise ValueError("report staging destination appeared during rendering")
+        staged.rename(destination)
 
 
 def package_main(project_root: Path) -> None:
