@@ -103,11 +103,11 @@ class RuntimeEntrypointTests(unittest.TestCase):
         for filename in ('providers.example.json', 'providers.resources.json'):
             providers = json.loads((ROOT / 'configs' / filename).read_text())['providers']
             self.assertEqual(
-                providers['moli-webfetch']['expected_reported_version'], 'moli 1.1.4'
+                providers['moli-webfetch']['expected_reported_version'], 'moli 1.1.15'
             )
             self.assertEqual(
                 providers['moli-webfetch']['expected_binary_sha256'],
-                'dbce6cc79b97eeb558416707a642ca20b9b1b8d6731655a695059d334adb6d5b',
+                '7a53cdd071ae60a2f8ff6d08107f67f6b0f1d6247a9acd970d2bcec77ff15b50',
             )
             for name, revision in expected.items():
                 self.assertEqual(providers[name]['expected_repo_revision'], revision)

@@ -224,6 +224,10 @@ def fixture_server(records: list[dict], preserve_original_origin: bool = False):
         san = (",".join("IP:" + host if host.replace(".", "").isdigit() else "DNS:" + host
                         for host in sorted(hosts)) if preserve_original_origin
                else "DNS:localhost,IP:127.0.0.1")
+        # LibreSSL (the macOS system binary) has no x509 -copy_extensions.
+        # Bind the exact same SAN explicitly rather than requiring OpenSSL 3.
+        leaf_extensions = tls / "leaf-extensions.cnf"
+        leaf_extensions.write_text("subjectAltName=" + san + "\n", encoding="utf-8")
         commands = [
             [openssl, "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", str(ca_key),
              "-out", str(ca_cert), "-days", "1", "-subj", "/CN=WebMainBench-Local-CA",
@@ -233,7 +237,7 @@ def fixture_server(records: list[dict], preserve_original_origin: bool = False):
              "-addext", "subjectAltName=" + san],
             [openssl, "x509", "-req", "-in", str(leaf_csr), "-CA", str(ca_cert),
              "-CAkey", str(ca_key), "-CAcreateserial", "-out", str(leaf_cert),
-             "-days", "1", "-copy_extensions", "copy"],
+             "-days", "1", "-extfile", str(leaf_extensions)],
         ]
         for command in commands:
             completed = subprocess.run(command, capture_output=True, text=True, timeout=15, check=False)

@@ -398,12 +398,14 @@ function saveTheme(t){try{localStorage.setItem('webfetch-theme',t)}catch{}}
 
 function theme(){let t=document.documentElement.dataset.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=t;saveTheme(t)}
 function tr(zh,en){return document.documentElement?.lang==='en'?en:zh}
-function filterRows(){let count=0;document.querySelectorAll('#rows tr').forEach(r=>{let show=[...document.querySelectorAll('[data-filter]')].every(s=>!s.value||(s.dataset.filter==='query'?(r.textContent+' '+(r.dataset.search||'')).toLowerCase().includes(s.value.trim().toLowerCase()):r.dataset[s.dataset.filter]===s.value));r.hidden=!show;if(show)count++});let c=document.querySelector('#count');if(c)c.textContent=tr(`显示 ${count} 条`,`Showing ${count}`)}
+function filterValues(r,key){return key==='issue'?(r.dataset[key]||'').split(' '):[r.dataset[key]]}
+function filterMatch(r,s){return !s.value||(s.dataset.filter==='query'?(r.textContent+' '+(r.dataset.search||'')).toLowerCase().includes(s.value.trim().toLowerCase()):filterValues(r,s.dataset.filter).includes(s.value))}
+function filterRows(){let count=0;document.querySelectorAll('#rows tr').forEach(r=>{let show=[...document.querySelectorAll('[data-filter]')].every(s=>filterMatch(r,s));r.hidden=!show;if(show)count++});let c=document.querySelector('#count');if(c)c.textContent=tr(`显示 ${count} 条`,`Showing ${count}`)}
 function paintSort(t){let col=Number(t.dataset.col);if(!Number.isFinite(col)||!t.tHead?.rows[0]?.cells[col])return;[...t.tHead.rows[0].cells].forEach((h,i)=>{h.classList.toggle('sorted',i===col);h.removeAttribute('aria-sort')});t.tHead.rows[0].cells[col].setAttribute('aria-sort',t.dataset.dir==='asc'?'ascending':'descending')}
 function sortTable(id,col){let t=document.getElementById(id),dir=t.dataset.col===String(col)&&t.dataset.dir==='desc'?'asc':'desc';let rows=[...t.tBodies[0].rows];rows.sort((a,b)=>{let av=a.cells[col].dataset.sort,bv=b.cells[col].dataset.sort;if(av==='-1'||bv==='-1')return av===bv?0:av==='-1'?1:-1;let result=(av==null||bv==null)?a.cells[col].textContent.localeCompare(b.cells[col].textContent,document.documentElement.lang):Number(av)-Number(bv);return dir==='asc'?result:-result});rows.forEach((r,i)=>{r.cells[0].textContent=i+1;t.tBodies[0].append(r)});t.dataset.col=String(col);t.dataset.dir=dir;paintSort(t);if(t.hasAttribute?.('data-wmb-table'))wmbFilters();if(t.id==='wmb-slices')wmbSliceFilters()}
 function chooseTab(group,key){let box=document.getElementById(group);if(!box)return;box.querySelectorAll(':scope > .tab-bar > button').forEach(b=>{let on=b.dataset.tab===key;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1});box.querySelectorAll(':scope > [role="tabpanel"]').forEach(p=>p.hidden=p.dataset.panel!==key)}
 function tabKeys(event,group){if(!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;let bs=[...document.getElementById(group).querySelectorAll(':scope > .tab-bar > button')],i=bs.indexOf(event.target);i=event.key==='Home'?0:event.key==='End'?bs.length-1:(i+(event.key==='ArrowRight'?1:-1)+bs.length)%bs.length;event.preventDefault();chooseTab(group,bs[i].dataset.tab);bs[i].focus()}
-function cascadeFilters(changed){let rows=[...document.querySelectorAll('#rows tr')],selects=[...document.querySelectorAll('select[data-filter]')],prior=[];selects.forEach(s=>{let available=new Set(rows.filter(r=>prior.every(p=>!p.value||r.dataset[p.dataset.filter]===p.value)).map(r=>r.dataset[s.dataset.filter]));if(s.dataset.filter!=='result'){let failureFilter=['failureStage','failureCategory'].includes(s.dataset.filter);[...s.options].forEach(o=>o.disabled=!!o.value&&!available.has(o.value));if(s.value&&!available.has(s.value))s.value=failureFilter?'':([...s.options].find(o=>o.value&&!o.disabled)?.value||'');if(failureFilter)s.disabled=![...s.options].some(o=>o.value&&!o.disabled);}prior.push(s)});filterRows()}
+function cascadeFilters(changed){let rows=[...document.querySelectorAll('#rows tr')],selects=[...document.querySelectorAll('select[data-filter]')],prior=[];selects.forEach(s=>{let available=new Set(rows.filter(r=>prior.every(p=>filterMatch(r,p))).flatMap(r=>filterValues(r,s.dataset.filter)));if(s.dataset.filter!=='result'){let failureFilter=['failureStage','failureCategory','issue'].includes(s.dataset.filter);[...s.options].forEach(o=>o.disabled=!!o.value&&!available.has(o.value));if(s.value&&!available.has(s.value))s.value=failureFilter?'':([...s.options].find(o=>o.value&&!o.disabled)?.value||'');if(failureFilter)s.disabled=![...s.options].some(o=>o.value&&!o.disabled);}prior.push(s)});filterRows()}
 function outcomes(row,key){return new Set((row.dataset[key]||'').split(' ').filter(Boolean))}
 function compareMethods(){let a=document.getElementById('compare-a'),relation=document.getElementById('compare-relation'),track=document.getElementById('compare-track'),count=document.getElementById('compare-count');if(!a||!relation||!track||!count)return;let boxes=[...document.querySelectorAll('[data-compare-method]')];boxes.forEach(box=>{box.disabled=box.value===a.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});let others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value),selected=[a.value,...others],shown=0;document.querySelectorAll('#compare-rows tr').forEach(row=>{let pass=outcomes(row,'pass'),fail=outcomes(row,'fail'),match=others.length>0&&(!track.value||row.dataset.track===track.value);if(match)match={mixed:selected.some(x=>pass.has(x))&&selected.some(x=>fail.has(x)),a_pass_others_fail:pass.has(a.value)&&others.every(x=>fail.has(x)),a_fail_others_pass:fail.has(a.value)&&others.every(x=>pass.has(x)),all_pass:selected.every(x=>pass.has(x)),all_fail:selected.every(x=>fail.has(x)),exact_pass:selected.every(x=>pass.has(x))&&pass.size===selected.length}[relation.value];row.hidden=!match;if(match)shown++});count.textContent=others.length?tr(`找到 ${shown} 个任务`,`${shown} tasks found`):tr('请至少选择一个对比方法','Select at least one comparison method')}
 function wmbCompare(){let a=document.getElementById('wmb-compare-a'),relation=document.getElementById('wmb-compare-relation'),axis=document.getElementById('wmb-compare-axis'),category=document.getElementById('wmb-compare-category'),count=document.getElementById('wmb-compare-count');if(!a||!relation||!axis||!category||!count)return;let boxes=[...document.querySelectorAll('[data-wmb-compare-method]')];boxes.forEach(box=>{box.disabled=box.value===a.value;box.closest('label')?.classList.toggle('disabled',box.disabled);if(box.disabled)box.checked=false});let others=boxes.filter(box=>box.checked&&!box.disabled).map(box=>box.value),selected=[a.value,...others],rows=[...document.querySelectorAll('#wmb-compare-rows tr')],allowed=new Set(rows.map(row=>row.dataset[axis.value]).filter(Boolean));for(let option of category.options)option.disabled=!!option.value&&!!axis.value&&!allowed.has(option.value);if(category.value&&!allowed.has(category.value))category.value='';category.disabled=!axis.value;let shown=0;for(let row of rows){let delivered=outcomes(row,'delivered'),failed=outcomes(row,'failed'),match=others.length>0&&(!axis.value||!category.value||row.dataset[axis.value]===category.value);if(match)match={mixed:selected.some(x=>delivered.has(x))&&selected.some(x=>failed.has(x)),a_success_others_fail:delivered.has(a.value)&&others.every(x=>failed.has(x)),a_fail_others_success:failed.has(a.value)&&others.every(x=>delivered.has(x)),all_success:selected.every(x=>delivered.has(x)),all_fail:selected.every(x=>failed.has(x)),exact_success:selected.every(x=>delivered.has(x))&&delivered.size===selected.length}[relation.value];row.hidden=!match;if(match){shown++;row.cells[0].textContent=shown}}count.textContent=others.length?tr(`显示 ${shown} / ${rows.length} 页`,`Showing ${shown} / ${rows.length} pages`):tr('请至少选择一个对比方法','Select at least one comparison method')}
@@ -800,16 +802,34 @@ _RESEARCH_ROUTES=[
 
 def generate_cohort_diagnostic(out, model):
  """Render live cohort diagnostics through the maintained WebFetch components."""
+ from .report_diagnostic import diagnostic_findings, diagnostic_failure_counts, diagnostic_cohort_summary, diagnostic_call_summary, diagnostic_specimen_excerpt, FAILURE_TYPES
  global _RELIABILITY_BANNER,_ENGLISH_GENERATED
  prior=(_RELIABILITY_BANNER,_ENGLISH_GENERATED)
  _RELIABILITY_BANNER='<div class="wrap callout"><strong>实时网页诊断</strong><p>'+esc(model['scope_note'])+'</p></div>'
  _ENGLISH_GENERATED=False
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
- (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
+ diagnostic_style='''
+#failure-inventory .table-wrap{max-height:70vh;overflow:auto;scrollbar-gutter:stable}
+#failure-inventory table{min-width:1180px}
+#failure-inventory th{position:sticky;top:0;z-index:1}
+#failure-inventory td:nth-child(2){min-width:250px}
+#failure-inventory td:nth-child(5){min-width:240px;max-width:320px}
+.table-wrap{overflow-x:auto}.table-wrap th{white-space:nowrap}
+.diagnostic-specimen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.diagnostic-specimen>div{min-width:0;background:var(--panel2);padding:16px;border-radius:10px}
+.diagnostic-specimen pre{max-height:240px;font-size:13px}
+.section p{overflow-wrap:anywhere}
+@media(max-width:800px){.diagnostic-specimen{grid-template-columns:1fr}}
+'''
+ (out/'assets/style.css').write_text(STYLE+EXTRA+diagnostic_style,encoding='utf-8')
  (out/'assets/report.js').write_text(JS+'''
 async function loadDiagnosticEvidence(dialog){for(let pre of dialog.querySelectorAll('pre[data-evidence-file]')){if(pre.dataset.loaded)continue;try{let response=await fetch(pre.dataset.evidenceFile);if(!response.ok)throw Error('HTTP '+response.status);pre.textContent=await response.text();pre.dataset.loaded='1'}catch(error){pre.textContent='完整证据读取失败：'+error.message+'；可使用上方下载链接。'}}}
-document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[data-call-log-open]').forEach(b=>b.addEventListener('click',()=>{openCallLog(b);loadDiagnosticEvidence(document.getElementById(b.dataset.callLogOpen))}));document.querySelectorAll('[data-call-log-close]').forEach(b=>b.addEventListener('click',()=>closeCallLog(b)))});''',encoding='utf-8')
+function diagnosticAnchor(){let select=document.querySelector('select[data-filter="issue"]');if(!select)return;let match=location.hash.match(/^#issue=([a-z]+)$/);if(!match||![...select.options].some(o=>o.value===match[1]))return;document.querySelectorAll('select[data-filter]').forEach(s=>s.value=s.dataset.filter==='result'?'fail':'');select.value=match[1];cascadeFilters();document.getElementById('failure-inventory')?.scrollIntoView()}
+document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[data-call-log-open]').forEach(b=>b.addEventListener('click',()=>{openCallLog(b);loadDiagnosticEvidence(document.getElementById(b.dataset.callLogOpen))}));document.querySelectorAll('[data-call-log-close]').forEach(b=>b.addEventListener('click',()=>closeCallLog(b)));diagnosticAnchor()});window.addEventListener('hashchange',diagnosticAnchor);''',encoding='utf-8')
  groups={g['id']:g for g in model['cohorts']};rows=model['rows'];labels=model['cause_labels']
+ files={r[field]['path']:(out/r[field]['path']).read_bytes() for r in rows for field in ('log','reference')}
+ findings={r['id']:diagnostic_findings(r,files) for r in rows}
+ failure_types=diagnostic_failure_counts(model,files)
  def page(route,title,body):write(out,route,title,body,root_links=True)
  def detail_link(row):return 'attempts/'+row['id']+'.html'
  def blocks(name):
@@ -823,22 +843,71 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[da
  def distribution(counts):
   return '<figure class="editorial-figure">'+''.join('<div class="editorial-bar-row"><span>'+esc(label)+'</span><div class="editorial-bar-track"><i style="width:'+str(100*n/population)+'%"></i></div><b>'+str(n)+' / '+str(population)+'</b></div>' for label,n,population in counts)+'</figure>'
  try:
-  cards=''.join('<article class="guide-card"><h3>'+esc(groups[g]['label'] if g in groups else '整体')+'</h3><p><strong>'+str(p)+' / '+str(n)+'</strong> · '+pct(p/n)+'</p></article>' for g,(p,n) in model['metrics'].items())
   home=hero(esc(model['title']),esc(model['subtitle']))
-  home+=section('三类任务与整体结果','<div class="guide-grid">'+cards+'</div>'+distribution([(groups[g]['label'],*model['metrics'][g]) for g in groups])+'<p>'+esc(model['metric_note'])+'</p>','cohort-results')
+  overall=diagnostic_call_summary(rows,files);n=overall['total']
+  versions={g.get('version') or '见调用记录' for g in groups.values()}
+  values=cell('全部任务')+cell(esc(next(iter(versions)) if len(versions)==1 else '多个版本，见分组'))+cell(str(n),n)
+  for key in ('delivered','accepted'):
+   value=overall[key]
+   values+=cell('—' if value is None else f'{value} / {n}（{100*value/n:.1f}%）',-1 if value is None else value)
+  values+=''.join(cell('—' if overall[k] is None else f'{overall[k]/1000:.2f}',-1 if overall[k] is None else overall[k]) for k in ('mean_ms','p50_ms','p95_ms'))
+  overall_table=table(['评测集','实现版本','任务数','调用成功','任务通过','平均耗时（秒）','P50 耗时（秒）','P95 耗时（秒）'],[(' data-summary-overall="true"',values)],'overall-summary')
+  overall_section=section('整体评测结果',overall_table+'<p>全部预定任务组成一个评测集。调用成功不等于任务通过；耗时合并全部调用（含失败）计算，不平均各组的分位数。不同执行路线合并后的耗时仅描述本次评测集，不用于路线排名。</p>','overall-results')
+  home+=overall_section
+  summary_rows=[]
+  for s in diagnostic_cohort_summary(model,files):
+   g=groups[s['id']];n=s['total']
+   values=cell(esc(g['label']))+cell(esc(g.get('version') or '见调用记录'))+cell(str(n),n)+cell('—' if s['delivered'] is None else str(s['delivered'])+' / '+str(n),-1 if s['delivered'] is None else s['delivered'])+cell(str(s['accepted'])+' / '+str(n),s['accepted'])
+   values+=''.join(cell('—' if s[k] is None else f'{s[k]/1000:.2f}',-1 if s[k] is None else s[k]) for k in ('mean_ms','p50_ms','p95_ms'))
+   summary_rows.append((' data-summary-group="'+esc(s['id'])+'"',values))
+  home+=section('各类任务的结果',table(['任务组','实现版本','任务数','调用成功','任务通过','平均耗时（秒）','P50 耗时（秒）','P95 耗时（秒）'],summary_rows,'cohort-summary',sortable=True)+distribution([(groups[g]['label'],*model['metrics'][g]) for g in groups])+'<p>调用成功只表示请求交付成功，任务通过还要求满足正文、文字和结构验收。三项耗时均统计该组全部调用；P50 为中位数，P95 为第 95 百分位。未保存完整耗时的组显示 —。</p><p>'+esc(model['metric_note'])+'</p>','cohort-results')
   failures=Counter(r['cause'] for r in rows if not r['initial_pass'])
-  home+=section('未通过项的主要原因',distribution([(labels[k],n,sum(failures.values())) for k,n in failures.most_common(3)])+'<p>'+link('analysis/index.html','查看全部原因与逐项证据 →')+'</p>')
+  home+=blocks('overview')
+  home+=section('未通过的输出主要缺什么',distribution([(FAILURE_TYPES[k],n,sum(failures.values())) for k,n in failure_types.most_common(3)])+'<p>分母为全部 '+str(sum(failures.values()))+' 个首轮未通过任务。同一任务可以缺少文字和记录，各类数量不能相加。'+link('analysis/index.html','查看失败类型及具体样本 →')+'</p>')
   audit=model['success_audit'];counts=audit['source_state_counts']
-  home+=section('通过项也经过源页反查',distribution([(model['source_labels'][k],n,audit['audited_passes']) for k,n in counts.items()])+'<p>'+str(audit['audited_passes'])+' 个首轮或诊断通过结果有三方核对记录；当前页面可比较的内容与访问障碍分别记录。'+link('review/index.html','核验范围与结论 →')+'</p>')
+  home+=section('通过项也经过源页反查',distribution([(model['source_labels'][k],n,audit['audited_passes']) for k,n in counts.items()])+'<p>'+str(audit['audited_passes'])+' 个通过结果有三方核对记录；当前页面可比较的内容与访问障碍分别记录。'+link('review/index.html','核验范围与结论 →')+'</p>')
   home+=section('阅读入口','<div class="guide-grid">'+''.join('<article class="guide-card"><h3>'+link(route,title)+'</h3><p>'+text+'</p></article>' for route,title,text in [('datasets/index.html','评测集','查看样本、任务与独立参考要求。'),('analysis/index.html','结果分析','筛选通过、未通过和归因，打开完整证据。'),('guide/index.html','报告解读','理解访问挑战、提取遗漏及评测修订。')])+'</div>')
   page('index.html',model['title'],home)
-  controls='<div class="filters"><label>组别<select data-filter="cohort"><option value="">全部</option>'+''.join('<option value="'+esc(k)+'">'+esc(g['label'])+'</option>' for k,g in groups.items())+'</select></label><label>结果<select data-filter="result"><option value="fail">未通过</option><option value="pass">通过</option><option value="">全部</option></select></label><label>原因<select data-filter="cause"><option value="">全部</option>'+''.join('<option value="'+esc(k)+'">'+esc(v)+'</option>' for k,v in labels.items())+'</select></label><label>搜索<input data-filter="query" aria-label="搜索样本" placeholder="编号或网址"></label></div><p id="count" role="status"></p>'
+  controls='<div class="filters"><label>组别<select data-filter="cohort"><option value="">全部</option>'+''.join('<option value="'+esc(k)+'">'+esc(g['label'])+'</option>' for k,g in groups.items())+'</select></label><label>结果<select data-filter="result"><option value="fail">未通过</option><option value="pass">通过</option><option value="">全部</option></select></label><label>失败类型<select data-filter="issue"><option value="">全部</option>'+''.join('<option value="'+esc(k)+'">'+esc(FAILURE_TYPES[k])+'</option>' for k in failure_types)+'</select></label><label>核验线索<select data-filter="cause"><option value="">全部</option>'+''.join('<option value="'+esc(k)+'">'+esc(v)+'</option>' for k,v in labels.items())+'</select></label><label>搜索<input data-filter="query" aria-label="搜索样本" placeholder="编号或网址"></label></div><p id="count" role="status"></p>'
   inventory=[]
   for r in rows:
-   attrs=' data-cohort="'+esc(r['cohort'])+'" data-result="'+('pass' if r['initial_pass'] else 'fail')+'" data-cause="'+esc(r['cause'])+'" data-search="'+esc(r['url'])+'"'
-   values=cell(link(detail_link(r),r['id']))+cell(esc(groups[r['cohort']]['label']))+cell('通过' if r['initial_pass'] else '未通过')+cell(esc(labels[r['cause']]))+cell(esc(r['followup_status']))+cell(link(detail_link(r),'原因与证据 →'))
+   kinds=sorted({f['kind'] for f in findings[r['id']]})
+   attrs=' data-cohort="'+esc(r['cohort'])+'" data-result="'+('pass' if r['initial_pass'] else 'fail')+'" data-cause="'+esc(r['cause'])+'" data-issue="'+' '.join(kinds)+'" data-search="'+esc(r['url'])+'"'
+   values=cell(link(detail_link(r),urlsplit(r['url']).hostname or r['id'])+'<br><small>'+esc(r['id'])+'</small>')+cell(esc(groups[r['cohort']]['label']))+cell('通过' if r['initial_pass'] else '未通过')+cell(esc('；'.join(FAILURE_TYPES[k] for k in kinds) or '—'))+cell(esc(labels[r['cause']]))+cell(link(detail_link(r),'要求、实际与核验 →'))
    inventory.append((attrs,values))
-  page('analysis/index.html','结果分析',hero('300 例结果分析' if len(rows)==300 else '结果分析','首轮结果与事后诊断分别保留。筛选成功项可查看三方反查记录。')+section('逐项结果',controls+table(['样本','组别','首轮结果','归因','后续核验','证据'],inventory,'filtered-table',sortable=True))+section('全部未通过归因',table(['原因','项数'],[('',cell(esc(labels[k]))+cell(str(n))) for k,n in failures.items()])))
+  type_rows=[]
+  for kind,n in failure_types.most_common():
+   example=next(r for r in rows if any(f['kind']==kind for f in findings[r['id']]))
+   type_rows.append((' data-failure-type="'+kind+'" data-count="'+str(n)+'"',cell(link('analysis/index.html#issue='+kind,FAILURE_TYPES[kind]))+cell(str(n)+' / '+str(sum(failures.values())))+cell(link(detail_link(example),urlsplit(example['url']).hostname or example['id']))))
+  analysis=hero(str(len(rows))+' 例结果分析','先看输出违反了哪些要求，再看独立核验能解释到哪一步。')
+  analysis+=blocks('analysis')
+  analysis+=section('失败类型与数量',table(['首轮未满足的要求','受影响任务数','样本证据'],type_rows)+'<p>按首轮调用的保存评分统计；一个任务可涉及多种失败，数量不能相加。点击类型可筛选全部相关任务。</p>','failure-types')
+  analysis+=section('独立核验取得了什么',table(['核验线索','未通过任务数'],[('',cell(esc(labels[k]))+cell(str(n))) for k,n in failures.items()])+'<p>这些线索与上面的输出缺陷分开统计。独立浏览器也被拦截，只能证明此次核验遇到访问障碍；后来补抓通过，也不能证明首轮失败的内部原因。</p>')
+  analysis+=section('逐项结果',controls+table(['网站与样本','组别','首轮结果','失败类型','核验线索','证据'],inventory,'filtered-table',sortable=True),'failure-inventory')
+  page('analysis/index.html','结果分析',analysis)
+  guide=hero('这些网页的提取结果',str(model['metrics']['overall'][0])+' / '+str(len(rows))+' 个首次调用满足当时的完整验收要求；以下为指定样本的诊断结果。')
+  guide+=overall_section+section('结果与计量范围',table(['任务组','实现版本','任务数','调用成功','任务通过','平均耗时（秒）','P50 耗时（秒）','P95 耗时（秒）'],summary_rows,'guide-summary',sortable=True)+'<p>'+esc(model['metric_note'])+' 耗时统计每组全部调用（含失败），P50 是中位数；未留存完整计时的组不计算耗时。</p>','guide-results')
+  guide+=section('失败最常违反哪些要求',table(['输出缺陷','受影响的未通过任务'],[('',cell(link('analysis/index.html#issue='+k,FAILURE_TYPES[k]))+cell(str(n)+' / '+str(sum(failures.values())))) for k,n in failure_types.most_common()])+'<p>同一任务可涉及多个缺陷，数量不能相加。缺少文字是输出与验收不符的事实，不等于已经查明被测工具的内部故障。</p>')
+  guide+=section('核验后的失败归类',table(['核验结论','未通过任务数','样本证据'],[
+   ('',cell(esc(labels[k]))+cell(str(n)+' / '+str(sum(failures.values())))+cell(link(detail_link(next(r for r in rows if not r['initial_pass'] and r['cause']==k)),'查看具体要求、输出与源页')))
+   for k,n in failures.most_common()])+'<p>每个未通过任务只归入一类，合计等于全部未通过任务。访问受限、参考范围不符和输出遗漏分别处理，不把当前源页不可访问当作引擎故障证据。</p>','guide-reviewed-causes')
+  examples=model.get('interpretation_case_ids')
+  if examples is None:
+   examples=[next(r['id'] for r in rows if not r['initial_pass'])] if failures else []
+   if any(r['initial_pass'] for r in rows):examples.append(next(r['id'] for r in rows if r['initial_pass']))
+  for cid in examples:
+   r=next(r for r in rows if r['id']==cid)
+   panels=''
+   for title,field in [('验收要求','reference'),('首轮实际输出','first_answer'),('独立源页观察','source')]:
+    binding=r.get(field)
+    specimen_files={r[f]['path']:(out/r[f]['path']).read_bytes() for f in ('reference','first_answer','source') if r.get(f)}
+    excerpt=diagnostic_specimen_excerpt(r,field,specimen_files,model)
+    empty_note='<p>输出为空（0 字节）。</p>' if field=='first_answer' and not excerpt else ''
+    panels+='<div data-specimen-field="'+field+'"'+(' data-sha256="'+binding['sha256']+'"' if binding else '')+'><h3>'+title+'</h3>'+empty_note+'<pre>'+esc(excerpt)+'</pre><p>'+esc(binding.get('scope','') if binding else '独立观察未取得目标正文')+'</p></div>'
+   guide+=section((urlsplit(r['url']).hostname or cid)+'：'+('通过' if r['initial_pass'] else '未通过'),'<div data-interpretation-case="'+esc(cid)+'"><p>'+esc(r['task'])+'</p><div class="diagnostic-specimen">'+panels+'</div><p>'+esc(r['cause_detail'])+'</p><p>'+link(detail_link(r),'查看完整标准答案、输出、实页与日志 →')+'</p></div>')
+  guide+=blocks('guide')
+  guide+=section('结论与核验范围','<p>'+esc(model['scope_note'])+'</p><p>源页观察与输出检查分别保留。独立浏览器遇到验证页或访问异常时，不将其算作被测工具已通过，也不据此断定工具有错。'+link('review/index.html','查看核验范围和处理结果 →')+'</p>','guide-conclusions')
+  page('guide/index.html','报告解读',guide)
   dataset=[]
   for r in rows:
    dataset.append((' data-search="'+esc(r['url'])+'"',cell(link('datasets/'+r['id']+'.html',r['id']))+cell(esc(groups[r['cohort']]['label']))+cell(link(r['url'],'实际网页 ↗'))+cell(esc(r['task']))))
@@ -862,17 +931,21 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('[da
     contents='<p>'+link(binding['path'],'下载完整证据')+'</p><p>'+esc(binding.get('scope','保存的调用证据'))+'</p><pre'+kind_attr+lazy+'>'+esc('正在读取完整证据…' if lazy else raw)+'</pre>'
     actions+=evidence('result-logs' if field=='log' else 'evidence-'+field,title,contents,field)
    summary='<div data-result-summary><h2>'+('首轮通过' if r['initial_pass'] else '首轮未通过')+'</h2><p>'+esc(labels[r['cause']])+'</p><dl class="diagnostic-fields"><dt>任务 ID</dt><dd>'+esc(r['id'])+'</dd><dt>运行 ID</dt><dd>'+esc(r['run_id'])+'</dd><dt>源页观察时间</dt><dd>'+esc(r.get('source_checked_at') or r.get('success_audit',{}).get('source_checked_at') or '见独立观察记录')+'</dd></dl></div>'
-   body=hero(esc(r['id']),esc(r['task']))+section('结果',summary)+section('原因与处理','<div data-failure-diagnosis><p>'+esc(r['cause_detail'])+'</p><p>后续状态：'+esc(r['followup_status'])+'</p><p>'+esc(r.get('failure') or '保存的检查未记录失败项。')+'</p></div>')
+   body=hero(esc(r['id']),esc(r['task']))+section('结果',summary)
+   if findings[r['id']]:
+    check_rows=[(' data-finding-kind="'+f['kind']+'"',cell(esc(f['label']))+cell(esc(f['expected']))+cell(esc(f['actual']))) for f in findings[r['id']]]
+    body+=section('首轮具体没满足什么',table(['失败项','要求','实际'],check_rows)+'<p>本表解释保存的首轮评分，不使用补抓输出代替首轮输出。完整原文和评分记录见下方证据。</p>','failed-requirements')
+   body+=section('独立核验与处理','<div data-failure-diagnosis><p>'+esc(r['cause_detail'])+'</p><p>处理状态：'+esc(r['followup_status'])+'</p></div>')
    if r.get('success_audit'):
     a=r['success_audit'];audit_rows=[]
     for title,status_key,actual_key,required_key in [('具名链接','source_named_links_result','source_visible_named_links','source_required_named_links'),('表格行','source_table_result','source_scoped_table_rows','source_required_table_rows')]:
-     status=a.get(status_key,'unavailable');status_label={'not_applicable':'任务无此要求','meets':'满足数量要求','below':'低于数量要求'}.get(status,status)
+     status=a.get(status_key,'unavailable');status_label={'not_applicable':'任务无此要求','meets':'满足数量要求','below':'低于数量要求','unavailable':'未取得核验数量'}.get(status,status)
      audit_rows.append(('',cell(title)+cell(esc(status_label))+cell(str(a.get(actual_key)) if a.get(actual_key) is not None else '—')+cell(str(a.get(required_key)) if a.get(required_key) is not None else '—')))
     body+=section('三方核验','<p>'+esc(model['source_labels'][a['source_state']])+'</p>'+table(['检查项','当前源页状态','实际','要求'],audit_rows)+'<p>— 表示无此任务要求或未取得对应数量，不视为通过。</p>')
    if not r.get('source'):body+=section('源页观察','<p>'+esc(r.get('source_error') or '独立浏览器观察没有取得可下载的目标正文；访问状态见本例核验记录。')+'</p>')
    body+=section('标准答案、输出与实页证据','<div class="actions wmb-evidence-actions">'+actions+'</div><p>'+link('datasets/'+r['id']+'.html','任务与参考 →')+' · '+link('analysis/index.html','返回结果分析 →')+'</p>')+''.join(dialogs)
    page(detail_link(r),r['id']+' · 结果','<div data-report-detail="'+('success' if r['initial_pass'] else 'failed')+'" data-task-id="'+esc(r['id'])+'">'+body+'</div>')
-  for name,title in [('methodology','评测方法'),('review','核验记录'),('guide','报告解读'),('reproduce','环境与复现'),('changes','变更记录'),('adoption','方法介绍'),('accounts','账号与安装')]:
+  for name,title in [('methodology','评测方法'),('review','核验记录'),('reproduce','环境与复现'),('changes','变更记录'),('adoption','方法介绍'),('accounts','账号与安装')]:
    page(name+'/index.html',title,hero(title,esc(model.get('page_intros',{}).get(name,'')))+blocks(name))
   page('en/index.html','English edition','<div class="wrap"><h1>English edition not generated</h1><p>'+link('index.html','返回中文报告')+'</p></div>')
  finally:_RELIABILITY_BANNER,_ENGLISH_GENERATED=prior

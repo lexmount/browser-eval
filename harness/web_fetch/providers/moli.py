@@ -1127,8 +1127,9 @@ class MoliWebFetchProvider(Provider):
                 return ProviderResult(
                     False,
                     "",
-                    error_type="invalid_output",
-                    error_message=f"Moli page JSON is invalid: {error}",
+                    error_type="tool_error" if process.returncode else "invalid_output",
+                    error_message=(stderr or "Moli page request failed") if process.returncode
+                    else f"Moli page JSON is invalid: {error}",
                     metadata=metadata,
                 )
             if not isinstance(envelope, dict) or not isinstance(envelope.get("html"), str):

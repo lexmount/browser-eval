@@ -4,15 +4,18 @@
     "moli-webfetch": {
       "type": "moli_webfetch",
       "binary": "${MOLI_BINARY:-moli}",
-      "expected_reported_version": "moli 1.1.4",
-      "expected_binary_sha256": "dbce6cc79b97eeb558416707a642ca20b9b1b8d6731655a695059d334adb6d5b",
+      "expected_reported_version": "moli 1.1.15",
+      "expected_binary_sha256": "7a53cdd071ae60a2f8ff6d08107f67f6b0f1d6247a9acd970d2bcec77ff15b50",
       "wait_until": "done",
       "block_private_networks": true,
       "private_network_allowlist_hosts": [
         "browser.lexmount.com",
         "react-shopping-cart-67954.firebaseapp.com"
       ],
-      "max_bytes": 20000000
+      "max_bytes": 20000000,
+      "log_level": "debug",
+      "retain_complete_diagnostic_log": true,
+      "max_diagnostic_bytes": 100000000
     },
     "fixture": {
       "type": "fixture",

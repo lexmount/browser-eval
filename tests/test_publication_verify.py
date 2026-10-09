@@ -11,6 +11,27 @@ from scripts.verify_artifact_hub import download_export, verify_metadata, verify
 
 
 class PublicationVerifyTests(unittest.TestCase):
+    def test_exported_tree_verification_is_shared_and_byte_exact(self):
+        from harness.web_fetch.publication import verify_published_tree
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'index.html').write_bytes(b'<head></head>Report')
+            (root/'.generated-report').write_text('generated')
+            (root/'evidence').mkdir();(root/'evidence/output.txt').write_bytes(b'full saved answer')
+            files={'index.html':(root/'index.html').read_bytes(),
+                   'evidence/output.txt':(root/'evidence/output.txt').read_bytes()}
+            def exported(items):
+                stream=io.BytesIO()
+                with zipfile.ZipFile(stream,'w') as archive:
+                    for name,raw in items:archive.writestr(name,raw)
+                return stream.getvalue()
+            self.assertEqual(verify_published_tree(root,exported(files.items())),2)
+            invalid=[list(files.items())[:1],list(files.items())+[('extra.txt',b'extra')],
+                     [('index.html',files['index.html']),('evidence/output.txt',b'full saved WRONG')],
+                     list(files.items())+[('index.html',files['index.html'])]]
+            for items in invalid:
+                with self.subTest(names=[name for name,_ in items]),self.assertRaises(ValueError):
+                    verify_published_tree(root,exported(items))
+
     def test_metadata_verification_does_not_download_report_files(self):
         payload={
             'slug':'test',

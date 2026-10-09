@@ -10,11 +10,102 @@ from scripts.run_certified_benchmark import main
 
 
 class CertifiedBenchmarkTests(unittest.TestCase):
+    def test_diagnostic_execution_cannot_be_assembled_or_rendered_as_certified(self):
+        from scripts import freeze_headless_references, postcheck_headless, run_benchmark
+        from scripts.finalize_benchmark_run import finalize_aggregate
+        from scripts.assemble_headless import assemble
+        from harness.web_fetch.reference_lifecycle import (
+            ReferenceLifecycleError, require_verified_reference_checks)
+        from harness.web_fetch.report_build import build_report
+        for mode in ('declared', 'native'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root=Path(directory); dataset=root/'dataset.json'; output=root/'run'
+                case={'id':'stable','name':'Stable page','url':'https://example.test/page',
+                      'category':'web','track':'web','expected_any':['Required label'],
+                      'acceptance_contract':{'version':1,'schema':'body_text',
+                          'minimum_records':0,'stable_text_anchors':[
+                              {'id':'a','alternatives':['Required label']}]}}
+                dataset.write_text(json.dumps({'tool':'web_fetch','comparison':{},'cases':[case]}))
+                original=dataset.read_bytes()
+                config=root/'provider.json'
+                config.write_text(json.dumps({'providers':{'fixture':{'type':'fixture'}}}))
+                (root/'evaluation/list-references').mkdir(parents=True)
+
+                def execute(command):
+                    script=Path(command[1]).name
+                    if script=='collect_source_evidence.py':
+                        self.write_capture(Path(command[3]),'stable',text='Required label')
+                    elif script=='freeze_headless_references.py':
+                        with patch.object(freeze_headless_references,'ROOT',root):
+                            freeze_headless_references.main(command[2:])
+                    elif script=='run_benchmark.py':
+                        with patch.object(run_benchmark,'load_runtime_env'):
+                            run_benchmark.main(command[2:])
+                    elif script=='postcheck_headless.py':
+                        with patch('sys.argv',command[1:]):postcheck_headless.main()
+                    elif script=='finalize_benchmark_run.py':
+                        finalize_aggregate(output,root/'work/post-captures/observations.json')
+                    else:self.fail('Unexpected external stage: '+script)
+
+                with patch('scripts.run_certified_benchmark.run',side_effect=execute):
+                    main(['--dataset',str(dataset),'--output',str(output),
+                          '--work-root',str(root/'work'),'--providers','fixture',
+                          '--provider-config',str(config),'--case-ids','stable',
+                          '--retrieval-mode',mode,'--diagnostic'])
+                (output/'sources').mkdir(exist_ok=True)
+                (output/'list-references').mkdir(exist_ok=True)
+                with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
+                    assemble(output,root/'certificates',[],root/'formal')
+                self.assertFalse((root/'formal').exists())
+                saved=json.loads((output/'dataset.json').read_text())
+                self.assertEqual(saved['comparison']['evidence_state'],'diagnostic')
+                self.assertEqual(saved['comparison']['unqualified_reference_cases'],['stable'])
+                batches=json.loads((output/'execution.json').read_text())['batches']
+                self.assertTrue(all(b['evidence_state']=='diagnostic' and
+                    b['unqualified_reference_cases']==['stable'] for b in batches))
+                # Dropping dataset display metadata cannot erase execution provenance.
+                saved['comparison']={}
+                with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
+                    require_verified_reference_checks(batches,cases=saved)
+                with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
+                    build_report(output,root/'formal-report')
+                self.assertFalse((root/'formal-report').exists())
+                self.assertEqual(dataset.read_bytes(),original)
+
+    def test_stable_rules_alone_cannot_be_mistaken_for_live_source_certification(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);dataset=root/'dataset.json'
+            dataset.write_text(json.dumps({'cases':[{'id':'stable','acceptance_contract':{
+                'version':1,'schema':'body_text','minimum_records':0,
+                'stable_text_anchors':[{'id':'a','alternatives':['Required label']} ]}}]}))
+            arguments=['--dataset',str(dataset),'--output',str(root/'run'),
+                       '--work-root',str(root/'work'),'--providers','p','--case-ids','stable']
+            with patch('scripts.run_certified_benchmark.run') as invoked:
+                with self.assertRaises(SystemExit):main(arguments)
+            invoked.assert_not_called()
+            def completed(command):
+                script=Path(command[1]).name
+                if script=='collect_source_evidence.py':self.write_capture(Path(command[3]),'stable')
+                if script=='run_benchmark.py':self.write_output_dataset(command,dataset)
+            with patch('scripts.run_certified_benchmark.run',side_effect=completed):
+                main([*arguments,'--diagnostic'])
+            self.assertEqual(json.loads(dataset.read_text())['cases'][0]['acceptance_contract']['stable_text_anchors'][0]['alternatives'],['Required label'])
+
     def test_dispatches_complete_webmainbench_certification(self) -> None:
         arguments = ["--output-root", "/tmp/run", "--source", "/tmp/source.jsonl"]
         with patch("scripts.run_certified_webmainbench_full.main") as invoked:
             main(["webmainbench-full", *arguments])
         invoked.assert_called_once_with(arguments)
+
+    def test_missing_dynamic_execution_contract_fails_before_external_work(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);dataset=root/'dataset.json'
+            dataset.write_text(json.dumps({'cases':[{'id':'dynamic-page','track':'dynamic'}]}))
+            with patch('scripts.run_certified_benchmark.run') as invoked:
+                with self.assertRaisesRegex(ValueError,'require retrieval_hints'):
+                    main(['--dataset',str(dataset),'--output',str(root/'run'),
+                          '--work-root',str(root/'work'),'--providers','p','--case-ids','dynamic-page'])
+            invoked.assert_not_called()
 
     @staticmethod
     def write_capture(captures: Path, case_id: str, *, status: int = 200,
@@ -54,6 +145,9 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 },
             }]}))
             output, work = root / "run", root / "work"
+            config = root / "instance-provider.json"
+            config.write_text('{"providers": {"p": {"type": "fixture"}}}')
+            original_config = config.read_bytes()
 
             def completed(command):
                 script = Path(command[1]).name
@@ -70,7 +164,12 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             with patch("scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(output),
                       "--work-root", str(work), "--providers", "p",
-                      "--case-ids", "javascript-spa", "--browser-binary", "/chrome"])
+                      "--case-ids", "javascript-spa", "--browser-binary", "/chrome",
+                      "--provider-config", str(config)])
+            benchmark = next(call.args[0] for call in invoked.call_args_list
+                             if Path(call.args[0][1]).name == 'run_benchmark.py')
+            self.assertEqual(benchmark[benchmark.index('--provider-config') + 1], str(config))
+            self.assertEqual(config.read_bytes(), original_config)
             scripts = [Path(call.args[0][1]).name for call in invoked.call_args_list]
             self.assertEqual(scripts, [
                 "collect_source_evidence.py", "capture_headless_browser_observations.py",

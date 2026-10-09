@@ -225,6 +225,9 @@ def parse_table_records(content, visible, contract):
         if not explicit_html and not candidates:
             root = None
     if root is None:
+        # Inline layout breaks do not create new Markdown rows/cells. Preserve
+        # a space so split numeric tokens cannot become a different valid value.
+        visible = re.sub(r'<br\s*/?>', ' ', visible, flags=re.I)
         # Only source-verified, case-declared auxiliary text is removed.
         # This also normalizes headers before locating the target table.
         for pattern in scope.get('plain_text_ignored_patterns', []):

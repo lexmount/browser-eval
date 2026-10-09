@@ -8395,6 +8395,7 @@
         "hosts": [
           "www.franceinfo.fr"
         ],
+        "link_base_url": "https://www.franceinfo.fr/",
         "entry_path": "/.+_[0-9]+\\.html",
         "stable_text_anchors": [
           {

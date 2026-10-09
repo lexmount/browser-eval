@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import hashlib
 import ipaddress
@@ -22,6 +23,7 @@ from harness.web_fetch.reference_lifecycle import (
 )
 from harness.web_fetch.metrics import normalize_for_match
 from scripts.collect_source_evidence import extract_html
+from harness.web_fetch.safety import safe_identifier
 
 
 COMPLETION = {
@@ -179,10 +181,13 @@ def chromium_host_rule(host: str, resolved_ip: str) -> str:
 
 
 def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
-            resolved_ip: str | None = None) -> dict:
+            resolved_ip: str | None = None, *, observation_scope: str = 'reference') -> dict:
     from playwright.sync_api import sync_playwright
-    rule = COMPLETION.get(case['id'])
-    selector = (rule or {}).get('selector') or case.get('source_verification',{}).get('selector') or 'body'
+    if observation_scope not in ('reference', 'visible_page'):
+        raise ValueError('Unknown browser observation scope')
+    rule = COMPLETION.get(case['id']) if observation_scope == 'reference' else None
+    selector = ('body' if observation_scope == 'visible_page' else
+                (rule or {}).get('selector') or case.get('source_verification',{}).get('selector') or 'body')
     begin = time.monotonic()
     host = url_host(case['url'])
     if resolved_ip is not None:
@@ -206,9 +211,34 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
             else:
                 page.locator(selector).wait_for(state='visible', timeout=timeout_ms)
             if case.get('task_kind') != 'resource':
+                if observation_scope == 'visible_page':
+                    page.wait_for_timeout(min(2000, max(0, (begin + timeout_ms / 1000 - time.monotonic()) * 1000)))
+                final_url, title = page.url, page.title()
+                document_language = page.locator('html').get_attribute('lang')
+                outer_html = page.locator(selector).evaluate('(element) => element.outerHTML')
                 count = page.locator(selector).count()
                 content_locator = page.locator('body' if case['id'] == 'javascript-spa' else selector)
-                if rule and rule.get('include_hidden_dom_text'):
+                if observation_scope == 'visible_page':
+                    # A whole-page audit includes visible navigation/footer. It
+                    # must not inherit article-reference pruning or hidden tabs.
+                    content = content_locator.inner_text(timeout=timeout_ms)
+                    observation_method = 'visible_whole_page_inner_text'
+                    frames=[]
+                    for frame in page.frames:
+                        if frame == page.main_frame:continue
+                        try:
+                            current=frame;shown=True
+                            while current.parent_frame is not None:
+                                if not current.frame_element().is_visible():shown=False;break
+                                current=current.parent_frame
+                            if not shown:continue
+                            remaining=max(1,int((begin+timeout_ms/1000-time.monotonic())*1000))
+                            text=frame.locator('body').inner_text(timeout=remaining)
+                            frames.append({'url':frame.url,'status':'success','content_text':text})
+                            if text.strip():content+='\n\n[可见嵌入页面：'+frame.url+']\n'+text
+                        except Exception as error:
+                            frames.append({'url':frame.url,'status':'failure','error':str(error)[:1000]})
+                elif rule and rule.get('include_hidden_dom_text'):
                     content = content_locator.text_content(timeout=timeout_ms) or ''
                     observation_method = 'rendered_dom_text_including_preloaded_hidden_panels'
                 elif rule:
@@ -246,9 +276,13 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
                         for fact in case.get('required_facts', []))
     return {
         'case_id': case['id'], 'status': 'success', 'independent': True,
+        'url': case['url'], 'final_url': final_url, 'title': title,
+        'document_language': document_language,
         'checked_at': datetime.now(timezone.utc).isoformat(),
         'content_text': content, 'selector': rule['description'] if rule else selector,
         'observation_method': observation_method,
+        **({'outer_html': outer_html, 'settle_budget_ms': 2000,'visible_frames':frames}
+           if observation_scope == 'visible_page' else {}),
         'observed_records': count, 'scope_identity': scope_identity(case),
         'observer': {
             'browser': 'Chromium',
@@ -259,7 +293,8 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
             'resolution_method': 'caller_supplied' if resolved_ip else 'chromium_dns',
         },
         'completion': {'satisfied': bool(normalized)
-                       and count >= (rule['minimum'] if rule else 1) and facts_present,
+                       and (observation_scope == 'visible_page' or
+                            (count >= (rule['minimum'] if rule else 1) and facts_present)),
                        'elapsed_ms': elapsed,
                        'timeout_ms': timeout_ms},
     }
@@ -267,7 +302,7 @@ def capture(case: dict, timeout_ms: int, browser_binary: str | None = None,
 
 def capture_with_retries(case: dict, timeout_ms: int, attempts: int,
                          browser_binary: str | None = None,
-                         resolved_ip: str | None = None) -> dict:
+                         resolved_ip: str | None = None, *, observation_scope: str = 'reference') -> dict:
     """Capture one case without allowing it to abort the rest of the batch."""
     errors = []
     last_row: dict = {}
@@ -290,7 +325,8 @@ def capture_with_retries(case: dict, timeout_ms: int, attempts: int,
                 'resolved_ip': attempt_ip,
                 'resolution_method': resolution_method,
             })
-            row = capture(case, timeout_ms, browser_binary, attempt_ip)
+            options = {'observation_scope': observation_scope} if observation_scope != 'reference' else {}
+            row = capture(case, timeout_ms, browser_binary, attempt_ip, **options)
             last_row = row
             row['observer'].update(observer)
             if row['completion']['satisfied']:
@@ -327,6 +363,40 @@ def capture_with_retries(case: dict, timeout_ms: int, attempts: int,
     }
 
 
+def capture_batch(cases, *, timeout_ms, attempts, browser_binary=None,
+                  resolved_ip=None, observation_scope='reference', checkpoints=None, workers=1):
+    """Checkpoint each independent observation against its exact capture inputs."""
+    binary_sha = hashlib.sha256(Path(browser_binary).read_bytes()).hexdigest() if browser_binary else None
+    if checkpoints:
+        checkpoints.mkdir(parents=True, exist_ok=True)
+    def observe(case):
+        inputs = dict(case=case, timeout_ms=timeout_ms, attempts=attempts,
+                      binary_sha256=binary_sha, resolved_ip=resolved_ip,
+                      observation_scope=observation_scope, capture_schema=1,
+                      capture_source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
+        fingerprint = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
+        checkpoint = checkpoints / (safe_identifier(case['id']) + '.json') if checkpoints else None
+        if checkpoint and checkpoint.exists():
+            saved = json.loads(checkpoint.read_text())
+            if saved.get('input_sha256') != fingerprint or saved.get('observation',{}).get('case_id') != case['id']:
+                raise ValueError('Checkpoint inputs changed: ' + case['id'])
+            if saved.get('observation_sha256') != hashlib.sha256(json.dumps(saved['observation'],sort_keys=True).encode()).hexdigest():
+                raise ValueError('Checkpoint observation changed: ' + case['id'])
+            return case['id'], saved['observation']
+        options = {'observation_scope': observation_scope} if observation_scope != 'reference' else {}
+        row = capture_with_retries(case, timeout_ms, attempts, browser_binary, resolved_ip, **options)
+        if checkpoint:
+            temporary = checkpoint.with_suffix('.pending')
+            temporary.write_text(json.dumps(dict(input_sha256=fingerprint, observation=row,
+                observation_sha256=hashlib.sha256(json.dumps(row,sort_keys=True).encode()).hexdigest()), ensure_ascii=False, indent=2))
+            temporary.replace(checkpoint)
+        return case['id'], row
+    if workers < 1 or len({c['id'] for c in cases}) != len(cases):
+        raise ValueError('Invalid browser observation batch')
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return dict(pool.map(observe, cases))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dataset', type=Path, default=ROOT / 'evaluation/dataset.json')
@@ -336,6 +406,9 @@ def main() -> None:
     parser.add_argument('--attempts', type=int, default=2,
                         help='Bounded attempts per case (default: 2)')
     parser.add_argument('--browser-binary')
+    parser.add_argument('--observation-scope', choices=('reference', 'visible_page'), default='reference')
+    parser.add_argument('--checkpoint-dir', type=Path)
+    parser.add_argument('--workers', type=int, default=1)
     parser.add_argument(
         '--resolved-ip',
         help='Audited public IP override, mapped only to each current case URL host')
@@ -355,12 +428,9 @@ def main() -> None:
         parser.error('Unknown case ID')
     # Keep every case isolated. A DNS or renderer failure for one URL must not
     # erase successfully captured observations for the other requested cases.
-    result = {
-        cid: capture_with_retries(
-            cases[cid], args.timeout_ms, args.attempts,
-            args.browser_binary, args.resolved_ip)
-        for cid in wanted
-    }
+    result = capture_batch([cases[cid] for cid in wanted], timeout_ms=args.timeout_ms,
+        attempts=args.attempts, browser_binary=args.browser_binary, resolved_ip=args.resolved_ip,
+        observation_scope=args.observation_scope, checkpoints=args.checkpoint_dir, workers=args.workers)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
     failures = [cid for cid, row in result.items()

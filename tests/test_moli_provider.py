@@ -508,6 +508,21 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.status_code, 403)
         self.assertIn("Access denied", result.content)
 
+    def test_page_json_runtime_error_is_not_a_serialization_error(self):
+        for exit_code in (0, 1):
+            with self.subTest(exit_code=exit_code):
+                provider = self.provider(
+                    'import sys\n'
+                    'print("SSL connect error: connection reset", file=sys.stderr)\n'
+                    f'sys.exit({exit_code})\n')
+                result = provider.fetch(self.case_with(track="challenge", task_kind="structure"), 10)
+                self.assertFalse(result.ok)
+                self.assertEqual(result.error_type, 'tool_error' if exit_code else 'invalid_output')
+                if exit_code:
+                    self.assertIn('SSL connect error', result.error_message)
+                self.assertEqual(result.metadata['exit_code'], exit_code)
+                self.assertEqual(result.metadata['raw_stdout_sha256'], hashlib.sha256(b'').hexdigest())
+
     def test_dynamic_task_without_hints_fails_closed(self):
         provider = self.provider('raise AssertionError("should not run")')
         result = provider.fetch(self.case_with(track="dynamic"), 10)

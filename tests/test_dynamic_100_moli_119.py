@@ -34,8 +34,24 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     revision = json.loads(REVISION_PATH.read_text(encoding="utf-8"))
     assert revision["provider_calls_for_revision"] == 0
     assert revision["dynamic_dataset"]["historical_sha256"] == receipt["bindings"]["dataset_sha256"]
-    assert hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest() == revision["dynamic_dataset"]["revised_sha256"]
     historical = DATASET_PATH.read_text(encoding="utf-8")
+    expected_hash=revision['dynamic_dataset']['revised_sha256']
+    for followup in revision.get('dynamic_dataset_followups',[]):
+        assert followup['predecessor_sha256']==expected_hash
+        assert followup['provider_calls']==0
+        assert followup['source_authority']['provider_output_used'] is False
+        authority=ROOT/followup['source_authority']['path']
+        assert hashlib.sha256(authority.read_bytes()).hexdigest()==followup['source_authority']['sha256']
+        assert json.loads(authority.read_text())['expected_final_url']==followup['value']
+        expected_hash=followup['revised_sha256']
+    assert hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest()==expected_hash
+    for followup in reversed(revision.get('dynamic_dataset_followups',[])):
+        case=next(c for c in cases if c['id']==followup['case_id'])
+        assert case['acceptance_contract']['link_base_url']==followup['value']
+        line='        "link_base_url": '+json.dumps(followup['value'])+',\n'
+        assert historical.count(line)==1
+        historical=historical.replace(line,'',1)
+        assert hashlib.sha256(historical.encode()).hexdigest()==followup['predecessor_sha256']
     controls = load_scoring_regressions()
     for change in revision["dynamic_dataset"]["changes"]:
         case = next(case for case in cases if case["id"] == change["case_id"])

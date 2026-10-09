@@ -4,14 +4,27 @@
   "variant": "diagnostic-cohorts",
   "evidence_state": "diagnostic",
   "certified": false,
-  "model_sha256": "acd4ccb610d2bce40f858609f022641bab72d036c40672e25ad1a768a371d2ff",
+  "diagnostic_input": {
+    "path": "latest-report-input.json",
+    "sha256": "1107f0d6f3f7fcbebf22522565adf99d567b63909c78c677772eb14f6d53ba5f"
+  },
+  "cohort_plan": [
+    {"id": "popular", "case_count": 100, "case_ids_sha256": "c161b71632bf38defd71e95c50eb557ca3c3747a7ed457b5ea93b288f0e46a31"},
+    {"id": "dynamic", "case_count": 100, "case_ids_sha256": "d317fc151528bd93e02d4a0b2ae08f3a62bda502a99c9812eecace71a3b20269"},
+    {"id": "risk", "case_count": 100, "case_ids_sha256": "c2ffa9b81ab8ae2aecd8a5fab568803616dd49713d21cfa9419e5ee32e373129"}
+  ],
+  "implementation": {
+    "reported_version": "moli 1.1.15",
+    "binary_sha256": "7a53cdd071ae60a2f8ff6d08107f67f6b0f1d6247a9acd970d2bcec77ff15b50"
+  },
+  "model_sha256": "d7b9bbfb91748579f48c4cfd4e51ea05f5e0c92b17638038eb1ab1a0894e2698",
   "report_output": "reports/live-webfetch",
   "publication": {
     "host": "https://artifact-site.lexmount.cn",
     "slug": "5f1BlXJW61lr",
-    "version_id": "ver_11ae6a54971c47c59dfbac196a47eeaa",
+    "version_id": "ver_790d96caaf824094a3f206f01dd56cd1",
     "share_created": false,
-    "verified_files": 1965,
-    "archive_sha256": "2412b34c3bc98039201bf4da565b4b17bbc8dc13c88a6bad1d2d58815718c83f"
+    "verified_files": 1815,
+    "export_archive_sha256": "edd6ba88f7a1602e4da7729cc2f6f10c95e818aa253a94fdee9d4f7966fe6be6"
   }
 }

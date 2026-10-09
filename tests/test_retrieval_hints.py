@@ -8,6 +8,28 @@ from harness.web_fetch.config import load_dataset
 from harness.web_fetch.retrieval_hints import complete_text_wait_value, parse_retrieval_hints
 
 
+def test_native_execution_keeps_dynamic_scenario_and_acceptance_without_injected_hints():
+    from copy import deepcopy
+    from harness.web_fetch.retrieval_hints import native_fetch_dataset
+    from harness.web_fetch.models import EvalCase
+    from harness.web_fetch.retrieval_hints import plan_for_case
+    dataset={'tool':'web_fetch','coverage_plan':{'dynamic':['browser']},'cases':[
+        {'id':'native-page','name':'Dynamic site','url':'https://example.com/',
+         'category':'dynamic_content','track':'dynamic','expected_any':[],
+         'task_kind':'body','acceptance_contract':{'version':1,'schema':'body_text'},
+         'min_content_chars':1000}]}
+    original=deepcopy(dataset);selected=native_fetch_dataset(dataset)
+    assert dataset==original
+    assert selected['cases'][0]['category']=='dynamic_content'
+    assert selected['cases'][0]['source_benchmark']['scenario_track']=='dynamic'
+    assert selected['cases'][0]['acceptance_contract']==original['cases'][0]['acceptance_contract']
+    assert selected['cases'][0]['min_content_chars']==1000
+    assert plan_for_case(EvalCase(**selected['cases'][0])) is None
+    dataset['cases'][0]['retrieval_hints']={'version':1,'completion':{'selector':'.record'}}
+    with pytest.raises(ValueError,match='cannot discard'):
+        native_fetch_dataset(dataset)
+
+
 def _write_dataset(tmp_path, case):
     path = tmp_path / "dataset.json"
     path.write_text(json.dumps({"tool": "web_fetch", "cases": [case]}))
