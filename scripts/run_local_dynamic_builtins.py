@@ -202,7 +202,7 @@ def run_child(output: Path, runtime_paths: RuntimePaths, track: str, temporary: 
         } for repo in (runtime_paths.cowagent, runtime_paths.openclaw, runtime_paths.deepseek)},
         "environment": clean_environment(output, runtime_paths, temporary), "dotenv_loaded": False,
         "inherited_credentials": False,
-        "timeout_note": "Shared outer and native HTTP timeout 45s; CowAgent uses a scoped budget constant override; cancellation cleanup is recorded separately from answer latency.",
+        "timeout_note": "Harness 45s; unchanged CowAgent and OpenClaw internal HTTP defaults 30s; subprocess adapter has 5s shutdown allowance.",
         "sources_sha256": {str(path.relative_to(output)): digest(path)
                            for path in (output / "sources").rglob("*") if path.is_file()},
     }

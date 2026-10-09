@@ -186,7 +186,9 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertIn('missingStatus ? "invalid_response"', helper)
         self.assertNotIn('meta.url ?? request.url', helper)
         self.assertNotIn('final_url: request.url', worker)
-        self.assertNotIn('error?.stack', worker)
+        # A captured stderr traceback is useful; it must not replace the answer.
+        self.assertNotIn('content: error?.stack', worker)
+        self.assertIn('debug("native_tool_error"', worker)
 
     def test_openclaw_worker_does_not_publish_exception_stacks(self) -> None:
         worker = (ROOT / 'scripts/oss/openclaw_webfetch_worker.mts').read_text()
