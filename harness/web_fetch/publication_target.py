@@ -9,6 +9,19 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_BASE = "https://artifact-hub.app.lexmount.com"
 
 
+def publication_document(document: dict) -> dict:
+    """Read flat or nested publication fields without changing their authority."""
+    if 'artifact_hub_base_url' in document:
+        return document
+    publication = document.get('publication')
+    if not isinstance(publication, dict):
+        return document
+    return {**document,
+            'artifact_hub_base_url': publication.get('base_url'),
+            'artifact_hub_site': publication.get('site_slug'),
+            'artifact_hub_expected_version': publication.get('version_id')}
+
+
 def validate_service_base(value: str) -> str:
     if not isinstance(value, str):
         raise ValueError("Publication service requires an explicit HTTPS base URL")

@@ -117,7 +117,8 @@ def _validate_binding(formal_root: Path, authority: Path) -> tuple[dict, dict, d
     manifest_path = contained_path(formal_root, "run/manifest.json", reject_symlinks=True)
     summary_path = contained_path(formal_root, "run/summary.json", reject_symlinks=True)
     audit_path = contained_path(
-        formal_root, f"reports/{REPORT_STEM}-data.json", reject_symlinks=True)
+        formal_root, f"reports/{REPORT_STEM}-data.json", reject_symlinks=True
+    )
     manifest = _read_json(manifest_path)
     summary = _read_json(summary_path)
     audit = _read_json(audit_path)
@@ -201,8 +202,15 @@ def _validate_internal_links(root: Path) -> None:
 def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Path) -> dict:
     manifest, summary, _audit = _validate_binding(formal_root, authority)
     files = _report_files(formal_root, summary)
-    inputs = {path.resolve() for path in [
-        *files, authority, formal_root / "run/manifest.json", formal_root / "run/summary.json"]}
+    inputs = {
+        path.resolve()
+        for path in [
+            *files,
+            authority,
+            formal_root / "run/manifest.json",
+            formal_root / "run/summary.json",
+        ]
+    }
     outputs = {archive.resolve(), attestation.resolve()}
     if len(outputs) != 2 or inputs.intersection(outputs):
         raise ValueError("publication outputs must be separate from each other and consumed inputs")
@@ -247,6 +255,7 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
         "manifest_sha256": _sha256(formal_root / "run/manifest.json"),
         "summary_sha256": _sha256(formal_root / "run/summary.json"),
         "archive_sha256": _sha256(archive),
+        "profile_sha256": _sha256(authority),
         "archive_bytes": archive.stat().st_size,
         "files": len(files) + 1,
         "results": {
@@ -333,8 +342,10 @@ def stage_report(formal_root: Path, destination: Path) -> None:
         raise ValueError("report staging destination already exists")
     if destination.resolve().is_relative_to(formal_root.resolve()):
         raise ValueError("report staging destination must be outside source evidence")
-    paths = {name: contained_path(formal_root, "run/" + name, reject_symlinks=True)
-             for name in ("manifest.json", "summary.json")}
+    paths = {
+        name: contained_path(formal_root, "run/" + name, reject_symlinks=True)
+        for name in ("manifest.json", "summary.json")
+    }
     raw = {name: path.read_bytes() for name, path in paths.items()}
     manifest, summary = (json.loads(raw[name]) for name in ("manifest.json", "summary.json"))
     if not isinstance(manifest, dict) or not isinstance(summary, dict):
@@ -397,4 +408,116 @@ def check_main() -> None:
         "REPORT SEMANTICS PASS: "
         f"{result['pages']} pages, {result['metrics']} metrics, "
         f"{result['ratio_modules']} ratio modules"
+    )
+
+
+def publish_current(
+    profile: Path,
+    formal_root: Path,
+    archive: Path,
+    attestation: Path,
+    receipt: Path,
+    journal: Path,
+    *,
+    expected_version=None,
+    base_url=None,
+    transport=None,
+) -> dict:
+    """Submit only the profile-bound public replay package through the shared publisher."""
+    from harness.reporting.publication import archive_inventory
+    from harness.web_fetch.publication_target import (
+        publication_document,
+        require_publication_version,
+    )
+    from harness.web_fetch.report_publish import PublishConfig, publish
+    from harness.web_fetch.safety import unlinked_path
+
+    paths = [
+        unlinked_path(path)
+        for path in (profile, formal_root, archive, attestation, receipt, journal)
+    ]
+    if len(set(paths)) != len(paths):
+        raise ValueError("Publication paths must be distinct")
+    profile, formal_root, archive, attestation, receipt, journal = paths
+    require_publication_version(
+        profile, expected_version, document=publication_document(_read_json(profile))
+    )
+
+    def package_check(frozen_archive, source):
+        proof = _read_json(attestation)
+        if proof.get("profile_sha256") != _sha256(profile):
+            raise ValueError("publication attestation does not bind the current profile")
+        if proof.get("archive_sha256") != _sha256(frozen_archive):
+            raise ValueError("publication archive does not match its attestation")
+        check_report_bundle(source)
+        with tempfile.TemporaryDirectory(prefix="public-replay-package-check-") as temporary:
+            expected_archive = Path(temporary) / "expected.zip"
+            expected_proof = build(
+                source, expected_archive, Path(temporary) / "proof.json", authority=profile
+            )
+            if archive_inventory(frozen_archive) != archive_inventory(expected_archive):
+                raise ValueError("publication archive differs from the bound report")
+            for key in (
+                "schema",
+                "evaluation_kind",
+                "agentic_browser_use",
+                "run_id",
+                "suite_sha256",
+                "manifest_sha256",
+                "summary_sha256",
+                "files",
+                "results",
+            ):
+                if proof.get(key) != expected_proof[key]:
+                    raise ValueError(
+                        "publication attestation disagrees with the bound report: " + key
+                    )
+
+    # A saved submission can finish byte verification without activating another version.
+    prior = _read_json(receipt) if receipt.exists() else {}
+    expected_share = (_read_json(profile).get('publication') or {}).get('share_url')
+    if prior.get('share_url') and expected_share and prior['share_url'] != expected_share:
+        raise ValueError('Publication receipt share URL differs from the bound profile')
+    resume = prior.get("submission_state") == "submitted_unverified" and prior.get(
+        "archive_sha256"
+    ) == _sha256(archive)
+    config = PublishConfig(
+        profile,
+        archive,
+        formal_root,
+        receipt,
+        journal,
+        mode="reuse" if resume and not journal.exists() else "update",
+        title=str(_read_json(profile).get("title") or "WebArena 轨迹重放"),
+        base_url=base_url,
+        expected_version=expected_version,
+        operation_namespace="public-webarena",
+    )
+    result = publish(
+        config, transport=transport, package_check=package_check, validation_inputs=[attestation]
+    )
+    return {"slug": result["slug"], "version": result["versionId"], "url": result["url"]}
+
+
+def publish_main(argv=None) -> None:
+    parser = argparse.ArgumentParser(description="Submit the bound public WebArena replay package.")
+    for name in ("profile", "formal-root", "archive", "attestation", "receipt", "journal"):
+        parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--expected-version")
+    parser.add_argument("--base-url")
+    args = parser.parse_args(argv)
+    print(
+        json.dumps(
+            publish_current(
+                args.profile,
+                args.formal_root,
+                args.archive,
+                args.attestation,
+                args.receipt,
+                args.journal,
+                expected_version=args.expected_version,
+                base_url=args.base_url,
+            ),
+            ensure_ascii=False,
+        )
     )

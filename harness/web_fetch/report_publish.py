@@ -23,6 +23,7 @@ from harness.web_fetch.publication import updated_receipt, upload_large_archive
 from harness.web_fetch.publication_check import check
 from harness.web_fetch.publication_target import (
     publication_base,
+    publication_document,
     require_publication_site,
     require_publication_version,
 )
@@ -42,6 +43,7 @@ class PublishConfig:
     title: str = "Web Fetch 评测"
     base_url: str | None = None
     expected_version: str | None = None
+    operation_namespace: str = "webfetch"
 
 
 def response_json(status, raw, *, operation):
@@ -96,13 +98,17 @@ def _safe_receipt(value):
     return value
 
 
-def publish(config: PublishConfig, *, transport=None):
+def publish(config: PublishConfig, *, transport=None, package_check=None, validation_inputs=()):
     """Upload or finish a receipt; remote byte verification is a separate command."""
     if config.mode not in {"create", "update", "reuse"}:
         raise ValueError("Unknown publication mode")
+    protected = {config.profile.resolve(), config.archive.resolve(),
+                 *(Path(path).resolve() for path in validation_inputs)}
+    if config.receipt.resolve() in protected or config.journal.resolve() in protected:
+        raise ValueError("Publication receipts and journals must not replace package inputs")
     reject_evidence_symlinks(config.profile)
     profile_bytes = config.profile.read_bytes()
-    profile = json.loads(profile_bytes)
+    profile = publication_document(json.loads(profile_bytes))
     base = publication_base(config.profile, config.base_url, document=profile)
     previous_receipt = _receipt_identity(config.receipt)
     result = json.loads(previous_receipt) if previous_receipt is not None else {}
@@ -177,13 +183,21 @@ def publish(config: PublishConfig, *, transport=None):
         return {"slug": value["slug"], "versionId": version, "url": value["share_url"]}
 
     if config.mode == "reuse":
-        return finish(result)
+        if package_check is None:
+            return finish(result)
+        with snapshot_publication(config.archive, inputs=[config.profile, config.source, *validation_inputs]) as release:
+            release_guard = release.check
+            package_check(release.archive, config.source)
+            release.check()
+            summary = finish(result)
+            release.check()
+            return summary
     for path in (config.archive, config.receipt, config.journal):
         if path.resolve().is_relative_to(config.source.resolve()):
             raise ValueError("Publication outputs must stay outside the source report")
-    with snapshot_publication(config.archive, inputs=[config.profile, config.source]) as release:
+    with snapshot_publication(config.archive, inputs=[config.profile, config.source, *validation_inputs]) as release:
         release_guard = release.check
-        check(release.archive, config.source)
+        (package_check or check)(release.archive, config.source)
         release.check()
         original_send = send
 
@@ -193,7 +207,7 @@ def publish(config: PublishConfig, *, transport=None):
 
         send = guarded_send
         identity = {
-            "schema": "webfetch_publication_operation/1",
+            "schema": config.operation_namespace + "_publication_operation/1",
             "base_url": base,
             "archive_sha256": release.sha256,
             "title": config.title,
@@ -201,7 +215,7 @@ def publish(config: PublishConfig, *, transport=None):
             "slug": None if config.mode == "create" else result["slug"],
             "expected_version": expected,
         }
-        operations = PublicationOperation(config.journal, "webfetch-")
+        operations = PublicationOperation(config.journal, config.operation_namespace + "-")
         pending, resumed = operations.pending(
             identity, allow_create=config.mode != "create" or previous_receipt is None
         )

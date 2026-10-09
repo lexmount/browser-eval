@@ -305,3 +305,13 @@ def test_invalid_service_base_fails_before_requests(tmp_path, base):
     with pytest.raises(ValueError):
         report_publish.publish(config, transport=service)
     assert not service.requests and not config.journal.exists()
+
+
+@pytest.mark.parametrize('field', ['receipt', 'journal'])
+def test_publication_outputs_cannot_replace_archive(tmp_path, field):
+    config = fixture(tmp_path)
+    config = replace(config, **{field: config.archive})
+    service = Service()
+    with pytest.raises(ValueError, match='must not replace package inputs'):
+        report_publish.publish(config, transport=service)
+    assert service.requests == []

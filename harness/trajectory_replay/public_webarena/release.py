@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
-import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+from harness.reporting.publication import (
+    atomic_write,
+    bind_publication_files,
+    json_bytes,
+    recover_binding,
+)
 
 from .publication import build, check_report_bundle, stage_report
 
@@ -39,21 +46,14 @@ def _verification_command(publication: dict, archive: Path, project_root: Path) 
     ]
 
 
-def _update_profile(profile: Path, version: str, files: int) -> None:
-    current = json.loads(profile.read_text(encoding="utf-8"))
-    current["publication"]["version_id"] = version
-    current["publication"]["submitted_files_verified"] = files
-    temporary = profile.with_suffix(".json.tmp")
-    temporary.write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    temporary.replace(profile)
-
-
 def main(project_root: Path) -> None:
     ROOT = project_root.resolve()
     CURRENT = ROOT / "evaluation/browser-use-public/current-report.json"
     ARCHIVE = ROOT / "publish/webarena-fixed-trajectory.zip"
     ATTESTATION = ROOT / "publish/webarena-fixed-trajectory-attestation.json"
     RECEIPT = ROOT / "publish/webarena-fixed-trajectory-site-receipt.json"
+    OPERATION = ROOT / "publish/webarena-fixed-trajectory-operation.json"
+    BINDING = ROOT / "publish/webarena-fixed-trajectory-binding.json"
     DEFAULT_FORMAL = (
         Path.home() / ".browser-eval/evidence/current/formal/webarena-public-trajectories"
     )
@@ -61,14 +61,21 @@ def main(project_root: Path) -> None:
     parser.add_argument("--formal-root", type=Path, default=DEFAULT_FORMAL)
     parser.add_argument("--publish", action="store_true")
     args = parser.parse_args()
+    if args.publish:
+        recover_binding(CURRENT, ATTESTATION, BINDING, schema="public_webarena_binding/1")
     current = json.loads(CURRENT.read_text(encoding="utf-8"))
     publication = current["publication"]
+    prior = json.loads(RECEIPT.read_bytes()) if args.publish and RECEIPT.is_file() else {}
+    pending = OPERATION.exists() or prior.get("submission_state") == "submitted_unverified"
 
     with tempfile.TemporaryDirectory(prefix="webarena-trajectory-release-") as temporary:
         staged = Path(temporary) / "formal"
         stage_report(args.formal_root, staged)
         semantic_checks = check_report_bundle(staged)
-        attestation = build(staged, ARCHIVE, ATTESTATION, authority=CURRENT)
+        if args.publish and pending:
+            attestation = json.loads(ATTESTATION.read_bytes())
+        else:
+            attestation = build(staged, ARCHIVE, ATTESTATION, authority=CURRENT)
         print(
             "FAST GATES PASS: comparison semantics, report binding, internal links, "
             f"privacy scan, archive hash; {semantic_checks['metrics']} metrics, "
@@ -86,19 +93,26 @@ def main(project_root: Path) -> None:
             )
             return
 
-        with tempfile.TemporaryDirectory(prefix="webarena-trajectory-receipt-") as receipt_dir:
+        binding_inputs = {
+            path: hashlib.sha256(path.read_bytes()).hexdigest() for path in (CURRENT, ATTESTATION)
+        }
+
+        if args.publish:
             if not RECEIPT.is_file():
                 raise ValueError(
                     "the untracked Artifact Hub edit receipt is missing; restore or authorize "
                     "the receipt for the site in current-report.json before publishing"
                 )
-            pending_receipt = Path(receipt_dir) / "receipt.json"
-            shutil.copy2(RECEIPT, pending_receipt)
             published = _run_json(
                 [
                     sys.executable,
-                    str(ROOT / "scripts/publish_webarena_trajectory_artifact_hub.py"),
-                    "--update",
+                    str(ROOT / "scripts/publish_public_webarena_report.py"),
+                    "--profile",
+                    str(CURRENT),
+                    "--formal-root",
+                    str(staged),
+                    "--journal",
+                    str(OPERATION),
                     "--expected-version",
                     str(publication["version_id"]),
                     "--archive",
@@ -106,7 +120,7 @@ def main(project_root: Path) -> None:
                     "--attestation",
                     str(ATTESTATION),
                     "--receipt",
-                    str(pending_receipt),
+                    str(RECEIPT),
                     "--base-url",
                     str(publication["base_url"]),
                 ],
@@ -114,11 +128,30 @@ def main(project_root: Path) -> None:
             )
             if published.get("slug") != publication["site_slug"]:
                 raise ValueError("publisher returned a different Artifact Hub site")
+            submitted_receipt = RECEIPT.read_bytes()
             verified = _run_json(_verification_command(publication, ARCHIVE, ROOT), ROOT)
             if verified.get("version") != published.get("version"):
                 raise ValueError("published and exported Artifact Hub versions differ")
-            pending_receipt.replace(RECEIPT)
-            _update_profile(CURRENT, str(published["version"]), int(verified["files"]))
+            if verified.get("files") != attestation["files"]:
+                raise ValueError("export verification does not cover the complete package")
+            if RECEIPT.read_bytes() != submitted_receipt:
+                raise ValueError("publication receipt changed during export verification")
+            bind_publication_files(
+                CURRENT,
+                ATTESTATION,
+                BINDING,
+                publication={
+                    "version_id": str(published["version"]),
+                    "share_url": str(published["url"]),
+                    "submitted_files_verified": int(verified["files"]),
+                },
+                schema="public_webarena_binding/1",
+                expected=binding_inputs,
+            )
+            receipt = json.loads(RECEIPT.read_bytes())
+            receipt["submission_state"] = "verified"
+            receipt["verified"] = True
+            atomic_write(RECEIPT, json_bytes(receipt))
             print(
                 json.dumps(
                     {
