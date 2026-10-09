@@ -21541,6 +21541,78 @@
         "stable_anchor_hits": 0,
         "stable_complete_record_count": 1
       }
+    },
+    {
+      "id": "markdown-plus-list-keeps-named-records",
+      "category": "structured-extraction",
+      "root_cause": "markdown_list_prefix_ownership",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog", "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1, "schema": "named_link", "minimum_records": 2,
+          "hosts": ["example.test"], "entry_path": "/item/\\d+",
+          "entry_context": "list_or_card",
+          "stable_text_anchors": [{"id": "heading", "alternatives": ["Catalog"]}]
+        }
+      },
+      "artifact": "Catalog\n  + [Alpha](/item/1)\n  + [Beta](/item/2)",
+      "ok": true, "expected_task_pass": true,
+      "expected_metrics": {"stable_structure_pass": true, "stable_unique_record_count": 2}
+    },
+    {
+      "id": "markdown-plus-prose-is-not-a-record-list",
+      "category": "structured-extraction",
+      "root_cause": "markdown_list_prefix_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog", "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1, "schema": "named_link", "minimum_records": 2,
+          "hosts": ["example.test"], "entry_path": "/item/\\d+",
+          "entry_context": "list_or_card",
+          "stable_text_anchors": [{"id": "heading", "alternatives": ["Catalog"]}]
+        }
+      },
+      "artifact": "Catalog\nRead [Alpha](/item/1) + consider [Beta](/item/2).",
+      "ok": true, "expected_task_pass": false,
+      "expected_metrics": {"stable_structure_pass": false, "stable_unique_record_count": 0}
+    },
+    {
+      "id": "adjacent-multiline-markdown-cards-keep-records",
+      "category": "structured-extraction",
+      "root_cause": "markdown_list_prefix_ownership",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog", "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1, "schema": "named_link", "minimum_records": 2,
+          "hosts": ["example.test"], "entry_path": "/item/\\d+",
+          "entry_context": "list_or_card",
+          "stable_text_anchors": [{"id": "heading", "alternatives": ["Catalog"]}]
+        }
+      },
+      "artifact": "Catalog\n[Alpha\nDetails](/item/1) [Beta\nDetails](/item/2)",
+      "ok": true, "expected_task_pass": true,
+      "expected_metrics": {"stable_structure_pass": true, "stable_unique_record_count": 2}
+    },
+    {
+      "id": "multiline-card-followed-by-prose-does-not-borrow-record",
+      "category": "structured-extraction",
+      "root_cause": "markdown_list_prefix_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog", "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1, "schema": "named_link", "minimum_records": 2,
+          "hosts": ["example.test"], "entry_path": "/item/\\d+",
+          "entry_context": "list_or_card",
+          "stable_text_anchors": [{"id": "heading", "alternatives": ["Catalog"]}]
+        }
+      },
+      "artifact": "Catalog\n[Alpha\nDetails](/item/1) consider [Beta\nDetails](/item/2)",
+      "ok": true, "expected_task_pass": false,
+      "expected_metrics": {"stable_structure_pass": false, "stable_unique_record_count": 1}
     }
   ]
 }

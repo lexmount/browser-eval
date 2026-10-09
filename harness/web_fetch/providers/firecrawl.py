@@ -17,6 +17,8 @@ class FirecrawlProvider(Provider):
     _VIDEO_FORMAT_CREDITS = 5
 
     def validate(self) -> list[str]:
+        if "only_main_content" in self.config and not isinstance(self.config["only_main_content"], bool):
+            return ["only_main_content must be boolean"]
         # Hosted Scrape requires Bearer auth. A separately configured local or
         # self-hosted endpoint may intentionally run without an API key.
         host = urlsplit(str(self.config.get("base_url", "https://api.firecrawl.dev"))).hostname
@@ -171,6 +173,11 @@ class FirecrawlProvider(Provider):
             "proxy": str(self.config.get("proxy", "auto")),
             **({} if self.config.get("uniform_native_parameters") else {"timeout": service_timeout_ms}),
         }
+        # Page-wide contracts can require navigation and footer text. Forward
+        # the native scope switch only when explicitly configured; omission
+        # retains the service default for existing cohorts.
+        if "only_main_content" in self.config:
+            request_body["onlyMainContent"] = self.config["only_main_content"]
         if file_route:
             # The benchmark asks for the original bytes. Disabling Firecrawl's
             # default PDF parser avoids both irrelevant conversion and the

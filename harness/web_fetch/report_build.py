@@ -353,7 +353,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             if local_audit and meta.get("diagnostic_log_path"):
                 from .runner import _public_text
                 diagnostic_source = contained_path(source, meta["diagnostic_log_path"])
-                raw_log = diagnostic_source.read_text(encoding="utf-8", errors="replace")
+                from .report import runtime_log_text
+                raw_log = runtime_log_text(diagnostic_source.read_text(encoding="utf-8", errors="replace"))
                 safe_log = _public_text(raw_log, limit=len(raw_log)) or ""
                 public_log = "logs/" + r["attempt_id"] + ".debug.txt"
                 destination = contained_path(staging, public_log)

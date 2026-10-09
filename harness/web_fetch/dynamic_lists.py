@@ -305,7 +305,8 @@ def _markdown_named_items(content, contract, scope):
     """Extract explicit named Markdown links without treating prose as a list."""
     from .reference_quality import markdown_links, visible_markdown_links
     items = []
-    for link in markdown_links(content):
+    parsed_links = markdown_links(content)
+    for link_index, link in enumerate(parsed_links):
         destination = link.destination.strip()
         try:
             target = urlsplit(destination)
@@ -324,6 +325,13 @@ def _markdown_named_items(content, contract, scope):
         # prose such as ``Watch [A] or [B]`` still leaves words and is rejected.
         for previous in reversed(markdown_links(prefix)):
             prefix=prefix[:previous.start]+prefix[previous.end:]
+        # The physical line can begin inside the preceding multiline card.
+        # Its closing label/destination is link syntax, not prose before this
+        # card. Preserve any intervening words so recommendations still fail.
+        if link_index:
+            previous = parsed_links[link_index - 1]
+            if previous.start < line_start < previous.end <= link.start:
+                prefix = content[previous.end:link.start]
         prefix=prefix.strip()
         line_end=content.find('\n',link.end)
         line=content[line_start:None if line_end < 0 else line_end]
@@ -331,7 +339,7 @@ def _markdown_named_items(content, contract, scope):
         linked_chars=sum(item.end-item.start for item in line_links)
         link_collection=(len(line_links) >= 3 and linked_chars >= 0.8 * len(line))
         if (prefix and not link_collection
-                and not re.fullmatch(r'[\s#>*\-\d.)|/:•·●▪◦,，、;；]*',prefix)):
+                and not re.fullmatch(r'[\s#>*+\-\d.)|/:•·●▪◦,，、;；]*',prefix)):
             continue
         non_image_label=link.label
         for nested in reversed(markdown_links(link.label)):

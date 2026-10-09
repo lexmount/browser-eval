@@ -534,6 +534,17 @@ def call_log_path(record):
  bindings=call_log_bindings(record)
  return bindings[-1][1]['path'] if bindings else None
 
+def _error_locator(message):
+ """Use a retained error line, keeping complete traces in the log section."""
+ text=str(message or '')
+ if len(text)<=300:return text
+ lines=text.splitlines()
+ for line in reversed(lines):
+  if re.search(r'^(?:Reason:|Error:|[\w.]*Error:)|\b(?:timed out|timeout_phase=)',line,re.I):
+   return line[:300]
+ return '错误详情见本次运行日志。'
+
+
 def empty_output_reason(record,case,output):
  if output:return ''
  metadata=record.get('provider_metadata') or {}
@@ -541,7 +552,7 @@ def empty_output_reason(record,case,output):
  if case.get('task_kind')=='file' and delivered:
   return f'本题的最终交付物是 {len(delivered)} 个原始文件；文本输出为空不表示没有交付，文件字节在详情页下方单独列出。'
  if record.get('error_message'):
-  return f'最终输出确实为空。适配器记录的原因：{record["error_message"]}'
+  return f'最终输出确实为空。适配器记录的原因：{_error_locator(record["error_message"])}'
  if not record.get('ok'):
   error_type=record.get('error_type') or '未记录错误类型'
   return f'最终输出确实为空。请求未成功，错误类型为 {error_type}；历史记录没有保存更多错误文字。'
@@ -561,6 +572,46 @@ def _reader_log_excerpt(text):
   if len(selected)>=18:break
  if not selected:selected.update(range(min(12,len(lines))))
  return '\n'.join(f'{index+1:>6}  {lines[index]}' for index in sorted(selected)[:18])
+
+def _worker_response_stream(row):
+ """Recognize saved worker protocol responses, which belong to output evidence."""
+ if not isinstance(row,dict) or row.get('source')!='native_process_stdout':return False
+ try:payload=json.loads(row.get('text',''))
+ except (ValueError,TypeError):return False
+ return isinstance(payload,dict) and isinstance(payload.get('ok'),bool) and any(key in payload for key in ('content','raw_tool_response','error_type'))
+
+def runtime_log_text(text):
+ """Exclude protocol responses from the public log; retain private capture unchanged."""
+ lines=[]
+ for line in text.splitlines(keepends=True):
+  try:row=json.loads(line)
+  except ValueError:row=None
+  if not _worker_response_stream(row):lines.append(line)
+ return ''.join(lines)
+
+def _separate_observed_logs(text):
+ """Separate captured product streams from caller events without inventing steps."""
+ markers=list(re.finditer(r'^--- native [^\n]+ ---\s*$',text,re.M))
+ caller=text[:markers[0].start()] if markers else text
+ native='\n'.join(text[m.end():markers[i+1].start() if i+1<len(markers) else len(text)].lstrip('\n') for i,m in enumerate(markers))
+ events=[];library=[]
+ for line in caller.splitlines():
+  try:row=json.loads(line)
+  except json.JSONDecodeError:
+   events.append(line);continue
+  if _worker_response_stream(row):continue
+  if isinstance(row,dict) and row.get('source') in ('native_process_stderr','native_process_stdout'):
+   stream=str(row.get('text',''))
+   try:payload=json.loads(stream)
+   except ValueError:payload=None
+   if isinstance(payload,dict) and payload.get('source')=='caller_worker':events.append(stream.rstrip('\n'))
+   else:library.append(stream)
+  elif isinstance(row,dict) and row.get('source')=='native_library':
+   library.append(str(row.get('message',''))+(('\n'+str(row['exception'])) if row.get('exception') else ''))
+  else:events.append(line)
+ if library:native+='\n'+'\n'.join(library)
+ return native.strip('\n'), '\n'.join(events)
+
 
 def diagnostic_view_page(out, relative, label, note):
     """Show the real sanitized text in HTML; retain its original download bytes."""
@@ -637,7 +688,9 @@ def run_log_section(out,record,output):
   stderr_total=len(debug_bytes);any_stderr=bool(debug_bytes)
   any_truncated=bool(metadata.get('diagnostic_log_truncated'))
   complete_label='已保存文件截断；原生日志范围见说明' if any_truncated else '已保存文件未截断；原生日志范围见说明'
-  diagnostics=[f'<article><h3>实际诊断日志</h3><p>{esc(metadata.get("public_log_note") or "仅展示真实观测记录；未开放的内部过程不作推断。")}</p><pre>{esc(_reader_log_excerpt(debug_bytes.decode("utf-8", "replace")))}</pre><p><a href="../{esc(public_debug)}" download>下载已保存的诊断日志</a> · 公开 SHA-256：<code class="break">{esc(metadata["public_debug_log_sha256"])}</code> · 原始日志 {int(metadata.get("diagnostic_log_bytes") or 0):,} 字节 · 原始 SHA-256：<code class="break">{esc(metadata.get("diagnostic_log_sha256") or "—")}</code></p></article>']
+  native_text,caller_text=_separate_observed_logs(debug_bytes.decode("utf-8", "replace"))
+  native_view=('<pre data-log-source="product">'+esc(native_text)+'</pre>' if native_text else '<p data-log-unavailable>本次没有取得产品或依赖库的原生日志。已保存的调用方记录见下方。</p>')
+  diagnostics=[f'<article><h3>实际诊断日志 · 产品与依赖库</h3><p>{esc(metadata.get("public_log_note") or "仅展示真实观测记录；未开放的内部过程不作推断。")}</p><p>返回 JSON 在“原始返回”中单独展示；接入程序记录在下方“调用方事件”中。</p>{native_view}<details><summary>调用方事件（测试程序记录）</summary><pre data-log-source="caller">{esc(caller_text)}</pre></details><p><a href="../{esc(public_debug)}" download>下载运行时日志（已分离返回内容）</a> · 公开 SHA-256：<code class="break">{esc(metadata["public_debug_log_sha256"])}</code> · 原始采集记录 {int(metadata.get("diagnostic_log_bytes") or 0):,} 字节（可含协议返回） · 原始 SHA-256：<code class="break">{esc(metadata.get("diagnostic_log_sha256") or "—")}</code></p></article>']
  version=(metadata.get('reported_version') or metadata.get('binary_version') or
           metadata.get('moli_version') or metadata.get('version') or '—')
  command=metadata.get('command_args') or metadata.get('command') or '—（调用记录未保存可展示的完整命令）'
@@ -1387,7 +1440,7 @@ def reason(r,c):
  if not r['ok']:
   if r.get('diagnosis'):return r['diagnosis']['evidence']
   names={'dns':'请求路径中的域名无法解析','timeout':'请求超时','network':'请求路径网络故障','api_error':'供应商接口报错','WEB_BLOCKED_URL':'方法的 URL 安全规则拒绝请求'}
-  return names.get(r.get('error_type'),r.get('error_type') or '请求失败')+': '+str(r.get('error_message') or '')[:300]
+  return names.get(r.get('error_type'),r.get('error_type') or '请求失败')+': '+_error_locator(r.get('error_message'))
  m=r['metrics']
  if m.get('text_encoding_corruption'):
   return f'实际返回存在明显乱码：{m.get("replacement_character_count",0):,} 个替换字符，占 {pct(m.get("replacement_character_ratio"))}；损坏文字不能作为有效正文。'
@@ -1749,13 +1802,14 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   cards+=overview_card(records,cases,track,label,names)
  home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类分榜与一个综合通过率总榜。')
  if dataset.get('comparison',{}).get('call_chain_audit'):
-  home+='<p class="callout">5案例小范围测试，机器判分。'+link('guide/index.html#call-chain-audit','查看调用链问题和日志留存范围')+'</p>'
+  source_note='本轮未重新核验来源。' if dataset.get('comparison',{}).get('source_reverified') is False else ''
+  home+=f'<p class="callout">{len(cases)} 个案例 · {len(records)} 次调用，机器判分。'+source_note+link('guide/index.html#call-chain-audit','查看调用链问题和日志留存范围')+'</p>'
  from .report_explainer import article_title,render_explainer,supports_authored_explainer
  TITLE='本轮调用链检查与日志范围' if dataset.get('comparison',{}).get('call_chain_audit') else article_title(records) if supports_authored_explainer(cases) else '本报告的任务范围与验收规则'
  home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
  if dataset.get('comparison',{}).get('call_chain_audit'):
   TITLE='本轮调用链检查与日志范围'
-  guide=local_call_chain_section(dataset)+section('如何读取本轮结果','<p>这是一轮小范围调用链测试，按保存的实际返回进行机器判分。评分纠正记录和日志缺口单独列明；不能据此推算100题通过率。</p><p>'+link('../analysis/index.html','逐次结果与筛选')+' · '+link('../methodology/index.html','题目与计时规则')+' · '+link('../reproduce/index.html','配置、版本和复现说明')+'</p>')
+  guide=local_call_chain_section(dataset)+section('如何读取本轮结果','<p>本轮按保存的实际返回进行机器判分，比例只对应本报告列出的案例与配置。日志可用于复查调用和判分；未经过独立人工审核，不能将失败一概归因于产品内部。</p><p>'+link('../analysis/index.html','逐次结果与筛选')+' · '+link('../methodology/index.html','题目与计时规则')+' · '+link('../reproduce/index.html','配置、版本和复现说明')+'</p>')
  else:
   guide=render_explainer(out,cases,records,table=table,cell=cell,link=link)
  write(out,'guide/index.html','报告解读',guide)

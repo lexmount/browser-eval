@@ -417,6 +417,58 @@ def _require_local_scoring_revision(source, contract, records):
             raise ValueError("Local scoring correction changed rules or lost its predecessor")
 
 
+def _require_local_runtime_bindings(contract, batches):
+    """Bind each method to its declared measured runtime, retaining real variants."""
+    variants = contract.get("runtime_source_sha256_by_provider")
+    expected = set(contract["providers"])
+    if variants is not None:
+        if (not isinstance(variants, dict) or set(variants) != expected
+                or any(not isinstance(value, str) or len(value) != 64
+                       or any(char not in "0123456789abcdef" for char in value)
+                       for value in variants.values())):
+            raise ValueError("Invalid local runtime variant bindings")
+    seen = set()
+    for batch in batches:
+        providers = batch.get("providers", [])
+        if len(providers) != 1:
+            raise ValueError("Local runtime batch must identify one method")
+        name = providers[0].get("name")
+        if name not in expected or name in seen:
+            raise ValueError("Local runtime batches repeat or omit a method")
+        seen.add(name)
+        runtime = variants[name] if variants is not None else contract["runtime_source_sha256"]
+        if batch.get("runtime_source_sha256") != runtime:
+            raise ValueError("Local measurement execution runtime differs")
+    if seen != expected:
+        raise ValueError("Local runtime batches repeat or omit a method")
+
+
+def _require_local_config_bindings(contract, batches):
+    """Retain original configuration identities when a declared method is rerun."""
+    variants = contract.get("provider_config_sha256_by_provider")
+    expected = set(contract["providers"])
+    if variants is not None:
+        if (not isinstance(variants, dict) or set(variants) != expected
+                or any(not isinstance(value, str) or len(value) != 64
+                       or any(char not in "0123456789abcdef" for char in value)
+                       for value in variants.values())):
+            raise ValueError("Invalid local configuration variant bindings")
+    seen = set()
+    for batch in batches:
+        providers = batch.get("providers", [])
+        if len(providers) != 1:
+            raise ValueError("Local configuration batch must identify one method")
+        name = providers[0].get("name")
+        if name not in expected or name in seen:
+            raise ValueError("Local configuration batches repeat or omit a method")
+        seen.add(name)
+        digest = variants[name] if variants is not None else contract["provider_config_sha256"]
+        if batch.get("provider_config_sha256") != digest:
+            raise ValueError("Local measurement execution configuration differs")
+    if seen != expected:
+        raise ValueError("Local configuration batches repeat or omit a method")
+
+
 def require_local_measurement(source: Path, dataset: dict, records: list[dict]) -> None:
     """Validate a new complete local matrix without claiming independent review."""
     from .reliability import require_reliable
@@ -443,11 +495,11 @@ def require_local_measurement(source: Path, dataset: dict, records: list[dict]) 
         raise ValueError("Local measurement pre-call contract changed")
     if len(execution["batches"]) != len(contract["providers"]):
         raise ValueError("Local measurement execution scope differs")
+    _require_local_runtime_bindings(contract, execution["batches"])
+    _require_local_config_bindings(contract, execution["batches"])
     for batch in execution["batches"]:
         _require_local_batch_segments(batch)
-        if (batch.get("provider_config_sha256") != contract["provider_config_sha256"]
-                or batch.get("runtime_source_sha256") != contract["runtime_source_sha256"]
-                or batch.get("parameters", {}).get("timeout") != 45
+        if (batch.get("parameters", {}).get("timeout") != 45
                 or batch.get("parameters", {}).get("runs") != 1
                 or batch.get("parameters", {}).get("provider_concurrency") != 1
                 or batch.get("parameters", {}).get("max_failure_retries") != 0):

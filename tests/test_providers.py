@@ -26,6 +26,30 @@ from harness.web_fetch.runner import run_evaluation
 
 
 class ProviderTest(unittest.TestCase):
+    @patch("harness.web_fetch.providers.firecrawl.request")
+    def test_firecrawl_native_page_scope_is_explicit_and_preserves_answer(self, mock_request):
+        returned = "Header\n\nMain text\n\nFooter"
+        mock_request.return_value = HttpResponse(
+            200, "https://api.firecrawl.dev/v2/scrape", {},
+            json.dumps({"success": True, "data": {"markdown": returned}}).encode(),
+        )
+        case = EvalCase(id="scope", name="Scope", url="https://example.com", category="static", expected_any=[])
+        for scope in (None, False, True):
+            config = {"api_key": "x", "uniform_native_parameters": True}
+            if scope is not None:
+                config["only_main_content"] = scope
+            result = FirecrawlProvider("firecrawl", config).fetch(case, 45)
+            body = mock_request.call_args.kwargs["json_body"]
+            self.assertEqual(result.content, returned)
+            self.assertEqual(body.get("onlyMainContent"), scope)
+            self.assertEqual("onlyMainContent" in body, scope is not None)
+            self.assertNotIn("actions", body)
+            self.assertNotIn("waitFor", body)
+        self.assertEqual(
+            FirecrawlProvider("firecrawl", {"api_key": "x", "only_main_content": "false"}).validate(),
+            ["only_main_content must be boolean"],
+        )
+
     def setUp(self) -> None:
         self.case = EvalCase(
             id="case", name="Case", url="https://example.com",
