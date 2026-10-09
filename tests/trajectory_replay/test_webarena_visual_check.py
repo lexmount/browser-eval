@@ -17,9 +17,10 @@ def test_private_preview_fixture_denies_assets_without_version(tmp_path):
     (tmp_path / "index.html").write_text("<html><head></head><body>report</body></html>")
     (tmp_path / "assets").mkdir()
     (tmp_path / "assets/report.css").write_text("body { color: black; }")
-    handler = lambda *args, **kwargs: _MODULE._QuietHandler(
-        *args, directory=str(tmp_path), **kwargs
-    )
+    def handler(*args, **kwargs):
+        return _MODULE._QuietHandler(
+            *args, directory=str(tmp_path), **kwargs
+        )
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     server.preview_errors = []
     thread = threading.Thread(target=server.serve_forever, daemon=True)

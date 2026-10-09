@@ -62,7 +62,9 @@ def test_article_embedding_keeps_matrix_without_a_duplicate_section_heading():
     methods = {"one": {"label": "One"}}
     rows = [_row("one", 1, "zero_area_target_geometry")]
     regular = BeautifulSoup(failure_category_matrix(methods, rows, "en"), "html.parser")
-    embedded = BeautifulSoup(failure_category_matrix(methods, rows, "en", embedded=True), "html.parser")
+    embedded = BeautifulSoup(
+        failure_category_matrix(methods, rows, "en", embedded=True), "html.parser"
+    )
     assert embedded.select_one("[data-failure-matrix]").name == "div"
     assert not embedded.select("h2, section")
     assert str(embedded.select_one("table")) == str(regular.select_one("table"))
@@ -93,7 +95,9 @@ def test_matrix_counts_disjoint_families_and_links_to_existing_filters(lang):
 
 def test_matrix_keeps_unknown_and_unreviewed_failures_in_denominator():
     rows = [_row("new", 1, "future_category"), _row("new", 2)]
-    soup = BeautifulSoup(failure_category_matrix({"new": {"label": "New"}}, rows, "en"), "html.parser")
+    soup = BeautifulSoup(
+        failure_category_matrix({"new": {"label": "New"}}, rows, "en"), "html.parser"
+    )
     assert soup.select_one('[data-family="other"]')["colspan"] == "2"
     assert soup.select_one("[data-failure-total]").text == "2 / 2"
     assert soup.select_one('td[data-category="unreviewed"]').text == "1"
@@ -109,12 +113,17 @@ def test_matrix_rejects_ambiguous_populations(rows, message):
         failure_category_matrix({"one": {"label": "One"}}, rows, "zh")
 
 
-@pytest.mark.parametrize("mutation", ["missing", "wrong-count", "wrong-target", "missing-cell", "wrong-total"])
+@pytest.mark.parametrize(
+    "mutation", ["missing", "wrong-count", "wrong-target", "missing-cell", "wrong-total"]
+)
 def test_release_gate_rejects_broken_matrix(mutation):
     from harness.trajectory_replay.webarena_report_check import _check_failure_matrix
 
     rows = [_row("one", 1, "zero_area_target_geometry")]
-    page = failure_category_matrix({"one": {"label": "One"}}, rows, "en") + '<div id="result-inventory"></div>'
+    page = (
+        failure_category_matrix({"one": {"label": "One"}}, rows, "en")
+        + '<div id="result-inventory"></div>'
+    )
     _check_failure_matrix(page, rows, ["one"])
     soup = BeautifulSoup(page, "html.parser")
     if mutation == "missing":

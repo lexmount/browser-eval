@@ -489,7 +489,9 @@ def _load_completed_attempts(
     for record_number, row in enumerate(load_jsonl(path, skip_blank=True), 1):
         model = str(row.get("model") or expected_model or "")
         if not model:
-            raise ValueError(f"attempt does not identify its model at {path}, record {record_number}")
+            raise ValueError(
+                f"attempt does not identify its model at {path}, record {record_number}"
+            )
         if expected_model and model != expected_model:
             raise ValueError(
                 f"attempt model differs from the evidence cohort at {path}, record {record_number}"

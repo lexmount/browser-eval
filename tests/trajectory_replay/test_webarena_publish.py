@@ -483,7 +483,10 @@ def test_package_binds_report_evidence_and_release_gate(monkeypatch, tmp_path: P
     dataset = tmp_path / "dataset.json"
     review = tmp_path / "review.json"
     dataset.write_text("{}", encoding="utf-8")
-    profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}), encoding="utf-8")
+    profile.write_text(
+        json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}),
+        encoding="utf-8",
+    )
     review.write_text("{}", encoding="utf-8")
     (report / "report-manifest.json").write_text(json.dumps({
         "dataset_sha256": _sha256(dataset), "results_sha256": _sha256(evidence),
@@ -568,7 +571,9 @@ def test_package_rejects_diagnostic_appendix_and_mixed_dataset(
         packager.package(report, evidence, tmp_path / "report.zip", tmp_path / "visual.json")
 
 
-def test_publication_rejects_diagnostic_appendix_and_stale_corrected_dataset(monkeypatch, tmp_path: Path) -> None:
+def test_publication_rejects_diagnostic_appendix_and_stale_corrected_dataset(
+    monkeypatch, tmp_path: Path
+) -> None:
     report = tmp_path / "report"
     report.mkdir()
     archive = tmp_path / "report.zip"

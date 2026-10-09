@@ -12,7 +12,6 @@ import pytest
 
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
 
-
 ROOT = Path("evaluation/trajectory-replay/webarena-verified/retrieval-candidates")
 TASK_IDS = (41, 50, 77, 94, 110, 117, 127, 183, 184, 188, 193, 198, 231, 288, 320, 334)
 

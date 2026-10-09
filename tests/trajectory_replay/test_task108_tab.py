@@ -10,7 +10,8 @@ from harness.trajectory_replay.webarena_replay import _execute_replay_call
 
 CANDIDATE = (
     Path(__file__).resolve().parents[2]
-    / "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-108-ajax-proposal.json"
+    / 'evaluation/trajectory-replay/webarena-verified/'
+    'retrieval-candidates/task-108-ajax-proposal.json'
 )
 
 

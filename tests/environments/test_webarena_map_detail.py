@@ -10,8 +10,8 @@ from urllib.request import urlopen
 import pytest
 
 from harness.environments.webarena.map_detail import (
-    DetailHandler,
     FROZEN_OBJECTS,
+    DetailHandler,
     lookup,
     render,
 )

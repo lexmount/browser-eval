@@ -2,13 +2,35 @@ import copy
 
 import pytest
 
-from scripts.audit_replay_comparison_inputs import audit_dataset_changes, audit_inputs, validate_contract_annotations
+from scripts.audit_replay_comparison_inputs import (
+    audit_dataset_changes,
+    audit_inputs,
+    validate_contract_annotations,
+)
 
 
 def inputs():
     profile = {"methods": [{"id": "a"}, {"id": "b"}], "task_selection": {"task_count": 1}}
-    results = {"attempts": [{"participant_id": method, "task_id": 1, "planned_actions": [{"action": "click", "selector": "button"}], "task_contract_sha256": "same"} for method in ("a", "b")]}
-    corrections = {"corrections": [{"task_id": 1, "correction_id": "changed", "operations": [{"op": "remove", "path": "/eval/1"}]}]}
+    results = {
+        "attempts": [
+            {
+                "participant_id": method,
+                "task_id": 1,
+                "planned_actions": [{"action": "click", "selector": "button"}],
+                "task_contract_sha256": "same",
+            }
+            for method in ("a", "b")
+        ]
+    }
+    corrections = {
+        "corrections": [
+            {
+                "task_id": 1,
+                "correction_id": "changed",
+                "operations": [{"op": "remove", "path": "/eval/1"}],
+            }
+        ]
+    }
     return results, profile, corrections
 
 
@@ -55,22 +77,48 @@ def test_duplicate_fork_ids_cannot_hide_changed_contract():
         audit_dataset_changes([{"task_id": 1}, {"task_id": 1}], [], {1})
 
 
-@pytest.mark.parametrize("mutation", [None, "missing", "extra", "duplicate", "layer", "translation", "binding"])
+@pytest.mark.parametrize(
+    "mutation", [None, "missing", "extra", "duplicate", "layer", "translation", "binding"]
+)
 def test_contract_annotations_require_exact_inventory_and_bound_inputs(mutation):
-    audit = {"fork": {"dataset_changes": [{"task_id": 1, "selected": True}, {"task_id": 2, "selected": False}]},
-             "local_contract_edits": [{"task_id": 1}, {"task_id": 3}]}
-    rows = [{"task_id": task, "layer": layer, "kind": "reference_change",
-             "before_zh": "原答案", "after_zh": "修订答案", "before_en": "Original", "after_en": "Revised"}
-            for task, layer in ((1, "fork_and_local"), (3, "local"))]
+    audit = {
+        "fork": {
+            "dataset_changes": [{"task_id": 1, "selected": True}, {"task_id": 2, "selected": False}]
+        },
+        "local_contract_edits": [{"task_id": 1}, {"task_id": 3}],
+    }
+    rows = [
+        {
+            "task_id": task,
+            "layer": layer,
+            "kind": "reference_change",
+            "before_zh": "原答案",
+            "after_zh": "修订答案",
+            "before_en": "Original",
+            "after_en": "Revised",
+        }
+        for task, layer in ((1, "fork_and_local"), (3, "local"))
+    ]
     bindings = {"results_sha256": "frozen"}
-    annotations = {"schema": "lex_replay_contract_audit/1", "bindings": dict(bindings), "task_contract_changes": rows}
-    if mutation == "missing": rows.pop()
-    if mutation == "extra": rows.append({**rows[0], "task_id": 2})
-    if mutation == "duplicate": rows.append(dict(rows[0]))
-    if mutation == "layer": rows[0]["layer"] = "fork"
-    if mutation == "translation": rows[0]["after_en"] = ""
-    if mutation == "binding": annotations["bindings"]["results_sha256"] = "other"
+    annotations = {
+        "schema": "lex_replay_contract_audit/1",
+        "bindings": dict(bindings),
+        "task_contract_changes": rows,
+    }
+    if mutation == "missing":
+        rows.pop()
+    if mutation == "extra":
+        rows.append({**rows[0], "task_id": 2})
+    if mutation == "duplicate":
+        rows.append(dict(rows[0]))
+    if mutation == "layer":
+        rows[0]["layer"] = "fork"
+    if mutation == "translation":
+        rows[0]["after_en"] = ""
+    if mutation == "binding":
+        annotations["bindings"]["results_sha256"] = "other"
     if mutation:
-        with pytest.raises(ValueError): validate_contract_annotations(annotations, audit, bindings)
+        with pytest.raises(ValueError):
+            validate_contract_annotations(annotations, audit, bindings)
     else:
         validate_contract_annotations(annotations, audit, bindings)

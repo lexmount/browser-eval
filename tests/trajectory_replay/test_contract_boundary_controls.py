@@ -1,7 +1,7 @@
 """Counterexamples for the frozen task corrections, using the real evaluator."""
 
-import json
 import hashlib
+import json
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -12,15 +12,23 @@ from harness.environments.webarena.runtime import (
     configure_benchmark,
 )
 from harness.trajectory_replay.remote_runtime import remote_benchmark
-from harness.trajectory_replay.webarena_corrections import apply_correction, evaluate_corrected_contract, load_corrections
+from harness.trajectory_replay.webarena_corrections import (
+    apply_correction,
+    evaluate_corrected_contract,
+    load_corrections,
+)
 
-
-ARCHIVED = Path("evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json")
+ARCHIVED = Path(
+    "evaluation/trajectory-replay/webarena-verified/revisions/task-corrections-20260918.json"
+)
 SHOP = "http://host.docker.internal:7770"
 ADMIN = "http://host.docker.internal:7780/admin"
 MAP = "http://host.docker.internal:3000"
 WIKIPEDIA = "http://host.docker.internal:8888"
-PRODUCT = "Atlantic Technology FS-7.0-GLB 7-channel Surround Bar (Gloss Black) (Discontinued by Manufacturer)"
+PRODUCT = (
+    'Atlantic Technology FS-7.0-GLB 7-channel Surround Bar '
+    '(Gloss Black) (Discontinued by Manufacturer)'
+)
 RESPONSE = {"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None}
 
 
@@ -28,7 +36,10 @@ def entry(url, *, data=None, body=None, status=200):
     request = {"method": "POST" if data is not None else "GET", "url": url,
                "headers": [{"name": "Accept", "value": "text/html"}]}
     if data is not None:
-        request["postData"] = {"mimeType": "application/x-www-form-urlencoded", "text": urlencode(data)}
+        request["postData"] = {
+            "mimeType": "application/x-www-form-urlencoded",
+            "text": urlencode(data),
+        }
     return {"request": request, "response": {"status": status, "headers": [], "cookies": [],
             "content": {"mimeType": "application/json" if body is not None else "text/html",
                         "text": json.dumps(body) if body is not None else ""}}}
@@ -53,8 +64,17 @@ def scores(tmp_path, task_id, entries, catalog_path=ARCHIVED):
         require_current_upstream=Path(catalog_path) != ARCHIVED,
     )
     path = tmp_path / f"synthetic-{task_id}.har"
-    path.write_text(json.dumps({"log": {"version": "1.2", "creator": {"name": "counterexample", "version": "1"},
-                                        "entries": entries}}))
+    path.write_text(
+        json.dumps(
+            {
+                "log": {
+                    "version": "1.2",
+                    "creator": {"name": "counterexample", "version": "1"},
+                    "entries": entries,
+                }
+            }
+        )
+    )
     response = (
         {"task_type": "NAVIGATE", "status": "SUCCESS", "retrieved_data": None}
         if task_id in {429, 430}
@@ -157,7 +177,8 @@ def test_current_configurable_size_tasks_use_native_create_options(
             status=200,
         ),
         entry(
-            ADMIN + f"/catalog/product/save/id/{product_id}/type/configurable/store/0/set/9/back/edit",
+            ADMIN
+            + f"/catalog/product/save/id/{product_id}/type/configurable/store/0/set/9/back/edit",
             data={
                 "product[name]": name,
                 "configurable-matrix-serialized": json.dumps(rows),
@@ -228,9 +249,18 @@ def test_current_college_map_corrections_use_live_object_kinds(tmp_path, task_id
 
 def cart_entries(quantity=1, *, name=PRODUCT, include_totals=True):
     entries = [
-        entry(SHOP + "/checkout/cart/add/uenc/aHR0cDovL2V4YW1wbGUudGVzdA==/product/75640", data={"product": "75640", "qty": quantity}),
-        entry(SHOP + "/rest/default/V1/carts/mine/totals", body={"items_qty": quantity, "items": [{"name": name}]}),
-        entry(SHOP + "/rest/default/V1/carts/mine/payment-information", data={"billingAddress": json.dumps({"customerId": "27"})}),
+        entry(
+            SHOP + "/checkout/cart/add/uenc/aHR0cDovL2V4YW1wbGUudGVzdA==/product/75640",
+            data={"product": "75640", "qty": quantity},
+        ),
+        entry(
+            SHOP + "/rest/default/V1/carts/mine/totals",
+            body={"items_qty": quantity, "items": [{"name": name}]},
+        ),
+        entry(
+            SHOP + "/rest/default/V1/carts/mine/payment-information",
+            data={"billingAddress": json.dumps({"customerId": "27"})},
+        ),
         entry(SHOP + "/checkout/onepage/success"),
     ]
     if not include_totals:
@@ -254,7 +284,9 @@ def test_current_510_restores_upstream_quantity_and_name(tmp_path, values, expec
 
 
 def test_510_revision_receipt_binds_rules_and_candidate():
-    receipt = json.loads(Path('research/trajectory-replay-task510-quantity-revision.json').read_text())
+    receipt = json.loads(
+        Path("research/trajectory-replay-task510-quantity-revision.json").read_text()
+    )
     before = load_corrections(receipt['predecessor_catalog_path'], require_current_upstream=False)
     after = load_corrections(receipt['revised_catalog_path'], require_current_upstream=False)
     assert receipt['predecessor_correction_catalog_sha256'] == before.source_sha256
@@ -275,8 +307,14 @@ def test_assertion_audit_rejects_changes_outside_declared_step(tmp_path):
     dataset.write_text(json.dumps({'trajectories': [{'task_id': 42, 'tool_calls': calls}]}))
     revised = json.loads(json.dumps(calls))
     revised[0]['script'] = 'false'
-    payload = {'task_id': 42, 'tool_calls': revised, 'repair': {
-        'changed_step': 1, 'predecessor_dataset_sha256': hashlib.sha256(dataset.read_bytes()).hexdigest()}}
+    payload = {
+        "task_id": 42,
+        "tool_calls": revised,
+        "repair": {
+            "changed_step": 1,
+            "predecessor_dataset_sha256": hashlib.sha256(dataset.read_bytes()).hexdigest(),
+        },
+    }
     candidate.write_text(json.dumps(payload))
     assert bound_scripts(dataset, candidate) == ('true', 'false')
     revised[1]['script'] = '2'

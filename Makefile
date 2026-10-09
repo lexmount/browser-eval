@@ -34,6 +34,7 @@ naming-check: runtime-check
 .PHONY: lint-check
 lint-check: runtime-check
 	$(TEST_PY) -m ruff check --config 'include=["*.py"]' --select F .
+	$(TEST_PY) -m ruff check
 
 test-python: runtime-check
 	$(TEST_PY) -m pytest tests -q

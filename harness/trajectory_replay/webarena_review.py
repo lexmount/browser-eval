@@ -138,17 +138,29 @@ def load_validated_failure_review(
                         or _sha256(source) != ref.get("sha256")):
                     raise ValueError("supplemental diagnostic evidence is missing or changed")
                 diagnostic = json.loads(source.read_text(encoding="utf-8"))
-                if (diagnostic.get("task_id") != key[1]
-                        or key not in cohort_keys.get(diagnostic.get("cohort_results_sha256"), set())):
+                if diagnostic.get("task_id") != key[1] or key not in cohort_keys.get(
+                    diagnostic.get("cohort_results_sha256"), set()
+                ):
                     raise ValueError("supplemental diagnostic is not bound to the reviewed cohort")
-                binaries = {attempt.get("binary_sha256") for attempt in attempts if int(attempt["task_id"]) == key[1]}
+                binaries = {
+                    attempt.get("binary_sha256")
+                    for attempt in attempts
+                    if int(attempt["task_id"]) == key[1]
+                }
                 identities = diagnostic.get("binary_sha256")
                 observations = diagnostic.get("observations")
-                if (not isinstance(identities, dict) or not identities
-                        or not isinstance(observations, list) or not observations
-                        or {row.get("method") for row in observations} != set(identities)
-                        or any(not isinstance(value, str) or len(value) != 64 for value in identities.values())
-                        or not set(identities.values()).issubset(binaries)):
+                if (
+                    not isinstance(identities, dict)
+                    or not identities
+                    or not isinstance(observations, list)
+                    or not observations
+                    or {row.get("method") for row in observations} != set(identities)
+                    or any(
+                        not isinstance(value, str) or len(value) != 64
+                        for value in identities.values()
+                    )
+                    or not set(identities.values()).issubset(binaries)
+                ):
                     raise ValueError("supplemental diagnostic browser identity differs")
             if item.get("review_revision"):
                 revision = revisions.get(item["review_revision"])

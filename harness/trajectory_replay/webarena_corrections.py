@@ -365,7 +365,8 @@ def apply_correction(
             corrected_expected = corrected["eval"][1]["expected"]
             if (
                 original.get("intent")
-                != 'Subscribe to the "machine learning" forum from the page of the newest post in that forum.'
+                != 'Subscribe to the "machine learning" forum from the '
+                'page of the newest post in that forum.'
                 or original_expected.get("url")
                 != [
                     "__REDDIT__/f/machine learning/subscribe.json",
@@ -538,7 +539,8 @@ def apply_correction(
                 }
                 or source.get("repository") != "https://github.com/magento/magento2"
                 or source.get("path")
-                != "app/code/Magento/ConfigurableProduct/view/adminhtml/web/js/variations/steps/attributes_values.js"
+                != 'app/code/Magento/ConfigurableProduct/view/adminhtml/'
+                'web/js/variations/steps/attributes_values.js'
                 or len(str(source.get("revision") or "")) != 40
                 or len(str(source.get("sha256") or "")) != 64
                 or source_observation
