@@ -458,6 +458,41 @@ def verify_qualification_commands(root: Path, source_root: Path) -> None:
     assert not Path(qualification.__file__).resolve().is_relative_to(source_root.resolve())
     stage = root / 'qualification'
     stage.mkdir()
+    repair_source = stage / 'repair-source.json'
+    original_action = {'action': 'fill', 'selector': '#title', 'text': 'Frozen title'}
+    repair_source.write_text(json.dumps({'tasks': [{
+        'id': 'task-1', 'trajectory': {'actions': [original_action]},
+        'ground_truth': {'response_builder': {
+            'kind': 'null_after_verified_path', 'task_type': 'mutate'}},
+    }]}))
+    repair_config = stage / 'repair-config.json'
+    repair_config.write_text(json.dumps({
+        'schema': 'lex_browser_use_action_repair/1', 'task_id': 'task-1',
+        'reason': 'Correct exact frozen input', 'edits': [{
+            'start_index': 1, 'expected_actions': [original_action],
+            'replacement_actions': [{**original_action, 'text': 'Corrected title'}],
+        }],
+    }))
+    repair_output = stage / 'repair-proposal.json'
+    arguments = ['--suite', str(repair_source), '--config', str(repair_config),
+                 '--output', str(repair_output)]
+    command = [sys.executable, str(source_root / 'scripts/propose_webarena_action_repair.py')]
+    generated = subprocess.run([*command, *arguments], cwd=stage, capture_output=True)
+    assert generated.returncode == 0, generated.stderr.decode()
+    proposal = json.loads(repair_output.read_bytes())
+    assert proposal['input_sha256']['suite'] == hashlib.sha256(
+        repair_source.read_bytes()).hexdigest()
+    probe = qualification.build_probe(json.loads(repair_source.read_bytes()), proposal)
+    assert probe['tasks'][0]['ground_truth']['qualification']['status'] == 'pending'
+    assert probe['benchmark']['repair_probe']['non_canonical'] is True
+    original_proposal = repair_output.read_bytes()
+    repeated = subprocess.run([*command, *arguments], cwd=stage, capture_output=True)
+    assert repeated.returncode != 0 and repair_output.read_bytes() == original_proposal
+    for kind in ('action_repair', 'observed_repair', 'capture_target', 'replace_target',
+                 'autowait_repairs', 'evaluator_fill_repair'):
+        subprocess.run([sys.executable,
+                        str(source_root / f'scripts/propose_webarena_{kind}.py'), '--help'],
+                       check=True, cwd=stage, capture_output=True)
     fixture = runpy.run_path(str(source_root / 'tests/public_webarena_fixture.py'))
     candidate, decisions = fixture['authoring_suite_fixture']()
     candidate_path, decisions_path = stage / 'candidate.json', stage / 'decisions.json'

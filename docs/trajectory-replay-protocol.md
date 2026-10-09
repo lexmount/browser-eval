@@ -260,6 +260,21 @@ WebArena track and does not modify canonical tasks, measured outcomes or qualifi
 `diagnostics.py` builds the authoring input and runs bounded read-only Codex jobs;
 `qualification.py` derives and validates the pending probe or batch.
 
+The six `scripts/propose_webarena_*.py` commands use that same qualification module.
+Use action repairs for exact guarded splices, target replacement for a stale locator,
+and capture or observed repairs for answers collected from declared DOM observations.
+Evaluator-fill proposals use exact official payload values; auto-wait proposals require
+a matching failed action, a supported post-action timeout and a current task-contract
+binding. Regenerate old unbound qualification queues from their source attempts before
+using them for auto-wait proposals. These tools propose
+changes; they do not certify them or revise official scores.
+
+Proposal commands require a new output file or, for batches, a new output directory.
+They reject linked paths and publish a batch only after every selected task succeeds.
+Outputs bind input hashes, the original trajectory and the executable task contract;
+applying a proposal after that trajectory or evaluator contract changes fails. Keep
+these generated proposals outside Git alongside private qualification evidence.
+
 Build a packet with `scripts/build_webarena_repair_packet.py --suite <suite>
 --attempt <attempt.json> --output <packet.json>`. Packet version 2 separates raw attempt
 provenance from the three author-readable evidence references: screenshot, final page

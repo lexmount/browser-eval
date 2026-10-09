@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.propose_webarena_replace_target import propose_replace_target
+from harness.trajectory_replay.public_webarena.qualification import propose_replace_target
 
 
 def _suite() -> dict:

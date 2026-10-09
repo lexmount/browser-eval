@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.propose_webarena_action_repair import propose_action_repair
+from harness.trajectory_replay.public_webarena.qualification import propose_action_repair
 
 
 def _suite():
@@ -121,3 +121,21 @@ def test_edits_must_be_ordered_and_non_overlapping():
 
     with pytest.raises(ValueError, match="ordered and non-overlapping"):
         propose_action_repair(_suite(), config)
+
+
+def test_hashed_splice_preserves_unicode_hash_contract():
+    import hashlib
+    import json
+
+    suite = _suite()
+    source = suite["tasks"][0]["trajectory"]["actions"][1]
+    source["text"] = "原始标题"
+    digest = hashlib.sha256(json.dumps([source], sort_keys=True,
+                            separators=(",", ":")).encode()).hexdigest()
+    proposal = propose_action_repair(suite, {
+        "schema": "lex_browser_use_action_repair/1", "task_id": "webarena-1",
+        "reason": "Replace exact frozen title", "edits": [{"start_index": 2,
+        "delete_count": 1, "expected_actions_sha256": digest,
+        "replacement_actions": [{**source, "text": "正确标题"}]}]})
+    assert proposal["repair_audit"][0]["before_sha256"] == digest
+    assert proposal["replace_actions"][1]["text"] == "正确标题"

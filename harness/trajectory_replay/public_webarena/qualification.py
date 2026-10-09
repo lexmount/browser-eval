@@ -21,10 +21,11 @@ from typing import Any
 from urllib.parse import urlparse
 
 from harness.record_io import load_jsonl
-from harness.web_fetch.safety import contained_path
+from harness.web_fetch.safety import contained_path, safe_identifier
 
 from .har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
-from .suite import TRAJECTORY_SCHEMA, TaskSuite, load_suite
+from .suite import TRAJECTORY_SCHEMA, TaskSuite, load_suite, validate_selector
+from .targets import validate_target
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 QUALIFICATION_SCHEMA = "lex_browser_use_qualification/2"
@@ -431,6 +432,7 @@ def build_repair_queue(
                 "result_status": [row.get("result_status") for row in task_rows],
                 "semantic_conflicts": list(semantic_conflicts),
                 "failed_step": failed_step,
+                "task_contract_sha256": contract,
                 "evidence_directories": [
                     row.get("evidence_directory")
                     for row in sorted(task_rows, key=lambda item: item["qualification_pass_index"])
@@ -1385,6 +1387,12 @@ def build_probe(suite: dict[str, Any], proposal: dict[str, Any]) -> dict[str, An
 
     task = deepcopy(matches[0])
     original = deepcopy(task["trajectory"])
+    if (proposal.get("source_task_contract_sha256") is not None
+            and proposal["source_task_contract_sha256"] != task_contract_sha256(task)):
+        raise ValueError("repair proposal source task contract changed")
+    if (proposal.get("source_trajectory_sha256") is not None
+            and proposal["source_trajectory_sha256"] != _json_sha256(original)):
+        raise ValueError("repair proposal source trajectory changed")
     if not harness_revalidation:
         if replace_actions:
             task["trajectory"]["actions"] = deepcopy(replace_actions)
@@ -2028,3 +2036,582 @@ def main_authoring_suite(argv=None) -> None:
         },
     )
     _write_qualified_suite(args.output, result)
+
+
+def propose_replace_target(
+    suite: dict[str, Any],
+    task_id: str,
+    *,
+    action_index: int,
+    target: dict[str, Any],
+    allow_many: bool = False,
+    reason: str,
+) -> dict[str, Any]:
+    matches = [task for task in suite.get("tasks") or [] if str(task.get("id")) == task_id]
+    if len(matches) != 1:
+        raise ValueError(f"suite must uniquely contain {task_id}")
+    task = matches[0]
+    actions = deepcopy((task.get("trajectory") or {}).get("actions") or [])
+    if action_index < 1 or action_index > len(actions):
+        raise ValueError("action index is outside the trajectory")
+    action = actions[action_index - 1]
+    if action.get("action") not in {"click", "double_click", "press"}:
+        raise ValueError("target replacement requires a targetable pointer or key action")
+    if not reason.strip():
+        raise ValueError("target replacement requires a reason")
+    validate_target({"target": target})
+    action.pop("selector", None)
+    action["target"] = deepcopy(target)
+    if allow_many:
+        action["allow_many"] = True
+    else:
+        action.pop("allow_many", None)
+    response_builder = (task.get("ground_truth") or {}).get("response_builder")
+    if not isinstance(response_builder, dict):
+        raise ValueError("target replacement requires an existing response builder")
+    return {
+        "schema": "lex_browser_use_repair_proposal/1",
+        "task_id": task_id,
+        "replace_actions": actions,
+        "response_builder": deepcopy(response_builder),
+        "reason": reason.strip(),
+    }
+
+def propose_capture_target(
+    suite: dict[str, Any],
+    task_id: str,
+    *,
+    action_index: int,
+    output_name: str,
+    regex: str | None = None,
+) -> dict[str, Any]:
+    matches = [task for task in suite.get("tasks") or [] if str(task.get("id")) == task_id]
+    if len(matches) != 1:
+        raise ValueError(f"suite must uniquely contain {task_id}")
+    task = matches[0]
+    if "retrieve" not in (task.get("tags") or []):
+        raise ValueError("capture-target repair requires a retrieve task")
+    actions = deepcopy((task.get("trajectory") or {}).get("actions") or [])
+    if action_index < 1 or action_index > len(actions):
+        raise ValueError("action index is outside the trajectory")
+    clicked = actions[action_index - 1]
+    if clicked.get("action") != "click" or not isinstance(clicked.get("target"), dict):
+        raise ValueError("selected action must click a structured target")
+    if not output_name.strip():
+        raise ValueError("output name must be non-empty")
+    validate_target({"target": clicked["target"]})
+    if any(action.get("save_as") == output_name for action in actions):
+        raise ValueError("output name already exists in the trajectory")
+    capture = {
+        "action": "get_text",
+        "target": deepcopy(clicked["target"]),
+        "save_as": output_name,
+        "strip": True,
+    }
+    if "tab_index" in clicked:
+        capture["tab_index"] = clicked["tab_index"]
+    actions.insert(action_index - 1, capture)
+    output_reference: dict[str, Any] = {"$output": output_name}
+    if regex is not None:
+        if not regex:
+            raise ValueError("regex must be non-empty when provided")
+        if re.compile(regex).groups < 1:
+            raise ValueError("capture regex requires a capture group")
+        output_reference.update({"regex": regex, "group": 1})
+    return {
+        "schema": "lex_browser_use_repair_proposal/1",
+        "task_id": task_id,
+        "replace_actions": actions,
+        "response_builder": {
+            "kind": "observed_shape",
+            "task_type": "retrieve",
+            "shape": [output_reference],
+        },
+        "reason": (
+            f"Capture the visible text of recorded click target at step {action_index} before "
+            "navigation; the official trajectory already identifies the answer-bearing element."
+        ),
+    }
+
+def propose_autowait_repair(
+    suite: dict[str, Any], qualification: dict[str, Any], task_id: str
+) -> dict[str, Any]:
+    task_matches = [task for task in suite.get("tasks") or [] if task.get("id") == task_id]
+    decision_matches = [
+        item for item in qualification.get("tasks") or [] if item.get("task_id") == task_id
+    ]
+    if len(task_matches) != 1 or len(decision_matches) != 1:
+        raise ValueError(f"task and qualification must uniquely contain {task_id}")
+    task = task_matches[0]
+    decision = decision_matches[0]
+    if decision.get("task_contract_sha256") != task_contract_sha256(task):
+        raise ValueError(f"{task_id}: qualification task contract changed or is unbound; "
+                         "regenerate the qualification queue")
+    failed = decision.get("failed_step") or {}
+    error = str(failed.get("error") or "")
+    index = int(failed.get("index") or 0)
+    actions = deepcopy((task.get("trajectory") or {}).get("actions") or [])
+    if (
+        decision.get("disposition") != "needs_trace_repair"
+        or index < 1
+        or index > len(actions)
+        or actions[index - 1].get("action") != failed.get("action")
+    ):
+        raise ValueError(f"{task_id}: evidence does not prove a supported auto-wait timeout")
+    response_builder = (task.get("ground_truth") or {}).get("response_builder")
+    if not isinstance(response_builder, dict):
+        raise ValueError(f"{task_id}: an existing response builder is required")
+    if (
+        failed.get("action") == "click"
+        and "click action done" in error
+        and "waiting for scheduled navigations to finish" in error
+    ):
+        actions[index - 1]["accept_completed_action_navigation_timeout"] = True
+        repair_reason = (
+            "accept only this proven post-action timeout and retain the full wait so the request "
+            "remains observable to the official evaluator"
+        )
+    elif (
+        failed.get("action") == "press"
+        and actions[index - 1].get("key") == "Enter"
+        and 'elementHandle.press("Enter")' in error
+        and index < len(actions)
+        and isinstance(actions[index].get("target"), dict)
+    ):
+        actions[index - 1]["no_wait_after"] = True
+        repair_reason = (
+            "disable only the Enter key's implicit navigation wait; the next declared structured "
+            "target remains the readiness and path gate"
+        )
+    else:
+        raise ValueError(f"{task_id}: evidence does not prove a supported auto-wait timeout")
+    return {
+        "schema": "lex_browser_use_repair_proposal/1",
+        "task_id": task_id,
+        "replace_actions": actions,
+        "response_builder": deepcopy(response_builder),
+        "reason": (
+            f"Step {index} timed out in Playwright's implicit post-action wait; {repair_reason}."
+        ),
+    }
+
+def propose_action_repair(
+    suite: dict[str, Any], config: dict[str, Any]
+) -> dict[str, Any]:
+    if config.get("schema") != "lex_browser_use_action_repair/1":
+        raise ValueError("action repair config schema is invalid")
+    task_id = str(config.get("task_id") or "")
+    matches = [task for task in suite.get("tasks") or [] if str(task.get("id")) == task_id]
+    if len(matches) != 1:
+        raise ValueError(f"suite must uniquely contain {task_id}")
+    reason = str(config.get("reason") or "").strip()
+    if not reason:
+        raise ValueError("action repair requires a reason")
+    edits = config.get("edits")
+    if not isinstance(edits, list) or not edits:
+        raise ValueError("action repair requires edits")
+
+    task = matches[0]
+    actions = deepcopy((task.get("trajectory") or {}).get("actions") or [])
+    offset = 0
+    audit: list[dict[str, Any]] = []
+    prior_end = 0
+    for edit in edits:
+        if not isinstance(edit, dict):
+            raise ValueError("every action repair edit must be an object")
+        start = int(edit.get("start_index") or 0)
+        expected = edit.get("expected_actions")
+        expected_sha256 = str(edit.get("expected_actions_sha256") or "")
+        delete_count = int(edit.get("delete_count") or 0)
+        replacement = edit.get("replacement_actions")
+        if start < 1 or start <= prior_end:
+            raise ValueError("action repair edits must be ordered and non-overlapping")
+        if expected is not None and expected_sha256:
+            raise ValueError("use expected_actions or expected_actions_sha256, not both")
+        if expected is None:
+            if len(expected_sha256) != 64 or delete_count < 1:
+                raise ValueError(
+                    "hashed action repair requires expected_actions_sha256 and delete_count"
+                )
+        elif not isinstance(expected, list) or not expected:
+            raise ValueError("action repair edit requires non-empty expected_actions")
+        if not isinstance(replacement, list):
+            raise ValueError("action repair edit requires replacement_actions")
+        source_start = start - 1
+        original_actions = (task.get("trajectory") or {}).get("actions") or []
+        expected_count = len(expected) if isinstance(expected, list) else delete_count
+        source_end = source_start + expected_count
+        source_slice = original_actions[source_start:source_end]
+        if isinstance(expected, list):
+            source_matches = source_slice == expected
+        else:
+            source_matches = (
+                len(source_slice) == expected_count
+                and _proposal_digest(source_slice) == expected_sha256
+            )
+        if not source_matches:
+            raise ValueError(f"{task_id}: source actions changed at index {start}")
+        for action in replacement:
+            if not isinstance(action, dict) or not str(action.get("action") or ""):
+                raise ValueError("replacement action is invalid")
+            validate_selector(action)
+        current_start = source_start + offset
+        current_end = current_start + expected_count
+        actions[current_start:current_end] = deepcopy(replacement)
+        offset += len(replacement) - expected_count
+        prior_end = source_end
+        audit.append(
+            {
+                "start_index": start,
+                "removed_count": expected_count,
+                "inserted_count": len(replacement),
+                "before_sha256": _proposal_digest(source_slice),
+                "after_sha256": _proposal_digest(replacement),
+            }
+        )
+    if not actions:
+        raise ValueError("action repair cannot remove the complete trajectory")
+    response_builder = (task.get("ground_truth") or {}).get("response_builder")
+    if not isinstance(response_builder, dict):
+        raise ValueError(f"{task_id}: existing response builder is required")
+    return {
+        "schema": "lex_browser_use_repair_proposal/1",
+        "task_id": task_id,
+        "replace_actions": actions,
+        "response_builder": deepcopy(response_builder),
+        "reason": reason,
+        "repair_audit": audit,
+    }
+
+FIELD_TOKENS = {
+    "title": ("title",),
+    "body": ("body",),
+    "comment": ("comment",),
+    "url": ("url",),
+    "email": ("email", "newsletter"),
+}
+
+REPAIRABLE_CONFLICT = re.compile(r"^evaluator_([a-z]+)_value_not_filled$")
+
+def _field_for_key(key: str) -> str | None:
+    name = key.casefold()
+    return next(
+        (
+            field
+            for field in FIELD_TOKENS
+            if name == field or name.endswith(f"[{field}]")
+        ),
+        None,
+    )
+
+def _expected_values(task: dict[str, Any]) -> dict[str, str]:
+    values: dict[str, set[str]] = {}
+    for evaluator in (task.get("source") or {}).get("verified_evaluators") or []:
+        if evaluator.get("evaluator") != "NetworkEventEvaluator":
+            continue
+        post_data = (evaluator.get("expected") or {}).get("post_data") or {}
+        if not isinstance(post_data, dict):
+            continue
+        for key, value in post_data.items():
+            field = _field_for_key(str(key))
+            if field is not None and isinstance(value, str) and value.strip():
+                values.setdefault(field, set()).add(value)
+    ambiguous = sorted(field for field, candidates in values.items() if len(candidates) != 1)
+    if ambiguous:
+        raise ValueError(f"ambiguous evaluator values for fields: {ambiguous}")
+    return {field: next(iter(candidates)) for field, candidates in values.items()}
+
+def propose_evaluator_fill_repair(
+    suite: dict[str, Any], task_id: str
+) -> dict[str, Any]:
+    matches = [task for task in suite.get("tasks") or [] if str(task.get("id")) == task_id]
+    if len(matches) != 1:
+        raise ValueError(f"suite must uniquely contain {task_id}")
+    task = matches[0]
+    conflicts = trajectory_semantic_conflicts(task)
+    fields: list[str] = []
+    unsupported: list[str] = []
+    for conflict in conflicts:
+        match = REPAIRABLE_CONFLICT.fullmatch(conflict)
+        if match is None:
+            unsupported.append(conflict)
+        else:
+            fields.append(match.group(1))
+    if unsupported:
+        raise ValueError(f"{task_id}: repair requires unsupported judgment: {unsupported}")
+    if not fields:
+        raise ValueError(f"{task_id}: no exact evaluator fill mismatch to repair")
+
+    expected = _expected_values(task)
+    actions = deepcopy((task.get("trajectory") or {}).get("actions") or [])
+    repaired: list[dict[str, Any]] = []
+    for field in fields:
+        if field not in expected:
+            raise ValueError(f"{task_id}: evaluator value for {field} is unavailable")
+        owned = [
+            index
+            for index, action in enumerate(actions)
+            if action.get("action") == "fill"
+            and any(
+                token
+                in json.dumps(action.get("target"), ensure_ascii=False, sort_keys=True).casefold()
+                for token in FIELD_TOKENS[field]
+            )
+        ]
+        if not owned:
+            raise ValueError(f"{task_id}: no explicit {field} fill action")
+        index = owned[-1]
+        previous = str(actions[index].get("text") or "")
+        actions[index]["text"] = expected[field]
+        repaired.append(
+            {
+                "field": field,
+                "action_index": index + 1,
+                "previous": previous,
+                "replacement": expected[field],
+            }
+        )
+
+    candidate = deepcopy(task)
+    candidate["trajectory"]["actions"] = actions
+    remaining = trajectory_semantic_conflicts(candidate)
+    if remaining:
+        raise ValueError(f"{task_id}: proposed repair leaves semantic conflicts: {remaining}")
+    response_builder = (task.get("ground_truth") or {}).get("response_builder")
+    if not isinstance(response_builder, dict):
+        raise ValueError(f"{task_id}: existing response builder is required")
+    return {
+        "schema": "lex_browser_use_repair_proposal/1",
+        "task_id": task_id,
+        "replace_actions": actions,
+        "response_builder": deepcopy(response_builder),
+        "reason": (
+            "Replace only the final explicit fills whose values contradict the exact official "
+            "NetworkEventEvaluator payload; field ownership and all other actions are unchanged."
+        ),
+        "repair_audit": repaired,
+    }
+
+OBSERVATION_ACTIONS = frozenset(
+    {
+        "get_text",
+        "get_all_text",
+        "get_table_column",
+        "get_attribute",
+        "get_all_attribute",
+        "get_property",
+        "snapshot",
+    }
+)
+
+def _builder_outputs(builder: dict[str, Any]) -> set[str]:
+    kind = builder.get("kind")
+    if builder.get("task_type") != "retrieve":
+        raise ValueError("observed repair requires retrieve task_type")
+    if kind == "observed_json":
+        names = {str(builder.get("output") or "")}
+    elif kind == "observed_json_zip":
+        fields = builder.get("fields")
+        if not isinstance(fields, dict) or not fields:
+            raise ValueError("observed_json_zip requires fields")
+        names = {str(value) for value in fields.values()}
+    elif kind == "observed_json_filter_zip":
+        fields = builder.get("fields")
+        if not isinstance(fields, dict) or not fields:
+            raise ValueError("observed_json_filter_zip requires fields")
+        names = {str(value) for value in fields.values()}
+        names.add(str(builder.get("filter_output") or ""))
+        if not isinstance(builder.get("filter_regex"), str) or not builder["filter_regex"]:
+            raise ValueError("observed_json_filter_zip requires filter_regex")
+    elif kind == "observed_ranked_labels":
+        names = {
+            str(builder.get("labels_output") or ""),
+            str(builder.get("scores_output") or ""),
+        }
+        if int(builder.get("limit") or 0) < 1:
+            raise ValueError("observed_ranked_labels requires positive limit")
+    elif kind == "observed_review_authors_matching":
+        raw_names = builder.get("outputs")
+        if raw_names is None:
+            raw_names = [builder.get("output")]
+        if not isinstance(raw_names, list) or not raw_names:
+            raise ValueError(f"{kind} requires output or outputs")
+        names = {str(value or "") for value in raw_names}
+        for key in ("match_regex", "author_regex"):
+            if not isinstance(builder.get(key), str) or not builder[key]:
+                raise ValueError(f"{kind} requires {key}")
+    else:
+        raise ValueError("observed repair builder kind is not allowed")
+    if not names or "" in names:
+        raise ValueError("observed repair builder requires output names")
+    return names
+
+def propose_observed_repair(
+    suite: dict[str, Any], config: dict[str, Any]
+) -> dict[str, Any]:
+    task_id = str(config.get("task_id") or "")
+    matches = [task for task in suite.get("tasks") or [] if str(task.get("id")) == task_id]
+    if len(matches) != 1:
+        raise ValueError(f"suite must uniquely contain {task_id}")
+    observations = config.get("observation_actions")
+    if not isinstance(observations, list) or not observations:
+        raise ValueError("observed repair requires observation_actions")
+    declared_outputs: set[str] = set()
+    validated: list[tuple[int | None, dict[str, Any]]] = []
+    for raw in observations:
+        if not isinstance(raw, dict) or raw.get("action") not in OBSERVATION_ACTIONS:
+            raise ValueError("observed repair may append only read-only observation actions")
+        action = deepcopy(raw)
+        raw_after = action.pop("after_action_index", None)
+        after_action_index = int(raw_after) if raw_after is not None else None
+        save_as = str(action.get("save_as") or "")
+        if not save_as or save_as in declared_outputs:
+            raise ValueError("observation save_as values must be non-empty and unique")
+        validate_selector(action)
+        declared_outputs.add(save_as)
+        validated.append((after_action_index, action))
+    builder = config.get("response_builder")
+    if not isinstance(builder, dict):
+        raise ValueError("observed repair requires response_builder")
+    referenced_outputs = _builder_outputs(builder)
+    if referenced_outputs != declared_outputs:
+        raise ValueError("response builder outputs must exactly match appended observations")
+    reason = str(config.get("reason") or "").strip()
+    if not reason:
+        raise ValueError("observed repair requires reason")
+    task = matches[0]
+    actions = deepcopy((task.get("trajectory") or {}).get("actions") or [])
+    if declared_outputs.intersection(action.get("save_as") for action in actions):
+        raise ValueError("observation output name already exists in the trajectory")
+    official_action_count = len(actions)
+    for position, (after_action_index, action) in enumerate(validated):
+        if after_action_index is None:
+            actions.append(action)
+            continue
+        if after_action_index < 0 or after_action_index > official_action_count:
+            raise ValueError("after_action_index is outside the official trajectory")
+        prior_insertions = sum(
+            1
+            for prior_index, _ in validated[:position]
+            if prior_index is not None and prior_index <= after_action_index
+        )
+        actions.insert(after_action_index + prior_insertions, action)
+    return {
+        "schema": "lex_browser_use_repair_proposal/1",
+        "task_id": task_id,
+        "replace_actions": actions,
+        "response_builder": deepcopy(builder),
+        "reason": reason,
+    }
+
+
+def _proposal_path(path: Path) -> Path:
+    """Reject links before reading inputs or creating derived proposals."""
+    absolute = Path(os.path.abspath(path))
+    # macOS exposes its standard temporary directories through system aliases.
+    # Normalize only those fixed aliases; user-created links remain forbidden.
+    if sys.platform == "darwin":
+        for alias in (Path("/tmp"), Path("/var")):
+            canonical = Path("/private") / alias.name
+            if (absolute.is_relative_to(alias) and alias.is_symlink()
+                    and alias.resolve() == canonical):
+                absolute = canonical / absolute.relative_to(alias)
+                break
+    if any(part.is_symlink() for part in (absolute, *absolute.parents)):
+        raise ValueError("symlinked proposal paths are forbidden")
+    return absolute
+
+
+def main_repair_proposal(argv=None, *, kind: str) -> None:
+    """Generate pending proposals with shared input and publication boundaries."""
+    config_kinds = {"action_repair", "observed_repair"}
+    batch_kinds = {"autowait_repairs", "evaluator_fill_repair"}
+    supported = config_kinds | batch_kinds | {"capture_target", "replace_target"}
+    if kind not in supported:
+        raise ValueError("unknown repair proposal kind")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--suite", type=Path, required=True)
+    if kind in config_kinds:
+        parser.add_argument("--config", type=Path, required=True)
+    elif kind in batch_kinds:
+        parser.add_argument("--task-ids", required=True)
+        if kind == "autowait_repairs":
+            parser.add_argument("--qualification", type=Path, required=True)
+    else:
+        parser.add_argument("--task-id", required=True)
+        parser.add_argument("--action-index", type=int, required=True)
+        if kind == "capture_target":
+            parser.add_argument("--output-name", required=True)
+            parser.add_argument("--regex")
+        else:
+            parser.add_argument("--target-json", required=True)
+            parser.add_argument("--allow-many", action="store_true")
+            parser.add_argument("--reason", required=True)
+    parser.add_argument("--output-dir" if kind in batch_kinds else "--output",
+                        type=Path, required=True)
+    args = parser.parse_args(argv)
+    inputs = {}
+    payloads = {}
+    for name in ("suite", "config", "qualification"):
+        if hasattr(args, name):
+            path = _proposal_path(getattr(args, name))
+            content = path.read_bytes()
+            inputs[name] = (path, content)
+            payloads[name] = json.loads(content)
+    output = _proposal_path(args.output_dir if kind in batch_kinds else args.output)
+    if output.exists() or output.is_symlink():
+        raise ValueError("proposal output already exists")
+    if any(output == path or path.is_relative_to(output) for path, _ in inputs.values()):
+        raise ValueError("proposal output overlaps an input")
+    suite = payloads["suite"]
+    if kind in batch_kinds:
+        task_ids = [item.strip() for item in args.task_ids.split(",") if item.strip()]
+        if not task_ids or len(set(task_ids)) != len(task_ids):
+            raise ValueError("task IDs must be non-empty and unique")
+        for task_id in task_ids:
+            safe_identifier(task_id)
+        proposals = [
+            propose_autowait_repair(suite, payloads["qualification"], task_id)
+            if kind == "autowait_repairs" else propose_evaluator_fill_repair(suite, task_id)
+            for task_id in task_ids
+        ]
+    elif kind in config_kinds:
+        proposals = [(propose_action_repair if kind == "action_repair"
+                      else propose_observed_repair)(suite, payloads["config"])]
+    elif kind == "capture_target":
+        proposals = [propose_capture_target(
+            suite, args.task_id, action_index=args.action_index,
+            output_name=args.output_name, regex=args.regex)]
+    else:
+        target = json.loads(args.target_json)
+        if not isinstance(target, dict):
+            raise ValueError("target JSON must be an object")
+        proposals = [propose_replace_target(
+            suite, args.task_id, action_index=args.action_index, target=target,
+            allow_many=args.allow_many, reason=args.reason)]
+    for proposal in proposals:
+        task = next(task for task in suite["tasks"] if str(task["id"]) == proposal["task_id"])
+        proposal["source_trajectory_sha256"] = _json_sha256(task["trajectory"])
+        proposal["source_task_contract_sha256"] = task_contract_sha256(task)
+        proposal["input_sha256"] = {
+            name: hashlib.sha256(content).hexdigest()
+            for name, (_, content) in inputs.items()
+        }
+        build_probe(suite, proposal)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".repair-proposals-", dir=output.parent) as work:
+        staging = Path(work) / "proposals"
+        staging.mkdir()
+        for proposal in proposals:
+            filename = f'{proposal["task_id"]}.json' if kind in batch_kinds else "proposal.json"
+            _write_immutable(staging / filename, proposal)
+        for path, content in inputs.values():
+            if _proposal_path(path).read_bytes() != content:
+                raise ValueError("proposal input changed during generation")
+        _proposal_path(output)
+        if output.exists() or output.is_symlink():
+            raise ValueError("proposal output appeared during generation")
+        if kind in batch_kinds:
+            staging.rename(output)
+        else:
+            os.link(staging / "proposal.json", output)

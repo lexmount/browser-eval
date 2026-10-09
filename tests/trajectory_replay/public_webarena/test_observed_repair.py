@@ -1,4 +1,4 @@
-from scripts.propose_webarena_observed_repair import propose_observed_repair
+from harness.trajectory_replay.public_webarena.qualification import propose_observed_repair
 
 
 def _suite():
@@ -108,3 +108,18 @@ def test_observed_repair_can_insert_page_observation_between_official_actions():
         "get_all_text",
         "click",
     ]
+
+
+def test_observed_output_cannot_shadow_an_existing_observation():
+    import pytest
+
+    suite = _suite()
+    suite["tasks"][0]["trajectory"]["actions"][0]["save_as"] = "rows"
+    with pytest.raises(ValueError, match="already exists"):
+        propose_observed_repair(suite, {
+            "task_id": "webarena-1", "reason": "Read visible rows",
+            "observation_actions": [{"action": "get_text", "selector": "#rows",
+                                     "save_as": "rows"}],
+            "response_builder": {"kind": "observed_json", "task_type": "retrieve",
+                                 "output": "rows"},
+        })

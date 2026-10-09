@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.propose_webarena_capture_target import propose_capture_target
+from harness.trajectory_replay.public_webarena.qualification import propose_capture_target
 
 
 def _suite(tag: str = "retrieve") -> dict:
@@ -65,3 +65,16 @@ def test_capture_target_can_extract_a_browser_derived_subfield():
             "group": 1,
         }
     ]
+
+
+def test_capture_output_cannot_shadow_an_existing_observation():
+    suite = _suite()
+    suite["tasks"][0]["trajectory"]["actions"][0]["save_as"] = "name"
+    with pytest.raises(ValueError, match="already exists"):
+        propose_capture_target(suite, "webarena-58", action_index=2, output_name="name")
+
+
+def test_capture_regex_must_supply_the_requested_group():
+    with pytest.raises(ValueError, match="capture group"):
+        propose_capture_target(_suite(), "webarena-58", action_index=2,
+                               output_name="name", regex="^[^,]+")
