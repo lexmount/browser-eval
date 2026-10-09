@@ -490,9 +490,10 @@ Execution pitfalls: the fetch runner calls `provider.fetch(case, timeout)`;
 subprocess workers currently receive only URL and timeout, not selectors or
 completion conditions. Metadata above does not change their wait behavior.
 Use a separate dataset and output directory for each measurement cohort.
-`track: dynamic` identifies 动态网站正文. The existing
-`scripts/run_dynamic_tasks.py` performs popular-site list-identity checks,
-not body evaluation. Never repurpose those calls as body measurements.
+`track: dynamic` identifies 动态网站正文. Popular-site list identity is a
+separate structure task, evaluated through the shared scoring contract. Run a
+new certified cohort with the declared tasks and independent list references;
+never rewrite an existing dataset or replace its measured rows in place.
 Local fixture URLs are unavailable to cloud providers and are blocked by some
 private-network guards; compare them locally or deliberately host a public
 fixture. Avoid the answer-replaying `fixture` provider as a rendering baseline.

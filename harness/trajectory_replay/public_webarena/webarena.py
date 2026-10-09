@@ -12,6 +12,7 @@ import time
 import urllib.parse
 import urllib.request
 import zipfile
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from html.parser import HTMLParser
@@ -620,3 +621,94 @@ def main_fetch_traces(argv=None) -> None:
         json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
+
+
+def main_audit_traces(argv=None) -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--catalog",
+        type=Path,
+        default=Path("evaluation/browser-use-public/webarena-human-traces.json"),
+    )
+    parser.add_argument("--trace-dir", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    from harness.web_fetch.safety import unlinked_path, write_new_file
+
+    output = unlinked_path(args.output)
+    if output.exists():
+        raise ValueError("output already exists")
+    catalog_path = unlinked_path(args.catalog)
+    catalog_bytes = catalog_path.read_bytes()
+    catalog = json.loads(catalog_bytes)
+    rows = validate_trace_catalog(catalog)
+    bindings = {}
+
+    missing: list[str] = []
+    tasks: list[dict] = []
+    action_counts: Counter[str] = Counter()
+    target_counts: Counter[str] = Counter()
+    unmapped_counts: Counter[str] = Counter()
+    recovered_input_counts: Counter[str] = Counter()
+    for row in rows:
+        path = unlinked_path(args.trace_dir / row["file_name"])
+        if not path.is_file():
+            missing.append(row["file_name"])
+            continue
+        bindings[path] = _sha256(path)
+        trace = import_playwright_trace(path, strict=False)
+        actions = trace["actions"]
+        action_counts.update(str(action["action"]) for action in actions)
+        target_counts.update(
+            str((action.get("target") or {}).get("by"))
+            for action in actions
+            if action.get("target")
+        )
+        unmapped_counts.update(str(call["api_name"]) for call in trace["unmapped_calls"])
+        recovered_manual_inputs = sum(
+            bool(action["source"].get("recovered_manual_input_from_snapshot")) for action in actions
+        )
+        recovered_clipboard_inputs = sum(
+            bool(action["source"].get("recovered_from_input_snapshot")) for action in actions
+        )
+        recovered_input_counts["manual_typing"] += recovered_manual_inputs
+        recovered_input_counts["clipboard_paste"] += recovered_clipboard_inputs
+        tasks.append(
+            {
+                "task_id": row["task_id"],
+                "action_count": len(actions),
+                "unmapped_calls": trace["unmapped_calls"],
+                "recorded_failed_actions": sum(
+                    action["source"].get("recorded_status") == "fail" for action in actions
+                ),
+                "unresolved_external_inputs": sum(
+                    bool(action["source"].get("unresolved_external_input")) for action in actions
+                ),
+                "recovered_manual_inputs": recovered_manual_inputs,
+                "recovered_clipboard_inputs": recovered_clipboard_inputs,
+            }
+        )
+    payload = {
+        "schema": "lex_webarena_trace_audit/1",
+        "expected_count": len(rows),
+        "downloaded_count": len(tasks),
+        "complete": not missing,
+        "missing": missing,
+        "action_counts": dict(sorted(action_counts.items())),
+        "target_counts": dict(sorted(target_counts.items())),
+        "unmapped_api_counts": dict(sorted(unmapped_counts.items())),
+        "recovered_input_counts": dict(sorted(recovered_input_counts.items())),
+        "zero_action_task_ids": [row["task_id"] for row in tasks if row["action_count"] == 0],
+        "tasks": tasks,
+    }
+    if catalog_path.read_bytes() != catalog_bytes or any(
+        _sha256(path) != digest for path, digest in bindings.items()
+    ):
+        raise ValueError("trace audit inputs changed")
+    payload["catalog_sha256"] = hashlib.sha256(catalog_bytes).hexdigest()
+    payload["trace_sha256"] = {path.name: digest for path, digest in bindings.items()}
+    write_new_file(output, (json.dumps(payload, indent=2, ensure_ascii=False) + "\n").encode())
+    if missing:
+        raise RuntimeError(f"trace download is incomplete: {len(missing)} files missing")
+    if unmapped_counts:
+        raise RuntimeError(f"unsupported Playwright APIs remain: {dict(unmapped_counts)}")
