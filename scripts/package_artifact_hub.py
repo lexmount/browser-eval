@@ -7,6 +7,7 @@ HTML may be redacted with separate original/published hashes. Hub injects a root
 import gzip
 import hashlib
 import html
+from html.parser import HTMLParser
 import json
 import mimetypes
 import posixpath
@@ -302,18 +303,27 @@ def build():
  # Validate every download and every internal page/file link after transformation.
  for name,digest in original.items():
   assert hashlib.sha256(b''.join(raw_blocks[k] for k in files[name]['parts'])).hexdigest()==digest,name
+ class PageLinks(HTMLParser):
+  def __init__(self):
+   super().__init__();self.images=[];self.links=[];self.evidence=[]
+  def handle_starttag(self,tag,attrs):
+   values=dict(attrs)
+   if tag=='img' and values.get('src'):self.images.append(values['src'])
+   if values.get('href'):self.links.append(values['href'])
+   if values.get('data-file'):self.evidence.append(values['data-file'])
  for name,text in pages.items():
-  for src in re.findall(r'<img[^>]+src="([^"]+)"',text):
-   src=html.unescape(src);u=urlsplit(src)
+  parsed=PageLinks();parsed.feed(text)
+  for src in parsed.images:
+   u=urlsplit(src)
    if u.scheme or u.netloc:continue
    target=posixpath.normpath(posixpath.join(posixpath.dirname(name),unquote(u.path)))
    assert target in files and files[target]['mime'].startswith('image/'),(name,src,target)
-  for href in re.findall(r'href="([^"]+)"',text):
-   href=html.unescape(href);u=urlsplit(href)
+  for href in parsed.links:
+   u=urlsplit(href)
    if u.scheme or u.netloc:continue
    target=posixpath.normpath(posixpath.join(posixpath.dirname(name),unquote(u.path))) if u.path else name
    assert target in files,(name,href,target)
-  for target in re.findall(r'data-file="([^"]+)"',text):assert target in files,(name,target)
+  for target in parsed.evidence:assert target in files,(name,target)
  # Verify packed data independently, not just in-memory deduplication.
  for name in sorted({v['pack'] for v in blocks.values()}):
   raw=gzip.decompress((DEST/name).read_bytes())

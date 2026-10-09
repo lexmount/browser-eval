@@ -293,7 +293,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'datasets' / f'{unusual_case}.html').write_text(
                 '<html><body><h2>Official human ground truth</h2>'
                 '<pre>literal backslash reference</pre></body></html>')
-            (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><a href="sources/case/source.html.txt">HTML</a></body></html>')
+            (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><pre>DEBUG href="../../missing.css" data-file="missing-log.txt"</pre><a href="sources/case/source.html.txt">HTML</a></body></html>')
             (source / 'guide/article.html').write_text('<!doctype html><html><body>Article</body></html>')
             key = b'AIzaSy' + b'x' * 33
             raw = b'<script>key="' + key + b'"</script>'
@@ -364,6 +364,17 @@ class PublicationPrivacyTests(unittest.TestCase):
                 self.assertIn(b'{"field":"parsed"}', file_attempt)
                 self.assertIn(b'{"field":"response"}', file_attempt)
             check_bundle(root / 'publish/webfetch-sites.zip',source)
+            for broken in ('<a href="missing.html">missing</a>',
+                           '<pre data-file="missing.txt"></pre>',
+                           '<img src="missing.png">'):
+                with self.subTest(broken=broken):
+                    (source / 'index.html').write_text('<html><body>' + broken + '</body></html>')
+                    rejected = subprocess.run(
+                        [sys.executable, str(root / 'scripts/package_artifact_hub.py')],
+                        capture_output=True, env=env,
+                    )
+                    self.assertNotEqual(rejected.returncode, 0)
+                    self.assertIn(b'AssertionError', rejected.stderr)
             (source / 'results.jsonl').write_text(results.replace('"route": "markdown"', '"route": "changed"'))
             with self.assertRaisesRegex(ValueError, 'results differ from the current source'):
                 check_bundle(root / 'publish/webfetch-sites.zip', source)
