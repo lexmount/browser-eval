@@ -152,6 +152,13 @@ evidence, and resuming requires the same input bindings and target provider.
 Review findings do not replace official benchmark verdicts. Source outlines omit
 scripts and styles but retain hidden nodes, so they do not prove rendered visibility.
 
+`scripts/audit_webmainbench_suspicions.py` scans saved evidence with a source dataset.
+It verifies frozen source/reference hashes and every logical output hash before
+returning investigation signals. Missing bindings, duplicate logical results or
+inputs changed during analysis are errors. Large inline input failures use the
+same rule for every provider; a signal identifies a case to investigate, not its
+cause or final verdict. An optional output file must be new.
+
 [CONTRIBUTING.md](../CONTRIBUTING.md) documents the development and package gates.
 Tests use synthetic local inputs for execution, scoring, evidence, report and
 publication boundaries. The package gate builds a wheel from the source archive
