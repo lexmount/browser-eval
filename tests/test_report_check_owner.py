@@ -175,8 +175,11 @@ def test_duplicate_provider_declarations_are_rejected(tmp_path, source):
 
 
 def test_explicit_wcxb_profile_dispatches_to_wcxb_gate(tmp_path):
+    from harness.web_fetch.wcxb_publication import write_inventory
     (tmp_path / "wcxb-score-summary.json").write_text("{}")
     write_json(tmp_path / "sample-manifest.json", {"cases": []})
+    (tmp_path / "index.html").write_text('<h1>Synthetic WCXB report</h1>')
+    write_inventory(tmp_path, json.loads((SCRIPT.parents[1] / "evaluation/wcxb/current-report.json").read_bytes()))
     result = subprocess.run(
         [
             sys.executable,

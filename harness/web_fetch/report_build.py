@@ -1108,6 +1108,8 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         for folder in ('artifacts', 'references', 'inputs'):
             shutil.rmtree(staging / folder, ignore_errors=True)
         (staging / '.generated-report').write_text('generated\n')
+        from .wcxb_publication import write_inventory
+        write_inventory(staging, profile)
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.wcxb-report-old-', dir=output.parent)) / 'report'
             output.rename(backup)

@@ -252,6 +252,8 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     if not profile_path.is_file():
         raise ValueError("WCXB release authority is missing; pass --authority-root pointing to the repository")
     profile = json.loads((repository / 'evaluation/wcxb/current-report.json').read_text())
+    from .wcxb_publication import inventory
+    inventory(root, profile)
     sample_file = root / 'sample-manifest.json'
     sample = json.loads(sample_file.read_text())
     require(sample.get('scope') == 'qualified_test', 'WCXB current selection is not source-qualified')

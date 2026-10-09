@@ -351,6 +351,8 @@ def verify_release_check_helpers(root: Path, source_root: Path) -> None:
         </td></tr></table>''', 1)
     command = [sys.executable, str(source_root / 'scripts/check_wcxb_report.py')]
     subprocess.run([*command, '--help'], check=True, stdout=subprocess.DEVNULL)
+    from harness.web_fetch.wcxb_publication import write_inventory
+    write_inventory(pages, json.loads((source_root / 'evaluation/wcxb/current-report.json').read_bytes()))
     rejected = subprocess.run([*command, str(pages), '--authority-root', str(source_root)],
                               capture_output=True, text=True)
     assert rejected.returncode != 0 and 'sample-manifest.json' in rejected.stderr
@@ -784,6 +786,73 @@ def verify_wcxb_scoring(root, source_root):
     ], check=True, cwd=root, capture_output=True, text=True)
 
 
+
+def verify_wcxb_boundaries(root, source_root):
+    """Installed collection, certification and packaging use caller-owned inputs."""
+    import ssl
+    import urllib.request
+    from unittest.mock import patch
+    from harness.web_fetch import wcxb_latency, wcxb_publication
+    from harness.web_fetch.models import ProviderResult
+    from harness.record_io import load_jsonl
+
+    fixture = runpy.run_path(str(source_root / 'tests/wcxb_fixture.py'))
+    options = fixture['create_cohort'](root / 'wcxb-boundaries')
+    binaries = {name: root / ('wcxb-' + name) for name in ('release', 'pr')}
+    for name, binary in binaries.items():
+        binary.write_text(name)
+    profile = json.loads(options['profile_path'].read_bytes())
+    profile.update(release_binary_sha256=fixture['sha'](binaries['release'].read_bytes()),
+                   candidate_binary_sha256=fixture['sha'](binaries['pr'].read_bytes()), concurrency=1)
+    fixture['write_json'](options['profile_path'], profile)
+
+    class LocalReader:
+        def __init__(self, binary):
+            self.config = {}
+            self.binary = binary
+
+        def validate(self):
+            return []
+
+        def implementation_identity(self):
+            return {'binary_sha256': fixture['sha'](self.binary.read_bytes())}
+
+        def fetch(self, case, timeout):
+            context = ssl.create_default_context(cafile=self.config['ca_cert'])
+            with urllib.request.urlopen(case.url, timeout=timeout, context=context) as response:
+                return ProviderResult(True, response.read().decode())
+
+    output = root / 'wcxb-collected'
+    with patch.object(wcxb_latency, 'require_quiet_host', return_value=1.0), \
+            patch.object(wcxb_latency.time, 'sleep'):
+        result = wcxb_latency.collect(
+            dataset=options['source'], manifest=options['sample_manifest'],
+            profile=options['profile_path'], output=output, binaries=binaries,
+            providers={name: LocalReader(binary) for name, binary in binaries.items()},
+        )
+    assert result['call_count'] == len(load_jsonl(output / 'calls.jsonl')) == 8
+    profile['latency_correction_receipt_sha256'] = fixture['sha']((output / 'receipt.json').read_bytes())
+    fixture['write_json'](options['profile_path'], profile)
+    subprocess.run([sys.executable, '-m', 'harness.web_fetch.wcxb_latency', 'certify',
+                    '--profile', str(options['profile_path']), '--dataset', str(options['source']),
+                    '--sample-manifest', str(options['sample_manifest']), '--evidence-root', str(output)],
+                   check=True, cwd=root)
+    assert json.loads((output / 'certification.json').read_bytes())['physical_call_count'] == 8
+    report = root / 'wcxb-report'
+    report.mkdir();(report / 'index.html').write_text('<h1>Synthetic package</h1>')
+    wcxb_publication.write_inventory(report, profile)
+    assert set(wcxb_publication.inventory(report, profile)) == {'index.html', 'public-files.json'}
+    (report / 'private-note.txt').write_text('not declared')
+    try:
+        wcxb_publication.inventory(report, profile)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('Installed WCXB boundary accepted an undeclared file')
+    for module in ('wcxb_latency', 'wcxb_publication'):
+        subprocess.run([sys.executable, '-m', 'harness.web_fetch.' + module, '--help'],
+                       check=True, cwd=root, stdout=subprocess.DEVNULL)
+
 def verify_report_acceptance(root, source_root):
     from harness.web_fetch.report_check import check, check_revision
 
@@ -1149,6 +1218,7 @@ def main():
         verify_adjudication_commands(root, args.source_root)
         verify_browser_observation_capture(root, args.source_root)
         verify_wcxb_scoring(root, args.source_root)
+        verify_wcxb_boundaries(root, args.source_root)
         verify_report_acceptance(root, args.source_root)
         subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
                        check=True, cwd=root)

@@ -28,8 +28,11 @@ def test_webmainbench_sample_is_not_routed_to_wcxb(tmp_path, command):
 
 @pytest.mark.parametrize("command", ["check_report.py", "check_report_revision.py"])
 def test_wcxb_report_does_not_require_web_fetch_dataset_file(tmp_path, command):
+    from harness.web_fetch.wcxb_publication import write_inventory
     (tmp_path / "sample-manifest.json").write_text(json.dumps({"cases": []}))
     (tmp_path / "wcxb-score-summary.json").write_text("{}")
+    (tmp_path / "index.html").write_text('<h1>Synthetic WCXB report</h1>')
+    write_inventory(tmp_path, json.loads((ROOT / "evaluation/wcxb/current-report.json").read_bytes()))
     result = subprocess.run(
         [sys.executable, str(ROOT / "scripts" / command), str(tmp_path)],
         capture_output=True,

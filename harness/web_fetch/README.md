@@ -645,3 +645,47 @@ unavailable, while a non-redirect response matched to the requested navigation
 can supply its explicit final URL. Historical logs and outputs remain immutable.
 The changed route requires a new affected benchmark execution before claiming
 new scores or timings; local fixture validation is not a benchmark rerun.
+
+## WCXB paired timing and publication
+
+`wcxb_latency.py` owns paired-call collection, receipt validation and certification.
+The collector uses the profile's complete qualified population, timeout and binary
+hashes. It runs two serial rounds, reverses order per task and selects the final
+round before observing results. Failed calls remain in the physical log; an
+incomplete, drifting or invalid cohort receives no valid receipt.
+
+```bash
+uv run --frozen python -m harness.web_fetch.wcxb_latency \
+  --profile /absolute/path/current-report.json \
+  --dataset /absolute/path/wcxb --manifest /absolute/path/qualified.json \
+  --release /absolute/path/released-binary --candidate /absolute/path/candidate-binary \
+  --output /absolute/path/new-paired-evidence
+uv run --frozen python -m harness.web_fetch.wcxb_latency certify \
+  --profile /absolute/path/current-report.json \
+  --dataset /absolute/path/wcxb --sample-manifest /absolute/path/qualified.json \
+  --evidence-root /absolute/path/new-paired-evidence
+```
+
+The historical command defaults to the Moli adapter. Other implementations use
+`--config` with exactly two `providers` entries, `release` and `pr`, using the
+normal Provider configuration fields. The binary flags bind those roles to the
+profile's release and candidate hashes. Certification requires the receipt hash
+bound in the experiment's profile; it never changes a historical profile or
+replaces an existing certificate.
+
+The maintained WCXB builder writes `public-files.json` after finishing its staged
+report. Release checks and packaging reject missing, changed or undeclared files.
+Older generated trees must be rebuilt from their frozen evidence. After the
+WCXB release and visual checks pass, the publisher can be invoked from an
+installed package with an explicit repository authority:
+
+```bash
+uv run --frozen python -m harness.web_fetch.wcxb_publication \
+  --authority-root /absolute/path/browser-eval --source /absolute/path/wcxb-report
+```
+
+The publisher freezes the package and profile, checks the expected remote version,
+verifies exported file bytes and the public share page, then advances only the
+profile's live publication version. A failed export check retains the uploaded
+version in a private operation journal so verification can resume without
+uploading the package again. Publication work files use the configured data home.
