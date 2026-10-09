@@ -22,6 +22,7 @@ from playwright.sync_api import Browser, Page, sync_playwright
 
 from harness.environments.browser import (
     ENGINE_PORTS,
+    cleanup_browser_runtime,
     configured_browser_images,
     published_endpoint,
     start_browser_container,
@@ -298,31 +299,6 @@ def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _cleanup_runtime(
-    browsers: dict[str, Browser],
-    playwright: Any,
-    containers: dict[str, Any],
-    networks: dict[str, Any],
-) -> None:
-    for browser in browsers.values():
-        try:
-            browser.close()
-        except Exception:
-            pass
-    try:
-        playwright.stop()
-    except Exception:
-        pass
-    for container in containers.values():
-        try:
-            container.remove(force=True)
-        except Exception:
-            pass
-    for network in networks.values():
-        try:
-            network.remove()
-        except Exception:
-            pass
 
 
 def _write_run_artifacts(
@@ -584,4 +560,4 @@ def run_evaluation(
             fixture_server.shutdown()
             fixture_server.server_close()
             fixture_thread.join(timeout=2)
-        _cleanup_runtime(browsers, playwright, containers, networks)
+        cleanup_browser_runtime(browsers, playwright, containers, networks)

@@ -114,6 +114,10 @@ Add `--verify-login` to exercise the same pre-measurement form-login path. Authe
 before HAR capture, so credentials and login request bodies never enter diagnostic evidence.
 Add `--cpus 2` to exercise the measured browser daemon's cgroup preflight and quota without turning
 the smoke into qualification evidence.
+Use `--engine chromium` or `--engine moli` to check one registered browser; omitting it
+checks both. Site choices come from the shared environment registry, including Map and
+Wikipedia. CPU limits must be finite and positive. Startup or connection failures clean
+up the resources created by the diagnostic run.
 
 Qualification must not inspect Moli results or the later Chromium-versus-Moli comparison. This
 prevents browser-specific post-selection.

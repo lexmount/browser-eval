@@ -11,6 +11,7 @@ import pytest
 
 from harness.environments.browser import (
     ENGINE_PORTS,
+    cleanup_browser_runtime,
     external_websocket_url,
     published_endpoint,
     start_browser_container,
@@ -19,7 +20,6 @@ from harness.trajectory_replay.public_webarena import diagnostics, runner
 from harness.trajectory_replay.public_webarena.runner import (
     ENGINE_IMAGES,
     _capture_final_page_evidence,
-    _cleanup_runtime,
     _environment,
     _environment_failure_row,
     _http_origin,
@@ -690,7 +690,7 @@ def test_cleanup_continues_after_playwright_stop_failure():
         def remove(self):
             calls.append("network.remove")
 
-    _cleanup_runtime(
+    cleanup_browser_runtime(
         {"chromium": Browser()},
         Playwright(),
         {"chromium": Container()},

@@ -24,8 +24,10 @@ from harness.container_isolation import require_linux_cgroup_v2
 from harness.environments.browser import (
     DEFAULT_BROWSER_IMAGES,
     ENGINE_PORTS,
+    cleanup_browser_runtime,
     published_endpoint,
     start_browser_container,
+    validate_resource_controls,
     wait_cdp,
 )
 from harness.resource_accounting import (
@@ -632,47 +634,8 @@ def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _validate_measured_resource_controls(info: dict[str, Any]) -> None:
-    required = {
-        "CpuCfsQuota": "CPU CFS quota",
-        "CpuCfsPeriod": "CPU CFS period",
-        "MemoryLimit": "memory limit",
-        "PidsLimit": "PID limit",
-    }
-    unsupported = [label for key, label in required.items() if info.get(key) is False]
-    if unsupported:
-        raise RuntimeError(
-            "Docker daemon cannot enforce measured resource controls: "
-            + ", ".join(unsupported)
-            + ". Fix cgroup delegation before qualification or formal measurement."
-        )
 
 
-def _cleanup_runtime(
-    browsers: dict[str, Browser],
-    playwright: Any,
-    containers: dict[str, Any],
-    networks: dict[str, Any],
-) -> None:
-    for browser in browsers.values():
-        try:
-            browser.close()
-        except Exception:
-            pass
-    try:
-        playwright.stop()
-    except Exception:
-        pass
-    for container in containers.values():
-        try:
-            container.remove(force=True)
-        except Exception:
-            pass
-    for network in networks.values():
-        try:
-            network.remove()
-        except Exception:
-            pass
 
 
 def _write_run_artifacts(
@@ -812,7 +775,7 @@ def run_evaluation(
         WebArenaEnvironment(webarena_config_path) if webarena_config_path is not None else None
     )
     client = docker.from_env()
-    _validate_measured_resource_controls(client.info())
+    validate_resource_controls(client.info())
     require_linux_cgroup_v2(client)
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
@@ -1176,6 +1139,6 @@ def run_evaluation(
             fixture_server.shutdown()
             fixture_server.server_close()
             fixture_thread.join(timeout=2)
-        _cleanup_runtime(browsers, playwright, containers, networks)
+        cleanup_browser_runtime(browsers, playwright, containers, networks)
         if close_site_client:
             site_client.close()

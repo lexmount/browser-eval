@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 SITES = ("shopping_admin", "shopping", "reddit", "gitlab", "map", "wikipedia")
+SITE_TOKENS = {site: "__" + site.upper() + "__" for site in SITES}
 ARCH_ALIASES = {"aarch64": "arm64", "x86_64": "amd64"}
 
 

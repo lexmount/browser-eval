@@ -97,3 +97,46 @@ def start_browser_container(
             raise ValueError("cpus must be positive when a CPU limit is requested")
         options["nano_cpus"] = int(cpus * 1_000_000_000)
     return client.containers.run(image, **options)
+
+
+def validate_resource_controls(info: dict[str, Any]) -> None:
+    required = {
+        "CpuCfsQuota": "CPU CFS quota",
+        "CpuCfsPeriod": "CPU CFS period",
+        "MemoryLimit": "memory limit",
+        "PidsLimit": "PID limit",
+    }
+    unsupported = [label for key, label in required.items() if info.get(key) is False]
+    if unsupported:
+        raise RuntimeError(
+            "Docker daemon cannot enforce measured resource controls: "
+            + ", ".join(unsupported)
+            + ". Fix cgroup delegation before qualification or formal measurement."
+        )
+
+
+def cleanup_browser_runtime(
+    browsers: dict[str, Any],
+    playwright: Any,
+    containers: dict[str, Any],
+    networks: dict[str, Any],
+) -> None:
+    for browser in browsers.values():
+        try:
+            browser.close()
+        except Exception:
+            pass
+    try:
+        playwright.stop()
+    except Exception:
+        pass
+    for container in containers.values():
+        try:
+            container.remove(force=True)
+        except Exception:
+            pass
+    for network in networks.values():
+        try:
+            network.remove()
+        except Exception:
+            pass

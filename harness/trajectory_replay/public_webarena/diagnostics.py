@@ -10,11 +10,14 @@ import hashlib
 import importlib.metadata
 import importlib.resources
 import json
+import math
 import os
 import re
 import subprocess
 import tempfile
+import time
 import urllib.request
+import uuid
 import zipfile
 from collections import Counter
 from collections.abc import Callable
@@ -24,6 +27,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
+from harness.environments.webarena.config import SITE_TOKENS
 from harness.record_io import parse_jsonl
 from harness.trajectory_replay.diagnostics import (
     _check_diagnostic_snapshot,
@@ -1267,3 +1271,160 @@ def main_evaluator_exclusions(argv=None) -> None:
     diagnostic_output_path(args.output)
     payload = verify_exclusions(args.trace_dir, args.suite, args.exclusions)
     write_diagnostic(args.output, payload)
+
+
+def site_urls(config: dict[str, Any], sites: tuple[str, ...]) -> dict[str, str]:
+    environments = config.get("environments") or {}
+    urls: dict[str, str] = {}
+    for site in sites:
+        token = SITE_TOKENS[site]
+        row = environments.get(token)
+        if not isinstance(row, dict):
+            raise ValueError(f"runtime config is missing {token}")
+        if row.get("credentials") is not None:
+            raise ValueError(f"diagnostic runtime config must not persist credentials: {token}")
+        values = row.get("urls") or []
+        index = int(row.get("active_url_idx") or 0)
+        if not values or index < 0 or index >= len(values):
+            raise ValueError(f"runtime config has no active URL for {token}")
+        urls[site] = str(values[index])
+    return urls
+
+
+def runtime_smoke_main(argv=None) -> None:
+    from harness.environments.browser import (
+        ENGINE_PORTS,
+        cleanup_browser_runtime,
+        configured_browser_images,
+        published_endpoint,
+        start_browser_container,
+        validate_resource_controls,
+        wait_cdp,
+    )
+    from harness.web_fetch.safety import unlinked_path
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--site", action="append", choices=tuple(SITE_TOKENS), required=True)
+    parser.add_argument(
+        "--verify-login",
+        action="store_true",
+        help="authenticate with credentials_env before starting diagnostic HAR capture",
+    )
+    parser.add_argument("--engine", action="append", choices=tuple(ENGINE_PORTS))
+    parser.add_argument("--cpus", type=float, default=None)
+    args = parser.parse_args(argv)
+    config_path = unlinked_path(args.config)
+    output = unlinked_path(args.output)
+    if output.exists():
+        raise ValueError(f"refusing to overwrite diagnostic evidence: {output}")
+    sites = tuple(dict.fromkeys(args.site))
+    frozen_config = config_path.read_bytes()
+    config = json.loads(frozen_config)
+    urls = site_urls(config, sites)
+    if args.cpus is not None and (not math.isfinite(args.cpus) or args.cpus <= 0):
+        raise ValueError("--cpus must be finite and positive")
+    from types import SimpleNamespace
+
+    import docker
+    from playwright.sync_api import sync_playwright
+
+    from harness.environments.webarena.har import CdpHarRecorder
+
+    from .webarena_environment import WebArenaEnvironment
+
+    output.mkdir(parents=True)
+    client = docker.from_env()
+    if args.cpus is not None:
+        if args.cpus <= 0:
+            raise ValueError("--cpus must be positive")
+        validate_resource_controls(client.info())
+    receipt: dict[str, Any] = {
+        "schema": "lex_webarena_runtime_smoke/1",
+        "diagnostic_only": True,
+        "qualification_evidence": False,
+        "cpu_limit": args.cpus,
+        "memory_limit": "1g",
+        "login_verified": args.verify_login,
+        "config_sha256": _sha256(config_path),
+        "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "engines": {},
+    }
+    images = configured_browser_images()
+    for engine in tuple(dict.fromkeys(args.engine or ENGINE_PORTS)):
+        client.images.get(images[engine])
+        run_id = f"runtime-smoke-{uuid.uuid4().hex[:10]}"
+        network = client.networks.create(
+            f"lex-browser-use-eval-{run_id}-{engine}",
+            driver="bridge",
+            labels={"lex.browser-use-eval.diagnostic": run_id},
+        )
+        containers: dict[str, Any] = {}
+        browsers: dict[str, Any] = {}
+        playwright = None
+        try:
+            playwright = sync_playwright().start()
+            container = start_browser_container(
+                client,
+                image=images[engine], cdp_port=ENGINE_PORTS[engine],
+                engine=engine,
+                run_id=run_id,
+                cpus=args.cpus,
+                memory="1g",
+                network=network.name,
+            )
+            containers[engine] = container
+            container.reload()
+            endpoint = published_endpoint(
+                container, engine=engine, cdp_port=ENGINE_PORTS[engine]
+            )
+            browser = playwright.chromium.connect_over_cdp(
+                wait_cdp(endpoint, timeout_seconds=30, container=container)
+            )
+            browsers[engine] = browser
+            page = browser.contexts[0].pages[0]
+            if args.verify_login:
+                environment = WebArenaEnvironment(config_path)
+                page = environment.prepare(
+                    SimpleNamespace(
+                        task_id="diagnostic-login-smoke",
+                        environment={
+                            "kind": "webarena_verified",
+                            "sites": list(sites),
+                            "start_urls": [SITE_TOKENS[site] for site in sites],
+                        },
+                    ),
+                    page,
+                )
+            recorder = CdpHarRecorder(page)
+            pages = []
+            for site, url in urls.items():
+                response = page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+                status = response.status if response is not None else None
+                if status is None or status >= 400:
+                    raise RuntimeError(f"{engine} failed to load {site}: HTTP {status}")
+                pages.append(
+                    {
+                        "site": site,
+                        "requested_url": url,
+                        "final_url": page.url,
+                        "http_status": status,
+                        "title": page.title(),
+                    }
+                )
+            har_path = output / f"{engine}.har"
+            har = recorder.stop(har_path)
+            receipt["engines"][engine] = {
+                "container_image_id": container.image.id,
+                "pages": pages,
+                "har": {**har, "sha256": _sha256(har_path)},
+            }
+        finally:
+            cleanup_browser_runtime(browsers, playwright, containers, {engine: network})
+    if config_path.read_bytes() != frozen_config:
+        raise ValueError("Runtime configuration changed during smoke")
+    (output / "receipt.json").write_text(
+        json.dumps(receipt, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    print(json.dumps(receipt, indent=2, ensure_ascii=False))

@@ -11,11 +11,12 @@ from playwright.sync_api import sync_playwright
 
 from harness.environments.browser import (
     ENGINE_PORTS,
+    cleanup_browser_runtime,
     published_endpoint,
     start_browser_container,
     wait_cdp,
 )
-from harness.trajectory_replay.runner import ENGINE_IMAGES, _cleanup_runtime
+from harness.trajectory_replay.runner import ENGINE_IMAGES
 
 pytestmark = [
     pytest.mark.real_smoke,
@@ -71,4 +72,4 @@ def test_real_browser_opens_public_page_and_extracts_heading(engine: str) -> Non
         assert response is not None and response.ok
         assert page.locator("h1").inner_text() == "Example Domain"
     finally:
-        _cleanup_runtime(browsers, playwright, containers, {engine: network})
+        cleanup_browser_runtime(browsers, playwright, containers, {engine: network})

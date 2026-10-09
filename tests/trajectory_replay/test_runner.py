@@ -9,9 +9,14 @@ from urllib.error import URLError
 
 import pytest
 
-from harness.environments.browser import ENGINE_PORTS, external_websocket_url, published_endpoint
+from harness.environments.browser import (
+    ENGINE_PORTS,
+    cleanup_browser_runtime,
+    external_websocket_url,
+    published_endpoint,
+)
 from harness.trajectory_replay import diagnostics, runner
-from harness.trajectory_replay.runner import _cleanup_runtime, _http_origin, _prepare_page
+from harness.trajectory_replay.runner import _http_origin, _prepare_page
 from harness.trajectory_replay.suite import BrowserTask, TaskSuite
 
 
@@ -190,7 +195,7 @@ def test_cleanup_continues_after_playwright_stop_failure():
         def remove(self):
             calls.append("network.remove")
 
-    _cleanup_runtime(
+    cleanup_browser_runtime(
         {"chromium": Browser()},
         Playwright(),
         {"chromium": Container()},

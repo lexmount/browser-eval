@@ -12,12 +12,13 @@ from playwright.sync_api import sync_playwright
 
 from harness.environments.browser import (
     ENGINE_PORTS,
+    cleanup_browser_runtime,
     published_endpoint,
     start_browser_container,
     wait_cdp,
 )
 from harness.trajectory_replay.public_webarena.har import CdpHarRecorder
-from harness.trajectory_replay.public_webarena.runner import ENGINE_IMAGES, _cleanup_runtime
+from harness.trajectory_replay.public_webarena.runner import ENGINE_IMAGES
 
 pytestmark = [
     pytest.mark.real_smoke,
@@ -93,4 +94,4 @@ def test_real_browser_opens_public_page_and_extracts_heading(engine: str, tmp_pa
         assert any(entry["request"]["url"] == "https://example.com/" for entry in entries)
         assert any(entry["request"]["url"] == "https://example.com/?tab=2" for entry in entries)
     finally:
-        _cleanup_runtime(browsers, playwright, containers, {engine: network})
+        cleanup_browser_runtime(browsers, playwright, containers, {engine: network})
