@@ -189,8 +189,14 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
     from harness.web_fetch.report_build import build_report
     canonical = tmp_path / "repo/evaluation/dataset.json"
-    # Use a genuine committed contract to exercise the production scorer.
-    actual = json.loads(local_audit.read_dataset_bytes(Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json")))["cases"][0]
+    # Exercise the production acceptance boundary without historical downloads.
+    actual = {"id": "dynamic-control", "name": "Stable body fixture",
+              "url": "https://example.invalid/", "category": "dynamic", "track": "dynamic",
+              "task_kind": "body", "expected_any": ["Independent fixture output"],
+              "source_verification": {"state": "unavailable"},
+              "acceptance_contract": {"version": 1, "schema": "body_text",
+                  "minimum_records": 0, "stable_text_anchors": [
+                      {"id": "identity", "alternatives": ["Independent fixture output"]}]}}
     canonical_data = {"tool": "web_fetch", "cases": [actual]}
     _write(canonical, canonical_data)
     dataset = {**canonical_data, "id": "local-fixture", "name": "Local fixture",
