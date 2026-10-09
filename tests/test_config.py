@@ -1,14 +1,38 @@
 import os
+import io
+from contextlib import redirect_stdout
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from harness.web_fetch.config import expand_env, load_env_file, load_runtime_env
-from scripts.import_benchmark_env import HOSTED_KEYS, import_credentials
+from harness.web_fetch.accounts import HOSTED_KEYS, import_credentials, main_import_credentials
 
 
 class ConfigTest(unittest.TestCase):
+    def test_import_command_targets_declared_location_and_never_prints_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source.env"
+            secret = "synthetic-private-value"
+            source.write_text("".join(f"{key}={secret}\n" for key in HOSTED_KEYS))
+            for explicit in (False, True):
+                target = root / ("explicit.env" if explicit else ".env")
+                target.write_text(f"{HOSTED_KEYS[0]}=existing-synthetic-value\n")
+                args = ["--source", str(source)]
+                if explicit:
+                    args += ["--target", str(target)]
+                output = io.StringIO()
+                with patch("harness.web_fetch.accounts.Path.cwd", return_value=root), redirect_stdout(output):
+                    main_import_credentials(args)
+                self.assertNotIn(secret, output.getvalue())
+                self.assertNotIn("existing-synthetic-value", output.getvalue())
+                self.assertIn(f"{HOSTED_KEYS[0]}=existing-synthetic-value", target.read_text())
+                self.assertEqual(target.stat().st_mode & 0o777, 0o600)
+                self.assertFalse(list(root.glob(".env-import-*")))
+            self.assertIn(secret, source.read_text())
+
     def test_env_file_is_data_not_shell(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             marker = Path(directory) / "must-not-exist"

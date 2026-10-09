@@ -464,6 +464,45 @@ def verify_release_check_helpers(root: Path, source_root: Path) -> None:
         assert 'release authority is missing' not in rejected.stderr
 
 
+def verify_environment_preparation(root: Path, source_root: Path) -> None:
+    from unittest.mock import patch
+    from harness.web_fetch import accounts
+    from harness.environments.webarena import config
+
+    for owner in (accounts, config):
+        assert not Path(owner.__file__).resolve().is_relative_to(source_root.resolve())
+    source, target = root / 'synthetic-source.env', root / 'synthetic-target.env'
+    source.write_text(''.join(f'{key}=synthetic-value\n' for key in accounts.HOSTED_KEYS)
+                      + 'UNRELATED_SECRET=synthetic-unrelated\n')
+    target.write_text(f'{accounts.HOSTED_KEYS[0]}=synthetic-existing\n')
+    command = [sys.executable, str(source_root / 'scripts/import_benchmark_env.py'),
+               '--source', str(source), '--target', str(target)]
+    result = subprocess.run(command, check=True, cwd=root, capture_output=True, text=True)
+    assert 'synthetic-value' not in result.stdout + result.stderr
+    assert 'UNRELATED_SECRET' not in target.read_text()
+    assert 'synthetic-existing' in target.read_text()
+    assert target.stat().st_mode & 0o777 == 0o600
+    def registry(url, *, headers=None):
+        if 'auth.docker.io' in url:
+            return {'token': 'synthetic-token'}, {}
+        if '/manifests/' in url:
+            return {'config': {'digest': 'sha256:' + 'b' * 64}}, {'Docker-Content-Digest': 'sha256:' + 'a' * 64}
+        return {'architecture': 'arm64', 'os': 'linux'}, {}
+    output = root / 'synthetic-images.json'
+    with patch.object(config, '_registry_json', registry):
+        config.main_image_lock(['--output', str(output)])
+    before = output.read_bytes()
+    assert set(json.loads(before)['images']) == set(config.SITES)
+    with patch.object(config, '_registry_json', side_effect=AssertionError('output preflight must precede registry')):
+        try:
+            config.main_image_lock(['--output', str(output)])
+        except ValueError as exc:
+            assert 'output already exists' in str(exc)
+        else:
+            raise AssertionError('existing image lock was replaced')
+    assert output.read_bytes() == before
+
+
 def verify_replay_diagnostics(root: Path, source_root: Path) -> None:
     """Basic installed audits need neither WebArena nor Playwright imports."""
     from harness.trajectory_replay import diagnostics
@@ -1516,6 +1555,7 @@ def main():
         verify_sample_assembly(root, args.source_root)
         verify_qualification_commands(root, args.source_root)
         verify_replay_diagnostics(root, args.source_root)
+        verify_environment_preparation(root, args.source_root)
         verify_replay_supersession(root, args.source_root)
         verify_repair_commands(root, args.source_root)
         verify_adjudication_commands(root, args.source_root)

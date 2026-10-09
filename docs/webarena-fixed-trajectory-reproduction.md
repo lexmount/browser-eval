@@ -13,6 +13,8 @@ LLM judge；两个浏览器重放相同的 WebArena 公开人工轨迹，再由�
 
 WebArena-Verified 1.2.3 作为独立依赖提供任务和评分器；全部官方镜像只在
 `evaluation/browser-use-public/webarena-environment-images.json` 中锁定。
+
+为新实验解析官方镜像来源时，运行 `uv run --frozen python scripts/lock_webarena_images.py --output /absolute/path/new-images.json`。命令复用环境配置的站点定义，核对注册表摘要与清单字节，只创建新文件。历史实验继续使用其配置绑定的镜像锁，重新解析 `latest` 不构成历史镜像复现。
 本仓库提供在新机器上重新执行协议所需的代码，但不会仅凭 Git 还原旧运行的逐字节证据：
 原始截图、HAR、attempts、manifest 和 summary 按仓库规则保存在 Git 外。Git 中的
 `evaluation/browser-use-public/current-report.json` 保存当前公开结果与外部证据哈希，

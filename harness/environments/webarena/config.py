@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
+import re
+import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -78,3 +82,88 @@ class RuntimeConfig:
 def normalized_architecture(value: Any) -> str:
     architecture = str(value or "")
     return ARCH_ALIASES.get(architecture, architecture)
+
+
+def official_image_references() -> dict[str, str]:
+    return {site: f"am1n3e/webarena-verified-{site}:latest" for site in SITES}
+
+
+REGISTRY_ACCEPT = ", ".join(
+    (
+        "application/vnd.oci.image.index.v1+json",
+        "application/vnd.docker.distribution.manifest.list.v2+json",
+        "application/vnd.oci.image.manifest.v1+json",
+        "application/vnd.docker.distribution.manifest.v2+json",
+    )
+)
+
+
+def _registry_json(url: str, *, headers: dict[str, str] | None = None) -> tuple[Any, Any]:
+    request = urllib.request.Request(url, headers=headers or {})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        raw = response.read()
+        digest = response.headers.get("Docker-Content-Digest")
+        if digest and digest != "sha256:" + hashlib.sha256(raw).hexdigest():
+            raise ValueError("registry digest does not match received bytes")
+        return json.loads(raw), response.headers
+
+
+def resolve_image(reference: str) -> dict[str, Any]:
+    repository, tag = reference.rsplit(":", 1)
+    token_payload, _ = _registry_json(
+        "https://auth.docker.io/token?service=registry.docker.io&scope="
+        f"repository:{repository}:pull"
+    )
+    token = str(token_payload["token"])
+    authenticated = {"Accept": REGISTRY_ACCEPT, "Authorization": f"Bearer {token}"}
+    manifest, headers = _registry_json(
+        f"https://registry-1.docker.io/v2/{repository}/manifests/{tag}",
+        headers=authenticated,
+    )
+    digest = str(headers.get("Docker-Content-Digest") or "")
+    if not re.fullmatch(r"sha256:[0-9a-f]{64}", digest):
+        raise ValueError(f"registry omitted immutable digest for {reference}")
+    layers = manifest.get("layers") or []
+    platforms = [item.get("platform") for item in manifest.get("manifests") or []]
+    config_digest = (manifest.get("config") or {}).get("digest")
+    image_config = {}
+    if isinstance(config_digest, str):
+        image_config, _ = _registry_json(
+            f"https://registry-1.docker.io/v2/{repository}/blobs/{config_digest}",
+            headers=authenticated,
+        )
+    return {
+        "tag": reference,
+        "pinned": f"{repository}@{digest}",
+        "manifest_digest": digest,
+        "media_type": manifest.get("mediaType"),
+        "compressed_layer_bytes": sum(int(item.get("size") or 0) for item in layers),
+        "platforms": platforms,
+        "architecture": image_config.get("architecture"),
+        "os": image_config.get("os"),
+    }
+
+
+def main_image_lock(argv=None) -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    from harness.web_fetch.safety import unlinked_path
+
+    args.output = unlinked_path(args.output)
+    if args.output.exists():
+        raise ValueError("image lock output already exists")
+    payload = {
+        "schema": "lex_webarena_environment_images/1",
+        "source": "Docker Hub registry manifests",
+        "webarena_verified_version": "1.2.3",
+        "images": {
+            site: resolve_image(reference)
+            for site, reference in official_image_references().items()
+        },
+    }
+    from harness.web_fetch.safety import write_new_file
+
+    write_new_file(
+        args.output, (json.dumps(payload, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    )
