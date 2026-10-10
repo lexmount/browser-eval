@@ -188,7 +188,9 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
     if config.mode == "reuse":
         if package_check is None:
             return finish(result)
-        with snapshot_publication(config.archive, inputs=[config.profile, config.source, *validation_inputs]) as release:
+        with snapshot_publication(
+            config.archive, inputs=[config.profile, config.source, *validation_inputs]
+        ) as release:
             release_guard = release.check
             package_check(release.archive, config.source)
             release.check()
@@ -198,14 +200,17 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
     for path in (config.archive, config.receipt, config.journal):
         if path.resolve().is_relative_to(config.source.resolve()):
             raise ValueError("Publication outputs must stay outside the source report")
-    with snapshot_publication(config.archive, inputs=[config.profile, config.source, *validation_inputs]) as release:
+    with snapshot_publication(
+        config.archive, inputs=[config.profile, config.source, *validation_inputs]
+    ) as release:
         release_guard = release.check
         (package_check or check)(release.archive, config.source)
         release.check()
         original_send = send
 
         def guarded_send(*args, **kwargs):
-            release.check()
+            if '/commit' in args[0] or '/versions' in args[0]:
+                release.verify()
             return original_send(*args, **kwargs)
 
         send = guarded_send
@@ -284,7 +289,7 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
             )
             save(result)
         summary = finish(result)
-        release.check()
+        release.verify()
         operations.clear(identity)
         return summary
 

@@ -7,12 +7,13 @@ import json
 import os
 import re
 import shutil
+import stat
 import tempfile
 import urllib.parse
 import zipfile
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from harness.web_fetch.safety import (
@@ -27,22 +28,58 @@ class PublicationSnapshot:
     archive: Path
     sha256: str
     sources: dict
+    signatures: dict = field(default_factory=dict)
 
     def check(self) -> None:
-        if any(_identity(path) != value for path, value in self.sources.items()):
-            raise ValueError('publication inputs changed after validation')
-        if _identity(self.archive) != self.sha256:
-            raise ValueError('frozen publication archive changed')
+        for path, value in {**self.sources, self.archive: self.sha256}.items():
+            signature = _file_signature(path)
+            # Windows ctime is creation time, so retain byte checks there.
+            if os.name != 'nt' and self.signatures.get(path) == signature:
+                continue
+            if _identity(path) != value or _file_signature(path) != signature:
+                raise ValueError('publication inputs changed after validation')
+            self.signatures[path] = signature
+
+    def verify(self) -> None:
+        """Rehash the complete bytes at the final publication boundary."""
+        for path, value in {**self.sources, self.archive: self.sha256}.items():
+            if _identity(path) != value:
+                raise ValueError('publication inputs changed after validation')
+
+
+def _file_signature(path: Path):
+    """Kernel change times prevent same-size writes or restored mtimes hiding edits."""
+    entries = {}
+
+    def visit(current: Path, relative: str):
+        info = current.lstat()
+        if stat.S_ISLNK(info.st_mode):
+            raise ValueError('Publication inputs contain a symlink')
+        entries[relative] = (info.st_dev, info.st_ino, info.st_mode,
+                             info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+        if stat.S_ISDIR(info.st_mode):
+            with os.scandir(current) as children:
+                for child in children:
+                    visit(Path(child.path), relative + '/' + child.name)
+        elif not stat.S_ISREG(info.st_mode):
+            raise ValueError('Publication inputs must be regular files or directories')
+
+    visit(path, '')
+    return entries
 
 
 @contextmanager
 def snapshot_publication(archive: Path, *, inputs: Sequence[Path]):
     """Upload a private byte-exact copy while guarding the release authority."""
-    sources = {path: _identity(path) for path in dict.fromkeys((archive, *inputs))}
+    paths = dict.fromkeys((archive, *inputs))
+    signatures = {path: _file_signature(path) for path in paths}
+    sources = {path: _identity(path) for path in paths}
+    if any(_file_signature(path) != signatures[path] for path in paths):
+        raise ValueError('publication inputs changed during snapshot creation')
     with tempfile.TemporaryDirectory(prefix='publication-snapshot-') as work:
         frozen = Path(work) / 'archive.zip'
         shutil.copyfile(archive, frozen)
-        snapshot = PublicationSnapshot(frozen, sources[archive], sources)
+        snapshot = PublicationSnapshot(frozen, sources[archive], sources, signatures)
         snapshot.check()
         yield snapshot
 
