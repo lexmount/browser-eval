@@ -2,7 +2,7 @@
 
 [English](../README.md) | **简体中文**
 
-可复现的浏览器能力与性能评测。Browser Eval 是 [Moli](https://github.com/lexmount/moli) 和其他浏览器的配套评测项目，使用统一的任务规则，并保存每项结果的证据。
+可复现的浏览器评测，涵盖网页抓取、轨迹重放和 AI Agent 自动化：检查网页内容能否完整获取、记录好的操作能否完成、Agent 能否自主完成任务，并比较耗时和资源消耗。Browser Eval 是 [Moli](https://github.com/lexmount/moli) 的配套评测项目，也支持其他浏览器；各方法使用统一的任务规则，结果保留原始证据。
 
 运行后得到 HTML 报告，里面有比较表、任务详情、响应和日志。可以在本地查看，也可以通过 [Artifact Site](https://github.com/lexmount/artifact-site) 发布，让其他人在线查看结果。
 

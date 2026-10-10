@@ -2,7 +2,7 @@
 
 **English** | [简体中文](docs/README.zh-CN.md)
 
-Reproducible benchmarks for browser capabilities and performance. Browser Eval is a companion evaluation project for [Moli](https://github.com/lexmount/moli) and other browsers. It uses shared task rules and saves the evidence behind each result.
+Reproducible browser benchmarks for web fetching, trajectory replay and AI agent automation. Compare task completion, latency and resource use across browsers, using shared task rules and saved evidence. Browser Eval is maintained as a companion to [Moli](https://github.com/lexmount/moli) and supports other browsers.
 
 You get an HTML report with comparison tables, task details, responses and logs. Read it locally or publish it through [Artifact Site](https://github.com/lexmount/artifact-site) so others can explore the results online.
 
