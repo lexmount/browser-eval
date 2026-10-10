@@ -1,0 +1,13 @@
+{
+  "repository": "https://github.com/blader/humanizer",
+  "ref": "main",
+  "commit": "225a6f39ac85f76ee48dbad772ea4abe4ed6c9d8",
+  "version": "3.1.0",
+  "license": "MIT",
+  "retrieved_on": "2026-10-10",
+  "unmodified_upstream_files": {
+    "SKILL.md": "0612f1dfb1672b0ea9b97e139bf1f06cabe98d8b27424fe8ff01e1fb4cc99cad",
+    "LICENSE": "4ac4810254ab36d45419141aeb8e69bf50652cfafe5b2dab947d06d44e5cbf96"
+  },
+  "hash_algorithm": "sha256"
+}
