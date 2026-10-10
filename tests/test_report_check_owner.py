@@ -322,8 +322,9 @@ def test_registered_browser_build_has_its_own_interface_panel(tmp_path, defect):
         assert check_revision(root,authority_root=authority).startswith('PASS:')
 
 
+@pytest.mark.parametrize('family', ['web','dynamic','challenge','risk_control','document'])
 @pytest.mark.parametrize('defect', [False, True])
-def test_body_family_rankings_reject_resource_columns(tmp_path, defect):
+def test_body_family_rankings_reject_resource_columns(tmp_path, family, defect):
     from harness.web_fetch.report import ranking
     from harness.web_fetch.report_check import check_revision
     from tests.report_check_fixture import create_revision_report
@@ -331,14 +332,13 @@ def test_body_family_rankings_reject_resource_columns(tmp_path, defect):
 
     root, authority = create_revision_report(tmp_path)
     dataset=json.loads((root/'dataset.json').read_text())
-    for family in ('web','dynamic','challenge','risk_control','document'):
-        c=case(family,'body',family)
-        dataset['cases'].append(c)
-        rendered=ranking([record(c)],{family:c},family)
-        if defect:
-            rendered=rendered.replace('完整度','资源命中率')
-        path=root/'index.html'
-        path.write_text(path.read_text()+rendered)
+    c=case(family,'body',family)
+    dataset['cases'].append(c)
+    rendered=ranking([record(c)],{family:c},family)
+    if defect:
+        rendered=rendered.replace('完整度','资源命中率')
+    path=root/'index.html'
+    path.write_text(path.read_text()+rendered)
     write_json(root/'dataset.json',dataset)
     if defect:
         with pytest.raises(ValueError,match='Body ranking metric columns'):
