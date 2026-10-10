@@ -91,6 +91,22 @@ class NativeTaskOutputTests(unittest.TestCase):
 
 
 class NativeRoutePublicationTests(unittest.TestCase):
+    def test_dynamic_native_markdown_accepts_registered_builds_but_not_conversion(self):
+        from harness.web_fetch.task_outputs import require_native_task_routes
+        case={'id':'dynamic-page','url':'https://example.com/app','track':'dynamic','task_kind':'body'}
+        native={'route':'dynamic_native_markdown','output':'markdown','dump':'markdown'}
+        for provider in ('moli','moli-pr919'):
+            row={'provider':provider,'case_id':case['id'],'provider_metadata':native}
+            with self.subTest(provider=provider):
+                require_native_task_routes([case],[row])
+            for bad in ({**native,'output':'final_dom_html+local_markdown'},
+                        {**native,'route':'dynamic_selected_text'},
+                        {**native,'dump':'json'}):
+                with self.subTest(provider=provider,bad=bad),self.assertRaises(ValueError):
+                    require_native_task_routes([case],[{**row,'provider_metadata':bad}])
+            with self.subTest(provider=provider,wrong_family=True),self.assertRaises(ValueError):
+                require_native_task_routes([{**case,'track':'web'}],[row])
+
     def test_page_routes_prioritize_native_output_and_keep_required_identity(self):
         from harness.web_fetch.task_outputs import require_native_task_routes
         pages=[{'id':'page','url':'https://example.com/page','track':'challenge','task_kind':'structure'}]

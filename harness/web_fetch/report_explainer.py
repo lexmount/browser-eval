@@ -724,7 +724,7 @@ def _render_headless(out, cases, records):
         'resources': resource_table,
         'resource_interpretation': escape(resource_interpretation),
         'resource_methodology': (
-            '<details class="m-details"><summary>资源指标怎样测</summary><p>资源数据来自四种本地方法的单独同题 cohort，不回填到历史正确率调用。每次调用启动一个受限的 Linux 客户端容器及独立网络；宿主控制器和容器启停不计入。CPU 与网络总量读取累计计数，内存与速率分位数按 50 ms 采样。</p><p>资源汇总只使用四种本地配置共同通过的任务，避免把快速失败或空输出当成节省资源。短于采样间隔的内存或速率峰值可能遗漏；Kitesurf 等远端服务的服务端 CPU、内存与上游流量不可观测，因而不进入资源表。</p></details>'
+            '<details class="m-details"><summary>资源指标怎样测</summary><p>资源数据来自四种本地方法的独立同题测量，不回填到历史通过率调用。每次调用启动一个受限的 Linux 客户端容器及独立网络；宿主控制器和容器启停不计入。CPU 与网络总量读取累计计数，内存与速率分位数按 50 ms 采样。</p><p>资源主表统计预先确定的全部任务，包括失败调用，并列出各方法的通过数；成功调用另作条件统计，共同通过的任务仅作诊断。短于采样间隔的内存或速率峰值可能遗漏；Kitesurf 等远端服务的服务端 CPU、内存与上游流量不可观测，因而不进入资源表。</p></details>'
             if resource_summary is not None else ''
         ),
         'pdf_chars': f'{pdf_chars:,}',

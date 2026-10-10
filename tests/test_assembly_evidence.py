@@ -288,3 +288,97 @@ def test_assembly_rejects_changed_missing_or_linked_evidence(source, tmp_path, c
         assemble(root, tmp_path / 'certificates', [], target)
     assert not target.exists()
     assert not list(tmp_path.glob('.rejected-*'))
+
+
+@pytest.mark.parametrize('operation', ['addition', 'replacement'])
+def test_scored_cohort_composition_keeps_authority_without_starting_review(source, tmp_path, operation):
+    from harness.web_fetch.reference_lifecycle import valid_scoring_revision
+    from harness.web_fetch.scoring_revision import revise
+
+    root, _ = source
+    revise(root, root / 'dataset.json', root_cause_category='answer-surface',
+        root_cause='Synthetic retained-answer correction is checked on the complete cohort.',
+        regression_ids=['answer-title-supplies-required-fact'])
+    assert valid_scoring_revision(root)
+    original_bytes = (root / 'results.jsonl').read_bytes()
+    original_history = (root / 'scoring-revisions.json').read_bytes()
+    dataset = json.loads((root / 'dataset.json').read_text())
+    case = EvalCase(**dataset['cases'][0])
+    class Fixture(Provider):
+        def fetch(self, case, timeout):
+            return ProviderResult(True, 'Expected')
+    provider = 'added' if operation == 'addition' else 'retrying'
+    incoming = tmp_path / 'incoming'
+    run_evaluation(output_dir=incoming, dataset_meta={**dataset,
+            'coverage_plan': {'web': [provider]}}, dataset_path=tmp_path / 'input.json',
+        cases=[case], providers=[Fixture(provider, {'type': 'fixture'})],
+        provider_config_path=tmp_path / 'providers.json', runs=1, timeout=1, delay=0)
+    output = tmp_path / 'assembled'
+    assemble(root, tmp_path / 'certificates', [], output,
+        provider_additions=[incoming] if operation == 'addition' else [],
+        provider_replacements=[incoming] if operation == 'replacement' else [])
+    assert valid_scoring_revision(output)
+    assert (output / 'diagnostics/inherited-scoring-history.json').read_bytes() == original_history
+    receipt = json.loads((output / 'scoring-revisions.json').read_text())[-1]
+    assert receipt['inherited_scoring_authority']['receipts_sha256'] == hashlib.sha256(original_history).hexdigest()
+    assert receipt['task_decision_changes'] == []
+    assert not (output / 'result-review.json').exists()
+    assert (root / 'results.jsonl').read_bytes() == original_bytes
+    assert (root / 'scoring-revisions.json').read_bytes() == original_history
+    result = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]
+    inputs = ([json.loads(line) for line in original_bytes.splitlines()]
+              if operation == 'addition' else [])
+    inputs += [json.loads(line) for line in (incoming / 'results.jsonl').read_text().splitlines()]
+    indexed = {(row['provider'], row['case_id']): row for row in inputs}
+    assert len(result) == len(indexed)
+    for row in result:
+        old = indexed[row['provider'], row['case_id']]
+        assert row == old
+        for field in ('attempt_id', 'run_id', 'elapsed_ms', 'started_at', 'completed_at', 'metrics'):
+            assert row.get(field) == old.get(field)
+        assert (output / row['artifact_path']).read_bytes() == (
+            (root if row['provider'] == 'retrying' and operation == 'addition' else incoming)
+            / old['artifact_path']).read_bytes()
+
+
+@pytest.mark.parametrize('damage', ['source-authority', 'incoming-verdict', 'declared-review'])
+def test_scored_cohort_composition_rejects_invalid_authority_or_changed_verdict(source, tmp_path, damage):
+    from harness.web_fetch.scoring_revision import revise
+
+    root, _ = source
+    if damage == 'declared-review':
+        metadata = json.loads((root / 'dataset.json').read_text())
+        metadata.setdefault('comparison', {})['require_independent_result_review'] = True
+        (root / 'dataset.json').write_text(json.dumps(metadata))
+    revise(root, root / 'dataset.json', root_cause_category='answer-surface',
+        root_cause='Synthetic retained-answer correction is checked on the complete cohort.',
+        regression_ids=['answer-title-supplies-required-fact'])
+    dataset = json.loads((root / 'dataset.json').read_text())
+    case = EvalCase(**dataset['cases'][0])
+    class Fixture(Provider):
+        def fetch(self, case, timeout):
+            return ProviderResult(True, 'Expected')
+    incoming = tmp_path / 'incoming'
+    run_evaluation(output_dir=incoming, dataset_meta={**dataset,
+            'coverage_plan': {'web': ['added']}}, dataset_path=tmp_path / 'input.json',
+        cases=[case], providers=[Fixture('added', {'type': 'fixture'})],
+        provider_config_path=tmp_path / 'providers.json', runs=1, timeout=1, delay=0)
+    if damage == 'source-authority':
+        path = root / 'scoring-revisions.json'
+        history = json.loads(path.read_text())
+        history[-1]['output_results_sha256'] = 'f' * 64
+        path.write_text(json.dumps(history))
+    elif damage == 'incoming-verdict':
+        path = incoming / 'results.jsonl'
+        row = json.loads(path.read_text())
+        row['metrics']['content_pass'] = False
+        path.write_text(json.dumps(row) + '\n')
+    protected = {folder: {p.relative_to(folder): p.read_bytes() for p in folder.rglob('*')
+                          if p.is_file()} for folder in (root, incoming)}
+    output = tmp_path / 'assembled'
+    with pytest.raises(ValueError):
+        assemble(root, tmp_path / 'certificates', [], output, provider_additions=[incoming])
+    assert not output.exists()
+    for folder, files in protected.items():
+        assert {p.relative_to(folder): p.read_bytes() for p in folder.rglob('*')
+                if p.is_file()} == files

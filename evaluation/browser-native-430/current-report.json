@@ -9,7 +9,8 @@
     "lightpanda",
     "obscura",
     "chromium",
-    "kitesurf"
+    "kitesurf",
+    "moli-pr919"
   ],
   "timeout_seconds": 45,
   "runs_per_case": 1,
@@ -467,8 +468,8 @@
     ]
   },
   "frozen_inputs": {
-    "dataset_sha256": "7ac804c896f9af55fa5a01c052aad0dce28a5d1835bdc0559ea230a4b45fca2d",
-    "auxiliary_sha256": "d687f5114e52c030630399797af2f4add2061dfb17c83fb58a81cbfd1af1e312"
+    "dataset_sha256": "d32ec3a78bc8326b555e2a9863bfe80ef8915aadabcb58b50b89ea4e44f0ed44",
+    "auxiliary_sha256": "1d1726f0a03f9739cc1a0361e6eddac82cb9c01953b8d9591edaff5771a0c272"
   },
   "report_output": "reports/browser-native-430",
   "source_native_dataset_sha256": "d636aa8af567da8a2e0ff8caf319dd6369528d5f65f0edfe47db1ac0d9890d64",

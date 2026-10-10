@@ -151,3 +151,84 @@ def test_resource_summary_rejects_incomplete_scope_and_invalid_measurements(runs
         }[damage]
     with pytest.raises(ValueError):
         build_summary(dataset, records, batches)
+
+
+def resource_population_fixture(tmp_path):
+    from copy import deepcopy
+    root = tmp_path / 'resource-populations'
+    original = make_run(root, 6, resource=True)
+    dataset = json.loads((root / 'dataset.json').read_text())
+    dataset['coverage_plan']['web'] = ['fixture', 'other']
+    records = deepcopy(original)
+    for index, row in enumerate(records):
+        row['provider_metadata']['client_resource']['cpu_ms'] = 100 if index == 5 else 1
+        if index == 5:
+            row['metrics']['content_pass'] = False
+    for row in original:
+        added = deepcopy(row)
+        added['provider'] = 'other'
+        added['attempt_id'] = row['attempt_id'].replace('fixture', 'other')
+        records.append(added)
+    batches = [json.loads((root / 'manifest.json').read_text())]
+    return dataset, records, batches
+
+
+def test_resource_primary_population_keeps_failed_calls_and_conditional_counts(tmp_path):
+    dataset, records, batches = resource_population_fixture(tmp_path)
+    summary = build_summary(dataset, records, batches)
+    indexed = {row['provider']:row for row in summary['rows']}
+    assert indexed['fixture']['metrics']['cpu_ms'] == {'n':6,'mean':17.5,'p50':1,'p95':100}
+    assert summary['primary_population'] == 'all_declared_calls'
+    assert indexed['other']['metrics']['cpu_ms']['mean'] == 2
+    assert indexed['fixture']['successful_attempts'] == 5
+    assert indexed['fixture']['successful_metrics']['cpu_ms']['mean'] == 1
+    assert indexed['other']['successful_attempts'] == 6
+    assert len(summary['common_pass_cases']) == 5
+
+
+def test_resource_cohort_with_no_common_success_still_reports_complete_measurements(tmp_path):
+    dataset, records, batches = resource_population_fixture(tmp_path)
+    for row in records:
+        if row['provider'] == 'fixture':
+            row['metrics']['content_pass'] = False
+    summary = build_summary(dataset, records, batches)
+    assert summary['common_pass_cases'] == []
+    assert all(row['attempts'] == 6 for row in summary['rows'])
+    failed = next(row for row in summary['rows'] if row['provider'] == 'fixture')
+    assert failed['successful_metrics']['cpu_ms'] == {'n':0,'mean':None,'p50':None,'p95':None}
+    assert failed['metrics']['cpu_ms']['mean'] == 17.5
+
+
+@pytest.mark.parametrize('damage', [None,'wrong-population','missing-value','wrong-value','missing-winner','tied-winner','wrong-leader','wrong-direction'])
+def test_resource_release_checks_populations_measurements_and_unique_highlights(tmp_path, damage):
+    from bs4 import BeautifulSoup
+    from harness.web_fetch.report_resources import check_resource_presentation, render_resource_comparison
+    dataset, records, batches = resource_population_fixture(tmp_path)
+    summary = build_summary(dataset, records, batches)
+    html, _ = render_resource_comparison(summary, summary['providers'])
+    soup = BeautifulSoup(html,'html.parser')
+    cpu = soup.select_one('td[data-resource-provider="other"][data-resource-key="cpu_ms"][data-resource-statistic="mean"]')
+    assert cpu.select_one('.comparison-winner') is not None
+    tied = soup.select_one('td[data-resource-key="memory_mean_bytes"]')
+    assert tied.select_one('.comparison-winner') is None
+    if damage == 'wrong-population':
+        soup.select_one('[data-resource-population]')['data-resource-cases'] = '5'
+    elif damage == 'missing-value':
+        cpu.decompose()
+    elif damage == 'wrong-value':
+        cpu['data-sort'] = '999'
+    elif damage == 'missing-winner':
+        cpu.select_one('.comparison-winner').unwrap()
+    elif damage == 'tied-winner':
+        tied.append(BeautifulSoup('<strong class="comparison-winner">wrong</strong>','html.parser'))
+    elif damage == 'wrong-leader':
+        soup.select_one('[data-resource-winner]')['data-resource-winner'] = 'fixture'
+    elif damage == 'wrong-direction':
+        for cell in soup.select('td[data-resource-key="cpu_ms"][data-resource-statistic="mean"]'):
+            cell['data-metric-direction'] = 'neutral'
+        cpu.select_one('.comparison-winner').unwrap()
+    if damage is None:
+        check_resource_presentation(str(soup),summary)
+    else:
+        with pytest.raises(ValueError):
+            check_resource_presentation(str(soup),summary)

@@ -57,6 +57,19 @@ PUBLIC_AUTH_PLACEHOLDER = re.compile(
     rb'(?i)(?:proxy-)?authorization\s*[:=]\s*'
     rb'(?:[A-Za-z][A-Za-z0-9_-]*\s+)?(?:<[^>\r\n]+>|\[[^\]\r\n]+\])'
 )
+PUBLIC_CORS_CREDENTIAL_POLICY = re.compile(
+    rb'''(?i)["']?access[-_]control[-_]allow[-_]credentials["']?\s*[:=]\s*'''
+    rb'''(?:%[si])?["'`]*(?:true|false)["'`]*'''
+)
+
+
+def _public_cors_policy(data):
+    """A CORS permission Boolean (including ABNF) is not a credential value."""
+    decoded = html.unescape(data.decode('utf-8', errors='surrogateescape'))
+    return bool(PUBLIC_CORS_CREDENTIAL_POLICY.fullmatch(decoded.strip().encode(
+        'utf-8', errors='surrogateescape')))
+
+
 AUTH_SENSITIVE_VALUE = re.compile(
     rb'(?im)((?:proxy[-_]?authorization|authorization)[ \t]*[:=][ \t]*)'
     rb'(?![A-Za-z][A-Za-z0-9_-]*[ \t]+(?:<|\[)|(?:<|\[))'
@@ -177,6 +190,8 @@ def auth_matches(data):
     )
     distinct = []
     for match in matches:
+        if _public_cors_policy(match.group()):
+            continue
         if distinct and match.start() < distinct[-1].end():
             continue
         distinct.append(match)
@@ -237,7 +252,8 @@ def project_file(name, data):
     projected = GOOGLE_KEY.sub(b'[REDACTED_GOOGLE_API_KEY]',
                                url_projected.encode('utf-8', errors='surrogateescape'))
     for pattern, _, replacement in REDACTIONS:
-        projected = pattern.sub(replacement, projected)
+        projected = pattern.sub(lambda match: match.group() if _public_cors_policy(
+            match.group()) else match.expand(replacement), projected)
     projected = LOCAL_USER_PATH.sub(b'/[REDACTED_USER]/', projected)
     categories = []
     kinds = []

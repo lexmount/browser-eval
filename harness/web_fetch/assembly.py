@@ -206,11 +206,53 @@ def copy_projected_review(source, output, excluded_providers):
     return True
 
 
-def bind_assembled_scoring_revision(output):
-    """Bind inherited scoring history to exact assembled bytes and full blind review."""
+def bind_assembled_scoring_revision(output, *, source=None):
+    """Bind composed scoring; revalidate machine evidence without inventing review."""
     path=output/'scoring-revisions.json'
     review_path=output/'result-review.json'
-    if not path.is_file() or not review_path.is_file():return False
+    if not path.is_file():return False
+    if not review_path.is_file():
+        if source is None or valid_scoring_revision(output):return False
+        if not valid_scoring_revision(source):
+            raise ValueError('Assembly source has invalid scoring authority')
+        if json.loads((output/'dataset.json').read_text()).get('comparison',{}).get(
+                'require_independent_result_review'):
+            raise ValueError('Assembly requires its declared independent result review')
+        inherited=path.read_bytes()
+        if inherited != (source/'scoring-revisions.json').read_bytes():
+            raise ValueError('Inherited scoring authority differs from declared source')
+        from .scoring_regressions import active_scoring_regressions
+        from .scoring_revision import revise
+        controls=active_scoring_regressions()
+        history=json.loads(inherited)
+        identifiers=list(dict.fromkeys(identifier for receipt in history
+            for identifier in receipt.get('correction_provenance',{}).get('regression_ids',[])
+            if identifier in controls))
+        if not identifiers:
+            raise ValueError('Assembly scoring authority has no current executable controls')
+        categories={controls[identifier]['category'] for identifier in identifiers}
+        before=read_records(output)
+        archive=output/'diagnostics'/'inherited-scoring-history.json'
+        archive.parent.mkdir(parents=True,exist_ok=True)
+        archive.write_bytes(inherited)
+        path.unlink()
+        receipt=revise(output,output/'dataset.json',
+            root_cause_category=next(iter(categories)) if len(categories)==1 else 'multi-root',
+            root_cause='Revalidate inherited shared scoring corrections against the complete '
+                'certified assembled cohort. Task definitions, answers and selected physical '
+                'calls remain unchanged; independent result review is not inferred.',
+            regression_ids=identifiers,validate_only=True)
+        after=read_records(output)
+        if receipt['task_decision_changes'] or before!=after:
+            raise ValueError('Assembly revalidation changed measured calls or scores')
+        receipt['inherited_scoring_authority']={
+            'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
+            'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest(),
+            'receipts_sha256':hashlib.sha256(inherited).hexdigest()}
+        path.write_text(json.dumps([receipt],ensure_ascii=False,indent=2)+'\n')
+        if not valid_scoring_revision(output):
+            raise ValueError('Assembly revalidation left invalid scoring authority')
+        return True
     dataset=json.loads((output/'dataset.json').read_text())
     records=read_records(output)
     require_result_review(output,dataset,records)
@@ -906,7 +948,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         if not copied and not any((replacements, additions, provider_replacements,
                                    provider_additions, canonical_dataset)):
             copy_projected_review(run,output,[])
-    bind_assembled_scoring_revision(output)
+    bind_assembled_scoring_revision(output, source=run)
     if speed_cohort:
         if not (speed_cohort/'speed-comparison.json').is_file():
             raise ValueError('Speed cohort has not been packaged')

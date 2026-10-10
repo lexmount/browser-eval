@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -25,7 +26,8 @@ from harness.web_fetch.safety import contained_path, validate_report_ids
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 
 
-def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revision_hashes=None):
+def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revision_hashes=None,
+            validate_only=False):
     dataset_path = contained_path(source, "dataset.json")
     dataset_bytes = dataset_path.read_bytes()
     dataset = json.loads(dataset_bytes)
@@ -112,6 +114,7 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revis
         if case_ids is not None and r["case_id"] not in case_ids:
             continue
         c = cases[r["case_id"]]
+        original = deepcopy(r) if validate_only else None
         raw = contained_path(source, r["artifact_path"]).read_bytes()
         if hashlib.sha256(raw).hexdigest() != r["metrics"]["content_sha256"]:
             raise ValueError("Output integrity failure: " + r["attempt_id"])
@@ -129,6 +132,10 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revis
             list_reference=load_list_reference(c, source),
         )
         apply_request_status(r)
+        if validate_only:
+            if r != original:
+                raise ValueError('Scoring validation would change a retained attempt: ' + r['attempt_id'])
+            continue
         if "run_id" not in r:
             r["run_id"] = execution_id(r)
         r["diagnosis"] = diagnose(r, c, raw.decode("utf-8", errors="replace"))
@@ -140,6 +147,8 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revis
     temporary = contained_path(source, "results.jsonl.tmp")
     if path.read_bytes() != original_results or dataset_path.read_bytes() != dataset_bytes:
         raise ValueError("Scoring inputs changed during rescoring")
+    if validate_only:
+        return []
     # JSON Lines readers split on physical line boundaries. Escaping Unicode
     # line/paragraph separators keeps one attempt on exactly one line too.
     temporary.write_text("".join(json.dumps(r, ensure_ascii=True) + "\n" for r in records))

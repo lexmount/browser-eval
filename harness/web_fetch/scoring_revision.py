@@ -83,6 +83,7 @@ def _revise_unlocked(
     root_cause_category: str,
     root_cause: str,
     regression_ids: list[str],
+    validate_only: bool = False,
 ):
     # Validate correction intent and executable controls before touching evidence.
     provenance = correction_provenance(root_cause_category, root_cause, regression_ids)
@@ -150,13 +151,17 @@ def _revise_unlocked(
             changed.append({"case_id": identifier, "fields": fields})
     dataset["cases"] = [updated_cases[case["id"]] for case in dataset["cases"]]
     validate_report_ids(dataset, parse_jsonl(before_results))
-    dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
+    if validate_only and changed:
+        raise ValueError('Scoring validation cannot change task requirements')
+    if not validate_only:
+        dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
     staged_dataset = read_dataset_bytes(dataset_path)
     try:
         decisions = rescore(
             source,
             allow_rule_revision=True,
             reference_revision_hashes=revised_reference_hashes or None,
+            validate_only=validate_only,
         )
     except BaseException:
         # Never roll stale bytes over a different process's completed revision.
@@ -203,6 +208,7 @@ def _revise_unlocked(
         "changed_cases": changed,
         "task_decision_changes": decisions,
         "provider_calls": 0,
+        **({'validation_only': True} if validate_only else {}),
         "immutable_call_fields": (
             "attempt identity, output bytes/hash, timestamps and elapsed time retained"
         ),
@@ -224,7 +230,7 @@ def _revise_unlocked(
     return receipt
 
 
-def rebind_report_interpretation(source: Path, binding: dict):
+def rebind_report_interpretation(source: Path, binding: dict, *, implementation_binding: dict | None = None):
     """Bind presentation content while preserving the scored output bytes."""
     from .reference_lifecycle import valid_scoring_revision
     source = source.resolve()
@@ -232,17 +238,28 @@ def rebind_report_interpretation(source: Path, binding: dict):
         raise ValueError('Report binding requires a valid existing scoring chain')
     if set(binding) != {'path', 'sha256'}:
         raise ValueError('Invalid report interpretation binding')
-    asset = contained_path(source, binding['path'])
+    asset = contained_path(source, binding['path'], reject_symlinks=True)
     if hashlib.sha256(asset.read_bytes()).hexdigest() != binding['sha256']:
         raise ValueError('Report interpretation content hash mismatch')
+    if implementation_binding is not None:
+        if (set(implementation_binding) != {'path', 'sha256'}
+                or implementation_binding['path'] != 'implementation-provenance.json'):
+            raise ValueError('Invalid implementation provenance binding')
+        implementation = contained_path(source, implementation_binding['path'], reject_symlinks=True)
+        if hashlib.sha256(implementation.read_bytes()).hexdigest() != implementation_binding['sha256']:
+            raise ValueError('Implementation provenance content hash mismatch')
     dataset_path = contained_path(source, 'dataset.json')
     before = dataset_path.read_bytes()
     dataset = json.loads(before)
     dataset.setdefault('comparison', {})['report_interpretation'] = binding
+    if implementation_binding is not None:
+        dataset['comparison']['implementation_provenance'] = implementation_binding
     after = (json.dumps(dataset, ensure_ascii=False, indent=2)+'\n').encode()
     results_hash = hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()
     receipt = {'kind': 'report_interpretation_binding_revision', 'provider_calls': 0,
                'input_results_sha256': results_hash, 'output_results_sha256': results_hash}
+    receipt['bound_asset_fields'] = ['report_interpretation'] + (
+        ['implementation_provenance'] if implementation_binding is not None else [])
     for side, raw in (('input', before), ('output', after)):
         digest = hashlib.sha256(raw).hexdigest()
         relative = f'revision-history/dataset-{digest}.json'
@@ -268,6 +285,7 @@ def revise(
     root_cause_category: str,
     root_cause: str,
     regression_ids: list[str],
+    validate_only: bool = False,
 ):
     """Serialize evidence revisions and make rollback ownership explicit."""
     source = source.resolve()
@@ -282,6 +300,7 @@ def revise(
                 root_cause_category=root_cause_category,
                 root_cause=root_cause,
                 regression_ids=regression_ids,
+                validate_only=validate_only,
             )
         finally:
             fcntl.flock(lock.fileno(), fcntl.LOCK_UN)

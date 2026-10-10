@@ -525,14 +525,15 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     if not ("本类最高：" in home and "判分完整性" in home):
         raise ValueError("Report acceptance check failed")
     if (root / "resource-cohort/resource-comparison.json").is_file():
+        from .report_resources import check_resource_presentation
+        resource_summary = json.loads((root / "resource-cohort/resource-comparison.json").read_text())
         guide = (root / "guide/index.html").read_text()
         for page_name, text in [("home", home), ("guide", guide)]:
+            check_resource_presentation(text, resource_summary)
             if "data-resource-winner=" not in text:
                 raise ValueError((page_name, "missing resource winner summary"))
             if not all(label in text for label in ("CPU 与计算", "内存", "网络")):
                 raise ValueError((page_name, "missing grouped resource tables"))
-            if not text.count("data-resource-metric-winner=") >= 9:
-                raise ValueError((page_name, "resource winners are not marked"))
         if has_english:
             for page_name, text in [
                 ("English home", (root / "en/index.html").read_text()),
@@ -542,8 +543,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                     raise ValueError((page_name, "missing resource winner summary"))
                 if not all(label in text for label in ("CPU and compute", "Memory", "Network")):
                     raise ValueError((page_name, "missing grouped resource tables"))
-                if not text.count("data-resource-metric-winner=") >= 9:
-                    raise ValueError((page_name, "resource winners are not marked"))
+                check_resource_presentation(text, resource_summary)
     methodology = (root / "methodology/index.html").read_text()
     for phrase in [
         "计入耗时",
@@ -696,13 +696,15 @@ def check_revision(out: Path, *, authority_root: Path):
         '.interface-panel[id^="interface-"]'
     )
     from harness.web_fetch.report_interfaces import SPECS
+    from harness.web_fetch.methods import native_browser_engine
+    interface_names = set(SPECS) | {name for name in names if native_browser_engine(name)}
 
     if not (
-        len(interfaces) == len(SPECS)
+        len(interfaces) == len(interface_names)
         and sum(p.has_attr("open") for p in interfaces) == bool(interfaces)
     ):
         raise ValueError("Report presentation check failed")
-    if {panel.get("id") for panel in interfaces} != {"interface-" + name for name in SPECS}:
+    if {panel.get("id") for panel in interfaces} != {"interface-" + name for name in interface_names}:
         raise ValueError("Interface inventory differs from registry")
     for panel in interfaces:
         if not len(panel.select("pre")) == 2:

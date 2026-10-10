@@ -18,6 +18,28 @@ from harness.web_fetch.publication_privacy import project_file, publication_risk
 
 
 class PublicationPrivacyTests(unittest.TestCase):
+    def test_public_cors_boolean_and_abnf_are_not_credentials(self):
+        for policy in (b'Access-Control-Allow-Credentials: true',
+                       b'Access-Control-Allow-Credentials = %s"true"',
+                       b'Access-Control-Allow-Credentials = %i"false"',
+                       b'Access&#45;Control&#45;Allow&#45;Credentials = %s"true"'):
+            with self.subTest(policy=policy):
+                self.assertIsNone(publication_risk(policy))
+                self.assertEqual(project_file('response.txt',policy),(policy,None))
+                mixed=policy+b'\nAuthorization: Bearer PRIVATE_CANARY\n'
+                projected,receipt=project_file('response.txt',mixed)
+                self.assertIn(policy,projected)
+                self.assertNotIn(b'PRIVATE_CANARY',projected)
+                self.assertIsNone(publication_risk(projected))
+                self.assertIsNotNone(receipt)
+        for secret in (b'Access-Control-Allow-Credentials: PRIVATE_CANARY',
+                       b'Credentials: PRIVATE_CANARY',b'Authorization: Bearer PRIVATE_CANARY'):
+            with self.subTest(secret=secret):
+                self.assertEqual(publication_risk(secret),'sensitive field value')
+                projected,_=project_file('response.txt',secret)
+                self.assertNotIn(b'PRIVATE_CANARY',projected)
+                self.assertIsNone(publication_risk(projected))
+
     def test_header_at_end_of_json_text_cannot_consume_following_record_fields(self):
         record={'body':'RFC example: Authorization: Basic PRIVATE_CANARY',
                 'metrics':{'passed':False,'count':7},'case_id':'rfc-example'}

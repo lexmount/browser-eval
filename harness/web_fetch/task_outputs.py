@@ -192,6 +192,9 @@ def require_native_task_routes(cases, records):
         if mode == 'markdown':
             if provider == 'moli':
                 valid = meta.get('route') == 'ordinary_markdown' and meta.get('output') == 'markdown'
+                if meta.get('route') == 'dynamic_native_markdown':
+                    valid = (case.track == 'dynamic' and meta.get('output') == 'markdown'
+                             and meta.get('dump') == 'markdown')
             elif provider == 'chromium':
                 valid = (meta.get('extractor') == 'node-html-markdown'
                          and (meta.get('extractor_version') == '2.0.0'

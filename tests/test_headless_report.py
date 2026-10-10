@@ -127,7 +127,10 @@ class HeadlessReportTests(unittest.TestCase):
                    'planned_cases': ['a'] * 20}
         page, interpretation = _render_article_resources(summary, selected)
         self.assertNotIn('<th scope="col">Kitesurf</th>', page)
-        self.assertIn('<strong>8/20</strong> 个普通网页', page)
+        self.assertIn('data-resource-population="all_declared_calls"', page)
+        self.assertIn('全部 20 个普通网页，包含失败调用', page)
+        self.assertIn('共同通过 <strong>8/20</strong>', page)
+        self.assertIn('不用于选择资源表的样本', page)
         self.assertIn('本轮资源效率领先', page)
         self.assertIn('data-resource-winner="moli"', page)
         self.assertEqual(page.count('data-resource-metric-winner="moli"'), 12)

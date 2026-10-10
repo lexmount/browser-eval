@@ -895,6 +895,13 @@ def valid_scoring_revision(source) -> bool:
                 if (edge is None or receipt.get('kind') != 'report_interpretation_binding_revision'
                         or receipt.get('provider_calls') != 0 or edge[0][1] != edge[1][1]):
                     return False
+                asset_fields = receipt.get('bound_asset_fields', ['report_interpretation'])
+                if (not isinstance(asset_fields, list) or not asset_fields
+                        or any(not isinstance(field, str) for field in asset_fields)
+                        or len(asset_fields) != len(set(asset_fields))
+                        or 'report_interpretation' not in asset_fields
+                        or set(asset_fields) - {'report_interpretation', 'implementation_provenance'}):
+                    return False
                 snapshots = []
                 for side, binding in zip(('input', 'output'), edge):
                     raw = contained_path(root, receipt[f'{side}_dataset_path']).read_bytes()
@@ -903,7 +910,8 @@ def valid_scoring_revision(source) -> bool:
                     document = json.loads(raw)
                     if not isinstance(document, dict):
                         return False
-                    document.get('comparison', {}).pop('report_interpretation', None)
+                    for field in asset_fields:
+                        document.get('comparison', {}).pop(field, None)
                     if not document.get('comparison'):
                         document.pop('comparison', None)
                     snapshots.append(document)

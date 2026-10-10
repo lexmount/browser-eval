@@ -3334,6 +3334,11 @@ TEXT.update({
     "接收": "Received",
     "发送": "Sent",
     "同题口径：所列配置共同通过": "Matched-task scope: general pages passed by every listed configuration:",
+    "所列配置共同通过": "Tasks passed by every listed configuration:",
+    "；这项交集只作附加诊断，不用于选择资源表的样本。各方法成功调用的条件统计另保留在资源证据中。": "; this intersection is diagnostic only and does not select the resource-table population. Conditional statistics for each method's successful calls are retained in the resource evidence.",
+    "资源数据来自四种本地方法的独立同题测量，不回填到历史通过率调用。每次调用启动一个受限的 Linux 客户端容器及独立网络；宿主控制器和容器启停不计入。CPU 与网络总量读取累计计数，内存与速率分位数按 50 ms 采样。": "Resource data comes from a separate matched-task measurement of the four local methods and is not added to historical pass-rate calls. Each call starts a limited Linux client container with a dedicated network; the host controller and container lifecycle are excluded. CPU and network totals use cumulative counters, while memory and rate percentiles are sampled every 50 ms.",
+    "资源主表统计预先确定的全部任务，包括失败调用，并列出各方法的通过数；成功调用另作条件统计，共同通过的任务仅作诊断。短于采样间隔的内存或速率峰值可能遗漏；Kitesurf 等远端服务的服务端 CPU、内存与上游流量不可观测，因而不进入资源表。": "The primary resource table includes every predeclared task, including failed calls, and shows each method's pass count. Successful calls have separate conditional statistics; shared successes are diagnostic only. Memory or rate peaks shorter than the sampling interval may be missed. Server-side CPU, memory, and upstream traffic for remote services such as Kitesurf are unobservable, so they are excluded from the resource table.",
+    "资源主表纳入预先确定的全部任务，包括失败调用，统计容器内调用进程、浏览器与转换过程的消耗；同时列出各方法通过数。各方法成功调用另作条件统计，共同通过的任务仅作诊断。Kitesurf 的远端 CPU、内存和上游流量不可见，因此不进入资源表。缺少任一资源字段、非 Linux/cgroup v2、镜像或二进制身份变化、并发不为 1，都会阻断资源包构建。": "The primary resource table includes every predeclared task, including failed calls, and measures the caller process, browser, and conversion within the container. Each method's pass count is shown. Successful calls have separate conditional statistics; shared successes are diagnostic only. Kitesurf's remote CPU, memory, and upstream traffic are unobservable, so it is excluded. Missing resource fields, a non-Linux/cgroup-v2 backend, changed image or binary identity, or concurrency other than one block resource packaging.",
     "个普通网页；失败任务不进入资源排名。": "pages; failed tasks do not enter the resource ranking.",
     "CPU 与计算": "CPU and compute",
     "内存": "Memory",
@@ -3359,6 +3364,11 @@ TEXT.update({
     "CPU 与网络总量来自累计计数；内存与瞬时速率按 50 ms 采样，可能遗漏更短尖峰。CPU 占用、传输速率不按“越低越好”评选。完整方法与逐次证据见环境与复现页。": "CPU and network totals come from cumulative counters. Memory and instantaneous rates are sampled every 50 ms and may miss shorter spikes. CPU utilization and transfer rates are not ranked as lower-is-better. See Methodology and Reproduction for full methods and per-call evidence.",
     "左右滑动查看完整对比": "Scroll horizontally for the full comparison",
 })
+
+REGEX.insert(0, (
+    re.compile(r"^资源表覆盖预先确定的全部 (\d+) 个普通网页，包含失败调用。这组任务的通过数：(.*)。各项平均值、P50、P95 使用同一完整范围。$"),
+    r"The resource table covers all \1 predeclared general pages, including failed calls. Pass counts: \2. Mean, P50, and P95 share this complete population.",
+))
 
 REGEX.insert(0, (
     re.compile(r"^(\d+)/(\d+)$"),
