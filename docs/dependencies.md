@@ -1,6 +1,14 @@
 # Dependency sources and versions
 
-Start from `uv sync --frozen` for the base installation, or add the selected extra. [pyproject.toml](../pyproject.toml) declares direct dependencies and [uv.lock](../uv.lock) fixes resolved versions and hashes. [package-lock.json](../package-lock.json) does the same for the repository's Node dependencies. Do not substitute a similarly named registry package for a Git dependency.
+Install the base CLI with `uv sync --frozen`. Add only the extras needed by your method.
+
+| File | What it fixes |
+| --- | --- |
+| [pyproject.toml](../pyproject.toml) | Direct Python dependencies and Git sources |
+| [uv.lock](../uv.lock) | Resolved Python versions and hashes |
+| [package-lock.json](../package-lock.json) | Node dependency versions |
+
+Use the declared Git source for the evaluator. A registry package with the same name and version may contain different code.
 
 ## Git-based runtime dependencies
 
@@ -11,11 +19,21 @@ Start from `uv sync --frozen` for the base installation, or add the selected ext
 | OpenClaw Web Fetch baseline | [openclaw/openclaw](https://github.com/openclaw/openclaw) | [`12c4bdf7482f24c85b011e9d858fdec3c245101c`](https://github.com/openclaw/openclaw/commit/12c4bdf7482f24c85b011e9d858fdec3c245101c) |
 | DeepSeek Harness Web Fetch baseline | [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) | [`dd6322d604e00eec1ba5e0c8541159906a21094a`](https://github.com/deepseek-ai/deepseek-harness/commit/dd6322d604e00eec1ba5e0c8541159906a21094a) |
 
-A full commit ID selects the executable bytes; a moving branch name does not. [bootstrap_oss_baselines.sh](../scripts/bootstrap_oss_baselines.sh) obtains the three Web Fetch baseline checkouts at detached commits and installs their declared toolchains. It rejects dirty checkouts and unexpected origins. Read it before running: it downloads dependencies, runs upstream builds and can take substantial time. Its default commits match [providers.example.json](../configs/providers.example.json) and [providers.resources.json](../configs/providers.resources.json). Copy new experiment configurations when intentionally changing a method version; changing only the checkout or bootstrap override will fail identity validation.
+### Install the historical Web Fetch baselines
 
-The baseline bootstrap selects Node.js 24.15.0, pnpm 12.1.0 and Python 3.11.12 to match the historical method configurations. This Python patch pin is specific to those library baselines, not the base CLI's minimum version. It replaces the checkout's `.venv` with the required interpreter; use a separate clone for baseline reproduction if you need to preserve another development environment.
+[bootstrap_oss_baselines.sh](../scripts/bootstrap_oss_baselines.sh) checks out CowAgent, OpenClaw and DeepSeek Harness at the commits above and builds their tools. It rejects uncommitted changes and unexpected repository origins. The defaults match [providers.example.json](../configs/providers.example.json) and [providers.resources.json](../configs/providers.resources.json).
 
-The Browser Use runner accepts an explicitly configured clean CowAgent checkout and records its commit. That Agent checkout is separate from the installed WebArena evaluator and from the historical Web Fetch baseline pin. Follow its [run guide](../examples/browser_use/README.md) for the chosen model and BrowserTool contract.
+| Historical runtime | Version |
+| --- | --- |
+| Node.js | 24.15.0 |
+| pnpm | 12.1.0 |
+| Python | 3.11.12 |
+
+Read the script before running it: it downloads and builds dependencies, and replaces the checkout's `.venv`. Use a separate clone if you need to keep another environment. The Python patch pin applies to these baselines; the base CLI supports a wider range.
+
+For a new method version, copy the provider configuration and update its pins as well as the checkout. Changing just a branch or bootstrap override fails preflight. Full commits identify the source; branch tips can move.
+
+Browser Use records its configured clean CowAgent checkout separately. It need not use the historical Web Fetch pin. Follow the [Browser Use guide](../examples/browser_use/README.md).
 
 ## Browser binaries and library adapters
 
@@ -28,13 +46,26 @@ The Browser Use runner accepts an explicitly configured clean CowAgent checkout 
 | HTML to Markdown | [node-html-markdown](https://github.com/crosstype/node-html-markdown) | `package-lock.json`; adapters require 2.0.0. Install with `npm ci` |
 | LangChain loader / Crawl4AI | [LangChain Community](https://github.com/langchain-ai/langchain-community) · [Crawl4AI](https://github.com/unclecode/crawl4ai) | `oss-eval`, uv.lock and the selected method's interpreter/library pins |
 
-Docker images, application datasets, models and provider accounts are prepared separately. `.env.example` lists local paths and credential names; it does not install a browser or acquire an account. `browser-harness-eval accounts` prints provider acquisition links without making evaluation calls. Hosting credentials follow the separate [report hosting](report-hosting.md) contract.
+Prepare browser binaries, Docker images, site data, models and accounts separately. [`.env.example`](../.env.example) lists paths and credential names. `browser-harness-eval accounts` prints account setup links without making evaluation calls. Publishing uses separate [hosting credentials](report-hosting.md).
 
 ## Benchmark inputs and scorers
 
-[WebMainBench](https://github.com/opendatalab/WebMainBench) supplies the official frozen-HTML benchmark and scorer. Historical full-cohort profiles bind official scorer commit `9d991bdc00c57b57521499494d96be85c31317ba`. The maintained [lexmount/WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) owns declared scorer corrections; the current full-cohort correction binding names commit `65b49124b923e59f3cfcd839ee1af4628c36f340`. These are different scoring authorities, not interchangeable branch tips. Read the selected [profile and correction bindings](../evaluation/webmainbench-full/) and [scoring guide](../harness/web_fetch/WEBMAINBENCH.md) before choosing a scorer.
+[WebMainBench](https://github.com/opendatalab/WebMainBench) supplies the frozen-HTML dataset and official scorer. The maintained [fork](https://github.com/lexmount/WebMainBench/tree/lex-main) contains declared scoring corrections:
 
-[WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) is independently bound by its [current profile](../evaluation/wcxb/current-report.json). WebArena task/site data and human recordings follow their own [deployment and replay contracts](webarena-fixed-trajectory-reproduction.md). Complete historical source inputs require approved external copies and [manifest validation](reference-inputs.md); a Git clone alone cannot reproduce those historical measurements.
+| Scorer | Commit used by the full comparison |
+| --- | --- |
+| Official | `9d991bdc00c57b57521499494d96be85c31317ba` |
+| Corrected fork | `65b49124b923e59f3cfcd839ee1af4628c36f340` |
+
+Choose the scorer named by the experiment's [profile and correction records](../evaluation/webmainbench-full/). See the [scoring guide](../harness/web_fetch/WEBMAINBENCH.md); switching to another branch tip changes the evaluation.
+
+| Other inputs | Setup and version record |
+| --- | --- |
+| [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | [Current profile](../evaluation/wcxb/current-report.json) |
+| WebArena sites and human recordings | [Deployment and replay guide](webarena-fixed-trajectory-reproduction.md) |
+| Historical source pages | Import approved copies using [reference-input validation](reference-inputs.md) |
+
+A Git clone contains the definitions and hashes, but not all historical input bytes.
 
 ## Writing skills
 

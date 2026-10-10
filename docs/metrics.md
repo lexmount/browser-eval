@@ -1,13 +1,28 @@
-# Metrics
+# Read Web Fetch results
 
-- Request success: normal provider responses divided by all calls. It does not prove task success.
-- Task pass: completed task contracts divided by all tasks, including request failures. This is the default ranking metric.
-- Body tasks require the length, fact and content rules to pass. Complete references additionally support recall (completeness), precision (purity), and harmonic-mean F1. Failed calls score zero; missing references are not zero scores.
-- Resource tasks match all required resource addresses. Echoing a direct-file input URL is not file retrieval.
-- File tasks require returned bytes or a controlled attachment verified against the source file. A URL or misdecoded binary string does not pass.
-- Dynamic lists require at least three distinct named in-domain detail entries. Names, rank, prices and IDs are not fixed. This measures structure, not factual correctness or full-list completeness.
-- Ranking mean/P50/P95 include only task-passing calls. Individual records show the elapsed time even for failures.
-- Failure classes summarize request errors or the missing task requirement. Detailed records retain the full failure information.
-- Every persisted output has a SHA-256 check. A report-only change must not alter outputs or silently change scores.
+A successful request means the method returned a normal response. A task passes only when that response meets the task's requirements. The default ranking uses task pass rate, with failed requests included.
 
-Labels and explanations are centralized in `report_components.py` and appear above the corresponding tables. Conditional-on-request-success pass rates are not shown in the report.
+## What counts as a pass?
+
+| Task | Required result |
+| --- | --- |
+| Body | Text meeting the declared length, fact and content rules |
+| Structure | The required fields, record types and unique entries; dynamic lists need at least three distinct named in-domain detail entries |
+| Resource | All required resource addresses |
+| File | Actual bytes or a controlled attachment verified against the source file |
+
+A returned file URL is not a delivered file. Dynamic list checks measure structure; they do not prove factual accuracy or complete list coverage. Names, ranks, prices and IDs are not frozen for those checks.
+
+## Quality and timing
+
+| Metric | How to read it |
+| --- | --- |
+| Body recall | How much of a complete reference was returned |
+| Body precision | How much returned text belongs to that reference |
+| Body F1 | Harmonic mean of precision and recall |
+| Mean / P50 / P95 latency | In the default ranking, timing of task-passing calls only; failures still retain elapsed time in their records |
+| Failure class | Request error or unmet task requirement; open the detail for the full error |
+
+Body metrics require a complete, comparable reference. A failed call scores zero; a missing reference leaves the metric unavailable. Check each report's stated timing population before comparing it with another report.
+
+Outputs have SHA-256 hashes. Rebuilding or editing a report must preserve the saved responses and scores. Metric labels come from `report_components.py`; the report does not show a pass rate conditioned only on successful requests.

@@ -1,32 +1,60 @@
 # Contributing
 
-PRs are welcome for browser adapters, task definitions, tests, scoring fixes, documentation and README translations. Run the offline example in [README](README.md), then read the relevant track guide. For bug reports, include the task ID, adapter type, versions, OS, reproduction command and sanitized errors. Do not include credentials or session data.
+PRs are welcome for adapters, tasks, tests, scoring fixes, documentation and translations. Run the [offline example](README.md#quickstart), then open the guide for the track you want to change.
 
-## Language
+## Report a bug
 
-English is the primary language for documentation, contribution guidance and automated review. Keep the English README and [Chinese README](docs/README.zh-CN.md) aligned when changing setup or usage. Additional README translations are welcome; other documentation does not need a translated copy. Preserve original task text, source quotations and frozen acceptance artifacts. Report languages follow their track's build contract.
+Include the task ID, method and versions, OS, command and sanitized error. Remove keys, cookies and session data.
 
-## Implementation and evidence
+## Make a change
 
-Extend existing execution, scoring, aggregation and report modules. Select browsers, versions and cohort sizes through configuration or registries rather than copying runners or renderers. Commands belong in `scripts/`; reusable logic belongs in `harness/`.
+| Change | Where it belongs |
+| --- | --- |
+| Browser or provider adapter | Existing execution modules; see the [provider contract](docs/provider-contract.md) |
+| Task requirements | Dataset configuration, applied to every method |
+| Scoring fix | Shared scorer, scenario regressions and a recorded correction reason |
+| New browser, version or sample size | Configuration or registry; reuse the runner and renderer |
+| Reusable logic | `harness/`; `scripts/` stays a thin command entry point |
 
-Behavior changes need scenario tests for both accepted and rejected inputs. Scoring corrections also need regression controls through the shared scorer and revision provenance. Do not patch stored verdicts. Refactoring must not re-certify historical measurements or certificates.
+Test both accepted and rejected scenarios. Fix scoring rules rather than editing saved verdicts. Refactoring must preserve historical measurements and certificates.
 
-## Checks
+Write documentation in English. Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes; other docs do not need duplicate translations. Preserve original task text, quotations and frozen acceptance inputs. Reports follow their track's language settings.
 
-Run `make ci` before submitting. Development tests use Node.js 22, including `node:module.stripTypeScriptTypes`; the base Python example does not need Node.js. `make lint-check` checks basic Python errors across the repository and applies the full configured Ruff rules to the declared tracks. Both are part of CI.
+## Run the checks
 
-`make ci` includes `make package-check`: build a source archive, build a wheel from it, then test base and optional installations outside the checkout. The gate checks current modules and declared resources byte for byte, TypeScript tool bridging, synthetic TEDS revisions, LangChain extraction and Crawl4AI downloads against local HTTP fixtures. It rejects missing, stale or extra installed files. Use `make package-check` separately when changing distribution configuration.
+```bash
+make setup-test
+make ci
+```
 
-For report releases, also run the track's full release gate. Inspect success and failure details, evidence dialogs and return navigation at desktop and narrow widths in both themes. Real-service requirements are documented in the track guides.
+Development checks use Python 3.11 and Node.js 22. The base example does not need Node.js.
 
-Tests do not download historical pages. Install approved external inputs using the [reference-input guide](docs/reference-inputs.md), then run `make test-reference-inputs` for historical checks. Strict mode rejects missing, changed or incomplete inputs before tests start. Ordinary mode skips only checks requiring absent historical inputs; corrupt installed inputs still fail.
+| Check | What it covers |
+| --- | --- |
+| `make lint-check` | Basic Python errors across the repository and configured Ruff rules for the declared tracks |
+| `make package-check` | Source archive → wheel → base/optional installation outside the checkout |
+| `make test-reference-inputs` | Strict historical-input checks after importing [approved reference copies](docs/reference-inputs.md) |
+| Track release gate | Evidence, report presentation and browser checks before packaging or publishing |
 
-## Distribution boundaries
+`make ci` includes linting and package checks. It runs without historical pages: only tests requiring absent historical inputs are skipped. Corrupt installed inputs fail; strict reference mode also fails on missing or incomplete sets.
 
-Do not commit `.env`, tokens, cookies, provider outputs, run directories, generated reports or private review records. Retain third-party origins, versions and licenses. Adding a task definition does not grant redistribution rights to its source page.
+For report releases, open success and failure details, evidence dialogs and return links on desktop and narrow viewports in both themes. Real services need the environments listed in their track guides.
 
-For the first public release, export the reviewed current tree and initialize a new public history. Do not push development history that still contains externalized source material; deleting a current file does not remove earlier copies.
+<details>
+<summary>What the package gate tests</summary>
+
+The gate builds a source archive, then a wheel from that archive. It compares installed modules and resources byte for byte and exercises TypeScript tool bridges, synthetic TEDS revisions, LangChain extraction and Crawl4AI downloads against local HTTP fixtures, including HTTP failures. Missing, stale or extra installed files fail the gate. Node tests use `node:module.stripTypeScriptTypes`.
+
+</details>
+
+## Keep private data out of Git
+
+Do not commit `.env`, tokens, cookies, provider outputs, run directories, generated reports or private reviews. Keep third-party sources, versions and licenses. A task definition does not grant permission to redistribute its source page.
+
+<details>
+<summary>Maintainer reference: source exports and historical inputs</summary>
+
+A current-source export excludes old commits that may still contain externalized material. Review development history before distributing it; deleting a current file does not remove its earlier copies.
 
 ```sh
 git archive --format=tar.gz --output=/tmp/browser-eval-source.tar.gz HEAD
@@ -34,4 +62,6 @@ git archive --format=tar.gz --output=/tmp/browser-eval-source.tar.gz HEAD
 
 The archive excludes `.git`, untracked files and local installations. Extract it, follow README setup and run `make ci` with an empty `BROWSER_EVAL_DATA_HOME`. Historical certifier sources retained by manifests are read-only, hash-bound text inputs, not executable entry points or dependencies on old Git commits. See [third-party content](THIRD_PARTY.md) and [reference inputs](docs/reference-inputs.md).
 
-Optional Claude review requires maintainers to set `ENABLE_CLAUDE_REVIEW=true` and `CLAUDE_CODE_OAUTH_TOKEN`. Ordinary CI needs neither. Review runs on disposable GitHub-hosted runners without personal machine paths.
+</details>
+
+Optional Claude review requires `ENABLE_CLAUDE_REVIEW=true` and `CLAUDE_CODE_OAUTH_TOKEN`. Ordinary CI needs neither. Review uses disposable GitHub-hosted runners.

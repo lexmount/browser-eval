@@ -1,76 +1,80 @@
-# Browser Use Evaluation
+# Run Browser Use
 
-This track runs the real CowAgent decision loop against the official
-WebArena-Verified evaluator. It is independent from `harness/trajectory_replay`,
-which replays a fixed list of browser-tool calls to isolate browser-engine
-behavior and does not measure autonomous planning.
+CowAgent makes the decisions; WebArena-Verified checks task completion. Use this track to compare browsers with the same Agent, model and tools. For fixed actions without Agent decisions, use [trajectory replay](../trajectory_replay/README.md).
 
-The current selection is pre-registered in
-`evaluation/browser-use/webarena-verified-pilot.json`: 15 easy, 30 medium, and
-45 hard cases. These are project-defined operational tiers based on an audited
-minimum number of visible UI operations, not WebArena's official hard-subset
-label. The pilot uses the self-hosted shopping, shopping_admin, reddit, and
-gitlab sites. Wikipedia and Map are deferred because their official local setup
-requires large external data bundles.
+## Prepare the environment
 
-On Apple Silicon, run the official amd64 site images in a dedicated Colima VZ
-profile with Rosetta enabled and at least 140 GiB of disk. The four required
-images occupy about 91 GB before container writable layers. The runner mounts
-Colima's QEMU interpreter only for PHP-FPM in the Magento and Reddit images because
-the legacy Alpine/musl PHP-FPM binary segfaults under Rosetta; Java, GitLab, and
-the remaining official image processes stay on Rosetta. This is a runtime
-compatibility shim, not a change to site data or evaluation logic.
+| Needed | Where to configure it |
+| --- | --- |
+| Clean CowAgent checkout | `COWAGENT_REPO` in the repository `.env`; the runner records its commit and refuses uncommitted changes |
+| Model account | `OPENAI_API_KEY`, optional `OPENAI_BASE_URL`, in `.env` |
+| WebArena sites | Shopping, Shopping Admin, Reddit and GitLab |
+| Task selection | `evaluation/browser-use/webarena-verified-pilot.json` |
 
-    colima start browser-eval --vm-type vz --disk 140 --memory 8 --cpus 4 --vz-rosetta
+The current pilot has 15 easy, 30 medium and 45 hard tasks. These project-defined tiers use the audited minimum number of visible UI operations; they are different from WebArena's official hard-subset label. Wikipedia and Map are deferred because their local setup needs large external datasets.
 
-Put `OPENAI_API_KEY`, optional `OPENAI_BASE_URL`, and `COWAGENT_REPO` in this
-repository's `.env`, then run:
+<details>
+<summary>Apple Silicon setup</summary>
 
-    ./examples/browser_use/run.sh --model YOUR_MODEL
+Use a dedicated Colima VZ profile with Rosetta and at least 140 GiB disk:
 
-The command requires a model available to your project. `BROWSER_USE_MODEL` can
-provide a default; an explicit `--model` overrides it. To compare another model,
-keep its evidence cohort separate:
+```bash
+colima start browser-eval --vm-type vz --disk 140 --memory 8 --cpus 4 --vz-rosetta
+```
 
-    ./examples/browser_use/run.sh --model YOUR_SECOND_MODEL \
-      --output "${BROWSER_EVAL_DATA_HOME:-$HOME/.browser-eval}/browser-use/second-model"
+The four official amd64 images occupy about 91 GB before writable layers. Legacy Alpine/musl PHP-FPM crashes under Rosetta, so the runner mounts Colima's QEMU interpreter for PHP-FPM in Magento and Reddit. Java, GitLab and the remaining processes use Rosetta. Site data and evaluator logic stay unchanged.
 
-The selected model is immutable within one evidence directory. Attempts from
-different models must never be resumed into or reported as the same cohort.
-Relative `--output` and `--selection` paths resolve from the caller's directory.
-Use `./examples/browser_use/run.sh --help` to inspect options without model
-credentials, browser sessions or site preparation.
-To build one layered report from several completed cohorts, pass each directory
-separately. The builder rejects duplicate models and mismatched primary
-browser-task cohorts:
+</details>
 
-    uv run --frozen python scripts/build_browser_use_report.py \
-      --evidence "$MODEL_A_EVIDENCE" --evidence "$MODEL_B_EVIDENCE" \
-      --output reports/browser-use
+## Run a model
 
-`COWAGENT_REPO` is a trusted code-execution boundary, not a data input. The
-runner refuses a dirty checkout and records its Git commit in the run config.
+From the repository root:
 
-The official sites use one shared fixed-port stack. The runner therefore holds a
-cross-process lock for each complete physical execution, from environment reset
-through browser-session setup, CowAgent, evidence finalization, and evaluation.
-Separate runner processes wait rather than execute against that stack in parallel.
-Parallel execution is valid only after every worker has an isolated complete site
-stack, site and control ports, and browser containers; changing output directories
-alone does not provide isolation.
+```bash
+./examples/browser_use/run.sh --model YOUR_MODEL
+```
 
-Every task-browser pair has at most two physical executions: one execution and,
-only after failure, one retry. The final execution is the single logical result;
-all physical-call latency and model usage remain part of that result.
-After the run, create the deterministic per-attempt evidence review before
-building or publishing the report:
+Choose a model your account can access. `BROWSER_USE_MODEL` supplies a default; `--model` overrides it. `./examples/browser_use/run.sh --help` works without credentials or site startup.
 
-    make browser-use-review EVIDENCE="$BROWSER_USE_OUTPUT_DIR"
-    make browser-use-report EVIDENCE="$BROWSER_USE_OUTPUT_DIR"
-    make browser-use-report-check EVIDENCE="$BROWSER_USE_OUTPUT_DIR"
+To compare another model, use a separate evidence directory:
 
-The report check is the routine fast gate and does not launch a browser. Before
-packaging or publishing, run the full release gate, which additionally renders
-every representative route in both languages, themes, and viewport sizes:
+```bash
+./examples/browser_use/run.sh --model YOUR_SECOND_MODEL \
+  --output "${BROWSER_EVAL_DATA_HOME:-$HOME/.browser-eval}/browser-use/second-model"
+```
 
-    make browser-use-release-check EVIDENCE="$BROWSER_USE_OUTPUT_DIR"
+One directory contains one model. The runner cannot resume it with another model. Relative `--output` and `--selection` paths resolve from the caller's directory.
+
+### Execution rules
+
+| Rule | Effect |
+| --- | --- |
+| Reset through evaluation is locked on the shared fixed-port stack | Separate runner processes wait for each other |
+| Parallel workers need separate complete site stacks, ports and browser containers | Different output directories alone do not isolate the sites |
+| At most one retry after failure | The final execution supplies the task result; all execution time and model usage are retained |
+
+## Build and check the report
+
+After the run, create the deterministic evidence review, build the report and run the fast checks:
+
+```bash
+make browser-use-review EVIDENCE="$BROWSER_USE_OUTPUT_DIR"
+make browser-use-report EVIDENCE="$BROWSER_USE_OUTPUT_DIR"
+make browser-use-report-check EVIDENCE="$BROWSER_USE_OUTPUT_DIR"
+```
+
+Before packaging or publishing, run the full gate. It also opens representative pages in the generated languages, both themes, and desktop/narrow viewports:
+
+```bash
+make browser-use-release-check EVIDENCE="$BROWSER_USE_OUTPUT_DIR"
+```
+
+To compare completed model runs in one report:
+
+```bash
+uv run --frozen python scripts/build_browser_use_report.py \
+  --evidence "$MODEL_A_EVIDENCE" --evidence "$MODEL_B_EVIDENCE" \
+  --output reports/browser-use
+```
+
+The builder rejects duplicate models and runs with different primary browser/task populations.

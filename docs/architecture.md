@@ -1,8 +1,10 @@
 # Architecture
 
-Browser Eval separates task definitions, browser execution, scoring and reports.
-The three tracks share infrastructure, but keep their task populations, evaluator
-contracts and publication targets separate.
+Use this page to find the code responsible for a change. For running evaluations, start with the [README](../README.md).
+
+[Data flow](#data-flow) · [Code owners](#code-boundaries) · [Stored inputs](#repository-and-external-inputs) · [Report releases](#reports-and-publication) · [Review tools](#verification)
+
+The three tracks share utilities. Each has its own tasks, evaluator and publication target.
 
 | Track | Implementation | Running and reproduction |
 | --- | --- | --- |
@@ -70,19 +72,21 @@ qualification, evaluator calls and report stages in their respective modules.
 Shared environment code does not import either runner. The public replay's
 redacted network contract remains separate from the curated replay suite.
 
-A new method implements execution and identity through the Provider interface;
-it does not add a scoring branch. Task-specific acceptance belongs in task
-configuration. A new comparison declares its population and participant registry
-before measurement; it does not copy a runner or hard-code another report column.
+| When adding… | Change… |
+| --- | --- |
+| A method | Provider execution and identity |
+| A task requirement | Task configuration, used by the shared scorer |
+| A comparison | Task population and participant registry, declared before calls |
+
+Reuse the runner and renderer. Method names must not select special scoring rules.
 
 ## Repository and external inputs
 
-Git contains reusable code, compact task definitions, acceptance contracts,
-provenance and path/hash bindings. Measured attempts, execution manifests,
-provider artifacts, generated reports, authored report content and private review
-payloads live outside Git under `BROWSER_EVAL_DATA_HOME` (default
-`~/.browser-eval/`) or a pinned Artifact Site release. Credentials come from the
-local `.env`; publication uses its separate host-scoped authorization.
+| Stored in Git | Stored outside Git |
+| --- | --- |
+| Code, compact task definitions, acceptance rules, origins and file/hash bindings | Attempts, execution manifests, responses, reports, report prose and private reviews |
+
+External files live under `BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval/`) or a pinned Artifact Site release. Evaluation credentials come from `.env`; publishing uses separate authorization for its host.
 
 Profiles under `evaluation/` bind a track's exact task population, methods,
 versions, evidence and publication target. These are historical experiment
@@ -105,6 +109,8 @@ languages. Chinese is the default. Explicit bilingual builds require matching
 routes, measurements and evidence links; absent English has only a notice and
 return link.
 
+### Restore report content
+
 Restore authored WebMainBench sample content from the binding's pinned export:
 
 ```sh
@@ -126,6 +132,8 @@ pages. The builder binds that prose to the scores, certificate, timing receipts,
 representative review and dataset manifest. It has no embedded article fallback.
 Release checks reject interpretation bodies that differ from the binding; package
 receipts retain the binding hash, and upload snapshots protect it from changes.
+
+### Check and publish
 
 Release checks cover evidence, links, semantic presentation and the declared
 languages. A separate visual gate exercises core routes, success and failure
@@ -150,6 +158,8 @@ rebuild before publication or an incremental update.
 
 ## Verification
 
+### Content review
+
 Source-grounded content review uses `scripts/review_webmainbench_content.py` with
 `--evidence`, `--correction`, `--work` and an explicit `--provider`. Its scope is
 the complete frozen dataset, including machine passes; comparisons corroborate
@@ -160,12 +170,16 @@ evidence, and resuming requires the same input bindings and target provider.
 Review findings do not replace official benchmark verdicts. Source outlines omit
 scripts and styles but retain hidden nodes, so they do not prove rendered visibility.
 
+### Saved-evidence diagnostics
+
 `scripts/audit_webmainbench_suspicions.py` scans saved evidence with a source dataset.
 It verifies frozen source/reference hashes and every logical output hash before
 returning investigation signals. Missing bindings, duplicate logical results or
 inputs changed during analysis are errors. Large inline input failures use the
 same rule for every provider; a signal identifies a case to investigate, not its
 cause or final verdict. An optional output file must be new.
+
+### Paired timing
 
 Paired Moli timing uses `scripts/diagnose_webmainbench_moli_tail.py` or
 `python -m harness.web_fetch.webmainbench_latency_diagnostic` with the same arguments.
@@ -183,6 +197,8 @@ publication boundaries. The package gate builds a wheel from the source archive
 and exercises it outside the checkout, including base and optional installations.
 Real provider, model and deployment experiments require their separately declared
 environment; local fixture tests do not establish new benchmark results.
+
+### Evaluator changes
 
 Canonical WebArena tasks and evaluator semantics come from the pinned
 `lexmount/webarena-verified` commit on `lex-main`. Browser participants,

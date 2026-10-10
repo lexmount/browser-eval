@@ -1,4 +1,20 @@
-# Web Fetch Harness
+# Web Fetch
+
+Fetch a page or file, score the returned content against declared requirements, and inspect the saved result. Start with the [local article example](../../examples/web_fetch/README.md) for a runnable HTTP/Moli/Chromium comparison.
+
+This page is the technical reference for larger experiments and historical reports. Use the section matching your task:
+
+| I want to… | Read |
+| --- | --- |
+| Run local browsers or reproduce the live-URL comparison | [Browser comparison guide](HEADLESS.md) |
+| Compare extraction from frozen HTML | [WebMainBench guide](WEBMAINBENCH.md) |
+| Understand task pass rules and text quality | [Text evaluation](#common-text-evaluation) · [stable acceptance](#stable-acceptance-and-text-quality) |
+| Capture an independent reference | [Source capture](#independent-source-capture) · [browser observations](#independent-browser-observations) |
+| Define dynamic-page completion | [Dynamic-content protocol](#dynamic-content-ground-truth-protocol) |
+| Check timeouts, retries or revise scores | [Budgets and measurements](#end-to-end-budget-and-missing-measurements) |
+| Build a new report instance | [Report instances](#report-instances) |
+| Score and publish WCXB | [WCXB scoring](#wcxb-scoring) · [timing and publication](#wcxb-paired-timing-and-publication) |
+
 
 ## Report revisions and file-delivery controls
 
@@ -186,6 +202,8 @@ reporting and between-call throttling are outside this latency. Runtime source a
 configuration hashes are captured before calls. Moli binary hashing occurs during
 validation, not each measured fetch; a changed binary requires revalidation.
 
+### Retries
+
 Runs default to no benchmark-level retry. A run may predeclare one failure retry
 with `max_failure_retries=1` (the headless CLI flag is
 `--max-failure-retries 1`). The retry is triggered only after the first physical
@@ -196,6 +214,8 @@ call intervals and any provider-required wait between them. A correction for a
 proven wrong command, version, scorer or reference is not a retry: supersede the
 affected result explicitly and rerun the complete declared correction scope.
 
+### Timeouts
+
 Late answers cannot pass. A common daemon boundary stops accepting output at the
 deadline and requests cancellation. An adapter that cannot cancel is quarantined:
 remaining calls on it are recorded as unexecuted, not fabricated failures, and
@@ -204,6 +224,8 @@ abandoned requests while preventing a partial run from being treated as a
 finished benchmark. Native subprocess adapters cancel their processes; cleanup
 is never extra answer budget.
 
+### File bytes and missing measurements
+
 New file evaluations accept `ProviderResult.files` entries containing actual
 `data: bytes`, retain separate binary artifacts and verify signature, length,
 SHA-256 and a declared independent target hash when present. Link-only output
@@ -211,6 +233,8 @@ cannot pass a measured byte contract. This does not decode or understand media.
 Historical records without `raw_file_pass` are unmeasured even if their HTTP
 request failed: all report/summary denominators and failure filters exclude them.
 The three result filters remain pass/fail/all; unmeasured rows appear in all.
+
+### Correct a score or reference
 
 `scripts/rescore_content.py` recomputes
 all applicable records through the shared scorer without supplier calls.
@@ -242,6 +266,8 @@ input plus the required root cause and executable regression IDs. Neither
 operation calls providers. Declared evidence must remain present, unmodified
 and free of symbolic links before scores can be rewritten.
 
+### Retain or merge an existing review
+
 Existing independent judgments can be retained after a score-only correction
 with `scripts/rebase_blind_result_review.py`. It requires identical task and
 reviewer-visible inputs, retains the independent verdicts, and requires explicit
@@ -259,6 +285,8 @@ independent review still requires an explicit request.
 A merged blind review still needs any anomaly investigation required by the
 dataset before publication.
 
+### Request an independent review
+
 Independent execution remains opt-in through `scripts/review_headless_results.py`;
 its default scope is machine failures. Reviewing passes or the full matrix also
 requires `--confirm-full-review`. `--prepare-only` creates blinded packets without
@@ -273,11 +301,15 @@ unbound work directories are preserved and rejected rather than silently reused.
 Changing task IDs is not required to invalidate stale judgments. Provider-filtered
 reviews remain partial and cannot replace a required complete installed review.
 
+### Compare timing populations
+
 For a heterogeneous same-window
 cohort, keep every predeclared call and report all-call latency (one shared task
 denominator) separately from successful-call latency (each method's conditional
 subset). The all-method common-pass intersection is diagnostic only: never
 reselect tasks after seeing outcomes.
+
+### Text coverage and incomplete references
 
 `content_check_coverage` measures matched required text groups, not body recall.
 All declared groups are required by stable contracts; record count/type/uniqueness
@@ -289,6 +321,8 @@ headings/labels cannot support precision over a whole output: additional legitim
 text is unjudged, not noise. Snapshot scores containing explicitly nonliteral fields
 are retained as attempt diagnostics but excluded from invariant body aggregates.
 Returned-title quality is also auxiliary and never substitutes for body scores.
+
+### Popular-site references
 
 Popular-site stable text is backed by `sources/<case>/stable-page.txt` and capture
 metadata, or the original independently saved `reference.txt`. Binding verifies each
@@ -614,6 +648,8 @@ and `{repo_path}` tokens. The preflight checks all selected case hosts with that
 resolver before product calls; mixed modes, failed resolution or synthetic answers
 stop execution. The system DNS mode continues to reject synthetic answers.
 
+### Native answer fields
+
 DeepSeek's public output schema declares `value.body.kind` and
 `value.body.content`; `content[].text` is its model-facing render. The adapter
 passes the declared HTML/text body verbatim to shared scoring and retains the
@@ -638,6 +674,8 @@ addresses. Do not mix modes or disable product safety checks. Fixed-native Moli
 calls retain the default internal HTTP timeout and predeclared native response
 capacity. Crawl4AI retains its complete native `model_dump` response, prioritizes
 declared `redirected_url`, and scores native `raw_markdown`.
+
+### Credentials and response metadata
 
 Evaluation does not inherit API keys, tokens or account IDs from the parent
 process; they come only from the repository `.env`. Ordinary runtime paths may

@@ -2,23 +2,24 @@
 
 [English](../README.md) | **简体中文**
 
-[Moli 浏览器](https://github.com/lexmount/moli)配套的可复现评测工具，也支持其他浏览器、网页抓取服务和 Agent 工具。比较使用明确的任务、统一验收规则和可查看的原始证据。
+用相同任务比较浏览器、网页抓取服务和 Agent 工具。Browser Eval 是 [Moli](https://github.com/lexmount/moli) 的配套评测项目，对各方法使用统一评分规则，并保存每项结果的证据。
 
-运行后生成可浏览的 HTML 报告：比较结果、查看单个任务，并打开保存的响应和日志。可以通过 [Artifact Site](https://github.com/lexmount/artifact-site) 在线发布和分享，也可以只在本地查看。
+运行后得到 HTML 报告，里面有比较表、任务详情、响应和日志。可以在本地查看，也可以通过 [Artifact Site](https://github.com/lexmount/artifact-site) 发布，让其他人在线查看结果。
 
-[评测能力](#可以评测什么) · [快速开始](#先运行离线示例) · [发布报告](#发布与分享报告) · [相关仓库](#相关仓库导航) · [参与贡献](#贡献与复现)
+[评测内容](#评测内容) · [快速开始](#快速开始) · [查看与分享报告](#查看与分享报告) · [相关项目](#相关仓库导航) · [参与贡献](#参与贡献)
 
-## 可以评测什么
+## 评测内容
 
-| 轨道 | 输入与评测内容 | 输出 | 说明 |
-| --- | --- | --- | --- |
-| Web Fetch | 实时 URL 或冻结 HTML；正文覆盖、结构化记录、资源发现、文件交付 | 任务结果、内容指标、延迟、原始响应、HTML 报告；配置容器采集时还包括资源消耗 | [Web Fetch](../harness/web_fetch/README.md) |
-| Browser Trajectory Replay（轨迹重放） | 固定的 BrowserTool 操作轨迹；比较任务完成情况和资源消耗 | 操作响应、评估器结果、耗时、资源测量和报告 | [本地任务集](../examples/trajectory_replay/README.md) · [WebArena 人工轨迹](../examples/trajectory_replay/public_webarena/README.md) |
-| Browser Use | 同一 Agent、模型和工具契约下自主完成任务；使用官方 WebArena-Verified 评估器 | 任务成绩、模型用量、操作轨迹、日志和报告 | [Agent 运行说明](../examples/browser_use/README.md) |
+| 轨道 | 回答什么问题 | 从这里开始 |
+| --- | --- | --- |
+| Web Fetch | 能否返回任务要求的正文、记录、资源或文件？需要多久？ | [本地示例](../examples/web_fetch/README.md) · [完整说明](../harness/web_fetch/README.md) |
+| Browser Trajectory Replay（轨迹重放） | 不同浏览器能否完成同一组已记录的操作？消耗多少资源？ | [项目任务集](../examples/trajectory_replay/README.md) · [WebArena 人工轨迹](../examples/trajectory_replay/public_webarena/README.md) |
+| Browser Use | 只更换浏览器时，Agent 能否完成任务？ | [CowAgent + WebArena 说明](../examples/browser_use/README.md) |
 
-各轨道分别管理任务、分母和发布目标，通过率不能合成一个“浏览器总分”。HTTP 抓取只是基线，不执行浏览器自动化；固定轨迹重放不评测自主规划能力。
+各轨道分别报告任务范围和分数。HTTP 是抓取基线；轨迹重放执行固定操作；Browser Use 包含 Agent 决策。
 
-### 浏览器与评测方法
+<details>
+<summary>支持的浏览器、服务和工具</summary>
 
 | 轨道 | 已实现的参与方 | 准备条件 |
 | --- | --- | --- |
@@ -28,9 +29,12 @@
 | 轨迹重放 / Browser Use | 当前浏览器注册表中的 Moli、Chromium | Docker/Linux 环境；Browser Use 还需要 CowAgent 和模型账户 |
 | 对照方法 | 普通 HTTP、离线 fixture | 基础 Python 安装 |
 
-实现了适配器不代表它支持全部任务类型和 benchmark，运行前要核对输出契约和依赖。见[依赖来源与固定版本](../docs/dependencies.md)、[完整方法配置](../configs/providers.example.json)、[原生浏览器路径](../harness/web_fetch/HEADLESS.md)和[适配器契约](../docs/provider-contract.md)。完整配置保留历史版本固定值；新建本地实验可使用下面的入门配置。
+各方法支持的任务类型不同，选择前请查看[适配器要求](../docs/provider-contract.md)和[依赖版本](../docs/dependencies.md)。
 
-### Benchmark 与任务集
+</details>
+
+<details>
+<summary>Benchmark 与数据集</summary>
 
 | 任务集 | 评测内容 | 可用条件与入口 |
 | --- | --- | --- |
@@ -41,11 +45,13 @@
 | WebArena 人工轨迹重放 | 自建网站上的已通过资格检查的固定轨迹与官方任务评估 | [复现说明](../docs/webarena-fixed-trajectory-reproduction.md)；需要外部数据和较多部署资源 |
 | WebArena-Verified Browser Use | CowAgent 自主完成任务，由官方评估器判定 | [Browser Use 说明](../examples/browser_use/README.md)；任务范围和环境分别声明 |
 
-通用 CLI 通过数据集文件选择 Web Fetch 任务，不接受 benchmark 名称作为快捷选项。轨迹重放和自主任务使用各自入口，不能作为 `browser-harness-eval run` 的选项。
+Web Fetch CLI 使用数据集文件；轨迹重放和 Browser Use 使用各自的执行入口。
 
-## 先运行离线示例
+</details>
 
-克隆仓库后，在仓库根目录执行命令。安装 [uv](https://docs.astral.sh/uv/getting-started/installation/) 和 Python 3.11 或更新版本。基础 CLI 在 Python 3.11 至 3.14 上验证；`.python-version` 为仓库开发和冻结实验选择 3.11。选择 3.12 时，在 `uv sync --frozen` 和后续 `uv run --frozen` 命令中都加上 `--python 3.12`。可选依赖和历史方法另有运行环境约束，完整开发与复现环境仍固定为 3.11。
+## 快速开始
+
+克隆仓库，在根目录打开终端，安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)。基础 CLI 支持 Python 3.11–3.14，仓库开发默认使用 3.11。
 
 ```bash
 uv sync --frozen
@@ -53,116 +59,82 @@ uv run --frozen browser-harness-eval validate
 uv run --frozen browser-harness-eval run --delay 0
 ```
 
-首次安装需要联网。示例不访问网站，不使用 Docker 或 API Key，包含一个预设成功和一个预设失败。打开终端打印的报告绝对路径即可查看。加上 `--fail-on-failure` 后，该示例返回退出码 2。
+打开终端打印的报告路径。这个离线示例无需浏览器、Docker 或 API Key，预设一个通过结果和一个失败结果，方便查看两种情况。安装依赖时需要联网。
 
-## 用真实适配器抓取本地页面
+接下来，可以[用 HTTP、Moli 或 Chromium 抓取本地文章](../examples/web_fetch/README.md)。说明中包含浏览器安装、多方法比较和自选任务。远程服务和 Agent 运行需要相应账户，调用可能产生费用。
 
-示例提供一篇仓库自有文章，检查完整正文，无需外部数据或账户。在单独的终端启动页面服务，并保持运行：
+<details>
+<summary>选择其他 Python 版本或安装可选适配器</summary>
 
-```bash
-uv run --frozen python -m http.server 8765 --bind 127.0.0.1 \
-  --directory examples/web_fetch/site
-```
+使用 Python 3.12 时，在 `uv sync --frozen` 和后续 `uv run --frozen` 命令中都加上 `--python 3.12`。可选适配器和历史实验另有版本要求，完整开发环境使用 3.11。
 
-在另一个终端进入仓库根目录，验证并运行 HTTP 基线：
-
-```bash
-uv run --frozen browser-harness-eval validate \
-  --dataset examples/web_fetch/dataset.json \
-  --provider-config configs/providers.quickstart.json --providers http
-uv run --frozen browser-harness-eval run \
-  --dataset examples/web_fetch/dataset.json \
-  --provider-config configs/providers.quickstart.json --providers http --delay 0
-```
-
-完整文章应通过。`http` 解析响应文本，不执行 JavaScript。运行 Moli 时，从 [Moli 发行版](https://github.com/lexmount/moli/releases)安装，将 `moli` 加入 PATH，或将 `MOLI_BINARY` 设为绝对路径；然后把两条命令中的 `--providers http` 改为 `--providers moli`。可用 `--providers http,moli,chromium` 比较多个已安装方法；[入门配置](../configs/providers.quickstart.json)也提供 Lightpanda 和 Obscura。程序只初始化选中的方法。这篇静态文章用于检查接入，不用于比较动态网页能力。
-
-Chromium 需要额外安装：
-
-```bash
-uv sync --frozen --extra headless-eval
-uv run --frozen playwright install chromium
-npm ci
-```
-
-仓库验证使用 Node.js 22。`CHROMIUM_BINARY` 可指定浏览器路径；未指定时，适配器可使用 Playwright 安装的 Chromium。其他路径变量为 `LIGHTPANDA_BINARY`、`OBSCURA_BINARY`。入门配置记录实际运行版本，不强制历史固定值；正式比较必须在调用前声明并核对版本。本地 HTTP 访问是示例的设计要求，服务仅绑定回环地址。
-
-### 查看与重建输出
-
-每次运行打印报告绝对路径，报告位于本次运行的证据目录内。默认输出在 `~/.browser-eval/runs/`，可用 `BROWSER_EVAL_DATA_HOME` 改数据根目录，或用 `--output /absolute/path/new-run` 指定新目录。已有证据目录会被拒绝。
-
-| 文件或目录 | 内容 |
+| 额外依赖 | 用途 |
 | --- | --- |
-| `report/index.html` | 汇总、任务列表、结果与证据页面入口 |
-| `results.jsonl`、`summary.json` | 可供程序读取的逐次评分和汇总 |
-| `manifest.json`、`dataset.json` | 运行配置、参与方身份和所选任务 |
-| `artifacts/` | 保存的供应商输出及相关证据 |
+| `headless-eval` | Chromium、PDF 解析和容器测量 |
+| `webmainbench-eval` | WebMainBench 评分 |
+| `browser-use-eval` | WebArena 和 Agent；安装固定提交的评估器需要 Git |
+| `oss-eval` | 开源提取库 |
 
-从已有证据重建 HTML，不重新调用方法：
+用 `uv sync --frozen --extra NAME` 安装。浏览器、Docker、网站数据和账户分别准备，见[依赖说明](../docs/dependencies.md)。
+
+</details>
+
+## 查看与分享报告
+
+| 输出 | 内容 |
+| --- | --- |
+| `report/index.html` | 比较、任务结果和证据入口 |
+| `results.jsonl`、`summary.json` | 供程序分析的评分和汇总 |
+| `manifest.json`、`dataset.json` | 使用的方法、版本、设置和任务 |
+| `artifacts/` | 保存的响应及其他证据 |
+
+默认保存在 `~/.browser-eval/runs/`。用 `BROWSER_EVAL_DATA_HOME` 改数据根目录，或用 `--output /absolute/path/new-run` 指定本次输出。每次运行需要一个新目录。
+
+从保存的证据重建报告，无需再次调用浏览器或 API：
 
 ```bash
 uv run --frozen browser-harness-eval report /absolute/path/to/run
 ```
 
-报告构建默认中文。支持英文的轨道构建器通过显式选项生成英文；未生成时，英文入口显示说明并提供返回链接。仓库文档以英文为主，另提供中文 README，冻结证据保留原文。
+报告默认中文。支持英文的构建器可按需生成英文；未生成时，英文入口显示说明，不会展示旧页面。
 
-## 选择自己的任务和比较范围
+在线发布：
 
-复制本地数据集和方法配置，声明独立参考、验收规则和各任务 URL，并显式传入两个文件：
+1. 在[中国站](https://artifact-site.lexmount.cn/)或[全球站](https://yours.lexmount.com/artifact-site)登录或创建账户。
+2. 按 [CLI 或 MCP 说明](../docs/report-hosting.md)发布本次运行的 `report/` 目录。
+3. 在分享设置中选择谁能访问报告。
 
-```bash
-uv run --frozen browser-harness-eval run \
-  --dataset /absolute/path/dataset.json \
-  --provider-config /absolute/path/providers.json --providers method-a,method-b \
-  --case-ids case-a,case-b --task-kind body \
-  --output /absolute/path/new-evidence
-```
+[Artifact Site](https://github.com/lexmount/artifact-site) 已开源，支持自行部署、报告版本管理和访问权限。本地报告无需托管账户，也不会自动上传。
 
-`--providers` 使用配置中的键名，不是任意浏览器可执行文件名。`--case-ids` 与 `--task-kind` 取交集；其他任务类型为 `structure`、`resource`、`file`。报告只包含本次所选任务和方法。解释结果或新增方法前，请阅读[指标](../docs/metrics.md)和[适配器契约](../docs/provider-contract.md)。
-
-普通 CLI 运行生成诊断证据。正式 Web Fetch 批次通过 `scripts/run_certified_benchmark.py` 和对应配置冻结并复核参考；部分完成或未认证的运行不能变成正式 benchmark 发布。模型和远程接口可能产生费用。历史发布配置是复现依据，不是自己的新实验可直接使用的发布目标。
-
-按需安装额外依赖：`headless-eval` 用于本地 Chromium、PDF 和容器采集；`webmainbench-eval` 用于 WebMainBench 评分；`browser-use-eval` 用于 WebArena 和 Agent；`oss-eval` 用于开源提取库。`browser-use-eval` 需要 Git，安装固定提交的 WebArena-Verified fork，不能用同版本的注册表包替代。浏览器、Docker、网站部署和账户分别准备。
-
-## 发布与分享报告
-
-报告提供比较表、逐项结果和保存的证据入口。[Artifact Site](https://github.com/lexmount/artifact-site) 是我们开源的报告托管项目，支持多页面报告、版本历史和分享权限。可以使用托管站点，也可以自行部署。
-
-1. 运行上面的示例，在本地打开生成的 `report/index.html`。
-2. 选择[中国站](https://artifact-site.lexmount.cn/)或[全球站](https://yours.lexmount.com/artifact-site)，登录或创建账户，保存和管理自己的报告。
-3. 通过 CLI 或 MCP 发布本次运行的 `report/` 目录，再在分享设置中选择谁能访问。[托管说明](../docs/report-hosting.md)提供两个站点的命令，以及更新报告和设置权限的方法。
-
-本地报告无需账户，也不会自动上传。示例发布后仍是诊断报告；正式 benchmark 报告使用各自的认证和发布规则。请使用自己的账户和报告目标。
+示例运行生成诊断报告。正式 benchmark 发布需要通过所选轨道的认证和发布检查；上传报告本身不代表结果已通过认证。
 
 ## 相关仓库导航
 
 | 仓库 | 在这项工作中的用途 |
 | --- | --- |
-| [Moli](https://github.com/lexmount/moli) | 浏览器实现；本仓库在统一任务和验收规则下比较 Moli 与其他浏览器 |
-| [Artifact Site](https://github.com/lexmount/artifact-site) | 可选的报告托管、版本管理和分享服务，也支持自行部署 |
-| [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | 配套的浏览器协议、自动化驱动和 Web 平台语义评测；任务集和分数与本仓库各轨道分别管理 |
-| [WebArena-Verified fork](https://github.com/lexmount/webarena-verified/tree/lex-main) | Browser Use 和公开 WebArena 轨迹重放使用的固定任务定义与评估器；集成和评估器维护在 `lex-main` 分支 |
-| [WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) | 冻结 HTML 的正文提取 benchmark；fork 维护已声明的评分修正，每个实验绑定自己的评分依据 |
-| [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | 独立的网页正文提取 benchmark，用于 WCXB 报告轨道 |
-| [CowAgent](https://github.com/zhayujie/CowAgent) | Browser Use 的 Agent 执行器，也是 Web Fetch 工具基线之一 |
-| [OpenClaw](https://github.com/openclaw/openclaw) · [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | 其他 Web Fetch 工具基线 |
+| [Moli](https://github.com/lexmount/moli) | 与其他实现一起接受评测的浏览器 |
+| [Artifact Site](https://github.com/lexmount/artifact-site) | 报告托管、版本管理和分享，支持自行部署 |
+| [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | 独立评测浏览器协议、自动化驱动和 Web 平台语义 |
+| [WebArena-Verified fork](https://github.com/lexmount/webarena-verified/tree/lex-main) | Browser Use 与公开 WebArena 重放的任务和评估器，在 `lex-main` 维护 |
+| [WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) | 冻结 HTML 的正文提取 benchmark；fork 维护已声明的评分修正 |
+| [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | 独立的网页正文提取 benchmark |
+| [CowAgent](https://github.com/zhayujie/CowAgent) | Browser Use 的 Agent 执行器和 Web Fetch 工具基线 |
+| [OpenClaw](https://github.com/openclaw/openclaw) · [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Web Fetch 工具基线 |
 
-按所选轨道和方法安装需要的组件，无需安装表中全部项目。具体提交、运行环境以及其他浏览器和提取库见[依赖来源与版本](../docs/dependencies.md)，署名和许可见[第三方说明](../THIRD_PARTY.md)。
+具体版本见[依赖来源与固定提交](../docs/dependencies.md)，按所选方法安装需要的组件即可。
 
-## 贡献与复现
+## 参与贡献
 
-欢迎为浏览器适配器、任务、回归测试、评分修正、文档和 README 翻译提交 PR。修改应解决共同问题，并对所有浏览器使用相同验收和证据要求。请阅读[贡献指南](../CONTRIBUTING.md)，或提交带有复现示例的 [issue](https://github.com/lexmount/browser-eval/issues)。Moli 的安装与使用见 [Moli 仓库](https://github.com/lexmount/moli)。
+欢迎为适配器、任务、测试、评分修正、文档和翻译提交 PR。先看[贡献指南](../CONTRIBUTING.md)，或提交带有复现示例的 [issue](https://github.com/lexmount/browser-eval/issues)。
 
 ```bash
 make setup-test
 make ci
 ```
 
-完整检查使用固定 Python 环境，覆盖 Node.js、原生协议和独立安装；基础兼容性检查也在 Python 3.12、3.13、3.14 上运行公开 CLI。真实容器和账户实验需要各自声明的环境。
+历史网页和测量输出保存在 Git 之外。复现历史运行见[参考输入](../docs/reference-inputs.md)，代码结构和发布内部流程见[架构说明](../docs/architecture.md)。
 
-Git 保存可复用代码、精简定义、验收规则和证据绑定。完整历史输入保存在外部，测试不会自动下载；按[参考输入说明](../docs/reference-inputs.md)导入获准使用的副本。`make test-reference-inputs` 对缺失或损坏的必需输入直接失败。供应商输出、执行清单、报告正文、截图和发布包不提交 Git。
-
-项目自有代码采用 [MIT 许可](../LICENSE)。第三方数据权利和技能来源见[第三方说明](../THIRD_PARTY.md)，凭据和不可信内容处理见[安全说明](../SECURITY.md)。
+项目代码采用 [MIT 许可](../LICENSE)。数据权利和署名见[第三方说明](../THIRD_PARTY.md)，凭据和不可信内容处理见[安全说明](../SECURITY.md)。
 
 ## 引用 Browser Eval
 
