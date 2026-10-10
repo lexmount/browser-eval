@@ -564,7 +564,7 @@ const css=document.querySelector('link[data-report-css]');
 css.href=css.dataset.src;
 })();</script>'''
     body = body.replace('<img src=', '<img data-src=')
-    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)}</title><link rel="stylesheet" data-report-css data-src="{asset_prefix}assets/report.css">{preview_bootstrap}</head><body>{_nav(lang, active, depth=depth, current_route=current_route)}<main>{body}</main><footer>{footer}</footer><script type="application/x-report-app" data-report-app data-src="{asset_prefix}assets/app.js"></script><script>(function(){{document.querySelectorAll('img[data-src]').forEach(img=>img.src=img.dataset.src);const app=document.querySelector('script[data-report-app]');const loader=document.createElement('script');loader.src=app.dataset.src;app.replaceWith(loader)}})();</script></body></html>'''
+    return f'''<!doctype html><html lang="{lang}"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)}</title><link rel="stylesheet" data-report-css data-src="{asset_prefix}assets/report.css">{preview_bootstrap}</head><body>{_nav(lang, active, depth=depth, current_route=current_route)}<main>{body}</main><footer>{footer}</footer><script type="application/x-report-app" data-report-app data-src="{asset_prefix}assets/app.js"></script><script>(function(){{document.querySelectorAll('img[data-src]').forEach(img=>img.src=img.dataset.src);const app=document.querySelector('script[data-report-app]');const loader=document.createElement('script');loader.src=app.dataset.src;app.replaceWith(loader)}})();</script></body></html>'''
 
 
 def _winner(value: str, won: bool, *, lang: str) -> str:
@@ -1396,7 +1396,13 @@ def build_webarena_replay_report(
     interpretation_path: str | Path | None = None,
     interpretation_audit_path: str | Path | None = None,
     include_english: bool = False,
+    language: str | None = None,
 ) -> dict[str, Any]:
+    from harness.report_languages import (
+        includes_english,
+        select_report_language,
+    )
+    include_english = includes_english(language, include_english)
     languages = ("zh", "en") if include_english else ("zh",)
     profile_source = Path(profile_path)
     profile = json.loads(profile_source.read_text(encoding="utf-8"))
@@ -2091,7 +2097,7 @@ def build_webarena_replay_report(
         english_root = output / "en"
         english_root.mkdir()
         (english_root / "index.html").write_text(
-            '<!doctype html><html lang="zh"><head><meta charset="utf-8">'
+            '<!doctype html><html lang="zh"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width, initial-scale=1">'
             '<script>(function(){const b=document.querySelector("base[href]");'
             'if(b)b.href=new URL("en/",b.href).href;})();</script>'
@@ -2130,6 +2136,9 @@ def build_webarena_replay_report(
         if profile.get("measurement_notes") else {},
     }
     _write_json(output / "report-manifest.json", manifest)
+    if language is not None:
+        entry = select_report_language(output, language)
+        manifest.update(primary_language=language, entrypoint=entry.relative_to(output).as_posix())
     return manifest
 
 
@@ -2189,7 +2198,7 @@ def _catalog_shell(title: str, body: str, participant: str) -> str:
         '<a href="method.html">方法与边界</a></nav>'
     )
     return (
-        '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+        '<!doctype html><html lang="zh-CN"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1"><base href="/">'
         f"<title>{html.escape(title)}</title><style>{CATALOG_REPORT_CSS}</style></head><body>{nav}{body}"
         f"<footer>WebArena-Verified 全量轨迹重放 · {html.escape(participant)}</footer>"
@@ -2628,6 +2637,8 @@ def build_main(argv=None) -> None:
         action="store_true",
         help="Explicitly generate the English report and its assets",
     )
+    from harness.report_languages import add_language_argument, primary_report_language
+    add_language_argument(parser)
     args = parser.parse_args(argv)
     profile = json.loads(args.profile.read_text(encoding="utf-8"))
     dataset_path = args.dataset or bound_dataset_path(profile)
@@ -2648,6 +2659,7 @@ def build_main(argv=None) -> None:
             profile_path=args.profile,
             output_dir=args.output,
             include_english=args.include_english,
+            language=args.language or primary_report_language(Path(args.output)),
             interpretation_path=content / "trajectory-replay-interpretation.json",
             interpretation_audit_path=(
                 args.interpretation_audit

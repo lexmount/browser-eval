@@ -85,7 +85,8 @@ Install an extra with `uv sync --frozen --extra NAME`. Browser binaries, Docker,
 
 | Output | What you will find |
 | --- | --- |
-| `report/index.html` | Comparisons, task results and evidence links |
+| `report/en/index.html` | English comparisons, task results and evidence links |
+| `report/index.html` | Report entry; opens the selected language |
 | `results.jsonl`, `summary.json` | Scores and aggregates for scripts or further analysis |
 | `manifest.json`, `dataset.json` | Methods, versions, settings and tasks used |
 | `artifacts/` | Saved responses and other evidence |
@@ -98,7 +99,14 @@ Rebuild a report from saved evidence without repeating browser or API calls:
 uv run --frozen browser-harness-eval report /absolute/path/to/run
 ```
 
-Reports default to Chinese. Supported builders can generate English on request; an absent English edition shows a notice instead of stale pages.
+The Web Fetch CLI opens English by default, with a switchable Chinese edition. Choose Chinese when starting a run, or change the language of a saved report:
+
+```bash
+uv run --frozen browser-harness-eval run --delay 0 --language zh
+uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
+```
+
+Rebuilding without `--language` keeps the previous choice. Language changes do not repeat calls or change scores; task wording, responses and logs retain their original language. English (`en`) and Chinese (`zh`) are supported; other language codes are rejected. See [report language support](docs/report-hosting.md#report-languages) for the standalone builders and historical reports.
 
 To publish online:
 

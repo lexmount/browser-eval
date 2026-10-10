@@ -30,7 +30,7 @@ class ReportChangesTests(unittest.TestCase):
 
     def test_web_fetch_release_translations_come_from_history(self):
         from harness.web_fetch.report_changes import ROOT
-        from harness.web_fetch.report_i18n import translate_text
+        from harness.web_fetch.report_i18n import release_translations, translate_text
         data = json.loads((ROOT / 'research/report-changes.json').read_text(encoding='utf-8'))
         from harness.web_fetch.report_changes import select_cohort_history
         kinds = ('generic', 'headless_markdown', 'web_fetch_methods',
@@ -39,14 +39,15 @@ class ReportChangesTests(unittest.TestCase):
         releases = {row['id']: row for kind in kinds
                     for row in select_cohort_history(data, {'comparison': {'kind': kind}}, [])['releases']}
         self.assertTrue(releases)
+        translations = release_translations({"releases": list(releases.values())})
         for row in releases.values():
             english = row['i18n']['en']
             for key in ('title', 'summary'):
-                self.assertEqual(translate_text(row[key]), english[key], row['id'])
+                self.assertEqual(translate_text(row[key], translations), english[key], row['id'])
             self.assertEqual(len(row['changes']), len(english['changes']))
             for source, target in zip(row['changes'], english['changes'], strict=True):
                 for zh, en in zip(source, target, strict=True):
-                    self.assertEqual(translate_text(zh), en, row['id'])
+                    self.assertEqual(translate_text(zh, translations), en, row['id'])
 
     def test_dynamic_local_audit_release_is_selected_only_for_its_cohort(self):
         from harness.web_fetch.report_changes import ROOT, select_cohort_history
@@ -82,11 +83,12 @@ class ReportChangesTests(unittest.TestCase):
 
     def test_current_web_fetch_release_binds_score_revision_and_exact_rerun_scope(self):
         from harness.web_fetch.report_changes import ROOT, select_cohort_history
-        from harness.web_fetch.report_i18n import translate_text
+        from harness.web_fetch.report_i18n import release_translations, translate_text
         history = json.loads((ROOT/'research/report-changes.json').read_text())
         selected = select_cohort_history(
             history, {'comparison': {'kind': 'web_fetch_methods'}}, []
         )
+        translations = release_translations(selected)
         current = selected['releases'][0]
         self.assertEqual(current['id'], '2026-09-15-official-route-and-call-drilldown')
         self.assertEqual(set(current['scoring_revision_input_sha256']), {
@@ -101,7 +103,7 @@ class ReportChangesTests(unittest.TestCase):
         self.assertNotIn('新增异常组', current['summary'])
         for value in [current['title'], current['summary'],
                       *(field for row in current['changes'] for field in row)]:
-            self.assertNotRegex(translate_text(value), r'[\u4e00-\u9fff]')
+            self.assertNotRegex(translate_text(value, translations), r'[\u4e00-\u9fff]')
 
     def test_first_correction_is_identity_bound_not_latest(self):
         from harness.web_fetch.report_changes import first_correction

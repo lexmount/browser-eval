@@ -26,7 +26,7 @@ jobs:
         with:
           version: "0.7.8"
       - run: uv sync --frozen --python "${{ matrix.python }}" --extra test
-      - run: uv run --frozen --python "${{ matrix.python }}" --no-sync python -m pytest tests/test_portable_cli.py tests/test_cli_scope.py tests/test_web_fetch_quickstart.py -q
+      - run: uv run --frozen --python "${{ matrix.python }}" --no-sync python -m pytest tests/test_portable_cli.py tests/test_cli_scope.py tests/test_web_fetch_quickstart.py tests/test_public_report_language.py -q
   test:
     runs-on: ubuntu-latest
     steps:

@@ -20,9 +20,9 @@ A diagnostic instance profile can bind `diagnostic_input.path` relative to the d
 
 ## Language generation
 
-All tracks generate and validate Chinese by default. English requires an explicit manual trigger; do not automatically translate prose, generate English illustrations, render English routes or run English-specific checks. A manifest records which languages were generated. When English is absent, retain only a clear not-generated notice with a return link, and test that control. Remove stale English output and unused translated assets from the new bundle while preserving source translations. Parity and English localization checks apply when the English edition is explicitly generated; Chinese-only releases retain all Chinese evidence, semantics, links and visual gates.
+Public CLIs default to English where the current renderer supports it and accept `--language en|zh`. Rebuilds preserve the saved choice. English builds retain a matching Chinese edition; language selection never translates measured evidence or changes scores. Historical Chinese-only reports must disclose their limit and reject an English request. Record generated editions and the primary entry in metadata. If English is absent, keep only its not-generated notice with a return link and remove stale English pages and unused assets. Validate each generated edition; bilingual reports require matching routes, values, section order and evidence links.
 
-For the current trajectory report, `make trajectory-replay-report EVIDENCE=/absolute/path/results.json` builds Chinese only. Explicit `ENGLISH=1` (or the build script's `--include-english`) enables English. Report, visual and packaging checks use the generated manifest, so they do not regenerate an absent edition.
+For the current trajectory report, `make trajectory-replay-report EVIDENCE=/absolute/path/results.json` defaults to English. Set `REPORT_LANGUAGE=zh` (or the build script's `--language zh`) for Chinese-only output. Report, visual and packaging checks use the generated manifest, so they do not regenerate an absent edition.
 
 ## Reader-facing structure
 

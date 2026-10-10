@@ -709,11 +709,11 @@ new scores or timings; local fixture validation is not a benchmark rerun.
 
 ## WCXB paired timing and publication
 
-WCXB builds generate Chinese pages by default. Their English navigation opens a
-not-generated notice with a return link. Pass `--include-english` to
-`scripts/build_report.py --wcxb` to generate both editions; the release checks
-then require matching route inventories and values. English repair content is
-required and packaged only for that explicit bilingual build.
+The WCXB command defaults to English, with a matching Chinese edition. Use
+`--language zh` for Chinese-only output; its English entry shows a not-generated
+notice. Bilingual release checks require matching routes and values. English
+repair content must be present in the bound asset set for an English build.
+See [report languages](../../docs/report-hosting.md#report-languages) for all builders.
 
 `wcxb_latency.py` owns paired-call collection, receipt validation and certification.
 The collector uses the profile's complete qualified population, timeout and binary

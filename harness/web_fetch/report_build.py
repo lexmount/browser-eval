@@ -139,8 +139,11 @@ def copy_methodology_assets(output, assets=None):
 
 
 
-def build_public_benchmark_research(source: Path, output: Path, *, include_english: bool = False) -> Path:
+def build_public_benchmark_research(source: Path, output: Path, *, include_english: bool = False,
+                                language: str | None = None) -> Path:
     """Build the research-only companion without measured evidence."""
+    from harness.report_languages import includes_english, select_report_language
+    include_english = includes_english(language, include_english)
     source, output = source.resolve(), output.resolve()
     marker = '.generated-report'
     if output.exists() and not (output / marker).is_file():
@@ -166,6 +169,8 @@ def build_public_benchmark_research(source: Path, output: Path, *, include_engli
         generate_public_benchmark_research(staging, research, include_english=include_english)
         if sample is not None:
             shutil.copy2(sample_path, staging / 'sample-manifest.json')
+        if language is not None:
+            select_report_language(staging, language)
         (staging / marker).write_text('generated\n', encoding='utf-8')
         backup = output.with_name(output.name + '.previous')
         if backup.exists():
@@ -178,7 +183,7 @@ def build_public_benchmark_research(source: Path, output: Path, *, include_engli
     except Exception:
         shutil.rmtree(staging, ignore_errors=True)
         raise
-    return output / 'index.html'
+    return output / ('en/index.html' if language == 'en' else 'index.html')
 
 
 def _install_report_tree(staging: Path, output: Path):
@@ -198,7 +203,9 @@ def _install_report_tree(staging: Path, output: Path):
 
 def build_report(source: Path, output: Path, *, include_english: bool = False,
                  local_audit: bool = False, authored_interpretation: bool = False,
-                 diagnostic_preview: bool = False) -> Path:
+                 diagnostic_preview: bool = False, language: str | None = None) -> Path:
+    from harness.report_languages import includes_english, select_report_language
+    include_english = includes_english(language, include_english)
     source, output = source.resolve(), output.resolve()
     if source == output or output in source.parents:
         raise ValueError('Report output must not contain its evidence source')
@@ -212,7 +219,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         from .reference_lifecycle import require_certifiable_evidence
         require_certifiable_evidence(dataset_probe)
     if dataset_probe.get('comparison', {}).get('kind') == 'webmainbench_frozen_html_to_markdown':
-        return build_webmainbench_report(source, output, include_english=include_english)
+        return build_webmainbench_report(source, output, include_english=include_english,
+                                         language=language)
     if not local_audit:
         require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
@@ -495,12 +503,14 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             }, ensure_ascii=False, indent=2))
         generate(staging,dataset,records,manifests,include_english=include_english,
                  authored_interpretation=authored_interpretation)
+        if language is not None:
+            select_report_language(staging, language)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.
         _install_report_tree(staging, output)
     finally:
         if staging.exists(): shutil.rmtree(staging)
-    return output/'index.html'
+    return output/('en/index.html' if language == 'en' else 'index.html')
 
 
 def validate_webmainbench_correction(receipt: dict, dataset: dict) -> None:
@@ -577,8 +587,11 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
         raise ValueError('Diagnostic review must not mutate score-bearing evidence')
 
 
-def build_webmainbench_report(source: Path, output: Path, *, include_english: bool = False) -> Path:
+def build_webmainbench_report(source: Path, output: Path, *, include_english: bool = False,
+                                language: str | None = None) -> Path:
     """Build the current public-benchmark report without legacy task predicates."""
+    from harness.report_languages import includes_english, select_report_language
+    include_english = includes_english(language, include_english)
     from harness.reporting.assets import copy_bound_assets, load_bound_content
 
     authority = Path(__file__).resolve().parents[2]
@@ -677,6 +690,8 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
             content_binding['relative_path']: content_binding['sha256']})
         shutil.copy2(content_binding_path, staging / 'report-content-binding.json')
         generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review, latency_diagnostic, include_english=include_english, report_content=report_content)
+        if language is not None:
+            select_report_language(staging, language)
         (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
@@ -692,7 +707,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     finally:
         if staging.exists():
             shutil.rmtree(staging)
-    return output / 'index.html'
+    return output / ('en/index.html' if language == 'en' else 'index.html')
 
 
 def public_webmainbench_scoring_projection(records: list[dict]) -> list[dict]:
@@ -927,8 +942,10 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
 
 def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: dict, output: Path,
                       *, content_binding: dict, authority_root: Path,
-                      include_english: bool = False) -> Path:
+                      include_english: bool = False, language: str | None = None) -> Path:
     """Build the one current report from a fully certified WCXB matrix."""
+    from harness.report_languages import includes_english, select_report_language
+    include_english = includes_english(language, include_english)
     from harness.web_fetch.wcxb_dataset import validate_manifest
     from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
     source, output = source.resolve(), output.resolve()
@@ -1128,6 +1145,8 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         for folder in ('artifacts', 'references', 'inputs'):
             shutil.rmtree(staging / folder, ignore_errors=True)
         (staging / '.generated-report').write_text('generated\n')
+        if language is not None:
+            select_report_language(staging, language)
         from .wcxb_publication import write_inventory
         write_inventory(staging, profile)
         if output.exists():
@@ -1143,7 +1162,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
-    return output / 'index.html'
+    return output / ('en/index.html' if language == 'en' else 'index.html')
 
 
 def validate_local_presentation(output: Path, binding_path: Path):

@@ -64,3 +64,58 @@ class VisibleNumbersTests(unittest.TestCase):
         )
         self.assertNotEqual(visible_numbers("100题"), visible_numbers("99 tasks"))
         self.assertNotEqual(visible_numbers("100题"), visible_numbers("all tasks"))
+
+
+@pytest.mark.parametrize("base_href,home_href", [(None, "../../index.html"), ("../../", "index.html")])
+def test_primary_english_keeps_explicit_chinese_navigation_and_evidence(tmp_path, base_href, home_href):
+    from harness.report_languages import REPORT_PAGE_MARKER, select_report_language
+    base = f'<base href="{base_href}">' if base_href else ""
+    def page(content, head=""):
+        return f'<html><head>{REPORT_PAGE_MARKER}{head}</head><body>{content}</body></html>'
+    (tmp_path / "index.html").write_text(page('<header><a href="index.html">Home</a></header>'))
+    (tmp_path / "en").mkdir()
+    (tmp_path / "en/index.html").write_text(page('<header><a href="../index.html">中文</a></header>'))
+    detail = tmp_path / "results/task/index.html"
+    detail.parent.mkdir(parents=True)
+    detail.write_text(page(f'<header><a href="{home_href}?token=abc#overview">Home</a></header>', base))
+    evidence = tmp_path / "evidence/original.html"
+    evidence.parent.mkdir()
+    evidence.write_text('<html><head></head><body><header><a href="../index.html">Original</a></header></body></html>')
+    evidence_bytes = evidence.read_bytes()
+    write_language_contract(tmp_path, include_english=True)
+    assert select_report_language(tmp_path, "en") == tmp_path / "en/index.html"
+    assert 'href="../index.html?report-language=zh"' in (tmp_path / "en/index.html").read_text()
+    assert 'token=abc&amp;report-language=zh#overview' in detail.read_text()
+    assert 'data-report-language-entry' in (tmp_path / "index.html").read_text()
+    assert evidence.read_bytes() == evidence_bytes
+    contract = json.loads((tmp_path / "report-languages.json").read_text())
+    assert contract["entrypoint"] == "en/index.html"
+
+
+def test_rebuild_language_recognizes_older_chinese_only_reports(tmp_path):
+    from harness.report_languages import primary_report_language
+    assert primary_report_language(tmp_path) == "en"
+    write_language_contract(tmp_path, include_english=False)
+    assert primary_report_language(tmp_path) == "zh"
+    write_language_contract(tmp_path, include_english=True)
+    assert primary_report_language(tmp_path) == "zh"
+
+
+@pytest.mark.parametrize("damage", ["unsupported", "missing_edition", "wrong_entry", "missing_redirect"])
+def test_release_rejects_a_wrong_primary_language(tmp_path, damage):
+    from harness.report_languages import REPORT_PAGE_MARKER, select_report_language
+    (tmp_path / "index.html").write_text(f'<html><head>{REPORT_PAGE_MARKER}</head></html>')
+    (tmp_path / "en").mkdir()
+    (tmp_path / "en/index.html").write_text('English')
+    write_language_contract(tmp_path, include_english=True)
+    select_report_language(tmp_path, "en")
+    check_language_contract(tmp_path)
+    path = tmp_path / "report-languages.json"
+    contract = json.loads(path.read_text())
+    if damage == "unsupported": contract["primary_language"] = "fr"
+    elif damage == "missing_edition": contract["languages"] = ["zh"]
+    elif damage == "wrong_entry": contract["entrypoint"] = "index.html"
+    else: (tmp_path / "index.html").write_text('Chinese root without selected-language redirect')
+    path.write_text(json.dumps(contract))
+    with pytest.raises(ValueError, match="language|entrypoint"):
+        check_language_contract(tmp_path)

@@ -1,16 +1,13 @@
 """Languages materialized in a report, independent of available translations."""
 
-import json
 from pathlib import Path
 
 
 def report_languages(root: Path) -> tuple[str, ...]:
-    path = root / "report-manifest.json"
-    manifest = json.loads(path.read_text()) if path.is_file() else {}
-    languages = manifest.get("languages", ["zh", "en"])
-    if languages not in (["zh"], ["zh", "en"]):
-        raise ValueError("unsupported report languages")
-    return tuple(languages)
+    from harness.report_languages import check_primary_report_language, generated_languages
+
+    check_primary_report_language(root)
+    return generated_languages(root)
 
 
 def language_roots(root: Path) -> tuple[Path, ...]:

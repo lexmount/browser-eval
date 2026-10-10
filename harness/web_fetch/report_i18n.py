@@ -37,6 +37,29 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "查看本报告的任务范围、结果数量与验收规则。": "See the tasks, result counts and acceptance rules used in this report.",
+    "内容选择": "Content selection",
+    "典型处理流程": "Typical processing flow",
+    "失败环节": "Failure stage",
+    "失败类别": "Failure category",
+    "搜索": "Search",
+    "搜索案例、方法或原因": "Search tasks, methods or causes",
+    "类别": "Category",
+    "示例说明 · Web Fetch": "Example notes · Web Fetch",
+    "未开启 debug": "Debug logging disabled",
+    "未设置": "Not configured",
+    "云端 API 后端未公开版本": "Cloud API backend version not disclosed",
+    "使用本轮任务配置与方法配置运行，或从保存的结果重新构建报告：": "Run with this task and method configuration, or rebuild the report from saved results:",
+    "重新运行会调用配置中的方法；重建报告只读取已有结果。本轮参数、版本与可执行文件哈希见上表。": "Rerunning calls the configured methods. Rebuilding reads saved results only. Parameters, versions and executable hashes are listed above.",
+    "至少需要两种方法才能比较任务交集。": "At least two methods are needed to compare shared tasks.",
+    "· 未保存源页快照": "· No source-page snapshot saved",
+    "本轮方法": "Methods in this run",
+    "运行前准备配置对应的程序与账户。报告保留方法名称、版本和执行证据，不包含凭据值。实际参数与版本见": "Install the configured programs and set up any required accounts before running. The report saves method names, versions and execution evidence, without credential values. See parameters and versions in",
+    "方法 SHA-256": "Method SHA-256",
+    "这次物理调用没有保存可展示的 stderr / debug 日志；不会补造不存在的日志。": "No displayable stderr or debug log was saved for this physical call.",
+    "下载最终物理调用记录": "Download the final physical-call record",
+    "。运行记录保留请求状态、耗时和证据路径；原始输出保持调用后保存的字节。": ". The record retains request status, duration and evidence paths. Raw output preserves the saved response bytes.",
+    "请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求；不得命中非参考正文自身包含的错误页标记。完整度、纯净度和 F1 另算，不作为通过门槛。": "A successful request must satisfy the task's minimum length, all required text checks, salient markers and structure requirements. Error-page markers absent from the reference must not appear. Recall, precision and F1 are calculated separately and do not determine acceptance.",
     "已保存的诊断日志": "Saved diagnostic logs",
     "已保存文件截断；原生日志范围见说明": "Saved file truncated; see native log coverage notes",
     "已保存文件未截断；原生日志范围见说明": "Saved file not truncated; see native log coverage notes",
@@ -2929,10 +2952,9 @@ PHRASES.update({
     "。托管服务按官方文档；内置工具按固定源码。此处说明可选能力，": ". Managed services follow official documentation, while built-in tools follow pinned source. These are available capabilities, ",
 })
 
-def _register_release_translations() -> None:
-    """Keep release prose with the shared history instead of an exact-string code map."""
-    path = Path(__file__).parents[2] / 'research/report-changes.json'
-    history = json.loads(path.read_text(encoding='utf-8'))
+def release_translations(history: dict) -> dict[str, str]:
+    """Localize only the structured release records included in this report."""
+    translations = {}
     for release in history['releases']:
         if any(kind in release.get('comparison_kinds', []) for kind in (
                 'webmainbench_frozen_html_to_markdown', 'public_benchmark_research',
@@ -2944,14 +2966,13 @@ def _register_release_translations() -> None:
                 or len(release.get('changes', [])) != len(english.get('changes', []))):
             raise ValueError('Web Fetch release requires complete English text: ' + release['id'])
         for key in ('title', 'summary'):
-            TEXT[release[key]] = english[key]
+            translations[release[key]] = english[key]
         for source_row, target_row in zip(release['changes'], english['changes'], strict=True):
             if len(source_row) != 4 or len(target_row) != 4:
                 raise ValueError('Web Fetch release change rows must have four columns: ' + release['id'])
-            TEXT.update(zip(source_row, target_row, strict=True))
+            translations.update(zip(source_row, target_row, strict=True))
 
-
-_register_release_translations()
+    return translations
 
 
 REGEX.insert(0, (
@@ -3390,13 +3411,21 @@ REGEX[:0] = [
     (re.compile(r"^每种方法均使用同一组 (\d+) 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。各方法串行执行，仍受本地与远程环境、网络和产品内部限制影响。$"), r"Each method uses the same \1 tasks, including passes, failures, errors, and timeouts. Latency runs from input to return for a single call, excluding shared cooldown intervals. Each method runs serially and remains subject to local and remote environments, networks, and product limits."),
 ]
 
-def translate_text(value: str) -> str:
+REGEX.extend([
+    (re.compile(r"^本报告纳入 ([\d,]+) 个逻辑结果。运行参数见下表；保留的物理调用与输出见各结果详情。$"),
+     r"This report includes \1 logical results. Run parameters are listed below; each result detail contains its retained physical calls and outputs."),
+    (re.compile(r"^· 请求：(成功|失败) · 耗时：([\d,.]+) ms · 实际输出：([\d,]+) 字符$"),
+     lambda m: f"· Request: {'success' if m[1] == '成功' else 'failure'} · Duration: {m[2]} ms · Actual output: {m[3]} characters"),
+])
+
+
+def translate_text(value: str, translations=None) -> str:
     leading = value[:len(value) - len(value.lstrip())]
     trailing = value[len(value.rstrip()):]
     core = value.strip()
     if not core:
         return value
-    translated = TEXT.get(core)
+    translated = (translations or {}).get(core, TEXT.get(core))
     if translated is None:
         for marker in (" ↕", " ↑", " ↓"):
             if core.endswith(marker) and core[:-len(marker)] in TEXT:
@@ -3413,6 +3442,10 @@ def translate_text(value: str) -> str:
             r"Complete-reference coverage: \1/\2. A missing reference affects only full-text metrics, not task acceptance. ",
             core,
         )
+        translated = re.sub(
+            r"文字核对范围：各方法均为 ([\d,]+/[\d,]+) 例。",
+            r"Text-check coverage: \1 cases for every method. ", translated,
+        )
         for source, target in sorted(PHRASES.items(), key=lambda item: len(item[0]), reverse=True):
             translated = translated.replace(source, target)
         if translated == core:
@@ -3421,11 +3454,12 @@ def translate_text(value: str) -> str:
 
 
 class Localizer(HTMLParser):
-    def __init__(self, source: PurePosixPath | None = None) -> None:
+    def __init__(self, source: PurePosixPath | None = None, translations=None) -> None:
         super().__init__(convert_charrefs=False)
         self.parts: list[str] = []
         self.stack: list[str] = []
         self.source = source
+        self.translations = translations
 
     def _start_tag(self, attrs) -> str:
         original = self.get_starttag_text()
@@ -3433,8 +3467,6 @@ class Localizer(HTMLParser):
             return original
         values = dict(attrs)
         article = self.source in {PurePosixPath("guide/index.html"), PurePosixPath("guide/article.html")}
-        if not article and "data-i18n-attrs" not in values:
-            return original
 
         def replace_attribute(markup, name, value):
             pattern = re.compile(r'''(?<![\w:-])(''' + re.escape(name)
@@ -3456,7 +3488,7 @@ class Localizer(HTMLParser):
         for name in ("aria-label", "alt", "placeholder", "title"):
             label = values.get(name)
             if label is not None:
-                original = replace_attribute(original, name, translate_text(label))
+                original = replace_attribute(original, name, translate_text(label, self.translations))
         return original
 
     def handle_decl(self, decl: str) -> None:
@@ -3478,7 +3510,7 @@ class Localizer(HTMLParser):
         if any(tag in self.stack for tag in ("pre", "code", "script", "style")):
             self.parts.append(data)
         else:
-            self.parts.append(translate_text(data))
+            self.parts.append(translate_text(data, self.translations))
 
     def handle_entityref(self, name: str) -> None:
         self.parts.append(f"&{name};")
@@ -3584,11 +3616,11 @@ def _header(source: PurePosixPath, english: PurePosixPath) -> str:
             '<button class="theme-toggle" onclick="theme()">Toggle theme</button></nav></header>')
 
 
-def localize_html(page: str, source: PurePosixPath) -> str:
+def localize_html(page: str, source: PurePosixPath, *, translations=None) -> str:
     english = PurePosixPath("en") / source
     page = page.replace('<html lang="zh-CN">', '<html lang="en">', 1)
     page = re.sub(r'<header class="top">.*?</header>', _header(source, english), page, count=1, flags=re.S)
-    parser = Localizer(source)
+    parser = Localizer(source, translations)
     parser.feed(page)
     parser.close()
     return _rewrite_links("".join(parser.parts), source, english)
@@ -3596,6 +3628,8 @@ def localize_html(page: str, source: PurePosixPath) -> str:
 
 def write_english_report(out: Path) -> int:
     """Mirror every Chinese HTML route and return the mirrored route count."""
+    history_path = out / "report-changes.json"
+    translations = release_translations(json.loads(history_path.read_text())) if history_path.is_file() else {}
     english_root = out / "en"
     if english_root.exists():
         shutil.rmtree(english_root)
@@ -3611,7 +3645,7 @@ def write_english_report(out: Path) -> int:
         source = PurePosixPath(source_path.relative_to(out).as_posix())
         target = out / "en" / Path(str(source))
         target.parent.mkdir(parents=True, exist_ok=True)
-        localized = localize_html(source_path.read_text(encoding="utf-8"), source)
+        localized = localize_html(source_path.read_text(encoding="utf-8"), source, translations=translations)
         if source in {PurePosixPath("guide/index.html"), PurePosixPath("guide/article.html")}:
             untranslated = untranslated_english_narrative(localized, allowed_source_text)
             if untranslated:

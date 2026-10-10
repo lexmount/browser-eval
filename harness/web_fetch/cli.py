@@ -12,6 +12,7 @@ from .providers import build_provider
 from .report_build import build_report
 from .runner import rescore_evaluation, run_evaluation
 from .storage import data_home
+from harness.report_languages import add_language_argument, primary_report_language
 
 EXAMPLES = Path(__file__).parent / "data"
 
@@ -50,7 +51,8 @@ def command_run(args: argparse.Namespace) -> int:
         provider_concurrency=args.provider_concurrency,
         max_failure_retries=args.max_failure_retries,
     )
-    report_path = build_report(args.output, args.output / 'report', diagnostic_preview=True)
+    report_path = build_report(args.output, args.output / 'report', diagnostic_preview=True,
+                               language=args.language)
     print(f"Report: {report_path.resolve()}")
     kinds={case.id:case.task_kind for case in cases}
     failures = [r for r in records if not task_passed(r['ok'],r['metrics'],kinds[r['case_id']])]
@@ -58,7 +60,9 @@ def command_run(args: argparse.Namespace) -> int:
 
 
 def command_report(args: argparse.Namespace) -> int:
-    report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True)
+    language = args.language or primary_report_language(args.run_dir / 'report')
+    report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True,
+                               language=language)
     print(f"Report: {report_path.resolve()}")
     return 0
 
@@ -66,7 +70,9 @@ def command_report(args: argparse.Namespace) -> int:
 def command_rescore(args: argparse.Namespace) -> int:
     dataset, cases = load_dataset(args.dataset)
     records, _ = rescore_evaluation(run_dir=args.run_dir, dataset_meta=dataset, dataset_path=args.dataset, cases=cases)
-    report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True)
+    language = args.language or primary_report_language(args.run_dir / 'report')
+    report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True,
+                               language=language)
     print(f"Rescored {len(records)} persisted attempts; report: {report_path.resolve()}")
     return 0
 
@@ -105,6 +111,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     run = sub.add_parser("run", help="Run providers and generate a multi-page report")
+    add_language_argument(run, default="en")
     run.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
     run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated configured provider names")
@@ -131,11 +138,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     report = sub.add_parser("report", help="Rebuild HTML from an existing run directory")
     report.add_argument("run_dir", type=Path)
+    add_language_argument(report)
     report.set_defaults(handler=command_report)
 
     rescore = sub.add_parser("rescore", help="Recompute metrics/report from persisted artifacts and task rules")
     rescore.add_argument("run_dir", type=Path)
     rescore.add_argument("--dataset", type=Path, required=True)
+    add_language_argument(rescore)
     rescore.set_defaults(handler=command_rescore)
 
     validate = sub.add_parser("validate", help="Validate dataset and provider credentials without network calls")

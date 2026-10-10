@@ -28,6 +28,7 @@ NAV = (
 
 
 TEXT = {
+    "OpenAI、Anthropic、Google DeepMind、THUDM / ChatGLM、Browser Use。原版 Mind2Web、Online-Mind2Web 与 Mind2Web 2 的任务和评分器不同，不能合并到同一成绩表。": "OpenAI, Anthropic, Google DeepMind, THUDM / ChatGLM and Browser Use. Original Mind2Web, Online-Mind2Web and Mind2Web 2 use different tasks and evaluators; their scores cannot be combined in one table.",
     "修复日志": "Fix log",
     "配置": "Configuration",
     "保留原合同的任务仍有自主执行失败": "Autonomous failures remain under original contracts",
@@ -1466,6 +1467,9 @@ TEXT.update(
 
 
 PHRASES = {
+    "模板 ID": "template ID",
+    "自主轨迹示例": "autonomous trajectory example",
+    "模型推理强度为低": "low reasoning effort",
     "步骤预算耗尽": "Step budget exhausted",
     "导航语义错误": "Navigation-semantics error",
     "检索覆盖不足": "Incomplete retrieval coverage",
@@ -1710,6 +1714,41 @@ def translate_text(value: str) -> str:
     translated = TEXT.get(core)
     if translated is None:
         patterns = (
+            (
+                r"原始 Mind2Web 使用 cross-task、cross-website、cross-domain 衡量泛化；Online‑Mind2Web 没有统一三档；Mind2Web 2 的 short / medium / long 按动作跨度划分。本报告的简单 (\d+)、中等 (\d+)、困难 (\d+) 是预注册的操作长度层级。",
+                lambda m: f"Original Mind2Web measures cross-task, cross-website and cross-domain generalization. Online-Mind2Web has no standard three-tier split; Mind2Web 2 groups short, medium and long tasks by action span. This report preregisters {m[1]} easy, {m[2]} medium and {m[3]} hard tasks by operation length.",
+            ),
+            (
+                r"本轮在模型执行前固定 (\d+) 个任务，覆盖四个已部署站点以及 RETRIEVE、NAVIGATE、MUTATE 三种最终合同。这里仅描述题目与验收规则；通过率、耗时、轨迹和可完成性观察统一放在结果分析中。",
+                lambda m: f"All {m[1]} tasks were fixed before model execution, covering four deployed sites and RETRIEVE, NAVIGATE and MUTATE outcome contracts. This page describes tasks and acceptance rules. Pass rates, timings, trajectories and feasibility observations belong in results analysis.",
+            ),
+            (
+                r"首页按预注册的 (\d+) 题展示四种配置的官方 evaluator 结果。其中 (\d+) 题经复核存在验收合同、站点、共享状态或参考状态干扰；这些题仍保留在 (\d+) 题官方结果中，另外提供 (\d+) 题事后诊断子集。",
+                lambda m: f"The homepage shows the official evaluator results for all {m[1]} preregistered tasks across four configurations. Review identified acceptance-contract, site, shared-state or reference-state interference in {m[2]} tasks. They remain in the official {m[3]}-task results; a separate {m[4]}-task post-hoc diagnostic subset is also available.",
+            ),
+            (
+                r"首页主结果始终使用完整 (\d+) 题官方 evaluator 分母。为了观察排除已知外部干扰后的差异，下表再按整题、四种配置一致排除 (\d+) 题，得到 (\d+) 题事后诊断子集。",
+                lambda m: f"The primary result always uses the complete official {m[1]}-task denominator. The table below excludes the same {m[2]} whole tasks across four configurations to show a {m[3]}-task post-hoc diagnostic subset without known external interference.",
+            ),
+            (
+                r"这是事后诊断子集，不是正式分数，也不替代 (\d+) 题官方结果。(\d+) 个原始失败记录继续保存在结果页和核验记录中。",
+                lambda m: f"This post-hoc diagnostic subset is not an official score and does not replace the official {m[1]}-task result. All {m[2]} original failure records remain in the result and review pages.",
+            ),
+            (
+                r"完整 (\d+) 题官方结果是本报告的主口径；(\d+) 题事后诊断子集只用于分离已知外部干扰，不改写成绩。",
+                lambda m: f"The complete official {m[1]}-task result is the primary view. The {m[2]}-task post-hoc diagnostic subset separates known external interference and does not rewrite scores.",
+            ),
+            (
+                r"这里保留预注册 (\d+) 题的全部官方结果；其中 (\d+) 题已标记外部干扰。默认显示失败；点击“查看诊断”可核对发生位置、程序报错、复核根因、轨迹、画面和日志。",
+                lambda m: f"All official results for the {m[1]} preregistered tasks are retained; {m[2]} tasks are marked as affected by external interference. Failures are shown by default. Open a diagnosis to inspect the failure stage, program error, reviewed cause, trajectory, screenshots and logs.",
+            ),
+            (
+                r"预注册文件只含任务 ID、层级和入选理由，不含点击序列。CowAgent 收到自然语言目标后，在最多 (.+) 步内循环读取页面观察、请求模型决策并生成下一次 BrowserTool 调用。Chromium 与 Moli 分别连接独立 CDP 浏览器容器；每次物理执行都保留最终 JSON、Agent 事件流、网络 HAR 和 Playwright trace。",
+                lambda m: f"Preregistration contains task IDs, tiers and selection reasons, without click sequences. Given a natural-language goal, CowAgent reads page observations, requests model decisions and produces the next BrowserTool call, up to {TEXT.get(m[1], m[1])} steps. Chromium and Moli connect to separate CDP browser containers. Each physical execution retains the final JSON, Agent event stream, network HAR and Playwright trace.",
+            ),
+            (r"候选 benchmark、选择依据与 (\d+) 个预注册任务", lambda m: f"Candidate benchmarks, selection rationale and {m[1]} preregistered tasks"),
+            (r"(\d+) 次 / (\d+) 次传输", lambda m: f"{m[1]} calls / {m[2]} transport attempts"),
+            (r"(\d+) 次", lambda m: f"{m[1]} times"),
             (r"首次 (\d+/\d+)", lambda m: f"First attempt {m.group(1)}"),
             (r"失败后重试 (\d+) 题", lambda m: f"{m.group(1)} failed tasks retried"),
             (r"查看 (\d+) 题的四配置矩阵 →", lambda m: f"View the four-configuration matrix for all {m.group(1)} tasks →"),
