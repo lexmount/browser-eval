@@ -12,10 +12,10 @@ The Web Fetch CLI defaults to English. `run --language zh` generates Chinese onl
 | `scripts/build_report.py`: standard Web Fetch, local audit, WCXB, WebMainBench sample, research companion | `--language en` or `--language zh`; default English |
 | `scripts/build_browser_use_report.py` | `--language en` or `--language zh`; default English |
 | `scripts/build_webarena_replay_report.py` | `--language en` or `--language zh`; default English |
-| Complete 545-case WebMainBench and diagnostic-cohort reports | Historical Chinese-only content; pass `--language zh` explicitly |
+| Complete 545-case WebMainBench and diagnostic-cohort reports | Chinese-only content; omitted language keeps the historical Chinese default; explicit `en` is rejected |
 | Curated replay example, public WebArena recording report and catalog | Chinese-only renderers; no language option |
 
-Builders keep the saved language when rebuilding without `--language`. With Make, select it through `REPORT_LANGUAGE=en` or `REPORT_LANGUAGE=zh`.
+Builders keep the saved language when rebuilding without `--language`. Make follows the same rule; set an explicit override through `REPORT_LANGUAGE=en` or `REPORT_LANGUAGE=zh`.
 
 English builds retain a Chinese edition so readers can switch languages. Chinese-only builds show a notice at the English entry. These choices affect report text and navigation, not scores, timings or saved evidence. Task names, source quotations, responses and logs stay in their original language.
 

@@ -11,6 +11,22 @@ from harness.report_languages import (
 )
 
 
+@pytest.mark.parametrize("supported", [("en", "zh"), ("zh",)])
+@pytest.mark.parametrize("saved", [None, "en", "zh", "legacy"])
+@pytest.mark.parametrize("requested", [None, "en", "zh"])
+def test_language_resolution_respects_choice_and_renderer_capability(tmp_path, supported, saved, requested):
+    from harness.report_languages import resolve_report_language
+    if saved:
+        contract = {"languages": ["zh"]} if saved == "legacy" else {"primary_language": saved}
+        (tmp_path / "report-languages.json").write_text(json.dumps(contract))
+    expected = requested or ("zh" if saved == "legacy" else saved) or supported[0]
+    if expected in supported:
+        assert resolve_report_language(tmp_path, requested, supported=supported) == expected
+    else:
+        with pytest.raises(ValueError, match="supports only zh"):
+            resolve_report_language(tmp_path, requested, supported=supported)
+
+
 def test_chinese_output_has_notice_without_translated_routes(tmp_path):
     write_language_contract(tmp_path, include_english=False)
     assert generated_languages(tmp_path) == ("zh",)

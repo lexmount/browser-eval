@@ -1,6 +1,9 @@
 """Language choice at the public run/rebuild boundary, independent of scoring."""
 import json
 import os
+import runpy
+import shlex
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -8,6 +11,92 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize("mode", ["--diagnostic-cohorts", "--webmainbench-full"])
+@pytest.mark.parametrize("language", [None, "zh", "en"])
+@pytest.mark.parametrize("saved", [False, True])
+def test_chinese_only_commands_preserve_omitted_language(tmp_path, monkeypatch, mode, language, saved):
+    from harness.web_fetch import report_build
+    output = tmp_path / "report"
+    if saved:
+        output.mkdir()
+        (output / "report-languages.json").write_text(json.dumps({"languages": ["zh"], "primary_language": "zh"}))
+    calls = []
+    builder = "build_diagnostic_cohorts" if mode == "--diagnostic-cohorts" else "build_webmainbench_full_report"
+    monkeypatch.setattr(report_build, builder, lambda *args, **kwargs: calls.append((args, kwargs)) or output / "index.html")
+    script = str(ROOT / "scripts/build_report.py")
+    argv = [script, mode, "--evidence", str(tmp_path / "evidence"), "--output", str(output)]
+    if language:
+        argv += ["--language", language]
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit) as result:
+        runpy.run_path(script, run_name="__main__")
+    assert result.value.code == (2 if language == "en" else 0)
+    assert len(calls) == (0 if language == "en" else 1)
+
+
+@pytest.mark.parametrize("language", [None, "zh"])
+def test_historical_diagnostic_command_builds_actual_report(tmp_path, language):
+    from tests.test_report_templates import diagnostic_example
+    evidence = tmp_path / "evidence"
+    diagnostic_example(evidence)
+    output = tmp_path / "report"
+    command = [sys.executable, str(ROOT / "scripts/build_report.py"), "--diagnostic-cohorts",
+               "--evidence", str(evidence), "--output", str(output)]
+    if language:
+        command += ["--language", language]
+    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert json.loads((output / "report-manifest.json").read_text())["languages"] == ["zh"]
+    original = (output / "index.html").read_bytes()
+    english = subprocess.run(command + ["--language", "en"], cwd=ROOT, capture_output=True, text=True)
+    assert english.returncode == 2
+    assert "supports only zh" in english.stderr
+    assert (output / "index.html").read_bytes() == original
+    # Historical diagnostics deliberately require a new directory, never overwrite.
+    again = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+    assert again.returncode != 0
+    assert "new output" in again.stderr
+    assert (output / "index.html").read_bytes() == original
+
+
+@pytest.mark.parametrize("target", ["report", "popular-sites-report", "browser-use-report", "trajectory-replay-report", "public-benchmark-report", "webfetch-diagnostic-report"])
+@pytest.mark.parametrize("language", [None, "en", "zh"])
+def test_make_language_override_is_only_explicit(tmp_path, monkeypatch, target, language):
+    make = shutil.which("make")
+    if not make or subprocess.run([make, "--version"], capture_output=True).returncode:
+        pytest.skip("Make is not installed")
+    args = [make, "--no-print-directory", "-n", "-f", str(ROOT / "Makefile"), target, "EVIDENCE=" + str(tmp_path), "OUTPUT=" + str(tmp_path / "report")]
+    if language:
+        args += ["REPORT_LANGUAGE=" + language]
+    env = {key: value for key, value in os.environ.items() if key not in {"REPORT_LANGUAGE", "MAKEFLAGS"}}
+    result = subprocess.run(args, cwd=tmp_path, capture_output=True, text=True, env=env)
+    assert result.returncode == 0, result.stderr
+    command = next(shlex.split(line) for line in result.stdout.splitlines() if "scripts/build_" in line)
+    if language:
+        assert command[command.index("--language") + 1] == language
+    else:
+        assert "--language" not in command
+    if target == "report":
+        # Exercise the expanded public command with a saved Chinese selection.
+        # Evidence validation/rendering are covered by the real CLI scenarios below.
+        from unittest.mock import patch
+        from harness.web_fetch import report_build, storage
+        output = tmp_path / "reports/webfetch"
+        output.mkdir(parents=True)
+        (output / "report-languages.json").write_text(json.dumps({"primary_language": "zh", "languages": ["zh"]}))
+        command = command[command.index("scripts/build_report.py"):]
+        command[0] = str(ROOT / command[0])
+        captured = []
+        monkeypatch.chdir(tmp_path)
+        with patch.object(sys, "argv", command), \
+             patch.object(storage, "require_canonical_inputs"), patch.object(storage, "require_current_report_profile"), \
+             patch.object(storage, "require_evidence", return_value=tmp_path), \
+             patch.object(report_build, "build_report", side_effect=lambda *a, **kw: captured.append(kw) or output / "index.html"):
+            runpy.run_path(command[0], run_name="__main__")
+        assert captured[0]["language"] == (language or "zh")
+
 
 
 def cli(*args):

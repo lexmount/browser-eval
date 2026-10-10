@@ -3,7 +3,7 @@ import argparse,json,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from harness.report_languages import add_language_argument, primary_report_language
+from harness.report_languages import add_language_argument, resolve_report_language, SUPPORTED_REPORT_LANGUAGES
 from harness.web_fetch.report_build import build_report, build_public_benchmark_research, build_wcxb_report, build_webmainbench_full_report, build_diagnostic_cohorts, refresh_local_presentation
 from harness.web_fetch.storage import (
     current_evidence_dir,
@@ -40,8 +40,11 @@ if __name__ == '__main__':
             parser.error('--refresh-presentation requires only an existing --output and its result binding')
         print(refresh_local_presentation(args.output, args.refresh_presentation))
         raise SystemExit(0)
-    def requested_language(output):
-        return args.language or primary_report_language(output)
+    def requested_language(output, supported=SUPPORTED_REPORT_LANGUAGES):
+        try:
+            return resolve_report_language(output, args.language, supported=supported)
+        except ValueError as error:
+            parser.error(str(error))
 
     if args.profile:
         args.profile=(ROOT/args.profile).resolve() if not args.profile.is_absolute() else args.profile.resolve()
@@ -52,8 +55,9 @@ if __name__ == '__main__':
     if args.diagnostic_cohorts:
         if not args.output or (not args.evidence and not args.profile):
             parser.error('diagnostic build requires --output and evidence or a bound profile')
-        if args.local_audit or args.wcxb or args.webmainbench_full or args.public_benchmark_research or args.include_english or (args.language or 'en') != 'zh':
-            parser.error('--diagnostic-cohorts requires its own diagnostic evidence model and --language zh')
+        if args.local_audit or args.wcxb or args.webmainbench_full or args.public_benchmark_research or args.include_english:
+            parser.error('--diagnostic-cohorts requires its own diagnostic evidence model and Chinese output')
+        requested_language(args.output, supported=('zh',))
         print(build_diagnostic_cohorts(args.evidence,args.output,profile=args.profile))
         raise SystemExit(0)
     if args.local_audit:
@@ -69,9 +73,11 @@ if __name__ == '__main__':
     if sum(bool(value) for value in (args.profile, args.wcxb, args.webmainbench_full)) > 1:
         parser.error('--profile, --wcxb and --webmainbench-full are mutually exclusive')
     if args.webmainbench_full:
-        if not args.evidence or args.include_english or (args.language or 'en') != 'zh':
-            parser.error('--webmainbench-full requires --evidence and --language zh; this historical report has no English edition')
-        print(build_webmainbench_full_report(args.evidence,args.output or ROOT/'reports/webmainbench-full'))
+        if not args.evidence or args.include_english:
+            parser.error('--webmainbench-full requires --evidence; this historical report has no English edition')
+        output=args.output or ROOT/'reports/webmainbench-full'
+        requested_language(output, supported=('zh',))
+        print(build_webmainbench_full_report(args.evidence,output))
         raise SystemExit(0)
     if args.public_benchmark_research:
         if args.evidence:

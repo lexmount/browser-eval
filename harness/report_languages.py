@@ -28,13 +28,22 @@ def language_metadata_path(root: Path) -> Path:
     return path if path.is_file() else root / "report-manifest.json"
 
 
-def primary_report_language(root: Path) -> str:
+def primary_report_language(root: Path, *, default: str = "en") -> str:
     path = language_metadata_path(root)
     value = json.loads(path.read_text()) if path.is_file() else {}
-    language = value.get("primary_language", "zh" if value else "en")
+    language = value.get("primary_language", "zh" if value else default)
     if language not in SUPPORTED_REPORT_LANGUAGES:
         raise ValueError("Unsupported primary report language; choose en or zh")
     return language
+
+
+def resolve_report_language(root: Path, language: str | None = None, *,
+                            supported: tuple[str, ...] = SUPPORTED_REPORT_LANGUAGES) -> str:
+    """Prefer explicit choice, then saved choice, then the renderer's default."""
+    selected = language if language is not None else primary_report_language(root, default=supported[0])
+    if selected not in supported:
+        raise ValueError(f"This report supports only {', '.join(supported)}; requested {selected}")
+    return selected
 
 
 def select_report_language(root: Path, language: str) -> Path:
