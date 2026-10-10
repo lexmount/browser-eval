@@ -2,6 +2,10 @@
 
 import hashlib
 import json
+import shutil
+import sys
+import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -311,6 +315,26 @@ def test_import_is_allowlisted_and_dataset_adjacent_repository_copy_is_not_used(
     (output / "sources/case-a/reference.txt").write_text("changed")
     with pytest.raises(ValueError, match="changed"):
         input_tree(dataset, "sources")
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="macOS system directory aliases")
+@pytest.mark.parametrize("alias", ["/tmp", "/var"])
+@pytest.mark.parametrize("side", ["source", "destination", "both"])
+def test_frozen_import_accepts_system_aliases(inputs, alias, side, monkeypatch):
+    dataset, manifest_path, source, _ = inputs
+    original = external_dataset(inputs)
+    directory = "/private/tmp" if alias == "/tmp" else str(Path(tempfile.gettempdir()).resolve())
+    with tempfile.TemporaryDirectory(dir=directory) as work:
+        canonical = Path(work).resolve() / "approved-copy"
+        shutil.copytree(source, canonical)
+        alias_root = Path(alias) / canonical.parent.relative_to(Path("/private") / Path(alias).name)
+        selected = alias_root / canonical.name if side in {"source", "both"} else canonical
+        data_home = alias_root / "data" if side in {"destination", "both"} else canonical.parent / "data"
+        monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(data_home))
+        main(["--manifest", str(manifest_path), "--source", str(selected)])
+        main(["--manifest", str(manifest_path), "--check"])
+        assert read_dataset_bytes(dataset) == original
+        assert (input_tree(dataset, "sources") / "case-a/reference.txt").read_bytes() == b"independent fixture"
 
 
 def test_missing_installed_inputs_do_not_fall_back_to_checkout(inputs):

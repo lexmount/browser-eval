@@ -1,7 +1,10 @@
 import hashlib
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+import pytest
 
 from harness.reporting.assets import check_external_asset_boundary, copy_bound_assets
 
@@ -75,3 +78,42 @@ class ReportAssetsTest(unittest.TestCase):
                 with self.subTest(bad=bad), self.assertRaises((ValueError, FileNotFoundError)):
                     copy_bound_assets(source, output, bindings)
                 self.assertFalse(output.exists())
+
+
+@pytest.mark.skipif(sys.platform != 'darwin', reason='macOS system directory aliases')
+@pytest.mark.parametrize('alias', ['/tmp', '/var'])
+@pytest.mark.parametrize('side', ['source', 'destination', 'both'])
+def test_bound_copy_accepts_system_aliases_without_changing_bytes(alias, side):
+    directory = '/private/tmp' if alias == '/tmp' else str(Path(tempfile.gettempdir()).resolve())
+    with tempfile.TemporaryDirectory(dir=directory) as work:
+        root = Path(work).resolve()
+        source, destination = root / 'source', root / 'destination'
+        source.mkdir()
+        (source / 'nested').mkdir()
+        payload = b'Frozen reference bytes\n'
+        (source / 'nested/reference.txt').write_bytes(payload)
+        alias_root = Path(alias) / root.relative_to(Path('/private') / Path(alias).name)
+        selected_source = alias_root / 'source' if side in {'source', 'both'} else source
+        selected_destination = alias_root / 'destination' if side in {'destination', 'both'} else destination
+        copy_bound_assets(selected_source, selected_destination,
+                          {'nested/reference.txt': hashlib.sha256(payload).hexdigest()})
+        assert (destination / 'nested/reference.txt').read_bytes() == payload
+        assert (source / 'nested/reference.txt').read_bytes() == payload
+
+
+@pytest.mark.parametrize('side', ['source', 'destination'])
+def test_bound_copy_rejects_user_created_parent_links_before_writes(tmp_path, side):
+    source = tmp_path / 'source'
+    source.mkdir()
+    payload = b'Frozen reference bytes'
+    (source / 'reference.txt').write_bytes(payload)
+    destination = tmp_path / 'destination'
+    link = tmp_path / 'user-link'
+    link.symlink_to(tmp_path, target_is_directory=True)
+    selected_source = link / 'source' if side == 'source' else source
+    selected_destination = link / 'destination' if side == 'destination' else destination
+    with pytest.raises(ValueError, match='symlink'):
+        copy_bound_assets(selected_source, selected_destination,
+                          {'reference.txt': hashlib.sha256(payload).hexdigest()})
+    assert not destination.exists()
+    assert (source / 'reference.txt').read_bytes() == payload

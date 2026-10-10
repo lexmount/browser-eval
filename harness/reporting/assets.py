@@ -140,6 +140,8 @@ def check_external_asset_boundary(root: Path) -> None:
 def copy_bound_assets(source: Path, destination: Path, bindings: dict[str, str]) -> None:
     if not bindings:
         raise ValueError("report asset bindings are required")
+    source = unlinked_path(source)
+    destination = unlinked_path(destination)
     payloads = []
     for name, expected in bindings.items():
         relative = Path(name)
