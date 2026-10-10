@@ -4,7 +4,7 @@ Use this page to find the code responsible for a change. For running evaluations
 
 [Data flow](#data-flow) · [Code owners](#code-boundaries) · [Stored inputs](#repository-and-external-inputs) · [Report releases](#reports-and-publication) · [Review tools](#verification)
 
-The three tracks share utilities. Each has its own tasks, evaluator and publication target.
+Browser Eval measures browser capabilities and performance through reproducible benchmarks. Evaluation tracks share utilities; each has its own tasks, evaluator and publication target. The current tracks are listed below.
 
 | Track | Implementation | Running and reproduction |
 | --- | --- | --- |

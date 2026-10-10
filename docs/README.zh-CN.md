@@ -2,13 +2,15 @@
 
 [English](../README.md) | **简体中文**
 
-用相同任务比较浏览器、网页抓取服务和 Agent 工具。Browser Eval 是 [Moli](https://github.com/lexmount/moli) 的配套评测项目，对各方法使用统一评分规则，并保存每项结果的证据。
+可复现的浏览器能力与性能评测。Browser Eval 是 [Moli](https://github.com/lexmount/moli) 和其他浏览器的配套评测项目，使用统一的任务规则，并保存每项结果的证据。
 
 运行后得到 HTML 报告，里面有比较表、任务详情、响应和日志。可以在本地查看，也可以通过 [Artifact Site](https://github.com/lexmount/artifact-site) 发布，让其他人在线查看结果。
 
 [评测内容](#评测内容) · [快速开始](#快速开始) · [查看与分享报告](#查看与分享报告) · [相关项目](#相关仓库导航) · [参与贡献](#参与贡献)
 
 ## 评测内容
+
+目前支持以下评测方式：
 
 | 轨道 | 回答什么问题 | 从这里开始 |
 | --- | --- | --- |

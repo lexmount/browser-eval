@@ -1,7 +1,7 @@
 [project]
 name = "browser-harness-eval"
 version = "0.1.0"
-description = "Reproducible browser service evaluation harness"
+description = "Reproducible benchmarks for browser capabilities and performance"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.11"

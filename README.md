@@ -2,13 +2,15 @@
 
 **English** | [简体中文](docs/README.zh-CN.md)
 
-Compare browsers, web-fetch services and Agent tools on the same tasks. Browser Eval is the evaluation companion to [Moli](https://github.com/lexmount/moli), with shared scoring rules and saved evidence for every result.
+Reproducible benchmarks for browser capabilities and performance. Browser Eval is a companion evaluation project for [Moli](https://github.com/lexmount/moli) and other browsers. It uses shared task rules and saves the evidence behind each result.
 
 You get an HTML report with comparison tables, task details, responses and logs. Read it locally or publish it through [Artifact Site](https://github.com/lexmount/artifact-site) so others can explore the results online.
 
 [What it tests](#what-it-tests) · [Quickstart](#quickstart) · [Reports](#read-and-share-a-report) · [Related projects](#related-repositories) · [Contribute](#contribute)
 
 ## What it tests
+
+Current evaluation tracks:
 
 | Track | Question | Start here |
 | --- | --- | --- |
