@@ -63,7 +63,7 @@ cp "$harness_root/harness/web_fetch/workers/dsh_webfetch_worker.mts" "$dsh_repo/
 (cd "$dsh_repo" && "$node_bin_dir/node" --import tsx node_modules/.pnpm/.browser-harness-dsh-worker.mts </dev/null)
 
 cd "$harness_root"
-uv sync --frozen --all-extras
+uv sync --frozen --all-extras --python 3.11.12
 uv run --frozen python -c 'import crawl4ai, docx, langchain_community, openpyxl, pptx'
 
 printf 'COWAGENT_REPO=%s\nOPENCLAW_REPO=%s\nDEEPSEEK_HARNESS_REPO=%s\nOSS_PYTHON=%s/.venv/bin/python\nOPENCLAW_NODE=%s/node_modules/node/bin/node\nOPENCLAW_PNPM=%s\n' "$cowagent_repo" "$openclaw_repo" "$dsh_repo" "$harness_root" "$openclaw_node_root" "$openclaw_pnpm"

@@ -1,8 +1,16 @@
 # Frozen reference inputs
 
-Complete historical datasets, source pages, documents, list references and independently rendered snapshots live outside Git. Each directory's `source-inputs.json` binds the complete file inventory, per-file SHA-256 values and frozen dataset hash. Full datasets and historical certificates retain their original bytes.
+To reproduce a historical run, you need its original input files as well as this checkout. Full datasets, pages, documents and rendered references are stored outside Git.
 
-`dataset-catalog.json` contains task inventories, origins, coverage plans and definition hashes. It contains no full reference text and cannot be passed to the runner as an executable dataset.
+Each `source-inputs.json` lists the required files and hashes. Import verifies those bytes against the frozen dataset; it preserves historical datasets and certificates unchanged.
+
+| File | Use |
+| --- | --- |
+| `dataset-catalog.json` | Browse task IDs, origins, coverage and definition hashes |
+| External `dataset.json` | Run the historical tasks with their full reference text |
+| `source-inputs.json` | Check that all required input files match the historical version |
+
+The catalog cannot substitute for the executable dataset.
 
 | Dataset | Manifest |
 | --- | --- |
@@ -21,9 +29,9 @@ Default storage:
 ~/.browser-eval/reference-inputs/<manifest-id>/list-references/
 ```
 
-Set `BROWSER_EVAL_DATA_HOME` to change the data root. When a manifest declares an external tree, runners, reference prechecks and audits read that tree only. They do not fall back to a checkout copy or fetch websites automatically.
+Set `BROWSER_EVAL_DATA_HOME` to change the root. For a manifest-backed experiment, runners and audits use only its verified external tree. They do not fetch missing pages or use a checkout copy.
 
-Historical commands naming `evaluation/dataset.json` use the shared reader to resolve and hash-check the external original; that file is no longer in the checkout. Import missing inputs before running. A task catalog cannot replace the full dataset. Custom datasets without an external manifest use the supplied JSON and its adjacent `sources/` and `list-references/`.
+A historical command may still name `evaluation/dataset.json`: the reader resolves that path to the verified external original. Import it first. Custom datasets without a manifest use the supplied JSON and adjacent `sources/` and `list-references/`.
 
 ## Import and verify
 
@@ -37,7 +45,14 @@ uv run --frozen python scripts/import_reference_inputs.py \
   --manifest evaluation/source-inputs.json --check
 ```
 
-Import copies only declared files, excluding undeclared logs and material. The destination must be new; checking does not modify existing files. Missing files, hash mismatches, escaping paths and user-created symlinks are rejected. macOS system aliases `/tmp` and `/var` are accepted through shared path normalization. The new input directory becomes available only after complete verification; interruptions leave no partial import.
+| Import behavior | Result |
+| --- | --- |
+| Only manifest-listed files are copied | Unlisted logs and other material stay out |
+| Missing files, changed hashes, escaping paths or user-created symlinks | Import fails |
+| Existing destination | Import fails; `--check` verifies it without changing it |
+| Interrupted import | No partial input tree becomes available |
+
+macOS system aliases `/tmp` and `/var` are handled by path normalization.
 
 Source acquisition and usage terms remain those of the original source. These commands do not download third-party data, change its license or grant redistribution rights. Keep private input directories and source copies off GitHub. The code license does not cover third-party reference text.
 

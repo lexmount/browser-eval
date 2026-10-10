@@ -38,7 +38,7 @@ from .report_style import STYLE
 from .safety import contained_path, safe_href, validate_report_ids
 from .webmainbench_diagnostics import ERROR_PAGE
 
-PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-pr643':'Moli 1.1.7 · PR #643','moli-1.1.11':'Moli 1.1.11'}
+PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-pr643':'Moli 1.1.7 · PR #643','moli-1.1.11':'Moli 1.1.11'}
 
 
 def format_wcxb_conditional_latency(value: float | None) -> str:

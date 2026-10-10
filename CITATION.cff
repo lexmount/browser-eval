@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use Browser Eval in your work, please cite this repository."
+type: software
+title: Browser Eval
+authors:
+  - name: Browser Eval contributors
+repository-code: "https://github.com/lexmount/browser-eval"
+url: "https://github.com/lexmount/browser-eval"
+version: 0.1.0
+date-released: 2026-10-10
+license: MIT

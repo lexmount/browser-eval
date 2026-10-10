@@ -1,4 +1,8 @@
-# Browser task-native Web Fetch comparison
+# Compare live-URL browser methods
+
+For a first local run, use the [HTTP/Moli/Chromium example](../../examples/web_fetch/README.md). This guide covers the maintained live-URL benchmark and its resource measurements.
+
+[Methods](#runtime-and-route) · [Comparison limits](#what-is-and-is-not-fair) · [Setup](#credentials-and-binaries) · [Run](#run-and-preserve-evidence) · [Release checks](#release-checks)
 
 The separate frozen-HTML public-data comparison is documented in
 [WEBMAINBENCH.md](WEBMAINBENCH.md); its fidelity scores are not mixed with
@@ -113,7 +117,7 @@ Local binary paths use `MOLI_BINARY`, `LIGHTPANDA_BINARY`,
 empty value is rejected so a later partial rerun cannot silently switch from
 the report's browser to Playwright's bundled Chromium. Binaries are not committed; measured binary hashes and
 versions are retained in call evidence. Install JavaScript dependencies with
-`npm install` and the Python benchmark dependencies in a repository-local
+`npm ci` and the Python benchmark dependencies in a repository-local
 environment.
 
 Every local call is bound to the batch executable SHA-256. The runner captures
@@ -128,12 +132,16 @@ archive is labelled post-hoc; it is not rewritten as run-time provenance.
 
 ## Run and preserve evidence
 
+### Import historical inputs
+
 The historical `evaluation/dataset.json` input is resolved through
 `evaluation/source-inputs.json`; its full text and captured sources are outside
 Git. Import the approved frozen copy before using the historical commands below,
 as described in [reference inputs](../../docs/reference-inputs.md).
 `evaluation/dataset-catalog.json` is a public task directory, not an execution
 dataset. An explicitly supplied custom dataset remains a normal JSON file.
+
+### Select a cohort and methods
 
 `harness/web_fetch/headless_runner.py` owns cohort selection, execution and
 implementation checks. The command in `scripts/` delegates to it.
@@ -157,6 +165,8 @@ image and binary paths; the runner does not infer them from method names.
 Unknown or duplicate methods, task IDs and task families are rejected before
 calls. The execution receipt records the selected cohort and actual input
 filenames rather than claiming the repository's default inputs.
+
+### Capture, freeze and check references
 
 The reference lifecycle in [README.md](README.md) is mandatory. Independently
 capture ordinary pages, separately observe browser-dependent complete scopes,
@@ -183,6 +193,8 @@ uv run --frozen python scripts/postcheck_headless.py --run-dir RUN --captures PO
 uv run --frozen python scripts/certify_headless_cases.py --run-dir RUN --observations POST/observations.json --output CERTIFICATES
 uv run --frozen python scripts/review_headless_results.py --evidence EVIDENCE --work REVIEW --batch-cases 5 --workers 4 --model EXACT_AVAILABLE_MODEL --install
 ```
+
+### Certify a new run
 
 For new `run_benchmark.py` cohorts, use the fail-closed wrapper so an aggregate
 run cannot be mistaken for publishable evidence before its worker manifests
@@ -303,7 +315,7 @@ evidence remains ineligible for this formal evidence check.
 `.python-version`, `uv.lock`, the Makefile and CI pin Python 3.11 and dependency versions.
 Formal commands must not fall back to system `python` / `python3`; an unmet runtime contract must fail before execution.
 
-## Cross-session release gates
+## Release checks
 
 The headless report remains a separately published reference cohort. Its
 evidence bundle fixes the dataset ID, task count, provider set, timeout and
@@ -314,8 +326,8 @@ Review requirements are bound to the declared evidence scope: unresolved
 judgments block publication, and a failure-only review discloses both reviewed
 attempts and accepted unreviewed machine passes. Assembly retains inherited
 review history only when its scope and judgments match the final results. These checks are
-covered by the repository test suite; a new session must repair the evidence or
-implementation instead of bypassing them.
+covered by the repository test suite. Fix invalid evidence or implementation
+before release.
 
 The preserved public destination for this comparison is the separate app-domain
 Sites project `UUAhhQMnrGwm`. The current 10-method report is the separate

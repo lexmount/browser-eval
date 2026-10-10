@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "providers": {
+    "http": {"type": "http"},
+    "moli": {"type": "headless_markdown", "engine": "moli", "binary": "${MOLI_BINARY:-moli}"},
+    "chromium": {"type": "headless_markdown", "engine": "chromium", "binary": "${CHROMIUM_BINARY:-chromium}"},
+    "lightpanda": {"type": "headless_markdown", "engine": "lightpanda", "binary": "${LIGHTPANDA_BINARY:-lightpanda}"},
+    "obscura": {"type": "headless_markdown", "engine": "obscura", "binary": "${OBSCURA_BINARY:-obscura}", "allow_private_network": true}
+  }
+}

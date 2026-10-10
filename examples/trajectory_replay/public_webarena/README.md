@@ -1,4 +1,6 @@
-# WebArena fixed-trajectory replay
+# Replay WebArena recordings
+
+[Prepare a host](../../../docs/webarena-fixed-trajectory-reproduction.md) · [Run the suite](#run-the-qualified-suite) · [Rainbond workers](#disposable-rainbond-environments) · [Qualification protocol](../../../docs/trajectory-replay-protocol.md)
 
 This is a deterministic replay of qualified public WebArena human recordings. The runner
 executes browser UI actions without an agent or model and checks the final answer, service
@@ -8,6 +10,8 @@ The source inventory contains 179 candidate recordings. The current formal suite
 30 as eligible; the runner skips the other 149. Source actions are candidates, not a
 passing answer key: qualification uses independent Chromium runs and the official
 evaluator before a task enters the formal suite.
+
+## Import a new recording catalog
 
 `scripts/fetch_webarena_traces.py` downloads every entry in its declared `--catalog`
 and records their hashes under the external `--output` directory. The catalog count
@@ -20,6 +24,8 @@ The repository-curated 30 browser-tool cases use
 [`examples/trajectory_replay`](../README.md) and `harness.trajectory_replay`.
 The autonomous Agent evaluation uses `harness.browser_use`. Neither shares this
 public suite's denominator or result pages.
+
+## Run the qualified suite
 
 To reproduce the public suite on a prepared WebArena-Verified environment, follow the
 [two-repository contract](../../../docs/webarena-fixed-trajectory-reproduction.md) and the
@@ -34,6 +40,8 @@ uv run --frozen python -m harness.trajectory_replay.public_webarena.cli \
   --output <evidence>/formal/webarena-public-trajectories/run \
   --reports <evidence>/formal/webarena-public-trajectories/reports
 ```
+
+## Evidence and publication
 
 Measured attempts, screenshots, HAR, and reports stay outside Git. The repository keeps
 the suite, qualification reasons, evaluator rules, source bindings, and a sanitized

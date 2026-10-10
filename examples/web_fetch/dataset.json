@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "id": "local-web-fetch-example",
+  "name": "Local Web Fetch example",
+  "tool": "web_fetch",
+  "cases": [
+    {
+      "id": "local-article",
+      "name": "Complete local article",
+      "url": "http://127.0.0.1:8765/",
+      "category": "synthetic",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "Extract the complete article.",
+      "expected_any": ["Browser Eval local example"],
+      "required_facts": [
+        {"id": "article", "alternatives": ["This page belongs to the Browser Eval quickstart. A successful extraction preserves the complete article, including this paragraph and the final sentence."]},
+        {"id": "conclusion", "alternatives": ["Local examples exercise execution, scoring and report generation. They do not establish a browser ranking."]}
+      ],
+      "ground_truth_main_content": "Browser Eval local example\nThis page belongs to the Browser Eval quickstart. A successful extraction preserves the complete article, including this paragraph and the final sentence.\nLocal examples exercise execution, scoring and report generation. They do not establish a browser ranking."
+    }
+  ]
+}

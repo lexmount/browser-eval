@@ -1,5 +1,7 @@
 # Browser Trajectory Replay
 
+[Run](#one-command-reproduction) · [Protocol](#protocol) · [WebArena recordings](public_webarena/README.md)
+
 This deterministic microbenchmark replays a fixed BrowserTool action trajectory
 against local Chromium and Moli. It starts one isolated browser container per
 engine, and a host-side controller reads only each target container's Docker
@@ -22,7 +24,7 @@ Run:
 Run the small real-container smoke test before a release (requires the two
 evaluation images, which the command above builds):
 
-    RUN_BROWSER_USE_SMOKE=1 .venv/bin/python -m pytest -q -m real_smoke
+    RUN_BROWSER_USE_SMOKE=1 uv run --frozen --all-extras python -m pytest -q -m real_smoke
 
 Smoke is intentionally minimal: one real public-page case, once per engine. It
 reuses existing evaluation images and is not a performance benchmark.
@@ -161,20 +163,3 @@ Absolute P50/P95/mean values describe each provider's cross-task distribution.
 Paired ratios are computed per successful task first, then summarized. The P95
 of those ratios is not a division of two marginal P95 values. Comparison cells
 share one highlighting rule; rounded ties and unavailable data stay neutral.
-
-## CubeSandbox
-
-CubeSandbox is a valid future backend for hardware-isolated, high-volume runs:
-its [official examples](https://docs.cubesandbox.com/guide/tutorials/examples.html)
-run headless Chromium inside a MicroVM and expose CDP. Its
-[resource metrics](https://docs.cubesandbox.com/guide/resource-metrics.html)
-provide independent `host_sandbox` and `guest_workload` CPU/current-memory
-views. However, the default collection interval is 5 seconds, the endpoint
-retains only the latest sample, exact short-task memory peaks are not exported,
-and the documented metric families do not include per-sandbox network bytes.
-
-The initial local reference therefore uses Docker cgroup and network-namespace
-accounting at 100 ms. This is a measurement boundary, not a CowAgent deployment
-recommendation. A CubeSandbox backend should be added separately for production
-topology, hardware isolation, and density tests; its metrics must not be blended
-with Docker results.

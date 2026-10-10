@@ -13,6 +13,10 @@ flowchart LR
     E --> F[Report and release gates]
 ```
 
+[Choose a dataset](#select-the-population) · [Full comparison](#certify-score-and-assemble-the-complete-comparison) · [Read the scores](#interpret-the-scores)
+
+The sample correction sections below are for reproducing or repairing that historical sample. Start with the full-comparison section for the complete dataset.
+
 ## Select the population
 
 | Population | Authority |

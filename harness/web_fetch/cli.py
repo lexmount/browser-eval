@@ -100,7 +100,7 @@ def command_accounts(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="browser-harness-eval",
-        description="Reproducible evaluation for agent browser harness tools.",
+        description="Web Fetch evaluations for Browser Eval. Run retrieval tasks and build reports from saved evidence.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 

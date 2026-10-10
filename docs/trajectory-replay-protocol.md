@@ -1,7 +1,28 @@
 # Browser Trajectory Replay protocol
 
-This protocol keeps task data, browser actions, evidence, and scoring identical across browser
-engines while allowing datasets to provide different task-specific oracles.
+Replay uses the same task and browser actions for every engine. Each dataset supplies its own checks for task completion.
+
+For running an existing suite, start with the [curated replay guide](../examples/trajectory_replay/README.md) or [WebArena setup](webarena-fixed-trajectory-reproduction.md). This reference is for trajectory authors and maintainers.
+
+```mermaid
+flowchart LR
+    A[Candidate recording] --> B[Two clean Chromium runs]
+    B --> C{Both pass the evaluator?}
+    C -->|Yes| D[Freeze qualified trajectory]
+    C -->|No| E[Repair or annotate]
+    E --> B
+    D --> F[Run the same actions in each browser]
+    F --> G[Save and evaluate all attempts]
+```
+
+| Topic | Section |
+| --- | --- |
+| Task, action and evidence formats | [Common layers](#common-layers) · [targets and actions](#targets-and-actions) |
+| Qualify WebArena recordings | [Qualification](#webarena-trajectory-qualification) |
+| Repair a candidate | [Repair proposals](#public-webarena-repair-proposals) |
+| Investigate a missing site mutation | [Remote diagnostics](#remote-mutation-diagnostics) |
+| Run the measured comparison | [Formal measurement](#formal-measurement) |
+| Commands for import, qualification and repair | [Operator sequence](#operator-sequence) |
 
 ## Common layers
 
@@ -59,7 +80,7 @@ gold paths. The sanitized per-task result is retained in
 Of the 179 candidates, 98 mutate or navigate tasks already have a null response contract whose
 success can be decided from final state and HAR. The other 81 are retrieve tasks: the upstream
 recording provides actions but no evaluator-ready final answer. Even if their imported path
-executes, they remain `needs response annotation` until Codex adds DOM observation actions and an
+executes, they remain `needs response annotation` until a trajectory author adds DOM observation actions and an
 observed response builder, then passes two independent Chromium qualification runs.
 
 All 172 candidates in the pre-registered native scope are replayed in two independent passes with
@@ -72,7 +93,7 @@ enters one of three queues only after both passes are present:
   independent DOM capture;
 - needs trace repair: an action or final-state evaluation fails.
 
-For correction, Codex may inspect the original trace, its snapshots, the current page, and the
+For correction, a trajectory author may inspect the original trace, its snapshots, the current page, and the
 failure evidence. It may change UI actions or add DOM capture steps. It may not change the task,
 expected result, evaluator, or environment. A repaired task becomes eligible only after two
 independent new Chromium runs pass the same WebArena-Verified evaluator. Original and corrected trajectories,
@@ -441,13 +462,13 @@ pre-registered IDs for the active site group:
 uv run --frozen python -m harness.trajectory_replay.public_webarena.cli --suite evaluation/browser-use-public/webarena-human-suite.json --webarena-config <runtime-config> --qualification-run --qualification-pass-index <1-or-2> --qualification-required-passes 2 --engines chromium --failure-retries 0 --task-ids <ids> --output <evidence>/qualification/pass-<1-or-2>/<batch>
 ```
 
-Codex may first use a warm-site authoring run to inspect and repair pending retrieve-only
+A trajectory author may first use a warm-site authoring run to inspect and repair pending retrieve-only
 trajectories in batches. This mode resets each involved site once, but still creates a fresh browser
 context for every task. It is diagnostic only: its manifest and attempts are explicitly marked
 `trajectory_authoring_run`, it cannot include state-changing tasks or retries, and its output is
 never accepted by the qualification gate. Every proposed trajectory must subsequently pass two
 clean Chromium qualification runs with the normal per-task reset and complete HAR, screenshot,
-final-page, and evaluator evidence. A Codex proposal has no qualification effect by itself.
+final-page, and evaluator evidence. A proposed repair has no qualification effect by itself.
 
 ```text
 uv run --frozen python -m harness.trajectory_replay.public_webarena.cli --suite <evidence>/authoring/retrieve-suite.json --webarena-config <runtime-config> --trajectory-authoring-run --engines chromium --failure-retries 0 --output <evidence>/authoring/retrieve
@@ -492,7 +513,7 @@ Merge the batch attempt files into one correction queue. A repaired or observati
 is accepted only when its adjudication points to two primary passing Chromium `attempt.json` files
 from distinct runs covering pass indices 1 and 2. Both task-contract hashes must match the corrected
 actions, evaluator, environment, source evaluator contract, and response builder.
-After Codex records proposed corrections in the queue, build the exact pending subset and run that
+After recording proposed corrections in the queue, build the exact pending subset and run that
 suite twice with the pass-specific qualification flags. Copy both passing repair attempt paths into the final
 adjudication; do not validate a hand-edited suite whose normalized provenance differs from the
 canonical result.

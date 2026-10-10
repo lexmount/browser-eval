@@ -5,6 +5,7 @@ The root MIT license covers project-owned code and documentation. It does not re
 | Content | Source and binding | Distribution boundary |
 | --- | --- | --- |
 | WebArena-Verified | Source repository and commit pinned in `pyproject.toml` and `uv.lock` | Installed as a dependency; retain upstream license and attribution |
+| Humanizer / Humanizer Chinese | [blader/humanizer](https://github.com/blader/humanizer), [jiji262/humanizer-chinese](https://github.com/jiji262/humanizer-chinese); commits and file hashes in each skill's `SOURCE.json` | MIT; upstream skill and license files are copied unchanged. See [skill sources and updates](.agents/skills/README.md) |
 | WebMainBench / WCXB | Parent populations, scorers and hashes bound by the relevant `evaluation/` profiles | Obtain separately under upstream terms; the code license grants no rights to source pages |
 | Independently captured pages, PDFs, media and reference snapshots | Task provenance, `evaluation/source-inputs.json` and each track's external evidence bindings | Private data storage; import approved copies through manifests. Public accessibility does not imply redistribution permission |
 | Human trajectories and task definitions | Replay configurations, provenance and qualification evidence | Retain origins and usage terms; distinguish definitions, recordings and measured outputs |
