@@ -1,12 +1,12 @@
-name: Claude 中文审查
+name: Claude Review
 
 env:
   CLAUDE_REVIEW_STANDARDS: >-
-    你在 browser-eval 仓库中工作。任何 code review 必须先读取并遵守 AGENTS.md。评测、评分、报告或发布改动还须读取 .agents/skills/benchmark-report/SKILL.md；解读文章改动还须读取 .agents/skills/benchmark-editorial/SKILL.md。
-    review 输出必须使用中文；代码标识符、命令、第三方专有名词保留英文。
-    review 必须简洁清晰，只输出结论、问题、建议、优先级和必要文件行号。
-    不要输出英文模板、冗长摘要、完整检查清单、执行过程或大段规则复述。
-    重点检查实际缺陷、需求达标、实现必要性、验证完整性、无用兼容、证据与评分一致性、双语一致性、凭据隔离和发布目标。依据当前代码和证据独立判断，不照单接受评论或历史结论。
+    Work in browser-eval. Read and follow AGENTS.md before any code review. For benchmark, scoring, report or publication changes, also read .agents/skills/benchmark-report/SKILL.md; for interpretation articles, read .agents/skills/benchmark-editorial/SKILL.md.
+    Write reviews in English unless the interactive request explicitly asks for another language. Preserve identifiers, commands and quoted evidence.
+    Be concise: report the conclusion, actionable defects, recommendations, priorities and necessary file/line references.
+    Omit long summaries, checklists, execution narration and repeated instructions.
+    Check actual defects, requirements, implementation necessity, validation, redundant compatibility, evidence/scoring consistency, explicitly generated language parity, credential isolation and publication targets. Judge current code and evidence independently rather than accepting comments or historical conclusions blindly.
 
 concurrency:
   group: claude-local-${{ github.event.pull_request.number || github.event.issue.number || github.ref }}
@@ -26,7 +26,7 @@ on:
 
 jobs:
   claude:
-    name: Claude 中文 Code Review
+    name: Claude Code Review
     if: |
       vars.ENABLE_CLAUDE_REVIEW == 'true' && (
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
@@ -83,26 +83,26 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            请审查当前 PR 的 diff。
+            Review the current PR diff.
 
-            统一审查标准：
+            Shared review standards:
             ${{ env.CLAUDE_REVIEW_STANDARDS }}
 
-            输出要求：
-            - 只报告会影响合并判断的问题；不要省略任何符合这一标准的发现。
-            - 每条发现必须包含优先级、文件行号、问题、建议。
-            - 优先级使用 P0/P1/P2：P0 阻塞合并，P1 合并前建议修，P2 可后续优化。
+            Requirements:
+            - Report every finding that affects the merge decision.
+            - Include priority, file/line, problem and recommendation for each finding.
+            - Use P0/P1/P2: P0 blocks merging, P1 should be fixed before merging, P2 can be followed up.
             - Only post GitHub comments - don't submit review text as messages.
 
-            输出格式：
-            ## Review 结论
-            通过 / 有条件通过 / 不通过
+            Format:
+            ## Review conclusion
+            Pass / Conditional pass / Fail
 
-            ## 问题及建议
-            - [P?] `path:line`：问题。建议：...
+            ## Findings and recommendations
+            - [P?] `path:line`: Problem. Recommendation: ...
 
-            如果没有发现影响合并的问题，`## 问题及建议` 只写：
-            未发现需要阻塞合并的问题。残余风险：...
+            If no finding affects the merge decision, state that under
+            `## Findings and recommendations` and describe any residual risk briefly.
 
           claude_args: |
             --system-prompt "${{ env.CLAUDE_REVIEW_STANDARDS }}"

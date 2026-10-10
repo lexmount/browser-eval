@@ -1,15 +1,15 @@
-# 第三方内容与许可边界
+# Third-party content and licenses
 
-根目录 MIT 许可适用于项目自有代码和文档，不替代第三方源码、网页、图片、文档或数据集的许可。各文件原有版权声明和子目录许可继续有效。
+The root MIT license covers project-owned code and documentation. It does not replace licenses for third-party code, pages, images, documents or datasets. Existing copyright notices and directory licenses remain in effect.
 
-| 内容 | 来源与绑定 | 分发边界 |
+| Content | Source and binding | Distribution boundary |
 | --- | --- | --- |
-| WebArena-Verified | `pyproject.toml` 和 `uv.lock` 固定源码仓库与提交 | 通过依赖安装；保留上游许可和归属 |
-| WebMainBench / WCXB | 对应 `evaluation/` 配置固定母集、评分器与哈希 | 按上游授权单独获取；代码许可不授予源网页权利 |
-| 独立获取的网页、PDF、媒体和参考快照 | 任务的来源注释、`evaluation/source-inputs.json` 及各轨道外部证据绑定 | 快照保存在私有数据目录，按清单从获准使用的副本导入；公开可访问不等于允许重新分发 |
-| 人工轨迹与任务定义 | 轨迹轨道的配置、来源说明和资格证据 | 保留原始来源及使用条件，区分定义、录像与测量输出 |
-| 仓库编辑技能 | `.agents/skills/` 内各自的来源和声明 | 保留相应声明；不作为浏览器安装包的运行依赖 |
-| 合成离线示例 | `harness/web_fetch/data/` | 项目自有测试输入，不包含第三方抓取内容 |
-| 资源采集开销校准 | `harness/resource_calibration.py`，源自 [Lexbench 固定提交](https://github.com/lexmount/Lexbench-Headless-Browser/blob/fd8d64c7623d46cd165607f216a0e28967d03040/runner/resources.py)，来源文件哈希记录在模块中 | Apache-2.0；保留[完整许可](harness/licenses/Lexbench-Apache-2.0.txt)及归属，随源码和安装包分发 |
+| WebArena-Verified | Source repository and commit pinned in `pyproject.toml` and `uv.lock` | Installed as a dependency; retain upstream license and attribution |
+| WebMainBench / WCXB | Parent populations, scorers and hashes bound by the relevant `evaluation/` profiles | Obtain separately under upstream terms; the code license grants no rights to source pages |
+| Independently captured pages, PDFs, media and reference snapshots | Task provenance, `evaluation/source-inputs.json` and each track's external evidence bindings | Private data storage; import approved copies through manifests. Public accessibility does not imply redistribution permission |
+| Human trajectories and task definitions | Replay configurations, provenance and qualification evidence | Retain origins and usage terms; distinguish definitions, recordings and measured outputs |
+| Repository editorial skills | Origins and notices under `.agents/skills/` | Retain their notices; they are not browser-package runtime dependencies |
+| Synthetic offline examples | `harness/web_fetch/data/` | Project-owned test inputs with no third-party captures |
+| Resource-collection overhead calibration | `harness/resource_calibration.py`, derived from a [pinned Lexbench source](https://github.com/lexmount/Lexbench-Headless-Browser/blob/fd8d64c7623d46cd165607f216a0e28967d03040/runner/resources.py); source hash recorded in the module | Apache-2.0; retain the [full license](harness/licenses/Lexbench-Apache-2.0.txt) and attribution in source and wheel distributions |
 
-运行结果、登录态、供应商原始响应和内部审查材料不属于源码分发内容。公开证据包还需经过隐私检查和该轨道的发布门禁。只有来源链接或 SHA-256 仍不足以证明授权；缺少明确依据的素材不能纳入对外源码包。
+Measured results, sessions, raw provider responses and private review material are outside the source distribution. Public evidence packages also need privacy checks and the track's release gates. A source URL or SHA-256 alone does not prove permission; material without a clear authorization basis must stay out of public source packages.

@@ -1,20 +1,20 @@
-# 历史访问受限网址的规则制定输入
+# Inputs for access-restriction rule authoring
 
-本目录以 2026-09-27 筛选交付的 100 个正式网址案例和 10 个候补为起点。2026-09-29 因快手当前证据不足以继续制定可靠规则，按预先约定的随机程序用 `risk-diverse-271` 替换 `risk-107`；当前正式 100 例覆盖 74 个独立网站。未使用的 9 个候补不属于最终评测范围，也不进入仓库。
+The starting delivery on 2026-09-27 contained 100 formal URL cases and 10 reserves. On 2026-09-29, insufficient current Kuaishou evidence prevented reliable rule authoring; the predeclared random procedure replaced `risk-107` with `risk-diverse-271`. The final 100 cases span 74 distinct sites. The nine unused reserves are outside the final scope and repository.
 
-- `cohort/cohort-manifest.json`：100 个正式案例的输入网址、网站归组、目标范围、语言、宽口径资格类别，以及制定评分规则所需的一份参考文本绑定。
-- `cohort/cohort-receipt.json`：资格标准、整体审核结果、唯一一次替换、仓库外完整审核文件哈希和适用限制。
-- `cohort-policy.json`：本批案例资格与分布约束。
-- `cohort/input-manifest.json`：输入文件校验值与仓库外证据根目录映射；相对路径以 `BROWSER_EVAL_DATA_HOME` 为根，未设置时使用 `~/.browser-eval`。
+- `cohort/cohort-manifest.json`: URLs, site groups, target scope, language, broad qualification classes and one reference-text binding per formal case.
+- `cohort/cohort-receipt.json`: qualification criteria, overall audit, the single replacement, external complete-audit hashes and limits.
+- `cohort-policy.json`: cohort qualification and distribution constraints.
+- `cohort/input-manifest.json`: input hashes and external evidence-root mappings. Relative paths resolve under `BROWSER_EVAL_DATA_HOME`, defaulting to `~/.browser-eval`.
 
-后续逐例规则以精简 manifest 和独立原页面参考文本为依据。用于证明历史访问限制的原始 HTML、截图、HAR、DOM 和逐例审核详情继续保存在 `BROWSER_EVAL_DATA_HOME` 下，由整体回执绑定，不进入 Git，也不参与结果评分。未使用候补的内容仍留在原资格筛选证据中，不进入本分支。
+Per-case rules use the compact manifest and independent page references. Original HTML, screenshots, HAR, DOM and detailed reviews proving historical restrictions remain in external storage, bound by the overall receipt. They do not enter Git or result scoring. Unused reserves remain in the original qualification workspace.
 
-不得将较早的 50 例计划、旧版 100 例规则或 95/100 成绩当作本批规则依据。制定规则前先核对各例 reference 中的范围说明；原始文本中的隐藏、折叠和额外加载内容不自动属于可评分正文。规则冻结前不读取被测产品输出，不调用被测产品。
+Earlier 50-case plans, obsolete 100-case rules and a historical 95/100 score are not authorities for this cohort. Check each reference's scope before authoring rules: hidden, collapsed or additionally loaded text is not automatically scored body content. Do not inspect evaluated-product output or call the products before rules are frozen.
 
-本目录只纳入最终 100 例及其必要依据；其余候选、淘汰记录、历史规则和历史成绩保留在原资格筛选工作区，不迁入本分支。
+Only the final 100 cases and necessary provenance are included here. Other candidates, eliminations, historical rules and scores remain in the original qualification workspace.
 
-## 资格声明的边界
+## Limits of qualification
 
-2026-09-28 的独立审核核对了仓库外保存的原始响应、DOM、网络记录和截图。最终 100 例中，96 例为明确安全、反自动化或访问政策限制，4 例只证明登录浮层；资格信息只解释为什么进入 cohort，不参与 Moli 结果评分。
+The independent audit on 2026-09-28 inspected external original responses, DOM, network records and screenshots. Of the final 100 cases, 96 evidenced explicit security, anti-automation or access-policy restrictions; four evidenced only a login overlay. Qualification explains admission and does not score Moli output.
 
-这些材料只能证明具体 URL 在保存的观察时点和访问路径上曾出现限制，不能永久分类整个网站，也不能把 4 个登录浮层案例称为机器人检测。当前正式范围是 74 个独立网站上的 100 个网址案例，不是 100 个独立网站。
+Evidence establishes restrictions for a specific URL, observation time and access route. It does not permanently classify a whole website or turn the four login overlays into bot detection. The scope is 100 URLs across 74 sites, not 100 sites.

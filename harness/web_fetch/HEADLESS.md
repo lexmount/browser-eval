@@ -300,8 +300,8 @@ its defaults reproduce the historical headless comparison. It verifies saved
 outputs without making provider calls or changing verdicts. Explicit diagnostic
 evidence remains ineligible for this formal evidence check.
 
-`.python-version`、`uv.lock`、Makefile 与 CI 共同固定 Python 3.11 和依赖版本。
-正式命令不得改用系统 `python` / `python3`；环境不满足时应立即失败，不能降级执行。
+`.python-version`, `uv.lock`, the Makefile and CI pin Python 3.11 and dependency versions.
+Formal commands must not fall back to system `python` / `python3`; an unmet runtime contract must fail before execution.
 
 ## Cross-session release gates
 

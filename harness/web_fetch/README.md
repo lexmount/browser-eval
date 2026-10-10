@@ -385,8 +385,9 @@ certified runner owns pre-call and post-call capture and reference validation.
 
 ## Dynamic-content ground-truth protocol
 
-已测量的动态补充批次使用同一共享模块合并和追加。显式传入私有输入目录；
-合并输出必须是新目录。以下命令不调用供应商，也不重新评分：
+Merge and append measured dynamic supplements through the same shared module.
+Pass private input directories explicitly; merged output must be new.
+These commands make no provider calls and do not rescore:
 
 ```sh
 uv run --frozen python scripts/merge_dynamic_supplement.py \
@@ -400,10 +401,13 @@ uv run --frozen python scripts/append_dynamic_content.py \
   --checks /absolute/path/independent-completion-checks.json
 ```
 
-合并保留原始记录字节、辅助输出、重试工件、私有响应和已认证的参考后检文件。
-追加前检查任务规则、完整方法覆盖及独立完成条件；任务规则改变时不能沿用旧测量。
-复制失败不会暴露新合并目录，追加失败保留原证据。两条命令均可用 `--help` 查看参数。
-它们不产生新的认证，正式发布仍须通过对应轨道的配置和发布检查。
+Merge preserves original record bytes, auxiliary outputs, retry artifacts, private
+responses and certified post-call reference checks. Append validates task rules,
+complete method coverage and independent completion conditions; changed task rules
+cannot reuse earlier measurements. Copy failures expose no new merged directory;
+append failures preserve original evidence. Both commands support `--help`.
+They issue no new certification; formal publication still needs the track's
+profile and release gates.
 
 Keep dynamic-content results separate from the existing body/access/resource
 tracks. A category named `javascript_rendering`, a browser success, an HTTP
@@ -490,7 +494,7 @@ Execution pitfalls: the fetch runner calls `provider.fetch(case, timeout)`;
 subprocess workers currently receive only URL and timeout, not selectors or
 completion conditions. Metadata above does not change their wait behavior.
 Use a separate dataset and output directory for each measurement cohort.
-`track: dynamic` identifies 动态网站正文. Popular-site list identity is a
+`track: dynamic` identifies dynamic website body content. Popular-site list identity is a
 separate structure task, evaluated through the shared scoring contract. Run a
 new certified cohort with the declared tasks and independent list references;
 never rewrite an existing dataset or replace its measured rows in place.
@@ -619,11 +623,29 @@ from UI messages, logs, scripts or later requests. Binding
 `harness/web_fetch/workers/dsh_output.mjs` is required for this projection. Old calls without the
 raw tool value cannot be retroactively reconstructed or rescored as this route.
 
-共享 HTTP 调用预算原样传入调用方客户端，不预留持久化时间而提前扣减（45 秒即 45000 毫秒）；固定原生配置模式不覆盖产品服务端超时参数。外层仍以完整输入到答案处理的截止时间判断；迟到答案被舍弃，尚未退出的不可取消请求会隔离该方法并记明未执行范围，不能并发遗弃请求或额外增加答案预算。
+Fixed-native calls pass the full caller budget to HTTP clients (45 seconds is
+45,000 milliseconds) without overriding product-side timers. Ordinary adapters
+use the shared inner budget, reserving time for completion within the outer
+deadline. The outer deadline covers input through answer processing. Late answers
+are discarded; an uncancellable request still running isolates that method and
+records the unexecuted scope. Do not abandon requests concurrently or add answer time.
 
-本地 DNS 公平性预检覆盖全部六种本地方法，必须统一选择 system 或 public_doh。Moli 在 Darwin 上通过已绑定源码及哈希的进程内解析库支持 public_doh；Crawl4AI 正文浏览器路由使用指定 Chrome 的独立安全 DNS 配置目录。系统模式仍会在发现特殊地址时停止，不能混用模式或关闭产品安全检查。固定原生配置模式中，Moli 内部 HTTP 超时保持默认，响应容量使用预先固定的原生选项。Crawl4AI 正文路由保留完整原生 model_dump 回包，最终 URL 优先使用其声明的 redirected_url；评分正文仍为原生 raw_markdown。
+The DNS fairness precheck covers all six local methods with one declared mode,
+`system` or `public_doh`. On Darwin, Moli uses a source/hash-bound in-process
+resolver for `public_doh`; Crawl4AI body-browser calls use the selected Chrome
+binary and a separate secure-DNS profile. System mode still rejects synthetic
+addresses. Do not mix modes or disable product safety checks. Fixed-native Moli
+calls retain the default internal HTTP timeout and predeclared native response
+capacity. Crawl4AI retains its complete native `model_dump` response, prioritizes
+declared `redirected_url`, and scores native `raw_markdown`.
 
-评测入口不会继承父进程的 API Key、API Token 或账户 ID；这些值只从仓库 .env 读取。普通运行路径变量仍可由调用环境提供，外部 --env-file 不能引入评测凭据。Crawl4AI 的最终 HTTP 状态优先读取原生 redirected_status_code，原始状态另存；原生 links 的 internal/external 名称和地址对直接进入共有 links 输入，不从日志、请求或裸 URL 补造名称。
+Evaluation does not inherit API keys, tokens or account IDs from the parent
+process; they come only from the repository `.env`. Ordinary runtime paths may
+come from the calling environment; an external `--env-file` cannot supply
+evaluation credentials. Crawl4AI prioritizes native `redirected_status_code`
+while retaining the original status. Native `links.internal`/`links.external`
+name/URL pairs enter shared link input directly; names are not reconstructed from
+logs, requests or bare URLs.
 
 ### Fixed native webpage calls
 

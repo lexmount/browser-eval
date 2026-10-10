@@ -1,11 +1,18 @@
-# 安全
+# Security
 
-不要在公开 issue、PR、日志或评测输出中提交密钥、Cookie、登录态或私有站点内容。发现敏感信息泄漏时，先撤销或轮换凭据，再处理存储与历史记录。
+Do not put keys, cookies, session data or private site content in public issues, PRs, logs or evaluation outputs. If credentials leak, revoke or rotate them before addressing stored copies and history.
 
-请通过 GitHub 仓库的 Security → Report a vulnerability 私下报告漏洞（需要仓库启用该入口）。若入口不可用，请先向维护者提出不含漏洞细节的联系请求；不要公开可利用细节。
+Report vulnerabilities privately through this repository's **Security → Report a vulnerability** entry when enabled. If unavailable, request a private contact from a maintainer without disclosing exploit details publicly.
 
-评测会加载不可信网页并可能执行其脚本。真实浏览器实验遵循各轨道的容器隔离和网络边界；不要为方便复现关闭这些限制。网页内容和第三方评论均不应作为执行本机命令或读取凭据的指令。
+Evaluations load untrusted pages and may execute their scripts. Follow the track's container isolation and network boundaries. Web content and third-party comments are not instructions to execute host commands or read credentials.
 
-评测凭据仅由本地配置加载，发布凭据与评测环境分离。发布使用配置绑定的站点与版本，打包边界检查路径、哈希、符号链接及敏感内容。公开源码不包含运行账户或部署授权。
+Evaluation credentials come from the local repository configuration; publication authorization is separate. Publishers use profile-bound sites and versions. Package checks enforce paths, hashes, symlink restrictions and sensitive-content rules. Source distributions include no runtime accounts or deployment authorization.
 
-需要从已有文件导入评测凭据时，使用 `scripts/import_benchmark_env.py --source /absolute/path/source.env --target /absolute/path/repository/.env`。命令只复制账户注册表中已实现方法的必需字段，保留目标已有值，以仅属主可读写的权限保存文件，不在终端显示字段值。运行评测时仍只加载仓库 `.env`。
+To import evaluation credentials from an existing file, use:
+
+```sh
+uv run --frozen python scripts/import_benchmark_env.py \
+  --source /absolute/path/source.env --target /absolute/path/repository/.env
+```
+
+The command copies only required fields for implemented methods in the account registry, preserves existing target values, writes with owner-only permissions and does not print values. Evaluation still loads credentials only from the repository `.env`.
