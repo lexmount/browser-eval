@@ -200,6 +200,21 @@ class ReferenceLifecycleTests(unittest.TestCase):
         with self.assertRaisesRegex(ReferenceLifecycleError, "SHA-256 mismatch"):
             validate_resource_source_evidence(case, self.dataset_path)
 
+    def test_frozen_resource_execution_does_not_repeat_admission(self):
+        import shutil
+        case = self.resource_case()
+        self.dataset_path.write_text(json.dumps({'comparison': {
+            'source_reference_policy': 'frozen_benchmark_inputs_with_explicit_live_exact_checks'}}))
+        shutil.rmtree(self.root / 'sources')
+        self.assertIsNone(validate_resource_source_evidence(case, self.dataset_path, execution=True))
+        with self.assertRaisesRegex(ReferenceLifecycleError, 'invalid resource source evidence'):
+            validate_resource_source_evidence(case, self.dataset_path)
+        live = replace(case, source_verification={**case.source_verification, 'reference_mode': 'live_exact'})
+        with self.assertRaisesRegex(ReferenceLifecycleError, 'invalid resource source evidence'):
+            validate_resource_source_evidence(live, self.dataset_path, execution=True)
+        invalid = replace(case, source_verification={**case.source_verification, 'state': 'invalid'})
+        with self.assertRaisesRegex(ReferenceLifecycleError, 'not valid'):
+            validate_resource_source_evidence(invalid, self.dataset_path, execution=True)
     def test_resource_source_rejects_missing_target_and_http_challenge(self):
         missing = self.resource_case(evidence_updates={"resources": []})
         with self.assertRaisesRegex(ReferenceLifecycleError, "does not cover every"):

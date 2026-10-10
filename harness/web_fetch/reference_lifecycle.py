@@ -17,7 +17,7 @@ from typing import Any
 from harness.record_io import load_jsonl, parse_jsonl
 
 from .metrics import normalize_for_match, normalize_resource_url
-from .reference_inputs import input_tree
+from .reference_inputs import input_tree, read_dataset_bytes
 from .render_evidence import validate_render_reference
 from .safety import contained_path, safe_identifier
 
@@ -208,13 +208,15 @@ def _resource_target_matches(case, candidates: list[dict]) -> list[dict]:
     return results
 
 
-def validate_resource_source_evidence(case, dataset_path: Path) -> dict | None:
-    """Fail closed unless every resource target has independent, hash-bound evidence.
+def validate_resource_source_evidence(case, dataset_path: Path, *, execution: bool = False) -> dict | None:
+    """Qualify resource sources, or reuse fixed targets during declared execution.
 
     HTTP probes remain useful diagnostics, but a blocked probe cannot become a
     valid source merely because an unbound human-review note says the page was
     checked. A successful browser observation may qualify only when its bounded
     candidate list, completion condition and exact resource scope are retained.
+    Execution of frozen benchmark inputs binds the existing task and answer
+    bytes instead of reopening historical admission files.
     """
     if _get(case, "task_kind", "body") != "resource":
         return None
@@ -228,6 +230,14 @@ def validate_resource_source_evidence(case, dataset_path: Path) -> dict | None:
     if verification.get("state") != "valid":
         raise ReferenceLifecycleError(
             f"{identifier}: independent resource source verification is not valid")
+    if execution and verification.get('reference_mode', 'frozen') == 'frozen':
+        dataset = json.loads(read_dataset_bytes(Path(dataset_path)))
+        if dataset.get('comparison', {}).get('source_reference_policy') in {
+                'frozen_benchmark_inputs_with_explicit_live_exact_checks',
+                'frozen_acceptance_contracts_with_live_exact_reference_checks'}:
+            # Admission has already qualified these fixed answers. Execution
+            # binds the task bytes; it does not repeat historical qualification.
+            return None
     expected_path = f"sources/{identifier}/evidence.json"
     evidence_path = verification.get("evidence_path")
     evidence_hash = verification.get("evidence_sha256")
@@ -540,7 +550,7 @@ def preflight_reference_checks(cases, dataset_path: Path, now=None) -> dict | No
     checked = _now(now)
     bindings = {}
     for case in cases:
-        validate_resource_source_evidence(case, dataset_path)
+        validate_resource_source_evidence(case, dataset_path, execution=True)
         if requires_fresh_reference(case):
             identifier = _get(case, "id")
             if identifier in bindings:

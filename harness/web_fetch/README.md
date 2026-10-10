@@ -141,8 +141,16 @@ rule bytes without recovering historical qualification files or rechecking
 admission. Source qualification is required when adding tasks or changing
 references or acceptance rules. Live exact-reference cases retain their pre/post
 reference checks. Use `--diagnostic` only when a diagnostic run is intended; its
-outputs cannot be upgraded to certified evidence. For declared native completion,
-add `--retrieval-mode native`: it preserves acceptance rules and rejects existing
+outputs cannot be upgraded to certified evidence.
+
+This applies to resource targets as well as text answers. Execution and report
+checks use the frozen resource target list without reopening historical source
+qualification files. Adding or changing a resource task still requires independent
+source qualification; an invalid source state or an explicitly live reference
+cannot take the frozen-input route.
+
+For declared native completion, add `--retrieval-mode native`: it preserves
+acceptance rules and rejects existing
 selector-guided retrieval hints rather than dropping them.
 Dynamic task families stay `dynamic`: the explicit
 `retrieval_hints: {"version": 3, "mode": "native"}` contract selects each

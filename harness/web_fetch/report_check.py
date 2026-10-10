@@ -279,7 +279,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     case_by_id = {c["id"]: c for c in d["cases"]}
     for case in d["cases"]:
         safe_identifier(case["id"])
-        validate_resource_source_evidence(case, canonical_dataset)
+        validate_resource_source_evidence(case, canonical_dataset, execution=True)
     reliability = require_reliable(d, rs)
     saved_reliability = json.loads((root / "reliability.json").read_text())
     if not saved_reliability == reliability:

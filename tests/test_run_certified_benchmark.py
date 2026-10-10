@@ -114,7 +114,15 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                      'source_verification': {'state': 'valid', 'checked_at': '2020-01-01T00:00:00Z',
                         'method': 'Independent source capture',
                         'reference_sha256': hashlib.sha256(b'Required label').hexdigest()}}
-            dataset.write_text(json.dumps({'tool': 'web_fetch', 'comparison': {}, 'cases': [case, fixed]}))
+            resource = {'id': 'fixed-resource', 'name': 'Fixed image target',
+                        'url': 'https://example.test/gallery', 'category': 'image', 'track': 'image',
+                        'task_kind': 'resource', 'expected_any': ['https://example.test/image.png'],
+                        'expected_resources': [{'id': 'image', 'urls': ['https://example.test/image.png']}],
+                        'source_verification': {'state': 'valid', 'checked_at': '2020-01-01T00:00:00Z',
+                            'method': 'Independent source capture',
+                            'evidence_path': 'sources/fixed-resource/evidence.json',
+                            'evidence_sha256': 'b' * 64}}
+            dataset.write_text(json.dumps({'tool': 'web_fetch', 'comparison': {}, 'cases': [case, fixed, resource]}))
             original = dataset.read_bytes()
             config = root / 'providers.json'
             config.write_text(json.dumps({'providers': {'fixture': {'type': 'fixture'}}}))
@@ -139,15 +147,17 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             with patch('harness.web_fetch.certification.run', side_effect=execute):
                 main(['--dataset', str(dataset), '--output', str(output),
                       '--work-root', str(root / 'work'), '--providers', 'fixture',
-                      '--provider-config', str(config), '--case-ids', 'stable,fixed-answer'])
+                      '--provider-config', str(config), '--case-ids', 'stable,fixed-answer,fixed-resource'])
             measured = json.loads((output / 'dataset.json').read_text())
-            self.assertEqual(measured['cases'], [case, fixed])
+            self.assertEqual(measured['cases'], [case, fixed, resource])
             self.assertEqual(dataset.read_bytes(), original)
             self.assertEqual(measured['comparison']['source_reference_policy'],
                              'frozen_benchmark_inputs_with_explicit_live_exact_checks')
             batches = json.loads((output / 'execution.json').read_text())['batches']
             records = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]
-            self.assertEqual(len(records), 2)
+            self.assertEqual(len(records), 3)
+            resource_record = next(row for row in records if row['case_id'] == 'fixed-resource')
+            self.assertTrue(resource_record['metrics']['content_pass'])
             self.assertNotIn('collect_source_evidence.py', stages)
             require_verified_reference_checks(batches, cases=measured, records=records, source=output)
 
