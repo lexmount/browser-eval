@@ -453,7 +453,7 @@ class PublicationPrivacyTests(unittest.TestCase):
                     self.assertNotEqual(rejected.returncode, 0)
                     self.assertIn(b'ValueError', rejected.stderr)
             (source / 'results.jsonl').write_text(results.replace('"route": "markdown"', '"route": "changed"'))
-            with self.assertRaisesRegex(ValueError, 'results differ from the current source'):
+            with self.assertRaisesRegex(ValueError, 'source hash differs'):
                 check_bundle(root / 'publish/webfetch-sites.zip', source)
 
 

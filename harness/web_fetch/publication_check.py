@@ -123,6 +123,9 @@ def check(archive, source, overlay=None):
             if risk:
                 raise ValueError("Potential " + risk + " remains: " + name)
         validate_virtual_links(manifest["files"], data)
+        for name in sorted(expected_files):
+            if manifest["files"][name].get("source_sha256") != source_files[name]:
+                raise ValueError("Publication source hash differs or source binding is missing: " + name)
         privacy = json.loads(data("publication-privacy.json"))
         privacy_by_path = {row["path"]: row for row in privacy["files"]}
         results_raw = data("results.jsonl")

@@ -140,6 +140,14 @@ before updating local bindings. Keep journals and receipts until recovery
 finishes. Do not copy site IDs from another report or replace a declared target
 with an ad hoc upload. Command details live in each track's running guide.
 
+Web Fetch packages bind each virtual file to both its original source hash and
+its published hash. The two can differ after privacy redaction or lazy evidence
+loading. Publication checks require the complete current source inventory and
+hashes. Incremental updates can replace only the declared explanatory routes;
+changes to task definitions, references, result details or static assets require
+a full rebuild. Older archives without source bindings also require a full
+rebuild before publication or an incremental update.
+
 ## Verification
 
 Source-grounded content review uses `scripts/review_webmainbench_content.py` with

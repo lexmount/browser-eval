@@ -86,7 +86,7 @@ def _build(source: Path, destination: Path, archive: Path, *, webmainbench: bool
     source_file_count = sum(path.name != ".generated-report" for path in source_paths)
     logical_route_count = sum(path.suffix == ".html" for path in source_paths)
 
-    def add(path, data):
+    def add(path, data, *, source_sha256=None):
         parts = []
         for start in range(0, len(data), 65536):
             chunk = data[start : start + 65536]
@@ -99,12 +99,17 @@ def _build(source: Path, destination: Path, archive: Path, *, webmainbench: bool
             "sha256": hashlib.sha256(data).hexdigest(),
             "mime": mimetypes.guess_type(path)[0] or "application/octet-stream",
         }
+        if source_sha256 is not None:
+            files[path]["source_sha256"] = source_sha256
 
     for path in source_paths:
         name = path.relative_to(source).as_posix()
         data = path.read_bytes()
         if name == ".generated-report":
             continue
+        if name == "publication-privacy.json":
+            raise ValueError("Publication source contains a reserved generated file: " + name)
+        source_sha256 = hashlib.sha256(data).hexdigest()
         if path.is_symlink():
             raise ValueError("Publication source must not contain symlinks: " + name)
         data, redaction = project_file(name, data)
@@ -236,7 +241,7 @@ def _build(source: Path, destination: Path, archive: Path, *, webmainbench: bool
             redaction["published_sha256"] = hashlib.sha256(data).hexdigest()
             redaction["published_bytes"] = len(data)
             redactions.append(redaction)
-        add(name, data)
+        add(name, data, source_sha256=source_sha256)
     privacy = {
         "schema_version": 1,
         "scope": "all_public_files",
@@ -449,10 +454,10 @@ def _build_incremental(source: Path, baseline: Path, destination: Path):
         disclosures = {item["path"]: item for item in privacy["files"]}
         changes = {}
 
-        def replace(name, data):
+        def replace(name, data, *, source_sha256=None):
             if name not in manifest["files"]:
                 raise ValueError("Incremental update cannot add a route: " + name)
-            if data == old_bytes(name):
+            if data == old_bytes(name) and source_sha256 == manifest["files"][name].get("source_sha256"):
                 return
             manifest["files"][name] = {
                 "inline_base64": base64.b64encode(data).decode(),
@@ -460,6 +465,8 @@ def _build_incremental(source: Path, baseline: Path, destination: Path):
                 "sha256": hashlib.sha256(data).hexdigest(),
                 "mime": manifest["files"][name]["mime"],
             }
+            if source_sha256 is not None:
+                manifest["files"][name]["source_sha256"] = source_sha256
             changes[name] = manifest["files"][name]["sha256"]
 
         from harness.web_fetch.safety import contained_path
@@ -468,13 +475,14 @@ def _build_incremental(source: Path, baseline: Path, destination: Path):
             allowed = explanatory_route(name)
             if not allowed:
                 raise ValueError("Not an explanatory route: " + name)
-            data, redaction = project_file(name, contained_path(source, name).read_bytes())
+            original = contained_path(source, name).read_bytes()
+            data, redaction = project_file(name, original)
             disclosures.pop(name, None)
             if redaction:
                 redaction["published_sha256"] = hashlib.sha256(data).hexdigest()
                 redaction["published_bytes"] = len(data)
                 disclosures[name] = redaction
-            replace(name, data)
+            replace(name, data, source_sha256=hashlib.sha256(original).hexdigest())
         privacy["files"] = list(disclosures.values())
         replace(
             "publication-privacy.json",
