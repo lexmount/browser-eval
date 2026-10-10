@@ -3,6 +3,7 @@ PY := $(UV) run --frozen python
 TEST_PY := $(UV) run --frozen --all-extras python
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
 WEBMAINBENCH_PROFILE ?= evaluation/current-report.json
+REPORT_LANGUAGE ?=
 DIAGNOSTIC_PROFILE ?= evaluation/live-webfetch/current-report.json
 
 .PHONY: setup setup-test import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check popular-sites-report popular-sites-report-check wcxb-release-check resource-image public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish webarena-catalog-report webarena-catalog-release-check public-webarena-report public-webarena-report-audit public-webarena-report-release
@@ -26,7 +27,7 @@ report-template: runtime-check
 
 webfetch-diagnostic-report: runtime-check
 	@test -n "$(OUTPUT)"
-	$(PY) scripts/build_report.py --profile "$(DIAGNOSTIC_PROFILE)" $(if $(EVIDENCE),--evidence "$(EVIDENCE)") --output "$(OUTPUT)"
+	$(PY) scripts/build_report.py --profile "$(DIAGNOSTIC_PROFILE)" $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(EVIDENCE),--evidence "$(EVIDENCE)") --output "$(OUTPUT)"
 	$(PY) scripts/check_diagnostic_report.py "$(OUTPUT)" --profile "$(DIAGNOSTIC_PROFILE)"
 
 naming-check: runtime-check
@@ -84,7 +85,7 @@ package-check: runtime-check
 
 report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/build_report.py --evidence "$(EVIDENCE)" --output reports/webfetch $(if $(filter 1,$(ENGLISH)),--include-english,)
+	$(PY) scripts/build_report.py --evidence "$(EVIDENCE)" --output reports/webfetch $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 report-check: runtime-check
 	$(PY) scripts/check_report.py reports/webfetch
@@ -93,7 +94,7 @@ report-check: runtime-check
 
 popular-sites-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/build_report.py --profile evaluation/popular-sites/current-report.json --evidence "$(EVIDENCE)" --output reports/popular-sites $(if $(filter 1,$(ENGLISH)),--include-english,)
+	$(PY) scripts/build_report.py --profile evaluation/popular-sites/current-report.json --evidence "$(EVIDENCE)" --output reports/popular-sites $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 popular-sites-report-check: runtime-check
 	$(PY) scripts/check_report.py reports/popular-sites --profile evaluation/popular-sites/current-report.json
@@ -107,7 +108,7 @@ wcxb-release-check: runtime-check
 
 browser-use-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)
-	$(PY) scripts/build_browser_use_report.py $(foreach path,$(EVIDENCE),--evidence "$(path)") --output reports/browser-use $(if $(filter 1,$(ENGLISH)),--include-english,)
+	$(PY) scripts/build_browser_use_report.py $(foreach path,$(EVIDENCE),--evidence "$(path)") --output reports/browser-use $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 browser-use-review: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
@@ -126,7 +127,7 @@ browser-use-release-check: browser-use-report-check
 
 trajectory-replay-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/build_webarena_replay_report.py --results "$(EVIDENCE)" $(if $(filter 1,$(ENGLISH)),--include-english,)
+	$(PY) scripts/build_webarena_replay_report.py --results "$(EVIDENCE)" $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 trajectory-replay-report-check: runtime-check
 	$(PY) scripts/check_webarena_replay_report.py reports/trajectory-replay
@@ -166,7 +167,7 @@ resource-image:
 
 public-benchmark-report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/to/reviewed-public-benchmark-evidence is required' >&2; exit 2)
-	$(PY) scripts/build_report.py --evidence "$(EVIDENCE)" --output reports/webfetch-public-benchmarks $(if $(filter 1,$(ENGLISH)),--include-english,)
+	$(PY) scripts/build_report.py --evidence "$(EVIDENCE)" --output reports/webfetch-public-benchmarks $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
 	$(PY) scripts/check_report.py reports/webfetch-public-benchmarks
 	$(PY) scripts/check_report_links.py reports/webfetch-public-benchmarks
 

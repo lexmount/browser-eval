@@ -1422,7 +1422,7 @@ def _page(*, title: str, active: str, body: str, depth: int = 0) -> str:
         + f">{_e(label)}</a>"
         for href, label, key in NAV
     )
-    return f'<!doctype html><html lang="zh-CN"><head><base href="{local_base}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)} · Browser Use 评测</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>结论只适用于本轮预注册样本、Agent、模型与运行配置；展示调整不改变测量结果。</p></div></footer></body></html>'
+    return f'<!doctype html><html lang="zh-CN"><head><base href="{local_base}"><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)} · Browser Use 评测</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>结论只适用于本轮预注册样本、Agent、模型与运行配置；展示调整不改变测量结果。</p></div></footer></body></html>'
 
 
 def _evidence_viewer_page() -> str:
@@ -1468,7 +1468,7 @@ def _english_page(body: str) -> str:
         )
     )
     return (
-        '<!doctype html><html lang="en"><head><base href="../"><meta charset="utf-8">'
+        '<!doctype html><html lang="en"><head><base href="../"><meta name="browser-eval-report" content="1"><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         '<title>English edition · Browser Use evaluation</title><link rel="stylesheet" href="assets/style.css">'
         '<script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">'
@@ -2908,7 +2908,9 @@ def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False)
         _write_json(stage / "data/fix-log.json", {**model, "artifacts": list(artifacts.values())})
 
 
-def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_path: Path, include_english: bool = False) -> Path:
+def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_path: Path, include_english: bool = False, language: str | None = None) -> Path:
+    from harness.report_languages import includes_english, select_report_language
+    include_english = includes_english(language, include_english)
     mac_expansion = json.loads(
         (RESEARCH_ROOT / "webarena-mac-expansion.json").read_text(encoding="utf-8")
     )
@@ -4038,6 +4040,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             write_english_report(stage)
             _write_fix_log(stage, fix_log, english=True)
         write_language_contract(stage, include_english=include_english)
+        if language is not None:
+            select_report_language(stage, language)
         (stage / ".generated-report").write_text("browser-use-report/2\n", encoding="utf-8")
         backup: Path | None = None
         if output.exists():
@@ -4055,7 +4059,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
     except Exception:
         shutil.rmtree(stage, ignore_errors=True)
         raise
-    return output / "index.html"
+    return output / ("en/index.html" if language == "en" else "index.html")
 
 
 def main() -> None:
@@ -4073,9 +4077,11 @@ def main() -> None:
         type=Path,
         default=Path("evaluation/browser-use/webarena-verified-pilot.json"),
     )
-    parser.add_argument("--include-english", action="store_true")
+    from harness.report_languages import add_language_argument, primary_report_language
+    add_language_argument(parser)
+    parser.add_argument("--include-english", action="store_true", help="Generate both editions; --language selects the homepage")
     args = parser.parse_args()
-    print(build_report(evidence=args.evidence, output=args.output, selection_path=args.selection, include_english=args.include_english))
+    print(build_report(evidence=args.evidence, output=args.output, selection_path=args.selection, include_english=args.include_english, language=args.language or primary_report_language(args.output)))
 
 
 if __name__ == "__main__":

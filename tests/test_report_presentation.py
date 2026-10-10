@@ -258,8 +258,9 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('alt="Article contents"',translated)
   self.assertIn('src="data:image/png;base64,YQ=="',translated)
   other=localize_html(markup,PurePosixPath('attempts/example.html'))
-  self.assertIn('aria-label="文章目录"',other)
-  self.assertIn('alt="文章目录"',other)
+  self.assertIn('aria-label="Article contents"',other)
+  self.assertIn('alt="Article contents"',other)
+  self.assertIn('data-evidence="文章目录"',other)
  def test_article_selects_localized_assets_before_rewriting_relative_urls(self):
   from pathlib import PurePosixPath
   from harness.web_fetch.report_i18n import localize_html

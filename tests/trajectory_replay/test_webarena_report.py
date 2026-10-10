@@ -137,8 +137,11 @@ def test_complete_three_method_report_builds_one_unified_matrix(
     manifest = build_webarena_replay_report(
         results_path=files["results.json"], dataset_path=files["dataset.json"],
         review_path=files["review.json"], profile_path=files["profile.json"],
-        output_dir=output, include_english=True,
+        output_dir=output, language="en",
     )
+    assert manifest["primary_language"] == "en"
+    assert manifest["entrypoint"] == "en/index.html"
+    assert json.loads((output / "report-manifest.json").read_text())["languages"] == ["zh", "en"]
     invalid_profile = tmp_path / "reset-every-task-profile.json"
     invalid_profile.write_text(
         json.dumps(

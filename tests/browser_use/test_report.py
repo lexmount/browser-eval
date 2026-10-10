@@ -982,8 +982,9 @@ def _use_single_model_profile(monkeypatch) -> None:
     )
 
 
+@pytest.mark.parametrize("language", [None, "en", "zh"])
 def test_report_publishes_one_final_logical_result_and_aggregates_cost(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch, language
 ) -> None:
     _use_single_model_profile(monkeypatch)
     evidence = tmp_path / "evidence"
@@ -1066,8 +1067,21 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         evidence=evidence,
         output=output,
         selection_path=Path("evaluation/browser-use/webarena-verified-pilot.json"),
+        language=language,
     )
-    text = report.read_text(encoding="utf-8")
+    if language is not None:
+        contract = json.loads((output / "report-languages.json").read_text())
+        assert contract["primary_language"] == language
+        assert contract["languages"] == (["zh", "en"] if language == "en" else ["zh"])
+        assert report == output / ("en/index.html" if language == "en" else "index.html")
+    if language == "en":
+        from harness.web_fetch.report_i18n import untranslated_english_narrative
+        selection = load_pilot(Path("evaluation/browser-use/webarena-verified-pilot.json"))
+        source_text = {"中文", *(task.rationale for task in selection.tasks)}
+        for page in (output / "en").rglob("*.html"):
+            assert not untranslated_english_narrative(page.read_text(), source_text), page
+
+    text = (output / "index.html").read_text(encoding="utf-8")
     assert "1/1" in text
     data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
     assert data["summary"]["gpt-5.6-sol"]["chromium"]["score"] == 1
@@ -1135,9 +1149,11 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     assert 'id="evidence-viewer-content"' in viewer
     assert "execution-evidence[.]json" in viewer
     assert "fetch(new URL(source,document.baseURI)" in viewer
-    assert not (output / "en/evidence-viewer.html").exists()
-    assert "英文报告未生成" in (output / "en/index.html").read_text()
-    assert json.loads((output / "report-languages.json").read_text())["languages"] == ["zh"]
+    assert (output / "en/evidence-viewer.html").exists() is (language == "en")
+    assert ("英文报告未生成" in (output / "en/index.html").read_text()) is (language != "en")
+    assert json.loads((output / "report-languages.json").read_text())["languages"] == (
+        ["zh", "en"] if language == "en" else ["zh"]
+    )
     public_results = [
         json.loads(line)
         for line in (output / "data/results.jsonl").read_text(encoding="utf-8").splitlines()

@@ -85,7 +85,8 @@ uv run --frozen browser-harness-eval run --delay 0
 
 | 输出 | 内容 |
 | --- | --- |
-| `report/index.html` | 比较、任务结果和证据入口 |
+| `report/en/index.html` | 英文比较、任务结果和证据入口 |
+| `report/index.html` | 报告入口，打开所选语言 |
 | `results.jsonl`、`summary.json` | 供程序分析的评分和汇总 |
 | `manifest.json`、`dataset.json` | 使用的方法、版本、设置和任务 |
 | `artifacts/` | 保存的响应及其他证据 |
@@ -98,7 +99,14 @@ uv run --frozen browser-harness-eval run --delay 0
 uv run --frozen browser-harness-eval report /absolute/path/to/run
 ```
 
-报告默认中文。支持英文的构建器可按需生成英文；未生成时，英文入口显示说明，不会展示旧页面。
+Web Fetch 命令默认打开英文报告，并保留可切换的中文版。开始评测时可以选中文，也可以更改已有报告的语言：
+
+```bash
+uv run --frozen browser-harness-eval run --delay 0 --language zh
+uv run --frozen browser-harness-eval report /absolute/path/to/run --language en
+```
+
+重建时不传 `--language`，会沿用上次的选择。切换语言不重新调用浏览器或服务，也不改变评分；任务原文、响应和日志保留原来的语言。目前支持英文（`en`）和中文（`zh`），其他语言代码会报错。独立构建器和历史报告的支持范围见[报告语言说明](report-hosting.md#report-languages)。
 
 在线发布：
 
