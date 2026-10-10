@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from scripts.audit_webarena_recorded_outcomes import site_origins
+from harness.trajectory_replay.public_webarena.diagnostics import site_origins
 
 ROOT = Path(__file__).resolve().parents[3]
 

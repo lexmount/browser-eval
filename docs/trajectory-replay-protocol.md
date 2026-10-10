@@ -1,4 +1,4 @@
-# Browser-use reference-trajectory protocol
+# Browser Trajectory Replay protocol
 
 This protocol keeps task data, browser actions, evidence, and scoring identical across browser
 engines while allowing datasets to provide different task-specific oracles.
@@ -114,6 +114,10 @@ Add `--verify-login` to exercise the same pre-measurement form-login path. Authe
 before HAR capture, so credentials and login request bodies never enter diagnostic evidence.
 Add `--cpus 2` to exercise the measured browser daemon's cgroup preflight and quota without turning
 the smoke into qualification evidence.
+Use `--engine chromium` or `--engine moli` to check one registered browser; omitting it
+checks both. Site choices come from the shared environment registry, including Map and
+Wikipedia. CPU limits must be finite and positive. Startup or connection failures clean
+up the resources created by the diagnostic run.
 
 Qualification must not inspect Moli results or the later Chromium-versus-Moli comparison. This
 prevents browser-specific post-selection.
@@ -214,6 +218,180 @@ assets and starting, inspecting, or stopping a pinned site. Site data may live o
 daemon under `/data`; measured browsers and agent containers remain on the resource-controlled
 browser daemon. This daemon split is a storage and isolation choice, not a benchmark-specific fork.
 
+### Candidate replay inputs
+
+Use `scripts/run_webarena_catalog.py` for declared task subsets and candidate action
+revisions. Its catalog, action overrides, environment inputs and evidence validation
+use the same contracts as complete catalog runs. A diagnostic subset does not establish
+a formal complete-cohort score.
+
+The historical 36-task input protocol remains available through
+`scripts/freeze_original36_candidate_cohort.py`. `--reference-root` resolves its relative
+candidate paths without depending on the working directory. Overrides are hash-bound;
+when a stabilization names a different qualified parent, `stabilization_reversions`
+declares the one-based action index, current action type and exact parent call for each
+change. Reconstructing those calls and their canonical digest must reproduce the entire
+parent file hash. Action-count changes additionally require the existing paired browser
+qualification receipts. Freezing writes a new manifest and never overwrites an existing
+one; it does not execute or score a browser.
+
+### Qualification decisions and immutable outputs
+
+`scripts/build_revised_webarena_dataset.py` creates a pending dataset revision
+from `--base`, `--corrections` and repeated `--task-id` arguments, with an optional
+`--selection`. Declared counts must match the source population. Fork replacements
+use `--revision-bindings` (default: the repository's `dataset-revision-bindings.json`)
+to bind the upstream task, predecessor trajectory, candidate actions and independent
+reference by hash. Artifact paths are relative to the repository root. The shared
+correction module owns this stage; adding a replacement does not require a task-ID
+branch. The output requires full-scope requalification before measurement. Use a
+new `--output` path; `--replace-generated` is limited to a generated revision of
+the same base dataset and never authorizes replacing measured evidence.
+
+`scripts/build_webarena_native_scope.py` selects a task population before
+qualification or measurement from the declared site image architectures and
+evidence-backed evaluator exclusions. Use explicit `--suite`, `--image-lock`
+and `--evaluator-exclusions` inputs for a new experiment. The qualification
+shard size is configurable with `--max-tasks-per-shard`; task and browser counts
+are not encoded in the implementation. The command writes only a new output.
+
+`scripts/revise_webarena_method_inputs.py` freezes a reviewed trajectory revision
+from `--prior`, `--revisions` and `--site-map`. Each changed task must identify
+its predecessor action hash, candidate and cause. The compiler checks actual
+predecessor actions, candidate hashes and stable source files, then writes a new
+manifest without modifying prior evidence. A revision that changes action count
+requires an explicit readiness migration when readiness rules are present.
+
+The public WebArena queue, revalidation, finalization and application commands share
+`public_webarena/qualification.py`. Every declared task and decision must occur exactly
+once. A resumable shard must retain its raw `attempt.json` as well as its summary and HAR.
+A JSONL attempt projection must match that raw record, including scalar types; a passing summary
+cannot promote a failed attempt, and a failing summary cannot discard a passing attempt.
+Older summaries without raw source evidence cannot establish eligibility and require
+evidence revalidation.
+Eligibility requires two distinct Chromium runs covering integer pass indices 1 and 2,
+with the required HAR and hash-verified final-page evidence. Linked attempt, HAR and
+final-page files are rejected. Applied eligibility retains both distinct proof hashes;
+empty trajectories cannot gain eligibility from passing metadata.
+
+Finalization allows declared trajectory and response-builder repairs while preserving
+the task instruction, evaluator contracts and environment. Applying decisions derives
+a new suite and preserves the original input, including when validation fails. The queue
+and final adjudication are immutable private evidence; derived suites are validated before
+the output appears. Repeating a command with identical content is safe, but a different
+revision needs a new output path. These commands do not execute a browser or alter
+historical comparison scores.
+
+### Public WebArena repair proposals
+
+Repair authoring is optional. It produces pending trajectories for the isolated public
+WebArena track and does not modify canonical tasks, measured outcomes or qualifications.
+`diagnostics.py` builds the authoring input and runs bounded read-only Codex jobs;
+`qualification.py` derives and validates the pending probe or batch.
+
+The six `scripts/propose_webarena_*.py` commands use that same qualification module.
+Use action repairs for exact guarded splices, target replacement for a stale locator,
+and capture or observed repairs for answers collected from declared DOM observations.
+Evaluator-fill proposals use exact official payload values; auto-wait proposals require
+a matching failed action, a supported post-action timeout and a current task-contract
+binding. Regenerate old unbound qualification queues from their source attempts before
+using them for auto-wait proposals. These tools propose
+changes; they do not certify them or revise official scores.
+
+Proposal commands require a new output file or, for batches, a new output directory.
+They reject linked paths and publish a batch only after every selected task succeeds.
+Outputs bind input hashes, the original trajectory and the executable task contract;
+applying a proposal after that trajectory or evaluator contract changes fails. Keep
+these generated proposals outside Git alongside private qualification evidence.
+
+Build a packet with `scripts/build_webarena_repair_packet.py --suite <suite>
+--attempt <attempt.json> --output <packet.json>`. Packet version 2 separates raw attempt
+provenance from the three author-readable evidence references: screenshot, final page
+and sanitized HAR. The job receives a packet without the raw attempt path. The program
+checks the complete packet against its frozen source before launch. Version 1 packets
+must be regenerated from their original inputs; they are retained as historical evidence
+and are not accepted for new jobs. Read-only execution and these authoring instructions
+do not provide operating-system isolation from every readable file on the host.
+
+`scripts/run_webarena_codex_repairs.py --suite <suite> --packet <packet.json>
+--output-root <new-directory>` accepts repeated `--packet` arguments, `--max-workers`,
+`--timeout-seconds`, `--codex-binary`, `--model` and `--reasoning-effort`. Its receipts bind
+the selected configuration and input hashes. Failed jobs and inputs that change during
+execution leave an incomplete batch rather than a qualification claim.
+
+Use `scripts/build_webarena_repair_probe.py` for one proposal,
+`scripts/build_webarena_repair_batch.py` for a general batch, or
+`scripts/build_webarena_codex_repair_suite.py` for the existing Codex two-pass validation
+protocol. Each takes `--suite`, `--proposal` and `--output`; batch commands accept repeated
+proposals. They validate the resulting suite before exposing a new immutable output.
+Two independent qualification passes remain required by the validation protocol.
+
+### Remote mutation diagnostics
+
+`scripts/reevaluate_webarena_evaluator_transition.py` checks saved passing
+evidence against the pinned evaluator after an explicitly requested transition.
+It reads declared `--run` directories and writes only a new `--output` receipt.
+Scope, site map, run inputs, progress and consumed evidence must remain unchanged
+throughout the build. Explicit exclusions bind the task, old evaluation hash and
+run-input hash; an exclusion absent from the source passes is rejected. This
+command does not replace historical verdicts or execute browser actions.
+
+`scripts/rescore_saved_retrieval_attempt.py` evaluates a complete saved retrieval
+against an explicitly supplied dataset without browser calls. It reads the current
+task-local result, an agreeing cohort receipt, or the older standalone result
+layout; missing action counts and conflicting records are rejected. The saved
+response, HAR and declared evidence must match their hashes and remain unchanged
+during evaluation. Its new output is diagnostic evidence and does not replace
+the saved verdict or certify a new experiment.
+
+For a declared corrective rerun, `scripts/supersede_webarena_task_browser_results.py`
+requires the complete `--replace TASK_ID/ENGINE` scope and an evidenced `--reason`.
+It checks the shared protocol, browser identity, task contract, attempt sequence,
+raw records and bound page evidence. The new run retains every source call and
+its original bytes under `run/source-evidence/`; `run/source-inputs.json` binds
+those files by path and hash. Current attempt locations are rebound to the new
+run with their predecessor hashes, while verdicts, timings and responses remain
+unchanged. Reports and evidence are staged together; failed checks or rendering
+leave no partial output. A later correction must also verify the retained
+history. Formal publication still requires the corresponding new profile and
+release gates; this command does not update historical publication bindings.
+
+Offline input and evidence audits use the maintained diagnostic modules:
+
+- `scripts/audit_replay_comparison_inputs.py` inventories the declared comparison
+  matrix, contract changes and optional upstream-fork differences.
+- `scripts/audit_replay_readiness.py` locates adjacent disabled-button snapshots
+  and clicks. It preserves historical verdicts; a snapshot does not establish
+  the target's state when the click was dispatched.
+- `scripts/audit_saved_replay_correction.py` compares correction catalogs on saved
+  evidence. An incomplete execution is never rescored with an invented response.
+- `scripts/audit_replay_cart_assertion.py` runs isolated DOM counterexamples with
+  an explicit browser binary and blocked page requests. It requires Playwright;
+  its results are assertion diagnostics rather than task scores.
+- The isolated public WebArena track uses
+  `scripts/audit_webarena_recorded_outcomes.py` and
+  `scripts/verify_webarena_evaluator_exclusions.py` for hash-bound recording audits.
+  Recording audits inject the official expected answer to isolate network
+  evaluation; they do not represent current-environment browser execution.
+
+File-producing audits require a new output path and reject linked paths before
+execution. They reject inputs that change during inspection. Keep generated
+diagnostics outside Git. Basic log and input audits do not import Playwright or
+WebArena; those dependencies are loaded only by the operations that need them.
+
+`scripts/run_remote_mutation_diagnostic.py` exposes the shared diagnostic pipeline. With
+`--emit-proposal` it appends a compiled completion observer to the unchanged canonical actions;
+`--check-proposal` verifies that proposal without opening a browser. Both modes require the frozen
+seed manifest and its matching qualified dataset under an explicit `--source-root`.
+
+Physical execution additionally requires a task-bound reset receipt, site map, browser binary,
+CowAgent checkout and dedicated local CDP endpoint. Only a verified compiled final observer can
+be retried after the exact declared navigation-context error. The retry count and navigation
+readiness timeout must be bounded; canonical mutation actions are executed at most once.
+Frozen inputs are checked before execution and after cleanup. Failures retain traces, available
+network evidence and a terminal diagnostic receipt. A diagnostic pass is never a formal benchmark
+result or a qualification promotion.
+
 ## Formal measurement
 
 Only eligible tasks enter the paired run. Chromium and Moli receive the same task revision,
@@ -291,13 +469,20 @@ index. Shards from one stateful site remain sequential because they share a rese
 uv run --frozen python -m harness.trajectory_replay.public_webarena.cli --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --batch-id shopping --batch-shard-count 4 --batch-shard-index 0 --webarena-config <runtime-config> --qualification-run --qualification-pass-index <1-or-2> --qualification-required-passes 2 --engines chromium --failure-retries 0 --output <evidence>/qualification/pass-<1-or-2>/shopping-0-of-4
 ```
 
-The scope orchestrator keeps shards from the same site sequential, but may run disjoint site batches
-in parallel. `--max-site-workers 3` therefore never overlaps two resets that can touch the same
-service. On restart it skips an existing shard only after verifying its manifest contract, artifact
+The scope orchestrator keeps shards within each site batch sequential. One runtime configuration
+permits one active batch. To run batches concurrently, repeat `--webarena-config` with independently
+provisioned slice configurations and set `--max-site-workers` to the desired limit. These slices
+must have separate containers, data stores, ports, gateways and lock namespaces; distinct filenames
+alone do not establish deployment isolation. On restart it skips an existing shard only after
+verifying its manifest contract, artifact
 hashes, and exactly one primary Chromium attempt per task and pass. Incomplete output is preserved
 under `_failed` before a clean rerun; conflicting complete evidence is never overwritten. After
 both 172-task passes are present, it writes the immutable correction queue;
-`--dry-run` prints the full plan without creating the evidence root.
+`--dry-run` prints the full plan without creating the evidence root or relocating existing
+incomplete output. The suite and scope must retain their bytes throughout orchestration;
+runtime gateway updates follow the existing Rainbond reset receipts. Linked shard artifacts
+are rejected. Derived qualification suites are validated
+before writing, and an existing different output is never replaced.
 
 ```text
 uv run --frozen python -m scripts.run_webarena_qualification --suite evaluation/browser-use-public/webarena-human-suite.json --native-scope evaluation/browser-use-public/webarena-amd64-scope.json --webarena-config <runtime-config> --env-file .env --browser-docker-host unix:///var/run/docker.sock --max-site-workers 3 --evidence-root <evidence>/qualification

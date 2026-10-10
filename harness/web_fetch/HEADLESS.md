@@ -128,9 +128,53 @@ archive is labelled post-hoc; it is not rewritten as run-time provenance.
 
 ## Run and preserve evidence
 
+The historical `evaluation/dataset.json` input is resolved through
+`evaluation/source-inputs.json`; its full text and captured sources are outside
+Git. Import the approved frozen copy before using the historical commands below,
+as described in [reference inputs](../../docs/reference-inputs.md).
+`evaluation/dataset-catalog.json` is a public task directory, not an execution
+dataset. An explicitly supplied custom dataset remains a normal JSON file.
+
+`harness/web_fetch/headless_runner.py` owns cohort selection, execution and
+implementation checks. The command in `scripts/` delegates to it.
+`configs/providers.headless.json` declares the method registry and the `main`
+and `resources` cohorts. A new browser release changes this configuration,
+without adding a runner or a browser-name branch. Historical evidence keeps
+its original configuration hash.
+
+Each cohort declares an ordered `providers` list and may supply
+`provider_overrides`. The resource cohort declares its container image and
+container binary paths; its Moli 1.1.1 pin is independent of the main cohort's
+Moli 1.1.5 pin. `expected_version` matches the first numeric version in the
+observed version output. A missing or different pinned version fails before
+provider calls. Both cohorts retain executable hashes and reject changes
+during execution.
+
+Use `--cohort NAME` to select a declared cohort and `--providers NAME1,NAME2`
+to select registered methods explicitly. A configuration without cohorts uses
+all its registered methods. Custom configurations supply their own resource
+image and binary paths; the runner does not infer them from method names.
+Unknown or duplicate methods, task IDs and task families are rejected before
+calls. The execution receipt records the selected cohort and actual input
+filenames rather than claiming the repository's default inputs.
+
 The reference lifecycle in [README.md](README.md) is mandatory. Independently
 capture ordinary pages, separately observe browser-dependent complete scopes,
 freeze the references, execute, then postcheck:
+
+Reference acquisition follows `source_verification.observation_route` (`http`
+or `browser`). Existing frozen inputs that name independent visible/rendered
+browser DOM acquisition retain that browser requirement. Task identifiers do
+not select the acquisition route. A browser-bound reference needs independent
+browser observations for both freeze and postcheck; an HTTP response cannot
+silently replace them.
+
+Postcheck and per-case certification use the same fresh-reference population
+across `web`, `dynamic` and `challenge`, and the case's declared provider cohort.
+They wait for missing logical results and reject duplicate or undeclared
+providers. Certificate sidecars retain the physical run's records and original
+manifest; response artifacts remain in the physical run for assembly. A failed
+reference check remains failed when the command resumes.
 
 ```sh
 uv run --frozen python scripts/freeze_headless_references.py --captures CAPTURES --output FROZEN --browser-observations PRE.json
@@ -147,6 +191,12 @@ and top-level execution file carry verified postchecks:
 ```sh
 uv run --frozen python scripts/run_certified_benchmark.py --dataset evaluation/dataset.json --output RUN --work-root WORK --providers METHOD --case-ids ID1,ID2 --browser-binary /absolute/path/to/chromium
 ```
+
+Use `--provider-config /absolute/path/providers.json` to select one provider
+configuration for the entire requested scope. The certified wrapper forwards
+it to the shared runner while retaining all reference checks. Without this
+option, the repository's existing task-group configurations apply. Diagnostic
+`scripts/run_benchmark.py` runs support the same option and remain uncertified.
 
 After selecting and freezing the resource cohort, run it separately and keep the
 same postcheck and independent all-attempt review gates:
@@ -165,6 +215,9 @@ change. Benchmark runs reuse `lex-web-fetch-resource:local` by image ID and do
 not rebuild it; repeated `make resource-image` calls reuse Docker layers. A
 publication run records the image ID and executable hashes, so an unavailable
 or changed image fails closed instead of triggering an implicit download.
+Validation also compares the packaged worker hash with the worker inside the
+declared image before calls. Rebuild the image after worker changes; an older
+worker cannot be reported as the selected host runtime.
 
 The resource cohort dataset and package bind its size, providers, concurrency,
 sample interval, cgroup-v2 backend, CPU/memory limits, network isolation,
@@ -203,6 +256,23 @@ A full matrix rerun is required only when a global task input, call boundary or
 shared implementation dependency changes. The assembly manifest must retain
 which physical calls were replaced and why.
 
+To assemble certified evidence or retain a declared subset of browsers, use the
+same command. Exclusion changes the publication matrix; source calls remain in
+the original evidence directory.
+
+```sh
+uv run --frozen python scripts/assemble_headless.py --run-dir RUN --certificates CERTIFICATES --output ASSEMBLED
+uv run --frozen python scripts/assemble_headless.py --run-dir RUN --certificates CERTIFICATES --exclude-providers METHOD1 METHOD2 --output SUBSET
+```
+
+Assembly verifies and copies declared call artifacts and reference observations,
+then exposes the new directory only after validation. An existing independent
+review can follow unchanged retained attempts; changed evidence needs a separate
+review. Historical timing corrections keep their original measurement protocol
+and get a derived receipt bound to the retained records. No browser calls or
+independent reviews run as part of assembly. Supply `--speed-cohort SPEED` to
+apply the same browser exclusion to a packaged same-window speed cohort.
+
 Result verification is an opt-in stage after assembly: do not start it until the
 user explicitly requests review. The default scope is machine failures; use
 `--scope all --confirm-full-review` only after an explicit full-review request.
@@ -223,8 +293,15 @@ make report EVIDENCE=/absolute/path/to/evidence
 make report-check
 ```
 
-`.python-version`、`uv.lock`、Makefile 与 CI 共同固定 Python 3.11 和依赖版本。
-正式命令不得改用系统 `python` / `python3`；环境不满足时应立即失败，不能降级执行。
+For another declared cohort, pass `--canonical-dataset`, `--provider-config`,
+`--provenance` and `--report-profile` explicitly. The checker uses those inputs
+for task rules, method coverage, executable identities and the report matrix;
+its defaults reproduce the historical headless comparison. It verifies saved
+outputs without making provider calls or changing verdicts. Explicit diagnostic
+evidence remains ineligible for this formal evidence check.
+
+`.python-version`, `uv.lock`, the Makefile and CI pin Python 3.11 and dependency versions.
+Formal commands must not fall back to system `python` / `python3`; an unmet runtime contract must fail before execution.
 
 ## Cross-session release gates
 

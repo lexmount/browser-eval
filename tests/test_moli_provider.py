@@ -319,8 +319,10 @@ class MoliTests(unittest.TestCase):
         self.assertTrue(result.metadata["diagnostic_log_process_completed"])
 
     def test_native_dynamic_uses_markdown_without_generated_wait_or_eval(self):
-        from harness.web_fetch.config import load_dataset
-        _, cases = load_dataset(Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json"))
+        case = EvalCase("native-dynamic", "Native dynamic page", "https://example.invalid/",
+                        "dynamic", [], track="dynamic", acceptance_contract={
+                            "version": 1, "schema": "body_text", "minimum_records": 0,
+                            "stable_text_anchors": [{"id": "identity", "alternatives": ["native answer"]}]})
         provider = self.provider(
             "import sys\n"
             "assert '--eval' not in sys.argv and '--wait-selector' not in sys.argv\n"
@@ -328,7 +330,7 @@ class MoliTests(unittest.TestCase):
             "print('native answer')",
             log_level="debug",
         )
-        result = provider.fetch(cases[0], 2)
+        result = provider.fetch(case, 2)
         self.assertTrue(result.ok)
         self.assertEqual(result.metadata["route"], "dynamic_native_markdown")
 
@@ -841,6 +843,121 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["output"], "structured_resource_urls")
         self.assertIn("movie.mp4", result.content)
 
+    def test_resource_contract_takes_priority_over_page_family(self):
+        for track, path in (("challenge", "/page"), ("document", "/document.pdf"),
+                            ("document", "/document.docx"), ("document", "/viewer.html"),
+                            ("video", "/page"), ("image", "/page")):
+            with self.subTest(track=track, path=path):
+                provider = self.provider(
+                    'import sys\n'
+                    'assert "--eval" in sys.argv and "--dump" not in sys.argv\n'
+                    'assert "--trace-network" not in sys.argv\n'
+                    'expression=sys.argv[sys.argv.index("--eval")+1]\n'
+                    'assert "[src],[href],[data],[poster],[srcset]" in expression\n'
+                    'print("{\\"links\\":[\\"https://example.com/movie.mp4\\"]}")'
+                )
+                with patch("harness.web_fetch.providers.moli.require_converter",
+                           side_effect=AssertionError("resource discovery must not convert Markdown")):
+                    result = provider.fetch(self.case_with(
+                        track=track, url="https://example.com" + path, task_kind="resource"), 10)
+                self.assertTrue(result.ok, repr(result))
+                self.assertEqual(result.metadata["route"], "resource_page_runtime")
+                self.assertEqual(result.metadata["output"], "structured_resource_urls")
+                self.assertFalse(result.metadata["network_trace_requested"])
+                self.assertEqual(json.loads(result.content)["links"], ["https://example.com/movie.mp4"])
+
+    def test_file_contract_never_initializes_page_conversion(self):
+        for track in ("challenge", "document", "video", "image"):
+            with self.subTest(track=track):
+                provider = self.provider(
+                    'import sys\n'
+                    'assert "--dump" not in sys.argv and "--eval" not in sys.argv\n'
+                    'assert "--trace-network" not in sys.argv\n'
+                    'sys.stdout.buffer.write(b"fixture-file")'
+                )
+                with patch("harness.web_fetch.providers.moli.require_converter",
+                           side_effect=AssertionError("file delivery must not convert Markdown")):
+                    result = provider.fetch(self.case_with(track=track, task_kind="file"), 10)
+                self.assertTrue(result.ok, repr(result))
+                self.assertEqual(result.files[0]["data"], b"fixture-file")
+                self.assertEqual(result.metadata["route"], "raw_file")
+                self.assertEqual(result.metadata["output"], "raw_bytes")
+                self.assertFalse(result.metadata["network_trace_requested"])
+
+    def test_dynamic_resource_honors_declared_completion(self):
+        provider = self.provider(
+            'import sys\n'
+            'assert sys.argv[sys.argv.index("--wait-selector")+1]=="main article"\n'
+            'assert sys.argv.count("--wait-until")==1\n'
+            'assert sys.argv[sys.argv.index("--wait-until")+1]=="domcontentloaded"\n'
+            'assert sys.argv[sys.argv.index("--delay-ms")+1]=="999"\n'
+            'assert sys.argv[sys.argv.index("--timeout")+1]=="3000"\n'
+            'assert "[src],[href],[data],[poster],[srcset]" in sys.argv[sys.argv.index("--eval")+1]\n'
+            'import json\nprint(json.dumps(dict(links=["https://example.com/image.png"])))'
+        )
+        result = provider.fetch(self.case_with(
+            track="dynamic", task_kind="resource", retrieval_hints={
+                "version": 1, "wait_until": "domcontentloaded", "completion": {
+                    "selector": "main article", "minimum_count": 1,
+                    "timeout_ms": 3000, "delay_ms": 999,
+                },
+            }), 10)
+        self.assertTrue(result.ok, repr(result))
+        self.assertEqual(result.metadata["route"], "resource_page_runtime")
+        self.assertEqual(result.metadata["wait"]["selector"], "main article")
+        self.assertEqual(result.metadata["wait"]["completion_support"], "exact")
+
+    def test_dynamic_file_cannot_discard_valid_dom_completion(self):
+        marker = Path(self.directory.name) / "fetch-executed"
+        provider = self.provider(
+            f'from pathlib import Path\nPath({str(marker)!r}).write_text("executed")\n'
+            'print("unexpected output")'
+        )
+        result = provider.fetch(self.case_with(
+            track="dynamic", task_kind="file", retrieval_hints={
+                "version": 1, "wait_until": "load", "completion": {
+                    "selector": "main", "minimum_count": 1,
+                    "timeout_ms": 3000, "delay_ms": 0,
+                },
+            }), 10)
+        self.assertFalse(marker.exists())
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_type, "configuration")
+        self.assertIn("DOM completion", result.error_message)
+
+    def test_resource_route_cannot_discard_declared_text_extraction(self):
+        marker = Path(self.directory.name) / "fetch-executed"
+        provider = self.provider(
+            f'from pathlib import Path\nPath({str(marker)!r}).write_text("executed")\n'
+            'print("unexpected output")'
+        )
+        result = provider.fetch(self.case_with(
+            track="dynamic", task_kind="resource", retrieval_hints={
+                "version": 2, "wait_until": "load", "completion": {
+                    "selector": "main", "minimum_count": 1,
+                    "timeout_ms": 3000, "delay_ms": 0,
+                },
+                "extraction": {"selector": "article", "maximum_count": 2,
+                               "exclude_selectors": [], "fallback": "empty"},
+            }), 10)
+        self.assertFalse(marker.exists())
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_type, "configuration")
+        self.assertIn("Declared text extraction", result.error_message)
+
+    def test_scoring_answers_do_not_change_execution(self):
+        provider = self.provider('import json, sys\nprint(json.dumps(sys.argv[1:]))')
+        original = provider.fetch(self.case, 2)
+        changed = provider.fetch(self.case_with(
+            id="unrelated-id", name="Unrelated label", expected_any=["secret-answer"],
+            reference_answer="secret-reference", required_facts=["secret-fact"],
+            ground_truth_main_content="secret-body", expected_resources=["secret-resource"],
+        ), 2)
+        self.assertTrue(original.ok, repr(original))
+        self.assertTrue(changed.ok, repr(changed))
+        self.assertEqual(original.content, changed.content)
+        self.assertEqual(original.metadata["route"], changed.metadata["route"])
+
     def test_file_task_preserves_binary_stdout(self):
         from dataclasses import replace
 
@@ -952,18 +1069,29 @@ class MoliTests(unittest.TestCase):
         )
         document = self.case_with(url="https://example.com/demo.docx", track="document")
 
-        def slow_extract(_raw):
-            time.sleep(1.1)
-            return "late content", "fixture"
+        real_clock = time.monotonic
+        for extraction_seconds, expected_ok in ((0.1, True), (11, False)):
+            with self.subTest(extraction_seconds=extraction_seconds):
+                elapsed = [0.0]
 
-        with patch(
-            "harness.web_fetch.providers.moli.extract_document_text",
-            side_effect=slow_extract,
-        ):
-            result = provider.fetch(document, 1)
-        self.assertFalse(result.ok)
-        self.assertEqual(result.error_type, "timeout")
-        self.assertIn("runtime extraction", result.error_message)
+                def extract(_raw):
+                    elapsed[0] += extraction_seconds
+                    return "extracted content", "fixture"
+
+                clock = SimpleNamespace(monotonic=lambda: real_clock() + elapsed[0])
+                with (
+                    patch("harness.web_fetch.providers.moli.time", clock),
+                    patch("harness.web_fetch.providers.moli.extract_document_text",
+                          side_effect=extract) as extractor,
+                ):
+                    result = provider.fetch(document, 10)
+                extractor.assert_called_once()
+                self.assertEqual(result.ok, expected_ok)
+                if expected_ok:
+                    self.assertEqual(result.content, "extracted content")
+                else:
+                    self.assertEqual(result.error_type, "timeout")
+                    self.assertIn("runtime extraction", result.error_message)
 
     def test_document_extraction_must_finish_inside_the_call_budget(self):
         import time
@@ -1119,7 +1247,7 @@ class MoliTests(unittest.TestCase):
         result = self.provider(
             'print("HTTP clients may receive 403: Forbidden. This section explains retries.")'
         ).fetch(self.case, 2)
-        self.assertTrue(result.ok)
+        self.assertTrue(result.ok, repr(result))
         self.assertIsNone(result.status_code)
         self.assertIsNone(result.error_type)
 

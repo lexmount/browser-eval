@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from .runner import run_evaluation
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--suite", default="/work/tasks.v2.json")
-    parser.add_argument("--output", default="/work/output")
-    parser.add_argument("--reports", default="/work/reports")
+    parser.add_argument("--suite", required=True)
+    parser.add_argument("--output", required=True, help="New immutable evidence directory")
+    parser.add_argument("--reports", help="Defaults to the selected run's report directory")
     parser.add_argument(
         "--ground-truth-evidence",
-        default="/work/ground_truth_validation.json",
+        required=True,
     )
     parser.add_argument("--failure-retries", type=int, default=1)
     parser.add_argument("--sample-interval-ms", type=int, default=50)
@@ -28,7 +29,7 @@ def main() -> None:
     run_evaluation(
         suite_path=args.suite,
         output_dir=args.output,
-        reports_dir=args.reports,
+        reports_dir=Path(args.reports) if args.reports else Path(args.output) / "report",
         ground_truth_evidence_path=args.ground_truth_evidence,
         max_retries=args.failure_retries,
         sample_interval_ms=args.sample_interval_ms,

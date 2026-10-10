@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import platform
 import threading
 import time
@@ -21,60 +20,28 @@ import docker
 import tiktoken
 from playwright.sync_api import Browser, Page, sync_playwright
 
+from harness.environments.browser import (
+    ENGINE_PORTS,
+    cleanup_browser_runtime,
+    configured_browser_images,
+    published_endpoint,
+    start_browser_container,
+    wait_cdp,
+)
+from harness.resource_accounting import DockerStatsResources, ResourceSampler, delta_counters
+
 from .diagnostics import diagnose_summary
 from .executor import execute_steps, judge_outputs, validate_outputs
-from .metrics import (
-    DockerStatsResources,
-    ResourceSampler,
-    delta_counters,
-    summarize_attempts,
-)
+from .metrics import summarize_attempts
 from .report import write_latest_report
 from .suite import BrowserTask, load_suite, validate_ground_truth_evidence
 
-ENGINE_IMAGES = {
-    "chromium": "lex-browser-use-eval-chromium:local",
-    # A diagnostic may point only Moli at a separately tagged, hash-recorded image.
-    # The formal current profile continues to use the pinned local tag by default.
-    "moli": os.environ.get("BROWSER_EVAL_MOLI_IMAGE", "lex-browser-use-eval-moli:local"),
-}
-ENGINE_PORTS = {"chromium": 9223, "moli": 9222}
+ENGINE_IMAGES = configured_browser_images()
 ENCODING = tiktoken.get_encoding("o200k_base")
 
 
-def _external_websocket_url(endpoint: str, advertised: str) -> str:
-    endpoint_parts = urllib.parse.urlsplit(endpoint)
-    websocket_parts = urllib.parse.urlsplit(advertised)
-    scheme = "wss" if endpoint_parts.scheme == "https" else "ws"
-    return urllib.parse.urlunsplit(
-        (scheme, endpoint_parts.netloc, websocket_parts.path, websocket_parts.query, "")
-    )
 
 
-def _wait_cdp(url: str, timeout_seconds: float = 60, *, container: Any = None) -> str:
-    deadline = time.monotonic() + timeout_seconds
-    last_error: Exception | None = None
-    while time.monotonic() < deadline:
-        try:
-            with urllib.request.urlopen(f"{url}/json/version", timeout=2) as response:
-                if response.status == 200:
-                    payload = json.load(response)
-                    advertised = str(payload.get("webSocketDebuggerUrl") or "")
-                    if advertised:
-                        return _external_websocket_url(url, advertised)
-                    raise RuntimeError("CDP version response omitted webSocketDebuggerUrl")
-        except Exception as exc:
-            last_error = exc
-        time.sleep(0.25)
-    logs = ""
-    if container is not None:
-        try:
-            container.reload()
-            logs = container.logs(tail=30).decode("utf-8", errors="replace")
-        except Exception:
-            pass
-    detail = f"; container logs:\n{logs}" if logs else ""
-    raise RuntimeError(f"CDP endpoint did not become ready: {last_error}{detail}")
 
 
 def _http_origin(url: str) -> str | None:
@@ -153,12 +120,6 @@ def _resource_result(
     return result
 
 
-def _published_endpoint(container: Any, *, engine: str, cdp_port: int) -> str:
-    ports = (container.attrs.get("NetworkSettings") or {}).get("Ports") or {}
-    bindings = ports.get(f"{cdp_port}/tcp")
-    if not bindings or not bindings[0].get("HostPort"):
-        raise RuntimeError(f"{engine}: Docker did not publish CDP port")
-    return f"http://127.0.0.1:{bindings[0]['HostPort']}"
 
 
 def _prepare_page(page: Page, visited_origins: set[str], *, settle_ms: int) -> Page:
@@ -267,31 +228,6 @@ def _run_task(
     }
 
 
-def _start_browser_container(
-    client: Any,
-    *,
-    engine: str,
-    run_id: str,
-    cpus: float,
-    memory: str,
-    network: str,
-) -> Any:
-    name = f"lex-browser-use-eval-{run_id}-{engine}"
-    cdp_port = ENGINE_PORTS[engine]
-    return client.containers.run(
-        ENGINE_IMAGES[engine],
-        name=name,
-        detach=True,
-        ports={f"{cdp_port}/tcp": ("127.0.0.1", None)},
-        labels={"lex.browser-use-eval.run": run_id, "lex.browser-use-eval.engine": engine},
-        nano_cpus=int(cpus * 1_000_000_000),
-        mem_limit=memory,
-        pids_limit=512,
-        shm_size="512m",
-        security_opt=["no-new-privileges"],
-        network=network,
-        extra_hosts={"host.docker.internal": "host-gateway"},
-    )
 
 
 class _QuietFixtureHandler(SimpleHTTPRequestHandler):
@@ -363,31 +299,6 @@ def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _cleanup_runtime(
-    browsers: dict[str, Browser],
-    playwright: Any,
-    containers: dict[str, Any],
-    networks: dict[str, Any],
-) -> None:
-    for browser in browsers.values():
-        try:
-            browser.close()
-        except Exception:
-            pass
-    try:
-        playwright.stop()
-    except Exception:
-        pass
-    for container in containers.values():
-        try:
-            container.remove(force=True)
-        except Exception:
-            pass
-    for network in networks.values():
-        try:
-            network.remove()
-        except Exception:
-            pass
 
 
 def _write_run_artifacts(
@@ -426,14 +337,23 @@ def run_evaluation(
 ) -> dict[str, Any]:
     if max_retries < 0:
         raise ValueError("max_retries must be non-negative")
+    from harness.web_fetch.safety import unlinked_path
+    output = unlinked_path(Path(output_dir))
+    if output.exists():
+        raise ValueError("Output must be a new directory; existing evidence is immutable")
     suite = load_suite(suite_path)
     ground_truth_evidence = (
         validate_ground_truth_evidence(suite_path, suite, ground_truth_evidence_path)
         if ground_truth_evidence_path is not None
         else None
     )
-    output = Path(output_dir)
-    output.mkdir(parents=True, exist_ok=True)
+    unlinked_path(output)
+    try:
+        output.mkdir(parents=True, exist_ok=False)
+    except FileExistsError as error:
+        raise ValueError(
+            "Output must be a new directory; existing evidence is immutable"
+        ) from error
     run_id = uuid.uuid4().hex[:12]
     client = docker.from_env()
     containers: dict[str, Any] = {}
@@ -465,8 +385,9 @@ def run_evaluation(
                 },
             )
             networks[engine] = network
-            container = _start_browser_container(
+            container = start_browser_container(
                 client,
+                image=ENGINE_IMAGES[engine], cdp_port=ENGINE_PORTS[engine],
                 engine=engine,
                 run_id=run_id,
                 cpus=cpus,
@@ -476,8 +397,8 @@ def run_evaluation(
             containers[engine] = container
             container.reload()
             cdp_port = ENGINE_PORTS[engine]
-            endpoint = _published_endpoint(container, engine=engine, cdp_port=cdp_port)
-            websocket_url = _wait_cdp(endpoint, container=container)
+            endpoint = published_endpoint(container, engine=engine, cdp_port=cdp_port)
+            websocket_url = wait_cdp(endpoint, container=container)
             browsers[engine] = playwright.chromium.connect_over_cdp(websocket_url)
             resources[engine] = DockerStatsResources(container)
             page = browsers[engine].contexts[0].pages[0]
@@ -637,4 +558,4 @@ def run_evaluation(
             fixture_server.shutdown()
             fixture_server.server_close()
             fixture_thread.join(timeout=2)
-        _cleanup_runtime(browsers, playwright, containers, networks)
+        cleanup_browser_runtime(browsers, playwright, containers, networks)

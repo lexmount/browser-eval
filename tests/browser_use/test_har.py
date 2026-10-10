@@ -1,7 +1,12 @@
 import base64
 import json
 
-from harness.browser_use.har import CdpHarRecorder, _har_request, _har_response, _is_json_mime_type
+from harness.environments.webarena.har import (
+    CdpHarRecorder,
+    _har_request,
+    _har_response,
+    _is_json_mime_type,
+)
 from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
 
 

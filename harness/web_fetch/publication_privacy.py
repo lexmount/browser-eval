@@ -1,10 +1,47 @@
-"""Project supplemental raw HTML for publication without changing scored evidence."""
+"""Project public evidence and execution metadata without changing measurements."""
 import hashlib
 import html
 import json
 import re
-from pathlib import PurePosixPath
+from copy import deepcopy
+from pathlib import PurePosixPath, PureWindowsPath
 from urllib.parse import unquote_plus
+
+
+def project_execution_manifest(manifest: dict) -> dict:
+    """Omit host paths while retaining declared config and runtime identities.
+
+    A basename identifies the original file, not a repository default. Hashes,
+    including absent or unavailable hashes, remain exactly as recorded.
+    """
+    result = deepcopy(manifest)
+    identity = result.get('runtime_identity_record')
+    config_hash = result.get('provider_config_sha256')
+    identity_hash = identity.get('provider_config_sha256') if isinstance(identity, dict) else None
+    if config_hash is not None and identity_hash is not None and config_hash != identity_hash:
+        raise ValueError('Conflicting provider configuration hashes in execution metadata')
+    environment = result.get('environment')
+    if isinstance(environment, dict):
+        environment.pop('hostname', None)
+    dataset = result.get('dataset')
+    for container, field, marker in (
+        (result, 'provider_config_source', 'provider_config_path_omitted'),
+        (dataset, 'source', 'source_path_omitted'),
+    ):
+        source = container.get(field) if isinstance(container, dict) else None
+        if not isinstance(source, str):
+            continue
+        posix, windows = PurePosixPath(source), PureWindowsPath(source)
+        if posix.is_absolute() or windows.drive or '..' in windows.parts:
+            container[field] = windows.name if windows.drive or '\\' in source else posix.name
+            container[marker] = True
+    projection = result.get('projection')
+    if isinstance(projection, dict):
+        projection.pop('source_manifest_path', None)
+        projection['source_manifest_retained_in_local_run'] = True
+        if projection.get('kind') == 'completed-case-from-live-preflight':
+            result['dataset']['case_count'] = len(result['reference_checks']['cases'])
+    return result
 
 
 GOOGLE_KEY = re.compile(rb'AIzaSy[A-Za-z0-9_-]{20,}')

@@ -1,9 +1,0 @@
-{
-  "case_id": "global-homepage-041-discord-com",
-  "url": "https://discord.com/",
-  "checked_at": "2026-09-18",
-  "provider_output_used": false,
-  "stable_page_sha256": "684a7873862b0e9d11f2245729b45822691b712e56437fd8e7ac87633a35abaf",
-  "schema_version": 1,
-  "dataset": "evaluation/popular-sites/dataset.json"
-}

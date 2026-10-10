@@ -60,7 +60,7 @@ class StableLifecycleTests(unittest.TestCase):
             self.assertTrue(task_passed(rescored[0]['ok'], rescored[0]['metrics']))
             self.assertEqual((run/row['artifact_path']).read_bytes(), raw)
             (run/row['artifact_path']).write_text('Tampered')
-            with self.assertRaisesRegex(ValueError, 'integrity|Public call log output binding changed'):
+            with self.assertRaisesRegex(ValueError, 'integrity|Public call log output binding changed|Artifact differs from its result binding'):
                 rescore_evaluation(run_dir=run, dataset_meta=dataset, dataset_path=path, cases=[case])
 
 

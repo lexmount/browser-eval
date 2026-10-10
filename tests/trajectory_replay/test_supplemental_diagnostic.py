@@ -40,13 +40,17 @@ def test_supplemental_table_keeps_original_score_separate_and_escapes_text():
 @pytest.mark.parametrize("change", ["task", "scope", "mutations", "bytes"])
 def test_supplemental_diagnostic_rejects_wrong_scope_and_changed_bytes(tmp_path, change):
     data = _diagnostic()
-    if change == "task": data["task_id"] = 547
-    if change == "scope": data["scope"] = "formal_replacement_score"
-    if change == "mutations": data["mutations_submitted"] = True
+    if change == "task":
+        data["task_id"] = 547
+    if change == "scope":
+        data["scope"] = "formal_replacement_score"
+    if change == "mutations":
+        data["mutations_submitted"] = True
     path = tmp_path / "probe.json"
     path.write_text(json.dumps(data))
     reference = {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-    if change == "bytes": path.write_text(json.dumps({**data, "extra": True}))
+    if change == "bytes":
+        path.write_text(json.dumps({**data, "extra": True}))
     with pytest.raises(ValueError):
         _supplemental_diagnostic({"supplemental_diagnostic": reference}, 576)
 
@@ -82,11 +86,28 @@ def test_wizard_probe_displays_readiness_conjuncts_and_dialog_geometry():
 
 def test_readiness_has_its_own_population_and_no_empty_geometry_table():
     diagnostic = {
-        "scope_note": {"zh": "当前匿名页面 <不是原成绩>", "en": "Current anonymous page <not original score>"},
-        "observations": [{"method": "release", "observations": [{"delay": 2, "state": {
-            "readiness": {"target": "Add to Cart", "disabled": False,
-                          "pendingModules": 83, "formValidationReady": True},
-        }}]}],
+        "scope_note": {
+            "zh": "当前匿名页面 <不是原成绩>",
+            "en": "Current anonymous page <not original score>",
+        },
+        "observations": [
+            {
+                "method": "release",
+                "observations": [
+                    {
+                        "delay": 2,
+                        "state": {
+                            "readiness": {
+                                "target": "Add to Cart",
+                                "disabled": False,
+                                "pendingModules": 83,
+                                "formValidationReady": True,
+                            },
+                        },
+                    }
+                ],
+            }
+        ],
     }
     for lang in ("zh", "en"):
         html = _supplemental_diagnostic_html(diagnostic, lang)

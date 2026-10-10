@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "kind": "frozen_webmainbench_latency_certifier",
+  "sources": [
+    {
+      "git_commit": "2e6d6cea11cd65307c6e75c107a499868c10337b",
+      "path": "scripts/run_certified_webmainbench_latency.py",
+      "sha256": "34bdb7aedb25a9e5a0c64e0c549926ed7e71f747f544ec2035f65952c0177347",
+      "source_artifact": "latency-certifiers/34bdb7aedb25a9e5a0c64e0c549926ed7e71f747f544ec2035f65952c0177347.py.txt"
+    },
+    {
+      "git_commit": "f3af7b0772bbb82fe0ef6452959241b822d83d8f",
+      "path": "scripts/run_certified_webmainbench_latency.py",
+      "sha256": "95a2f0a73578346998f0a4ad1256b2cef469a3f2db9b4b30550fc03fc5c259a8",
+      "source_artifact": "latency-certifiers/95a2f0a73578346998f0a4ad1256b2cef469a3f2db9b4b30550fc03fc5c259a8.py.txt"
+    }
+  ]
+}

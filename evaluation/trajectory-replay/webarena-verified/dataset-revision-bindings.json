@@ -1,0 +1,33 @@
+{
+  "schema": "webarena_dataset_revision_bindings/1",
+  "revisions": [
+    {
+      "task_id": 67,
+      "correction_id": "fork-67-books-description-only",
+      "task_sha256": "2d92caf6476a5fb9370aef62da974343e3b1bd10993cf08dbcdbffa1a114aacf",
+      "source_trajectory_sha256": "0f0ea16ca23b7b79bf533d740b94b3e6cc4638f148a47668777f7b4906c79aea",
+      "candidate": {
+        "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-67.json",
+        "sha256": "226387a18cc3ec45c6ae1945c6e3f87472879a8a889b468c53f75ea651540c0c"
+      },
+      "reference": {
+        "path": "research/trajectory-replay-task67-reference-audit.json",
+        "sha256": "7057e6eb5cfd9c49d23d1984b9fce96e8ea13f68a4698dba5cef0eb70739bef2"
+      }
+    },
+    {
+      "task_id": 243,
+      "correction_id": "fork-243-review-nickname",
+      "task_sha256": "538fa655a6a69a78ac66fa2524d7117b2b2ee0583b2fab3bebe7acf4f583a47d",
+      "source_trajectory_sha256": "e9194b40320003bdfbc11157f88f234a8b40cc9dde91365696de96238920988f",
+      "candidate": {
+        "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-243.json",
+        "sha256": "6bbd9124f65221a096d90127483f523076046dc936d24cd680768d48640597f5"
+      },
+      "reference": {
+        "path": "research/trajectory-replay-task243-nickname-reference.json",
+        "sha256": "2779ea13532610de196ed6977a6518cd56545eca51b6e9a18289f52f0bf60cc9"
+      }
+    }
+  ]
+}

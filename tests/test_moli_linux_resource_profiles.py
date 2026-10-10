@@ -2,7 +2,7 @@ import copy
 import unittest
 from pathlib import Path
 
-from scripts.moli_report import run_linux_resource_profiles as profiles
+from harness.lexbench import resource_profiles as profiles
 
 
 class LinuxResourceProfileTests(unittest.TestCase):
@@ -14,6 +14,8 @@ class LinuxResourceProfileTests(unittest.TestCase):
                 "target": "aarch64-unknown-linux-gnu",
                 "profile": "release",
                 "sha256": "a" * 64,
+                "binary": "/synthetic/browser",
+                "version": "fixture",
             }
             for name, layout in (
                 ("official_off", "off"),
@@ -23,6 +25,18 @@ class LinuxResourceProfileTests(unittest.TestCase):
             )
         }
         self.protocol = {
+            "id": "fixture",
+            "max_observer_effect_pct": 10,
+            "seed": "fixed",
+            "image": "sha256:" + "a" * 64,
+            "runner_root": "/synthetic/runner",
+            "node_modules": "/synthetic/modules",
+            "node_modules_lock": "/synthetic/modules/.package-lock.json",
+            "agent_browser_binary": "/synthetic/agent",
+            "input_files": {"manifest.json": "a" * 64},
+            "chart_keys": [
+                {"task_id": f"task_{i}", "attempt": n} for i in range(209) for n in range(1, 6)
+            ],
             "schema": "moli_linux_resource_profiles/1",
             "configs": configs,
             "task_ids": [f"task_{i}" for i in range(557)],

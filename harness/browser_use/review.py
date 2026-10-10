@@ -12,6 +12,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import load_jsonl
+
 REQUIRED_ARTIFACTS = ("network_har", "agent_trace", "response", "evaluation", "events")
 
 
@@ -28,9 +30,7 @@ def _attempts_sha256(path: Path) -> str:
 
 
 def _read_attempts(path: Path) -> list[dict[str, Any]]:
-    return [
-        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
-    ]
+    return load_jsonl(path, skip_blank=True)
 
 
 def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:

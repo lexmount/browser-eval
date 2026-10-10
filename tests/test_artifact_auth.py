@@ -105,3 +105,36 @@ class ArtifactAuthTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_device_authorization_rejects_invalid_service_before_network():
+    from harness.web_fetch.artifact_auth import authorize_main
+
+    for base, timeout in [('file:///tmp/auth', '10'),
+                          ('https://user:password@reports.example', '10'),
+                          ('https://reports.example?target=other', '10'),
+                          ('https://reports.example', '0')]:
+        with patch('urllib.request.urlopen', side_effect=AssertionError('must not make request')):
+            try:
+                authorize_main(['--device-code', 'fixture', '--base-url', base,
+                                '--timeout', timeout])
+            except ValueError:
+                continue
+            raise AssertionError('invalid authorization service accepted')
+
+
+def test_device_authorization_saves_approved_token_for_declared_host():
+    import json
+
+    from harness.web_fetch.artifact_auth import authorize_main
+
+    response = io.BytesIO(json.dumps({'status': 'approved', 'token': 'ahp_fixture',
+                                      'user': {'email': 'fixture@example.invalid'}}).encode())
+    with patch('urllib.request.urlopen', return_value=response) as request, \
+            patch('harness.web_fetch.artifact_auth.save_token') as save, \
+            patch('sys.stdout', new_callable=io.StringIO) as output:
+        authorize_main(['--device-code', 'fixture', '--base-url', 'https://reports.example'])
+        assert request.call_args.args[0].full_url == 'https://reports.example/api/device/poll'
+        save.assert_called_once_with('ahp_fixture', base_url='https://reports.example',
+                                     replace_existing=False)
+        assert 'ahp_fixture' not in output.getvalue()

@@ -1,6 +1,6 @@
 import unittest
 
-from scripts.assemble_headless import _provider_request_contract
+from harness.web_fetch.assembly import _provider_request_contract
 
 
 class ProviderRequestContractTests(unittest.TestCase):

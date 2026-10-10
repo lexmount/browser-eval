@@ -1,52 +1,194 @@
-# Frozen WebMainBench-545 comparison
+# Frozen WebMainBench comparison
 
-This is a separate frozen-HTML-to-Markdown fidelity study, not the live-URL
-task benchmark described in [HEADLESS.md](HEADLESS.md). Its current authority is
-`evaluation/current-report.json`: 200 pages selected from the public 545-page
-parent before any method result, five browser implementations, one logical
-result per method and page.
+WebMainBench compares Markdown returned from the same frozen HTML. It has a
+separate population and scoring contract from the live-URL task benchmark in
+[HEADLESS.md](HEADLESS.md).
 
-The source JSONL is bound by SHA-256
-`0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e`.
-Every method receives the official `html` field encoded as UTF-8 without
-editing its bytes. Lightpanda, Obscura, Moli and Chromium load it from a
-loopback HTTPS fixture under a macOS sandbox that permits only loopback
-networking; each batch has a dedicated temporary CA. Kitesurf uses
-Cloudflare Browser Rendering's documented inline-`html` input and rejects
-external resource types. Original URLs are retained only as source metadata.
-Inline scripts included in the frozen bytes may run, but external subresource
-and data requests cannot reach the network. The dataset's public `cc-select`
-annotation remains an inherent cue, although none of the five general
-converters is customized to consume it.
+```mermaid
+flowchart LR
+    A[Source bytes and frozen profiles] --> B[Certified provider calls]
+    B --> C[Certified scoring]
+    C --> D[Registry-driven assembly]
+    D --> E[Required corrections and explicit review]
+    E --> F[Report and release gates]
+```
 
-| Method | Measured output route |
-|---|---|
-| Kitesurf | Cloudflare Browser Rendering `/markdown?browser=kitesurf` |
-| Lightpanda | Native `fetch --dump markdown` |
-| Obscura | Native `fetch --dump markdown` with private-loopback allowance |
-| Moli 1.1.5 | Native `fetch --dump markdown` |
-| Chromium 152 | Rendered DOM converted by `node-html-markdown` 2.0.0 |
+## Select the population
 
-The pinned official scorer commit is
-`9d991bdc00c57b57521499494d96be85c31317ba`, using its deterministic
-`use_llm=false` configuration. The five content components are `text_edit`,
-`code_edit`, `formula_edit`, `table_edit` and `table_TEDS`; official `overall`
-is the arithmetic mean of their separately aggregated scores. Every component
-uses only pages successfully scored for that component, so denominators can
-differ. The per-page `overall` has a different denominator and must not be
-substituted for the leaderboard `overall`. Request delivery and end-to-end
-latency, including declared failed retries, are separate measures.
+| Population | Authority |
+| --- | --- |
+| Preselected sample | `evaluation/current-report.json` and its hash-bound sample manifest |
+| Complete parent dataset | `evaluation/webmainbench-full/current-report.json` |
+| Independently certified variants in the complete comparison | `evaluation/webmainbench-full/moli-variants.json` and each listed profile |
 
-Run the repository's `make public-benchmark-sample`, `webmainbench-run`,
-`webmainbench-score`, `webmainbench-review`, `webmainbench-assemble` and
-`public-benchmark-report` targets with their required absolute-path arguments.
-The build reads persisted, independently reviewed evidence outside Git. The
-report exposes the 200-page sample, official human Markdown references,
-frozen HTML, five same-page results, per-component scorer reasons, full final
-outputs and physical retry chains. A failed retry keeps every physical call
-and uses the final response, not the best response. A corrected contaminated
-batch supersedes its whole declared scope while retaining the prior evidence.
+Profiles declare the task count, provider IDs, versions, source hash, scorer
+commit, retry policy and execution contract. The registry declares public
+variant identities; each variant profile declares its measured source provider.
+Adding a variant changes this data, rather than adding a numbered assembler.
+Profiles that certified historical calls retain their original bytes.
 
-The results apply to these 200 frozen pages and execution routes. They are
-not the paper's 7,809-page ROUGE-5 ranking, the 545-page parent aggregate,
-live-Web Fetch success rates, or an isolated CPU/memory/network comparison.
+Acquire the source JSONL separately using the source and hash recorded in
+`evaluation/public-webmainbench-200.json`. Follow its upstream license and the
+repository's [third-party content boundary](../../THIRD_PARTY.md); a dataset
+license does not grant rights to every captured third-party page.
+
+Every method receives the source `html` field encoded as UTF-8. The selected
+profile defines the allowed network access, conversion route and deadline.
+Original URLs remain evidence metadata. This experiment measures frozen-page
+conversion, not current website availability or live browsing success.
+
+## Reproduce the sample's latency correction
+
+The retained 200-page sample's balanced Moli latency correction uses
+`scripts/run_certified_benchmark.py webmainbench-latency` and
+`scripts/apply_webmainbench_latency_correction.py`. Both delegate to
+`harness/web_fetch/webmainbench_latency_correction.py`. This frozen experiment
+keeps its declared versions, two rounds, final-round selection, macOS host
+observations and full 800-call scope. It does not change the scored outputs.
+New certificates include `certifier-source.py` and its SHA-256; preserve this
+file alongside `certification.json`, `selection.json`, `calls.jsonl` and outputs.
+Source copies are verified as data and never executed. Historical source
+bindings name exact Git revisions rather than the current command file.
+
+## Apply a sample fixture correction
+
+For a proven fixture error in the sample, apply the one-case replacement
+evidence to a new directory:
+
+```bash
+uv run --frozen python scripts/apply_webmainbench_case_correction.py \
+  --source-root /absolute/path/original-provider-shards \
+  --correction 'PROVIDER_ID=/absolute/path/one-case-replacement' \
+  --dataset /absolute/path/WebMainBench_545.jsonl \
+  --sample-manifest evaluation/public-webmainbench-200.json \
+  --profile evaluation/current-report.json \
+  --case-id CASE_ID --output /absolute/path/new-provider-shards
+```
+
+Use the frozen parent profile and repeat `--correction` for every corrected
+provider. The bindings define the correction scope; optional `--providers`
+must name exactly the same providers. The profile defines the complete method
+inventory, source, sample, scorer and execution policy. The command verifies
+the final-call retry chain, implementation identity and every retained response
+hash. Other methods keep their original evidence bytes. Only referenced files
+are copied; invalid or changing inputs leave no partial output. This step
+assembles evidence and does not certify provider calls or publish a report.
+The Make target accepts a single `CORRECTION=PROVIDER_ID=PATH` binding and
+`WEBMAINBENCH_PROFILE` for a different frozen parent profile; use the command
+directly for multiple bindings.
+
+## Certify, score and assemble the complete comparison
+
+Install the `headless-eval` and `webmainbench-eval` extras, prepare the declared
+browser binaries and obtain the pinned scorer checkout. Evaluation credentials
+come only from the repository's local `.env`. Provider runs may incur charges.
+
+The supported complete-cohort commands are:
+
+- `scripts/run_certified_webmainbench_full.py`: freeze and recheck source,
+  scorer, binary and complete physical-call evidence around provider calls.
+- `scripts/score_certified_webmainbench_full.py`: score every declared method
+  and bind the score files to the cohort certificate.
+- `scripts/assemble_webmainbench_full.py`: verify and package the complete
+  baseline and all registry-declared variant cohorts.
+- `scripts/build_report.py --webmainbench-full`: build from persisted evidence
+  after the current profile's correction, content and review bindings pass.
+
+Run and score each independently declared cohort with its own profile. For
+an installed package, the corresponding commands are:
+
+```bash
+python -m harness.web_fetch.webmainbench_certification \
+  --source /absolute/path/WebMainBench_545.jsonl --scorer /absolute/path/pinned-scorer \
+  --profile /absolute/path/frozen-profile.json --config /absolute/path/providers.json \
+  --env-file /absolute/path/checkout/.env --output-root /absolute/path/new-cohort
+python -m harness.web_fetch.webmainbench_certification score \
+  --source /absolute/path/WebMainBench_545.jsonl --scorer /absolute/path/pinned-scorer \
+  --profile /absolute/path/frozen-profile.json --cohort /absolute/path/new-cohort
+```
+
+All paths are interpreted from the caller's working directory. The default
+profile and provider configuration are `evaluation/webmainbench-full/current-report.json`
+and `configs/providers.headless.json` in that directory. Outside a checkout,
+provide these files explicitly. The frozen profile selects a nonempty, unique
+list of registered methods, their versions and the serial one-run policy for
+all 545 tasks. Dataset names do not select a method list. A profile-bound binary
+uses the executable from the provider configuration. Dirty scorer checkouts
+and changed inputs are rejected. Scoring rechecks every measured shard against
+its original cohort certificate before issuing a scoring certificate.
+
+For assembly, provide one baseline root and one `--cohort ID=PATH` argument for
+every public variant ID in the selected registry:
+
+```bash
+uv run --frozen --extra headless-eval --extra webmainbench-eval python \
+  scripts/assemble_webmainbench_full.py \
+  --source-root /absolute/path/certified-baseline \
+  --dataset /absolute/path/WebMainBench_545.jsonl \
+  --profile evaluation/webmainbench-full/current-report.json \
+  --variants evaluation/webmainbench-full/moli-variants.json \
+  --cohort 'REGISTERED_ID=/absolute/path/certified-variant' \
+  --scorer /absolute/path/pinned-scorer \
+  --output /absolute/path/new-complete-evidence
+```
+
+Replace `REGISTERED_ID` and repeat `--cohort` for every registry entry. Omitting
+`--variants` and all `--cohort` arguments packages the certified baseline alone.
+A baseline-only package is not the complete registered comparison and cannot
+pass its report release gate.
+
+Assembly verifies the same source population and scorer across cohorts,
+retains every physical retry, and gives each logical result a stable public
+method identity. It copies only declared, hash-verified evidence, never worker
+directories or private review files. It rejects incomplete matrices, duplicate
+attempt identities, symlinks, changed inputs and existing output directories.
+A failed assembly leaves no partial package.
+
+New combined evidence uses `method-binding.json`. The reader also accepts the
+frozen historical `seven-method-binding.json` format; both files in one package
+are rejected as ambiguous. Historical reports and certificates are not
+rewritten or re-certified by this migration.
+
+To replace a method, certify its new cohort under a new frozen profile, update
+the registry for the intended comparison and assemble a new package using the
+unchanged original cohorts for other methods. Keep the previous package. Do
+not copy or edit an existing scored matrix to manufacture a replacement.
+
+## Interpret the scores
+
+The deterministic official scorer evaluates `text_edit`, `code_edit`,
+`formula_edit`, `table_edit` and `table_TEDS`. Official `overall` is the mean of
+these separately aggregated components. Component populations can differ;
+per-page `overall` does not replace the leaderboard aggregate. Delivery,
+latency and retained retry execution cost remain separate measures.
+
+Reference or scoring corrections use the shared revision contracts and retain
+superseded evidence. Independent result review starts only on explicit request.
+The published report's profile and target bind the exact accepted comparison;
+assembling evidence alone does not authorize a release or change its scores.
+
+`scripts/correct_webmainbench_scoring.py` applies a schema-v3 decision-authority
+manifest to the complete 545-page population. It requires `--source`,
+`--corrected-dataset`, `--manifest`, `--scorer-repo`, `--scorer-commit` and a new
+`--output` directory. `scripts/rescore_webmainbench_case_correction.py` uses the
+same arguments except `--manifest` to rescore an already certified case correction;
+its HTML, reference and physical calls must retain their certified identities.
+Both commands run offline through `harness/web_fetch/webmainbench_correction.py`,
+validate the shared scoring controls and expose the output only after the complete
+revision succeeds. The scorer checkout must match the declared commit and have no
+tracked changes. Historical schema-v1 reference receipts remain readable; new
+reference corrections use the schema-v3 command.
+
+The retained sample's TEDS-only revision uses `scripts/correct_webmainbench_teds.py`.
+Its scorer commit defaults to the frozen official baseline; `--scorer-commit` can
+declare another checkout explicitly. The checkout must match that commit and the
+source evidence's metric-source hashes. Revisions retain the first official score
+snapshots and aggregate, stage a complete new directory and reject source changes
+during scoring. `--prior-corrected` reuses an already validated correction while
+checking that its evidence also remains unchanged.
+`scripts/review_webmainbench_teds_correction.py --source <original-evidence>
+--corrected <revised-evidence>` checks its complete declared matrix, unchanged
+provider evidence and aggregate arithmetic. Both commands delegate to
+`webmainbench_diagnostics.py`. This is a deterministic integrity check; independent
+result review is a separate, explicitly requested activity. The audit command
+preserves an existing receipt and rejects evidence that changes before installation.

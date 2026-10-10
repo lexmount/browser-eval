@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from harness.record_io import load_jsonl
 from harness.trajectory_replay.catalog_contracts import (
     ACCEPTANCE_SCHEMAS,
     ACTION_OVERRIDES_SCHEMA,
@@ -228,12 +229,7 @@ def consolidate(
         old_digest = _json_sha256(
             rebind_remote_calls(actions, run_sites, set(TRUSTED_RECORDED_HOSTS), source_sites)
         )
-        progress_rows = [
-            json.loads(line)
-            for line in (runs[run_digest] / "progress.jsonl")
-            .read_text(encoding="utf-8")
-            .splitlines()
-        ]
+        progress_rows = load_jsonl(runs[run_digest] / "progress.jsonl")
         progress = next(row for row in progress_rows if row["task_id"] == task_id)
         if old_digest != progress["executed_actions_sha256"]:
             raise ValueError(f"task {task_id}: accepted actions differ from source inputs")

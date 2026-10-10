@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import importlib
-import base64
-import json
+import argparse
+import ast
 import hashlib
-import math
+import json
 import re
 import sys
 from pathlib import Path
 
 from ..models import EvalCase, ProviderResult
-from .base import Provider
-from ..diagnostics import diagnostic_context
-from .runtime_identity import validate_runtime_identity
+from .subprocess_jsonl import SubprocessJsonlProvider
 
 
 def _sanitize_public_content(content: str) -> str:
@@ -24,81 +21,76 @@ def _sanitize_public_content(content: str) -> str:
     )
 
 
+class CowAgentBuiltinProvider(SubprocessJsonlProvider):
+    """Invoke CowAgent's repository-local WebFetch implementation unchanged."""
 
-
-class CowAgentBuiltinProvider(Provider):
-    """Invoke native WebFetch with the shared caller timeout budget."""
-
-    _LOCKED_REVISION = "ed5bb344cfe42cee443c8266ba47ee666d8d7471"
-    _REQUIRED_PATHS = {
-        "{repo_path}/agent/tools/web_fetch/web_fetch.py",
-        "{repo_path}/agent/tools/utils/url_safety.py",
-    }
-
-    def validate(self) -> list[str]:
-        root = Path(str(self.config.get("repo_path", "."))).expanduser().resolve()
-        def resolve(value):
-            return str(value).replace("{repo_path}", str(root)).replace("{harness_root}", str(Path(__file__).resolve().parents[3]))
-
-        from ..network_dns import validate_dns_mode
-        try:
-            mode = validate_dns_mode(self.config.get("dns_mode", "system"))
-        except ValueError as error:
-            return [str(error)]
-        missing, identity = validate_runtime_identity(self.config, resolve)
-        if mode == "public_doh" and "{harness_root}/harness/web_fetch/network_dns.py" not in self.config.get("required_paths", []):
-            missing.append("locked public DNS helper paths")
-        if self.config.get("expected_repo_revision") != self._LOCKED_REVISION:
-            missing.append(f"repo revision {self._LOCKED_REVISION}")
-        if not self._REQUIRED_PATHS.issubset(set(self.config.get("required_paths", []))):
-            missing.append("locked required paths")
-        if identity is not None:
-            self._implementation_identity = identity
-        return missing
-
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
-        self.check_native_call(case)
-        from ..network_dns import public_dns_context, validate_dns_mode
-        dns_mode = validate_dns_mode(self.config.get("dns_mode", "system"))
-        root = Path(str(self.config["repo_path"])).expanduser().resolve()
+    def __init__(self, name, config):
         from ..storage import data_home
-        workspace = Path(str(self.config.get(
+
+        worker = Path(__file__).parents[1] / 'workers/cowagent_worker.py'
+        workspace = Path(str(config.get(
             "workspace", data_home() / "runs/cowagent-workspace"
         ))).expanduser().resolve()
-        workspace.mkdir(parents=True, exist_ok=True)
-        root_text = str(root)
-        if root_text not in sys.path:
-            sys.path.insert(0, root_text)
-        module = importlib.import_module("agent.tools.web_fetch.web_fetch")
-        if not math.isfinite(timeout) or timeout <= 0:
-            raise ValueError("timeout must be positive and finite")
-        native_timeout = module.DEFAULT_TIMEOUT
-        tool = module.WebFetch({"cwd": str(workspace)})
-        with diagnostic_context(getattr(self, "_call_diagnostics", None), names=("log",)), public_dns_context(dns_mode, timeout) as dns_trace:
-            result = tool.execute({"url": case.url})
-        raw = json.dumps({"status": result.status, "result": result.result,
-                          "ext_data": result.ext_data, "display": result.display},
-                         ensure_ascii=False).encode()
-        ok = result.status == "success"
-        content = _sanitize_public_content(str(result.result or ""))
-        return ProviderResult(
-            ok=ok,
-            content=content,
-            final_url=case.url,
-            error_type=None if ok else "tool_error",
-            error_message=None if ok else content,
-            metadata={
-                "tool_status": result.status,
-                "dns_mode": dns_mode,
-                "dns_resolutions": dns_trace,
-                "request_summary": {"caller_timeout_seconds": timeout, "caller_dns_mode": dns_mode},
-                "source_file": str(root / "agent/tools/web_fetch/web_fetch.py"),
-                "cowagent_default_timeout_seconds": native_timeout,
-                "effective_timeout_seconds": native_timeout,
-                "timeout_adapter": "native_default",
-                "_raw_response_b64": base64.b64encode(raw).decode(),
-                "raw_response_sha256": hashlib.sha256(raw).hexdigest(),
-                "raw_response_bytes": len(raw),
-                "harness_timeout_seconds": timeout,
-            },
-        )
+        derived = {**config, 'method_type': 'cowagent_builtin',
+                   'command': [sys.executable, '-u', str(worker), str(workspace)],
+                   'expected_python_version': config.get(
+                       'expected_python_version', 'Python ' + sys.version.split()[0])}
+        paths = derived.get('required_paths', [])
+        if isinstance(paths, list):
+            derived['required_paths'] = [*paths,
+                '{harness_root}/harness/web_fetch/workers/cowagent_worker.py']
+        super().__init__(name, derived)
+
+    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+        result = super().fetch(case, timeout)
+        result.content = _sanitize_public_content(result.content)
+        if result.error_message:
+            result.error_message = _sanitize_public_content(result.error_message)
+        return result
+
+
+EXTRACTOR_FIXTURE = '''<html><head><title>Fixture</title><script>SECRET_SCRIPT</script></head>
+<body><nav>MENU_NOISE</nav><main><h1>Example article</h1><p>BODY_FACT</p>
+<a href="https://example.org/detail/1">DETAIL_LABEL</a>
+<img src="https://example.org/image.png"><video src="https://example.org/video.mp4"></video>
+</main><footer>FOOTER_NOISE</footer></body></html>'''
+
+
+def probe_extractor(source):
+    tree = ast.parse(source)
+    owner = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'WebFetch')
+    fn = next(n for n in owner.body if isinstance(n, ast.FunctionDef) and n.name == '_extract_text')
+    fn.decorator_list = []
+    module = ast.Module(body=[fn], type_ignores=[])
+    namespace = {'re': re}
+    exec(compile(ast.fix_missing_locations(module), '<CowAgent pure extractor>', 'exec'), namespace)
+    output = namespace['_extract_text'](EXTRACTOR_FIXTURE)
+    return {
+        'scope': 'Synthetic offline mechanism probe, not an additional benchmark attempt',
+        'source_sha256': hashlib.sha256(source.encode()).hexdigest(),
+        'extractor_source': ast.unparse(fn),
+        'fixture': EXTRACTOR_FIXTURE, 'output': output,
+        'observations': {name: value in output for name, value in {
+            'body_preserved': 'BODY_FACT', 'navigation_preserved': 'MENU_NOISE',
+            'footer_preserved': 'FOOTER_NOISE', 'link_label_preserved': 'DETAIL_LABEL',
+            'script_preserved': 'SECRET_SCRIPT', 'detail_url_preserved': 'https://example.org/detail/1',
+            'image_url_preserved': 'https://example.org/image.png',
+            'video_url_preserved': 'https://example.org/video.mp4',
+        }.items()},
+    }
+
+
+def probe_main(argv=None):
+    """Execute an extractor from trusted local source, without importing its module."""
+    from ..safety import unlinked_path, write_new_file
+
+    parser = argparse.ArgumentParser(description="Offline synthetic CowAgent extractor probe")
+    parser.add_argument("source", type=Path)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    output = unlinked_path(args.output)
+    if output.exists():
+        raise ValueError("output already exists")
+    result = probe_extractor(args.source.read_text())
+    write_new_file(output, (json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode())
+    print(json.dumps(result["observations"]))

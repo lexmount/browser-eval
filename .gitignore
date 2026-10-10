@@ -12,6 +12,9 @@ run.log
 /reports/
 /evaluation/artifacts/
 /evaluation/history/
+/evaluation/sources/
+/evaluation/dataset.json
+/evaluation/list-references/
 /evaluation/results.jsonl
 /evaluation/execution.json
 /evaluation/file-rerun-selection.json
@@ -29,6 +32,8 @@ run.log
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+/build/
+/dist/
 artifacts/trajectory_replay/
 artifacts/browser_use/
 /docs/reports/trajectory-replay-evaluation-*

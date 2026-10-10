@@ -672,3 +672,51 @@ def test_cohort_reset_requires_bound_fast_read_only_site_probes(tmp_path):
         receipt_path.write_text(json.dumps(changed))
         with pytest.raises(ValueError, match="site readiness"):
             validate_remote_cohort_reset_receipt(receipt_path, **kwargs)
+
+
+@pytest.mark.parametrize("damage", [None, "stale", "method", "changed"])
+def test_prepared_reset_preserves_validated_bytes(tmp_path, monkeypatch, damage):
+    import time
+
+    from harness.trajectory_replay import remote_runtime
+
+    site_map = _site_map(tmp_path)
+    source, output = tmp_path / "prepared.json", tmp_path / "bound.json"
+    row = {"service_id": "service", "image_digest": "sha256:abc", "event_id": "event",
+           "event_status": "success", "old_pod": "old", "new_pod": "new",
+           "data_volume_count": 0, "public_http_status": 200, "baseline_check": {"row_count": 0}}
+    receipt = {"schema": "webarena_remote_cohort_reset/1", "app_id": 195,
+               "site_map_sha256": file_sha256(site_map), "reset_scope": "once_before_method_cohort",
+               "site_reset_between_tasks": False, "method_id": "alpha",
+               "completed_at_unix": time.time(),
+               "sites": {site: dict(row) for site in
+                         ("shopping", "shopping_admin", "reddit", "gitlab")}}
+    if damage == "stale":
+        receipt["completed_at_unix"] -= 3600
+    elif damage == "method":
+        receipt["method_id"] = "beta"
+    source.write_text(json.dumps(receipt))
+    monkeypatch.setenv("WEBARENA_PREPARED_COHORT_RESET_RECEIPT", str(source))
+    if damage == "changed":
+        original = remote_runtime.validate_remote_cohort_reset_receipt
+
+        def validate(path, **kwargs):
+            value = original(path, **kwargs)
+            path.write_text("{}")
+            return value
+
+        monkeypatch.setattr(remote_runtime, "validate_remote_cohort_reset_receipt", validate)
+    args = ["--method-id", "alpha", "--app-id", "195", "--site-map", str(site_map),
+            "--receipt", str(output)]
+    if damage:
+        with pytest.raises(ValueError):
+            remote_runtime.main_prepared_reset(args)
+        assert not output.exists()
+    else:
+        remote_runtime.main_prepared_reset(args)
+        assert output.read_bytes() == source.read_bytes()
+        before = output.read_bytes()
+        source.unlink()
+        with pytest.raises(ValueError, match="output already exists"):
+            remote_runtime.main_prepared_reset(args)
+        assert output.read_bytes() == before

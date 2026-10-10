@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 
 from .metrics import task_passed
+from .reference_inputs import input_tree, read_dataset_bytes
 from .safety import contained_path
-
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_NAME = "local-audit-manifest.json"
@@ -59,7 +59,7 @@ def _source_evidence_inventory(dataset: dict) -> list[dict]:
         "body-reference.json": "body reference receipt",
     }
     rows = []
-    source_root = ROOT / "evaluation/sources"
+    source_root = input_tree(ROOT / "evaluation/dataset.json", "sources")
     if source_root.is_symlink():
         raise ValueError("Repository source evidence root must not be a symlink")
     for case_id in sorted(case["id"] for case in dataset.get("cases", [])):
@@ -76,7 +76,7 @@ def _source_evidence_inventory(dataset: dict) -> list[dict]:
                 continue
             rows.append({
                 "case_id": case_id,
-                "path": path.relative_to(ROOT).as_posix(),
+                "path": "evaluation/sources/" + path.relative_to(source_root).as_posix(),
                 "sha256": _sha256(path),
                 "bytes": path.stat().st_size,
                 "purpose": purposes.get(path.name, "independent source evidence"),
@@ -465,8 +465,9 @@ def require_local_measurement(source: Path, dataset: dict, records: list[dict]) 
             or contract.get("max_failure_retries") != 0):
         raise ValueError("Invalid uniform native local measurement contract")
     _require_local_scoring_revision(source, contract, records)
-    canonical = json.loads(_repository_file(contract["dataset_path"]).read_text())
-    if (_sha256(_repository_file(contract["dataset_path"])) != contract["dataset_sha256"]
+    raw = read_dataset_bytes(contained_path(ROOT, contract["dataset_path"], reject_symlinks=True))
+    canonical = json.loads(raw)
+    if (hashlib.sha256(raw).hexdigest() != contract["dataset_sha256"]
             or dataset["cases"] != canonical["cases"]):
         raise ValueError("Local measurement changed the committed cases")
     expected = {(p, c["id"]) for p in contract["providers"] for c in canonical["cases"]}

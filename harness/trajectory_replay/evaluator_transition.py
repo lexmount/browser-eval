@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from pathlib import Path
@@ -9,6 +10,7 @@ from typing import Any
 
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 
+from harness.record_io import load_jsonl
 from harness.trajectory_replay.catalog_contracts import file_sha256, validate_passing_evaluation
 from harness.trajectory_replay.webarena_corrections import (
     apply_correction,
@@ -43,8 +45,7 @@ def validate_source_pass(
         evaluation.get("task_id") != task_id
         or float(evaluation.get("score") or 0) != 1.0
         or str(evaluation.get("status") or "").lower() not in {"pass", "success"}
-        or evaluation.get("webarena_verified_evaluator_checksum")
-        != source["evaluator_checksum"]
+        or evaluation.get("webarena_verified_evaluator_checksum") != source["evaluator_checksum"]
         or evaluation.get("webarena_verified_data_checksum") != source["data_checksum"]
         or not isinstance(evaluator_rows, list)
         or not evaluator_rows
@@ -89,16 +90,14 @@ def load_transition(path: Path) -> dict[str, Any]:
             not isinstance(source, dict)
             or source.get("kind") not in SOURCE_KINDS
             or not isinstance(source.get("identity"), str)
-            or len(source["identity"])
-            != (40 if source.get("kind") == "revision" else 64)
+            or len(source["identity"]) != (40 if source.get("kind") == "revision" else 64)
             or any(
                 not isinstance(source.get(name), str) or len(source[name]) != 64
                 for name in ("evaluator_checksum", "data_checksum")
             )
             for source in sources
         )
-        or {identity for kind, identity in source_keys if kind == "revision"}
-        != set(compatible)
+        or {identity for kind, identity in source_keys if kind == "revision"} != set(compatible)
         or any(
             not isinstance(transition.get(key), str) or len(transition[key]) != 40
             for key in ("from_revision", "to_revision")
@@ -159,19 +158,22 @@ def reevaluate_pass(
     corrections: Any,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Return the current evaluation and a binding for the immutable old evidence."""
+    from harness.web_fetch.safety import unlinked_path
+
+    task_dir = unlinked_path(task_dir)
 
     old_evaluation_path = task_dir / "evaluation.json"
     actual_response_path = task_dir / "actual_response.json"
     network_har_path = task_dir / "network.har"
+    sources = (old_evaluation_path, actual_response_path, network_har_path)
+    before = {path: file_sha256(unlinked_path(path)) for path in sources}
     old_evaluation = _regular_json(old_evaluation_path)
     actual_response = _regular_json(actual_response_path)
     if network_har_path.is_symlink() or not network_har_path.is_file():
         raise ValueError("transition network evidence is missing")
 
     official = benchmark.get_task(task_id)
-    correction = (
-        apply_correction(official, corrections) if task_id in corrections.records else None
-    )
+    correction = apply_correction(official, corrections) if task_id in corrections.records else None
     result = (
         evaluate_corrected_contract(
             benchmark,
@@ -198,11 +200,13 @@ def reevaluate_pass(
         benchmark=benchmark,
         corrections=corrections,
     )
+    if any(file_sha256(unlinked_path(path)) != sha for path, sha in before.items()):
+        raise ValueError("transition evidence changed during evaluation")
     return current, {
         "task_id": task_id,
-        "old_evaluation_sha256": file_sha256(old_evaluation_path),
-        "actual_response_sha256": file_sha256(actual_response_path),
-        "network_har_sha256": file_sha256(network_har_path),
+        "old_evaluation_sha256": before[old_evaluation_path],
+        "actual_response_sha256": before[actual_response_path],
+        "network_har_sha256": before[network_har_path],
         "current_evaluation_sha256": json_sha256(current),
     }
 
@@ -215,9 +219,7 @@ def load_receipt(
 ]:
     receipt = json.loads(path.read_text(encoding="utf-8"))
     rows = receipt.get("rows") if isinstance(receipt, dict) else None
-    excluded = (
-        receipt.get("excluded_old_evaluations", []) if isinstance(receipt, dict) else None
-    )
+    excluded = receipt.get("excluded_old_evaluations", []) if isinstance(receipt, dict) else None
     excluded_keys = [
         (
             row.get("task_id"),
@@ -231,8 +233,7 @@ def load_receipt(
         receipt.get("schema") != RECEIPT_SCHEMA
         or receipt.get("transition_sha256") != json_sha256(transition)
         or receipt.get("from_revision") != transition["from_revision"]
-        or receipt.get("compatible_from_revisions")
-        != transition["compatible_from_revisions"]
+        or receipt.get("compatible_from_revisions") != transition["compatible_from_revisions"]
         or receipt.get("compatible_sources") != transition["compatible_sources"]
         or receipt.get("to_revision") != transition["to_revision"]
         or receipt.get("from_evaluator_checksum") != transition["from_evaluator_checksum"]
@@ -284,3 +285,157 @@ def load_receipt(
     if set(indexed) & set(excluded_keys):
         raise ValueError("WebArena evaluator transition receipt includes excluded evidence")
     return indexed, set(excluded_keys)
+
+
+def _old_evaluation_identity(value: str) -> tuple[int, str, str]:
+    parts = value.split("/")
+    if (
+        len(parts) != 3
+        or not parts[0].isdecimal()
+        or any(len(digest) != 64 for digest in parts[1:])
+    ):
+        raise argparse.ArgumentTypeError("expected TASK_ID/EVALUATION_SHA256/RUN_INPUTS_SHA256")
+    try:
+        int(parts[1], 16)
+        int(parts[2], 16)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            "expected TASK_ID/EVALUATION_SHA256/RUN_INPUTS_SHA256"
+        ) from exc
+    return int(parts[0]), parts[1], parts[2]
+
+
+def main(argv=None) -> None:
+    from harness.trajectory_replay.catalog_contracts import verify_physical_evidence
+    from harness.trajectory_replay.remote_runtime import remote_benchmark
+    from harness.trajectory_replay.webarena_corrections import load_corrections
+    from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
+    from harness.web_fetch.safety import unlinked_path, write_new_file
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--transition", type=Path, required=True)
+    parser.add_argument("--scope", type=Path, required=True)
+    parser.add_argument("--site-map", type=Path, required=True)
+    parser.add_argument("--run", type=Path, action="append", required=True)
+    parser.add_argument(
+        "--exclude-old-evaluation",
+        type=_old_evaluation_identity,
+        action="append",
+        default=[],
+        metavar="TASK_ID/EVALUATION_SHA256/RUN_INPUTS_SHA256",
+    )
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+
+    args.output = unlinked_path(args.output)
+    if args.output.exists():
+        raise ValueError("transition receipt output already exists")
+    args.run = [unlinked_path(path) for path in args.run]
+    for field in ("transition", "scope", "site_map"):
+        setattr(args, field, unlinked_path(getattr(args, field)))
+    sources = {path: file_sha256(path) for path in (args.transition, args.scope, args.site_map)}
+    verify_webarena_runtime_source()
+    transition = load_transition(args.transition)
+    scope = json.loads(args.scope.read_text(encoding="utf-8"))
+    sites = json.loads(args.site_map.read_text(encoding="utf-8"))["sites"]
+    benchmark = remote_benchmark(sites)
+    corrections = load_corrections()
+    rows = []
+    identities = set()
+    excluded = set(args.exclude_old_evaluation)
+    observed_excluded = set()
+    for directory in args.run:
+        inputs_path = directory / "inputs.json"
+        run_inputs_sha256 = file_sha256(inputs_path)
+        progress_path = directory / "progress.jsonl"
+        for path in (inputs_path, progress_path):
+            sources[unlinked_path(path)] = file_sha256(unlinked_path(path))
+        inputs = json.loads(inputs_path.read_text(encoding="utf-8"))
+        source = compatible_source(
+            transition,
+            revision=inputs.get("webarena_revision"),
+            evaluator_fixes_sha256=inputs.get("evaluator_fixes_sha256"),
+        )
+        if source is None:
+            continue
+        for row in load_jsonl(progress_path):
+            if row.get("status") != "pass":
+                continue
+            evaluation_path = verify_physical_evidence(directory, row)
+            if evaluation_path is None:
+                raise ValueError(f"task {row['task_id']} pass lacks evaluation evidence")
+            for name in ("evaluation.json", "actual_response.json", "network.har"):
+                path = unlinked_path(directory / f"task-{row['task_id']}" / name)
+                sources[path] = file_sha256(path)
+            old = json.loads(evaluation_path.read_text(encoding="utf-8"))
+            if (
+                old.get("webarena_verified_evaluator_checksum") != source["evaluator_checksum"]
+                or old.get("webarena_verified_data_checksum") != source["data_checksum"]
+            ):
+                raise ValueError(f"task {row['task_id']} has an unexpected old evaluator")
+            identity = (
+                row["task_id"],
+                file_sha256(evaluation_path),
+                run_inputs_sha256,
+            )
+            if identity in excluded:
+                observed_excluded.add(identity)
+                continue
+            current, binding = reevaluate_pass(
+                directory / f"task-{row['task_id']}",
+                task_id=row["task_id"],
+                expected_data_checksum=scope["official_dataset_sha256"],
+                benchmark=benchmark,
+                corrections=corrections,
+            )
+            del current
+            identity = (
+                binding["task_id"],
+                binding["old_evaluation_sha256"],
+                run_inputs_sha256,
+            )
+            if identity in identities:
+                continue
+            identities.add(identity)
+            rows.append(
+                {
+                    "run_inputs_sha256": run_inputs_sha256,
+                    "source": source,
+                    **binding,
+                }
+            )
+    rows.sort(
+        key=lambda row: (
+            row["task_id"],
+            row["old_evaluation_sha256"],
+            row["run_inputs_sha256"],
+        )
+    )
+    if observed_excluded != excluded:
+        raise ValueError("excluded transition evaluations were not found as old passes")
+    receipt = {
+        "schema": RECEIPT_SCHEMA,
+        "transition_sha256": json_sha256(transition),
+        "from_revision": transition["from_revision"],
+        "compatible_from_revisions": transition["compatible_from_revisions"],
+        "compatible_sources": transition["compatible_sources"],
+        "from_evaluator_checksum": transition["from_evaluator_checksum"],
+        "from_data_checksum": transition["from_data_checksum"],
+        "to_revision": transition["to_revision"],
+        "to_evaluator_checksum": transition["to_evaluator_checksum"],
+        "to_data_checksum": transition["to_data_checksum"],
+        "row_count": len(rows),
+        "excluded_old_evaluations": [
+            {
+                "task_id": task_id,
+                "old_evaluation_sha256": digest,
+                "run_inputs_sha256": run_inputs_sha256,
+            }
+            for task_id, digest, run_inputs_sha256 in sorted(excluded)
+        ],
+        "rows": rows,
+    }
+    if any(file_sha256(unlinked_path(path)) != sha for path, sha in sources.items()):
+        raise ValueError("transition inputs changed during receipt build")
+    write_new_file(args.output, (json.dumps(receipt, indent=2) + "\n").encode("utf-8"))
+    print(json.dumps({"rows": len(rows), "output": str(args.output)}))

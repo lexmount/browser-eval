@@ -7,42 +7,44 @@ import pytest
 from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.runner import (
+    _exhausted_agent_steps,
+    _limit_cowagent_transport_retries,
+    _load_completed_attempts,
+    _max_steps_response,
+    _run_attempt,
+    _scheduled_tasks,
+    _user_prompt,
+)
+from harness.browser_use.selection import load_pilot
+from harness.environments.webarena.runtime import (
     ENV_CTRL_READY_TIMEOUT_SECONDS,
     MAGENTO_DEPENDENCY_READY_TIMEOUT_SECONDS,
     PHYSICAL_EXECUTION_LOCK_NAMESPACE,
     QEMU_X86_64_HOST_PATH,
     SITE_AUTH_HEADERS,
-    _allow_official_container_hostname,
-    _bootstrap_postmill_browser_session,
-    _bootstrap_postmill_session,
-    _browser_tool_config,
-    _configure_benchmark,
-    _container_host_gateway,
-    _docker_daemon_lock_namespace,
-    _environment_prepare_receipt,
-    _exhausted_agent_steps,
-    _limit_cowagent_transport_retries,
-    _load_completed_attempts,
-    _login_context,
-    _max_steps_response,
-    _physical_execution_lock,
-    _physical_execution_lock_path,
-    _prepare_browser_viewport,
-    _run_attempt,
-    _scheduled_tasks,
-    _site_container_manager,
-    _site_runtime_compatibility,
-    _user_prompt,
-    _verify_session_viewport,
-    _wait_application_ready,
-    _wait_container_healthy,
-    _wait_magento_dependencies_ready,
+    allow_official_container_hostname,
+    bootstrap_postmill_browser_session,
+    bootstrap_postmill_session,
+    browser_tool_config,
+    configure_benchmark,
+    container_host_gateway,
+    docker_daemon_lock_namespace,
+    environment_prepare_receipt,
+    login_context,
+    physical_execution_lock,
+    physical_execution_lock_path,
+    prepare_browser_viewport,
+    site_container_manager,
+    site_runtime_compatibility,
+    verify_session_viewport,
+    wait_application_ready,
+    wait_container_healthy,
+    wait_magento_dependencies_ready,
 )
-from harness.browser_use.selection import load_pilot
 
 
 def test_browser_config_requests_owned_context_and_supported_viewport_keys() -> None:
-    config = _browser_tool_config("http://localhost:9222")
+    config = browser_tool_config("http://localhost:9222")
     assert config["cdp_isolated_context"] is True
     assert config["locale"] == "en-US"
     assert (config["viewport_width"], config["viewport_height"]) == (1280, 900)
@@ -75,7 +77,7 @@ def _viewport_service(width=1280, height=900):
 
 def test_viewport_receipt_measures_primary_and_new_page_before_navigation() -> None:
     service = _viewport_service()
-    evidence = _prepare_browser_viewport(service)
+    evidence = prepare_browser_viewport(service)
     assert evidence["verified"] is True
     assert evidence["requested"] == {"width": 1280, "height": 900}
     assert [row["phase"] for row in evidence["observations"]] == [
@@ -83,7 +85,7 @@ def test_viewport_receipt_measures_primary_and_new_page_before_navigation() -> N
     ]
     assert evidence["retained_external_context_count"] == 1
     assert service._context.pages == [service._page]
-    _verify_session_viewport(service, evidence, "after_login")
+    verify_session_viewport(service, evidence, "after_login")
     assert evidence["observations"][-1]["phase"] == "after_login"
 
 
@@ -94,7 +96,7 @@ def test_viewport_receipt_supports_a_declared_single_target_session() -> None:
         AssertionError("single-target sessions must not create a child page")
     )
 
-    evidence = _prepare_browser_viewport(service)
+    evidence = prepare_browser_viewport(service)
 
     assert evidence["verified"] is True
     assert evidence["page_model"] == "single_target"
@@ -106,53 +108,53 @@ def test_viewport_receipt_supports_a_declared_single_target_session() -> None:
 @pytest.mark.parametrize("width,height", [(780, 437), (1920, 1080), (1280, 720)])
 def test_viewport_readback_rejects_unapplied_configuration(width, height) -> None:
     with pytest.raises(RuntimeError, match="viewport mismatch"):
-        _prepare_browser_viewport(_viewport_service(width, height))
+        prepare_browser_viewport(_viewport_service(width, height))
 
 
 def test_viewport_setup_requires_cowagent_owned_context_support() -> None:
     service = _viewport_service()
     service._owns_cdp_context = False
     with pytest.raises(RuntimeError, match="owned CDP context contract"):
-        _prepare_browser_viewport(service)
+        prepare_browser_viewport(service)
 
 
 def test_viewport_drift_invalidates_previously_verified_receipt() -> None:
     service = _viewport_service()
-    evidence = _prepare_browser_viewport(service)
+    evidence = prepare_browser_viewport(service)
     service._page.evaluate = lambda _expression: {"width": 1920, "height": 1080}
     with pytest.raises(RuntimeError, match="viewport mismatch"):
-        _verify_session_viewport(service, evidence, "after_agent")
+        verify_session_viewport(service, evidence, "after_agent")
     assert evidence["verified"] is False
 
 
 def test_viewport_readback_error_invalidates_receipt() -> None:
     service = _viewport_service()
-    evidence = _prepare_browser_viewport(service)
+    evidence = prepare_browser_viewport(service)
     def unavailable(_expression):
         raise RuntimeError("Execution context destroyed")
     service._page.evaluate = unavailable
     with pytest.raises(RuntimeError, match="Execution context destroyed"):
-        _verify_session_viewport(service, evidence, "after_agent")
+        verify_session_viewport(service, evidence, "after_agent")
     assert evidence["verified"] is False
 
 
 def test_viewport_verification_requires_a_live_page() -> None:
     service = _viewport_service()
-    evidence = _prepare_browser_viewport(service)
+    evidence = prepare_browser_viewport(service)
     service._context.pages.clear()
     with pytest.raises(RuntimeError, match="without a live page"):
-        _verify_session_viewport(service, evidence, "after_agent")
+        verify_session_viewport(service, evidence, "after_agent")
     assert evidence["verified"] is False
 
 
 def _hold_physical_execution_lock(lock_path, acquired, release) -> None:
-    with _physical_execution_lock(Path(lock_path)):
+    with physical_execution_lock(Path(lock_path)):
         acquired.set()
         release.wait(timeout=5)
 
 
 def test_official_container_urls_and_header_auth() -> None:
-    benchmark = _configure_benchmark()
+    benchmark = configure_benchmark()
 
     assert (
         benchmark.config.get_environment(WebArenaSite.SHOPPING_ADMIN).active_url
@@ -166,7 +168,7 @@ def test_official_container_urls_and_header_auth() -> None:
 
 
 def test_user_prompt_exposes_schema_but_not_reference_answer() -> None:
-    benchmark = _configure_benchmark()
+    benchmark = configure_benchmark()
     task = benchmark.get_task(41)
     prompt = _user_prompt(task, ["http://host.docker.internal:7780/admin"])
 
@@ -263,7 +265,7 @@ def test_login_context_closes_old_tabs_and_opens_official_start_url() -> None:
         def _submit(self, callback):
             return callback()
 
-    readiness_retries = _login_context(Service(), (), object(), ["http://official.test/start"])
+    readiness_retries = login_context(Service(), (), object(), ["http://official.test/start"])
 
     assert readiness_retries == 0
     assert stale.closed is True
@@ -324,7 +326,7 @@ def test_login_context_publishes_layout_before_admin_visibility_check() -> None:
         )
     )
 
-    _login_context(
+    login_context(
         service,
         (WebArenaSite.SHOPPING_ADMIN,),
         benchmark,
@@ -386,7 +388,7 @@ def test_login_context_reuses_primary_page_for_single_target_session() -> None:
         )
     )
 
-    _login_context(
+    login_context(
         service,
         (WebArenaSite.SHOPPING_ADMIN,),
         benchmark,
@@ -467,7 +469,7 @@ def test_login_context_can_use_native_provider_login_submit() -> None:
         )
     )
 
-    _login_context(
+    login_context(
         service,
         (WebArenaSite.GITLAB,),
         benchmark,
@@ -524,7 +526,7 @@ def test_login_context_uses_service_viewport_observer_without_page_script() -> N
     )
     evidence = {"observations": [], "verified": True}
 
-    _login_context(
+    login_context(
         service,
         (WebArenaSite.MAP,),
         benchmark,
@@ -559,10 +561,10 @@ def test_postmill_bootstrap_is_one_non_redirecting_cookie_request(status, cookie
         cookies=lambda url: [{"name": "PHPSESSID", "value": "fixture-session"}] if cookie else [],
     )
     if accepted:
-        _bootstrap_postmill_session(context, "http://127.0.0.1:9999")
+        bootstrap_postmill_session(context, "http://127.0.0.1:9999")
     else:
         with pytest.raises(RuntimeError, match="Postmill session bootstrap"):
-            _bootstrap_postmill_session(context, "http://127.0.0.1:9999")
+            bootstrap_postmill_session(context, "http://127.0.0.1:9999")
     assert len(calls) == 2
     assert calls[0][0] == "http://127.0.0.1:9999"
     assert set(calls[0][1]["headers"]) == {"X-Postmill-Auto-Login"}
@@ -602,10 +604,10 @@ def test_postmill_browser_bootstrap_uses_one_temporary_page_header(
     )
     page = Page()
     if accepted:
-        _bootstrap_postmill_browser_session(context, page, "http://fixture.test")
+        bootstrap_postmill_browser_session(context, page, "http://fixture.test")
     else:
         with pytest.raises(RuntimeError, match="Postmill browser bootstrap"):
-            _bootstrap_postmill_browser_session(context, page, "http://fixture.test")
+            bootstrap_postmill_browser_session(context, page, "http://fixture.test")
 
     assert events[0][0] == "headers"
     assert set(events[0][1]) == {SITE_AUTH_HEADERS[WebArenaSite.REDDIT]}
@@ -622,7 +624,7 @@ def test_postmill_browser_bootstrap_uses_one_temporary_page_header(
 def test_postmill_login_keeps_auth_out_of_browser_requests_and_checks_identity(
     monkeypatch, include_shopping, identity_valid,
 ) -> None:
-    from harness.browser_use import runner
+    from harness.environments.webarena import runtime as runner
 
     events = []
 
@@ -654,17 +656,17 @@ def test_postmill_login_keeps_auth_out_of_browser_requests_and_checks_identity(
     service = SimpleNamespace(_context=context, _page=primary, _submit=lambda f: f())
     benchmark = SimpleNamespace(config=SimpleNamespace(get_environment=lambda site: SimpleNamespace(active_url="http://fixture.test")))
     monkeypatch.setattr(
-        runner, "_bootstrap_postmill_session",
+        runner, "bootstrap_postmill_session",
         lambda ctx, url: events.append(("bootstrap", ctx is context, url)),
     )
     sites = (WebArenaSite.REDDIT,)
     if include_shopping:
         sites += (WebArenaSite.SHOPPING,)
     if identity_valid:
-        _login_context(service, sites, benchmark, ["http://fixture.test/start"])
+        login_context(service, sites, benchmark, ["http://fixture.test/start"])
     else:
         with pytest.raises(RuntimeError, match="expected authenticated identity"):
-            _login_context(service, sites, benchmark, ["http://fixture.test/start"])
+            login_context(service, sites, benchmark, ["http://fixture.test/start"])
     assert events[0][0] == "headers"
     assert set(events[0][1]) == (
         {SITE_AUTH_HEADERS[WebArenaSite.SHOPPING]} if include_shopping else set()
@@ -724,9 +726,9 @@ def test_login_context_recovers_one_transient_unloaded_context(monkeypatch) -> N
         _context = Context()
         _page = Page()
 
-    monkeypatch.setattr("harness.browser_use.runner.time.sleep", lambda _seconds: None)
+    monkeypatch.setattr("harness.environments.webarena.runtime.time.sleep", lambda _seconds: None)
 
-    assert _login_context(Service(), (), object(), ["http://official.test/start"]) == 1
+    assert login_context(Service(), (), object(), ["http://official.test/start"]) == 1
     assert calls == 2
 
 
@@ -739,10 +741,10 @@ def test_login_context_does_not_retry_other_setup_errors(monkeypatch) -> None:
             calls += 1
             raise RuntimeError("authentication failed")
 
-    monkeypatch.setattr("harness.browser_use.runner.time.sleep", lambda _seconds: None)
+    monkeypatch.setattr("harness.environments.webarena.runtime.time.sleep", lambda _seconds: None)
 
     with pytest.raises(RuntimeError, match="authentication failed"):
-        _login_context(Service(), (), object(), ["http://official.test/start"])
+        login_context(Service(), (), object(), ["http://official.test/start"])
     assert calls == 1
 
 
@@ -756,7 +758,7 @@ def test_container_host_gateway_returns_literal_ip() -> None:
             assert command == ["getent", "hosts", "host.docker.internal"]
             return Result()
 
-    assert _container_host_gateway(Container()) == "192.168.5.2"
+    assert container_host_gateway(Container()) == "192.168.5.2"
 
 
 def test_wait_container_healthy_waits_past_starting(monkeypatch) -> None:
@@ -766,8 +768,8 @@ def test_wait_container_healthy_waits_past_starting(monkeypatch) -> None:
         def reload(self):
             self.attrs = {"State": {"Health": {"Status": "healthy"}}}
 
-    monkeypatch.setattr("harness.browser_use.runner.time.sleep", lambda _seconds: None)
-    _wait_container_healthy(Container(), timeout_seconds=1)
+    monkeypatch.setattr("harness.environments.webarena.runtime.time.sleep", lambda _seconds: None)
+    wait_container_healthy(Container(), timeout_seconds=1)
 
 
 def test_application_readiness_does_not_follow_container_only_hostname(monkeypatch) -> None:
@@ -780,8 +782,8 @@ def test_application_readiness_does_not_follow_container_only_hostname(monkeypat
         calls.append((url, kwargs))
         return Response()
 
-    monkeypatch.setattr("harness.browser_use.runner.requests.get", get)
-    _wait_application_ready(
+    monkeypatch.setattr("harness.environments.webarena.runtime.requests.get", get)
+    wait_application_ready(
         WebArenaSite.SHOPPING_ADMIN,
         "/",
         timeout_seconds=1,
@@ -820,9 +822,9 @@ def test_magento_readiness_requires_non_red_elasticsearch(monkeypatch) -> None:
                 return Result(7, b"connection refused")
             return Result(0, b'{"status":"yellow"}')
 
-    monkeypatch.setattr("harness.browser_use.runner.time.sleep", lambda _: None)
+    monkeypatch.setattr("harness.environments.webarena.runtime.time.sleep", lambda _: None)
     container = Container()
-    _wait_magento_dependencies_ready(container, timeout_seconds=1)
+    wait_magento_dependencies_ready(container, timeout_seconds=1)
     assert container.calls == 3
 
 
@@ -830,10 +832,10 @@ def test_physical_execution_lock_path_is_user_global_not_evidence_scoped(
     monkeypatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path))
-    monkeypatch.setattr("harness.browser_use.runner.tempfile.gettempdir", lambda: "/tmp")
-    monkeypatch.setattr("harness.browser_use.runner.os.getuid", lambda: 1234)
+    monkeypatch.setattr("harness.environments.webarena.runtime.tempfile.gettempdir", lambda: "/tmp")
+    monkeypatch.setattr("harness.environments.webarena.runtime.os.getuid", lambda: 1234)
 
-    assert _physical_execution_lock_path() == (
+    assert physical_execution_lock_path() == (
         Path("/tmp")
         / "browser-eval-1234"
         / "locks"
@@ -842,22 +844,22 @@ def test_physical_execution_lock_path_is_user_global_not_evidence_scoped(
 
 
 def test_environment_lane_is_bound_to_the_docker_daemon() -> None:
-    first = _docker_daemon_lock_namespace({"ID": "daemon-a"})
-    second = _docker_daemon_lock_namespace({"ID": "daemon-b"})
+    first = docker_daemon_lock_namespace({"ID": "daemon-a"})
+    second = docker_daemon_lock_namespace({"ID": "daemon-b"})
 
     assert first.startswith(f"{PHYSICAL_EXECUTION_LOCK_NAMESPACE}-")
     assert first != second
-    assert _docker_daemon_lock_namespace({"ID": "daemon-a"}) == first
-    assert _physical_execution_lock_path(first).name == f"{first}.lock"
+    assert docker_daemon_lock_namespace({"ID": "daemon-a"}) == first
+    assert physical_execution_lock_path(first).name == f"{first}.lock"
 
 
 def test_environment_lane_fails_closed_without_a_docker_daemon_id() -> None:
     with pytest.raises(RuntimeError, match="Docker daemon ID"):
-        _docker_daemon_lock_namespace({})
+        docker_daemon_lock_namespace({})
 
 
 def test_prepare_receipt_records_lock_wait_and_namespace_without_path() -> None:
-    receipt = _environment_prepare_receipt(
+    receipt = environment_prepare_receipt(
         (WebArenaSite.REDDIT,),
         lock_wait_ms=12.3456,
         lock_namespace=PHYSICAL_EXECUTION_LOCK_NAMESPACE,
@@ -966,8 +968,8 @@ def test_arm_php_sites_mount_targeted_qemu_compatibility(monkeypatch) -> None:
         def info():
             return {"Architecture": "aarch64"}
 
-    monkeypatch.setattr("harness.browser_use.runner.docker.from_env", lambda: Client())
-    manager = _site_container_manager(WebArenaSite.SHOPPING)
+    monkeypatch.setattr("harness.environments.webarena.runtime.docker.from_env", lambda: Client())
+    manager = site_container_manager(WebArenaSite.SHOPPING)
 
     assert manager.config.docker_img == "am1n3e/webarena-verified-shopping"
     assert manager.config.volumes["/usr/bin/qemu-x86_64"] == "/usr/local/bin/qemu-x86_64"
@@ -982,8 +984,8 @@ def test_non_php_site_keeps_official_default_config(monkeypatch) -> None:
         def info():
             return {"Architecture": "aarch64"}
 
-    monkeypatch.setattr("harness.browser_use.runner.docker.from_env", lambda: Client())
-    manager = _site_container_manager(WebArenaSite.GITLAB)
+    monkeypatch.setattr("harness.environments.webarena.runtime.docker.from_env", lambda: Client())
+    manager = site_container_manager(WebArenaSite.GITLAB)
 
     assert manager.config.docker_img == "am1n3e/webarena-verified-gitlab"
     assert manager.config.volumes == {}
@@ -995,14 +997,14 @@ def test_php_site_on_x86_keeps_official_default_config(monkeypatch) -> None:
         def info():
             return {"Architecture": "x86_64"}
 
-    monkeypatch.setattr("harness.browser_use.runner.docker.from_env", lambda: Client())
-    manager = _site_container_manager(WebArenaSite.SHOPPING)
+    monkeypatch.setattr("harness.environments.webarena.runtime.docker.from_env", lambda: Client())
+    manager = site_container_manager(WebArenaSite.SHOPPING)
 
     assert QEMU_X86_64_HOST_PATH not in manager.config.volumes
 
 
 def test_arm_runtime_compatibility_is_evidence_bound() -> None:
-    compatibility = _site_runtime_compatibility("aarch64")
+    compatibility = site_runtime_compatibility("aarch64")
 
     assert compatibility["mode"] == "rosetta-with-qemu-php-fpm"
     assert compatibility["sites"] == ["reddit", "shopping", "shopping_admin"]
@@ -1034,7 +1036,7 @@ def test_only_official_container_hostname_bypasses_host_dns_validation() -> None
             checked.append(url)
 
     tool = Tool()
-    _allow_official_container_hostname(tool)
+    allow_official_container_hostname(tool)
 
     tool._validate_url_safe("http://host.docker.internal:7780/admin")
     tool._validate_url_safe("https://example.com")

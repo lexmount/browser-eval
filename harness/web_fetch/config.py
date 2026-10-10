@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 import os
 import re
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from .models import EvalCase
+from .models import EvalCase, validate_case
+from .reference_inputs import read_dataset_bytes
 from .retrieval_hints import parse_retrieval_hints, native_default_case
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -89,18 +91,25 @@ def expand_env(value: Any) -> Any:
 
 
 def load_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(read_dataset_bytes(path))
 
 
 def load_dataset(path: Path) -> tuple[dict[str, Any], list[EvalCase]]:
     payload = load_json(path)
-    if payload.get("tool") != "web_fetch":
+    if not isinstance(payload, dict) or payload.get("tool") != "web_fetch":
         raise ValueError("dataset.tool must be 'web_fetch'")
     raw_cases = payload.get("cases", [])
+    if not isinstance(raw_cases, list) or any(not isinstance(item, dict) for item in raw_cases):
+        raise ValueError("dataset.cases must be a list of task objects")
     for item in raw_cases:
         _validate_retrieval_hints(item)
         _validate_ground_truth_evidence(item)
-    cases = [EvalCase(**item) for item in raw_cases]
+    try:
+        cases = [EvalCase(**item) for item in raw_cases]
+    except TypeError as error:
+        raise ValueError(f"Invalid task definition: {error}") from error
+    for case in cases:
+        validate_case(case)
     if not cases:
         raise ValueError("dataset must contain at least one case")
     ids = [case.id for case in cases]
@@ -109,9 +118,48 @@ def load_dataset(path: Path) -> tuple[dict[str, Any], list[EvalCase]]:
     return payload, cases
 
 
-def load_provider_config(path: Path) -> dict[str, dict[str, Any]]:
+def derive_comparison(dataset: dict[str, Any], changes: dict[str, Any]) -> dict[str, Any]:
+    """Change execution controls without discarding inherited evidence contracts."""
+    return {**deepcopy(dataset.get('comparison', {})), **deepcopy(changes)}
+
+
+def select_diagnostic_scope(
+    dataset: dict[str, Any], cases: list[EvalCase], providers: list[str], *,
+    case_ids: str = "", task_kind: str | None = None,
+) -> tuple[dict[str, Any], list[EvalCase]]:
+    """Declare the generic runner's complete matrix before any provider call."""
+    if not providers or len(providers) != len(set(providers)):
+        raise ValueError("Select at least one provider; provider names must be unique")
+    requested = [item.strip() for item in case_ids.split(",") if item.strip()]
+    if case_ids and (not requested or len(requested) != len(set(requested))):
+        raise ValueError("Case IDs must be nonempty and unique")
+    unknown = set(requested) - {case.id for case in cases}
+    if unknown:
+        raise ValueError(f"Unknown cases: {', '.join(sorted(unknown))}")
+    selected = [case for case in cases if (not requested or case.id in requested)
+                and (task_kind is None or case.task_kind == task_kind)]
+    if not selected:
+        raise ValueError("Task selection is empty")
+    selected_ids = {case.id for case in selected}
+    scoped = deepcopy(dataset)
+    scoped['cases'] = [item for item in scoped['cases'] if item['id'] in selected_ids]
+    scoped['coverage_plan'] = {track: list(providers) for track in
+                               sorted({case.track for case in selected})}
+    # A new diagnostic run cannot inherit a historical cohort's certification.
+    scoped['comparison'] = derive_comparison(dataset, {'kind': 'web_fetch_diagnostic',
+                            'evidence_state': 'diagnostic',
+                            'publication_state': 'diagnostic_not_for_release'})
+    scoped['comparison'].pop('require_independent_result_review', None)
+    return scoped, selected
+
+
+def load_provider_settings(path: Path) -> dict[str, Any]:
     payload = expand_env(load_json(path))
     providers = payload.get("providers", {})
-    if not providers:
+    if not isinstance(providers, dict) or not providers:
         raise ValueError("provider config must define providers")
-    return providers
+    return payload
+
+
+def load_provider_config(path: Path) -> dict[str, dict[str, Any]]:
+    return load_provider_settings(path)["providers"]

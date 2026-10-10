@@ -39,8 +39,14 @@ content remain external variables rather than being silently treated as fixed.
 
 Outputs:
 
-- raw attempts, manifest, and summary under artifacts/trajectory_replay/latest/
-- latest-only Markdown, HTML, and audit data under docs/reports/ (ignored by Git)
+- raw attempts, manifest, and summary in a new directory under
+  `~/.browser-eval/trajectory-replay/runs/`
+- Markdown, HTML, and audit data in that run's `report/` directory
+
+`BROWSER_EVAL_DATA_HOME` changes the data root. The command prints the selected
+evidence directory. `BROWSER_USE_EVAL_OUTPUT_DIR` selects an explicit new directory;
+an existing directory, file, or symlink is rejected without deleting evidence.
+Repeated invocations create separate runs. This runner does not resume an old run.
 
 The complete run and report are code-driven: `run.sh` writes raw
 `attempts.jsonl`, `metrics.py` calculates every aggregate and paired ratio,
@@ -48,11 +54,11 @@ The complete run and report are code-driven: `run.sh` writes raw
 To recalculate all metrics and HTML from existing raw attempts without running
 the browsers again:
 
-    uv run python examples/trajectory_replay/rebuild_report.py
+    uv run --frozen --extra browser-use-eval python examples/trajectory_replay/rebuild_report.py --artifacts /absolute/path/to/run
 
 Independent raw-data audit (does not import the aggregation implementation):
 
-    uv run python examples/trajectory_replay/verify_metrics.py --artifacts artifacts/trajectory_replay/latest
+    uv run --frozen python examples/trajectory_replay/verify_metrics.py --artifacts /absolute/path/to/run
 
 `run.sh` runs this audit automatically. It checks correctness counts, the
 successful-task intersection, 81 aggregate/ratio metric groups, and every

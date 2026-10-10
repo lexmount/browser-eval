@@ -93,7 +93,7 @@ class SubprocessProviderTest(unittest.TestCase):
             self.assertEqual(executable, virtualenv_python.absolute())
             self.assertNotEqual(executable, runtime.resolve())
 
-    def test_named_native_runtime_cannot_omit_locked_identity(self):
+    def test_named_native_runtime_cannot_omit_declared_identity(self):
         provider = SubprocessJsonlProvider(
             "worker",
             {
@@ -103,10 +103,10 @@ class SubprocessProviderTest(unittest.TestCase):
             },
         )
         errors = provider.validate()
-        self.assertIn("repo revision 12c4bdf7482f24c85b011e9d858fdec3c245101c", errors)
-        self.assertIn("Node v24.15.0", errors)
-        self.assertIn("package manager 12.1.0", errors)
-        self.assertIn("locked required paths", errors)
+        self.assertIn("expected_repo_revision", errors)
+        self.assertIn("expected_node_version", errors)
+        self.assertIn("expected_package_manager_version", errors)
+        self.assertIn("required runtime paths", errors)
 
     def test_worker_receives_shared_limits_and_retains_full_response_envelope(self):
         script = "import sys,json; [(lambda q: print(json.dumps({'ok':True,'content':'answer','metadata':{'request':q},'auxiliary':'retained'}),flush=True))(json.loads(line)) for line in sys.stdin]"
@@ -141,7 +141,7 @@ class SubprocessProviderTest(unittest.TestCase):
         thread.start()
         self.addCleanup(server.server_close)
         self.addCleanup(server.shutdown)
-        worker = Path(__file__).resolve().parents[1] / 'scripts/oss/langchain_webbase_worker.py'
+        worker = Path(__file__).resolve().parents[1] / 'harness/web_fetch/workers/langchain_webbase_worker.py'
         provider = SubprocessJsonlProvider('fixture', {'command': [sys.executable, str(worker)]})
         self.addCleanup(provider.__del__)
         url = f'http://127.0.0.1:{server.server_port}/'

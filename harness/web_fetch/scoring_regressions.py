@@ -5,9 +5,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from harness.distribution import installed_data_path
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_REGISTRY = ROOT / "evaluation/scoring-regressions.json"
 FAILURE_MODES = {"false-positive", "false-negative"}
 ROOT_CAUSE_CATEGORIES = {
     "acceptance-contract", "answer-surface", "body-scope",
@@ -17,7 +17,15 @@ ROOT_CAUSE_CATEGORIES = {
 REGRESSION_CATEGORIES = ROOT_CAUSE_CATEGORIES - {"multi-root"}
 
 
-def load_scoring_regressions(path: Path = DEFAULT_REGISTRY) -> dict[str, dict[str, Any]]:
+def default_registry_path() -> Path:
+    """Resolve registry data only when a scoring revision needs it."""
+    if (ROOT / "pyproject.toml").is_file():
+        return ROOT / "evaluation/scoring-regressions.json"
+    return installed_data_path("share/browser-harness-eval/scoring-regressions.json")
+
+
+def load_scoring_regressions(path: Path | None = None) -> dict[str, dict[str, Any]]:
+    path = default_registry_path() if path is None else path
     document = json.loads(path.read_text())
     if document.get("schema_version") != 1 or not isinstance(document.get("cases"), list):
         raise ValueError("Unsupported scoring regression registry")

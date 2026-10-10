@@ -10,16 +10,6 @@ import statistics
 from collections.abc import Iterable
 from typing import Any
 
-from harness.resource_accounting import (
-    CounterSnapshot,
-    DockerStatsResources,
-    LinuxContainerResources,
-    ResourceSample,
-    ResourceSampler,
-    delta_counters,
-    parse_cpu_stat,
-    parse_network_dev,
-)
 
 def _metric(values: Iterable[int | float]) -> dict[str, int | float | None]:
     numbers = [float(value) for value in values]

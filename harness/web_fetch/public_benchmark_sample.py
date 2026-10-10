@@ -7,6 +7,7 @@ import json
 from collections import Counter
 from pathlib import Path
 
+from harness.record_io import parse_jsonl
 
 OFFICIAL_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
 DEFAULT_SEED = "browser-eval:webmainbench-545:v1:200"
@@ -46,7 +47,7 @@ def load_records(source: Path) -> tuple[list[dict], str, int]:
     digest = hashlib.sha256(payload).hexdigest()
     if digest != OFFICIAL_SHA256:
         raise ValueError(f"Unexpected WebMainBench-545 SHA-256: {digest}")
-    records = [json.loads(line) for line in payload.splitlines() if line.strip()]
+    records = parse_jsonl(payload, skip_blank=True)
     if len(records) != 545:
         raise ValueError(f"Expected 545 records, found {len(records)}")
     required = {"track_id", "url", "html", "main_html", "convert_main_content", "groundtruth_content", "meta"}

@@ -1,19 +1,22 @@
 import hashlib
 import json
+import tempfile
 import time
 import unittest
-import tempfile
-from unittest.mock import patch
 from pathlib import Path
+from unittest.mock import patch
 
 from harness.web_fetch.body_coverage import (
-    body_requirements, compact_ngrams, evaluate_body_requirements,
+    body_requirements,
+    compact_ngrams,
+    evaluate_body_requirements,
 )
 from harness.web_fetch.call_boundary import fetch_with_deadline, prepare_answer
-from harness.web_fetch.metrics import evaluate_content, task_passed, task_measured
+from harness.web_fetch.metrics import evaluate_content, task_measured, task_passed
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
-from harness.web_fetch.report import case_attrs, result_label, ranking
+from harness.web_fetch.reference_inputs import read_dataset_bytes
+from harness.web_fetch.report import case_attrs, ranking, result_label
 from harness.web_fetch.response_input import apply_request_status
 from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.stable_tasks import evaluate_stable_task
@@ -22,6 +25,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class FairnessTests(unittest.TestCase):
+    def historical_dataset(self):
+        try:
+            return json.loads(read_dataset_bytes(ROOT/'evaluation/dataset.json'))
+        except FileNotFoundError:
+            self.skipTest('requires externally installed historical reference inputs')
+
     def test_legacy_body_region_result_preserves_auditable_counts_and_missing_words(self):
         contract={'version':1,'unit':'region_token_recall','minimum_coverage':.8,
                   'regions':[{'id':'body-region-1','text':'alpha beta beta gamma delta epsilon'}]}
@@ -166,9 +175,9 @@ class FairnessTests(unittest.TestCase):
         self.assertEqual(live,score_attempt(case,b'Answer',ok=True))
 
     def test_file_runner_persists_bytes_with_relative_output_path(self):
-        from harness.web_fetch.runner import run_evaluation
         from harness.web_fetch.providers.http import HttpProvider
         from harness.web_fetch.providers.http_client import HttpResponse
+        from harness.web_fetch.runner import run_evaluation
         raw=b'\x89PNG\r\n\x1a\n'+b'payload'*10
         c=EvalCase('file','file','https://example.com/file','image',[],task_kind='file',
                    source_verification={'file_sha256':hashlib.sha256(raw).hexdigest()})
@@ -221,7 +230,7 @@ class FairnessTests(unittest.TestCase):
             self.assertEqual(m['content_sha256'], hashlib.sha256(raw).hexdigest())
 
     def test_real_full_reference_passes_and_small_prefix_is_rejected(self):
-        cases = json.loads((ROOT/'evaluation/dataset.json').read_text())['cases']
+        cases = self.historical_dataset()['cases']
         for c in cases:
             if not c.get('body_requirements'):
                 continue
@@ -236,14 +245,14 @@ class FairnessTests(unittest.TestCase):
                 self.assertGreaterEqual(scored['word_f1'], 0)
 
     def test_reviewed_css_scope_preserves_both_document_tocs(self):
-        cases = json.loads((ROOT/'evaluation/dataset.json').read_text())['cases']
+        cases = self.historical_dataset()['cases']
         c = next(c for c in cases if c['id'] == 'live-024-cascading-style-sheets-level-2-r')
         self.assertIn('Quick Table of Contents', c['ground_truth_main_content'])
         self.assertIn('Full Table of Contents', c['ground_truth_main_content'])
         self.assertGreater(len(c['ground_truth_main_content']), 40000)
 
     def test_react_fields_cannot_be_omitted_or_borrowed(self):
-        cases = json.loads((ROOT/'evaluation/dataset.json').read_text())['cases']
+        cases = self.historical_dataset()['cases']
         c = next(c for c in cases if c['id'] == 'dynamic-react-cart')
         m = score_attempt(c, c['ground_truth_main_content'].encode(), ok=True)
         self.assertTrue(m['stable_task_pass'])
@@ -282,8 +291,7 @@ class FairnessTests(unittest.TestCase):
         self.assertEqual(missing['stable_records'][1]['fields']['shipping'], 'Free shipping')
 
     def test_dynamic_declared_exclusions_are_executable_not_prose_only(self):
-        cases = {case['id']: case for case in json.loads(
-            (ROOT/'evaluation/dataset.json').read_text())['cases']}
+        cases = {case['id']: case for case in self.historical_dataset()['cases']}
         supplemental = {
             'dynamic-react-cart': [
                 'Add to cart',

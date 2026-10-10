@@ -11,10 +11,10 @@ import unittest
 from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.report import cell, link, table, succeeded, measured
 from harness.web_fetch.report_components import comparable_body_reference
-from harness.web_fetch.report_explainer import (HUB, _bound_initial_audit, _dynamic_section,
+from harness.web_fetch.report_explainer import (public_report_url, _bound_initial_audit, _dynamic_section,
     _speed_comparison, collect_evidence, render_explainer)
 from harness.web_fetch.report_style import STYLE
-from scripts.probe_cowagent_text import probe
+from harness.web_fetch.providers.cowagent import probe_extractor
 from harness.web_fetch.storage import current_evidence_dir
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -356,7 +356,7 @@ class ExplainerTests(unittest.TestCase):
         page = self.render(self.records)
         from urllib.parse import parse_qs, urlsplit
         for href in re.findall(r'href="([^"]+)"',self.export):
-            self.assertTrue(href.startswith(HUB+'#page='),href)
+            self.assertTrue(href.startswith(public_report_url()+'#page='),href)
             route = parse_qs(urlsplit(href.replace('&amp;','&')).fragment)['page'][0]
             self.assertTrue(route.endswith('.html'),href)
         for suffix in ('interpretation-evidence.json','../results.jsonl','cowagent-text-probe.json'):
@@ -411,7 +411,7 @@ class ExplainerTests(unittest.TestCase):
     def test_offline_extractor_probe_is_reproducible(self):
         saved = json.loads((ROOT/'research/cowagent-text-probe.json').read_text())
         source = 'class WebFetch:\n'+''.join('    '+line+'\n' for line in saved['extractor_source'].splitlines())
-        result = probe(source)
+        result = probe_extractor(source)
         self.assertEqual(result['output'],saved['output'])
         self.assertEqual(result['observations'],saved['observations'])
         self.assertTrue(result['observations']['navigation_preserved'])
@@ -421,3 +421,16 @@ class ExplainerTests(unittest.TestCase):
         page=self.render([r for r in self.records if r['provider']=='moli-webfetch'])
         self.assertIn('任务通过',page)
         self.assertNotIn('97 次任务通过',page)
+
+
+class GenericInterpretationTests(unittest.TestCase):
+    def test_custom_headless_result_uses_its_own_scope_without_historical_article(self):
+        case = {'id': 'one', 'track': 'web', 'task_kind': 'body'}
+        record = {'provider': 'custom-browser', 'provider_type': 'headless_markdown',
+                  'case_id': 'one', 'ok': True, 'metrics': {'content_pass': True}}
+        with tempfile.TemporaryDirectory() as work:
+            page = render_explainer(Path(work), {'one': case}, [record], authored=False)
+            self.assertIn('1/1', page)
+            self.assertIn('本报告的任务范围与验收规则', page)
+            self.assertNotIn('Moli', page)
+            self.assertFalse((Path(work) / 'guide/article.html').exists())

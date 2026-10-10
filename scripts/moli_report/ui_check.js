@@ -16,6 +16,11 @@ const { chromium } = require(
   ),
 );
 const fs = require("fs");
+const languagePath = path.join(site, "report-languages.json");
+const languages = fs.existsSync(languagePath)
+  ? JSON.parse(fs.readFileSync(languagePath, "utf8")).languages : ["zh", "en"];
+if (![JSON.stringify(["zh"]), JSON.stringify(["zh", "en"])].includes(JSON.stringify(languages)))
+  throw Error("unsupported report languages");
 const model = JSON.parse(
   fs.readFileSync(path.join(site, "data/model.json"), "utf8"),
 );
@@ -52,7 +57,7 @@ const routes = [
   "result/pw_raw_browser_getbrowsercommandline/off",
   "result/" + successId + "/on",
 ];
-const urls = [origin + "/", origin + "/en/index.html"];
+const urls = languages.map((lang) => origin + (lang === "zh" ? "/" : "/en/index.html"));
 const fixedIds = Object.keys(model.fixed_candidates || {});
 const fixedPass = model.fixed_case_outcomes?.find(
   (c) => c.passes["119_on"] === 3,
@@ -301,6 +306,30 @@ async function run() {
     // Tokenized preview hosts inject a root base URL even on English entries.
     for (const entry of ["/en.html", "/en/index.html"]) {
       await page.goto(origin + entry + "#page=home");
+      if (!languages.includes("en")) {
+        for (const width of [1440, 390]) for (const theme of ["light", "dark"]) {
+          await page.setViewportSize({ width, height: 900 });
+          await page.emulateMedia({ colorScheme: theme });
+          await page.goto(origin + entry);
+          await page.locator("[data-english-not-generated]").waitFor();
+          if (!(await page.locator("main").evaluate((node) => node.scrollWidth <= innerWidth)))
+            throw Error("English notice overflows the viewport");
+          await page.screenshot({
+            path: path.join(shots, `notice-${entry.replaceAll("/", "_")}-${width}-${theme}.png`),
+          });
+          await page.evaluate((url) => {
+            const base = document.createElement("base");
+            base.href = url + (location.pathname.includes("/en/") ? "/en/" : "/");
+            document.head.prepend(base);
+          }, origin);
+          await page.locator("[data-english-not-generated] a").click();
+          await ready(page);
+          if (new URL(page.url()).pathname !== "/index.html")
+            throw Error("English notice did not return to Chinese home");
+          checked++;
+        }
+        continue;
+      }
       await ready(page);
       await page.evaluate((url) => {
         const base = document.createElement("base");

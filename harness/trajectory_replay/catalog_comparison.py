@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import load_jsonl
 from harness.trajectory_replay.catalog_contracts import (
     TRUSTED_RECORDED_HOSTS,
     apply_action_overrides,
@@ -143,11 +144,7 @@ def _progress_index(evidence_root: Path) -> dict[str, tuple[Path, dict[int, dict
         if progress.is_symlink() or progress.parent.is_symlink():
             raise ValueError(f"catalog progress is symlinked: {progress}")
         digest = file_sha256(progress)
-        rows = [
-            json.loads(line)
-            for line in progress.read_text(encoding="utf-8").splitlines()
-            if line.strip()
-        ]
+        rows = load_jsonl(progress, skip_blank=True)
         by_task = {int(row["task_id"]): row for row in rows}
         if len(by_task) != len(rows):
             raise ValueError(f"catalog progress contains duplicate task ids: {progress}")
@@ -235,7 +232,7 @@ def _attempt(
     if error and not failure_stage:
         failure_stage = (
             "browser_session_setup"
-            if "_login_context" in error
+            if "login_context" in error
             else "browser_tool_execution"
         )
     evaluator_status = (
@@ -376,3 +373,59 @@ def build_catalog_comparison_results(
         "attempts": attempts,
         "physical_executions": physical_executions,
     }
+
+
+def inputs_main(argv=None) -> None:
+    import argparse
+    import hashlib
+    import json
+    from pathlib import Path
+
+    from harness.trajectory_replay.catalog_contracts import file_sha256
+    from harness.web_fetch.safety import unlinked_path, write_new_file
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--dataset-output", type=Path, required=True)
+    parser.add_argument("--results-output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    args.dataset_output = unlinked_path(args.dataset_output)
+    args.results_output = unlinked_path(args.results_output)
+    if args.dataset_output == args.results_output:
+        raise ValueError("catalog comparison outputs must be distinct")
+    if args.dataset_output.exists() or args.results_output.exists():
+        raise FileExistsError("catalog comparison output already exists")
+    config = json.loads(args.config.read_text(encoding="utf-8"))
+    dataset = build_catalog_comparison_dataset(
+        catalog_path=Path(config["catalog_path"]),
+        suite_path=Path(config["suite_path"]),
+        site_map_path=Path(config["site_map_path"]),
+        action_overrides_path=(
+            Path(config["action_overrides_path"])
+            if config.get("action_overrides_path")
+            else None
+        ),
+    )
+    dataset_bytes = (json.dumps(dataset, ensure_ascii=False, indent=2) + "\n").encode()
+    results = build_catalog_comparison_results(
+        dataset=dataset,
+        dataset_sha256=hashlib.sha256(dataset_bytes).hexdigest(),
+        profile_sha256=file_sha256(Path(config["profile_path"])),
+        scope_sha256=file_sha256(Path(config["scope_path"])),
+        site_map_sha256=file_sha256(Path(config["site_map_path"])),
+        participants=config["participants"],
+    )
+    write_new_file(args.dataset_output, dataset_bytes)
+    write_new_file(args.results_output,
+                   (json.dumps(results, ensure_ascii=False, indent=2) + "\n").encode())
+    print(
+        json.dumps(
+            {
+                "tasks": len(dataset["trajectories"]),
+                "logical_results": len(results["attempts"]),
+                "physical_executions": len(results["physical_executions"]),
+                "dataset_sha256": file_sha256(args.dataset_output),
+                "results_sha256": file_sha256(args.results_output),
+            }
+        )
+    )

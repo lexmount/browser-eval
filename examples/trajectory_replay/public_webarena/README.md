@@ -9,6 +9,13 @@ The source inventory contains 179 candidate recordings. The current formal suite
 passing answer key: qualification uses independent Chromium runs and the official
 evaluator before a task enters the formal suite.
 
+`scripts/fetch_webarena_traces.py` downloads every entry in its declared `--catalog`
+and records their hashes under the external `--output` directory. The catalog count
+must match its unique task inventory. `scripts/build_webarena_suite.py` imports the
+same catalog using `--trace-dir` and writes a new `--output` file; it refuses to replace
+an existing suite. Importing a different catalog creates candidate tasks and does not
+change the frozen formal suite or qualify its trajectories.
+
 The repository-curated 30 browser-tool cases use
 [`examples/trajectory_replay`](../README.md) and `harness.trajectory_replay`.
 The autonomous Agent evaluation uses `harness.browser_use`. Neither shares this
@@ -32,6 +39,13 @@ Measured attempts, screenshots, HAR, and reports stay outside Git. The repositor
 the suite, qualification reasons, evaluator rules, source bindings, and a sanitized
 publication summary. Use `verify_metrics.py` to audit raw measurements and
 `rebuild_report.py` to render from existing attempts; neither reruns browsers.
+
+Publishing uses the site and expected version in
+`evaluation/browser-use-public/current-report.json`. The package attestation binds
+that profile and the complete archive. Interrupted submissions retain a private
+operation journal and receipt; retrying the release resumes the same submission.
+The profile advances only after the exported version and every packaged file have
+been verified. Keep those recovery files until the release finishes.
 
 ## Disposable Rainbond environments
 

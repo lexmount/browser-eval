@@ -1,17 +1,18 @@
 """HTML conversion preserves executable examples, not just navigation labels."""
-from pathlib import Path
 import shutil
 import subprocess
 import unittest
 
-from bs4 import BeautifulSoup
 import markdown
+from bs4 import BeautifulSoup
+
+from harness.web_fetch.markdown import converter_command, require_converter
 
 
 @unittest.skipUnless(shutil.which('node'), 'HTML conversion requires Node')
 class HtmlToMarkdownTests(unittest.TestCase):
     def test_preformatted_examples_retain_literal_characters_and_whitespace(self):
-        converter = Path(__file__).resolve().parents[1] / 'scripts/html_to_markdown.mjs'
+        converter = converter_command(require_converter())
         scenarios = [
             ('<pre>LANG=<i>en_US.UTF-8</i></pre>', 'LANG=en_US.UTF-8'),
             ('<pre># fdisk <i>/dev/the_disk_to_be_partitioned</i></pre>',
@@ -22,7 +23,7 @@ class HtmlToMarkdownTests(unittest.TestCase):
         ]
         for html, expected in scenarios:
             with self.subTest(expected=expected):
-                result = subprocess.run(['node', str(converter)], input=html,
+                result = subprocess.run(converter, input=html,
                                         text=True, capture_output=True, check=True)
                 self.assertIn(expected, result.stdout)
                 rendered = BeautifulSoup(markdown.markdown(result.stdout,
@@ -30,7 +31,7 @@ class HtmlToMarkdownTests(unittest.TestCase):
                 code = rendered.select_one('pre code')
                 self.assertIsNotNone(code)
                 self.assertEqual(code.get_text().removesuffix('\n'), expected.expandtabs(4))
-        ordinary = subprocess.run(['node', str(converter)],
+        ordinary = subprocess.run(converter,
             input='<p><em>ordinary emphasis</em> <a href="https://example.com">link</a></p>',
             text=True, capture_output=True, check=True).stdout
         rendered = BeautifulSoup(markdown.markdown(ordinary), 'html.parser')

@@ -4,8 +4,11 @@ from pathlib import Path
 
 import pytest
 
+from harness.trajectory_replay.remote_runtime import (
+    freeze_original_failure_inputs,
+    validate_candidate_revision,
+)
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
-from scripts.freeze_original36_candidate_cohort import _validate_candidate_revision, freeze
 
 
 def _fixture(tmp_path: Path) -> tuple[dict, Path, dict]:
@@ -47,7 +50,7 @@ def _fixture(tmp_path: Path) -> tuple[dict, Path, dict]:
 def test_freeze_includes_all_36_without_historical_answers(tmp_path: Path) -> None:
     index, site_map, roles = _fixture(tmp_path)
 
-    cohort = freeze(index, site_map_path=site_map, step_roles=roles)
+    cohort = freeze_original_failure_inputs(index, site_map_path=site_map, step_roles=roles)
 
     assert len(cohort["candidates"]) == 36
     assert cohort["quarantined"] == []
@@ -58,8 +61,10 @@ def test_freeze_includes_all_36_without_historical_answers(tmp_path: Path) -> No
 
 def test_formal_freeze_keeps_the_same_declared_36_scope(tmp_path: Path) -> None:
     index, site_map, roles = _fixture(tmp_path)
-    diagnostic = freeze(index, site_map_path=site_map, step_roles=roles)
-    formal = freeze(index, site_map_path=site_map, step_roles=roles, formal=True)
+    diagnostic = freeze_original_failure_inputs(index, site_map_path=site_map, step_roles=roles)
+    formal = freeze_original_failure_inputs(
+        index, site_map_path=site_map, step_roles=roles, formal=True,
+    )
 
     assert formal["schema"] == "original36_affected_cohort_inputs/1"
     assert formal["promotable"] is True
@@ -72,7 +77,7 @@ def test_old_task243_synthetic_email_join_cannot_be_promoted(tmp_path: Path) -> 
     index["tasks"][-1]["reference_validity"] = {"status": "unverifiable"}
     index["tasks"][-1]["evaluation_mode"] = "source_derived_synthetic"
     with pytest.raises(ValueError, match="unverifiable reference"):
-        freeze(index, site_map_path=site_map, step_roles=roles, formal=True)
+        freeze_original_failure_inputs(index, site_map_path=site_map, step_roles=roles, formal=True)
 
 
 def test_freeze_binds_site_readiness_paths_to_the_active_site_map(tmp_path: Path) -> None:
@@ -81,7 +86,7 @@ def test_freeze_binds_site_readiness_paths_to_the_active_site_map(tmp_path: Path
         "site": "reddit", "path": "/f/DIY/post", "max_stable_ms": 5000,
     }]
 
-    cohort = freeze(index, site_map_path=site_map, step_roles=roles)
+    cohort = freeze_original_failure_inputs(index, site_map_path=site_map, step_roles=roles)
 
     assert cohort["site_readiness"] == [{
         "site": "reddit",
@@ -93,14 +98,14 @@ def test_freeze_binds_site_readiness_paths_to_the_active_site_map(tmp_path: Path
         "site": "reddit", "path": "/f/DIY/post", "max_stable_ms": 5000,
     })
     with pytest.raises(ValueError, match="duplicate site readiness"):
-        freeze(index, site_map_path=site_map, step_roles=roles)
+        freeze_original_failure_inputs(index, site_map_path=site_map, step_roles=roles)
 
 
 def test_freeze_fails_on_changed_trace_or_unclassified_step(tmp_path: Path) -> None:
     index, site_map, roles = _fixture(tmp_path)
     index["tasks"][0]["action_evidence"]["sha256"] = "0" * 64
     with pytest.raises(ValueError, match="missing or changed"):
-        freeze(index, site_map_path=site_map, step_roles=roles)
+        freeze_original_failure_inputs(index, site_map_path=site_map, step_roles=roles)
 
     index, site_map, roles = _fixture(tmp_path)
     trace_path = Path(index["tasks"][0]["action_evidence"]["path"])
@@ -112,7 +117,7 @@ def test_freeze_fails_on_changed_trace_or_unclassified_step(tmp_path: Path) -> N
     for task in index["tasks"][:-1]:
         task["action_evidence"]["sha256"] = changed_sha
     with pytest.raises(ValueError, match="unclassified supplemental step"):
-        freeze(index, site_map_path=site_map, step_roles=roles)
+        freeze_original_failure_inputs(index, site_map_path=site_map, step_roles=roles)
 
 
 def test_freeze_excludes_a_trailing_diagnostic_observer_from_actions(tmp_path: Path) -> None:
@@ -137,7 +142,7 @@ def test_freeze_excludes_a_trailing_diagnostic_observer_from_actions(tmp_path: P
         "role": "diagnostic_post_observer",
     })
 
-    cohort = freeze(index, site_map_path=site_map, step_roles=roles)
+    cohort = freeze_original_failure_inputs(index, site_map_path=site_map, step_roles=roles)
 
     first = cohort["candidates"][0]
     assert first["actions"] == [{"action": "click", "selector": "button"}]
@@ -183,7 +188,7 @@ def test_task404_waits_for_page_load_before_vote_dispatch() -> None:
         "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-404.json"
     )
     candidate = json.loads(path.read_text(encoding="utf-8"))
-    _validate_candidate_revision(candidate)
+    validate_candidate_revision(candidate)
     assert candidate["tool_calls"][7]["selector"] == 'a[href="/f/books/new"]:visible'
     assert candidate["tool_calls"][8] == {
         "action": "wait",
@@ -220,7 +225,7 @@ def test_task464_awaits_visible_save_completion() -> None:
         "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-464.json"
     )
     candidate = json.loads(path.read_text(encoding="utf-8"))
-    _validate_candidate_revision(candidate)
+    validate_candidate_revision(candidate)
     assert candidate["tool_calls"][5]["action"] == "click"
     assert candidate["tool_calls"][6] == {
         "action": "wait", "selector": "div.message-success:visible", "timeout": 30000,
@@ -238,7 +243,7 @@ def test_vote_trajectory_revisions_bind_the_post_not_button_position(
         f"evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-{task_id}.json"
     )
     candidate = json.loads(path.read_text(encoding="utf-8"))
-    _validate_candidate_revision(candidate)
+    validate_candidate_revision(candidate)
     vote = candidate["tool_calls"][-2]
     assert vote["action"] == "click"
     assert f"/{post_id}/" in vote["selector"]
@@ -248,11 +253,11 @@ def test_vote_trajectory_revisions_bind_the_post_not_button_position(
 
     candidate["tool_calls"][-1]["seconds"] = 1
     with pytest.raises(ValueError, match="trajectory revision is unbound"):
-        _validate_candidate_revision(candidate)
+        validate_candidate_revision(candidate)
     candidate["tool_calls"][-1]["seconds"] = 2
     candidate["unexpected"] = True
     with pytest.raises(ValueError, match="trajectory revision is unbound"):
-        _validate_candidate_revision(candidate)
+        validate_candidate_revision(candidate)
 
 
 @pytest.mark.parametrize("repair", [None, [], {}, {"cause": "", "change": "wait"},
@@ -264,7 +269,7 @@ def test_trajectory_revision_rejects_malformed_repair_metadata(repair: object) -
     candidate = json.loads(path.read_text(encoding="utf-8"))
     candidate["repair"] = repair
     with pytest.raises(ValueError, match="trajectory revision is unbound"):
-        _validate_candidate_revision(candidate)
+        validate_candidate_revision(candidate)
 
 
 def test_product_save_revision_uses_the_visible_form_control() -> None:
@@ -272,7 +277,7 @@ def test_product_save_revision_uses_the_visible_form_control() -> None:
         "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-464.json"
     )
     candidate = json.loads(path.read_text(encoding="utf-8"))
-    _validate_candidate_revision(candidate)
+    validate_candidate_revision(candidate)
     assert len(candidate["tool_calls"]) == 7
     prepare, submit = candidate["tool_calls"][4:6]
     assert prepare["action"] == "evaluate"
@@ -284,3 +289,198 @@ def test_product_save_revision_uses_the_visible_form_control() -> None:
         "selector": 'button:has-text("Save"):not(:has-text("Save options")):visible',
         "replay_mode": "snapshot_ref_semantics",
     }
+
+
+def _lineage_fixture(tmp_path):
+    import copy
+
+    from harness.trajectory_replay.remote_runtime import input_digest
+
+    index, site_map, roles = _fixture(tmp_path)
+    parent = {
+        "schema": "webarena_qualified_trajectory_revision/1", "task_id": 1,
+        "canonical_calls_sha256": "", "tool_calls": [
+            {"action": "press", "key": "Tab"}, {"action": "snapshot"},
+        ],
+    }
+    parent["canonical_calls_sha256"] = input_digest(parent["tool_calls"])
+    parent_sha = hashlib.sha256(
+        (json.dumps(parent, ensure_ascii=False, indent=2) + "\n").encode()
+    ).hexdigest()
+    candidate = copy.deepcopy(parent)
+    candidate["tool_calls"][0] = {"action": "evaluate", "script": "document.title"}
+    candidate["canonical_calls_sha256"] = input_digest(candidate["tool_calls"])
+    path = tmp_path / "candidate.json"
+    path.write_text(json.dumps(candidate), encoding="utf-8")
+    override = {
+        "task_id": 1, "path": "candidate.json",
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "reason": "Bound stabilization", "action_count": 2,
+        "stabilization_parent_sha256": parent_sha,
+        "stabilization_reversions": [{
+            "action_index": 1, "current_action": "evaluate",
+            "parent_call": {"action": "press", "key": "Tab"},
+        }],
+        "paired_qualification": {
+            "chromium_receipt_sha256": "b" * 64, "moli_receipt_sha256": "c" * 64,
+        },
+    }
+    roles["candidate_overrides"] = [override]
+    matrix_path = tmp_path / (
+        "evaluation/trajectory-replay/webarena-verified/"
+        "retrieval-candidates/qualification-matrix.json"
+    )
+    matrix_path.parent.mkdir(parents=True)
+    matrix_path.write_text(json.dumps({"rows": [{
+        "task_id": 1, "affected_task_qualification": {
+            "candidate_sha256": parent_sha, "action_count_per_browser": 2,
+            "retrieval_status": "supported", "chromium_official_score": 1.0,
+            "moli_official_score": 1.0, **override["paired_qualification"],
+        },
+    }]}), encoding="utf-8")
+    return index, site_map, roles, candidate
+
+
+def test_declared_parent_proof_works_for_any_task_and_reference_root(tmp_path, monkeypatch):
+    index, site_map, roles, _ = _lineage_fixture(tmp_path)
+    monkeypatch.chdir(tmp_path.parent)
+    result = freeze_original_failure_inputs(
+        index, site_map_path=site_map, step_roles=roles, reference_root=tmp_path,
+    )
+    assert len(result["candidates"]) == 36
+    assert result["candidates"][0]["actions"][0] == {
+        "action": "evaluate", "script": "document.title",
+    }
+    assert result["candidates"][0]["source_revision"]["action_count"] == 2
+
+
+def test_undeclared_candidate_change_cannot_borrow_parent_qualification(tmp_path):
+    from harness.trajectory_replay.remote_runtime import input_digest
+
+    index, site_map, roles, candidate = _lineage_fixture(tmp_path)
+    candidate["tool_calls"][1] = {"action": "press", "key": "Enter"}
+    candidate["canonical_calls_sha256"] = input_digest(candidate["tool_calls"])
+    path = tmp_path / "candidate.json"
+    path.write_text(json.dumps(candidate), encoding="utf-8")
+    roles["candidate_overrides"][0]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    with pytest.raises(ValueError, match="differs from the qualified parent"):
+        freeze_original_failure_inputs(
+            index, site_map_path=site_map, step_roles=roles, reference_root=tmp_path,
+        )
+
+
+@pytest.mark.parametrize("mutation", ["missing", "bool", "duplicate", "wrong_action", "hash"])
+def test_invalid_parent_proof_is_rejected(tmp_path, mutation):
+    from harness.trajectory_replay.remote_runtime import validate_candidate_lineage
+
+    _, _, roles, candidate = _lineage_fixture(tmp_path)
+    override = roles["candidate_overrides"][0]
+    if mutation == "missing":
+        del override["stabilization_reversions"]
+    elif mutation == "bool":
+        override["stabilization_reversions"][0]["action_index"] = True
+    elif mutation == "duplicate":
+        override["stabilization_reversions"] *= 2
+    elif mutation == "wrong_action":
+        override["stabilization_reversions"][0]["current_action"] = "click"
+    else:
+        override["stabilization_parent_sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="lineage"):
+        validate_candidate_lineage(candidate, override)
+
+
+def test_current_stabilization_retains_exact_qualified_parent():
+    from harness.trajectory_replay.remote_runtime import validate_candidate_lineage
+
+    root = Path(__file__).resolve().parents[2]
+    roles = json.loads((root / (
+        "evaluation/trajectory-replay/webarena-verified/cohort-step-roles.json"
+    )).read_text())
+    override = next(row for row in roles["candidate_overrides"] if row["task_id"] == 108)
+    path = root / override["path"]
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == override["sha256"]
+    assert validate_candidate_lineage(json.loads(path.read_text()), override) == (
+        override["stabilization_parent_sha256"]
+    )
+
+
+@pytest.mark.parametrize("linked", [False, True])
+def test_candidate_reference_cannot_escape_declared_root(tmp_path, linked):
+    index, site_map, roles, _ = _lineage_fixture(tmp_path)
+    if linked:
+        (tmp_path / "alias.json").symlink_to(tmp_path / "candidate.json")
+        roles["candidate_overrides"][0]["path"] = "alias.json"
+    else:
+        roles["candidate_overrides"][0]["path"] = "../candidate.json"
+    with pytest.raises(ValueError, match="relative|Symlink"):
+        freeze_original_failure_inputs(
+            index, site_map_path=site_map, step_roles=roles, reference_root=tmp_path,
+        )
+
+
+def test_freeze_command_preserves_umask_and_existing_output(tmp_path):
+    import os
+
+    from harness.trajectory_replay.remote_runtime import main_freeze_original_failures
+
+    index, site_map, roles = _fixture(tmp_path)
+    index_path, roles_path = tmp_path / "index.json", tmp_path / "roles.json"
+    index_path.write_text(json.dumps(index))
+    roles_path.write_text(json.dumps(roles))
+    output = tmp_path / "inputs.json"
+    args = ["--index", str(index_path), "--roles", str(roles_path),
+            "--site-map", str(site_map), "--output", str(output)]
+    previous = os.umask(0o022)
+    try:
+        main_freeze_original_failures(args)
+        observed = os.umask(0o022)
+        assert observed == 0o022
+        assert output.stat().st_mode & 0o777 == 0o600
+        original = output.read_bytes()
+        with pytest.raises(ValueError, match="already exists"):
+            main_freeze_original_failures(args)
+        assert output.read_bytes() == original
+    finally:
+        os.umask(previous)
+
+
+def test_scope_change_requires_both_named_qualification_receipts(tmp_path):
+    index, site_map, roles, _ = _lineage_fixture(tmp_path)
+    roles["candidate_overrides"][0]["paired_qualification"] = {}
+    matrix_path = tmp_path / (
+        "evaluation/trajectory-replay/webarena-verified/"
+        "retrieval-candidates/qualification-matrix.json"
+    )
+    matrix = json.loads(matrix_path.read_text())
+    qualification = matrix["rows"][0]["affected_task_qualification"]
+    del qualification["chromium_receipt_sha256"]
+    del qualification["moli_receipt_sha256"]
+    matrix_path.write_text(json.dumps(matrix))
+    with pytest.raises(ValueError, match="paired proof"):
+        freeze_original_failure_inputs(
+            index, site_map_path=site_map, step_roles=roles, reference_root=tmp_path,
+        )
+
+
+def test_freeze_command_rejects_input_drift_before_writing(tmp_path, monkeypatch):
+    from harness.trajectory_replay import remote_runtime
+
+    index, site_map, roles = _fixture(tmp_path)
+    index_path, roles_path = tmp_path / "index.json", tmp_path / "roles.json"
+    index_path.write_text(json.dumps(index))
+    roles_path.write_text(json.dumps(roles))
+    output = tmp_path / "inputs.json"
+    original = remote_runtime.freeze_original_failure_inputs
+
+    def changing_input(*args, **kwargs):
+        result = original(*args, **kwargs)
+        roles_path.write_text(roles_path.read_text() + "\n")
+        return result
+
+    monkeypatch.setattr(remote_runtime, "freeze_original_failure_inputs", changing_input)
+    with pytest.raises(ValueError, match="changed during compilation"):
+        remote_runtime.main_freeze_original_failures([
+            "--index", str(index_path), "--roles", str(roles_path),
+            "--site-map", str(site_map), "--output", str(output),
+        ])
+    assert not output.exists()

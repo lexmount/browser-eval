@@ -1,14 +1,18 @@
-import json
 import copy
-from pathlib import Path
-import unittest
+import json
 import tempfile
+import unittest
+from pathlib import Path
 
-from scripts.correct_webmainbench_scoring import (
-    CONTROL_IDS, REGISTRY, json_digest, prepare_correction_source, revised_metrics,
+from harness.web_fetch.webmainbench_correction import (
+    CONTROL_IDS,
+    json_digest,
+    prepare_correction_source,
+    regression_registry_path,
     validate_correction_authority,
     validate_population_binding,
 )
+from harness.web_fetch.webmainbench_scoring import revised_metrics
 
 
 class FakeResult:
@@ -107,7 +111,7 @@ class WebMainBenchScoringCorrectionTests(unittest.TestCase):
         self.assertEqual(result["table_TEDS"]["details"]["prediction_source"], "metric_error")
 
     def test_track_controls_are_paired_by_root_cause(self):
-        document = json.loads(Path(REGISTRY).read_text())
+        document = json.loads(regression_registry_path().read_text())
         self.assertEqual({row["id"] for row in document["cases"]}, set(CONTROL_IDS))
         modes = {}
         for row in document["cases"]:

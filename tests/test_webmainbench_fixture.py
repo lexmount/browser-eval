@@ -3,7 +3,7 @@ import unittest
 from urllib.error import HTTPError
 from urllib.request import HTTPSHandler, ProxyHandler, build_opener, urlopen
 
-from scripts.run_webmainbench_benchmark import fixture_server
+from harness.web_fetch.webmainbench_runner import fixture_server
 
 
 class FrozenFixtureTests(unittest.TestCase):

@@ -16,6 +16,22 @@ def generated_languages(root: Path) -> tuple[str, ...]:
     return tuple(languages)
 
 
+def english_notice(*, nested: bool = True) -> str:
+    """Use the report root as the preview base for either supported entry location."""
+    directory = "en/" if nested else "./"
+    return_href = "../index.html" if nested else "index.html"
+    return (
+        '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        '<script>(function(){const b=document.querySelector("base[href]");'
+        f'if(b)b.href=new URL("{directory}",b.href).href;}})();</script>'
+        '<title>英文报告未生成</title></head><body><main data-english-not-generated>'
+        '<h1>英文报告未生成</h1><p>English report has not been generated.</p>'
+        '<p>当前报告仅提供中文版。英文版需单独生成。</p>'
+        f'<a href="{return_href}">返回中文报告</a></main></body></html>'
+    )
+
+
 def write_language_contract(root: Path, *, include_english: bool) -> None:
     (root / "report-languages.json").write_text(
         json.dumps({"languages": ["zh", "en"] if include_english else ["zh"],
@@ -29,14 +45,7 @@ def write_language_contract(root: Path, *, include_english: bool) -> None:
     if any(folder.iterdir()):
         raise ValueError("English output must not be generated in Chinese-only mode")
     (folder / "index.html").write_text(
-        '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
-        '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        '<script>(function(){const b=document.querySelector("base[href]");'
-        'if(b)b.href=new URL("en/",b.href).href;})();</script>'
-        '<title>英文报告未生成</title></head><body><main data-english-not-generated>'
-        '<h1>英文报告未生成</h1><p>English report has not been generated.</p>'
-        '<p>当前报告仅提供中文版。英文版需单独生成。</p>'
-        '<a href="../index.html">返回中文报告</a></main></body></html>',
+        english_notice(),
         encoding="utf-8",
     )
 
@@ -50,6 +59,22 @@ def check_language_contract(root: Path) -> None:
     notice = (root / "en/index.html").read_text(encoding="utf-8")
     if "data-english-not-generated" not in notice or 'href="../index.html"' not in notice:
         raise ValueError("English not-generated notice is missing")
+
+
+def localized_report_routes(root: Path, expected: set[str]) -> dict[str, dict[str, Path]]:
+    """Check complete route inventories for the explicitly generated editions."""
+    check_language_contract(root)
+    inventories = {}
+    for language in generated_languages(root):
+        base = root if language == 'zh' else root / 'en'
+        routes = {path.relative_to(base).as_posix(): path for path in base.rglob('*.html')
+                  if language != 'zh' or path.relative_to(base).parts[0] != 'en'}
+        if set(routes) != expected:
+            raise ValueError(f'{language} report route inventory differs: '
+                             f'missing={sorted(expected - set(routes))[:5]}, '
+                             f'extra={sorted(set(routes) - expected)[:5]}')
+        inventories[language] = routes
+    return inventories
 
 
 def visible_numbers(text: str) -> list[str]:

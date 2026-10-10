@@ -114,8 +114,8 @@ def test_dynamic_case_cannot_omit_retrieval_hints(tmp_path):
         load_dataset(_write_dataset(tmp_path, case))
 
 
-def test_all_current_dynamic_cases_have_bounded_generic_completion_signals():
-    _, cases = load_dataset(Path("evaluation/dataset.json"))
+def test_all_current_dynamic_cases_have_bounded_generic_completion_signals(historical_dataset):
+    _, cases = historical_dataset
     dynamic = [case for case in cases if case.track == "dynamic"]
     assert len(dynamic) == 10
     assert all(case.retrieval_hints for case in dynamic)
@@ -149,8 +149,8 @@ def test_v2_separates_completion_from_bounded_answer_free_extraction():
     assert plan.worker_dict()["extraction"]["fallback"] == "body"
 
 
-def test_current_completion_signals_are_bound_to_independent_capture_shape():
-    _, cases = load_dataset(Path("evaluation/dataset.json"))
+def test_current_completion_signals_are_bound_to_independent_capture_shape(historical_dataset):
+    _, cases = historical_dataset
     by_id = {case.id: case for case in cases}
     captures = []
     for path in (
@@ -235,7 +235,10 @@ def test_frame_complete_text_wait_checks_child_record_fields():
 
 def test_committed_native_100_dataset_loads_without_wait_or_extraction_overrides():
     from harness.web_fetch.retrieval_hints import plan_for_case
-    raw, cases = load_dataset(Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json"))
+    from tests.conftest import read_frozen_dataset_bytes
+    path = Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json")
+    read_frozen_dataset_bytes(path)
+    raw, cases = load_dataset(path)
     assert len(cases) == 100
     assert all(not c.retrieval_hints and plan_for_case(c) is None for c in cases)
     assert all("retrieval_hints" not in c for c in raw["cases"])

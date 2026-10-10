@@ -12,7 +12,7 @@ from harness.web_fetch.artifacts import (
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.runner import run_evaluation
-from scripts.run_benchmark import artifact_bindings, materialize_worker_artifacts
+from harness.web_fetch.artifacts import artifact_bindings, materialize_bound_artifacts
 
 
 class RawEnvelopeProvider(Provider):
@@ -164,7 +164,7 @@ class PrivateRawResponseArtifactTests(unittest.TestCase):
             record = run_raw(worker, RawEnvelopeProvider(raw))
             private = record['provider_metadata']['raw_response_path']
             self.assertNotIn(private, {path for path, _ in artifact_bindings(record)})
-            materialize_worker_artifacts(aggregate, worker, [record])
+            materialize_bound_artifacts(aggregate, worker, [record])
             self.assertEqual((aggregate / private).read_bytes(), raw)
 
     def test_missing_tampered_and_traversal_private_evidence_fail_closed(self):

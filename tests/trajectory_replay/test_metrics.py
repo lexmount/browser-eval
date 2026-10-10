@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from harness.trajectory_replay.metrics import (
+from harness.resource_accounting import (
     CounterSnapshot,
     DockerStatsResources,
     LinuxContainerResources,
@@ -9,8 +9,8 @@ from harness.trajectory_replay.metrics import (
     delta_counters,
     parse_cpu_stat,
     parse_network_dev,
-    summarize_attempts,
 )
+from harness.trajectory_replay.metrics import summarize_attempts
 
 
 def test_resource_summary_reports_time_series_percentiles_and_sane_cpu_percent():

@@ -1,22 +1,38 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.run_certified_benchmark import main
+import pytest
+
+from harness.web_fetch.certification import browser_observation_cases, main
+
+
+def stage_command(call):
+    return [call.args[0], *call.args[1]]
+
+
+def stage_name(command):
+    return command[0].__module__.rsplit(".", 1)[-1] + "." + command[0].__name__
 
 
 class CertifiedBenchmarkTests(unittest.TestCase):
     def test_diagnostic_execution_cannot_be_assembled_or_rendered_as_certified(self):
-        from scripts import freeze_headless_references, postcheck_headless, run_benchmark
-        from scripts.finalize_benchmark_run import finalize_aggregate
-        from scripts.assemble_headless import assemble
+        from harness.web_fetch import benchmark_runner as run_benchmark
+        from harness.web_fetch import reference_freeze as freeze_headless_references
+        from harness.web_fetch import reference_freeze as postcheck_headless
+        from harness.web_fetch.assembly import assemble
         from harness.web_fetch.reference_lifecycle import (
-            ReferenceLifecycleError, require_verified_reference_checks)
+            ReferenceLifecycleError,
+            require_verified_reference_checks,
+        )
         from harness.web_fetch.report_build import build_report
+        from harness.web_fetch.evidence import finalize_aggregate
         for mode in ('declared', 'native'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
                 root=Path(directory); dataset=root/'dataset.json'; output=root/'run'
@@ -31,23 +47,24 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 config.write_text(json.dumps({'providers':{'fixture':{'type':'fixture'}}}))
                 (root/'evaluation/list-references').mkdir(parents=True)
 
-                def execute(command):
-                    script=Path(command[1]).name
-                    if script=='collect_source_evidence.py':
-                        self.write_capture(Path(command[3]),'stable',text='Required label')
-                    elif script=='freeze_headless_references.py':
+                def execute(stage, arguments):
+                    command = [stage, *arguments]
+                    script=stage_name(command)
+                    if script=='source_capture.main':
+                        self.write_capture(Path(command[2]),'stable',text='Required label')
+                    elif script=='reference_freeze.main':
                         with patch.object(freeze_headless_references,'ROOT',root):
-                            freeze_headless_references.main(command[2:])
-                    elif script=='run_benchmark.py':
+                            freeze_headless_references.main(command[1:])
+                    elif script=='benchmark_runner.main':
                         with patch.object(run_benchmark,'load_runtime_env'):
-                            run_benchmark.main(command[2:])
-                    elif script=='postcheck_headless.py':
-                        with patch('sys.argv',command[1:]):postcheck_headless.main()
-                    elif script=='finalize_benchmark_run.py':
+                            run_benchmark.main(command[1:])
+                    elif script=='reference_freeze.postcheck_main':
+                        postcheck_headless.postcheck_main(command[1:])
+                    elif script=='evidence.finalize_main':
                         finalize_aggregate(output,root/'work/post-captures/observations.json')
                     else:self.fail('Unexpected external stage: '+script)
 
-                with patch('scripts.run_certified_benchmark.run',side_effect=execute):
+                with patch('harness.web_fetch.certification.run',side_effect=execute):
                     main(['--dataset',str(dataset),'--output',str(output),
                           '--work-root',str(root/'work'),'--providers','fixture',
                           '--provider-config',str(config),'--case-ids','stable',
@@ -80,20 +97,21 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 'stable_text_anchors':[{'id':'a','alternatives':['Required label']} ]}}]}))
             arguments=['--dataset',str(dataset),'--output',str(root/'run'),
                        '--work-root',str(root/'work'),'--providers','p','--case-ids','stable']
-            with patch('scripts.run_certified_benchmark.run') as invoked:
+            with patch('harness.web_fetch.certification.run') as invoked:
                 with self.assertRaises(SystemExit):main(arguments)
             invoked.assert_not_called()
-            def completed(command):
-                script=Path(command[1]).name
-                if script=='collect_source_evidence.py':self.write_capture(Path(command[3]),'stable')
-                if script=='run_benchmark.py':self.write_output_dataset(command,dataset)
-            with patch('scripts.run_certified_benchmark.run',side_effect=completed):
+            def completed(stage, arguments):
+                command = [stage, *arguments]
+                script=stage_name(command)
+                if script=='source_capture.main':self.write_capture(Path(command[2]),'stable')
+                if script=='benchmark_runner.main':self.write_output_dataset(command,dataset)
+            with patch('harness.web_fetch.certification.run',side_effect=completed):
                 main([*arguments,'--diagnostic'])
             self.assertEqual(json.loads(dataset.read_text())['cases'][0]['acceptance_contract']['stable_text_anchors'][0]['alternatives'],['Required label'])
 
     def test_dispatches_complete_webmainbench_certification(self) -> None:
         arguments = ["--output-root", "/tmp/run", "--source", "/tmp/source.jsonl"]
-        with patch("scripts.run_certified_webmainbench_full.main") as invoked:
+        with patch("harness.web_fetch.webmainbench_certification.main") as invoked:
             main(["webmainbench-full", *arguments])
         invoked.assert_called_once_with(arguments)
 
@@ -101,7 +119,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset=root/'dataset.json'
             dataset.write_text(json.dumps({'cases':[{'id':'dynamic-page','track':'dynamic'}]}))
-            with patch('scripts.run_certified_benchmark.run') as invoked:
+            with patch('harness.web_fetch.certification.run') as invoked:
                 with self.assertRaisesRegex(ValueError,'require retrieval_hints'):
                     main(['--dataset',str(dataset),'--output',str(root/'run'),
                           '--work-root',str(root/'work'),'--providers','p','--case-ids','dynamic-page'])
@@ -149,34 +167,35 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             config.write_text('{"providers": {"p": {"type": "fixture"}}}')
             original_config = config.read_bytes()
 
-            def completed(command):
-                script = Path(command[1]).name
-                if script == "collect_source_evidence.py":
-                    self.write_capture(Path(command[3]), "javascript-spa")
-                if script == "capture_headless_browser_observations.py":
+            def completed(stage, arguments):
+                command = [stage, *arguments]
+                script = stage_name(command)
+                if script == "source_capture.main":
+                    self.write_capture(Path(command[2]), "javascript-spa")
+                if script == "browser_observations.main":
                     self.write_browser_observations(command)
-                if script == "run_benchmark.py":
+                if script == "benchmark_runner.main":
                     self.write_output_dataset(command, dataset)
-                if any(Path(value).name == "postcheck_headless.py" for value in command):
+                if stage_name(command) == "reference_freeze.postcheck_main":
                     (work / "post-captures").mkdir(parents=True, exist_ok=True)
                     (work / "post-captures/observations.json").write_text("[]\n")
 
-            with patch("scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+            with patch("harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(output),
                       "--work-root", str(work), "--providers", "p",
                       "--case-ids", "javascript-spa", "--browser-binary", "/chrome",
                       "--provider-config", str(config)])
-            benchmark = next(call.args[0] for call in invoked.call_args_list
-                             if Path(call.args[0][1]).name == 'run_benchmark.py')
+            benchmark = next(stage_command(call) for call in invoked.call_args_list
+                             if stage_name(stage_command(call)) == 'benchmark_runner.main')
             self.assertEqual(benchmark[benchmark.index('--provider-config') + 1], str(config))
             self.assertEqual(config.read_bytes(), original_config)
-            scripts = [Path(call.args[0][1]).name for call in invoked.call_args_list]
+            scripts = [stage_name(stage_command(call)) for call in invoked.call_args_list]
             self.assertEqual(scripts, [
-                "collect_source_evidence.py", "capture_headless_browser_observations.py",
-                "freeze_headless_references.py", "run_benchmark.py",
-                "collect_source_evidence.py",
-                "capture_headless_browser_observations.py", "postcheck_headless.py",
-                "finalize_benchmark_run.py"])
+                "source_capture.main", "browser_observations.main",
+                "reference_freeze.main", "benchmark_runner.main",
+                "source_capture.main",
+                "browser_observations.main", "reference_freeze.postcheck_main",
+                "evidence.finalize_main"])
 
     def test_requires_explicit_browser_for_rendered_case(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -189,16 +208,17 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     "method": "Independent visible browser DOM; complete declared scope"
                 },
             }]}))
-            def completed(command):
-                if any(Path(value).name == "collect_source_evidence.py" for value in command):
-                    self.write_capture(Path(command[3]), "javascript-spa")
+            def completed(stage, arguments):
+                command = [stage, *arguments]
+                if stage_name(command) == "source_capture.main":
+                    self.write_capture(Path(command[2]), "javascript-spa")
             with self.assertRaises(SystemExit), patch(
-                    "scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+                    "harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(root / "run"),
                       "--work-root", str(root / "work"), "--providers", "p",
                       "--case-ids", "javascript-spa"])
-            scripts = [Path(call.args[0][1]).name for call in invoked.call_args_list]
-            self.assertEqual(scripts, ["collect_source_evidence.py"])
+            scripts = [stage_name(stage_command(call)) for call in invoked.call_args_list]
+            self.assertEqual(scripts, ["source_capture.main"])
 
     def test_forwards_explicit_reference_promotion_to_freeze_only(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -206,24 +226,25 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             dataset.write_text(json.dumps({'cases':[{'id':'stable'}]}))
             promotion.write_text('{}')
             output,work=root/'run',root/'work'
-            def completed(command):
-                script=Path(command[1]).name
-                if script=='collect_source_evidence.py':
-                    self.write_capture(Path(command[3]),'stable')
-                if script == 'run_benchmark.py':
+            def completed(stage, arguments):
+                command = [stage, *arguments]
+                script=stage_name(command)
+                if script=='source_capture.main':
+                    self.write_capture(Path(command[2]),'stable')
+                if script == 'benchmark_runner.main':
                     self.write_output_dataset(command, dataset)
-                if Path(command[1]).name=='postcheck_headless.py':
+                if stage_name(command)=='reference_freeze.postcheck_main':
                     (work/'post-captures').mkdir(parents=True, exist_ok=True)
                     (work/'post-captures/observations.json').write_text('[]\n')
-            with patch('scripts.run_certified_benchmark.run',side_effect=completed) as invoked:
+            with patch('harness.web_fetch.certification.run',side_effect=completed) as invoked:
                 main(['--dataset',str(dataset),'--output',str(output),'--work-root',str(work),
                       '--providers','p','--case-ids','stable',
                       '--reference-promotion',str(promotion)])
-            commands=[call.args[0] for call in invoked.call_args_list]
+            commands=[stage_command(call) for call in invoked.call_args_list]
             freeze=next(command for command in commands
-                        if Path(command[1]).name=='freeze_headless_references.py')
+                        if stage_name(command)=='reference_freeze.main')
             benchmark=next(command for command in commands
-                           if Path(command[1]).name=='run_benchmark.py')
+                           if stage_name(command)=='benchmark_runner.main')
             self.assertIn(str(promotion),freeze)
             self.assertNotIn(str(promotion),benchmark)
 
@@ -241,42 +262,43 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             }]}))
             output, work = root / "run", root / "work"
 
-            def completed(command):
-                script = Path(command[1]).name
-                if script == "collect_source_evidence.py":
+            def completed(stage, arguments):
+                command = [stage, *arguments]
+                script = stage_name(command)
+                if script == "source_capture.main":
                     self.write_capture(
-                        Path(command[3]), "previously-unknown-browser-fallback",
+                        Path(command[2]), "previously-unknown-browser-fallback",
                         status=403, text="")
-                elif script == "capture_headless_browser_observations.py":
+                elif script == "browser_observations.main":
                     self.write_browser_observations(command)
-                elif script == "run_benchmark.py":
+                elif script == "benchmark_runner.main":
                     self.write_output_dataset(command, dataset)
-                elif script == "postcheck_headless.py":
+                elif script == "reference_freeze.postcheck_main":
                     (work / "post-captures").mkdir(parents=True, exist_ok=True)
                     (work / "post-captures/observations.json").write_text("[]\n")
 
-            with patch("scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+            with patch("harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(output),
                       "--work-root", str(work), "--providers", "p",
                       "--case-ids", "previously-unknown-browser-fallback",
                       "--browser-binary", "/chrome"])
-            commands = [call.args[0] for call in invoked.call_args_list]
+            commands = [stage_command(call) for call in invoked.call_args_list]
             browser_commands = [command for command in commands
-                                if Path(command[1]).name ==
-                                "capture_headless_browser_observations.py"]
+                                if stage_name(command) ==
+                                "browser_observations.main"]
             self.assertEqual(len(browser_commands), 2)
             self.assertTrue(all(
                 "previously-unknown-browser-fallback" in command
                 for command in browser_commands))
             freeze = next(command for command in commands
-                          if Path(command[1]).name == "freeze_headless_references.py")
+                          if stage_name(command) == "reference_freeze.main")
             self.assertIn("--browser-observations", freeze)
             benchmark_index = next(
                 index for index, command in enumerate(commands)
-                if Path(command[1]).name == "run_benchmark.py")
+                if stage_name(command) == "benchmark_runner.main")
             freeze_index = next(
                 index for index, command in enumerate(commands)
-                if Path(command[1]).name == "freeze_headless_references.py")
+                if stage_name(command) == "reference_freeze.main")
             self.assertLess(freeze_index, benchmark_index)
 
     def test_post_http_failure_adds_browser_fallback_not_selected_pre_call(self) -> None:
@@ -294,36 +316,37 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             }]}))
             output, work = root / "run", root / "work"
 
-            def completed(command):
-                script = Path(command[1]).name
-                if script == "collect_source_evidence.py":
-                    is_post = Path(command[3]).name == "post-captures"
-                    self.write_capture(Path(command[3]), case_id,
+            def completed(stage, arguments):
+                command = [stage, *arguments]
+                script = stage_name(command)
+                if script == "source_capture.main":
+                    is_post = Path(command[2]).name == "post-captures"
+                    self.write_capture(Path(command[2]), case_id,
                                        status=403 if is_post else 200,
                                        text="" if is_post else "reference")
-                elif script == "capture_headless_browser_observations.py":
+                elif script == "browser_observations.main":
                     self.write_browser_observations(command)
-                elif script == "run_benchmark.py":
+                elif script == "benchmark_runner.main":
                     self.write_output_dataset(command, dataset)
-                elif script == "postcheck_headless.py":
+                elif script == "reference_freeze.postcheck_main":
                     (work / "post-captures/observations.json").write_text("[]\n")
 
-            with patch("scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+            with patch("harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(output),
                       "--work-root", str(work), "--providers", "p",
                       "--case-ids", case_id, "--browser-binary", "/chrome"])
 
-            commands = [call.args[0] for call in invoked.call_args_list]
+            commands = [stage_command(call) for call in invoked.call_args_list]
             browsers = [command for command in commands
-                        if Path(command[1]).name ==
-                        "capture_headless_browser_observations.py"]
+                        if stage_name(command) ==
+                        "browser_observations.main"]
             self.assertEqual(len(browsers), 1)
             benchmark_index = next(i for i, command in enumerate(commands)
-                                   if Path(command[1]).name == "run_benchmark.py")
+                                   if stage_name(command) == "benchmark_runner.main")
             self.assertGreater(commands.index(browsers[0]), benchmark_index)
             self.assertIn(case_id, browsers[0])
             postcheck = next(command for command in commands
-                             if Path(command[1]).name == "postcheck_headless.py")
+                             if stage_name(command) == "reference_freeze.postcheck_main")
             self.assertIn("--resume", postcheck)
             self.assertIn("--browser-observations", postcheck)
 
@@ -340,19 +363,20 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             }]}))
             work = root / "work"
 
-            def completed(command):
-                if Path(command[1]).name == "collect_source_evidence.py":
-                    self.write_capture(Path(command[3]), "http-unavailable",
+            def completed(stage, arguments):
+                command = [stage, *arguments]
+                if stage_name(command) == "source_capture.main":
+                    self.write_capture(Path(command[2]), "http-unavailable",
                                        status=503, text="")
 
             with self.assertRaises(SystemExit), patch(
-                    "scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+                    "harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(root / "run"),
                       "--work-root", str(work), "--providers", "p",
                       "--case-ids", "http-unavailable"])
-            scripts = [Path(call.args[0][1]).name for call in invoked.call_args_list]
-            self.assertEqual(scripts, ["collect_source_evidence.py"])
-            self.assertNotIn("run_benchmark.py", scripts)
+            scripts = [stage_name(stage_command(call)) for call in invoked.call_args_list]
+            self.assertEqual(scripts, ["source_capture.main"])
+            self.assertNotIn("benchmark_runner.main", scripts)
 
     def test_failed_pre_browser_observation_stops_before_freeze_and_provider_calls(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -368,11 +392,12 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 },
             }]}))
 
-            def completed(command):
-                script = Path(command[1]).name
-                if script == "collect_source_evidence.py":
-                    self.write_capture(Path(command[3]), case_id)
-                elif script == "capture_headless_browser_observations.py":
+            def completed(stage, arguments):
+                command = [stage, *arguments]
+                script = stage_name(command)
+                if script == "source_capture.main":
+                    self.write_capture(Path(command[2]), case_id)
+                elif script == "browser_observations.main":
                     output = Path(command[command.index("--output") + 1])
                     output.write_text(json.dumps({case_id: {
                         "case_id": case_id,
@@ -381,18 +406,18 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     }}))
 
             with self.assertRaises(SystemExit), patch(
-                    "scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+                    "harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(root / "run"),
                       "--work-root", str(root / "work"), "--providers", "p",
                       "--case-ids", case_id, "--browser-binary", "/chrome"])
 
-            scripts = [Path(call.args[0][1]).name for call in invoked.call_args_list]
+            scripts = [stage_name(stage_command(call)) for call in invoked.call_args_list]
             self.assertEqual(scripts, [
-                "collect_source_evidence.py",
-                "capture_headless_browser_observations.py",
+                "source_capture.main",
+                "browser_observations.main",
             ])
-            self.assertNotIn("freeze_headless_references.py", scripts)
-            self.assertNotIn("run_benchmark.py", scripts)
+            self.assertNotIn("reference_freeze.main", scripts)
+            self.assertNotIn("benchmark_runner.main", scripts)
 
     def test_failed_post_browser_observation_cannot_reach_lifecycle_finalization(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -408,11 +433,12 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 },
             }]}))
 
-            def completed(command):
-                script = Path(command[1]).name
-                if script == "collect_source_evidence.py":
-                    self.write_capture(Path(command[3]), case_id)
-                elif script == "capture_headless_browser_observations.py":
+            def completed(stage, arguments):
+                command = [stage, *arguments]
+                script = stage_name(command)
+                if script == "source_capture.main":
+                    self.write_capture(Path(command[2]), case_id)
+                elif script == "browser_observations.main":
                     output = Path(command[command.index("--output") + 1])
                     if output.name == "pre-browser.json":
                         self.write_browser_observations(command)
@@ -422,21 +448,107 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                             "status": "failure",
                             "completion": {"satisfied": False},
                         }}))
-                elif script == "run_benchmark.py":
+                elif script == "benchmark_runner.main":
                     self.write_output_dataset(command, dataset)
 
             with self.assertRaises(SystemExit), patch(
-                    "scripts.run_certified_benchmark.run", side_effect=completed) as invoked:
+                    "harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(root / "run"),
                       "--work-root", str(root / "work"), "--providers", "p",
                       "--case-ids", case_id, "--browser-binary", "/chrome"])
 
-            scripts = [Path(call.args[0][1]).name for call in invoked.call_args_list]
-            self.assertIn("run_benchmark.py", scripts)
-            self.assertEqual(scripts[-1], "capture_headless_browser_observations.py")
-            self.assertNotIn("postcheck_headless.py", scripts)
-            self.assertNotIn("finalize_benchmark_run.py", scripts)
+            scripts = [stage_name(stage_command(call)) for call in invoked.call_args_list]
+            self.assertIn("benchmark_runner.main", scripts)
+            self.assertEqual(scripts[-1], "browser_observations.main")
+            self.assertNotIn("reference_freeze.postcheck_main", scripts)
+            self.assertNotIn("evidence.finalize_main", scripts)
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_explicit_browser_reference_route_is_used_even_with_usable_http_capture(tmp_path):
+    case = {
+        "id": "explicit-route",
+        "track": "web",
+        "task_kind": "body",
+        "ground_truth_main_content": "Required fact",
+        "required_facts": [{"alternatives": ["Required fact"]}],
+        "source_verification": {"observation_route": "browser"},
+    }
+    (tmp_path / case["id"]).mkdir()
+    (tmp_path / case["id"] / "reference.txt").write_text("Required fact")
+    (tmp_path / "audit.json").write_text(json.dumps([{"case_id": case["id"], "status": 200}]))
+    assert browser_observation_cases({"cases": [case]}, tmp_path, [case["id"]]) == [case["id"]]
+
+
+def test_conflicting_http_route_and_browser_provenance_is_rejected(tmp_path):
+    import pytest
+
+    case = {
+        "id": "conflicting-route",
+        "track": "web",
+        "task_kind": "body",
+        "ground_truth_main_content": "Required fact",
+        "required_facts": [{"alternatives": ["Required fact"]}],
+        "source_verification": {
+            "observation_route": "http",
+            "method": "Independent rendered browser DOM; complete declared scope",
+        },
+    }
+    (tmp_path / "audit.json").write_text(json.dumps([{"case_id": case["id"], "status": 200}]))
+    with pytest.raises(ValueError, match="contradicts browser reference provenance"):
+        browser_observation_cases({"cases": [case]}, tmp_path, [case["id"]])
+
+
+def test_explicit_empty_arguments_do_not_dispatch_an_ambient_subcommand(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["caller", "risk-control", "--validate-only"])
+    with patch("harness.web_fetch.risk_control.main") as invoked:
+        with pytest.raises(SystemExit) as error:
+            main([])
+    assert error.value.code == 2
+    invoked.assert_not_called()
+
+
+def test_invalid_selected_reference_route_stops_before_any_capture(tmp_path):
+    dataset = tmp_path / "dataset.json"
+    dataset.write_text(json.dumps({"cases": [{"id": "one", "track": "web", "task_kind": "body", "ground_truth_main_content": "Required fact", "source_verification": {"observation_route": "http", "method": "Independent rendered browser DOM; complete declared scope"}}]}))
+    with patch("harness.web_fetch.certification.run") as invoked:
+        with pytest.raises(ValueError, match="contradicts browser reference provenance"):
+            main(["--dataset", str(dataset), "--case-ids", "one", "--providers", "p", "--output", str(tmp_path / "output"), "--work-root", str(tmp_path / "work")])
+    invoked.assert_not_called()
+    assert not (tmp_path / "output").exists()
+    assert not (tmp_path / "work").exists()
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        ["run_certified_benchmark.py"],
+        ["run_certified_benchmark.py", "risk-control"],
+        ["run_certified_benchmark.py", "webmainbench-correction"],
+        ["run_certified_benchmark.py", "webmainbench-full"],
+        ["run_certified_benchmark.py", "wcxb"],
+        ["run_certified_benchmark.py", "wcxb-latency"],
+        ["run_risk_control_moli.py"],
+        ["certify_webmainbench_case_correction.py"],
+        ["correct_webmainbench_teds.py"],
+    ],
+)
+def test_certification_commands_have_help_without_evidence_or_provider_calls(command, tmp_path):
+    scripts = Path(__file__).resolve().parents[1] / "scripts"
+    result = subprocess.run(
+        [sys.executable, str(scripts / command[0]), *command[1:], "--help"],
+        cwd=tmp_path,
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "usage:" in result.stdout
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_complete_certification_uses_caller_inputs_outside_checkout(tmp_path):
+    from tests.package_smoke import verify_certified_cohort
+    verify_certified_cohort(tmp_path)

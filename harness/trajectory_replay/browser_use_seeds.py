@@ -212,10 +212,10 @@ def _authoritative_rows(root: Path) -> tuple[dict[str, Any], list[dict[str, Any]
     if not model:
         raise ValueError(f"evidence manifest does not identify a model: {root}")
     grouped: dict[tuple[str, int], list[dict[str, Any]]] = defaultdict(list)
-    for line in (root / "attempts.jsonl").read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            row = json.loads(line)
-            grouped[(str(row["engine"]), int(row["task_id"]))].append(row)
+    from harness.record_io import load_jsonl
+
+    for row in load_jsonl(root / "attempts.jsonl", skip_blank=True):
+        grouped[(str(row["engine"]), int(row["task_id"]))].append(row)
     rows: list[dict[str, Any]] = []
     for (engine, task_id), executions in sorted(grouped.items()):
         executions.sort(key=lambda row: int(row["attempt"]))

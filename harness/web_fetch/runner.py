@@ -1,38 +1,50 @@
 from __future__ import annotations
 
-import hashlib
 import base64
-import math
+import hashlib
 import json
+import math
 import platform
+import re
 import socket
 import sys
 import threading
 import time
 import traceback
-import re
-from concurrent.futures import ThreadPoolExecutor
 import urllib.error
+from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .metrics import summarize, task_passed
-from .scoring import load_list_reference, score_attempt
-from .models import AttemptRecord, EvalCase, ProviderResult
-from .providers import Provider
-from .reference_lifecycle import (
-    ReferenceLifecycleError, check_case_reference_binding,
-    check_case_reference_fresh, preflight_reference_checks,
+from harness.record_io import load_jsonl
+
+from .artifacts import (
+    PRIVATE_ARTIFACT_ROOT,
+    PUBLIC_CALL_LOG_ROOT,
+    diagnostic_log_binding,
+    raw_response_binding,
+    verify_record_artifacts,
+    verify_record_private_artifacts,
+    verify_record_public_call_logs,
 )
-from .safety import contained_path, safe_identifier
 from .call_boundary import fetch_with_deadline
+from .metrics import summarize, task_passed
+from .models import AttemptRecord, EvalCase, ProviderResult, validate_case
+from .providers import Provider
+from .reference_inputs import read_dataset_bytes
+from .reference_lifecycle import (
+    ReferenceLifecycleError,
+    check_case_reference_binding,
+    check_case_reference_fresh,
+    is_diagnostic_evidence,
+    preflight_reference_checks,
+)
 from .diagnostics import CallDiagnostics
 from .response_input import apply_request_status
-from .artifacts import (
-    PRIVATE_ARTIFACT_ROOT, PUBLIC_CALL_LOG_ROOT, diagnostic_log_binding, raw_response_binding,
-    verify_record_private_artifacts, verify_record_public_call_logs,
-)
+from .safety import contained_path, safe_identifier
+from .scoring import load_list_reference, score_attempt
 
 
 class IncompleteEvaluationError(RuntimeError):
@@ -450,14 +462,24 @@ def run_evaluation(
     resource_sample_interval_ms: int | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     output_dir = output_dir.resolve()
-    if provider_concurrency < 1:
-        raise ValueError("provider_concurrency must be at least 1")
-    if not math.isfinite(timeout) or timeout <= 0:
-        raise ValueError('timeout must be positive and finite')
-    if max_failure_retries not in {0, 1}:
+    for name, value, minimum in (
+        ('runs', runs, 1), ('provider_concurrency', provider_concurrency, 1),
+        ('max_failure_retries', max_failure_retries, 0),
+    ):
+        if type(value) is not int or value < minimum:
+            raise ValueError(f'{name} must be an integer of at least {minimum}')
+    for name, value, minimum in (('timeout', timeout, 0), ('delay', delay, 0)):
+        if (not isinstance(value, (int, float)) or isinstance(value, bool)
+                or not math.isfinite(value) or value < minimum or (name == 'timeout' and value == 0)):
+            raise ValueError(f'{name} must be finite and {"positive" if name == "timeout" else "nonnegative"}')
+    if max_failure_retries > 1:
         raise ValueError('max_failure_retries must be 0 or 1')
-    if resource_sample_interval_ms is not None and resource_sample_interval_ms < 10:
-        raise ValueError('resource_sample_interval_ms must be at least 10')
+    if resource_sample_interval_ms is not None and (
+        type(resource_sample_interval_ms) is not int or resource_sample_interval_ms < 10
+    ):
+        raise ValueError('resource_sample_interval_ms must be an integer of at least 10')
+    if not cases or not providers:
+        raise ValueError('Execution requires at least one task and provider')
     for provider in providers:
         if provider.config.get("uniform_native_parameters"):
             if runs != 1 or max_failure_retries != 0:
@@ -466,7 +488,11 @@ def run_evaluation(
                 provider.check_native_call(case)
         safe_identifier(provider.name)
     for case in cases:
-        safe_identifier(case.id)
+        validate_case(case)
+    if len({provider.name for provider in providers}) != len(providers):
+        raise ValueError('Provider names must be unique within an execution')
+    if len({case.id for case in cases}) != len(cases):
+        raise ValueError('Task IDs must be unique within an execution')
     for filename in ['artifacts', PUBLIC_CALL_LOG_ROOT, 'manifest.json', 'dataset.json',
                      'results.jsonl', 'summary.json']:
         contained_path(output_dir, filename)
@@ -494,7 +520,7 @@ def run_evaluation(
             p.relative_to(Path(__file__).parent).as_posix().encode()+b'\0'+p.read_bytes()
             for p in sorted(Path(__file__).parent.rglob('*.py')))).hexdigest(),
         "provider_config_sha256": hashlib.sha256(provider_config_path.read_bytes()).hexdigest() if provider_config_path.is_file() else None,
-        "dataset_sha256": hashlib.sha256(dataset_path.read_bytes()).hexdigest() if dataset_path.is_file() else None,
+        "dataset_sha256": hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest() if dataset_path.is_file() or (dataset_path.parent / 'source-inputs.json').is_file() else None,
         "network_preflight": ({"dns_mode": network_audit["dns_mode"],
                                "sha256": hashlib.sha256((output_dir / 'network-preflight.json').read_bytes()).hexdigest()}
                               if network_audit is not None else None),
@@ -544,7 +570,7 @@ def run_evaluation(
     if reference_checks is not None:
         manifest["reference_checks"] = reference_checks
     comparison = dataset_meta.get('comparison', {})
-    if comparison.get('evidence_state') == 'diagnostic':
+    if is_diagnostic_evidence(dataset_meta):
         manifest['evidence_state'] = 'diagnostic'
         manifest['unqualified_reference_cases'] = sorted(
             set(comparison.get('unqualified_reference_cases', [])) & {case.id for case in cases})
@@ -665,6 +691,13 @@ def run_evaluation(
                             for item in result.metadata.get('file_evaluation', {}).get('files', [])
                             if item.get('artifact_path')
                         )
+                        artifact_hashes = {
+                            relative: hashlib.sha256(contained_path(
+                                output_dir, relative, reject_symlinks=True).read_bytes()).hexdigest()
+                            for relative in artifact_paths
+                        }
+                        if artifact_hashes[artifact_rel.as_posix()] != measured['content_sha256']:
+                            raise ValueError('Persisted output differs from scored bytes')
                         private_artifacts = []
                         private_binding = raw_response_binding(result.metadata)
                         if private_binding:
@@ -686,6 +719,7 @@ def run_evaluation(
                             'content_sha256': measured['content_sha256'],
                             'artifact_path': artifact_rel.as_posix(),
                             'artifact_paths': artifact_paths,
+                            'artifact_sha256': artifact_hashes,
                             'call_log': call_log,
                             **({'private_artifacts': private_artifacts} if private_artifacts else {}),
                         })
@@ -800,11 +834,7 @@ def run_evaluation(
 
 
 def load_records(run_dir: Path) -> list[dict[str, Any]]:
-    return [
-        json.loads(line)
-        for line in contained_path(run_dir, "results.jsonl").read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
+    return load_jsonl(contained_path(run_dir, "results.jsonl"), skip_blank=True)
 
 
 def rescore_evaluation(
@@ -818,13 +848,34 @@ def rescore_evaluation(
     case_by_id = {case.id: case for case in cases}
     records = load_records(run_dir)
     for record in records:
-        verify_record_private_artifacts(run_dir, record)
-        verify_record_public_call_logs(run_dir, record)
+        if record.get("metrics", {}).get("content_sha256"):
+            verify_record_artifacts(run_dir, record)
+        else:
+            # Historical records without a primary hash keep their legacy contract.
+            verify_record_private_artifacts(run_dir, record)
+            verify_record_public_call_logs(run_dir, record)
         contained_path(run_dir, record["artifact_path"])
         expected_hash = record.get("metrics", {}).get("content_sha256")
         if expected_hash and hashlib.sha256(contained_path(run_dir, record["artifact_path"]).read_bytes()).hexdigest() != expected_hash:
             raise ValueError("Output integrity failure: " + record["attempt_id"])
     manifest = json.loads(contained_path(run_dir, "manifest.json").read_text(encoding="utf-8"))
+    saved_dataset = json.loads(contained_path(run_dir, "dataset.json").read_text(encoding="utf-8"))
+    if is_diagnostic_evidence(saved_dataset) or is_diagnostic_evidence(manifest):
+        # Scoring inputs may change; the executed population and intent may not.
+        selected_ids = [case['id'] for case in saved_dataset['cases']]
+        revised = {case['id']: case for case in dataset_meta['cases']}
+        if len(revised) != len(dataset_meta['cases']) or not set(selected_ids) <= revised.keys():
+            raise ValueError('Rescore dataset omits or duplicates executed tasks')
+        for original in saved_dataset['cases']:
+            if any(original.get(key) != revised[original['id']].get(key)
+                   for key in ('url', 'track', 'task_kind')):
+                raise ValueError('Rescore changed executed task scope')
+        dataset_meta = deepcopy(dataset_meta)
+        dataset_meta['cases'] = [revised[identifier] for identifier in selected_ids]
+        dataset_meta['coverage_plan'] = deepcopy(saved_dataset['coverage_plan'])
+        dataset_meta['comparison'] = deepcopy(saved_dataset.get('comparison', {}))
+        dataset_meta['comparison']['evidence_state'] = 'diagnostic'
+        cases = [case_by_id[identifier] for identifier in selected_ids]
     # Validate the entire batch before touching metrics, datasets or results.
     # Historical records without a binding retain the legacy rescore behavior.
     bindings = manifest.get("reference_checks", {}).get("cases", {})

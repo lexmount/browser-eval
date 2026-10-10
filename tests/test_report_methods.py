@@ -6,6 +6,30 @@ from harness.web_fetch.methods import METHOD_REGISTRY, method_info, method_page_
 from harness.web_fetch.report_i18n import translate_text
 
 class AdoptionTests(unittest.TestCase):
+ def test_missing_run_configuration_does_not_imply_default_or_unpaid_execution(self):
+  for provider_type in ('custom_adapter', 'fixture', 'cowagent_builtin'):
+   model=method_page_model('custom','Custom',[
+       {'provider_type':provider_type,'provider_metadata':{}}])
+   self.assertNotIn('默认正文',model['configuration'])
+   self.assertNotIn('未启用',model['configuration'])
+
+ def test_observed_routes_disclose_coverage_without_inventing_missing_routes(self):
+  records=[{'provider_type':'headless_markdown','provider_metadata':{
+      'extractor':'moli_native_markdown','output_contract':'markdown'}},
+      {'provider_type':'headless_markdown','provider_metadata':{}}]
+  model=method_page_model('custom','Custom',records)
+  self.assertIn('1/2',model['configuration'])
+  self.assertIn('Moli CLI',model['configuration'])
+  self.assertNotIn('未启用',model['configuration'])
+  empty=method_page_model('custom','Custom',records[1:])['configuration']
+  self.assertIn('0/1',empty)
+  self.assertIn('未记录',empty)
+  self.assertNotIn(method_info('headless_markdown')['endpoint'],empty)
+  for configuration in (model['configuration'],empty):
+   translated=translate_text(configuration)
+   self.assertNotRegex(translated,r'[\u4e00-\u9fff]')
+   self.assertIn('records',translated)
+
  def test_method_page_model_resolves_moli_profile_before_rendering(self):
   record={'provider_type':'moli_webfetch','provider_metadata':{
       'reported_version':'moli 1.1.9','dump':'markdown',

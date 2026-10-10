@@ -5,14 +5,14 @@ import tempfile
 import hashlib
 from pathlib import Path
 
-from scripts.run_webmainbench_benchmark import (
+from harness.web_fetch.webmainbench_runner import (
     DATASET_SHA256,
     check_identity,
     fetch_record,
     load_selected_ids,
     load_source,
 )
-from scripts.score_webmainbench_results import load_records
+from harness.web_fetch.webmainbench_scoring import load_records
 
 
 RECORD = {

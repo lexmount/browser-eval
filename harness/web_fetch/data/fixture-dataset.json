@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "id": "synthetic-smoke",
+  "name": "合成示例（非正式评测）",
+  "tool": "web_fetch",
+  "cases": [
+    {
+      "id": "fixture-body",
+      "name": "合成正文示例",
+      "url": "https://example.com/synthetic-fixture",
+      "category": "synthetic",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "返回示例内容；这是离线测试，不访问真实网站。",
+      "expected_any": [
+        "Expected fixture content"
+      ],
+      "ground_truth_main_content": "Expected fixture content"
+    },
+    {
+      "id": "fixture-failure",
+      "name": "合成失败示例",
+      "url": "https://example.com/synthetic-failure",
+      "category": "synthetic",
+      "track": "web",
+      "task_kind": "body",
+      "task_prompt": "返回示例内容；这是离线测试，不访问真实网站。",
+      "expected_any": [
+        "Expected fixture content"
+      ],
+      "ground_truth_main_content": "Expected fixture content"
+    }
+  ],
+  "coverage_plan": {
+    "web": [
+      "fixture"
+    ]
+  },
+  "comparison": {
+    "publication_state": "synthetic_example_not_for_release"
+  }
+}

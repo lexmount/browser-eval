@@ -19,7 +19,9 @@ import requests
 from playwright.sync_api import sync_playwright
 from requests.adapters import HTTPAdapter
 
-from harness.browser_use.runner import BENCHMARK_VIEWPORT
+from harness.environments.webarena.runtime import (
+    BENCHMARK_VIEWPORT,
+)
 from harness.trajectory_replay.public_webarena.executor import execute_steps
 
 SNAPSHOT_NAVIGATION_SETTLE_TIMEOUT_MS = 1_500

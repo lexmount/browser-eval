@@ -11,13 +11,15 @@ from types import SimpleNamespace
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
+from harness.trajectory_replay import remote_execution as cohort
 from harness.trajectory_replay.remote_runtime import file_sha256
 from harness.trajectory_replay.webarena_replay import _json_sha256
-from scripts import run_remote_three_method_cohort as cohort
 from tests.trajectory_replay.test_aggregate_webarena_three_method_cohorts import _reset_receipt
 
 
-def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, retrieval: bool = False):
+def _fixture(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, retrieval: bool = False, task_ids=None
+):
     binary = tmp_path / "browser"
     binary.write_bytes(b"fixed browser binary")
     site_map = tmp_path / "sites.json"
@@ -29,13 +31,12 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, retrieval: bool
     tool_dir.mkdir(parents=True)
     for name in ("browser_tool.py", "browser_service.py"):
         (tool_dir / name).write_text("# frozen\n", encoding="utf-8")
-    ids = list(range(1, 90))
+    ids = list(range(1, 90)) if task_ids is None else list(task_ids)
     selection = tmp_path / "selection.json"
     selection.write_text(
-        json.dumps({"tasks": [{"task_id": item} for item in ids]}), encoding="utf-8"
+        json.dumps({"schema": "lex_webarena_verified_pilot/1",
+                    "tasks": [{"task_id": item} for item in ids]}), encoding="utf-8"
     )
-    monkeypatch.setattr(cohort, "TASK_SELECTION", selection)
-    monkeypatch.setattr(cohort, "_task_ids", lambda: ids)
     monkeypatch.setattr(
         cohort,
         "load_remote_sites",
@@ -88,6 +89,8 @@ def _fixture(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, retrieval: bool
     }
     manifest_path = tmp_path / "manifest.json"
     args = argparse.Namespace(
+        tasks=None,
+        selection=selection,
         manifest=manifest_path,
         dataset=dataset,
         method_id="moli-1.1.3",
@@ -117,8 +120,7 @@ def test_task_execution_order_matches_upstream_numeric_order(tmp_path, monkeypat
             }
         )
     )
-    monkeypatch.setattr(cohort, "TASK_SELECTION", selection)
-    assert cohort._task_ids() == [66, 610, 645]
+    assert cohort.selected_task_ids(selection) == [66, 610, 645]
 
 
 @pytest.mark.parametrize("fault", [None, "upgrade", "scripts", "loader"])
@@ -140,13 +142,13 @@ def test_browser_readiness_rejects_origin_and_magento_setup_errors(monkeypatch, 
     service = SimpleNamespace(_page=page, _submit=lambda callback: callback())
     closed = []
     tool = SimpleNamespace(_get_service=lambda: service, close=lambda: closed.append(True))
-    monkeypatch.setattr(cohort, "_prepare_browser_viewport", lambda *_: None)
+    monkeypatch.setattr(cohort, "prepare_browser_viewport", lambda *_: None)
     sites = {WebArenaSite.SHOPPING_ADMIN: "https://admin.example/admin"}
     if fault:
         with pytest.raises(ValueError):
-            cohort._verify_browser_session(tool, sites)
+            cohort.verify_browser_session(tool, sites)
     else:
-        assert cohort._verify_browser_session(tool, sites)[0]["status"] == 200
+        assert cohort.verify_browser_session(tool, sites)[0]["status"] == 200
     assert closed == [True]
 
 
@@ -163,21 +165,21 @@ def test_certificate_accepts_measured_failures() -> None:
         for task_id in range(1, 90)
     ]
     manifest = {"task_ids": list(range(1, 90)), "tasks": tasks}
-    assert cohort._certificate(
+    assert cohort.certify_cohort(
         manifest=manifest,
         rows=rows,
         before={"runner": "hash"},
         after={"runner": "hash"},
         evidence_valid=True,
     )
-    assert not cohort._certificate(
+    assert not cohort.certify_cohort(
         manifest=manifest,
         rows=rows[:-1],
         before={},
         after={},
         evidence_valid=True,
     )
-    assert not cohort._certificate(
+    assert not cohort.certify_cohort(
         manifest=manifest,
         rows=rows,
         before={"runner": "a"},
@@ -190,7 +192,7 @@ def test_preflight_accepts_exact_frozen_selection(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     args, manifest, _save = _fixture(tmp_path, monkeypatch)
-    found, _sites, _benchmark, selected = cohort._preflight(args)
+    found, _sites, _benchmark, selected = cohort.preflight_cohort(args)
     assert found == manifest
     assert list(selected) == list(range(1, 90))
 
@@ -202,7 +204,7 @@ def test_preflight_accepts_chromium_method(tmp_path: Path, monkeypatch: pytest.M
     manifest["method_id"] = "chromium"
     manifest["engine"] = "chromium"
     save()
-    assert len(cohort._preflight(args)[3]) == 89
+    assert len(cohort.preflight_cohort(args)[3]) == 89
 
 
 def test_preflight_rejects_missing_retrieval_contract(
@@ -210,7 +212,7 @@ def test_preflight_rejects_missing_retrieval_contract(
 ) -> None:
     args, _manifest, _save = _fixture(tmp_path, monkeypatch, retrieval=True)
     with pytest.raises(ValueError, match="RETRIEVE lacks current-run observation contract"):
-        cohort._preflight(args)
+        cohort.preflight_cohort(args)
 
 
 def test_preflight_rejects_drift_and_frozen_answer(
@@ -220,12 +222,12 @@ def test_preflight_rejects_drift_and_frozen_answer(
     manifest["tasks"][0]["bound_calls_sha256"] = "wrong"
     save()
     with pytest.raises(ValueError, match="frozen source/bound actions changed"):
-        cohort._preflight(args)
+        cohort.preflight_cohort(args)
     manifest["tasks"][0]["bound_calls_sha256"] = _json_sha256(manifest["tasks"][0]["actions"])
     manifest["tasks"][0]["recorded_response"] = {"task_type": "RETRIEVE"}
     save()
     with pytest.raises(ValueError, match="frozen answers"):
-        cohort._preflight(args)
+        cohort.preflight_cohort(args)
 
 
 def test_preflight_rejects_dataset_or_task_contract_drift(
@@ -235,12 +237,12 @@ def test_preflight_rejects_dataset_or_task_contract_drift(
     manifest["dataset_sha256"] = "wrong"
     save()
     with pytest.raises(ValueError, match="frozen method, binary, site map or run policy"):
-        cohort._preflight(args)
+        cohort.preflight_cohort(args)
     manifest["dataset_sha256"] = file_sha256(args.dataset)
     manifest["tasks"][0]["task_contract_sha256"] = "wrong"
     save()
     with pytest.raises(ValueError, match="frozen source/bound actions changed"):
-        cohort._preflight(args)
+        cohort.preflight_cohort(args)
 
 
 def test_preflight_rejects_partial_method_and_existing_output(
@@ -250,7 +252,7 @@ def test_preflight_rejects_partial_method_and_existing_output(
     manifest["tasks"].pop()
     save()
     with pytest.raises(ValueError, match="exact ordered selected tasks"):
-        cohort._preflight(args)
+        cohort.preflight_cohort(args)
     manifest["tasks"].append(
         {
             "task_id": 89,
@@ -267,7 +269,7 @@ def test_preflight_rejects_partial_method_and_existing_output(
     save()
     args.output.mkdir()
     with pytest.raises(ValueError, match="append-only"):
-        cohort._preflight(args)
+        cohort.preflight_cohort(args)
 
 
 def test_complete_evidence_requires_current_run_artifacts(
@@ -282,13 +284,13 @@ def test_complete_evidence_requires_current_run_artifacts(
         "evidence_sha256": {"trace": "x", "readiness": "y", "site_reset": "s"},
     }
     with pytest.raises(ValueError, match="evaluator/current-run evidence"):
-        cohort._verify_complete_evidence(tmp_path, [row], {1: {}})
+        cohort.verify_cohort_evidence(tmp_path, [row], {1: {}})
     row["evidence_sha256"].update(network_har="h", actual_response="a", evaluation="e")
-    cohort._verify_complete_evidence(tmp_path, [row], {1: {}})
+    cohort.verify_cohort_evidence(tmp_path, [row], {1: {}})
     with pytest.raises(ValueError, match="evaluator/current-run evidence"):
-        cohort._verify_complete_evidence(tmp_path, [row], {1: {"retrieval_contract": {}}})
+        cohort.verify_cohort_evidence(tmp_path, [row], {1: {"retrieval_contract": {}}})
     row["evidence_sha256"]["acceptance"] = "c"
-    cohort._verify_complete_evidence(tmp_path, [row], {1: {"retrieval_contract": {}}})
+    cohort.verify_cohort_evidence(tmp_path, [row], {1: {"retrieval_contract": {}}})
 
 
 @pytest.mark.parametrize("configured", [False, True])
@@ -319,10 +321,10 @@ def test_https_admin_reset_requires_restored_application_settings(
     manifest = {"site_map_sha256": "d" * 64}
     sites = {WebArenaSite.SHOPPING_ADMIN: "https://admin.example/admin"}
     if configured:
-        assert cohort._reset_method(args, manifest, sites)
+        assert cohort.reset_cohort(args, manifest, sites)
     else:
         with pytest.raises(ValueError, match="admin HTTPS configuration"):
-            cohort._reset_method(args, manifest, sites)
+            cohort.reset_cohort(args, manifest, sites)
 
 
 def test_browser_session_setup_error_closes_probe_and_propagates(
@@ -335,7 +337,7 @@ def test_browser_session_setup_error_closes_probe_and_propagates(
     def reject(_service):
         raise RuntimeError("CowAgent lacks the required owned CDP context contract")
 
-    monkeypatch.setattr(cohort, "_prepare_browser_viewport", reject)
+    monkeypatch.setattr(cohort, "prepare_browser_viewport", reject)
     with pytest.raises(RuntimeError, match="owned CDP context"):
-        cohort._verify_browser_session(tool)
+        cohort.verify_browser_session(tool)
     assert closed == [True]

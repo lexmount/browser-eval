@@ -6,8 +6,10 @@ Measured outputs are persistent local data, not source files. The current eviden
 bundle lives at `~/.browser-eval/evidence/current/` by default; set
 `WEB_FETCH_EVIDENCE_DIR` to use another explicit bundle. Raw research reruns live
 under `~/.browser-eval/evidence/research/`; use
-`WEB_FETCH_RESEARCH_EVIDENCE_DIR` when they are stored elsewhere. Git retains the frozen dataset,
-annotations and independent source evidence, but ignores provider artifacts,
+`WEB_FETCH_RESEARCH_EVIDENCE_DIR` when they are stored elsewhere. Git retains compact
+task catalogs, acceptance contracts, annotations and input hash manifests. Full
+historical datasets and source captures are installed outside the checkout; see
+[frozen reference inputs](../../docs/reference-inputs.md). Git ignores provider artifacts,
 results, execution manifests, selection receipts and internal audit notes.
 
 `research/report-changes.json` drives the public, collapsible `changes/index.html`.
@@ -22,15 +24,92 @@ file bytes cannot be reconstructed from a URL. An independent HTTP control can
 exercise the byte pipeline without pretending to be a provider result:
 
 ```bash
-uv run --frozen python -B scripts/check_file_delivery.py --output ~/.browser-eval/evidence/research/file-delivery-check
+uv run --frozen browser-harness-eval run \
+  --dataset evaluation/dataset.json \
+  --provider-config configs/providers.example.json --providers http-local \
+  --task-kind file --output ~/.browser-eval/evidence/research/file-delivery-check
 ```
 
-This writes three fresh call records, returned binaries and their target-hash
-checks, and a supplier configuration preflight. It does not overwrite historical
-records or fill any provider observation. Provider reruns need their
-runtime/credentials and a supported byte-returning adapter; text/links alone are
-not a file deliverable. Persist the control under
-`~/.browser-eval/evidence/research/file-delivery-check/`.
+This selects the dataset's file tasks and records HTTP calls, returned binaries,
+format/length checks and target hashes where declared. The report labels the run
+as diagnostic. HTTP delivery is separate from browser execution; it cannot fill
+historical browser observations. To check a browser's file delivery, use its
+configured provider name with the same command. Text or links alone are not a
+file deliverable. The output directory must be new.
+
+`--case-ids` selects explicit tasks; combining it with `--task-kind` takes their
+intersection. An empty selection or repeated task/provider names fails before
+calls. The diagnostic matrix contains exactly the selected tasks and methods;
+it does not inherit a historical cohort's certification or review requirements.
+
+The shared runner rejects empty or duplicate execution scopes before adapter
+validation or calls. Run counts and concurrency must be positive integers;
+timeouts must be positive and finite, and delays finite and nonnegative. Task
+IDs, HTTP(S) URLs, required fields, output types and report groups are validated
+on dataset loading and again at execution. `models.py` owns the output-type and
+report-group registry used by configuration, execution and presentation.
+
+## Independent browser observations
+
+`browser_observations.py` owns browser reference capture; the corresponding
+`scripts/capture_headless_browser_observations.py` command only parses the shared
+entry point. Install the `headless-eval` extra and a Playwright Chromium
+browser, or pass `--browser-binary` with an installed Chromium executable.
+New tasks declare their completion and content scope in the task definition:
+
+```json
+{
+  "source_verification": {
+    "browser_observation": {
+      "selector": ".article-card",
+      "minimum": 10,
+      "content_selector": "main",
+      "text_mode": "visible"
+    }
+  }
+}
+```
+
+The completion selector may match multiple elements; the content selector must
+match exactly one container. `visible` captures visible text, `dom` deliberately
+includes preloaded hidden text, and `reference` applies the shared reference-text
+pruning rules without computing CSS visibility. Without a policy, reference capture uses the declared source
+selector or `body`. Whole-page audits use `--observation-scope visible_page` and
+include visible embedded frames. Historical special policies are compact data
+contracts bound to exact frozen task definitions; changing those tasks requires
+an explicit policy rather than silently inheriting behavior from their names.
+
+Navigation and extraction share the per-attempt time budget. Recorded elapsed
+time is never truncated; an observation exceeding the budget cannot satisfy
+completion. `--checkpoint-dir` requires `--browser-binary`: checkpoints bind the
+binary, task, scope, budgets and capture implementation. Changed inputs or
+modified checkpoint contents are rejected. Use a new checkpoint directory for
+a changed experiment. Checkpoints and final outputs are created exclusively and
+cannot replace an existing observation. Store them under the configured data
+home, outside Git.
+
+## WCXB scoring
+
+`wcxb_scoring.py` owns certified frozen-HTML scoring. The maintained command is
+`scripts/score_wcxb_results.py`; `--profile` selects an explicit experiment profile
+and defaults to `evaluation/wcxb/current-report.json`. The profile's ordered
+participants must match the cohort certificate exactly. Adding or renaming a
+participant in a separately certified cohort requires data changes rather than
+scorer branches. This scoring option does not change the current report's
+publication authority or the certification runner's supported participants.
+
+The scorer loads the profile-pinned evaluator bytes and validates the complete
+source-qualified scope, execution identity, logical outputs, every retained
+physical response and final-call selection. When a profile binds a full paired
+timing correction, binary hashes join its timing roles to certified participants;
+browser names never select corrected values. All-call and successful-call
+latency populations remain separate, and retries retain their physical evidence.
+
+Scoring stages derived results before installation. Invalid or changing inputs
+produce no score files. Handled installation failures remove newly created
+outputs while preserving existing evidence; existing score files cannot be
+overwritten. The summary is installed last. Rebuilding a historical report uses
+its frozen scores, not an implicit rescore or new provider calls.
 
 ## Common text evaluation
 
@@ -133,8 +212,7 @@ Historical records without `raw_file_pass` are unmeasured even if their HTTP
 request failed: all report/summary denominators and failure filters exclude them.
 The three result filters remain pass/fail/all; unmeasured rows appear in all.
 
-`scripts/correct_evaluation_contracts.py` applies reviewed scope and contract
-changes without reading provider outputs. `scripts/rescore_content.py` rescales
+`scripts/rescore_content.py` recomputes
 all applicable records through the shared scorer without supplier calls.
 Known scoring failure modes have compact synthetic positive and negative controls
 in `evaluation/scoring-regressions.json`; CI executes every control through the
@@ -146,10 +224,56 @@ command with a concrete `--root-cause-category`,
 those controls before touching evidence and writes their IDs plus FP/FN direction
 counts into the revision receipt. Directly editing stored verdicts is not a
 supported correction path.
-`scripts/revise_fairness.py --baseline-ref <original-commit>` also records original
-and revised scores in the persistent bundle's `scoring-revisions.json`, checking original
-output hashes, identities and timing. Historical hard deadlines and timing
-overhead cannot be retroactively certified. For a heterogeneous same-window
+
+Reference corrections use `harness.web_fetch.reference_revision`; the
+`revise_reference_evidence.py` command invokes that same owner. It validates
+existing revision histories before any change, stages the full evidence bundle,
+and copies only the selected cases' corrected reference inputs. A failed copy,
+score or receipt write leaves the original bundle intact. Success retains the
+predecessor beside the evidence directory under `.NAME-reference-history-*/original`;
+these private copies preserve prior references and are excluded from the report.
+
+Offline rescoring and scoring revisions are available through
+`uv run --frozen python -m harness.web_fetch.rescoring --help` and
+`uv run --frozen python -m harness.web_fetch.scoring_revision --help`. The existing
+`rescore_content.py` and `revise_body_scoring.py` commands use the same owners.
+Supply an evidence directory and, for rule revisions, an explicit canonical
+input plus the required root cause and executable regression IDs. Neither
+operation calls providers. Declared evidence must remain present, unmodified
+and free of symbolic links before scores can be rewritten.
+
+Existing independent judgments can be retained after a score-only correction
+with `scripts/rebase_blind_result_review.py`. It requires identical task and
+reviewer-visible inputs, retains the independent verdicts, and requires explicit
+adjudication for remaining disagreements. `--output` stages a validated blind
+review; `--install` also requires the complete publication review checks.
+The output cannot overwrite input evidence or the prior review.
+
+`scripts/merge_result_review_revision.py` combines a prior complete review with
+already recorded supplemental judgments. Use `--prior-review` for a bound scoring
+revision chain, or `--prior-evidence` for a refreshed result matrix. Changed tasks
+invalidate reviews across all methods; rerun outputs invalidate the affected
+attempts. Both commands validate before installation and leave the installed
+review unchanged on validation or write failure. They do not initiate a review;
+independent review still requires an explicit request.
+A merged blind review still needs any anomaly investigation required by the
+dataset before publication.
+
+Independent execution remains opt-in through `scripts/review_headless_results.py`;
+its default scope is machine failures. Reviewing passes or the full matrix also
+requires `--confirm-full-review`. `--prepare-only` creates blinded packets without
+starting a reviewer. `scripts/review_result_anomalies.py` investigates an already
+recorded blind review without changing its independent judgments.
+
+Keep each command's `--work` directory outside Git and measured evidence. Its private
+`review-session.json` binds the frozen inputs, verified artifact hashes, exact
+reviewer configuration and review implementation. Matching inputs can resume;
+changed inputs, models or implementations require a new work directory. Existing
+unbound work directories are preserved and rejected rather than silently reused.
+Changing task IDs is not required to invalidate stale judgments. Provider-filtered
+reviews remain partial and cannot replace a required complete installed review.
+
+For a heterogeneous same-window
 cohort, keep every predeclared call and report all-call latency (one shared task
 denominator) separately from successful-call latency (each method's conditional
 subset). The all-method common-pass intersection is diagnostic only: never
@@ -205,11 +329,16 @@ live in this package. The fixed-action kernel benchmark remains independent in
 
 From the repository root:
 
+The fixture commands need no historical inputs. The Moli command below uses the
+frozen historical dataset; first [import its approved input copy](../../docs/reference-inputs.md).
+Its `evaluation/dataset.json` name resolves through the input manifest, while the
+public task directory contains only metadata and definition hashes.
+
 ```sh
 make setup
 uv run --frozen python -m harness.web_fetch validate --providers fixture
-uv run --frozen python -m harness.web_fetch run --dataset configs/fixture-dataset.json --providers fixture
-uv run --frozen python -m harness.web_fetch run --providers moli-webfetch --case-ids static-simple
+uv run --frozen python -m harness.web_fetch run --providers fixture
+uv run --frozen python -m harness.web_fetch run --dataset evaluation/dataset.json --provider-config configs/providers.example.json --providers moli-webfetch --case-ids static-simple
 make report EVIDENCE=/absolute/path/to/evidence
 ```
 
@@ -232,7 +361,53 @@ defined separately in [HEADLESS.md](HEADLESS.md).
 The installed console command is `browser-harness-eval`. There is no legacy
 Python package or compatibility entrypoint.
 
+## Independent source capture
+
+Install the `reference-audit` extra for HTTP and document capture. Select the
+dataset scope explicitly and write outside the source checkout:
+
+```sh
+uv run --frozen --extra reference-audit python scripts/collect_source_evidence.py \
+  /absolute/path/dataset.json /absolute/path/new-captures \
+  --only case-a,case-b --workers 2
+```
+
+The destination must be new. The command validates case IDs before requests,
+retains source bytes and hashes, and records HTTP failures as `needs_review`.
+Unknown or repeated IDs are rejected. If a worker is interrupted, no partial
+capture package is committed. An optional repeated `--resolve HOST=IP` records
+an explicit DNS override and restores the resolver after the batch.
+
+`source_capture.py` owns capture and HTML extraction; all reference consumers
+use this module. Document extraction reuses `document_text.py`. Capture does
+not update the dataset, approve ground truth or certify provider calls. The
+certified runner owns pre-call and post-call capture and reference validation.
+
 ## Dynamic-content ground-truth protocol
+
+Merge and append measured dynamic supplements through the same shared module.
+Pass private input directories explicitly; merged output must be new.
+These commands make no provider calls and do not rescore:
+
+```sh
+uv run --frozen python scripts/merge_dynamic_supplement.py \
+  --reference /absolute/path/frozen-reference \
+  --runs /absolute/path/run-a /absolute/path/run-b \
+  --output /absolute/path/new-assembled-supplement
+uv run --frozen python scripts/append_dynamic_content.py \
+  --source /absolute/path/current-evidence \
+  --reference /absolute/path/frozen-reference \
+  --measured /absolute/path/new-assembled-supplement \
+  --checks /absolute/path/independent-completion-checks.json
+```
+
+Merge preserves original record bytes, auxiliary outputs, retry artifacts, private
+responses and certified post-call reference checks. Append validates task rules,
+complete method coverage and independent completion conditions; changed task rules
+cannot reuse earlier measurements. Copy failures expose no new merged directory;
+append failures preserve original evidence. Both commands support `--help`.
+They issue no new certification; formal publication still needs the track's
+profile and release gates.
 
 Keep dynamic-content results separate from the existing body/access/resource
 tracks. A category named `javascript_rendering`, a browser success, an HTTP
@@ -319,9 +494,10 @@ Execution pitfalls: the fetch runner calls `provider.fetch(case, timeout)`;
 subprocess workers currently receive only URL and timeout, not selectors or
 completion conditions. Metadata above does not change their wait behavior.
 Use a separate dataset and output directory for each measurement cohort.
-`track: dynamic` identifies 动态网站正文. The existing
-`scripts/run_dynamic_tasks.py` performs popular-site list-identity checks,
-not body evaluation. Never repurpose those calls as body measurements.
+`track: dynamic` identifies dynamic website body content. Popular-site list identity is a
+separate structure task, evaluated through the shared scoring contract. Run a
+new certified cohort with the declared tasks and independent list references;
+never rewrite an existing dataset or replace its measured rows in place.
 Local fixture URLs are unavailable to cloud providers and are blocked by some
 private-network guards; compare them locally or deliberately host a public
 fixture. Avoid the answer-replaying `fixture` provider as a rendering baseline.
@@ -431,7 +607,7 @@ page hosts. The fixed DoH endpoint itself uses system DNS for bootstrap. Browser
 startup and DNS remain inside the outer call deadline. Non-browser Crawl4AI
 file/PDF routes explicitly reject this mode. No global DNS setting is changed.
 
-A public-DNS configuration must bind `scripts/oss/public_dns.mjs` for the Node
+A public-DNS configuration must bind `harness/web_fetch/workers/public_dns.mjs` for the Node
 workers, `harness/web_fetch/network_dns.py` for CowAgent/LangChain/Crawl4AI, and DeepSeek's
 native `src/network.ts` in `required_paths`, using the normal `{harness_root}`
 and `{repo_path}` tokens. The preflight checks all selected case hosts with that
@@ -444,14 +620,32 @@ passes the declared HTML/text body verbatim to shared scoring and retains the
 rendered text and full tool envelope privately. An empty declared body stays
 empty; a missing body is an invalid response. It does not reconstruct content
 from UI messages, logs, scripts or later requests. Binding
-`scripts/oss/dsh_output.mjs` is required for this projection. Old calls without the
+`harness/web_fetch/workers/dsh_output.mjs` is required for this projection. Old calls without the
 raw tool value cannot be retroactively reconstructed or rescored as this route.
 
-共享 HTTP 调用预算原样传入调用方客户端，不预留持久化时间而提前扣减（45 秒即 45000 毫秒）；固定原生配置模式不覆盖产品服务端超时参数。外层仍以完整输入到答案处理的截止时间判断；迟到答案被舍弃，尚未退出的不可取消请求会隔离该方法并记明未执行范围，不能并发遗弃请求或额外增加答案预算。
+Fixed-native calls pass the full caller budget to HTTP clients (45 seconds is
+45,000 milliseconds) without overriding product-side timers. Ordinary adapters
+use the shared inner budget, reserving time for completion within the outer
+deadline. The outer deadline covers input through answer processing. Late answers
+are discarded; an uncancellable request still running isolates that method and
+records the unexecuted scope. Do not abandon requests concurrently or add answer time.
 
-本地 DNS 公平性预检覆盖全部六种本地方法，必须统一选择 system 或 public_doh。Moli 在 Darwin 上通过已绑定源码及哈希的进程内解析库支持 public_doh；Crawl4AI 正文浏览器路由使用指定 Chrome 的独立安全 DNS 配置目录。系统模式仍会在发现特殊地址时停止，不能混用模式或关闭产品安全检查。固定原生配置模式中，Moli 内部 HTTP 超时保持默认，响应容量使用预先固定的原生选项。Crawl4AI 正文路由保留完整原生 model_dump 回包，最终 URL 优先使用其声明的 redirected_url；评分正文仍为原生 raw_markdown。
+The DNS fairness precheck covers all six local methods with one declared mode,
+`system` or `public_doh`. On Darwin, Moli uses a source/hash-bound in-process
+resolver for `public_doh`; Crawl4AI body-browser calls use the selected Chrome
+binary and a separate secure-DNS profile. System mode still rejects synthetic
+addresses. Do not mix modes or disable product safety checks. Fixed-native Moli
+calls retain the default internal HTTP timeout and predeclared native response
+capacity. Crawl4AI retains its complete native `model_dump` response, prioritizes
+declared `redirected_url`, and scores native `raw_markdown`.
 
-评测入口不会继承父进程的 API Key、API Token 或账户 ID；这些值只从仓库 .env 读取。普通运行路径变量仍可由调用环境提供，外部 --env-file 不能引入评测凭据。Crawl4AI 的最终 HTTP 状态优先读取原生 redirected_status_code，原始状态另存；原生 links 的 internal/external 名称和地址对直接进入共有 links 输入，不从日志、请求或裸 URL 补造名称。
+Evaluation does not inherit API keys, tokens or account IDs from the parent
+process; they come only from the repository `.env`. Ordinary runtime paths may
+come from the calling environment; an external `--env-file` cannot supply
+evaluation credentials. Crawl4AI prioritizes native `redirected_status_code`
+while retaining the original status. Native `links.internal`/`links.external`
+name/URL pairs enter shared link input directly; names are not reconstructed from
+logs, requests or bare URLs.
 
 ### Fixed native webpage calls
 
@@ -474,3 +668,107 @@ unavailable, while a non-redirect response matched to the requested navigation
 can supply its explicit final URL. Historical logs and outputs remain immutable.
 The changed route requires a new affected benchmark execution before claiming
 new scores or timings; local fixture validation is not a benchmark rerun.
+
+## WCXB paired timing and publication
+
+WCXB builds generate Chinese pages by default. Their English navigation opens a
+not-generated notice with a return link. Pass `--include-english` to
+`scripts/build_report.py --wcxb` to generate both editions; the release checks
+then require matching route inventories and values. English repair content is
+required and packaged only for that explicit bilingual build.
+
+`wcxb_latency.py` owns paired-call collection, receipt validation and certification.
+The collector uses the profile's complete qualified population, timeout and binary
+hashes. It runs two serial rounds, reverses order per task and selects the final
+round before observing results. Failed calls remain in the physical log; an
+incomplete, drifting or invalid cohort receives no valid receipt.
+
+```bash
+uv run --frozen python -m harness.web_fetch.wcxb_latency \
+  --profile /absolute/path/current-report.json \
+  --dataset /absolute/path/wcxb --manifest /absolute/path/qualified.json \
+  --release /absolute/path/released-binary --candidate /absolute/path/candidate-binary \
+  --output /absolute/path/new-paired-evidence
+uv run --frozen python -m harness.web_fetch.wcxb_latency certify \
+  --profile /absolute/path/current-report.json \
+  --dataset /absolute/path/wcxb --sample-manifest /absolute/path/qualified.json \
+  --evidence-root /absolute/path/new-paired-evidence
+```
+
+The historical command defaults to the Moli adapter. Other implementations use
+`--config` with exactly two `providers` entries, `release` and `pr`, using the
+normal Provider configuration fields. The binary flags bind those roles to the
+profile's release and candidate hashes. Certification requires the receipt hash
+bound in the experiment's profile; it never changes a historical profile or
+replaces an existing certificate.
+
+The maintained WCXB builder writes `public-files.json` after finishing its staged
+report. Release checks and packaging reject missing, changed or undeclared files.
+Older generated trees must be rebuilt from their frozen evidence. After the
+WCXB release and visual checks pass, the publisher can be invoked from an
+installed package with an explicit repository authority:
+
+```bash
+uv run --frozen python -m harness.web_fetch.wcxb_publication \
+  --authority-root /absolute/path/browser-eval --source /absolute/path/wcxb-report
+```
+
+The publisher freezes the package and profile, checks the expected remote version,
+verifies exported file bytes and the public share page, then advances only the
+profile's live publication version. A failed export check retains the uploaded
+version in a private operation journal so verification can resume without
+uploading the package again. Publication work files use the configured data home.
+
+## Reference candidates
+
+`reference_freeze.py` owns candidate preparation and reviewed promotion as well
+as reference freezing. The command scripts delegate to that owner. Installed
+callers can inspect both interfaces without a repository checkout:
+
+```bash
+uv run --frozen python -m harness.web_fetch.reference_freeze prepare-promotion --help
+uv run --frozen python -m harness.web_fetch.reference_freeze promote --help
+```
+
+Supply the dataset, independent captures or browser observations, new candidate
+and receipt paths, approval identity, concrete root cause and paired regression
+IDs. Promotion recomputes the candidate from those observations and rejects
+changed bytes or a mismatched approval receipt. It cannot edit a pinned input
+installation. Use explicit `--research-root` and `--sources-root` when promoting
+in an external authoring workspace; these operations do not call providers or
+start an independent review.
+
+
+## WebMainBench sample evidence
+
+The sample and full-cohort entries use `webmainbench_assembly.py`. A sample's
+profile declares its methods, source hash, sample-manifest hash, scoring commit
+and execution limits. The manifest declares the parent population and selected
+tasks; the assembler does not infer a population from the available shard files.
+Sample execution is serial, with one logical result per method and task.
+
+`review_webmainbench_results.py` is an explicit deterministic audit entry. It
+checks saved evidence without calling a provider or importing the official
+scorer for its independent text, code and formula checks. Its receipt binds the
+profile and every reviewed record, output, summary, execution record and fixture
+certificate. Applicable metric failures count as zero; a metric explicitly marked
+as reference-inapplicable is excluded. This audit does not substitute for a human
+result review.
+
+After an explicitly requested audit has produced a passing receipt, assemble it:
+
+```bash
+uv run --frozen python scripts/assemble_webmainbench_evidence.py \
+  --source-root /absolute/path/provider-shards \
+  --dataset /absolute/path/WebMainBench_545.jsonl \
+  --sample-manifest evaluation/public-webmainbench-200.json \
+  --profile evaluation/current-report.json \
+  --review /absolute/path/passing-review.json \
+  --output /absolute/path/new-assembled-evidence
+```
+
+The output must be new and outside the input evidence. Assembly retains every
+physical-call output, uses the final declared response, verifies hashes and
+exposes the directory only after the entire matrix passes. Unbound review
+receipts cannot authorize a new assembly. Existing published reports retain
+their frozen evidence and are restored from their pinned release.

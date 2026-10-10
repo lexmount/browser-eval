@@ -7,7 +7,7 @@ from pathlib import Path
 from urllib.parse import quote, urlsplit
 
 from .metrics import task_passed
-from .publication_target import HUB
+from .publication_target import public_report_url
 from .safety import contained_path, safe_identifier
 
 
@@ -38,7 +38,7 @@ def _link(url, label):
 
 def _attempt_link(record):
     route = 'attempts/' + safe_identifier(record['attempt_id']) + '.html'
-    return _link(HUB + '#page=' + quote(route, safe=''), '完整输出与逐项判定')
+    return _link(public_report_url() + '#page=' + quote(route, safe=''), '完整输出与逐项判定')
 
 
 def _read_output(out, record):

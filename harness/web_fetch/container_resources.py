@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import shutil
@@ -9,6 +10,7 @@ import subprocess
 import time
 import uuid
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import docker
@@ -65,7 +67,17 @@ class ContainerResourceRunner:
             raise RuntimeError("Docker CLI is required to pass the worker request through stdin")
         image = client.images.get(self.image)
         attrs = image.attrs
+        worker = Path(__file__).parent / 'providers/headless_worker.py'
+        expected_worker = hashlib.sha256(worker.read_bytes()).hexdigest()
+        observed = client.containers.run(
+            image.id, ['/workspace/harness/web_fetch/providers/headless_worker.py'],
+            entrypoint='sha256sum', network_disabled=True, remove=True,
+        ).decode('utf-8', errors='replace')
+        match = re.match(r'^([0-9a-f]{64})\s', observed)
+        if not match or match.group(1) != expected_worker:
+            raise RuntimeError('Resource image worker differs from the selected runtime; rebuild the declared image')
         return {
+            'worker_sha256': expected_worker,
             "backend": "docker_cgroup_v2",
             "docker_server_version": client.version().get("Version"),
             "docker_os": info.get("OperatingSystem"),
@@ -158,7 +170,8 @@ class ContainerResourceRunner:
                         "-i",
                         container.id,
                         "/workspace/.venv/bin/python",
-                        "/workspace/scripts/headless_worker.py",
+                        "-m",
+                        "harness.web_fetch.providers.headless_worker",
                     ],
                     input=json.dumps(request).encode("utf-8"),
                     capture_output=True,

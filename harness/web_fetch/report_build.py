@@ -4,30 +4,55 @@ import json
 import shutil
 import tempfile
 from pathlib import Path
+
+from harness.record_io import load_jsonl
 from harness.reporting.assets import copy_bound_assets
-from .report import generate, generate_public_benchmark_research, generate_webmainbench, generate_webmainbench_full, webmainbench_full_machine_issue, generate_wcxb, succeeded, measured, failure_category, TRACKS
-from .report_changes import webmainbench_history
+
+from .artifacts import (
+    copy_cohort_evidence,
+    diagnostic_log_binding,
+    materialize_reference_checks,
+    materialize_task_references,
+    record_public_call_log_bindings,
+    verify_public_call_log,
+    verify_record_private_artifacts,
+    verify_record_public_call_logs,
+)
 from .failure_diagnosis import diagnose
-from .safety import contained_path, safe_identifier, validate_report_ids
 from .reference_lifecycle import require_verified_reference_checks
 from .reliability import assess_reliability
-from .storage import require_selection_history,data_home
-from .wcxb_latency import load_full_paired_latency
+from .report import (
+    TRACKS,
+    failure_category,
+    generate,
+    generate_public_benchmark_research,
+    generate_wcxb,
+    generate_webmainbench,
+    generate_webmainbench_full,
+    measured,
+    succeeded,
+    webmainbench_full_machine_issue,
+)
+from .report_changes import webmainbench_history
+from .safety import contained_path, reject_evidence_symlinks, safe_identifier, validate_report_ids
 from .scoring import SCORING_SOURCE_SHA256
+from .storage import data_home, require_selection_history
+from .wcxb_latency import load_full_paired_latency
 from .webmainbench_diagnostics import validate_teds_revision_if_present
 from .webmainbench_latency_correction import prior_results_path
 from .webmainbench_latency_diagnostic import load_diagnostic as load_latency_diagnostic
-from .artifacts import (
-    diagnostic_log_binding, record_public_call_log_bindings, verify_record_private_artifacts,
-    verify_public_call_log, verify_record_public_call_logs,
-)
 
 
 def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | None = None) -> Path:
     """Build an explicitly requested diagnostic edition using the WebFetch owner."""
     from harness.reporting.templates import resolve_template
-    from .report_diagnostic import load_diagnostic, check_diagnostic_report, prepare_diagnostic_evidence
+
     from .report import generate_cohort_diagnostic
+    from .report_diagnostic import (
+        check_diagnostic_report,
+        load_diagnostic,
+        prepare_diagnostic_evidence,
+    )
 
     if profile is not None:
         configuration = json.loads(profile.read_text())
@@ -113,54 +138,6 @@ def copy_methodology_assets(output, assets=None):
             shutil.copy2(source, target)
 
 
-def copy_speed_cohort_public_files(source, target, dataset, records, batches):
-    """Copy the exact public speed-cohort evidence set; reject every symlink."""
-    source = Path(source)
-    if source.is_symlink():
-        raise ValueError('Speed cohort root must not be a symlink')
-    source_root = source.resolve()
-    for child in source.rglob('*'):
-        if child.is_symlink():
-            raise ValueError('Speed cohort evidence must not contain symlinks')
-
-    allowed = {'dataset.json', 'results.jsonl', 'speed-comparison.json'}
-    for optional in ('execution.json', 'manifest.json', 'scoring-revisions.json',
-                     'reference-revisions.json'):
-        if (source / optional).is_file():
-            allowed.add(optional)
-    for record in records:
-        relative = record['artifact_path']
-        artifact = contained_path(source, relative)
-        expected = record.get('metrics', {}).get('content_sha256')
-        if (not artifact.is_file() or not expected
-                or hashlib.sha256(artifact.read_bytes()).hexdigest() != expected):
-            raise ValueError('Speed cohort output integrity failure: ' + record['attempt_id'])
-        allowed.add(relative)
-        for binding in record_public_call_log_bindings(record):
-            allowed.add(verify_public_call_log(source, binding).relative_to(source_root).as_posix())
-    for batch in batches:
-        relative = batch.get('reference_checks', {}).get('postcheck', {}).get('evidence_path')
-        if relative:
-            allowed.add(relative)
-    for case in dataset.get('cases', []):
-        case_id = case['id']
-        source_dir = contained_path(source, 'sources/' + case_id)
-        if source_dir.is_dir():
-            allowed.update(child.relative_to(source_root).as_posix()
-                           for child in source_dir.rglob('*') if child.is_file())
-        reference = contained_path(source, 'list-references/' + case_id + '.json')
-        if reference.is_file():
-            allowed.add(reference.relative_to(source_root).as_posix())
-
-    target.mkdir(parents=True)
-    for relative in sorted(allowed):
-        source_file = contained_path(source, relative)
-        if not source_file.is_file():
-            raise ValueError('Speed cohort allowlisted file is missing: ' + relative)
-        target_file = contained_path(target, relative)
-        target_file.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source_file, target_file)
-
 
 def build_public_benchmark_research(source: Path, output: Path, *, include_english: bool = False) -> Path:
     """Build the research-only companion without measured evidence."""
@@ -204,8 +181,24 @@ def build_public_benchmark_research(source: Path, output: Path, *, include_engli
     return output / 'index.html'
 
 
+def _install_report_tree(staging: Path, output: Path):
+    if output.exists():
+        backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
+        output.rename(backup)
+        try:
+            staging.rename(output)
+        except BaseException:
+            backup.rename(output)
+            backup.parent.rmdir()
+            raise
+        shutil.rmtree(backup.parent)
+    else:
+        staging.rename(output)
+
+
 def build_report(source: Path, output: Path, *, include_english: bool = False,
-                 local_audit: bool = False) -> Path:
+                 local_audit: bool = False, authored_interpretation: bool = False,
+                 diagnostic_preview: bool = False) -> Path:
     source, output = source.resolve(), output.resolve()
     if source == output or output in source.parents:
         raise ValueError('Report output must not contain its evidence source')
@@ -213,7 +206,9 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     if output.exists() and not (output/marker).is_file():
         raise ValueError(f'Refusing to replace an unmarked directory: {output}')
     dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
-    if not local_audit:
+    diagnostic_preview = (diagnostic_preview and
+        dataset_probe.get('comparison', {}).get('kind') == 'web_fetch_diagnostic')
+    if not local_audit and not diagnostic_preview:
         from .reference_lifecycle import require_certifiable_evidence
         require_certifiable_evidence(dataset_probe)
     if dataset_probe.get('comparison', {}).get('kind') == 'webmainbench_frozen_html_to_markdown':
@@ -221,7 +216,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     if not local_audit:
         require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text())
-    records = [json.loads(line) for line in contained_path(source,'results.jsonl').read_text().splitlines()]
+    records = load_jsonl(contained_path(source,'results.jsonl'))
     validate_report_ids(dataset,records)
     require_risk_control_certification(source, dataset, records)
     cases = {c['id']:c for c in dataset['cases']}
@@ -244,7 +239,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         if speed.get('bindings',{}).get('results_sha256') != hashlib.sha256((speed_root/'results.jsonl').read_bytes()).hexdigest():
             raise ValueError('Speed comparison result binding mismatch')
         speed_dataset=json.loads((speed_root/'dataset.json').read_text())
-        speed_records=[json.loads(line) for line in (speed_root/'results.jsonl').read_text().splitlines()]
+        speed_records=load_jsonl(speed_root/'results.jsonl')
         speed_execution=speed_root/'execution.json'
         if speed_execution.is_file():
             speed_batches=json.loads(speed_execution.read_text()).get('batches', [])
@@ -256,20 +251,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 raise ValueError('Speed cohort output integrity failure: '+row['attempt_id'])
     resource_root=source/'resource-cohort'
     if resource_root.exists():
-        resource=json.loads((resource_root/'resource-comparison.json').read_text())
-        for name in ('dataset','results'):
-            extension='json' if name == 'dataset' else 'jsonl'
-            raw=(resource_root/f'{name}.{extension}').read_bytes()
-            if resource.get('bindings',{}).get(name+'_sha256') != hashlib.sha256(raw).hexdigest():
-                raise ValueError('Resource comparison '+name+' binding mismatch')
-        resource_dataset=json.loads((resource_root/'dataset.json').read_text())
-        resource_records=[json.loads(line) for line in
-                          (resource_root/'results.jsonl').read_text().splitlines()]
-        require_result_review(resource_root,resource_dataset,resource_records)
-        for row in resource_records:
-            raw=contained_path(resource_root,row['artifact_path'])
-            if hashlib.sha256(raw.read_bytes()).hexdigest()!=row['metrics']['content_sha256']:
-                raise ValueError('Resource cohort output integrity failure: '+row['attempt_id'])
+        from .resource_cohort import validate_cohort
+        resource_dataset, resource_records, resource_batches = validate_cohort(resource_root)
     for c in cases.values():
         annotation=c.get('source_benchmark',{}).get('stable_annotation',{})
         if annotation.get('anchor_evidence_sha256'):
@@ -279,6 +262,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 # newer origin/main release gate in a local merged view.
                 continue
             from copy import deepcopy
+
             from .stable_annotations import bind_annotation_evidence
             checked=deepcopy(c)
             bind_annotation_evidence(checked,source)
@@ -319,13 +303,11 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             if r['metrics'].get('resource_acceptance_contract_sha256') != expected:
                 raise ValueError(
                     f'Resource acceptance contract hash missing or mismatched: {r["attempt_id"]}')
-    diagnostic_path=Path(__file__).resolve().parents[2]/'research/failure-sources.json'
-    source_checks={x['case_id']:x for x in json.loads(diagnostic_path.read_text())} if diagnostic_path.exists() else {}
     if not cases or not records:
         raise ValueError('A report requires tasks and measured records')
     execution = source/'execution.json'
     manifests = json.loads(execution.read_text())['batches'] if execution.exists() else [json.loads((source/'manifest.json').read_text())]
-    if not local_audit:
+    if not local_audit and not diagnostic_preview:
         require_verified_reference_checks(manifests, cases=dataset, records=records, source=source,
             equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
             'equivalent_reference_bytes_with_independent_batch_captures')
@@ -415,26 +397,23 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             if local_audit and (saved_diagnosis or {}).get('classification_revision') == 'failure-classification-v2':
                 r['diagnosis'] = saved_diagnosis
             else:
-                r['diagnosis']=diagnose(r,cases[r['case_id']],text,source_checks.get(r['case_id']))
+                r['diagnosis']=diagnose(r,cases[r['case_id']],text)
             r['failure_category'] = failure_category(r, cases[r['case_id']])
-        for folder in ['sources','list-references','reference-checks']:
-            tree=contained_path(source,folder)
+        for folder in ['reference-checks']:
+            tree=contained_path(source,folder,reject_symlinks=True)
             if tree.exists():
-                for child in tree.rglob('*'):
-                    if child.is_symlink():
-                        raise ValueError('Evidence trees must not contain symlinks')
-        if (source/'sources').exists():
-            shutil.copytree(source/'sources', staging/'sources')
-        if (source/'list-references').exists():
-            shutil.copytree(source/'list-references',staging/'list-references')
-        if (source/'reference-checks').exists():
-            shutil.copytree(source/'reference-checks', staging/'reference-checks')
+                reject_evidence_symlinks(tree)
+        materialize_task_references(staging, {name: source/name
+            for name in ('sources','list-references')}, cases)
+        materialize_reference_checks(staging, source, manifests)
         if speed_root.exists():
-            copy_speed_cohort_public_files(
-                speed_root, staging/'speed-cohort', speed_dataset, speed_records, speed_batches)
+            copy_cohort_evidence(
+                speed_root, staging/'speed-cohort', speed_dataset, speed_records, speed_batches,
+                summary_name='speed-comparison.json')
         if resource_root.exists():
-            shutil.copytree(resource_root,staging/'resource-cohort',ignore=shutil.ignore_patterns(
-                'result-review.json','review-history','private_artifacts'))
+            copy_cohort_evidence(resource_root, staging/'resource-cohort',
+                resource_dataset, resource_records, resource_batches,
+                summary_name='resource-comparison.json')
         summary = {t:{p:{'attempts':len(rs), 'task_pass':sum(succeeded(r,cases[r['case_id']]) for r in rs)}
                       for p in sorted({r['provider'] for r in records})
                       if (rs := [r for r in records if r['provider']==p and cases[r['case_id']].get('track','web')==t])}
@@ -514,18 +493,11 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 "dataset_sha256": hashlib.sha256((source / "dataset.json").read_bytes()).hexdigest(),
                 "results_sha256": hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest(),
             }, ensure_ascii=False, indent=2))
-        generate(staging,dataset,records,manifests,include_english=include_english)
+        generate(staging,dataset,records,manifests,include_english=include_english,
+                 authored_interpretation=authored_interpretation)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         # Replace only an explicitly marked generated directory; never merge stale pages.
-        if output.exists():
-            backup = Path(tempfile.mkdtemp(prefix='.report-swap-',dir=output.parent))/'report'
-            output.rename(backup)
-            try: staging.rename(output)
-            except BaseException:
-                backup.rename(output)
-                raise
-            shutil.rmtree(backup.parent)
-        else: staging.rename(output)
+        _install_report_tree(staging, output)
     finally:
         if staging.exists(): shutil.rmtree(staging)
     return output/'index.html'
@@ -607,8 +579,16 @@ def validate_webmainbench_anomaly_review(receipt: dict, source: Path,
 
 def build_webmainbench_report(source: Path, output: Path, *, include_english: bool = False) -> Path:
     """Build the current public-benchmark report without legacy task predicates."""
+    from harness.reporting.assets import copy_bound_assets, load_bound_content
+
+    authority = Path(__file__).resolve().parents[2]
+    content_binding_path = authority / 'evaluation/webmainbench-content-binding.json'
+    content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
+    content_source = data_home() / 'report-assets/webmainbench-sample'
+    report_content = load_bound_content(
+        content_source, content_binding, evidence_root=source, authority_root=authority)
     dataset = json.loads(contained_path(source, 'dataset.json').read_text())
-    records = [json.loads(line) for line in contained_path(source, 'results.jsonl').read_text().splitlines() if line.strip()]
+    records = load_jsonl(contained_path(source, 'results.jsonl'), skip_blank=True)
     teds_revision = validate_teds_revision_if_present(source, records)
     summaries = json.loads(contained_path(source, 'score-summaries.json').read_text())
     manifests = json.loads(contained_path(source, 'execution.json').read_text())['batches']
@@ -644,7 +624,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     parent = data_home() / 'public-benchmarks/webmainbench-545/WebMainBench_545.jsonl'
     if not parent.is_file() or hashlib.sha256(parent.read_bytes()).hexdigest() != dataset['source_dataset_sha256']:
         raise ValueError('Frozen WebMainBench parent dataset is unavailable or differs from the bound source hash')
-    parent_rows = [json.loads(line) for line in parent.read_text(encoding='utf-8').splitlines() if line.strip()]
+    parent_rows = load_jsonl(parent, skip_blank=True)
     source_html = {row['track_id']: row['html'] for row in parent_rows if row['track_id'] in case_ids}
     if set(source_html) != case_ids:
         raise ValueError('Frozen source HTML does not cover the current 200-page sample')
@@ -693,7 +673,10 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
         if latency_diagnostic is not None:
             (staging / 'latency-diagnostic.json').write_text(
                 json.dumps(latency_diagnostic, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review, latency_diagnostic, include_english=include_english)
+        copy_bound_assets(content_source, staging, {
+            content_binding['relative_path']: content_binding['sha256']})
+        shutil.copy2(content_binding_path, staging / 'report-content-binding.json')
+        generate_webmainbench(staging, dataset, records, summaries, manifests, review, research, corrections, adoption, fixture_correction, teds_revision, anomaly_review, latency_diagnostic, include_english=include_english, report_content=report_content)
         (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
@@ -725,9 +708,11 @@ def public_webmainbench_scoring_projection(records: list[dict]) -> list[dict]:
 
 def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     """Build the separately bound complete 545-case report from certified evidence."""
-    from scripts.run_certified_webmainbench_full import digest, read_jsonl
+    from harness.web_fetch.webmainbench_evidence import digest, read_jsonl
+
     from .webmainbench_diagnostics import (
-        validate_reference_revision, validate_teds_revision,
+        validate_reference_revision,
+        validate_teds_revision,
         validate_webmainbench_scoring_revision,
     )
     if source.is_symlink() or any(path.is_symlink() for path in source.rglob('*')):
@@ -750,17 +735,19 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     repo = Path(__file__).resolve().parents[2]
     registry_path = repo / 'evaluation/webmainbench-full/moli-variants.json'
     registry = json.loads(registry_path.read_text(encoding='utf-8'))
-    seven_binding = json.loads((source / 'seven-method-binding.json').read_text(encoding='utf-8'))
+    from .webmainbench_evidence import read_method_binding
+    binding_name, method_binding = read_method_binding(source)
     teds_path = source / 'teds-correction.json'
     teds_receipt = json.loads(teds_path.read_text(encoding='utf-8')) if teds_path.is_file() else None
     scoring_path = source / 'scoring-correction.json'
     scoring_receipt = json.loads(scoring_path.read_text(encoding='utf-8')) if scoring_path.is_file() else None
     variants = registry.get('variants', [])
-    bound_variants = {item['provider']: item for item in seven_binding.get('variants', [])}
-    if (seven_binding.get('kind') != 'webmainbench_seven_method_full_scope_binding'
-            or seven_binding.get('registry_sha256') != digest(registry_path)
-            or seven_binding.get('baseline_certificate_sha256') != digest(source / 'cohort-certificate.json')
-            or seven_binding.get('results_sha256') != (
+    bound_variants = {item['provider']: item for item in method_binding.get('variants', [])}
+    if (method_binding.get('kind') not in {'webmainbench_seven_method_full_scope_binding', 'webmainbench_method_cohort_binding'}
+            or method_binding.get('registry_sha256') != digest(registry_path)
+            or method_binding.get('baseline_profile_sha256') != digest(profile_path)
+            or method_binding.get('baseline_certificate_sha256') != digest(source / 'cohort-certificate.json')
+            or method_binding.get('results_sha256') != (
                 teds_receipt.get('input_results_sha256') if teds_receipt
                 else scoring_receipt.get('input_results_sha256') if scoring_receipt else None)
             or (teds_receipt is not None and teds_receipt.get('output_results_sha256') != digest(
@@ -768,7 +755,7 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
                           if (source / 'reference-correction.json').is_file()
                           else 'pre-scoring-correction-results.jsonl'
                           if scoring_receipt else 'results.jsonl')))
-            or seven_binding.get('logical_results') != 545 * (len(profile['providers']) + len(variants))):
+            or method_binding.get('logical_results') != 545 * (len(profile['providers']) + len(variants))):
         raise ValueError('Seven-method report evidence binding mismatch')
     versions = dict(profile['versions'])
     variant_labels = {}
@@ -794,7 +781,7 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
         variant_labels[provider] = item['label']
     providers = profile['providers'] + [item['provider'] for item in variants]
     display_profile = {**profile, 'providers': providers, 'versions': versions,
-                       'variant_labels': variant_labels, 'variants': variants}
+                       'variant_labels': variant_labels, 'variants': variants, 'method_binding_file': binding_name}
     cases = {case['id']: case for case in dataset['cases']}
     if (len(cases) != 545 or len(records) != 545 * len(providers)
             or {(row['provider'], row['case_id']) for row in records} !=
@@ -809,8 +796,8 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     content_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/content-binding.json'
     content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
     content_path = data_home() / 'report-assets/webmainbench-full' / content_binding['relative_path']
-    if digest(content_path) != content_binding['sha256']:
-        raise ValueError('Report prose differs from the compact content binding')
+    from harness.reporting.assets import load_bound_content
+    load_bound_content(data_home() / 'report-assets/webmainbench-full', content_binding)
     failure_binding_path = Path(__file__).resolve().parents[2] / 'evaluation/webmainbench-full/failure-analysis-binding.json'
     failure_binding = json.loads(failure_binding_path.read_text(encoding='utf-8'))
     failure_path = data_home() / 'report-assets/webmainbench-full' / failure_binding['relative_path']
@@ -864,7 +851,7 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
                      'physical-attempts.jsonl', 'execution.json', 'score-summaries.json',
                      'cohort-certificate.json', 'current-report.json',
                      'scoring-certificate.json',
-                     'seven-method-binding.json'):
+                     binding_name):
             shutil.copy2(source / name, staging / name)
         if teds_receipt is not None:
             for name in ('teds-correction.json', 'teds-correction-review.json'):
@@ -917,7 +904,9 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
                 shutil.copy2(asset_source, staging / 'assets' / asset['name'])
         generate_webmainbench_full(staging, dataset, records,
                                    summaries, display_profile)
-        from scripts.check_webmainbench_full_report import check as check_webmainbench_full
+        from harness.web_fetch.webmainbench_report_check import (
+            check as check_webmainbench_full,
+        )
         check_webmainbench_full(staging)
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
@@ -936,11 +925,17 @@ def build_webmainbench_full_report(source: Path, output: Path) -> Path:
     return output / 'index.html'
 
 
-def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: dict, output: Path) -> Path:
+def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: dict, output: Path,
+                      *, content_binding: dict, authority_root: Path,
+                      include_english: bool = False) -> Path:
     """Build the one current report from a fully certified WCXB matrix."""
-    from scripts.run_webmainbench_benchmark import WCXB_PROVIDERS, load_wcxb_source
-    from scripts.select_wcxb_sample import validate_manifest
+    from harness.web_fetch.wcxb_dataset import validate_manifest
+    from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source
     source, output = source.resolve(), output.resolve()
+    from harness.reporting.assets import load_bound_content
+    report_content = load_bound_content(
+        source / "report-assets", content_binding,
+        evidence_root=source, authority_root=authority_root)
     certificate = json.loads((source / 'certification.json').read_text())
     summary = json.loads((source / 'wcxb-score-summary.json').read_text())
     records, corpus_hash = load_wcxb_source(corpus)
@@ -972,7 +967,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     released = next(x for x in certificate['providers'] if x['provider'] == 'moli')
     if released['identity'].get('binary_sha256') != profile['release_binary_sha256']:
         raise ValueError('WCXB released Moli binary differs from the current report profile')
-    rows = [json.loads(line) for line in (source / 'wcxb-scores.jsonl').read_text().splitlines() if line]
+    rows = load_jsonl(source / 'wcxb-scores.jsonl', skip_blank=True)
     case_ids = {r['track_id'] for r in records}
     correction_root = source / 'latency-correction'
     correction_receipt = correction_root / 'receipt.json'
@@ -1033,7 +1028,10 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                      staging / 'research/report-changes.json')
         shutil.copy2(Path(__file__).resolve().parents[2] / 'research/provider-adoption.json',
                      staging / 'research/provider-adoption.json')
-        copy_bound_assets(source / 'report-assets', staging, profile['report_assets'])
+        copy_bound_assets(source / 'report-assets', staging, {
+            name: digest for name, digest in profile['report_assets'].items()
+            if include_english or name != 'content/wcxb-repair-en.fragment'
+        })
         (staging / 'references').mkdir()
         (staging / 'inputs').mkdir()
         for case in records:
@@ -1052,7 +1050,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             if manifest['run_id'] != batch['run_id'] or manifest['source_dataset_sha256'] != corpus_hash:
                 raise ValueError('WCXB run identity changed: ' + provider)
             identities[provider] = manifest['implementation_identity']
-            raw_rows = [json.loads(line) for line in results_file.read_text().splitlines() if line]
+            raw_rows = load_jsonl(results_file, skip_blank=True)
             if len(raw_rows) != len(records):
                 raise ValueError('WCXB provider results incomplete: ' + provider)
             for row in raw_rows:
@@ -1079,7 +1077,8 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                 'page_type': record['meta']['page_type'],
                 'with': gt.get('with') or [], 'without': gt.get('without') or [],
             }
-        generate_wcxb(staging, rows, summary, ground_truth, identities, profile)
+        generate_wcxb(staging, rows, summary, ground_truth, identities, profile, report_content,
+                      include_english=include_english)
         evidence_root = staging / 'evidence'
         evidence_root.mkdir()
         evidence_hashes = {}
@@ -1129,6 +1128,8 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         for folder in ('artifacts', 'references', 'inputs'):
             shutil.rmtree(staging / folder, ignore_errors=True)
         (staging / '.generated-report').write_text('generated\n')
+        from .wcxb_publication import write_inventory
+        write_inventory(staging, profile)
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.wcxb-report-old-', dir=output.parent)) / 'report'
             output.rename(backup)
@@ -1169,7 +1170,7 @@ def validate_local_presentation(output: Path, binding_path: Path):
                 or hashlib.sha256(contained_path(output, name).read_bytes()).hexdigest() != expected):
             raise ValueError('Presentation input binding changed: ' + name)
     dataset = json.loads((output / 'dataset.json').read_text())
-    records = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]
+    records = load_jsonl(contained_path(output, 'results.jsonl'))
     if (len(records) != binding.get('result_count')
             or len(dataset['cases']) != binding.get('case_count')
             or sorted({row['provider'] for row in records}) != sorted(binding['providers'])
@@ -1190,7 +1191,9 @@ def validate_local_presentation(output: Path, binding_path: Path):
 
 def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
     """Install explanatory routes from the single report owner."""
-    output = output.resolve()
+    from .safety import unlinked_path, evidence_tree_identity
+    output = unlinked_path(output)
+    before_tree = evidence_tree_identity(output)
     binding, dataset, records, manifest = validate_local_presentation(output, binding_path)
     manifest_path = output / "report-manifest.json"
     # The existing owner renders from saved metrics. Only these explanatory
@@ -1218,7 +1221,14 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
             'renderer_sha256': hashlib.sha256(Path(__file__).with_name('report.py').read_bytes()).hexdigest(),
             'changed_routes': sorted(set(changed) | set(manifest.get('presentation_refresh', {}).get('changed_routes', []))),
         }
+        # Stage the permitted pages into a copy of the original snapshot so no
+        # renderer side effects can change evidence or unrelated routes.
+        selected = Path(scratch) / 'selected'
+        shutil.copytree(output, selected)
         for relative in changed:
-            shutil.copy2(staging / relative, output / relative)
-        manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
+            shutil.copy2(staging / relative, selected / relative)
+        (selected / manifest_path.name).write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
+        if evidence_tree_identity(output) != before_tree:
+            raise ValueError('Presentation snapshot changed during rendering')
+        _install_report_tree(selected, output)
     return output / 'index.html'

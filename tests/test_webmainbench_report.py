@@ -1,15 +1,25 @@
-import hashlib
 import copy
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from harness.web_fetch.report import JS, generate_webmainbench, _wmb_pct, _wmb_body_state, _wmb_row_attrs, _wmb_editorial_guide, _wmb_html_preview, _wmb_table_example, _wmb_latency_summary, _wmb_table_population
+from harness.web_fetch.report import (
+    JS,
+    _wmb_body_state,
+    _wmb_guide,
+    _wmb_html_preview,
+    _wmb_latency_summary,
+    _wmb_pct,
+    _wmb_row_attrs,
+    _wmb_table_example,
+    _wmb_table_population,
+    generate_webmainbench,
+)
 from harness.web_fetch.report_build import validate_webmainbench_correction
 from harness.web_fetch.report_style import STYLE
-
 
 PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium")
 METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
@@ -70,7 +80,7 @@ class WebMainBenchReportTests(unittest.TestCase):
         case_id = 'c42e7f28-f109-459b-8423-2ce20f651ac9'
         for english in (False, True):
             with self.subTest(english=english):
-                html = _wmb_editorial_guide(
+                html = _wmb_guide(
                     english=english, names=list(PROVIDERS),
                     labels={name: name for name in PROVIDERS},
                     cases={case_id: {}},
@@ -236,7 +246,7 @@ class WebMainBenchReportTests(unittest.TestCase):
                 parsed = BeautifulSoup(article, 'html.parser')
                 self.assertEqual(len(parsed.select('.wmb-guide-results tbody tr')), len(PROVIDERS))
                 self.assertEqual(len(parsed.select('.wmb-guide-latency tbody tr')), len(PROVIDERS))
-                self.assertEqual(len(parsed.select('#overall .wmb-score-part')), 5)
+                self.assertNotIn('32.4%', article)
                 self.assertIsNotNone(parsed.select_one('#content'))
                 self.assertIn('P95', parsed.select_one('#delivery').get_text())
             self.assertNotIn("{common_low}", guide_en)

@@ -1,0 +1,13 @@
+{
+  "schema_version": 2,
+  "kind": "frozen_reference_inputs",
+  "id": "dynamic-content-100-moli-webfetch-b32c7ad678dd-v2",
+  "dataset": "dataset.json",
+  "dataset_sha256": "b32c7ad678ddef0377868f88d8fb82b0f84c09b708f67e5688317db96eab9571",
+  "catalog": "dataset-catalog.json",
+  "catalog_sha256": "81703f392b586931624692cb42a006843a9cbf02250fd9ea36d4ecb65ee1cb6e",
+  "files": {
+    "dataset.json": "b32c7ad678ddef0377868f88d8fb82b0f84c09b708f67e5688317db96eab9571"
+  },
+  "trees": {}
+}

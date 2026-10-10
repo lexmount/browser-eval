@@ -1,13 +1,13 @@
 """Track-scoped execution uses the real runner with local fixture providers."""
-from contextlib import redirect_stderr, redirect_stdout
 import io
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
 from unittest.mock import patch
 
-from scripts import run_benchmark
+from harness.web_fetch import benchmark_runner as run_benchmark
 from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.providers.firecrawl import FirecrawlProvider
@@ -64,6 +64,17 @@ class BenchmarkSelectionTests(unittest.TestCase):
         self.assertEqual({p.name for p in (self.output/'sources').iterdir()}, {'dynamic-a','dynamic-b'})
         self.assertFalse((self.output/'workers/fixture-one/web').exists())
 
+    def test_invalid_explicit_config_fails_before_environment_or_dataset_access(self):
+        for config in (self.root / 'missing.json', self.root / 'configs'):
+            with self.subTest(config=config), \
+                    patch.object(run_benchmark, 'load_runtime_env') as environment, \
+                    patch.object(run_benchmark, 'load_dataset') as dataset, \
+                    redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                run_benchmark.main(['--provider-config', str(config), '--output', str(self.output)])
+            environment.assert_not_called()
+            dataset.assert_not_called()
+            self.assertFalse(self.output.exists())
+
     def test_instance_provider_configuration_does_not_mutate_shared_defaults(self):
         import hashlib
         defaults={p:p.read_bytes() for p in (self.root/'configs').iterdir()}
@@ -75,7 +86,8 @@ class BenchmarkSelectionTests(unittest.TestCase):
         self.assertEqual({r['case_id']:r['ok'] for r in rows},
             {'web-a':True,'dynamic-a':True,'dynamic-b':False})
         batches=json.loads((self.output/'execution.json').read_text())['batches']
-        self.assertEqual(len(batches),2)
+        self.assertEqual({attempt for batch in batches for attempt in batch['attempt_ids']},
+                         {row['attempt_id'] for row in rows})
         self.assertTrue(all(b['provider_config_source']==str(config.resolve()) for b in batches))
         self.assertTrue(all(b['provider_config_sha256']==hashlib.sha256(config.read_bytes()).hexdigest() for b in batches))
         self.assertEqual({p:p.read_bytes() for p in defaults},defaults)
@@ -86,6 +98,20 @@ class BenchmarkSelectionTests(unittest.TestCase):
         run.assert_not_called()
         build.assert_not_called()
         self.assertFalse(self.output.exists())
+
+    def test_explicit_provider_config_does_not_use_repository_scope_files(self):
+        import shutil
+        custom = self.root / 'custom-providers.json'
+        custom.write_text(json.dumps({'providers': {'custom': {'type': 'fixture'}}}))
+        shutil.rmtree(self.root / 'configs')
+        self.run_main(['--track', 'dynamic', '--providers', 'custom',
+                       '--provider-config', str(custom)])
+        records = [json.loads(line) for line in
+                   (self.output / 'results.jsonl').read_text().splitlines()]
+        self.assertEqual({(row['provider'], row['case_id']) for row in records},
+                         {('custom', 'dynamic-a'), ('custom', 'dynamic-b')})
+        batches = json.loads((self.output / 'execution.json').read_text())['batches']
+        self.assertTrue(all(batch['provider_config_source'] == str(custom.resolve()) for batch in batches))
 
     def test_capacity_preflight_receives_whole_worst_case_before_output_or_fetch(self):
         capacity_calls = []
@@ -227,11 +253,13 @@ class BenchmarkSelectionTests(unittest.TestCase):
                         'artifacts/p/c/run-000.txt', 'artifacts/p/c/run-000.bin',
                     ],
                     'content_sha256': digest(files['artifacts/p/c/run-000.txt']),
+                    'artifact_sha256': {relative: digest(content) for relative, content in files.items()
+                                        if 'run-000.' in relative},
                 }]},
             },
         }
 
-        run_benchmark.materialize_worker_artifacts(output, worker, [record])
+        run_benchmark.materialize_bound_artifacts(output, worker, [record])
 
         for relative, content in files.items():
             self.assertEqual((output / relative).read_bytes(), content)

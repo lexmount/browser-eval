@@ -11,15 +11,29 @@ BUILD_IMAGES="${BROWSER_USE_EVAL_BUILD_IMAGES:-1}"
 LLM_DIAGNOSTICS="${BROWSER_USE_EVAL_LLM_DIAGNOSTICS:-0}"
 DIAGNOSIS_MODEL="${BROWSER_USE_EVAL_DIAGNOSIS_MODEL:-gpt-5.6-sol}"
 DIAGNOSIS_EFFORT="${BROWSER_USE_EVAL_DIAGNOSIS_REASONING_EFFORT:-low}"
-OUTPUT="${BROWSER_USE_EVAL_OUTPUT_DIR:-${ROOT}/artifacts/trajectory_replay/latest}"
-REPORTS="${ROOT}/docs/reports"
+DATA_HOME="${BROWSER_EVAL_DATA_HOME:-${HOME}/.browser-eval}"
+OUTPUT="${BROWSER_USE_EVAL_OUTPUT_DIR:-${DATA_HOME}/trajectory-replay/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
+if [[ "${OUTPUT}" != /* ]]; then
+  OUTPUT="${PWD}/${OUTPUT}"
+fi
+REPORTS="${OUTPUT}/report"
+
+if [[ -e "${OUTPUT}" || -L "${OUTPUT}" ]]; then
+  echo "Output must be a new directory; existing evidence is immutable: ${OUTPUT}" >&2
+  exit 2
+fi
+cd "${ROOT}"
 
 command -v docker >/dev/null 2>&1 || { echo "docker is required" >&2; exit 2; }
 command -v uv >/dev/null 2>&1 || { echo "uv is required" >&2; exit 2; }
+OUTPUT="$(uv run --frozen --extra browser-use-eval python -c \
+  'import sys; from pathlib import Path; from harness.web_fetch.safety import unlinked_path; print(unlinked_path(Path(sys.argv[1])))' \
+  "${OUTPUT}")"
+REPORTS="${OUTPUT}/report"
 docker info >/dev/null
 
-mkdir -p "${OUTPUT}" "${REPORTS}"
-find "${OUTPUT}" -mindepth 1 -maxdepth 1 -type f -delete
+mkdir -p "$(dirname "${OUTPUT}")"
+echo "Evidence directory: ${OUTPUT}"
 
 if [[ "${BUILD_IMAGES}" == "1" ]]; then
   docker build -f "${ROOT}/examples/trajectory_replay/docker/chromium.Dockerfile" \

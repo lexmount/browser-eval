@@ -163,3 +163,32 @@ def _finding_modes(audit: dict) -> dict[int, dict[int, str]]:
     for finding in audit.get("function_body_findings") or []:
         modes.setdefault(finding["task_id"], {})[finding["action_index"]] = finding["mode"]
     return modes
+
+
+def main_audit(argv=None) -> None:
+    import argparse
+    import json
+    from pathlib import Path
+
+    from harness.web_fetch.safety import unlinked_path, write_new_file
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--catalog", type=Path, required=True)
+    parser.add_argument("--portable-suite", type=Path, required=True)
+    parser.add_argument("--action-overrides", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    output = unlinked_path(Path(args.output).expanduser())
+    if output.exists():
+        raise ValueError("output already exists")
+    audit = scan_function_body_actions(args.catalog, args.portable_suite)
+    validate_function_body_overrides(audit, args.action_overrides)
+    write_new_file(output, (json.dumps(audit, indent=2) + "\n").encode())
+    print(
+        json.dumps(
+            {
+                "evaluate_actions": audit["evaluate_action_count"],
+                "function_body_findings": len(audit["function_body_findings"]),
+            }
+        )
+    )

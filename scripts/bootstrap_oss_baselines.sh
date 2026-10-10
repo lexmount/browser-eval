@@ -59,7 +59,7 @@ ln -sfn ../../packages/net-policy "$openclaw_repo/node_modules/@openclaw/net-pol
 (cd "$dsh_repo" && PATH="$node_bin_dir:$PATH" corepack pnpm run build:lib:host)
 mkdir -p "$dsh_repo/node_modules/.pnpm/node_modules/@deepseek-ai"
 ln -sfn ../../../../packages/web/web-fetch-http "$dsh_repo/node_modules/.pnpm/node_modules/@deepseek-ai/dsh-web-fetch-http"
-cp "$harness_root/scripts/oss/dsh_webfetch_worker.mts" "$dsh_repo/node_modules/.pnpm/.browser-harness-dsh-worker.mts"
+cp "$harness_root/harness/web_fetch/workers/dsh_webfetch_worker.mts" "$dsh_repo/node_modules/.pnpm/.browser-harness-dsh-worker.mts"
 (cd "$dsh_repo" && "$node_bin_dir/node" --import tsx node_modules/.pnpm/.browser-harness-dsh-worker.mts </dev/null)
 
 cd "$harness_root"

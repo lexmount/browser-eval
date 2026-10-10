@@ -4,12 +4,13 @@ from pathlib import Path
 
 import pytest
 
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch import local_audit
+from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.report import local_audit_banner, provider_configuration
-from harness.web_fetch.stable_tasks import validate_acceptance_contract
+from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch.scoring_regressions import load_scoring_regressions
-
+from harness.web_fetch.stable_tasks import validate_acceptance_contract
+from tests.conftest import read_frozen_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET_PATH = ROOT / "evaluation/dynamic-content-100-moli-webfetch/dataset.json"
@@ -19,7 +20,7 @@ REVISION_PATH = ROOT / "research/moli-111-three-cohort-evaluation-revision.json"
 
 
 def _dataset():
-    return json.loads(DATASET_PATH.read_text(encoding="utf-8"))
+    return json.loads(read_frozen_dataset_bytes(DATASET_PATH).decode("utf-8"))
 
 
 def test_dynamic_100_dataset_matches_the_frozen_local_audit():
@@ -34,17 +35,17 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     revision = json.loads(REVISION_PATH.read_text(encoding="utf-8"))
     assert revision["provider_calls_for_revision"] == 0
     assert revision["dynamic_dataset"]["historical_sha256"] == receipt["bindings"]["dataset_sha256"]
-    historical = DATASET_PATH.read_text(encoding="utf-8")
+    historical = read_frozen_dataset_bytes(DATASET_PATH).decode("utf-8")
     expected_hash=revision['dynamic_dataset']['revised_sha256']
     for followup in revision.get('dynamic_dataset_followups',[]):
         assert followup['predecessor_sha256']==expected_hash
         assert followup['provider_calls']==0
         assert followup['source_authority']['provider_output_used'] is False
-        authority=ROOT/followup['source_authority']['path']
-        assert hashlib.sha256(authority.read_bytes()).hexdigest()==followup['source_authority']['sha256']
-        assert json.loads(authority.read_text())['expected_final_url']==followup['value']
+        relative = Path(followup['source_authority']['path']).relative_to('evaluation/sources').as_posix()
+        manifest = json.loads((ROOT / 'evaluation/source-inputs.json').read_text())
+        assert manifest['trees']['sources'][relative] == followup['source_authority']['sha256']
         expected_hash=followup['revised_sha256']
-    assert hashlib.sha256(DATASET_PATH.read_bytes()).hexdigest()==expected_hash
+    assert hashlib.sha256(read_frozen_dataset_bytes(DATASET_PATH)).hexdigest()==expected_hash
     for followup in reversed(revision.get('dynamic_dataset_followups',[])):
         case=next(c for c in cases if c['id']==followup['case_id'])
         assert case['acceptance_contract']['link_base_url']==followup['value']
@@ -117,7 +118,26 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert dataset["comparison"]["local_audit_receipt"] == RECEIPT_PATH.relative_to(ROOT).as_posix()
 
 
+def require_historical_inputs():
+    try:
+        input_tree(Path('evaluation/dataset.json'), 'sources')
+    except FileNotFoundError:
+        pytest.skip('requires externally installed historical reference inputs')
+
+
+def test_dynamic_followup_reference_values_match_bound_external_source():
+    require_historical_inputs()
+    sources = input_tree(ROOT / 'evaluation/dataset.json', 'sources')
+    revision = json.loads(REVISION_PATH.read_text())
+    for followup in revision.get('dynamic_dataset_followups', []):
+        relative = Path(followup['source_authority']['path']).relative_to('evaluation/sources')
+        authority = sources / relative
+        assert hashlib.sha256(authority.read_bytes()).hexdigest() == followup['source_authority']['sha256']
+        assert json.loads(authority.read_text())['expected_final_url'] == followup['value']
+
+
 def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monkeypatch):
+    require_historical_inputs()
     dataset = _dataset()
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
     registry = json.loads((ROOT / "evaluation/scoring-regressions.json").read_text())
@@ -191,6 +211,7 @@ def test_local_audit_banner_depends_on_dataset_publication_state():
 
 
 def test_dynamic_100_repository_evidence_and_scoring_revision_are_exact():
+    require_historical_inputs()
     dataset = _dataset()
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
     local_audit._require_repository_bindings(dataset, receipt)
@@ -216,5 +237,5 @@ def test_source_evidence_inventory_detects_omissions_extras_changes_and_symlinks
 
     linked = root / "evaluation/sources/case-2"
     linked.symlink_to(source.parent, target_is_directory=True)
-    with pytest.raises(ValueError, match="symlinks"):
+    with pytest.raises(ValueError, match="symlink"):
         local_audit._source_evidence_inventory({"cases": [{"id": "case-2"}]})

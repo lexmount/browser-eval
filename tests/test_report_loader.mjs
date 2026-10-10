@@ -2,8 +2,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
-const source=fs.readFileSync(new URL('../scripts/package_artifact_hub.py',import.meta.url),'utf8');
-const js=source.match(/LOADER=r'''([\s\S]*?)'''/)[1];
+const js=fs.readFileSync(new URL('../harness/web_fetch/assets/report-loader.js',import.meta.url),'utf8');
 const reportSource=fs.readFileSync(new URL('../harness/web_fetch/report.py',import.meta.url),'utf8');
 const callDialogJs=reportSource.match(/let callLogTrigger=null;[\s\S]*?(?=function applyReportAnchor)/)[0];
 let fields=[{dataset:{filter:'provider'},value:'lexmount-global'},{dataset:{filter:'query'},value:'正文核对点-1'},

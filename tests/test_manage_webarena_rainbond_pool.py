@@ -1,14 +1,8 @@
 from __future__ import annotations
 
-import importlib.util
 import sys
-from pathlib import Path
 
-MODULE_PATH = Path(__file__).parents[1] / "scripts" / "manage_webarena_rainbond_pool.py"
-SPEC = importlib.util.spec_from_file_location("manage_webarena_rainbond_pool", MODULE_PATH)
-assert SPEC is not None and SPEC.loader is not None
-manage_webarena_rainbond_pool = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(manage_webarena_rainbond_pool)
+from harness.environments.webarena import rainbond
 
 
 def test_reset_persists_runtime_config_atomically(tmp_path, monkeypatch, capsys):
@@ -28,7 +22,7 @@ def test_reset_persists_runtime_config_atomically(tmp_path, monkeypatch, capsys)
         def persist_runtime_config(self, receipt, target):
             calls.append((receipt, target))
 
-    monkeypatch.setattr(manage_webarena_rainbond_pool, "RainbondSlicePool", Pool)
+    monkeypatch.setattr(rainbond, "RainbondSlicePool", Pool)
     monkeypatch.setattr(
         sys,
         "argv",
@@ -42,7 +36,7 @@ def test_reset_persists_runtime_config_atomically(tmp_path, monkeypatch, capsys)
         ],
     )
 
-    manage_webarena_rainbond_pool.main()
+    rainbond.pool_main()
 
     target = slot_dir.resolve() / "webarena.config.json"
     assert calls == [({"app_id": 201}, target)]

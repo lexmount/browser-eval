@@ -91,3 +91,52 @@ def save_token(token, *, base_url, replace_existing=False):
             return backup
     with os.fdopen(descriptor, 'w') as stream:
         stream.write(token + '\n')
+
+
+def authorize_main(argv=None):
+    import argparse
+    import json
+    import os
+    import time
+    import urllib.request
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    action = parser.add_mutually_exclusive_group(required=True)
+    action.add_argument('--device-code')
+    action.add_argument('--persist-existing', action='store_true')
+    parser.add_argument('--timeout', type=int, default=540)
+    parser.add_argument('--replace-existing', action='store_true', help='Explicitly back up and replace a different user token')
+    parser.add_argument('--base-url', default=os.environ.get(
+        'ARTIFACT_SITE_BASE_URL',
+        os.environ.get('ARTIFACT_HUB_BASE_URL', 'https://artifact-hub.app.lexmount.com'),
+    ))
+    args = parser.parse_args(argv)
+    if args.persist_existing:
+        token = (os.environ.get('ARTIFACT_SITE_TOKEN', '').strip()
+                 or os.environ.get('ARTIFACT_HUB_TOKEN', '').strip())
+        backup=save_token(token,base_url=args.base_url,replace_existing=args.replace_existing)
+        if backup:print('Previous credential backed up:',backup)
+        print('Existing authorization saved to the user credential file; token not displayed.')
+        return
+    from harness.web_fetch.publication_target import validate_service_base
+
+    args.base_url = validate_service_base(args.base_url)
+    if args.timeout <= 0:
+        raise ValueError("Device authorization timeout must be positive")
+    deadline = time.monotonic() + args.timeout
+    while time.monotonic() < deadline:
+        request = urllib.request.Request(args.base_url.rstrip('/')+'/api/device/poll',
+            data=json.dumps({'device_code': args.device_code}).encode(),
+            headers={'Content-Type': 'application/json'}, method='POST')
+        with urllib.request.urlopen(request, timeout=30) as response:
+            result = json.load(response)
+        if result.get('status') == 'approved':
+            token = result['token']
+            backup=save_token(token,base_url=args.base_url,replace_existing=args.replace_existing)
+            if backup:print('Previous credential backed up:',backup)
+            print('Authorized:', result.get('user', {}).get('email', '(identity unavailable)'), flush=True)
+            return
+        if result.get('status') != 'pending':
+            raise RuntimeError('Device authorization: ' + str(result.get('status')))
+        time.sleep(5)
+    raise TimeoutError('Device authorization expired; no token stored')

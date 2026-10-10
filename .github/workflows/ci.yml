@@ -1,5 +1,8 @@
 name: ci
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
@@ -22,5 +25,5 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-      - run: make setup
+      - run: make setup-test
       - run: make ci

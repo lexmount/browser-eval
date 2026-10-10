@@ -1,32 +1,44 @@
-from copy import deepcopy
-from datetime import datetime, timedelta, timezone
 import hashlib
 import json
-from pathlib import Path
-from pathlib import PurePosixPath
 import tempfile
 import unittest
-
-from harness.web_fetch.reference_lifecycle import (preflight_reference_checks, sha256,
-    require_verified_reference_checks, valid_scoring_revision)
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
-from harness.web_fetch.report_explainer import (
-    _digest, _headless_article_input, _article_speed_population,
-    _render_article_resources, headless_evidence, render_explainer)
-from harness.web_fetch.report_resources import GROUPS, render_resource_comparison
-from harness.web_fetch.report_i18n import localize_html
-from scripts.certify_headless_cases import certify_case
-from scripts.assemble_headless import (assemble, copy_bound_review, copy_projected_review,
-                                       copy_scoring_revision_history,
-                                       read_verified_batches,
-                                       bind_assembled_scoring_revision,
-                                       bind_missing_assembled_scoring_gap,
-                                       _selected_record,
-                                       _copy_speed_bundle,
-                                       _prune_shadowed_batch_attempts,
-                                       _project_provider_subset)
-from scripts.package_headless_speed import build_summary as build_speed_summary
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
+from pathlib import Path, PurePosixPath
 from unittest.mock import patch
+
+from harness.web_fetch.assembly import (
+    _copy_speed_bundle,
+    _project_provider_subset,
+    _prune_shadowed_batch_attempts,
+    _selected_record,
+    assemble,
+    bind_assembled_scoring_revision,
+    bind_missing_assembled_scoring_gap,
+    copy_bound_review,
+    copy_projected_review,
+    copy_scoring_revision_history,
+    read_verified_batches,
+)
+from harness.web_fetch.evidence import certify_case
+from harness.web_fetch.reference_lifecycle import (
+    preflight_reference_checks,
+    require_verified_reference_checks,
+    sha256,
+    valid_scoring_revision,
+)
+from harness.web_fetch.report_explainer import (
+    _article_speed_population,
+    _digest,
+    _headless_article_input,
+    _render_article_resources,
+    headless_evidence,
+    render_explainer,
+)
+from harness.web_fetch.report_i18n import localize_html
+from harness.web_fetch.report_resources import GROUPS, render_resource_comparison
+from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 
 
 class HeadlessReportTests(unittest.TestCase):
@@ -66,7 +78,7 @@ class HeadlessReportTests(unittest.TestCase):
         self.assertTrue(result['winner_tied'])
         english = localize_html(page, PurePosixPath('guide/index.html'))
         self.assertIn('Resource-efficiency co-leaders in this run', english)
-        self.assertIn('Lightpanda, Moli 1.1.1, Obscura, Chromium', english)
+        self.assertIn('Moli 1.1.1, Lightpanda, Obscura, Chromium', english)
         self.assertNotIn('资源效率并列领先', english)
 
     def test_resource_table_excludes_unobservable_remote_provider(self):
@@ -204,7 +216,7 @@ class HeadlessReportTests(unittest.TestCase):
             summary['bindings']={'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
                                  'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()}
             (source/'speed-comparison.json').write_text(json.dumps(summary))
-            with patch('scripts.assemble_headless.require_verified_reference_checks'):
+            with patch('harness.web_fetch.assembly.require_verified_reference_checks'):
                 _copy_speed_bundle(source,target,dataset,records,batches,
                                    excluded_providers=['lexmount-global','lexmount-cn'])
             projected=json.loads((target/'speed-comparison.json').read_text())
@@ -387,7 +399,7 @@ class HeadlessReportTests(unittest.TestCase):
             root=Path(temp)
             batches=[{'run_id':'one'},{'run_id':'two'}]
             (root/'execution.json').write_text(json.dumps({'batches':batches}))
-            with patch('scripts.assemble_headless.require_verified_reference_checks') as verify:
+            with patch('harness.web_fetch.assembly.require_verified_reference_checks') as verify:
                 self.assertEqual(read_verified_batches(root,{'cases':[]},[]),batches)
                 verify.assert_called_once_with(batches,cases={'cases':[]},records=[],source=root,
                     equivalent_capture_bindings=False)
@@ -409,8 +421,11 @@ class HeadlessReportTests(unittest.TestCase):
                      'raw_response_sha256':hashlib.sha256(private).hexdigest(),
                      'raw_response_bytes':len(private)}}
             dataset={'cases':[{'id':'body'}]}
+            observation=b'{}'
+            observation_hash=hashlib.sha256(observation).hexdigest()
+            observation_path=f'reference-checks/observations-{observation_hash}.json'
             batches=[{'reference_checks':{'postcheck':{
-                'evidence_path':'reference-checks/postcheck.json'}}}]
+                'evidence_path':observation_path,'evidence_sha256':observation_hash}}}]
             required={
                 'dataset.json':json.dumps(dataset).encode(),
                 'results.jsonl':(json.dumps(row)+'\n').encode(),
@@ -418,7 +433,7 @@ class HeadlessReportTests(unittest.TestCase):
                 'speed-comparison.json':b'{}',
                 'result-review.json':b'{}',
                 'scoring-revisions.json':b'[]',
-                'reference-checks/postcheck.json':b'{}',
+                observation_path:observation,
                 'sources/body/source.txt':b'independent source',
                 'list-references/body.json':b'{}',
             }
@@ -427,11 +442,13 @@ class HeadlessReportTests(unittest.TestCase):
                 path.write_bytes(payload)
             secret=source/'worker-secrets/session-token.txt'
             secret.parent.mkdir();secret.write_text('must not copy')
+            (source/'reference-checks/private-note.txt').write_text('synthetic private note')
 
             _copy_speed_bundle(source,target,dataset,[row],batches)
 
             for relative in (*required,artifact_path,private_path):
                 self.assertTrue((target/relative).is_file(),relative)
+            self.assertFalse((target/'reference-checks/private-note.txt').exists())
             self.assertFalse((target/'worker-secrets').exists())
 
     def test_speed_bundle_rejects_any_symlink_even_when_unreferenced(self):
@@ -525,6 +542,7 @@ class HeadlessReportTests(unittest.TestCase):
             'checked_at':(now-timedelta(seconds=1)).isoformat(),
             'scope_identity':checks['cases']['body']['scope_identity'],
             'completion':{'satisfied':True,'elapsed_ms':100,'timeout_ms':1000}}
+        (root/'results.jsonl').write_text(json.dumps(record)+'\n')
         return case,record,observation
 
     def test_case_projection_preserves_live_binding_and_record(self):

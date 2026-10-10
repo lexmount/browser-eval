@@ -1,5 +1,5 @@
 import unittest
-from scripts.report_presentation_contract import check_presentation
+from harness.reporting.presentation import check_presentation
 
 class PresentationContractTests(unittest.TestCase):
     def table(self, values, marked):

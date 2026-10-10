@@ -5,7 +5,9 @@ import json
 from harness.trajectory_replay.public_webarena.publication import (
     export_public_report_bundle,
     public_projection,
+    stage_report,
 )
+from tests.public_webarena_fixture import write_report_fixture
 
 
 def test_public_projection_scrubs_private_hosts_and_user_paths():
@@ -17,22 +19,15 @@ def test_public_projection_scrubs_private_hosts_and_user_paths():
 
 
 def test_public_bundle_contains_reports_and_minimal_binding(tmp_path):
-    formal = tmp_path / "source"
-    (formal / "run").mkdir(parents=True)
-    (formal / "reports").mkdir()
-    (formal / "run/manifest.json").write_text(
-        json.dumps(
-            {
-                "suite_sha256": "suite",
-                "suite": [{"private": True}],
-                "artifact_provenance": {"artifact_directory": "/data/linkai/run"},
-            }
-        )
-    )
-    (formal / "run/summary.json").write_text(
-        json.dumps({"functional": {"moli": {"tasks": 1}}, "by_task": {"private": True}})
-    )
-    (formal / "reports/webarena-trajectory-replay-latest.html").write_text("report")
+    source, _ = write_report_fixture(tmp_path)
+    manifest_path = source / "run/manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["artifact_provenance"] = {"artifact_directory": "/data/linkai/run"}
+    manifest["private_notes"] = "private reviewer notes"
+    manifest_path.write_text(json.dumps(manifest))
+    source_summary = json.loads((source / "run/summary.json").read_text())
+    formal = tmp_path / "formal"
+    stage_report(source, formal)
 
     target = export_public_report_bundle(formal, tmp_path / "public")
 
@@ -42,5 +37,6 @@ def test_public_bundle_contains_reports_and_minimal_binding(tmp_path):
         "suite_sha256": "suite",
         "artifact_provenance": {"artifact_directory": "/[local-user]/run"},
     }
-    assert summary == {"functional": {"moli": {"tasks": 1}}, "resource_comparison": {}}
-    assert (target / "reports/webarena-trajectory-replay-latest.html").read_text() == "report"
+    assert summary == {"functional": source_summary["functional"], "resource_comparison": {}}
+    assert (target / "reports/webarena-trajectory-replay-latest.html").read_bytes() == (
+        formal / "reports/webarena-trajectory-replay-latest.html").read_bytes()

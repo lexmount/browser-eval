@@ -6,19 +6,27 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from harness.web_fetch.container_resources import ContainerCall
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers import build_provider
-from harness.web_fetch.providers.headless import _resolve_binary, cli_command, output_mode_for_case
-from harness.web_fetch.providers.headless import HeadlessProvider
-from harness.web_fetch.container_resources import ContainerCall
-from harness.web_fetch.runner import run_evaluation
-from scripts.headless_worker import fetch
-from scripts.review_headless_results import anomaly_investigation_packet, independent_attempt
-from scripts.review_headless_results import main as review_main
-from scripts.review_headless_results import (
-    INDEPENDENCE_RULES, RESOURCE_EQUIVALENCE_RULES, SCHEMA,
+from harness.web_fetch.providers.headless import (
+    HeadlessProvider,
+    _resolve_binary,
+    cli_command,
+    output_mode_for_case,
+)
+from harness.web_fetch.providers.headless_worker import fetch
+from harness.web_fetch.review_execution import (
+    INDEPENDENCE_RULES,
+    RESOURCE_EQUIVALENCE_RULES,
+    SCHEMA,
+    anomaly_investigation_packet,
+    blind_review_prompt,
+    independent_attempt,
+    review_main,
     validate_review_evidence,
 )
+from harness.web_fetch.runner import run_evaluation
 
 
 class HeadlessTests(unittest.TestCase):
@@ -104,19 +112,17 @@ class HeadlessTests(unittest.TestCase):
                       RESOURCE_EQUIVALENCE_RULES)
         self.assertNotIn('machine verdict', RESOURCE_EQUIVALENCE_RULES)
         self.assertNotIn('metrics', RESOURCE_EQUIVALENCE_RULES)
-        source = Path(__file__).resolve().parents[1].joinpath(
-            'scripts/review_headless_results.py').read_text()
-        self.assertIn("prompt += '\\n' + RESOURCE_EQUIVALENCE_RULES", source)
+        prompt = blind_review_prompt(Path('/synthetic-packet.json'), 1)
+        self.assertIn(RESOURCE_EQUIVALENCE_RULES, prompt)
 
     def test_codex_review_schema_requires_every_declared_field(self):
         item = SCHEMA['properties']['attempts']['items']
         self.assertEqual(set(item['required']), set(item['properties']))
 
     def test_review_source_guards_case_only_and_declared_truncation_mistakes(self):
-        source = Path(__file__).resolve().parents[1].joinpath(
-            'scripts/review_headless_results.py').read_text()
-        self.assertIn('Capitalization alone is an ordinary presentation difference', source)
-        self.assertIn('provider-authored notice that explicitly says', source)
+        prompt = blind_review_prompt(Path('/synthetic-packet.json'), 1)
+        self.assertIn('Capitalization alone is an ordinary presentation difference', prompt)
+        self.assertIn('provider-authored notice that explicitly says', prompt)
 
     def test_explicit_empty_chromium_binary_never_uses_playwright_fallback(self):
         self.assertIsNone(_resolve_binary('chromium', ''))
@@ -163,6 +169,11 @@ class HeadlessTests(unittest.TestCase):
                 for provider in ('p','q') for case_id in ('a','b')
             ]
             (evidence/'dataset.json').write_text(json.dumps(dataset))
+            for record in records:
+                artifact = evidence / record['artifact_path']
+                artifact.parent.mkdir(parents=True, exist_ok=True)
+                artifact.write_bytes(b'Independent synthetic answer')
+                record['metrics']['content_sha256'] = hashlib.sha256(artifact.read_bytes()).hexdigest()
             (evidence/'results.jsonl').write_text(
                 ''.join(json.dumps(row)+'\n' for row in records))
             argv = ['review_headless_results.py','--evidence',str(evidence),
@@ -193,6 +204,10 @@ class HeadlessTests(unittest.TestCase):
                  'metrics':{'content_pass':True}},
             ]
             (evidence/'dataset.json').write_text(json.dumps(dataset))
+            for row in rows:
+                artifact = evidence / row['artifact_path']
+                artifact.write_bytes(b'Independent synthetic answer')
+                row['metrics']['content_sha256'] = hashlib.sha256(artifact.read_bytes()).hexdigest()
             (evidence/'results.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in rows))
             argv=['review_headless_results.py','--evidence',str(evidence),
                   '--work',str(work),'--model','inherited','--reviewer','internal',
@@ -218,6 +233,7 @@ class HeadlessTests(unittest.TestCase):
                  'artifact_path':'empty.txt','ok':True,'error_type':None,
                  'metrics':{'content_pass':True}}
             (evidence/'empty.txt').write_text('')
+            row['metrics']['content_sha256'] = hashlib.sha256(b'').hexdigest()
             (evidence/'dataset.json').write_text(json.dumps(dataset))
             (evidence/'results.jsonl').write_text(json.dumps(row)+'\n')
             argv=['review_headless_results.py','--evidence',str(evidence),
@@ -359,7 +375,7 @@ class HeadlessTests(unittest.TestCase):
             ca_cert='/tmp/fixture-ca.pem',
         )
         completed = SimpleNamespace(returncode=0, stdout=b'# output', stderr=b'')
-        with patch('scripts.headless_worker.subprocess.run', return_value=completed) as run:
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=completed) as run:
             result = fetch(request)
         self.assertTrue(result['ok'])
         self.assertEqual(run.call_args.kwargs['env']['SSL_CERT_FILE'], '/tmp/fixture-ca.pem')
@@ -373,7 +389,7 @@ class HeadlessTests(unittest.TestCase):
                                url='https://example.test/page', timeout=1, output_mode='markdown')
                 completed = SimpleNamespace(returncode=code, stdout=b'# body', stderr=diagnostic)
                 with self.subTest(engine=engine, code=code), patch(
-                    'scripts.headless_worker.subprocess.run', return_value=completed
+                    'harness.web_fetch.providers.headless_worker.subprocess.run', return_value=completed
                 ):
                     result = fetch(request)
                 self.assertEqual(result['metadata']['browser_stderr'], diagnostic.decode())
@@ -412,9 +428,9 @@ class HeadlessTests(unittest.TestCase):
         raw = b'%PDF-fixture'
         request = dict(engine='moli', binary='/moli', url='https://example.com/paper.pdf',
                        timeout=1, output_mode='document')
-        with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=SimpleNamespace(
                 returncode=0, stdout=raw, stderr=b'')), patch(
-                'scripts.headless_worker.extract_document_text', return_value=('Paper body', 'pypdf')):
+                'harness.web_fetch.providers.headless_worker.extract_document_text', return_value=('Paper body', 'pypdf')):
             result = fetch(request)
         self.assertTrue(result['ok'])
         self.assertEqual(result['content'], 'Paper body')
@@ -427,7 +443,7 @@ class HeadlessTests(unittest.TestCase):
         raw = b'\x89PNG\r\n\x1a\n' + b'payload'
         request = dict(engine='moli', binary='/moli', url='https://example.com/image.png',
                        timeout=1, output_mode='file')
-        with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=SimpleNamespace(
                 returncode=0, stdout=raw, stderr=b'')):
             result = fetch(request)
         self.assertTrue(result['ok'])
@@ -443,7 +459,7 @@ class HeadlessTests(unittest.TestCase):
             SimpleNamespace(returncode=0, stdout='v1'.encode(), stderr=b''),
             SimpleNamespace(returncode=0, stdout=b'# Unsupported document\n', stderr=b''),
         ]
-        with patch('scripts.headless_worker.subprocess.run', side_effect=completed):
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', side_effect=completed):
             result = fetch(request)
         self.assertTrue(result['ok'])
         self.assertEqual(result['content'], '# Unsupported document\n')
@@ -457,14 +473,14 @@ class HeadlessTests(unittest.TestCase):
     def test_converter_shared_and_nonzero_not_converted(self):
         from types import SimpleNamespace
         request = dict(engine='moli', binary='/binary', url='https://example.com', timeout=1)
-        with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=SimpleNamespace(
                 returncode=0, stdout=b'<h1>Example</h1><p>Body</p>', stderr=b'')):
             result = fetch(request)
             self.assertTrue(result['ok'])
             self.assertIn('Example', result['content'])
             self.assertIn('<h1>', result['html'])
             self.assertEqual(result['metadata']['extractor_version'], '2.0.0')
-        with patch('scripts.headless_worker.subprocess.run', return_value=SimpleNamespace(
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run', return_value=SimpleNamespace(
                 returncode=1, stdout=b'<h1>Partial</h1>', stderr=b'failure')):
             result = fetch(request)
             self.assertFalse(result['ok'])

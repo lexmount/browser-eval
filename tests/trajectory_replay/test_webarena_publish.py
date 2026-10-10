@@ -7,8 +7,17 @@ from pathlib import Path
 
 import pytest
 
-import scripts.package_webarena_replay_artifact_site as packager
-import scripts.publish_webarena_replay_artifact_site as publisher
+from harness.trajectory_replay import webarena_report_package as packager
+from harness.trajectory_replay import webarena_report_publish as publisher
+
+
+@pytest.fixture(autouse=True)
+def private_publication_files(monkeypatch, tmp_path):
+    for key in ("ATTESTATION", "PROFILE", "REVIEW"):
+        path = tmp_path / (key.lower() + "-default.json")
+        path.write_text("{}")
+        monkeypatch.setattr(publisher, key, path)
+    monkeypatch.setattr(publisher, "BINDING_JOURNAL", tmp_path / "binding-pending.json")
 
 
 def _sha256(path: Path) -> str:
@@ -38,7 +47,7 @@ def test_staged_file_put_has_longer_socket_timeout() -> None:
 
 def test_public_share_must_be_same_origin_and_token_route() -> None:
     base = "https://artifact-hub.app.lexmount.com"
-    assert publisher.public_share_path(base, base + "/v/token") == "/v/token"
+    assert publisher.public_share_context(base, base + "/v/token")[0] == "/v/token"
     assert publisher.public_share_context(base, base + "/v/token") == (
         "/v/token",
         "token",
@@ -52,7 +61,7 @@ def test_public_share_must_be_same_origin_and_token_route() -> None:
         base + "/v/token?owner=true",
     ):
         try:
-            publisher.public_share_path(base, url)
+            publisher.public_share_context(base, url)
         except ValueError:
             pass
         else:
@@ -388,7 +397,7 @@ def test_pending_receipt_rejects_mismatched_operation_before_remote_write(
             "",
         ),
     )
-    monkeypatch.setattr(publisher, "multipart_archive", lambda _title: (b"zip", "zip"))
+    monkeypatch.setattr(publisher, "multipart_archive", lambda _title, **_kwargs: (b"zip", "zip"))
 
     def unexpected_remote_call(*_args, **_kwargs):
         raise AssertionError("mismatched operation must fail before any remote call")
@@ -421,8 +430,8 @@ def test_share_failure_resumes_same_site_without_second_creation(
             "",
         ),
     )
-    monkeypatch.setattr(publisher, "multipart_archive", lambda _title: (b"zip", "zip"))
-    monkeypatch.setattr(publisher, "verify_export", lambda *_args: None)
+    monkeypatch.setattr(publisher, "multipart_archive", lambda _title, **_kwargs: (b"zip", "zip"))
+    monkeypatch.setattr(publisher, "verify_export", lambda *_args, **_kwargs: None)
     calls = []
     fail_share_once = True
 
@@ -474,7 +483,10 @@ def test_package_binds_report_evidence_and_release_gate(monkeypatch, tmp_path: P
     dataset = tmp_path / "dataset.json"
     review = tmp_path / "review.json"
     dataset.write_text("{}", encoding="utf-8")
-    profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}), encoding="utf-8")
+    profile.write_text(
+        json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}),
+        encoding="utf-8",
+    )
     review.write_text("{}", encoding="utf-8")
     (report / "report-manifest.json").write_text(json.dumps({
         "dataset_sha256": _sha256(dataset), "results_sha256": _sha256(evidence),
@@ -506,6 +518,7 @@ def test_package_binds_report_evidence_and_release_gate(monkeypatch, tmp_path: P
 @pytest.mark.parametrize("old_schema", [
     "lex_webarena_replay_visual_qa/1",
     "lex_webarena_replay_visual_qa/2",
+    "lex_webarena_replay_visual_qa/3",
 ])
 def test_package_reruns_private_preview_gate_for_old_receipt(
     monkeypatch, tmp_path: Path, old_schema: str
@@ -558,7 +571,9 @@ def test_package_rejects_diagnostic_appendix_and_mixed_dataset(
         packager.package(report, evidence, tmp_path / "report.zip", tmp_path / "visual.json")
 
 
-def test_publication_rejects_diagnostic_appendix_and_stale_corrected_dataset(monkeypatch, tmp_path: Path) -> None:
+def test_publication_rejects_diagnostic_appendix_and_stale_corrected_dataset(
+    monkeypatch, tmp_path: Path
+) -> None:
     report = tmp_path / "report"
     report.mkdir()
     archive = tmp_path / "report.zip"

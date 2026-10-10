@@ -34,7 +34,7 @@ def _stable_failure(metrics):
     return label, '内容核验', counts + '。规则：' + (', '.join(errors) or '未提供具体错误')
 
 
-def diagnose(r,c,raw,source=None):
+def diagnose(r,c,raw):
     from .metrics import task_measured
     if not task_measured(r['metrics'], c.get('task_kind')):
         return None
@@ -139,7 +139,10 @@ def diagnose(r,c,raw,source=None):
             else:
                 category,stage,proof=set_result('条目内容未获证实','独立内容核验',f"前三条中 {m.get('confirmed_entries',0)} 条得到独立名称—链接证据；未确认不等于错误")
     elif c.get('task_kind')=='file' and not m.get('raw_file_pass'):
-        category,stage,proof=set_result('未取得原文件','交付核验','没有可验证的原文件字节；文字或链接不能替代文件')
+        if meta.get('file_evaluation', {}).get('files'):
+            category,stage,proof=set_result('文件校验未通过','交付核验','已返回文件字节，但格式、长度或目标 SHA-256 校验未通过；逐项证据见文件交付详情')
+        else:
+            category,stage,proof=set_result('未取得原文件','交付核验','没有可验证的原文件字节；文字或链接不能替代文件')
     elif c.get('task_kind')=='resource' and not m.get('resource_pass'):
         missing=[x.get('id','') for x in m.get('resource_results',[]) if not x['pass']]
         unexpected=m.get('unexpected_resource_urls',[])
@@ -169,5 +172,4 @@ def diagnose(r,c,raw,source=None):
                 f"{p['id']} 检出 {p['count']}，至少需要 {p['minimum']}" for p in m['pattern_results'] if not p['pass']))
         else:category,stage,proof=set_result('内容结构不完整','内容核验','未满足本例字段或数量规则，见逐项判定')
     if not category:return None
-    return {'category':category,'stage':stage,'evidence':proof,'certainty':certainty,
-            'independent_source_check':source,'source_check_boundary':'独立复查与调用的时间、网络、会话不同；一次拒绝不能证明网站失效。'}
+    return {'category':category,'stage':stage,'evidence':proof,'certainty':certainty}

@@ -15,11 +15,12 @@ import tempfile
 import time
 from pathlib import Path
 
+from ..markdown import converter_package, require_converter
 from ..models import EvalCase, ProviderResult
 from ..retrieval_hints import plan_for_case
 from ..safety import validate_http_url
-from ..container_resources import ContainerResourceRunner
 from .base import Provider
+from .runtime_identity import require_expected_provider_versions
 
 ENGINES = ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium')
 LOOPBACK_SANDBOX_PROFILE = (
@@ -29,7 +30,7 @@ LOOPBACK_SANDBOX_PROFILE = (
     '(allow network-outbound (remote ip "localhost:*"))'
 )
 HEADLESS_CONVERSION = (
-    'Native Markdown for Kitesurf, Lightpanda, Obscura and Moli 1.1.1; direct '
+    'Native Markdown for Kitesurf, Lightpanda, Obscura and Moli; direct '
     'Moli documents/media use automatic raw output; Chromium '
     'whole-DOM HTML via node-html-markdown 2.0.0'
 )
@@ -241,7 +242,7 @@ class HeadlessProvider(Provider):
                 except Exception as exc:
                     errors.append('docker_cgroup_v2:' + str(exc))
             self._resolved_binary = self.config.get('resource_binary')
-            return errors
+            return self._expected_version_errors(errors)
         binary = _resolve_binary(engine, self.config.get('binary'))
         if engine != 'kitesurf' and not binary:
             errors.append('binary')
@@ -258,12 +259,24 @@ class HeadlessProvider(Provider):
         if engine == 'chromium' or self.type == 'headless_html':
             if not shutil.which('node'):
                 errors.append('node')
-            package = Path(__file__).resolve().parents[3] / 'node_modules/node-html-markdown/package.json'
-            if not package.is_file():
-                errors.append('node-html-markdown')
+            try:
+                require_converter(self.config.get('node_html_markdown_path'))
+            except ValueError as error:
+                errors.append(str(error))
+        return self._expected_version_errors(errors)
+
+    def _expected_version_errors(self, errors):
+        if not errors and self.config.get('expected_version') is not None:
+            try:
+                require_expected_provider_versions(
+                    {self.name: self.implementation_identity()}, {self.name: self.config})
+            except ValueError as error:
+                errors.append(str(error))
         return errors
 
     def _resource_runner(self):
+        from ..container_resources import ContainerResourceRunner
+
         return ContainerResourceRunner(
             self.config['resource_container_image'],
             interval_ms=int(self.config['resource_sample_interval_ms']),
@@ -423,7 +436,11 @@ class HeadlessProvider(Provider):
                 'wait_until': self.config.get('wait_until', 'networkidle2'),
                 'max_bytes': self.config.get('max_bytes', 20_000_000),
             })
-        worker = Path(__file__).resolve().parents[3] / 'scripts/headless_worker.py'
+        if engine == 'chromium' or self.type == 'headless_html':
+            configured_package = self.config.get('node_html_markdown_path')
+            request['node_html_markdown_path'] = (str(converter_package(configured_package))
+                                                 if resource_interval is None else configured_package)
+        worker = Path(__file__).with_name('headless_worker.py')
         metadata['worker_sha256'] = hashlib.sha256(worker.read_bytes()).hexdigest()
         if request['browser_args']:
             metadata['browser_launch_args'] = request['browser_args']

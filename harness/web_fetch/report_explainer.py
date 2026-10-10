@@ -10,16 +10,19 @@ from pathlib import Path
 from string import Template
 from urllib.parse import quote, urlsplit
 
-from .metrics import evaluate_content, task_passed, percentile
-from .scoring import score_attempt
+from harness.record_io import parse_jsonl
+from harness.web_fetch.reference_inputs import read_dataset_bytes
+
+from .metrics import percentile, task_passed
+from .report_resources import render_resource_comparison
 from .report_style import STYLE
 from .safety import contained_path, safe_identifier
-from .report_resources import render_resource_comparison
-
+from .scoring import score_attempt
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
 HEADLESS_TITLE = '五类浏览器、七种方法取同一批网页：速度、正文与交付边界'
-from .publication_target import HUB
+from .publication_target import public_report_url
+
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
 TRACK_NAMES = {'web': '静态网站正文', 'document': '文档文字', 'image': '图片',
@@ -83,8 +86,8 @@ def _methodology_figures(out):
 def evidence_url(path):
     contained_path(ROOT, path)
     if Path(path).suffix != '.html':
-        return HUB + '#page=guide%2Findex.html&anchor=evidence'
-    return HUB + '#page=' + quote(str(path), safe='')
+        return public_report_url() + '#page=guide%2Findex.html&anchor=evidence'
+    return public_report_url() + '#page=' + quote(str(path), safe='')
 
 
 def _link(path, label):
@@ -119,10 +122,13 @@ def _bound_initial_audit(cases):
     """Publish a whitelist projection only when the audit matches current input cases."""
     path = ROOT / 'research/initial-reference-audit.json'
     dataset_path = ROOT / 'evaluation/dataset.json'
-    if not path.exists() or not dataset_path.exists():
+    if not path.exists():
         return None
     audit = json.loads(path.read_text())
-    raw = dataset_path.read_bytes()
+    try:
+        raw = read_dataset_bytes(dataset_path)
+    except FileNotFoundError:
+        return None
     current = {c['id']: c for c in json.loads(raw)['cases']}
     # Other tracks' rules may change after this web-reference audit. Bind the
     # published claim to the complete web-case definitions, references and
@@ -666,7 +672,7 @@ def _render_headless(out, cases, records):
         if hashlib.sha256(raw).hexdigest() != speed['bindings'][name + '_sha256']:
             raise ValueError('Article speed source evidence changed; review latency prose before rebuilding')
         speed_inputs[name] = (json.loads(raw) if name == 'dataset'
-                              else [json.loads(line) for line in raw.splitlines() if line.strip()])
+                              else parse_jsonl(raw, skip_blank=True))
     main_speed = _article_speed_population(cases, records, selected,
         execution_scope='Historical authoritative main-evaluation calls assembled across dates and batches; includes declared latency corrections. Not a same-window controlled speed comparison.')
     paired_speed = _article_speed_population(
@@ -720,7 +726,7 @@ def _render_headless(out, cases, records):
         'pdf_fetch': f'{pdf_meta.get("raw_fetch_ms", 0)/1000:.2f}',
         'pdf_parse': f'{pdf_meta.get("document_extract_ms", 0)/1000:.2f}',
         'case_links': cases_links,
-        'report_url': escape(HUB, quote=True),
+        'report_url': escape(public_report_url(), quote=True),
         'browser_profiles': '',
         'case_workbench': render_article_cases(out, cases, records),
         'moli_web': str(data['tracks']['web']['providers']['moli']['passed']),
@@ -748,10 +754,11 @@ def supports_authored_explainer(cases):
     return all(case.get('track', 'web') in TRACK_NAMES for case in cases.values())
 
 
-def render_explainer(out, cases, records, *, table=None, cell=None, link=None):
+def render_explainer(out, cases, records, *, table=None, cell=None, link=None, authored=True):
     """One authored body; only image URL serialization differs for the offline export."""
     out = Path(out)
-    if not supports_authored_explainer(cases):
+    if (not authored or not supports_authored_explainer(cases)
+            or (records and all(row.get('provider_type') == 'fixture' for row in records))):
         passes = sum(task_passed(row['ok'], row['metrics'],
                      cases[row['case_id']].get('task_kind', 'body')) for row in records)
         return (f'<section class="wrap"><h1>本报告的任务范围与验收规则</h1>'

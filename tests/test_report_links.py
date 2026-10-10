@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,7 +8,7 @@ from pathlib import Path
 class ReportLinkCheckTest(unittest.TestCase):
     def run_check(self, root: Path) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            ["python3", "scripts/check_report_links.py", str(root)],
+            [sys.executable, "scripts/check_report_links.py", str(root)],
             cwd=Path(__file__).resolve().parent.parent,
             text=True,
             capture_output=True,
@@ -24,6 +25,12 @@ class ReportLinkCheckTest(unittest.TestCase):
                 '<section id="image-ranking">图片</section>', encoding="utf-8"
             )
             self.assertEqual(self.run_check(root).returncode, 0)
+
+    def test_rejects_absent_and_empty_report(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            for root in (Path(directory), Path(directory) / "absent"):
+                with self.subTest(root=root):
+                    self.assertEqual(self.run_check(root).returncode, 1)
 
     def test_rejects_missing_fragment(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from scripts.build_webarena_observation_suite import build_observation_suite
+from harness.trajectory_replay.public_webarena.qualification import build_observation_suite
 
 
 def test_observation_suite_is_noncanonical_and_appends_visible_text_capture():

@@ -1,24 +1,21 @@
 import hashlib
 import json
-from pathlib import Path
 import tempfile
 import unittest
 from datetime import datetime, timezone
+from pathlib import Path
 
 from harness.web_fetch.body_coverage import body_requirements
-from harness.web_fetch.reference_lifecycle import scope_identity
-from harness.web_fetch.scoring_regressions import build_correction_provenance
-from scripts.freeze_headless_references import (
-    _digest_json, _require_promotion, compute_reference_update, main,
+from harness.web_fetch.reference_freeze import (
+    _digest_json,
+    _require_promotion,
+    compute_reference_update,
+    main,
 )
-from scripts.prepare_reference_promotion import prepare
-from scripts.promote_reference_candidate import _change_for_case, promote
+from harness.web_fetch.scoring_regressions import build_correction_provenance
+from harness.web_fetch.reference_freeze import prepare_promotion, promote
 
-
-ROOT_CAUSE=('The independent reference selector included mutable site chrome, so '
-            'browser-rendered main content must be retained and bound separately.')
-REGRESSIONS=['reference-scope-retains-main-content',
-             'reference-scope-excludes-site-chrome']
+from tests.reference_freeze_fixture import ROOT_CAUSE, REGRESSIONS, create_promotion_inputs
 
 
 def provenance():
@@ -39,10 +36,6 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                 'url':'https://en.wikipedia.org/w/index.php?title=AI&oldid=123',
                 'revision':'oldid:123','source_snapshot_sha256':'c'*64},
         }
-
-    def test_promotion_reports_missing_computed_change_as_validation_error(self):
-        with self.assertRaisesRegex(ValueError,'omit promoted case: missing'):
-            _change_for_case([{'case_id':'present'}],'missing')
 
     def test_changed_reference_fails_closed_without_explicit_promotion(self):
         with self.assertRaisesRegex(ValueError,'explicit --reference-promotion'):
@@ -179,6 +172,13 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             dataset={'cases':[case],'coverage_plan':{'web':['p']}}
             dataset_path=root/'dataset.json'
             dataset_path.write_text(json.dumps(dataset))
+            for identifier in (case['id'], 'outside-task-scope'):
+                folder=root/'sources'/identifier
+                folder.mkdir(parents=True)
+                (folder/'reference.txt').write_text(identifier)
+                reference=root/'list-references'/(identifier+'.json')
+                reference.parent.mkdir(exist_ok=True)
+                reference.write_text('{}')
             capture={'case_id':'freeze-fixture','status':200,'checked_at':checked,
                      'selector':'#mw-content-text .mw-parser-output','sha256':'c'*64,
                      'extracted_sha256':hashlib.sha256(new.encode()).hexdigest(),
@@ -196,7 +196,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
 
             promotion=root/'promotion.json'
             candidate_path=root/'candidate.json';full_path=root/'full-candidate.json'
-            receipt,candidate_bytes=prepare(dataset_path=dataset_path,captures=captures,
+            receipt,candidate_bytes=prepare_promotion(dataset_path=dataset_path,captures=captures,
                 output=promotion,approved_by='independent-reference-review',
                 approved_at=checked,candidate_output=candidate_path,
                 full_canonical_output=full_path,
@@ -206,7 +206,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             self.assertEqual(json.loads(full_path.read_text())['cases'][0]
                              ['ground_truth_main_content'],new)
             with self.assertRaisesRegex(ValueError,'Destination exists'):
-                prepare(dataset_path=dataset_path,captures=captures,
+                prepare_promotion(dataset_path=dataset_path,captures=captures,
                     output=promotion,approved_by='independent-reference-review',
                     approved_at=checked,root_cause_category='reference-evidence',
                     root_cause=ROOT_CAUSE,regression_ids=REGRESSIONS)
@@ -214,6 +214,9 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             main(['--captures',str(captures),'--dataset',str(dataset_path),
                   '--output',str(output),'--reference-promotion',str(promotion)])
             refresh=json.loads((output/'reference-refresh.json').read_text())
+            self.assertTrue((output/'list-references'/f'{case["id"]}.json').is_file())
+            self.assertFalse((output/'sources/outside-task-scope').exists())
+            self.assertFalse((output/'list-references/outside-task-scope.json').exists())
             self.assertTrue(refresh['reference_changed'])
             self.assertTrue(refresh['task_rules_changed'])
             self.assertEqual(refresh['changed'],[change])
@@ -227,38 +230,16 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                              candidate_bytes)
 
     def _browser_promotion_fixture(self,root):
-        captures=root/'captures';captures.mkdir()
-        (captures/'audit.json').write_text('[]')
-        checked='2026-09-11T00:00:00+00:00'
-        old='Old rendered reference body'
-        new='New independently rendered reference body'
-        case={'id':'javascript-spa','name':'Rendered fixture',
-              'url':'https://quotes.toscrape.com/js/','track':'web',
-              'task_kind':'body','task_prompt':'Read the rendered body',
-              'ground_truth_main_content':old,
-              'body_requirements':body_requirements(old),'required_facts':[],
-              'source_verification':{'state':'valid','checked_at':checked,
-                  'method':'fixture','selector':'body','reference_sha256':
-                  hashlib.sha256(old.encode()).hexdigest()}}
-        dataset={'cases':[case],'coverage_plan':{'web':['p']}}
-        dataset_path=root/'dataset.json'
-        dataset_path.write_text(json.dumps(dataset))
-        observation={'case_id':'javascript-spa','independent':True,
-            'checked_at':checked,'content_text':new,'selector':'body',
-            'observation_method':'visible_inner_text','observed_records':10,
-            'scope_identity':scope_identity(case),
-            'observer':{'browser':'Chromium','binary':'explicit'},
-            'completion':{'satisfied':True,'elapsed_ms':10,'timeout_ms':1000}}
-        observations_path=root/'observations.json'
-        observations_path.write_text(json.dumps({'javascript-spa':observation}))
+        inputs=create_promotion_inputs(root)
         receipt_path=root/'receipt.json';candidate_path=root/'candidate.json'
-        prepare(dataset_path=dataset_path,captures=captures,output=receipt_path,
-            approved_by='independent-reference-review',approved_at=checked,
-            case_ids='javascript-spa',browser_observations=observations_path,
-            candidate_output=candidate_path,root_cause_category='reference-evidence',
-            root_cause=ROOT_CAUSE,regression_ids=REGRESSIONS)
-        return (dataset_path,captures,observations_path,receipt_path,
-                candidate_path,observation,new)
+        prepare_promotion(dataset_path=inputs['dataset_path'],captures=inputs['captures'],
+            output=receipt_path,approved_by='independent-reference-review',
+            approved_at=inputs['checked_at'],case_ids='javascript-spa',
+            browser_observations=inputs['observations_path'],candidate_output=candidate_path,
+            root_cause_category='reference-evidence',root_cause=ROOT_CAUSE,
+            regression_ids=REGRESSIONS)
+        return (inputs['dataset_path'],inputs['captures'],inputs['observations_path'],
+                receipt_path,candidate_path,inputs['observation'],inputs['new_reference'])
 
     def test_prepared_browser_candidate_promotes_bound_observation_not_http_capture(self):
         with tempfile.TemporaryDirectory() as directory:

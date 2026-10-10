@@ -23,6 +23,7 @@ from contextlib import nullcontext
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO
 from urllib.error import HTTPError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 GIB = 1024**3
@@ -181,6 +182,7 @@ def restore_compressed(
     checksum = hashlib.sha256()
     received = 0
     with subprocess.Popen(["zstd", "-dc", str(packed)], stdout=subprocess.PIPE) as process:
+
         class CheckedStream:
             def read(self, count: int = -1) -> bytes:
                 nonlocal received
@@ -231,7 +233,11 @@ def transport_size(url: str) -> int:
 
 
 def setup(
-    root: Path, contract: dict, reserve: int, source_base: str = "", compression: str = "",
+    root: Path,
+    contract: dict,
+    reserve: int,
+    source_base: str = "",
+    compression: str = "",
     query_only: bool = False,
 ) -> None:
     root.mkdir(parents=True, exist_ok=True)
@@ -243,8 +249,11 @@ def setup(
         raise ValueError("Unexpected Map archive inventory")
     # Largest first bounds peak usage: never keep multiple source archives.
     for name in sorted(urls, key=lambda n: contract["data_archive_bytes"][n], reverse=True):
-        mappings = {p: v for p, v in MAPPINGS[name].items()
-                    if not (query_only and v == "nominatim/flatnode")}
+        mappings = {
+            p: v
+            for p, v in MAPPINGS[name].items()
+            if not (query_only and v == "nominatim/flatnode")
+        }
         digest = contract["data_archive_sha256"][name]
         size = contract["data_archive_bytes"][name]
         archive = state / name
@@ -255,8 +264,9 @@ def setup(
                 raise ValueError(f"Dataset revision requires a new volume: {name}")
             if previous.get("query_only", False) != query_only:
                 raise ValueError(f"Dataset mode requires a new volume: {name}")
-            if not all(any(item.is_file() for item in (root / p).rglob("*"))
-                       for p in mappings.values()):
+            if not all(
+                any(item.is_file() for item in (root / p).rglob("*")) for p in mappings.values()
+            ):
                 raise ValueError(f"Receipt exists but dataset is missing: {name}")
             archive.unlink(missing_ok=True)
             print(f"Already initialized: {name}", flush=True)
@@ -281,8 +291,11 @@ def setup(
             packed_size = transport_size(url)
             if not 0 < packed_size <= size + 64 * 1024**2:
                 raise ValueError("Unexpected compressed transport size")
-            if (not packed.exists() or packed.stat().st_size != packed_size
-                    or Path(str(packed) + ".aria2").exists()):
+            if (
+                not packed.exists()
+                or packed.stat().st_size != packed_size
+                or Path(str(packed) + ".aria2").exists()
+            ):
                 download(url, packed, packed_size, reserve)
             print(f"Restoring and verifying SHA-256: {name}", flush=True)
             counts = restore_compressed(packed, root, mappings, size, digest, reserve)
@@ -301,8 +314,9 @@ def setup(
             counts = extract_archive(archive, root, mappings, reserve)
         os.sync()
         temporary = receipt.with_suffix(".tmp")
-        temporary.write_text(json.dumps({"sha256": digest, "bytes": size, "files": counts,
-                                         "query_only": query_only}))
+        temporary.write_text(
+            json.dumps({"sha256": digest, "bytes": size, "files": counts, "query_only": query_only})
+        )
         temporary.replace(receipt)
         os.sync()
         archive.unlink(missing_ok=True)
@@ -316,8 +330,10 @@ def configure_browser_assets(assets: Path = Path("/app/public/assets")) -> None:
     """Keep precompressed JS identical to the image's patched same-origin JS."""
     for source in assets.glob("*.js"):
         content = source.read_bytes()
-        if any(url in content for url in (b"http://localhost:8080/nominatim/",
-                                           b"http://localhost:8080/osrm/")):
+        if any(
+            url in content
+            for url in (b"http://localhost:8080/nominatim/", b"http://localhost:8080/osrm/")
+        ):
             raise ValueError(f"Browser service URL still uses localhost: {source.name}")
         packed = source.with_suffix(".js.gz")
         if packed.exists():
@@ -353,11 +369,13 @@ def version_browser_assets(
         if packed.exists():
             target.with_suffix(".js.gz").write_bytes(gzip.compress(content, mtime=0))
         metadata = data["files"][filename].copy()
-        metadata.update({
-            "digest": digest,
-            "size": len(content),
-            "integrity": "sha256-" + base64.b64encode(bytes.fromhex(digest)).decode(),
-        })
+        metadata.update(
+            {
+                "digest": digest,
+                "size": len(content),
+                "integrity": "sha256-" + base64.b64encode(bytes.fromhex(digest)).decode(),
+            }
+        )
         data["files"][versioned] = metadata
         data["assets"][logical] = versioned
         changed = True
@@ -388,7 +406,8 @@ def configure_tiles(
         cache.symlink_to(destination, target_is_directory=True)
     config, count = re.subn(
         r"(?m)^([ \t]*)ModTileMissingRequestTimeout[ \t]+\d+[ \t]*$",
-        r"\g<1>ModTileMissingRequestTimeout 120", apache.read_text(),
+        r"\g<1>ModTileMissingRequestTimeout 120",
+        apache.read_text(),
     )
     if count != 1:
         raise ValueError("Unexpected Apache tile timeout configuration")
@@ -408,8 +427,9 @@ def configure_tiles(
         )
         config = config.replace(catch_all, detail + catch_all)
     apache.write_text(config)
-    config, count = re.subn(r"(?m)^num_threads[ \t]*=[ \t]*\d+[ \t]*$",
-                            "num_threads=2", renderd.read_text())
+    config, count = re.subn(
+        r"(?m)^num_threads[ \t]*=[ \t]*\d+[ \t]*$", "num_threads=2", renderd.read_text()
+    )
     if count != 1:
         raise ValueError("Unexpected render worker configuration")
     renderd.write_text(config)
@@ -454,6 +474,98 @@ def serve(root: Path, reserve: int, command: list[str], detail: list[str] | None
                     signal.signal(sig, handler)
 
 
+def verify_map_endpoint(base: str) -> dict:
+    base = base.rstrip("/")
+    checks = []
+
+    def get(path: str) -> bytes:
+        with urlopen(base + path, timeout=120) as response:
+            if response.status != 200:
+                raise AssertionError(f"HTTP {response.status}: {path}")
+            return response.read()
+
+    for path in ("/", "/login", "/api/capabilities"):
+        if not get(path):
+            raise ValueError(path)
+        checks.append({"path": path, "status": "pass"})
+    query = urlencode({"q": "Carnegie Mellon University", "format": "jsonv2", "addressdetails": 1})
+    places = json.loads(get("/nominatim/search?" + query))
+    cmu = next(
+        (place for place in places if place.get("address", {}).get("postcode") == "15213"), None
+    )
+    if cmu is None:
+        raise ValueError("CMU search result missing from the frozen Map snapshot")
+    if "Carnegie Mellon" not in cmu["display_name"]:
+        raise ValueError("Frozen Map acceptance failed")
+    checks.append({"feature": "search", "result": cmu, "status": "pass"})
+    reverse = json.loads(
+        get(
+            "/nominatim/reverse?"
+            + urlencode(
+                {"lat": cmu["lat"], "lon": cmu["lon"], "format": "jsonv2", "addressdetails": 1}
+            )
+        )
+    )
+    if not (reverse.get("address") and "error" not in reverse):
+        raise ValueError("Frozen Map acceptance failed")
+    checks.append({"feature": "reverse", "result": reverse, "status": "pass"})
+    coordinates = f"{cmu['lon']},{cmu['lat']};-79.9608,40.4444"
+    for profile in ("car", "bike", "foot"):
+        route = json.loads(
+            get(f"/osrm/routed-{profile}/route/v1/driving/{coordinates}?overview=false")
+        )
+        if not (route["code"] == "Ok" and route["routes"][0]["distance"] > 0):
+            raise ValueError("Frozen Map acceptance failed")
+        checks.append({"feature": f"route-{profile}", "result": route, "status": "pass"})
+    tile = get("/tile/0/0/0.png")
+    if not (tile.startswith(b"\x89PNG\r\n\x1a\n") and len(tile) > 100):
+        raise ValueError("Frozen Map acceptance failed")
+    checks.append({"feature": "tile", "bytes": len(tile), "status": "pass"})
+    for path, name in (
+        ("/node/1479729158", "Bei Jing"),
+        ("/way/172206707", "Chatham University"),
+        ("/relation/2279034", "Carnegie Mellon University"),
+    ):
+        detail = get(path).decode("utf-8")
+        if "<!doctype html>" not in detail.lower():
+            raise ValueError("Frozen Map acceptance failed")
+        if not (name in detail and path.rsplit("/", 1)[1] in detail):
+            raise ValueError("Frozen Map acceptance failed")
+        if not "Not Found" not in detail:
+            raise ValueError("Frozen Map acceptance failed")
+        checks.append({"feature": "object-detail", "path": path, "status": "pass"})
+    causeway = get("/relation/5475586").decode("utf-8")
+    if not ("Lake Pontchartrain Causeway" in causeway and "5475586" in causeway):
+        raise ValueError("Frozen Map acceptance failed")
+    checks.append(
+        {"feature": "frozen-route-relation", "path": "/relation/5475586", "status": "pass"}
+    )
+    try:
+        get("/relation/999999999999")
+    except HTTPError as error:
+        if not error.code == 404:
+            raise ValueError("Frozen Map acceptance failed") from error
+    else:
+        raise ValueError("An unknown frozen object must not be fabricated")
+    checks.append({"feature": "unavailable-object", "status": "pass"})
+    return {"base_url": base, "status": "pass", "checks": checks}
+
+
+def map_check_main(argv=None):
+    parser = argparse.ArgumentParser(description="Read-only frozen Map deployment acceptance.")
+    parser.add_argument("--url", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    from harness.web_fetch.safety import unlinked_path, write_new_file
+
+    output = unlinked_path(args.output)
+    if output.exists():
+        raise ValueError("Map acceptance output already exists")
+    result = verify_map_endpoint(args.url)
+    write_new_file(output, (json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode())
+    print(json.dumps({"status": result["status"], "checks": len(result["checks"])}))
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("/data"))
@@ -462,8 +574,11 @@ if __name__ == "__main__":
     parser.add_argument("--source-base", default="")
     parser.add_argument("--compression", choices=["", "zstd"], default="")
     parser.add_argument("--serve", action="store_true")
-    parser.add_argument("--query-only", action="store_true",
-                        help="Omit osm2pgsql flatnode import/update cache for frozen queries")
+    parser.add_argument(
+        "--query-only",
+        action="store_true",
+        help="Omit osm2pgsql flatnode import/update cache for frozen queries",
+    )
     args = parser.parse_args()
     setup(
         args.root,

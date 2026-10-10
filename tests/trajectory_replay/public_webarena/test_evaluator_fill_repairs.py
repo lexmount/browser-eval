@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.propose_webarena_evaluator_fill_repair import (
+from harness.trajectory_replay.public_webarena.qualification import (
     propose_evaluator_fill_repair,
 )
 

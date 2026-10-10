@@ -118,6 +118,9 @@ int main(void) {
     printf("%d\n",failures); return failures?1:0;
 }
 """
+        compiler = subprocess.run(['cc', '--version'], capture_output=True)
+        if compiler.returncode:
+            self.skipTest('Native DNS interop requires an installed Darwin C toolchain')
         with tempfile.TemporaryDirectory() as directory:
             path = pathlib.Path(directory)
             library, manifest = build_native_dns_library(path / "dns.dylib")

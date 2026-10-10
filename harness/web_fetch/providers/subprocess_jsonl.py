@@ -20,26 +20,38 @@ from .runtime_identity import validate_runtime_identity
 class SubprocessJsonlProvider(Provider):
     """Invoke a persistent repository-native worker over line-delimited JSON."""
 
-    _LOCKED_RUNTIMES = {
+    _RUNTIME_CONTRACTS = {
+        "cowagent_builtin": {
+            "required_fields": ("expected_repo_revision",),
+            "required_paths": {
+                "{repo_path}/agent/tools/web_fetch/web_fetch.py",
+                "{repo_path}/agent/tools/utils/url_safety.py",
+                "{harness_root}/harness/web_fetch/workers/cowagent_worker.py",
+            },
+        },
         "openclaw_builtin": {
-            "revision": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
-            "node_version": "v24.15.0",
-            "package_manager_version": "12.1.0",
-            "paths": {
+            "required_fields": (
+                "expected_repo_revision", "expected_node_version",
+                "expected_package_manager_version",
+            ),
+            "required_paths": {
                 "{repo_path}/src/agents/tools/web-fetch.ts",
                 "{repo_path}/pnpm-lock.yaml",
-                "{harness_root}/scripts/oss/openclaw_webfetch_worker.mts",
+                "{harness_root}/harness/web_fetch/workers/openclaw_webfetch_worker.mts",
             },
         },
         "deepseek_harness_builtin": {
-            "revision": "dd6322d604e00eec1ba5e0c8541159906a21094a",
-            "node_version": "v24.15.0",
-            "paths": {
+            "required_fields": ("expected_repo_revision", "expected_node_version"),
+            "identical_files": [(
+                "harness/harness/web_fetch/workers/dsh_webfetch_worker.mts",
+                "repo/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
+            )],
+            "required_paths": {
                 "{repo_path}/packages/web/web-fetch-http/src/provider.ts",
                 "{repo_path}/pnpm-lock.yaml",
                 "{repo_path}/node_modules/.pnpm/.browser-harness-dsh-worker.mts",
-                "{harness_root}/scripts/oss/dsh_output.mjs",
-                "{harness_root}/scripts/oss/dsh_webfetch_worker.mts",
+                "{harness_root}/harness/web_fetch/workers/dsh_output.mjs",
+                "{harness_root}/harness/web_fetch/workers/dsh_webfetch_worker.mts",
             },
         },
     }
@@ -50,6 +62,7 @@ class SubprocessJsonlProvider(Provider):
         self._process: subprocess.Popen[str] | None = None
         self._stdout_queue: queue.Queue[str | None] = queue.Queue()
         self._stderr_lock = threading.Condition()
+        self._stderr_generation = object()
         self._stderr_chunks: list[tuple[int, int, str]] = []
         self._stderr_sequence = 0
         self._stderr_total_bytes = 0
@@ -72,31 +85,17 @@ class SubprocessJsonlProvider(Provider):
             mode = validate_dns_mode(self.config.get("dns_mode", "system"))
         except ValueError as error:
             return [str(error)]
-        if mode == "public_doh" and self.type not in {"openclaw_builtin", "deepseek_harness_builtin", "langchain_webbase", "crawl4ai"}:
+        if mode == "public_doh" and self.type not in {"cowagent_builtin", "openclaw_builtin", "deepseek_harness_builtin", "langchain_webbase", "crawl4ai"}:
             return ["public_doh is not supported by this worker"]
-        missing, identity = validate_runtime_identity(self.config, self._resolve_token)
+        missing, identity = validate_runtime_identity(
+            self.config, self._resolve_token, **self._RUNTIME_CONTRACTS.get(self.type, {}))
         if mode == "public_doh":
-            required = {"{harness_root}/harness/web_fetch/network_dns.py"} if self.type in {"langchain_webbase", "crawl4ai"} else {"{harness_root}/scripts/oss/public_dns.mjs"}
+            required = {"{harness_root}/harness/web_fetch/network_dns.py"} if self.type in {"cowagent_builtin", "langchain_webbase", "crawl4ai"} else {"{harness_root}/harness/web_fetch/workers/public_dns.mjs"}
             if self.type == "deepseek_harness_builtin":
                 required.add("{repo_path}/packages/web/web-fetch-http/src/network.ts")
             if not required.issubset(set(self.config.get("required_paths", []))):
                 missing.append("locked public DNS helper paths")
-        locked = self._LOCKED_RUNTIMES.get(self.type)
-        if locked:
-            if self.config.get("expected_repo_revision") != locked["revision"]:
-                missing.append(f"repo revision {locked['revision']}")
-            if self.config.get("expected_node_version") != locked["node_version"]:
-                missing.append(f"Node {locked['node_version']}")
-            package_manager_version = locked.get("package_manager_version")
-            if (
-                package_manager_version is not None
-                and self.config.get("expected_package_manager_version")
-                != package_manager_version
-            ):
-                missing.append(f"package manager {package_manager_version}")
-            if not locked["paths"].issubset(set(self.config.get("required_paths", []))):
-                missing.append("locked required paths")
-        if identity is not None:
+        if identity is not None and not missing:
             self._implementation_identity = identity
         return missing
 
@@ -123,31 +122,38 @@ class SubprocessJsonlProvider(Provider):
         )
         self._stdout_queue = queue.Queue()
         with self._stderr_lock:
+            self._stderr_generation = object()
             self._stderr_chunks = []
             self._stderr_sequence = 0
             self._stderr_total_bytes = 0
             self._stderr_retained_bytes = 0
         assert self._process.stdout is not None and self._process.stderr is not None
-        threading.Thread(target=self._drain_stdout, args=(self._process,), daemon=True).start()
-        threading.Thread(target=self._drain_stderr, args=(self._process,), daemon=True).start()
+        threading.Thread(target=self._drain_stdout,
+                         args=(self._process, self._stdout_queue), daemon=True).start()
+        threading.Thread(target=self._drain_stderr,
+                         args=(self._process, self._stderr_generation), daemon=True).start()
         return self._process
 
-    def _drain_stdout(self, process: subprocess.Popen[str]) -> None:
+    def _drain_stdout(self, process: subprocess.Popen[str], output: queue.Queue[str | None]) -> None:
         assert process.stdout is not None
         for line in process.stdout:
             sink = getattr(self, "_active_diagnostics", None)
-            if sink: sink.emit("native_process_stdout", "stream_line", text=line)
-            self._stdout_queue.put(line)
-        self._stdout_queue.put(None)
+            if sink and process is self._process:
+                sink.emit("native_process_stdout", "stream_line", text=line)
+            output.put(line)
+        output.put(None)
 
-    def _drain_stderr(self, process: subprocess.Popen[str]) -> None:
+    def _drain_stderr(self, process: subprocess.Popen[str], generation: object) -> None:
         assert process.stderr is not None
         for line in process.stderr:
-            sink = getattr(self, "_active_diagnostics", None)
-            if sink: sink.emit("native_process_stderr", "stream_line", text=line)
             size = len(line.encode("utf-8", "replace"))
             limit = max(1, int(self.config.get("max_bytes", 20_000_000)))
             with self._stderr_lock:
+                if generation is not self._stderr_generation:
+                    return
+                sink = getattr(self, "_active_diagnostics", None)
+                if sink:
+                    sink.emit("native_process_stderr", "stream_line", text=line)
                 self._stderr_sequence += 1
                 self._stderr_total_bytes += size
                 self._stderr_chunks.append(
@@ -201,9 +207,14 @@ class SubprocessJsonlProvider(Provider):
             )
         deadline = time.monotonic() + timeout
         self._active_diagnostics = getattr(self, "_call_diagnostics", None)
-        process = self._start()
-        assert process.stdin is not None and process.stdout is not None
+        previous_process = self._process
         stderr_cursor = self._stderr_cursor()
+        process = self._start()
+        if process is not previous_process:
+            # Startup is part of this call, including diagnostics already
+            # consumed by the reader before _start returns.
+            stderr_cursor = (0, 0)
+        assert process.stdin is not None and process.stdout is not None
         request = {
             "url": case.url,
             "log_level": self.config.get("log_level"),
@@ -218,8 +229,20 @@ class SubprocessJsonlProvider(Provider):
             "retrieval_mode": "native_default" if native_default_case(case) else "declared_plan",
         }
         if self._active_diagnostics: self._active_diagnostics.emit("caller", "worker_request_sent", request=request)
-        process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
-        process.stdin.flush()
+        try:
+            process.stdin.write(json.dumps(request, ensure_ascii=False) + "\n")
+            process.stdin.flush()
+        except OSError as error:
+            # A worker may exit or close stdin before accepting a request.
+            # Retain the actual transport error and the startup diagnostics.
+            self.cancel()
+            process.wait(timeout=self.cancellation_cleanup_seconds)
+            error.public_metadata = {
+                "_answer_elapsed_ms": round((time.perf_counter() - answer_begin) * 1000, 2),
+                **self._request_stderr(stderr_cursor),
+                "exit_code": process.returncode,
+            }
+            raise
 
         worker_logs: list[str] = []
         worker_log_bytes = 0
@@ -336,4 +359,8 @@ class SubprocessJsonlProvider(Provider):
         if process is not None:
             for stream in (process.stdin, process.stdout, process.stderr):
                 if stream is not None:
-                    stream.close()
+                    try:
+                        stream.close()
+                    except OSError:
+                        # Closing buffered stdin can repeat the write failure.
+                        pass

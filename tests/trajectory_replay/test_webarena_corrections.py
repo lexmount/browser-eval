@@ -9,7 +9,9 @@ from urllib.parse import urlencode
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
-from harness.browser_use.runner import _configure_benchmark
+from harness.environments.webarena.runtime import (
+    configure_benchmark,
+)
 from harness.trajectory_replay.remote_runtime import remote_benchmark
 from harness.trajectory_replay.webarena_corrections import (
     DEFAULT_CORRECTIONS_PATH,
@@ -25,7 +27,7 @@ from harness.trajectory_replay.webarena_corrections import (
 
 @pytest.fixture(scope="module")
 def benchmark():
-    return _configure_benchmark()
+    return configure_benchmark()
 
 
 @pytest.fixture(scope="module")

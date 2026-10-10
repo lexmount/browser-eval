@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.build_webarena_repair_batch import build_batch
+from harness.trajectory_replay.public_webarena.qualification import build_proposal_suite
 
 
 def _task(task_id):
@@ -37,7 +37,7 @@ def _proposal(task_id):
 def test_repair_batch_preserves_proposal_order_and_independent_provenance():
     suite = {"tasks": [_task("a"), _task("b")], "benchmark": {"name": "WebArena"}}
 
-    result = build_batch(suite, [_proposal("b"), _proposal("a")])
+    result = build_proposal_suite(suite, [_proposal("b"), _proposal("a")])
 
     assert [task["id"] for task in result["tasks"]] == ["b", "a"]
     assert all(
@@ -49,4 +49,4 @@ def test_repair_batch_preserves_proposal_order_and_independent_provenance():
 
 def test_repair_batch_rejects_duplicate_task_ids():
     with pytest.raises(ValueError, match="unique"):
-        build_batch({"tasks": [_task("a")]}, [_proposal("a"), _proposal("a")])
+        build_proposal_suite({"tasks": [_task("a")]}, [_proposal("a"), _proposal("a")])

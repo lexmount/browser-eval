@@ -137,5 +137,5 @@ def verify(artifacts: Path) -> dict:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--artifacts", type=Path, default=Path("artifacts/trajectory_replay/latest"))
+    parser.add_argument("--artifacts", type=Path, required=True)
     print(json.dumps(verify(parser.parse_args().artifacts)))

@@ -1,20 +1,20 @@
 import base64
-import hashlib
 import gzip
+import hashlib
 import json
 import os
-from pathlib import Path
-import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 import zipfile
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 
+from harness.web_fetch.publication_check import check as check_bundle
+from harness.web_fetch.publication_check import scored_output_hash
 from harness.web_fetch.publication_privacy import project_file, publication_risk
-from scripts.check_publication_bundle import scored_output_hash, check as check_bundle
 
 
 class PublicationPrivacyTests(unittest.TestCase):
@@ -93,7 +93,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             scored_output_hash({'artifact_path': 'artifacts/case.md'})
 
     def test_loader_localizes_async_status_and_accessibility_copy(self):
-        source=(Path(__file__).resolve().parents[1]/'scripts/package_artifact_hub.py').read_text()
+        source=(Path(__file__).resolve().parents[1]/'harness/web_fetch/assets/report-loader.js').read_text()
         self.assertIn("function tr(zh,en)",source)
         for english in ('Failed to load the data catalog','Load complete content',
                         'Loading complete content…','Complete actual output',
@@ -220,12 +220,6 @@ class PublicationPrivacyTests(unittest.TestCase):
         repository = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            for relative in ('scripts/package_artifact_hub.py', 'harness/web_fetch/publication_privacy.py',
-                             'harness/web_fetch/publication_target.py', 'harness/reporting/packs.py',
-                             'harness/reporting/links.py'):
-                target = root / relative
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(repository / relative, target)
             (root / 'publish').mkdir()
             source = root / 'reports/webfetch'
             (source / 'assets').mkdir(parents=True)
@@ -306,8 +300,10 @@ class PublicationPrivacyTests(unittest.TestCase):
             raw_path.write_bytes(raw)
             malicious = 'https://example.test/" onmouseover="alert(1)'
             env = {**os.environ, 'WEBFETCH_REPORT_PUBLIC_URL': malicious}
-            subprocess.run([sys.executable, str(root / 'scripts/package_artifact_hub.py')], check=True,
+            packaged = subprocess.run([sys.executable, str(repository / 'scripts/package_artifact_hub.py'),
+                            str(source), str(root / 'publish/webfetch-sites.zip')],
                            capture_output=True, env=env)
+            self.assertEqual(packaged.returncode, 0, packaged.stderr.decode())
             self.assertEqual(raw_path.read_bytes(), raw)
             with zipfile.ZipFile(root / 'publish/webfetch-sites.zip') as archive:
                 manifest = json.loads(archive.read('manifest.json'))
@@ -371,12 +367,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             check_bundle(root / 'publish/webfetch-sites.zip',source)
             # A small correction keeps all original packed evidence. Only the
             # loader and complete manifest are sent to the existing site.
-            from unittest.mock import patch
-            import importlib.util
-            with patch.object(sys, 'argv', ['package_artifact_hub.py']):
-                module_spec = importlib.util.spec_from_file_location('incremental_package', Path(__file__).parents[1] / 'scripts/package_artifact_hub.py')
-                module = importlib.util.module_from_spec(module_spec)
-                module_spec.loader.exec_module(module)
+            from harness.web_fetch import report_package as module
             archive_path = root / 'publish/webfetch-sites.zip'
             baseline_digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
             old_home = (source / 'index.html').read_bytes()
@@ -394,6 +385,31 @@ class PublicationPrivacyTests(unittest.TestCase):
             self.assertIn(b'New release history', base64.b64decode(patched_manifest['files']['changes/index.html']['inline_base64']))
             self.assertEqual(hashlib.sha256(archive_path.read_bytes()).hexdigest(), baseline_digest)
             check_bundle(archive_path, source, delta)
+            from unittest.mock import patch
+            # An overlay may update explanations, never attempts or packed evidence.
+            for label in ('attempt', 'blocks'):
+                poisoned = json.loads((delta / 'manifest.json').read_text())
+                if label == 'attempt':
+                    key = record['artifact_path']
+                    payload = b'changed measured answer'
+                    poisoned['files'][key] = {'inline_base64': base64.b64encode(payload).decode(),
+                        'size': len(payload), 'sha256': hashlib.sha256(payload).hexdigest(), 'mime': 'text/plain'}
+                else:
+                    poisoned['blocks'][next(iter(poisoned['blocks']))]['offset'] += 1
+                overlay = root / ('illegal-' + label)
+                overlay.mkdir()
+                (overlay / 'manifest.json').write_text(json.dumps(poisoned))
+                with self.assertRaisesRegex(ValueError, 'Incremental overlay changed'):
+                    check_bundle(archive_path, source, overlay)
+            original_build = module._build_incremental
+            def interrupted(*args):
+                original_build(*args)
+                raise OSError('simulated storage interruption')
+            with patch.object(module, '_build_incremental', side_effect=interrupted):
+                with self.assertRaisesRegex(OSError, 'storage interruption'):
+                    module.build_incremental(source, archive_path, root / 'interrupted')
+            self.assertFalse((root / 'interrupted').exists())
+            self.assertEqual(hashlib.sha256(archive_path.read_bytes()).hexdigest(), baseline_digest)
             for index, broken in enumerate(('<a href="missing.html">missing</a>',
                                            '<pre data-file="missing.json"></pre>',
                                            '<img src="missing.png">',
@@ -424,7 +440,6 @@ class PublicationPrivacyTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Not an explanatory route'):
                 module.build_incremental(source, archive_path, root / 'wrong-route')
             (source / 'index.html').write_bytes(old_home)
-            shutil.rmtree(module.DEST)
 
             for broken in ('<a href="missing.html">missing</a>',
                            '<pre data-file="missing.txt"></pre>',
@@ -432,13 +447,13 @@ class PublicationPrivacyTests(unittest.TestCase):
                 with self.subTest(broken=broken):
                     (source / 'index.html').write_text('<html><body>' + broken + '</body></html>')
                     rejected = subprocess.run(
-                        [sys.executable, str(root / 'scripts/package_artifact_hub.py')],
+                        [sys.executable, str(repository / 'scripts/package_artifact_hub.py'), str(source), str(root / 'publish/webfetch-sites.zip')],
                         capture_output=True, env=env,
                     )
                     self.assertNotEqual(rejected.returncode, 0)
                     self.assertIn(b'ValueError', rejected.stderr)
             (source / 'results.jsonl').write_text(results.replace('"route": "markdown"', '"route": "changed"'))
-            with self.assertRaisesRegex(ValueError, 'results differ from the current source'):
+            with self.assertRaisesRegex(ValueError, 'source hash differs'):
                 check_bundle(root / 'publish/webfetch-sites.zip', source)
 
 

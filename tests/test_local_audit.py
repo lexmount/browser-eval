@@ -16,17 +16,37 @@ def _write(path, value):
 
 
 def test_frozen_scoring_controls_allow_additions_but_reject_edits(tmp_path, monkeypatch):
-    root = local_audit.ROOT
-    dataset = json.loads((root / 'evaluation/dynamic-content-100-moli-webfetch/dataset.json').read_text())
-    receipt = json.loads((root / 'research/dynamic-100-moli-119-local-audit.json').read_text())
+    original_root = local_audit.ROOT
+    receipt = json.loads((original_root / 'research/dynamic-100-moli-119-local-audit.json').read_text())
+    root = tmp_path / 'repo'
+    bindings = receipt['repository_evidence']
+    scoring_path = root / bindings['scoring_revision_path']
+    scoring_path.parent.mkdir(parents=True)
+    scoring_path.write_bytes((original_root / bindings['scoring_revision_path']).read_bytes())
+    scoring = json.loads(scoring_path.read_text())
+    dataset = {'id': scoring['dataset_id'], 'cases': [{'id': 'fixture'}]}
+    reference = root / 'evaluation/sources/fixture/reference.txt'
+    reference.parent.mkdir(parents=True)
+    reference.write_text('Independent synthetic reference')
+    inventory = [{
+        'case_id': 'fixture', 'path': 'evaluation/sources/fixture/reference.txt',
+        'sha256': _digest(reference), 'bytes': reference.stat().st_size,
+        'purpose': 'frozen scoring reference',
+    }]
+    source_manifest = root / bindings['source_manifest_path']
+    _write(source_manifest, {
+        'schema_version': 1, 'kind': 'dataset_source_evidence_inventory',
+        'dataset_id': dataset['id'], 'dataset_sha256': receipt['bindings']['dataset_sha256'],
+        'files': inventory,
+        'scope': {'dataset_cases': 1, 'cases_with_source_evidence': 1, 'files': 1},
+    })
+    bindings['source_manifest_sha256'] = _digest(source_manifest)
     relative = 'evaluation/scoring-regressions.json'
-    controls = json.loads((root / relative).read_text())
+    controls = json.loads((original_root / relative).read_text())
     controls['cases'].append({'id': 'new-independent-control'})
-    path = tmp_path / 'controls.json'
+    path = root / relative
     _write(path, controls)
-    original_file = local_audit._repository_file
-    monkeypatch.setattr(local_audit, '_repository_file',
-                        lambda name: path if name == relative else original_file(name))
+    monkeypatch.setattr(local_audit, 'ROOT', root)
     local_audit._require_repository_bindings(dataset, receipt)
     controls['cases'][0]['artifact'] = 'changed frozen evidence'
     _write(path, controls)
@@ -169,8 +189,14 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
     from harness.web_fetch.report_build import build_report
     canonical = tmp_path / "repo/evaluation/dataset.json"
-    # Use a genuine committed contract to exercise the production scorer.
-    actual = json.loads(Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json").read_text())["cases"][0]
+    # Exercise the production acceptance boundary without historical downloads.
+    actual = {"id": "dynamic-control", "name": "Stable body fixture",
+              "url": "https://example.invalid/", "category": "dynamic", "track": "dynamic",
+              "task_kind": "body", "expected_any": ["Independent fixture output"],
+              "source_verification": {"state": "unavailable"},
+              "acceptance_contract": {"version": 1, "schema": "body_text",
+                  "minimum_records": 0, "stable_text_anchors": [
+                      {"id": "identity", "alternatives": ["Independent fixture output"]}]}}
     canonical_data = {"tool": "web_fetch", "cases": [actual]}
     _write(canonical, canonical_data)
     dataset = {**canonical_data, "id": "local-fixture", "name": "Local fixture",
@@ -263,6 +289,17 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     (output / "changes/index.html").write_text("<html><body>Old release history</body></html>")
     before = {path.relative_to(output).as_posix(): _digest(path)
               for path in output.rglob("*") if path.is_file()}
+    from unittest.mock import patch
+    original_rename = Path.rename
+    def interrupted_swap(path, target):
+        if Path(target) == output and path.name == 'selected':
+            raise OSError('simulated installation interruption')
+        return original_rename(path, target)
+    with patch.object(Path, 'rename', interrupted_swap):
+        with pytest.raises(OSError, match='installation interruption'):
+            refresh_local_presentation(output, binding_path)
+    assert {path.relative_to(output).as_posix(): _digest(path)
+            for path in output.rglob('*') if path.is_file()} == before
     refresh_local_presentation(output, binding_path)
     allowed = {"index.html", "methodology/index.html", "adoption/index.html",
                "reproduce/index.html", "changes/index.html", "providers/fixture.html",
@@ -274,7 +311,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     refreshed = json.loads((output / "report-manifest.json").read_text())
     assert refreshed["certified"] is False
     assert refreshed["presentation_refresh"]["scores_changed"] is False
-    assert "2026-10-09-dynamic-1000-native-presentation" in (output / "changes/index.html").read_text()
+    assert "Old release history" not in (output / "changes/index.html").read_text()
+    assert "2026-10-09-dynamic-1000-native-presentation" not in (output / "changes/index.html").read_text()
     assert "changes/index.html" in refreshed["presentation_refresh"]["changed_routes"]
     _write(binding_path, {**binding, "results_sha256": "0" * 64})
     with pytest.raises(ValueError, match="input binding changed"):

@@ -4,7 +4,10 @@ import io
 import urllib.parse
 import zipfile
 
-from scripts.fetch_webarena_traces import _DriveConfirmationParser, _stream_download
+from harness.trajectory_replay.public_webarena.webarena import (
+    _DriveConfirmationParser,
+    _stream_download,
+)
 
 
 class _Response(io.BytesIO):
@@ -68,3 +71,92 @@ def test_stream_download_follows_large_file_confirmation(monkeypatch, tmp_path):
     assert zipfile.is_zipfile(output)
     query = urllib.parse.parse_qs(urllib.parse.urlsplit(opener.urls[1]).query)
     assert query == {"id": ["file-id"], "confirm": ["t"], "uuid": ["attempt-id"]}
+
+
+def test_declared_catalog_downloads_all_cached_traces_without_fixed_size(tmp_path, monkeypatch):
+    import json
+
+    from harness.trajectory_replay.public_webarena.webarena import main_fetch_traces
+
+    rows = [
+        {
+            "task_id": task,
+            "file_name": f"{task}.trace.zip",
+            "download_url": f"https://drive.google.com/uc?id=synthetic-{task}",
+        }
+        for task in (1, 2)
+    ]
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(json.dumps({"count": len(rows), "traces": rows}))
+    output = tmp_path / "traces"
+    output.mkdir()
+    for row in rows:
+        (output / row["file_name"]).write_bytes(_trace_zip())
+    monkeypatch.setattr(
+        "urllib.request.build_opener",
+        lambda *_: (_ for _ in ()).throw(AssertionError("cached traces must not trigger network")),
+    )
+    main_fetch_traces(["--catalog", str(catalog), "--output", str(output)])
+    manifest = json.loads((output / "downloads.json").read_text())
+    assert manifest["complete"] and manifest["count"] == 2
+    assert {item["task_id"] for item in manifest["files"]} == {1, 2}
+    assert all(item["status"] == "existing" for item in manifest["files"])
+
+
+def test_invalid_catalog_rejected_before_creating_output(tmp_path):
+    import json
+
+    import pytest
+
+    from harness.trajectory_replay.public_webarena.webarena import main_fetch_traces
+
+    row = {
+        "task_id": 1,
+        "file_name": "../1.trace.zip",
+        "download_url": "https://drive.google.com/uc?id=synthetic",
+    }
+    for rows, count in [
+        ([row], 1),
+        ([dict(row, file_name="1.trace.zip")] * 2, 2),
+        ([dict(row, file_name="1.trace.zip")], 179),
+    ]:
+        catalog = tmp_path / "catalog.json"
+        catalog.write_text(json.dumps({"count": count, "traces": rows}))
+        output = tmp_path / "output"
+        with pytest.raises(ValueError):
+            main_fetch_traces(["--catalog", str(catalog), "--output", str(output)])
+        assert not output.exists()
+
+
+def test_catalog_drift_cannot_produce_download_manifest(tmp_path, monkeypatch):
+    import json
+
+    import pytest
+
+    from harness.trajectory_replay.public_webarena import webarena
+
+    catalog = tmp_path / "catalog.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "count": 1,
+                "traces": [
+                    {
+                        "task_id": 1,
+                        "file_name": "1.trace.zip",
+                        "download_url": "https://drive.google.com/uc?id=synthetic",
+                    }
+                ],
+            }
+        )
+    )
+    output = tmp_path / "traces"
+
+    def download(row, destination):
+        catalog.write_text("{}")
+        return {"task_id": 1, "status": "downloaded"}
+
+    monkeypatch.setattr(webarena, "_download", download)
+    with pytest.raises(ValueError, match="catalog changed"):
+        webarena.main_fetch_traces(["--catalog", str(catalog), "--output", str(output)])
+    assert not (output / "downloads.json").exists()

@@ -9,20 +9,70 @@ from urllib.error import URLError
 
 import pytest
 
+from harness.environments.browser import (
+    ENGINE_PORTS,
+    cleanup_browser_runtime,
+    external_websocket_url,
+    published_endpoint,
+    start_browser_container,
+)
 from harness.trajectory_replay.public_webarena import diagnostics, runner
 from harness.trajectory_replay.public_webarena.runner import (
-    ENGINE_PORTS,
+    ENGINE_IMAGES,
     _capture_final_page_evidence,
-    _cleanup_runtime,
     _environment,
     _environment_failure_row,
-    _external_websocket_url,
     _http_origin,
     _prepare_page,
-    _published_endpoint,
-    _start_browser_container,
 )
 from harness.trajectory_replay.public_webarena.suite import BrowserTask, TaskSuite
+
+
+def test_task_execution_writes_redacted_evaluator_network_evidence(tmp_path, monkeypatch):
+    from harness.trajectory_replay.public_webarena.evaluators import TaskEvaluation
+
+    page = MagicMock()
+    page.context.pages = [page]
+    session = page.context.new_cdp_session.return_value
+    handlers = {}
+    session.on.side_effect = lambda event, callback: handlers.update({event: callback})
+    session.send.return_value = {"body": "saved", "base64Encoded": False}
+    monkeypatch.setattr(runner, "ResourceSampler", lambda *a, **kw: MagicMock())
+    monkeypatch.setattr(runner, "_resource_result", lambda *a: {})
+    monkeypatch.setattr(runner, "_capture_final_page_evidence", lambda *a: {"status": "complete"})
+    monkeypatch.setattr(runner, "build_agent_response", lambda *a: None)
+
+    def execute(_page, _calls, *, trace, **kwargs):
+        handlers["Network.requestWillBeSent"]({
+            "requestId": "save", "wallTime": 1,
+            "request": {"method": "GET", "url": "https://site.test/save",
+                        "headers": {"Authorization": "Bearer private-token"}},
+        })
+        handlers["Network.responseReceived"]({
+            "requestId": "save",
+            "response": {"status": 200, "statusText": "OK", "protocol": "http/1.1",
+                         "mimeType": "text/plain", "headers": {}},
+        })
+        handlers["Network.loadingFinished"]({"requestId": "save"})
+        trace.append({"action": "navigate", "status": "pass"})
+
+    monkeypatch.setattr(runner, "execute_steps", execute)
+    registry = MagicMock()
+    registry.evaluate.return_value = TaskEvaluation("pass", 1.0, (), "test")
+    task = BrowserTask(
+        "task", "Task", ({"action": "navigate"},), (), (), "simple",
+        {"expected_actions": ["navigate"]}, {},
+    )
+    result = runner._run_task(
+        "chromium", page, set(), MagicMock(), task, 1, 100, registry, tmp_path,
+    )
+    assert result["status"] == "pass", result["error"]
+    assert result["network_har"]["entry_count"] == 1
+    raw = (tmp_path / "network.har").read_text()
+    assert "private-token" not in raw
+    entry = json.loads(raw)["log"]["entries"][0]
+    assert entry["request"]["url"] == "https://site.test/save"
+    assert entry["request"]["headers"] == [{"name": "Authorization", "value": "[REDACTED]"}]
 
 
 def test_authoring_runtime_caps_ad_hoc_repair_target_waits():
@@ -153,8 +203,9 @@ def test_browser_engines_publish_their_external_cdp_ports():
 def test_browser_container_may_omit_cpu_limit_only_when_explicit():
     client = MagicMock()
 
-    _start_browser_container(
+    start_browser_container(
         client,
+        image=ENGINE_IMAGES["chromium"], cdp_port=ENGINE_PORTS["chromium"],
         engine="chromium",
         run_id="diagnostic",
         cpus=None,
@@ -169,8 +220,9 @@ def test_browser_container_may_omit_cpu_limit_only_when_explicit():
 
 def test_browser_container_rejects_nonpositive_explicit_cpu_limit():
     with pytest.raises(ValueError, match="cpus must be positive"):
-        _start_browser_container(
+        start_browser_container(
             MagicMock(),
+            image=ENGINE_IMAGES["chromium"], cdp_port=ENGINE_PORTS["chromium"],
             engine="chromium",
             run_id="invalid",
             cpus=0,
@@ -286,9 +338,9 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     monkeypatch.setattr(
         runner, "sync_playwright", lambda: SimpleNamespace(start=lambda: playwright)
     )
-    monkeypatch.setattr(runner, "_start_browser_container", lambda *a, **k: MagicMock())
-    monkeypatch.setattr(runner, "_published_endpoint", lambda *a, **k: "http://test.invalid")
-    monkeypatch.setattr(runner, "_wait_cdp", lambda *a, **k: "ws://test.invalid")
+    monkeypatch.setattr(runner, "start_browser_container", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
+    monkeypatch.setattr(runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
     monkeypatch.setattr(runner, "DockerStatsResources", lambda _: None)
     monkeypatch.setattr(runner, "_reset_state", lambda *a: None)
     monkeypatch.setattr(runner, "_prepare_page", lambda page, *a, **k: page)
@@ -584,7 +636,7 @@ def test_webarena_run_mode_fails_closed_on_qualification_state(
 
 def test_external_websocket_url_rewrites_container_advertised_host():
     assert (
-        _external_websocket_url(
+        external_websocket_url(
             "http://127.0.0.1:32776",
             "ws://0.0.0.0:9222/devtools/browser/moli-browser",
         )
@@ -602,7 +654,7 @@ def test_published_endpoint_handles_missing_port_binding():
         attrs = {"NetworkSettings": {"Ports": {}}}
 
     with pytest.raises(RuntimeError, match="chromium: Docker did not publish CDP port"):
-        _published_endpoint(Container(), engine="chromium", cdp_port=9223)
+        published_endpoint(Container(), engine="chromium", cdp_port=9223)
 
 
 def test_published_endpoint_uses_loopback_host_binding():
@@ -614,7 +666,7 @@ def test_published_endpoint_uses_loopback_host_binding():
         }
 
     assert (
-        _published_endpoint(Container(), engine="moli", cdp_port=9222) == "http://127.0.0.1:32768"
+        published_endpoint(Container(), engine="moli", cdp_port=9222) == "http://127.0.0.1:32768"
     )
 
 
@@ -638,7 +690,7 @@ def test_cleanup_continues_after_playwright_stop_failure():
         def remove(self):
             calls.append("network.remove")
 
-    _cleanup_runtime(
+    cleanup_browser_runtime(
         {"chromium": Browser()},
         Playwright(),
         {"chromium": Container()},

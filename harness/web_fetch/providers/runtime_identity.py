@@ -3,8 +3,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -31,10 +33,22 @@ def _command_executable(command: list[Any], repo: Path, resolve_token) -> Path |
 
 
 def validate_runtime_identity(
-    config: dict[str, Any], resolve_token
+    config: dict[str, Any], resolve_token, *, required_fields: Iterable[str] = (),
+    required_paths: Iterable[str] = (), identical_files: Iterable[tuple[str, str]] = (),
 ) -> tuple[list[str], dict[str, Any] | None]:
     """Validate and fingerprint a local implementation without publishing local paths."""
     missing: list[str] = []
+    for field in required_fields:
+        if not isinstance(config.get(field), str) or not config[field].strip():
+            missing.append(field)
+    declared_paths = config.get('required_paths', [])
+    if not isinstance(declared_paths, list) or any(
+        not isinstance(path, str) or not path.strip() for path in declared_paths
+    ):
+        missing.append('required_paths must be a list of nonempty paths')
+        declared_paths = []
+    if not set(required_paths).issubset(declared_paths):
+        missing.append('required runtime paths')
     raw_repo = str(config.get("repo_path", "")).strip()
     if not raw_repo:
         return ["repo_path"], None
@@ -75,7 +89,7 @@ def validate_runtime_identity(
 
     harness_root = Path(__file__).resolve().parents[3]
     file_hashes: dict[str, str] = {}
-    for raw in config.get("required_paths", []):
+    for raw in declared_paths:
         resolved = Path(resolve_token(raw)).expanduser().resolve()
         if not resolved.is_file():
             missing.append(f"required path {raw}")
@@ -88,6 +102,10 @@ def validate_runtime_identity(
             missing.append(f"required path outside runtime roots {raw}")
             continue
         file_hashes[public_name] = _sha256(resolved)
+
+    for source, deployed in identical_files:
+        if not file_hashes.get(source) or file_hashes.get(source) != file_hashes.get(deployed):
+            missing.append(f'runtime files differ: {source}, {deployed}')
 
     node: dict[str, str] | None = None
     expected_node = str(config.get("expected_node_version", "")).strip()
@@ -183,3 +201,23 @@ def validate_runtime_identity(
     if python is not None:
         identity["python"] = python
     return missing, None if missing else identity
+
+
+def version_number(value):
+    match = re.search(r"\d+(?:\.\d+)+", value or "")
+    return match.group(0) if match else value
+
+
+def require_expected_provider_versions(identities, configs):
+    """Fail before measurement if a versioned provider slot is mislabeled."""
+    for name, identity in identities.items():
+        expected = configs[name].get("expected_version")
+        if expected is None:
+            continue
+        if not isinstance(expected, str) or not re.fullmatch(r"\d+(?:\.\d+)+", expected):
+            raise ValueError(name + ": expected_version must be a numeric version")
+        reported = version_number(identity.get("reported_version"))
+        if reported != expected:
+            raise ValueError(
+                f"{name}: expected version {expected}, reported {reported or 'unavailable'}"
+            )

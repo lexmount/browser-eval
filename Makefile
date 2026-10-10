@@ -2,11 +2,15 @@ UV ?= uv
 PY := $(UV) run --frozen python
 TEST_PY := $(UV) run --frozen --all-extras python
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
+WEBMAINBENCH_PROFILE ?= evaluation/current-report.json
 DIAGNOSTIC_PROFILE ?= evaluation/live-webfetch/current-report.json
 
-.PHONY: setup import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check popular-sites-report popular-sites-report-check wcxb-release-check resource-image public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish webarena-catalog-report webarena-catalog-release-check public-webarena-report public-webarena-report-audit public-webarena-report-release
+.PHONY: setup setup-test import-env runtime-check naming-check test test-python test-ui fixture-smoke ci report report-check popular-sites-report popular-sites-report-check wcxb-release-check resource-image public-benchmark-report public-benchmark-sample webmainbench-run webmainbench-score webmainbench-review webmainbench-assemble browser-use-review browser-use-report browser-use-report-check browser-use-visual-check browser-use-release-check trajectory-replay-report trajectory-replay-report-check trajectory-replay-visual-check trajectory-replay-release-check trajectory-replay-package trajectory-replay-publish webarena-catalog-report webarena-catalog-release-check public-webarena-report public-webarena-report-audit public-webarena-report-release
 
 setup:
+	$(UV) sync --frozen
+
+setup-test:
 	$(UV) sync --frozen --all-extras
 	npm ci
 
@@ -28,12 +32,17 @@ webfetch-diagnostic-report: runtime-check
 naming-check: runtime-check
 	$(PY) scripts/check_track_naming.py
 
+.PHONY: lint-check
+lint-check: runtime-check
+	$(TEST_PY) -m ruff check --config 'include=["*.py"]' --select F .
+	$(TEST_PY) -m ruff check
+
 test-python: runtime-check
-	$(TEST_PY) -m unittest discover -s tests -v
-	$(TEST_PY) -m pytest tests/test_local_audit.py tests/test_dynamic_100_moli_119.py tests/test_three_cohort_review_followup.py tests/test_training_list_contract.py tests/test_risk_control_dataset.py tests/test_composite_tasks.py tests/test_cowagent_budget.py tests/test_fixed_native_policy.py tests/test_fixed_native_workers.py tests/test_call_diagnostics.py tests/test_risk_control_report.py -q
-	$(TEST_PY) -m pytest tests/browser_use -q
-	$(TEST_PY) -m pytest tests/environments tests/test_manage_webarena_rainbond_pool.py -q
-	$(TEST_PY) -m pytest tests/trajectory_replay -q
+	$(TEST_PY) -m pytest tests -q
+
+.PHONY: test-reference-inputs
+test-reference-inputs: runtime-check
+	$(TEST_PY) -m pytest tests -q --require-reference-inputs
 
 test-ui:
 	node tests/test_report_ui.mjs
@@ -42,11 +51,36 @@ test-ui:
 
 fixture-smoke: runtime-check
 	$(PY) -m harness.web_fetch validate --providers fixture
-	@tmp=$$(mktemp -d); $(PY) -m harness.web_fetch run --dataset configs/fixture-dataset.json --providers fixture --runs 1 --delay 0 --output "$$tmp/run"
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; $(PY) -m harness.web_fetch run --providers fixture --runs 1 --delay 0 --output "$$tmp/run"
 
 test: test-python test-ui test-native-adapters
 
-ci: naming-check test fixture-smoke
+ci: naming-check lint-check test fixture-smoke package-check
+
+.PHONY: package-check
+package-check: runtime-check
+	@set -eu; \
+	project_root="$$(pwd)"; \
+	package_build="$$(mktemp -d)"; \
+	package_run="$$(mktemp -d)"; \
+	trap 'rm -rf "$$package_build" "$$package_run"' EXIT; \
+	$(UV) build --out-dir "$$package_build"; \
+	set -- "$$package_build"/*.whl; \
+	test "$$#" -eq 1; test -f "$$1"; \
+	wheel="$$1"; \
+	cd "$$package_run"; \
+	$(UV) run --no-project --isolated --python 3.11 --with "$$wheel" \
+	  python "$$project_root/tests/package_smoke.py" --source-root "$$project_root" \
+	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown"; \
+	$(UV) run --no-project --isolated --python 3.11 --with "$${wheel}[webmainbench-eval]" \
+	  python "$$project_root/tests/package_smoke.py" --source-root "$$project_root" \
+	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown" --webmainbench; \
+	$(UV) run --no-project --isolated --python 3.11 --with "$${wheel}[oss-eval]" \
+	  python "$$project_root/tests/package_smoke.py" --source-root "$$project_root" \
+	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown" --oss; \
+	$(UV) run --no-project --isolated --python 3.11 --with "$${wheel}[reference-audit]" \
+	  python "$$project_root/tests/package_smoke.py" --source-root "$$project_root" \
+	  --node-html-markdown-path "$$project_root/node_modules/node-html-markdown" --reference-audit
 
 report: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
@@ -140,24 +174,14 @@ public-benchmark-sample: runtime-check
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
 	$(PY) scripts/select_public_benchmark_sample.py --source "$(SOURCE)"
 
-.PHONY: webmainbench-audit webmainbench-navigation-diagnostic webmainbench-kitesurf-diagnostic webmainbench-apply-case-correction
+.PHONY: webmainbench-audit webmainbench-apply-case-correction
 webmainbench-audit: runtime-check
 	@test -n "$(EVIDENCE)" -a -n "$(SOURCE)" -a -n "$(OUTPUT)" || (echo 'EVIDENCE, SOURCE and new OUTPUT paths are required' >&2; exit 2)
 	$(PY) scripts/audit_webmainbench_suspicions.py --evidence "$(EVIDENCE)" --source-dataset "$(SOURCE)" --output "$(OUTPUT)"
 
 webmainbench-apply-case-correction: runtime-check
 	@test -n "$(RUN_ROOT)" -a -n "$(CORRECTION)" -a -n "$(OUTPUT)" -a -n "$(CASE_ID)" -a -n "$(SOURCE)" || (echo 'RUN_ROOT, CORRECTION, OUTPUT, CASE_ID and SOURCE are required' >&2; exit 2)
-	$(PY) scripts/apply_webmainbench_case_correction.py --source-root "$(RUN_ROOT)" --correction "$(CORRECTION)" --output "$(OUTPUT)" --case-id "$(CASE_ID)" $(if $(PROVIDERS),--providers "$(PROVIDERS)",) --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)"
-
-# Diagnostic controls deliberately mutate test inputs and never enter a report cohort.
-webmainbench-navigation-diagnostic: runtime-check
-	@test -n "$(SOURCE)" -a -n "$(BINARY)" -a -n "$(OUTPUT)" || (echo 'SOURCE, BINARY and new OUTPUT paths are required' >&2; exit 2)
-	$(PY) scripts/diagnose_webmainbench_navigation.py --dataset "$(SOURCE)" --binary "$(BINARY)" --output "$(OUTPUT)"
-
-# Diagnostic input ablations are isolated from the score-bearing cohort.
-webmainbench-kitesurf-diagnostic: runtime-check
-	@test -n "$(SOURCE)" -a -n "$(OUTPUT)" || (echo 'SOURCE and new OUTPUT paths are required' >&2; exit 2)
-	$(PY) scripts/diagnose_webmainbench_kitesurf.py --dataset "$(SOURCE)" --output "$(OUTPUT)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(RESUME),--resume,)
+	$(PY) scripts/apply_webmainbench_case_correction.py --source-root "$(RUN_ROOT)" --correction "$(CORRECTION)" --output "$(OUTPUT)" --case-id "$(CASE_ID)" $(if $(PROVIDERS),--providers "$(PROVIDERS)",) --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)"
 
 webmainbench-run: runtime-check
 	@test -n "$(PROVIDER)" || (echo 'PROVIDER is required' >&2; exit 2)
@@ -171,17 +195,17 @@ webmainbench-score: runtime-check
 	$(UV) run --frozen --extra webmainbench-eval python scripts/score_webmainbench_results.py --evidence "$(EVIDENCE)" --dataset "$(SOURCE)" --scorer-repo "$(SCORER)"
 
 webmainbench-review: runtime-check
-	@test -n "$(RUN_ROOT)" || (echo 'RUN_ROOT=/absolute/path/to/five-provider-shards is required' >&2; exit 2)
+	@test -n "$(RUN_ROOT)" || (echo 'RUN_ROOT=/absolute/path/to/declared-provider-shards is required' >&2; exit 2)
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
 	@test -n "$(REVIEW)" || (echo 'REVIEW=/absolute/path/to/new-review.json is required' >&2; exit 2)
-	$(UV) run --frozen --extra webmainbench-eval python scripts/review_webmainbench_results.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --output "$(REVIEW)"
+	$(UV) run --frozen --extra webmainbench-eval python scripts/review_webmainbench_results.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)" --output "$(REVIEW)"
 
 webmainbench-assemble: runtime-check
-	@test -n "$(RUN_ROOT)" || (echo 'RUN_ROOT=/absolute/path/to/five-provider-shards is required' >&2; exit 2)
+	@test -n "$(RUN_ROOT)" || (echo 'RUN_ROOT=/absolute/path/to/declared-provider-shards is required' >&2; exit 2)
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
 	@test -n "$(REVIEW)" || (echo 'REVIEW=/absolute/path/to/passed-review.json is required' >&2; exit 2)
 	@test -n "$(OUTPUT)" || (echo 'OUTPUT=/absolute/path/to/assembled-evidence is required' >&2; exit 2)
-	$(PY) scripts/assemble_webmainbench_evidence.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --review "$(REVIEW)" --output "$(OUTPUT)"
+	$(PY) scripts/assemble_webmainbench_evidence.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)" --review "$(REVIEW)" --output "$(OUTPUT)"
 
 .PHONY: test-native-adapters
 test-native-adapters:

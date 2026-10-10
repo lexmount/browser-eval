@@ -1,0 +1,1011 @@
+{
+  "schema_version": 1,
+  "kind": "frozen_dataset_catalog",
+  "id": "risk-control-audited-100",
+  "name": "曾观察到访问限制的100个网址",
+  "dataset": "dataset.json",
+  "dataset_sha256": "d0d038bae0114be107116edd94e501996ba6cda852ac29244c089e15a3e37437",
+  "case_count": 100,
+  "cases": [
+    {
+      "id": "risk-diverse-002",
+      "name": "知乎：人工智能应用场景回答",
+      "url": "https://www.zhihu.com/question/282715644/answer/3629347314",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "4e591a4595a0554b7f86a0eba1c601531f7fed481500da14494036310e974f70",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-001",
+      "name": "Flipkart：Acer Aspire Lite 商品详情",
+      "url": "https://www.flipkart.com/acer-aspire-lite-amd-ryzen-3-quad-core-5400u-8-gb-256-gb-ssd-windows-11-home-al15-41-thin-light-laptop/p/itm1bc0bcb4598e7",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "119d84a124f4aaa94f60f41383c27b0b74b7a8185a003567ddbfb05b39b89d40",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-006",
+      "name": "微博热搜",
+      "url": "https://s.weibo.com/top/summary",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "65eff51f32d754895c70737b8ce336e47606a575b7826b738cbcc4e4ec763e10",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-011",
+      "name": "今日头条：关于人工智能，我们了解多少",
+      "url": "https://www.toutiao.com/article/7595028554912399898/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "f899d00a5c7a6303492637698931df6c99167bc66ed6066f15ae3e14959fcd0e",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-061",
+      "name": "Dribbble：web-design 搜索结果",
+      "url": "https://dribbble.com/search/web-design",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "fd97c97d7512ccec16bb9c2ac9ed18fd3c86b87ee3fb7ab306feb33cf655d67e",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-101",
+      "name": "哔哩哔哩：综合热门",
+      "url": "https://www.bilibili.com/v/popular/all/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "82de10eea401cff30b9c7302a18c112063a1e0f2fc44f3121844594b1429879a",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-102",
+      "name": "腾讯视频：电影频道",
+      "url": "https://v.qq.com/channel/movie",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "a1a5341179ecce8397ee75b09b292ea72f5e184a936419b2e9cead7528d7e142",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-271",
+      "name": "About Sanctum repository service",
+      "url": "https://dev.sanctum.geek.nz/cgit/?p=about",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "8f7e99e10858cf25406a2fa9bbb199b50befe2dd120e0915574a59e08ab31438",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-027",
+      "name": "Linux Kernel Git",
+      "url": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "29ff371f48f33a097d310f071ef25194d302532ca923861f7625b8d228bf0060",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-new-102",
+      "name": "DebianInstall",
+      "url": "https://wiki.debian.org/DebianInstall",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "9518f4ff3218de56c9da64cc9948c8acdcebd874aa02ac7fcd5c0b5f4f42af0f",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-030",
+      "name": "Wine Bugzilla",
+      "url": "https://bugs.winehq.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "520ec13a5e8f641a324ab421e3118d3df3159dee4aa61bebca0fbbe5b85b3391",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-031",
+      "name": "Science Olympiad Student Center Wiki",
+      "url": "https://scioly.org/wiki/index.php/Main_Page",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "f243ee8a571dc97e840eb5b5e5cb00a304bd2727987b4e659777a07224cbbe15",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-032",
+      "name": "Enlightenment Git",
+      "url": "https://git.enlightenment.org/enlightenment/enlightenment",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "75827072b43b9bb530435287df09ce05eb9aa63035d08730922df86093f7b5e8",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-033",
+      "name": "FreeCAD Forum",
+      "url": "https://forum.freecad.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "338297148e1b45116d6ef782ed93ae02bec71f5de2846ebbcdbc3c0bcdacaee3",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-034",
+      "name": "ScummVM Wiki",
+      "url": "https://wiki.scummvm.org/index.php/Main_Page",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "09277073909b6f4e6889f83cd0773450bdbe7fb385a934140451fc34b6954be2",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-036",
+      "name": "OpenWrt Wiki",
+      "url": "https://openwrt.org/start",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "efc2a8c10e8a109cbfe8df740392b423fe314037caac42fe2d1d7c1ce2fc626d",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-038",
+      "name": "ArchWiki",
+      "url": "https://wiki.archlinux.org/title/Main_page",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "e2f62cd594e62a8532c8619feddc73b7d1223ef57c223d58c9fd574beb6a2858",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-039",
+      "name": "FreeBSD SVNweb",
+      "url": "https://svnweb.freebsd.org/base/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "4599e13e815f3c5595df7d573341e0fdd08780daf2761db24d489d3a1c5f0e01",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-040",
+      "name": "Purism GitLab：Phosh",
+      "url": "https://source.puri.sm/Librem5/phosh",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "b6ca53feac1c9ff38ff47ca7ff872cd1c5b44a199edcf138689b3157c34dda37",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-041",
+      "name": "Haiku Trac",
+      "url": "https://dev.haiku-os.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "cbff3640b4e71d5c49fcd1af6e767f93760f8133de56a7ab7f3b5f29d58c84c7",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-042",
+      "name": "Devuan Git：installer-iso",
+      "url": "https://git.devuan.org/devuan/installer-iso",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "6aba3f75d126638c5a852af5b0be872afbb5bf44f732d5ce4dd26a84f94ae5d6",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-045",
+      "name": "CFA Archive",
+      "url": "https://www.cfaarchive.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "75c4ba4f48dc99fc2661f8ae3fc9fe2803b2c633ce6380d83066b9ba759b7858",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-047",
+      "name": "Proxmox Bugzilla",
+      "url": "https://bugzilla.proxmox.com/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "024b598aa2297dd6da4bb324f2440f76939cd003e1d8100507998cbc7c610b8d",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-048",
+      "name": "ReactOS Wiki",
+      "url": "https://reactos.org/wiki/Main_Page",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "6e297e1ffb8738d6f1057f189f88df128505dea03df8240228a40c0e160371f2",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-049",
+      "name": "Arch Linux 32 Packages",
+      "url": "https://www.archlinux32.org/packages/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "36a18f11e670411c7969a26b4095de6a5b1bfe2cea37c111dbce440764e11991",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-050",
+      "name": "Slackware Git",
+      "url": "https://git.slackware.nl/current/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "f77638953c120ea4628d342aa73693d91e9ed7c98a40a27991dd9e181a719223",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-051",
+      "name": "Duke Digital Repository",
+      "url": "https://repository.duke.edu/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "7c67f961f5afbd2e9f343bc5eca6f5a783ebaa63354b5832f89376d61857aefd",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-055",
+      "name": "hebis Discovery System",
+      "url": "https://tufind.hds.hebis.de/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "670c2f60030ecc27bf314eade1ac6116c2b2697803156c9483ccdfefff87444b",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-057",
+      "name": "Xe Iaso",
+      "url": "https://xeiaso.net/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "db60c0ebf6aad7b76632735d6acf208e7f3d8043399efb5488a1df686460d756",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-059",
+      "name": "Superlove",
+      "url": "https://superlove.sayitditto.net/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "5a5131232354f0e34134945124cccdf809ba7d5e23ae710683d35063d53bc4b8",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-074",
+      "name": "Ticketmaster concerts",
+      "url": "https://www.ticketmaster.com/discover/concerts",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "93a4aec34c617dda96b5f4f3e06a77a6d8dd3abb53fe2b0c2953d5f668f744ee",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-101",
+      "name": "Azur Lane Wiki",
+      "url": "https://azurlane.koumakan.jp/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "fc3104cfd5f22fd321503e226b57f54088c6c059feafb509bb703c79d438a52b",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-104",
+      "name": "Sanctum Development",
+      "url": "https://dev.sanctum.geek.nz/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "33532667a459ec873b69c0b104d8d6b3e51c6f0a41702ad4d1803901875d4a29",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-106",
+      "name": "TYPO3 Extension Repository",
+      "url": "https://extensions.typo3.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "a59ca8301806bdb7172cf6ea4c21f222448e231c24855932c91a2a2b32e46524",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-113",
+      "name": "MozillaZine",
+      "url": "https://mozillazine.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "0b37f86d1c5102eb5a3d656e5454f9016a639c9f9d28810c24650120d6903eda",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-114",
+      "name": "Pluralpedia",
+      "url": "https://pluralpedia.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "c8d96f1796c4871b36eb5be85de6e81c6beb5ea7727263d6a31f6b37a6730e19",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-117",
+      "name": "RPM Fusion",
+      "url": "https://rpmfusion.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "af3cf6a1bb67192436aa23f494bf0ef88f15d5ed260900d45e67b483cd28c455",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-118",
+      "name": "SquirrelJME",
+      "url": "https://squirreljme.cc/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "3ed4808cbe6fd9abb5321ec9fb889a6f9ea96fb986203d9911435cca4ff9deae",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-121",
+      "name": "Dolphin Emulator Forums",
+      "url": "https://forums.dolphin-emu.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "dc00ef5fe7fc8871581e1618ddcf7004b80c4f1fa209632019e7b05139632728",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-122",
+      "name": "Free Pascal Wiki",
+      "url": "https://wiki.freepascal.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "9c7916dafe96857c32d60fabe4769fc7df4eade65fded00f3e093e340af43163",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-123",
+      "name": "Koha Community Wiki",
+      "url": "https://wiki.koha-community.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "889884b2d86f23bea6bd99b7a856fd2f43edb567fdd76ae0b591f728252296a6",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-129",
+      "name": "HydroOJ FAQs",
+      "url": "https://ws.hydrooj.com/d/faqs/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "e00b6b37cc32127897a7a48740a2a50516022c268ea7a7768b4ca184cabdf16e",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-134",
+      "name": "Zillow Homes for Sale",
+      "url": "https://www.zillow.com/seattle-wa/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "478c7dc7335cf4316c7b0dfae4753cfbe9b1b72bc7953059613a4a0a43f64820",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-135",
+      "name": "Go.Compare",
+      "url": "https://www.gocompare.com/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "116b80a20713f4629f41da494fcec44eb945b7197719150bfa5f63b1b5f2afd3",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-138",
+      "name": "D Wiki",
+      "url": "https://wiki.dlang.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "96840e0deebc9ceea29abf68ffc68f5de228864e500767f0da65d75a693597c6",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-139",
+      "name": "DSource",
+      "url": "https://dsource.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "884c24446fca078cf14d202d6f63b2c9187d5e1053b75e2a6df02ae3f4e5882d",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-153",
+      "name": "LZNOIP Training",
+      "url": "https://www.lznoip.club/training/66358a5906b752f133d95f9f",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "9857521a0b6a1ec9b2a80313f994346b68c942524b45ffdbf4531c7811acdad3",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-158",
+      "name": "Scribus",
+      "url": "https://www.scribus.net/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "f80964a03dfcee684872a0480903f799847dfdf19c0f3edcf8aaae37096e45ab",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-159",
+      "name": "HAL Open Science",
+      "url": "https://hal.science/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "8aa2129bad9a21c2eed3941ad306b37c52b9bbf20c222823803279dcb928520d",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-160",
+      "name": "Observation.org",
+      "url": "https://observation.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "3b8e333095bdd62ed23078e671b039448e5eb47e98289f85a4f8cee64287ee07",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-170",
+      "name": "Linkpuff Git",
+      "url": "https://git.linkpuff.me/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "4c332d88622387867e20c127f09ebc129ddbbf2f18be1948282074ca19640173",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-177",
+      "name": "Egosoft Forum",
+      "url": "https://forum.egosoft.com/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "6544835745d971406a3c1bf03f373d87f3391f092fa04e3f241dd3b1c94c29f9",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-181",
+      "name": "Wikimedia XTools Article Info",
+      "url": "https://xtools.wmcloud.org/articleinfo/en.wikipedia.org/Artificial_intelligence",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "f5dc3515fbb61ed45e0be4e6784e314728a703f4d65e3eac5f0c276617fbdf02",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-182",
+      "name": "SP Codex Wiki",
+      "url": "https://spcodex.wiki/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "39ae5b459718f20831fe1ac68f37d4c0a289080d655c746a37bc03fb2d9dfb2e",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-185",
+      "name": "Lumiera API Documentation",
+      "url": "https://lumiera.org/doxy/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "6e8a7188b25c90f84b21d90a96f4704f5ef0f013417d81f2cb97a8d4fe5135e7",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-192",
+      "name": "ibiblio",
+      "url": "https://ibiblio.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "e5aa019d864c6248715f6183e159bed1751aeaee849d29179723b743eb27111b",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-193",
+      "name": "Fedora Documentation",
+      "url": "https://docs.fedoraproject.org/en-US/docs/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "2db31431ffe3dc39ff463c429719777f843cc709829f0f2d07c1db2af4c00983",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-219",
+      "name": "QEMU Wiki",
+      "url": "https://wiki.qemu.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "46e5b068b86a789be248807115c6cf8effd714a1184a3eff6b62e1a5c70d922c",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-220",
+      "name": "MusicBrainz Wiki",
+      "url": "https://wiki.musicbrainz.org/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "a354eb1a57b4b8524f3995266425641277f13d694dbc82522214b7073525804f",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-221",
+      "name": "SABRE Roads",
+      "url": "https://www.sabre-roads.org.uk/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "d3a79c0deb9b67f4f56658812c83749387d264561a575e1a1e07183627bf3e6a",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-222",
+      "name": "Wikibase World",
+      "url": "https://wikibase.world/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "812e2762770ad7592308b4d287ad40914a9ff4998d50e250325c386eba3dcfa2",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-223",
+      "name": "Noisebridge",
+      "url": "https://www.noisebridge.net/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "bee0dabe5f58b72fdb6d98dfaa79d02ee009a4ac754630cd213a8632b12e3dfd",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-225",
+      "name": "Anton Paar Wiki",
+      "url": "https://wiki.anton-paar.com/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "a3a504844c884eec0738a4f09a4d96a4b20fcbafbd3af67b92705301a3c73ff5",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-226",
+      "name": "Team Fortress Wiki",
+      "url": "https://wiki.teamfortress.com/wiki/Main_Page",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "0345be81c157a69d3146ae3f64f4a1061e81d1b386bb8f13e47f9d342ce4e572",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-011",
+      "name": "Threads：NASA 公开帖子",
+      "url": "https://www.threads.com/@nasa/post/DdEwHNClPdc?hl=zh-cn",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "a1dc25366197b23bb314d20dcb50d3ebb82c83d6403d45a46634518e8d8707b6",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-012",
+      "name": "Goodreads：84 Charing Cross Road",
+      "url": "https://www.goodreads.com/book/show/953716.84_Charing_Cross_Road",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "7e107faed4275e67cc4de09371c2be23de120cc0f369f162a5007bb5b69f2355",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-241",
+      "name": "POWER-Z 测试仪购买方式",
+      "url": "https://www.power-z.cn/blogs/新闻/chargerlab-power-z-测试仪购买方式",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "1114f12794678c618328774b456b87df176abd8738d00f94fd8adcc3ce40f6cb",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-242",
+      "name": "TIB English homepage",
+      "url": "https://www.tib.eu/en/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "51286793c385a614bb706fa23c6ee7303c31a9ca8ab254dd2a66cf1e65b8324a",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-244",
+      "name": "Sciencemadness Wiki",
+      "url": "https://www.sciencemadness.org/smwiki/index.php/Main_Page",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "b65f4cc85529cfd1f190195dc3f693a7fabcc9111701e6b30b0278ced9d3b726",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-245",
+      "name": "About xeno-canto",
+      "url": "https://xeno-canto.org/about/xeno-canto",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "3041a5cfa0bee8f1d90a4828441c2f4debf39c60c92e3582a9be5aee6a2b96bb",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-248",
+      "name": "The Global European",
+      "url": "https://theglobaleuropean.com/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "3aeb4f3285949ea8f07b9f9a2cc03d40a0075b1adaee20e9aad5f8a316ce2d95",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-262",
+      "name": "Hacklab public wiki",
+      "url": "https://knowledge.hacklab.to/wiki/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "3b1628ec8e7b8c6f76054371cf226a9ca8447248f0393ec6d2f0af79a585b710",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-263",
+      "name": "freedesktop wiki",
+      "url": "https://www.freedesktop.org/wiki/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "956e3912d35a1f3ff9ef81c3c5f1149c8ea7753db9085f321679f4e8ceaddbe2",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-267",
+      "name": "openSUSE Wiki",
+      "url": "https://en.opensuse.org/Main_Page",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "d4cca1263e33a9d2d16c1b65472777c70ba20f9f9cbd9b1c15b8795ccdab51e5",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-268",
+      "name": "Alpine Linux Wiki",
+      "url": "https://wiki.alpinelinux.org/wiki/Main_Page",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "24c8cfda691df49fe7a2b5a7aff11535fc7ad0a75fce13aa0c5bf5df74bb75fa",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-new-006",
+      "name": "Dribbble：TAE Web Design for Travel & Tourism",
+      "url": "https://dribbble.com/shots/16508584-TAE-Web-Design-for-Travel-Tourism",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "cbfd2e5f5527d8e48997e9700a40b11b7569f4a77d70ffffd22402871d7309c3",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-199",
+      "name": "About ScummVM",
+      "url": "https://wiki.scummvm.org/index.php?title=About",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "8b0aeb87110dd66c4df883be6917e7c6a0b3290dcc7a84d88d0663dc168f94bd",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-200",
+      "name": "OpenWrt quick start",
+      "url": "https://openwrt.org/docs/guide-quick-start/start",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "80fcdc9d37936ff4663edc5626337431767c55eae1e516aac7847adcfa87a3d2",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-201",
+      "name": "Arch Linux installation guide",
+      "url": "https://wiki.archlinux.org/title/Installation_guide",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "4f6bcbe618aa5269babc4854ef318c2ff4530490995280ff7b6b45f245d6bdf9",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-202",
+      "name": "Haiku Trac guide",
+      "url": "https://dev.haiku-os.org/wiki/TracGuide",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "3c4ed8565dae61a808d92cc120b91ac7520080506f347c1bc6a1e28ba8eb6bb9",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-204",
+      "name": "ReactOS overview article",
+      "url": "https://reactos.org/wiki/ReactOS",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "c7ddcda583d479e4e496b80b3f7578df7cee834d94f6292c2ca8e6c11f3ed468",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-205",
+      "name": "Superlove about",
+      "url": "https://superlove.sayitditto.net/about",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "7f6d0d8ffe32b61e4c9a69f5d2f447777cda9c2db1662ae6f14f3ec286542230",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-208",
+      "name": "About Pluralpedia",
+      "url": "https://pluralpedia.org/w/Project:About",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "3d376ae1c12f8ca7b3749aeebde59611b23b0b3cf6e9d88117f16554a30f6c05",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-209",
+      "name": "RPM Fusion FAQ",
+      "url": "https://rpmfusion.org/FAQ",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "a57af07b4bf14172356d25b6a870b09f62c48cbef17702b16e9145e64091859b",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-210",
+      "name": "Installing Free Pascal",
+      "url": "https://wiki.freepascal.org/Installing_the_Free_Pascal_Compiler",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "134dc199b0e024090cf15d8f45207cbcab8e789d88f94c39e2b504d0e680221a",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-211",
+      "name": "Koha getting involved",
+      "url": "https://wiki.koha-community.org/wiki/Getting_involved",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "9983060a609fc693a8879b2f7841f7115b7ebfdb838923d709c6c8f484c99ef1",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-212",
+      "name": "D language getting started",
+      "url": "https://wiki.dlang.org/Getting_Started",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "939ec0e69b155ab421c71a8d0db769abb23e9b6cc28f7b0eb414b187c66399c5",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-213",
+      "name": "About Scribus",
+      "url": "https://www.scribus.net/about/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "d2a933d9d5376df6b1002bdaca9e4b6f0548b585552dfd4df2467bffd9998663",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-214",
+      "name": "About Observation",
+      "url": "https://observation.org/pages/about/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "d3880e7d05dc5127914ff2af4db1c0475648abd842320393e6c777c6378c2514",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-215",
+      "name": "About SPCodex",
+      "url": "https://spcodex.wiki/SPCodex:About",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "d1a508d18a9e2e1516bf0cb3ff78f12a7e368df27b5da11030c2c18a70744ef8",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-216",
+      "name": "Fedora beginners guide",
+      "url": "https://docs.fedoraproject.org/en-US/beginners-guide/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "69f07f2aeb03d28e5e4215a71be8f9e24ad5ce90522aab8cf5a7ad85541c76cd",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-228",
+      "name": "Linux kernel README",
+      "url": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/about/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "c32a6ea8e233c75f035dc6ca519b4355c1913baec38d29d7477724d5bffdc284",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-230",
+      "name": "Scioly getting started",
+      "url": "https://scioly.org/wiki/Help:Getting_started",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "f05d66afc127e26d9c17a6c6513e0eef5195896bbc39ca24dabbaa754494fd7e",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-231",
+      "name": "FreeCAD forum FAQ",
+      "url": "https://forum.freecad.org/app.php/help/faq",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "361d8e0a7742190983185246ffd7e618df7ff31d9cc4f7a3059bf43bce14f64d",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-234",
+      "name": "What are TYPO3 extensions",
+      "url": "https://extensions.typo3.org/about-extension-repository/what-are-extensions",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "07deed8cf2ea29f3c6c8d90e0167c9ff414e0eecf4a7e89b6d0e0803eee06b0f",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-236",
+      "name": "SquirrelJME user guide",
+      "url": "https://multiphasicapps.net/doc/ckout/assets/user-guide/readme.mkd",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "6f0f4ba4208f9ac4691b3d19779ec1cddcd2abfcead3bf7cb088f1d10121568e",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-237",
+      "name": "Dolphin FAQ",
+      "url": "https://dolphin-emu.org/docs/faq/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "d8df38c8d1867e1148a5dfadd4a3e4a4a0f46c7f0594a02ee227a41a7cd2dedf",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-238",
+      "name": "Egosoft forum FAQ",
+      "url": "https://forum.egosoft.com/app.php/help/faq",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "82bdfa31fc84ecafd797dc3c809f80a4a5a20f0d0779915eccc16638003b9914",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-239",
+      "name": "About ibiblio",
+      "url": "https://www.ibiblio.org/about/",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "8c09ff83e5736ebd7bbf4854a6077830d94d74c2d4787e8ee754d73c061a20a9",
+      "reference_sha256": null
+    },
+    {
+      "id": "risk-diverse-250",
+      "name": "Contributing to QEMU",
+      "url": "https://wiki.qemu.org/Contribute",
+      "category": "risk_control",
+      "track": "risk_control",
+      "task_prompt": "提取声明网址首次自动加载出的目标正文、列表和真实链接；不点击、不输入、不滚动、不翻页、不登录，也不使用图片文字。",
+      "definition_sha256": "f2c5c6629dfac5ba5f1b39f5e5f198038978113b02d7fa6429057d7b99d15876",
+      "reference_sha256": null
+    }
+  ]
+}

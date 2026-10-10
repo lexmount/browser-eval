@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { projectDeclaredFetch } from '../scripts/oss/dsh_output.mjs';
+import { projectDeclaredFetch } from '../harness/web_fetch/workers/dsh_output.mjs';
 const result = body => ({isError:false,value:{url:'https://example.com/',statusCode:200,body:{kind:'html',content:body},truncated:false},content:[{type:'text',text:'Different model presentation'}],meta:{statusCode:200,truncated:true}});
 test('the declared native body is passed verbatim, not replaced by presentation',()=>{
  const raw='<html><body><a href="https://example.com/item">Native item</a></body></html>';

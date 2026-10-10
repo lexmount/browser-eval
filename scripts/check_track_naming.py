@@ -6,7 +6,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 EXCLUDED_ROOTS = {
     ".git",
@@ -132,6 +131,8 @@ def repository_contract_findings(root: Path) -> list[str]:
 
 
 def main() -> None:
+    from harness.web_fetch.reference_inputs import check_reference_input_boundary
+    check_reference_input_boundary(ROOT / 'evaluation')
     findings = repository_contract_findings(ROOT)
     if findings:
         raise SystemExit("\n".join(findings))

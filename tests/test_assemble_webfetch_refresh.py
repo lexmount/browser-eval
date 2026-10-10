@@ -6,10 +6,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.assemble_webfetch_refresh import assemble, expected_refresh_pairs
-from scripts.package_headless_speed import build_summary as build_speed_summary
 from harness.web_fetch.reference_lifecycle import reference_revision_cases, valid_scoring_revision
+from harness.web_fetch.refresh_assembly import assemble, expected_refresh_pairs
 from harness.web_fetch.scoring_regressions import build_correction_provenance
+from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 
 PROVIDERS = [
     "cloudflare-markdown",
@@ -337,6 +337,56 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
         self.assertTrue({("crawl4ai", case["id"]) for case in self.canonical_cases} <= pairs)
         self.assertIn(("tavily", "document-03"), pairs)
         self.assertIn(("cowagent-built-in", "document-05"), pairs)
+
+    def test_refresh_excludes_undeclared_reference_check_files(self) -> None:
+        for root in (self.baseline, self.main):
+            (root / 'reference-checks').mkdir(exist_ok=True)
+            (root / 'reference-checks/private-note.txt').write_text('synthetic private note')
+        output = self.root / 'assembled-reference-boundary'
+        assemble(self.baseline, [self.main], self.speed, output,
+                 canonical_dataset=self.canonical_path, plan=self.plan_path)
+        self.assertFalse((output / 'reference-checks/private-note.txt').exists())
+
+    def test_refresh_copies_references_only_for_canonical_tasks(self) -> None:
+        root = self.canonical_path.parent
+        selected = self.canonical_cases[0]['id']
+        for identifier in (selected, 'outside-task-scope'):
+            folder = root / 'sources' / identifier
+            folder.mkdir()
+            (folder / 'reference.txt').write_text(identifier)
+            (root / 'list-references' / (identifier + '.json')).write_text('{}')
+        (root / 'sources/private-note.txt').write_text('synthetic private note')
+        output = self.root / 'assembled-reference-scope'
+        assemble(self.baseline, [self.main], self.speed, output,
+                 canonical_dataset=self.canonical_path, plan=self.plan_path)
+        self.assertEqual((output / 'sources' / selected / 'reference.txt').read_text(), selected)
+        self.assertTrue((output / 'list-references' / (selected + '.json')).is_file())
+        self.assertFalse((output / 'sources/outside-task-scope').exists())
+        self.assertFalse((output / 'list-references/outside-task-scope.json').exists())
+        self.assertFalse((output / 'sources/private-note.txt').exists())
+
+    def test_refresh_rejects_reference_tree_symlinks(self) -> None:
+        actual = self.root / 'same-reference.txt'
+        actual.write_text('synthetic source')
+        trees = [(root, folder) for root in (self.baseline, self.main)
+                 for folder in ('sources', 'list-references', 'reference-checks')]
+        trees += [(self.canonical_path.parent, folder)
+                  for folder in ('sources', 'list-references')]
+        for index, (root, folder) in enumerate(trees):
+            with self.subTest(root=root.name, folder=folder):
+                directory = root / folder
+                directory.mkdir(exist_ok=True)
+                link = directory / 'linked'
+                link.symlink_to(actual)
+                output = self.root / f'rejected-reference-{index}'
+                try:
+                    with self.assertRaisesRegex(ValueError, '[Ss]ymlink'):
+                        assemble(self.baseline, [self.main], self.speed, output,
+                                 canonical_dataset=self.canonical_path, plan=self.plan_path)
+                    self.assertFalse(output.exists())
+                    self.assertFalse(list(self.root.glob(f'.{output.name}-*')))
+                finally:
+                    link.unlink()
 
     def test_pair_only_refresh_scope_allows_empty_matched_case_lists(self) -> None:
         matrix = self.plan["main_matrix"]
@@ -776,6 +826,36 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
                 canonical_dataset=self.canonical_path,
                 plan=self.plan_path,
             )
+
+    def test_bound_primary_symlinks_fail_before_output(self) -> None:
+        for source in (self.baseline, self.main):
+            with self.subTest(source=source.name):
+                primary = source / 'artifacts/shared.txt'
+                actual = source / 'same-bytes.txt'
+                actual.write_bytes(primary.read_bytes())
+                primary.unlink()
+                primary.symlink_to(actual)
+                output = self.root / ('linked-primary-' + source.name)
+                try:
+                    with self.assertRaisesRegex(ValueError, '[Ss]ymlink'):
+                        assemble(self.baseline, [self.main], self.speed, output,
+                                 canonical_dataset=self.canonical_path, plan=self.plan_path)
+                    self.assertFalse(output.exists())
+                finally:
+                    primary.unlink()
+                    primary.write_bytes(actual.read_bytes())
+
+    def test_baseline_and_rerun_root_symlinks_fail_before_output(self) -> None:
+        for source in (self.baseline, self.main):
+            with self.subTest(source=source.name):
+                linked = self.root / ('linked-' + source.name)
+                linked.symlink_to(source, target_is_directory=True)
+                output = self.root / ('linked-root-' + source.name)
+                with self.assertRaisesRegex(ValueError, 'root must not be a symlink'):
+                    assemble(linked if source == self.baseline else self.baseline,
+                             [linked if source == self.main else self.main], self.speed, output,
+                             canonical_dataset=self.canonical_path, plan=self.plan_path)
+                self.assertFalse(output.exists())
 
     def test_speed_schema_and_symlinks_fail_before_output(self) -> None:
         comparison = json.loads((self.speed / "speed-comparison.json").read_text())

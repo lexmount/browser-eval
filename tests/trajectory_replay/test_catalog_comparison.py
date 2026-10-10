@@ -398,7 +398,7 @@ def test_catalog_results_keep_one_logical_result_and_valid_physical_history(
                 {"status": "pass", "setup_failure": True},
                 {
                     "status": "fail",
-                    "error": "Traceback in _login_context: element is outside of the viewport",
+                    "error": "Traceback in login_context: element is outside of the viewport",
                     "evaluation": False,
                 },
             ],
@@ -467,3 +467,24 @@ def test_catalog_results_preserve_runner_failure_stage(tmp_path: Path) -> None:
         participants=[participant],
     )
     assert results["attempts"][0]["failure_stage"] == "official_evaluator_execution"
+
+
+def test_comparison_rejected_results_leave_no_partial_dataset(tmp_path, monkeypatch):
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({"catalog_path": "catalog", "suite_path": "suite",
+                                 "site_map_path": "sites", "profile_path": "profile",
+                                 "scope_path": "scope", "participants": []}))
+    dataset, results = tmp_path / "dataset.json", tmp_path / "results.json"
+    monkeypatch.setattr(catalog_comparison, "build_catalog_comparison_dataset",
+                        lambda **kwargs: {"trajectories": []})
+    monkeypatch.setattr("harness.trajectory_replay.catalog_contracts.file_sha256",
+                        lambda path: "a" * 64)
+
+    def reject(**kwargs):
+        raise ValueError("invalid participant evidence")
+
+    monkeypatch.setattr(catalog_comparison, "build_catalog_comparison_results", reject)
+    with pytest.raises(ValueError, match="invalid participant evidence"):
+        catalog_comparison.inputs_main(["--config", str(config), "--dataset-output", str(dataset),
+                                       "--results-output", str(results)])
+    assert not dataset.exists() and not results.exists()

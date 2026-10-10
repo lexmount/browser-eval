@@ -15,7 +15,6 @@ from harness.trajectory_replay.retrieval_acceptance import (
     validate_contract,
 )
 
-
 ROOT = (
     Path(__file__).resolve().parents[2]
     / "evaluation/trajectory-replay/webarena-verified/retrieval-candidates"
@@ -62,7 +61,10 @@ def test_candidate_has_no_frozen_answer_or_mutating_network_call(task_id: int):
     assert "DELETE" not in script
     assert "PATCH" not in script
     assert "answer:" in script or "answer};" in script
-    assert candidate["retrieval_contract"]["projection"] != {"source": "reference", "pointer": "/answer"}
+    assert candidate["retrieval_contract"]["projection"] != {
+        "source": "reference",
+        "pointer": "/answer",
+    }
 
 
 @pytest.mark.parametrize("task_id", [124, 279, 280, 282, 386])
@@ -188,7 +190,10 @@ def test_task225_absence_requires_complete_sephora_brush_product_reviews():
         },
     ]
     observation = {
-        "scope": {"catalog_filter": "name match Sephora", "product_selection": "title contains Brush"},
+        "scope": {
+            "catalog_filter": "name match Sephora",
+            "product_selection": "title contains Brush",
+        },
         "scope_ok": True,
         "complete": True,
         "source_total": 6,
@@ -243,18 +248,29 @@ def test_task225_revised_reference_receipt_binds_independent_scope_and_candidate
     assert receipt["task_id"] == candidate["task_id"] == 225
     assert binding["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
     assert binding["contract_schema"] == candidate["retrieval_contract"]["schema"]
-    assert binding["absence_coverage"] == candidate["retrieval_contract"]["absence_coverage"]["kind"]
+    assert (
+        binding["absence_coverage"] == candidate["retrieval_contract"]["absence_coverage"]["kind"]
+    )
     assert source["total_count"] == source["returned_items"] == 6
     assert source["page_size"] >= source["total_count"]
     assert len(products) == 2
     assert len({row["sku"] for row in products}) == len(products)
-    assert all("sephora" in row["name"].lower() and "brush" in row["name"].lower() for row in products)
+    assert all(
+        "sephora" in row["name"].lower() and "brush" in row["name"].lower() for row in products
+    )
     assert all(row["review_count"] == len(row["reviews"]["items"]) == 0 for row in products)
-    assert all(row["reviews"]["page_info"] == {"current_page": 1, "total_pages": 0, "page_size": 100} for row in products)
+    assert all(
+        row["reviews"]["page_info"] == {"current_page": 1, "total_pages": 0, "page_size": 100}
+        for row in products
+    )
     assert receipt["database_cross_check"]["catalog_match_count"] == len(products)
     assert receipt["database_cross_check"]["review_row_count"] == 0
     assert receipt["database_cross_check"]["manufacturer_attribute_rows"] == 0
-    assert receipt["expected_response"]["status"] == candidate["retrieval_contract"]["empty_result"] == "NOT_FOUND_ERROR"
+    assert (
+        receipt["expected_response"]["status"]
+        == candidate["retrieval_contract"]["empty_result"]
+        == "NOT_FOUND_ERROR"
+    )
     assert candidate["retrieval_contract"]["absence_coverage"]["expected_scope"] == {
         key: receipt["selection_rule"][key] for key in ("catalog_filter", "product_selection")
     }

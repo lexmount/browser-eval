@@ -8,8 +8,12 @@ from pathlib import Path
 
 import pytest
 
-from scripts import run_remote_mutation_diagnostic as runner
-from scripts.run_remote_mutation_diagnostic import _pre_action_readiness
+from harness.trajectory_replay import remote_execution as runner
+from harness.trajectory_replay.webarena_plan import (
+    compile_mutation_observer,
+    compile_mutation_readiness,
+    verify_compiled_mutation_proposal,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 CANDIDATES = (
@@ -18,7 +22,7 @@ CANDIDATES = (
 
 
 def test_task465_gate_is_bound_to_fifth_original_action_and_resolved_deferred():
-    contract, script = _pre_action_readiness(CANDIDATES, 465, 8)
+    contract, script = compile_mutation_readiness(CANDIDATES, 465, 8)
     assert contract == {
         "kind": "amd_deferred_ready",
         "before_original_action": 5,
@@ -34,11 +38,11 @@ def test_task465_gate_is_bound_to_fifth_original_action_and_resolved_deferred():
 
 
 def test_old_candidate_without_gate_remains_compatible():
-    assert _pre_action_readiness(CANDIDATES, 585, 11) == (None, None)
+    assert compile_mutation_readiness(CANDIDATES, 585, 11) == (None, None)
 
 
 def test_task464_requires_frozen_product_type_before_the_first_action():
-    contract, script = _pre_action_readiness(CANDIDATES, 464, 7)
+    contract, script = compile_mutation_readiness(CANDIDATES, 464, 7)
     assert contract == {
         "kind": "same_origin_magento_product_type",
         "before_original_action": 1,
@@ -73,7 +77,7 @@ def test_task464_source_state_gate_rejects_invalid_contract(tmp_path, override):
     path = tmp_path / "candidates.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError):
-        _pre_action_readiness(path, 464, 7)
+        compile_mutation_readiness(path, 464, 7)
 
 
 @pytest.mark.parametrize(
@@ -95,16 +99,16 @@ def test_gate_rejects_out_of_bounds_or_arbitrary_scripts(tmp_path, override):
     path = tmp_path / "candidates.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError):
-        _pre_action_readiness(path, 465, 8)
+        compile_mutation_readiness(path, 465, 8)
 
 
 def test_gate_rejects_wrong_canonical_action_count():
     with pytest.raises(ValueError, match="canonical action count"):
-        _pre_action_readiness(CANDIDATES, 465, 7)
+        compile_mutation_readiness(CANDIDATES, 465, 7)
 
 
 def test_compiled_wishlist_observer_rejects_stale_relative_href_proposal():
-    rule, script = runner._compiled_completion_observer(CANDIDATES, 465, 8)
+    rule, script = compile_mutation_observer(CANDIDATES, 465, 8)
     assert rule["observer"]["href_origin"] == "response_url_origin"
     assert "new URL(href, base)" in script
     assert "url.origin === origin" in script
@@ -116,12 +120,12 @@ def test_compiled_wishlist_observer_rejects_stale_relative_href_proposal():
         "observer_contract_sha256": hashlib.sha256(script.encode()).hexdigest(),
         "completion_candidates_sha256": runner.file_sha256(CANDIDATES),
     }
-    runner._verify_compiled_proposal(proposal, rule, script, CANDIDATES)
+    verify_compiled_mutation_proposal(proposal, rule, script, CANDIDATES)
     proposal["tool_calls"][-1]["script"] = (
         '() => document.querySelector(\'a[href="/customer/account/logout/"]\')'
     )
     with pytest.raises(ValueError, match="stale"):
-        runner._verify_compiled_proposal(proposal, rule, script, CANDIDATES)
+        verify_compiled_mutation_proposal(proposal, rule, script, CANDIDATES)
 
 
 @pytest.mark.parametrize(
@@ -138,7 +142,7 @@ def test_compiled_wishlist_observer_rejects_stale_relative_href_proposal():
 def test_guard_execution_records_red_and_green_before_original_click(
     monkeypatch, status, result, proven
 ):
-    contract, script = _pre_action_readiness(CANDIDATES, 465, 8)
+    contract, script = compile_mutation_readiness(CANDIDATES, 465, 8)
     calls = []
 
     def execute(_tool, arguments):
@@ -146,7 +150,7 @@ def test_guard_execution_records_red_and_green_before_original_click(
         return status, result
 
     monkeypatch.setattr(runner, "_execute_replay_call", execute)
-    row, observed = runner._execute_readiness(object(), contract, script)
+    row, observed = runner.execute_mutation_readiness(object(), contract, script)
     assert calls == [{"action": "evaluate", "script": script}]
     assert row["index"] == "before-5"
     assert row["kind"] == "pre_action_readiness"
@@ -159,7 +163,7 @@ def test_guard_execution_records_red_and_green_before_original_click(
     [("configurable", True), ("simple", False)],
 )
 def test_product_source_state_gate_rejects_drift_before_save(monkeypatch, product_type, proven):
-    contract, script = _pre_action_readiness(CANDIDATES, 464, 7)
+    contract, script = compile_mutation_readiness(CANDIDATES, 464, 7)
     observed = {
         "ready": True, "productId": 1796, "productType": product_type,
         "sourceCount": 1,
@@ -167,7 +171,7 @@ def test_product_source_state_gate_rejects_drift_before_save(monkeypatch, produc
     monkeypatch.setattr(
         runner, "_execute_replay_call", lambda _tool, _args: ("success", json.dumps(observed))
     )
-    row, result = runner._execute_readiness(object(), contract, script)
+    row, result = runner.execute_mutation_readiness(object(), contract, script)
     assert row["index"] == "before-1"
     assert ("validation_error" not in row) is proven
     assert result == observed

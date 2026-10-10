@@ -413,3 +413,52 @@ def test_catalog_joins_every_trace_to_both_upstream_definitions():
     assert result["count"] == 179
     assert result["traces"][42]["start_urls"] == ["__REDDIT__"]
     assert result["scope"]["recorded_does_not_imply_successful_gold_path"] is True
+
+
+@pytest.mark.parametrize("damage", [None, "catalog", "trace", "missing"])
+def test_declared_trace_audit_freezes_inputs_and_preserves_outputs(tmp_path, monkeypatch, damage):
+    from harness.trajectory_replay.public_webarena import webarena
+
+    catalog = tmp_path / "catalog.json"
+    rows = [{"task_id": task, "file_name": f"{task}.trace.zip",
+             "download_url": f"https://drive.google.com/uc?id={task}"} for task in (7, 11)]
+    catalog.write_text(json.dumps({"count": 2, "traces": rows}))
+    for row in rows:
+        with zipfile.ZipFile(tmp_path / row["file_name"], "w") as archive:
+            archive.writestr("trace.trace", json.dumps({"type": "context-options",
+                               "browserName": "chromium", "options": {}}) + "\n")
+    output = tmp_path / "audit.json"
+    original = webarena.import_playwright_trace
+
+    def inspect(path, **kwargs):
+        result = original(path, **kwargs)
+        if damage == "catalog":
+            catalog.write_text("{}")
+        elif damage == "trace":
+            path.write_bytes(path.read_bytes() + b"changed")
+        return result
+
+    monkeypatch.setattr(webarena, "import_playwright_trace", inspect)
+    args = ["--catalog", str(catalog), "--trace-dir", str(tmp_path), "--output", str(output)]
+    if damage == "missing":
+        (tmp_path / rows[0]["file_name"]).unlink()
+        with pytest.raises(RuntimeError, match="incomplete"):
+            webarena.main_audit_traces(args)
+        result = json.loads(output.read_text())
+        assert not result["complete"] and result["downloaded_count"] == 1
+    elif damage:
+        with pytest.raises(ValueError, match="inputs changed"):
+            webarena.main_audit_traces(args)
+        assert not output.exists()
+    else:
+        webarena.main_audit_traces(args)
+        result = json.loads(output.read_text())
+        assert result["expected_count"] == result["downloaded_count"] == 2
+        assert result["complete"] and result["zero_action_task_ids"] == [7, 11]
+        assert set(result["trace_sha256"]) == {row["file_name"] for row in rows}
+    if output.exists():
+        before = output.read_bytes()
+        catalog.unlink()
+        with pytest.raises(ValueError, match="output already exists"):
+            webarena.main_audit_traces(args)
+        assert output.read_bytes() == before

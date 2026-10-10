@@ -50,13 +50,13 @@ def test_programmatic_failure_preserves_browser_session_setup_stage() -> None:
         {
             "process_status": "fail",
             "failure_stage": "browser_session_setup",
-            "error": "Traceback: _login_context failed before trajectory execution",
+            "error": "Traceback: login_context failed before trajectory execution",
         }
     )
     assert result == {
         "stage": "browser_session_setup",
         "step": None,
-        "message": "Traceback: _login_context failed before trajectory execution",
+        "message": "Traceback: login_context failed before trajectory execution",
     }
 
 
@@ -81,11 +81,14 @@ def test_programmatic_failure_omits_mutable_traceback_source_excerpt() -> None:
 
 
 @pytest.mark.parametrize("tamper", ["row", "digest", "symlink", "new-result"])
-def test_append_methods_keeps_old_diagnostics_bound_to_unchanged_results(tmp_path: Path, tamper) -> None:
+def test_append_methods_keeps_old_diagnostics_bound_to_unchanged_results(
+    tmp_path: Path, tamper
+) -> None:
     old_row = {"participant_id": "moli", "engine": "moli", "task_id": 1,
                "status": "fail", "binary_sha256": "a" * 64, "duration_ms": 10}
     prior = _write(tmp_path / "prior.json", {"attempts": [old_row]})
-    digest = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+    def digest(path):
+        return hashlib.sha256(path.read_bytes()).hexdigest()
     diagnostic = _write(tmp_path / "diagnostic.json", {
         "task_id": 1, "cohort_results_sha256": digest(prior),
         "binary_sha256": {"release": "a" * 64}, "observations": [{"method": "release"}],
@@ -99,11 +102,29 @@ def test_append_methods_keeps_old_diagnostics_bound_to_unchanged_results(tmp_pat
         "bindings": {"effective_results_sha256": digest(results)},
         "inherited_result_cohorts": [{"path": str(prior), "sha256": digest(prior)}],
         "coverage": {"failed_results": 1, "verified_results": 1},
-        "cause_groups": [{"code": "browser", "label_zh": "浏览器差异", "label_en": "Browser difference",
-                          "responsibility": "browser", "remediation_owner": "browser", "remediation_status": "open",
-                          "results": [{"participant_id": "moli", "engine": "moli", "task_id": 1,
-                                       "reason_zh": "目标不存在。", "reason_en": "Target missing.",
-                                       "supplemental_diagnostic": {"path": str(diagnostic), "sha256": digest(diagnostic)}}]}],
+        "cause_groups": [
+            {
+                "code": "browser",
+                "label_zh": "浏览器差异",
+                "label_en": "Browser difference",
+                "responsibility": "browser",
+                "remediation_owner": "browser",
+                "remediation_status": "open",
+                "results": [
+                    {
+                        "participant_id": "moli",
+                        "engine": "moli",
+                        "task_id": 1,
+                        "reason_zh": "目标不存在。",
+                        "reason_en": "Target missing.",
+                        "supplemental_diagnostic": {
+                            "path": str(diagnostic),
+                            "sha256": digest(diagnostic),
+                        },
+                    }
+                ],
+            }
+        ],
     }
     review = _write(tmp_path / "review.json", payload)
     assert set(load_validated_failure_review(results, review)["by_result"]) == {("moli", 1)}
@@ -119,7 +140,9 @@ def test_append_methods_keeps_old_diagnostics_bound_to_unchanged_results(tmp_pat
     else:
         changed["attempts"][1]["status"] = "fail"
         source_review = payload["cause_groups"][0]["results"][0]
-        payload["cause_groups"][0]["results"].append({**source_review, "participant_id": "chromium", "engine": "chromium"})
+        payload["cause_groups"][0]["results"].append(
+            {**source_review, "participant_id": "chromium", "engine": "chromium"}
+        )
         payload["coverage"] = {"failed_results": 2, "verified_results": 2}
     _write(results, changed)
     payload["bindings"]["effective_results_sha256"] = digest(results)
@@ -129,7 +152,9 @@ def test_append_methods_keeps_old_diagnostics_bound_to_unchanged_results(tmp_pat
 
 
 def test_historical_task173_review_supersedes_browser_attribution_with_bound_evidence() -> None:
-    review = json.loads(Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text())
+    review = json.loads(
+        Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text()
+    )
     matches = [
         (group, row)
         for group in review["cause_groups"]
@@ -204,7 +229,9 @@ def test_review_requires_exact_hash_bound_failure_coverage(tmp_path: Path) -> No
     result_payload["attempts"][1]["binary_sha256"] = "a" * 64
     _write(results, result_payload)
     payload = json.loads(review.read_text())
-    payload["bindings"]["effective_results_sha256"] = hashlib.sha256(results.read_bytes()).hexdigest()
+    payload["bindings"]["effective_results_sha256"] = hashlib.sha256(
+        results.read_bytes()
+    ).hexdigest()
     diagnostic = {
         "task_id": 1,
         "cohort_results_sha256": payload["bindings"]["effective_results_sha256"],

@@ -5,12 +5,14 @@ from harness.web_fetch.config import load_dataset
 from harness.web_fetch.providers.fixture import FixtureProvider
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.runner import run_evaluation
+from tests.conftest import read_frozen_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET = ROOT / "evaluation/risk-control/dataset.json"
 
 
 def test_full_risk_control_matrix_builds_existing_interactive_report(tmp_path, capsys):
+    read_frozen_dataset_bytes(DATASET)
     dataset, cases = load_dataset(DATASET)
     measured = {
         **dataset,

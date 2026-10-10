@@ -5,10 +5,14 @@ from pathlib import Path
 
 from harness.web_fetch.anomaly_review import LAYERS, detect_anomalies
 from harness.web_fetch.result_review import require_blind_result_review, require_result_review
-from scripts.review_result_anomalies import (
-    anomaly_groups, cached_group_resolutions, merge_group_resolutions,
-    load_matching_positional_output, prior_group_resolutions,
-    validate_group_batch)
+from harness.web_fetch.review_execution import (
+    anomaly_groups,
+    cached_group_resolutions,
+    load_matching_positional_output,
+    merge_group_resolutions,
+    prior_group_resolutions,
+    validate_group_batch,
+)
 
 
 class ReviewResultAnomaliesTests(unittest.TestCase):

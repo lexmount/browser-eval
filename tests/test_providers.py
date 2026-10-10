@@ -7,8 +7,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from harness.web_fetch.models import EvalCase
 from harness.web_fetch.metrics import evaluate_resources
+from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers.cloudflare import (
     CloudflareContentProvider,
     CloudflareMarkdownProvider,
@@ -1394,10 +1394,10 @@ class ProviderTest(unittest.TestCase):
         provider = CowAgentBuiltinProvider("cowagent", {"repo_path": "/definitely/missing"})
         self.assertTrue(provider.validate())
 
-    def test_cowagent_cannot_omit_locked_identity(self) -> None:
+    def test_cowagent_cannot_omit_declared_identity(self) -> None:
         errors = CowAgentBuiltinProvider("cowagent", {"repo_path": "."}).validate()
-        self.assertIn("repo revision ed5bb344cfe42cee443c8266ba47ee666d8d7471", errors)
-        self.assertIn("locked required paths", errors)
+        self.assertIn("expected_repo_revision", errors)
+        self.assertIn("required runtime paths", errors)
 
     def test_cowagent_removes_workspace_path_but_keeps_document_text(self) -> None:
         content = (
@@ -1408,18 +1408,6 @@ class ProviderTest(unittest.TestCase):
             _sanitize_public_content(content),
             "[Document: guide.pdf | Size: 10KB]\n\nBody",
         )
-
-    @patch("harness.web_fetch.providers.cowagent.validate_runtime_identity")
-    def test_cowagent_retains_validated_runtime_identity(self, validate) -> None:
-        identity = {"repository": {"head": "a" * 40, "tracked_status": ""}}
-        validate.return_value = ([], identity)
-        provider = CowAgentBuiltinProvider("cowagent", {
-            "repo_path": ".",
-            "expected_repo_revision": CowAgentBuiltinProvider._LOCKED_REVISION,
-            "required_paths": list(CowAgentBuiltinProvider._REQUIRED_PATHS),
-        })
-        self.assertEqual(provider.validate(), [])
-        self.assertEqual(provider._implementation_identity, identity)
 
 
 if __name__ == "__main__":

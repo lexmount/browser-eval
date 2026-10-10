@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -9,15 +11,14 @@ from urllib.error import URLError
 
 import pytest
 
-from harness.trajectory_replay import diagnostics, runner
-from harness.trajectory_replay.runner import (
+from harness.environments.browser import (
     ENGINE_PORTS,
-    _cleanup_runtime,
-    _external_websocket_url,
-    _http_origin,
-    _prepare_page,
-    _published_endpoint,
+    cleanup_browser_runtime,
+    external_websocket_url,
+    published_endpoint,
 )
+from harness.trajectory_replay import diagnostics, runner
+from harness.trajectory_replay.runner import _http_origin, _prepare_page
 from harness.trajectory_replay.suite import BrowserTask, TaskSuite
 
 
@@ -55,9 +56,9 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     monkeypatch.setattr(
         runner, "sync_playwright", lambda: SimpleNamespace(start=lambda: playwright)
     )
-    monkeypatch.setattr(runner, "_start_browser_container", lambda *a, **k: MagicMock())
-    monkeypatch.setattr(runner, "_published_endpoint", lambda *a, **k: "http://test.invalid")
-    monkeypatch.setattr(runner, "_wait_cdp", lambda *a, **k: "ws://test.invalid")
+    monkeypatch.setattr(runner, "start_browser_container", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
+    monkeypatch.setattr(runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
     monkeypatch.setattr(runner, "DockerStatsResources", lambda _: None)
     monkeypatch.setattr(runner, "_reset_state", lambda *a: None)
     monkeypatch.setattr(runner, "_prepare_page", lambda page, *a, **k: page)
@@ -142,7 +143,7 @@ def test_moli_image_installs_its_verified_dynamic_font_dependency():
 
 def test_external_websocket_url_rewrites_container_advertised_host():
     assert (
-        _external_websocket_url(
+        external_websocket_url(
             "http://127.0.0.1:32776",
             "ws://0.0.0.0:9222/devtools/browser/moli-browser",
         )
@@ -160,7 +161,7 @@ def test_published_endpoint_handles_missing_port_binding():
         attrs = {"NetworkSettings": {"Ports": {}}}
 
     with pytest.raises(RuntimeError, match="chromium: Docker did not publish CDP port"):
-        _published_endpoint(Container(), engine="chromium", cdp_port=9223)
+        published_endpoint(Container(), engine="chromium", cdp_port=9223)
 
 
 def test_published_endpoint_uses_loopback_host_binding():
@@ -172,7 +173,7 @@ def test_published_endpoint_uses_loopback_host_binding():
         }
 
     assert (
-        _published_endpoint(Container(), engine="moli", cdp_port=9222) == "http://127.0.0.1:32768"
+        published_endpoint(Container(), engine="moli", cdp_port=9222) == "http://127.0.0.1:32768"
     )
 
 
@@ -196,7 +197,7 @@ def test_cleanup_continues_after_playwright_stop_failure():
         def remove(self):
             calls.append("network.remove")
 
-    _cleanup_runtime(
+    cleanup_browser_runtime(
         {"chromium": Browser()},
         Playwright(),
         {"chromium": Container()},
@@ -255,3 +256,35 @@ def test_prepare_page_keeps_context_but_replaces_renderer_page(monkeypatch):
         ("viewport", {"width": 1280, "height": 900}),
         ("settle", 1500),
     ]
+
+
+@pytest.mark.skipif(sys.platform != 'darwin', reason='macOS system aliases')
+@pytest.mark.parametrize('alias', ['/tmp', '/var'])
+def test_replay_accepts_system_alias_but_rejects_user_links(tmp_path, monkeypatch, alias):
+    from harness.trajectory_replay.report_inputs import verified_dataset_path
+
+    # pytest's temporary root is inside /private/var on macOS.
+    canonical = Path('/private') / Path(alias).name
+    with tempfile.TemporaryDirectory(dir=canonical if alias == '/tmp' else tmp_path) as directory:
+        root = Path(directory)
+        aliased = Path(alias) / root.relative_to(canonical)
+        dataset = root / 'dataset.json'
+        dataset.write_bytes(b'{}')
+        digest = hashlib.sha256(b'{}').hexdigest()
+        assert verified_dataset_path(aliased / 'dataset.json', digest).read_bytes() == b'{}'
+        seen = []
+        def stop_at_suite(path):
+            seen.append(path)
+            raise RuntimeError('suite reached')
+        monkeypatch.setattr(runner, 'load_suite', stop_at_suite)
+        with pytest.raises(RuntimeError, match='suite reached'):
+            runner.run_evaluation(suite_path=dataset, output_dir=aliased / 'new',
+                                  reports_dir=root / 'report')
+        assert seen == [dataset]
+        link = root / 'user-link'
+        link.symlink_to(root, target_is_directory=True)
+        with pytest.raises(ValueError, match='symlink'):
+            verified_dataset_path(link / 'dataset.json', digest)
+        with pytest.raises(ValueError, match='symlink'):
+            runner.run_evaluation(suite_path=dataset, output_dir=link / 'new',
+                                  reports_dir=root / 'report')

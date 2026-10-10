@@ -1,6 +1,8 @@
 import hashlib
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -8,11 +10,14 @@ import pytest
 from harness.web_fetch.composite_tasks import validate_composite_acceptance
 from harness.web_fetch.metrics import evaluate_content, normalize_for_match
 from harness.web_fetch.report_build import require_risk_control_certification
-from harness.web_fetch.risk_control import measured_risk_control_dataset
-from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
-from scripts.build_risk_control_dataset import (
+from harness.web_fetch.risk_control import main as run_risk_control
+from harness.web_fetch.risk_control import (
+    measured_risk_control_dataset,
+    reference_proof_snapshot,
+    require_complete_diagnostic_logs,
+)
+from harness.web_fetch.risk_control_dataset import (
     BODY_CONTRACTS,
-    COHORT,
     EXPECTED_COHORT_HASH,
     EXPECTED_RULE_HASHES,
     LIST_CONTRACTS,
@@ -21,13 +26,26 @@ from scripts.build_risk_control_dataset import (
     evidence_roots,
     parse_sections,
 )
-from scripts.run_risk_control_moli import main as run_risk_control
-from scripts.run_risk_control_moli import (
-    reference_proof_snapshot,
-    require_complete_diagnostic_logs,
-)
+from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
+from tests.conftest import read_frozen_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_certificate_validation_import_does_not_require_execution_stack(tmp_path):
+    code = '''
+import builtins
+original = builtins.__import__
+def restricted(name, *args, **kwargs):
+    if name in {"harness.web_fetch.providers", "harness.web_fetch.runner", "harness.web_fetch.report_build"}:
+        raise RuntimeError("Execution stack is unavailable")
+    return original(name, *args, **kwargs)
+builtins.__import__ = restricted
+from harness.web_fetch.risk_control import validate_risk_control_certification
+assert callable(validate_risk_control_certification)
+'''
+    result = subprocess.run([sys.executable, "-c", code], cwd=ROOT, text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
 DATASET = ROOT / "evaluation/risk-control/dataset.json"
 COHORT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-manifest.json"
 COHORT_RECEIPT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-receipt.json"
@@ -38,7 +56,7 @@ ZILLOW_REVISION = ROOT / "research/risk-control-zillow-sample-revision.json"
 
 @pytest.fixture(scope="module")
 def dataset():
-    return json.loads(DATASET.read_text())
+    return json.loads(read_frozen_dataset_bytes(DATASET).decode("utf-8"))
 
 
 def test_dataset_covers_the_exact_audited_cohort(dataset):
@@ -114,7 +132,7 @@ def test_zillow_sample_revision_binds_current_frozen_inputs():
     locale=json.loads((ROOT/'research/risk-control-navigation-language-revision.json').read_text())
     for key in ('dataset','run_profile'):
         assert full_page['correction']['new_'+key+'_sha256'] == locale['correction']['predecessor_'+key+'_sha256']
-    assert locale['correction']['new_dataset_sha256'] == hashlib.sha256(DATASET.read_bytes()).hexdigest()
+    assert locale['correction']['new_dataset_sha256'] == hashlib.sha256(read_frozen_dataset_bytes(DATASET)).hexdigest()
     assert locale['correction']['new_run_profile_sha256'] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
     assert profile["dataset"]["sha256"] == locale["correction"]["new_dataset_sha256"]
     assert revision["correction"]["provider_calls"] == 1
@@ -146,6 +164,25 @@ def test_builder_hash_guards_match_the_current_audited_sources():
     assert {
         path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in RULE_FILES
     } == EXPECTED_RULE_HASHES
+
+
+def test_compiler_reads_explicit_definitions_without_checkout_defaults(tmp_path, monkeypatch):
+    from harness.web_fetch import risk_control_dataset as compiler
+
+    rule = tmp_path / "rules.md"
+    rule.write_text(RULE_FILES[0].read_text())
+    expected = compiler.parse_sections((RULE_FILES[0],))
+    monkeypatch.setattr(compiler, "RULE_FILES", (tmp_path / "absent.md",))
+    assert compiler.parse_sections((rule,)) == expected
+    manifest = tmp_path / "input-manifest.json"
+    manifest.write_text('{"evidence_roots":{"reference":"independent-inputs"}}')
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data"))
+    assert compiler.evidence_roots(manifest) == {
+        "reference": tmp_path / "data/independent-inputs"
+    }
+    cohort = tmp_path / "cohort.json"
+    cohort.write_bytes(COHORT.read_bytes())
+    assert compiler.load_cohort(cohort) == compiler.load_cohort(COHORT)
 
 
 def test_dataset_and_qualification_manifest_bind_current_source_bytes(dataset):
@@ -349,7 +386,7 @@ def certified_report_fixture(tmp_path):
     profile_bytes = RUN_PROFILE.read_bytes()
     profile = json.loads(profile_bytes)
     profile_sha = hashlib.sha256(profile_bytes).hexdigest()
-    frozen_dataset = json.loads(DATASET.read_text())
+    frozen_dataset = json.loads(read_frozen_dataset_bytes(DATASET).decode("utf-8"))
     dataset = measured_risk_control_dataset(profile, frozen_dataset, profile_sha)
     provider = profile["provider"]["name"]
     identity = {
@@ -961,11 +998,12 @@ def test_page_content_without_declared_initial_chrome_fails(
 def test_certified_report_preserves_certificate_bound_files(tmp_path, capsys):
     from harness.web_fetch.config import load_dataset
     from harness.web_fetch.providers.fixture import FixtureProvider
-    from harness.web_fetch.runner import run_evaluation
     from harness.web_fetch.report_build import build_report
+    from harness.web_fetch.runner import run_evaluation
 
     profile = json.loads(RUN_PROFILE.read_text())
     provider = profile["provider"]["name"]
+    read_frozen_dataset_bytes(DATASET)
     frozen, cases = load_dataset(DATASET)
     measured = measured_risk_control_dataset(
         profile, frozen, hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest())

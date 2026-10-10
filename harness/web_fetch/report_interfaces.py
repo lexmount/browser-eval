@@ -52,25 +52,25 @@ SPECS={
  'cowagent-built-in':spec('Python · WebFetch({"cwd": workspace}).execute(args)','本地内置工具；无供应商 API Key',
  [('url','string · 必填','公开 HTTP/HTTPS 网页或文档 URL'),('cwd','构造配置','解析文档时使用的本地工作目录，不是工具输入参数')],
  [('ToolResult.status','string','success / error 等工具状态'),('ToolResult.result','string','提取文字或错误说明 → content')],
- {'url':URL},'harness/web_fetch/providers/cowagent.py','底层默认请求超时 30 秒；评测预算 45 秒不会改写工具自己的默认值。网页与 PDF/DOCX 走不同解析路径。'),
+ {'url':URL},'harness/web_fetch/workers/cowagent_worker.py','底层默认请求超时 30 秒；评测预算 45 秒不会改写工具自己的默认值。网页与 PDF/DOCX 走不同解析路径。'),
  'openclaw-built-in':spec('TypeScript · createWebFetchTool(...).execute(callId, args, signal)','本地内置工具；本轮禁用 Firecrawl 回退',
  [('url','string · 必填','目标页面'),('extractMode','string','本轮 markdown'),('maxChars','number','本轮 200000；输出可能截断'),('signal','AbortSignal','本轮 45 秒预算，通过函数参数传入')],
  [('details.text','string','正文 → content；缺失时取 content[].text'),('details.status / finalUrl','number / string','源站状态和最终 URL'),('details.extractor','string','实际正文提取器'),('details.truncated','boolean','输出是否被截断')],
- {'url':URL,'extractMode':'markdown','maxChars':200000},'scripts/oss/openclaw_webfetch_worker.mts','Readability 开启，cacheTtlMinutes=0。函数异常转成失败记录，不把其他 provider 的回退结果算给 OpenClaw。'),
+ {'url':URL,'extractMode':'markdown','maxChars':200000},'harness/web_fetch/workers/openclaw_webfetch_worker.mts','Readability 开启，cacheTtlMinutes=0。函数异常转成失败记录，不把其他 provider 的回退结果算给 OpenClaw。'),
  'deepseek-harness-built-in':spec('TypeScript · ctx.tools.execute({name: "web_fetch", arguments, ...})','本地 HTTP fetch provider；无云端抓取 Key',
  [('name','string','web_fetch'),('arguments.url','string · 必填','目标网址'),('callId / signal','运行时参数','调用标识和取消信号；示例省略初始化')],
  [('isError','boolean','工具执行是否报错'),('value.body.content','string','接口声明的 HTML/文本正文；声明为空时保持为空'),('content[].text','string','模型展示文本；与声明正文分别保存'),('value.statusCode / value.url','number / string','成功态的规范源站状态与最终 URL'),('meta','object · 若提供','展示投影；仅在规范值缺失时补充状态或 URL'),('error.info.code','string · 若提供','工具错误类型')],
- {'name':'web_fetch','arguments':{'url':URL}},'scripts/oss/dsh_webfetch_worker.mts','通过内置 HTTP provider 返回声明正文及展示文本；调用预算和读取字段以保留证据为准。不是 DeepSeek 聊天 API，也没有调用模型生成答案。'),
+ {'name':'web_fetch','arguments':{'url':URL}},'harness/web_fetch/workers/dsh_webfetch_worker.mts','通过内置 HTTP provider 返回声明正文及展示文本；调用预算和读取字段以保留证据为准。不是 DeepSeek 聊天 API，也没有调用模型生成答案。'),
  'langchain-webbase':spec('Python · WebBaseLoader(...).load()','本地开源库；无供应商 API Key',
  [('web_paths','tuple[str]','本轮仅一个目标 URL'),('requests_kwargs.timeout','number','本轮 45 秒'),('raise_for_status','boolean','本轮 true，HTTP 错误抛异常'),('continue_on_failure','boolean','本轮 false')],
  [('Document.page_content','string','各 Document 正文合并 → content'),('Document.metadata','dict','source、title、language 等'),('HTTP / Python exception','exception','转成失败记录及错误说明')],
  'loader = WebBaseLoader(\n    web_paths=("https://example.com/",),\n    requests_kwargs={"timeout": 45},\n    raise_for_status=True,\n    continue_on_failure=False,\n)\ndocs = loader.load()',
- 'scripts/oss/langchain_webbase_worker.py','不运行网页 JavaScript；本轮没有把它替换成其他 LangChain loader。'),
+ 'harness/web_fetch/workers/langchain_webbase_worker.py','不运行网页 JavaScript；本轮没有把它替换成其他 LangChain loader。'),
  'crawl4ai':spec('Python · await AsyncWebCrawler(...).arun(url, config)','本地 Chromium；无云端抓取 Key',
  [('url','string · 必填','目标网址'),('cache_mode','CacheMode','本轮 BYPASS'),('page_timeout','number','45000 毫秒'),('wait_until','string','非动态网页为 domcontentloaded；动态任务使用预声明值'),('process_iframes / remove_overlay_elements','boolean','本轮均为 true')],
  [('result.success','boolean','爬取是否成功'),('result.markdown.raw_markdown','string','Markdown → content'),('result.media','dict','images、videos、audios'),('result.links','dict','internal / external'),('result.status_code / error_message','number / string','源站状态或失败信息')],
  'config = CrawlerRunConfig(\n    cache_mode=CacheMode.BYPASS,\n    page_timeout=45000,\n    wait_until="domcontentloaded",\n    process_iframes=True,\n    remove_overlay_elements=True,\n)\nresult = await crawler.arun(\n    url="https://example.com/", config=config\n)',
- 'scripts/oss/crawl4ai_worker.py','非动态网页使用本地无头 Chrome，并在 DOMContentLoaded 后提取；动态任务仍按预声明完成条件等待。直接 PDF 正文在调用前选择 PDFCrawlerStrategy 与 PDFContentScrapingStrategy，文件交付任务选择 AsyncHTTPCrawlerStrategy 并统一验收 downloaded_files。媒体链接不等于下载；文件字节校验不等于理解媒体。'),
+ 'harness/web_fetch/workers/crawl4ai_worker.py','非动态网页使用本地无头 Chrome，并在 DOMContentLoaded 后提取；动态任务仍按预声明完成条件等待。直接 PDF 正文在调用前选择 PDFCrawlerStrategy 与 PDFContentScrapingStrategy，文件交付任务选择 AsyncHTTPCrawlerStrategy 并统一验收 downloaded_files。媒体链接不等于下载；文件字节校验不等于理解媒体。'),
 }
 SPECS['lexmount-cn']={**SPECS['lexmount-global'],'entry':'POST https://api.lexmount.cn/v1/extract','auth':'X-API-Key: <CN_API_KEY>；X-Project-Id: <CN_PROJECT_ID>'}
 SPECS['kitesurf']=spec(
@@ -84,7 +84,7 @@ for engine,wait in (('lightpanda','done'),('obscura','load + adaptive settle'),(
   'CLI · '+engine+' fetch --dump markdown','本地独立浏览器；不需要供应商 API Key',
   [('URL','string','唯一任务输入'),('--dump','string','markdown'),('wait_until','string',wait),('timeout','seconds','45 秒外层截止；CLI 参数按各自单位换算')],
   [('stdout','UTF-8 string','浏览器原生 Markdown → content'),('native_markdown_ms','number','CLI 调用及原生序列化阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
-  {'url':URL,'engine':engine,'timeout':45,'wait_until':wait,'dump':'markdown'},'scripts/headless_worker.py',
+  {'url':URL,'engine':engine,'timeout':45,'wait_until':wait,'dump':'markdown'},'harness/web_fetch/providers/headless_worker.py',
   '不点击、不滚动、不补抓资源，不在失败后切换引擎或输出模式。CLI 未提供可靠 HTTP 状态和最终 URL 时保持空值。')
 def moli_release_spec(version):
  base=SPECS['moli']
@@ -103,7 +103,7 @@ SPECS['chromium']=spec(
  'Playwright · Chromium → DOM HTML → node-html-markdown','本地独立浏览器；不需要 Google 账号，不加载个人会话',
  [('url','string','唯一任务输入'),('wait_until','string','domcontentloaded'),('timeout','seconds','45 秒端到端截止'),('converter','string','node-html-markdown 2.0.0')],
  [('content','string','转换后的 Markdown'),('rendered_html_path / sha256','string','转换前 DOM HTML 证据'),('fetch_html_ms / conversion_ms','number','分阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
- {'url':URL,'engine':'chromium','timeout':45,'wait_until':'domcontentloaded','dump':'html','converter':'node-html-markdown 2.0.0'},'scripts/headless_worker.py',
+ {'url':URL,'engine':'chromium','timeout':45,'wait_until':'domcontentloaded','dump':'html','converter':'node-html-markdown 2.0.0'},'harness/web_fetch/providers/headless_worker.py',
  'Chromium/CDP 没有原生 Markdown 输出，因此取完整渲染 DOM 后转换；转换计入端到端耗时，HTML 与转换器版本、哈希均保留。')
 
 def render_interfaces(out,records):

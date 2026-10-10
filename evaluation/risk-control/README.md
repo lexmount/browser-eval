@@ -1,30 +1,23 @@
-# 曾观察到访问限制的 100 个网址评测
+# Evaluation of 100 URLs with observed access restrictions
 
-本评测回答一个问题：Moli 1.1.11 在不点击、不输入、不滚动、不翻页、不登录、
-也不使用 OCR 的前提下，能否从曾观察到登录、验证、反自动化或访问限制的指定网址，
-取得首次加载时已经存在的目标内容，而不是验证页、空返回或正文片段。
+This cohort asks whether Moli 1.1.11 can retrieve the declared content present on initial load at URLs where login, verification, anti-automation or access restrictions were previously observed. Calls do not click, type, scroll, paginate, log in or use OCR. Challenge pages, empty responses and body fragments do not satisfy the task.
 
-当前范围是 100 个网址案例、74 个独立网站。`dataset.json` 是可执行任务定义：
-每例要求首次加载范围内声明的全部稳定文字，包括已登记的导航、按钮和侧栏文字；
-任一稳定文字缺失都不能通过。79 例另有完整正文分区；21 例按 27 个独立数量组检查名称、
-真实链接、路径、去重及同条目字段。人类规则、机器契约、资格审核与替换依据分别由
-`first-30-rule-review.md`、`remaining-70-rule-review.md`、`body-contracts.json`、
-`list-contracts.json` 和 `qualification/` 保存。资格信息只说明 cohort 的历史入选依据，
-不参与结果评分；原始资格调查留在 Git 外。`run-profile.json` 绑定全部当前权威输入、
-provider 配置、执行参数和二进制身份。
+The scope is 100 URL cases across 74 distinct sites. The executable `dataset.json` is external and bound by `source-inputs.json`; `dataset-catalog.json` retains the inventory and definition hashes. Import approved full references using the [reference-input guide](../../docs/reference-inputs.md); they are not distributed with source.
 
-## 确定性构建与零调用验证
+Every case requires all declared stable text from initial load, including registered navigation, buttons and sidebars. Missing any required phrase fails. Another 79 cases require complete body regions; 21 cases use 27 independent count groups for names, real links, paths, deduplication and same-record fields. Human rules, machine contracts, qualification and replacement provenance are held in `first-30-rule-review.md`, `remaining-70-rule-review.md`, `body-contracts.json`, `list-contracts.json` and `qualification/`. Qualification explains historical cohort admission; it is not a scoring input. Raw investigations remain outside Git. `run-profile.json` binds authoritative inputs, provider configuration, execution parameters and binary identity.
+
+## Deterministic build and validation without calls
 
 ```sh
 uv run --frozen python scripts/build_risk_control_dataset.py --output /tmp/risk-control-dataset.json
 uv run --frozen python scripts/run_certified_benchmark.py risk-control --env-file .env
 ```
 
-第一条命令从 `BROWSER_EVAL_DATA_HOME`（默认 `~/.browser-eval`）下的哈希绑定独立证据
-重建数据集；输出必须与仓库中的 `dataset.json` 字节一致。第二条命令只校验 profile、
-数据集、Moli 1.1.11 版本和二进制 SHA-256，不发起 provider 调用。
+The first command rebuilds from hash-bound independent evidence under `BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval`). Output must match the bound external dataset byte for byte. Supply a new output path; frozen inputs cannot be overwritten. The second command validates the profile, dataset, Moli 1.1.11 version and binary hash without provider calls.
 
-## 正式执行
+The compiler is `harness.web_fetch.risk_control_dataset`. When installed or called from another directory, pass `--definition-dir` with an explicit copy of this directory's rules and qualification manifests. Frozen-rule hashes are still enforced.
+
+## Formal execution
 
 ```sh
 uv run --frozen python scripts/run_certified_benchmark.py risk-control \
@@ -32,33 +25,20 @@ uv run --frozen python scripts/run_certified_benchmark.py risk-control \
   --output "$BROWSER_EVAL_DATA_HOME/evidence/risk-control/<new-run-id>"
 ```
 
-输出目录必须是新的，并位于数据目录下。正式入口固定为
-`scripts/run_certified_benchmark.py risk-control`；直接对执行脚本使用 `--execute` 会被拒绝。
-当前 profile 的新正式运行恰有 100 个逻辑结果，且不自动重试，并为每次调用在 Git 外保留完整、
-哈希绑定的 debug stderr。保留的历史证据另有 3 个 DNS 失败后的用户授权补调，因此保留 103 次
-物理调用；每例固定采用最后一次响应，全部调用耗时均计入，不能择优。运行前后 Moli 身份必须
-一致；100 份声明的参考文本也会在调用
-前后逐一核验，缺失、内容变化或范围不完整都会中止认证。生成报告前还会校验
-`certification.json` 对 profile、dataset、results、manifest、execution、参考证据核验回执
-和完整日志的绑定。
+Output must be a new directory under the data root. The certified entry point is `scripts/run_certified_benchmark.py risk-control`; direct `--execute` on the execution script is rejected. A new run under the current profile has exactly 100 logical results and no automatic retries, retaining complete hash-bound debug stderr outside Git. Historical evidence additionally contains three user-authorized calls after DNS failures: 103 physical calls in total. The final response is authoritative, all call costs remain recorded and no best-response selection is allowed.
 
-本目录不包含 Moli 实测输出、provider 原始工件、debug 日志或凭据。重新生成报告继续使用
-仓库已有的构建入口；必须提供完整且已认证的证据。历史结果缺少调用前后的参考认证，
-不能通过补写回执变成正式结果。本次恢复评分规则没有新增网络调用。
+Moli identity must remain unchanged before and after calls. Each of the 100 declared references is checked before and after execution; missing, changed or incomplete scope stops certification. Report builds verify `certification.json` bindings to the profile, dataset, results, manifest, execution, reference-verification receipts and complete logs.
 
-“全页”指首次加载范围内已声明的稳定文字、正文与列表规则，不是声称已证明网页每一个
-未登记字符或交互后的内容均被取得。导航等文字只要已登记，就与正文文字一样是必需项。
+This directory contains no measured Moli outputs, raw provider artifacts, debug logs or credentials. Use the existing report builder with complete certified evidence. Historical results lacking pre/post-call reference certification cannot be promoted by writing a receipt afterward.
 
-## 当前契约与历史结果
+“Full page” means the declared stable text, body and list requirements within initial load. It does not claim every undeclared character or content revealed by interaction. Registered navigation text is as mandatory as body text.
 
-合入 Seattle 地区身份、训练页语言等价和列表结构修正后，当前契约包含 1,600 项必需稳定文字。
-`research/risk-control-full-page-rule-revision.json` 绑定前序契约与本次全页规则修订，
-保留全部已登记外围文字，并不改写历史修订收据或供应商输出。
-历史报告的 31/100 属于先前输入和证据版本，不能直接当作当前契约的成绩。
-本次合并没有新增供应商调用或发布报告；在完整更新证据和参考原文可用前，
-不声明当前成绩或正式认证。
+## Current contract and historical results
 
-当前适配器通过同次 `fetch --dump json` 的 `final_url`、状态和最终 HTML 取得页面身份，
-再在同一截止预算内转换为 Markdown。旧 debug 日志不能按 GET 完成顺序证明重定向归属；
-证据不足时页面身份为未知。该调用路径变化覆盖本契约的 100 个案例，正式成绩和耗时需要
-重新执行受影响范围后才能报告；本次修复仅进行了本地 fixture 实测，不覆盖历史实测。
+The current contract requires 1,600 stable-text items. `research/risk-control-full-page-rule-revision.json` binds prior contracts and the full-page revision, retaining all registered peripheral text without rewriting earlier receipts or provider outputs. The historical 31/100 belongs to earlier inputs and evidence and is not a score for the current contract.
+
+The current adapter obtains identity from `final_url`, status and final HTML in the same `fetch --dump json` response, then converts to Markdown within the same deadline. GET completion order in old debug logs cannot prove redirect ownership; insufficient identity evidence remains unknown. A changed call route needs new execution over the complete affected scope for formal scores and timing; old-route logs and timings cannot substitute.
+
+## Frozen artifacts and language
+
+The two rule files and the independent/completeness audits retain their original Chinese text. Their bytes are hash-bound by `run-profile.json` and revision provenance; the compiler reads the rule files directly. They are frozen acceptance inputs, not untranslated usage guides. Do not translate or rewrite them in place. The English [rule-authoring guide](rule-authoring-guide.md) explains the methodology for new definitions.

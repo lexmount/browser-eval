@@ -12,8 +12,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Iterable
 
-from .safety import contained_path
-
+from .safety import contained_path, reject_evidence_symlinks, safe_identifier
 
 PRIVATE_ARTIFACT_ROOT = "private_artifacts"
 PUBLIC_CALL_LOG_ROOT = "call-logs"
@@ -282,3 +281,184 @@ def materialize_private_artifacts(
             else:
                 shutil.copy2(origin, target)
                 verify_private_binding(destination, binding)
+
+
+def artifact_bindings(record: dict[str, Any]) -> list[tuple[str, str]]:
+    """Enumerate declared public evidence, including every retained physical call."""
+    bindings = {}
+
+    def add(relative, digest):
+        if relative in bindings and bindings[relative] != digest:
+            raise ValueError('Artifact has conflicting hash bindings: ' + relative)
+        bindings[relative] = digest
+
+    add(record['artifact_path'], record['metrics']['content_sha256'])
+    metadata = record.get('provider_metadata', {})
+    for path_key, hash_key in (('rendered_html_path', 'rendered_html_sha256'),
+                               ('raw_stdout_path', 'raw_stdout_sha256')):
+        if metadata.get(path_key):
+            add(metadata[path_key], metadata[hash_key])
+    for item in metadata.get('file_evaluation', {}).get('files', []):
+        if item.get('artifact_path'):
+            add(item['artifact_path'], item['sha256'])
+    for attempt in metadata.get('retry', {}).get('attempts', []):
+        hashes = attempt.get('artifact_sha256', {})
+        primary_digest = attempt.get('content_sha256') or hashes.get(attempt['artifact_path'])
+        if not primary_digest:
+            raise ValueError('Retry artifact has no hash binding: ' + attempt['artifact_path'])
+        add(attempt['artifact_path'], primary_digest)
+        for relative in attempt.get('artifact_paths', []):
+            digest = hashes.get(relative)
+            if relative == attempt['artifact_path']:
+                digest = digest or primary_digest
+            if not digest:
+                raise ValueError('Retry artifact has no hash binding: ' + relative)
+            add(relative, digest)
+    for binding in record_public_call_log_bindings(record):
+        add(binding['path'], binding['sha256'])
+    return list(bindings.items())
+
+
+def verify_record_artifacts(root: Path, record: dict[str, Any]) -> None:
+    """Verify all declared public and private bytes against acquisition bindings."""
+    verify_record_private_artifacts(root, record)
+    for relative, digest in artifact_bindings(record):
+        if (not isinstance(relative, str) or not isinstance(digest, str)
+                or len(digest) != 64 or any(char not in '0123456789abcdef' for char in digest)):
+            raise ValueError('Incomplete artifact binding: ' + str(record.get('attempt_id')))
+        source = contained_path(root, relative, reject_symlinks=True)
+        if not source.is_file() or hashlib.sha256(source.read_bytes()).hexdigest() != digest:
+            raise ValueError('Artifact differs from its result binding: ' + relative)
+    verify_record_public_call_logs(root, record)
+
+
+def materialize_bound_artifacts(output: Path, source_root: Path, records: list[dict]) -> None:
+    """Verify acquisition-time authority before copying declared evidence."""
+    copies = {}
+    for record in records:
+        verify_record_artifacts(source_root, record)
+        for relative, digest in artifact_bindings(record):
+            source = contained_path(source_root, relative, reject_symlinks=True)
+            target = contained_path(output, relative, reject_symlinks=True)
+            if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                raise ValueError('Aggregate artifact collision: ' + relative)
+            if relative in copies and copies[relative][2] != digest:
+                raise ValueError('Aggregate artifact collision: ' + relative)
+            copies[relative] = (source, target, digest)
+    materialize_private_artifacts(output, source_root, records)
+    for source, target, digest in copies.values():
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.exists():
+            shutil.copy2(source, target)
+        if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+            raise ValueError('Copied artifact changed: ' + str(target.relative_to(output)))
+    for record in records:
+        verify_record_public_call_logs(output, record)
+
+
+def materialize_reference_checks(output: Path, source: Path, batches: list[dict]) -> None:
+    """Retain only hash-bound observations named by the execution certificates."""
+    for batch in batches:
+        post = batch.get('reference_checks', {}).get('postcheck', {})
+        if not post:
+            continue
+        relative, digest = post.get('evidence_path'), post.get('evidence_sha256')
+        if (not isinstance(digest, str) or len(digest) != 64
+                or any(char not in '0123456789abcdef' for char in digest)
+                or relative != f'reference-checks/observations-{digest}.json'):
+            raise ValueError('Reference check has an invalid evidence binding')
+        path = contained_path(source, relative, reject_symlinks=True)
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            raise ValueError('Reference check evidence differs from its certificate')
+        target = contained_path(output, relative, reject_symlinks=True)
+        if target.exists():
+            if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                raise ValueError('Conflicting reference check evidence')
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target)
+        if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+            raise ValueError('Copied reference check evidence changed')
+
+
+def materialize_task_references(output: Path, trees: dict[str, Path], case_ids: Iterable[str]) -> None:
+    """Copy selected task references from already validated input trees."""
+    identifiers = list(dict.fromkeys(safe_identifier(value) for value in case_ids))
+    for name in ('sources', 'list-references'):
+        root = trees[name]
+        reject_evidence_symlinks(root)
+        if root.exists() and not root.is_dir():
+            raise ValueError('Reference input tree must be a directory: ' + name)
+        destination = output / name
+        destination.mkdir(parents=True, exist_ok=True)
+        files = []
+        for identifier in identifiers:
+            relative = identifier if name == 'sources' else identifier + '.json'
+            path = contained_path(root, relative, reject_symlinks=True)
+            if not path.exists():
+                continue
+            if name == 'sources':
+                if not path.is_dir():
+                    raise ValueError('Task source must be a directory: ' + identifier)
+                files.extend(child for child in path.rglob('*') if child.is_file())
+            else:
+                if not path.is_file():
+                    raise ValueError('Task list reference must be a file: ' + identifier)
+                files.append(path)
+        for path in files:
+            target = contained_path(destination, path.relative_to(root.resolve()),
+                                    reject_symlinks=True)
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            if target.exists():
+                if not target.is_file() or hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                    raise ValueError('Conflicting task reference: ' + str(target))
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, target)
+            if hashlib.sha256(target.read_bytes()).hexdigest() != digest:
+                raise ValueError('Copied task reference changed: ' + str(target))
+
+
+def copy_cohort_evidence(source, target, dataset, records, batches, *,
+                         summary_name, include_private=False, include_metadata=True):
+    """Copy declared comparison evidence; publication excludes private envelopes."""
+    if summary_name not in {'speed-comparison.json', 'resource-comparison.json'}:
+        raise ValueError('Unsupported comparison summary')
+    source = Path(source)
+    reject_evidence_symlinks(source)
+
+    allowed = set()
+    if include_metadata:
+        allowed.update({'dataset.json', 'results.jsonl', summary_name})
+        for optional in ('execution.json', 'manifest.json', 'scoring-revisions.json',
+                         'reference-revisions.json', 'latency-corrections.json'):
+            if (source / optional).is_file():
+                allowed.add(optional)
+        if include_private and (source / 'result-review.json').is_file():
+            allowed.add('result-review.json')
+        if 'latency-corrections.json' in allowed:
+            from .reference_lifecycle import latency_correction_original_elapsed
+            latency_correction_original_elapsed(source)
+    for record in records:
+        verify_record_artifacts(source, record)
+        allowed.update(relative for relative, _ in artifact_bindings(record))
+        if include_private:
+            allowed.update(binding['path'] for binding in record_private_bindings(record))
+
+    target.mkdir(parents=True)
+    materialize_reference_checks(target, source, batches)
+    materialize_task_references(target, {name: source / name
+        for name in ('sources', 'list-references')}, [case['id'] for case in dataset.get('cases', [])])
+    for relative in sorted(allowed):
+        source_file = contained_path(source, relative, reject_symlinks=True)
+        if not source_file.is_file():
+            raise ValueError('Comparison cohort allowlisted file is missing: ' + relative)
+        target_file = contained_path(target, relative, reject_symlinks=True)
+        target_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_file, target_file)
+
+    for record in records:
+        for relative, digest in artifact_bindings(record):
+            if hashlib.sha256(contained_path(target, relative, reject_symlinks=True).read_bytes()).hexdigest() != digest:
+                raise ValueError('Copied comparison artifact changed: ' + relative)
+        verify_record_public_call_logs(target, record)

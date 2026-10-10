@@ -2,6 +2,8 @@
 name = "browser-harness-eval"
 version = "0.1.0"
 description = "Reproducible browser service evaluation harness"
+readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.11"
 dependencies = [
   "beautifulsoup4>=4.12,<5",
@@ -10,8 +12,9 @@ dependencies = [
 [project.scripts]
 browser-harness-eval = "harness.web_fetch.cli:main"
 
-[tool.uv.sources]
-webarena-verified = { git = "https://github.com/lexmount/webarena-verified.git", rev = "da7b992eb10de78000f11a7f34fd4590c171fbd6" }
+[project.urls]
+Repository = "https://github.com/lexmount/browser-eval"
+Issues = "https://github.com/lexmount/browser-eval/issues"
 
 [project.optional-dependencies]
 headless-eval = [
@@ -43,7 +46,7 @@ browser-use-eval = [
   "regex>=2025.7,<2027",
   "requests>=2.32,<3",
   "tiktoken>=0.7,<1",
-  "webarena-verified==1.2.3",
+  "webarena-verified @ git+https://github.com/lexmount/webarena-verified.git@da7b992eb10de78000f11a7f34fd4590c171fbd6",
 ]
 test = [
   "pytest>=8,<10",
@@ -93,3 +96,15 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["harness*"]
+
+[tool.setuptools.package-data]
+"harness" = ["licenses/*.txt"]
+"harness.lexbench" = ["assets/*.js", "assets/*.cjs"]
+"harness.web_fetch" = ["data/*.json", "data/latency-certifiers/*.txt", "templates/*.html", "assets/methodology/*.png", "assets/*.js", "html_to_markdown.mjs"]
+"harness.web_fetch.workers" = ["*.mts", "*.mjs", "*.c"]
+"harness.environments.webarena" = ["runtime/*.ini"]
+
+[tool.setuptools.data-files]
+"share/browser-harness-eval" = ["evaluation/scoring-regressions.json"]
+"share/browser-harness-eval/webmainbench" = ["evaluation/webmainbench-full/scoring-regressions.json"]
+"share/browser-harness-eval/public-webarena" = ["evaluation/browser-use-public/adoption-evidence.json", "evaluation/browser-use-public/benchmark-catalog.json", "evaluation/browser-use-public/report-changes.json"]

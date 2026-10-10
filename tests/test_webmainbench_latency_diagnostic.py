@@ -61,3 +61,98 @@ class LatencyDiagnosticTests(unittest.TestCase):
             expected = hashlib.sha256((diagnostic / 'manifest.json').read_bytes()).hexdigest()
             with self.assertRaisesRegex(ValueError, 'preserved original matrix'):
                 load_diagnostic(root, {'cases': []}, [], [], expected)
+
+
+def paired_inputs(root):
+    import hashlib
+    import json
+
+    dataset = root / 'source.jsonl'
+    rows = [{'track_id': name, 'html': '<p>synthetic</p>',
+             'groundtruth_content': 'synthetic'} for name in ('one', 'two', 'three')]
+    dataset.write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    sample = root / 'sample.txt'; sample.write_text('one\ntwo\nthree\n')
+    argv = ['--dataset', str(dataset), '--sample', str(sample), '--source-count', '3',
+            '--source-sha256', hashlib.sha256(dataset.read_bytes()).hexdigest(),
+            '--output', str(root / 'output'), '--rounds', '3', '--all-cases']
+    for name, version in [('older', '2.0.0'), ('newer', '2.1.0')]:
+        binary = root / name; binary.write_text('synthetic ' + version)
+        prior = root / (name + '.jsonl')
+        prior.write_text(''.join(json.dumps({'track_id': row['track_id'], 'ok': True,
+                                            'elapsed_ms': 10}) + '\n' for row in rows))
+        argv += ['--' + name, str(binary), '--prior-' + name, str(prior),
+                 '--' + name + '-version', version]
+    return argv
+
+
+def fake_paired_environment(monkeypatch, root, *, mutate=False):
+    import contextlib
+    import subprocess
+    from harness.web_fetch import webmainbench_runner as runner
+    from harness.web_fetch import webmainbench_latency_diagnostic as diagnostic
+
+    @contextlib.contextmanager
+    def fixture(records):
+        yield 'https://synthetic.invalid', root / 'synthetic-ca'
+
+    calls = []
+    def run(command, **kwargs):
+        if '--version' in command:
+            version = '2.0.0' if Path(command[0]).name == 'older' else '2.1.0'
+            return subprocess.CompletedProcess(command, 0, 'moli ' + version, '')
+        calls.append(command)
+        if mutate and len(calls) == 1:
+            (root / 'older').write_text('changed binary')
+        return subprocess.CompletedProcess(command, 0, b'synthetic body', b'')
+
+    monkeypatch.setattr(runner, 'fixture_server', fixture)
+    monkeypatch.setattr(runner, 'verify_loopback_sandbox', lambda *args: {'synthetic': True})
+    monkeypatch.setattr(diagnostic.subprocess, 'run', run)
+    return calls
+
+
+def test_paired_calls_use_declared_versions_scope_and_balanced_order(tmp_path, monkeypatch):
+    import hashlib
+    import json
+    from harness.web_fetch.webmainbench_latency_diagnostic import paired_tail_main
+
+    argv = paired_inputs(tmp_path)
+    commands = fake_paired_environment(monkeypatch, tmp_path)
+    paired_tail_main(argv)
+    output = tmp_path / 'output'
+    selection = json.loads((output / 'selection.json').read_text())
+    calls = [json.loads(line) for line in (output / 'calls.jsonl').read_text().splitlines()]
+    assert set(selection['case_ids']) == {'one', 'two', 'three'}
+    assert set(selection['binaries']) == {'2.0.0', '2.1.0'}
+    assert len(commands) == len(calls) == 18
+    for index in range(0, len(calls), 2):
+        pair = calls[index:index+2]
+        assert pair[0]['case_id'] == pair[1]['case_id']
+        assert pair[0]['round'] == pair[1]['round']
+        assert {row['version'] for row in pair} == {'2.0.0', '2.1.0'}
+    for name in selection['case_ids']:
+        first = [row['version'] for row in calls if row['case_id'] == name]
+        assert first[0:2] == first[4:6] == list(reversed(first[2:4]))
+    assert hashlib.sha256((output / 'runner-source.py').read_bytes()).hexdigest() == selection['runner_sha256']
+
+
+def test_paired_calls_reject_binary_drift(tmp_path, monkeypatch):
+    import pytest
+    from harness.web_fetch.webmainbench_latency_diagnostic import paired_tail_main
+
+    argv = paired_inputs(tmp_path)
+    fake_paired_environment(monkeypatch, tmp_path, mutate=True)
+    with pytest.raises(ValueError, match='inputs or runner changed'):
+        paired_tail_main(argv)
+
+
+def test_historical_formal_correction_rejects_other_versions_before_calls(tmp_path, monkeypatch):
+    import pytest
+    from harness.web_fetch import webmainbench_latency_diagnostic as diagnostic
+
+    argv = paired_inputs(tmp_path)
+    monkeypatch.setattr(diagnostic.subprocess, 'run', lambda *args, **kwargs: (_ for _ in ()).throw(
+        AssertionError('invalid formal scope must fail before calls')))
+    with pytest.raises(ValueError, match='frozen versions'):
+        diagnostic.paired_tail_main([*argv, '--rounds', '2', '--formal-correction'])
+    assert not (tmp_path / 'output').exists()

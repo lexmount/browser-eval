@@ -5,16 +5,19 @@ caller. A completed certificate describes one run, not freshness for another.
 """
 from __future__ import annotations
 
-from copy import deepcopy
-from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import math
 import re
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import load_jsonl, parse_jsonl
+
 from .metrics import normalize_for_match, normalize_resource_url
+from .reference_inputs import input_tree
 from .render_evidence import validate_render_reference
 from .safety import contained_path, safe_identifier
 
@@ -103,6 +106,60 @@ def requires_fresh_reference(case) -> bool:
             and bool(_get(case, "source_verification", {})))
 
 
+def expected_providers(dataset, case):
+    """Require an explicit, unambiguous matched cohort for a reference check."""
+    names = dataset.get('coverage_plan', {}).get(_get(case, 'track', 'web'))
+    if (not isinstance(names, list) or not names
+            or any(not isinstance(name, str) for name in names)
+            or len(names) != len(set(names))):
+        raise ValueError('Reference checks require a nonempty unique provider coverage plan')
+    return {safe_identifier(name) for name in names}
+
+
+def reference_cases(dataset):
+    """Select the same live reference population for acquisition and certification."""
+    cases, seen = {}, set()
+    for case in dataset['cases']:
+        identifier = safe_identifier(case['id'])
+        if identifier in seen:
+            raise ValueError('Duplicate reference case: ' + identifier)
+        seen.add(identifier)
+        if requires_fresh_reference(case):
+            expected_providers(dataset, case)
+            requires_browser_observation(case)
+            cases[identifier] = case
+    return cases
+
+
+def requires_browser_observation(case):
+    """Select reference acquisition from declared provenance, never a task ID."""
+    verification = _get(case, 'source_verification', {}) or {}
+    route = verification.get('observation_route')
+    if route not in (None, 'http', 'browser'):
+        raise ValueError('Reference observation_route must be http or browser')
+    # Existing frozen inputs already name these acquisition methods. Preserve
+    # their meaning without changing their historical bytes or task identifiers.
+    browser = verification.get('method') in {
+        'Independent visible browser DOM; complete declared scope',
+        'Independent rendered browser DOM; complete declared scope',
+    }
+    if browser and route == 'http':
+        raise ValueError('HTTP observation route contradicts browser reference provenance')
+    return browser or route == 'browser'
+
+
+def completed_case_records(dataset, case, records):
+    """Return one logical result per declared method, or wait for missing results."""
+    expected = expected_providers(dataset, case)
+    relevant = [row for row in records if row['case_id'] == _get(case, 'id')]
+    methods = [row['provider'] for row in relevant]
+    if set(methods) - expected:
+        raise ValueError('Undeclared provider in reference-check cohort')
+    if len(methods) != len(set(methods)):
+        raise ValueError('Duplicate provider in reference-check cohort')
+    return relevant if set(methods) == expected else None
+
+
 def scope_identity(case) -> dict[str, Any]:
     verification = _get(case, "source_verification", {}) or {}
     benchmark = _get(case, "source_benchmark", {}) or {}
@@ -184,9 +241,9 @@ def validate_resource_source_evidence(case, dataset_path: Path) -> dict | None:
     if evidence_path != expected_path or not isinstance(evidence_hash, str) \
             or re.fullmatch(r"[0-9a-f]{64}", evidence_hash) is None:
         raise ReferenceLifecycleError(f"{identifier}: resource evidence binding is missing")
-    root = Path(dataset_path).parent
     try:
-        evidence_raw = contained_path(root, evidence_path).read_bytes()
+        root = input_tree(Path(dataset_path), "sources")
+        evidence_raw = contained_path(root, f"{identifier}/evidence.json").read_bytes()
         if sha256(evidence_raw) != evidence_hash:
             raise ReferenceLifecycleError(
                 f"{identifier}: resource evidence SHA-256 mismatch", "reference_changed")
@@ -219,7 +276,7 @@ def validate_resource_source_evidence(case, dataset_path: Path) -> dict | None:
                 or re.fullmatch(r"[0-9a-f]{64}", browser_binding["sha256"]) is None):
             raise ReferenceLifecycleError(f"{identifier}: invalid browser observation binding")
         try:
-            folder = contained_path(root, Path("sources") / identifier)
+            folder = contained_path(root, identifier)
             observation_raw = contained_path(folder, browser_binding["path"]).read_bytes()
             if sha256(observation_raw) != browser_binding["sha256"]:
                 raise ReferenceLifecycleError(
@@ -314,6 +371,112 @@ def _completion(completion) -> None:
         raise ReferenceLifecycleError("Independent completion is unbounded or exceeded its deadline")
 
 
+def validate_postcheck_observation(row: dict, case_id: str, binding: dict) -> dict:
+    """Preserve a receipt only when its original provenance matches the frozen task."""
+    if (not isinstance(row, dict) or row.get("case_id") != case_id
+            or row.get("independent") is not True
+            or row.get("scope_identity") != binding["scope_identity"]):
+        raise ValueError("Postcheck observation identity/independence/scope mismatch: " + case_id)
+    timestamp(row.get("checked_at"))
+    _completion(row.get("completion"))
+    content = row.get("content_text")
+    if not isinstance(content, str) or not content.strip():
+        raise ValueError("Postcheck observation has no source content: " + case_id)
+    if "content_sha256" in row and row["content_sha256"] != sha256(content):
+        raise ValueError("Postcheck observation content hash mismatch: " + case_id)
+    return deepcopy(row)
+
+
+def load_capture_observation(captures_root: Path, case_id: str, binding: dict) -> dict:
+    """Load an HTTP capture using its own completion, scope and content binding."""
+    safe_identifier(case_id)
+    scope = binding["scope_identity"]
+    if requires_browser_observation(binding):
+        raise ValueError("Browser observation required: " + case_id)
+    folder = contained_path(captures_root, case_id, reject_symlinks=True)
+    evidence_path = contained_path(folder, "evidence.json", reject_symlinks=True)
+    capture = json.loads(evidence_path.read_text(encoding="utf-8"))
+    if (not isinstance(capture, dict) or capture.get("case_id") != case_id
+            or capture.get("url") != scope.get("url")
+            or capture.get("scope_identity") != scope
+            or capture.get("independent") is not True
+            or capture.get("source") != "independent HTTP GET (no provider output)"
+            or capture.get("state") != "captured" or capture.get("status") != 200
+            or capture.get("missing_facts") != [] or capture.get("quality_issues") != []):
+        raise ValueError("Incomplete or out-of-scope post-call capture: " + case_id)
+    timestamp(capture.get("checked_at"))
+    _completion(capture.get("completion"))
+    content_path = contained_path(folder, "reference.txt", reject_symlinks=True)
+    content = content_path.read_text(encoding="utf-8")
+    if not content.strip() or sha256(content) != capture.get("reference_sha256"):
+        raise ValueError("Post-call capture content hash mismatch: " + case_id)
+    return {
+        "case_id": case_id, "independent": True,
+        "checked_at": capture["checked_at"], "content_text": content,
+        "content_sha256": capture["reference_sha256"],
+        "scope_identity": deepcopy(scope),
+        "completion": deepcopy(capture["completion"]),
+    }
+
+
+def build_observations(run_dir: Path, captures_root: Path,
+                       browser_observations: Path | None = None) -> list[dict]:
+    """Validate independent post-call receipts without inventing their provenance."""
+    manifest_path = contained_path(run_dir, "manifest.json", reject_symlinks=True)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    bindings = manifest.get("reference_checks", {}).get("cases")
+    if not isinstance(bindings, dict) or not bindings:
+        raise ValueError("Postcheck requires frozen reference bindings")
+    rendered = {}
+    if browser_observations is not None:
+        if browser_observations.is_symlink():
+            raise ValueError("Symlinked browser evidence is forbidden")
+        payload = json.loads(browser_observations.read_text(encoding="utf-8"))
+        rows = (payload.get("observations", list(payload.values()))
+                if isinstance(payload, dict) else payload)
+        if not isinstance(rows, list):
+            raise ValueError("Browser observations must be a list or case mapping")
+        for row in rows:
+            if not isinstance(row, dict):
+                raise ValueError("Browser observation must be an object")
+            identifier = safe_identifier(row.get("case_id"))
+            if identifier in rendered:
+                raise ValueError("Duplicate browser observation: " + identifier)
+            rendered[identifier] = row
+        if isinstance(payload, dict) and "observations" not in payload:
+            if any(key != row.get("case_id") for key, row in payload.items()):
+                raise ValueError("Browser observation mapping identity mismatch")
+        if set(rendered) - set(bindings):
+            raise ValueError("Browser observations contain undeclared cases")
+    observations = []
+    for case_id, binding in bindings.items():
+        safe_identifier(case_id)
+        if case_id in rendered:
+            observations.append(validate_postcheck_observation(rendered[case_id], case_id, binding))
+            continue
+        observations.append(load_capture_observation(captures_root, case_id, binding))
+    return observations
+
+
+def observations_main(argv=None) -> None:
+    """Command boundary for assembling independently captured postchecks."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description=build_observations.__doc__)
+    parser.add_argument("--run-dir", type=Path, required=True)
+    parser.add_argument("--captures", type=Path, required=True)
+    parser.add_argument("--browser-observations", type=Path)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    if args.output.exists() or args.output.is_symlink():
+        parser.error("Output exists")
+    observations = build_observations(args.run_dir, args.captures, args.browser_observations)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    with args.output.open("x", encoding="utf-8") as stream:
+        stream.write(json.dumps(observations, ensure_ascii=False, indent=2) + "\n")
+    print("Postcheck observations:", len(observations))
+
+
 def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
     identifier = safe_identifier(_get(case, "id"))
     verification = _get(case, "source_verification")
@@ -338,9 +501,9 @@ def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
         completion = render.get("completion", {})
         _completion(completion)
         _fresh(completion.get("checked_at"), now)
-        source = Path("sources") / identifier
-        root = Path(dataset_path).parent
+        source = Path(identifier)
         try:
+            root = input_tree(Path(dataset_path), "sources")
             initial = contained_path(root, source / "initial.html.txt").read_bytes()
             rendered_raw = contained_path(root, source / "rendered.txt").read_bytes()
             reference_raw = contained_path(root, source / "reference.txt").read_bytes()
@@ -369,7 +532,7 @@ def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
         if count is not None and (evidence.get("expected_entries") != count or evidence.get("observed_entries") != count):
             raise ReferenceLifecycleError(f"{identifier}: incomplete declared source scope")
         binding["render_evidence"] = deepcopy(render)
-        binding["source_files_sha256"] = {str(source / name): sha256(raw) for name, raw in (
+        binding["source_files_sha256"] = {str(Path("sources") / source / name): sha256(raw) for name, raw in (
             ("initial.html.txt", initial), ("rendered.txt", rendered_raw),
             ("reference.txt", reference_raw), ("evidence.json", evidence_raw))}
     return binding
@@ -377,6 +540,10 @@ def _binding(case, dataset_path: Path, now: datetime) -> dict[str, Any]:
 
 def preflight_reference_checks(cases, dataset_path: Path, now=None) -> dict | None:
     """Read-only preflight; call before creating outputs or invoking providers."""
+    try:
+        input_tree(dataset_path, "sources")
+    except ValueError as error:
+        raise ReferenceLifecycleError('Invalid reference input tree: ' + str(error)) from error
     checked = _now(now)
     bindings = {}
     for case in cases:
@@ -580,7 +747,7 @@ def finalize_reference_checks(run_dir: Path, observations_path: Path, now=None) 
     if evidence_path.exists() and evidence_path.read_bytes() != raw:
         raise ReferenceLifecycleError("Postcheck evidence hash pointer mismatch")
     records_raw = contained_path(root, "results.jsonl").read_bytes()
-    records = [json.loads(line) for line in records_raw.splitlines() if line.strip()]
+    records = parse_jsonl(records_raw, skip_blank=True)
     dataset_raw = contained_path(root, "dataset.json").read_bytes()
     dataset_cases = json.loads(dataset_raw)["cases"]
     cases = {_get(c, "id"): c for c in dataset_cases}
@@ -677,7 +844,7 @@ def valid_scoring_revision(source) -> bool:
     records = None
     try:
         dataset = json.loads((root/'dataset.json').read_text())
-        records = [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+        records = load_jsonl(root/'results.jsonl')
     except (OSError, ValueError, TypeError):
         dataset = None
         records = None
@@ -696,7 +863,7 @@ def valid_scoring_revision(source) -> bool:
             from .result_review import require_result_review
             if dataset is None or records is None:
                 dataset = json.loads((root/'dataset.json').read_text())
-                records = [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+                records = load_jsonl(root/'results.jsonl')
             assembled_review_valid = require_result_review(root, dataset, records) is not None
         except (OSError, ValueError, TypeError, KeyError, StopIteration):
             assembled_review_valid = False
@@ -805,7 +972,7 @@ def valid_scoring_revision(source) -> bool:
     )
 
 
-def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
+def latency_correction_original_elapsed(source, *, records=None) -> dict[tuple[str, str], float]:
     """Return original timings for a receipt bound to current corrected results.
 
     Reference certificates describe the content-producing call.  A later paired
@@ -819,12 +986,17 @@ def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
     receipt_path = root / "latency-corrections.json"
     results_path = root / "results.jsonl"
     if not receipt_path.is_file():
+        if records is None:
+            records = (load_jsonl(results_path)
+                       if results_path.is_file() else [])
+        if any(row.get('provider_metadata', {}).get('latency_correction') for row in records):
+            raise ReferenceLifecycleError("Invalid latency correction: missing bound receipt")
         return {}
     if not results_path.is_file():
         raise ReferenceLifecycleError("Latency correction receipt has no bound results")
     try:
         receipt = json.loads(receipt_path.read_text())
-        records = [json.loads(line) for line in results_path.read_text().splitlines()]
+        records = load_jsonl(results_path)
     except (OSError, ValueError, TypeError) as error:
         raise ReferenceLifecycleError("Invalid latency correction receipt") from error
     if (not isinstance(receipt, dict)
@@ -842,12 +1014,15 @@ def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
     covered: dict[tuple[str, str], float] = {}
     for change in receipt["changes"]:
         if not isinstance(change, dict):
-            return {}
+            raise ReferenceLifecycleError("Invalid latency correction entry")
         key = (change.get("provider"), change.get("case_id"))
         before, after = change.get("before_ms"), change.get("after_ms")
         record = by_key.get(key)
         correction = (record or {}).get("provider_metadata", {}).get("latency_correction", {})
-        if (key in covered or not all(isinstance(value, (int, float)) for value in (before, after))
+        if (key in covered or not all(isinstance(value, (int, float))
+                                      and not isinstance(value, bool)
+                                      and math.isfinite(value) and value >= 0
+                                      for value in (before, after))
                 or record is None or record.get("elapsed_ms") != after
                 or correction.get("kind") != "documented_final_round_supersession"
                 or correction.get("original_elapsed_ms") != before
@@ -855,6 +1030,10 @@ def latency_correction_original_elapsed(source) -> dict[tuple[str, str], float]:
                 or correction.get("diagnostic_results_sha256") != receipt.get("diagnostic_results_sha256")):
             raise ReferenceLifecycleError("Invalid latency correction entry")
         covered[key] = before
+    expected = {key for key, row in by_key.items()
+                if row.get('provider_metadata', {}).get('latency_correction')}
+    if set(covered) != expected:
+        raise ReferenceLifecycleError("Invalid latency correction coverage")
     return covered
 
 
@@ -1033,14 +1212,26 @@ def check_case_reference_and_scoring_revision_binding(
         )
 
 
+def is_diagnostic_evidence(value) -> bool:
+    """Recognize persisted non-release intent across datasets and execution manifests."""
+    if not isinstance(value, dict):
+        return False
+    comparison = value.get('comparison', {})
+    return any(isinstance(item, dict) and (
+        item.get('evidence_state') == 'diagnostic'
+        or item.get('publication_state') in {
+            'diagnostic', 'diagnostic_not_for_release', 'local_audit_only_not_for_release'}
+        or str(item.get('publication_state', '')).endswith('_not_for_release')
+        or item.get('kind') == 'web_fetch_diagnostic'
+        or item.get('unqualified_reference_cases')
+    ) for item in (value, comparison))
+
+
 def require_certifiable_evidence(dataset=None, manifests=()) -> None:
     """Diagnostic intent survives dataset copies and cannot become certification."""
-    comparison = dataset.get('comparison', {}) if isinstance(dataset, dict) else {}
-    candidates = [comparison, *manifests]
-    if any(isinstance(value, dict) and (
-            value.get('evidence_state') == 'diagnostic'
-            or value.get('publication_state') == 'diagnostic'
-            or value.get('unqualified_reference_cases')) for value in candidates):
+    if isinstance(manifests, dict):
+        manifests = [manifests]
+    if any(is_diagnostic_evidence(value) for value in [dataset, *manifests]):
         raise ReferenceLifecycleError('Diagnostic evidence cannot enter certified assembly or reports')
 
 
@@ -1114,7 +1305,7 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
 
     allow_scoring_rule_revision = (allow_scoring_rule_revision or valid_scoring_revision(source))
     revised_references = reference_revision_cases(source)
-    original_latency = latency_correction_original_elapsed(source)
+    original_latency = latency_correction_original_elapsed(source, records=records)
     try:
         for batch in manifests:
             if not isinstance(batch, dict):

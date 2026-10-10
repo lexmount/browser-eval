@@ -1,19 +1,23 @@
-import importlib.util
 import math
 import re
 import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "scripts" / "plot_moli_version_resources.py"
-SPEC = importlib.util.spec_from_file_location("plot_moli_version_resources", SCRIPT)
-MODULE = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
-SPEC.loader.exec_module(MODULE)
+from harness.lexbench import charts as MODULE
 
 
 class MoliVersionResourceChartTests(unittest.TestCase):
+    def test_registered_method_without_resource_measurement_has_a_clear_error(self):
+        historical = {**self.data, "baseline": "114_off"}
+        methods = [
+            {**item, "final_passed_cases": item["passed_cases"]}
+            for item in historical["configurations"]
+        ]
+        methods.append({"id": "unmeasured", "final_passed_cases": 1})
+        with self.assertRaisesRegex(ValueError, "resource.*unmeasured"):
+            MODULE.combine_comparisons(methods, historical, None)
+
     def test_linux_release_results_use_one_baseline_and_keep_point_labels(self):
         historical = {**self.data, "baseline": "114_off"}
         row = {

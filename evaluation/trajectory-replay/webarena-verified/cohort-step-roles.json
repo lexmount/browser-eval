@@ -29,7 +29,24 @@
         "chromium_receipt_sha256": "0305006ef4c3da5d5fd095e20f8c1fab746379876f3402a094d47681e147ab61",
         "moli_receipt_sha256": "71c768f715d400af242801af069d35acac043e703763e296589c21d00f147eab"
       },
-      "reason": "commit both date-filter inputs and await the matching Magento UI provider state before reading the full order grid"
+      "reason": "commit both date-filter inputs and await the matching Magento UI provider state before reading the full order grid",
+      "stabilization_reversions": [
+        {
+          "action_index": 12,
+          "current_action": "evaluate",
+          "parent_call": {
+            "action": "press",
+            "key": "Tab"
+          }
+        },
+        {
+          "action_index": 15,
+          "current_action": "evaluate",
+          "parent_call": {
+            "action": "snapshot"
+          }
+        }
+      ]
     },
     {
       "task_id": 163,

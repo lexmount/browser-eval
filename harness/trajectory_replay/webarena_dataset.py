@@ -71,13 +71,15 @@ def _official_evaluator_names() -> dict[int, tuple[str, ...]]:
 
 @lru_cache(maxsize=1)
 def _effective_correction_bindings() -> dict[int, tuple[str, str, str, tuple[str, ...]]]:
-    from harness.browser_use.runner import _configure_benchmark  # noqa: PLC0415
+    from harness.environments.webarena.runtime import (
+        configure_benchmark,
+    )
     from harness.trajectory_replay.webarena_corrections import (  # noqa: PLC0415
         apply_correction,
         load_corrections,
     )
 
-    benchmark = _configure_benchmark()
+    benchmark = configure_benchmark()
     catalog = load_corrections()
     bindings = {}
     for task_id in catalog.records:

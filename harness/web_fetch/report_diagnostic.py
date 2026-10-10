@@ -8,6 +8,8 @@ from collections import Counter
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
 
+from harness.record_io import load_jsonl
+
 from .safety import contained_path, safe_identifier, validate_http_url
 
 
@@ -63,8 +65,8 @@ def prepare_diagnostic_evidence(spec_path, output):
     """Adapt complete saved cohorts and bound reviews, never make provider calls."""
     from .artifacts import verify_record_private_artifacts, verify_record_public_call_logs
     from .metrics import task_passed
-    from .reference_lifecycle import require_verified_reference_checks
     from .publication_privacy import project_file
+    from .reference_lifecycle import require_verified_reference_checks
 
     spec_path, output = Path(spec_path).resolve(), Path(output)
     spec = json.loads(spec_path.read_text())
@@ -89,7 +91,7 @@ def prepare_diagnostic_evidence(spec_path, output):
         observations_path=contained_path(spec_path.parent,cohort['observations'])
         review_path=contained_path(spec_path.parent,cohort['review'])
         dataset=json.loads(dataset_path.read_text());cases={c['id']:c for c in dataset['cases']}
-        records=[json.loads(line) for line in results_path.read_text().splitlines()]
+        records=load_jsonl(results_path)
         observations=json.loads(observations_path.read_text());review=json.loads(review_path.read_text())
         expected_bindings={k:hashlib.sha256(p.read_bytes()).hexdigest() for k,p in
             [('dataset_sha256',dataset_path),('results_sha256',results_path),('observations_sha256',observations_path)]}
@@ -431,7 +433,9 @@ def load_diagnostic(source):
 def check_diagnostic_report(output, profile=None):
     """Enforce the shared reader structure and evidence dialogs at release."""
     from bs4 import BeautifulSoup
-    from scripts.report_presentation_contract import check_presentation
+
+    from harness.reporting.presentation import check_presentation
+
     from .publication_privacy import publication_risk
 
     output = Path(output)

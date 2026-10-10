@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import json
 import shutil
+from pathlib import Path
 
 import pytest
 
-from scripts.verify_webarena_env_contract import ROOT, verify
+from harness.environments.webarena.config import verify_deployment_contract
+
+ROOT = Path(__file__).resolve().parents[3]
 
 
 def _checkout(tmp_path):
@@ -23,7 +26,7 @@ def _checkout(tmp_path):
 
 
 def test_repository_contract_uses_one_image_lock():
-    assert verify()["status"] == "pass"
+    assert verify_deployment_contract(ROOT)["status"] == "pass"
 
 
 @pytest.mark.parametrize("template", ["webarena.config", "rainbond-pool"])
@@ -34,7 +37,7 @@ def test_evaluation_templates_reject_wrong_relative_lock_path(tmp_path, template
     data["image_lock"] = "../../evaluation/browser-use-public/webarena-environment-images.json"
     path.write_text(json.dumps(data))
     with pytest.raises(ValueError, match="canonical image lock"):
-        verify(root)
+        verify_deployment_contract(root)
 
 
 @pytest.mark.parametrize(
@@ -51,7 +54,7 @@ def test_delivery_rejects_wrong_binding(tmp_path, field, value, message):
     data[field] = value
     path.write_text(json.dumps(data))
     with pytest.raises(ValueError, match=message):
-        verify(root)
+        verify_deployment_contract(root)
 
 
 def test_deployment_rejects_port_drift(tmp_path):
@@ -61,7 +64,7 @@ def test_deployment_rejects_port_drift(tmp_path):
     data["sites"]["reddit"]["port"] += 1
     path.write_text(json.dumps(data))
     with pytest.raises(ValueError, match="site port differs: reddit"):
-        verify(root)
+        verify_deployment_contract(root)
 
 
 def test_deployment_rejects_duplicate_image_identity(tmp_path):
@@ -71,7 +74,7 @@ def test_deployment_rejects_duplicate_image_identity(tmp_path):
     data["components"]["reddit"]["image"] = "reddit:latest"
     path.write_text(json.dumps(data))
     with pytest.raises(ValueError, match="canonical image identity"):
-        verify(root)
+        verify_deployment_contract(root)
 
 
 def test_map_contract_rejects_missing_checksum(tmp_path):
@@ -81,4 +84,4 @@ def test_map_contract_rejects_missing_checksum(tmp_path):
     del data["components"]["map"]["data_archive_sha256"]["osrm_routing.tar"]
     path.write_text(json.dumps(data))
     with pytest.raises(ValueError, match="Map archive checksum"):
-        verify(root)
+        verify_deployment_contract(root)

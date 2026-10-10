@@ -138,11 +138,18 @@ def test_load_suite_rejects_invalid_new_page_contract(tmp_path, call):
         load_suite(path)
 
 
-@pytest.mark.parametrize("duration", [{}, {"timeout": 0}, {"seconds": -1}, {"timeout": 1, "seconds": 1}])
+@pytest.mark.parametrize(
+    "duration", [{}, {"timeout": 0}, {"seconds": -1}, {"timeout": 1, "seconds": 1}]
+)
 def test_load_suite_rejects_invalid_wait_duration(tmp_path, duration):
     path = tmp_path / "tasks.json"
     path.write_text(
-        json.dumps({"schema": "lex_browser_use_tasks/3", "tasks": [_task("bad", [{"action": "wait", **duration}])]}),
+        json.dumps(
+            {
+                "schema": "lex_browser_use_tasks/3",
+                "tasks": [_task("bad", [{"action": "wait", **duration}])],
+            }
+        ),
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match="wait call 1"):

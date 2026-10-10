@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from copy import deepcopy
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
@@ -1057,3 +1059,94 @@ def test_skipped_task_requires_public_reason():
 
     with pytest.raises(ValueError, match="requires reason"):
         apply_adjudication(suite, qualification)
+
+
+@pytest.mark.parametrize("builder", [apply_adjudication, build_repair_validation_suite,
+                                     build_evidence_revalidation_suite])
+def test_duplicate_decision_inventory_is_rejected(builder):
+    task = {"id": "x", "ground_truth": {"qualification": {"status": "pending"}}}
+    decision = {"task_id": "x", "disposition": "eligible",
+                "adjudication": {"status": "skipped", "reason": "Source defect"}}
+    with pytest.raises(ValueError, match="duplicate"):
+        builder({"tasks": [task], "benchmark": {}}, {"tasks": [decision, decision]})
+
+
+def test_failed_apply_preserves_entire_source_suite():
+    suite = {"benchmark": {}, "tasks": [
+        {"id": name, "ground_truth": {"qualification": {"status": "pending"}}}
+        for name in ("first", "second")
+    ]}
+    before = deepcopy(suite)
+    decisions = {"tasks": [
+        {"task_id": "first", "adjudication": {"status": "skipped", "reason": "Broken task"}},
+        {"task_id": "second"},
+    ]}
+    with pytest.raises(ValueError, match="adjudication is missing"):
+        apply_adjudication(suite, decisions)
+    assert suite == before
+
+
+@pytest.mark.parametrize(
+    "filename", ["attempt.json", "network.har", "final.png", "final-page.json"],
+)
+def test_qualification_proof_rejects_linked_attempt_and_auxiliary_evidence(tmp_path, filename):
+    task = _task("linked")
+    attempts = [_write_validated_attempt(tmp_path, task, pass_index=index)[1] for index in (1, 2)]
+    source = attempts[0].parent / filename
+    original = source.with_suffix(source.suffix + ".original")
+    source.rename(original)
+    source.symlink_to(original)
+    with pytest.raises(ValueError, match="Symlink"):
+        validated_attempt_sha256s(
+            {"validated_attempt_paths": [str(path) for path in attempts]}, task.task_id,
+            expected_contract_sha256=task_contract_sha256(_task_contract(task)),
+        )
+
+
+@pytest.mark.parametrize("field,value", [("attempt", True), ("attempt", 1.0),
+                                         ("qualification_pass_index", True),
+                                         ("qualification_pass_index", 1.0),
+                                         ("qualification_required_passes", 2.0)])
+def test_qualification_ordinals_require_actual_integers(tmp_path, field, value):
+    task = _task("typed")
+    row, path = _write_validated_attempt(tmp_path, task, pass_index=1)
+    second = _write_validated_attempt(tmp_path, task, pass_index=2)[1]
+    row[field] = value
+    path.write_text(json.dumps(row))
+    with pytest.raises(ValueError):
+        validated_attempt_sha256s(
+            {"validated_attempt_paths": [str(path), str(second)]}, task.task_id,
+            expected_contract_sha256=task_contract_sha256(_task_contract(task)),
+        )
+
+
+@pytest.mark.parametrize("projection_passes", [False, True])
+def test_correction_queue_rejects_projection_verdict_drift(tmp_path, projection_passes):
+    task = _task("drift")
+    rows = [_write_validated_attempt(tmp_path, task, pass_index=index)[0] for index in (1, 2)]
+    if projection_passes:
+        source = Path(rows[0]["evidence_directory"]) / "attempt.json"
+        original = json.loads(source.read_text())
+        original["status"] = "fail"
+        source.write_text(json.dumps(original))
+    else:
+        rows[0]["status"] = "fail"
+    attempts = tmp_path / "attempts.jsonl"
+    attempts.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    with pytest.raises(ValueError, match="projection differs"):
+        build_repair_queue(TaskSuite("lex_browser_use_tasks/4", (task,)), attempts)
+
+
+def test_correction_queue_cannot_treat_boolean_raw_metadata_as_integer_projection(tmp_path):
+    task = _task("typed-failure")
+    statuses = {"status": "fail", "process_status": "fail", "combined_status": "fail"}
+    rows = [_write_validated_attempt(tmp_path, task, pass_index=index, statuses=statuses)[0]
+            for index in (1, 2)]
+    source = Path(rows[0]["evidence_directory"]) / "attempt.json"
+    original = json.loads(source.read_text())
+    original["attempt"] = True
+    source.write_text(json.dumps(original))
+    attempts = tmp_path / "attempts.jsonl"
+    attempts.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    with pytest.raises(ValueError, match="projection differs"):
+        build_repair_queue(TaskSuite("lex_browser_use_tasks/4", (task,)), attempts)

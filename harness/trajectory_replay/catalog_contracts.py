@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 from webarena_verified.types.task import WebArenaSite
 
+from harness.record_io import load_jsonl
 from harness.trajectory_replay.public_webarena.suite import load_suite
 from harness.trajectory_replay.remote_runtime import (
     file_sha256,
@@ -233,12 +234,12 @@ def apply_action_overrides(
             "action"
         ) != "evaluate":
             raise ValueError(f"task {task_id}: script fields require an evaluate action")
-        if {"force", "wait_for_enabled"} & set(amendment["set"]) and original.get(
-            "action"
-        ) not in {"click", "fill", "select"}:
-            raise ValueError(
-                f"task {task_id}: actionability fields require click, fill, or select"
-            )
+        if {"force", "wait_for_enabled"} & set(amendment["set"]) and original.get("action") not in {
+            "click",
+            "fill",
+            "select",
+        }:
+            raise ValueError(f"task {task_id}: actionability fields require click, fill, or select")
         if "selector" in amendment["set"] and original.get("action") not in {
             "click",
             "fill",
@@ -353,7 +354,7 @@ def completed_task_ids(progress_path: Path, execution_order: list[int]) -> set[i
 
     if not progress_path.exists():
         return set()
-    rows = [json.loads(line) for line in progress_path.read_text(encoding="utf-8").splitlines()]
+    rows = load_jsonl(progress_path)
     observed = [row.get("task_id") for row in rows]
     if observed != execution_order[: len(observed)]:
         raise ValueError("progress is not a strict prefix of the declared execution order")
@@ -515,9 +516,19 @@ def validate_catalog_report_profile(profile_path: Path, data_home: Path) -> dict
     task_ids = scope.get("task_ids")
     evaluator_source = dataset.get("evaluator_source") or {}
     project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
-    dependency_source = (
-        project.get("tool", {}).get("uv", {}).get("sources", {}).get("webarena-verified") or {}
+    requirements = (
+        project.get("project", {}).get("optional-dependencies", {}).get("browser-use-eval", [])
     )
+    sources = [
+        value.split(" @ ", 1)[1]
+        for value in requirements
+        if value.startswith("webarena-verified @ ")
+    ]
+    dependency_source = {}
+    if len(sources) == 1:
+        repository, separator, revision = sources[0].rpartition("@")
+        if separator and repository.startswith("git+"):
+            dependency_source = {"git": repository.removeprefix("git+"), "rev": revision}
     lock = tomllib.loads((root / "uv.lock").read_text(encoding="utf-8"))
     locked_package = next(
         (
@@ -662,8 +673,7 @@ def validate_catalog_comparison_release(binding_path: Path, data_home: Path) -> 
             raise ValueError(f"comparison release {name} binding is invalid")
         target = root / relative
         components = [
-            root.joinpath(*relative.parts[:index])
-            for index in range(1, len(relative.parts) + 1)
+            root.joinpath(*relative.parts[:index]) for index in range(1, len(relative.parts) + 1)
         ]
         if (
             any(component.is_symlink() for component in components)

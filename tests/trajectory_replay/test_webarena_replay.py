@@ -1,7 +1,9 @@
 import ast
 import inspect
 import json
+import sys
 from pathlib import Path
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -26,6 +28,57 @@ from harness.trajectory_replay.webarena_replay import (
     select_tasks,
     validate_qualification_dataset,
 )
+
+
+@pytest.mark.parametrize("prepare_environment", [True, False])
+def test_replay_resets_declared_sites_before_opening_browser(
+    monkeypatch, tmp_path: Path, prepare_environment: bool,
+) -> None:
+    from harness.trajectory_replay import webarena_replay as replay
+
+    events = []
+
+    class Tool:
+        def __init__(self, **kwargs):
+            pass
+
+        def _get_service(self):
+            events.append("browser_setup")
+            raise RuntimeError("browser unavailable after environment preparation")
+
+        def close(self):
+            events.append("closed")
+
+    tool_module = ModuleType("agent.tools.browser.browser_tool")
+    tool_module.BrowserTool = Tool
+    monkeypatch.setitem(sys.modules, tool_module.__name__, tool_module)
+    monkeypatch.setattr(replay, "load_corrections", lambda: SimpleNamespace(records={}))
+    monkeypatch.setattr(replay, "container_host_gateway", lambda _: "127.0.0.1")
+    monkeypatch.setattr(replay, "allow_official_container_hostname", lambda _: None)
+    monkeypatch.setattr(replay, "DockerStatsResources", lambda _: object())
+    monkeypatch.setattr(replay, "ResourceSampler", lambda *a, **kw: object())
+    monkeypatch.setattr(replay, "CdpHarRecorder", lambda: object())
+    monkeypatch.setattr(replay, "prepare_sites", lambda sites: events.append(("reset", sites)))
+    task = SimpleNamespace(sites=["shopping"], start_urls=["http://shop.test"])
+    benchmark = SimpleNamespace(
+        get_task=lambda _: task,
+        config=SimpleNamespace(render_url=lambda urls, sites: urls),
+    )
+    result = replay._run_one(
+        task_seed={
+            "task_id": 1, "canonical_candidate_id": "candidate",
+            "candidates": [{"id": "candidate", "tool_calls": []}],
+        },
+        engine="chromium", endpoint="http://127.0.0.1:9222", container=object(),
+        benchmark=benchmark, cowagent_repo=tmp_path, output_dir=tmp_path,
+        sample_interval_ms=100, physical_execution=1, trusted_source_site_hosts=set(),
+        prepare_environment=prepare_environment,
+    )
+    expected_prefix = [("reset", ("shopping",))] if prepare_environment else []
+    assert events == expected_prefix + ["browser_setup", "browser_setup", "closed"]
+    assert "browser unavailable after environment preparation" in result["error"]
+    assert result["process_status"] == "fail"
+    assert "environment_prepare_ms" in result["timings"]
 
 
 def test_clear_browser_state_uses_page_storage_for_sessions_without_storage_cdp() -> None:
@@ -278,14 +331,14 @@ def test_only_non_promotable_diagnostics_may_use_a_dirty_harness_checkout() -> N
 
     assert 'if scope != "diagnostic"' in source
     assert '"git", "-C", str(repo_root), "rev-parse", "HEAD"' in source
-    assert "cowagent_commit = _require_clean_git_checkout(cowagent)" in source
+    assert "cowagent_commit = require_clean_git_checkout(cowagent)" in source
 
 
 def test_replay_cleanup_and_locking_preserve_run_isolation() -> None:
     source = inspect.getsource(run_replay_suite)
     run_one_source = inspect.getsource(_run_one)
 
-    assert "_docker_daemon_lock_namespace(docker_info)" in source
+    assert "docker_daemon_lock_namespace(docker_info)" in source
     assert 'cleanup_errors.append(f"resource sampler stop failed: {exc}")' in run_one_source
     assert 'cleanup_errors.append(f"browser tool close failed: {exc}")' in run_one_source
     assert '"cleanup_errors": cleanup_errors' in run_one_source

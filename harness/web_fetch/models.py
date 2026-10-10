@@ -1,8 +1,17 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import asdict, dataclass, field
 from typing import Any
-import hashlib
+
+from .safety import safe_identifier, validate_http_url
+
+TASK_KINDS = ('body', 'structure', 'resource', 'file')
+TRACKS = {
+    'web': '静态网站正文', 'dynamic': '动态网站正文', 'challenge': '热门网站正文',
+    'document': '文档正文', 'image': '图片获取', 'video': '视频获取',
+    'risk_control': '历史访问受限网址正文',
+}
 
 
 def execution_id(record: dict[str, Any]) -> str:
@@ -49,6 +58,24 @@ class EvalCase:
     target_language: str = ""
     target_region: str = ""
     rule_review: dict[str, Any] = field(default_factory=dict)
+
+
+def validate_case(case: EvalCase) -> None:
+    """Validate required fields, routing and identity before acquisition."""
+    safe_identifier(case.id)
+    validate_http_url(case.url)
+    if not isinstance(case.name, str) or not case.name.strip():
+        raise ValueError(f"Task name must be nonempty text: {case.id}")
+    if not isinstance(case.category, str):
+        raise ValueError(f"Task category must be text: {case.id}")
+    if not isinstance(case.expected_any, list) or any(
+        not isinstance(marker, str) or not marker.strip() for marker in case.expected_any
+    ):
+        raise ValueError(f"expected_any must be a list of nonempty text markers: {case.id}")
+    if case.task_kind not in TASK_KINDS:
+        raise ValueError(f"Unknown task kind for {case.id}: {case.task_kind}")
+    if not isinstance(case.track, str) or case.track not in TRACKS:
+        raise ValueError(f"Unknown task track for {case.id}: {case.track}")
 
 
 @dataclass

@@ -1,21 +1,23 @@
 import hashlib
 import json
-from pathlib import Path
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
-from scripts.check_webmainbench_report import check_teds_warnings
-from scripts.correct_webmainbench_references import copy_contained_artifact
-from scripts.correct_webmainbench_scoring import copy_correction_sources
-from scripts.correct_webmainbench_teds import original_official_metrics
-from scripts.review_webmainbench_teds_correction import review
+from harness.web_fetch.webmainbench_correction import (
+    copy_contained_artifact,
+    copy_correction_sources,
+)
 from harness.web_fetch.webmainbench_diagnostics import (
+    original_official_metrics,
+    review_teds_correction,
     validate_reference_revision,
-    validate_webmainbench_scoring_revision,
     validate_teds_revision,
     validate_teds_revision_if_present,
+    validate_webmainbench_scoring_revision,
 )
+from harness.web_fetch.webmainbench_report_check import check_teds_warnings
 
 
 class WebMainBenchReviewGuardsTests(unittest.TestCase):
@@ -184,9 +186,9 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
                        'dataset_sha256': hashlib.sha256(dataset).hexdigest(),
                        'source_code_sha256': {}, 'scope': {'providers': ['a']}}
             (corrected / 'teds-correction.json').write_text(json.dumps(receipt))
-            with patch('scripts.review_webmainbench_teds_correction.valid_correction_provenance', return_value=True):
+            with patch('harness.web_fetch.webmainbench_diagnostics.valid_correction_provenance', return_value=True):
                 with self.assertRaisesRegex(ValueError, 'file presence: sample-manifest.json'):
-                    review(source, corrected)
+                    review_teds_correction(source, corrected)
 
     def test_revision_rejects_even_in_directory_symlinks(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -245,9 +247,9 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
                            'source_code_sha256': {relative: expected}}
                 (corrected / 'teds-correction.json').write_text(json.dumps(receipt))
                 with self.subTest(path=relative), patch(
-                    'scripts.review_webmainbench_teds_correction.valid_correction_provenance', return_value=True
+                    'harness.web_fetch.webmainbench_diagnostics.valid_correction_provenance', return_value=True
                 ), self.assertRaises(ValueError):
-                    review(source, corrected)
+                    review_teds_correction(source, corrected)
 
     def test_review_rejects_escaping_raw_output_paths(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -279,9 +281,9 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
                            'scope':{'providers':['a','b','c','d','e']}}
                 (corrected / 'teds-correction.json').write_text(json.dumps(receipt))
                 with self.subTest(path=relative), patch(
-                    'scripts.review_webmainbench_teds_correction.valid_correction_provenance', return_value=True
+                    'harness.web_fetch.webmainbench_diagnostics.valid_correction_provenance', return_value=True
                 ), self.assertRaises(ValueError):
-                    review(source, corrected)
+                    review_teds_correction(source, corrected)
 
 
 if __name__ == '__main__':

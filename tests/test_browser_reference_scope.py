@@ -4,8 +4,8 @@ import os
 
 import pytest
 
-from scripts import capture_headless_browser_observations as browser_capture
-from scripts.capture_headless_browser_observations import (
+from harness.web_fetch import browser_observations as browser_capture
+from harness.web_fetch.browser_observations import (
     capture_with_retries,
     chromium_host_rule,
     extract_pruned_selector_text,
@@ -84,7 +84,10 @@ def test_browser_audit_resume_is_input_bound_and_preserves_access_failures(tmp_p
                 'content_text':'Verify you are human' if case['id']=='blocked' else 'Article body'}
     monkeypatch.setattr(browser_capture,'capture_with_retries',observe)
     cases=[{'id':k,'url':'https://example.com/'+k} for k in ('article','blocked')]
-    options=dict(timeout_ms=1000,attempts=1,observation_scope='visible_page',checkpoints=tmp_path)
+    binary = tmp_path / 'browser'
+    binary.write_bytes(b'synthetic browser identity')
+    options=dict(timeout_ms=1000,attempts=1,observation_scope='visible_page',checkpoints=tmp_path,
+                 browser_binary=str(binary))
     first=browser_capture.capture_batch(cases,**options)
     assert browser_capture.capture_batch(cases,**options)==first
     assert calls==['article','blocked']

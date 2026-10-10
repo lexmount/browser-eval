@@ -4,8 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.moli_report import run_resource_matrix as matrix
-from scripts.moli_report.run_resource_matrix import schedule, verify_calls
+from harness.lexbench import resource_matrix as matrix
+from harness.lexbench.resource_matrix import schedule, verify_calls
 
 
 class ResourceMatrixTests(unittest.TestCase):

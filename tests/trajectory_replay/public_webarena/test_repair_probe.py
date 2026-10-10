@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.build_webarena_repair_probe import build_probe
+from harness.trajectory_replay.public_webarena.qualification import build_probe
 
 
 def _suite():

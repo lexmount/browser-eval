@@ -4,10 +4,8 @@ from pathlib import Path
 
 import pytest
 from bs4 import BeautifulSoup
-from PIL import Image
 
-from harness.browser_use.publication import sanitize
-from harness.fix_log import load_fix_log
+from harness.trajectory_replay.report_inputs import bound_dataset_path
 from harness.trajectory_replay.webarena_report import (
     LEGACY_REPLAY_VALIDITY_INPUTS,
     _assets,
@@ -34,8 +32,7 @@ from harness.trajectory_replay.webarena_report import (
     build_webarena_replay_report,
     require_all_reference_validity,
 )
-from scripts.build_webarena_replay_report import _bound_dataset_path
-from scripts.check_webarena_replay_report import (
+from harness.trajectory_replay.webarena_report_check import (
     _check_affected36_comparison,
     _check_core_comparison,
     _check_english_localization,
@@ -45,7 +42,7 @@ from scripts.check_webarena_replay_report import (
     _contains_local_path_outside_web_url,
     _semantic_page_inventory,
 )
-from scripts.check_webarena_replay_report import (
+from harness.trajectory_replay.webarena_report_check import (
     check as check_report,
 )
 
@@ -53,20 +50,27 @@ from scripts.check_webarena_replay_report import (
 def test_report_build_requires_hash_bound_corrected_dataset(tmp_path: Path) -> None:
     dataset = tmp_path / "corrected.json"
     dataset.write_text('{"trajectories": []}', encoding="utf-8")
-    profile = {"dataset": {"path": str(dataset), "sha256": hashlib.sha256(dataset.read_bytes()).hexdigest()}}
-    assert _bound_dataset_path(profile) == dataset
+    profile = {
+        "dataset": {
+            "path": str(dataset),
+            "sha256": hashlib.sha256(dataset.read_bytes()).hexdigest(),
+        }
+    }
+    assert bound_dataset_path(profile) == dataset
     with pytest.raises(ValueError, match="changed"):
-        _bound_dataset_path({"dataset": {**profile["dataset"], "sha256": "0" * 64}})
+        bound_dataset_path({"dataset": {**profile["dataset"], "sha256": "0" * 64}})
     with pytest.raises(ValueError, match="requires"):
-        _bound_dataset_path({})
+        bound_dataset_path({})
     link = tmp_path / "link.json"
     link.symlink_to(dataset)
     with pytest.raises(ValueError, match="symlinked"):
-        _bound_dataset_path({"dataset": {"path": str(link), "sha256": profile["dataset"]["sha256"]}})
+        bound_dataset_path({"dataset": {"path": str(link), "sha256": profile["dataset"]["sha256"]}})
 
 
 @pytest.mark.parametrize("extra_methods", [0, 2])
-def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, monkeypatch, extra_methods) -> None:
+def test_complete_three_method_report_builds_one_unified_matrix(
+    tmp_path: Path, monkeypatch, extra_methods
+) -> None:
     methods = [
         {"id": "chromium", "engine": "chromium", "label": "Chromium"},
         {"id": "moli-old", "engine": "moli", "label": "Moli 1.1.3"},
@@ -74,14 +78,23 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     ]
     methods.extend({"id": f"moli-new-{i}", "engine": "moli", "label": f"Moli new {i}"}
                    for i in range(extra_methods))
-    profile = {"methods": methods, "qualification": {"reference_engine": "chromium"},
-               "measurement_notes": {"zh": "分批追加的耗时不用于推断源码提速。", "en": "Separate batches do not establish code-induced speedup."},
-               "execution": {"method_parallelism": 1, "task_parallelism": 1,
-                             "reset_before_every_task": False,
-                                 "reset_before_every_method": True,
-                                 "teardown_between_methods": True,
-                                 "retry_failed_task": False,
-                                 "site_stack": "self-hosted Rainbond WebArena app"}}
+    profile = {
+        "methods": methods,
+        "qualification": {"reference_engine": "chromium"},
+        "measurement_notes": {
+            "zh": "分批追加的耗时不用于推断源码提速。",
+            "en": "Separate batches do not establish code-induced speedup.",
+        },
+        "execution": {
+            "method_parallelism": 1,
+            "task_parallelism": 1,
+            "reset_before_every_task": False,
+            "reset_before_every_method": True,
+            "teardown_between_methods": True,
+            "retry_failed_task": False,
+            "site_stack": "self-hosted Rainbond WebArena app",
+        },
+    }
     actions = [{"action": "snapshot"}]
     attempts = [
         {"participant_id": method["id"], "engine": method["engine"],
@@ -190,6 +203,21 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     environment_path.write_text(original_environment)
     assert not (output / "diagnostics.html").exists()
     assert check_report(output)["html_pages"] == 20 + 2 * extra_methods
+    # Byte-identical links must not bypass the publication boundary.
+    linked_report = tmp_path / "linked-report"
+    linked_report.symlink_to(output, target_is_directory=True)
+    with pytest.raises(ValueError, match="[Ss]ymlink"):
+        check_report(linked_report)
+    for relative in ("index.html", "report-manifest.json"):
+        artifact = output / relative
+        retained = tmp_path / (artifact.name + ".retained")
+        artifact.rename(retained)
+        artifact.symlink_to(retained)
+        with pytest.raises(ValueError, match="[Ss]ymlink"):
+            check_report(output)
+        artifact.unlink()
+        retained.rename(artifact)
+    assert check_report(output)["html_pages"] == 20 + 2 * extra_methods
     home = output / "index.html"
     original_home = home.read_text()
     home.write_text(original_home.replace(profile["measurement_notes"]["zh"], ""))
@@ -209,7 +237,10 @@ def test_complete_three_method_report_builds_one_unified_matrix(tmp_path: Path, 
     assert 'new URL("en/",b.href)' in english_notice
     assert "location.origin+location.pathname" not in english_notice
     assert not (output / "en/results.html").exists()
-    assert 'class="language" href="../en/index.html"' in (output / "result/chromium-29.html").read_text()
+    assert (
+        'class="language" href="../en/index.html"'
+        in (output / "result/chromium-29.html").read_text()
+    )
     assert check_report(output)["html_pages"] == 11 + extra_methods
     manifest_path = output / "report-manifest.json"
     changed = json.loads(manifest_path.read_text())
@@ -261,12 +292,16 @@ def test_reference_validity_must_be_explicit_and_common_to_all_methods() -> None
     with pytest.raises(ValueError, match="missing"):
         _reference_validity_by_task([rows[0], {"participant_id": "moli", "task_id": 243}])
     with pytest.raises(ValueError, match="disagree"):
-        _reference_validity_by_task([rows[0], {**rows[1], "reference_validity": {"status": "valid"}}])
+        _reference_validity_by_task(
+            [rows[0], {**rows[1], "reference_validity": {"status": "valid"}}]
+        )
     assert _verdict_label("fail", "unverified", "zh") == "官方失败；答案不可核验"
 
 
 @pytest.mark.parametrize("extra_methods", [0, 2])
-def test_formal_reference_validity_gate_requires_all_selected_tasks_for_all_methods(extra_methods) -> None:
+def test_formal_reference_validity_gate_requires_all_selected_tasks_for_all_methods(
+    extra_methods,
+) -> None:
     methods = [{"id": name, "engine": "chromium" if name == "chromium" else "moli"}
                for name in ("chromium", "moli-old", "moli-fixed")]
     methods.extend({"id": f"moli-new-{i}", "engine": "moli"} for i in range(extra_methods))
@@ -323,11 +358,12 @@ def test_core_three_method_comparison_rejects_wrong_score_and_tie_highlight(tmp_
          "valid_reference_passed": 2, "valid_reference_total": 2}
         for method in participants
     ]
-    row = lambda method, count=2, marker="": (
-        f'<tr><td>{method}</td><td data-metric="core-pass" '
-        f'data-metric-direction="higher" data-sort="{count}">{count}/2{marker}</td>'
-        '<td>100%</td></tr>'
-    )
+    def row(method, count=2, marker=""):
+        return (
+            f'<tr><td>{method}</td><td data-metric="core-pass" '
+            f'data-metric-direction="higher" data-sort="{count}">{count}/2{marker}</td>'
+            '<td>100%</td></tr>'
+        )
     for directory in (tmp_path, tmp_path / "en"):
         directory.mkdir(exist_ok=True)
         (directory / "index.html").write_text("".join(row(method) for method in participants))
@@ -353,17 +389,28 @@ def test_core_three_method_comparison_rejects_wrong_score_and_tie_highlight(tmp_
 
 
 def test_result_detail_gate_rejects_duplicate_summary_and_missing_failure_log() -> None:
-    html = '<div class="verdict-line fail"></div><section id="diagnosis">Exact timeout</section><section id="evidence"></section>'
-    evidence = {"programmatic_failure": {"stage": "browser_tool_execution", "message": "Exact timeout"},
-                "trajectory": [{"index": 1, "result": "Exact timeout"}]}
+    html = (
+        '<div class="verdict-line fail"></div><section '
+        'id="diagnosis">Exact timeout</section><section ''id="evidence"></section>'
+    )
+    evidence = {
+        "programmatic_failure": {"stage": "browser_tool_execution", "message": "Exact timeout"},
+        "trajectory": [{"index": 1, "result": "Exact timeout"}],
+    }
     _check_result_detail_semantics(html, evidence, "fail")
     with pytest.raises(ValueError, match="duplicates or omits"):
-        _check_result_detail_semantics(html + '<div class="verdict-line fail"></div>', evidence, "fail")
+        _check_result_detail_semantics(
+            html + '<div class="verdict-line fail"></div>', evidence, "fail"
+        )
     with pytest.raises(ValueError, match="exact error"):
-        _check_result_detail_semantics(html.replace("Exact timeout", "generic error"), evidence, "fail")
+        _check_result_detail_semantics(
+            html.replace("Exact timeout", "generic error"), evidence, "fail"
+        )
     with pytest.raises(ValueError, match="evaluation logs"):
         _check_result_detail_semantics(
-            html, {"programmatic_failure": {"stage": "official_evaluation", "message": "Exact timeout"}}, "fail",
+            html,
+            {"programmatic_failure": {"stage": "official_evaluation", "message": "Exact timeout"}},
+            "fail",
         )
     _check_result_detail_semantics(
         html,
@@ -400,13 +447,19 @@ def test_affected36_comparison_rejects_wrong_score_and_tied_highlight(tmp_path: 
         {"participant_id": method, "task_id": task_id, "status": "pass"}
         for method in ("old", "new") for task_id in range(36)
     ]
-    row = lambda item, marker="": (f'<tr><td><a href="results.html?participant={item["id"]}&status=">{item["label"]}</a></td>'
-                                    f'<td data-metric="affected36-pass">36/36{marker}</td></tr>')
+    def row(item, marker=""):
+        return (
+            f"""<tr><td><a href="results.html?participant={item['id']}&status=">"""
+            f"{item['label']}</a></td>"
+            f'<td data-metric="affected36-pass">36/36{marker}</td></tr>'
+        )
     for directory, heading in ((tmp_path, "36 题"), (tmp_path / "en", "36 failures")):
         directory.mkdir(exist_ok=True)
         (directory / "index.html").write_text(heading + "".join(row(item) for item in compare))
     _check_affected36_comparison(tmp_path, compare, results, set(range(36)), ["old", "new"])
-    (tmp_path / "en/index.html").write_text("36 failures" + row(compare[0], '<span class="winner">Best</span>') + row(compare[1]))
+    (tmp_path / "en/index.html").write_text(
+        "36 failures" + row(compare[0], '<span class="winner">Best</span>') + row(compare[1])
+    )
     with pytest.raises(ValueError, match="highlight"):
         _check_affected36_comparison(tmp_path, compare, results, set(range(36)), ["old", "new"])
     compare[1]["passed"] = 35
@@ -1182,7 +1235,9 @@ def test_report_authored_copy_does_not_claim_unconditional_current_qualification
 
 
 def test_task173_corrected_review_reaches_public_json_and_bilingual_detail(tmp_path: Path) -> None:
-    review = json.loads(Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text())
+    review = json.loads(
+        Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text()
+    )
     group, item = next(
         (group, item)
         for group in review["cause_groups"]
@@ -1253,7 +1308,9 @@ def test_site_reset_and_readiness_are_available_in_public_result_evidence(
     assert stored["site_reset"] == public["site_reset"]
 
 
-def test_step_dialog_exposes_secondary_failure_state_without_replacing_error(tmp_path: Path) -> None:
+def test_step_dialog_exposes_secondary_failure_state_without_replacing_error(
+    tmp_path: Path,
+) -> None:
     _assets(tmp_path)
     script = (tmp_path / "assets/app.js").read_text()
     assert "actual?.failure_ui_state||actual?.failure_ui_state_error" in script

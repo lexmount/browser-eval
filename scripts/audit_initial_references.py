@@ -7,19 +7,20 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-from importlib.metadata import version
 import json
-from pathlib import Path
 import re
 import sys
+from importlib.metadata import version
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from scripts.collect_source_evidence import extract_html
-from harness.web_fetch.scoring import score_attempt
+from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_quality import clean_reference_text
 from harness.web_fetch.safety import contained_path, safe_identifier
+from harness.web_fetch.scoring import score_attempt
+from harness.web_fetch.source_capture import extract_html
 
 
 def sha256(raw: bytes) -> str:
@@ -55,12 +56,13 @@ def reconstruct_quotes_json(raw: bytes, case: dict) -> dict:
     }
 
 
-def audit_case(case: dict, evaluation: Path) -> dict:
+def audit_case(case: dict, evaluation: Path, *, sources: Path | None = None) -> dict:
     # Normalize macOS' /var -> /private/var alias before containment and
     # publication-path checks so temporary evaluation roots stay comparable.
     evaluation = evaluation.resolve()
     identifier = safe_identifier(case["id"])
-    folder = contained_path(evaluation, f"sources/{identifier}")
+    sources = sources or input_tree(evaluation / "dataset.json", "sources")
+    folder = contained_path(sources, identifier)
     candidates = [contained_path(folder, name) for name in (
         "current-source.html.txt", "initial.html.txt", "source.html.txt")]
     source = next((path for path in candidates if path.is_file()), None)
@@ -72,7 +74,9 @@ def audit_case(case: dict, evaluation: Path) -> dict:
     def public_path(path):
         if path is None:return None
         try:return path.relative_to(ROOT).as_posix()
-        except ValueError:return path.relative_to(evaluation).as_posix()
+        except ValueError:
+            prefix = evaluation.relative_to(ROOT).as_posix() + "/" if evaluation.is_relative_to(ROOT) else ""
+            return prefix + "sources/" + path.relative_to(sources).as_posix()
     reference = case.get("ground_truth_main_content")
     has_reference = isinstance(reference, str) and bool(reference.strip())
     verification = case.get("source_verification") or {}
@@ -164,9 +168,10 @@ def summarize(rows: list[dict]) -> dict:
 
 def audit_dataset(dataset: Path) -> dict:
     dataset = dataset.resolve()
-    raw = dataset.read_bytes()
+    raw = read_dataset_bytes(dataset)
     data = json.loads(raw)
-    rows = [audit_case(case, dataset.parent) for case in data["cases"]]
+    sources = input_tree(dataset, "sources")
+    rows = [audit_case(case, dataset.parent, sources=sources) for case in data["cases"]]
     return {
         "schema_version": 1,
         "dataset_path": (dataset.relative_to(ROOT).as_posix()
@@ -175,7 +180,7 @@ def audit_dataset(dataset: Path) -> dict:
         "method": "extract_html(saved initial bytes, case URL), then clean_reference_text; exact Unicode comparison to current dataset reference",
         "js_executed": False, "network_used": False, "provider_outputs_used": False,
         "implementation_sha256": {name: sha256((ROOT / name).read_bytes()) for name in (
-            "scripts/audit_initial_references.py", "scripts/collect_source_evidence.py",
+            "scripts/audit_initial_references.py", "harness/web_fetch/source_capture.py",
             "harness/web_fetch/reference_quality.py", "harness/web_fetch/metrics.py",
         )},
         "runtime": {"python": sys.version.split()[0], "beautifulsoup4": version("beautifulsoup4")},
@@ -204,7 +209,7 @@ def main() -> None:
         if args.output:
             output = args.output.resolve()
             # Never let an artifact overwrite the dataset or its source evidence.
-            if output == args.dataset.resolve() or output.is_relative_to(args.dataset.resolve().parent / "sources"):
+            if output == args.dataset.resolve() or output.is_relative_to(input_tree(args.dataset, "sources")):
                 raise ValueError("Output overlaps audit input")
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_text(serialized, encoding="utf-8")

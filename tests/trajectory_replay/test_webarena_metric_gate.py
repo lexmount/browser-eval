@@ -3,7 +3,7 @@ import copy
 import pytest
 
 from harness.trajectory_replay.webarena_report import _outcome_metrics
-from scripts.check_webarena_replay_report import _check_metric_populations
+from harness.trajectory_replay.webarena_report_check import _check_metric_populations
 
 
 def fixture():

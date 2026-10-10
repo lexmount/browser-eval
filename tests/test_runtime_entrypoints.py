@@ -1,14 +1,19 @@
-from pathlib import Path
 import hashlib
 import json
 import re
+import shutil
+import subprocess
 import tempfile
 import unittest
+from pathlib import Path
 
+from harness.web_fetch.headless_runner import require_expected_provider_versions
+from harness.web_fetch.publication_target import (
+    current_publication_target,
+    require_publication_site,
+    require_publication_version,
+)
 from scripts.check_track_naming import repository_contract_findings
-from scripts.run_headless_benchmark import require_expected_provider_versions
-from harness.web_fetch.publication_target import current_publication_target, require_publication_site, require_publication_version
-
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -49,8 +54,6 @@ class RuntimeEntrypointTests(unittest.TestCase):
         project = (ROOT / "pyproject.toml").read_text()
         base = project.split("[project]", 1)[1].split("[project.scripts]", 1)[0]
         self.assertIn('beautifulsoup4', base)
-        makefile = (ROOT / "Makefile").read_text()
-        self.assertIn('tests/test_local_audit.py tests/test_dynamic_100_moli_119.py', makefile)
 
     def test_browser_use_routine_and_release_checks_are_separate(self) -> None:
         makefile = (ROOT / "Makefile").read_text()
@@ -71,13 +74,15 @@ class RuntimeEntrypointTests(unittest.TestCase):
             "moli": {"reported_version": "moli 1.1.5"},
             "moli-1.1.3": {"reported_version": "moli 1.1.3"},
         }
-        require_expected_provider_versions(valid)
+        configs = {name: {'expected_version': version} for name, version in (
+            ('moli-1.0.6', '1.0.6'), ('moli', '1.1.5'), ('moli-1.1.3', '1.1.3'))}
+        require_expected_provider_versions(valid, configs)
         for value in (None, "moli 1.1.3"):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 require_expected_provider_versions({
                     **valid,
                     "moli": {"reported_version": value},
-                })
+                }, configs)
 
     def test_ci_uses_the_same_make_entrypoint(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -175,33 +180,34 @@ class RuntimeEntrypointTests(unittest.TestCase):
         self.assertNotIn('DEEPSEEK_PNPM=', env_example)
 
     def test_dsh_worker_uses_execution_result_contract_and_fails_non_2xx(self) -> None:
-        worker = (ROOT / 'scripts/oss/dsh_webfetch_worker.mts').read_text()
-        helper = (ROOT / 'scripts/oss/dsh_output.mjs').read_text()
-        self.assertIn('projectDeclaredFetch(out)', worker)
-        self.assertNotIn('out.output', helper)
-        self.assertIn('out.meta', helper)
-        self.assertIn('out.value', helper)
-        self.assertIn('body.content', helper)
-        self.assertIn('statusCode < 200 || statusCode >= 300', helper)
-        self.assertIn('missingStatus ? "invalid_response"', helper)
-        self.assertNotIn('meta.url ?? request.url', helper)
-        self.assertNotIn('final_url: request.url', worker)
-        # A captured stderr traceback is useful; it must not replace the answer.
-        self.assertNotIn('content: error?.stack', worker)
-        self.assertIn('debug("native_tool_error"', worker)
+        node = shutil.which("node")
+        if node is None:
+            self.skipTest("Node is required for worker execution tests")
+        capability = subprocess.run(
+            [node, "--input-type=module", "-e",
+             "import {stripTypeScriptTypes} from 'node:module'"],
+            capture_output=True, timeout=10,
+        )
+        if capability.returncode:
+            self.skipTest("Worker execution tests require Node with native TypeScript erasure")
+        subprocess.run(
+            [node, "--experimental-vm-modules", str(ROOT / "tests/test_dsh_worker.mjs"),
+             str(ROOT / "harness/web_fetch/workers/dsh_webfetch_worker.mts")],
+            capture_output=True, text=True, check=True, timeout=30,
+        )
 
     def test_openclaw_worker_does_not_publish_exception_stacks(self) -> None:
-        worker = (ROOT / 'scripts/oss/openclaw_webfetch_worker.mts').read_text()
+        worker = (ROOT / 'harness/web_fetch/workers/openclaw_webfetch_worker.mts').read_text()
         self.assertNotIn('error?.stack', worker)
         self.assertIn('content: message', worker)
 
     def test_langchain_worker_does_not_claim_unobserved_final_url(self) -> None:
-        worker = (ROOT / 'scripts/oss/langchain_webbase_worker.py').read_text()
+        worker = (ROOT / 'harness/web_fetch/workers/langchain_webbase_worker.py').read_text()
         self.assertNotIn('"final_url"', worker)
         self.assertIn('"document_metadata": metadata', worker)
 
     def test_legacy_webfetch_dataset_coverage_matches_expected_methods(self) -> None:
-        dataset = json.loads((ROOT / "evaluation/dataset.json").read_text())
+        dataset = json.loads((ROOT / "evaluation/dataset-catalog.json").read_text())
         expected = {
             "cloudflare-markdown", "cowagent-built-in", "crawl4ai",
             "deepseek-harness-built-in", "exa", "firecrawl",
@@ -268,19 +274,6 @@ class RuntimeEntrypointTests(unittest.TestCase):
                          'scripts/verify_artifact_hub.py',
                          'scripts/rename_artifact_hub.py'):
             self.assertNotIn('load_runtime_env', (ROOT/relative).read_text(), relative)
-
-    def test_publisher_does_not_read_the_published_site_back(self) -> None:
-        source = (ROOT / 'scripts/publish_artifact_hub.py').read_text()
-        self.assertNotIn("request(result['share_url']", source)
-        self.assertNotIn("'unauthenticated_status'", source)
-        self.assertNotIn('/api/preview/', source)
-        self.assertNotIn('/export', source)
-        self.assertIn("'versionId':version,'url':share_url", source)
-
-    def test_dynamic_rendered_references_cannot_fall_back_to_http(self) -> None:
-        source = (ROOT / "scripts/freeze_headless_references.py").read_text()
-        self.assertIn("RENDERED_REFERENCE_CASES", source)
-        self.assertIn("cid in RENDERED_REFERENCE_CASES and cid not in observations", source)
 
 
 if __name__ == "__main__":

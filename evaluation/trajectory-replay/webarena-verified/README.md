@@ -69,6 +69,12 @@ receives one site reset before its first task. The runner rejects a changed bina
 action sequence, or reset policy. Diagnostic subsets never enter the formal matrix. Never edit a
 verdict or verification claim by hand.
 
+Use the same selection file at every stage; the runner accepts it through `--selection`.
+Freezing resolves relative source revision paths against `--reference-root` (the repository
+root by default), independently of the current working directory. Static inputs must remain
+unchanged through preflight, site reset and execution. A complete cohort can be certified
+with failed tasks; certification establishes protocol completeness, not a passing score.
+
 The report presents every registered method with its recorded protocol. Diagnostic-only cohorts cannot
 enter its score-bearing matrix or add a separate result appendix.
 

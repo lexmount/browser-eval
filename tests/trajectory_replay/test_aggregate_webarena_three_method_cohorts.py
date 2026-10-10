@@ -7,7 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from scripts.aggregate_webarena_three_method_cohorts import _digest, _sha, aggregate, main
+from harness.trajectory_replay.remote_runtime import (
+    checked_file_sha256 as _sha,
+)
+from harness.trajectory_replay.remote_runtime import (
+    input_digest as _digest,
+)
+from harness.trajectory_replay.webarena_results import aggregate_method_cohorts, main_aggregate
 
 
 def _write(path: Path, value: object) -> Path:
@@ -223,7 +229,7 @@ def _fixture(root: Path, *, reverse_inventory: bool = False, method_names=None) 
 
 def test_aggregate_has_exact_three_method_selected_task_matrix(tmp_path: Path) -> None:
     inputs = _fixture(tmp_path)
-    result = aggregate(**inputs)
+    result = aggregate_method_cohorts(**inputs)
     assert len(result["attempts"]) == len(result["physical_executions"]) == 270
     from harness.trajectory_replay.participants import bind_participant, participant_registry
     registry = participant_registry([
@@ -231,7 +237,8 @@ def test_aggregate_has_exact_three_method_selected_task_matrix(tmp_path: Path) -
         for row in result["attempts"][::90]
     ])
     for row in result["physical_executions"]:
-        assert bind_participant(row, registry)["engine"] == registry[row["participant_id"]]["engine"]
+        assert (bind_participant(row, registry)["engine"]
+                == registry[row["participant_id"]]["engine"])
     assert {row["participant_id"] for row in result["attempts"]} == {
         "chromium",
         "moli-old",
@@ -246,15 +253,16 @@ def test_aggregate_has_exact_three_method_selected_task_matrix(tmp_path: Path) -
 def test_add_two_methods_preserves_existing_results(tmp_path: Path) -> None:
     original = ("chromium", "moli-old", "moli-fixed")
     old_inputs = _fixture(tmp_path / "old", method_names=original)
-    before = aggregate(**old_inputs)
+    before = aggregate_method_cohorts(**old_inputs)
     inputs = _fixture(tmp_path / "expanded", method_names=(*original, "moli-tag", "moli-latest"))
     inputs["cohort_inputs"].update(old_inputs["cohort_inputs"])
-    after = aggregate(**inputs)
+    after = aggregate_method_cohorts(**inputs)
     assert len(after["attempts"]) == len(after["physical_executions"]) == 450
-    assert [row for row in after["attempts"] if row["participant_id"] in original] == before["attempts"]
+    assert ([row for row in after["attempts"] if row["participant_id"] in original]
+            == before["attempts"])
     inputs["cohort_inputs"].pop("moli-latest")
     with pytest.raises(ValueError):
-        aggregate(**inputs)
+        aggregate_method_cohorts(**inputs)
 
 
 def test_rejects_incomplete_old_cohort(tmp_path: Path) -> None:
@@ -264,11 +272,13 @@ def test_rejects_incomplete_old_cohort(tmp_path: Path) -> None:
     data["results"] = data["results"][:36]
     _write(receipt, data)
     with pytest.raises(ValueError, match="exactly one execution"):
-        aggregate(**inputs)
+        aggregate_method_cohorts(**inputs)
 
 
 def test_cli_accepts_complete_five_method_matrix_without_overwriting(tmp_path: Path) -> None:
-    inputs = _fixture(tmp_path, method_names=("chromium", "moli-old", "moli-fixed", "moli-tag", "moli-latest"))
+    inputs = _fixture(
+        tmp_path, method_names=("chromium", "moli-old", "moli-fixed", "moli-tag", "moli-latest")
+    )
     output = tmp_path / "combined.json"
     args = ["--output", str(output)]
     for field, flag in (("profile_path", "--profile"), ("selection_path", "--selection"),
@@ -276,18 +286,41 @@ def test_cli_accepts_complete_five_method_matrix_without_overwriting(tmp_path: P
         args.extend([flag, str(inputs[field])])
     for method, (manifest, receipt) in inputs["cohort_inputs"].items():
         args.extend(["--manifest", f"{method}={manifest}", "--receipt", f"{method}={receipt}"])
-    main(args)
+    main_aggregate(args)
     before = output.read_bytes()
     assert len(json.loads(before)["attempts"]) == 450
     with pytest.raises(ValueError, match="append-only"):
-        main(args)
+        main_aggregate(args)
     assert output.read_bytes() == before
 
 
 def test_sampling_inventory_order_does_not_override_numeric_execution(tmp_path: Path) -> None:
     inputs = _fixture(tmp_path, reverse_inventory=True)
-    result = aggregate(**inputs)
+    result = aggregate_method_cohorts(**inputs)
     assert [r["task_id"] for r in result["attempts"][:90]] == list(range(1, 91))
+
+
+def test_selection_cannot_silently_drop_malformed_rows_with_consistent_hashes(tmp_path):
+    inputs = _fixture(tmp_path)
+    selection = json.loads(inputs['selection_path'].read_text())
+    selection['tasks'].append(None)
+    _write(inputs['selection_path'], selection)
+    selection_sha = _sha(inputs['selection_path'])
+    profile = json.loads(inputs['profile_path'].read_text())
+    profile['task_selection']['sha256'] = selection_sha
+    _write(inputs['profile_path'], profile)
+    for manifest_path, receipt_path in inputs['cohort_inputs'].values():
+        manifest = json.loads(manifest_path.read_text())
+        manifest['selection_sha256'] = selection_sha
+        _write(manifest_path, manifest)
+        receipt = json.loads(receipt_path.read_text())
+        receipt['manifest_sha256'] = _sha(manifest_path)
+        for key in ('reference_sha256_before', 'reference_sha256_after'):
+            receipt[key]['manifest'] = receipt['manifest_sha256']
+            receipt[key]['task_selection'] = selection_sha
+        _write(receipt_path, receipt)
+    with pytest.raises(ValueError, match='selected-task set'):
+        aggregate_method_cohorts(**inputs)
 
 
 def test_rejects_execution_in_sampling_order(tmp_path: Path) -> None:
@@ -297,7 +330,7 @@ def test_rejects_execution_in_sampling_order(tmp_path: Path) -> None:
     receipt["executed_task_ids"].reverse()
     _write(receipt_path, receipt)
     with pytest.raises(ValueError, match="exactly one execution"):
-        aggregate(**inputs)
+        aggregate_method_cohorts(**inputs)
 
 
 @pytest.mark.parametrize("inventory", ["dataset_path", "validity_path"])
@@ -313,7 +346,7 @@ def test_rejects_duplicate_inventory_task_ids(tmp_path: Path, inventory: str) ->
         profile["dataset"]["sha256"] = _sha(path)
         _write(inputs["profile_path"], profile)
     with pytest.raises(ValueError, match="selection|reference-validity"):
-        aggregate(**inputs)
+        aggregate_method_cohorts(**inputs)
 
 
 def test_rejects_cross_method_task_contract(tmp_path: Path) -> None:
@@ -329,21 +362,21 @@ def test_rejects_cross_method_task_contract(tmp_path: Path) -> None:
     receipt_data["reference_sha256_after"]["manifest"] = _sha(manifest)
     _write(receipt, receipt_data)
     with pytest.raises(ValueError, match="execution differs"):
-        aggregate(**inputs)
+        aggregate_method_cohorts(**inputs)
 
 
 def test_rejects_missing_evidence_or_validity(tmp_path: Path) -> None:
     inputs = _fixture(tmp_path)
     (tmp_path / "moli-old" / "task-2" / "evaluation.json").unlink()
     with pytest.raises(ValueError, match="missing or symlinked evidence"):
-        aggregate(**inputs)
+        aggregate_method_cohorts(**inputs)
     inputs = _fixture(tmp_path)
     validity = inputs["validity_path"]
     data = json.loads(validity.read_text())
     data["tasks"][0].pop("status")
     _write(validity, data)
     with pytest.raises(ValueError, match="validity lacks current source proof"):
-        aggregate(**inputs)
+        aggregate_method_cohorts(**inputs)
 
 
 def test_rejects_hash_bound_but_false_site_reset(tmp_path: Path) -> None:
@@ -357,7 +390,7 @@ def test_rejects_hash_bound_but_false_site_reset(tmp_path: Path) -> None:
     receipt["cohort_reset_sha256"] = _sha(reset_path)
     _write(receipt_path, receipt)
     with pytest.raises(ValueError, match="remote cohort reset is not proven"):
-        aggregate(**inputs)
+        aggregate_method_cohorts(**inputs)
 
 
 def test_rejects_reset_receipt_from_a_task(tmp_path: Path) -> None:
@@ -373,4 +406,4 @@ def test_rejects_reset_receipt_from_a_task(tmp_path: Path) -> None:
     with pytest.raises(
         ValueError, match="remote cohort reset|site reset belongs to another method"
     ):
-        aggregate(**inputs)
+        aggregate_method_cohorts(**inputs)

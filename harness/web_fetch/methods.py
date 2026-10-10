@@ -5,6 +5,7 @@ from typing import Any
 
 
 METHOD_REGISTRY: dict[str, dict[str, Any]] = {
+    "http": {"endpoint":"HTTP GET","contract":"已知 URL → HTML 文本或文件任务的原始字节","output":"HTML 提取文本；文件任务保留响应字节","freshness":"每次独立请求，不执行页面 JavaScript","leaderboard":"独立 HTTP 对照"},
     "headless_html": {"endpoint":"browser HTML → node-html-markdown 2.0.0","contract":"已知 URL → DOM HTML → Markdown","output":"Markdown；独立保存 HTML 和诊断","freshness":"每次新进程/会话；domcontentloaded；45 秒外层预算","leaderboard":"六类任务分别验收","report":{"observed_routes":True}},
     "headless_markdown": {"endpoint":"各方法最快的正式任务原生产物路径","contract":"已知 URL → 正文 Markdown/文本，或文件任务的原始字节","output":"正文 Markdown/文本；文件任务为原始字节；保留接口与阶段诊断","freshness":"每次新进程/会话；45 秒端到端预算","leaderboard":"六类任务分别验收","report":{"observed_routes":True}},
     "moli_webfetch": {"endpoint":"moli fetch（按任务预选 Markdown、DOM eval 或裸响应）","contract":"已知 URL → 渲染正文、结构化资源 URL 或原文件字节","output":"stdout 文本/JSON/字节；stderr 独立诊断","freshness":"每次启动独立进程；使用预声明的有界完成条件","leaderboard":"六类任务分别验收","report":{"reported_version":{"pattern":r"^moli\s+","replacement":"Moli "},"profiles":[{"metadata_equals":{"dump":"markdown","route":"dynamic_native_markdown","wait_until":"done","wait.strategy":"native_default_completion"},"endpoint":"moli fetch --dump markdown --wait-until done URL","freshness":"每例启动一个独立进程；由 Moli 的默认 done 完成方式决定何时交付内容。","configuration":"本轮 {record_count} 例统一使用 Moli 原生 Markdown Fetch 与默认 done 完成方式；除目标 URL 外没有逐例等待元素、额外等待时间、提取脚本或特殊参数。未启用额外的理解模型或付费后备方法。"}]}},
@@ -75,7 +76,7 @@ def method_page_model(name: str, label: str, records: list[dict[str, Any]]) -> d
         "freshness": info["freshness"],
         "configuration": report.get(
             "configuration",
-            "本轮使用该方法的默认正文或文件交付路线。未启用额外的理解模型或付费后备方法。",
+            "调用参数与交付路线以本次配置和逐例记录为准。",
         ),
         "pricing_anchor": report.get("pricing_anchor", "method-guide-pricing"),
     }
@@ -87,11 +88,13 @@ def method_page_model(name: str, label: str, records: list[dict[str, Any]]) -> d
         })
         contracts = sorted({str(item.get("output_contract")) for item in metadata
                             if item.get("output_contract")})
-        route = "；".join(extractors) or info["endpoint"]
-        output = "、".join(contracts) or info["output"]
+        route_count = sum(bool(item.get("extractor")) for item in metadata)
+        output_count = sum(bool(item.get("output_contract")) for item in metadata)
+        route = "；".join(extractors) or "未记录"
+        output = "、".join(contracts) or "未记录"
         model["configuration"] = (
-            f"本轮记录的交付路线：{route}；输出契约：{output}。"
-            "未启用额外的理解模型或付费后备方法。"
+            f"交付路线（{route_count}/{len(records)} 条记录）：{route}；"
+            f"输出格式（{output_count}/{len(records)} 条记录）：{output}。"
         )
     for profile in report.get("profiles", []):
         if metadata and all(_metadata_matches(item, profile["metadata_equals"])

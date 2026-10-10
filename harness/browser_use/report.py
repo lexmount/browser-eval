@@ -18,9 +18,8 @@ from io import BytesIO
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from PIL import Image
-
-from harness.fix_log import load_fix_log
+from harness.record_io import load_jsonl
+from harness.report_languages import write_language_contract
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 
 from .failure_cause_review import (
@@ -46,8 +45,6 @@ from .publication import (
     trajectory,
     trajectory_label,
 )
-from .report_i18n import localize_html, write_english_report
-from harness.report_languages import write_language_contract
 from .selection import PilotSelection, load_pilot, validate_against_official
 
 ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli 1.1.3"}
@@ -63,11 +60,7 @@ SITE_LABELS = {
 MUTATE_IDS = {399, 404, 441, 506}
 NAVIGATE_IDS = {44, 45, 118}
 RESEARCH_ROOT = Path(__file__).parents[2] / "research"
-MAC_EXPANSION = json.loads(
-    (RESEARCH_ROOT / "webarena-mac-expansion.json").read_text(encoding="utf-8")
-)
-MAC_ENVIRONMENT_CANDIDATES = MAC_EXPANSION["environments"]
-MAC_COUNTS = MAC_EXPANSION["official_counts"]
+
 
 
 def _finding_text(diagnosis: dict[str, Any], field: str) -> str:
@@ -123,7 +116,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 def _read_attempts(evidence: Path) -> list[dict[str, Any]]:
     path = evidence / "attempts.jsonl"
     return (
-        [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
+        load_jsonl(path, skip_blank=True)
         if path.is_file()
         else []
     )
@@ -673,9 +666,11 @@ def _resolve_tasks(
     selection: PilotSelection, *, expected_data_checksum: str | None = None
 ) -> list[dict[str, Any]]:
     try:
-        from .runner import _configure_benchmark
+        from harness.environments.webarena.runtime import (
+            configure_benchmark,
+        )
 
-        benchmark = _configure_benchmark()
+        benchmark = configure_benchmark()
         if expected_data_checksum:
             dataset_path = Path(benchmark.config.test_data_file)
             actual_data_checksum = _sha256(dataset_path)
@@ -1825,6 +1820,8 @@ def _extract_trace_screenshots(
 
     if not trace_path.is_file():
         return []
+    from PIL import Image
+
     try:
         with zipfile.ZipFile(trace_path) as archive:
             archive_names = set(archive.namelist())
@@ -2810,6 +2807,8 @@ def _review_history(rounds: list[dict[str, Any]]) -> str:
 def _load_fix_log(profile: dict[str, Any]) -> dict[str, Any]:
     """Load the shared fix-log model with Browser Use publication sanitization."""
 
+    from harness.fix_log import load_fix_log
+
     return load_fix_log(profile, sanitize_value=sanitize)
 
 
@@ -2839,6 +2838,8 @@ def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False)
     def save(name: str, title: str, body: str) -> None:
         page = _page(title=title, active="fixes", body=body, depth=1)
         if english:
+            from .report_i18n import localize_html
+
             page = localize_html(page, PurePosixPath(f"fixes/{name}"))
         (folder / name).write_text(page, encoding="utf-8")
 
@@ -2908,6 +2909,10 @@ def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False)
 
 
 def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_path: Path, include_english: bool = False) -> Path:
+    mac_expansion = json.loads(
+        (RESEARCH_ROOT / "webarena-mac-expansion.json").read_text(encoding="utf-8")
+    )
+    mac_counts = mac_expansion["official_counts"]
     profile = _read_json(Path("evaluation/browser-use/current-report.json"))
     fix_log = _load_fix_log(profile)
     _configure_engine_labels(profile)
@@ -3235,10 +3240,10 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         )
         methodology += _section(
             "Mac 上可以继续扩展哪些实例",
-            f"<p>下一轮轨迹重放固定使用本报告当前 {task_count} 题，不扩充任务范围。若未来另行扩充 Browser Use 评测，当前四个已实跑站点可预检 {MAC_COUNTS['current_four_sites_single_site']} 个单站任务；计入只依赖这四站的跨站任务后，共有 {MAC_COUNTS['current_four_sites_including_cross_site']} 个候选，其中 hard 子集 {MAC_COUNTS['current_four_sites_hard_including_cross_site']} 个。</p>"
+            f"<p>下一轮轨迹重放固定使用本报告当前 {task_count} 题，不扩充任务范围。若未来另行扩充 Browser Use 评测，当前四个已实跑站点可预检 {mac_counts['current_four_sites_single_site']} 个单站任务；计入只依赖这四站的跨站任务后，共有 {mac_counts['current_four_sites_including_cross_site']} 个候选，其中 hard 子集 {mac_counts['current_four_sites_hard_including_cross_site']} 个。</p>"
             + _table(
                 ["环境", "Apple Silicon Mac 状态", "完整集单站题", "hard 单站题", "约束"],
-                MAC_ENVIRONMENT_CANDIDATES,
+                mac_expansion["environments"],
                 caption="Wikipedia 与 Map 的容量来自官方环境说明；状态中的“实跑”只指本项目已有执行证据。",
             )
             + '<p class="callout"><strong>最小扩展方案：</strong>先从四个已验证站点的 678 个候选中做可完成性预检和分层抽样；Wikipedia、Map 等大数据环境后置。这样扩容不会先引入新的部署变量。</p>'
@@ -4028,6 +4033,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         )
         _write_fix_log(stage, fix_log)
         if include_english:
+            from .report_i18n import write_english_report
+
             write_english_report(stage)
             _write_fix_log(stage, fix_log, english=True)
         write_language_contract(stage, include_english=include_english)

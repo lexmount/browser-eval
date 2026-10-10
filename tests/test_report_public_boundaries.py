@@ -2,7 +2,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.report_build import copy_speed_cohort_public_files
+from harness.web_fetch.artifacts import copy_cohort_evidence
 
 
 class ReportPublicBoundaryTests(unittest.TestCase):
@@ -21,7 +21,8 @@ class ReportPublicBoundaryTests(unittest.TestCase):
             (source / 'artifacts').mkdir()
             (source / 'artifacts/unbound-debug.txt').write_text('internal')
 
-            copy_speed_cohort_public_files(source, target, {'cases': []}, [], [])
+            copy_cohort_evidence(source, target, {'cases': []}, [], [],
+                                       summary_name='speed-comparison.json')
 
             self.assertTrue((target / 'dataset.json').is_file())
             self.assertTrue((target / 'results.jsonl').is_file())
@@ -38,7 +39,8 @@ class ReportPublicBoundaryTests(unittest.TestCase):
             source.symlink_to(outside, target_is_directory=True)
 
             with self.assertRaisesRegex(ValueError, 'root must not be a symlink'):
-                copy_speed_cohort_public_files(source, target, {'cases': []}, [], [])
+                copy_cohort_evidence(source, target, {'cases': []}, [], [],
+                                       summary_name='speed-comparison.json')
             self.assertFalse(target.exists())
 
 

@@ -1,28 +1,43 @@
 """Evidence-first report: measured tracks, canonical cases, no review workflow."""
 from __future__ import annotations
+
 import hashlib
 import html
 import json
 import re
 import shutil
 import statistics
-from collections import Counter,defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
-from urllib.parse import urlsplit,urlencode
-from .metrics import percentile, task_passed, task_measured
-from .methods import ROUTE_LABELS, method_info, method_page_model
+from urllib.parse import urlencode, urlsplit
+
+from harness.record_io import load_jsonl
+
 from .accounts import report_access_registry
+from .failure_diagnosis import diagnose
+from .methods import ROUTE_LABELS, method_page_model
+from .metrics import percentile, task_measured, task_passed
+from .models import TRACKS, execution_id
+from .report_components import (
+ basis_label,
+ examples,
+ metric_guide,
+ metric_legend,
+ reference_label,
+ reference_status,
+ reference_text,
+ sources_panel,
+ stable_contract_details,
+ tabs,
+ task_instruction,
+)
 from .report_interfaces import HEADLESS_ACCESS
 from .report_methods import PROFILES, adoption_counts
-from .report_style import STYLE
-from .report_components import tabs, metric_guide, metric_legend, examples, reference_status, basis_label, reference_label, sources_panel, stable_contract_details, task_instruction
-from .failure_diagnosis import diagnose
-from .safety import contained_path, safe_href, validate_report_ids
-from .models import execution_id
 from .report_resources import render_resource_comparison
+from .report_style import STYLE
+from .safety import contained_path, safe_href, validate_report_ids
 from .webmainbench_diagnostics import ERROR_PAGE
 
-TRACKS={'web':'静态网站正文','dynamic':'动态网站正文','challenge':'热门网站正文','document':'文档正文','image':'图片获取','video':'视频获取','risk_control':'历史访问受限网址正文'}
 PROVIDER_LABELS={'moli-1.0.6':'Moli 1.0.6','moli':'Moli 1.1.5','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-pr643':'Moli 1.1.7 · PR #643','moli-1.1.11':'Moli 1.1.11'}
 
 
@@ -31,10 +46,16 @@ def format_wcxb_conditional_latency(value: float | None) -> str:
 
 
 def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict,
-                  identities: dict, profile: dict) -> None:
+                  identities: dict, profile: dict, report_content: dict, *,
+                  include_english: bool = False) -> None:
  """Render the current WCXB comparison from one certified semantic model."""
+ languages=('zh','en') if include_english else ('zh',)
+ if (report_content.get('schema_version') != 1
+     or not isinstance(report_content.get('guide'),dict)
+     or any(not isinstance(report_content['guide'].get(lang),str)
+            or not report_content['guide'][lang].strip() for lang in languages)):
+  raise ValueError('WCXB authored interpretation lacks requested languages')
  from collections import Counter as WordCounter
- from urllib.parse import quote
  providers=list(summary['providers'])
  audit=summary['reference_audit']
  case_count=summary['case_count']
@@ -46,8 +67,6 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
  reviewed_results=review_scope['result_count']
  unreviewed_results=result_count-reviewed_results
  exclusion_ids={row['file_id']:row['reason'] for row in summary.get('exclusions',[])}
- missing_body_count=sum(reason=='reference_body_absent_from_frozen_html' for reason in exclusion_ids.values())
- missing_body_subject=(f'{missing_body_count} frozen body was' if missing_body_count==1 else f'{missing_body_count} frozen bodies were')
  source_repository=profile['source_repository'].rstrip('/')
  source_commit=profile['source_commit']
  by_case=defaultdict(dict)
@@ -57,11 +76,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
  from .wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
  _, selected_latency = load_full_paired_latency(out/'research/wcxb-full-paired-latency', profile, set(by_case))
  paired_latency = summarize_full_paired_latency(selected_latency, set(by_case))
- timing_rows=[json.loads(line) for line in (out/'research/wcxb-full-paired-latency/calls.jsonl').read_text().splitlines()]
- first_round={(row['case'],row['method']):row for row in timing_rows if row['round']==0}
- first_round_delta=sum(first_round[case,'pr']['elapsed_ms']-first_round[case,'release']['elapsed_ms']
-                       for case in by_case)/case_count
- adoption_data=json.loads((Path(__file__).resolve().parents[2]/'research/provider-adoption.json').read_text())
+ adoption_data=json.loads((out/'research/provider-adoption.json').read_text())
  cloudflare_matches=[(entry['repo'], match['path']) for entry in adoption_data['included']
                      for match in entry['matches'] if match['signature']=='cloudflare-markdown']
  cloudflare_repo_count=len({repo for repo,_ in cloudflare_matches})
@@ -107,7 +122,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
   route=('en/' if lang=='en' else '')+path
   root_prefix='../'*route.count('/')
   nav=''.join(f'<a href="{href(lang,p)}">{esc(x[k])}</a>' for k,p in [('home','index.html'),('dataset','datasets/index.html'),('method','methodology/index.html'),('results','analysis/index.html'),('review','review/index.html'),('guide','guide/index.html'),('adoption','adoption/index.html'),('repro','reproduce/index.html'),('changes','changes/index.html'),('accounts','accounts/index.html')])
-  other=('en/' if lang=='zh' else '')+path
+  other=('en/'+path if include_english else 'en/index.html') if lang=='zh' else path
   head=f'<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="{root_prefix or "./"}"><title>{esc(title)} · WCXB</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header><div class="wrap"><strong><a href="{href(lang,"index.html")}">Web Fetch</a></strong><nav>{nav}</nav><a href="{other}">{"English" if lang=="zh" else "中文"}</a><button onclick="theme()">{esc(x["theme"])}</button></div></header><main class="wrap">{body}</main><footer class="wrap">WCXB v1.0 · {case_count} {"页评测样本" if lang=="zh" else "evaluated test pages"} · CC BY 4.0 · <a href="{source_repository}/tree/{source_commit}">{esc(x["source"])}</a></footer></body></html>'
   target=out/('en' if lang=='en' else '')/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(head,encoding='utf-8')
  def fmt(v,digits=1):return f'{v*100:.{digits}f}%'
@@ -138,7 +153,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
    rounded={name:round(value*100,digits) for name,value in values.items()}
    if unique_winner(rounded,direction)==winner:return digits
   return 4
- for lang in ('zh','en'):
+ for lang in (('zh','en') if include_english else ('zh',)):
   x=L[lang]
   best=max(providers,key=lambda p:summary['providers'][p]['quality_f1']);fast=min(providers,key=lambda p:summary['providers'][p]['mean_latency_ms'])
   metrics=(('quality_precision','max','precision'),('quality_recall','max','recall'),('quality_f1','max','f1'),('mean_latency_ms','min','mean'),('p50_latency_ms','min','p50'),('p95_latency_ms','min','p95'))
@@ -174,8 +189,6 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
   slice_values={t:{p:sum(by_case[c][p]['f1'] for c,g in ground_truth.items() if g['page_type']==t and c not in exclusion_ids)/type_counts[t] for p in providers} for t in type_counts}
   slices=''.join(f'<tr data-page-type="{esc(t)}"><td>{esc(type_label(lang,t))}</td><td>{type_counts[t]}</td>'+''.join(comparison_cell(slice_values[t][p],f'type-{t}','max',p==unique_winner(slice_values[t],'max'),fmt(slice_values[t][p],score_digits(slice_values[t]))) for p in providers)+'</tr>' for t in sorted(type_counts))
   slice_table='<div class="filters"><label>'+esc(x['type'])+'<select id="home-type"><option value="">'+esc(x['all'])+'</option>'+''.join(f'<option value="{esc(t)}">{esc(type_label(lang,t))}</option>' for t in sorted(type_counts))+'</select></label></div><div class="scroll"><table id="wcxb-types"><thead><tr><th>'+esc(x['type'])+'</th><th>'+('网页数' if lang=='zh' else 'Pages')+'</th>'+''.join(f'<th>{esc(browser_label(p))} F1</th>' for p in providers)+'</tr></thead><tbody>'+slices+'</tbody></table></div>'
-  cards=([('输入：同一批冻结网页',f'质量比较使用 {quality_count} 页有效参考；不访问实时源站。'),('目标：人工主内容','正文与参考文本重合；导航、广告和推荐文字会拉低精确率。'),('分数：逐页词袋 F1','逐页等权平均；请求失败或空输出按实际结果计分。')] if lang=='zh' else [('Input: frozen pages',f'Quality compares the same {quality_count} qualified pages; no live-origin visits.'),('Target: human main content','Surplus navigation, ads and recommendations reduce precision.'),('Score: per-page word F1','Pages have equal weight; request failures and empty outputs retain their measured scores.')])
-  card_html=''.join(f'<div class="panel"><b>{esc(title)}</b><span>{esc(body)}</span></div>' for title,body in cards)
   home=f'<div class="hero"><span class="eyebrow">Web Fetch · WCXB v1.0</span><h1>{esc(x["headline"])}</h1><p>{esc(x["intro"])}</p></div><section><h2>{esc(x["core"])}</h2><p>{esc(lead)}</p><p class="small muted">'+((f'绿色星标是该列唯一最优值。质量和三项耗时均以同一批 {case_count} 页为分母，耗时包含失败重试。P50 是中位数，P95 是 95% 调用不超过的耗时。不同方法的批次跨日期；Moli 两版耗时已用同窗交叉实测纠正。') if lang=='zh' else f'Green stars mark a unique column best. Quality and all three latency measures use the same {case_count} pages; latency includes failed retries. P50 is the median and P95 is the time within which 95% of calls complete. Other methods ran on different dates; the two Moli timings use the corrected same-window crossover.')+f'</p>{core}{latency_context}</section>'+paired+f'<section><h2>{"不同网页类型" if lang=="zh" else "By page type"}</h2><p>{"筛选页面类型；每格是该类型的逐页平均 F1，绿色星标是该行唯一最高值。" if lang=="zh" else "Filter by page type. Each cell is mean page F1; a green star marks the unique row leader."}</p>{slice_table}</section><section class="lead-grid"><div class="panel"><h3>{esc(x["dataset"])}</h3><p>{"查看冻结网页、来源和人工参考。" if lang=="zh" else "Inspect frozen pages, source URLs and references."}</p><a href="{href(lang,"datasets/index.html")}">{esc(x["dataset"])} →</a></div><div class="panel"><h3>{esc(x["results"])}</h3><p>{"筛选逐项结果，查看响应和定位证据。" if lang=="zh" else "Filter individual results and inspect responses and evidence."}</p><a href="{href(lang,"analysis/index.html")}">{esc(x["results"])} →</a></div><div class="panel"><h3>{esc(x["guide"])}</h3><p>{"读懂结果差异与评分边界。" if lang=="zh" else "Understand differences and scoring limits."}</p><a href="{href(lang,"guide/index.html")}">{esc(x["guide"])} →</a></div></section>'
   success_rows=''.join(f'<tr><td>{esc(p)}</td><td>{summary["providers"][p]["success_latency_count"]}/{case_count}</td><td>{format_wcxb_conditional_latency(summary["providers"][p]["success_mean_latency_ms"])}</td><td>{format_wcxb_conditional_latency(summary["providers"][p]["success_p50_latency_ms"])}</td><td>{format_wcxb_conditional_latency(summary["providers"][p]["success_p95_latency_ms"])}</td></tr>' for p in providers)
   if any(summary['providers'][p]['success_latency_count'] != case_count for p in providers):
@@ -213,99 +226,9 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
   flow='<div class="panel"><h2>'+('一页怎样变成一行结果' if lang=='zh' else 'From one page to one result')+'</h2><div class="flow"><div class="flow-fallback">'+' <b class="arrow">→</b> '.join(f'<span class="tag">{esc(label)}</span>' for label in flow_labels)+'</div><pre class="mermaid" hidden>'+esc(flow_source)+'</pre></div></div>'
   if lang=='zh':
    method=f'<div class="hero"><h1>评测方法</h1><p>{case_count} 份冻结 HTML、六种执行配置、一套官方词语重合评分。</p></div>'+flow+f'<section class="panel"><h2>输入与运行边界</h2><p>WCXB v1.0 test 分区中，按冻结输入和人工参考核定的 {case_count} 页进入本报告。六种配置读取完全相同的冻结 HTML；本地五种配置通过隔离的回环 HTTPS 服务读取，Kitesurf 通过 Cloudflare HTML 输入接口读取。外部子资源被阻断。每页一次逻辑调用；失败最多再试一次，全部物理调用保留并累计端到端耗时，最后一次响应是唯一正式结果。</p><p>Kitesurf、Lightpanda、Obscura 和 Moli 返回原生 Markdown；Chromium 渲染整页 DOM，再用 node-html-markdown 2.0.0 转换。没有共同的主内容选择器。</p></section><section class="panel"><h2>分母与评分</h2><p>官方评估器将文本转为小写词语，按词频计算精确率、召回率和 F1。质量比较只使用事前验证的 {quality_count} 页有效参考，逐页等权。F1 不计段落顺序、Markdown 结构或表格行列。应包含和应排除片段另作诊断，不进入 F1。</p><p>质量与耗时都使用同一批 {case_count} 页；正式版与 PR 构建版分别保留原始调用证据。</p></section><section class="panel"><h2>定位与耗时</h2><p>请求失败、空输出和错误页单独定位；非空参考下精确率或召回率低于 25% 时显示对应低值。该阈值只是筛选条件，不是 WCXB 官方及格线。耗时包括调用及失败重试，不是浏览器内核速度；六种配置的工作路线和远近端部署不同。</p></section>'
-   guide=''
   else:
    method=f'<div class="hero"><h1>Method</h1><p>All {case_count} frozen HTML pages, six configurations, one official word-overlap evaluator.</p></div>'+flow+f'<section class="panel"><h2>Inputs and execution</h2><p>The {case_count} WCXB v1.0 test pages qualified by frozen input and human reference enter this report. The six configurations read the same frozen HTML. Five local configurations use an isolated loopback HTTPS fixture; Kitesurf receives HTML through Cloudflare’s input field. External subresources are blocked. Each page has one logical result; a failed call may be retried once. Every physical call and its latency are retained, with the final response authoritative.</p><p>Kitesurf, Lightpanda, Obscura and Moli return native Markdown. Chromium renders the full DOM and converts it with node-html-markdown 2.0.0. No shared main-content selector is applied.</p></section><section class="panel"><h2>Denominators and score</h2><p>The official evaluator lowercases and tokenizes text, then computes word-frequency precision, recall and F1. Quality compares only the {quality_count} references qualified before calls, with equal page weights. F1 does not score paragraph order, Markdown structure or table layout. Required and forbidden snippets are separate diagnostics outside F1.</p><p>Quality and latency use the same {case_count} pages. Released and PR-build Moli calls each retain their own immutable evidence.</p></section><section class="panel"><h2>Locators and latency</h2><p>Request errors, empty outputs and error pages are separate locators. Precision or recall below 25% on nonempty references triggers a low-value locator; this is a filter, not an official WCXB pass threshold. Latency includes calls and failed retries, not pure browser-core time; local and remote routes differ.</p></section>'
-   guide=''
-  qualified=[c for c in by_case if c not in exclusion_ids]
-  type_averages={t:sum(by_case[c][p]['f1'] for c,g in ground_truth.items() if c not in exclusion_ids and g['page_type']==t for p in providers)/(type_counts[t]*len(providers)) for t in type_counts}
-  hardest=min(type_averages,key=type_averages.get)
-  hardest_case=min((c for c in qualified if ground_truth[c]['page_type']==hardest),key=lambda c:sum(by_case[c][p]['f1'] for p in providers))
-  if lang=='zh':
-   guide+=f'<section class="panel"><h2>哪些网页更难</h2><p>按七种页面类型、六种配置的有效参考 F1 等权汇总，{esc(type_label(lang,hardest))}最低，为 {fmt(type_averages[hardest])}（{type_counts[hardest]} 页）。这描述本轮数据中的重合程度，不说明该类型网页在互联网上普遍更难。<a href="{href(lang,"cases/"+hardest_case+".html")}">{hardest_case} 页</a>可查看这一类型的低分输入与六份输出；首页按类型表保留各方法完整数值。</p></section>'
-  else:
-   guide+=f'<section class="panel"><h2>Which pages were harder</h2><p>Across seven page types and six configurations, {esc(hardest)} has the lowest mean qualified F1, {fmt(type_averages[hardest])} on {type_counts[hardest]} pages. This describes overlap in this cohort, not a general difficulty ranking for the web. <a href="{href(lang,"cases/"+hardest_case+".html")}">Page {hardest_case}</a> shows a low-scoring input and all six outputs; the home page retains every method-by-type value.</p></section>'
-  review_record=json.loads((out/'research/wcxb-representative-review.json').read_text())
-  reviewed_ids={item['case_id'] for item in review_record['cases']}
-  if reviewed_ids != {item['case_id'] for item in review_scope['cases']} or review_record['result_count'] != reviewed_results:
-   raise ValueError('WCXB representative review inventory changed')
-  review_links=lambda case,provider:href(lang,'cases/'+case+'.html#'+provider)
-  obscura_wins=sum(by_case[c]['obscura']['f1']>by_case[c]['moli']['f1'] for c in qualified)
-  obscura_longer=sum(by_case[c]['obscura']['output_chars']>by_case[c]['moli']['output_chars'] for c in qualified)
-  obscura_chars=statistics.fmean(by_case[c]['obscura']['output_chars'] for c in qualified)
-  moli_chars=statistics.fmean(by_case[c]['moli']['output_chars'] for c in qualified)
-  guide_metrics=(('quality_f1','max',2),('precision','max',1),('recall','max',1),('mean_latency_ms','min',0))
-  guide_winners={key:unique_winner({p:summary['providers'][p][key] for p in providers},direction) for key,direction,_ in guide_metrics}
-  guide_rows=''.join('<tr><td><a href="'+href(lang,'providers/'+p+'.html')+'">'+esc(browser_label(p))+'</a></td>'+''.join(comparison_cell(summary['providers'][p][key],'guide-'+key,direction,p==guide_winners[key],(fmt(summary['providers'][p][key],digits) if direction=='max' else f'{summary["providers"][p][key]:,.0f} ms')) for key,direction,digits in guide_metrics)+'</tr>' for p in sorted(providers,key=lambda p:summary['providers'][p]['quality_f1'],reverse=True))
-  if lang=='zh':
-   guide_lead=f'<div class="hero essay-hero"><p class="eyebrow">WCXB · {quality_count} 页 · 五款浏览器 / 六种配置</p><h1>报告解读</h1><p>Obscura 的主内容词语重合分最高，Moli 正式版和修复版接近；但高分也可能漏正文，低精确率也可能来自可用的 Markdown 链接。下面用同一批网页的输出解释分数、真实缺陷和修复边界。</p></div>'
-   guide_lead+=f'<nav class="essay-toc" aria-label="本页目录"><a href="#guide-results">结果</a><a href="#guide-score">分数怎样读</a><a href="#guide-timing">Moli 耗时</a><a href="#guide-cases">典型网页</a><a href="#guide-repair">Moli 修复</a><a href="#guide-methods">各方法问题</a><a href="#guide-conclusion">结论</a></nav><section class="panel" id="guide-results"><h2>先看结果</h2><p>六种配置都处理同一批 {quality_count} 页。表中精确率、召回率和 F1 是逐页等权平均；耗时为包含失败重试的端到端调用均值，跨方法的输入路线不同。绿色星标是该列唯一最优值。</p><div class="scroll essay-table"><table><thead><tr><th>方法</th><th>F1</th><th>精确率</th><th>召回率</th><th>平均耗时</th></tr></thead><tbody>{guide_rows}</tbody></table></div><p>Obscura 的 F1 为 {fmt(summary["providers"]["obscura"]["quality_f1"],2)}；Moli 1.1.8 为 {fmt(summary["providers"]["moli"]["quality_f1"],2)}。这张表回答“原始重合分谁高”，不替代正文完整性判断。<a href="{href(lang,"index.html")}">完整指标与 P50/P95 →</a></p></section>'
-  else:
-   guide_lead=f'<div class="hero essay-hero"><p class="eyebrow">WCXB · {quality_count} pages · five browsers / six configurations</p><h1>Interpreting the results</h1><p>Obscura leads word overlap with the human main-content reference, while released and repaired Moli are close. Yet a high score can miss body text, and low precision can include useful Markdown links. The same-page outputs below separate scores, real defects and repair boundaries.</p></div>'
-   guide_lead+=f'<nav class="essay-toc" aria-label="On this page"><a href="#guide-results">Results</a><a href="#guide-score">Reading scores</a><a href="#guide-timing">Moli latency</a><a href="#guide-cases">Case evidence</a><a href="#guide-repair">Moli repair</a><a href="#guide-methods">Method issues</a><a href="#guide-conclusion">Conclusion</a></nav><section class="panel" id="guide-results"><h2>Results at a glance</h2><p>All six configurations process the same {quality_count} pages. Precision, recall and F1 are equal-weight per-page means; latency is end-to-end call time including failed retries. Input routes differ across methods. Green stars mark unique column leaders.</p><div class="scroll essay-table"><table><thead><tr><th>Method</th><th>F1</th><th>Precision</th><th>Recall</th><th>Mean latency</th></tr></thead><tbody>{guide_rows}</tbody></table></div><p>Obscura scores {fmt(summary["providers"]["obscura"]["quality_f1"],2)} F1; released Moli 1.1.8 scores {fmt(summary["providers"]["moli"]["quality_f1"],2)}. This table ranks raw overlap, not body completeness. <a href="{href(lang,"index.html")}">Full metrics and P50/P95 →</a></p></section>'
-  guide=guide_lead+guide
-  if lang=='zh':
-   guide+='<section class="panel"><h2>精确率为什么会低</h2><p>官方精确率＝与人工参考重合的词数 ÷ 输出总词数；召回率＝重合词数 ÷ 参考总词数。若只统计匹配词，多带导航、广告或无关内容就不会付出代价。这里的关键限制是官方程序直接对 Markdown 字符串分词，链接目标、图片地址和元数据也进入“输出总词数”，即使它们对 Markdown 读者有用。人工参考字段是主内容纯文本，不是完整 Markdown 的逐字标准答案。因此首页 F1 是官方原始字符串重合分，不等于可见正文质量或 Markdown 保真度。</p><p>文章 <a href="'+review_links('5649','moli')+'">5649</a> 中，Moli 与 Obscura 的参考召回率都为 100%，但精确率分别为 '+fmt(by_case['5649']['moli']['precision'])+' 和 '+fmt(by_case['5649']['obscura']['precision'])+'。Moli 响应含 184 个 URL 起始标记，Obscura 为 117 个；官方分词把网址组成词计入精确率分母。这个差异不能单独证明 Moli 少提了正文。</p></section>'
-   guide+='<section class="panel"><h2>Obscura 为什么分数更高</h2><p>同一批 '+str(quality_count)+' 页中，Obscura 在 '+str(obscura_wins)+' 页的原始 F1 高于 Moli；平均精确率分别为 '+fmt(summary['providers']['obscura']['precision'])+' 与 '+fmt(summary['providers']['moli']['precision'])+'，参考召回率均约 99.9%。但 Obscura 在 '+str(obscura_longer)+' 页输出更长，平均 '+format(obscura_chars,',.0f')+' 字符，Moli 为 '+format(moli_chars,',.0f')+' 字符；高分不能简单解释成删除了更多网页内容。</p><p><a href="'+review_links('4923','moli')+'">4923 页</a>中，Moli 把区块链接的目标地址重复写入多个片段，增加了原始评分中的网址词；减少这种重复值得研究，但应保留可用的链接。反例是<a href="'+review_links('4461','obscura')+'">4461 页</a>：Obscura 的 F1 较高，却将相邻价格与会员标签拼成 <code>$149.95VIP</code>，参考召回率 '+fmt(by_case['4461']['obscura']['recall'])+'，低于 Moli 的 '+fmt(by_case['4461']['moli']['recall'])+'。正确方向是保留正文、词边界和链接语义，减少无意义的重复；不按原始分数照搬输出策略。</p></section>'
-   guide+='<section class="panel"><h2>Moli 两版耗时</h2><p>稳定版 v1.1.8 与实测 PR 在同一批 '+str(case_count)+' 页做两轮串行交叉实验，逐页对调调用顺序，事先固定最终轮更新主表。最终轮稳定版平均 '+format(paired_latency['release']['mean_ms'],'.1f')+' ms，PR 平均 '+format(paired_latency['pr']['mean_ms'],'.1f')+' ms；差 '+format(paired_latency['paired_delta_mean_ms'],'+.1f')+' ms。两版均有完整输入、二进制哈希与 '+str(case_count*4)+' 次调用记录。<a href="research/wcxb-full-paired-latency/calls.jsonl">逐次计时</a> · <a href="research/wcxb-full-paired-latency/certification.json">完整性证明</a>。</p></section>'
-   guide+='<section class="panel"><h2>这能说明 PR 变慢吗</h2><p>两轮逐页平均差分别为 '+format(first_round_delta,'+.1f')+' ms 和 '+format(paired_latency['paired_delta_mean_ms'],'+.1f')+' ms，方向相同，幅度约一毫秒。两版源码基线不同，因此实验可报告当前两个二进制的实测差，不能把差额全归给 PR 的三项修改。代码修复价值以真实输出问题判断。</p></section>'
-   guide+='<section class="panel"><h2>典型异常与处理</h2><div class="scroll"><table><thead><tr><th>网页</th><th>直接证据</th><th>判断与处理</th></tr></thead><tbody>'
-   guide+='<tr><td><a href="'+review_links('4017','lightpanda')+'">4017 · 商品</a></td><td>Lightpanda F1 '+fmt(by_case['4017']['lightpanda']['f1'])+' 最高，但召回率只有 '+fmt(by_case['4017']['lightpanda']['recall'])+'；其余四款均找回全部参考词。</td><td>短输出减少了无关文字，也漏了参考内容；较高 F1 不等于更完整。</td></tr>'
-   guide+='<tr><td><a href="'+href(lang,'cases/4021.html#reference')+'">4021 · 合集</a></td><td>人工参考 602 字符，只标注一组商品；原五款整页响应均超过 20,000 字符。</td><td>共同的页面范围差异；这条参考不能代表整页 Markdown 的完整标准答案。</td></tr>'
-   guide+='<tr><td><a href="'+review_links('5571','moli')+'">5571 · 列表</a></td><td>冻结 HTML 有 34 个空 SVG 占位图；Moli 将其 data URI 写进 Markdown，Chromium 未输出这些占位地址。</td><td>图片地址属于 Markdown 引用；像素空白不能证明引用无用。纯文本参考不覆盖图片，原始 F1 会把地址词计入分母。</td></tr>'
-   guide+='<tr><td><a href="'+review_links('4394','moli')+'">4394 · 合集</a></td><td>冻结页含 1×1 GIF；Moli、Kitesurf、Obscura 各输出 131 条该地址，Chromium 未输出。原五款参考召回率均为 100%。</td><td>多款方法保留图片引用；单像素或透明不足以证明可以删图。纯文本参考不能验证图片保真度。</td></tr>'
-   guide+='<tr><td><a href="'+review_links('5458','moli')+'">5458 · 文档</a></td><td>两个相邻代码元素分别写着 name、string；Moli 输出单一代码值 namestring，Chromium 输出两个代码值并加入空格。</td><td>稳定版确实丢失节点边界。候选版用内联 HTML 保留两个 code 节点；冻结页的可见间距来自 CSS，转换器没有布局信息，因此它不声称还原视觉间距。</td></tr>'
-   guide+='<tr><td><a href="'+review_links('5412','moli')+'">5412 · 文档</a></td><td>代码示例以两个区块分别存放语言标签 ts 与正文 function；Moli 将其拼成 tsfunction，其他四款保留词边界。</td><td>预格式区块边界丢失；候选修复按 HTML 区块结构保留换行。</td></tr>'
-   guide+='<tr><td><a href="'+review_links('4923','moli')+'">4923 · 列表</a></td><td>冻结 HTML 有 161 个链接元素；Moli 输出 501 个网址起始标记，其他方法为 196–257 个，Moli 的参考召回率仍为 99.8%。</td><td>链接包裹区块时会重复序列化目标地址；目前没有证据证明链接不可用或正文缺失，因此不为提高原始词分删链接。</td></tr>'
-   guide+='<tr><td><a href="'+review_links('5677','lightpanda')+'">5677 · 文章</a></td><td>Lightpanda 1,650 字符响应漏掉正文开头，召回率 '+fmt(by_case['5677']['lightpanda']['recall'])+'；另外四款均为 100%。</td><td>该方法实际漏掉参考正文，不属于网址分词造成的误扣；正式结果保留，修复需重新测量。</td></tr></tbody></table></div></section>'
-   guide+='<section class="panel"><h2>五款浏览器、六种配置暴露的问题</h2><div class="scroll"><table><thead><tr><th>方法</th><th>本轮证据支持的现存问题</th><th>证据入口</th></tr></thead><tbody>'
-   guide+='<tr><td>Kitesurf</td><td>原生 Markdown 带页面元数据及整页链接；商品 4017 找回参考词，但大量其他页面词拉低精确率。</td><td><a href="'+review_links('4017','kitesurf')+'">4017 输出</a></td></tr>'
-   guide+='<tr><td>Lightpanda</td><td>有正文遗漏：文章 5677 的参考开头缺失；商品 4017 的较高 F1 伴随较低召回率。</td><td><a href="'+review_links('5677','lightpanda')+'">5677 输出</a></td></tr>'
-   guide+='<tr><td>Obscura</td><td>仍返回整页导航与链接；合集 4021 的低精确率与其他整页方法同源。商品合集 4461 还把相邻价格与会员标签拼成同一个词。</td><td><a href="'+review_links('4021','obscura')+'">4021</a> · <a href="'+review_links('4461','obscura')+'">4461</a></td></tr>'
-   guide+='<tr><td>Moli 1.1.8 正式版</td><td>保留 SVG 与内嵌图片引用；纯文本评分把地址词计入精确率分母。相邻代码值和预格式区块会被拼接，UI 清理还会删除详情正文。原结果与分数完整保留。</td><td><a href="'+review_links('5571','moli')+'">5571</a> · <a href="'+review_links('4394','moli')+'">4394</a> · <a href="'+review_links('5458','moli')+'">5458</a> · <a href="'+review_links('5412','moli')+'">5412</a></td></tr>'
-   guide+='<tr><td>Moli PR #643 构建版</td><td>从同一冻结输入重新测得独立结果。源码修复详情正文误删及预格式区块粘连；相邻 code 节点改为结构无损回退，但不恢复 CSS 间距。图片引用继续保留。</td><td><a href="'+review_links('5571','moli-pr643')+'">5571</a> · <a href="'+review_links('4394','moli-pr643')+'">4394</a> · <a href="'+review_links('5458','moli-pr643')+'">5458</a> · <a href="'+review_links('5412','moli-pr643')+'">5412</a></td></tr>'
-   guide+='<tr><td>Chromium</td><td>整页 DOM 转 Markdown 也包含导航、推荐与链接；商品 4017 的参考召回率为 100%，精确率仅 '+fmt(by_case['4017']['chromium']['precision'])+'。</td><td><a href="'+review_links('4017','chromium')+'">4017 输出</a></td></tr></tbody></table></div>'
-   guide+='<section class="panel"><h2>两页降分的原因</h2><p><a href="'+review_links('5411','moli-pr643')+'">5411</a> 的人工参考把分块的 <code>ts</code> 与 <code>function</code> 拼成一词，PR 恢复换行后原始 F1 下降。<a href="'+review_links('5458','moli-pr643')+'">5458</a> 的人工参考实际是分开的 <code>name string</code>；PR 的参考召回率从 98.45% 升至 100%，但原始字符串评分又把内联 HTML 的 <code>code</code> 标签名称计入输出词数，使精确率和 F1 下降。这里暴露的是评分器直接对 Markdown 源码分词的限制，不是参考答案要求粘连。</p></section>'
-   guide+='<section class="panel"><h2>参考与片段标注的限制</h2><p>源评测集的 main_content 是人工选出的纯文本；它可用于词语重合，却不能验证 Markdown 链接、图片、列表或表格是否完整。另有 '+str(audit['without_present_in_main_content'])+' 个“应排除”片段同时出现在参考正文，涉及 23 页；这类片段得分照官方程序保留，但不能据此归因浏览器错误。典型审查覆盖 '+str(reviewed_cases)+' 页、'+str(reviewed_results)+' 条输出；其余 '+format(unreviewed_results,',')+' 条未接受逐项人工审查。</p></section>'
-  else:
-   guide+='<section class="panel"><h2>Why precision falls</h2><p>Official precision divides the number of overlapping words by all output words; recall divides it by reference words. Counting only matching words would leave surplus navigation and unrelated content unpenalized. The evaluator tokenizes the raw Markdown string, so link destinations, image URLs and metadata also enter the denominator. The human main_content field is selected plain text, not a complete Markdown reference. Raw F1 therefore does not measure visible body quality or Markdown fidelity.</p><p>On <a href="'+review_links('5649','moli')+'">page 5649</a>, Moli and Obscura both recall 100% of reference words, but precision is '+fmt(by_case['5649']['moli']['precision'])+' versus '+fmt(by_case['5649']['obscura']['precision'])+'. Moli outputs 184 URL starts, versus 117 for Obscura. URL words enter the official denominator; this difference alone does not prove missing body content.</p></section>'
-   guide+='<section class="panel"><h2>Why Obscura scores higher</h2><p>Across the same '+str(quality_count)+' pages, Obscura has a higher raw F1 than Moli on '+str(obscura_wins)+'. Mean precision is '+fmt(summary['providers']['obscura']['precision'])+' versus '+fmt(summary['providers']['moli']['precision'])+'; both recall about 99.9% of the reference words. Obscura nevertheless returns more characters on '+str(obscura_longer)+' pages, averaging '+format(obscura_chars,',.0f')+' characters versus Moli’s '+format(moli_chars,',.0f')+'. Its score cannot be explained simply as discarding more page content.</p><p>On <a href="'+review_links('4923','moli')+'">page 4923</a>, Moli repeats block-link destinations across fragments, increasing URL tokens in the raw score. Reducing repetition is worth investigating while preserving working links. <a href="'+review_links('4461','obscura')+'">Page 4461</a> shows the other side: Obscura scores a higher F1 but joins adjacent price and membership text into <code>$149.95VIP</code>. Its reference recall is '+fmt(by_case['4461']['obscura']['recall'])+', below Moli’s '+fmt(by_case['4461']['moli']['recall'])+'. Preserve body text, word boundaries and link meaning while removing needless repetition; do not copy output behavior solely for its score.</p></section>'
-   guide+='<section class="panel"><h2>Moli latency</h2><p>The v1.1.8 release and measured PR ran two serial crossover rounds on the same '+str(case_count)+' pages, reversing order per page and preselecting the final round for the main table. Final-round means were '+format(paired_latency['release']['mean_ms'],'.1f')+' ms and '+format(paired_latency['pr']['mean_ms'],'.1f')+' ms, a '+format(paired_latency['paired_delta_mean_ms'],'+.1f')+' ms page-paired difference. Frozen inputs, binary hashes and all '+str(case_count*4)+' calls are bound. <a href="research/wcxb-full-paired-latency/calls.jsonl">Every call</a> · <a href="research/wcxb-full-paired-latency/certification.json">Certification</a>.</p></section>'
-   guide+='<section class="panel"><h2>Is the PR slower?</h2><p>Page-paired mean differences in the two rounds were '+format(first_round_delta,'+.1f')+' ms and '+format(paired_latency['paired_delta_mean_ms'],'+.1f')+' ms, both around one millisecond in the same direction. The release and PR codebases diverge, so the measured binary difference cannot all be attributed to the three PR changes. The repair is justified by actual output defects.</p></section>'
-   guide+='<section class="panel"><h2>Representative anomalies and treatment</h2><div class="scroll"><table><thead><tr><th>Page</th><th>Direct evidence</th><th>Finding</th></tr></thead><tbody>'
-   guide+='<tr><td><a href="'+review_links('4017','lightpanda')+'">4017 · product</a></td><td>Lightpanda leads raw F1 at '+fmt(by_case['4017']['lightpanda']['f1'])+' but recalls only '+fmt(by_case['4017']['lightpanda']['recall'])+'; the other four recall all reference words.</td><td>A shorter response removes surplus text and also misses reference content; higher F1 does not mean more complete output.</td></tr>'
-   guide+='<tr><td><a href="'+href(lang,'cases/4021.html#reference')+'">4021 · collection</a></td><td>The 602-character human reference covers a product list; every full-page response exceeds 20,000 characters.</td><td>Shared scope mismatch. The reference is not a complete-page Markdown answer.</td></tr>'
-   guide+='<tr><td><a href="'+review_links('5571','moli')+'">5571 · listing</a></td><td>The frozen HTML has 34 empty SVG image placeholders. Moli serializes their data URIs; Chromium does not.</td><td>Image addresses are Markdown references; blank pixels do not prove they are dispensable. The plain-text reference does not cover images, while raw F1 counts URI words.</td></tr>'
-   guide+='<tr><td><a href="'+review_links('4394','moli')+'">4394 · collection</a></td><td>The frozen page has a 1×1 GIF. Moli, Kitesurf and Obscura each emit its address 131 times; Chromium omits it. All five recall 100% of reference words.</td><td>Several methods retain image references. A single pixel or transparency does not justify deletion; the plain-text reference cannot assess image fidelity.</td></tr>'
-   guide+='<tr><td><a href="'+review_links('5458','moli')+'">5458 · document</a></td><td>Adjacent code elements contain separate name and string values. Moli emits one namestring value; Chromium emits two values with a space.</td><td>The release loses a node boundary. The candidate uses inline HTML to preserve two code nodes. Their visible gap comes from page CSS, which this layout-independent converter does not reproduce.</td></tr>'
-   guide+='<tr><td><a href="'+review_links('5412','moli')+'">5412 · document</a></td><td>Two blocks inside a code sample hold the ts language label and body starting with function. Moli joins them as tsfunction; the other four retain the word boundary.</td><td>A preformatted block boundary is lost. The candidate preserves line breaks from HTML block structure.</td></tr>'
-   guide+='<tr><td><a href="'+review_links('4923','moli')+'">4923 · listing</a></td><td>The frozen HTML has 161 anchor elements. Moli emits 501 URL starts versus 196–257 for peers while recalling 99.8% of reference words.</td><td>Block-spanning links repeat destinations. There is no evidence yet of broken links or missing body, so URL deletion would only optimize the raw word score.</td></tr>'
-   guide+='<tr><td><a href="'+review_links('5677','lightpanda')+'">5677 · article</a></td><td>Lightpanda’s 1,650-character response omits the opening body and recalls '+fmt(by_case['5677']['lightpanda']['recall'])+'; the other four recall 100%.</td><td>This method genuinely misses reference body text; URL tokenization does not explain it. Retain the measured result and remeasure after repair.</td></tr></tbody></table></div></section>'
-   guide+='<section class="panel"><h2>Issues observed for each method</h2><div class="scroll"><table><thead><tr><th>Method</th><th>Current evidence</th><th>Case</th></tr></thead><tbody>'
-   guide+='<tr><td>Kitesurf</td><td>Native Markdown includes page metadata and whole-page links. On product 4017, surplus text lowers precision despite full reference recall.</td><td><a href="'+review_links('4017','kitesurf')+'">4017</a></td></tr>'
-   guide+='<tr><td>Lightpanda</td><td>Article 5677 omits body text; the higher F1 on product 4017 comes with lower recall.</td><td><a href="'+review_links('5677','lightpanda')+'">5677</a></td></tr>'
-   guide+='<tr><td>Obscura</td><td>Returns whole-page navigation and links; collection 4021 shares the low-precision scope mismatch. On product collection 4461 it also joins adjacent price and membership text into one word.</td><td><a href="'+review_links('4021','obscura')+'">4021</a> · <a href="'+review_links('4461','obscura')+'">4461</a></td></tr>'
-   guide+='<tr><td>Released Moli 1.1.8</td><td>Retains SVG and embedded-image references, whose URI words enter the plain-text score. It also merges adjacent code values and preformatted blocks and loses detail text with UI stripping. Its original results and scores remain intact.</td><td><a href="'+review_links('5571','moli')+'">5571</a> · <a href="'+review_links('4394','moli')+'">4394</a> · <a href="'+review_links('5458','moli')+'">5458</a> · <a href="'+review_links('5412','moli')+'">5412</a></td></tr>'
-   guide+='<tr><td>Moli PR #643 build</td><td>A separately measured result on the same frozen input. Source changes repair deleted disclosure text and joined preformatted blocks. Adjacent code uses a structure-preserving fallback without reconstructing CSS spacing. Image references remain intact.</td><td><a href="'+review_links('5571','moli-pr643')+'">5571</a> · <a href="'+review_links('4394','moli-pr643')+'">4394</a> · <a href="'+review_links('5458','moli-pr643')+'">5458</a> · <a href="'+review_links('5412','moli-pr643')+'">5412</a></td></tr>'
-   guide+='<tr><td>Chromium</td><td>Full-DOM conversion retains navigation, recommendations and links. Product 4017 recalls 100% of reference words but precision is '+fmt(by_case['4017']['chromium']['precision'])+'.</td><td><a href="'+review_links('4017','chromium')+'">4017</a></td></tr></tbody></table></div>'
-   guide+='<section class="panel"><h2>Why two pages score lower</h2><p>The human reference for <a href="'+review_links('5411','moli-pr643')+'">5411</a> joins the separate <code>ts</code> and <code>function</code> blocks as one word. The PR restores the newline, lowering raw F1. The reference for <a href="'+review_links('5458','moli-pr643')+'">5458</a> actually contains separate <code>name string</code> tokens: reference recall rises from 98.45% to 100%, but raw-source tokenization also counts every inline-HTML <code>code</code> tag name, lowering precision and F1. That is a limitation of scoring Markdown source as words, not a reference that requires joined text.</p></section>'
-   guide+='<section class="panel"><h2>Reference and snippet limits</h2><p>Source main_content is human-selected plain text: it supports word overlap, not complete Markdown structure, links, images, lists or tables. '+str(audit['without_present_in_main_content'])+' forbidden snippets also occur in the reference body across 23 pages. Official snippet scores remain, but these conflicts cannot diagnose browser errors. This targeted review covers '+str(reviewed_cases)+' pages and '+str(reviewed_results)+' outputs; the other '+format(unreviewed_results,',')+' results were not individually reviewed.</p></section>'
-  repair=(out/f'content/wcxb-repair-{lang}.fragment').read_text(encoding='utf-8').rstrip()
-  if lang=='zh':
-   repair+=f'<p class="source-note">实测 PR 源码 {esc(profile["candidate_source_commit"][:8])} 在 {quality_count} 页中，F1 有 {up} 页上升、{down} 页下降、{same} 页不变，平均差 {((moli_after["quality_f1"]-moli_before["quality_f1"])*100):+.4f} 个百分点。分数变化很小；代码边界和可选清理的修复应看原始输出。v1.1.8 与 PR 源码有其他版本差异，整批对照不能单独证明每项差异由本 PR 引起。</p></section>'
-  else:
-   repair+=f'<p class="source-note">Measured PR source {esc(profile["candidate_source_commit"][:8])} raises per-page F1 on {up} of {quality_count} pages, lowers it on {down}, and leaves {same} unchanged. The mean difference is {((moli_after["quality_f1"]-moli_before["quality_f1"])*100):+.4f} percentage points. Inspect raw outputs for code boundaries and optional stripping. v1.1.8 and the PR have other version differences, so cohort differences alone do not isolate this PR as the cause.</p></section>'
-  specimen=('<section id="guide-cases"><h2>原始样例</h2><p>下方三张图给出冻结 HTML、两版输出摘录和完整结果入口。</p></section>' if lang=='zh' else '<section id="guide-cases"><h2>Source examples</h2><p>The three figures below connect frozen HTML, both output excerpts and the complete results.</p></section>')
-  conclusion=(f'<section class="panel essay-conclusion" id="guide-conclusion"><h2>结论</h2><p>Obscura 在官方词语重合分领先；这不证明其 Markdown 结构处处最佳。Lightpanda 在 5677 漏正文，Obscura 在 4461 粘连文字。Moli 1.1.8 的两类代码边界错误和可选界面清理误删正文均可重现；实测 PR 修复这些输出问题，整批 F1 变化很小。人工参考是主内容纯文本，不能评价链接、图片和代码结构。此次代表性审查覆盖 {reviewed_cases} 页、{reviewed_results} 条输出，其余 {unreviewed_results:,} 条未逐项人工审查。</p></section>' if lang=='zh' else f'<section class="panel essay-conclusion" id="guide-conclusion"><h2>Conclusions</h2><p>Obscura leads official word overlap, which does not establish that its Markdown structure is best on every page. Lightpanda misses body text on 5677, and Obscura joins text on 4461. Both code-boundary defects and optional UI stripping loss in Moli 1.1.8 are reproducible; the measured PR repairs those outputs, while cohort F1 changes little. The human reference is main-content plain text and does not assess link, image, or code structure. Representative review covers {reviewed_cases} pages and {reviewed_results} outputs; the other {unreviewed_results:,} have not been individually reviewed.</p></section>')
-  score_title='精确率为什么会低' if lang=='zh' else 'Why precision falls'
-  timing_title='Moli 两版耗时' if lang=='zh' else 'Moli latency'
-  methods_title='五款浏览器、六种配置暴露的问题' if lang=='zh' else 'Issues observed for each method'
-  anomalies_title='典型异常与处理' if lang=='zh' else 'Representative anomalies and treatment'
-  guide=guide.replace(f'<section class="panel"><h2>{score_title}</h2>',f'<section class="panel" id="guide-score"><h2>{score_title}</h2>')
-  guide=guide.replace(f'<section class="panel"><h2>{timing_title}</h2>',f'<section class="panel" id="guide-timing"><h2>{timing_title}</h2>')
-  guide=guide.replace(f'<section class="panel"><h2>{methods_title}</h2>',f'<section class="panel" id="guide-methods"><h2>{methods_title}</h2>')
-  guide=guide.replace(f'<section class="panel"><h2>{anomalies_title}</h2>',specimen+repair+f'<section class="panel"><h2>{anomalies_title}</h2>')
-  guide+=conclusion
+  guide=report_content['guide'][lang]
   method+='<section class="panel"><h2>'+('片段标注边界' if lang=='zh' else 'Snippet annotation boundary')+'</h2><p>'+((f'{audit["without_present_in_main_content"]} 个应排除片段同时出现在人工主内容参考中。官方片段分照原程序保留，但这类冲突不用于判断浏览器错误；逐页详情会明确标注冲突。') if lang=='zh' else f'{audit["without_present_in_main_content"]} forbidden snippets also appear in their human main-content references. Official snippet values are retained, but these conflicts do not diagnose browser errors; result pages identify them explicitly.')+'</p></section>'
   page(lang,'methodology/index.html',x['method'],method)
   page(lang,'guide/index.html',x['guide'],guide)
@@ -373,9 +296,23 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
    preview_section=f'<section class="panel" id="preview"><h2>{"冻结 HTML 阅读视图" if lang=="zh" else "Frozen HTML reading view"}</h2><p>{preview_note} <a href="{raw_input}">{"下载完整输入与证据 JSON" if lang=="zh" else "Download complete input and evidence JSON"}</a></p>{preview}</section>'
    body=f'<div class="hero"><h1>{esc(case)} · {esc(type_label(lang,gt["page_type"]))}</h1><p class="source"><a href="{href(lang,"cases/"+case+".html#preview")}" title="{"阅读冻结 HTML" if lang=="zh" else "Read frozen HTML"}">{esc(group[providers[0]]["original_url"])}</a></p></div>{qualification}<section><h2>{esc(x["summary"])}</h2><div class="scroll"><table><thead><tr>'+''.join(f'<th>{esc(x[k])}</th>' for k in ('provider','precision','recall','f1'))+f'<th>{"应包含命中" if lang=="zh" else "Required hits"}</th><th>{"应排除误命中" if lang=="zh" else "Forbidden hits"}</th><th>{esc(x["diagnosis"])}</th></tr></thead><tbody>'+same+f'</tbody></table></div></section>{preview_section}<section class="panel" id="reference"><h2>{esc(x["reference"])}</h2><p><a href="{evidence_path}">{"完整证据 JSON" if lang=="zh" else "Complete evidence JSON"}</a> · <a href="{source_link}">{esc(x["source"])} HTML.gz</a></p><details data-output><summary>{"冻结 HTML 输入" if lang=="zh" else "Frozen HTML input"}</summary><pre data-src="{evidence_path}"></pre></details><pre>{esc(readable_output(reference))}</pre></section>'+''.join(panels)
    page(lang,f'cases/{case}.html',case,body)
+ from harness.report_languages import write_language_contract
+ write_language_contract(out, include_english=include_english)
 def provider_label(name):return PROVIDER_LABELS.get(name,name)
+def case_track_label(case):
+ if case.get('track','web')=='web':
+  return {'file':'文件交付','resource':'资源发现','structure':'结构化内容'}.get(case.get('task_kind','body'),TRACKS['web'])
+ return TRACKS[case['track']]
 def active_tracks(cases):
- return [(key,label) for key,label in TRACKS.items() if any(c.get('track','web')==key for c in cases.values())]
+ rows=[]
+ for key,label in TRACKS.items():
+  selected=[c for c in cases.values() if c.get('track','web')==key]
+  if not selected:continue
+  if key=='web' and any(c.get('task_kind','body')!='body' for c in selected):
+   labels={case_track_label(c) for c in selected}
+   label=next(iter(labels)) if len(labels)==1 else '网页任务'
+  rows.append((key,label))
+ return rows
 
 def track_count_label(count):return str(count)
 
@@ -698,7 +635,7 @@ def run_log_section(out,record,output):
   native_text,caller_text=_separate_observed_logs(debug_bytes.decode("utf-8", "replace"))
   native_view=('<pre data-log-source="product">'+esc(native_text)+'</pre>' if native_text else '<p data-log-unavailable>本次没有取得产品或依赖库的原生日志。已保存的调用方记录见下方。</p>')
   diagnostics=[f'<article><h3>实际诊断日志 · 产品与依赖库</h3><p>{esc(metadata.get("public_log_note") or "仅展示真实观测记录；未开放的内部过程不作推断。")}</p><p>返回 JSON 在“原始返回”中单独展示；接入程序记录在下方“调用方事件”中。</p>{native_view}<details><summary>调用方事件（测试程序记录）</summary><pre data-log-source="caller">{esc(caller_text)}</pre></details><p><a href="../{esc(public_debug)}" download>下载运行时日志（已分离返回内容）</a> · 公开 SHA-256：<code class="break">{esc(metadata["public_debug_log_sha256"])}</code> · 原始采集记录 {int(metadata.get("diagnostic_log_bytes") or 0):,} 字节（可含协议返回） · 原始 SHA-256：<code class="break">{esc(metadata.get("diagnostic_log_sha256") or "—")}</code></p></article>']
- version=(metadata.get('reported_version') or metadata.get('binary_version') or
+ version=(metadata.get('reported_version') or metadata.get('binary_version') or metadata.get('browser_version') or
           metadata.get('moli_version') or metadata.get('version') or '—')
  command=metadata.get('command_args') or metadata.get('command') or '—（调用记录未保存可展示的完整命令）'
  if isinstance(command,list):command=' '.join(str(item) for item in command)
@@ -711,7 +648,7 @@ def run_log_section(out,record,output):
          f'<dt>退出码</dt><dd>{esc(process.get("exit_code",metadata.get("exit_code","—")))}</dd>'
          f'<dt>Markdown 输出</dt><dd>{output_bytes:,} 字节</dd><dt>运行日志</dt><dd>{top_log_size}</dd>'
          f'<dt>日志是否完整</dt><dd>{complete_label}</dd><dt>运行 ID</dt><dd>{esc(record.get("run_id") or execution_id(record) or "—")}</dd>'
-         f'<dt>方法版本</dt><dd>{esc(version)}</dd>')
+         f'<dt>工具版本</dt><dd>{esc(version)}</dd>')
  full_fields=(f'<dt>开始时间</dt><dd>{esc(record.get("started_at") or timing.get("started_at") or "—")}</dd>'
               f'<dt>结束时间</dt><dd>{esc(record.get("completed_at") or timing.get("completed_at") or "—")}</dd>'
               f'<dt>日志级别</dt><dd>{esc(metadata.get("log_level") or ("已保存真实诊断（原生日志范围见说明）" if public_debug else "已保存 stderr（级别未记录）" if any_stderr else "未开启 debug"))}</dd>'
@@ -753,10 +690,10 @@ def run_log_section(out,record,output):
 def pct(n):return '—' if n is None else f'{n*100:.1f}%'
 def ms(n):return '—' if n is None else f'{n:,.0f} ms'
 def link(url,label):return f'<a href="{esc(safe_href(url))}">{esc(label)}</a>'
-def cell(value,sort=None):return f'<td'+(f' data-sort="{sort}"' if sort is not None else '')+f'>{value}</td>'
+def cell(value,sort=None):return '<td'+(f' data-sort="{sort}"' if sort is not None else '')+f'>{value}</td>'
 def rate(a,b):return pct(a/b) if b else '—'
-def section(title,body,id=''):return f'<section class="section"'+(f' id="{id}"' if id else '')+f'><div class="wrap"><h2>{title}</h2>{body}</div></section>'
-def hero(title,desc):return f'<section class="hero"><div class="wrap"><div class="eyebrow">Web Fetch · 实测报告</div><h1>{title}</h1><p class="lead">{desc}</p></div></section>'
+def section(title,body,id=''):return '<section class="section"'+(f' id="{id}"' if id else '')+f'><div class="wrap"><h2>{title}</h2>{body}</div></section>'
+def hero(title,desc):return f'<section class="hero"><div class="wrap"><div class="eyebrow">Web Fetch · 评测报告</div><h1>{title}</h1><p class="lead">{desc}</p></div></section>'
 def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header='序号',default_sort=None):
  head=f'<th>{esc(index_header)}</th>'+''.join(f'<th><button class="sort-button" onclick="sortTable(\'{id}\',{i+1})">{h} ↕</button></th>' if sortable else f'<th>{h}</th>' for i,h in enumerate(headers))
  body=''.join(f'<tr{attrs}><td>{i+1}</td>{values}</tr>' for i,(attrs,values) in enumerate(rows))
@@ -807,7 +744,14 @@ _RESEARCH_ROUTES=[
 
 def generate_cohort_diagnostic(out, model):
  """Render live cohort diagnostics through the maintained WebFetch components."""
- from .report_diagnostic import diagnostic_findings, diagnostic_failure_counts, diagnostic_cohort_summary, diagnostic_call_summary, diagnostic_specimen_excerpt, FAILURE_TYPES
+ from .report_diagnostic import (
+  FAILURE_TYPES,
+  diagnostic_call_summary,
+  diagnostic_cohort_summary,
+  diagnostic_failure_counts,
+  diagnostic_findings,
+  diagnostic_specimen_excerpt,
+ )
  global _RELIABILITY_BANNER,_ENGLISH_GENERATED
  prior=(_RELIABILITY_BANNER,_ENGLISH_GENERATED)
  _RELIABILITY_BANNER='<div class="wrap callout"><strong>实时网页诊断</strong><p>'+esc(model['scope_note'])+'</p></div>'
@@ -982,7 +926,7 @@ def generate_public_benchmark_research(out:Path,research:dict,*,include_english:
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
  (out/'assets/report.js').write_text(JS,encoding='utf-8')
- from .report_changes import localized_release_history, render_localized_release_history, ROOT
+ from .report_changes import ROOT, localized_release_history, render_localized_release_history
  release_history=localized_release_history(
   json.loads((ROOT/'research/report-changes.json').read_text(encoding='utf-8')),
   'public_benchmark_research')
@@ -1218,7 +1162,8 @@ def _call_log_excerpt(item):
 def _body_region_evidence(content,contract):
  """Map canonical scorer allocations to complete lines without changing scoring output."""
  from math import ceil
- from .body_coverage import _global_region_allocation,compact_ngrams,tokens
+
+ from .body_coverage import _global_region_allocation, compact_ngrams, tokens
  version=contract['version'];size=6 if version==3 else 3
  units=tokens(content) if version==1 else compact_ngrams(content,size)
  predicted=Counter(units);expected={}
@@ -1379,7 +1324,7 @@ def _stable_field_comparison(metrics,item):
  schema=metrics.get('stable_task_schema')
  if schema!='quote':return None
  from .metrics import normalize_for_match
- from .stable_tasks import SCHEMA_FIELDS,_parse_records,_visible
+ from .stable_tasks import SCHEMA_FIELDS, _parse_records, _visible
  candidates=[]
  for alternative in item.get('alternatives',[]):
   expected=_parse_records(_visible(alternative,schema),schema)
@@ -1565,9 +1510,9 @@ def stable_checks(m):
 
 def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
  from .report_components import comparable_body_reference
- text_track=track in {'web','dynamic','document','challenge'}
  title_scope=track=='challenge' and any('title_quality' in r for r in records if cases[r['case_id']].get('track')==track)
  selected={k:c for k,c in cases.items() if c.get('track','web')==track}
+ text_track=track in {'web','dynamic','document','challenge'} and any(c.get('task_kind','body') in {'body','structure'} for c in selected.values())
  groups=defaultdict(list)
  for r in records:
   if cases[r['case_id']].get('track','web')==track:groups[r['provider']].append(r)
@@ -1587,7 +1532,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
    return statistics.mean(statistics.mean(values) for values in per_case.values()) if per_case else None
   times=[r['elapsed_ms'] for r in rs if succeeded(r,cases[r['case_id']])]
   values=cell(link(base+f'providers/{name}.html',provider_label(name)))+cell(rate(ok,len(rs)),ok/len(rs))
-  if track in {'web','dynamic','document','challenge'}:
+  if text_track:
    values+=cell(rate(passed,n),passed/n if n else -1)
    values+=''.join(cell(pct(avg(k)),avg(k) if full else -1) for k in ['word_recall','word_precision','word_f1'])
    per_case=defaultdict(list)
@@ -1608,7 +1553,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
   if audit:values+=review_cell(audit,rs,base)
   rows.append(('',values))
  heads=['方法','请求成功率']
- if track in {'web','dynamic','document','challenge'}:
+ if text_track:
   heads+=['任务通过率','完整度','纯净度','F1','文字核对覆盖']
  else:heads+=['任务通过率','资源命中率','文件取得率','信息通过率']
  heads+=['均值','P50','P95','判分完整性']
@@ -1706,7 +1651,7 @@ def overview_resources(out):
  if not path.is_file():
   return '<p>当前证据没有独立的客户端资源测量；不从耗时或进程体积推测 CPU 与内存。</p>'
  summary=json.loads(path.read_text())
- rendered,_=render_resource_comparison(summary,['lightpanda','moli','obscura','chromium','kitesurf'])
+ rendered,_=render_resource_comparison(summary,summary['providers'])
  return rendered
 
 def title_diagnostics(groups,selected,base,identifier):
@@ -1789,7 +1734,7 @@ def comparison_rows(cases,bycase,names):
   method_links=lambda selected,state:('<span class="outcome-list">'+''.join(f'<a class="outcome-pill {state}" href="{esc(safe_href("../attempts/"+attempts[name]["attempt_id"]+".html"))}">{esc(provider_label(name))}</a>' for name in selected)+'</span>') if selected else '—'
   attrs=(dataset_attrs(c)+f' data-pass="{esc(" ".join(passed))}" data-fail="{esc(" ".join(failed))}"')
   task=(f'<div class="task-cell">{link("../datasets/"+case_id+".html",c["name"])}<div class="task-meta"><code class="tiny">{esc(case_id)}</code>'
-        f'<span class="track-badge">{esc(TRACKS[c.get("track","web")])}</span></div></div>')
+        f'<span class="track-badge">{esc(case_track_label(c))}</span></div></div>')
   values=cell(task)+cell(method_links(passed,'pass'))+cell(method_links(failed,'fail'))
   rows.append((attrs,values))
  return rows
@@ -1825,9 +1770,9 @@ def case_attrs(r,c):
  result='unmeasured' if not measured(r,c) else 'pass' if succeeded(r,c) else 'fail'
  return dataset_attrs(c)+f' data-provider="{esc(r["provider"])}" data-transport="{"pass" if r["ok"] else "fail"}" data-result="{result}" data-content="{content}" data-resources="{resources}" data-failure-stage="{stage}" data-failure-category="{esc(category)}" data-search="{esc(reason(r,c))}"'
 
-def attempt_row(r,c,base='../'):
- m=r['metrics'];state=result_label(r,c)
- values=cell(link(base+'attempts/'+r['attempt_id']+'.html',c['name']))+cell(TRACKS[c.get('track','web')])+cell(f'<span class="{"good" if succeeded(r,c) else "bad"}">{state}</span>')+cell(esc(failure_category(r,c)))+cell(ms(r['elapsed_ms']))
+def attempt_row(r,c,base='../',*,label=None):
+ state=result_label(r,c)
+ values=cell(link(base+'attempts/'+r['attempt_id']+'.html',c['name'] if label is None else label))+cell(case_track_label(c))+cell(f'<span class="{"good" if succeeded(r,c) else "bad"}">{state}</span>')+cell(esc(failure_category(r,c)))+cell(ms(r['elapsed_ms']))
  values+=cell(f'<code class="tiny break">{esc(r.get("run_id") or execution_id(r))}</code>')
  return case_attrs(r,c),values
 
@@ -1848,7 +1793,7 @@ def local_audit_banner(dataset):
   return '<div class="wrap callout"><strong>本地实测版</strong><p>全部方法使用同一组已提交案例和判分规则，每例一次调用，统一45秒外部时限，不设逐例等待或提取参数，不重试。结果为机器判定，未进行独立人工审核；本报告仅供本地查看，不代表正式发布。</p></div>'
  return '<div class="wrap callout"><strong>本地审核版</strong><p>本页合并两个不同日期的 Moli 调用批次，保留每例的真实调用时间。本次仅更换报告展示代码，没有新增 Moli 调用，也不代表正式发布。</p></div>'
 
-def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,presentation_only:bool=False):
+def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False):
  global _RELIABILITY_BANNER,_ENGLISH_GENERATED
  _ENGLISH_GENERATED=include_english
  from .reliability import assess_reliability
@@ -1861,6 +1806,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  known=dataset.get('comparison',{}).get('call_chain_audit',{}).get('known_scoring_false_negatives',[])
  if known:
   _RELIABILITY_BANNER+='<div class="wrap callout" role="alert"><strong>已确认评分问题</strong><p>'+esc(f'{len(known)}条表格结果被评分程序误判为失败。统计保留原程序判定，当前通过率不得用于产品排名；详情见调用链检查。')+'</p></div>'
+ if records and all(row.get('provider_type') == 'fixture' for row in records):
+  _RELIABILITY_BANNER += '<div class="wrap callout" role="status"><strong>合成示例 · 非正式评测</strong><p>内容和失败均为预设场景，用于检查安装与报告功能，不代表浏览器测量结果。</p></div>'
+ elif dataset.get('comparison', {}).get('publication_state') == 'diagnostic_not_for_release':
+  _RELIABILITY_BANNER += '<div class="wrap callout" role="status"><strong>诊断运行 · 非正式评测</strong><p>本次调用用于检查所选任务和方法，不具备正式评测所需的批次认证。</p></div>'
  validate_report_ids(dataset,records)
  for path in ['assets/style.css','assets/report.js','references']:
   contained_path(out,path)
@@ -1872,7 +1821,6 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  tracks=active_tracks(cases);track_count=len(tracks);track_label=track_count_label(track_count)
  audit=json.loads((out/'result-review.json').read_text()) if (out/'result-review.json').is_file() else None
  audited_attempts=review_index(audit)
- dynamic=any(c.get('task_kind')=='structure' for c in cases.values())
  bycase=defaultdict(list);byprovider=defaultdict(list)
  for r in records:bycase[r['case_id']].append(r);byprovider[r['provider']].append(r)
  cards=''
@@ -1883,13 +1831,14 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   source_note='本轮未重新核验来源。' if dataset.get('comparison',{}).get('source_reverified') is False else ''
   home+=f'<p class="callout">{len(cases)} 个案例 · {len(records)} 次调用，机器判分。'+source_note+link('guide/index.html#call-chain-audit','查看调用链问题和日志留存范围')+'</p>'
  from .report_explainer import article_title,render_explainer,supports_authored_explainer
- TITLE='本轮调用链检查与日志范围' if dataset.get('comparison',{}).get('call_chain_audit') else article_title(records) if supports_authored_explainer(cases) else '本报告的任务范围与验收规则'
- home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>从分数差异、失败案例和实现机制，理解如何选择抓取方法。</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
+ TITLE='本轮调用链检查与日志范围' if dataset.get('comparison',{}).get('call_chain_audit') else article_title(records) if authored_interpretation and supports_authored_explainer(cases) and not all(row.get('provider_type') == 'fixture' for row in records) else '本报告的任务范围与验收规则'
+ reading_note='从分数差异、失败案例和实现机制，理解如何选择抓取方法。' if authored_interpretation else '查看本报告的任务范围、结果数量与验收规则。'
+ home+='<aside class="wrap home-reading" aria-label="报告解读"><div><strong>报告解读</strong><p>'+link('guide/index.html',TITLE)+'</p></div><p>'+reading_note+'</p>'+link('guide/index.html','阅读全文 →')+'</aside>'
  if dataset.get('comparison',{}).get('call_chain_audit'):
   TITLE='本轮调用链检查与日志范围'
   guide=local_call_chain_section(dataset)+section('如何读取本轮结果','<p>本轮按保存的实际返回进行机器判分，比例只对应本报告列出的案例与配置。日志可用于复查调用和判分；未经过独立人工审核，不能将失败一概归因于产品内部。</p><p>'+link('../analysis/index.html','逐次结果与筛选')+' · '+link('../methodology/index.html','题目与计时规则')+' · '+link('../reproduce/index.html','配置、版本和复现说明')+'</p>')
  else:
-  guide=render_explainer(out,cases,records,table=table,cell=cell,link=link)
+  guide=render_explainer(out,cases,records,table=table,cell=cell,link=link,authored=authored_interpretation)
  write(out,'guide/index.html','报告解读',guide)
  panels=[]
  for track,label in tracks:
@@ -1915,7 +1864,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  write(out,'datasets/index.html','评测集',hero('评测集',f'{len(cases)} 个案例，按任务类型查看。')+section('案例与依据',tabs('dataset-hub',dataset_panels)))
  headers=['案例','类型','结果','失败分类','耗时','运行 ID']
  for c in ([] if presentation_only else cases.values()):
-  v=c.get('source_verification',{});ref=c.get('ground_truth_main_content') or c.get('reference_answer') or '本例按资源或结构规则评分，不以页面短摘要计算全文 F1。'
+  v=c.get('source_verification',{});ref=reference_text(c)
   (out/'references').mkdir(exist_ok=True);(out/'references'/f'{c["id"]}.txt').write_text(ref)
   if c.get('acceptance_contract'):
    target=contained_path(out,'contracts/'+c['id']+'.json');target.parent.mkdir(exist_ok=True)
@@ -1967,12 +1916,12 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
             f'{pct(rules["minimum_coverage"])}。')
    else:policy=f'每段至少达到 {pct(rules["minimum_coverage"])}。'
    body+=section('如何检查是否抓全',f'<p class="decision-lead"><b>这是一份完整答案，不是 {total} 个任务。</b> 只检查标题和几个关键词，可能让“只抓到开头”的残缺结果通过。因此系统按前后位置检查同一份标准答案。{policy} 比对忽略空白、排版符号和 Markdown 链接地址；每次执行页会并列显示各位置的标准原文和实际证据。</p>'+''.join(region_cards))
-  body+=section('全部方法执行结果',table(['方法']+headers[1:],[(attrs,values.replace(esc(c['name']),esc(provider_label(r['provider'])),1)) for r in bycase[c['id']] for attrs,values in [attempt_row(r,c)]]))
+  body+=section('全部方法执行结果',table(['方法']+headers[1:],[attempt_row(r,c,label=provider_label(r['provider'])) for r in bycase[c['id']]]))
   write(out,'datasets/'+c['id']+'.html',c['name'],body)
  for name,rs in byprovider.items():
   write(out,'providers/'+name+'.html',name,provider_page_body(name,rs,cases,headers,tracks,native_default=dataset.get("comparison",{}).get("kind")=="uniform_native_local_measurement"))
  for r in ([] if presentation_only else records):
-  c=cases[r['case_id']];m=r['metrics'];ref=c.get('ground_truth_main_content') or c.get('reference_answer') or '检查下列目标资源。'
+  c=cases[r['case_id']];m=r['metrics'];ref=reference_text(c)
   output=contained_path(out,r['artifact_path']).read_text(encoding='utf-8',errors='replace')
   rows=[('',cell(k)+cell(v)) for k,v in [('任务 ID',f'<code>{esc(c["id"])}</code>'),('方法',link('../providers/'+r['provider']+'.html',provider_label(r['provider']))),('请求','成功' if r['ok'] else '失败'),('任务结果','通过' if succeeded(r,c) else '未通过'),('HTTP 状态',esc(r.get('status_code'))),('耗时',ms(r['elapsed_ms'])),('全文完整度 / 纯净度 / F1',f'{pct(m.get("word_recall"))} / {pct(m.get("word_precision"))} / {pct(m.get("word_f1"))}'),('输出字符',f'{len(output):,}'),('输出校验值',f'<code class="break">{esc(m.get("content_sha256"))}</code>')]]
   if not c.get('ground_truth_main_content'):
@@ -2091,12 +2040,15 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
        [('',cell(esc(label))+cell(esc(value))) for label,value in review_rows],
        metrics=[]),'independent-review')
   reference_heading='完整标准答案' if c.get('task_kind')!='structure' else '标准答案与验收规则'
-  reference_kind='reference';reference_download='../references/'+c['id']+'.txt'
+  reference_download='../references/'+c['id']+'.txt'
   source_body=f'<pre data-kind="reference">{esc(ref)}</pre>'
   source_meta=f'{len(ref):,} 字符 · {link(reference_download,"下载完整标准答案")}'
+  if not (c.get('ground_truth_main_content') or c.get('reference_answer')) and c.get('task_kind','body')=='body':
+   reference_heading='验收规则（无全文参考）'
+   source_meta=f'{link(reference_download,"下载验收规则")}；全文完整度、纯净度和 F1 不适用。'
   delivered=r.get('provider_metadata',{}).get('file_evaluation',{}).get('files',[])
   if 'stable_task_pass' in m and c.get('acceptance_contract'):
-   reference_kind='contract';reference_download='../contracts/'+c['id']+'.json'
+   reference_download='../contracts/'+c['id']+'.json'
    contract_text=json.dumps(machine_contract(c),ensure_ascii=False,indent=2)
    source_body=(stable_answer_panel(c['acceptance_contract'])+
                 (composite_contract_details(c['composite_acceptance']) if c.get('composite_acceptance') else '')+
@@ -2128,7 +2080,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
     output_note='实际交付 0 个文件'
   reference_scope=('' if not (c.get('track')=='document' and 0 < len(ref) < 100) else
                    f'<p class="callout"><b>参考范围：</b>这是最小文档解析样本。冻结源文件的全部可提取正文共 {len(ref):,} 个字符，标准答案没有省略。它只验证短文档文字提取，不用于证明多页、表格或附录完整性。</p>')
-  evidence=(f'<p class="evidence-intro">左边是判定时使用的标准答案或明确验收规则，右边是该次调用原样保存的完整输出。两栏都是真实内容，不是摘要；长内容可在栏内滚动。</p>'+reference_scope+
+  evidence=('<p class="evidence-intro">左边是判定时使用的标准答案或明确验收规则，右边是该次调用原样保存的完整输出。两栏都是真实内容，不是摘要；长内容可在栏内滚动。</p>'+reference_scope+
             f'<div class="evidence-compare"><article class="evidence-pane" id="evidence-reference"><header><h3>{esc(reference_heading)}</h3><p>{source_meta}</p></header><div class="pane-body">{source_body}</div></article>'
             f'<article class="evidence-pane" id="evidence-output"><header><h3>实际返回</h3><p>{output_note}</p></header><div class="pane-body">{actual_body}</div></article></div>')
   body+=section('标准答案与实际返回',evidence,'evidence')
@@ -2141,7 +2093,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    checks_html+='<details class="technical-details"><summary>查看解析出的全部记录和机器检查字段</summary>'+stable_checks(m)+'</details>'
    checks_html+=composite_result_evidence(m)
   else:
-   checks_html+=(table(['核对点','标准答案','判定','实际命中'],checks) if checks else '<p class="decision-lead">本例按任务结构或原文件输出判定。</p>')
+   checks_html+=(table(['核对点','标准答案','判定','实际命中'],checks) if checks else '<p class="decision-lead">'+('本例按左侧文字验收规则判定。' if c.get('task_kind','body')=='body' else '本例按任务结构或原文件输出判定。')+'</p>')
    checks_html+=''.join(f'<p>{esc(x["id"])}：实际 {x["count"]}，要求至少 {x["minimum"]}。</p>' for x in m.get('pattern_results',[]))
   if c.get('task_kind')=='resource' and m.get('resource_candidates'):
    unexpected=set(m.get('unexpected_resource_urls',[]))
@@ -2186,9 +2138,14 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  controls=filter_controls([('provider','方法',[(n,provider_label(n)) for n in names]),('track','类型',tracks),('result','结果',[('pass','任务通过'),('fail','任务失败')])]+failure_filters(records,cases))
  comparison=section('方法组合对比','<p class="source-note">按同一任务逐项比较，不用各方法不同的成功样本拼接结论。成功与失败均沿用主榜已核验判定；点击方法可查看标准答案、实际返回和原因。</p>'+method_comparisons(cases,bycase,names),'method-comparison')
  write(out,'analysis/index.html','结果分析',hero('结果分析','先比较方法在同一任务上的成败组合，再筛选全部执行记录。')+comparison+section('全部执行记录',controls+table(['方法']+headers,[(case_attrs(r,cases[r['case_id']]),cell(link('../providers/'+r['provider']+'.html',provider_label(r['provider'])))+attempt_row(r,cases[r['case_id']])[1]) for r in records],'filtered-table')))
- write_support(out,records,manifests)
+ write_support(out,records,manifests,authored_interpretation=authored_interpretation)
  from .report_changes import render_changes
- render_changes(out,cases,records,dataset)
+ if records and all(row.get('provider_type') == 'fixture' for row in records):
+  write(out,'changes/index.html','示例说明',hero('合成示例','本报告由本地测试适配器生成。没有正式评测发布记录。'))
+ elif not authored_interpretation:
+  write(out,'changes/index.html','本轮结果说明',hero('本轮结果说明','本报告从保存的调用、评分与证据构建，不属于仓库历史报告的发布版本。')+section('查看本轮证据','<p>'+link('../analysis/index.html','逐任务结果与证据')+' · '+link('../reproduce/index.html','运行参数与版本')+'</p>'))
+ else:
+  render_changes(out,cases,records,dataset)
  if include_english:
   from .report_i18n import write_english_report
   write_english_report(out)
@@ -2233,7 +2190,7 @@ def write_review_page(out,records):
  page+=section('核验口径',method)
  write(out,'review/index.html','核验记录',page)
 
-def write_support(out,records,manifests):
+def write_support(out,records,manifests,*,authored_interpretation=True):
  local_matrix=(out/'dataset.json').is_file() and json.loads((out/'dataset.json').read_text()).get('comparison',{}).get('kind')=='uniform_native_local_measurement'
  headless=is_headless_cohort(records)
  from .report_components import task_contract_guide
@@ -2316,10 +2273,13 @@ def write_support(out,records,manifests):
   support+=section('同窗速度证据','<p>'+link('../speed-cohort/speed-comparison.json','速度汇总与样本分母')+' · '+link('../speed-cohort/results.jsonl','速度子集逐次记录')+'</p>')
  if (out/'resource-cohort/resource-comparison.json').is_file():
   support+=section('隔离资源证据','<p>'+link('../resource-cohort/resource-comparison.json','CPU、内存、网络汇总与共同成功样本')+' · '+link('../resource-cohort/results.jsonl','资源子集逐次记录')+' · '+link('../resource-cohort/execution.json','容器环境与镜像身份')+'</p>')
- support+=section('公共条件',f'<p>最终报告纳入 {len(records):,} 次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。</p>'+table(['参数','值'],common,metrics=[]))
+ conditions=(f'最终报告纳入 {len(records):,} 次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。' if authored_interpretation else f'本报告纳入 {len(records):,} 个逻辑结果。运行参数见下表；保留的物理调用与输出见各结果详情。')
+ support+=section('公共条件','<p>'+conditions+'</p>'+table(['参数','值'],common,metrics=[]))
  support+=section('方法版本','<p>“事后核验”只说明留存二进制与官方归档完全一致，不改写成当时已经记录了版本。移动 nightly 无法追到不可得的源修订时，只用 SHA-256 标识精确可执行文件。</p>'+table(['方法','版本','身份依据','部署路径','二进制 SHA-256','调用数'],provider_rows,metrics=[]))
  support+=section('发布与加载','<p>本地构建为每个任务、方法和证据生成可独立检查的逻辑路由；这不等于线上部署同样数量的独立 HTML。发布器会把整份报告编译成一个通用 HTML 外壳、共享样式与脚本，以及按内容寻址的压缩数据块。页面切换由前端路由完成，证据只在打开对应页面时读取，超过 256 KiB 的完整文本还需用户主动加载。</p><p class="source-note">发布清单记录逻辑路由数、源文件数、压缩块数和逐文件 SHA-256；发布门禁会重建每个文件并验证内部链接与原始下载字节。这样保留逐项可审计性，同时避免重复页面骨架和一次性加载全部证据。</p>')
- if headless:
+ if not authored_interpretation:
+  reproduce='<p>使用本轮任务配置与方法配置运行，或从保存的结果重新构建报告：</p><pre>browser-harness-eval run --dataset DATASET --provider-config CONFIG --providers METHODS --output NEW_EVIDENCE\nbrowser-harness-eval report EVIDENCE</pre><p>重新运行会调用配置中的方法；重建报告只读取已有结果。本轮参数、版本与可执行文件哈希见上表。</p>'
+ elif headless:
   reproduce+=f'<p>运行配置：<code>configs/providers.headless.json</code>；账号变量名称见本报告“账号”页，实际密钥只放仓库根目录忽略提交的 <code>.env</code>。冻结参考、完整重测与核验门禁见 {link(repo+"/blob/main/harness/web_fetch/HEADLESS.md","仓库复现说明")}。</p>'
  else:
   reproduce+='<p>方法配置、凭据变量和本轮实际版本分别见“方法介绍”“账号”和上方方法版本表；不存在的 headless 专用配置不属于本 cohort。</p>'
@@ -2327,7 +2287,18 @@ def write_support(out,records,manifests):
   reproduce+='<p>重建历史成绩时，先使用本轮绑定的评分提交；当前分支的评分规则可能已经更新。提交号和评分文件哈希见仓库 <code>evaluation/dynamic-content-100-moli-webfetch/current-local-results.json</code> 的 <code>measured_scoring_git_revision</code> 与 <code>measured_scoring_source_sha256</code>。先在该提交的代码目录执行上面的构建命令。只更新已有报告说明时，可在当前代码目录执行以下命令；它保留原评分和实测文件。</p><pre>uv run --frozen python scripts/build_report.py --refresh-presentation evaluation/dynamic-content-100-moli-webfetch/current-local-results.json --output /absolute/path/to/report</pre>'
  support+=section('核心复现指令',reproduce)
  write(out,'reproduce/index.html','环境与复现',support)
- if headless:
+ if not authored_interpretation:
+  rows=[]
+  for name in sorted({r['provider'] for r in records}):
+   selected=[r for r in records if r['provider']==name]
+   types=sorted({r.get('provider_type','未记录') for r in selected})
+   engines=sorted({r.get('provider_metadata',{}).get('engine','未记录') for r in selected})
+   rows.append(('',cell(esc(name))+cell(esc('；'.join(types)))+cell(esc('；'.join(engines)))))
+  body=hero('账号与安装','本报告的方法由调用方的显式配置提供。')
+  body+=section('本轮方法',table(['方法名称','适配器类型','记录的引擎'],rows,metrics=[]))
+  body+='<div class="wrap"><p>运行前准备配置对应的程序与账户。报告保留方法名称、版本和执行证据，不包含凭据值。实际参数与版本见 '+link('../reproduce/index.html','环境与复现')+'。</p></div>'
+  write(out,'accounts/index.html','账号与安装',body)
+ elif headless:
   access_rows=[]
   for name in sorted({r['provider'] for r in records},key=lambda value:(provider_label(value).lower(),value)):
    access=HEADLESS_ACCESS[name]
@@ -2347,7 +2318,7 @@ def write_support(out,records,manifests):
   accountrows=[('',cell(esc(a['provider']))+cell(link(a['registration_url'],'注册 / 登录')+'<br>'+link(a['key_url'],'获取凭据'))+cell('<br>'.join('<code>'+esc(x)+'</code>' for x in a['env_vars']))+cell(esc(a['steps']))+cell(esc(a['free_note']))) for a in accounts]
   write(out,'accounts/index.html','账号',hero('账号与凭据','只列官方入口和环境变量名称，不保存实际凭据。')+section('注册清单',table(['提供方','官方入口','环境变量','取得方式','免费 / 准入说明'],accountrows,cls='accounts-table')))
  from .report_methods import render_methods
- write(out,'adoption/index.html','方法介绍',render_methods(out,records,hero=hero,section=section,table=table,cell=cell,link=link,esc=esc))
+ write(out,'adoption/index.html','方法介绍',render_methods(out,records,hero=hero,section=section,table=table,cell=cell,link=link,esc=esc,authored=authored_interpretation))
 
 
 _WMB_ROUTES=[
@@ -2389,12 +2360,15 @@ def _wmb_table_example(english=False):
  return '<div class="wmb-table-examples">'+''.join('<article><h3>'+title+'</h3><pre>'+esc(md)+'</pre><div class="wmb-table-render">'+rendered+'</div><p>'+note+'</p></article>' for title,md,rendered,note in examples)+'</div><p class="source-note">'+h('以上为规则示意，不是新增实测数据。网页看起来像表格还不够：评分器必须从输出中识别到表格。table_edit 比较规范化后的表格 HTML 字符串，TEDS 比较行、单元格及内容；两项都受结构缺失影响。','These are rule illustrations, not new measurements. A table-like appearance is insufficient: the scorer must recognize a table in the output. Table_edit compares normalized table HTML strings; TEDS compares rows, cells and content. Missing structure affects both.')+'</p>'
 
 
-def _wmb_denominator_example(records, english, case_count):
- if not any(row['provider']=='moli-1.1.7' for row in records):return ''
+def _wmb_denominator_example(records, english, case_count, provider=None):
  h=lambda zh,en:en if english else zh
+ if not records:return ''
+ provider=provider or records[0]['provider']
+ selected=[row for row in records if row['provider']==provider]
+ if any('_body_present' not in row or not row.get('metrics',{}).get('formula_edit') or (row.get('metrics',{}).get('formula_edit',{}).get('success') and not {'groundtruth_formula_length','predicted_formula_length'} <= set(row['metrics']['formula_edit'].get('details',{}))) for row in selected):return '<p>'+h('公式计分范围未记录','Formula-scoring population unavailable')+'</p>'
  counts=Counter()
  for row in records:
-  if row['provider']!='moli-1.1.7':
+  if row['provider']!=provider:
    continue
   metric=row.get('metrics',{}).get('formula_edit')
   if not row['_body_present']:
@@ -2405,75 +2379,19 @@ def _wmb_denominator_example(records, english, case_count):
   elif metric and metric.get('error')=='Both predicted and groundtruth are empty':
    counts[(False,False)]+=1
   else:
-   raise ValueError('Unclassified formula denominator outcome: '+row['attempt_id'])
+   return '<p>'+h('公式计分范围未记录','Formula-scoring population unavailable')+'</p>'
  scored=sum(value for key,value in counts.items() if isinstance(key,tuple) and key!=(False,False))
  if sum(counts.values())!=case_count or scored!=counts[(False,True)]+counts[(True,False)]+counts[(True,True)]:
   raise ValueError('Formula denominator example does not cover the frozen cohort')
- flow_source=h(
-  'flowchart LR\n A["200 页固定输入"] --> B{"最终调用成功？"}\n B -- "否：1 页" --> X["不参与质量均值"]\n B -- "是：199 页" --> C{"两侧都无公式？"}\n C -- "是：51 页" --> Y["跳过公式分"]\n C -- "否：148 页" --> Z["算分并计入平均；含 0 分"]',
-  'flowchart LR\n A["200 frozen pages"] --> B{"Final call succeeded?"}\n B -- "No: 1 page" --> X["Outside quality means"]\n B -- "Yes: 199 pages" --> C{"No formula on either side?"}\n C -- "Yes: 51 pages" --> Y["Skip formula component"]\n C -- "No: 148 pages" --> Z["Score and include, even if zero"]')
- fallback='<div class="wmb-flow-fallback" data-wmb-flow-fallback><span>'+h('200 页固定输入','200 frozen pages')+'</span><span>'+h('199 页调用成功；1 页调用失败，不评分','199 calls succeeded; 1 failed and is not scored')+'</span><span>'+h(f'{counts[(False,False)]} 页两侧无公式，跳过；其余 {scored} 页计入公式均值，包括 0 分',f'{counts[(False,False)]} pages have no formula on either side and are skipped; the other {scored} enter the formula mean, including zeros')+'</span></div>'
+ successful=case_count-counts['no_body']
+ flow_source='flowchart LR\n A["'+str(case_count)+h(' 页冻结输入',' frozen pages')+'"] --> B{"'+h('最终调用成功？','Final call succeeded?')+'"}\n B --> C["'+str(successful)+h(' 页成功',' successful pages')+'"]\n C --> D["'+str(scored)+h(' 页计入公式分',' formula-scored pages')+'"]'
+ fallback='<div class="wmb-flow-fallback" data-wmb-flow-fallback><span>'+str(case_count)+h(' 页冻结输入',' frozen pages')+'</span><span>'+str(successful)+h(' 页调用成功；',' calls succeeded; ')+str(counts['no_body'])+h(' 页失败，不评分',' failed and are not scored')+'</span><span>'+str(counts[(False,False)])+h(' 页两侧无公式，跳过；',' pages have no formula on either side and are skipped; ')+str(scored)+h(' 页计入公式均值，包括 0 分',' pages enter the formula mean, including zeros')+'</span></div>'
  matrix='<div class="table-wrap"><table class="wmb-denominator-matrix"><thead><tr><th>'+h('人工答案 / 方法输出','Reference / output')+'</th><th>'+h('输出无公式','No output formula')+'</th><th>'+h('输出有公式','Output formula present')+'</th></tr></thead><tbody>'
  matrix+='<tr><td>'+h('答案无公式','No reference formula')+'</td><td><b>'+str(counts[(False,False)])+'</b><span>'+h('两侧空：跳过','Both empty: skip')+'</span></td><td><b>'+str(counts[(False,True)])+'</b><span>'+h('只在输出：0 分计入','Output only: zero enters')+'</span></td></tr>'
  matrix+='<tr><td>'+h('答案有公式','Reference formula present')+'</td><td><b>'+str(counts[(True,False)])+'</b><span>'+h('只在答案：0 分计入','Reference only: zero enters')+'</span></td><td><b>'+str(counts[(True,True)])+'</b><span>'+h('两侧都有：相似度计入','Both present: similarity enters')+'</span></td></tr></tbody></table></div>'
- return '<div class="wmb-denominator-example"><h3 id="denominator-example">'+h('看懂“计入 148/200 页”：以 Moli 1.1.7 公式分为例','What “scored on 148/200 pages” means: Moli 1.1.7 formulas')+'</h3><div class="wmb-flow">'+fallback+'<pre class="mermaid" hidden>'+esc(flow_source)+'</pre></div>'+matrix+'<p class="source-note">'+h(f'公式分只平均右上、左下、右下共 {scored} 页；其中 {counts[(False,True)]+counts[(True,False)]} 页计 0 分。分母由两份 Markdown 中识别出的公式决定，不是“有正文的页数”，也不是“答对的页数”。',f'The formula mean uses the upper-right, lower-left and lower-right cells: {scored} pages, including {counts[(False,True)]+counts[(True,False)]} zero scores. Recognition in the two Markdown files determines the denominator; it is neither the body-text count nor a count of correct pages.')+'</p></div>'
+ return '<div class="wmb-denominator-example"><h3 id="denominator-example">'+h('公式计分范围：','Formula-scoring population: ')+esc(provider)+' · '+str(scored)+' / '+str(case_count)+'</h3><div class="wmb-flow">'+fallback+'<pre class="mermaid" hidden>'+esc(flow_source)+'</pre></div>'+matrix+'<p class="source-note">'+h(f'公式分只平均右上、左下、右下共 {scored} 页；其中 {counts[(False,True)]+counts[(True,False)]} 页计 0 分。分母由两份 Markdown 中识别出的公式决定，不是“有正文的页数”，也不是“答对的页数”。',f'The formula mean uses the upper-right, lower-left and lower-right cells: {scored} pages, including {counts[(False,True)]+counts[(True,False)]} zero scores. Recognition in the two Markdown files determines the denominator; it is neither the body-text count nor a count of correct pages.')+'</p></div>'
 
 
-def _wmb_version_analysis(english, bycase, score, denom):
- h=lambda zh,en:en if english else zh
- def pair(case_id):
-  rows={row['provider']:row for row in bycase[case_id]}
-  return rows['moli'],rows['moli-1.1.7']
- def evidence(case_id):
-  old,new=pair(case_id)
-  return '<p class="actions">'+link('../attempts/'+old['attempt_id']+'.html',h('1.1.5 输出与评分','1.1.5 output and score'))+' · '+link('../attempts/'+new['attempt_id']+'.html',h('1.1.7 输出与评分','1.1.7 output and score'))+' · '+link('../datasets/'+case_id+'.html',h('同页人工答案','Same-page reference'))+'</p>'
- def card(title,body,case_id):
-  return '<article class="wmb-version-case"><h3>'+title+'</h3><p>'+body+'</p>'+evidence(case_id)+'</article>'
- case_text='357c9ba1-1c6c-4d8f-a75e-0bc4a3bc9b3c'
- case_code='14f8fe79-f899-4074-9878-1bf9f301ad95'
- case_code_new='63cfc5dd-1737-485f-9bc9-cacc65299ba8'
- case_formula='ac11d851-aed7-4b9e-89d1-39c142fa152d'
- case_false_formula='0b7ac530-19ea-4a14-a8bd-adb9cd646351'
- text_old,text_new=pair(case_text)
- code_old,code_new=pair(case_code)
- formula_old,formula_new=pair(case_formula)
- false_old,false_new=pair(case_false_formula)
- shared_code=[];shared_formula=[];new_only_formula=[];text_longer=0;text_lower=0;code_new_zero=[]
- for rows in bycase.values():
-  versions={row['provider']:row for row in rows}
-  old,new=versions['moli'],versions['moli-1.1.7']
-  before_text=old['metrics'].get('text_edit',{});after_text=new['metrics'].get('text_edit',{})
-  if before_text.get('success') and after_text.get('success'):
-   text_longer+=new['output_chars']>old['output_chars']
-   text_lower+=after_text['score']<before_text['score']
-  for metric,shared in (('code_edit',shared_code),('formula_edit',shared_formula)):
-   before=old['metrics'].get(metric,{});after=new['metrics'].get(metric,{})
-   if before.get('success') and after.get('success'):
-    shared.append(after['score'])
-  before=old['metrics'].get('formula_edit',{});after=new['metrics'].get('formula_edit',{})
-  if not before.get('success') and after.get('success'):
-   new_only_formula.append(after['score'])
-  before_code=old['metrics'].get('code_edit',{});after_code=new['metrics'].get('code_edit',{})
-  if not before_code.get('success') and after_code.get('success'):
-   code_new_zero.append(after_code['score'])
- if (len(shared_code)!=40 or len(shared_formula)!=97 or len(new_only_formula)!=51
-     or len(code_new_zero)!=2 or any(code_new_zero) or any(new_only_formula)
-     or text_longer!=184 or text_lower!=171):
-  raise ValueError('Moli version-analysis scope changed; review the paired interpretation')
- rows=[
-  ('',cell('text_edit')+cell(_wmb_pct(score('moli','text_edit'))+' · '+str(denom('moli','text_edit')))+cell(_wmb_pct(score('moli-1.1.7','text_edit'))+' · '+str(denom('moli-1.1.7','text_edit')))+cell(h('同 199 页下降 1.0 个百分点','Down 1.0 point on the same 199 pages'))),
-  ('',cell('code_edit')+cell(_wmb_pct(score('moli','code_edit'))+' · '+str(denom('moli','code_edit')))+cell(_wmb_pct(score('moli-1.1.7','code_edit'))+' · '+str(denom('moli-1.1.7','code_edit')))+cell(h(f'旧版计入的 40 页，新版均值 {_wmb_pct(statistics.fmean(shared_code))}；另有 2 页以 0 分计入',f'On the older 40 scored pages, the new mean is {_wmb_pct(statistics.fmean(shared_code))}; two added pages enter with zero'))),
-  ('',cell('formula_edit')+cell(_wmb_pct(score('moli','formula_edit'))+' · '+str(denom('moli','formula_edit')))+cell(_wmb_pct(score('moli-1.1.7','formula_edit'))+' · '+str(denom('moli-1.1.7','formula_edit')))+cell(h(f'旧版计入的 97 页，新版均值 {_wmb_pct(statistics.fmean(shared_formula))}；另有 51 页以 0 分计入',f'On the older 97 scored pages, the new mean is {_wmb_pct(statistics.fmean(shared_formula))}; 51 added pages enter with zero'))),
- ]
- body='<p>'+h(f'共同变化是 1.1.7 输出更长、Markdown 排版和转义方式变化：文字分共同计入的 199 页里，{text_longer} 页输出变长，{text_lower} 页分数下降。缩进段落会被代码提取器当作代码；被转义的公式可能漏识别，转义网址也可能误识别成公式。以下是逐页证据。',f'The shared change is longer output and different Markdown layout and escaping in 1.1.7. Of 199 pages scored for text in both versions, {text_longer} outputs grow longer and {text_lower} text scores fall. The code extractor can read indented prose as code; the formula extractor can miss escaped math or mistake escaped URLs for math. Page evidence follows.')+'</p>'+table([h('指标','Metric'),'Moli 1.1.5<br>'+h('分数 · 计入页','score · pages'),'Moli 1.1.7<br>'+h('分数 · 计入页','score · pages'),h('同页核对','Same-page check')],rows,metrics=[])
- body+='<div class="wmb-version-cases">'
- body+=card(h('正文：额外页面内容拉低相似度','Text: extra page content reduces similarity'),h(f'服装网站的人工主内容为 5,094 字符；旧版输出 {text_old["output_chars"]:,} 字符，text_edit {_wmb_pct(text_old["metrics"]["text_edit"]["score"])}；新版展开更多菜单、商品介绍和链接标题，输出 {text_new["output_chars"]:,} 字符，得分 {_wmb_pct(text_new["metrics"]["text_edit"]["score"])}。这是完整输出与主内容参考范围不一致的实测差异。',f'The clothing-page reference has 5,094 characters. The older output has {text_old["output_chars"]:,} characters and scores {_wmb_pct(text_old["metrics"]["text_edit"]["score"])}. The newer output expands more menu, product and link-title text to {text_new["output_chars"]:,} characters and scores {_wmb_pct(text_new["metrics"]["text_edit"]["score"])}. The measured output contains much more than the main-content reference.'),case_text)
- body+=card(h('代码：评分器把额外缩进文字也当作代码','Code: extra indented prose enters the code extractor'),h(f'书籍页面的人工答案把简介放在代码围栏中；旧版识别出 867 字符，得 {_wmb_pct(code_old["metrics"]["code_edit"]["score"])}；新版还把其他缩进文字识别为代码，共 {code_new["metrics"]["code_edit"]["details"]["predicted_code_length"]:,} 字符，得 {_wmb_pct(code_new["metrics"]["code_edit"]["score"])}。这里的“代码分”含有书籍文案，不能解释为程序代码生成能力。',f'The book reference fences its synopsis as code. The older extraction is 867 characters and scores {_wmb_pct(code_old["metrics"]["code_edit"]["score"])}; the new extraction also captures other indented prose, reaching {code_new["metrics"]["code_edit"]["details"]["predicted_code_length"]:,} characters and scoring {_wmb_pct(code_new["metrics"]["code_edit"]["score"])}. This code metric includes book copy and is not a programming-capability result.'),case_code)
- body+=card(h('代码分母：缩进的普通文字新计入零分','Code denominator: indented ordinary text adds a zero'),h('天涯页面的人工答案没有代码；旧版输出也没有被识别的代码，该页跳过。新版把大量普通段落缩进，官方提取器将其中 3,867 字符识别为代码，因此以 0 分计入。另一个新增代码计分页也以 0 分计入。','The Tianya reference has no code, and the older output has no recognized code, so the component skips it. In 1.1.7, many ordinary paragraphs are indented; the pinned extractor reads 3,867 characters as code and includes this page with a zero. The other newly scored code page also scores zero.'),case_code_new)
- body+=card(h('公式：公式仍在输出中，但定界符被转义','Formulas: present in the output, but delimiters are escaped'),h(f'Overleaf 页面旧版的公式提取长度为 840 字符，得 {_wmb_pct(formula_old["metrics"]["formula_edit"]["score"])}。新版仍保留公式内容，却把反斜线和定界符转义；固定版本评分器的正则未识别出公式，提取长度为 0，得 {_wmb_pct(formula_new["metrics"]["formula_edit"]["score"])}。该页下降来自定界符被转义后，评分器漏识别公式。',f'On the Overleaf page, the older output yields 840 extracted formula characters and scores {_wmb_pct(formula_old["metrics"]["formula_edit"]["score"])}. The new output still contains the formulas but escapes backslashes and delimiters. The pinned scorer regex extracts zero characters, producing {_wmb_pct(formula_new["metrics"]["formula_edit"]["score"])}. The score falls because the scorer misses formulas with the escaped delimiters.'),case_formula)
- body+=card(h('公式分母：网址转义被误认成公式','Formula denominator: an escaped URL is mistaken for math'),h('新华网页面的人工答案没有公式。旧版输出也未识别出公式，所以该页跳过；新版把网址中的 <code>javascript:void(0)</code> 写成含转义括号的 Markdown，评分器从中提取出“0”，该页以 0 分加入公式均值。新增的 51 个公式计分页全部为 0 分。','The Xinhua reference has no formula. The older output is also formula-free, so the component skips this page. The new Markdown escapes parentheses in a <code>javascript:void(0)</code> URL; the scorer extracts “0” as a formula and includes this page with a zero. All 51 added formula-scored pages have zero scores.'),case_false_formula)
- body+='</div><p class="source-note">'+h('因此：本轮 text_edit 的同页分数确实下降；code_edit 的均值变化主要受 2 个新增零分页影响；formula_edit 同时受定界符转义和新增的误识别零分页影响。以上保留官方固定评分规则与原分数，解释的是这轮输出和规则如何共同形成结果。','In this run, text scores do fall on matched pages. The code mean is driven mainly by two newly included zero pages. The formula mean reflects escaped delimiters and newly included false-positive zero pages. These observations explain the frozen output under the pinned scorer; the recorded scores remain unchanged.')+'</p>'
- return section(h('Moli 1.1.7 其他分项为何变低','Why other Moli 1.1.7 component scores fall'),body,'version-differences')
 
 
 def _wmb_latency_summary(records,names):
@@ -2526,7 +2444,6 @@ def _wmb_matched_latency(records,names,labels,english=False,prefix='../'):
  excluded=sorted({r['case_id'] for r in records}-common)
  rows=[]
  for name in names:
-  stat=data['matched'][name]
   rows.append(('',cell(link(prefix+'providers/'+name+'.html',labels[name]))+''.join(_wmb_timing_cell(data['matched'],name,key) for key in ('mean','p50','p95'))))
  return '<div class="wmb-matched-latency"><h3>'+h(f'同题耗时对照：共同成功的 {len(common)} 页',f'Matched-page timing: {len(common)} pages with success across all methods')+'</h3><p>'+h(f'以下每行使用完全相同的 {len(common)} 页，只取最终成功 fetch 的单次耗时。它用于检查同页速度差异；共同成功页是在运行后确定的，所以不据此给整个 200 页评测排速度名次。',f'Every row uses the same {len(common)} pages and the duration of the final successful fetch only. This diagnoses same-page timing differences. The shared-success subset is determined after execution, so it does not rank speed over the entire 200-page benchmark.')+'</p><p class="source-note">'+_wmb_timing_note(english,matched=True)+'</p>'+table([h('方法','Method'),h('均值耗时','Mean latency'),h('P50 耗时','P50 latency'),h('P95 耗时','P95 latency')],rows,cls='wmb-matched-latency-table',metrics=[])+'<details><summary>'+h(f'未进入同题对照的 {len(excluded)} 页（仍保留在完整结果中）',f'{len(excluded)} pages outside this comparison (retained in the full matrix)')+'</summary><ul>'+''.join('<li>'+link(prefix+'datasets/'+case_id+'.html',case_id)+'</li>' for case_id in excluded)+'</ul></details></div>'
 
@@ -2583,164 +2500,104 @@ def _wmb_latency_rerun(diagnostic,english=False,prefix='',formal_round=None):
                  f'For the {tail_count} pages with the largest initial gaps, each version was called {repetition} more times per page: all {tail_calls} calls succeeded, and output hashes stayed constant within each version. Median timing differed by no more than 20 ms on {tail["within_20_ms"]}/{tail_count} pages; ')+tail_direction+h('下表逐页列出典型耗时和最慢一次，便于区分稳定差异与偶发慢调用。',' The table shows each page’s typical and slowest call.')+'</p>'
  body+='<details><summary>'+h('查看差异最大的 20 页及逐页复测','Inspect all 20 divergent pages and repeated calls')+'</summary>'+table([h('页面','Page'),h('1.1.5 中位耗时','1.1.5 median'),h('1.1.7 中位耗时','1.1.7 median'),h('1.1.5 最慢一次','1.1.5 slowest'),h('1.1.7 最慢一次','1.1.7 slowest')],case_rows,cls='wmb-rerun-cases',metrics=[])+'</details>'
  failure=diagnostic['failure_retest']
- body+='<p>'+h(f'两版各有 1 页未成功，均为同一页。各自独立重测时，首次和一次重试仍因页面脚本跳转原站而失败；禁用页面脚本后两版都返回正文。继续按相同条件重试不能恢复该页；禁用脚本会改变评测条件，因此该页仍计为失败，覆盖率为 199/200。',
-                 f'Both versions failed on the same page. In separate retests, each initial call and retry again failed after the page script navigated to the origin site. Disabling page-authored JavaScript returned body text for both versions. Repeating the same condition did not recover the page; disabling the script changes the test, so this page remains failed and coverage is 199/200.')+' '+link(prefix+'datasets/'+failure['case_id']+'.html',h('查看失败页','Inspect the failed page'))+'</p>'
+ body+='<p>'+h('两版各有 1 页未成功，均为同一页。各自独立重测时，首次和一次重试仍因页面脚本跳转原站而失败；禁用页面脚本后两版都返回正文。继续按相同条件重试不能恢复该页；禁用脚本会改变评测条件，因此该页仍计为失败，覆盖率为 199/200。',
+                 'Both versions failed on the same page. In separate retests, each initial call and retry again failed after the page script navigated to the origin site. Disabling page-authored JavaScript returned body text for both versions. Repeating the same condition did not recover the page; disabling the script changes the test, so this page remains failed and coverage is 199/200.')+' '+link(prefix+'datasets/'+failure['case_id']+'.html',h('查看失败页','Inspect the failed page'))+'</p>'
  body+=table([h('本轮','Rerun'),h('系统采样','System samples'),h('最低空闲 CPU','Minimum idle CPU'),h('最低未用内存','Minimum unused memory'),h('新增 swap-out','New swap-outs')],resource_rows,cls='wmb-rerun-resource',metrics=[])
  body+='<p class="source-note">'+h('下表是此前单批运行期间的宿主机采样，不能代替交叉复测时的逐调用资源测量，也不能证明负载导致慢调用。',
              'The resource samples below come from the preceding separate batches. They are not per-call measurements from the crossover and do not prove host load caused slow calls.')+' '+link(('../' if english else '')+prefix+'latency-diagnostic.json',h('下载逐页复测与证据绑定','Download per-page repeats and evidence bindings'))+'</p>'
  return '<div class="wmb-rerun-diagnostic">'+body+'</div>'
 
 
-def _wmb_editorial_guide(*,english,names,labels,cases,bycase,case_count,score,denom,
-                         failures, out=None, latency_diagnostic=None, formal_round=None):
- # Editorial analysis of the frozen WMB-200 cohort published as
- # ver_dab94ad9c17f4db6bec7bff98a82c660. Narrative numbers and selected examples
- # are a reviewed snapshot: a new cohort/scoring revision requires re-reviewing
- # this article, not merely substituting numbers into its recommendations.
- def h(zh,en):return en if english else zh
- fail_total=sum(len(failures(name)) for name in names)
- body_total=case_count*len(names)-fail_total
- editorial_timing=(_wmb_latency_summary([row for rows in bycase.values() for row in rows],names)['successful']
-                   if out is not None else None)
- common_low=sum(all(any(r['provider']==name and r.get('metrics',{}).get('text_edit',{}).get('success') and r['metrics']['text_edit']['score']<.1 for r in bycase[case_id]) for name in names) for case_id in cases)
- def score_part(metric,label):
-  return '<div class="wmb-score-part"><span>'+esc(label)+'</span><b>'+_wmb_pct(score('kitesurf',metric))+'</b><small>'+h('计入 ','Scored on ')+str(denom('kitesurf',metric))+'/'+str(case_count)+h(' 页',' pages')+'</small></div>'
- score_formula=''.join((score_part('text_edit',h('全文文字与标记','Full Markdown')),score_part('code_edit',h('代码','Code')),score_part('formula_edit',h('公式','Formula')),score_part('table_edit',h('表格内容与标记','Table content and markup')),score_part('table_TEDS',h('表格结构','Table structure'))))
- score_formula+='<div class="wmb-score-result">'+h('五项均值再平均 = Kitesurf overall 32.4%','Mean of the five component means = Kitesurf overall 32.4%')+'</div>'
- scope_case_id='c42e7f28-f109-459b-8423-2ce20f651ac9'
- if scope_case_id in cases:
-  scope_rows=sorted(bycase[scope_case_id],key=lambda item:item['provider'])
-  scope_stats=''
-  for r in scope_rows:
-   metric=r.get('metrics',{}).get('text_edit',{})
-   length=(metric.get('details') or {}).get('predicted_text_length')
-   length_label=f'{length:,} '+h('字符','chars') if length is not None else h('长度未记录','Length not recorded')
-   scope_stats+='<span>'+esc(labels[r['provider']])+': '+_wmb_pct(metric.get('score'))+' · '+length_label+'</span>'
-  scope_example='<div class="wmb-case-study"><header><div><h3>Pantacordis scotinella</h3><p>'+h('同一张 Wikipedia 冻结页；人工答案 1,315 字符。','The same frozen Wikipedia page; the human reference has 1,315 characters.')+'</p></div>'+link('../datasets/'+scope_case_id+'.html',h('打开完整六方法对照','Open the complete six-method comparison'))+'</header><div class="wmb-evidence-pair"><article><h4>'+h('人工答案保留的正文','What the human reference keeps')+'</h4><pre># Pantacordis scotinella\n\nPantacordis scotinella is a moth of the family Autostichidae. It is found on Crete.\n\n## References</pre></article><article><h4>'+h('方法输出开头','How method output begins')+'</h4><pre>Main menu\nNavigation\n- Main page\n- Contents\n- Current events\n- Random article\n- About Wikipedia\n- Contact us\n- Donate\n\nContribute\n- Help\n- Learn to edit</pre></article></div><div class="wmb-case-stats">'+scope_stats+'</div></div>'
- else:
-  scope_example='<p class="source-note">'+h('完整报告会在这里展示一页人工答案与六种输出的逐字证据。','The full report shows the human reference and six outputs for one page here.')+'</p>'
- table_case_id='686205e4-4549-42ce-bf42-f285f941c868'
- if table_case_id in cases:
-  table_rows=sorted(bycase[table_case_id],key=lambda item:-((item.get('metrics',{}).get('table_TEDS',{}).get('score') or 0)))
-  table_stats=''.join('<span>'+esc(labels[r['provider']])+': TEDS '+_wmb_pct(r.get('metrics',{}).get('table_TEDS',{}).get('score'))+'</span>' for r in table_rows)
-  table_example='<div class="wmb-case-study"><header><div><h3>'+h('Python 随机模块','Python random module')+'</h3><p>'+h('人工答案是一张两列表格，六种方法都返回了正文。','The reference contains a two-column table, and every method returned body text.')+'</p></div>'+link('../datasets/'+table_case_id+'.html',h('打开完整六方法对照','Open the complete six-method comparison'))+'</header><div class="wmb-evidence-pair"><article><h4>'+h('可以重新解析的 Markdown 表格','Parseable Markdown table')+'</h4><pre>| 方法 | 描述 |\n|---|---|\n| seed() | 初始化随机数生成器。 |\n| getstate() | 返回当前内部状态。 |\n| randint() | 返回给定范围之间的随机数。 |</pre></article><article><h4>'+h('Moli 1.1.5 返回的同一段内容','The same content from Moli 1.1.5')+'</h4><pre>方法描述seed()初始化随机数生成器。getstate()返回随机数生成器的当前内部状态。setstate()恢复随机数生成器的内部状态……</pre></article></div><div class="wmb-case-stats">'+table_stats+'</div></div>'
- else:
-  table_example='<p class="source-note">'+h('完整报告会在这里展示同一表格的结构化输出与摊平文字。','The full report shows structured and flattened versions of the same table here.')+'</p>'
+def _wmb_guide(*, english, names, labels, cases, bycase, case_count, score, denom,
+               failures, out=None, latency_diagnostic=None, formal_round=None):
+ h=lambda zh,en:en if english else zh
+ records=[row for rows in bycase.values() for row in rows]
+ metrics=['overall','text_edit','code_edit','formula_edit','table_edit','table_TEDS']
+ def chapter(key,title,body):return '<section id="'+key+'"><h2>'+title+'</h2>'+body+'</section>'
  def paragraph(zh,en):return '<p>'+h(zh,en)+'</p>'
- def chapter(key,zh,en,body):return '<section id="'+key+'"><h2>'+h(zh,en)+'</h2>'+body+'</section>'
- def evidence_pair(case_id,left_provider,right_provider,needle='',size=550):
-  if out is None or case_id not in cases:return ''
-  rows={r['provider']:r for r in bycase[case_id]}
-  def excerpt(provider):
-   path=('references/'+case_id+'.md') if provider is None else rows[provider]['artifact_path']
-   text=contained_path(out,path).read_text(encoding='utf-8')
-   start=max(0,text.find(needle)) if needle else 0
-   if case_id=='686205e4-4549-42ce-bf42-f285f941c868':
-    start=max(0,text.find('方法描述' if provider=='moli' else '| 方法'))
-   if provider is None and case_id=='c42e7f28-f109-459b-8423-2ce20f651ac9':
-    start=text.index('Pantacordis scotinella is a moth')
-    return text[start:text.index('<table>',start)].strip()
-   if needle:
-    line_start=text.rfind('\n',0,start)+1
-    if start-line_start<80:start=line_start
-   return text[start:start+size]
-  return '<div class="wmb-evidence-pair">'+''.join('<article><h4>'+esc(labels.get(provider,h('人工答案','Human reference')))+' · '+h('原文节选','verbatim excerpt')+'</h4><pre>'+esc(excerpt(provider))+'</pre></article>' for provider in (left_provider,right_provider))+'</div>'
- if out is not None:
-  from bs4 import BeautifulSoup
-  if scope_case_id in cases:
-   parsed=BeautifulSoup(scope_example,'html.parser')
-   parsed.select_one('.wmb-evidence-pair').replace_with(BeautifulSoup(evidence_pair(scope_case_id,None,'moli',size=430),'html.parser'))
-   scope_example=str(parsed)
-  if table_case_id in cases:
-   parsed=BeautifulSoup(table_example,'html.parser')
-   parsed.select_one('.wmb-evidence-pair').replace_with(BeautifulSoup(evidence_pair(table_case_id,'moli','moli-1.1.7','方法',size=400),'html.parser'))
-   table_example=str(parsed)
- # The article starts with the complete registry; the interpretation follows its evidence.
- metric_names=[('overall',h('综合分','Overall')),('text_edit',h('全文','Text')),('code_edit',h('代码','Code')),('formula_edit',h('公式','Formulas')),('table_edit',h('表格内容','Table content')),('table_TEDS',h('表格结构','Table structure'))]
- result_rows=[]
- for name in sorted(names,key=lambda name:score(name,'overall'),reverse=True):
-  values=cell(link('../providers/'+name+'.html',labels[name]))
-  for metric,_ in metric_names:
-   value=score(name,metric)
-   best=max(score(other,metric) for other in names)
-   display=_wmb_pct(value)
-   if value==best and sum(score(other,metric)==best for other in names)==1:display='<strong class="comparison-winner">'+display+'</strong>'
-   values+=cell(display+('' if metric=='overall' else '<small>'+str(denom(name,metric))+h(' 页计分',' scored pages')+'</small>'))
-  result_rows.append(('',values))
- head='<div class="wrap essay"><article class="essay-body publication-article wmb-editorial" aria-labelledby="article-title"><header class="essay-head"><p class="eyebrow">Web Fetch · WebMainBench</p><h1 id="article-title">'+h('同一份网页，六种 Markdown：200 页转换结果解读','One webpage, six Markdown outputs: interpreting 200 conversions')+'</h1>'
- head+=paragraph('网页转成 Markdown 后，文章有没有混进菜单，表格还能不能还原，公式会不会变成普通文字？这轮评测把同一批 200 份网页 HTML 交给六种配置，对照人工整理的主内容答案，比较转换质量和耗时。','After a webpage becomes Markdown, does navigation crowd out the article? Can software reconstruct its tables and recognize its formulas? This evaluation gives the same 200 HTML documents to six configurations and compares their output with human main-content references, alongside conversion latency.')
- if editorial_timing and all(name in editorial_timing for name in ('kitesurf','moli-1.1.7','lightpanda')):
-  head+=paragraph(
-   f'Kitesurf、Moli 1.1.7 和 Lightpanda 的综合分分别为 32.4%、32.0% 和 31.7%，相差不到 1 个百分点；本版成功 fetch 均值耗时分别为 {ms(editorial_timing["kitesurf"]["mean"])}、{ms(editorial_timing["moli-1.1.7"]["mean"])} 和 {ms(editorial_timing["lightpanda"]["mean"])}，成功页数分别为 195、199 和 200。得分接近，输出特征和速度并不相同。',
-   f'Kitesurf, Moli 1.1.7 and Lightpanda score 32.4%, 32.0% and 31.7% overall, less than one percentage point apart. Successful-fetch means in this edition are {ms(editorial_timing["kitesurf"]["mean"])}, {ms(editorial_timing["moli-1.1.7"]["mean"])} and {ms(editorial_timing["lightpanda"]["mean"])}, on 195, 199 and 200 successful pages. Similar aggregate scores conceal different outputs and timing.')
- else:
-  head+=paragraph('六种配置的综合分与各项分数见下表；每项的计分页数需结合具体案例阅读。',
-                  'The table below shows overall and component scores for all six configurations. Read each component population alongside individual cases.')
- head+='</header><div class="wmb-guide-results">'+table([h('方法','Method')]+[label for _,label in metric_names],result_rows,metrics=[])+'</div><p class="source-note">'+h('分数越高，越接近人工答案；绿色标出单项唯一最高值。综合分、表格结构分为修正后复算值。各项下方是参与该项平均的页数；综合分是五项均值的平均，并非通过率。宽表可横向滚动。','Higher scores mean closer agreement with the human reference; green marks a unique leader. Overall and table structure are recomputed after correction. The page count under each component is its averaging population. Overall averages five component means; it is not a pass rate. Scroll wide tables horizontally.')+'</p>'
- sections=[('scope','评测对象','What was measured'),('overall','分数与计分页','Scores and populations'),('content','全文范围','Content scope'),('tables','表格结构','Table structure'),('version-differences','语法与版本变化','Syntax and version changes'),('delivery','速度与返回结果','Latency and delivery'),('decision','如何选择','Choosing a method')]
- head+='<nav class="wmb-guide-toc" aria-label="'+h('解读目录','Article contents')+'">'+''.join(link('#'+key,str(i+1).zfill(2)+' '+h(zh,en)) for i,(key,zh,en) in enumerate(sections))+'</nav>'
- scope=chapter('scope','01 · 比较的是网页转换，输入在调用前已固定','01 · The input is frozen before conversion',paragraph('Web Fetch 通常从 URL 获取网页，再把内容转成适合检索、阅读或交给模型的文本。本轮单独比较其中的 HTML → Markdown：从 WebMainBench 公开的 545 页子集中预先选定 200 页，保留原始 HTML 和人工主内容答案。原网址只作来源记录，运行时不重新抓取。','Web Fetch usually retrieves a URL and turns the page into text for reading, retrieval or a model. This run isolates HTML → Markdown: 200 pages were selected in advance from WebMainBench’s public 545-page subset, retaining the original HTML and human main-content references. Source URLs are provenance, not live retrieval targets.')+paragraph('六种配置都接收同一份 HTML。Kitesurf 经远程服务转换，Lightpanda、Obscura 和 Moli 使用各自的原生 Markdown 接口；Chromium 152 先取得整页 DOM，再交给 node-html-markdown 2.0.0。页面内联脚本可以执行，外部资源被隔离。因而结果同时包含内容选择与格式转换的差异。','All six configurations receive identical HTML. Kitesurf converts through a remote service; Lightpanda, Obscura and Moli use their native Markdown interfaces. Chromium 152 provides the whole-page DOM to node-html-markdown 2.0.0. Inline scripts may run, while external resources are isolated. Results therefore include both content-selection and format-conversion differences.')+'<p class="source-note">'+link('../datasets/index.html',h('200 页样本与人工答案','The 200 pages and references'))+' · '+link('../reproduce/index.html',h('版本、环境与执行路线','Versions, environment and execution routes'))+'</p>')
- definitions=[('text_edit',h('整份 Markdown 的文字与标记；菜单、链接标题也参与比较。','The entire Markdown string, including markup, menus and link titles.')),('code_edit',h('围栏或缩进块中提取的代码字符串；普通文案也可能被识别进去。','Code strings extracted from fenced or indented blocks, which may include ordinary prose.')),('formula_edit',h('按数学定界符识别出的公式字符串；受转义方式影响。','Formula strings recognized by math delimiters; escaping affects recognition.')),('table_edit',h('识别表格后，比较规范化的表格 HTML 字符串。','Normalized HTML strings after tables are recognized.')),('table_TEDS',h('识别表格后，比较表格、行、单元格的树结构和内容。','The tree of tables, rows and cells, including cell content.'))]
- scoring=paragraph('编辑相似度衡量“把输出改成人工答案需要改多少”。遗漏会扣分，多出来的内容也会扣分。下面五项分别比较不同表示，因此“全文 40%”不能读作“只取到了 40% 的正文”。','Edit similarity measures how much the output must change to match the reference. Both missing and extra content reduce it. The five components compare different representations; a 40% text score does not mean that 40% of the article was retrieved.')+table([h('指标','Metric'),h('实际比较什么','What is compared')],[('',cell(metric)+cell(explanation)) for metric,explanation in definitions],metrics=[])
- scoring+=paragraph('每一项都先确定哪些页需要计分：最终调用失败的结果不送入评分；调用成功后，只有“人工答案和输出都没有该类内容”才跳过这一项。只要任一侧识别出了内容，就计分；只有一侧有，按 0 分计入。因此，各方法的平均分母会随输出中的结构识别结果变化。','Each component first determines which pages enter its mean. Failed final calls are not sent to the scorer. Among successful calls, a component is skipped only when neither reference nor output contains that content type. Content on only one side enters as zero. Each method’s recognized output structures therefore affect its denominator.')
- complete=[r for rs in bycase.values() for r in rs]
- if out is not None and 'moli-1.1.7' in names:
-  scoring+=_wmb_denominator_example(complete,english,case_count)
- scoring+=paragraph('计分也不等于生成了目标正文。例如 Chromium 有 199 页目标正文，但全文计分是 200 页：其中一页返回“ERR_ACCESS_DENIED”错误页，调用状态仍为成功，官方文字相似度照算为 1.48%。报告将它标为未生成正文，保留原分数。','Scoring does not establish target-body delivery. Chromium produces target content on 199 pages but has 200 text scores: one successful call returns an ERR_ACCESS_DENIED error page, which still receives a 1.48% text similarity score. The report marks it as missing target content and retains the score.')+'<p class="source-note">'+link('../attempts/chromium__ccb6033c-0a12-4f9c-8c68-794f26129841__r001.html',h('查看错误页为何仍有分数','Why the error page still has a score'))+'</p>' if 'ccb6033c-0a12-4f9c-8c68-794f26129841' in cases else ''
- scoring+='<h3>'+h('再把五个分项均值等权平均','Then average the five component means equally')+'</h3><div class="wmb-score-formula">'+score_formula+'</div>'
- scoring+=paragraph('每项都占综合分的五分之一，与该项计入多少页无关。这让少量代码页与大量全文页拥有相同权重，也使新增的零分页能拉低分项均值。表格 TEDS 和综合分使用经树结构适配修正后的复算值；原始官方结果保留在核对页。','Each component contributes one fifth of overall, irrespective of its page count. A small code population has the same weight as the much larger text population, and newly included zeros can lower a component mean. TEDS and overall use the recomputation with the corrected tree adapter; the original official results remain available for comparison.')+'<p class="source-note">'+link('../methodology/index.html',h('完整评分规则','Full scoring rules'))+' · '+link('../review/index.html',h('原始分与 TEDS 修正依据','Original scores and TEDS correction evidence'))+'</p>'
- overall=chapter('overall','02 · 分数衡量相似度，计分页由两侧内容共同决定','02 · Similarity scores use a population determined by both sides',scoring)
- content=chapter('content','03 · 六种方法共同的损失：把整页当成主内容','03 · A shared source of loss: the whole page exceeds the main content',paragraph(f'{common_low} 页在六种方法上的全文分都低于 10%。Wikipedia 的这页就是一例：人工答案只有 1,315 字符，聚焦文章与参考资料，输出却带上导航、编辑入口和其他页面区域。六种输出的长度与得分放在下方，可以直接看到范围差距。',f'{common_low} pages have text scores below 10% for all six methods. This Wikipedia page illustrates the gap: its 1,315-character human reference focuses on the article and references, while outputs include navigation, editing links and other page regions. Their lengths and scores show the scope difference.')+scope_example+paragraph('全文指标直接比较完整 Markdown，额外菜单、链接标题和重复布局都增加编辑距离。这个问题横跨六种配置，说明正文选择是共同的改进方向。只修复一种表格或公式语法，并不能消除这些文字差异。','The text metric compares complete Markdown. Extra menus, link titles and repeated layout increase edit distance. Because the issue spans all six configurations, main-content selection is a shared improvement opportunity. Fixing table or formula syntax alone will not remove this mismatch.'))
- tables=chapter('tables','04 · 表格的关键是保住行列，而不只是留下文字','04 · Tables need rows and columns, as well as words',paragraph('表格需要先被 Markdown 解析器识别，才进入内容和树结构比较。Python 随机模块页展示了直接的格式差异：同一组方法与说明，保留分隔线就能还原为两列，压成连续文字后则无法识别为表格。','A Markdown parser must recognize a table before its content and tree structure can be compared. The Python random-module page shows a direct format difference: separators preserve two columns, while a continuous string of the same words cannot be recognized as a table.')+table_example+paragraph('Moli 1.1.5 的 40 个表格计分页全部为 0；1.1.7 在这 40 页中的 33 页获得正的 table_edit，表格修复确实体现在同页结果上。新版还输出了更多可识别表格，计分页增至 73 页，表格内容均值为 18.5%、结构均值为 13.9%。','Moli 1.1.5 scores zero on all 40 table-scored pages. Version 1.1.7 gains positive table_edit scores on 33 of those same pages: the table repair is visible in matched-page evidence. It also produces more recognized tables, increasing the scored population to 73 pages, with means of 18.5% for table content and 13.9% for structure.')+paragraph('横向比较中，Chromium 的表格内容分最高，为 25.7%；Lightpanda 的结构分最高，为 16.2%。两种第一名不同，因为字符串相似度和行列树结构测的不是同一件事。表格整体得分仍低，单页修复到 100% 并不意味着所有页面都保真。','Across methods, Chromium leads table content at 25.7%, while Lightpanda leads structure at 16.2%. Different leaders are expected because string similarity and the row-and-cell tree measure different representations. Aggregate table scores remain low; a perfect result on one page does not establish fidelity across the cohort.'))
- tables=tables.removesuffix('</section>')+_wmb_table_population([r for rs in bycase.values() for r in rs],names,labels,english)+'</section>'
- version=''
- if all(name in names for name in ('moli','moli-1.1.7')) and '357c9ba1-1c6c-4d8f-a75e-0bc4a3bc9b3c' in cases:
-  version=_wmb_version_analysis(english,bycase,score,denom)
-  version=version.replace(h('Moli 1.1.7 其他分项为何变低','Why other Moli 1.1.7 component scores fall'),h('05 · 表格改善之外，排版和转义改变了三个分项','05 · Alongside better tables, layout and escaping change three components'))
-  # Keep actual specimens beside the mechanisms, without five long open cards.
-  from bs4 import BeautifulSoup
-  parsed=BeautifulSoup(version,'html.parser')
-  for card,case_id,left,right,needle in zip(parsed.select('.wmb-version-case'),['357c9ba1-1c6c-4d8f-a75e-0bc4a3bc9b3c','14f8fe79-f899-4074-9878-1bf9f301ad95','63cfc5dd-1737-485f-9bc9-cacc65299ba8','ac11d851-aed7-4b9e-89d1-39c142fa152d','0b7ac530-19ea-4a14-a8bd-adb9cd646351'],['moli']*5,['moli-1.1.7']*5,['Sign in','The classic comedic', '5月10日 20:14', 'remember syntax', 'javascript:void']):
-   card.name='details'
-   if case_id=='ac11d851-aed7-4b9e-89d1-39c142fa152d':card['open']=''
-   card.h3.name='summary'
-   specimen=evidence_pair(case_id,left,right,needle)
-   card.insert(2,BeautifulSoup(specimen,'html.parser'))
-  version=str(parsed)
- latency_rows=[]
- timed=[r for rs in bycase.values() for r in rs if 'elapsed_ms' in r and 'total_elapsed_ms' in r]
- timing=_wmb_latency_summary(timed,names)
+ def highlighted(name,metric):
+  value=score(name,metric)
+  values=[score(candidate,metric) for candidate in names]
+  present=[v for v in values if v is not None]
+  winner=value is not None and present and value==max(present) and present.count(value)==1
+  text=_wmb_pct(value)
+  return '<span class="comparison-winner">'+text+'</span>' if winner else text
+ rows=[]
  for name in names:
-  stat=timing['successful'][name]
-  latency_rows.append(('',cell(link('../providers/'+name+'.html',labels[name]))+cell(str(stat['count'])+'/'+str(case_count))+''.join(_wmb_timing_cell(timing['successful'],name,key) for key in ('mean','p50','p95'))))
- old_timing=timing['successful'].get('moli');new_timing=timing['successful'].get('moli-1.1.7')
- if old_timing and new_timing and out is not None and (out/'latency-corrections.json').is_file():
-  latency_interpretation=paragraph(
-   f'Moli 两版的正式耗时现采用同一批 200 页交叉复测第二轮，均有 199 页成功。1.1.5 的均值与 P50 为 {ms(old_timing["mean"])}、{ms(old_timing["p50"])}；1.1.7 为 {ms(new_timing["mean"])}、{ms(new_timing["p50"])}。旧批次耗时保留在纠正收据中。其余四种方法仍来自原有批次，跨方法速度需结合执行时间窗看。绿色只标本列最低值。',
-   f'Formal Moli timing now uses round two of the same 200-page balanced crossover, with 199 successful pages per version. Mean and P50 are {ms(old_timing["mean"])} and {ms(old_timing["p50"])} for 1.1.5, versus {ms(new_timing["mean"])} and {ms(new_timing["p50"])} for 1.1.7. Prior batch timings remain in the correction receipt. The other four methods retain their original batches; cross-method speed also depends on execution windows. Green marks column minima.')
- elif old_timing and new_timing:
-  latency_interpretation=paragraph(
-   f'六方法正式表中，Moli 1.1.5 与 1.1.7 的 P50 分别为 {ms(old_timing["p50"])} 和 {ms(new_timing["p50"])}，各有 199 页成功。两版来自独立批次，不能凭此判断版本快慢；下方给出交叉复测。绿色只标出本列最低值。',
-   f'The formal six-method table records Moli P50 values of {ms(old_timing["p50"])} for 1.1.5 and {ms(new_timing["p50"])} for 1.1.7, with 199 successful pages each. Those separate batches do not establish a version speed difference; the balanced crossover follows. Green marks column minima.')
- else:
-  latency_interpretation=''
- delivery=chapter('delivery','06 · 成功 fetch 的耗时，与同页对照','06 · Successful-fetch latency and matched pages',paragraph('每页采用最终结果。计时从这次 fetch 请求开始，到返回转换结果为止；只有最终调用成功、返回非空目标正文且不是错误页，才进入下表。前一次失败的耗时不相加。例如先失败 800 ms、再成功 200 ms，这页的成功 fetch 耗时就是 200 ms。','Each page uses its final result. Timing runs from that fetch request to its converted response. A page enters this table only when the final call succeeds with non-empty target content, not an error page. Previous failed calls are not added: an 800 ms failure followed by a 200 ms success contributes 200 ms.')+paragraph('均值是成功 fetch 耗时之和除以成功页数；P50 是这些耗时的中位数；P95 是约 95% 的成功 fetch 所需时间上限。三项使用同一批成功页，与文字、公式或表格的计分页数无关。','The mean divides successful-fetch time by the success count. P50 is the median of those durations; P95 is the time within which roughly 95% of successful fetches finish. All three use the same success population, independently of text, formula or table scoring populations.')+'<p class="wmb-latency-population"><strong>'+h('仅最终成功 fetch；成功页数单列，失败不进入耗时均值','Final successful fetches only; success counts shown separately, failures excluded')+'</strong></p>'+table([h('方法','Method'),h('成功页 / 总页数','Successful / all pages'),h('均值耗时','Mean latency'),h('P50 耗时','P50 latency'),h('P95 耗时','P95 latency')],latency_rows,cls='wmb-guide-latency',metrics=[])+latency_interpretation+(_wmb_matched_latency(timed,names,labels,english) if timed else '')+paragraph(f'完整结果仍保留全部 {case_count*len(names):,} 条：{body_total:,} 条有目标正文，{fail_total} 条没有，集中在 6 页。失败反映在成功覆盖中，不以 0 ms 冒充快速返回，也不混进成功耗时。异常证据分别指向脚本与环境冲突、离开冻结页后的网络隔离，以及复杂表格触发远程服务边界。',f'The full matrix retains all {case_count*len(names):,} results: {body_total:,} with target content and {fail_total} without it, concentrated on six pages. Failures reduce coverage; they are neither counted as fast zero-duration results nor mixed into successful-fetch timing. Anomaly evidence identifies script/runtime conflicts, network isolation after navigation away from a frozen page, and complex tables hitting a remote-service boundary.')+paragraph('同题对照统一了页面，但没有消除执行环境差异：Kitesurf 包含远程服务与网络开销，其他路线在本地运行；各批次也并非同一时间窗。这些数字比较的是本轮端到端转换耗时。原始六方法比较没有可比的 CPU、内存或网络资源测量；下方的 Moli 复跑另有宿主机采样。','Matching pages controls the input population, not the execution environment: Kitesurf includes remote service and network overhead, while the other routes run locally. Batches also ran in different time windows. These numbers compare this run’s end-to-end conversion latency; the original six-method comparison has no comparable CPU, memory or network-resource measurements; the Moli rerun below adds host-level samples.')+'<p class="source-note">'+link('../methodology/index.html#latency-policy',h('完整计时规则与原始执行成本','Timing rules and retained execution cost'))+' · '+link('../review/index.html',h('异常审核与证据','Anomaly review and evidence'))+'</p>')
- decision=chapter('decision','07 · 选型取决于要交付的内容','07 · Choose for the content you need to deliver',paragraph('如果需要可被程序继续读取的 Markdown，表格边界、公式定界符和代码块应成为明确的验收条件。Moli 1.1.7 修复了旧版表格摊平问题，综合分从 30.0% 升到 32.0%；与此同时，全文相似度下降、缩进文案进入代码评分、转义影响公式识别，都应纳入版本取舍。','For machine-readable Markdown, table boundaries, formula delimiters and code blocks should be explicit acceptance criteria. Moli 1.1.7 repairs flattened tables and raises overall from 30.0% to 32.0%. Its lower full-text similarity, indented prose entering code scoring and escaped formula syntax are also part of the version tradeoff.')+paragraph('Kitesurf 以 32.4% 综合分领先，适合优先核验质量、可以接受秒级耗时的场景。Lightpanda 的 31.7% 综合分、200/200 页有正文和 129 ms 中位耗时，使它值得进入低延迟候选，但必须检查慢尾部。Moli 1.1.5 的文字和代码均值领先，代价是表格不可解析；两版实际速度应看同页交叉顺序复测。Chromium 可作整页 DOM 转换基线；Obscura 的公式均值最高，但表格结构几乎为零，不能用单项最高代替整体选择。','Kitesurf leads overall at 32.4%, making it a candidate where quality is prioritized and seconds of latency are acceptable. Lightpanda combines 31.7% overall, body text on 200/200 pages and a 129 ms median, but its slow tail needs attention. Moli 1.1.5 leads the text and code means, at the cost of unparseable tables. The matched crossover below is the relevant version-speed check. Chromium provides a whole-DOM conversion baseline. Obscura has the highest formula mean but almost zero table structure; one leading component is insufficient for an overall choice.')+paragraph('共同的下一步是先确定正文范围，再要求结构保真。实时网站还涉及访问限制、外部资源与动态请求，应在同一时间窗另做真实 URL 验证。本轮结果可用于筛选转换方案，实时交付能力由后续实站测试验证。','The shared next step is to define main-content scope, then require structural fidelity. Live websites add access restrictions, external resources and dynamic requests, so they need a separate same-window URL evaluation. This cohort establishes results for the 200 frozen conversions.')+'<p class="source-note">'+h('分数、输出哈希与重试链已对全部 1,200 个结果做程序核对；异常审核覆盖 6 页的 36 个结果，其余 1,164 个未做逐条人工内容审核。文中的版本案例是针对性核查，不等于全量内容验收。','Scores, output hashes and retry chains were checked programmatically for all 1,200 results. Anomaly review covers 36 results on six pages; the remaining 1,164 have no individual human content review. Targeted version examples are not a full content acceptance review.')+'</p><p class="actions">'+link('../analysis/index.html',h('逐页结果与完整输出','Per-page results and full outputs'))+' · '+link('../review/index.html',h('审核与修正记录','Reviews and corrections'))+'</p>')
- if latency_diagnostic:
-  delivery=delivery.removesuffix('</section>')+'<h3>'+h('Moli 同机耗时：版本差异是否稳定？','Moli on one host: is the version gap stable?')+'</h3>'+_wmb_latency_rerun(latency_diagnostic,english,prefix='../',formal_round=formal_round)+'</section>'
- return head+scope+overall+content+tables+version+delivery+decision+'</article></div>'
+  body=cell(link('../providers/'+name+'.html',labels.get(name,name)))
+  for metric in metrics:
+   body+=cell(highlighted(name,metric)+'<small>'+str(denom(name,metric) or 0)+' / '+str(case_count)+'</small>',score(name,metric))
+  rows.append(('',body))
+ overall=chapter('overall',h('当前结果','Current results'),
+  paragraph(f'本次包含 {case_count} 页、{len(names)} 种方法。表中分数来自本次保存的结果，分数下方列出计分页数。绿色标记该列唯一最高分。',
+            f'This run contains {case_count} pages and {len(names)} methods. Scores come from saved results; counts below each score show its population. Green marks the unique column maximum.')+
+  table([h('方法','Method'),h('综合分','Overall'),h('全文相似度','Full-text similarity'),h('代码相似度','Code similarity'),h('公式相似度','Formula similarity'),h('表格内容相似度','Table-content similarity'),h('表格结构相似度','Table-structure similarity')],rows,cls='wmb-guide-results',metrics=[]))
+ scope=chapter('scope',h('输入与计分范围','Inputs and scoring scope'),
+  paragraph('输入为冻结 HTML，参考答案限定主内容范围。相似度同时受遗漏、额外内容和格式影响，不能直接解释为找回正文的比例。不同分项的计分页数可能不同。',
+            'Inputs are frozen HTML and references cover selected main content. Similarity reflects omissions, additional content and formatting; it is not a direct fraction of body text retrieved. Component populations may differ.')+
+  _wmb_denominator_example(records,english,case_count))
+ def specimen(metric):
+  if not cases:return paragraph('没有可展示的任务。','No task is available.')
+  case_id=next(iter(cases))
+  selected=bycase.get(case_id,[])
+  stats=[]
+  for row in selected:
+   details=row.get('metrics',{}).get(metric,{})
+   length=(details.get('details') or {}).get('predicted_text_length')
+   length_text=f'{length:,}' if length is not None else h('长度未记录','Length not recorded')
+   stats.append('<span>'+esc(labels.get(row['provider'],row['provider']))+': '+_wmb_pct(details.get('score'))+' · '+length_text+'</span>')
+  evidence=''
+  if out is not None:
+   from pathlib import Path
+   paths=[(h('参考内容','Reference'),Path('references')/(case_id+'.md'))]
+   if selected:paths.append((labels.get(selected[0]['provider'],selected[0]['provider']),Path(selected[0]['artifact_path'])))
+   for title,relative in paths:
+    path=contained_path(out,relative,reject_symlinks=True)
+    if path.is_file():
+     evidence+='<article><h3>'+esc(title)+'</h3><pre>'+esc(path.read_text(encoding='utf-8')[:550])+'</pre></article>'
+  return '<div class="wmb-case-study">'+link('../datasets/'+case_id+'.html',h('查看任务与全部输出','Inspect the task and every output'))+'<div class="wmb-evidence-pair">'+evidence+'</div><div class="wmb-case-stats">'+''.join(stats)+'</div></div>'
+ content=chapter('content',h('正文与参考对照','Output and reference'),specimen('text_edit'))
+ tables=chapter('tables',h('表格识别与结构','Table recognition and structure'),
+  _wmb_table_example(english)+_wmb_table_population(records,names,labels,english)+specimen('table_TEDS'))
+ version=chapter('version-differences',h('方法差异的证据','Evidence of method differences'),
+  paragraph('逐页结果保留每种方法的输出、计分项与错误。版本差异的原因需要绑定当前结果的审查证据，不能由综合分高低推定。',
+            'Per-page results retain outputs, component scores and errors for each method. Causes of version differences require review evidence bound to these results; aggregate scores alone do not establish them.')+
+  link('../analysis/index.html',h('比较同页结果','Compare same-page results')))
+ timing=_wmb_latency_summary([row for row in records if '_body_present' in row],names)['successful']
+ timing_rows=[]
+ for name in names:
+  item=timing[name]
+  values=cell(labels.get(name,name))+cell(item['count'])
+  for key in ('mean','p50','p95'):
+   present=[value[key] for value in timing.values() if value[key] is not None]
+   value=item[key]
+   winner=value is not None and present and value==min(present) and present.count(value)==1
+   display=ms(value)
+   values+=cell('<span class="comparison-winner">'+display+'</span>' if winner else display,value)
+  timing_rows.append(('',values))
+ delivery=chapter('delivery',h('交付结果与耗时','Delivery and latency'),
+  paragraph('均值、P50 和 P95 均使用每种方法最终成功交付正文的调用；表中列出各自样本数。失败和重试执行成本仍保留在结果证据中。',
+            'Mean, P50 and P95 use each method’s final calls that successfully deliver body text, with sample counts shown. Failed-call and retry execution costs remain in the result evidence.')+
+  table([h('方法','Method'),h('成功页数','Successful pages'),h('均值耗时','Mean latency'),'P50','P95'],timing_rows,cls='wmb-guide-latency',metrics=[]))
+ if latency_diagnostic is not None:
+  delivery=delivery.removesuffix('</section>')+_wmb_latency_rerun(latency_diagnostic,english,prefix='../',formal_round=formal_round)+'</section>'
+ decision=chapter('decision',h('结果的使用范围','Using these results'),
+  paragraph('按所需交付内容查看分项和逐页证据。结论只适用于本次声明的输入、版本与运行条件；新实验需要自己的证据和解读。',
+            'Use component scores and per-page evidence for the required output. Conclusions apply to the declared inputs, versions and conditions; a new experiment needs its own evidence and interpretation.'))
+ return '<div class="wrap wmb-editorial"><article><h1>'+h('结果解读','Reading the results')+'</h1>'+overall+scope+content+tables+version+delivery+decision+'</article></div>'
+
 
 
 def _wmb_write(out,path,title,body,english=False):
  if english:
-  body=body.replace('<div class="eyebrow">Web Fetch · 实测报告</div>','<div class="eyebrow">Web Fetch · Measured report</div>')
+  body=body.replace('<div class="eyebrow">Web Fetch · 评测报告</div>','<div class="eyebrow">Web Fetch · Measured report</div>')
   body=body.replace('aria-label="内容选择"','aria-label="Choose content"').replace('<th>序号</th>','<th>No.</th>')
  local=('en/'+path) if english else path;depth=len(Path(local).parts)-1;base='../'*depth
  nav=''.join(link(base+('en/' if english else '')+route,en if english else zh) for route,zh,en in _WMB_ROUTES)
  brand=link(base+('en/index.html' if english else 'index.html'),'Web Fetch')
  counterpart=base+path if english else base+'en/'+path
  language=f'<a href="{safe_href(counterpart)}">{"中文" if english else "English"}</a>'
- footer=('Scores come only from this preselected 200-page frozen run. They represent neither the live web nor the official 545-toolkit or 7,809-page leaderboards.' if english else '分数只来自本轮预选的 200 页冻结输入；不代表实时网页，也不等同于官方 545 例工具链榜单或 7,809 页论文榜单。')
+ footer=('Scores apply to the frozen inputs and methods declared in this report. They do not represent the live web or the official WebMainBench leaderboards.' if english else '分数适用于本报告声明的冻结输入和方法，不代表实时网页或官方 WebMainBench 榜单。')
  page=f'<!doctype html><html lang="{"en" if english else "zh-CN"}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}{nav}{language}<button class="theme-toggle" onclick="theme()">{"Theme" if english else "切换主题"}</button></nav></header><main>{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>'
  page=page.replace(f'href="{base}assets/style.css"',f'href="{base}assets/style.css?v={hashlib.sha256((STYLE+EXTRA).encode()).hexdigest()[:16]}"').replace(f'src="{base}assets/report.js"',f'src="{base}assets/report.js?v={hashlib.sha256(JS.encode()).hexdigest()[:16]}"')
  target=contained_path(out,local);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
@@ -2843,7 +2700,7 @@ def _wmb_comparison(cases,bycase,names,labels,english=False):
  axis_options='<option value="">'+h('全部分类','All categories')+'</option>'+''.join(f'<option value="{axis}">{axis_labels[axis]}</option>' for axis in axes)
  categories=sorted({_wmb_category(case,axis) for case in cases.values() for axis in axes})
  category_options='<option value="">'+h('全部','All')+'</option>'+''.join(f'<option value="{esc(value)}">{esc(value)}</option>' for value in categories)
- checks=''.join(f'<label'+(' class="disabled"' if name==default_a else '')+f'><input type="checkbox" data-wmb-compare-method value="{esc(name)}"'+(' disabled' if name==default_a else ' checked' if name==names[1] else '')+f'> {esc(labels[name])}</label>' for name in names)
+ checks=''.join('<label'+(' class="disabled"' if name==default_a else '')+f'><input type="checkbox" data-wmb-compare-method value="{esc(name)}"'+(' disabled' if name==default_a else ' checked' if name==names[1] else '')+f'> {esc(labels[name])}</label>' for name in names)
  controls='<div class="comparison-controls"><label>'+h('方法 A','Method A')+'<select id="wmb-compare-a" data-wmb-compare-control>'+options+'</select></label><label>'+h('比较条件','Comparison condition')+'<select id="wmb-compare-relation" data-wmb-compare-control>'+relation_options+'</select></label><label>'+h('分类轴','Category axis')+'<select id="wmb-compare-axis" data-wmb-compare-control>'+axis_options+'</select></label><label>'+h('分类','Category')+'<select id="wmb-compare-category" data-wmb-compare-control>'+category_options+'</select></label></div><fieldset class="comparison-methods"><legend>'+h('对比方法（可多选）','Comparison methods (select multiple)')+'</legend><div class="method-checks">'+checks+'</div></fieldset>'
  rows=[]
  for case in cases.values():
@@ -2919,9 +2776,9 @@ def _wmb_result_detail(r,c,output,reference,labels,metric_labels,failure_notes,c
  return '<div data-report-detail="failed">'+body+''.join(dialogs)+'</div>' if failed else '<div data-report-detail="success">'+body+''.join(dialogs)+'</div>'
 
 
-def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,manifests:list,review:dict|None=None,research:dict|None=None,corrections:dict|None=None,adoption_data:dict|None=None,fixture_correction:dict|None=None,teds_revision:tuple|None=None,anomaly_review:dict|None=None,latency_diagnostic:dict|None=None,*,include_english:bool=False):
+def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,manifests:list,review:dict|None=None,research:dict|None=None,corrections:dict|None=None,adoption_data:dict|None=None,fixture_correction:dict|None=None,teds_revision:tuple|None=None,anomaly_review:dict|None=None,latency_diagnostic:dict|None=None,*,include_english:bool=False,report_content:dict|None=None):
  """Render the current WebMainBench report with the established report shell."""
- from .report_changes import render_webmainbench_history, webmainbench_history, ROOT
+ from .report_changes import ROOT, render_webmainbench_history, webmainbench_history
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA,encoding='utf-8')
  (out/'assets/report.js').write_text(JS,encoding='utf-8')
@@ -3156,7 +3013,7 @@ flowchart LR
    cause=finding['cause_en' if english else 'cause_zh']
    for provider in finding.get('affected_providers',[]):
     failure_notes[(provider,finding['case_id'])]=(observed,cause)
-  guide=_wmb_editorial_guide(english=english,names=names,labels=labels,cases=cases,
+  guide=report_content["guide"]["en" if english else "zh"] if report_content is not None else _wmb_guide(english=english,names=names,labels=labels,cases=cases,
                              bycase=bycase,case_count=case_count,score=score,denom=denom,
                              failures=failures,out=out,latency_diagnostic=latency_diagnostic,
                              formal_round=formal_round)
@@ -3320,7 +3177,7 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
             or set(method_error_profiles) != set(providers)
             or any(set(item) != {"runtime", "quality", "reading"}
                    for item in method_error_profiles.values())):
-        raise ValueError("Report content lacks a complete seven-method error profile")
+        raise ValueError("Report content lacks a complete registered-method error profile")
     moli_fix_profiles = content.get("moli_fix_profiles")
     expected_moli_fix_images = [f"moli-fix-{index:02d}-{suffix}.png" for index, suffix in (
         (1, "visibility-disclosure"), (2, "fallback-fragments"),
@@ -3588,7 +3445,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
 
     home = ('<section class="hero"><h1>' + prose('home_title') + '</h1><p>' + prose('home_lead') + '</p></section>' +
             '<section><h2>核心结果</h2>' + metric_table() + '<p class="note">' + prose('score_note') + '</p></section>' +
-            '<section><h2>七种方法的质量风险定位</h2>' + quality_issue_matrix() +
+            '<section><h2>各方法的质量风险定位</h2>' + quality_issue_matrix() +
             '<p class="note">同一结果可同时进入多列。未生成正文按 545 页统计；全文按 545 页统计；代码、公式、表格内容与表格结构分别只统计 110、257、179、179 页固定参考总体。绿色仅表示该列唯一最少，不代表综合质量排名。</p></section>' +
             '<section><h2>全部页面的调用耗时</h2>' + all_call_latency_table() + '<p class="note">' + prose('all_latency_note') + '</p></section>' +
             '<section><h2>目标正文页面的调用耗时与重试成本</h2>' + latency_table() + '<p class="note">' + prose('latency_note') + '</p></section>' +
@@ -3652,9 +3509,9 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
          filters + '<p>当前显示 <strong id="count"></strong> 条。<span id="empty" hidden>当前条件无结果。</span></p>' +
          table(["任务", "方法", "诊断", "全文分", "最终调用", "同页"], result_rows,
                ['text', 'text', 'text', 'number', 'number', None], 'result-inventory') +
-         '<dialog id="diagnosis-dialog" aria-labelledby="diagnosis-title"><button type="button" id="diagnosis-close">关闭诊断</button><h2 id="diagnosis-title"></h2><p id="diagnosis-stage"></p><p id="diagnosis-error"></p><p id="diagnosis-cause"></p><p id="diagnosis-treatment"></p><details><summary>原始运行日志</summary><pre id="diagnosis-log"></pre></details><p class="actions"><a id="diagnosis-result">完整结果与调用记录</a><a id="diagnosis-output">原始输出</a><a id="diagnosis-case">同页七方法对照</a></p></dialog>')
+         '<dialog id="diagnosis-dialog" aria-labelledby="diagnosis-title"><button type="button" id="diagnosis-close">关闭诊断</button><h2 id="diagnosis-title"></h2><p id="diagnosis-stage"></p><p id="diagnosis-error"></p><p id="diagnosis-cause"></p><p id="diagnosis-treatment"></p><details><summary>原始运行日志</summary><pre id="diagnosis-log"></pre></details><p class="actions"><a id="diagnosis-result">完整结果与调用记录</a><a id="diagnosis-output">原始输出</a><a id="diagnosis-case">同页各方法对照</a></p></dialog>')
     page("cases/index.html", "同页比较",
-         '<section class="hero"><h1>人工答案与七种方法的完整输出</h1><p id="case-id"></p><p class="source" id="case-url"></p></section>'
+         '<section class="hero"><h1>人工答案与各方法的完整输出</h1><p id="case-id"></p><p class="source" id="case-url"></p></section>'
          '<p class="actions"><a id="case-source">冻结网页</a><a id="case-reference">人工答案</a>' + anchor("dataset/index.html", "返回数据集") + '</p>'
          '<div class="scroll"><table id="case-result-table"><thead><tr><th aria-sort="none"><button type="button" class="sort-button" data-table-sort onclick="sortReportTable(this)" data-sort-type="text">方法<span aria-hidden="true"> ↕</span></button></th><th aria-sort="none"><button type="button" class="sort-button" data-table-sort onclick="sortReportTable(this)" data-sort-type="text">诊断<span aria-hidden="true"> ↕</span></button></th>' + ''.join('<th aria-sort="none"><button type="button" class="sort-button" data-table-sort onclick="sortReportTable(this)" data-sort-type="number">' + esc(label) + '<span aria-hidden="true"> ↕</span></button></th>' for _, label in measures) +
          '</tr></thead><tbody id="case-results"></tbody></table></div>'
@@ -3662,7 +3519,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
     page("results/index.html", "逐项结果",
          '<div data-report-detail="pending"><section class="hero"><h1 id="result-title">正在载入结果…</h1><p class="source" id="result-source"></p></section>'
          '<section class="panel" data-result-summary><h2>结果摘要</h2><p id="result-summary"></p></section>'
-         '<p id="result-correction" hidden>本条为保留原网址后的认证补测结果，已替换旧环境下同一方法的结果。<a href="guide/index.html#fixture-correction">原因、七方法对照与旧调用记录</a></p>'
+         '<p id="result-correction" hidden>本条为保留原网址后的认证补测结果，已替换旧环境下同一方法的结果。<a href="guide/index.html#fixture-correction">原因、各方法对照与旧调用记录</a></p>'
          '<section class="panel" data-failure-diagnosis id="result-failure" hidden><h2>错误与诊断</h2><p id="result-stage"></p><p id="result-error"></p><p id="result-cause"></p><p id="result-treatment"></p>'
          '<details id="result-logs"><summary>原始运行日志</summary><pre data-kind="error" id="result-log"></pre></details></section>'
          '<section><h2>五项质量指标</h2><div class="scroll"><table><thead><tr><th>指标</th><th>分数</th><th>状态</th></tr></thead><tbody id="result-metrics"></tbody></table></div></section>'
@@ -3691,7 +3548,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
         result_index[key] = target
         bound_artifact(row["artifact_path"], row["output_sha256"], target)
     physical_path = out / "physical-attempts.jsonl"
-    physical = [json.loads(line) for line in physical_path.read_text(encoding="utf-8").splitlines() if line.strip()] if physical_path.is_file() else []
+    physical = load_jsonl(physical_path, skip_blank=True) if physical_path.is_file() else []
     for attempt in physical:
         case_id = attempt["track_id"]
         target = shard_name(attempt["provider"], case_id)
@@ -3701,7 +3558,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                                       ('superseded-case-calls.jsonl', 'physical_artifact_path')]:
         historical_path = out / historical_name
         if historical_path.is_file():
-            for attempt in (json.loads(line) for line in historical_path.read_text().splitlines()):
+            for attempt in iter(load_jsonl(historical_path)):
                 case_id = attempt.get('case_id', attempt.get('track_id'))
                 target = shard_name(attempt['provider'], case_id)
                 bound_artifact(attempt[path_key], attempt['output_sha256'], target)
@@ -3746,7 +3603,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
         anchor("viewer/index.html?path=sources/" + example_id + ".html.txt", "冻结 HTML"),
         anchor("viewer/index.html?path=references/" + example_id + ".md", "人工答案"),
         anchor("viewer/index.html?path=" + example_row["artifact_path"], labels[providers[0]] + " 输出"),
-        anchor("cases/index.html?id=" + example_id, "七种方法同页比较"),
+        anchor("cases/index.html?id=" + example_id, "各方法同页比较"),
     ])
     overall_scores = {provider: summaries[provider]["official_aggregate"]["scores"]["overall"]
                       for provider in providers}
@@ -3783,7 +3640,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                      (table(['任务', '原版正文', labels[prior_moli], labels[content_moli], '逐项证据'], changed_moli_rows)
                       if changed_moli_rows else '') +
                      '<p class="note">两个修复版均为独立的 545 页认证运行，运行日期不同，耗时不作版本快慢结论。' +
-                     anchor('seven-method-binding.json', '三轮证据绑定') + ' · ' +
+                     anchor(profile.get('method_binding_file', 'seven-method-binding.json'), '三轮证据绑定') + ' · ' +
                      anchor('https://github.com/lexmount/moli/pull/785', 'PR785') + ' · ' +
                      anchor('https://github.com/lexmount/moli/pull/814', 'PR814（历史前身）') + ' · ' +
                      anchor('https://github.com/lexmount/moli/pull/919', 'PR919（本次实测来源）') +
@@ -3849,7 +3706,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                         '<p class="note">每张图按现象、根因、修复和泛化验证组织，可单独作为评审幻灯片。</p>' +
                         ''.join(moli_fix_slides) + '</section>')
     guide_error_landscape = (
-        '<section id="error-landscape"><h2>七种方法错在哪、差在哪</h2>' +
+        '<section id="error-landscape"><h2>各方法错在哪、差在哪</h2>' +
         '<div class="presentation-slide">' +
         illustration('seven-method-error-taxonomy.png',
                      '错误先分为运行交付故障和内容质量缺口，再按方法定位主要问题族。') +
@@ -3887,7 +3744,7 @@ document.addEventListener('DOMContentLoaded',()=>{let dialog=document.getElement
                       *[item['profile'] for item in profile.get('variants', [])],
                       *[item['provider'] + "-cohort-certificate.json" for item in profile.get('variants', [])],
                       *[item['provider'] + "-scoring-certificate.json" for item in profile.get('variants', [])],
-                      "seven-method-binding.json",
+                      profile.get("method_binding_file", "seven-method-binding.json"),
                       "execution.json", "dataset.json",
                       "results.jsonl", "physical-attempts.jsonl",
                       "score-summaries.json", "scoring-correction.json",

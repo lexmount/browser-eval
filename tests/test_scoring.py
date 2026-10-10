@@ -1,23 +1,23 @@
 """Shared scoring uses saved bytes only; all calls and references are synthetic."""
+import hashlib
+import io
+import json
+import tempfile
+import unittest
 from contextlib import redirect_stdout
 from copy import deepcopy
 from dataclasses import asdict, replace
 from datetime import datetime, timezone
-import hashlib
-import io
-import json
 from pathlib import Path
-import tempfile
-import unittest
 from unittest.mock import Mock, patch
 
+from harness.web_fetch import rescoring as rescore_content
+from harness.web_fetch import runner
 from harness.web_fetch.metrics import summarize, task_measured, task_passed
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.providers.http_client import HttpResponse
-from harness.web_fetch import runner
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
-from scripts import rescore_content
 
 
 def case(**changes):
@@ -730,6 +730,66 @@ class ScoringPipelineTests(unittest.TestCase):
         self.assertEqual(file_row["metrics"], original["metrics"])
         self.assertEqual(summarize(script_rows)["cases"]["file"]["task_pass_rate"], 0)
 
+    def test_both_rescores_verify_every_declared_evidence_before_writes(self):
+        records, _ = self.live()
+        self.prepare_script_references()
+        record = records[0]
+        artifact = self.run / "artifacts" / "auxiliary.txt"
+        original = b"retained acquisition evidence"
+        digest = hashlib.sha256(original).hexdigest()
+        relative = artifact.relative_to(self.run).as_posix()
+        declarations = {
+            "stdout": {"raw_stdout_path": relative, "raw_stdout_sha256": digest},
+            "rendered_html": {"rendered_html_path": relative, "rendered_html_sha256": digest},
+            "downloaded_file": {"file_evaluation": {"files": [
+                {"artifact_path": relative, "sha256": digest}]}},
+            "retry": {"retry": {"attempts": [{"artifact_path": relative,
+                "content_sha256": digest, "artifact_paths": [relative],
+                "artifact_sha256": {relative: digest}}]}},
+        }
+        baseline = deepcopy(record["provider_metadata"])
+        snapshots = ("results.jsonl", "summary.json", "dataset.json", "manifest.json")
+        for kind, declaration in declarations.items():
+            record["provider_metadata"] = {**baseline, **declaration}
+            artifact.unlink(missing_ok=True)
+            artifact.write_bytes(original)
+            (self.run / "results.jsonl").write_text(
+                "".join(json.dumps(row) + "\n" for row in records))
+            with self.subTest(artifact=kind, damage="none"):
+                runner.rescore_evaluation(
+                    run_dir=self.run, dataset_meta=self.dataset,
+                    dataset_path=self.path, cases=self.cases)
+                rescore_content.rescore(self.run)
+                self.assertEqual(artifact.read_bytes(), original)
+                self.assertEqual(self.provider.fetch.call_count, len(self.cases))
+            for damage in ("modified", "missing", "symlink"):
+                artifact.unlink(missing_ok=True)
+                artifact.write_bytes(original)
+                (self.run / "results.jsonl").write_text(
+                    "".join(json.dumps(row) + "\n" for row in records))
+                before = {name: (self.run / name).read_bytes() for name in snapshots}
+                if damage == "modified":
+                    artifact.write_bytes(b"changed")
+                elif damage == "missing":
+                    artifact.unlink()
+                else:
+                    target = self.root / "linked-evidence.txt"
+                    target.write_bytes(original)
+                    artifact.unlink()
+                    artifact.symlink_to(target)
+                for entry, invoke in (
+                    ("run", lambda: runner.rescore_evaluation(
+                        run_dir=self.run, dataset_meta=self.dataset,
+                        dataset_path=self.path, cases=self.cases)),
+                    ("assembled", lambda: rescore_content.rescore(self.run)),
+                ):
+                    with self.subTest(artifact=kind, damage=damage, entry=entry):
+                        with self.assertRaises((ValueError, OSError)):
+                            invoke()
+                        self.assertEqual(
+                            {name: (self.run / name).read_bytes() for name in snapshots}, before)
+        artifact.unlink(missing_ok=True)
+
     def test_both_rescores_reject_modified_output_without_writing_results(self):
         records, _ = self.live()
         path = self.run / "results.jsonl"
@@ -740,7 +800,7 @@ class ScoringPipelineTests(unittest.TestCase):
                                               dataset_path=self.path, cases=self.cases),
             lambda: rescore_content.rescore(self.run, case_ids={"web"}),
         ):
-            with self.assertRaisesRegex(ValueError, "integrity|Public call log output binding changed"):
+            with self.assertRaisesRegex(ValueError, "integrity|Public call log output binding changed|Artifact differs from its result binding"):
                 rescore()
             self.assertEqual(path.read_bytes(), before)
 
