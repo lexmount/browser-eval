@@ -1544,7 +1544,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
  from .report_components import comparable_body_reference
  title_scope=track=='challenge' and any('title_quality' in r for r in records if cases[r['case_id']].get('track')==track)
  selected={k:c for k,c in cases.items() if c.get('track','web')==track}
- text_track=track in {'web','dynamic','document','challenge'} and any(c.get('task_kind','body') in {'body','structure'} for c in selected.values())
+ text_track=track in {'web','dynamic','document','challenge','risk_control'} and any(c.get('task_kind','body') in {'body','structure'} for c in selected.values())
  groups=defaultdict(list)
  for r in records:
   if cases[r['case_id']].get('track','web')==track:groups[r['provider']].append(r)

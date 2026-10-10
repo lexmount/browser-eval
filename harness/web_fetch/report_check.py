@@ -633,6 +633,24 @@ def check_revision(out: Path, *, authority_root: Path):
                     raise ValueError((path, width))
         for table in soup.select("table.ranking"):
             headers = table.select("thead th")
+            body_families = {"web", "dynamic", "challenge", "risk_control", "document"}
+            family = table.get("id", "").removeprefix("ranking-")
+            if family in body_families and any(
+                c.get("track", "web") == family and c.get("task_kind", "body") in {"body", "structure"}
+                for c in dataset["cases"]
+            ):
+                labels = [h.get_text() for h in headers]
+                required = (
+                    ["Recall", "Precision", "F1"] if is_english else ["完整度", "纯净度", "F1"]
+                )
+                forbidden = (
+                    ["Resource hit rate", "File retrieval rate"]
+                    if is_english else ["资源命中率", "文件取得率"]
+                )
+                if not all(any(label in h for h in labels) for label in required) or any(
+                    label in h for label in forbidden for h in labels
+                ):
+                    raise ValueError((path, "Body ranking metric columns", family))
             sort = int(table["data-col"])
             expected = (
                 (["Matched repositories"] if is_english else ["命中仓库数"])

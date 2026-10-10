@@ -258,9 +258,9 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertEqual(row[7],'100.0%')
         self.assertNotIn('· 1/2 例',rendered)
 
-    def test_four_text_tracks_share_columns_and_text_coverage_semantics(self):
+    def test_all_text_tracks_share_columns_and_text_coverage_semantics(self):
         headers=[]
-        for track in ('web','dynamic','challenge','document'):
+        for track in ('web','dynamic','challenge','risk_control','document'):
             c=case('example','body');c['track']=track
             r=record(c,passed=False)
             r['metrics']['fact_results']=[{'id':'a','pass':True},{'id':'b','pass':False}]
@@ -272,6 +272,18 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertEqual(row[3],'0.0%')
             headers.append([re.sub(r'<[^>]*>','',h) for h in re.findall(r'<th[^>]*>(.*?)</th>',rendered,re.S)])
         self.assertTrue(all(h==headers[0] for h in headers))
+
+    def test_body_without_full_reference_keeps_metrics_unavailable(self):
+        for track in ('web','dynamic','challenge','risk_control','document'):
+            with self.subTest(track=track):
+                c=case('example','body',track)
+                c['ground_truth_main_content']=''
+                r=record(c)
+                rendered=ranking([r],{'example':c},track)
+                row=table_cells(rendered,'ranking-'+track)[0]
+                self.assertEqual(row[4:7],['—']*3)
+                self.assertNotIn('资源命中率',rendered)
+                self.assertNotIn('直接文件必须',rendered)
 
     def test_nonliteral_snapshot_not_promoted_into_invariant_body_quality(self):
         c=case('example','body'); c['track']='dynamic'

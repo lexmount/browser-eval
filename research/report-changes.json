@@ -1323,6 +1323,12 @@
           "稳定版与源码分支的调用发生在不同日期",
           "分别展示完整调用与各方法成功调用的耗时及样本数",
           "这些批次的差值不作为 PR 导致提速的证据；分支未加入独立的资源测量。"
+        ],
+        [
+          "正文专项指标",
+          "风控网站正文表误用了资源和文件指标列",
+          "按正文任务展示完整度、纯净度、F1 和文字核对覆盖；缺少全文参考时显示不可用",
+          "只修正展示，成绩、耗时、任务数和浏览器输出不变。"
         ]
       ],
       "i18n": {
@@ -1365,6 +1371,12 @@
               "Stable and source-branch calls were collected on different dates",
               "Show all-call and each method’s successful-call latency with population counts",
               "Batch differences are not evidence of PR-induced speed improvements. The branch is not part of the independent resource cohort."
+            ],
+            [
+              "Body metrics",
+              "The risk-controlled website table used resource and file columns",
+              "Show completeness, purity, F1 and registered-text coverage for body tasks; full-text metrics remain unavailable without a complete reference",
+              "Presentation only. Scores, latency, task counts and browser outputs are unchanged."
             ]
           ]
         }
