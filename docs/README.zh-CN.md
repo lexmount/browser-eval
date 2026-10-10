@@ -4,6 +4,10 @@
 
 [Moli 浏览器](https://github.com/lexmount/moli)配套的可复现评测工具，也支持其他浏览器、网页抓取服务和 Agent 工具。比较使用明确的任务、统一验收规则和可查看的原始证据。
 
+运行后生成可浏览的 HTML 报告：比较结果、查看单个任务，并打开保存的响应和日志。可以通过 [Artifact Site](https://github.com/lexmount/artifact-site) 在线发布和分享，也可以只在本地查看。
+
+[评测能力](#可以评测什么) · [快速开始](#先运行离线示例) · [发布报告](#发布与分享报告) · [相关仓库](#相关仓库导航) · [参与贡献](#贡献与复现)
+
 ## 可以评测什么
 
 | 轨道 | 输入与评测内容 | 输出 | 说明 |
@@ -120,9 +124,30 @@ uv run --frozen browser-harness-eval run \
 
 按需安装额外依赖：`headless-eval` 用于本地 Chromium、PDF 和容器采集；`webmainbench-eval` 用于 WebMainBench 评分；`browser-use-eval` 用于 WebArena 和 Agent；`oss-eval` 用于开源提取库。`browser-use-eval` 需要 Git，安装固定提交的 WebArena-Verified fork，不能用同版本的注册表包替代。浏览器、Docker、网站部署和账户分别准备。
 
-## 分享报告
+## 发布与分享报告
 
-本地 HTML 报告无需托管账户，也不会自动上传。[Artifact Site](https://artifact-site.lexmount.cn)是可选托管服务：在网站登录或注册，授权 CLI，把选定报告目录发布到自己的账户。命令、访问权限和正式认证报告的发布流程见[托管说明](../docs/report-hosting.md)。项目维护的报告各自绑定站点、主机和预期版本，新报告不能复用那些目标。
+报告提供比较表、逐项结果和保存的证据入口。[Artifact Site](https://github.com/lexmount/artifact-site) 是我们开源的报告托管项目，支持多页面报告、版本历史和分享权限。可以使用托管站点，也可以自行部署。
+
+1. 运行上面的示例，在本地打开生成的 `report/index.html`。
+2. 选择[中国站](https://artifact-site.lexmount.cn/)或[全球站](https://yours.lexmount.com/artifact-site)，登录或创建账户，保存和管理自己的报告。
+3. 通过 CLI 或 MCP 发布本次运行的 `report/` 目录，再在分享设置中选择谁能访问。[托管说明](../docs/report-hosting.md)提供两个站点的命令，以及更新报告和设置权限的方法。
+
+本地报告无需账户，也不会自动上传。示例发布后仍是诊断报告；正式 benchmark 报告使用各自的认证和发布规则。请使用自己的账户和报告目标。
+
+## 相关仓库导航
+
+| 仓库 | 在这项工作中的用途 |
+| --- | --- |
+| [Moli](https://github.com/lexmount/moli) | 浏览器实现；本仓库在统一任务和验收规则下比较 Moli 与其他浏览器 |
+| [Artifact Site](https://github.com/lexmount/artifact-site) | 可选的报告托管、版本管理和分享服务，也支持自行部署 |
+| [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | 配套的浏览器协议、自动化驱动和 Web 平台语义评测；任务集和分数与本仓库各轨道分别管理 |
+| [WebArena-Verified fork](https://github.com/lexmount/webarena-verified/tree/lex-main) | Browser Use 和公开 WebArena 轨迹重放使用的固定任务定义与评估器；集成和评估器维护在 `lex-main` 分支 |
+| [WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) | 冻结 HTML 的正文提取 benchmark；fork 维护已声明的评分修正，每个实验绑定自己的评分依据 |
+| [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | 独立的网页正文提取 benchmark，用于 WCXB 报告轨道 |
+| [CowAgent](https://github.com/zhayujie/CowAgent) | Browser Use 的 Agent 执行器，也是 Web Fetch 工具基线之一 |
+| [OpenClaw](https://github.com/openclaw/openclaw) · [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | 其他 Web Fetch 工具基线 |
+
+按所选轨道和方法安装需要的组件，无需安装表中全部项目。具体提交、运行环境以及其他浏览器和提取库见[依赖来源与版本](../docs/dependencies.md)，署名和许可见[第三方说明](../THIRD_PARTY.md)。
 
 ## 贡献与复现
 

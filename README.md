@@ -4,6 +4,10 @@
 
 Reproducible browser evaluations, maintained as a companion to [Moli](https://github.com/lexmount/moli). Compare browsers, web-fetch services and Agent tools using declared tasks, shared acceptance rules and inspectable evidence.
 
+Turn a run into a browsable HTML report: compare results, inspect individual tasks and follow links to saved responses and logs. Publish it to [Artifact Site](https://github.com/lexmount/artifact-site) for online reading and sharing, or keep it local.
+
+[Capabilities](#what-you-can-evaluate) · [Quickstart](#start-with-the-offline-example) · [Publish a report](#publish-and-share-a-report) · [Related repositories](#related-repositories) · [Contribute](#contribute-and-reproduce)
+
 ## What you can evaluate
 
 | Track | Inputs and evaluation | Outputs | Guide |
@@ -120,9 +124,30 @@ Ordinary CLI runs produce diagnostic evidence. Formal Web Fetch cohorts use `scr
 
 Install extras only as needed: `headless-eval` for local Chromium/PDF/container support, `webmainbench-eval` for WebMainBench scoring, `browser-use-eval` for WebArena/Agent execution, and `oss-eval` for open-source extractors. `browser-use-eval` requires Git and installs the pinned WebArena-Verified fork; a registry package with the same version cannot replace that evaluator. Browser binaries, Docker, site deployments and accounts remain separate installations.
 
-## Share a report
+## Publish and share a report
 
-Local HTML reports require no hosting account and never upload automatically. [Artifact Site](https://artifact-site.lexmount.cn) is an optional hosting service: sign in or register there, authorize its CLI, and publish a selected report directory to your own account. See the [hosting guide](docs/report-hosting.md) for commands, access controls and the separate certified-release path. The maintained reports bind their own hosts, sites and expected versions; never reuse those targets for a new report.
+Reports include comparison tables, task results and links to the saved evidence. [Artifact Site](https://github.com/lexmount/artifact-site) is our open-source hosting project for these multi-page reports, with version history and sharing controls. You can use a hosted instance or deploy it yourself.
+
+1. Run an example above and open the generated `report/index.html` locally.
+2. Choose the [China site](https://artifact-site.lexmount.cn/) or [global site](https://yours.lexmount.com/artifact-site), then sign in or create an account to keep and manage your reports.
+3. Publish the run's `report/` directory through the CLI or MCP, then choose who can open it in the sharing controls. The [hosting guide](docs/report-hosting.md) gives commands for both sites and explains updates and access settings.
+
+Local reports need no account and never upload automatically. Publishing an example preserves its diagnostic status; formal benchmark releases use their own certification and publication contracts. Use your own account and report target.
+
+## Related repositories
+
+| Repository | Role in this work |
+| --- | --- |
+| [Moli](https://github.com/lexmount/moli) | Browser implementation; Browser Eval compares it with other browsers under shared task and acceptance rules |
+| [Artifact Site](https://github.com/lexmount/artifact-site) | Optional report hosting, versions and sharing; also available for self-hosting |
+| [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | Companion benchmark for browser protocols, automation drivers and web-platform semantics; its suite and scores are separate from this repository's tracks |
+| [WebArena-Verified fork](https://github.com/lexmount/webarena-verified/tree/lex-main) | Pinned task definitions and evaluator used by Browser Use and public WebArena replay; maintained integration and evaluator work lives on `lex-main` |
+| [WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) · [upstream](https://github.com/opendatalab/WebMainBench) | Frozen-HTML main-content benchmark; the fork maintains declared scorer corrections, with each experiment binding its scoring authority |
+| [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | Independent web-content extraction benchmark used by the WCXB report track |
+| [CowAgent](https://github.com/zhayujie/CowAgent) | Agent runner for Browser Use and a Web Fetch tool baseline |
+| [OpenClaw](https://github.com/openclaw/openclaw) · [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Additional Web Fetch tool baselines |
+
+Install only what your selected track and method need. [Dependency sources and versions](docs/dependencies.md) records exact commits, runtime requirements and the other browser/library adapters; [THIRD_PARTY](THIRD_PARTY.md) covers attribution and licenses.
 
 ## Contribute and reproduce
 

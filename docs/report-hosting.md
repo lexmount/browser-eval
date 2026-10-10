@@ -4,7 +4,15 @@ The evaluation CLI writes local HTML and evidence. It does not register accounts
 
 ## Your own diagnostic report
 
-[Artifact Site](https://artifact-site.lexmount.cn) hosts static multi-file reports. Sign in or register through its website. Its [current agent/API guide](https://artifact-site.lexmount.cn/for-agents.md) documents deployment limits, authentication and visibility. An agent can read that guide or connect to its MCP endpoint; it should operate on your account and chosen target.
+[Artifact Site](https://github.com/lexmount/artifact-site) is an open-source host for static multi-file reports. Choose a deployment, then sign in or create an account on its website to keep and manage your reports:
+
+| Deployment | Website / CLI base | Agent and API guide |
+| --- | --- | --- |
+| China | [https://artifact-site.lexmount.cn](https://artifact-site.lexmount.cn/) | [Publishing guide](https://artifact-site.lexmount.cn/for-agents.md) |
+| Global | [https://yours.lexmount.com/artifact-site](https://yours.lexmount.com/artifact-site) | [Publishing guide](https://yours.lexmount.com/artifact-site/for-agents.md) |
+| Self-hosted | Your deployment URL; follow the [upstream setup](https://github.com/lexmount/artifact-site#quick-start-local-deployment) | `<your-base>/for-agents.md` |
+
+Each deployment's guide documents its authentication, limits and visibility. An agent can read it or connect to `<your-base>/mcp`; it should operate on your account and chosen target. Keep the global site's `/artifact-site` prefix in CLI, guide and MCP addresses.
 
 With Node.js and npm installed, authorize the official CLI for this host:
 
@@ -18,6 +26,8 @@ Follow the authorization page to sign in and approve access. Publish the report 
 npx --yes @artifact-site/cli@0.4.0 publish /absolute/path/to/run/report \
   --share none --base https://artifact-site.lexmount.cn
 ```
+
+For the global site, replace `--base https://artifact-site.lexmount.cn` in both commands with `--base https://yours.lexmount.com/artifact-site`. For your own deployment, use its complete base URL. Authorize the deployment you intend to publish to.
 
 These commands use the checked CLI version 0.4.0. `--share none` suppresses the older client's automatic independent share link. The service creates new artifacts privately by default. Inspect the returned owner, version and URL, then check visibility in the website. To let anyone with the main link read the report, select `unlisted` in its sharing controls. CLI 0.4.0 has no `visibility` command; current API/MCP visibility operations are documented in the service guide.
 
