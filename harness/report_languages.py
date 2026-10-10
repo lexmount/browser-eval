@@ -52,6 +52,9 @@ def select_report_language(root: Path, language: str) -> Path:
         # Keep the established bilingual routes; explicit Chinese links bypass
         # the English default at the shared root homepage.
         for page in root.rglob("*.html"):
+            # Saved source HTML may itself be a Browser Eval report.
+            if page.relative_to(root).parts[0] in {"artifacts", "references", "inputs", "sources"}:
+                continue
             text = page.read_text(encoding="utf-8")
             if REPORT_PAGE_MARKER not in text:
                 continue
@@ -60,10 +63,10 @@ def select_report_language(root: Path, language: str) -> Path:
 
             def chinese_home(match):
                 parts = urlsplit(html.unescape(match[2]))
-                if parts.scheme or parts.netloc or not parts.path:
+                if parts.scheme or parts.netloc:
                     return match[0]
-                target = (route_base / parts.path).resolve()
-                if target != (root / "index.html").resolve():
+                target = (route_base / parts.path).resolve() if parts.path or base else page.resolve()
+                if target not in {root.resolve(), (root / "index.html").resolve()}:
                     return match[0]
                 query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True)
                          if key != "report-language"]
@@ -100,7 +103,9 @@ def generated_languages(root: Path) -> tuple[str, ...]:
     if not path.exists():
         return ("zh", "en")
     value = json.loads(path.read_text(encoding="utf-8"))
-    languages = value.get("languages")
+    # Older trajectory manifests predate explicit language metadata and are bilingual.
+    legacy = path.name == "report-manifest.json" and "primary_language" not in value
+    languages = value.get("languages", ["zh", "en"] if legacy else None)
     if languages not in (["zh"], ["zh", "en"]):
         raise ValueError("unsupported generated report languages")
     return tuple(languages)

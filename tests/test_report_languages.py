@@ -66,7 +66,7 @@ class VisibleNumbersTests(unittest.TestCase):
         self.assertNotEqual(visible_numbers("100题"), visible_numbers("all tasks"))
 
 
-@pytest.mark.parametrize("base_href,home_href", [(None, "../../index.html"), ("../../", "index.html")])
+@pytest.mark.parametrize("base_href,home_href", [(None, "../../index.html"), ("../../", "index.html"), ("../../", ""), ("../../", "./")])
 def test_primary_english_keeps_explicit_chinese_navigation_and_evidence(tmp_path, base_href, home_href):
     from harness.report_languages import REPORT_PAGE_MARKER, select_report_language
     base = f'<base href="{base_href}">' if base_href else ""
@@ -78,9 +78,9 @@ def test_primary_english_keeps_explicit_chinese_navigation_and_evidence(tmp_path
     detail = tmp_path / "results/task/index.html"
     detail.parent.mkdir(parents=True)
     detail.write_text(page(f'<header><a href="{home_href}?token=abc#overview">Home</a></header>', base))
-    evidence = tmp_path / "evidence/original.html"
+    evidence = tmp_path / "artifacts/original.html"
     evidence.parent.mkdir()
-    evidence.write_text('<html><head></head><body><header><a href="../index.html">Original</a></header></body></html>')
+    evidence.write_text(page('<header><a href="../index.html">Original</a></header>'))
     evidence_bytes = evidence.read_bytes()
     write_language_contract(tmp_path, include_english=True)
     assert select_report_language(tmp_path, "en") == tmp_path / "en/index.html"
