@@ -15,6 +15,7 @@ from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
+from urllib.error import HTTPError
 
 from harness.web_fetch.safety import (
     contained_path,
@@ -393,7 +394,13 @@ class PublicationOperation:
         return pending, False
 
     def completed(self, key: str, *, request: Callable, decode: Callable):
-        status, raw = request('/api/operations/' + urllib.parse.quote(key))
+        try:
+            status, raw = request('/api/operations/' + urllib.parse.quote(key))
+        except HTTPError as error:
+            if error.code != 404:
+                raise
+            error.close()
+            return None
         if status == 404:
             return None
         operation = decode(status, raw, operation='operation recovery')

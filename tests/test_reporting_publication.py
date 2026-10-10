@@ -237,3 +237,24 @@ def test_stable_parent_alias_is_supported_but_retargeting_is_rejected(tmp_path):
         run(report, authority, alias / output.name, alias / receipt.name, retarget)
     assert (output.read_bytes(), receipt.read_bytes()) == before
     assert not list(other.iterdir())
+
+
+@pytest.mark.parametrize('status', [404, 403, 410, 500])
+def test_operation_recovery_handles_real_http_errors_without_replacing_key(tmp_path, status):
+    from urllib.error import HTTPError
+
+    from harness.reporting.publication import PublicationOperation
+    operation = PublicationOperation(tmp_path / 'pending.json', 'test-')
+    identity = {'slug': 'existing', 'archive_sha256': 'bound'}
+    pending, _ = operation.pending(identity, allow_create=True)
+    before = operation.journal.read_bytes()
+    error = HTTPError('https://example.test/api/operations/key', status, 'status', {}, None)
+    def request(*args, **kwargs):
+        raise error
+    if status == 404:
+        assert operation.completed(pending['key'], request=request, decode=lambda *_: None) is None
+    else:
+        with pytest.raises(HTTPError) as caught:
+            operation.completed(pending['key'], request=request, decode=lambda *_: None)
+        assert caught.value.code == status
+    assert operation.journal.read_bytes() == before
