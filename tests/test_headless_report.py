@@ -813,9 +813,11 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                 profile_path.write_text(json.dumps(profile))
                 cli_report=root/'cli-report'
                 build=subprocess.run([sys.executable,'scripts/build_report.py','--profile',str(profile_path),
-                                      '--evidence',str(source),'--output',str(cli_report)],
+                                      '--evidence',str(source),'--output',str(cli_report),'--language','zh'],
                                      cwd=repository,capture_output=True,text=True)
                 self.assertEqual(build.returncode,0,build.stderr)
+                self.assertIn('新一轮浏览器结果',(cli_report/'index.html').read_text())
+                self.assertIn('data-english-not-generated',(cli_report/'en/index.html').read_text())
                 gate=subprocess.run([sys.executable,'scripts/check_report.py',str(cli_report),
                                      '--profile',str(profile_path)],cwd=repository,capture_output=True,text=True)
                 self.assertEqual(gate.returncode,0,gate.stderr+gate.stdout)
