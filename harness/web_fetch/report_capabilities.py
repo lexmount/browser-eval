@@ -250,7 +250,7 @@ def task_capabilities(out, names, records):
             file=c('原生获取','使用该浏览器原始响应或附件接口，按固定规则验收字节'),
             structure='按任务交付 Markdown、文档正文、资源地址、媒体元数据或原始文件。',
             notes='浏览器负责访问与原生产物获取；资源读取脚本由评测提供，通过原生接口读取已加载内容；只有 Chromium 使用标准 HTML 转 Markdown 包。这些调用步骤不会被写成浏览器内置能力。完整分类及边界见报告解读的接口表。',
-            tested='接口按任务输入预选；获取、等待、转换与解析共享 45 秒预算。失败不切换引擎，不按评分结果选择更好的返回。')
+            tested='接口按任务输入预选；获取、等待、网页转换与原生内容投影共享 45 秒预算。失败不切换引擎，不按评分结果选择更好的返回。')
         source='task-native-'+name
         source_url={'moli':'https://github.com/lexmount/moli','lightpanda':'https://github.com/lightpanda-io/browser','obscura':'https://github.com/h4ckf0r0day/obscura','chromium':'https://developer.chrome.com/docs/automation-and-testing/headless','kitesurf':'https://developers.cloudflare.com/browser-run/kitesurf/'}[engine]
         source_url=browser_method_registry()[name].get('source_url',source_url)

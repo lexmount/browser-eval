@@ -26,11 +26,11 @@ HEADLESS_ACCESS={
 def spec(entry,auth,params,fields,request,source,notes):
  return dict(entry=entry,auth=auth,params=params,fields=fields,request=request,source=source,notes=notes)
 SPECS={
- 'moli-webfetch':spec('CLI · 按任务预选 Markdown、JSON 诊断、DOM eval 或裸响应路线','本地二进制；无 API Key',
- [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','普通正文','直接取得 Markdown'),('--eval','动态 / 资源页 / 嵌入文档','读取预声明范围；资源和嵌入文档使用各浏览器共用的脚本'),('--wait-until / --wait-selector / --wait-script','string','使用预声明的生命周期或动态完成条件'),('--timeout / --http-timeout','number','毫秒；导航、HTTP、进程与本地文档解析共享同一端到端预算'),('--block-private-networks','flag','默认启用；仅对冻结公开测试域名的精确白名单省略')],
+ 'moli-webfetch':spec('CLI · 按任务预选 Markdown、DOM eval 或原始响应路线','本地二进制；无 API Key',
+ [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','网页与直接文档正文','直接取得 Moli 原生 Markdown'),('--eval','资源页 / 嵌入文档 / 媒体信息','通过 Moli 原生执行接口读取已加载内容；表达式只由公开任务类型决定'),('--wait-until','string','Markdown 正文统一使用 Moli 默认 done 完成方式'),('外层截止','number','每次调用 45 秒；不改写 Moli 内部 HTTP 和连接超时默认值'),('--block-private-networks','flag','默认启用')],
  [('stdout','UTF-8 string / bytes','Markdown、eval 结果或直接文件原始字节'),('stderr','string','独立诊断；不混入正文'),('exit_code','integer','0 表示工具请求完成；正文或文件为空仍由任务规则单独判失败'),('status_code / final_url','可能未提供','CLI 未提供时保持未知，不伪造 HTTP 200 或最终 URL')],
- {'ordinary_or_popular_body':'moli fetch --dump markdown … URL','exact_page_identity':'moli fetch --dump markdown … URL；官方同次日志无法确认最终网址时保留空值','dynamic_or_resource_page':'moli fetch --eval <answer-free expression> <bounded wait> … URL','direct_document_or_file':'Moli 原生 CDP → 原始响应；附件事件 → 同一 Moli 原始附件接口；文档 → 原生正文接口'},
- 'harness/web_fetch/providers/moli.py','普通正文使用 Markdown；动态完成条件与正文提取范围分离。直接文档使用 Moli 原生正文接口；文件使用原生 CDP 的原始响应；附件事件使用同一二进制的原始附件接口，计入同一时限。图片、视频资源只从已取得的 DOM 中读取，不另抓模块挖掘链接。文档原生文字读取计入同一截止预算；私网保护默认开启，只对冻结公开测试域名使用精确白名单；不在失败后切换格式或借用其他 provider。'),
+ {'page_body':'moli fetch --dump markdown --wait-until done URL','exact_page_identity':'正文仍用原生 Markdown；最终网址不是评分条件，无法确认时保持空值','resource_or_embedded_page':'moli fetch --eval <task-type projection> URL','direct_document_body':'moli fetch --dump markdown --wait-until done URL','direct_file':'Moli 原生 CDP 响应；附件事件使用同一 Moli 原始附件接口'},
+ 'harness/web_fetch/providers/moli.py','普通、动态、热门、风控和直接文档正文统一使用 Moli 原生 Markdown。文件使用原生 CDP 响应或同一二进制的原始附件接口。图片、视频资源和嵌入文档只通过 Moli 原生执行接口读取已加载内容，不另抓模块或下载文档后外部解析。最终网址仅作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。'),
  'lexmount-global':spec('POST https://api.lexmount.com/v1/extract','X-API-Key: <API_KEY>；X-Project-Id: <PROJECT_ID>',
  [('extract.url','string · 必填','目标网页 URL'),('extract.engine','string · 可选','指定提取引擎；本轮不传，使用服务端选择')],
  [('result.main_text','string','正文 → content'),('result.title / final_url','string','页面标题 / 最终地址'),('result.links / images','array','页面链接和图片 → provider_metadata'),('result.status_code','number','源站状态；与 HTTP API 状态分开'),('metadata.server_elapsed_ms','number','服务端耗时')],
@@ -91,11 +91,11 @@ for engine,wait in (('lightpanda','done'),('obscura','load + adaptive settle'),(
 def moli_release_spec(version):
  base=SPECS['moli']
  return {**base,
- 'entry':f'CLI · Moli {version} 普通网页 Markdown / 直接文档与文件原生字节读取',
- 'params':[('URL','string · 必填','唯一任务输入'),('--dump markdown','普通网页正文','直接取得 Markdown'),('原始字节接口','直接文档或文件','使用固定版本公开支持的接口；实际路线与原始字节见逐次记录'),('timeout','seconds','45 秒外层端到端截止；文档解析包含在内')],
- 'fields':[('stdout','UTF-8 string / bytes','普通网页为 Markdown；直接文件为原始字节'),('document_extractor','string','直接文档正文使用的本地解析器'),('raw_stdout_path / sha256','string','保存的原始文档或媒体证据'),('file_evaluation','object','文件格式、长度和目标 SHA-256 验收')],
- 'request':{'ordinary_web':'moli fetch --dump markdown --wait-until done --timeout 45000 URL','direct_document_or_media':'原始字节接口；具体 CDP、响应或附件路线见逐次调用记录','version':version},
- 'notes':f'本方法只使用官方 {version} 发行二进制，与其他 Moli 版本分开计分。普通网页使用原生 Markdown；直接文档与文件的原始字节和接口路线保留在逐次记录中。正文任务若取得受支持的原始文档，会在同一计时预算内解析文字；文件任务直接验收字节。不在失败后切换引擎或输出模式。'}
+ 'entry':f'CLI · Moli {version} 原生 Markdown / DOM eval / 原始文件接口',
+ 'params':[('URL','string · 必填','唯一任务输入'),('--dump markdown','网页与直接文档正文','直接取得 Markdown'),('--eval','资源、嵌入文档和媒体信息','读取已加载内容；脚本按公开任务类型固定'),('外层截止','seconds','45 秒；不改写产品内部超时默认值')],
+ 'fields':[('stdout','UTF-8 string / bytes','正文为原生 Markdown；资源为任务投影；直接文件为原始字节'),('raw_stdout_path / sha256','string','保存的原始文档或媒体证据'),('file_evaluation','object','文件格式、长度和目标 SHA-256 验收')],
+ 'request':{'page_or_document_body':'moli fetch --dump markdown --wait-until done URL','resource_or_embedded_page':'moli fetch --eval <task-type projection> URL','direct_file':'原始响应或附件接口；具体路线见逐次调用记录','version':version},
+ 'notes':f'本方法只使用官方 {version} 发行二进制，与其他 Moli 版本分开计分。网页与直接文档正文使用原生 Markdown；资源和嵌入文档只读取浏览器内已加载的内容；文件题直接验收原始字节。评测端不使用外部 PDF/DOCX 解析器补正文，也不在失败后切换引擎或输出模式。'}
 SPECS['moli-1.0.6']=moli_release_spec('1.0.6')
 SPECS['moli']=moli_release_spec('1.1.5')
 SPECS['moli-1.1.7']=moli_release_spec('1.1.7')
@@ -106,7 +106,7 @@ SPECS['chromium']=spec(
  [('url','string','唯一任务输入'),('wait_until','string','load'),('timeout','seconds','45 秒端到端截止'),('converter','string','node-html-markdown 2.0.0')],
  [('content','string','转换后的 Markdown'),('rendered_html_path / sha256','string','转换前 DOM HTML 证据'),('fetch_html_ms / conversion_ms','number','分阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
  {'url':URL,'engine':'chromium','timeout':45,'wait_until':'load','dump':'html','converter':'node-html-markdown 2.0.0'},'harness/web_fetch/providers/headless_worker.py',
- '网页正文取完整渲染 DOM 后转为 Markdown；图片、视频资源使用共用 DOM 脚本。直接文档使用浏览器自身返回的页面内容，嵌入文档读取已加载的查看器文字；不使用外部文档解析器。转换、下载和解析均计入耗时；原始字节、HTML 与转换器哈希均保留。')
+ '网页正文取完整渲染 DOM 后转为 Markdown；图片、视频资源使用共用 DOM 脚本。直接文档使用浏览器自身返回的页面内容，嵌入文档读取已加载的查看器文字；不使用外部文档解析器。DOM 转换、页面获取与原始文件读取均计入耗时；原始字节、HTML 与转换器哈希均保留。')
 
 def method_provenance(out):
  path=out/'implementation-provenance.json'
@@ -251,7 +251,7 @@ def browser_task_interface_matrix(cases, providers):
     counts[mode]+=1
    for mode,count in counts.items():
     if mode=='markdown':description=markdown[engine]+('；文档必须由此接口直接返回文字，不使用外部 PDF/DOCX 解析器' if track=='document' else '')
-    elif mode=='document':description=original[engine]+' → 原始 PDF/DOCX → 共同 pypdf / DOCX XML 解析 → 文档正文'
+    elif mode=='document':description=original[engine]+' → 原始 PDF/DOCX；只取得字节不能通过文档正文题，评测端不外部解析'
     elif mode=='file':description=original[engine]+' → 原始文件字节（不转 Markdown）'
     elif mode=='resource':description=resource[engine]+' → 图片或视频资源地址（不转 Markdown）'
     elif mode=='document_page':description=runtime[engine]+' 读取嵌入文档 → 已加载 PDF 查看器原生文字，或页面可见文字 → 文档正文；不下载后另行解析'
