@@ -111,3 +111,35 @@ class AdoptionTests(unittest.TestCase):
   for title in ['请求成功率','任务通过率','结构达标率','资源命中率','文件取得率','信息通过率','完整度','纯净度','F1','均值','P50','P95']:
    self.assertIn('<dt>'+title+'</dt>',metric_legend([title]))
   self.assertNotIn('条件通过率',metric_guide())
+
+def test_report_labels_distinguish_release_and_source_build_with_same_version(tmp_path):
+    import json
+    from harness.web_fetch.methods import with_measured_method_labels
+    from harness.web_fetch.report import provider_label
+    from harness.web_fetch.report_methods import display_name
+    from harness.web_fetch.report_explainer import provider_name
+
+    identities={'implementations':[
+        {'provider':'moli','binary_sha256':'stable','version':'1.1.15'},
+        {'provider':'moli-pr919','binary_sha256':'branch','version':'1.1.15 · PR #919 源码构建（98be1f10）'}]}
+    (tmp_path/'implementation-provenance.json').write_text(json.dumps(identities))
+    records=[{'provider':x['provider'],'provider_metadata':{'binary_sha256':x['binary_sha256']}}
+             for x in identities['implementations']]
+    original=provider_label('moli')
+
+    @with_measured_method_labels
+    def render(out,dataset,rows):
+        for label in (provider_label,display_name,lambda n:provider_name(n,n)):
+            assert label('moli')=='Moli 1.1.15'
+            assert label('moli-pr919')=='Moli 1.1.15 · PR #919 源码构建（98be1f10）'
+
+    render(tmp_path,{},records)
+    assert provider_label('moli')==original
+    records[0]['provider_metadata']['binary_sha256']='different-build'
+
+    @with_measured_method_labels
+    def unrelated(out,dataset,rows):
+        assert provider_label('moli')==original
+
+    unrelated(tmp_path,{},records)
+    assert provider_label('moli')==original

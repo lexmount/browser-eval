@@ -261,6 +261,8 @@ def task_capabilities(out, names, records):
 
 def render_capabilities(out, names, *, table, cell, link, records=()):
     labels={'moli-1.0.6':'Moli 1.0.6','moli':'Moli','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-1.1.11':'Moli 1.1.11'}
+    from .methods import measured_method_label
+    labels.update({name:measured_method_label(name,labels.get(name,name)) for name in names})
     configured=task_capabilities(out,names,records)
     capabilities=configured or CAPABILITIES
     unknown = sorted(set(names) - set(capabilities))

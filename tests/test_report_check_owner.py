@@ -345,3 +345,25 @@ def test_body_family_rankings_reject_resource_columns(tmp_path, family, defect):
             check_revision(root,authority_root=authority)
     else:
         assert check_revision(root,authority_root=authority).startswith('PASS:')
+
+@pytest.mark.parametrize('label', ['Moli 1.1.15', 'Moli', 'Moli 1.1.16'])
+def test_release_rejects_missing_or_relabelled_measured_version(tmp_path,label):
+    from harness.web_fetch.report_check import check_revision
+    from tests.report_check_fixture import create_revision_report
+    root,authority=create_revision_report(tmp_path)
+    row=json.loads((root/'results.jsonl').read_text())
+    row['provider']='moli'
+    row['provider_metadata']={'binary_sha256':'measured-binary'}
+    (root/'results.jsonl').write_text(json.dumps(row)+'\n')
+    counts=json.loads((root/'adoption/counts.json').read_text())
+    counts['methods']=[item for item in counts['methods'] if item['provider']!='alpha']
+    write_json(root/'adoption/counts.json',counts)
+    write_json(root/'implementation-provenance.json',{'implementations':[
+        {'provider':'moli','binary_sha256':'measured-binary','version':'1.1.15'}]})
+    p=root/'index.html'
+    p.write_text(p.read_text()+'<a href="providers/moli.html">'+label+'</a>')
+    if label=='Moli 1.1.15':
+        assert check_revision(root,authority_root=authority).startswith('PASS:')
+    else:
+        with pytest.raises(ValueError,match='Measured method version label'):
+            check_revision(root,authority_root=authority)

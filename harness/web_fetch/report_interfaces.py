@@ -3,7 +3,7 @@ import json
 import re
 from html import escape
 from .safety import contained_path
-from .methods import native_browser_engine, browser_method_registry
+from .methods import native_browser_engine, browser_method_registry, browser_method_label
 
 URL='https://example.com/'
 HEADLESS_ACCESS={
@@ -282,7 +282,7 @@ def render_interfaces(out,records):
   # Explicit whitelist: no local paths, request IDs, credentials or session metadata.
   meta=r.get('provider_metadata',{}) if r else {};sample['metadata']={k:meta[k] for k in ['engine','upstream_status','links_count','images_count','extractor','truncated','document_count'] if k in meta}
   dest=out/'adoption'/'interfaces';dest.mkdir(exist_ok=True);(dest/(name+'.json')).write_text(json.dumps({'interface':s,'access':access,'sample':sample,'attempt_id':r['attempt_id'] if r else None},ensure_ascii=False,indent=2)+'\n')
-  body+=f'<details class="interface-panel" id="interface-{name}"'+(' open' if i==0 else '')+'><summary>'+escape(name)+'</summary>'
+  body+=f'<details class="interface-panel" id="interface-{name}"'+(' open' if i==0 else '')+'><summary>'+escape(browser_method_label(name))+'</summary>'
   body+='<p class="interface-endpoint"><code>'+escape(s['entry'])+'</code></p><p class="source-note">'+escape(s['auth'])+'</p>'
   if access:
    body+='<h3>账号与获取入口</h3><p>'+escape(access['account'])+'</p><p>'+escape(access['configuration'])+'</p><p>'+ ' · '.join('<a href="'+escape(url,quote=True)+'">'+escape(label)+'</a>' for label,url in access['links'])+'</p><p class="source-note">实际版本和接口见运行记录；下方链接指向官方说明。</p>'

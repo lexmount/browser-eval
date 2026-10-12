@@ -37,6 +37,11 @@ PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'moli-1.0.6': 'Moli 1.0.6', 'moli': 'Moli 1.1.5', 'moli-pr919': 'Moli · PR #919',
                   'moli-1.1.3': 'Moli 1.1.3', 'moli-1.1.11': 'Moli 1.1.11'}
 
+def provider_name(name, fallback):
+    from .methods import measured_method_label
+    return measured_method_label(name, PROVIDER_NAMES.get(name, fallback))
+
+
 METHODOLOGY_FIGURES = (
     ('annotation', '混合标注：稳定文字、易变字段与全文参考',
      '页面中稳定标题、栏目与说明作为内容核对点；变化条目检查数量、字段类型和结构；全文参考单独声明范围。',
@@ -302,7 +307,7 @@ def _speed_comparison(out):
 
     if speed.get('schema_version', 1) == 1:
         table = _table(['方法', '共同成功样本', 'P50 ms', '样本 P95 ms'], [
-            (escape(PROVIDER_NAMES.get(row['provider'], row['provider'])),
+            (escape(provider_name(row['provider'], row['provider'])),
              str(row['attempts']), num(row['p50_ms']), num(row['p95_ms']))
             for row in rows],
             f'同窗速度子集：预先声明 {len(planned_cases)} 题，{provider_count} 种方法共同通过 '
@@ -319,7 +324,7 @@ def _speed_comparison(out):
     table = _table(
         ['方法', '计划调用', '任务通过', '通过率', '全调用 P50 ms', '全调用 P95 ms',
          '通过调用 P50 ms', '通过调用 P95 ms'], [
-            (escape(PROVIDER_NAMES.get(row['provider'], row['provider'])),
+            (escape(provider_name(row['provider'], row['provider'])),
              str(row['planned_attempts']), str(row['successful_attempts']),
              _percent(row['task_pass_rate']), num(row['all_calls_p50_ms']),
              num(row['all_calls_p95_ms']), num(row['successful_calls_p50_ms']),
@@ -434,7 +439,7 @@ def _dynamic_section(data, cases):
     if sample:
         stats = scope['providers'][sample['provider']]
         metrics = sample['metrics']
-        mechanism += (f'<p>{escape(PROVIDER_NAMES.get(sample["provider"], sample["provider"]))} 在动态网站正文中通过 '
+        mechanism += (f'<p>{escape(provider_name(sample["provider"], sample["provider"]))} 在动态网站正文中通过 '
             f'{stats["task_pass"]}/{stats["records"]}，平均 F1 却为 {_percent(stats["mean_f1"])}。'
             f'其中{_attempt(sample, cases[sample["case_id"]]["name"])}的 F1 为 {_percent(metrics["word_f1"])}，'
             '但没有满足该例任务规则。'
@@ -600,7 +605,7 @@ def _render_article_speed(population):
         best, top = min(value for _, value in values), max(value for _, value in values)
         html += f'<div class="m-speed-column"><h4>{title}</h4><p>{explanation}</p>'
         for provider, value in values:
-            label = escape(PROVIDER_NAMES.get(provider, provider.title()))
+            label = escape(provider_name(provider, provider.title()))
             html += (f'<div class="m-speed-row"><span>{label}</span><b>{value/1000:.2f} s</b>'
                      '<div class="m-speed-track">'
                      f'<i class="{"best" if value == best else ""}" style="width:{value/top*100:.3f}%"></i>'
@@ -647,7 +652,7 @@ def _render_headless(out, cases, records):
     pass_ids = {n: {cid for cid, r in rows[n].items() if passed(r)} for n in selected}
     totals = {n: len(pass_ids[n]) for n in selected}
     def label(n):
-        return escape(PROVIDER_NAMES.get(n, n.title()))
+        return escape(provider_name(n, n.title()))
     def bars(values, unit='', maximum=None):
         top = maximum or max(v for _, v in values) or 1
         return '<div class="m-bars">' + ''.join(

@@ -298,7 +298,9 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
    page(lang,f'cases/{case}.html',case,body)
  from harness.report_languages import write_language_contract
  write_language_contract(out, include_english=include_english)
-def provider_label(name):return PROVIDER_LABELS.get(name,browser_method_label(name))
+def provider_label(name):
+ from .methods import measured_method_label
+ return measured_method_label(name,PROVIDER_LABELS.get(name,browser_method_label(name)))
 def case_track_label(case):
  if case.get('track','web')=='web':
   return {'file':'文件交付','resource':'资源发现','structure':'结构化内容'}.get(case.get('task_kind','body'),TRACKS['web'])
@@ -1831,6 +1833,9 @@ def local_audit_banner(dataset):
   return '<div class="wrap callout"><strong>本地实测版</strong><p>全部方法使用同一组已提交案例和判分规则，每例一次调用，统一45秒外部时限，不设逐例等待或提取参数，不重试。结果为机器判定，未进行独立人工审核；本报告仅供本地查看，不代表正式发布。</p></div>'
  return '<div class="wrap callout"><strong>本地审核版</strong><p>本页合并两个不同日期的 Moli 调用批次，保留每例的真实调用时间。本次仅更换报告展示代码，没有新增 Moli 调用，也不代表正式发布。</p></div>'
 
+from .methods import with_measured_method_labels
+
+@with_measured_method_labels
 def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False):
  global _RELIABILITY_BANNER,_ENGLISH_GENERATED
  _ENGLISH_GENERATED=include_english

@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 import importlib.metadata
 import re
-from functools import lru_cache
+from functools import lru_cache, wraps
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +31,44 @@ def native_browser_engine(name):
 
 
 def browser_method_label(name):
-    return browser_method_registry().get(name, {}).get("label", name)
+    return _MEASURED_LABELS.get().get(
+        name, browser_method_registry().get(name, {}).get("label", name)
+    )
+
+
+_MEASURED_LABELS = ContextVar("webfetch_measured_labels", default={})
+
+
+def measured_method_label(name, fallback):
+    return _MEASURED_LABELS.get().get(name, fallback)
+
+
+def with_measured_method_labels(render):
+    """Scope Moli version labels to the actual report's hash-bound binaries."""
+    @wraps(render)
+    def wrapped(out, dataset, records, *args, **kwargs):
+        path = Path(out) / "implementation-provenance.json"
+        provenance = json.loads(path.read_text()) if path.is_file() else {}
+        identities = {
+            (item["provider"], item["binary_sha256"]): item["version"]
+            for item in provenance.get("implementations", [])
+            if item.get("version") and item.get("binary_sha256")
+        }
+        labels = {}
+        for name in {r["provider"] for r in records}:
+            if native_browser_engine(name) != "moli":
+                continue
+            subset = [r for r in records if r["provider"] == name]
+            hashes = {r.get("provider_metadata", {}).get("binary_sha256") for r in subset}
+            if hashes and all((name, value) in identities for value in hashes):
+                versions = sorted({identities[name, value] for value in hashes})
+                labels[name] = "Moli " + " / ".join(versions)
+        token = _MEASURED_LABELS.set(labels)
+        try:
+            return render(out, dataset, records, *args, **kwargs)
+        finally:
+            _MEASURED_LABELS.reset(token)
+    return wrapped
 
 
 METHOD_REGISTRY: dict[str, dict[str, Any]] = {
@@ -104,7 +142,8 @@ def method_page_model(name: str, label: str, records: list[dict[str, Any]]) -> d
             version_rule["pattern"], version_rule.get("replacement", ""), versions[0],
             flags=re.I,
         )
-        title += f" · {version}"
+        if version not in title:
+            title += f" · {version}"
     model = {
         "title": title,
         "contract": info["contract"],

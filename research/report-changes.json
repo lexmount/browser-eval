@@ -1276,6 +1276,41 @@
   ],
   "releases": [
     {
+      "id": "2026-10-12-moli-measured-method-versions",
+      "publication_state": "published",
+      "date": "2026-10-12",
+      "comparison_kinds": [
+        "headless_markdown"
+      ],
+      "scoring_revision_input_sha256": [
+        "0bbbe0264c9715da5438d05cbd5d140fe0e1a5abc4c80625e078e7b4548c3774"
+      ],
+      "title": "区分两个 Moli 方法并标明受测版本",
+      "summary": "总榜、专项、筛选、详情和接口说明分别标注 Moli 1.1.15 与 Moli 1.1.15 · PR #919 源码构建（98be1f10）。版本与受测二进制的校验值对应，2,580 条成绩及耗时不变。",
+      "changes": [
+        [
+          "方法名称",
+          "此前仅显示 Moli 与 Moli · PR #919",
+          "按实际受测二进制标注版本和源码构建提交",
+          "未新增调用；旧成绩不会改挂到后来 rebase 的新提交上。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Identify both measured Moli methods by version",
+          "summary": "Overall and family tables, filters, result details and interface descriptions distinguish Moli 1.1.15 from the Moli 1.1.15 PR #919 source build at 98be1f10. Labels match the measured binary hashes. All 2,580 scores and timings are unchanged.",
+          "changes": [
+            [
+              "Method labels",
+              "Previously shown as Moli and Moli · PR #919",
+              "Use the measured binary version and source-build commit",
+              "No new calls. Earlier results are not attributed to a later rebased commit."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-10-10-moli-pr919-native-430-and-complete-resource-scope",
       "publication_state": "published",
       "date": "2026-10-10",

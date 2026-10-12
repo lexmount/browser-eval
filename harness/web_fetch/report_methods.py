@@ -1,7 +1,7 @@
 """Provider-centred introduction and reproducible, sample-scoped adoption counts."""
 import json
 from pathlib import Path
-from .methods import method_info, method_page_model, is_browser_comparison, browser_method_label
+from .methods import method_info, method_page_model, is_browser_comparison, browser_method_label, measured_method_label
 from .report_components import tabs,cards
 from .report_interfaces import render_interfaces
 from .report_capabilities import render_capabilities
@@ -31,7 +31,7 @@ PROFILES={
  'crawl4ai':('本地开源库','本地浏览器渲染，再抽取 Markdown、媒体及链接信息。','https://docs.crawl4ai.com/'),
 }
 DISPLAY_NAMES={'moli-1.0.6':'Moli 1.0.6','moli':'Moli','moli-1.1.3':'Moli 1.1.3','moli-1.1.7':'Moli 1.1.7','moli-1.1.11':'Moli 1.1.11'}
-def display_name(name):return DISPLAY_NAMES.get(name,browser_method_label(name))
+def display_name(name):return measured_method_label(name,DISPLAY_NAMES.get(name,browser_method_label(name)))
 
 def adoption_counts(data,names):
     result=[]

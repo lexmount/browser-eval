@@ -592,6 +592,24 @@ def check_revision(out: Path, *, authority_root: Path):
         return (
             "PASS: WebMainBench preselected-200 release scope and report acceptance checks verified"
         )
+    provenance_path = out / "implementation-provenance.json"
+    if provenance_path.is_file():
+        from .methods import native_browser_engine
+        provenance = json.loads(provenance_path.read_text())
+        records = load_jsonl(out / "results.jsonl")
+        home = BeautifulSoup((out / "index.html").read_text(), "html.parser")
+        for item in provenance.get("implementations", []):
+            name = item.get("provider")
+            if native_browser_engine(name) != "moli" or not item.get("version"):
+                continue
+            hashes = {r.get("provider_metadata", {}).get("binary_sha256")
+                      for r in records if r["provider"] == name}
+            if hashes != {item.get("binary_sha256")}:
+                continue
+            expected = "Moli " + item["version"]
+            links = home.select('a[href="providers/' + name + '.html"]')
+            if not links or any(anchor.get_text() != expected for anchor in links):
+                raise ValueError("Measured method version label: " + name)
     check_language_contract(out)
     has_english = "en" in generated_languages(out)
     for path in out.rglob("*.html"):
