@@ -8,6 +8,23 @@ class DynamicListTests(unittest.TestCase):
     def setUp(self):
         self.contract = {"hosts": ["example.com"], "entry_path": r"/item/\d+", "minimum_entries": 3}
 
+    def test_named_table_columns_must_be_complete_and_distinct(self):
+        from harness.web_fetch.stable_tasks import validate_acceptance_contract
+        for columns in (
+            {"markdown_title_column": "Name"},
+            {"markdown_link_column": "Details"},
+            {"markdown_title_column": "Name", "markdown_link_column": "Name"},
+        ):
+            with self.subTest(columns=columns):
+                contract = {
+                    "version": 1, "schema": "named_link", "minimum_records": 1,
+                    "hosts": ["example.com"], "entry_path": r"/item/\d+",
+                    "stable_text_anchors": [],
+                    "entry_scope": {"html_selector": "tr[data-item]", **columns},
+                }
+                with self.assertRaisesRegex(ValueError, "distinct title and link columns"):
+                    validate_acceptance_contract(contract)
+
     def test_declared_identity_deduplicates_tracking_paths_for_same_entity(self):
         contract = {
             "hosts": ["example.com"],

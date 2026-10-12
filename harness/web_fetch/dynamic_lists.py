@@ -337,6 +337,82 @@ def _paired_markdown_items(content, scope):
     return items
 
 
+def _named_table_items(content, scope):
+    """Declared table columns bind a visible name to its same-row detail link."""
+    if not scope or not scope.get('markdown_title_column'):
+        return []
+    from .reference_quality import markdown_links, visible_markdown_links, visible_mixed_html_text
+
+    def cells(line):
+        # Escaped pipes remain text; a doubled backslash leaves a real delimiter.
+        values, start, slashes = [], 0, 0
+        for index, char in enumerate(line):
+            if char == '|' and slashes % 2 == 0:
+                values.append(line[start:index].strip())
+                start = index + 1
+            slashes = slashes + 1 if char == '\\' else 0
+        values.append(line[start:].strip())
+        if line.lstrip().startswith('|'):
+            values.pop(0)
+        if values and not values[-1] and line.rstrip().endswith('|'):
+            values.pop()
+        return values
+
+    lines, fence = [], None
+    for line in content.splitlines():
+        marker = re.match(r'^ {0,3}(`{3,}|~{3,})(.*)$', line)
+        if marker:
+            if fence is None:
+                fence = marker[1]
+            elif (marker[1][0] == fence[0] and len(marker[1]) >= len(fence)
+                  and not marker[2].strip()):
+                fence = None
+            lines.append('')
+        else:
+            lines.append('' if fence else line)
+    items = []
+    title_identity = (re.compile(scope['markdown_title_identity_pattern'])
+                      if scope.get('markdown_title_identity_pattern') else None)
+    detail_identity = (re.compile(scope['markdown_detail_identity_pattern'])
+                       if scope.get('markdown_detail_identity_pattern') else None)
+    for index in range(len(lines) - 1):
+        if '|' not in lines[index]:
+            continue
+        headers = [visible_markdown_links(value).strip() for value in cells(lines[index])]
+        divider = cells(lines[index + 1])
+        if (len(divider) != len(headers)
+                or not all(re.fullmatch(r':?-{3,}:?', value) for value in divider)
+                or headers.count(scope['markdown_title_column']) != 1
+                or headers.count(scope['markdown_link_column']) != 1):
+            continue
+        title_column = headers.index(scope['markdown_title_column'])
+        link_column = headers.index(scope['markdown_link_column'])
+        for line in lines[index + 2:]:
+            if not line.strip() or '|' not in line:
+                break
+            row = cells(line)
+            if len(row) != len(headers):
+                continue
+            detail_links = {link.destination for link in markdown_links(row[link_column])
+                            if not link.is_image}
+            if len(detail_links) != 1:
+                continue
+            destination = next(iter(detail_links))
+            title_cell = re.split(r'<br\s*/?>', row[title_column], maxsplit=1, flags=re.I)[0]
+            title = visible_markdown_links(visible_mixed_html_text(title_cell)).strip()
+            if not title:
+                continue
+            if title_identity and detail_identity:
+                stated_ids = {match[1] for link in markdown_links(title_cell)
+                              if (match := title_identity.fullmatch(unquote(link.destination)
+                                  .replace(r'\(', '(').replace(r'\)', ')')))}
+                detail_id = detail_identity.search(unquote(destination))
+                if stated_ids and (not detail_id or stated_ids != {detail_id[1]}):
+                    continue
+            items.append((destination, title))
+    return items
+
+
 def _markdown_named_items(content, contract, scope):
     """Extract explicit named Markdown links without treating prose as a list."""
     from .reference_quality import markdown_links, visible_markdown_links
@@ -462,7 +538,7 @@ def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=N
         if not matched:
             return {}
     parser=Links();parser.feed(content)
-    items = owned_items + _paired_markdown_items(content, scope)
+    items = owned_items + _paired_markdown_items(content, scope) + _named_table_items(content, scope)
     items += list(parser.items) + safe_named_links(links, base_url)
     items += _markdown_named_items(content, contract, scope)
     items += _image_heading_items(content, scope)

@@ -700,7 +700,7 @@ def validate_acceptance_contract(contract: dict) -> None:
         scope = contract.get("entry_scope")
         if scope is not None:
             if (not isinstance(scope, dict) or not scope.get("html_selector")
-                    or set(scope) - {"html_selector", "start_pattern", "end_pattern", "title_selector", "link_selector", "price_selector", "auxiliary_links_end_pattern", "markdown_title_identity_pattern", "markdown_detail_identity_pattern", "markdown_label_pattern"}
+                    or set(scope) - {"html_selector", "start_pattern", "end_pattern", "title_selector", "link_selector", "price_selector", "auxiliary_links_end_pattern", "markdown_title_identity_pattern", "markdown_detail_identity_pattern", "markdown_label_pattern", "markdown_title_column", "markdown_link_column"}
                     or any(not isinstance(v, str) or not v.strip() for v in scope.values())
                     or (("title_selector" in scope) != ("link_selector" in scope))):
                 raise ValueError("Invalid linked record section scope")
@@ -714,6 +714,12 @@ def validate_acceptance_contract(contract: dict) -> None:
                     compiled = re.compile(scope[key], re.M)
                     if compiled.search(""):
                         raise ValueError("Record section boundary cannot match empty text")
+            column_keys = ("markdown_title_column", "markdown_link_column")
+            if any(key in scope for key in column_keys):
+                if (not all(key in scope for key in column_keys)
+                        or scope[column_keys[0]] == scope[column_keys[1]]
+                        or contract["schema"] != "named_link"):
+                    raise ValueError("Named table records require distinct title and link columns")
             pair_keys = ("markdown_title_identity_pattern", "markdown_detail_identity_pattern")
             if 'markdown_label_pattern' in scope:
                 pattern = re.compile(scope['markdown_label_pattern'])

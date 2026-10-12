@@ -717,6 +717,17 @@ while retaining the original status. Native `links.internal`/`links.external`
 name/URL pairs enter shared link input directly; names are not reconstructed from
 logs, requests or bare URLs.
 
+### Named records in Markdown tables
+
+A `named_link` task can declare `markdown_title_column` and
+`markdown_link_column` in its `entry_scope`. These are exact table headers from
+the independent source. A visible name and one detail link in the same row form
+a record, including when a native converter renders a JavaScript-backed name as
+plain text. The existing host, path, identity and minimum-count checks still
+apply. Missing or repeated declared headers, empty names and multiple detail links do not
+supply records. Content in another row or a fenced example cannot fill a missing
+field.
+
 ### Output and download limits
 
 Moli's `max_bytes` bounds the captured answer. Page and subresource downloads use

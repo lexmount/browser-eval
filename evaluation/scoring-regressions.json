@@ -22737,6 +22737,312 @@
       "failure_mode": "false-positive",
       "artifact": "<a id=\"events\"></a>\n\n[First concert](https://example.test/events/1)\n\nOctober 12, 2026\n\n[Second concert](https://example.test/events/2)\n\n<span data-date=\"October 13, 2026\">Date unavailable</span>",
       "expected_task_pass": false
+    },
+    {
+      "id": "declared-table-name-detail-columns-preserve-records",
+      "category": "structured-extraction",
+      "root_cause": "declared_markdown_table_record_ownership",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item",
+          "identity_query_keys": [
+            "id"
+          ],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "tr[data-item]",
+            "markdown_title_column": "Name",
+            "markdown_link_column": "Details"
+          },
+          "name_validation": "nonempty",
+          "title_exclusion_patterns": [
+            "Details"
+          ]
+        }
+      },
+      "artifact": "| Rank | Name | Details |\n| --- | --- | --- |\n| 1 | Alpha\\|Beta<br>[Maker](/brand/1) | [Details](/item?id=1) |\n| 2 | Second item | [Details](/item?id=2) |",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "declared-table-name-detail-columns-cannot-borrow-next-row",
+      "category": "structured-extraction",
+      "root_cause": "declared_markdown_table_record_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item",
+          "identity_query_keys": [
+            "id"
+          ],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "tr[data-item]",
+            "markdown_title_column": "Name",
+            "markdown_link_column": "Details"
+          },
+          "name_validation": "nonempty",
+          "title_exclusion_patterns": [
+            "Details"
+          ]
+        }
+      },
+      "artifact": "| Rank | Name | Details |\n| --- | --- | --- |\n| 1 | First item | |\n| 2 | | [Details](/item?id=2) |",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "declared-table-name-detail-columns-reject-ambiguous-links",
+      "category": "structured-extraction",
+      "root_cause": "declared_markdown_table_record_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item",
+          "identity_query_keys": [
+            "id"
+          ],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "tr[data-item]",
+            "markdown_title_column": "Name",
+            "markdown_link_column": "Details"
+          },
+          "name_validation": "nonempty",
+          "title_exclusion_patterns": [
+            "Details"
+          ]
+        }
+      },
+      "artifact": "| Rank | Name | Details |\n| --- | --- | --- |\n| 1 | First item | [Details](/item?id=1) [Details](/item?id=9) |\n| 2 | Second item | [Details](/item?id=2) |",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "declared-table-name-detail-columns-reject-wrong-header",
+      "category": "structured-extraction",
+      "root_cause": "declared_markdown_table_record_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item",
+          "identity_query_keys": [
+            "id"
+          ],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "tr[data-item]",
+            "markdown_title_column": "Name",
+            "markdown_link_column": "Details"
+          },
+          "name_validation": "nonempty",
+          "title_exclusion_patterns": [
+            "Details"
+          ]
+        }
+      },
+      "artifact": "| Rank | Artist | Details |\n| --- | --- | --- |\n| 1 | First item | [Details](/item?id=1) |\n| 2 | Second item | [Details](/item?id=2) |",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "declared-table-name-detail-columns-reject-code-example",
+      "category": "structured-extraction",
+      "root_cause": "declared_markdown_table_record_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item",
+          "identity_query_keys": [
+            "id"
+          ],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "tr[data-item]",
+            "markdown_title_column": "Name",
+            "markdown_link_column": "Details"
+          },
+          "name_validation": "nonempty",
+          "title_exclusion_patterns": [
+            "Details"
+          ]
+        }
+      },
+      "artifact": "```markdown\n| Rank | Name | Details |\n| --- | --- | --- |\n| 1 | First item | [Details](/item?id=1) |\n| 2 | Second item | [Details](/item?id=2) |\n```",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "declared-table-name-detail-columns-reject-duplicate-header",
+      "category": "structured-extraction",
+      "root_cause": "declared_markdown_table_record_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item",
+          "identity_query_keys": [
+            "id"
+          ],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "tr[data-item]",
+            "markdown_title_column": "Name",
+            "markdown_link_column": "Details"
+          },
+          "name_validation": "nonempty",
+          "title_exclusion_patterns": [
+            "Details"
+          ]
+        }
+      },
+      "artifact": "| Name | Name | Details |\n| --- | --- | --- |\n| First | First | [Details](/item?id=1) |\n| Second | Second | [Details](/item?id=2) |",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "declared-table-name-detail-columns-reject-short-row",
+      "category": "structured-extraction",
+      "root_cause": "declared_markdown_table_record_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item",
+          "identity_query_keys": [
+            "id"
+          ],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "tr[data-item]",
+            "markdown_title_column": "Name",
+            "markdown_link_column": "Details"
+          },
+          "name_validation": "nonempty",
+          "title_exclusion_patterns": [
+            "Details"
+          ]
+        }
+      },
+      "artifact": "| Rank | Name | Details |\n| --- | --- | --- |\n| 1 | [Details](/item?id=1) |\n| 2 | [Details](/item?id=2) |",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "declared-table-name-detail-columns-reject-conflicting-id",
+      "category": "structured-extraction",
+      "root_cause": "declared_markdown_table_record_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item",
+          "identity_query_keys": [
+            "id"
+          ],
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": "tr[data-item]",
+            "markdown_title_column": "Name",
+            "markdown_link_column": "Details",
+            "markdown_title_identity_pattern": "javascript:play\\(([0-9]+)\\)",
+            "markdown_detail_identity_pattern": "[?&]id=([0-9]+)(?:&|$)"
+          },
+          "name_validation": "nonempty",
+          "title_exclusion_patterns": [
+            "Details"
+          ]
+        }
+      },
+      "artifact": "| Name | Details |\n| --- | --- |\n| [First](javascript:play(1)) | [Details](/item?id=9) |\n| [Second](javascript:play(2)) | [Details](/item?id=2) |",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
     }
   ],
   "superseded_cases": {
