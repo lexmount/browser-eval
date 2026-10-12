@@ -21926,7 +21926,412 @@
     {"id":"wrong-body-content-policy-dynamic-final-page-mismatch-cannot-be-counted-as-a-pass","category":"acceptance-contract","root_cause":"dynamic_page_identity_alignment","failure_mode":"false-positive","case":{"url":"https://example.test/start","evaluation_url":"https://example.test/start","expected_final_url":"https://example.test/en/catalog","target_language":"en-US","target_region":"US","track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"identity","alternatives":["Catalog"]}]}},"artifact":"Unrelated page text","ok":true,"final_url":"https://example.test/fr/catalog","metadata":{"route":"dynamic_selected_text","document_language":"fr"},"expected_task_pass":false,"expected_metrics":{"page_identity_status":"mismatch","final_url_consistent":false,"language_consistent":false,"page_identity_required":false}},
     {"id":"wrong-body-content-policy-dynamic-search-query-mismatch-is-a-different-page","category":"acceptance-contract","root_cause":"dynamic_page_query_identity","failure_mode":"false-positive","case":{"url":"https://example.test/search?q=Mario","evaluation_url":"https://example.test/search?q=Mario","expected_final_url":"https://example.test/search?q=Mario","target_language":"ja-JP","target_region":"JP","track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"identity","alternatives":["Search results"]}]}},"artifact":"Unrelated page text","ok":true,"final_url":"https://example.test/search?q=Zelda","metadata":{"route":"dynamic_selected_text","document_language":"ja"},"expected_task_pass":false,"expected_metrics":{"page_identity_status":"mismatch","final_url_consistent":false,"page_identity_required":false}},
     {"id":"wrong-body-content-policy-dynamic-source-document-language-mismatch-is-not-verified","category":"acceptance-contract","root_cause":"declared_document_language_vs_visible_language","failure_mode":"false-positive","case":{"url":"https://example.test/rtl","evaluation_url":"https://example.test/rtl","expected_final_url":"https://example.test/rtl","target_language":"ar","expected_document_language":"en","target_region":"US","track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"arabic-content","alternatives":["الشخص"]}]}},"artifact":"Unrelated page text","ok":true,"final_url":"https://example.test/rtl","metadata":{"route":"dynamic_selected_text","document_language":"fr"},"expected_task_pass":false,"expected_metrics":{"page_identity_status":"mismatch","language_consistent":false,"page_identity_required":false}},
-    {"id":"wrong-body-content-policy-dynamic-undeclared-source-language-rejects-declared-language","category":"acceptance-contract","root_cause":"source_document_language_absent","failure_mode":"false-positive","case":{"url":"https://example.test/untagged","evaluation_url":"https://example.test/untagged","expected_final_url":"https://example.test/untagged","target_language":"en","target_region":"US","expected_document_language_present":false,"track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Visible content"]}]}},"artifact":"Unrelated page text","ok":true,"final_url":"https://example.test/untagged","metadata":{"route":"dynamic_selected_text","document_language":"en"},"expected_task_pass":false,"expected_metrics":{"page_identity_status":"mismatch","language_consistent":false,"page_identity_required":false}}
+    {"id":"wrong-body-content-policy-dynamic-undeclared-source-language-rejects-declared-language","category":"acceptance-contract","root_cause":"source_document_language_absent","failure_mode":"false-positive","case":{"url":"https://example.test/untagged","evaluation_url":"https://example.test/untagged","expected_final_url":"https://example.test/untagged","target_language":"en","target_region":"US","expected_document_language_present":false,"track":"dynamic","task_kind":"body","acceptance_contract":{"version":1,"schema":"body_text","minimum_records":0,"stable_text_anchors":[{"id":"content","alternatives":["Visible content"]}]}},"artifact":"Unrelated page text","ok":true,"final_url":"https://example.test/untagged","metadata":{"route":"dynamic_selected_text","document_language":"en"},"expected_task_pass":false,"expected_metrics":{"page_identity_status":"mismatch","language_consistent":false,"page_identity_required":false}},
+    {
+      "id": "scoped-markdown-empty-bookmark-keeps-owned-records",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_bookmark_format_detection",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$"
+          }
+        }
+      },
+      "artifact": "<a id=\"catalog\"></a>\nRecommended\n[First item](/item/1)\n[Second item](/item/2)\nOther",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_structure_pass": true
+      }
+    },
+    {
+      "id": "scoped-markdown-bookmark-cannot-import-outside-links",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_bookmark_format_detection",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$"
+          }
+        }
+      },
+      "artifact": "<a name=\"catalog\"></a>\n[First item](/item/1)\n[Second item](/item/2)\nRecommended\n[One item](/item/3)\nOther",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_structure_pass": false
+      }
+    },
+    {
+      "id": "scoped-html-missing-owner-cannot-fall-back-to-text",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_bookmark_format_detection",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$"
+          }
+        }
+      },
+      "artifact": "<html><body><section>Recommended\n[First item](/item/1)\n[Second item](/item/2)\nOther</section></body></html>",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_structure_pass": false
+      }
+    },
+    {
+      "id": "scoped-html-owns-records-despite-bookmark",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_bookmark_format_detection",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$"
+          }
+        }
+      },
+      "artifact": "<a id=\"catalog\"></a><div class=\"catalog\"><a href=\"/item/1\">First item</a><a href=\"/item/2\">Second item</a></div>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_structure_pass": true
+      }
+    },
+    {
+      "id": "scoped-markdown-bullet-boundary-keeps-records",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_list_boundary_semantics",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$"
+          }
+        }
+      },
+      "artifact": "- Recommended\n[First item](/item/1)\n[Second item](/item/2)\n- Other\n[Outside item](/item/3)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_structure_pass": true
+      }
+    },
+    {
+      "id": "scoped-markdown-numbered-boundary-keeps-records",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_list_boundary_semantics",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$"
+          }
+        }
+      },
+      "artifact": "1. Recommended\n[First item](/item/1)\n[Second item](/item/2)\n- Other\n[Outside item](/item/3)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_structure_pass": true
+      }
+    },
+    {
+      "id": "scoped-markdown-linked-bullet-boundary-keeps-records",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_list_boundary_semantics",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$"
+          }
+        }
+      },
+      "artifact": "- [Recommended](/category)\n[First item](/item/1)\n[Second item](/item/2)\n- Other\n[Outside item](/item/3)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_structure_pass": true
+      }
+    },
+    {
+      "id": "scoped-markdown-bullet-end-excludes-outside-records",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_list_boundary_semantics",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$"
+          }
+        }
+      },
+      "artifact": "- Recommended\n[One item](/item/1)\n- Other\n[Outside item](/item/2)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_structure_pass": false
+      }
+    },
+    {
+      "id": "scoped-markdown-prose-is-not-a-list-boundary",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_list_boundary_semantics",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$"
+          }
+        }
+      },
+      "artifact": "We discuss Recommended here.\n[First item](/item/1)\n[Second item](/item/2)\nOther",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_structure_pass": false
+      }
+    },
+    {
+      "id": "scoped-markdown-bullet-prefix-does-not-match-prose",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_list_boundary_semantics",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$"
+          }
+        }
+      },
+      "artifact": "- Recommended reading elsewhere\n[First item](/item/1)\n[Second item](/item/2)\nOther",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_structure_pass": false
+      }
+    },
+    {
+      "id": "scoped-markdown-bookmark-keeps-owned-product-prices",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_bookmark_format_detection",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$",
+            "price_selector": ".price"
+          },
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "price_exclusion_patterns": []
+        }
+      },
+      "artifact": "<a id=\"products\"></a>\n- Recommended\n[First item](/item/1)\n$10.00\n[Second item](/item/2)\n$20.00\n- Other",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_structure_pass": true
+      }
+    },
+    {
+      "id": "scoped-markdown-product-scope-excludes-outside-prices",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_bookmark_format_detection",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$",
+            "price_selector": ".price"
+          },
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "price_exclusion_patterns": []
+        }
+      },
+      "artifact": "<a id=\"products\"></a>\nRecommended\n[First item](/item/1)\n$10.00\nOther\n[Second item](/item/2)\n$20.00",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_structure_pass": false
+      }
+    },
+    {
+      "id": "scoped-markdown-product-missing-section-cannot-pass",
+      "category": "format-normalization",
+      "root_cause": "scoped_markdown_bookmark_format_detection",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "entry_scope": {
+            "html_selector": ".catalog a",
+            "start_pattern": "(?m)^Recommended[ \\t]*$",
+            "end_pattern": "(?m)^Other[ \\t]*$",
+            "price_selector": ".price"
+          },
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "price_exclusion_patterns": []
+        }
+      },
+      "artifact": "[First item](/item/1)\n$10.00\n[Second item](/item/2)\n$20.00",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_structure_pass": false
+      }
+    }
 ],
   "superseded_cases": {
   "dynamic-final-page-mismatch-cannot-be-counted-as-a-pass": "content-policy-dynamic-final-page-mismatch-cannot-be-counted-as-a-pass",
