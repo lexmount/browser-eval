@@ -27,6 +27,37 @@ from harness.web_fetch.reference_lifecycle import (
 from harness.web_fetch.safety import safe_identifier
 from harness.web_fetch.source_capture import extract_html
 
+# innerText includes opacity-zero content. Descend only through ancestors of
+# transparent subtrees; unaffected branches retain the browser's text layout.
+PAINTED_TEXT = r"""(root) => {
+  for (let n = root; n; n = n.parentElement) {
+    if (Number(getComputedStyle(n).opacity) === 0) return '';
+  }
+  const affected = new Set();
+  for (const node of root.querySelectorAll('*')) {
+    if (Number(getComputedStyle(node).opacity) !== 0) continue;
+    for (let n = node.parentElement; n && !affected.has(n); n = n.parentElement) {
+      affected.add(n);
+      if (n === root) break;
+    }
+  }
+  const read = node => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return getComputedStyle(node.parentElement).visibility === 'visible'
+        ? node.textContent : '';
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+    const style = getComputedStyle(node);
+    if (style.display === 'none' || Number(style.opacity) === 0) return '';
+    if (!affected.has(node)) return node.innerText || '';
+    const block = !['inline', 'inline-block', 'contents'].includes(style.display);
+    const text = Array.from(node.childNodes, read).join('');
+    return block ? '\n' + text + '\n' : text;
+  };
+  return read(root).trim();
+}"""
+
+
 CONTRACTS = Path(__file__).parent / "data/browser-observation-contracts.json"
 
 
@@ -312,11 +343,11 @@ def capture(
                     )
                     observation_method = "rendered_dom_text_including_preloaded_hidden_panels"
                 elif policy.text_mode == "visible":
-                    content = content_locator.inner_text(timeout=remaining_ms(begin, timeout_ms))
+                    content = content_locator.evaluate(PAINTED_TEXT, timeout=remaining_ms(begin, timeout_ms))
                     observation_method = (
-                        "visible_whole_page_inner_text"
+                        "painted_whole_page_text"
                         if observation_scope == "visible_page"
-                        else "visible_inner_text"
+                        else "painted_visible_text"
                     )
                 else:
                     content = extract_pruned_selector_text(outer_html, case["url"])
@@ -328,14 +359,17 @@ def capture(
                         try:
                             current, shown = frame, True
                             while current.parent_frame is not None:
-                                if not current.frame_element().is_visible():
+                                if not current.frame_element().evaluate(
+                                    "element => element.checkVisibility({opacityProperty: true, "
+                                    "visibilityProperty: true})"
+                                ):
                                     shown = False
                                     break
                                 current = current.parent_frame
                             if not shown:
                                 continue
-                            text = frame.locator("body").inner_text(
-                                timeout=remaining_ms(begin, timeout_ms)
+                            text = frame.locator("body").evaluate(
+                                PAINTED_TEXT, timeout=remaining_ms(begin, timeout_ms)
                             )
                             frames.append(
                                 {"url": frame.url, "status": "success", "content_text": text}
