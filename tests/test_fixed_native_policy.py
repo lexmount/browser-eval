@@ -39,15 +39,36 @@ def test_fixed_native_requests_preserve_capabilities_without_product_timers(kind
 
 @pytest.mark.parametrize("kind", ["moli_webfetch", "firecrawl", "tavily_extract", "exa_contents",
     "cloudflare_markdown", "cowagent_builtin", "subprocess_jsonl"])
-def test_fixed_native_rejects_hints_and_auxiliary_routes_before_call(kind):
+def test_fixed_native_rejects_per_case_hints_before_call(kind):
     provider = build_provider(kind, {"type": kind, "uniform_native_parameters": True})
     case = EvalCase("one", "one", "https://example.com/", "control", [],
         retrieval_hints={"completion": {"selector": ".answer"}})
     with pytest.raises(ValueError, match="per-case"):
         provider.fetch(case, 45)
-    case = replace(case, retrieval_hints={}, track="document")
-    with pytest.raises(ValueError, match="auxiliary"):
-        provider.fetch(case, 45)
+
+
+@pytest.mark.parametrize("track,task_kind", [
+    ("web", "body"), ("dynamic", "body"), ("challenge", "structure"),
+    ("risk_control", "body"), ("document", "body"), ("document", "file"),
+    ("image", "body"), ("image", "resource"), ("video", "body"),
+    ("video", "resource"),
+])
+def test_fixed_native_accepts_public_task_routes_without_per_case_assistance(track, task_kind):
+    provider = build_provider("fixture", {"type": "fixture", "uniform_native_parameters": True})
+    hints = {"version": 3, "mode": "native"} if track == "dynamic" else {}
+    case = EvalCase("one", "one", "https://example.com/", "control", [],
+        track=track, task_kind=task_kind, retrieval_hints=hints)
+    provider.check_native_call(case)
+
+
+@pytest.mark.parametrize("track,task_kind", [("document", "resource"), ("image", "file"),
+    ("unknown", "body")])
+def test_fixed_native_rejects_undeclared_task_routes(track, task_kind):
+    provider = build_provider("fixture", {"type": "fixture", "uniform_native_parameters": True})
+    case = EvalCase("one", "one", "https://example.com/", "control", [],
+        track=track, task_kind=task_kind)
+    with pytest.raises(ValueError, match="declared task route"):
+        provider.check_native_call(case)
 
 
 @pytest.mark.parametrize("runs,retries", [(2, 0), (2, 1), (2, 3)])

@@ -93,8 +93,17 @@ class Provider(ABC):
                 raise ValueError("fixed native calls prohibit per-case retrieval hints") from error
             if plan is not None:
                 raise ValueError("fixed native calls prohibit per-case retrieval hints")
-        if case.track not in {"web", "dynamic"} or case.task_kind not in {"body", "structure"}:
-            raise ValueError("fixed native calls support webpage body/structure only; auxiliary routes are prohibited")
+        supported = {
+            "web": {"body", "structure"},
+            "dynamic": {"body", "structure"},
+            "challenge": {"body", "structure"},
+            "risk_control": {"body", "structure"},
+            "document": {"body", "file"},
+            "image": {"body", "resource"},
+            "video": {"body", "resource"},
+        }
+        if case.task_kind not in supported.get(case.track, set()):
+            raise ValueError("fixed native calls do not support this declared task route")
 
     @property
     def min_interval_seconds(self) -> float:
