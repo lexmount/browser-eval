@@ -19,7 +19,10 @@ class MetricsTest(unittest.TestCase):
             "version": 1,
             "schema": "body_text",
             "minimum_records": 0,
-            "stable_text_anchors": [],
+            "stable_text_anchors": [{
+                "id": "page-section",
+                "alternatives": ["Result"],
+            }],
         }
         rules = [{
             "id": "rendered-result",
