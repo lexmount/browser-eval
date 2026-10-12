@@ -290,6 +290,14 @@ def import_packed_snapshot(
         raise ValueError("Packed snapshot does not contain dataset.json")
     if selected["dataset.json"].get("sha256") != expected_dataset_sha256:
         raise ValueError("Packed snapshot dataset differs from its pinned hash")
+    source_dataset_sha256 = selected["dataset.json"].get("source_sha256")
+    if (
+        source_dataset_sha256 is not None
+        and source_dataset_sha256 != expected_dataset_sha256
+    ):
+        raise ValueError(
+            "Packed snapshot dataset is a publication projection, not the scored source dataset"
+        )
     for name, entry in selected.items():
         relative = Path(name)
         if relative.is_absolute() or ".." in relative.parts:

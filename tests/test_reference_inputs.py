@@ -474,6 +474,31 @@ def test_packed_snapshot_import_restores_only_hash_bound_benchmark_inputs(tmp_pa
     assert receipt["downloaded_packs"] == ["data/0.gz"]
 
 
+def test_packed_snapshot_import_rejects_publication_projected_dataset(
+    tmp_path, monkeypatch
+):
+    dataset = b'{"cases": []}'
+    manifest, pack = packed_snapshot({"dataset.json": dataset})
+    definition = json.loads(manifest)
+    definition["files"]["dataset.json"]["source_sha256"] = "0" * 64
+    manifest = json.dumps(definition, sort_keys=True).encode()
+    manifest_url = "https://artifact.example/release/manifest.json"
+
+    def fetch(url):
+        return manifest if url == manifest_url else pack
+
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data-home"))
+    with pytest.raises(ValueError, match="publication projection"):
+        import_packed_snapshot(
+            manifest_url,
+            sha(manifest),
+            sha(dataset),
+            "public-snapshot-v1",
+            fetch_bytes=fetch,
+        )
+    assert not (tmp_path / "data-home/reference-inputs/public-snapshot-v1").exists()
+
+
 @pytest.mark.parametrize("damage", ["manifest", "dataset", "block", "path"])
 def test_packed_snapshot_import_rejects_changed_or_escaping_evidence(
     tmp_path, monkeypatch, damage
