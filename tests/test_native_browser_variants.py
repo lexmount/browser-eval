@@ -48,6 +48,24 @@ class NativeBrowserVariantTests(unittest.TestCase):
         self.assertIn("Moli", description["entry"])
         self.assertNotIn("pypdf", description["notes"])
 
+    def test_chromium_interface_uses_observed_wait_and_binds_converter_wrapper(self):
+        digest = "a" * 64
+        row = {"provider": "chromium", "provider_type": "headless_markdown",
+               "provider_metadata": {"wait_until": "domcontentloaded",
+                                     "navigation_wait_until": "load",
+                                     "converter_sha256": digest}}
+        description = method_spec("chromium", row)
+        self.assertEqual(description["request"]["wait_until"], "load")
+        self.assertEqual(description["request"]["converter_sha256"], digest)
+        self.assertIn(digest, str(description["params"]))
+        self.assertIn("代码块围栏", description["notes"])
+
+    def test_chromium_interface_does_not_invent_unobserved_converter_hash(self):
+        row = {"provider": "chromium", "provider_type": "headless_markdown",
+               "provider_metadata": {"wait_until": "domcontentloaded"}}
+        description = method_spec("chromium", row)
+        self.assertNotIn("converter_sha256", description["request"])
+
     def test_branch_only_report_requires_native_interface_contract(self):
         from harness.web_fetch.storage import require_current_report_profile
         with tempfile.TemporaryDirectory() as folder:

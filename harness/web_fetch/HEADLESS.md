@@ -55,8 +55,10 @@ Chromium and CDP do not expose a native Markdown result. Chromium Reader Mode
 produces simplified HTML and does not cover this benchmark's full output
 contract. The selected fallback therefore captures the complete rendered DOM
 and converts it with the maintained MIT-licensed `node-html-markdown` package.
-The converter version, file hash, Node version, source HTML hash and conversion
-time are retained per call. Conversion is inside the 45-second deadline.
+The measured wrapper also preserves literal preformatted text with a safe fence
+and language label; it is not described as an unmodified package default. The
+package version, wrapper hash, Node version, source HTML hash and conversion time
+are retained per call. Conversion is inside the 45-second deadline.
 
 Kitesurf is not treated as a local open-source engine. As tested, it is a
 Cloudflare-hosted preview selected by `browser=kitesurf`; Cloudflare has stated
@@ -123,10 +125,10 @@ names would still not prove equal implementation, so the report records the
 actual condition instead of calling it normalized. Documents and media also
 have different delivery contracts. A document-body case measures URL to readable
 text: a provider's direct text is accepted, while a provider that returns raw
-PDF/DOCX bytes must parse them inside the same end-to-end deadline. A direct-file
-case stops at verified bytes and never performs an irrelevant Markdown conversion.
-The run does not add OCR, media understanding or a generic downloader that bypasses
-the selected method.
+PDF/DOCX bytes has not delivered document text and fails that body task. A
+direct-file case stops at verified bytes and never performs an irrelevant
+Markdown conversion. The run does not add an external PDF/DOCX parser, OCR,
+media understanding or a generic downloader that bypasses the selected method.
 
 ## Credentials and binaries
 

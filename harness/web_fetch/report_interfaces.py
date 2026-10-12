@@ -157,11 +157,24 @@ def method_spec(name, record):
   else:
    base={**base,'entry':'CLI · Moli','request':{k:v for k,v in base['request'].items() if k!='version'}}
   return {**base,'notes':'实际版本、配置和调用路线见“环境与复现”及逐次调用记录。'}
- if name=='chromium' and meta.get('navigation_wait_until') in {'load','domcontentloaded','networkidle','commit'}:
-  wait=meta['navigation_wait_until']
-  return {**base,'request':{**base['request'],'wait_until':wait},
-          'params':[(key,kind,wait if key=='wait_until' else description)
-                    for key,kind,description in base['params']]}
+ if name=='chromium':
+  request={**base['request']}
+  params=list(base['params'])
+  wait=meta.get('navigation_wait_until')
+  if wait in {'load','domcontentloaded','networkidle','commit'}:
+   request['wait_until']=wait
+   params=[(key,kind,wait if key=='wait_until' else description)
+           for key,kind,description in params]
+  converter_sha=meta.get('converter_sha256')
+  notes=base['notes']
+  if isinstance(converter_sha,str) and re.fullmatch(r'[0-9a-f]{64}',converter_sha):
+   request['converter_sha256']=converter_sha
+   params=[(key,kind,
+            description+'；包装脚本 SHA-256 '+converter_sha
+            if key=='converter' else description)
+           for key,kind,description in params]
+   notes+=' 转换包装还负责代码块围栏与语言标签；本轮以完整脚本 SHA-256 绑定，不把它写成未修改的包默认行为。'
+  return {**base,'request':request,'params':params,'notes':notes}
  native={k:v for k,v in meta.get('native_metadata',{}).items() if k in {'format','script_sha256'}}
  format_name=native.get('format')
  if (name,format_name) not in {('lightpanda','lightpanda_json'),('obscura','obscura_eval')}:return base
