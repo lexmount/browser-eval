@@ -135,6 +135,15 @@ checks where applicable, and one authoritative task predicate. Live execution an
 offline rescoring use the same entry point. Case contracts define the differences;
 provider identity never selects a more lenient evaluator.
 
+Text acceptance reads the visible prose of raw HTML embedded in Markdown. HTML
+attributes, scripts and explicitly hidden elements cannot supply body coverage
+or required facts. Literal HTML in code examples remains answer text. This
+projection runs inside the shared scorer and leaves provider artifacts unchanged.
+`required_patterns` defaults to `match_scope: "text"`; a rule that checks serialized
+output structure, such as an HTML table tag, must declare `match_scope: "output"`.
+Unknown scopes are rejected. Use paired controls in `evaluation/scoring-regressions.json`
+to guard equivalent prose, attribute-only answers and structural output.
+
 Reruns of an unchanged compiled stable-contract dataset use
 `scripts/run_certified_benchmark.py` normally: freeze existing task and acceptance
 rule bytes without recovering historical qualification files or rechecking
