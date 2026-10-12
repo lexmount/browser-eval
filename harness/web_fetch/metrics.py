@@ -549,7 +549,11 @@ def evaluate_content(
                     and not script_shell)
     pattern_results = []
     for rule in required_patterns or []:
-        count = len(set(re.findall(rule['pattern'], visible_content, re.I)))
+        scope = rule.get('match_scope', 'text')
+        if scope not in {'text', 'output'}:
+            raise ValueError('Required pattern match_scope must be text or output')
+        pattern_content = content if scope == 'output' else visible_content
+        count = len(set(re.findall(rule['pattern'], pattern_content, re.I)))
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
     from .body_coverage import evaluate_body_requirements
