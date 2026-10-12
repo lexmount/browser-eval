@@ -2155,6 +2155,7 @@ TEXT.update({
     "本轮没有媒体解析，不据此推断产品能力": "This run performs no media parsing; no broader product limitation is inferred",
     "本轮异常二进制输出仅保留证据": "Anomalous binary output from this run is retained as evidence only",
     "原生 Markdown": "Native Markdown",
+    "直接取得 Moli 原生 Markdown": "Retrieve Moli native Markdown directly",
     "CLI 原生 Markdown": "Native Markdown from CLI",
     "CLI · 按任务预选 Markdown、DOM eval 或裸响应路线": "CLI · preselect Markdown, DOM eval, or bare-response routes by task",
     "CLI · 按任务预选 Markdown、DOM eval 或原始响应路线": "CLI · preselect Markdown, DOM eval, or raw-response routes by task",
