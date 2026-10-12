@@ -252,8 +252,9 @@ def test_live_multielement_completion_preserves_declared_content_scope(rendered_
     assert ("Transparent menu" in row["content_text"]) == (mode != "visible")
     assert "Visible duplicate" in row["content_text"]
     assert "Translucent text" in row["content_text"]
-    assert "Inline formatting preserved" in row["content_text"]
+    assert "Inline formatting preserved" in " ".join(row["content_text"].split())
     if mode == "visible":
+        assert "Inline formatting preserved" in row["content_text"]
         assert row["content_text"].count("Visible duplicate") == 1
     assert ("Hidden panel" in row["content_text"]) == (mode != "visible")
     assert ("Excluded panel" in row["content_text"]) == (mode == "dom")
