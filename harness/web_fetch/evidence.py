@@ -699,7 +699,11 @@ def finalize_aggregate(run_dir: Path, observations: Path) -> None:
         raise ValueError("Aggregated run has no execution batches")
     original_by_key = _index_batches(original)
 
-    manifests = sorted((run_dir / "workers").glob("*/*/manifest.json"))
+    worker_root = run_dir / "workers"
+    manifests = sorted({
+        *worker_root.glob("*/manifest.json"),
+        *worker_root.glob("*/*/manifest.json"),
+    })
     if not manifests:
         raise ValueError("Aggregated run has no worker manifests")
     before = [_read(path) for path in manifests]

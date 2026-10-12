@@ -76,6 +76,13 @@ class BenchmarkSelectionTests(unittest.TestCase):
         execution = json.loads((self.output / 'execution.json').read_text())
         self.assertEqual(execution['aggregate']['call_order'], 'case-alternating')
         self.assertEqual(execution['batches'][0]['parameters']['provider_concurrency'], 1)
+        observations = self.root / 'observations.json'
+        observations.write_text('[]\n')
+        from harness.web_fetch.evidence import finalize_aggregate
+        finalize_aggregate(self.output, observations)
+        finalized = json.loads((self.output / 'execution.json').read_text())
+        self.assertEqual(finalized['batches'][0]['attempt_ids'],
+                         execution['batches'][0]['attempt_ids'])
 
     def test_alternating_cohort_rejects_parallel_workers_before_creating_evidence(self):
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
