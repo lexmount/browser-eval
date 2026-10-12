@@ -257,7 +257,7 @@ def visible_mixed_html_text(text: str) -> str:
         protected, re.I,
     ):
         return text
-    projected = visible_html_text(protected)
+    projected = visible_html_text(protected, preserve_source_whitespace=True)
     for index, literal in enumerate(literals):
         projected = projected.replace(f"{marker}{index}{marker}", literal)
     return projected

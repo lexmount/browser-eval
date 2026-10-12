@@ -22673,6 +22673,70 @@
       "failure_mode": "false-positive",
       "artifact": "Introduction\n| Example |\n|---|\n|  ```html\n<span>Example</span>\n```\n |\n<span data-value=\"literal\">Visible explanation</span>",
       "expected_task_pass": false
+    },
+    {
+      "category": "body-scope",
+      "root_cause": "mixed_html_prose_projection",
+      "case": {
+        "url": "https://example.test/events",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "events",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/events/[0-9]+",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "ok": true,
+      "id": "mixed-html-markdown-record-lines-preserved",
+      "failure_mode": "false-negative",
+      "artifact": "<a id=\"events\"></a>\n\n[First concert](https://example.test/events/1)\n\nOctober 12, 2026\n\n[Second concert](https://example.test/events/2)\n\nOctober 13, 2026",
+      "expected_task_pass": true
+    },
+    {
+      "category": "body-scope",
+      "root_cause": "mixed_html_prose_projection",
+      "case": {
+        "url": "https://example.test/events",
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "events",
+              "kind": "named_link",
+              "minimum_records": 2,
+              "hosts": [
+                "example.test"
+              ],
+              "entry_path": "/events/[0-9]+",
+              "required_fields": [
+                {
+                  "id": "date",
+                  "kind": "date_or_time"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "ok": true,
+      "id": "mixed-html-markdown-record-attributes-are-not-fields",
+      "failure_mode": "false-positive",
+      "artifact": "<a id=\"events\"></a>\n\n[First concert](https://example.test/events/1)\n\nOctober 12, 2026\n\n[Second concert](https://example.test/events/2)\n\n<span data-date=\"October 13, 2026\">Date unavailable</span>",
+      "expected_task_pass": false
     }
   ],
   "superseded_cases": {

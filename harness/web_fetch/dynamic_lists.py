@@ -130,9 +130,10 @@ def _scoped_html(content):
     return soup
 
 
-def visible_html_text(content):
+def visible_html_text(content, *, preserve_source_whitespace=False):
     """Preserve block boundaries without splitting inline prose into headings.
 
+    Mixed Markdown retains source line boundaries for scoped record fields.
     This uses the same explicit visibility exclusions as record extraction,
     not computed CSS. Source indentation is whitespace, not a rendered line.
     """
@@ -149,7 +150,8 @@ def visible_html_text(content):
         if isinstance(node, Comment):
             continue
         if isinstance(node, NavigableString):
-            parts.append(str(node) if preformatted else re.sub(r'\s+', ' ', str(node)))
+            parts.append(str(node) if preformatted or preserve_source_whitespace
+                         else re.sub(r'\s+', ' ', str(node)))
         elif isinstance(node, Tag):
             separator = '\n' if node.name in blocks or node.name == 'br' else '\t' if node.name in {'td', 'th'} else ''
             parts.append(separator)
