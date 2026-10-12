@@ -23243,6 +23243,62 @@
           }
         ]
       }
+    },
+    {
+      "id": "rendered-result-section-accepts-visible-table",
+      "category": "body-scope",
+      "root_cause": "rendered_result_section_ownership",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/demo",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": []
+        },
+        "required_patterns": [
+          {
+            "id": "rendered-result",
+            "pattern": "(?is)\\bResult\\b\\s+(?!Loading\\b).*?\\bName\\b.*?\\bEmail\\b.*?\\bJohn\\b.*?john@example\\.com"
+          }
+        ]
+      },
+      "artifact": "Live Editor\n```js\nconst rows = [[\"John\", \"john@example.com\"]];\n```\nResult\nName Email\nJohn john@example.com",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "content_pass": true
+      }
+    },
+    {
+      "id": "rendered-result-section-rejects-source-only-values",
+      "category": "body-scope",
+      "root_cause": "rendered_result_section_ownership",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/demo",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": []
+        },
+        "required_patterns": [
+          {
+            "id": "rendered-result",
+            "pattern": "(?is)\\bResult\\b\\s+(?!Loading\\b).*?\\bName\\b.*?\\bEmail\\b.*?\\bJohn\\b.*?john@example\\.com"
+          }
+        ]
+      },
+      "artifact": "Live Editor\nconst rows = [[\"John\", \"john@example.com\"]];\n```js\nconst rows = [[\"John\", \"john@example.com\"]];\n```\nResult\nLoading...",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "content_pass": false
+      }
     }
   ],
   "superseded_cases": {

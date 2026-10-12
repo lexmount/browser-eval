@@ -152,6 +152,7 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.add("scoped_markdown_list_boundary_semantics")
         paired.add("mixed_html_prose_projection")
         paired.add("pattern_output_and_prose_scope")
+        paired.add("rendered_result_section_ownership")
         for root_cause in paired:
             self.assertEqual(root_modes.get(root_cause), {"false-positive", "false-negative"})
 
