@@ -29,7 +29,7 @@ class NativeBrowserVariantTests(unittest.TestCase):
     def test_current_stacked_candidate_is_registered_as_moli(self):
         from harness.web_fetch.methods import browser_method_label, native_browser_engine
         self.assertEqual(native_browser_engine("moli-stack-1432"), "moli")
-        self.assertIn("1428", browser_method_label("moli-stack-1432"))
+        self.assertIn("1432", browser_method_label("moli-stack-1432"))
 
     def test_unknown_native_participant_cannot_bypass_route_validation(self):
         with self.assertRaises(ValueError):
