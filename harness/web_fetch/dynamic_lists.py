@@ -226,6 +226,7 @@ def _text_scope_boundary(content, pattern):
     for line in content.splitlines(keepends=True):
         visible=visible_markdown_links(line).strip()
         visible=re.sub(r'^#{1,6}\s+','',visible)
+        visible=re.sub(r'^(?:[-*+]|\d+[.)])\s+','',visible)
         visible=re.sub(r'([*_]{1,2})(.+?)\1',r'\2',visible)
         visible=re.sub(r'\s+#+\s*$','',visible).strip()
         if re.match(pattern,visible,re.M):
@@ -234,10 +235,20 @@ def _text_scope_boundary(content, pattern):
     return min(candidates) if candidates else None
 
 
+def _has_scoped_html(content):
+    # Native Markdown may retain empty bookmark anchors. They provide no HTML
+    # record ownership and must not select the HTML-only CSS scope parser.
+    without_bookmarks = re.sub(r'<a\b[^>]*>\s*</a\s*>', '', content, flags=re.I)
+    return bool(re.search(
+        r'<(?:html|body|main|div|section|article|table|ul|ol|a|p|h[1-6])\b',
+        without_bookmarks, re.I,
+    ))
+
+
 def _scope_named_content(content, scope):
     """Apply one declared HTML or text scope and return owned name/link pairs."""
     owned_items = []
-    if re.search(r'<(?:html|body|main|div|section|article|table|ul|ol|a|p|h[1-6])\b', content, re.I):
+    if _has_scoped_html(content):
         soup = _scoped_html(content)
         owners = soup.select(scope['html_selector'])
         if not scope.get('title_selector'):
@@ -466,8 +477,7 @@ def extract_named_entries(content,contract,base_url,links=None,diagnostics=None)
 def extract_linked_products(content, contract, base_url, diagnostics=None):
     """Extract title/link/price triples from one owned product segment."""
     scope = contract.get('entry_scope')
-    if scope and scope.get('price_selector') and re.search(
-            r'<(?:html|body|main|div|section|article|table|ul|ol|a|p|h[1-6])\b', content, re.I):
+    if scope and scope.get('price_selector') and _has_scoped_html(content):
         soup = _scoped_html(content)
         allowed = [re.compile(p, re.I) for p in contract['price_patterns']]
         excluded = [re.compile(p, re.I) for p in contract.get('price_exclusion_patterns', [])]
@@ -494,6 +504,10 @@ def extract_linked_products(content, contract, base_url, diagnostics=None):
                         **entry, 'price': None, 'price_status': 'not_shown_on_page',
                         'price_unavailable_text': hint}
         return list(records.values())
+    if scope:
+        content, _, matched = _scope_named_content(content, scope)
+        if not matched:
+            return []
     scannable = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", content)
     link_pattern = re.compile(
         r"\[([^\]\n]+)\]\((https?://[^\s)]+|/[^\s)]+)\)"
