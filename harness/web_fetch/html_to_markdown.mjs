@@ -6,7 +6,8 @@ const { NodeHtmlMarkdown } = require(process.argv[2] || 'node-html-markdown');
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
 const html = Buffer.concat(chunks).toString('utf8');
-const converter = new NodeHtmlMarkdown({}, {
+// Literal angle brackets in prose must not become active HTML in Markdown.
+const converter = new NodeHtmlMarkdown({ textReplace: [[/[<>]/g, '\\$&']] }, {
   pre: ({node}) => {
     // A highlighted shell variable is literal code, not Markdown emphasis.
     const content = node.textContent;
