@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from harness.web_fetch.reference_lifecycle import valid_scoring_revision
-from harness.web_fetch.scoring import score_attempt
+from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, score_attempt
 from harness.web_fetch.scoring_revision import revise
 
 
@@ -93,6 +93,59 @@ def test_valid_history_can_extend_and_retains_prior_receipts(tmp_path: Path):
     for key in ("attempt_id", "run_id", "elapsed_ms", "artifact_path"):
         assert current[key] == original_record[key]
     assert current["metrics"]["content_sha256"] == original_record["metrics"]["content_sha256"]
+
+
+def test_scorer_drift_and_task_rule_change_are_rejected_atomically(tmp_path: Path):
+    evidence, canonical, _ = revision_fixture(tmp_path, b"[]")
+    row = json.loads((evidence / "results.jsonl").read_text())
+    row["metrics"]["scoring_source_sha256"] = "0" * 64
+    (evidence / "results.jsonl").write_text(json.dumps(row) + "\n")
+    before = {path.name: path.read_bytes() for path in evidence.iterdir()}
+
+    with pytest.raises(ValueError, match="scorer-only revision first"):
+        revise(
+            evidence,
+            canonical,
+            root_cause_category="answer-surface",
+            root_cause="A shared answer-surface correction changed the scorer implementation.",
+            regression_ids=["answer-title-supplies-required-fact"],
+        )
+
+    assert {path.name: path.read_bytes() for path in evidence.iterdir()} == before
+
+
+def test_scorer_drift_and_task_rule_change_can_be_recorded_in_two_steps(tmp_path: Path):
+    evidence, canonical, _ = revision_fixture(tmp_path, b"[]")
+    row = json.loads((evidence / "results.jsonl").read_text())
+    prior_scoring_source = "0" * 64
+    row["metrics"]["scoring_source_sha256"] = prior_scoring_source
+    (evidence / "results.jsonl").write_text(json.dumps(row) + "\n")
+    authority = {
+        "root_cause_category": "answer-surface",
+        "root_cause": "A shared answer-surface correction changed the scorer implementation.",
+        "regression_ids": ["answer-title-supplies-required-fact"],
+    }
+
+    scorer_receipt = revise(evidence, evidence / "dataset.json", **authority)
+    assert scorer_receipt["changed_cases"] == []
+    assert scorer_receipt["input_scoring_source_sha256"] == prior_scoring_source
+    assert scorer_receipt["output_scoring_source_sha256"] == SCORING_SOURCE_SHA256
+
+    rule_receipt = revise(evidence, canonical, **authority)
+    assert rule_receipt["input_scoring_source_sha256"] == SCORING_SOURCE_SHA256
+    assert rule_receipt["output_scoring_source_sha256"] == SCORING_SOURCE_SHA256
+    assert rule_receipt["changed_cases"] == [
+        {"case_id": "one", "fields": ["required_patterns"]}
+    ]
+    assert valid_scoring_revision(evidence)
+    history = json.loads((evidence / "scoring-revisions.json").read_text())
+    history[-1]["output_scoring_source_sha256"] = "f" * 64
+    (evidence / "scoring-revisions.json").write_text(json.dumps(history))
+    assert not valid_scoring_revision(evidence)
+    history[-1].pop("input_scoring_source_sha256")
+    history[-1].pop("output_scoring_source_sha256")
+    (evidence / "scoring-revisions.json").write_text(json.dumps(history))
+    assert not valid_scoring_revision(evidence)
 
 
 @pytest.mark.parametrize('failed', [False, True])

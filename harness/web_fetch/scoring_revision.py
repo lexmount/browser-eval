@@ -19,6 +19,7 @@ from harness.web_fetch.result_review import (
     rebind_unchanged_result_review,
 )
 from harness.web_fetch.safety import contained_path, validate_report_ids
+from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
 from harness.web_fetch.scoring_regressions import (
     ROOT_CAUSE_CATEGORIES,
     build_correction_provenance,
@@ -76,6 +77,17 @@ def _resource_prompt_policy_correction(old: dict, new: dict) -> bool:
     )
 
 
+def _single_scoring_source_sha256(records: list[dict], *, label: str) -> str:
+    values = {
+        row.get("metrics", {}).get("scoring_source_sha256")
+        for row in records
+    }
+    if (len(values) != 1 or not isinstance(value := next(iter(values), None), str)
+            or len(value) != 64 or any(char not in "0123456789abcdef" for char in value)):
+        raise ValueError(label + " results require one valid scoring source SHA-256")
+    return value
+
+
 def _revise_unlocked(
     source: Path,
     canonical_path: Path,
@@ -92,6 +104,10 @@ def _revise_unlocked(
     results_path = contained_path(source, "results.jsonl")
     before_dataset = read_dataset_bytes(dataset_path)
     before_results = results_path.read_bytes()
+    before_records = parse_jsonl(before_results)
+    input_scoring_source_sha256 = _single_scoring_source_sha256(
+        before_records, label="Input",
+    )
     receipt_path = contained_path(source, "scoring-revisions.json", reject_symlinks=True)
     history = json.loads(receipt_path.read_bytes()) if receipt_path.exists() else []
     if not isinstance(history, list) or (history and not valid_scoring_revision(source)):
@@ -150,7 +166,12 @@ def _revise_unlocked(
         if fields:
             changed.append({"case_id": identifier, "fields": fields})
     dataset["cases"] = [updated_cases[case["id"]] for case in dataset["cases"]]
-    validate_report_ids(dataset, parse_jsonl(before_results))
+    validate_report_ids(dataset, before_records)
+    if input_scoring_source_sha256 != SCORING_SOURCE_SHA256 and changed:
+        raise ValueError(
+            "Shared scorer and task requirements changed together; "
+            "apply a scorer-only revision first"
+        )
     if validate_only and changed:
         raise ValueError('Scoring validation cannot change task requirements')
     if not validate_only:
@@ -183,6 +204,11 @@ def _revise_unlocked(
         case_id = attempt_cases[decision["attempt_id"]]
         changed_by_case.setdefault(case_id, {"case_id": case_id, "fields": []})
     changed = [changed_by_case[case_id] for case_id in sorted(changed_by_case)]
+    output_scoring_source_sha256 = _single_scoring_source_sha256(
+        parse_jsonl(results_path.read_bytes()), label="Output",
+    )
+    if output_scoring_source_sha256 != SCORING_SOURCE_SHA256:
+        raise ValueError("Scoring revision did not bind the current shared scorer")
     review_revision = {}
     try:
         rebind_unchanged_result_review(
@@ -205,6 +231,8 @@ def _revise_unlocked(
         "input_results_sha256": hashlib.sha256(before_results).hexdigest(),
         "output_dataset_sha256": hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest(),
         "output_results_sha256": hashlib.sha256(results_path.read_bytes()).hexdigest(),
+        "input_scoring_source_sha256": input_scoring_source_sha256,
+        "output_scoring_source_sha256": output_scoring_source_sha256,
         "changed_cases": changed,
         "task_decision_changes": decisions,
         "provider_calls": 0,

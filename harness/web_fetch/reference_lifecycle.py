@@ -980,6 +980,8 @@ def valid_scoring_revision(source) -> bool:
         'mutable_body_policy',
     }
     previous_output = None
+    previous_scoring_source = None
+    scoring_source_binding_started = False
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             return False
@@ -1005,7 +1007,30 @@ def valid_scoring_revision(source) -> bool:
                            and set(change.get('fields', ())) <= allowed_fields
                            for change in row['changed_cases'])):
             return False
+        scoring_sources = (
+            row.get('input_scoring_source_sha256'),
+            row.get('output_scoring_source_sha256'),
+        )
+        if any(value is not None for value in scoring_sources):
+            if (any(not isinstance(value, str)
+                    or re.fullmatch(r'[0-9a-f]{64}', value) is None
+                    for value in scoring_sources)
+                    or (previous_scoring_source is not None
+                        and scoring_sources[0] != previous_scoring_source)):
+                return False
+            previous_scoring_source = scoring_sources[1]
+            scoring_source_binding_started = True
+        else:
+            if scoring_source_binding_started:
+                return False
+            previous_scoring_source = None
         previous_output = output_binding
+    if previous_scoring_source is not None:
+        current_scoring_sources = {
+            row.get('metrics', {}).get('scoring_source_sha256') for row in (records or [])
+        }
+        if current_scoring_sources != {previous_scoring_source}:
+            return False
     return previous_output is not None and bridged(
         previous_output, (current_dataset, current_results)
     )
