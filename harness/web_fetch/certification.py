@@ -148,6 +148,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--case-ids", required=True)
     parser.add_argument("--workers", type=int, default=1)
     add_failure_retry_argument(parser)
+    parser.add_argument("--call-order", choices=("provider", "case-alternating"), default="provider")
     parser.add_argument("--capture-workers", type=int, default=8)
     parser.add_argument("--browser-capture-attempts", type=int, default=2)
     parser.add_argument("--browser-binary")
@@ -175,6 +176,8 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     if args.provider_config and not args.provider_config.is_file():
         parser.error("--provider-config must be an existing file")
+    if args.call_order == "case-alternating" and (args.workers != 1 or not args.provider_config):
+        parser.error("Alternating case calls require --workers 1 and --provider-config")
     if args.browser_capture_attempts < 1:
         parser.error("--browser-capture-attempts must be at least 1")
 
@@ -300,6 +303,7 @@ def main(argv: list[str] | None = None) -> None:
         "--max-failure-retries",
         str(args.max_failure_retries),
         "--measure-only",
+        "--call-order", args.call_order,
     ]
     if args.env_file:
         benchmark.extend(["--env-file", str(args.env_file)])

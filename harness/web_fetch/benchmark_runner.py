@@ -31,12 +31,16 @@ def main(argv=None):
     parser.add_argument('--validate-only',action='store_true',help='Check selected configuration without creating files or calling providers')
     parser.add_argument('--measure-only',action='store_true',help='Persist measured evidence without building an unreviewed report')
     parser.add_argument('--workers',type=int,default=11)
+    parser.add_argument('--call-order', choices=('provider', 'case-alternating'), default='provider',
+                        help='Run serially by task with alternating method order, or use provider batches')
     parser.add_argument('--runs',type=int,default=1)
     add_failure_retry_argument(parser)
     args=parser.parse_args(argv)
     if args.provider_config and not args.provider_config.is_file():
         parser.error('--provider-config must be an existing file')
     if args.workers < 1:parser.error('--workers must be positive')
+    if args.call_order == 'case-alternating' and (args.workers != 1 or not args.provider_config):
+        parser.error('--call-order case-alternating requires --workers 1 and one explicit --provider-config')
     if args.runs < 1:parser.error('--runs must be positive')
     if not args.validate_only and args.output.exists():parser.error('Output exists; choose an empty directory to avoid overwriting measured evidence')
     load_runtime_env(args.env_file)
@@ -113,13 +117,25 @@ def main(argv=None):
             batches.append(json.loads((folder/'manifest.json').read_text()));records.extend(rs)
         return records,batches
     aggregate_started_at=datetime.now(UTC).isoformat()
-    with ThreadPoolExecutor(max_workers=args.workers) as pool:parts=list(pool.map(work,names))
+    if args.call_order == 'case-alternating':
+        folder = args.output / 'workers' / 'interleaved'
+        records, _ = run_evaluation(
+            output_dir=folder, dataset_meta=dataset, dataset_path=args.dataset,
+            cases=cases, providers=selected_providers, provider_config_path=args.provider_config,
+            runs=args.runs, timeout=45, delay=.5, provider_concurrency=1,
+            max_failure_retries=args.max_failure_retries, call_order=args.call_order,
+        )
+        materialize_bound_artifacts(args.output, folder, records)
+        parts = [(records, [json.loads((folder / 'manifest.json').read_text())])]
+    else:
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:parts=list(pool.map(work,names))
     aggregate_completed_at=datetime.now(UTC).isoformat()
     records=[r for rs,_ in parts for r in rs];batches=[b for _,bs in parts for b in bs]
     assert len(records)==len(cases)*len(names)*args.runs
     execution={'schema_version':1,'aggregate':{
         'started_at':aggregate_started_at,'completed_at':aggregate_completed_at,
         'providers':sorted(names),'case_ids':[case.id for case in cases],'batch_count':len(batches),
+        'call_order': args.call_order,
     },'batches':batches}
     for name,value in [('dataset.json',dataset),('execution.json',execution)]:
         (args.output/name).write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n')

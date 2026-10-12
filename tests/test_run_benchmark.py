@@ -48,6 +48,77 @@ class BenchmarkSelectionTests(unittest.TestCase):
             run_benchmark.main(['--output', str(self.output), *args])
         return build
 
+    def test_alternating_cohort_keeps_each_task_pair_adjacent_and_all_outputs(self):
+        calls = []
+
+        class ObservedProvider(Provider):
+            def fetch(self, case, timeout):
+                calls.append((self.name, case.id))
+                return ProviderResult(True, f"content {self.name} {case.id}")
+
+        config = self.root / 'configs/providers.example.json'
+        with patch.object(run_benchmark, 'build_provider', side_effect=ObservedProvider):
+            self.run_main([
+                '--dataset', str(self.root / 'evaluation/dataset.json'),
+                '--provider-config', str(config), '--providers', 'fixture-one,fixture-two',
+                '--workers', '1', '--call-order', 'case-alternating', '--measure-only',
+            ])
+        self.assertEqual(calls, [
+            ('fixture-one', 'web-a'), ('fixture-two', 'web-a'),
+            ('fixture-two', 'dynamic-a'), ('fixture-one', 'dynamic-a'),
+            ('fixture-one', 'dynamic-b'), ('fixture-two', 'dynamic-b'),
+        ])
+        records = [json.loads(line) for line in (self.output / 'results.jsonl').read_text().splitlines()]
+        self.assertEqual(len(records), 6)
+        for record in records:
+            expected = f"content {record['provider']} {record['case_id']}"
+            self.assertEqual((self.output / record['artifact_path']).read_text(), expected)
+        execution = json.loads((self.output / 'execution.json').read_text())
+        self.assertEqual(execution['aggregate']['call_order'], 'case-alternating')
+        self.assertEqual(execution['batches'][0]['parameters']['provider_concurrency'], 1)
+
+    def test_alternating_cohort_rejects_parallel_workers_before_creating_evidence(self):
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            self.run_main(['--call-order', 'case-alternating', '--workers', '2'])
+        self.assertFalse(self.output.exists())
+
+    def test_alternating_cohort_stops_when_a_timed_out_call_cannot_be_cancelled(self):
+        import threading
+        from harness.web_fetch.config import load_dataset
+        from harness.web_fetch.runner import IncompleteEvaluationError, run_evaluation
+
+        release = threading.Event()
+        finished = threading.Event()
+        calls = []
+
+        class BlockingProvider(Provider):
+            def fetch(self, case, timeout):
+                calls.append((self.name, case.id))
+                if self.name == 'blocked':
+                    try:
+                        release.wait(5)
+                    finally:
+                        finished.set()
+                return ProviderResult(True, 'content')
+
+        dataset, cases = load_dataset(self.root / 'evaluation/dataset.json')
+        providers = [BlockingProvider(name, {'type': 'fixture'}) for name in ('blocked', 'next')]
+        try:
+            with redirect_stdout(io.StringIO()), self.assertRaises(IncompleteEvaluationError):
+                run_evaluation(
+                    output_dir=self.output, dataset_meta=dataset,
+                    dataset_path=self.root / 'evaluation/dataset.json', cases=cases,
+                    providers=providers, provider_config_path=self.root / 'configs/providers.example.json',
+                    runs=1, timeout=.01, delay=0, call_order='case-alternating',
+                )
+        finally:
+            release.set()
+            self.assertTrue(finished.wait(2))
+        self.assertEqual(calls, [('blocked', 'web-a')])
+        manifest = json.loads((self.output / 'manifest.json').read_text())
+        self.assertEqual(manifest['attempt_count'], 1)
+        self.assertTrue(manifest['unexecuted'])
+
     def test_dynamic_subset_real_fixture_calls_and_exact_coverage(self):
         self.run_main(['--track', 'dynamic', '--providers', 'fixture-one,fixture-two'])
         data = json.loads((self.output/'dataset.json').read_text())
