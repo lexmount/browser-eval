@@ -23043,6 +23043,186 @@
       "expected_metrics": {
         "stable_complete_record_count": 1
       }
+    },
+    {
+      "id": "declared-auxiliary-labels-yahoo-primary-and-auxiliary-same-url",
+      "category": "structured-extraction",
+      "root_cause": "declared_auxiliary_labels_are_not_entity_names",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://news.yahoo.co.jp/",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "news.yahoo.co.jp"
+          ],
+          "entry_path": "/pickup/[0-9]+",
+          "stable_text_anchors": [],
+          "title_exclusion_patterns": [
+            "^(?:NEW|コメント数)$"
+          ]
+        }
+      },
+      "artifact": "- [実際のニュース見出し](https://news.yahoo.co.jp/pickup/1)\n  [NEW](https://news.yahoo.co.jp/pickup/1)\n  [コメント数](https://news.yahoo.co.jp/pickup/1)\n  [304](https://news.yahoo.co.jp/pickup/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "実際のニュース見出し",
+              "url": "https://news.yahoo.co.jp/pickup/1"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "declared-auxiliary-labels-yahoo-only-auxiliary-links",
+      "category": "structured-extraction",
+      "root_cause": "declared_auxiliary_labels_are_not_entity_names",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://news.yahoo.co.jp/",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "news.yahoo.co.jp"
+          ],
+          "entry_path": "/pickup/[0-9]+",
+          "stable_text_anchors": [],
+          "title_exclusion_patterns": [
+            "^(?:NEW|コメント数)$"
+          ]
+        }
+      },
+      "artifact": "  [NEW](https://news.yahoo.co.jp/pickup/1)\n  [コメント数](https://news.yahoo.co.jp/pickup/1)\n  [304](https://news.yahoo.co.jp/pickup/1)",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0,
+        "stable_records": []
+      }
+    },
+    {
+      "id": "declared-auxiliary-labels-yahoo-auxiliary-before-primary",
+      "category": "structured-extraction",
+      "root_cause": "declared_auxiliary_labels_are_not_entity_names",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://news.yahoo.co.jp/",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "news.yahoo.co.jp"
+          ],
+          "entry_path": "/pickup/[0-9]+",
+          "stable_text_anchors": [],
+          "title_exclusion_patterns": [
+            "^(?:NEW|コメント数)$"
+          ]
+        }
+      },
+      "artifact": "[NEW](https://news.yahoo.co.jp/pickup/1)\n[コメント数](https://news.yahoo.co.jp/pickup/1)\n[実際のニュース見出し](https://news.yahoo.co.jp/pickup/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "実際のニュース見出し",
+              "url": "https://news.yahoo.co.jp/pickup/1"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "declared-auxiliary-labels-unrelated-real-entity-named-new",
+      "category": "structured-extraction",
+      "root_cause": "declared_auxiliary_labels_are_not_entity_names",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.org/",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.org"
+          ],
+          "entry_path": "/entity/[0-9]+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[NEW](https://example.org/entity/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "NEW",
+              "url": "https://example.org/entity/1"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "declared-auxiliary-labels-unrelated-real-entity-named-comment-count",
+      "category": "structured-extraction",
+      "root_cause": "declared_auxiliary_labels_are_not_entity_names",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.org/",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.org"
+          ],
+          "entry_path": "/entity/[0-9]+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "[コメント数](https://example.org/entity/1)",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "コメント数",
+              "url": "https://example.org/entity/1"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
     }
   ],
   "superseded_cases": {
