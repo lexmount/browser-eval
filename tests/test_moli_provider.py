@@ -206,7 +206,7 @@ class MoliTests(unittest.TestCase):
             "import sys\n"
             "assert not {'--timeout', '--http-timeout', '--http-connect-timeout', '--eval'} & set(sys.argv)\n"
             "assert sys.argv[sys.argv.index('--dump') + 1] == 'markdown'\n"
-            "assert '--dump' in sys.argv and '--http-max-response-size' in sys.argv\n"
+            "assert '--dump' in sys.argv and '--http-max-response-size' not in sys.argv\n"
             "print('complete native answer')\n",
             uniform_native_parameters=True,
         )
@@ -223,7 +223,7 @@ class MoliTests(unittest.TestCase):
             "import sys\n"
             'expected=["fetch","--dump","markdown","--wait-until","done",'
             '"--timeout","2000","--http-timeout","2000","--http-connect-timeout","2000",'
-            '"--http-max-response-size","20000000","--block-private-networks",'
+            '"--block-private-networks",'
             '"https://example.com/?a=1&b=2"]\n'
             "assert sys.argv[1:]==expected\n"
             'print("# Example Domain")\n'
@@ -852,6 +852,28 @@ class MoliTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertEqual(result.error_type, "configuration")
         process.assert_not_called()
+
+    def test_answer_capacity_does_not_limit_native_resource_downloads(self):
+        for fixed_native in (False, True):
+            with self.subTest(fixed_native=fixed_native):
+                provider = self.provider(
+                    "assert '--http-max-response-size' not in sys.argv\n"
+                    "print('short answer')\n",
+                    max_bytes=32, uniform_native_parameters=fixed_native,
+                )
+                result = provider.fetch(self.case, 2)
+                self.assertTrue(result.ok, repr(result))
+                self.assertEqual(result.content, "short answer\n")
+                self.assertIsNone(result.metadata["http_max_response_bytes"])
+                self.assertEqual(result.metadata["retained_output_max_bytes"], 32)
+                oversized = self.provider(
+                    "assert '--http-max-response-size' not in sys.argv\n"
+                    "print('answer exceeding the capture limit')\n",
+                    max_bytes=32, uniform_native_parameters=fixed_native,
+                ).fetch(self.case, 2)
+                self.assertFalse(oversized.ok)
+                self.assertEqual(oversized.error_type, "output_too_large")
+                self.assertEqual(oversized.content, "")
 
     def test_failure_binary_and_oversized_output(self):
         for script, config, expected, retained in [

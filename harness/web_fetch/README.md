@@ -717,6 +717,14 @@ while retaining the original status. Native `links.internal`/`links.external`
 name/URL pairs enter shared link input directly; names are not reconstructed from
 logs, requests or bare URLs.
 
+### Output and download limits
+
+Moli's `max_bytes` bounds the captured answer. Page and subresource downloads use
+Moli's native capacity policy; the adapter does not pass this answer limit as
+`--http-max-response-size`. A large script can produce a small answer, so limiting
+its download would change page execution. Answers above `max_bytes` fail with
+`output_too_large`; truncated answers are not scored.
+
 ### Fixed native webpage calls
 
 `uniform_native_parameters: true` selects the fixed-native body/structure policy for web and dynamic tasks. Choose documented native extraction options once per method (for example Tavily advanced, Cloudflare networkidle2, Crawl4AI iframe/overlay options, native freshness and capacity options). The caller deadline is 45 seconds; product connection, navigation and extraction timers retain their native defaults. HTTP-client deadlines and worker cancellation enforce collection time, not product-side budgets. CowAgent globals are never patched.

@@ -450,9 +450,8 @@ class MoliWebFetchProvider(Provider):
                 timeout_ms,
             ]
         )
-        # Forward common capacity limits while preserving native internal timers when declared.
-        command.extend(["--http-connect-timeout", timeout_ms,
-                        "--http-max-response-size", str(int(self.config.get("max_bytes", 20_000_000)))])
+        # The retained answer limit must not restrict page or subresource downloads.
+        command.extend(["--http-connect-timeout", timeout_ms])
         if self.config.get("uniform_native_parameters"):
             for flag in ("--timeout", "--http-timeout", "--http-connect-timeout"):
                 if flag in command:
@@ -477,7 +476,8 @@ class MoliWebFetchProvider(Provider):
             "dump": dump,
             "http_connect_timeout_ms": None if self.config.get("uniform_native_parameters") else int(timeout_ms),
             "internal_timeout_policy": "native_default" if self.config.get("uniform_native_parameters") else "explicit",
-            "http_max_response_bytes": int(self.config.get("max_bytes", 20_000_000)),
+            "http_max_response_bytes": None,
+            "retained_output_max_bytes": limit,
             "route": (
                 "resource_page_runtime"
                 if case.task_kind == "resource"
