@@ -5,7 +5,7 @@
   "name": "Web Fetch 评测",
   "track": "web_fetch",
   "dataset": "dataset.json",
-  "dataset_sha256": "9511b16bd27cfe6c2d7913917992cec574f73a8b5b642c19283ea542f90dab81",
+  "dataset_sha256": "5f751146143dcbe9daf46f0fb2511da1147508b3c8c4cd3377a6f3cceb82264e",
   "case_count": 150,
   "coverage_plan": {
     "web": [
@@ -610,7 +610,7 @@
       "category": "public_institution",
       "track": "web",
       "task_prompt": "读取给定网页当前首屏加载完成后的整页正文；保留标题、正文、列表和表格，不要求翻页或点击展开。项目仓库页的正文目标为完整项目说明（README），不要求侧栏统计。",
-      "definition_sha256": "f9e3e58875e927521f93f67461f11c84756842464431e3cb4587d98a6317abe5",
+      "definition_sha256": "418e6f2b5bdd966d38e42f415c63ab22adf4b70e03daf66cf418b9ecfc984bcf",
       "reference_sha256": "ab62f0273ab9f9b792c99d2d021bb1fe7f6ff7fcf6af9935de7b65cc4443d2e8"
     },
     {

@@ -9,7 +9,7 @@
     ]
   },
   "dataset": "dataset.json",
-  "dataset_sha256": "b32c7ad678ddef0377868f88d8fb82b0f84c09b708f67e5688317db96eab9571",
+  "dataset_sha256": "c278cdc46a5f9cc193a346d29712861de2f8a16125e8d44934fa15328d1c9686",
   "case_count": 100,
   "cases": [
     {
@@ -119,7 +119,7 @@
       "category": "dynamic_content",
       "track": "dynamic",
       "task_prompt": "提取声明网址首次自动加载后的真实文字、列表条目、对应链接和正文。保留页面可见稳定文字；不点击、输入、滚动、翻页或使用OCR。动态成员不固定历史名单；同条目字段须对应完整。",
-      "definition_sha256": "4e9f21f4b2a39c1282197690083a275d505767249df6c14b3233c382c508dd62",
+      "definition_sha256": "bc740d6c0db8af1eabe3364600e9190ba62ceb0feed0ff589196b99bcf1a17ad",
       "reference_sha256": null
     },
     {

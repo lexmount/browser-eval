@@ -23309,7 +23309,251 @@
       "expected_metrics": {
         "content_pass": false
       }
+    },
+  {
+    "id": "localized-equivalent-stable-anchor-passes",
+    "category": "acceptance-contract",
+    "root_cause": "equivalent_visible_label_alternatives",
+    "failure_mode": "false-negative",
+    "case": {
+      "url": "https://example.test/home",
+      "task_kind": "body",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "body_text",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "download",
+            "alternatives": [
+              "Download",
+              "下载"
+            ]
+          }
+        ]
+      }
+    },
+    "artifact": "下载",
+    "ok": true,
+    "expected_task_pass": true,
+    "expected_metrics": {
+      "stable_anchor_hits": 1,
+      "stable_task_pass": true
     }
+  },
+  {
+    "id": "unrelated-label-does-not-satisfy-equivalent-stable-anchor",
+    "category": "acceptance-contract",
+    "root_cause": "equivalent_visible_label_alternatives",
+    "failure_mode": "false-positive",
+    "case": {
+      "url": "https://example.test/home",
+      "task_kind": "body",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "body_text",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "download",
+            "alternatives": [
+              "Download",
+              "下载"
+            ]
+          }
+        ]
+      }
+    },
+    "artifact": "Get the application",
+    "ok": true,
+    "expected_task_pass": false,
+    "expected_metrics": {
+      "stable_anchor_hits": 0,
+      "stable_task_pass": false
+    }
+  },
+  {
+    "id": "independent-stable-anchors-pass-in-any-document-order",
+    "category": "acceptance-contract",
+    "root_cause": "independent_stable_anchor_order",
+    "failure_mode": "false-negative",
+    "case": {
+      "url": "https://example.test/topics",
+      "task_kind": "body",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "body_text",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "education",
+            "alternatives": [
+              "Education"
+            ]
+          },
+          {
+            "id": "research",
+            "alternatives": [
+              "Research"
+            ]
+          },
+          {
+            "id": "weather",
+            "alternatives": [
+              "Weather"
+            ]
+          }
+        ]
+      }
+    },
+    "artifact": "Weather\nEducation\nResearch",
+    "ok": true,
+    "expected_task_pass": true,
+    "expected_metrics": {
+      "stable_anchor_hits": 3,
+      "stable_task_pass": true
+    }
+  },
+  {
+    "id": "independent-stable-anchors-still-require-every-group",
+    "category": "acceptance-contract",
+    "root_cause": "independent_stable_anchor_order",
+    "failure_mode": "false-positive",
+    "case": {
+      "url": "https://example.test/topics",
+      "task_kind": "body",
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "body_text",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "education",
+            "alternatives": [
+              "Education"
+            ]
+          },
+          {
+            "id": "research",
+            "alternatives": [
+              "Research"
+            ]
+          },
+          {
+            "id": "weather",
+            "alternatives": [
+              "Weather"
+            ]
+          }
+        ]
+      }
+    },
+    "artifact": "Education\nResearch",
+    "ok": true,
+    "expected_task_pass": false,
+    "expected_metrics": {
+      "stable_anchor_hits": 2,
+      "stable_task_pass": false
+    }
+  },
+  {
+    "id": "complete-body-passes-without-responsive-navigation-labels",
+    "category": "acceptance-contract",
+    "root_cause": "task_relevant_visible_text_scope",
+    "failure_mode": "false-negative",
+    "case": {
+      "url": "https://example.test/article",
+      "task_kind": "body",
+      "ground_truth_main_content": "Article title alpha bravo charlie delta echo foxtrot golf hotel",
+      "body_requirements": {
+        "version": 3,
+        "unit": "region_compact_hexagram_recall",
+        "minimum_coverage": 0.8,
+        "minimum_floor": 0.6,
+        "minimum_region_passes": 2,
+        "regions": [
+          {
+            "id": "opening",
+            "text": "alpha bravo charlie delta"
+          },
+          {
+            "id": "ending",
+            "text": "echo foxtrot golf hotel"
+          }
+        ]
+      },
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "body_text",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "article-title",
+            "alternatives": [
+              "Article title"
+            ]
+          }
+        ]
+      }
+    },
+    "artifact": "Article title\nalpha bravo charlie delta\necho foxtrot golf hotel",
+    "ok": true,
+    "expected_task_pass": true,
+    "expected_metrics": {
+      "stable_task_pass": true,
+      "body_coverage_pass": true,
+      "content_pass": true
+    }
+  },
+  {
+    "id": "page-title-without-required-body-still-fails",
+    "category": "acceptance-contract",
+    "root_cause": "task_relevant_visible_text_scope",
+    "failure_mode": "false-positive",
+    "case": {
+      "url": "https://example.test/article",
+      "task_kind": "body",
+      "ground_truth_main_content": "Article title alpha bravo charlie delta echo foxtrot golf hotel",
+      "body_requirements": {
+        "version": 3,
+        "unit": "region_compact_hexagram_recall",
+        "minimum_coverage": 0.8,
+        "minimum_floor": 0.6,
+        "minimum_region_passes": 2,
+        "regions": [
+          {
+            "id": "opening",
+            "text": "alpha bravo charlie delta"
+          },
+          {
+            "id": "ending",
+            "text": "echo foxtrot golf hotel"
+          }
+        ]
+      },
+      "acceptance_contract": {
+        "version": 1,
+        "schema": "body_text",
+        "minimum_records": 0,
+        "stable_text_anchors": [
+          {
+            "id": "article-title",
+            "alternatives": [
+              "Article title"
+            ]
+          }
+        ]
+      }
+    },
+    "artifact": "Article title",
+    "ok": true,
+    "expected_task_pass": false,
+    "expected_metrics": {
+      "stable_task_pass": true,
+      "body_coverage_pass": false,
+      "content_pass": false
+    }
+  }
   ],
   "superseded_cases": {
   "dynamic-final-page-mismatch-cannot-be-counted-as-a-pass": "content-policy-dynamic-final-page-mismatch-cannot-be-counted-as-a-pass",

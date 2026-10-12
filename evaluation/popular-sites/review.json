@@ -43,5 +43,5 @@
       "reason": "This correction addresses only the clipped heading. The retained input-area prompt and other inherited criteria were not newly certified across historical page states."
     }
   ],
-  "case_rules_sha256": "c8226b15aa6c3544817b64e98b5a81e38d5ae665836ad667e93870580dae2089"
+  "case_rules_sha256": "6d6fbaaa41a7b8911417569fdd191910e9b04cc82bfd4bddaab0dd593fd2478b"
 }

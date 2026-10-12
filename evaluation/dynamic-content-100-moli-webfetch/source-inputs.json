@@ -1,13 +1,13 @@
 {
   "schema_version": 2,
   "kind": "frozen_reference_inputs",
-  "id": "dynamic-content-100-moli-webfetch-b32c7ad678dd-v2",
+  "id": "dynamic-content-100-moli-webfetch-c278cdc46a5f-v3",
   "dataset": "dataset.json",
-  "dataset_sha256": "b32c7ad678ddef0377868f88d8fb82b0f84c09b708f67e5688317db96eab9571",
+  "dataset_sha256": "c278cdc46a5f9cc193a346d29712861de2f8a16125e8d44934fa15328d1c9686",
   "catalog": "dataset-catalog.json",
-  "catalog_sha256": "81703f392b586931624692cb42a006843a9cbf02250fd9ea36d4ecb65ee1cb6e",
+  "catalog_sha256": "552b6cd9618db3bc80f98a4f25c20b6ecf53af2237c348b4e556befa80469864",
   "files": {
-    "dataset.json": "b32c7ad678ddef0377868f88d8fb82b0f84c09b708f67e5688317db96eab9571"
+    "dataset.json": "c278cdc46a5f9cc193a346d29712861de2f8a16125e8d44934fa15328d1c9686"
   },
   "trees": {}
 }

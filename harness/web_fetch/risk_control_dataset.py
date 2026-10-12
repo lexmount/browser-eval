@@ -29,12 +29,13 @@ RULE_FILES = (RISK / "first-30-rule-review.md", RISK / "remaining-70-rule-review
 LIST_CONTRACTS = RISK / "list-contracts.json"
 BODY_CONTRACTS = RISK / "body-contracts.json"
 EXPECTED_RULE_HASHES = {
-    "first-30-rule-review.md": "280f18c04a0fc83f2e59816b07454525780366500bfb8b2faef3019749759344",
+    "first-30-rule-review.md": "6945a6aa7b0d8d5990d8abf5d24fc41b5a42a22c70940a7c996d8698c6e9bf81",
     "remaining-70-rule-review.md": (
-        "a1c743a2df97b20eddf10c28bf179f1125d8937e1a568abf6c9cf9e79c225da7"
+        "301574dddcfddf6d30ed4d882cdd40b1ae859fdc95a0a02cf9868f55e3fd1079"
     ),
 }
 EXPECTED_COHORT_HASH = "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26"
+EXPECTED_STABLE_LITERAL_COUNT = 1586
 CHINESE_NUMBERS = {"一": 1, "两": 2, "二": 2, "三": 3, "四": 4, "五": 5}
 
 
@@ -278,8 +279,10 @@ def build(output: Path, definition_dir: Path = RISK) -> dict:
     ] != [case["id"] for case in qualified]:
         raise ValueError("Rule/cohort order mismatch")
     stable_literal_count = sum(len(section["stable"]) for section in sections)
-    if stable_literal_count != 1600:
-        raise ValueError("Expected exactly 1600 required stable literals")
+    if stable_literal_count != EXPECTED_STABLE_LITERAL_COUNT:
+        raise ValueError(
+            f"Expected exactly {EXPECTED_STABLE_LITERAL_COUNT} required stable literals"
+        )
 
     roots = evidence_roots(manifest_path)
     list_source = json.loads(list_contracts_path.read_text())

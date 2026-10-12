@@ -108,6 +108,7 @@ def definitions(tmp_path, monkeypatch):
         compiler, "EXPECTED_RULE_HASHES", {path.name: digest(path.read_bytes()) for path in rules}
     )
     monkeypatch.setattr(compiler, "EXPECTED_COHORT_HASH", digest(cohort.read_bytes()))
+    monkeypatch.setattr(compiler, "EXPECTED_STABLE_LITERAL_COUNT", 1600)
     return root, proofs
 
 
@@ -125,6 +126,26 @@ def test_complete_independent_definitions_compile_to_an_executable_dataset(defin
     )
     assert dataset["cases"][0]["body_requirements"]["regions"][0]["text"] == (
         "Independent source body paragraph 000."
+    )
+
+
+def test_current_rules_keep_responsive_page_chrome_out_of_body_acceptance():
+    removed = {
+        "risk-diverse-038": {"Recent changes"},
+        "risk-diverse-117": {"Search"},
+        "risk-diverse-225": {"Resources"},
+        "risk-diverse-241": {"Cart", "Home"},
+        "risk-diverse-268": {"Main Site", "Recent Changes", "Site Index", "Categories"},
+        "risk-diverse-201": {"Main page", "Table of contents", "Getting involved"},
+        "risk-diverse-209": {"Search"},
+        "risk-diverse-237": {"Discord"},
+    }
+    sections = {row["id"]: row for row in compiler.parse_sections()}
+    for case_id, labels in removed.items():
+        stable = {value for alternatives in sections[case_id]["stable"] for value in alternatives}
+        assert labels.isdisjoint(stable), case_id
+    assert sum(len(row["stable"]) for row in sections.values()) == (
+        compiler.EXPECTED_STABLE_LITERAL_COUNT
     )
 
 

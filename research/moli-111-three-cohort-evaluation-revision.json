@@ -668,6 +668,91 @@
         "required-final-url-missing-is-a-measured-failure": "content-policy-required-final-url-missing-is-a-measured-failure",
         "required-final-url-present-keeps-valid-body": "content-policy-required-final-url-present-keeps-valid-body"
       }
+    },
+    {
+      "root_cause": "Stable-text contracts conflated equivalent visible labels, independent anchor order, and task-relevant body scope with one fixed presentation. Shared acceptance now keeps each semantic requirement strict while allowing independently verified equivalents and excluding responsive page chrome from body coverage.",
+      "provider_calls": 0,
+      "predecessor_source_sha256": "181578a2be34f26ddc22dfd1590a84b3367a3b161f01656f0215914e54412dd4",
+      "revised_sha256": "5f983ec0abadb1bd4887f93c4ef8e1a3e8312d7dbe67fa02a22a590024bc9039",
+      "scoring_regressions_sha256": "e09c049dfefbe6e8f616e6c7e642e290262fd408e49aab7261d4d9d750d31ba1",
+      "regression_ids": [
+        "adjacent-multiline-markdown-cards-keep-records",
+        "body-without-final-url-passes",
+        "card-single-line-distinct-typed-fields-pass",
+        "card-unrelated-quantity-cannot-supply-typed-fields",
+        "combined-problem-cells-across-sections-pass",
+        "combined-problem-cells-cannot-omit-name",
+        "content-policy-dynamic-final-page-mismatch-cannot-be-counted-as-a-pass",
+        "content-policy-dynamic-search-query-mismatch-is-a-different-page",
+        "content-policy-dynamic-source-document-language-mismatch-is-not-verified",
+        "content-policy-dynamic-undeclared-source-language-rejects-declared-language",
+        "content-policy-required-final-url-missing-is-a-measured-failure",
+        "content-policy-required-final-url-present-keeps-valid-body",
+        "declared-page-chrome-is-required-stable-text",
+        "declared-redirect-link-base-does-not-allow-other-hosts",
+        "declared-redirect-link-base-resolves-relative-records",
+        "dynamic-undeclared-source-language-can-verify-identity",
+        "dynamic-undeclared-source-language-rejects-declared-language",
+        "emphasized-numeric-rank-is-valid-entry",
+        "emphasized-recommendation-is-not-list-entry",
+        "encoded-card-cannot-borrow-next-price",
+        "escaped-list-punctuation-retains-entry",
+        "escaped-recommendation-remains-prose",
+        "html-body-anchor-with-head-title-passes",
+        "html-doctype-hidden-challenge-is-not-visible",
+        "html-doctype-visible-challenge-still-blocks",
+        "html-head-title-cannot-supply-body",
+        "html-hidden-script-cannot-inflate-visible-length",
+        "html-hidden-script-cannot-satisfy-anchor",
+        "html-hidden-script-cannot-satisfy-body-coverage",
+        "html-independent-challenge-heading-still-blocks",
+        "html-inline-challenge-explanation-is-prose",
+        "html-inline-code-counts-for-body-coverage",
+        "html-inline-code-preserves-visible-anchor",
+        "html-misplaced-title-missing-body-fails",
+        "html-misplaced-title-visible-body-passes",
+        "html-visible-body-ignores-hidden-challenge-heading",
+        "html-visible-challenge-heading-blocks-body",
+        "inline-layout-breaks-do-not-repair-missing-table-fields",
+        "inline-layout-breaks-preserve-table-fields",
+        "legacy-title-marker-missing-fails",
+        "legacy-title-marker-visible-passes",
+        "legacy-title-pattern-missing-fails",
+        "legacy-title-pattern-visible-passes",
+        "long-metadata-title-cannot-expose-script-anchor",
+        "long-metadata-title-keeps-visible-html-anchor",
+        "markdown-heading-opens-declared-list-scope",
+        "markdown-plus-list-keeps-named-records",
+        "markdown-plus-prose-is-not-a-record-list",
+        "markdown-table-header-cannot-bypass-declared-scope",
+        "markdown-table-header-opens-declared-scope",
+        "metadata-title-body-anchor-missing-fails",
+        "metadata-title-body-anchor-visible-passes",
+        "metadata-title-body-coverage-missing-fails",
+        "metadata-title-body-coverage-visible-passes",
+        "metadata-title-composite-missing-fails",
+        "metadata-title-composite-visible-passes",
+        "missing-declared-page-chrome-fails-full-page-contract",
+        "multiline-card-followed-by-prose-does-not-borrow-record",
+        "outside-section-links-do-not-fill-declared-scope",
+        "required-final-url-missing-is-a-measured-failure",
+        "required-final-url-present-keeps-valid-body",
+        "unmatched-markdown-brackets-cannot-supply-missing-prose",
+        "unmatched-markdown-brackets-retains-required-prose",
+        "unreserved-path-encoding-retains-card-fields",
+        "verification-page-without-final-url-fails",
+        "wrong-body-content-policy-dynamic-final-page-mismatch-cannot-be-counted-as-a-pass",
+        "wrong-body-content-policy-dynamic-search-query-mismatch-is-a-different-page",
+        "wrong-body-content-policy-dynamic-source-document-language-mismatch-is-not-verified",
+        "wrong-body-content-policy-dynamic-undeclared-source-language-rejects-declared-language",
+        "localized-equivalent-stable-anchor-passes",
+        "unrelated-label-does-not-satisfy-equivalent-stable-anchor",
+        "independent-stable-anchors-pass-in-any-document-order",
+        "independent-stable-anchors-still-require-every-group",
+        "complete-body-passes-without-responsive-navigation-labels",
+        "page-title-without-required-body-still-fails"
+      ],
+      "scope": "Shared acceptance controls and regression bindings. Saved provider outputs are rescored separately; no provider calls or best-result selection."
     }
   ],
   "dynamic_dataset_followups": [
@@ -689,6 +774,93 @@
       "regression_ids": [
         "declared-redirect-link-base-resolves-relative-records",
         "declared-redirect-link-base-does-not-allow-other-hosts"
+      ]
+    },
+    {
+      "case_id": "dynamic-069-ja-nintendo-search",
+      "provider_calls": 0,
+      "predecessor_sha256": "b32c7ad678ddef0377868f88d8fb82b0f84c09b708f67e5688317db96eab9571",
+      "revised_sha256": "c278cdc46a5f9cc193a346d29712861de2f8a16125e8d44934fa15328d1c9686",
+      "root_cause": "The record threshold was bound to a stale 24-item count. Three independent first-render observations contain 10 valid records, so the predeclared 80% rule requires 8.",
+      "source_authority": {
+        "path": "evaluation/revision-sources/dynamic-069-ja-nintendo-search/record-count-correction.json",
+        "sha256": "3aee82fc6c033734058802f0243cbddb6773c0478adef222f895fe65568b00f5",
+        "provider_output_used": false
+      },
+      "changes": [
+        {
+          "field_path": [
+            "acceptance_contract",
+            "entry_scope",
+            "start_pattern"
+          ],
+          "previous_value": "(?m)^#{1,6}[ \\t]+ゲームソフトをさがす[ \\t]*$",
+          "value": "(?m)^\\s*ゲームソフトをさがす\\s*$"
+        },
+        {
+          "field_path": [
+            "acceptance_contract",
+            "minimum_records"
+          ],
+          "previous_value": 20,
+          "value": 8
+        },
+        {
+          "field_path": [
+            "acceptance_contract",
+            "record_count_policy",
+            "minimum_records"
+          ],
+          "previous_value": 20,
+          "value": 8
+        },
+        {
+          "field_path": [
+            "acceptance_contract",
+            "record_count_policy",
+            "reason"
+          ],
+          "previous_value": "Independent current initial-load scope; virtual-list counts use retained container-clipping geometry, excluding prefetch buffer. Diagnostic window only, refresh before formal run.",
+          "value": "Three independent rendered observations found 10 valid records; the 80% threshold therefore requires 8."
+        },
+        {
+          "field_path": [
+            "acceptance_contract",
+            "record_count_policy",
+            "source_evidence_sha256"
+          ],
+          "previous_value": "f64ef5b085267889c394f634421214c40c080a21ba3e00e1051b4e0a33d57826",
+          "value": "da2cf65eb6482e48a619b82d5557f9d37db123fd336f206f78325be142797fdd"
+        },
+        {
+          "field_path": [
+            "acceptance_contract",
+            "record_count_policy",
+            "source_observation_counts"
+          ],
+          "previous_value": [
+            24,
+            24
+          ],
+          "value": [
+            10,
+            10,
+            10
+          ]
+        },
+        {
+          "field_path": [
+            "acceptance_contract",
+            "record_count_policy",
+            "source_observed_count"
+          ],
+          "previous_value": 24,
+          "value": 10
+        }
+      ],
+      "regression_ids": [
+        "rendered-result-section-accepts-visible-table",
+        "rendered-result-section-rejects-source-only-values"
       ]
     }
   ],

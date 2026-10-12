@@ -41,17 +41,34 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
         assert followup['predecessor_sha256']==expected_hash
         assert followup['provider_calls']==0
         assert followup['source_authority']['provider_output_used'] is False
-        relative = Path(followup['source_authority']['path']).relative_to('evaluation/sources').as_posix()
+        authority_path = Path(followup['source_authority']['path'])
+        tree = authority_path.parts[1]
+        relative = authority_path.relative_to('evaluation', tree).as_posix()
         manifest = json.loads((ROOT / 'evaluation/source-inputs.json').read_text())
-        assert manifest['trees']['sources'][relative] == followup['source_authority']['sha256']
+        assert manifest['trees'][tree][relative] == followup['source_authority']['sha256']
         expected_hash=followup['revised_sha256']
     assert hashlib.sha256(read_frozen_dataset_bytes(DATASET_PATH)).hexdigest()==expected_hash
     for followup in reversed(revision.get('dynamic_dataset_followups',[])):
         case=next(c for c in cases if c['id']==followup['case_id'])
-        assert case['acceptance_contract']['link_base_url']==followup['value']
-        line='        "link_base_url": '+json.dumps(followup['value'])+',\n'
-        assert historical.count(line)==1
-        historical=historical.replace(line,'',1)
+        changes = followup.get('changes') or [{
+            'field_path': followup['field_path'],
+            'value': followup['value'],
+        }]
+        historical_dataset = json.loads(historical)
+        historical_case = next(c for c in historical_dataset['cases'] if c['id']==followup['case_id'])
+        for change in changes:
+            current = case
+            restored = historical_case
+            for key in change['field_path'][:-1]:
+                current = current[key]
+                restored = restored[key]
+            leaf = change['field_path'][-1]
+            assert current[leaf] == change['value']
+            if 'previous_value' in change:
+                restored[leaf] = change['previous_value']
+            else:
+                restored.pop(leaf)
+        historical = json.dumps(historical_dataset, ensure_ascii=False, indent=2) + '\n'
         assert hashlib.sha256(historical.encode()).hexdigest()==followup['predecessor_sha256']
     controls = load_scoring_regressions()
     for change in revision["dynamic_dataset"]["changes"]:
@@ -135,13 +152,20 @@ def require_historical_inputs():
 
 def test_dynamic_followup_reference_values_match_bound_external_source():
     require_historical_inputs()
-    sources = input_tree(ROOT / 'evaluation/dataset.json', 'sources')
     revision = json.loads(REVISION_PATH.read_text())
     for followup in revision.get('dynamic_dataset_followups', []):
-        relative = Path(followup['source_authority']['path']).relative_to('evaluation/sources')
-        authority = sources / relative
+        authority_path = Path(followup['source_authority']['path'])
+        tree = authority_path.parts[1]
+        relative = authority_path.relative_to('evaluation', tree)
+        authority = input_tree(ROOT / 'evaluation/dataset.json', tree) / relative
         assert hashlib.sha256(authority.read_bytes()).hexdigest() == followup['source_authority']['sha256']
-        assert json.loads(authority.read_text())['expected_final_url'] == followup['value']
+        record = json.loads(authority.read_text())
+        assert record['provider_output_used'] is False
+        if 'value' in followup:
+            assert record['expected_final_url'] == followup['value']
+        else:
+            assert record['rendered_valid_record_counts'] == [10, 10, 10]
+            assert record['minimum_records'] == 8
 
 
 def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monkeypatch):
