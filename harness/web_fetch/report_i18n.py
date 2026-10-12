@@ -2157,6 +2157,7 @@ TEXT.update({
     "原生 Markdown": "Native Markdown",
     "CLI 原生 Markdown": "Native Markdown from CLI",
     "CLI · 按任务预选 Markdown、DOM eval 或裸响应路线": "CLI · preselect Markdown, DOM eval, or bare-response routes by task",
+    "CLI · 按任务预选 Markdown、DOM eval 或原始响应路线": "CLI · preselect Markdown, DOM eval, or raw-response routes by task",
     "CLI · 按任务预选 Markdown、JSON 诊断、DOM eval 或裸响应路线": "CLI · preselect Markdown, JSON diagnostics, DOM eval, or bare-response routes by task",
     "Moli 一次性 fetch：普通正文用 Markdown，挑战题用 JSON 返回最终 DOM、状态和跳转诊断后在同一截止内本地转 Markdown；不调用模型。": "Moli performs one fetch per task: ordinary body tasks use Markdown, while challenge tasks return final-DOM JSON, status, and redirect diagnostics before local Markdown conversion within the same deadline; no model is called.",
     "stdout 文本/JSON/字节；stderr 独立诊断": "Text, JSON, or bytes on stdout; separate diagnostics on stderr",
