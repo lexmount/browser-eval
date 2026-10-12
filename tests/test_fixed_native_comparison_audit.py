@@ -33,12 +33,12 @@ class NativeFixture(Provider):
             "diagnostic_log_truncated": False,
             "_diagnostic_log_b64": base64.b64encode(diagnostic).decode(),
         }
-        if self.name == "moli-stack-1428" and case.id == "timeout":
+        if self.name == "moli-stack-1432" and case.id == "timeout":
             return ProviderResult(False, "", error_type="timeout", error_message="deadline",
                                   metadata=metadata)
         content = (
             "missing"
-            if self.name == "moli-stack-1428" and case.id == "web"
+            if self.name == "moli-stack-1432" and case.id == "web"
             else "anchor"
         )
         return ProviderResult(True, content, metadata={**metadata,
@@ -69,8 +69,8 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
         "retrieval_mode": "native_default_completion",
     }
     measured["coverage_plan"] = {
-        "web": ["moli", "moli-stack-1428"],
-        "dynamic": ["moli", "moli-stack-1428"],
+        "web": ["moli", "moli-stack-1432"],
+        "dynamic": ["moli", "moli-stack-1432"],
     }
     measured_path = tmp_path / "measured.json"
     measured_path.write_text(json.dumps(measured))
@@ -91,16 +91,16 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
             "retain_complete_diagnostic_log": True,
             "max_diagnostic_bytes": 100_000_000,
             **({"source_url": "https://example.test/candidate"}
-               if name == "moli-stack-1428" else {}),
+               if name == "moli-stack-1432" else {}),
         }
-        for name, character in (("moli", "a"), ("moli-stack-1428", "b"))
+        for name, character in (("moli", "a"), ("moli-stack-1432", "b"))
     }
     config_path = tmp_path / "providers.json"
     config_path.write_text(json.dumps({"schema_version": 1, "providers": configs}))
     evidence = tmp_path / "evidence"
     worker = evidence / "workers" / "interleaved"
     providers = [
-        NativeFixture(name, configs[name]) for name in ("moli", "moli-stack-1428")
+        NativeFixture(name, configs[name]) for name in ("moli", "moli-stack-1432")
     ]
     records, _ = run_evaluation(
         output_dir=worker,
@@ -123,7 +123,7 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
     (evidence / "execution.json").write_text(json.dumps({
         "schema_version": 1,
         "aggregate": {
-            "providers": ["moli", "moli-stack-1428"],
+            "providers": ["moli", "moli-stack-1432"],
             "case_ids": ["web", "dynamic", "timeout"],
             "batch_count": 1,
             "call_order": "case-alternating",
@@ -144,8 +144,8 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
             "source_revision": "1" * 40,
         },
         "candidate": {
-            "reported_version": configs["moli-stack-1428"]["expected_reported_version"],
-            "binary_sha256": configs["moli-stack-1428"]["expected_binary_sha256"],
+            "reported_version": configs["moli-stack-1432"]["expected_reported_version"],
+            "binary_sha256": configs["moli-stack-1432"]["expected_binary_sha256"],
             "revision": "2" * 40,
         },
         "execution": {
@@ -175,7 +175,7 @@ def run_audit(paths):
         output_json=paths["json"],
         output_markdown=paths["markdown"],
         stable_provider="moli",
-        candidate_provider="moli-stack-1428",
+        candidate_provider="moli-stack-1432",
     )
 
 
@@ -190,8 +190,8 @@ def test_comparison_audit_proves_protocol_and_lists_every_case(tmp_path):
         "fail_to_fail": 0,
     }
     assert [row["case_id"] for row in audit["cases"]] == ["web", "dynamic", "timeout"]
-    assert audit["cases"][0]["call_order"] == ["moli", "moli-stack-1428"]
-    assert audit["cases"][1]["call_order"] == ["moli-stack-1428", "moli"]
+    assert audit["cases"][0]["call_order"] == ["moli", "moli-stack-1432"]
+    assert audit["cases"][1]["call_order"] == ["moli-stack-1432", "moli"]
     assert "`web`" in paths["markdown"].read_text()
 
 
@@ -203,7 +203,7 @@ def test_comparison_audit_rejects_incomplete_or_unfair_evidence(tmp_path, damage
         paths["evidence"].joinpath("results.jsonl").write_text("\n".join(rows[:-1]) + "\n")
     elif damage == "parameter_drift":
         config = json.loads(paths["config"].read_text())
-        config["providers"]["moli-stack-1428"]["max_bytes"] = 10
+        config["providers"]["moli-stack-1432"]["max_bytes"] = 10
         paths["config"].write_text(json.dumps(config))
     elif damage == "artifact":
         row = json.loads(paths["evidence"].joinpath("results.jsonl").read_text().splitlines()[0])
