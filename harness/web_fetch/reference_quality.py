@@ -226,6 +226,38 @@ def visible_markdown_links(text: str) -> str:
     return re.sub(r"<((?:/[^<>\s/]+){2,}(?:[?#][^<>\s]*)?)>", r"\1", visible)
 
 
+def visible_mixed_html_text(text: str) -> str:
+    """Project raw HTML in a Markdown answer, preserving literal code and autolinks."""
+    from .dynamic_lists import visible_html_text
+
+    literals = []
+    marker = "\ue010"
+    while marker in text:
+        marker += "\ue010"
+
+    def protect(match):
+        literals.append(match.group(0))
+        return f"{marker}{len(literals) - 1}{marker}"
+
+    # Code examples are answer text. HTML inside them must remain literal.
+    protected = re.sub(
+        r"(?ms)^ {0,3}(`{3,}|~{3,})[^\n]*\n.*?^ {0,3}\1[ \t]*$"
+        r"|`+[^`\n]+`+|<(?:https?://|mailto:)[^<>\s]+>",
+        protect, text,
+    )
+    if not re.search(
+        r"</?(?:a|article|aside|b|blockquote|br|code|dd|div|dl|dt|em|footer|"
+        r"h[1-6]|header|hr|i|li|main|nav|ol|p|pre|section|span|strong|table|"
+        r"tbody|td|th|thead|tr|ul|script|style|template)\b[^>]*>",
+        protected, re.I,
+    ):
+        return text
+    projected = visible_html_text(protected)
+    for index, literal in enumerate(literals):
+        projected = projected.replace(f"{marker}{index}{marker}", literal)
+    return projected
+
+
 def audit_reference(text, facts, *, normalize):
     issues=[]
     if not text.strip(): issues.append('empty_reference')

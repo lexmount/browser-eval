@@ -487,6 +487,10 @@ def evaluate_content(
         # Keep raw HTML for records and links; score prose from visible text.
         from .dynamic_lists import visible_html_text
         visible_content = visible_html_text(content)
+    else:
+        from .reference_quality import visible_mixed_html_text
+        visible_content = visible_mixed_html_text(content)
+    has_html_prose = is_html or visible_content != content
     answer_text = title_prefix + visible_content
     from .reference_quality import blocked_page_hits, script_payload_shell
     block_hits = blocked_page_hits(answer_text)
@@ -608,7 +612,7 @@ def evaluate_content(
         # page anchors, records, or declared body coverage.
         result.update(evaluate_stable_task(content, acceptance_contract,
                                            base_url, links=named_links,
-                                           anchor_text=visible_content if is_html else None))
+                                           anchor_text=visible_content if has_html_prose else None))
         if encoding_corruption:
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False
