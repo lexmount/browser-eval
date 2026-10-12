@@ -1,3 +1,4 @@
+import base64
 import hashlib
 import json
 from dataclasses import asdict
@@ -22,16 +23,25 @@ class NativeFixture(Provider):
         }
 
     def fetch(self, case, timeout):
+        diagnostic = (self.name + "/" + case.id + " debug\n").encode()
+        metadata = {
+            "route": "dynamic_native_markdown" if case.track == "dynamic" else "ordinary_markdown",
+            "output": "markdown",
+            "dump": "markdown",
+            "diagnostic_log_sha256": hashlib.sha256(diagnostic).hexdigest(),
+            "diagnostic_log_bytes": len(diagnostic),
+            "diagnostic_log_truncated": False,
+            "_diagnostic_log_b64": base64.b64encode(diagnostic).decode(),
+        }
+        if self.name == "moli-stack-1428" and case.id == "timeout":
+            return ProviderResult(False, "", error_type="timeout", error_message="deadline",
+                                  metadata=metadata)
         content = (
             "missing"
             if self.name == "moli-stack-1428" and case.id == "web"
             else "anchor"
         )
-        dynamic = case.track == "dynamic"
-        return ProviderResult(True, content, metadata={
-            "route": "dynamic_native_markdown" if dynamic else "ordinary_markdown",
-            "output": "markdown",
-            "dump": "markdown",
+        return ProviderResult(True, content, metadata={**metadata,
             "reported_version": self.config["expected_reported_version"],
             "binary_sha256": self.config["expected_binary_sha256"],
         })
@@ -42,6 +52,7 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
         EvalCase("web", "Web", "https://example.test/web", "web", ["anchor"]),
         EvalCase("dynamic", "Dynamic", "https://example.test/dynamic", "dynamic",
                  ["anchor"], track="dynamic"),
+        EvalCase("timeout", "Timeout", "https://example.test/timeout", "web", ["anchor"]),
     ]
     source = {
         "id": "source",
@@ -76,6 +87,9 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
             "block_private_networks": True,
             "uniform_native_parameters": True,
             "max_bytes": 20_000_000,
+            "log_level": "debug",
+            "retain_complete_diagnostic_log": True,
+            "max_diagnostic_bytes": 100_000_000,
             **({"source_url": "https://example.test/candidate"}
                if name == "moli-stack-1428" else {}),
         }
@@ -110,7 +124,7 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
         "schema_version": 1,
         "aggregate": {
             "providers": ["moli", "moli-stack-1428"],
-            "case_ids": ["web", "dynamic"],
+            "case_ids": ["web", "dynamic", "timeout"],
             "batch_count": 1,
             "call_order": "case-alternating",
         },
@@ -123,7 +137,7 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
     receipt_path = tmp_path / "receipt.json"
     receipt_path.write_text(json.dumps({
         "schema_version": 1,
-        "inputs": {"dataset_sha256": source_hash, "case_count": 2},
+        "inputs": {"dataset_sha256": source_hash, "case_count": 3},
         "stable": {
             "reported_version": configs["moli"]["expected_reported_version"],
             "binary_sha256": configs["moli"]["expected_binary_sha256"],
@@ -168,14 +182,14 @@ def run_audit(paths):
 def test_comparison_audit_proves_protocol_and_lists_every_case(tmp_path):
     paths = comparison_cohort(tmp_path)
     audit = run_audit(paths)
-    assert audit["scope"]["result_count"] == 4
+    assert audit["scope"]["result_count"] == 6
     assert audit["verdict_relations"] == {
         "pass_to_pass": 1,
-        "pass_to_fail": 1,
+        "pass_to_fail": 2,
         "fail_to_pass": 0,
         "fail_to_fail": 0,
     }
-    assert [row["case_id"] for row in audit["cases"]] == ["web", "dynamic"]
+    assert [row["case_id"] for row in audit["cases"]] == ["web", "dynamic", "timeout"]
     assert audit["cases"][0]["call_order"] == ["moli", "moli-stack-1428"]
     assert audit["cases"][1]["call_order"] == ["moli-stack-1428", "moli"]
     assert "`web`" in paths["markdown"].read_text()

@@ -11,7 +11,7 @@ from typing import Any
 
 from harness.record_io import parse_jsonl
 
-from .artifacts import verify_public_call_log, verify_record_artifacts
+from .artifacts import diagnostic_log_binding, verify_public_call_log, verify_record_artifacts
 from .metrics import task_passed
 from .reference_lifecycle import require_verified_reference_checks
 from .safety import contained_path, reject_evidence_symlinks, safe_identifier
@@ -172,6 +172,9 @@ def audit_fixed_native_comparison(
             or item.get("block_private_networks") is not True
             or item.get("dns_mode") != "system"
             or item.get("private_network_allowlist_hosts", [])
+            or item.get("log_level") != "debug"
+            or item.get("retain_complete_diagnostic_log") is not True
+            or item.get("max_diagnostic_bytes") != 100_000_000
         ):
             raise ValueError(provider + ": provider configuration is not fixed native")
     if _native_contract(configured[stable_provider]) != _native_contract(
@@ -260,11 +263,30 @@ def audit_fixed_native_comparison(
         provider = row["provider"]
         expected = configured[provider]
         metadata = row.get("provider_metadata") or {}
+        observed_identity = {
+            "binary_sha256": metadata.get("binary_sha256"),
+            "reported_version": metadata.get("reported_version"),
+        }
+        expected_identity = {
+            "binary_sha256": expected["expected_binary_sha256"],
+            "reported_version": expected["expected_reported_version"],
+        }
+        # An outer deadline can return before the provider thread yields its
+        # metadata.  The completed batch still binds the executable identity;
+        # every call that did return an identity must repeat that exact pin.
+        missing_timeout_identity = (
+            row.get("ok") is False
+            and row.get("error_type") in {"timeout", "network"}
+            and not any(observed_identity.values())
+        )
+        diagnostic = diagnostic_log_binding(metadata)
         if (
             row.get("provider_type") != "moli_webfetch"
-            or metadata.get("binary_sha256") != expected["expected_binary_sha256"]
-            or metadata.get("reported_version") != expected["expected_reported_version"]
+            or (not missing_timeout_identity and observed_identity != expected_identity)
             or "retry" in metadata
+            or diagnostic is None
+            or diagnostic["bytes"] > expected["max_diagnostic_bytes"]
+            or metadata.get("diagnostic_log_truncated") is True
         ):
             raise ValueError(provider + "/" + row["case_id"] + ": call identity or retry policy differs")
         verify_record_artifacts(evidence_root, row)
