@@ -22633,6 +22633,46 @@
       "artifact": "Introduction\n<p>Visible explanation</p>\n\\\\<span data-value=\"literal\">Example</span>",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "category": "body-scope",
+      "root_cause": "mixed_html_prose_projection",
+      "case": {
+        "url": "https://example.test/code-table",
+        "required_facts": [
+          {
+            "id": "literal-code",
+            "alternatives": [
+              "data-value=\"literal\""
+            ]
+          }
+        ]
+      },
+      "ok": true,
+      "id": "mixed-html-table-cell-code-preserves-literal-tags",
+      "failure_mode": "false-negative",
+      "artifact": "Introduction\n<p>Visible explanation</p>\n| Example |\n|---|\n|  ```html\n<span data-value=\"literal\">Example</span>\n```\n |",
+      "expected_task_pass": true
+    },
+    {
+      "category": "body-scope",
+      "root_cause": "mixed_html_prose_projection",
+      "case": {
+        "url": "https://example.test/code-table",
+        "required_facts": [
+          {
+            "id": "literal-code",
+            "alternatives": [
+              "data-value=\"literal\""
+            ]
+          }
+        ]
+      },
+      "ok": true,
+      "id": "mixed-html-table-cell-code-does-not-expose-following-attributes",
+      "failure_mode": "false-positive",
+      "artifact": "Introduction\n| Example |\n|---|\n|  ```html\n<span>Example</span>\n```\n |\n<span data-value=\"literal\">Visible explanation</span>",
+      "expected_task_pass": false
     }
   ],
   "superseded_cases": {
