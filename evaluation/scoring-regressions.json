@@ -22519,6 +22519,80 @@
       "artifact": "Introduction\n<p>Read the guide</p>\n</docs/start> <https://example.test/guide> <help@example.test>",
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "output-table-structure-is-preserved",
+      "category": "format-normalization",
+      "root_cause": "pattern_output_and_prose_scope",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/pattern",
+        "required_patterns": [
+          {
+            "id": "table",
+            "pattern": "<table\\b",
+            "match_scope": "output"
+          }
+        ]
+      },
+      "artifact": "Intro\n<table><tr><td>A</td><td>B</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "flattened-text-is-not-output-table",
+      "category": "format-normalization",
+      "root_cause": "pattern_output_and_prose_scope",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/pattern",
+        "required_patterns": [
+          {
+            "id": "table",
+            "pattern": "<table\\b",
+            "match_scope": "output"
+          }
+        ]
+      },
+      "artifact": "Intro\nA B\n1 2",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "visible-text-pattern-is-recognized",
+      "category": "format-normalization",
+      "root_cause": "pattern_output_and_prose_scope",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/pattern",
+        "required_patterns": [
+          {
+            "id": "order",
+            "pattern": "Order ID [0-9]+"
+          }
+        ]
+      },
+      "artifact": "Intro\n<p>Order ID 123</p>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-text-cannot-satisfy-prose-pattern",
+      "category": "format-normalization",
+      "root_cause": "pattern_output_and_prose_scope",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/pattern",
+        "required_patterns": [
+          {
+            "id": "order",
+            "pattern": "Order ID [0-9]+"
+          }
+        ]
+      },
+      "artifact": "Intro\n<p data-label=\"Order ID 123\">Unrelated prose</p>",
+      "ok": true,
+      "expected_task_pass": false
     }
 ],
   "superseded_cases": {
