@@ -239,11 +239,13 @@ def visible_mixed_html_text(text: str) -> str:
         literals.append(match.group(0))
         return f"{marker}{len(literals) - 1}{marker}"
 
-    # Code examples are answer text. HTML inside them must remain literal.
+    # Code examples and Markdown-escaped brackets are answer text.
+    # Consume escaped backslashes as pairs so an unescaped following tag
+    # remains HTML rather than being protected by its second backslash.
     protected = re.sub(
         r"(?ms)^ {0,3}(`{3,}|~{3,})[^\n]*\n.*?^ {0,3}\1[ \t]*$"
         r"|`+[^`\n]+`+|<(?:https?://|mailto:|/[^<>\s/]+/)[^<>\s]+>"
-        r"|<[^<>\s]+@[^<>\s]+>",
+        r"|<[^<>\s]+@[^<>\s]+>|\\[\\<>]",
         protect, text,
     )
     if not re.search(

@@ -22593,8 +22593,48 @@
       "artifact": "Intro\n<p data-label=\"Order ID 123\">Unrelated prose</p>",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "mixed-html-escaped-tags-remain-literal",
+      "category": "body-scope",
+      "root_cause": "mixed_html_prose_projection",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/code",
+        "required_facts": [
+          {
+            "id": "literal-attribute",
+            "alternatives": [
+              "data-value=\"literal\""
+            ]
+          }
+        ]
+      },
+      "artifact": "Introduction\n<p>Visible explanation</p>\n\\<span data-value=\"literal\"\\>Example\\</span\\>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "mixed-html-escaped-backslash-does-not-expose-attributes",
+      "category": "body-scope",
+      "root_cause": "mixed_html_prose_projection",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/code",
+        "required_facts": [
+          {
+            "id": "literal-attribute",
+            "alternatives": [
+              "data-value=\"literal\""
+            ]
+          }
+        ]
+      },
+      "artifact": "Introduction\n<p>Visible explanation</p>\n\\\\<span data-value=\"literal\">Example</span>",
+      "ok": true,
+      "expected_task_pass": false
     }
-],
+  ],
   "superseded_cases": {
   "dynamic-final-page-mismatch-cannot-be-counted-as-a-pass": "content-policy-dynamic-final-page-mismatch-cannot-be-counted-as-a-pass",
   "dynamic-search-query-mismatch-is-a-different-page": "content-policy-dynamic-search-query-mismatch-is-a-different-page",
