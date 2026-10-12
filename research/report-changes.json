@@ -1282,9 +1282,6 @@
       "comparison_kinds": [
         "headless_markdown"
       ],
-      "scoring_revision_input_sha256": [
-        "0bbbe0264c9715da5438d05cbd5d140fe0e1a5abc4c80625e078e7b4548c3774"
-      ],
       "title": "区分两个 Moli 方法并标明受测版本",
       "summary": "总榜、专项、筛选、详情和接口说明分别标注 Moli 1.1.15 与 Moli 1.1.15 · PR #919 源码构建（98be1f10）。版本与受测二进制的校验值对应，2,580 条成绩及耗时不变。",
       "changes": [
