@@ -33,7 +33,15 @@ class NativeBrowserVariantTests(unittest.TestCase):
 
     def test_unknown_native_participant_cannot_bypass_route_validation(self):
         with self.assertRaises(ValueError):
-            require_native_task_routes(self.cases, [self.row({}, provider="unregistered-browser")])
+            require_native_task_routes(self.cases, [self.row(
+                {}, provider="unregistered-browser", provider_type="headless_markdown"
+            )])
+
+    def test_version_labeled_moli_uses_its_declared_provider_type(self):
+        require_native_task_routes(self.cases, [self.row(
+            {"route": "ordinary_markdown", "output": "markdown"},
+            provider="moli-1.1.16-stack-1432",
+        )])
 
     def test_interface_matrix_covers_every_family_for_six_configurations(self):
         cases = {family: {"id": family, "url": "https://example.com/file.pdf" if family == "document" else "https://example.com/",

@@ -154,6 +154,8 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
             "runs": 1,
             "caller_retries": 0,
             "retrieval_mode": "native",
+            "runtime_source_sha256": manifest["runtime_source_sha256"],
+            "evidence_state": "certified",
         },
     }))
     return {
@@ -179,6 +181,54 @@ def run_audit(paths):
     )
 
 
+def convert_to_provider_batches(paths):
+    config = json.loads(paths["config"].read_text())
+    for item in config["providers"].values():
+        item.pop("uniform_native_parameters")
+        item["private_network_allowlist_hosts"] = ["example.test"]
+    paths["config"].write_text(json.dumps(config))
+    config_sha = hashlib.sha256(paths["config"].read_bytes()).hexdigest()
+
+    rows = [json.loads(line) for line in
+            paths["evidence"].joinpath("results.jsonl").read_text().splitlines()]
+    providers = ["moli", "moli-stack-1432"]
+    case_ids = ["web", "dynamic", "timeout"]
+    rows.sort(key=lambda row: (providers.index(row["provider"]), case_ids.index(row["case_id"])))
+    for index, row in enumerate(rows):
+        row["started_at"] = f"2026-10-12T00:00:{index:02d}+00:00"
+        row["completed_at"] = f"2026-10-12T00:00:{index:02d}.500000+00:00"
+    paths["evidence"].joinpath("results.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in rows)
+    )
+
+    execution_path = paths["evidence"] / "execution.json"
+    execution = json.loads(execution_path.read_text())
+    original = execution["batches"][0]
+    batches = []
+    for provider in providers:
+        batch = json.loads(json.dumps(original))
+        batch["providers"] = [
+            item for item in batch["providers"] if item["name"] == provider
+        ]
+        batch["parameters"].update(
+            call_order="provider",
+            concurrency_scope="providers_parallel_cases_sequential_per_provider",
+        )
+        batch["attempt_ids"] = [
+            row["attempt_id"] for row in rows if row["provider"] == provider
+        ]
+        batch["attempt_count"] = len(batch["attempt_ids"])
+        batch["provider_config_sha256"] = config_sha
+        batches.append(batch)
+    execution["aggregate"].update(batch_count=2, call_order="provider")
+    execution["batches"] = batches
+    execution_path.write_text(json.dumps(execution))
+
+    receipt = json.loads(paths["receipt"].read_text())
+    receipt["execution"]["call_order"] = "provider"
+    paths["receipt"].write_text(json.dumps(receipt))
+
+
 def test_comparison_audit_proves_protocol_and_lists_every_case(tmp_path):
     paths = comparison_cohort(tmp_path)
     audit = run_audit(paths)
@@ -193,6 +243,35 @@ def test_comparison_audit_proves_protocol_and_lists_every_case(tmp_path):
     assert audit["cases"][0]["call_order"] == ["moli", "moli-stack-1432"]
     assert audit["cases"][1]["call_order"] == ["moli-stack-1432", "moli"]
     assert "`web`" in paths["markdown"].read_text()
+
+
+def test_comparison_audit_accepts_serial_provider_batches_with_shared_allowlist(tmp_path):
+    paths = comparison_cohort(tmp_path)
+    convert_to_provider_batches(paths)
+    audit = run_audit(paths)
+    assert audit["scope"]["call_order"] == "serial_provider_batches"
+    assert all(row["call_order"] == ["moli", "moli-stack-1432"]
+               for row in audit["cases"])
+    assert "serial provider-batch order" in paths["markdown"].read_text()
+
+
+def test_comparison_audit_keeps_diagnostic_evidence_explicit(tmp_path):
+    paths = comparison_cohort(tmp_path)
+    dataset_path = paths["evidence"] / "dataset.json"
+    dataset = json.loads(dataset_path.read_text())
+    dataset.setdefault("comparison", {})["evidence_state"] = "diagnostic"
+    dataset_path.write_text(json.dumps(dataset))
+    execution_path = paths["evidence"] / "execution.json"
+    execution = json.loads(execution_path.read_text())
+    for batch in execution["batches"]:
+        batch["evidence_state"] = "diagnostic"
+    execution_path.write_text(json.dumps(execution))
+    receipt = json.loads(paths["receipt"].read_text())
+    receipt["execution"]["evidence_state"] = "diagnostic"
+    paths["receipt"].write_text(json.dumps(receipt))
+
+    audit = run_audit(paths)
+    assert audit["scope"]["evidence_state"] == "diagnostic"
 
 
 @pytest.mark.parametrize("damage", ["missing_result", "parameter_drift", "artifact", "order"])

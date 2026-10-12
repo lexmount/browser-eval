@@ -173,7 +173,11 @@ def require_native_task_routes(cases, records):
     failures = []
     for row in records:
         from .methods import native_browser_engine
-        provider = native_browser_engine(row['provider'])
+        provider = (
+            'moli'
+            if row.get('provider_type') == 'moli_webfetch'
+            else native_browser_engine(row['provider'])
+        )
         if provider not in {'moli','lightpanda','obscura','chromium','kitesurf'}:
             failures.append(row['provider'] + '/' + row['case_id'])
             continue

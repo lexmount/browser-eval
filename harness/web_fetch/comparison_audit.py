@@ -14,6 +14,7 @@ from harness.record_io import parse_jsonl
 from .artifacts import diagnostic_log_binding, verify_public_call_log, verify_record_artifacts
 from .metrics import task_passed
 from .reference_lifecycle import require_verified_reference_checks
+from .reference_lifecycle import is_diagnostic_evidence
 from .safety import contained_path, reject_evidence_symlinks, safe_identifier
 from .task_outputs import require_native_task_routes
 
@@ -38,14 +39,6 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _runtime_source_sha256() -> str:
-    root = Path(__file__).parent
-    return hashlib.sha256(b"\0".join(
-        path.relative_to(root).as_posix().encode() + b"\0" + path.read_bytes()
-        for path in sorted(root.rglob("*.py"))
-    )).hexdigest()
 
 
 def _native_contract(config: dict[str, Any]) -> dict[str, Any]:
@@ -167,11 +160,9 @@ def audit_fixed_native_comparison(
         item = configured[provider]
         if (
             item.get("type") != "moli_webfetch"
-            or item.get("uniform_native_parameters") is not True
             or item.get("wait_until") != "done"
             or item.get("block_private_networks") is not True
-            or item.get("dns_mode") != "system"
-            or item.get("private_network_allowlist_hosts", [])
+            or item.get("dns_mode", "system") != "system"
             or item.get("log_level") != "debug"
             or item.get("retain_complete_diagnostic_log") is not True
             or item.get("max_diagnostic_bytes") != 100_000_000
@@ -183,13 +174,22 @@ def audit_fixed_native_comparison(
         raise ValueError("Stable and candidate use different non-identity parameters")
 
     declared = receipt.get("execution", {})
+    call_order = declared.get("call_order")
+    runtime_source_sha256 = declared.get("runtime_source_sha256")
+    evidence_state = declared.get("evidence_state")
     if declared != {
         "workers": 1,
-        "call_order": "case-alternating",
+        "call_order": call_order,
         "runs": 1,
         "caller_retries": 0,
         "retrieval_mode": "native",
-    }:
+        "runtime_source_sha256": runtime_source_sha256,
+        "evidence_state": evidence_state,
+    } or call_order not in {"provider", "case-alternating"} or (
+        not isinstance(runtime_source_sha256, str)
+        or len(runtime_source_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in runtime_source_sha256)
+    ) or evidence_state not in {"certified", "diagnostic"}:
         raise ValueError("Run receipt does not declare the fixed comparison protocol")
     identities = {
         stable_provider: receipt.get("stable", {}),
@@ -206,41 +206,52 @@ def audit_fixed_native_comparison(
 
     aggregate = execution.get("aggregate", {})
     batches = execution.get("batches")
+    expected_batch_count = 1 if call_order == "case-alternating" else 2
     if (
         aggregate.get("providers") != sorted(providers)
         or aggregate.get("case_ids") != case_ids
-        or aggregate.get("batch_count") != 1
-        or aggregate.get("call_order") != "case-alternating"
+        or aggregate.get("batch_count") != expected_batch_count
+        or aggregate.get("call_order") != call_order
         or not isinstance(batches, list)
-        or len(batches) != 1
+        or len(batches) != expected_batch_count
     ):
-        raise ValueError("Execution boundary does not describe one complete alternating batch")
-    batch = batches[0]
-    parameters = batch.get("parameters", {})
-    batch_providers = [item.get("name") for item in batch.get("providers", [])]
-    if (
-        batch_providers != providers
-        or parameters.get("runs") != 1
-        or parameters.get("max_failure_retries") != 0
-        or parameters.get("call_order") != "case-alternating"
-        or parameters.get("provider_concurrency") != 1
-        or parameters.get("concurrency_scope") != "serial_alternating_providers_per_case"
-        or batch.get("unexecuted")
-        or not batch.get("completed_at")
-        or batch.get("provider_config_sha256") != _sha256(provider_config)
-        or batch.get("runtime_source_sha256") != _runtime_source_sha256()
-    ):
-        raise ValueError("Physical batch differs from the fixed alternating protocol")
-    batch_identities = {
-        item["name"]: item.get("implementation_identity")
-        for item in batch["providers"]
-    }
-    for provider in providers:
-        if batch_identities[provider] != {
-            "reported_version": configured[provider]["expected_reported_version"],
-            "binary_sha256": configured[provider]["expected_binary_sha256"],
-        }:
-            raise ValueError(provider + ": batch implementation identity differs")
+        raise ValueError("Execution boundary does not describe the declared comparison batches")
+    batch_attempt_ids: list[str] = []
+    for index, batch in enumerate(batches):
+        parameters = batch.get("parameters", {})
+        batch_providers = [item.get("name") for item in batch.get("providers", [])]
+        expected_batch_providers = providers if call_order == "case-alternating" else [providers[index]]
+        expected_scope = (
+            "serial_alternating_providers_per_case"
+            if call_order == "case-alternating"
+            else "providers_parallel_cases_sequential_per_provider"
+        )
+        if (
+            batch_providers != expected_batch_providers
+            or parameters.get("runs") != 1
+            or parameters.get("max_failure_retries") != 0
+            or parameters.get("call_order") != call_order
+            or parameters.get("provider_concurrency") != 1
+            or parameters.get("concurrency_scope") != expected_scope
+            or batch.get("unexecuted")
+            or not batch.get("completed_at")
+            or batch.get("provider_config_sha256") != _sha256(provider_config)
+            or batch.get("runtime_source_sha256") != runtime_source_sha256
+        ):
+            raise ValueError("Physical batch differs from the declared comparison protocol")
+        batch_identities = {
+            item["name"]: item.get("implementation_identity")
+            for item in batch["providers"]
+        }
+        for provider in expected_batch_providers:
+            if batch_identities[provider] != {
+                "reported_version": configured[provider]["expected_reported_version"],
+                "binary_sha256": configured[provider]["expected_binary_sha256"],
+            }:
+                raise ValueError(provider + ": batch implementation identity differs")
+        if batch.get("attempt_count") != len(batch.get("attempt_ids", [])):
+            raise ValueError("Physical batch attempt inventory is incomplete")
+        batch_attempt_ids.extend(batch.get("attempt_ids", []))
 
     expected_keys = {(provider, case_id, 1) for provider in providers for case_id in case_ids}
     actual_keys = [(row.get("provider"), row.get("case_id"), row.get("run")) for row in records]
@@ -249,13 +260,19 @@ def audit_fixed_native_comparison(
     attempt_ids = [row.get("attempt_id") for row in records]
     if (
         len(set(attempt_ids)) != len(attempt_ids)
-        or batch.get("attempt_count") != len(records)
-        or Counter(batch.get("attempt_ids", [])) != Counter(attempt_ids)
+        or len(batch_attempt_ids) != len(records)
+        or Counter(batch_attempt_ids) != Counter(attempt_ids)
     ):
         raise ValueError("Comparison attempt inventory is incomplete or duplicated")
 
+    diagnostic_evidence = is_diagnostic_evidence(dataset) or any(
+        is_diagnostic_evidence(batch) for batch in batches
+    )
+    if diagnostic_evidence != (evidence_state == "diagnostic"):
+        raise ValueError("Run receipt and evidence state differ")
     require_verified_reference_checks(
-        batches, cases=dataset, records=records, source=evidence_root
+        batches, cases=dataset, records=records, source=evidence_root,
+        allow_diagnostic=evidence_state == "diagnostic",
     )
     require_native_task_routes(dataset["cases"], records)
     indexed: dict[tuple[str, str], dict[str, Any]] = {}
@@ -298,11 +315,16 @@ def audit_fixed_native_comparison(
 
     chronological = sorted(records, key=lambda row: (_timestamp(row["started_at"]), row["attempt_id"]))
     expected_order: list[tuple[str, str]] = []
-    for index, case_id in enumerate(case_ids):
-        order = providers if index % 2 == 0 else providers[::-1]
-        expected_order.extend((provider, case_id) for provider in order)
+    if call_order == "case-alternating":
+        for index, case_id in enumerate(case_ids):
+            order = providers if index % 2 == 0 else providers[::-1]
+            expected_order.extend((provider, case_id) for provider in order)
+    else:
+        expected_order = [
+            (provider, case_id) for provider in providers for case_id in case_ids
+        ]
     if [(row["provider"], row["case_id"]) for row in chronological] != expected_order:
-        raise ValueError("Recorded calls do not follow the predeclared case-alternating order")
+        raise ValueError("Recorded calls do not follow the predeclared comparison order")
     for before, after in zip(chronological, chronological[1:]):
         if _timestamp(before["completed_at"]) > _timestamp(after["started_at"]):
             raise ValueError("Comparison calls overlap; serial execution is unproven")
@@ -353,9 +375,14 @@ def audit_fixed_native_comparison(
             "stable_provider": stable_provider,
             "candidate_provider": candidate_provider,
             "source_dataset_sha256": source_sha256,
-            "call_order": "serial_case_alternating",
+            "call_order": (
+                "serial_case_alternating"
+                if call_order == "case-alternating"
+                else "serial_provider_batches"
+            ),
             "runs": 1,
             "caller_retries": 0,
+            "evidence_state": evidence_state,
         },
         "bindings": {
             "measured_dataset_sha256": _sha256(dataset_path),
@@ -363,6 +390,7 @@ def audit_fixed_native_comparison(
             "execution_sha256": _sha256(execution_path),
             "provider_config_sha256": _sha256(provider_config),
             "run_receipt_sha256": _sha256(run_receipt),
+            "runtime_source_sha256": runtime_source_sha256,
         },
         "identities": {
             provider: {
@@ -409,7 +437,12 @@ def audit_fixed_native_comparison(
         "## Web Fetch stable-versus-candidate audit",
         "",
         f"Verified {expected_count} cases × 2 methods ({len(records)} physical calls), "
-        "one run, zero caller retries, serial case-alternating order.",
+        "one run, zero caller retries, "
+        + (
+            "serial case-alternating order."
+            if call_order == "case-alternating"
+            else "serial provider-batch order."
+        ),
         "",
         "| Stable → candidate | Cases |",
         "| --- | ---: |",
