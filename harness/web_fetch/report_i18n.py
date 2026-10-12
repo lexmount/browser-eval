@@ -109,6 +109,7 @@ TEXT = {
     '本报告的方法由调用方的显式配置提供。': 'The caller’s explicit configuration supplies the methods in this report.',
     '方法名称': 'Method name',
     '工具版本': 'Tool version',
+    '原始输出': 'Raw output',
     'Web Fetch · 评测报告': 'Web Fetch · Evaluation report',
     'Web Fetch · 合成示例': 'Web Fetch · Synthetic example',
     'Web Fetch · 诊断运行': 'Web Fetch · Diagnostic run',
