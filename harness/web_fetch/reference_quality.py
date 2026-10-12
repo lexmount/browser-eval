@@ -247,7 +247,12 @@ def visible_mixed_html_text(text: str) -> str:
     protected = re.sub(
         r"(?ms)^ {0,3}(?:\|[ \t]*)?(`{3,}|~{3,})[^\n]*\n.*?^ {0,3}\1[ \t]*$"
         r"|`+[^`\n]+`+|<(?:https?://|mailto:|/[^<>\s/]+/)[^<>\s]+>"
-        r"|<[^<>\s]+@[^<>\s]+>|\\[\\<>]",
+        r"|<[^<>\s]+@[^<>\s]+>"
+        # Some Markdown serializers escape only the closing angle bracket of
+        # a literal HTML tag (``<td\>``). Protect the complete token so the
+        # unescaped opening bracket cannot turn a displayed code sample into
+        # live HTML. A wholly unescaped tag remains markup and is projected.
+        r"|(?:\\</?[A-Za-z][^<>\n]*>|</?[A-Za-z][^<>\n]*\\>)|\\[\\<>]",
         protect, text,
     )
     if not re.search(
