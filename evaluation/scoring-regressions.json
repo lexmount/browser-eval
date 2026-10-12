@@ -22487,6 +22487,38 @@
       "artifact": "Introduction\n<p>Visible explanation</p>\n```html\n<span data-value=\"literal\">example</span>\n```",
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "mixed-html-autolinks-remain-visible",
+      "category": "body-scope",
+      "root_cause": "mixed_html_prose_projection",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/links",
+        "required_facts": [
+          {
+            "id": "relative-path",
+            "alternatives": [
+              "/docs/start"
+            ]
+          },
+          {
+            "id": "absolute-url",
+            "alternatives": [
+              "https://example.test/guide"
+            ]
+          },
+          {
+            "id": "email-address",
+            "alternatives": [
+              "help@example.test"
+            ]
+          }
+        ]
+      },
+      "artifact": "Introduction\n<p>Read the guide</p>\n</docs/start> <https://example.test/guide> <help@example.test>",
+      "ok": true,
+      "expected_task_pass": true
     }
 ],
   "superseded_cases": {

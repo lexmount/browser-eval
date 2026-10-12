@@ -242,7 +242,8 @@ def visible_mixed_html_text(text: str) -> str:
     # Code examples are answer text. HTML inside them must remain literal.
     protected = re.sub(
         r"(?ms)^ {0,3}(`{3,}|~{3,})[^\n]*\n.*?^ {0,3}\1[ \t]*$"
-        r"|`+[^`\n]+`+|<(?:https?://|mailto:)[^<>\s]+>",
+        r"|`+[^`\n]+`+|<(?:https?://|mailto:|/[^<>\s/]+/)[^<>\s]+>"
+        r"|<[^<>\s]+@[^<>\s]+>",
         protect, text,
     )
     if not re.search(
