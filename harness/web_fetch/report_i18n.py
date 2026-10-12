@@ -110,6 +110,8 @@ TEXT = {
     '方法名称': 'Method name',
     '工具版本': 'Tool version',
     '原始输出': 'Raw output',
+    '程序错误': 'Program error',
+    '分类：': 'Classification: ',
     'Web Fetch · 评测报告': 'Web Fetch · Evaluation report',
     'Web Fetch · 合成示例': 'Web Fetch · Synthetic example',
     'Web Fetch · 诊断运行': 'Web Fetch · Diagnostic run',
