@@ -2,7 +2,7 @@ import unittest
 
 from harness.web_fetch.metrics import (
     evaluate_content, evaluate_resources, normalize_for_match,
-    normalize_resource_url, summarize, word_overlap,
+    normalize_resource_url, summarize, task_passed, word_overlap,
 )
 
 
@@ -13,6 +13,35 @@ class MetricsTest(unittest.TestCase):
         visible = "<html><body><p>Order ID 123</p></body></html>"
         self.assertFalse(evaluate_content(hidden, [], required_patterns=rule)["content_pass"])
         self.assertTrue(evaluate_content(visible, [], required_patterns=rule)["content_pass"])
+
+    def test_required_result_section_remains_an_acceptance_gate_with_stable_rules(self):
+        contract = {
+            "version": 1,
+            "schema": "body_text",
+            "minimum_records": 0,
+            "stable_text_anchors": [],
+        }
+        rules = [{
+            "id": "rendered-result",
+            "pattern": r"(?is)\bResult\b\s+(?!Loading\b).*?\bName\b.*?\bJohn\b",
+        }]
+        loading = evaluate_content(
+            "const rows = ['John'];\nResult Loading...",
+            [],
+            acceptance_contract=contract,
+            required_patterns=rules,
+        )
+        rendered = evaluate_content(
+            "Result\nName\nJohn",
+            [],
+            acceptance_contract=contract,
+            required_patterns=rules,
+        )
+        self.assertTrue(loading["stable_task_pass"])
+        self.assertFalse(loading["content_pass"])
+        self.assertFalse(task_passed(True, loading, "body"))
+        self.assertTrue(rendered["content_pass"])
+        self.assertTrue(task_passed(True, rendered, "body"))
 
     def test_only_pure_markdown_table_rules_are_layout(self):
         divider = 'December 2007\n| Sun | Mon | Tue |\n| :---- | ---: | --- |'

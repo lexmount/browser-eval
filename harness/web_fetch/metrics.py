@@ -330,7 +330,9 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
         return False
     if "stable_task_pass" in metrics:
         combined = (metrics.get("content_pass")
-                    if "composite_acceptance_pass" in metrics or metrics.get("body_region_results")
+                    if ("composite_acceptance_pass" in metrics
+                        or metrics.get("body_region_results")
+                        or metrics.get("pattern_results"))
                     else True)
         return bool(ok and metrics["stable_task_pass"]
                     and combined
@@ -611,6 +613,7 @@ def evaluate_content(
         # stable contract owns acceptance.  A separately declared body-region
         # contract is different: it remains an independent acceptance gate.
         declared_body_pass = bool(result["body_coverage_pass"])
+        declared_pattern_pass = all(item["pass"] for item in result["pattern_results"])
         from .stable_tasks import evaluate_stable_task
         # Document metadata remains diagnostic; it cannot supply rendered
         # page anchors, records, or declared body coverage.
@@ -640,7 +643,9 @@ def evaluate_content(
             result["stable_content_pass"] = False
             if "content_too_short" not in result["stable_task_errors"]:
                 result["stable_task_errors"].append("content_too_short")
-        result["content_pass"] = bool(declared_body_pass and result["stable_task_pass"])
+        result["content_pass"] = bool(
+            declared_body_pass and declared_pattern_pass and result["stable_task_pass"]
+        )
         result["content_decision_basis"] = "stable_contract_and_declared_content_requirements"
     if composite_acceptance:
         from .composite_tasks import evaluate_composite_acceptance
