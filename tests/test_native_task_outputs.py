@@ -222,9 +222,10 @@ class AllFamilyInterfaceTests(unittest.TestCase):
         self.assertEqual(sum(len(row['cells']) for row in matrix['rows']),35)
         rows={row['track']:row for row in matrix['rows']}
         for provider in providers:
-            self.assertIn('不使用外部 PDF/DOCX 解析器',rows['document']['cells'][provider][0]['description'])
+            self.assertIn('不使用外部',rows['document']['cells'][provider][0]['description'])
             self.assertIn('不转 Markdown',rows['image']['cells'][provider][0]['description'])
             self.assertTrue(rows['web']['cells'][provider][0]['wait'])
+        self.assertIn('直接 PDF/DOCX 未提供可读正文',rows['document']['cells']['moli'][0]['description'])
         self.assertIn('共同转换',rows['web']['cells']['chromium'][0]['description'])
         self.assertIn('内置转换',rows['challenge']['cells']['moli'][0]['description'])
         self.assertIn('内置转换',rows['risk_control']['cells']['moli'][0]['description'])

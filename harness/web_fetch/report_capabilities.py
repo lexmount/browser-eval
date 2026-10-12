@@ -244,7 +244,9 @@ def task_capabilities(out, names, records):
         row.update(
             scope=matrix['capabilities'][name],
             web=c('支持','原生网页正文输出' if engine!='chromium' else '原生 DOM 加共同 HTML 转换'),
-            document=c('原生输出','直接使用正文接口或浏览器内查看器文字；不使用外部 PDF/DOCX 解析器'),
+            document=(c('有限支持','HTML/TXT 可由原生 Markdown 返回；直接 PDF/DOCX 未提供可读正文，评测端不使用外部解析器')
+                      if engine=='moli' else
+                      c('原生输出','直接使用正文接口或浏览器内查看器文字；不使用外部 PDF/DOCX 解析器')),
             image=c('资源地址 / 字节','原生 DOM 接口读取资源地址；直接文件通过原生响应取得'),
             av=c('资源与元数据','原生接口读取地址、页面元数据或原始字节；不做媒体理解'),
             file=c('原生获取','使用该浏览器原始响应或附件接口，按固定规则验收字节'),

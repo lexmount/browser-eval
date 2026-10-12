@@ -18,10 +18,13 @@ class CapabilityTests(unittest.TestCase):
                 {'id':'pdf','url':'https://example.com/a.pdf','track':'document','task_kind':'body'}]}))
             names=['moli','lightpanda','obscura','chromium','kitesurf']
             claims=task_capabilities(out,names,[{'provider_metadata':{'output_contract':'readable_document_text'}}])
-            for name in names:
+            self.assertEqual(claims['moli']['document']['status'],'有限支持')
+            self.assertIn('直接 PDF/DOCX 未提供可读正文',claims['moli']['document']['detail'])
+            for name in names[1:]:
                 self.assertEqual(claims[name]['document']['status'],'原生输出')
+            for name in names:
                 self.assertIn('资源读取脚本由评测提供',claims[name]['notes'])
-                self.assertIn('不使用外部 PDF/DOCX 解析器',claims[name]['document']['detail'])
+                self.assertIn('不使用外部',claims[name]['document']['detail'])
                 self.assertNotIn('没有 PDF / Office 解析器',claims[name]['document']['detail'])
             self.assertIn('--eval',claims['obscura']['scope'])
             self.assertIn('JSON',claims['moli']['scope'])
