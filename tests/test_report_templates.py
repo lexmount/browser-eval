@@ -81,6 +81,20 @@ class ReportTemplateTests(unittest.TestCase):
         self.assertIn('见标准答案',diagnostic_findings(row,files)[0]['expected'])
         self.assertNotIn('befo port',diagnostic_findings(row,files)[0]['expected'])
 
+    def test_page_identity_is_reported_only_as_an_observed_diagnostic(self):
+        from harness.web_fetch.report_diagnostic import diagnostic_findings
+        row={'initial_pass':False,'failure':'page_identity_not_verified','log':{'path':'call.json'}}
+        for status, expected_count in (('mismatch', 1), ('unknown', 0), ('not_verified', 0), ('unavailable', 0)):
+            with self.subTest(status=status):
+                log={'ok':True,'final_url':'https://redirect.example/final',
+                     'metrics':{'page_identity_status':status,'observed_document_language':'en'}}
+                findings=diagnostic_findings(row,{'call.json':json.dumps(log).encode()})
+                identity=[finding for finding in findings if finding['kind']=='identity']
+                self.assertEqual(len(identity),expected_count)
+                if identity:
+                    self.assertIn('不参与通过判定',identity[0]['label'])
+                    self.assertEqual(identity[0]['expected'],'仅供核对访问路径，无通过要求')
+
     def test_release_privacy_gate_also_checks_unreferenced_extra_files(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);diagnostic_example(root/'source')
