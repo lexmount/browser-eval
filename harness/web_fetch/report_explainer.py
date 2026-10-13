@@ -918,7 +918,7 @@ def _render_current_browser_article(out, cases, records, binding):
         route_rows.append((escape(BROWSER_FAMILY_NAMES[row['track']])+f" · {row['count']} 题", *cells))
     matrix = _table(['任务类型',*(label(name) for name in names)], route_rows, '每格列出获取接口、额外处理及最终输出；同类中的不同交付格式分别列出题数。')
     body += section('各类任务的获取与转换方式',
-        '<p>按题目类型使用参评浏览器合适的官方原生接口。正文直接采用该接口返回的文字；不会改取 HTML、JSON DOM 或文档字节后替它提取正文。Chromium 没有原生 Markdown，网页 HTML 使用标准转换包。下表按固定任务输入列出实际选择的处理链，失败不补成成功，也不切换引擎。每例完成了哪些步骤、返回什么内容，均可在结果详情中查看。文档正文、资源地址、原始文件和媒体元数据有各自的交付格式，不强行转成 Markdown。</p>'
+        '<p>按题目要求预先选定参评浏览器的官方原生接口。网页正文和文档正文都必须以可读 Markdown 交付；除 Chromium 使用固定的 HTML-to-Markdown 包外，不会改取 HTML、JSON DOM 或 PDF/DOCX 字节后替选手提取正文。网页媒体信息题只检查原生输出中的指定图片、视频或条目地址，媒体文件不下载。只有直接媒体文件题返回原始字节，并校验类型、文件头、长度和 SHA-256；这是二进制文件交付，不冒充 Markdown。下表按固定任务输入列出处理链；失败后不切换接口或引擎。</p>'
         +native+'<div class="browser-interface-matrix">'+matrix+'</div>'
         +'<p>Obscura 的正文提取脚本与官方 CLI、LP.getMarkdown 相同；评测包装只附加最终网址和标题，不修改转换算法。JSON 包装只解包原生输出，不改写内容。只有 Chromium 的网页 HTML 使用 node-html-markdown 2.0.0；所有浏览器都不使用外部 PDF/DOCX 解析器补正文。资源脚本只读取已加载页面，嵌入文档只读浏览器内已加载的查看器文字。最终网址作为辅助信息，不单独决定正文任务是否通过。获取、等待、网页转换、原生内容投影与附件读取计入同一 45 秒预算。Moli 附件的原生 CDP 导航与原始附件接口是两步操作，次数和耗时保留在结果记录，不因评分失败而触发。所有结果采用同一评分器和固定验收规则。</p>', 'interfaces')
     flow = 'flowchart LR\n A[同一目标网址与验收规则] --> B[各浏览器原生访问与提取]\n B --> C[保留完整输出与调用日志]\n C --> D[统一评分]\n D --> E[整体与专项结果]'

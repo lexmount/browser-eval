@@ -106,6 +106,25 @@ class NativeBrowserVariantTests(unittest.TestCase):
         self.assertIn("Moli", description["entry"])
         self.assertNotIn("pypdf", description["notes"])
 
+    def test_moli_interface_discloses_native_default_timeout_policy(self):
+        description = method_spec(self.candidate, self.row({
+            "reported_version": "moli 1.1.17",
+            "internal_timeout_policy": "native_default",
+            "http_connect_timeout_ms": None,
+        }))
+        self.assertIn("未传入 Moli 内部超时参数", description["notes"])
+        self.assertIn("保留该二进制默认值", str(description["params"]))
+
+    def test_moli_interface_discloses_observed_explicit_timeout_policy(self):
+        description = method_spec(self.candidate, self.row({
+            "reported_version": "moli 1.1.15",
+            "internal_timeout_policy": "explicit",
+            "http_connect_timeout_ms": 45_000,
+        }))
+        self.assertIn("显式 Moli 超时", description["notes"])
+        self.assertIn("45000 毫秒", str(description["params"]))
+        self.assertNotIn("产品默认值。", str(description["params"]))
+
     def test_chromium_interface_uses_observed_wait_and_binds_converter_wrapper(self):
         digest = "a" * 64
         row = {"provider": "chromium", "provider_type": "headless_markdown",

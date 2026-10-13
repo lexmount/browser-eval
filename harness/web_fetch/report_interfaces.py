@@ -148,7 +148,23 @@ def method_spec(name, record):
  engine=native_browser_engine(name) or name
  if record and record.get('provider_type')=='moli_webfetch':
   base=SPECS['moli-webfetch']
-  return {**base,'entry':'CLI · Moli · 按任务预选原生 Markdown、HTML 或原始响应接口'} if name not in SPECS else base
+  meta=record.get('provider_metadata') or {}
+  policy=meta.get('internal_timeout_policy')
+  if policy=='native_default':
+   timeout_description='45 秒外层截止；Moli 总等待、HTTP 和连接超时保留该二进制默认值'
+   timeout_note='这批调用未传入 Moli 内部超时参数。'
+  elif policy=='explicit':
+   timeout_ms=meta.get('http_connect_timeout_ms')
+   timeout_description=('45 秒外层截止；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时'
+                        +((' '+str(timeout_ms)+' 毫秒') if isinstance(timeout_ms,int) else ''))
+   timeout_note='这批调用使用保存记录中的显式 Moli 超时，未写成产品默认值。'
+  else:
+   timeout_description='45 秒外层截止；Moli 内部超时以逐次调用记录为准'
+   timeout_note='保存证据未提供可核对的 Moli 内部超时策略。'
+  params=[(key,kind,timeout_description if key=='外层截止' else description)
+          for key,kind,description in base['params']]
+  entry=base['entry'] if name in SPECS else 'CLI · Moli · 按任务预选原生 Markdown、HTML 或原始响应接口'
+  return {**base,'entry':entry,'params':params,'notes':base['notes']+' '+timeout_note}
  base=SPECS.get(name) or SPECS[engine]
  meta=(record or {}).get('provider_metadata',{})
  if name=='moli':
