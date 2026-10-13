@@ -1107,6 +1107,18 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
         ids_hash = sha(json.dumps(
             sorted(self.AFFECTED), ensure_ascii=False, separators=(",", ":")
         ).encode())
+        self.scope_receipt = {
+            "schema_version": 1,
+            "kind": "predeclared_correction_layer_scope",
+            "provider_calls": 0,
+            "layer_id": "moli-fixed-body-fixes",
+            "provider": "moli-fixed",
+            "case_ids": list(self.AFFECTED),
+        }
+        self.scope_receipt_path = self.root / "evaluation" / "scope.json"
+        self.write_json(self.scope_receipt_path, self.scope_receipt)
+        main_execution = json.loads((self.main / "execution.json").read_text())
+        main_batch = main_execution["batches"][0]
         self.plan = {
             "schema_version": 3,
             "baseline": {
@@ -1140,6 +1152,30 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
                 },
                 "baseline_implementation_identity": self.baseline_identity,
                 "rerun_implementation_identity": self.rerun_identity,
+            }],
+            "correction_layers": [{
+                "id": "moli-fixed-body-fixes",
+                "provider": "moli-fixed",
+                "case_ids": list(self.AFFECTED),
+                "source_bundle": {
+                    "dataset_sha256": sha((self.main / "dataset.json").read_bytes()),
+                    "results_sha256": sha((self.main / "results.jsonl").read_bytes()),
+                    "execution_file": "execution.json",
+                    "execution_sha256": sha((self.main / "execution.json").read_bytes()),
+                },
+                "execution_contract": {
+                    "runtime_source_sha256": main_batch["runtime_source_sha256"],
+                    "provider_config_sha256": main_batch["provider_config_sha256"],
+                    "parameters_sha256": sha(json.dumps(
+                        main_batch["parameters"], sort_keys=True, separators=(",", ":")
+                    ).encode()),
+                    "implementation_identity": self.rerun_identity,
+                },
+                "scope_receipt": {
+                    "path": "scope.json",
+                    "sha256": sha(self.scope_receipt_path.read_bytes()),
+                    "case_ids_sha256": ids_hash,
+                },
             }],
             "same_window_speed_cohort": {
                 "required": False,
@@ -1250,16 +1286,26 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
             },
         }
 
-    def assemble(self, name: str = "output") -> Path:
+    def assemble(self, name: str = "output", roots: list[Path] | None = None) -> Path:
         output = self.root / name
         assemble(
-            self.baseline, [self.main], self.speed, output,
+            self.baseline, roots or [self.main], self.speed, output,
             canonical_dataset=self.canonical_path, plan=self.plan_path,
         )
         return output
 
     def rewrite_plan(self) -> None:
         self.write_json(self.plan_path, self.plan)
+
+    def rebind_main_source(self) -> None:
+        bundle = self.plan["correction_layers"][0]["source_bundle"]
+        bundle.update({
+            "dataset_sha256": sha((self.main / "dataset.json").read_bytes()),
+            "results_sha256": sha((self.main / "results.jsonl").read_bytes()),
+            "execution_file": "execution.json",
+            "execution_sha256": sha((self.main / "execution.json").read_bytes()),
+        })
+        self.rewrite_plan()
 
     def test_upgrade_projects_logical_provider_and_preserves_physical_evidence(self) -> None:
         output = self.assemble()
@@ -1295,6 +1341,7 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
         (self.main / "results.jsonl").write_text(
             "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
         )
+        self.rebind_main_source()
         output = self.assemble("failed-rerun-output")
         selected = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
         failed = next(row for row in selected if row["case_id"] == rows[0]["case_id"]
@@ -1314,16 +1361,128 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "impact receipt bytes differ"):
             self.assemble("receipt-drift")
 
+    def test_correction_layers_allow_predeclared_runtime_differences_order_independently(self) -> None:
+        roots, layers = [], []
+        for index, case_id in enumerate(self.AFFECTED):
+            root = self.root / f"layer-{index}"
+            rows = AssembleWebfetchRefreshTests.rows_for_pairs({("moli-fixed", case_id)})
+            self.write_bundle(root, self.canonical, rows)
+            execution = json.loads((root / "execution.json").read_text())
+            execution["batches"][0]["runtime_source_sha256"] = sha(
+                f"runtime-{index}".encode()
+            )
+            self.write_json(root / "execution.json", execution)
+            layer_id = f"layer-{index}"
+            scope = {
+                "schema_version": 1, "kind": "predeclared_correction_layer_scope",
+                "provider_calls": 0, "layer_id": layer_id,
+                "provider": "moli-fixed", "case_ids": [case_id],
+            }
+            scope_path = self.root / "evaluation" / f"{layer_id}-scope.json"
+            self.write_json(scope_path, scope)
+            batch = execution["batches"][0]
+            layers.append({
+                "id": layer_id, "provider": "moli-fixed", "case_ids": [case_id],
+                "source_bundle": {
+                    "dataset_sha256": sha((root / "dataset.json").read_bytes()),
+                    "results_sha256": sha((root / "results.jsonl").read_bytes()),
+                    "execution_file": "execution.json",
+                    "execution_sha256": sha((root / "execution.json").read_bytes()),
+                },
+                "execution_contract": {
+                    "runtime_source_sha256": batch["runtime_source_sha256"],
+                    "provider_config_sha256": batch["provider_config_sha256"],
+                    "parameters_sha256": sha(json.dumps(
+                        batch["parameters"], sort_keys=True, separators=(",", ":")
+                    ).encode()),
+                    "implementation_identity": self.rerun_identity,
+                },
+                "scope_receipt": {
+                    "path": scope_path.name, "sha256": sha(scope_path.read_bytes()),
+                    "case_ids_sha256": sha(json.dumps(
+                        [case_id], separators=(",", ":")
+                    ).encode()),
+                },
+            })
+            roots.append(root)
+        self.plan["correction_layers"] = layers
+        self.rewrite_plan()
+
+        forward = self.assemble("layers-forward", roots)
+        reverse = self.assemble("layers-reverse", list(reversed(roots)))
+        self.assertEqual(
+            (forward / "results.jsonl").read_bytes(),
+            (reverse / "results.jsonl").read_bytes(),
+        )
+        self.assertEqual(
+            (forward / "selection-audit.json").read_bytes(),
+            (reverse / "selection-audit.json").read_bytes(),
+        )
+        receipt = json.loads((forward / "refresh-assembly.json").read_text())
+        self.assertEqual(
+            {layer["execution_contract"]["runtime_source_sha256"]
+             for layer in receipt["correction_layers"]},
+            {sha(b"runtime-0"), sha(b"runtime-1")},
+        )
+
+        valid_plan = json.loads(self.plan_path.read_text())
+        for index, field in enumerate((
+            "runtime_source_sha256", "provider_config_sha256", "parameters_sha256"
+        )):
+            self.plan = json.loads(json.dumps(valid_plan))
+            self.plan["correction_layers"][0]["execution_contract"][field] = "0" * 64
+            self.rewrite_plan()
+            with self.assertRaisesRegex(ValueError, f"execution differs.*{field}"):
+                self.assemble(f"layer-{field}-drift-{index}", roots)
+
+    def test_correction_layers_reject_scope_or_authority_drift(self) -> None:
+        self.plan["correction_layers"][0]["case_ids"] = [self.AFFECTED[0]]
+        self.plan["correction_layers"][0]["scope_receipt"]["case_ids_sha256"] = sha(
+            json.dumps([self.AFFECTED[0]], separators=(",", ":")).encode()
+        )
+        self.rewrite_plan()
+        with self.assertRaisesRegex(ValueError, "differ from the exact refresh scope"):
+            expected_refresh_pairs(self.plan, self.canonical)
+
+        self.plan["correction_layers"][0]["case_ids"] = list(self.AFFECTED)
+        self.plan["correction_layers"][0]["scope_receipt"]["case_ids_sha256"] = sha(
+            json.dumps(sorted(self.AFFECTED), separators=(",", ":")).encode()
+        )
+        self.plan["correction_layers"].append(json.loads(json.dumps(
+            self.plan["correction_layers"][0]
+        )))
+        self.plan["correction_layers"][1]["id"] = "duplicate-layer"
+        self.rewrite_plan()
+        with self.assertRaisesRegex(ValueError, "assign a provider/case pair more than once"):
+            expected_refresh_pairs(self.plan, self.canonical)
+
+        self.plan["correction_layers"] = self.plan["correction_layers"][:1]
+        self.scope_receipt["provider_calls"] = 1
+        self.write_json(self.scope_receipt_path, self.scope_receipt)
+        self.plan["correction_layers"][0]["scope_receipt"]["sha256"] = sha(
+            self.scope_receipt_path.read_bytes()
+        )
+        self.rewrite_plan()
+        with self.assertRaisesRegex(ValueError, "scope receipt differs"):
+            self.assemble("scope-authority-drift")
+
+    def test_correction_layers_reject_unbound_source_or_bundle_hash(self) -> None:
+        self.plan["correction_layers"][0]["source_bundle"]["results_sha256"] = "0" * 64
+        self.rewrite_plan()
+        with self.assertRaisesRegex(ValueError, "not bound by a correction layer"):
+            self.assemble("source-hash-drift")
+
+        self.rebind_main_source()
+        with self.assertRaisesRegex(ValueError, "not bound by a correction layer"):
+            self.assemble("unbound-extra-source", [self.main, self.speed])
+
     def test_upgrade_rejects_missing_extra_or_duplicate_rerun_pairs(self) -> None:
         original = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
         original_results = (self.main / "results.jsonl").read_bytes()
         original_execution = (self.main / "execution.json").read_bytes()
         for name, changed, pattern in (
-            ("missing", original[:-1], "missing=1, extra=0"),
+            ("missing", original[:-1], "missing its selected pair"),
             ("duplicate", original + [dict(original[0])], "duplicate provider/case"),
-            ("extra", original + AssembleWebfetchRefreshTests.rows_for_pairs(
-                {("moli-fixed", "case-a")}
-            ), "missing=0, extra=1"),
         ):
             with self.subTest(name=name):
                 (self.main / "results.jsonl").write_text(
@@ -1333,10 +1492,30 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
                 execution["batches"][0]["attempt_ids"] = [row["attempt_id"] for row in changed]
                 execution["batches"][0]["attempt_count"] = len(changed)
                 self.write_json(self.main / "execution.json", execution)
+                self.rebind_main_source()
                 with self.assertRaisesRegex(ValueError, pattern):
                     self.assemble(f"{name}-output")
                 (self.main / "results.jsonl").write_bytes(original_results)
                 (self.main / "execution.json").write_bytes(original_execution)
+                self.rebind_main_source()
+
+        extra = original + AssembleWebfetchRefreshTests.rows_for_pairs(
+            {("moli-fixed", "case-a")}
+        )
+        (self.main / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in extra), encoding="utf-8"
+        )
+        execution = json.loads((self.main / "execution.json").read_text())
+        execution["batches"][0]["attempt_ids"] = [row["attempt_id"] for row in extra]
+        execution["batches"][0]["attempt_count"] = len(extra)
+        self.write_json(self.main / "execution.json", execution)
+        self.rebind_main_source()
+        output = self.assemble("extra-source-row-output")
+        fixed_case_a = next(
+            row for row in map(json.loads, (output / "results.jsonl").read_text().splitlines())
+            if row["provider"] == "moli-fixed" and row["case_id"] == "case-a"
+        )
+        self.assertEqual(fixed_case_a["physical_execution"]["provider"], "moli")
 
     def test_upgrade_rejects_batch_or_call_log_physical_identity_drift(self) -> None:
         original_execution = (self.main / "execution.json").read_bytes()
@@ -1345,10 +1524,12 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
             "fixture_sha256": "0" * 64
         }
         self.write_json(self.main / "execution.json", execution)
-        with self.assertRaisesRegex(ValueError, "Rerun implementation identity differs"):
+        self.rebind_main_source()
+        with self.assertRaisesRegex(ValueError, "Correction layer execution differs"):
             self.assemble("binary-drift")
 
         (self.main / "execution.json").write_bytes(original_execution)
+        self.rebind_main_source()
         result_rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
         binding = result_rows[0]["provider_metadata"]["call_log"]
         path = self.main / binding["path"]
@@ -1360,6 +1541,7 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
         (self.main / "results.jsonl").write_text(
             "".join(json.dumps(row) + "\n" for row in result_rows), encoding="utf-8"
         )
+        self.rebind_main_source()
         with self.assertRaisesRegex(ValueError, "call log physical identity differs"):
             self.assemble("call-log-drift")
 

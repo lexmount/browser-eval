@@ -119,7 +119,7 @@ def _expected_v2_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, st
         "total_planned_new_calls",
     }
     if plan.get("schema_version") == 3:
-        expected_plan_fields.add("implementation_upgrades")
+        expected_plan_fields.update({"implementation_upgrades", "correction_layers"})
     if set(plan) != expected_plan_fields or not isinstance(plan.get("baseline"), dict) or set(plan["baseline"]) != {
         "dataset_sha256", "results_sha256", "logical_attempts",
     }:
@@ -322,6 +322,82 @@ def _implementation_upgrades(plan: dict, canonical: dict) -> list[dict]:
     return upgrades
 
 
+def _parameters_sha256(parameters: dict) -> str:
+    return hashlib.sha256(json.dumps(
+        parameters, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode()).hexdigest()
+
+
+def _correction_layers(
+    plan: dict, canonical: dict, expected_pairs: set[tuple[str, str]]
+) -> list[dict]:
+    if plan.get("schema_version") != 3:
+        return []
+    layers = plan.get("correction_layers")
+    if not isinstance(layers, list) or not layers:
+        raise ValueError("Schema v3 refresh plan requires correction layers")
+    providers = set(_provider_order(canonical)) | {
+        upgrade["baseline_provider"] for upgrade in _implementation_upgrades(plan, canonical)
+    }
+    cases = {case.get("id") for case in canonical.get("cases", [])}
+    layer_ids, declared_pairs = set(), set()
+    for layer in layers:
+        if not isinstance(layer, dict) or set(layer) != {
+            "id", "provider", "case_ids", "source_bundle", "execution_contract",
+            "scope_receipt",
+        }:
+            raise ValueError("Refresh plan has an invalid correction layer")
+        layer_id, provider, case_ids = layer["id"], layer["provider"], layer["case_ids"]
+        if (
+            not isinstance(layer_id, str) or not layer_id or layer_id in layer_ids
+            or not isinstance(provider, str) or provider not in providers
+            or not isinstance(case_ids, list) or not case_ids
+            or len(case_ids) != len(set(case_ids))
+            or not all(isinstance(case_id, str) and case_id in cases for case_id in case_ids)
+        ):
+            raise ValueError("Correction layer has an invalid identity or case scope")
+        layer_ids.add(layer_id)
+        pairs = {(provider, case_id) for case_id in case_ids}
+        if declared_pairs & pairs:
+            raise ValueError("Correction layers assign a provider/case pair more than once")
+        declared_pairs |= pairs
+        bundle = layer["source_bundle"]
+        if not isinstance(bundle, dict) or set(bundle) != {
+            "dataset_sha256", "results_sha256", "execution_file", "execution_sha256"
+        } or not all(
+            isinstance(bundle.get(field), str) and (
+                field == "execution_file" or re.fullmatch(r"[0-9a-f]{64}", bundle[field])
+            )
+            for field in bundle
+        ):
+            raise ValueError("Correction layer has an invalid source bundle binding")
+        contract = layer["execution_contract"]
+        if not isinstance(contract, dict) or set(contract) != {
+            "runtime_source_sha256", "provider_config_sha256", "parameters_sha256",
+            "implementation_identity",
+        } or not all(
+            re.fullmatch(r"[0-9a-f]{64}", str(contract.get(field, "")))
+            for field in ("runtime_source_sha256", "provider_config_sha256", "parameters_sha256")
+        ) or not isinstance(contract["implementation_identity"], dict) or not contract[
+            "implementation_identity"
+        ]:
+            raise ValueError("Correction layer has an invalid execution contract")
+        receipt = layer["scope_receipt"]
+        if not isinstance(receipt, dict) or set(receipt) != {
+            "path", "sha256", "case_ids_sha256"
+        } or not isinstance(receipt["path"], str) or not receipt["path"] or not re.fullmatch(
+            r"[0-9a-f]{64}", str(receipt["sha256"])
+        ) or receipt["case_ids_sha256"] != _case_ids_sha256(case_ids):
+            raise ValueError("Correction layer has an invalid scope receipt binding")
+    if declared_pairs != expected_pairs:
+        missing, extra = expected_pairs - declared_pairs, declared_pairs - expected_pairs
+        raise ValueError(
+            "Correction layers differ from the exact refresh scope: "
+            f"missing={len(missing)}, extra={len(extra)}"
+        )
+    return layers
+
+
 def expected_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, str]]:
     """Return exact physical rerun pairs for either refresh-plan schema."""
     regular = _expected_v2_refresh_pairs(plan, canonical)
@@ -341,6 +417,7 @@ def expected_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, str]]:
     speed_calls = plan["same_window_speed_cohort"]["planned_new_calls"]
     if plan.get("total_planned_new_calls") != len(expected) + speed_calls:
         raise ValueError("Refresh plan total call count is inconsistent")
+    _correction_layers(plan, canonical, expected)
     return expected
 
 
@@ -432,7 +509,9 @@ def _batch_identity_by_attempt(
             for provider in batch.get("providers", []) if isinstance(provider, dict)
         }
         for attempt_id in batch.get("attempt_ids", []):
-            row = rows_by_attempt[attempt_id]
+            row = rows_by_attempt.get(attempt_id)
+            if row is None:
+                continue
             if row["provider"] not in required_providers:
                 continue
             identity = providers.get(row["provider"])
@@ -495,6 +574,83 @@ def _validate_impact_receipts(plan: dict, plan_path: Path, canonical: dict) -> l
             "case_ids_sha256": binding["case_ids_sha256"],
         })
     return validated
+
+
+def _validate_correction_scope_receipts(
+    layers: list[dict], plan_path: Path
+) -> list[dict]:
+    validated = []
+    for layer in layers:
+        binding = layer["scope_receipt"]
+        path = contained_path(plan_path.parent, binding["path"], reject_symlinks=True)
+        if not path.is_file() or _sha256(path) != binding["sha256"]:
+            raise ValueError("Correction-layer scope receipt bytes differ from refresh plan")
+        receipt = _read_json(path)
+        if (
+            receipt.get("schema_version") != 1
+            or receipt.get("kind") != "predeclared_correction_layer_scope"
+            or receipt.get("provider_calls") != 0
+            or receipt.get("layer_id") != layer["id"]
+            or receipt.get("provider") != layer["provider"]
+            or receipt.get("case_ids") != layer["case_ids"]
+        ):
+            raise ValueError("Correction-layer scope receipt differs from refresh plan")
+        validated.append({
+            "layer_id": layer["id"], "path": binding["path"],
+            "sha256": binding["sha256"],
+            "case_ids_sha256": binding["case_ids_sha256"],
+        })
+    return validated
+
+
+def _bundle_matches_layer(root: Path, execution_path: Path, layer: dict) -> bool:
+    binding = layer["source_bundle"]
+    return binding == {
+        "dataset_sha256": _sha256(root / "dataset.json"),
+        "results_sha256": _sha256(root / "results.jsonl"),
+        "execution_file": execution_path.name,
+        "execution_sha256": _sha256(execution_path),
+    }
+
+
+def _validate_layer_execution(
+    layer: dict, rows_by_pair: dict[tuple[str, str], dict], batches: list[dict], root: Path
+) -> None:
+    provider = layer["provider"]
+    contract = layer["execution_contract"]
+    batches_by_attempt = {}
+    for batch in batches:
+        for attempt_id in batch.get("attempt_ids", []):
+            batches_by_attempt[attempt_id] = batch
+    for case_id in layer["case_ids"]:
+        row = rows_by_pair.get((provider, case_id))
+        if row is None:
+            raise ValueError(f"Correction layer is missing its selected pair: {layer['id']}/{case_id}")
+        batch = batches_by_attempt.get(row["attempt_id"])
+        if batch is None:
+            raise ValueError(f"Correction layer selected pair has no execution batch: {row['attempt_id']}")
+        provider_identity = next(
+            (item.get("implementation_identity") for item in batch.get("providers", [])
+             if isinstance(item, dict) and item.get("name") == provider),
+            None,
+        )
+        actual = {
+            "runtime_source_sha256": batch.get("runtime_source_sha256"),
+            "provider_config_sha256": batch.get("provider_config_sha256"),
+            "parameters_sha256": _parameters_sha256(batch.get("parameters", {})),
+            "implementation_identity": provider_identity,
+        }
+        if actual != contract:
+            changed = ", ".join(
+                field for field in contract if contract[field] != actual[field]
+            )
+            raise ValueError(
+                f"Correction layer execution differs from its contract: {layer['id']}: {changed}"
+            )
+        selected_batch = {**batch, "attempt_ids": [row["attempt_id"]], "attempt_count": 1}
+        _batch_identity_by_attempt(
+            [selected_batch], [row], root, required_providers={provider}
+        )
 
 
 def _verify_artifacts(root: Path, rows: list[dict]) -> None:
@@ -855,6 +1011,10 @@ def _assemble(
         upgrade["baseline_provider"]: upgrade["logical_provider"] for upgrade in upgrades
     }
     expected_main = expected_refresh_pairs(plan, canonical)
+    correction_layers = _correction_layers(plan, canonical, expected_main)
+    correction_scope_receipts = _validate_correction_scope_receipts(
+        correction_layers, plan_path
+    )
     expected_final = {(provider, case_id) for provider in providers for case_id in canonical_cases}
     if plan["main_matrix"].get("final_logical_attempts") != len(expected_final):
         raise ValueError("Final logical attempt count differs from the canonical matrix")
@@ -928,29 +1088,60 @@ def _assemble(
         canonical.get("comparison", {}).get("reference_binding_mode")
         == "equivalent_reference_bytes_with_independent_batch_captures"
     )
-    for root in main_reruns:
+    ordered_main_reruns = (
+        sorted(main_reruns, key=lambda root: _sha256(root / "results.jsonl"))
+        if correction_layers else main_reruns
+    )
+    consumed_layers = set()
+    for root in ordered_main_reruns:
         dataset = _read_json(root / "dataset.json")
         rows = _read_records(root)
-        _reject_account_capacity_results(rows, label="main rerun")
+        row_pairs = [(row.get("provider"), row.get("case_id")) for row in rows]
+        if len(row_pairs) != len(set(row_pairs)):
+            raise ValueError(f"Main rerun source contains duplicate provider/case results: {root}")
+        all_pairs = set(row_pairs)
+        _validate_record_identity(rows, allowed_pairs=all_pairs, label="main rerun source")
+        batches, execution_path = _validate_source_batches(root, dataset, rows, references=True)
+        bound_layers = [
+            layer for layer in correction_layers
+            if _bundle_matches_layer(root, execution_path, layer)
+        ]
+        if correction_layers and not bound_layers:
+            raise ValueError(f"Main rerun source is not bound by a correction layer: {root}")
+        selected_pairs = (
+            {(layer["provider"], case_id) for layer in bound_layers
+             for case_id in layer["case_ids"]}
+            if correction_layers else all_pairs
+        )
+        selected_rows = [
+            row for row in rows if (row["provider"], row["case_id"]) in selected_pairs
+        ]
+        _reject_account_capacity_results(selected_rows, label="main rerun")
         _require_canonical_cases(
             dataset,
             canonical_cases,
-            rows,
+            selected_rows,
             "main rerun",
             equivalent_capture_bindings=equivalent_capture_bindings,
         )
-        validate_report_ids(canonical, rows)
-        _verify_artifacts(root, rows)
-        batches, execution_path = _validate_source_batches(root, dataset, rows, references=True)
+        validate_report_ids(canonical, selected_rows)
+        _verify_artifacts(root, selected_rows)
+        rows_by_pair = {(row["provider"], row["case_id"]): row for row in rows}
+        for layer in bound_layers:
+            _validate_layer_execution(layer, rows_by_pair, batches, root)
+            consumed_layers.add(layer["id"])
         source_identities.append(_bundle_identity(root, execution_path))
-        rerun_batches.append((batches, rows, root, execution_path))
-        for row in rows:
+        rerun_batches.append((batches, selected_rows, root, execution_path))
+        for row in selected_rows:
             pair = (row.get("provider"), row.get("case_id"))
             if pair in rerun_by_pair:
                 raise ValueError(f"Main reruns contain duplicate provider/case results: {pair}")
             rerun_by_pair[pair] = (row, root)
+    if correction_layers and consumed_layers != {layer["id"] for layer in correction_layers}:
+        raise ValueError("Not every correction layer has a bound source bundle")
     rerun_rows = [row for row, _ in rerun_by_pair.values()]
-    _validate_consistent_provider_run_identities(rerun_batches)
+    if not correction_layers:
+        _validate_consistent_provider_run_identities(rerun_batches)
     _validate_record_identity(rerun_rows, allowed_pairs=expected_main, label="main reruns")
     rerun_attempt_identities = {}
     rerun_upgrade_providers = {upgrade["rerun_provider"] for upgrade in upgrades}
@@ -1017,6 +1208,13 @@ def _assemble(
                             plan, row["provider"], case["id"]
                         ),
                         "source_results_sha256": _sha256(root / "results.jsonl"),
+                        **({
+                            "correction_layer": next(
+                                layer["id"] for layer in correction_layers
+                                if row["provider"] == layer["provider"]
+                                and case["id"] in layer["case_ids"]
+                            )
+                        } if correction_layers else {}),
                         "excluded_attempt": (
                             {
                                 key: old.get(key)
@@ -1219,6 +1417,18 @@ def _assemble(
             shutil.copy2(source, output / relative)
             binding["stored_path"] = relative
 
+    if correction_layers:
+        scope_history = output / "history" / "correction-layer-scopes"
+        scope_history.mkdir(parents=True)
+        receipts_by_layer = {item["layer_id"]: item for item in correction_scope_receipts}
+        for index, layer in enumerate(correction_layers):
+            source = contained_path(
+                plan_path.parent, layer["scope_receipt"]["path"], reject_symlinks=True
+            )
+            relative = f"history/correction-layer-scopes/{index:03d}-{layer['id']}.json"
+            shutil.copy2(source, output / relative)
+            receipts_by_layer[layer["id"]]["stored_path"] = relative
+
     _copy_speed_bundle(
         speed_cohort, output / "speed-cohort", speed_dataset, speed_rows, _speed_batches
     )
@@ -1280,6 +1490,18 @@ def _assemble(
                     "call logs, source bundle hashes and implementation identities are immutable"
                 ),
             })
+    if correction_layers:
+        receipts_by_layer = {item["layer_id"]: item for item in correction_scope_receipts}
+        receipt["correction_layers"] = [{
+            "id": layer["id"],
+            "provider": layer["provider"],
+            "case_ids": layer["case_ids"],
+            "case_ids_sha256": _case_ids_sha256(layer["case_ids"]),
+            "source_bundle": layer["source_bundle"],
+            "execution_contract": layer["execution_contract"],
+            "scope_receipt": receipts_by_layer[layer["id"]],
+            "selection_policy": "predeclared provider/case layer; outcome fields ignored",
+        } for layer in correction_layers]
     (output / "refresh-assembly.json").write_text(
         json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
