@@ -77,8 +77,24 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
     for binding in ("dataset_manifest", "dataset_catalog", "contract_registry"):
         item = pre_call[binding]
         assert hashlib.sha256((ROOT / item["path"]).read_bytes()).hexdigest() == item["sha256"]
+    authoritative = pre_call["authoritative_430_input"]
+    for binding in ("assembly", "profile"):
+        item = authoritative[binding]
+        assert hashlib.sha256((ROOT / item["path"]).read_bytes()).hexdigest() == item["sha256"]
+    from harness.web_fetch.dataset_assembly import assemble_profile_dataset
+    _assembled, assembled_raw = assemble_profile_dataset(ROOT / authoritative["assembly"]["path"])
+    assert (
+        hashlib.sha256(assembled_raw).hexdigest()
+        == authoritative["revised_pre_call_dataset_sha256"]
+    )
+    assert (
+        authoritative["superseded_pre_call_dataset_sha256"]
+        != authoritative["revised_pre_call_dataset_sha256"]
+    )
+    assert authoritative["case_count"] == 430
+    assert authoritative["provider_calls"] == 0
     assert pre_call["execution_effect"]["required_new_calls"] == {
-        "fixed_moli": 39, "moli_pr919": 21, "lightpanda": 4,
+        "moli_fixed": 39, "moli_pr919": 21, "lightpanda": 4,
         "obscura": 4, "chromium": 4, "kitesurf": 4,
         "physical_calls": 76}
     assert pre_call["execution_effect"]["interface_policy"] == {

@@ -5,7 +5,7 @@
   "case_count": 430,
   "case_ids_sha256": "a81e5406477b6b2d705cedf32cf79d5ba65242fa3e0a839cb1def5ecdab7e05b",
   "providers": [
-    "moli",
+    "moli-fixed",
     "lightpanda",
     "obscura",
     "chromium",
@@ -472,7 +472,7 @@
     "auxiliary_sha256": "1d1726f0a03f9739cc1a0361e6eddac82cb9c01953b8d9591edaff5771a0c272"
   },
   "report_output": "reports/browser-native-430",
-  "source_native_dataset_sha256": "d636aa8af567da8a2e0ff8caf319dd6369528d5f65f0edfe47db1ac0d9890d64",
+  "source_native_dataset_sha256": "def61624252afce7e21c36ec6970c387476fa65e2c31efe6ea19ef0087db94e9",
   "generated_languages": [
     "zh"
   ],

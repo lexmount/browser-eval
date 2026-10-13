@@ -17,6 +17,20 @@
     "path": "evaluation/native-retrieval-contracts.json",
     "sha256": "b54e31b9b1872cc126935c8e078611249d9cc2c5c17cf5a4cf49290990095132"
   },
+  "authoritative_430_input": {
+    "assembly": {
+      "path": "evaluation/browser-native-430/dataset-assembly.json",
+      "sha256": "54fd00b0ce717b07d5f286b2536049aef5885e8c532124e15cfeb71793324221"
+    },
+    "profile": {
+      "path": "evaluation/browser-native-430/current-report.json",
+      "sha256": "4174239d0fe30d09e4d82f326913cce87f7c63be0a5a67a79bccc6803c7edcf3"
+    },
+    "superseded_pre_call_dataset_sha256": "e708980fb9bfcbb003fda7e2219a6739f637b769359e7d150c6bb3b312661a90",
+    "revised_pre_call_dataset_sha256": "def61624252afce7e21c36ec6970c387476fa65e2c31efe6ea19ef0087db94e9",
+    "case_count": 430,
+    "provider_calls": 0
+  },
   "changed_cases": [
     {
       "case_id": "dynamic-015-015-testpages-iframe-list",
@@ -46,7 +60,7 @@
       "chromium_body": "rendered HTML converted by node-html-markdown 2.0.0"
     },
     "required_new_calls": {
-      "fixed_moli": 39,
+      "moli_fixed": 39,
       "moli_pr919": 21,
       "lightpanda": 4,
       "obscura": 4,
@@ -54,7 +68,7 @@
       "kitesurf": 4,
       "physical_calls": 76
     },
-    "reason": "The four contracts change native completion or subdocument flags for every method. The two Moli variants also have independently audited implementation-fix scopes. Overlap is removed within each method before summing; Lightpanda keeps the same native Markdown interface for its other 96 Dynamic tasks."
+    "reason": "The four contracts change native completion or subdocument flags for every method. The fixed Moli build and the historical PR919 comparison also have independently audited implementation-change scopes. Overlap is removed within each method before summing; Lightpanda keeps the same native Markdown interface for its other 96 Dynamic tasks."
   },
   "acceptance_effect": {
     "answers_changed": false,

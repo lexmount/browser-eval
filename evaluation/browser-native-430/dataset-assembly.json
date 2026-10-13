@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "kind": "profile_dataset_assembly",
+  "profile": "evaluation/browser-native-430/current-report.json",
+  "dataset": {
+    "id": "webfetch-five-browsers-seven-families-430",
+    "name": "六种方法 Web Fetch 对比 · 430 例",
+    "tool": "web_fetch",
+    "dynamic_scoring": "动态内容按稳定文字和结构验收，不固定易变数值或条目。"
+  },
+  "sources": [
+    {
+      "path": "evaluation/dataset.json",
+      "sha256": "5f751146143dcbe9daf46f0fb2511da1147508b3c8c4cd3377a6f3cceb82264e",
+      "tracks": [
+        "web",
+        "document",
+        "image",
+        "video"
+      ]
+    },
+    {
+      "path": "evaluation/dynamic-content-100-moli-webfetch/dataset.json",
+      "sha256": "0da2bb30aaabe3ca2b93ec17b4cb88cdc1cf3ea46336bb3777fdb21c1f211b84",
+      "tracks": [
+        "dynamic"
+      ]
+    },
+    {
+      "path": "evaluation/popular-sites/dataset.json",
+      "sha256": "85544512d4cfd9459c22af1f70b1eb400844742dbf3179807662b76db2dcfc2e",
+      "tracks": [
+        "challenge"
+      ]
+    },
+    {
+      "path": "evaluation/risk-control/dataset.json",
+      "sha256": "d3f18edd2b29f8ef19eb496841f91c433d7f9adfe33c591874d963db55760d7c",
+      "tracks": [
+        "risk_control"
+      ]
+    }
+  ],
+  "native_dataset_sha256": "def61624252afce7e21c36ec6970c387476fa65e2c31efe6ea19ef0087db94e9"
+}
