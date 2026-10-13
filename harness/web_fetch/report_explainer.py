@@ -21,7 +21,7 @@ from .report_style import STYLE
 from .safety import contained_path, safe_identifier
 
 TITLE = '网页抓取成功之后，内容离可用还有多远'
-HEADLESS_TITLE = '五类浏览器、七种方法取同一批网页：速度、正文与交付边界'
+HEADLESS_TITLE = '五类浏览器、六种配置、七类任务：正文、媒体与交付边界'
 from .publication_target import public_report_url
 
 ROOT = Path(__file__).resolve().parents[2]

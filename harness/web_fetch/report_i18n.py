@@ -1340,7 +1340,7 @@ TEXT.update({
 
     # Overview and ranking guidance.
     "Web Fetch 评测报告": "Web Fetch benchmark report",
-    "五类浏览器、七种方法取同一批网页：速度、正文与交付边界": "Five browsers, seven methods, one shared URL set: latency, content, and delivery boundaries",
+    "五类浏览器、六种配置、七类任务：正文、媒体与交付边界": "Five browsers, six configurations, seven task families: content, media, and delivery boundaries",
     "从分数差异、失败案例和实现机制，理解如何选择抓取方法。": "Use score differences, failure evidence, and implementation boundaries to choose the right retrieval method.",
     "阅读全文 →": "Read the interpretation →",
     "查看核验轮次 →": "View review rounds →",
