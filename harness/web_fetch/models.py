@@ -13,6 +13,25 @@ TRACKS = {
     'document': '文档正文', 'image': '图片获取', 'video': '视频获取',
 }
 
+# The frozen dataset retains image/video as source tracks. Public comparisons
+# group those cases by the deliverable a caller must receive.
+REPORT_FAMILIES = {
+    'web': '静态网站正文',
+    'dynamic': '动态网站正文',
+    'challenge': '热门网站正文',
+    'risk_control': '风控网页正文',
+    'document': '文档正文',
+    'web_media': '网页媒体信息',
+    'media_file': '媒体原文件',
+}
+
+
+def report_family(case: dict[str, Any]) -> str:
+    track = case.get('track', 'web')
+    if track in {'image', 'video'}:
+        return 'media_file' if case.get('task_kind', 'body') == 'file' else 'web_media'
+    return track
+
 
 def execution_id(record: dict[str, Any]) -> str:
     """Stable local invocation ID, distinct from the supplier's request ID."""

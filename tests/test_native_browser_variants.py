@@ -64,6 +64,8 @@ class NativeBrowserVariantTests(unittest.TestCase):
         cases = {family: {"id": family, "url": "https://example.com/file.pdf" if family == "document" else "https://example.com/",
                            "track": family, "task_kind": "resource" if family in {"image", "video"} else "body"}
                  for family in ["web", "dynamic", "challenge", "risk_control", "document", "image", "video"]}
+        cases["media-file"] = {"id": "media-file", "url": "https://example.com/file.png",
+                                 "track": "image", "task_kind": "file"}
         providers = ["moli", "lightpanda", "obscura", "chromium", "kitesurf", self.candidate]
         matrix = browser_task_interface_matrix(cases, providers)
         self.assertEqual(len(matrix["rows"]), 7)
@@ -125,9 +127,12 @@ class NativeBrowserVariantTests(unittest.TestCase):
         families = ["web", "dynamic", "challenge", "risk_control", "document", "image", "video"]
         cases = {f: {"id": f, "name": f, "url": "https://example.com/", "track": f,
                      "task_kind": "body", "ground_truth_main_content": "Required body"} for f in families}
+        cases["media-file"] = {"id": "media-file", "name": "media-file",
+                                 "url": "https://example.com/file.png", "track": "image",
+                                 "task_kind": "file", "ground_truth_main_content": ""}
         records = [{"provider": p, "case_id": f, "attempt_id": p + "-" + f,
                     "ok": False, "metrics": {}, "elapsed_ms": 10, "started_at": "2026-10-10T00:00:00Z",
-                    "artifact_path": "output.txt"} for p in providers for f in families]
+                    "artifact_path": "output.txt"} for p in providers for f in cases]
         with tempfile.TemporaryDirectory() as folder:
             out = Path(folder)
             (out / "output.txt").write_text("Observed body")

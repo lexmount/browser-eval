@@ -54,6 +54,22 @@ def table_cells(rendered, identifier):
 
 
 class ReportBodyScopeTests(unittest.TestCase):
+    def test_media_report_families_follow_the_deliverable(self):
+        from harness.web_fetch.models import REPORT_FAMILIES, report_family
+        cases = [
+            {'track': 'image', 'task_kind': 'resource'},
+            {'track': 'video', 'task_kind': 'resource'},
+            {'track': 'video', 'task_kind': 'body'},
+            {'track': 'image', 'task_kind': 'file'},
+            {'track': 'video', 'task_kind': 'file'},
+        ]
+        self.assertEqual(
+            [report_family(case) for case in cases],
+            ['web_media', 'web_media', 'web_media', 'media_file', 'media_file'],
+        )
+        self.assertEqual(REPORT_FAMILIES['web_media'], '网页媒体信息')
+        self.assertEqual(REPORT_FAMILIES['media_file'], '媒体原文件')
+
     def test_task_family_names_and_order_share_the_report_registry(self):
         from harness.web_fetch.report_explainer import TRACK_NAMES
         self.assertIs(TRACK_NAMES, TRACKS)
@@ -422,7 +438,7 @@ class ReportBodyScopeTests(unittest.TestCase):
 
     def test_example_order_and_metric_explanations(self):
         rendered=examples()
-        positions=[rendered.index('data-tab="'+t+'"') for t in ['web','dynamic','challenge','document','image','video']]
+        positions=[rendered.index('data-tab="'+t+'"') for t in ['web','dynamic','challenge','risk_control','document','web_media','media_file']]
         self.assertEqual(positions,sorted(positions))
         guide=metric_guide()
         for phrase in ['0 次通过不等于 F1 为 0','请求失败计 0','仍按实际正文评分','不是平均完整度与平均纯净度的调和平均']:

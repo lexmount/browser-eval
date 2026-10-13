@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import json
 import math
 import hashlib
 import statistics
@@ -260,6 +261,54 @@ def _inline_frame_candidates(
     return candidates
 
 
+def _native_json_resource_candidates(
+    content: str,
+    expected_resources: list[dict[str, Any]],
+    *,
+    base_url: str,
+) -> list[tuple[str, str]]:
+    """Read URLs from a browser's native JSON page and network record.
+
+    The accepted surface is deliberately structural: serialized page HTML and
+    network entries named ``url`` or ``final_url``. It never reads expected
+    answers to choose a field or invents a URL from a playback identifier.
+    """
+    try:
+        payload = json.loads(content)
+    except (json.JSONDecodeError, TypeError):
+        return []
+    if not isinstance(payload, dict):
+        return []
+    candidates: list[tuple[str, str]] = []
+    html = payload.get("html")
+    if isinstance(html, str):
+        candidates.extend(
+            (match[1], "content.native_json_html_url")
+            for match in re.findall(
+                r"(?:src|href)\s*=\s*([\"'])(.*?)\1", html, re.I
+            )
+        )
+        candidates.extend(
+            (url, "content.native_json_html_bare_url")
+            for url in re.findall(r"https?://[^\s<>'\")\]]+", html)
+        )
+        candidates.extend(_inline_frame_candidates(
+            html, expected_resources, base_url=base_url, images_only=False,
+        ))
+    pending = [payload.get("network")]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key in {"url", "final_url"} and isinstance(item, str):
+                    candidates.append((item, f"content.native_json_network.{key}"))
+                elif isinstance(item, (dict, list)):
+                    pending.append(item)
+        elif isinstance(value, list):
+            pending.extend(value)
+    return candidates
+
+
 def _normalized_candidates(
     candidates: list[tuple[str, str]], *, base_url: str,
 ) -> tuple[list[str], list[dict[str, Any]]]:
@@ -338,6 +387,9 @@ def evaluate_resources(
                           for url in _visible_relative_resource_urls(content))
         candidates.extend(_inline_frame_candidates(
             content, expected_resources, base_url=base_url, images_only=False,
+        ))
+        candidates.extend(_native_json_resource_candidates(
+            content, expected_resources, base_url=base_url,
         ))
     normalized_candidates, candidate_evidence = _normalized_candidates(candidates, base_url=base_url)
     results = []

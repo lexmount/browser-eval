@@ -309,14 +309,24 @@ class MoliWebFetchProvider(Provider):
                 with self._process_lock: self._active_native_provider = None
         wait = self.config.get("wait_until", "done")
         timeout_ms = str(max(1, int(timeout * 1000)))
-        dump = "html" if case.task_kind == "resource" else "markdown"
+        video_resource = case.task_kind == "resource" and case.track == "video"
+        dump = "json" if video_resource else "html" if case.task_kind == "resource" else "markdown"
         try:
             if case.task_kind == "resource":
-                wait_arguments = ["--wait-until", wait]
+                resource_wait = wait
+                wait_arguments = ["--wait-until", resource_wait]
+                if video_resource:
+                    wait_arguments.extend(["--delay-ms", "5000"])
                 wait_metadata = {
-                    "wait_until": wait,
-                    "resource_discovery": "native_html_common_url_scoring",
+                    "wait_until": resource_wait,
+                    "resource_discovery": (
+                        "native_json_network_trace_common_url_scoring"
+                        if video_resource
+                        else "native_html_common_url_scoring"
+                    ),
                 }
+                if video_resource:
+                    wait_metadata["delay_ms"] = 5000
             elif completion_plan is not None:
                 plan = completion_plan
                 wait_arguments = [
@@ -372,6 +382,8 @@ class MoliWebFetchProvider(Provider):
                     else "declared_native_contract"
                 ),
             }
+        if video_resource:
+            command.append("--trace-network")
         command.extend(
             [
                 *wait_arguments,
@@ -410,14 +422,18 @@ class MoliWebFetchProvider(Provider):
             "http_max_response_bytes": None,
             "retained_output_max_bytes": limit,
             "route": (
-                "resource_native_html"
+                "resource_native_json_trace"
+                if video_resource
+                else "resource_native_html"
                 if case.task_kind == "resource"
                 else "dynamic_native_markdown"
                 if case.track == "dynamic"
                 else "ordinary_markdown"
             ),
             "output": (
-                "native_html_resource_urls"
+                "native_json_resource_urls"
+                if video_resource
+                else "native_html_resource_urls"
                 if case.task_kind == "resource"
                 else "markdown"
             ),
@@ -430,13 +446,15 @@ class MoliWebFetchProvider(Provider):
                 requested_host if private_network_guard_exception else None
             ),
             "log_level": log_level,
-            "network_trace_requested": False,
+            "network_trace_requested": video_resource,
             "local_report_complete_diagnostic_links": bool(
                 self.config.get("local_report_complete_diagnostic_links", False)
             ),
         }
         if case.task_kind == "resource":
-            metadata["output_contract"] = "native_html_resource_urls"
+            metadata["output_contract"] = (
+                "native_json_resource_urls" if video_resource else "native_html_resource_urls"
+            )
         else:
             metadata["output_contract"] = "markdown"
             metadata["extractor"] = "moli_native_markdown"

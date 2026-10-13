@@ -263,6 +263,14 @@ class NativeRoutePublicationTests(unittest.TestCase):
                     {**moli,'output_contract':'structured_resource_urls'}):
             with self.subTest(provider='moli',bad=bad),self.assertRaises(ValueError):
                 require_native_task_routes(cases,[{**row,'provider_metadata':bad}])
+        video_cases=[{'id':'video','url':'https://example.com/','track':'video','task_kind':'resource'}]
+        video={'route':'resource_native_json_trace','output':'native_json_resource_urls',
+               'output_contract':'native_json_resource_urls','dump':'json',
+               'network_trace_requested':True,'wait_until':'done','wait':{'delay_ms':5000}}
+        require_native_task_routes(video_cases,[{'provider':'moli','case_id':'video','provider_metadata':video}])
+        with self.assertRaises(ValueError):
+            require_native_task_routes(video_cases,[{'provider':'moli','case_id':'video',
+                'provider_metadata':{**video,'network_trace_requested':False}}])
         for provider in ('lightpanda','obscura','chromium'):
             row={'provider':provider,'case_id':'images','provider_metadata':{'output_projection_sha256':digest}}
             require_native_task_routes(cases,[row])
@@ -279,6 +287,8 @@ class AllFamilyInterfaceTests(unittest.TestCase):
                for track in ['web','dynamic','challenge','risk_control','document','image','video']}
         cases['document']['url']='https://example.test/file.pdf'
         cases['image']['task_kind']=cases['video']['task_kind']='resource'
+        cases['media-file']={'id':'media-file','url':'https://example.test/file.png',
+                             'track':'image','task_kind':'file'}
         cases['risk_control']['source_benchmark']={'risk_control':{'navigation_contract':{
             'requested_url':'https://example.test/page','observed_final_url':'https://example.test/final'}}}
         matrix=browser_task_interface_matrix(cases,providers)
@@ -287,15 +297,17 @@ class AllFamilyInterfaceTests(unittest.TestCase):
         rows={row['track']:row for row in matrix['rows']}
         for provider in providers:
             self.assertIn('不使用外部',rows['document']['cells'][provider][0]['description'])
-            self.assertIn('不转 Markdown',rows['image']['cells'][provider][0]['description'])
+            self.assertIn('不转 Markdown',rows['web_media']['cells'][provider][0]['description'])
             self.assertTrue(rows['web']['cells'][provider][0]['wait'])
         self.assertIn('直接 PDF/DOCX 未提供可读正文',rows['document']['cells']['moli'][0]['description'])
         self.assertIn('共同转换',rows['web']['cells']['chromium'][0]['description'])
         self.assertIn('内置转换',rows['challenge']['cells']['moli'][0]['description'])
         self.assertIn('内置转换',rows['risk_control']['cells']['moli'][0]['description'])
         self.assertNotIn('共同转换',rows['risk_control']['cells']['moli'][0]['description'])
-        self.assertIn('原生 HTML',rows['image']['cells']['moli'][0]['description'])
-        self.assertIn('共同评分器只识别资源 URL',rows['video']['cells']['moli'][0]['description'])
+        self.assertIn('原生 HTML',rows['web_media']['cells']['moli'][0]['description'])
+        self.assertIn('共同评分器只识别图片资源地址',rows['web_media']['cells']['moli'][0]['description'])
+        self.assertIn('共同评分器只识别视频资源地址',rows['web_media']['cells']['moli'][1]['description'])
+        self.assertEqual(rows['media_file']['count'],1)
         changed=deepcopy(cases)
         for case in changed.values():
             case.update(ground_truth_main_content='Different hidden answer',expected_resources=[{'url':'https://secret.test/answer'}])
@@ -313,12 +325,15 @@ class AllFamilyInterfaceTests(unittest.TestCase):
         rows={row['track']:row for row in browser_task_interface_matrix(cases,providers)['rows']}
         self.assertIn('done',rows['web']['cells']['lightpanda'][0]['wait'])
         self.assertIn('networkidle2',rows['web']['cells']['kitesurf'][0]['wait'])
-        for track in ('document','video'):
-            for provider in providers:
-                self.assertTrue(rows[track]['cells'][provider][0]['wait'].startswith('CDP 页面提取等待 load'))
+        for provider in providers:
+            self.assertTrue(rows['document']['cells'][provider][0]['wait'].startswith('CDP 页面提取等待 load'))
+            media_parts={part['mode']:part for part in rows['web_media']['cells'][provider]}
+            self.assertTrue(media_parts['media_metadata']['wait'].startswith('CDP 页面提取等待 load'))
         for provider in ('lightpanda','kitesurf'):
-            self.assertEqual(rows['image']['cells'][provider][0]['wait'],'CDP 页面提取等待 load')
-        self.assertIn('自适应静默等待',rows['image']['cells']['obscura'][0]['wait'])
+            media_parts={part['mode']:part for part in rows['web_media']['cells'][provider]}
+            self.assertEqual(media_parts['resource']['wait'],'CDP 页面提取等待 load')
+        media_parts={part['mode']:part for part in rows['web_media']['cells']['obscura']}
+        self.assertIn('自适应静默等待',media_parts['resource']['wait'])
 
     def test_all_thirty_five_combinations_follow_deliverable_without_answer_values(self):
         from harness.web_fetch.providers.headless import ENGINES, output_mode_for_case

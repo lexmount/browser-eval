@@ -811,6 +811,30 @@ class MoliTests(unittest.TestCase):
         )
         self.assertTrue(scored["resource_pass"])
 
+    def test_video_resource_page_uses_native_json_network_trace(self):
+        provider = self.provider(
+            "import json, sys\n"
+            'assert sys.argv[sys.argv.index("--dump")+1] == "json"\n'
+            'assert "--trace-network" in sys.argv and "--with-frames" in sys.argv\n'
+            'assert sys.argv[sys.argv.index("--wait-until")+1] == "done"\n'
+            'assert sys.argv[sys.argv.index("--delay-ms")+1] == "5000"\n'
+            'print(json.dumps({"html":"<video></video>","network":{"subresources":[{"final_url":"https://example.com/movie.m3u8"}]}}))'
+        )
+        result = provider.fetch(self.case_with(track="video", task_kind="resource"), 10)
+        self.assertTrue(result.ok, repr(result))
+        self.assertEqual(result.metadata["route"], "resource_native_json_trace")
+        self.assertEqual(result.metadata["output"], "native_json_resource_urls")
+        self.assertEqual(result.metadata["output_contract"], "native_json_resource_urls")
+        self.assertTrue(result.metadata["network_trace_requested"])
+        from harness.web_fetch.metrics import evaluate_resources
+        scored = evaluate_resources(
+            result.content,
+            {},
+            [{"id": "movie", "kind": "video", "urls": ["https://example.com/movie.m3u8"]}],
+            base_url="https://example.com/player",
+        )
+        self.assertTrue(scored["resource_pass"])
+
     def test_fixed_native_resource_uses_product_timers_and_native_html(self):
         provider = self.provider(
             "import sys\n"

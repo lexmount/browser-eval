@@ -234,13 +234,25 @@ def require_native_task_routes(cases, records):
                 valid = meta.get('extractor') == prefixes[provider] + ('+document_text' if mode == 'document' else '')
             valid = valid and meta.get('route') != 'workers_ai_tomarkdown'
         elif mode == 'resource' and provider == 'moli':
-            valid = (
-                meta.get('route') == 'resource_native_html'
-                and meta.get('output') == 'native_html_resource_urls'
-                and meta.get('output_contract') == 'native_html_resource_urls'
-                and meta.get('dump') == 'html'
-                and not meta.get('output_projection_sha256')
-            )
+            if case.track == 'video':
+                valid = (
+                    meta.get('route') == 'resource_native_json_trace'
+                    and meta.get('output') == 'native_json_resource_urls'
+                    and meta.get('output_contract') == 'native_json_resource_urls'
+                    and meta.get('dump') == 'json'
+                    and meta.get('network_trace_requested') is True
+                    and meta.get('wait_until') == 'done'
+                    and meta.get('wait', {}).get('delay_ms') == 5000
+                )
+            else:
+                valid = (
+                    meta.get('route') == 'resource_native_html'
+                    and meta.get('output') == 'native_html_resource_urls'
+                    and meta.get('output_contract') == 'native_html_resource_urls'
+                    and meta.get('dump') == 'html'
+                    and not meta.get('network_trace_requested')
+                )
+            valid = valid and not meta.get('output_projection_sha256')
         elif mode in expressions:
             expression = resource_expression(case.track, resource_detail_links(case)) if mode == 'resource' else expressions[mode]
             valid = meta.get('output_projection_sha256') == hashlib.sha256(expression.encode()).hexdigest()

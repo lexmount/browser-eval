@@ -26,6 +26,7 @@ from .publication_target import public_report_url
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = Path(__file__).parent / 'templates/interpretation.html'
+from .models import REPORT_FAMILIES as BROWSER_FAMILY_NAMES, report_family
 from .report import TRACKS as TRACK_NAMES
 
 PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
@@ -776,7 +777,7 @@ def current_browser_article_model(out, cases, records, binding):
         raise ValueError('Browser interpretation evidence changed')
     if set(content.get('providers', {})) != set(providers):
         raise ValueError('Browser interpretation must explain every participant')
-    if not cases or not providers or any(c.get('track', 'web') not in TRACK_NAMES for c in cases.values()):
+    if not cases or not providers or any(report_family(c) not in BROWSER_FAMILY_NAMES for c in cases.values()):
         raise ValueError('Browser interpretation requires supported nonempty task families')
     expected = {(name, cid) for name in providers for cid in cases}
     indexed = {(row['provider'], row['case_id']): row for row in records}
@@ -789,7 +790,7 @@ def current_browser_article_model(out, cases, records, binding):
         return {'n': len(rows), 'mean': statistics.mean(times) if times else None,
                 'p50': statistics.median(times) if times else None,
                 'p95': percentile(times, .95) if times else None}
-    tracks = [track for track in TRACK_NAMES if any(c.get('track', 'web') == track for c in cases.values())]
+    tracks = [track for track in BROWSER_FAMILY_NAMES if any(report_family(c) == track for c in cases.values())]
     stats = {}
     from .report_interfaces import method_provenance, method_version
     provenance = method_provenance(out)
@@ -805,7 +806,7 @@ def current_browser_article_model(out, cases, records, binding):
         if not isinstance(explanation, str) or not explanation.strip():
             raise ValueError('Browser chapter requires a measured explanation')
         versions = sorted({str(method_version(row,provenance) or '') for row in rows} - {''})
-        groups = {track: [row for row in rows if cases[row['case_id']].get('track', 'web') == track] for track in tracks}
+        groups = {track: [row for row in rows if report_family(cases[row['case_id']]) == track] for track in tracks}
         stats[name] = {'version': ' / '.join(versions) if versions else '托管服务，内部版本未公开' if name == 'kitesurf' else '未提供版本',
                        'passed': len(successes), 'pass_rate': len(successes)/len(cases),
                        'tracks': {track: {'passed': sum(passed(row) for row in subset), 'n': len(subset)} for track,subset in groups.items()},
@@ -815,7 +816,7 @@ def current_browser_article_model(out, cases, records, binding):
     for field in ('title', 'intro', 'scoring', 'conclusions'):
         if not isinstance(content.get(field), str) or not content[field].strip():
             raise ValueError('Browser interpretation is missing prose: ' + field)
-    tracks = [track for track in TRACK_NAMES if any(c.get('track', 'web') == track for c in cases.values())]
+    tracks = [track for track in BROWSER_FAMILY_NAMES if any(report_family(c) == track for c in cases.values())]
     return {'content': content, 'providers': providers, 'stats': stats, 'tracks': tracks,
             'cases': len(cases), 'results': len(records)}
 
@@ -900,7 +901,7 @@ def _render_current_browser_article(out, cases, records, binding):
         values = [stats[n]['tracks'][track]['passed']/stats[n]['tracks'][track]['n'] for n in names]
         return f"{group['passed']}/{group['n']}<br>" + metric(name,'family_'+track,rate,values,True)
     body += section('各专项结果', _table(['任务类型',*(label(name) for name in names)], [
-        (escape(TRACK_NAMES[track]), *(family_cell(name,track) for name in names))
+        (escape(BROWSER_FAMILY_NAMES[track]), *(family_cell(name,track) for name in names))
         for track in model['tracks']], '分组单元格为通过数 / 该组总数及通过率；专项结果不能代替整体排名。'), 'families')
     from .report_interfaces import browser_task_interface_matrix
     interfaces = browser_task_interface_matrix(cases, names)
@@ -914,7 +915,7 @@ def _render_current_browser_article(out, cases, records, binding):
             cells.append('<div data-browser-interface="'+escape(name)+'" data-track="'+escape(row['track'])+'">'
                          + '<br><br>'.join('<span data-route-mode="'+escape(part['mode'])+'" data-case-count="'+str(part['count'])+'">'
                            +str(part['count'])+' 题：'+escape(part['description'])+'<br>等待：'+escape(part['wait'])+'</span>' for part in parts)+'</div>')
-        route_rows.append((escape(TRACK_NAMES[row['track']])+f" · {row['count']} 题", *cells))
+        route_rows.append((escape(BROWSER_FAMILY_NAMES[row['track']])+f" · {row['count']} 题", *cells))
     matrix = _table(['任务类型',*(label(name) for name in names)], route_rows, '每格列出获取接口、额外处理及最终输出；同类中的不同交付格式分别列出题数。')
     body += section('各类任务的获取与转换方式',
         '<p>按题目类型使用参评浏览器合适的官方原生接口。正文直接采用该接口返回的文字；不会改取 HTML、JSON DOM 或文档字节后替它提取正文。Chromium 没有原生 Markdown，网页 HTML 使用标准转换包。下表按固定任务输入列出实际选择的处理链，失败不补成成功，也不切换引擎。每例完成了哪些步骤、返回什么内容，均可在结果详情中查看。文档正文、资源地址、原始文件和媒体元数据有各自的交付格式，不强行转成 Markdown。</p>'

@@ -17,7 +17,7 @@ from .accounts import report_access_registry
 from .failure_diagnosis import diagnose
 from .methods import ROUTE_LABELS, method_page_model, is_browser_comparison, browser_method_label
 from .metrics import percentile, task_measured, task_passed
-from .models import TRACKS, execution_id
+from .models import REPORT_FAMILIES, TRACKS, execution_id, report_family
 from .report_components import (
  basis_label,
  examples,
@@ -302,13 +302,15 @@ def provider_label(name):
  from .methods import measured_method_label
  return measured_method_label(name,PROVIDER_LABELS.get(name,browser_method_label(name)))
 def case_track_label(case):
+ family=report_family(case)
+ if family in {'web_media','media_file'}:return REPORT_FAMILIES[family]
  if case.get('track','web')=='web':
   return {'file':'文件交付','resource':'资源发现','structure':'结构化内容'}.get(case.get('task_kind','body'),TRACKS['web'])
  return TRACKS[case['track']]
 def active_tracks(cases):
  rows=[]
- for key,label in TRACKS.items():
-  selected=[c for c in cases.values() if c.get('track','web')==key]
+ for key,label in REPORT_FAMILIES.items():
+  selected=[c for c in cases.values() if report_family(c)==key]
   if not selected:continue
   if key=='web' and any(c.get('task_kind','body')!='body' for c in selected):
    labels={case_track_label(c) for c in selected}
@@ -1095,9 +1097,9 @@ def case_rate(rs,c):
  return value
 
 def overview_card(records,cases,track,label,names):
- selected=[c for c in cases.values() if c.get('track','web')==track]
+ selected=[c for c in cases.values() if report_family(c)==track]
  if not selected:return ''
- rs=[r for r in records if cases[r['case_id']].get('track','web')==track]
+ rs=[r for r in records if report_family(cases[r['case_id']])==track]
  eligible=[r for r in rs if measured(r,cases[r['case_id']])]
  rates={n:sum(succeeded(r,cases[r['case_id']]) for r in eligible if r['provider']==n)/sum(r['provider']==n for r in eligible) for n in names if any(r['provider']==n for r in eligible)}
  maximum=max(rates.values(),default=None)
@@ -1551,12 +1553,12 @@ def stable_checks(m):
 
 def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
  from .report_components import comparable_body_reference
- title_scope=track=='challenge' and any('title_quality' in r for r in records if cases[r['case_id']].get('track')==track)
- selected={k:c for k,c in cases.items() if c.get('track','web')==track}
+ title_scope=track=='challenge' and any('title_quality' in r for r in records if report_family(cases[r['case_id']])==track)
+ selected={k:c for k,c in cases.items() if report_family(c)==track}
  text_track=track in {'web','dynamic','document','challenge','risk_control'} and any(c.get('task_kind','body') in {'body','structure'} for c in selected.values())
  groups=defaultdict(list)
  for r in records:
-  if cases[r['case_id']].get('track','web')==track:groups[r['provider']].append(r)
+  if report_family(cases[r['case_id']])==track:groups[r['provider']].append(r)
  def sort_key(item):
   name,rs=item
   n=sum(measured(r,cases[r['case_id']]) for r in rs)
@@ -1733,7 +1735,7 @@ def overall_ranking(records,cases,audit=None):
   passed=sum(succeeded(r,cases[r['case_id']]) for r in rs)
   values=cell(link(f'providers/{name}.html',provider_label(name)))+cell(rate(sum(bool(r['ok']) for r in rs),len(rs)),sum(bool(r['ok']) for r in rs)/len(rs))+cell(rate(passed,n),passed/n if n else -1)
   for track,_ in active_tracks(cases):
-   subset=[r for r in rs if cases[r['case_id']].get('track','web')==track and measured(r,cases[r['case_id']])]
+   subset=[r for r in rs if report_family(cases[r['case_id']])==track and measured(r,cases[r['case_id']])]
    values+=cell(f'{sum(succeeded(r,cases[r["case_id"]]) for r in subset)}/{len(subset)}',sum(succeeded(r,cases[r['case_id']]) for r in subset)/len(subset) if subset else -1)
   times=[r['elapsed_ms'] for r in rs]
   values+=cell(ms(statistics.mean(times)),statistics.mean(times))
@@ -1807,7 +1809,7 @@ def method_comparisons(cases,bycase,names):
          f'<div class="comparison-result">{comparison_table(rows,"compare-rows")}</div></article>')
 
 def dataset_attrs(c):
- return f' data-track="{esc(c.get("track","web"))}" data-category="{esc(c["category"])}"'
+ return f' data-track="{esc(report_family(c))}" data-category="{esc(c["category"])}"'
 
 def case_attrs(r,c):
  content='na' if c.get('task_kind','body')!='body' else 'pass' if r['ok'] and r['metrics']['content_pass'] else 'fail'
@@ -1895,8 +1897,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  write(out,'guide/index.html','报告解读',guide)
  panels=[]
  for track,label in tracks:
-  selected=[c for c in cases.values() if c.get('track','web')==track]
-  coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if cases[r["case_id"]].get("track","web")==track})} 种已测方法'
+  selected=[c for c in cases.values() if report_family(c)==track]
+  coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if report_family(cases[r["case_id"]])==track})} 种已测方法'
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
  home+=section('综合通过率总榜',overall_ranking(records,cases,audit),'overall-ranking')
  if dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
@@ -2054,6 +2056,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    route_label='处理路线：浏览器原生接口获取文档 → 共同 PDF / DOCX 正文解析；实际完成步骤见运行证据'
   elif provider_meta.get('output_contract')=='native_html_resource_urls':
    route_label='处理路线：Moli 原生 HTML → 共同评分器只识别其中的图片或视频资源地址'
+  elif provider_meta.get('output_contract')=='native_json_resource_urls':
+   route_label='处理路线：Moli 原生 JSON 页面与网络记录 → 共同评分器只识别其中的视频资源地址'
   elif provider_meta.get('output_contract')=='structured_resource_urls':
    route_label='处理路线：浏览器原生 DOM 接口 → 共同资源读取脚本 → 图片或视频资源地址'
   elif provider_meta.get('output_contract')=='readable_media_metadata':

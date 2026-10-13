@@ -130,6 +130,24 @@ direct-file case stops at verified bytes and never performs an irrelevant
 Markdown conversion. The run does not add an external PDF/DOCX parser, OCR,
 media understanding or a generic downloader that bypasses the selected method.
 
+Public report families follow the deliverable rather than the media MIME type.
+The frozen `image` and `video` source tracks remain unchanged for provenance,
+but the report combines their 16 resource-URL cases and one video-page text
+case as **media information from webpages**, and groups their three direct
+binary inputs as **original media files**. A webpage resource case succeeds by
+returning the declared media URL; it does not need to download that resource.
+A direct-file case must return and validate the bytes. This produces seven
+reader-facing families without pretending that URL discovery and file delivery
+are the same operation.
+
+Moli uses native HTML for image-resource pages. Video-resource pages use its
+native JSON page and network record with a single family-wide `done` plus
+five-second readiness window, because a hydrated player may request its media
+URL without serializing it into an HTML attribute. The shared scorer only reads
+URLs already present in that native output; it never derives a playback URL
+from a site-specific identifier. This route is selected for the whole video
+resource subtype before the call and cannot change after a failure.
+
 ## Credentials and binaries
 
 Evaluation credentials load only from this repository's ignored `.env`.
