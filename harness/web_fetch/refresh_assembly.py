@@ -18,6 +18,8 @@ from harness.web_fetch.artifacts import (
     materialize_bound_artifacts,
     materialize_reference_checks,
     materialize_task_references,
+    record_public_call_log_bindings,
+    verify_public_call_log,
     verify_record_artifacts,
 )
 from harness.web_fetch.assembly import (
@@ -107,15 +109,18 @@ def _require_reason(value: object, *, label: str) -> None:
         raise ValueError(f"Refresh plan has empty {label}")
 
 
-def expected_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, str]]:
+def _expected_v2_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, str]]:
     """Return the exact main refresh scope, rejecting an internally inconsistent plan."""
     matrix = plan.get("main_matrix")
-    if plan.get("schema_version") != 2 or not isinstance(matrix, dict):
+    if plan.get("schema_version") not in {2, 3} or not isinstance(matrix, dict):
         raise ValueError("Unsupported refresh plan")
-    if set(plan) != {
+    expected_plan_fields = {
         "schema_version", "baseline", "main_matrix", "same_window_speed_cohort",
         "total_planned_new_calls",
-    } or not isinstance(plan.get("baseline"), dict) or set(plan["baseline"]) != {
+    }
+    if plan.get("schema_version") == 3:
+        expected_plan_fields.add("implementation_upgrades")
+    if set(plan) != expected_plan_fields or not isinstance(plan.get("baseline"), dict) or set(plan["baseline"]) != {
         "dataset_sha256", "results_sha256", "logical_attempts",
     }:
         raise ValueError("Refresh plan has unknown or missing top-level fields")
@@ -230,7 +235,7 @@ def expected_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, str]]:
         raise ValueError("Pair replacements must not overlap broader refresh scopes")
 
     expected = case_pairs | provider_pairs | explicit_pairs
-    if matrix.get("planned_new_calls") != len(expected):
+    if plan.get("schema_version") == 2 and matrix.get("planned_new_calls") != len(expected):
         raise ValueError("Refresh plan call count does not match its declared scopes")
     speed = plan.get("same_window_speed_cohort", {})
     if not isinstance(speed, dict) or type(speed.get("required")) is not bool:
@@ -251,6 +256,89 @@ def expected_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, str]]:
     speed_calls = speed.get("planned_new_calls")
     if type(speed_calls) is not int or speed_calls < 0:
         raise ValueError("Refresh plan has invalid speed call count")
+    if plan.get("schema_version") == 2 and plan.get("total_planned_new_calls") != len(expected) + speed_calls:
+        raise ValueError("Refresh plan total call count is inconsistent")
+    return expected
+
+
+def _case_ids_sha256(case_ids: list[str]) -> str:
+    payload = json.dumps(sorted(case_ids), ensure_ascii=False, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _implementation_upgrades(plan: dict, canonical: dict) -> list[dict]:
+    if plan.get("schema_version") != 3:
+        return []
+    upgrades = plan.get("implementation_upgrades")
+    if not isinstance(upgrades, list) or not upgrades:
+        raise ValueError("Schema v3 refresh plan requires implementation upgrades")
+    canonical_providers = set(_provider_order(canonical))
+    canonical_cases = {case.get("id") for case in canonical.get("cases", [])}
+    seen_logical, seen_baseline, seen_rerun = set(), set(), set()
+    expected_fields = {
+        "logical_provider", "baseline_provider", "rerun_provider", "affected_case_ids",
+        "reason", "impact_receipt", "baseline_implementation_identity",
+        "rerun_implementation_identity",
+    }
+    for upgrade in upgrades:
+        if not isinstance(upgrade, dict) or set(upgrade) != expected_fields:
+            raise ValueError("Refresh plan has invalid implementation upgrade")
+        logical = upgrade.get("logical_provider")
+        baseline = upgrade.get("baseline_provider")
+        rerun = upgrade.get("rerun_provider")
+        if not all(isinstance(value, str) and value for value in (logical, baseline, rerun)):
+            raise ValueError("Implementation upgrade has an invalid provider")
+        if logical not in canonical_providers or baseline == logical or rerun != logical:
+            raise ValueError("Implementation upgrade provider mapping is invalid")
+        if logical in seen_logical or baseline in seen_baseline or rerun in seen_rerun:
+            raise ValueError("Implementation upgrades have overlapping providers")
+        seen_logical.add(logical)
+        seen_baseline.add(baseline)
+        seen_rerun.add(rerun)
+        case_ids = upgrade.get("affected_case_ids")
+        if (
+            not isinstance(case_ids, list) or not case_ids
+            or not all(isinstance(case_id, str) and case_id for case_id in case_ids)
+            or len(case_ids) != len(set(case_ids))
+            or not set(case_ids) <= canonical_cases
+        ):
+            raise ValueError("Implementation upgrade has invalid affected case IDs")
+        _require_reason(upgrade.get("reason"), label=f"upgrade reason for {logical}")
+        receipt = upgrade.get("impact_receipt")
+        if not isinstance(receipt, dict) or set(receipt) != {
+            "path", "sha256", "case_ids_sha256"
+        }:
+            raise ValueError("Implementation upgrade has invalid impact receipt binding")
+        if (
+            not isinstance(receipt["path"], str) or not receipt["path"]
+            or not re.fullmatch(r"[0-9a-f]{64}", str(receipt["sha256"]))
+            or receipt["case_ids_sha256"] != _case_ids_sha256(case_ids)
+        ):
+            raise ValueError("Implementation upgrade impact receipt binding is inconsistent")
+        for label in ("baseline_implementation_identity", "rerun_implementation_identity"):
+            identity = upgrade.get(label)
+            if not isinstance(identity, dict) or not identity:
+                raise ValueError(f"Implementation upgrade has invalid {label}")
+    return upgrades
+
+
+def expected_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, str]]:
+    """Return exact physical rerun pairs for either refresh-plan schema."""
+    regular = _expected_v2_refresh_pairs(plan, canonical)
+    upgrades = _implementation_upgrades(plan, canonical)
+    if not upgrades:
+        return regular
+    upgrade_pairs = {
+        (upgrade["rerun_provider"], case_id)
+        for upgrade in upgrades for case_id in upgrade["affected_case_ids"]
+    }
+    if regular & upgrade_pairs:
+        raise ValueError("Implementation upgrade overlaps another refresh scope")
+    expected = regular | upgrade_pairs
+    matrix = plan["main_matrix"]
+    if matrix.get("planned_new_calls") != len(expected):
+        raise ValueError("Refresh plan call count does not include implementation upgrades")
+    speed_calls = plan["same_window_speed_cohort"]["planned_new_calls"]
     if plan.get("total_planned_new_calls") != len(expected) + speed_calls:
         raise ValueError("Refresh plan total call count is inconsistent")
     return expected
@@ -280,13 +368,22 @@ def _pair_scope_reasons(plan: dict, provider: str, case_id: str) -> list[dict]:
                 "category": replacement["category"],
                 "reason": replacement["reason"],
             })
+    for upgrade in plan.get("implementation_upgrades", []):
+        if provider == upgrade["rerun_provider"] and case_id in upgrade["affected_case_ids"]:
+            scopes.append({
+                "scope": "implementation_upgrade",
+                **upgrade["reason"],
+                "logical_provider": upgrade["logical_provider"],
+                "baseline_provider": upgrade["baseline_provider"],
+            })
     if not scopes:
         raise ValueError(f"Rerun pair has no declared scope reason: {provider}/{case_id}")
     return scopes
 
 
 def _validate_record_identity(
-    rows: list[dict], *, allowed_pairs: set[tuple[str, str]], label: str
+    rows: list[dict], *, allowed_pairs: set[tuple[str, str]], label: str,
+    allow_physical_projection: bool = False,
 ) -> None:
     validate_report_ids({"cases": [{"id": case_id} for _, case_id in allowed_pairs]}, rows)
     pairs = [(row.get("provider"), row.get("case_id")) for row in rows]
@@ -300,11 +397,104 @@ def _validate_record_identity(
     if len(attempts) != len(set(attempts)):
         raise ValueError(f"{label} contains duplicate attempt IDs")
     for row in rows:
-        expected = f"{row['provider']}__{row['case_id']}__r001"
-        if row.get("run") != 1 or row.get("attempt_id") != expected:
+        physical = row.get("physical_execution")
+        if physical is not None and not allow_physical_projection:
+            raise ValueError(f"{label} contains an undeclared physical projection")
+        physical_provider = row["provider"]
+        physical_attempt = row.get("attempt_id")
+        if physical is not None:
+            if not isinstance(physical, dict) or set(physical) != {
+                "provider", "attempt_id", "implementation_identity", "source_bundle"
+            }:
+                raise ValueError(f"{label} has an invalid physical execution identity")
+            physical_provider = physical.get("provider")
+            physical_attempt = physical.get("attempt_id")
+            if row.get("attempt_id") != physical_attempt:
+                raise ValueError(f"{label} rewrote a physical attempt identity")
+        expected = f"{physical_provider}__{row['case_id']}__r001"
+        if row.get("run") != 1 or physical_attempt != expected:
             raise ValueError(
                 f"{label} has a noncanonical attempt identity: {row.get('attempt_id')}"
             )
+
+
+def _batch_identity_by_attempt(
+    batches: list[dict], rows: list[dict], root: Path, *, required_providers: set[str]
+) -> dict[str, dict]:
+    rows_by_attempt = {row["attempt_id"]: row for row in rows}
+    required_attempts = {
+        row["attempt_id"] for row in rows if row["provider"] in required_providers
+    }
+    identities = {}
+    for batch in batches:
+        providers = {
+            provider.get("name"): provider.get("implementation_identity")
+            for provider in batch.get("providers", []) if isinstance(provider, dict)
+        }
+        for attempt_id in batch.get("attempt_ids", []):
+            row = rows_by_attempt[attempt_id]
+            if row["provider"] not in required_providers:
+                continue
+            identity = providers.get(row["provider"])
+            if not isinstance(identity, dict) or not identity:
+                raise ValueError(f"Execution batch lacks implementation identity: {attempt_id}")
+            metadata = row.get("provider_metadata", {})
+            for field in ("binary_sha256", "reported_version"):
+                if metadata.get(field) is not None and identity.get(field) != metadata[field]:
+                    raise ValueError(
+                        f"Result and execution implementation identity differ: {attempt_id}/{field}"
+                    )
+            for binding in record_public_call_log_bindings(row):
+                payload = json.loads(verify_public_call_log(root, binding).read_bytes())
+                call_identity = payload["identity"]
+                if (
+                    call_identity.get("attempt_id") != attempt_id
+                    or call_identity.get("provider") != row["provider"]
+                    or call_identity.get("case_id") != row["case_id"]
+                    or call_identity.get("run") != row["run"]
+                ):
+                    raise ValueError(f"Public call log physical identity differs: {attempt_id}")
+            identities[attempt_id] = deepcopy(identity)
+    if set(identities) != required_attempts:
+        raise ValueError(
+            f"Execution identities do not cover required implementation results: {root}"
+        )
+    return identities
+
+
+def _validate_impact_receipts(plan: dict, plan_path: Path, canonical: dict) -> list[dict]:
+    validated = []
+    for upgrade in _implementation_upgrades(plan, canonical):
+        binding = upgrade["impact_receipt"]
+        path = contained_path(plan_path.parent, binding["path"], reject_symlinks=True)
+        if not path.is_file() or _sha256(path) != binding["sha256"]:
+            raise ValueError("Implementation impact receipt bytes differ from refresh plan")
+        receipt = _read_json(path)
+        required = {
+            "schema_version", "kind", "provider_calls", "baseline_provider",
+            "logical_provider", "rerun_provider", "affected_case_ids",
+            "baseline_implementation_identity", "rerun_implementation_identity",
+        }
+        if (
+            not required <= set(receipt)
+            or receipt.get("schema_version") != 1
+            or receipt.get("kind") != "implementation_upgrade_impact"
+            or receipt.get("provider_calls") != 0
+            or receipt.get("baseline_provider") != upgrade["baseline_provider"]
+            or receipt.get("logical_provider") != upgrade["logical_provider"]
+            or receipt.get("rerun_provider") != upgrade["rerun_provider"]
+            or receipt.get("affected_case_ids") != upgrade["affected_case_ids"]
+            or receipt.get("baseline_implementation_identity")
+            != upgrade["baseline_implementation_identity"]
+            or receipt.get("rerun_implementation_identity")
+            != upgrade["rerun_implementation_identity"]
+        ):
+            raise ValueError("Implementation impact receipt differs from refresh plan")
+        validated.append({
+            "path": binding["path"], "sha256": binding["sha256"],
+            "case_ids_sha256": binding["case_ids_sha256"],
+        })
+    return validated
 
 
 def _verify_artifacts(root: Path, rows: list[dict]) -> None:
@@ -468,6 +658,16 @@ def _copy_artifacts(output: Path, selections: list[tuple[dict, Path]]) -> None:
         by_root[root].append(row)
     for root, rows in by_root.items():
         materialize_bound_artifacts(output, root, rows)
+
+
+def _physical_record(record: dict) -> dict:
+    physical = record.get("physical_execution")
+    if not isinstance(physical, dict):
+        return record
+    value = deepcopy(record)
+    value["provider"] = physical["provider"]
+    value.pop("physical_execution", None)
+    return value
 
 
 def _bundle_identity(root: Path, execution_path: Path) -> dict:
@@ -648,6 +848,12 @@ def _assemble(
     canonical = _read_json(canonical_path)
     canonical_cases = {case["id"]: case for case in canonical.get("cases", [])}
     providers = _provider_order(canonical)
+    upgrades = _implementation_upgrades(plan, canonical)
+    impact_receipts = _validate_impact_receipts(plan, plan_path, canonical)
+    upgrade_by_logical = {upgrade["logical_provider"]: upgrade for upgrade in upgrades}
+    logical_by_baseline = {
+        upgrade["baseline_provider"]: upgrade["logical_provider"] for upgrade in upgrades
+    }
     expected_main = expected_refresh_pairs(plan, canonical)
     expected_final = {(provider, case_id) for provider in providers for case_id in canonical_cases}
     if plan["main_matrix"].get("final_logical_attempts") != len(expected_final):
@@ -665,15 +871,35 @@ def _assemble(
     baseline_pairs = {
         (provider, case_id) for provider in baseline_providers for case_id in baseline_cases
     }
-    if baseline_binding.get("logical_attempts") != len(baseline_rows) or set(
-        baseline_providers
-    ) != set(providers):
+    mapped_baseline_providers = {
+        logical_by_baseline.get(provider, provider) for provider in baseline_providers
+    }
+    if baseline_binding.get("logical_attempts") != len(baseline_rows) or (
+        mapped_baseline_providers != set(providers)
+        or len(mapped_baseline_providers) != len(baseline_providers)
+    ):
         raise ValueError("Baseline cohort differs from the refresh plan")
     _validate_record_identity(baseline_rows, allowed_pairs=baseline_pairs, label="baseline")
     _verify_artifacts(baseline, baseline_rows)
     baseline_batches, baseline_execution = _validate_source_batches(
         baseline, baseline_dataset, baseline_rows, references=False
     )
+    baseline_attempt_identities = _batch_identity_by_attempt(
+        baseline_batches,
+        baseline_rows,
+        baseline,
+        required_providers={upgrade["baseline_provider"] for upgrade in upgrades},
+    ) if upgrades else {}
+    for upgrade in upgrades:
+        identities = {
+            json.dumps(baseline_attempt_identities[row["attempt_id"]], sort_keys=True)
+            for row in baseline_rows if row["provider"] == upgrade["baseline_provider"]
+        }
+        expected_identity = json.dumps(
+            upgrade["baseline_implementation_identity"], sort_keys=True
+        )
+        if identities != {expected_identity}:
+            raise ValueError("Baseline implementation identity differs from upgrade plan")
 
     replacements = canonical.get("comparison", {}).get("case_replacements")
     if not isinstance(replacements, dict) or len(set(replacements.values())) != len(replacements):
@@ -689,7 +915,10 @@ def _assemble(
     if canonical_only != set(active_replacements.values()):
         raise ValueError("Canonical-only cases differ from the replacement map")
     matched_cases = set(plan["main_matrix"]["matched_case_ids"])
-    if not set(active_replacements.values()) <= matched_cases:
+    upgrade_cases = {
+        case_id for upgrade in upgrades for case_id in upgrade["affected_case_ids"]
+    }
+    if not set(active_replacements.values()) <= matched_cases | upgrade_cases:
         raise ValueError("Every active replacement case must be in the matched rerun scope")
 
     rerun_by_pair: dict[tuple[str, str], tuple[dict, Path]] = {}
@@ -723,29 +952,70 @@ def _assemble(
     rerun_rows = [row for row, _ in rerun_by_pair.values()]
     _validate_consistent_provider_run_identities(rerun_batches)
     _validate_record_identity(rerun_rows, allowed_pairs=expected_main, label="main reruns")
+    rerun_attempt_identities = {}
+    rerun_upgrade_providers = {upgrade["rerun_provider"] for upgrade in upgrades}
+    for batches, rows, root, _source_path in rerun_batches:
+        rerun_attempt_identities.update(_batch_identity_by_attempt(
+            batches,
+            rows,
+            root,
+            required_providers=rerun_upgrade_providers,
+        ))
+    for upgrade in upgrades:
+        expected_identity = json.dumps(upgrade["rerun_implementation_identity"], sort_keys=True)
+        identities = {
+            json.dumps(rerun_attempt_identities[row["attempt_id"]], sort_keys=True)
+            for row in rerun_rows if row["provider"] == upgrade["rerun_provider"]
+        }
+        if identities != {expected_identity}:
+            raise ValueError("Rerun implementation identity differs from upgrade plan")
 
     baseline_by_pair = {(row["provider"], row["case_id"]): row for row in baseline_rows}
     selected: list[tuple[dict, Path]] = []
     audit = []
     for provider in providers:
         for case in canonical["cases"]:
-            pair = (provider, case["id"])
-            if pair in rerun_by_pair:
-                row, root = rerun_by_pair[pair]
+            logical_pair = (provider, case["id"])
+            upgrade = upgrade_by_logical.get(provider)
+            affected = upgrade is not None and case["id"] in upgrade["affected_case_ids"]
+            physical_provider = (
+                upgrade["rerun_provider"] if affected else
+                upgrade["baseline_provider"] if upgrade is not None else provider
+            )
+            physical_pair = (physical_provider, case["id"])
+            if affected or logical_pair in rerun_by_pair:
+                source_pair = physical_pair if affected else logical_pair
+                row, root = rerun_by_pair[source_pair]
                 old_case_id = next(
                     (old for old, new in active_replacements.items() if new == case["id"]),
                     case["id"],
                 )
-                old = baseline_by_pair.get((provider, old_case_id))
-                selected.append((row, root))
+                old_provider = upgrade["baseline_provider"] if upgrade is not None else provider
+                old = baseline_by_pair.get((old_provider, old_case_id))
+                selected_row = deepcopy(row)
+                if upgrade is not None:
+                    selected_row["provider"] = provider
+                    selected_row["physical_execution"] = {
+                        "provider": row["provider"],
+                        "attempt_id": row["attempt_id"],
+                        "implementation_identity": rerun_attempt_identities[row["attempt_id"]],
+                        "source_bundle": _bundle_identity(
+                            root, next(path for _, _, candidate, path in rerun_batches
+                                       if candidate == root)
+                        ),
+                    }
+                selected.append((selected_row, root))
                 audit.append(
                     {
-                        "attempt_id": row["attempt_id"],
+                        "attempt_id": selected_row["attempt_id"],
                         "provider": provider,
+                        "physical_provider": row["provider"],
                         "case_id": case["id"],
                         "replaces_case_id": old_case_id,
                         "selection_reason": "predeclared refresh scope; no score-based selection",
-                        "declared_scopes": _pair_scope_reasons(plan, provider, case["id"]),
+                        "declared_scopes": _pair_scope_reasons(
+                            plan, row["provider"], case["id"]
+                        ),
                         "source_results_sha256": _sha256(root / "results.jsonl"),
                         "excluded_attempt": (
                             {
@@ -758,13 +1028,44 @@ def _assemble(
                     }
                 )
             else:
-                old = baseline_by_pair.get(pair)
+                old_case_id = next(
+                    (old for old, new in active_replacements.items() if new == case["id"]),
+                    case["id"],
+                )
+                old = baseline_by_pair.get((physical_provider, old_case_id))
                 if old is None:
-                    raise ValueError(f"No baseline or rerun result for final pair: {pair}")
-                selected.append((old, baseline))
+                    raise ValueError(f"No baseline or rerun result for final pair: {logical_pair}")
+                selected_row = deepcopy(old)
+                if upgrade is not None:
+                    selected_row["provider"] = provider
+                    selected_row["physical_execution"] = {
+                        "provider": old["provider"],
+                        "attempt_id": old["attempt_id"],
+                        "implementation_identity": baseline_attempt_identities[old["attempt_id"]],
+                        "source_bundle": _bundle_identity(baseline, baseline_execution),
+                    }
+                    audit.append({
+                        "attempt_id": selected_row["attempt_id"],
+                        "provider": provider,
+                        "physical_provider": old["provider"],
+                        "case_id": case["id"],
+                        "replaces_case_id": old_case_id,
+                        "selection_reason": (
+                            "predeclared implementation-impact complement; no score-based selection"
+                        ),
+                        "declared_scopes": [{
+                            "scope": "implementation_upgrade_unaffected_complement",
+                            **upgrade["reason"],
+                            "baseline_provider": upgrade["baseline_provider"],
+                        }],
+                        "source_results_sha256": _sha256(baseline / "results.jsonl"),
+                        "excluded_attempt": None,
+                    })
+                selected.append((selected_row, baseline))
     final_rows = [row for row, _ in selected]
     _validate_record_identity(
-        final_rows, allowed_pairs=expected_final, label="assembled main matrix"
+        final_rows, allowed_pairs=expected_final, label="assembled main matrix",
+        allow_physical_projection=bool(upgrades),
     )
 
     speed_plan = plan.get("same_window_speed_cohort", {})
@@ -817,9 +1118,13 @@ def _assemble(
         if speed_plan.get("auxiliary_sha256") != actual_auxiliary:
             raise ValueError("Reused speed auxiliary bytes differ from the refresh plan")
         speed_cases = speed_case_inventory
-    if _provider_order(speed_dataset) != providers:
+    speed_providers = _provider_order(speed_dataset)
+    mapped_speed_providers = [logical_by_baseline.get(name, name) for name in speed_providers]
+    if mapped_speed_providers != providers:
         raise ValueError("Speed provider cohort differs from the main cohort")
-    expected_speed = {(provider, case_id) for provider in providers for case_id in speed_cases}
+    expected_speed = {
+        (provider, case_id) for provider in speed_providers for case_id in speed_cases
+    }
     # A hash-bound reused speed cohort is historical measured evidence, not a
     # fresh execution against today's canonical scoring annotations.  Its exact
     # dataset/results/execution/summary and auxiliary receipts were verified
@@ -866,7 +1171,9 @@ def _assemble(
         materialize_reference_checks(output, root, source_batches)
 
     selected_baseline = [row for row, root in selected if root == baseline]
-    batches = _prune_shadowed_batch_attempts(deepcopy(baseline_batches), selected_baseline)
+    batches = _prune_shadowed_batch_attempts(
+        deepcopy(baseline_batches), [_physical_record(row) for row in selected_baseline]
+    )
     for source_batches, rows, _root, _ in rerun_batches:
         chosen = [row for row in rows if (row["provider"], row["case_id"]) in expected_main]
         batches.extend(_prune_shadowed_batch_attempts(deepcopy(source_batches), chosen))
@@ -898,11 +1205,25 @@ def _assemble(
     for index, (root, path) in enumerate(execution_sources):
         shutil.copy2(path, history / f"{index:03d}-{root.name}-{path.name}")
 
+    if upgrades:
+        impact_history = output / "history" / "implementation-impact"
+        impact_history.mkdir(parents=True)
+        for index, (upgrade, binding) in enumerate(zip(upgrades, impact_receipts, strict=True)):
+            source = contained_path(
+                plan_path.parent, upgrade["impact_receipt"]["path"], reject_symlinks=True
+            )
+            relative = (
+                f"history/implementation-impact/{index:03d}-"
+                f"{upgrade['logical_provider']}.json"
+            )
+            shutil.copy2(source, output / relative)
+            binding["stored_path"] = relative
+
     _copy_speed_bundle(
         speed_cohort, output / "speed-cohort", speed_dataset, speed_rows, _speed_batches
     )
     receipt = {
-        "schema_version": 1,
+        "schema_version": 2 if upgrades else 1,
         "kind": "predeclared_webfetch_refresh_assembly",
         "assembled_at": datetime.now(UTC).isoformat(),
         "plan_sha256": _sha256(plan_path),
@@ -932,6 +1253,33 @@ def _assemble(
         "provider_calls_performed_by_assembler": 0,
         "selection_policy": "exact profile scope; never select by score or retry outcome",
     }
+    if upgrades:
+        receipt["implementation_upgrades"] = []
+        for upgrade, impact_receipt in zip(upgrades, impact_receipts, strict=True):
+            logical = upgrade["logical_provider"]
+            logical_rows = [row for row in final_rows if row["provider"] == logical]
+            rerun_cases = set(upgrade["affected_case_ids"])
+            receipt["implementation_upgrades"].append({
+                "logical_provider": logical,
+                "baseline_provider": upgrade["baseline_provider"],
+                "rerun_provider": upgrade["rerun_provider"],
+                "baseline_implementation_identity": upgrade[
+                    "baseline_implementation_identity"
+                ],
+                "rerun_implementation_identity": upgrade["rerun_implementation_identity"],
+                "affected_case_ids": upgrade["affected_case_ids"],
+                "affected_case_ids_sha256": _case_ids_sha256(upgrade["affected_case_ids"]),
+                "inherited_attempts": sum(
+                    row["case_id"] not in rerun_cases for row in logical_rows
+                ),
+                "rerun_attempts": sum(row["case_id"] in rerun_cases for row in logical_rows),
+                "final_logical_attempts": len(logical_rows),
+                "impact_receipt": impact_receipt,
+                "physical_identity_policy": (
+                    "logical provider projection only; attempt IDs, artifact bindings, public "
+                    "call logs, source bundle hashes and implementation identities are immutable"
+                ),
+            })
     (output / "refresh-assembly.json").write_text(
         json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )

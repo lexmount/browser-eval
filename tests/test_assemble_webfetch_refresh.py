@@ -589,6 +589,7 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
                      canonical_dataset=self.canonical_path, plan=self.plan_path)
         self.assertFalse(output.exists())
 
+
     def test_duplicate_rerun_pair_fails_without_creating_output(self) -> None:
         rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
         rows.append(rows[0])
@@ -1012,6 +1013,355 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
                 plan=self.plan_path,
             )
         self.assertFalse(output.exists())
+
+
+class AssembleImplementationUpgradeTests(unittest.TestCase):
+    CASES = ["case-a", "case-b", "case-c", "case-d"]
+    AFFECTED = ["case-b", "case-d"]
+    BASELINE_PROVIDERS = ["moli", "other"]
+    FINAL_PROVIDERS = ["moli-fixed", "other"]
+
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.canonical = self.dataset(self.FINAL_PROVIDERS)
+        self.canonical_path = self.root / "evaluation" / "dataset.json"
+        self.write_json(self.canonical_path, self.canonical)
+        (self.canonical_path.parent / "sources").mkdir()
+        (self.canonical_path.parent / "list-references").mkdir()
+
+        self.baseline = self.root / "baseline"
+        baseline_rows = AssembleWebfetchRefreshTests.rows(
+            self.BASELINE_PROVIDERS, self.CASES
+        )
+        self.write_bundle(self.baseline, self.dataset(self.BASELINE_PROVIDERS), baseline_rows)
+        baseline_execution = json.loads((self.baseline / "execution.json").read_text())
+        other_identity = next(
+            provider for provider in baseline_execution["batches"][0]["providers"]
+            if provider["name"] == "other"
+        )
+        other_identity.pop("implementation_identity")
+        self.write_json(self.baseline / "execution.json", baseline_execution)
+
+        self.main = self.root / "main"
+        rerun_rows = AssembleWebfetchRefreshTests.rows_for_pairs({
+            ("moli-fixed", case_id) for case_id in self.AFFECTED
+        })
+        self.write_bundle(self.main, self.canonical, rerun_rows)
+
+        self.speed = self.root / "speed"
+        speed_rows = AssembleWebfetchRefreshTests.rows(
+            self.BASELINE_PROVIDERS, self.CASES[:2]
+        )
+        speed_dataset = {
+            **self.dataset(self.BASELINE_PROVIDERS),
+            "cases": self.dataset(self.BASELINE_PROVIDERS)["cases"][:2],
+        }
+        self.write_bundle(self.speed, speed_dataset, speed_rows)
+        source_batch = json.loads((self.speed / "execution.json").read_text())["batches"][0]
+        batches = []
+        for provider in self.BASELINE_PROVIDERS:
+            attempt_ids = [
+                row["attempt_id"] for row in speed_rows if row["provider"] == provider
+            ]
+            batches.append({
+                **source_batch,
+                "providers": [next(
+                    item for item in source_batch["providers"] if item["name"] == provider
+                )],
+                "attempt_ids": attempt_ids,
+                "attempt_count": len(attempt_ids),
+            })
+        aggregate = {
+            "started_at": "2026-09-10T00:00:00+00:00",
+            "completed_at": "2026-09-10T00:00:03+00:00",
+            "providers": self.BASELINE_PROVIDERS,
+            "case_ids": self.CASES[:2],
+            "batch_count": len(batches),
+        }
+        self.write_json(self.speed / "execution.json", {
+            "schema_version": 1, "aggregate": aggregate, "batches": batches,
+        })
+        speed_summary = build_speed_summary(speed_dataset, speed_rows, batches, aggregate)
+        speed_summary["bindings"] = {
+            "dataset_sha256": sha((self.speed / "dataset.json").read_bytes()),
+            "results_sha256": sha((self.speed / "results.jsonl").read_bytes()),
+        }
+        self.write_json(self.speed / "speed-comparison.json", speed_summary)
+
+        self.baseline_identity = {"fixture_sha256": sha(b"moli")}
+        self.rerun_identity = {"fixture_sha256": sha(b"moli-fixed")}
+        self.impact = {
+            "schema_version": 1,
+            "kind": "implementation_upgrade_impact",
+            "provider_calls": 0,
+            "baseline_provider": "moli",
+            "logical_provider": "moli-fixed",
+            "rerun_provider": "moli-fixed",
+            "affected_case_ids": list(self.AFFECTED),
+            "baseline_implementation_identity": self.baseline_identity,
+            "rerun_implementation_identity": self.rerun_identity,
+        }
+        self.impact_path = self.root / "evaluation" / "impact.json"
+        self.write_json(self.impact_path, self.impact)
+        ids_hash = sha(json.dumps(
+            sorted(self.AFFECTED), ensure_ascii=False, separators=(",", ":")
+        ).encode())
+        self.plan = {
+            "schema_version": 3,
+            "baseline": {
+                "dataset_sha256": sha((self.baseline / "dataset.json").read_bytes()),
+                "results_sha256": sha((self.baseline / "results.jsonl").read_bytes()),
+                "logical_attempts": 8,
+            },
+            "main_matrix": {
+                "full_rerun_providers": [],
+                "full_rerun_reason_by_provider": {},
+                "matched_case_ids": [],
+                "matched_case_reason_groups": [],
+                "pair_replacements": [],
+                "offline_rescore_cases": [],
+                "planned_new_calls": 2,
+                "final_logical_attempts": 8,
+            },
+            "implementation_upgrades": [{
+                "logical_provider": "moli-fixed",
+                "baseline_provider": "moli",
+                "rerun_provider": "moli-fixed",
+                "affected_case_ids": list(self.AFFECTED),
+                "reason": {
+                    "category": "implementation_upgrade",
+                    "reason": "hash-bound impact audit limits the changed implementation scope",
+                },
+                "impact_receipt": {
+                    "path": "impact.json",
+                    "sha256": sha(self.impact_path.read_bytes()),
+                    "case_ids_sha256": ids_hash,
+                },
+                "baseline_implementation_identity": self.baseline_identity,
+                "rerun_implementation_identity": self.rerun_identity,
+            }],
+            "same_window_speed_cohort": {
+                "required": False,
+                "reuse_existing": True,
+                "reason": "historical mixed-version timing remains separate",
+                "dataset_sha256": sha((self.speed / "dataset.json").read_bytes()),
+                "results_sha256": sha((self.speed / "results.jsonl").read_bytes()),
+                "execution_sha256": sha((self.speed / "execution.json").read_bytes()),
+                "speed_comparison_sha256": sha(
+                    (self.speed / "speed-comparison.json").read_bytes()
+                ),
+                "auxiliary_sha256": {},
+                "planned_new_calls": 0,
+            },
+            "total_planned_new_calls": 2,
+        }
+        self.plan_path = self.root / "evaluation" / "refresh-plan.json"
+        self.write_json(self.plan_path, self.plan)
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    @staticmethod
+    def dataset(providers: list[str]) -> dict:
+        return {
+            "schema_version": 2,
+            "id": "upgrade-fixture",
+            "cases": [{
+                "id": case_id,
+                "name": case_id,
+                "url": f"https://example.test/{case_id}",
+                "track": "web",
+                "task_kind": "body",
+            } for case_id in AssembleImplementationUpgradeTests.CASES],
+            "coverage_plan": {"web": providers},
+            "comparison": {"case_replacements": {}},
+        }
+
+    @staticmethod
+    def write_json(path: Path, value: object) -> None:
+        AssembleWebfetchRefreshTests.write_json(path, value)
+
+    def write_bundle(self, root: Path, dataset: dict, rows: list[dict]) -> None:
+        AssembleWebfetchRefreshTests.write_bundle(self, root, dataset, rows)
+        loaded = [json.loads(line) for line in (root / "results.jsonl").read_text().splitlines()]
+        for row in loaded:
+            relative = f"call-logs/{row['provider']}/{row['case_id']}.json"
+            payload = self.call_log(row)
+            binary = json.dumps(payload, sort_keys=True).encode()
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(binary)
+            row["provider_metadata"] = {
+                "call_log": {"path": relative, "sha256": sha(binary), "bytes": len(binary)}
+            }
+        (root / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in loaded), encoding="utf-8"
+        )
+
+    @staticmethod
+    def call_log(row: dict) -> dict:
+        artifact = b"artifact"
+        return {
+            "schema_version": 1,
+            "identity": {
+                "call_id": row["attempt_id"] + "__p001",
+                "attempt_id": row["attempt_id"],
+                "provider": row["provider"],
+                "provider_type": "fixture",
+                "case_id": row["case_id"],
+                "run": 1,
+                "physical_attempt": 1,
+            },
+            "timing": {
+                "started_at": row["started_at"], "completed_at": row["completed_at"],
+                "elapsed_ms": row["elapsed_ms"], "retry_throttle_wait_ms": 0,
+                "deadline_budget_ms": 45000, "deadline_overrun": False,
+            },
+            "request": {"method": None, "route": "fixture", "url": None, "summary": None},
+            "response": {
+                "status_code": None, "upstream_status_code": None, "final_url": None,
+                "content_type": None, "request_id": None,
+            },
+            "process": {
+                "exit_code": 0, "stdout": None, "stdout_bytes": len(artifact),
+                "stdout_truncated": False, "stderr": "", "stderr_bytes": 0,
+                "stderr_truncated": False,
+            },
+            "output": {
+                "path": "artifacts/shared.txt", "bytes": len(artifact),
+                "sha256": sha(artifact), "empty": False,
+            },
+            "error": {"type": None, "message": None, "exception_class": None, "stack": []},
+            "events": [
+                {"stage": "call_started", "at": row["started_at"],
+                 "status_code": None, "error_type": None},
+                {"stage": "response_received", "at": row["completed_at"],
+                 "status_code": None, "error_type": None},
+                {"stage": "call_completed", "at": row["completed_at"],
+                 "status_code": None, "error_type": None},
+            ],
+            "capture": {
+                "record": "complete", "response_metadata": "captured",
+                "process_metadata": "captured", "process_stdout": "bound_as_output",
+                "process_stderr": "captured_complete", "request_summary": "not_exposed",
+                "events": "complete", "raw_response": "not_retained",
+                "output": "complete_hash_bound", "diagnostic_log": "not_retained",
+            },
+        }
+
+    def assemble(self, name: str = "output") -> Path:
+        output = self.root / name
+        assemble(
+            self.baseline, [self.main], self.speed, output,
+            canonical_dataset=self.canonical_path, plan=self.plan_path,
+        )
+        return output
+
+    def rewrite_plan(self) -> None:
+        self.write_json(self.plan_path, self.plan)
+
+    def test_upgrade_projects_logical_provider_and_preserves_physical_evidence(self) -> None:
+        output = self.assemble()
+        rows = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+        fixed = [row for row in rows if row["provider"] == "moli-fixed"]
+        self.assertEqual(len(fixed), 4)
+        self.assertEqual(
+            {row["physical_execution"]["provider"] for row in fixed},
+            {"moli", "moli-fixed"},
+        )
+        for row in fixed:
+            physical = row["physical_execution"]
+            self.assertEqual(row["attempt_id"], physical["attempt_id"])
+            self.assertTrue((output / row["provider_metadata"]["call_log"]["path"]).is_file())
+        execution = json.loads((output / "execution.json").read_text())
+        physical_providers = {
+            provider["name"] for batch in execution["batches"]
+            for provider in batch["providers"]
+        }
+        self.assertEqual(physical_providers, {"moli", "moli-fixed", "other"})
+        receipt = json.loads((output / "refresh-assembly.json").read_text())
+        upgrade = receipt["implementation_upgrades"][0]
+        self.assertEqual((upgrade["inherited_attempts"], upgrade["rerun_attempts"]), (2, 2))
+        self.assertEqual(upgrade["impact_receipt"]["sha256"], sha(self.impact_path.read_bytes()))
+        stored_impact = output / upgrade["impact_receipt"]["stored_path"]
+        self.assertEqual(stored_impact.read_bytes(), self.impact_path.read_bytes())
+        audit = json.loads((output / "selection-audit.json").read_text())
+        self.assertEqual(len([row for row in audit if row["provider"] == "moli-fixed"]), 4)
+
+    def test_upgrade_selection_is_independent_of_outcome(self) -> None:
+        rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
+        rows[0].update(ok=False, error_type="tool_error")
+        (self.main / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+        )
+        output = self.assemble("failed-rerun-output")
+        selected = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+        failed = next(row for row in selected if row["case_id"] == rows[0]["case_id"]
+                      and row["provider"] == "moli-fixed")
+        self.assertFalse(failed["ok"])
+        self.assertEqual(failed["attempt_id"], rows[0]["attempt_id"])
+
+    def test_upgrade_rejects_scope_and_receipt_drift(self) -> None:
+        self.plan["implementation_upgrades"][0]["affected_case_ids"].append("case-a")
+        self.rewrite_plan()
+        with self.assertRaisesRegex(ValueError, "impact receipt binding is inconsistent"):
+            self.assemble("scope-drift")
+
+        self.plan["implementation_upgrades"][0]["affected_case_ids"] = list(self.AFFECTED)
+        self.plan["implementation_upgrades"][0]["impact_receipt"]["sha256"] = "0" * 64
+        self.rewrite_plan()
+        with self.assertRaisesRegex(ValueError, "impact receipt bytes differ"):
+            self.assemble("receipt-drift")
+
+    def test_upgrade_rejects_missing_extra_or_duplicate_rerun_pairs(self) -> None:
+        original = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
+        original_results = (self.main / "results.jsonl").read_bytes()
+        original_execution = (self.main / "execution.json").read_bytes()
+        for name, changed, pattern in (
+            ("missing", original[:-1], "missing=1, extra=0"),
+            ("duplicate", original + [dict(original[0])], "duplicate provider/case"),
+            ("extra", original + AssembleWebfetchRefreshTests.rows_for_pairs(
+                {("moli-fixed", "case-a")}
+            ), "missing=0, extra=1"),
+        ):
+            with self.subTest(name=name):
+                (self.main / "results.jsonl").write_text(
+                    "".join(json.dumps(row) + "\n" for row in changed), encoding="utf-8"
+                )
+                execution = json.loads((self.main / "execution.json").read_text())
+                execution["batches"][0]["attempt_ids"] = [row["attempt_id"] for row in changed]
+                execution["batches"][0]["attempt_count"] = len(changed)
+                self.write_json(self.main / "execution.json", execution)
+                with self.assertRaisesRegex(ValueError, pattern):
+                    self.assemble(f"{name}-output")
+                (self.main / "results.jsonl").write_bytes(original_results)
+                (self.main / "execution.json").write_bytes(original_execution)
+
+    def test_upgrade_rejects_batch_or_call_log_physical_identity_drift(self) -> None:
+        original_execution = (self.main / "execution.json").read_bytes()
+        execution = json.loads((self.main / "execution.json").read_text())
+        execution["batches"][0]["providers"][0]["implementation_identity"] = {
+            "fixture_sha256": "0" * 64
+        }
+        self.write_json(self.main / "execution.json", execution)
+        with self.assertRaisesRegex(ValueError, "Rerun implementation identity differs"):
+            self.assemble("binary-drift")
+
+        (self.main / "execution.json").write_bytes(original_execution)
+        result_rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
+        binding = result_rows[0]["provider_metadata"]["call_log"]
+        path = self.main / binding["path"]
+        payload = json.loads(path.read_text())
+        payload["identity"]["provider"] = "moli"
+        binary = json.dumps(payload, sort_keys=True).encode()
+        path.write_bytes(binary)
+        binding.update(sha256=sha(binary), bytes=len(binary))
+        (self.main / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in result_rows), encoding="utf-8"
+        )
+        with self.assertRaisesRegex(ValueError, "call log physical identity differs"):
+            self.assemble("call-log-drift")
 
 
 if __name__ == "__main__":
