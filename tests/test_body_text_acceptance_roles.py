@@ -31,7 +31,7 @@ def test_body_contract_controls_acceptance_across_answer_formats(artifact, accep
     assert metrics["stable_anchor_total"] == 1
 
 
-def test_page_identity_remains_required_with_diagnostic_shell():
+def test_final_url_mismatch_remains_diagnostic_with_complete_body():
     case = body_case()
     case["track"] = "risk_control"
     case["source_benchmark"] = {"risk_control": {"navigation_contract": {
@@ -39,7 +39,10 @@ def test_page_identity_remains_required_with_diagnostic_shell():
         "target_language": "en"}}}
     metrics = score_attempt(case, b"alpha bravo charlie delta echo foxtrot golf hotel",
                             ok=True, final_url="https://example.test/wrong")
-    assert not task_passed(True, metrics)
+    assert task_passed(True, metrics)
+    assert metrics["page_identity_status"] == "mismatch"
+    assert metrics["final_url_consistent"] is False
+    assert metrics["page_identity_required"] is False
 
 
 def test_diagnostic_role_cannot_remove_the_only_acceptance_gate():
