@@ -57,17 +57,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
         item = pre_call[binding]
         assert hashlib.sha256((ROOT / item["path"]).read_bytes()).hexdigest() == item["sha256"]
     assert pre_call["execution_effect"]["required_new_calls"] == {
-        "fixed_moli": 39,
-        "moli_pr919": 21,
-        "lightpanda": 100,
-        "obscura": 4,
-        "chromium": 4,
-        "kitesurf": 4,
-        "physical_calls": 172,
-    }
-    assert sum(value for key, value in
-               pre_call["execution_effect"]["required_new_calls"].items()
-               if key != "physical_calls") == 172
+        "methods": 6, "cases_per_method": 4, "physical_calls": 24}
     assert hashlib.sha256(historical.encode()).hexdigest() == pre_call["revised_dataset_sha256"]
     current_dataset = json.loads(historical)
     for row in pre_call["changed_cases"]:

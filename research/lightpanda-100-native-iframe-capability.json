@@ -20,26 +20,6 @@
     "child_marker": "CHILD_FRAME_READY",
     "matrix_sha256": "42f0af8fec947d503269181b4384ab16573b557189372564a50e89ca14f99859"
   },
-  "routing_policy": {
-    "selection_basis": "browser_track_registry",
-    "browser": "lightpanda",
-    "track": "dynamic",
-    "case_count": 100,
-    "output_interface": "native_html",
-    "case_id_used_for_interface_selection": false,
-    "answer_or_result_used_for_interface_selection": false,
-    "raw_html_is_scored_directly": true,
-    "html_to_markdown_conversion": false,
-    "subdocument_flags": {
-      "applies_only_when_contract_requests_include_subdocuments": true,
-      "case_count": 3,
-      "flags": [
-        "--load-resources iframe",
-        "--with-frames"
-      ]
-    },
-    "non_dynamic_body_default": "native_markdown"
-  },
   "observations": [
     {
       "dump": "semantic_tree_text",
@@ -338,5 +318,5 @@
       "child_marker_present": false
     }
   ],
-  "conclusion": "Interface choice is fixed before execution by browser and task family: all 100 Lightpanda dynamic tasks use native HTML, which the shared scorer reads directly without HTML-to-Markdown conversion. The three declared iframe tasks additionally use both native frame flags; the other 97 dynamic tasks, including delayed content, use the same HTML interface without those flags. Non-dynamic body tasks retain native Markdown."
+  "conclusion": "Loading the iframe and including frame serialization are separate native controls. Both flags expose the child in native HTML, while Lightpanda 1.0.0 native Markdown omits it. Iframe tasks therefore use native HTML directly with no HTML-to-Markdown conversion; ordinary and delayed-content tasks keep native Markdown."
 }
