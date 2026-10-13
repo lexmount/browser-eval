@@ -1,4 +1,4 @@
-"""Reject synthetic DNS addresses before a local/remote comparison spends calls."""
+"""Reject non-public DNS addresses before a public local/remote comparison spends calls."""
 import ipaddress
 import socket
 from concurrent.futures import ThreadPoolExecutor
@@ -17,16 +17,28 @@ def inspect_system_dns(urls, *, resolver=None):
             return {"host": host, "addresses": [], "dns_error": type(error).__name__, "synthetic": False}
         synthetic = any(ipaddress.ip_address(address).version == 4 and
                         ipaddress.ip_address(address) in _FAKE_IP_RANGE for address in addresses)
-        return {"host": host, "addresses": addresses, "synthetic": synthetic}
+        return {"host": host, "addresses": addresses, "synthetic": synthetic,
+                "non_public_addresses": [address for address in addresses
+                                         if not ipaddress.ip_address(address).is_global]}
     with ThreadPoolExecutor(max_workers=4) as pool:
         rows = list(pool.map(inspect, hosts))
-    return {"schema_version": 1, "hosts": rows, "usable_for_guarded_local_comparison": not any(row["synthetic"] for row in rows)}
+    return {"schema_version": 1, "hosts": rows, "usable_for_guarded_local_comparison": not any(row["synthetic"] or row.get("non_public_addresses") for row in rows)}
 
 
 def require_usable_public_dns(audit):
     bad = [row["host"] for row in audit["hosts"] if row["synthetic"]]
     if bad:
         raise ValueError("System DNS returned synthetic 198.18.0.0/15 addresses for: " + ", ".join(bad) +
+                         "; use a real-public-address DNS environment before comparison. Do not disable product safety guards.")
+
+
+    # Recompute from retained addresses as well, so older preflight receipts
+    # without the diagnostic field cannot conceal a private-address answer.
+    non_public = [row["host"] for row in audit["hosts"]
+                  if any(not ipaddress.ip_address(address).is_global
+                         for address in row.get("addresses", []))]
+    if non_public:
+        raise ValueError("System DNS returned non-public addresses for: " + ", ".join(non_public) +
                          "; use a real-public-address DNS environment before comparison. Do not disable product safety guards.")
 
 

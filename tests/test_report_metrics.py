@@ -41,7 +41,7 @@ class ReportMetricsTests(unittest.TestCase):
   error=evaluate_content('404 Not Found',[],required_facts=[{'alternatives':['target resource']}],forbidden_any=['404 Not Found'],ground_truth_main_content=text,min_content_chars=30)
   self.assertFalse(error['content_pass'])
   missing_ref=evaluate_content('404 Not Found',[],forbidden_any=['404 Not Found'])
-  self.assertFalse(missing_ref['content_pass'])
+  self.assertTrue(missing_ref['content_pass']);self.assertEqual(missing_ref['forbidden_hits'],['404 Not Found'])
  def test_inapplicable_not_failure(self):
   attrs=case_attrs(record(),{'category':'image','track':'image','task_kind':'file'})
   self.assertIn('data-content="na"',attrs)

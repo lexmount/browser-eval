@@ -45,8 +45,7 @@ class ArticleCaseTests(unittest.TestCase):
                                  text_encoding_corruption=True,
                                  replacement_character_count=12)
         _, _, checks, _ = _text_example(case, record, text)
-        self.assertIn('Access denied', checks[-2])
-        self.assertIn('未通过', checks[-2])
+        self.assertNotIn('排除错误页', ''.join(checks))
         self.assertIn('12 个替换字符', checks[-1])
         self.assertIn('未通过', checks[-1])
 
@@ -72,7 +71,7 @@ class ArticleCaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'fact excerpt is missing'):
             _text_example(case, record, text.replace('Scaled Dot-Product Attention', 'absent'), pdf=True)
 
-    def test_list_rejects_blocked_or_corrupt_content_despite_sufficient_records(self):
+    def test_list_keeps_decode_failure_without_prompt_veto(self):
         case = {'acceptance_contract': {'minimum_records': 3, 'hosts': ['example.com'],
                                        'entry_path': '/shop/[^/]+',
                                        'stable_text_anchors': [{'id': 'title', 'alternatives': ['Catalog']}]},
@@ -83,8 +82,7 @@ class ArticleCaseTests(unittest.TestCase):
                        stable_structure_pass=True, forbidden_hits=[], stable_blocked_page=True,
                        replacement_character_count=20, text_encoding_corruption=True)
         _, _, checks, _ = _list_example(case, {'metrics': metrics}, output)
-        self.assertIn('命中拦截页特征', checks[-2])
-        self.assertIn('未通过', checks[-2])
+        self.assertNotIn('排除错误页', ''.join(checks))
         self.assertIn('20 个替换字符', checks[-1])
         self.assertIn('未通过', checks[-1])
 

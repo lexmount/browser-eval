@@ -427,6 +427,161 @@ def _require_local_scoring_revision(source, contract, records):
             raise ValueError("Local scoring correction changed rules or lost its predecessor")
 
 
+def _require_local_record_correction(source, original, corrected, receipt=None):
+    """Permit derived corrections while binding every physical call fact."""
+    if receipt is None:
+        path = contained_path(source, "local-evidence/scoring-correction.json")
+        if not path.is_file():
+            raise ValueError("Changed local record lacks a correction receipt")
+        receipt = json.loads(path.read_text())
+    identifier = original["attempt_id"]
+    if (receipt.get("original_call_identities", {}).get(identifier)
+            != local_measurement_call_sha256(original)
+            or receipt.get("call_identities", {}).get(identifier)
+            != local_measurement_call_sha256(corrected)):
+        raise ValueError("Local correction lost its physical call binding")
+    derived = {"metrics", "scoring", "diagnosis", "failure_category"}
+    changed = {key for key in original.keys() | corrected.keys()
+               if original.get(key) != corrected.get(key)} - derived
+    if changed - {"final_url"}:
+        raise ValueError("Local correction changed measured call facts")
+    if "final_url" in changed:
+        proof = receipt.get("field_projections", {}).get(identifier, {}).get("final_url", {})
+        path = contained_path(source, proof.get("path", ""), reject_symlinks=True)
+        if not path.is_file() or _sha256(path) != proof.get("sha256"):
+            raise ValueError("Local URL correction lost its native response")
+        value = json.loads(path.read_text())
+        for key in proof.get("json_pointer", []):
+            value = value.get(key) if isinstance(value, dict) else None
+        if (not proof.get("json_pointer") or value != corrected.get("final_url")
+                or proof.get("original_value") != original.get("final_url")):
+            raise ValueError("Local URL correction differs from native response")
+
+
+def score_reviewed_page_identity(source, case, record, annotation, captures):
+    """Apply a bound retrospective content correspondence, never a native URL."""
+    from .metrics import normalize_for_match, task_measured
+    from .scoring import score_attempt, _same_page_url
+
+    if (annotation.get("attempt_id") != record["attempt_id"]
+            or annotation.get("case_sha256") != _canonical_sha256(case)
+            or annotation.get("call_sha256") != local_measurement_call_sha256(record)
+            or annotation.get("content_sha256") != record["metrics"]["content_sha256"]
+            or record.get("final_url") is not None
+            or annotation.get("basis") != "retrospective_content_correspondence"
+            or not annotation.get("reviewed_at")):
+        raise ValueError("Page review lost its case, answer or physical call binding")
+    original_metrics = score_attempt(
+        case, contained_path(source, record["artifact_path"]).read_bytes(),
+        ok=record["ok"], metadata=record.get("provider_metadata"),
+        previous_metrics=record["metrics"], status_code=record.get("status_code"),
+        title=record.get("title"), final_url=record.get("final_url"),
+    )
+    if (task_measured(original_metrics)
+            or original_metrics.get("page_identity_status") != "unavailable"):
+        raise ValueError("Page review may only fill an unavailable page identity")
+    capture = captures[annotation["capture_index"]]
+    corresponding_url = annotation["corresponding_url"]
+    if (capture.get("url") != corresponding_url
+            or _canonical_sha256(capture) != annotation.get("capture_sha256")):
+        raise ValueError("Page review capture binding differs")
+    answer = contained_path(source, record["artifact_path"]).read_bytes()
+    if hashlib.sha256(answer).hexdigest() != annotation["content_sha256"]:
+        raise ValueError("Page review answer changed")
+    samples = annotation.get("matching_samples", [])
+    saved = normalize_for_match(answer.decode("utf-8"))
+    observed = normalize_for_match(capture["text"])
+    if (len(set(samples)) < 2 or any(len(value) < 20
+            or normalize_for_match(value) not in saved
+            or normalize_for_match(value) not in observed for value in samples)):
+        raise ValueError("Page review needs matching substantive text in both bodies")
+    navigation = (case.get("source_benchmark", {}).get("risk_control", {})
+                  .get("navigation_contract", {}))
+    acceptable = [navigation.get("requested_url"), navigation.get("observed_final_url")]
+    if not any(value and _same_page_url(corresponding_url, value) for value in acceptable):
+        raise ValueError("Reviewed page does not satisfy the frozen URL requirement")
+    metrics = score_attempt(
+        case, answer, ok=record["ok"], metadata=record.get("provider_metadata"),
+        previous_metrics=record["metrics"], status_code=record.get("status_code"),
+        title=record.get("title"), final_url=corresponding_url,
+    )
+    metrics["page_identity_basis"] = "retrospective_content_correspondence"
+    metrics["page_identity_review_sha256"] = _canonical_sha256(annotation)
+    return metrics
+
+
+def _require_page_identity_review(source, dataset, records):
+    binding = dataset.get("comparison", {}).get("page_identity_review")
+    marked = {r["attempt_id"] for r in records
+              if r["metrics"].get("page_identity_basis") == "retrospective_content_correspondence"}
+    if binding is None:
+        if marked:
+            raise ValueError("Reviewed page identities lack a receipt")
+        return
+    path = contained_path(source, binding["path"], reject_symlinks=True)
+    if _sha256(path) != binding["sha256"]:
+        raise ValueError("Page identity review receipt changed")
+    receipt = json.loads(path.read_text())
+    capture_path = contained_path(source, receipt["captures_path"], reject_symlinks=True)
+    if _sha256(capture_path) != receipt["captures_sha256"]:
+        raise ValueError("Page review captures changed")
+    captures = json.loads(capture_path.read_text())
+    annotations = receipt["attempts"]
+    if (receipt.get("kind") != "retrospective_page_identity_review"
+            or receipt.get("provider_calls_added") != 0
+            or len(annotations) != len(marked)
+            or {a["attempt_id"] for a in annotations} != marked):
+        raise ValueError("Page review scope differs from annotated results")
+    cases = {case["id"]: case for case in dataset["cases"]}
+    indexed = {r["attempt_id"]: r for r in records}
+    for annotation in annotations:
+        record = indexed[annotation["attempt_id"]]
+        expected = score_reviewed_page_identity(
+            source, cases[record["case_id"]], record, annotation, captures)
+        if expected != record["metrics"]:
+            raise ValueError("Reviewed result differs from the shared scorer")
+
+
+def _require_local_review(source, dataset, records):
+    """Bind optional full independent review without certifying local evidence."""
+    _require_page_identity_review(source, dataset, records)
+    binding = dataset.get("comparison", {}).get("independent_review")
+    if binding is None:
+        return None
+    path = contained_path(source, binding["path"], reject_symlinks=True)
+    if _sha256(path) != binding.get("sha256"):
+        raise ValueError("Local independent review binding changed")
+    review = json.loads(path.read_text())
+    rows = review.get("attempts", [])
+    indexed = {row["attempt_id"]: row for row in rows}
+    expected = {row["attempt_id"]: row for row in records}
+    if (review.get("kind") != "local_independent_review"
+            or review.get("review_protocol", {}).get("scope") != "all"
+            or review.get("reviewed_attempts") != len(records)
+            or review.get("expected_attempts") != len(records)
+            or review.get("results_sha256") != _sha256(source / "results.jsonl")
+            or len(indexed) != len(rows) or set(indexed) != set(expected)):
+        raise ValueError("Local independent review scope differs")
+    unresolved = 0
+    from .metrics import task_measured
+    for identifier, row in indexed.items():
+        record = expected[identifier]
+        verdict = ("unavailable" if not task_measured(record["metrics"]) else
+                   "pass" if task_passed(record["ok"], record["metrics"]) else "fail")
+        if (row.get("content_sha256") != record["metrics"]["content_sha256"]
+                or row.get("current_verdict") != verdict
+                or row.get("agent_verdict") not in {"pass", "fail", "insufficient"}
+                or row.get("final_verdict") not in {verdict, None}):
+            raise ValueError("Local review differs from scored evidence")
+        if row.get("final_verdict") is None:
+            unresolved += 1
+            if row.get("status") != "deferred_unadjudicated":
+                raise ValueError("Local unresolved review lacks explicit deferral")
+    if review.get("unresolved") != unresolved:
+        raise ValueError("Local review unresolved count differs")
+    return review
+
+
 def _require_local_method_bindings(contract, batches, field):
     """Join each method's execution to its declared runtime or configuration."""
     variants = contract.get(field + "_by_provider")
@@ -454,9 +609,219 @@ def _require_local_method_bindings(contract, batches, field):
         raise ValueError(f"Local {label} batches repeat or omit a method")
 
 
+def local_measurement_cases(contract: dict) -> list[dict]:
+    """Read an ordered selection from the original hash-bound input trees."""
+    bindings = contract.get("dataset_sources")
+    if bindings is None:
+        bindings = [{"path": contract["dataset_path"],
+                     "sha256": contract["dataset_sha256"]}]
+    if not isinstance(bindings, list) or not bindings:
+        raise ValueError("Local measurement dataset sources are missing")
+    cases, seen_paths, seen_ids = [], set(), set()
+    for binding in bindings:
+        relative = binding["path"]
+        path = contained_path(ROOT, relative, reject_symlinks=True)
+        raw = read_dataset_bytes(path)
+        if relative in seen_paths or hashlib.sha256(raw).hexdigest() != binding["sha256"]:
+            raise ValueError("Local measurement dataset source changed")
+        seen_paths.add(relative)
+        available = json.loads(raw)["cases"]
+        selected = binding.get("case_ids", [case["id"] for case in available])
+        if not selected or len(selected) != len(set(selected)):
+            raise ValueError("Local measurement source selection differs")
+        rows = [case for case in available if case["id"] in set(selected)]
+        if [case["id"] for case in rows] != selected or seen_ids.intersection(selected):
+            raise ValueError("Local measurement source selection differs")
+        seen_ids.update(selected)
+        cases.extend(rows)
+    return cases
+
+
+def _require_local_execution_segments(source, contract, batches, records):
+    """Verify resumed measurements against retained pre-call plans and physical files."""
+    correction_path = contained_path(source, "local-evidence/scoring-correction.json")
+    correction = json.loads(correction_path.read_text()) if correction_path.is_file() else None
+    def read(binding, *, json_lines=False):
+        path = contained_path(source, binding["path"], reject_symlinks=True)
+        if _sha256(path) != binding["sha256"]:
+            raise ValueError("Local execution evidence binding changed")
+        if json_lines:
+            return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+        return json.loads(path.read_text())
+
+    plans = contract["execution_plans"]
+    if set(plans) not in ({"original", "resumed"}, {"original", "resumed", "admitted"}):
+        raise ValueError("Local execution plans are incomplete")
+    original, resumed = (read(plans[key]) for key in ("original", "resumed"))
+    if (original.get("kind") != "uniform_native_local_measurement"
+            or resumed.get("kind") != "post_merge_resume_and_runtime_correction"
+            or original.get("providers") != contract["providers"]
+            or original.get("dataset_sources") != contract.get("dataset_sources")
+            or original.get("scoring_source_sha256") != contract["scoring_source_sha256"]
+            or original.get("runs") != 1 or original.get("timeout_seconds") != 45
+            or original.get("max_failure_retries") != 0):
+        raise ValueError("Local execution changed the frozen protocol")
+    expected_policy = {"runs": 1, "timeout": 45, "delay": original["delay"],
+                       "provider_concurrency": 1, "max_failure_retries": 0}
+    if resumed.get("parameters") != expected_policy:
+        raise ValueError("Local resumed execution parameters differ")
+    configs = {key: read(plans[key]["configuration"]) for key in plans}
+    admitted = read(plans["admitted"]) if "admitted" in plans else None
+    if admitted and (admitted.get("kind") != "bounded_admission_continuation"
+                     or admitted.get("predecessor_plan_sha256") != plans["resumed"]["sha256"]
+                     or admitted.get("parameters") != expected_policy
+                     or admitted.get("providers") != contract["providers"]
+                     or admitted.get("dataset_sha256") != resumed.get("dataset_sha256")
+                     or configs["admitted"] != configs["resumed"]):
+        raise ValueError("Local admission changed the frozen protocol or configuration")
+    plan_values = {"original": original, "resumed": resumed}
+    if admitted:
+        plan_values["admitted"] = admitted
+    for key, plan in plan_values.items():
+        if plans[key]["configuration"]["sha256"] != plan["provider_config_sha256"]:
+            raise ValueError("Local execution configuration differs from its pre-call plan")
+    from copy import deepcopy
+    normalized = deepcopy(configs["resumed"])
+    for provider in normalized.get("providers", {}).values():
+        for field in ("command", "required_paths"):
+            if field in provider:
+                provider[field] = [value.replace(
+                    "{harness_root}/harness/web_fetch/workers/", "{harness_root}/scripts/oss/")
+                    if isinstance(value, str) else value for value in provider[field]]
+    if normalized != configs["original"]:
+        raise ValueError("Local resumed configuration changed beyond worker paths")
+    names = set(contract["providers"])
+    scopes = resumed.get("case_ids_by_provider", {})
+    cases = [case["id"] for case in local_measurement_cases(contract)]
+    if set(scopes) != names or any(
+        len(scope) != len(set(scope)) or not set(scope) <= set(cases)
+        for scope in scopes.values()
+    ):
+        raise ValueError("Local resumed execution has an invalid task scope")
+    admitted_scopes = admitted.get("case_ids_by_provider", {}) if admitted else {}
+    if admitted and (set(admitted_scopes) != names or any(
+            len(scope) != len(set(scope)) or not set(scope) <= set(scopes[name])
+            for name, scope in admitted_scopes.items())):
+        raise ValueError("Local admission has an invalid remaining task scope")
+    by_attempt = {record["attempt_id"]: record for record in records}
+    seen_names, seen_attempts = set(), set()
+    for batch in batches:
+        providers = batch.get("providers", [])
+        if len(providers) != 1:
+            raise ValueError("Local execution batch must identify one method")
+        name = providers[0]["name"]
+        if name not in names or name in seen_names:
+            raise ValueError("Local execution repeats or omits a method")
+        seen_names.add(name)
+        segments = batch.get("segments", [])
+        if not segments:
+            raise ValueError("Local resumed execution has no physical segments")
+        expected_scopes = {"resumed": scopes[name],
+                           "original": [case for case in cases if case not in set(scopes[name])]}
+        if admitted:
+            expected_scopes["resumed"] = [case for case in scopes[name]
+                                          if case not in set(admitted_scopes[name])]
+            expected_scopes["admitted"] = admitted_scopes[name]
+        declared_scopes = {"original": expected_scopes["original"],
+                           "resumed": scopes[name]}
+        if admitted:
+            declared_scopes["admitted"] = admitted_scopes[name]
+        seen_plans, ids, manifest_paths = set(), [], set()
+        offsets = {key: 0 for key in plans}
+        for segment in segments:
+            key = segment.get("plan_id")
+            if key not in plans or (key == "original" and key in seen_plans):
+                raise ValueError("Local execution repeats or substitutes a physical segment")
+            seen_plans.add(key)
+            plan = plan_values[key]
+            manifest_path = segment["manifest"]["path"]
+            if manifest_path in manifest_paths:
+                raise ValueError("Local execution repeats a physical manifest")
+            manifest_paths.add(manifest_path)
+            manifest = read(segment["manifest"])
+            physical = read(segment["records"], json_lines=True)
+            full_ids = [f"{name}__{case}__r001" for case in expected_scopes[key]]
+            expected_ids = full_ids[offsets[key]:offsets[key] + len(physical)]
+            if not physical:
+                raise ValueError("Local execution has an empty physical segment")
+            offsets[key] += len(physical)
+            if ([row.get("attempt_id") for row in physical] != expected_ids
+                    or segment.get("attempt_ids") != expected_ids
+                    or segment.get("attempt_count") != len(expected_ids)):
+                raise ValueError("Local execution segment task selection differs")
+            if (manifest.get("runtime_source_sha256") != plan["runtime_source_sha256"]
+                    or manifest.get("provider_config_sha256") != plan["provider_config_sha256"]
+                    or manifest.get("providers") != segment.get("providers")
+                    or manifest.get("parameters") != segment.get("parameters")):
+                raise ValueError("Local execution segment differs from its physical manifest")
+            if (len(manifest["providers"]) != 1 or manifest["providers"][0]["name"] != name
+                    or any(manifest["parameters"].get(field) != value
+                           for field, value in expected_policy.items())):
+                raise ValueError("Local execution segment parameters differ")
+            if key != "original" and (
+                not manifest.get("completed_at")
+                or manifest.get("attempt_ids") != expected_ids
+                or manifest.get("attempt_count") != len(expected_ids)
+            ):
+                raise ValueError("Local resumed execution is incomplete")
+            if key != "original" and manifest.get("unexecuted"):
+                if (physical[-1].get("error_type") != "timeout"
+                        or any(item.get("reason") !=
+                               "non_cancellable_call_still_running; remaining provider cases not executed"
+                               or item.get("after_attempt_id") != physical[-1]["attempt_id"]
+                               for item in manifest["unexecuted"])):
+                    raise ValueError("Local execution stopped for an unaccounted reason")
+            if key == "admitted" and manifest.get("scheduling") != admitted.get("scheduling"):
+                raise ValueError("Local admission manifest changed the scheduling contract")
+            continuation = segment.get("continuation_plan")
+            if continuation:
+                continuation = read(continuation)
+                expected_kind = {"resumed": "resume_unexecuted_after_process_exit",
+                                 "admitted": "resume_unexecuted_with_admission"}.get(key)
+                parent_field = "admission_plan_sha256" if key == "admitted" else "resumed_plan_sha256"
+                if (key == "original" or continuation.get("kind") != expected_kind
+                        or continuation.get("method") != name
+                        or continuation.get(parent_field) != plans[key]["sha256"]
+                        or continuation.get("parameters") != expected_policy
+                        or continuation.get("provider_config_sha256") != plan["provider_config_sha256"]
+                        or continuation.get("runtime_source_sha256") != plan["runtime_source_sha256"]
+                        or continuation.get("dataset_sha256") != plan.get("dataset_sha256")
+                        or continuation.get("case_ids") != declared_scopes[key][offsets[key] - len(physical):]):
+                    raise ValueError("Local continuation differs from its pre-call scope")
+            for row in physical:
+                identifier = row["attempt_id"]
+                if identifier in seen_attempts or identifier not in by_attempt:
+                    raise ValueError("Local execution altered or repeated a measured result")
+                if row != by_attempt[identifier]:
+                    _require_local_record_correction(source, row, by_attempt[identifier], correction)
+                seen_attempts.add(identifier)
+            ids.extend(expected_ids)
+        if (any(offsets[key] != len(scope) for key, scope in expected_scopes.items())
+                or seen_plans != {key for key, scope in expected_scopes.items() if scope}
+                or len(ids) != batch.get("attempt_count")
+                or set(ids) != set(batch.get("attempt_ids", []))):
+            raise ValueError("Local execution segments repeat or omit a call")
+    if seen_names != names or seen_attempts != set(by_attempt):
+        raise ValueError("Local execution lineage is incomplete")
+
+
+def require_complete_local_inventory(dataset: dict, records: list[dict]) -> dict:
+    """Allow explicit unknown verdicts locally, never missing physical results."""
+    from .reliability import assess_reliability
+
+    comparison = dataset.get("comparison", {})
+    if (comparison.get("kind") != "uniform_native_local_measurement"
+            or comparison.get("publication_state") != "local_audit_only_not_for_release"):
+        raise ValueError("Incomplete adjudication is only allowed in a local measurement")
+    reliability = assess_reliability(dataset, records)
+    if (not reliability["expected_calls"] or reliability["missing"]
+            or reliability["extra"] or reliability["duplicates"]):
+        raise ValueError("Local measurement physical inventory is incomplete")
+    return reliability
+
+
 def require_local_measurement(source: Path, dataset: dict, records: list[dict]) -> None:
     """Validate a new complete local matrix without claiming independent review."""
-    from .reliability import require_reliable
     from .artifacts import verify_record_public_call_logs, record_public_call_log_bindings
     contract = json.loads(contained_path(source, "local-run-contract.json").read_text())
     if (contract.get("schema_version") != 1
@@ -465,26 +830,28 @@ def require_local_measurement(source: Path, dataset: dict, records: list[dict]) 
             or contract.get("max_failure_retries") != 0):
         raise ValueError("Invalid uniform native local measurement contract")
     _require_local_scoring_revision(source, contract, records)
-    raw = read_dataset_bytes(contained_path(ROOT, contract["dataset_path"], reject_symlinks=True))
-    canonical = json.loads(raw)
-    if (hashlib.sha256(raw).hexdigest() != contract["dataset_sha256"]
-            or dataset["cases"] != canonical["cases"]):
+    canonical = {"cases": local_measurement_cases(contract)}
+    if dataset["cases"] != canonical["cases"]:
         raise ValueError("Local measurement changed the committed cases")
     expected = {(p, c["id"]) for p in contract["providers"] for c in canonical["cases"]}
     if (len(records) != len(expected)
             or {(r["provider"], r["case_id"]) for r in records} != expected
             or any(r["run"] != 1 or r.get("provider_metadata", {}).get("retry") for r in records)):
         raise ValueError("Local measurement matrix is incomplete or has retries")
-    require_reliable(dataset, records)
+    require_complete_local_inventory(dataset, records)
     execution = json.loads(contained_path(source, "execution.json").read_text())
     if dataset.get("comparison", {}).get("local_run_contract_sha256") != _sha256(source / "local-run-contract.json"):
         raise ValueError("Local measurement pre-call contract changed")
     if len(execution["batches"]) != len(contract["providers"]):
         raise ValueError("Local measurement execution scope differs")
-    for field in ("runtime_source_sha256", "provider_config_sha256"):
-        _require_local_method_bindings(contract, execution["batches"], field)
+    if contract.get("execution_plans"):
+        _require_local_execution_segments(source, contract, execution["batches"], records)
+    else:
+        for field in ("runtime_source_sha256", "provider_config_sha256"):
+            _require_local_method_bindings(contract, execution["batches"], field)
     for batch in execution["batches"]:
-        _require_local_batch_segments(batch)
+        if not contract.get("execution_plans"):
+            _require_local_batch_segments(batch)
         ids = batch.get("attempt_ids", [])
         measured_ids = {r["attempt_id"] for r in records
                         if r["provider"] == batch["providers"][0]["name"]}
@@ -515,7 +882,7 @@ def require_local_measurement(source: Path, dataset: dict, records: list[dict]) 
                 or log["output"]["path"] != record["artifact_path"]
                 or log["output"]["sha256"] != record["metrics"]["content_sha256"]):
             raise ValueError("Local measurement call log belongs to a different result")
-    return None
+    return _require_local_review(source, dataset, records)
 
 
 def require_local_audit(source: Path, dataset: dict, records: list[dict]) -> dict:

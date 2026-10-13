@@ -460,6 +460,8 @@ def run_evaluation(
     provider_concurrency: int = 1,
     max_failure_retries: int = 0,
     resource_sample_interval_ms: int | None = None,
+    reference_policy: str = "fresh",
+    case_admission: Any | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     output_dir = output_dir.resolve()
     for name, value, minimum in (
@@ -496,7 +498,17 @@ def run_evaluation(
     for filename in ['artifacts', PUBLIC_CALL_LOG_ROOT, 'manifest.json', 'dataset.json',
                      'results.jsonl', 'summary.json']:
         contained_path(output_dir, filename)
-    reference_checks = preflight_reference_checks(cases, dataset_path)
+    if reference_policy not in {"fresh", "frozen_existing"}:
+        raise ValueError("unknown reference policy")
+    if reference_policy == "frozen_existing":
+        # Explicit local measurement of existing rules; no live-source claim.
+        from .reference_lifecycle import validate_resource_source_evidence
+        for case in cases:
+            validate_resource_source_evidence(case, dataset_path)
+        frozen_dataset_sha256 = hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest()
+        reference_checks = None
+    else:
+        reference_checks = preflight_reference_checks(cases, dataset_path)
     for provider in providers:
         missing = provider.validate()
         if missing:
@@ -524,6 +536,7 @@ def run_evaluation(
         "network_preflight": ({"dns_mode": network_audit["dns_mode"],
                                "sha256": hashlib.sha256((output_dir / 'network-preflight.json').read_bytes()).hexdigest()}
                               if network_audit is not None else None),
+        "reference_policy": reference_policy,
         "unexecuted": [],
         "deadline_policy": "end_to_end_answer; non_cancellable_adapter_quarantined",
         "public_call_log_schema_version": 1,
@@ -581,6 +594,11 @@ def run_evaluation(
         json.dumps(dataset_meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
 
+    if case_admission is not None:
+        manifest["scheduling"] = case_admission.describe()
+        (output_dir / "manifest.json").write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
     results_path = output_dir / "results.jsonl"
     result_lock = threading.Lock()
     with results_path.open("w", encoding="utf-8") as results_file:
@@ -598,7 +616,14 @@ def run_evaluation(
                     binding = reference_checks["cases"].get(case.id) if reference_checks else None
                     # Outside provider exception handling: expired references
                     # stop measurement, never create a supplier failure record.
-                    check_case_reference_fresh(case, dataset_path, binding)
+                    if reference_policy == "frozen_existing":
+                        if hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest() != frozen_dataset_sha256:
+                            raise ReferenceLifecycleError("Frozen rules changed during the run", "reference_changed")
+                    else:
+                        check_case_reference_fresh(case, dataset_path, binding)
+                    # Admission waits before the answer timer and 45-second budget.
+                    admission_token = (case_admission.acquire(provider, case)
+                                       if case_admission is not None else None)
                     started = utc_now()
                     physical_attempts = []
                     stopped_provider = False
@@ -783,6 +808,8 @@ def run_evaluation(
                         )
                     if delay:
                         time.sleep(delay)
+                    if case_admission is not None:
+                        case_admission.release(admission_token, pending=pending, record=record)
                     if stopped_provider:
                         remaining_attempts = ((runs - run_number) * len(cases)
                                               + len(cases) - case_index)

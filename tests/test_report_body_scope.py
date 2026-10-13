@@ -187,6 +187,11 @@ class ReportBodyScopeTests(unittest.TestCase):
             failure_category(failed(blocked_page=True, composite_acceptance_pass=False), c),
             "返回验证或拦截页面",
         )
+        for track in ("risk_control", "web", "challenge", "popular"):
+            qualified_case = case("qualified", "body", track)
+            qualified = record(qualified_case, passed=True)
+            qualified["metrics"].update(blocked_page=True, stable_blocked_page=True)
+            self.assertEqual(failure_category(qualified, qualified_case), "—")
         self.assertEqual(failure_category(failed(content_chars=0), c), "完全空返回")
         self.assertEqual(
             failure_category(failed(content_chars=37, markdown_headings=0, markdown_links=0,
@@ -937,3 +942,21 @@ class ReportBodyScopeTests(unittest.TestCase):
 
 if __name__=='__main__':
     unittest.main()
+
+
+def test_body_display_shares_native_markup_and_entity_handling_with_scorer():
+    from harness.web_fetch.scoring import score_attempt
+    contract = {"version": 3, "unit": "region_compact_hexagram_recall",
+                "minimum_coverage": .8, "minimum_floor": .6, "minimum_region_passes": 1,
+                "regions": [{"id": "body", "text": "abcdefghijkl"}]}
+    definition = {"id": "markup", "url": "https://example.test", "body_requirements": contract}
+    for output in ("abcdef<br>ghijkl", "abcdef&#103;hijkl", "`<br>` abcdefghijkl",
+                   "\\<br> abcdefghijkl", "<main>abcdef<script>ghijkl</script></main>"):
+        record = {"ok": True, "title": "abcdefghijkl"}
+        metrics = score_attempt(definition, output.encode(), ok=True, title=record["title"])
+        display = _body_scoring_text(record, output)
+        rows, cards = body_region_rows(definition, metrics, display)
+        assert len(rows) == 1
+        assert "<script>" not in display
+        if output.startswith(("`", "\\")):
+            assert "<br>" in display

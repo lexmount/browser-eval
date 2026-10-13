@@ -178,6 +178,8 @@ def parse_table_records(content, visible, contract):
     columns, scope = contract['table_columns'], contract['table_scope']
     names = [c['name'] for c in columns]
     candidates = []
+    aliases = {c['label'].casefold(): c['name'] for c in columns}
+    aliases.update({n.casefold(): n for n in names})
     document_pattern = r'\s*(?:<!doctype\s+html[^>]*>\s*)?<(?:html|body|main|div|table|section|article|ul|ol)\b'
     if not re.match(document_pattern, content, re.I):
         content = _without_example_fences(content)
@@ -247,7 +249,7 @@ def parse_table_records(content, visible, contract):
                 if ('|' in line and len(cells) == len(separators)
                         and all(re.fullmatch(r'\s*:?-{3,}:?\s*', cell)
                                 for cell in separators)
-                        and any(re.fullmatch(scope['start_pattern'], cell.strip())
+                        and any(re.fullmatch(scope['start_pattern'], _header_label(cell, aliases))
                                 for cell in cells)):
                     break
                 offset += len(line)
@@ -265,14 +267,23 @@ def parse_table_records(content, visible, contract):
                 return '\n' * match.group().count('\n')
             text = re.sub(scope['plain_multiline_row_pattern'], capture, text)
         lines = text.splitlines()
-        aliases = {c['label'].casefold(): c['name'] for c in columns}
-        aliases.update({n.casefold(): n for n in names})
         occupied = set()
         table_count = 0
         for i in range(len(lines) - 1):
             if i in occupied or '|' not in lines[i]:
                 continue
-            labels = [s.strip().casefold() for s in _pipe_cells(lines[i])]
+            labels = [_header_label(s, aliases).casefold() for s in _pipe_cells(lines[i])]
+            first_row = i + 2
+            # Some native conversions split a sticky header from its body:
+            # an empty header/separator is followed by the complete labels.
+            # Require that explicit label row; never inherit prior columns.
+            if not any(labels) and first_row < len(lines):
+                recovered = [_header_label(s, aliases).casefold()
+                             for s in _pipe_cells(lines[first_row])]
+                mapped = [aliases.get(label) for label in recovered]
+                if len(mapped) == len(names) and set(mapped) == set(names):
+                    labels = recovered
+                    first_row += 1
             ignored = {v.casefold() for v in scope.get('ignored_column_labels', [])}
             selected = [j for j, label in enumerate(labels) if label not in ignored]
             headings = [aliases.get(labels[j]) for j in selected]
@@ -281,7 +292,7 @@ def parse_table_records(content, visible, contract):
                     or len(separators) != len(labels)
                     or not all(re.fullmatch(r'\s*:?-{3,}:?\s*', s) for s in separators)):
                 continue
-            j = i + 2
+            j = first_row
             while j < len(lines) and '|' in lines[j]:
                 values = [v.strip() for v in _pipe_cells(lines[j])]
                 if len(values) == len(labels):
@@ -307,6 +318,12 @@ def parse_table_records(content, visible, contract):
         records.append({'fields': fields, 'valid': not errors, 'errors': errors})
     return records
 
+
+def _header_label(value, aliases):
+    value = value.strip()
+    # Sorting icons decorate a declared column; they are not part of its name.
+    undecorated = re.sub(r'[\s↑↓↕⇅▲▼▴▾]+$', '', value)
+    return undecorated if undecorated.casefold() in aliases else value
 
 def _pipe_cells(line):
     # Remove only the table's outer delimiters; adjacent pipes are empty cells.

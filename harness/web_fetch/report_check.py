@@ -176,7 +176,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     if presentation_binding and not local_measurement:
         raise ValueError("Presentation binding requires a frozen uniform-native diagnostic snapshot")
     if local_measurement:
-        from .local_audit import require_local_measurement
+        from .local_audit import require_local_measurement, local_measurement_cases
         if presentation_binding:
             if profile:
                 raise ValueError("Presentation binding cannot certify a release profile")
@@ -185,7 +185,10 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         else:
             require_local_measurement(root, d, rs)
         inventory = {track: {"case_ids": [case["id"] for case in d["cases"] if case.get("track", "web") == track], "providers": providers} for track, providers in d["coverage_plan"].items()}
-        canonical_dataset = repository / json.loads((root / "local-run-contract.json").read_text())["dataset_path"]
+        local_contract = json.loads((root / "local-run-contract.json").read_text())
+        canonical_cases = {case["id"]: case for case in local_measurement_cases(local_contract)}
+        canonical_dataset = (root / "dataset.json" if local_contract.get("dataset_sources")
+                             else repository / local_contract["dataset_path"])
     elif profile_path and (profile_path.parent / "dataset.json").is_file():
         inventory = {
             track: {
@@ -254,7 +257,11 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     for case in d["cases"]:
         safe_identifier(case["id"])
         validate_resource_source_evidence(case, canonical_dataset)
-    reliability = require_reliable(d, rs)
+    if local_measurement:
+        from .local_audit import require_complete_local_inventory
+        reliability = require_complete_local_inventory(d, rs)
+    else:
+        reliability = require_reliable(d, rs)
     saved_reliability = json.loads((root / "reliability.json").read_text())
     if not saved_reliability == reliability:
         raise ValueError("Saved reliability status differs from report evidence")
@@ -283,14 +290,15 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             )
             if local_measurement:
                 from .stable_tasks import validate_acceptance_contract
-                validate_acceptance_contract(c["acceptance_contract"])
+                if c.get("acceptance_contract"):
+                    validate_acceptance_contract(c["acceptance_contract"])
+                elif not (stable_checks or c.get("task_kind") == "file"):
+                    raise ValueError(c["id"])
             elif not (unavailable and stable_checks):
                 raise ValueError(c["id"])
         if c.get("ground_truth_main_content"):
             expected = c["ground_truth_main_content"].encode()
             if local_measurement:
-                from .reference_inputs import read_dataset_bytes
-                canonical_cases = {case["id"]: case for case in json.loads(read_dataset_bytes(canonical_dataset))["cases"]}
                 valid_reference = expected == canonical_cases[c["id"]]["ground_truth_main_content"].encode()
             else:
                 valid_reference = hashlib.sha256(expected).hexdigest() == c["source_verification"]["reference_sha256"]
@@ -388,6 +396,12 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     allowed_english_source_text = {"中文"} | {
         case["name"] for case in d["cases"] if case.get("name")
     }
+    archived_manifest = root / "archived-reading.json"
+    if archived_manifest.is_file():
+        from .report_reading import render_archived_reading
+        # Validate the archived source before allowing its original case names.
+        render_archived_reading(root, "en" if has_english else "zh")
+        allowed_english_source_text.update(json.loads(archived_manifest.read_text()).get("preserved_source_names", []))
     if has_english:
         for relative in english_primary:
             if relative not in en_pages:
@@ -442,6 +456,8 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                 if case.get("task_kind") == "file"
                 else "标准答案与验收规则"
                 if case.get("task_kind") == "structure"
+                else "验收规则（无全文参考）"
+                if case.get("task_kind", "body") == "body" and not (case.get("ground_truth_main_content") or case.get("reference_answer"))
                 else "完整标准答案"
             )
             actual_heading = (
@@ -449,6 +465,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                     "目标文件": "Target file",
                     "标准答案与验收规则": "Reference and acceptance contract",
                     "完整标准答案": "Complete reference answer",
+                    "验收规则（无全文参考）": "Acceptance rules (no full-text reference)",
                 }[heading]
                 if p.relative_to(root).parts[0] == "en"
                 else heading

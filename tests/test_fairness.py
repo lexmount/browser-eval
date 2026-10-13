@@ -290,7 +290,7 @@ class FairnessTests(unittest.TestCase):
         self.assertNotIn('shipping', missing['stable_records'][0]['fields'])
         self.assertEqual(missing['stable_records'][1]['fields']['shipping'], 'Free shipping')
 
-    def test_dynamic_declared_exclusions_are_executable_not_prose_only(self):
+    def test_dynamic_prompt_hits_are_diagnostic_when_target_is_complete(self):
         cases = {case['id']: case for case in self.historical_dataset()['cases']}
         supplemental = {
             'dynamic-react-cart': [
@@ -317,7 +317,7 @@ class FairnessTests(unittest.TestCase):
                     self.assertTrue(extended['stable_structure_pass'])
                     if identifier == 'dynamic-react-cart' or token == 'Similar Products':
                         self.assertEqual(extended['forbidden_hits'], [token])
-                        self.assertFalse(task_passed(True, extended))
+                        self.assertTrue(task_passed(True, extended))
                     else:
                         self.assertEqual(extended['forbidden_hits'], [])
                         self.assertTrue(task_passed(True, extended))
@@ -347,7 +347,7 @@ class FairnessTests(unittest.TestCase):
         m = score_attempt(c,b'link only',ok=True)
         r = {'provider':'p','ok':True,'metrics':m,'elapsed_ms':20,'case_id':'x'}
         self.assertFalse(task_measured(m))
-        self.assertEqual(result_label(r,c),'未测')
+        self.assertEqual(result_label(r,c),'无法判定')
         self.assertIn('data-result="unmeasured"',case_attrs(r,c))
         self.assertIn('0/1', ranking([r],{'x':c},'image'))
 

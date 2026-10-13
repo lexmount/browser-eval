@@ -208,7 +208,7 @@ class ReportChangesTests(unittest.TestCase):
         self.assertIn('判分完整性',page)
         self.assertNotIn('已执行/总案例',page)
         self.assertIn('缺少验收证据的案例',page)
-        self.assertIn('changes/index.html#file-gap',page)
+        self.assertIn('datasets/file.html',page)
         self.assertIn('0/1',page)
 
     def test_overview_names_all_highest_scoring_methods(self):

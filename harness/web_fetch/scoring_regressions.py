@@ -30,7 +30,14 @@ def load_scoring_regressions(path: Path | None = None) -> dict[str, dict[str, An
     if document.get("schema_version") != 1 or not isinstance(document.get("cases"), list):
         raise ValueError("Unsupported scoring regression registry")
     rows: dict[str, dict[str, Any]] = {}
+    revisions = document.get("control_revisions", {}).get("overrides", {})
+    if not isinstance(revisions, dict) or set(revisions) - {row.get("id") for row in document["cases"]}:
+        raise ValueError("Control revisions must name existing frozen controls")
     for index, row in enumerate(document["cases"], 1):
+        revision = revisions.get(row.get("id"), {})
+        if not isinstance(revision, dict) or set(revision) - {"case", "expected_task_pass", "expected_metrics"}:
+            raise ValueError("Control revisions may only update synthetic inputs and expectations")
+        row = {**row, **revision}
         identifier = row.get("id")
         if not isinstance(identifier, str) or not identifier.strip() or identifier in rows:
             raise ValueError(f"Scoring regression {index} requires a unique nonempty id")

@@ -208,6 +208,7 @@ def _resource_urls(
     base_url: str,
     track: str,
     include_video_page_links: bool = False,
+    only_video_page_links: bool = True,
 ) -> list[str]:
     result = payload.get("result")
     if not isinstance(result, list):
@@ -216,7 +217,7 @@ def _resource_urls(
     for group in result:
         if not isinstance(group, dict) or not isinstance(group.get("results"), list):
             continue
-        if include_video_page_links and group.get("selector") != "a[href]":
+        if include_video_page_links and only_video_page_links and group.get("selector") != "a[href]":
             # A declared detail-link task does not ask for player/audio/iframe
             # sources. Those can be ordinary utility embeds on a homepage.
             continue
@@ -325,7 +326,7 @@ class CloudflareMarkdownProvider(Provider):
                 account_id=account_id,
                 http_timeout=http_timeout,
             )
-        if _uses_direct_document_route(case):
+        if _uses_direct_document_route(case) and not self.config.get("uniform_native_parameters"):
             return self._fetch_direct_document(
                 case,
                 account_id=account_id,
@@ -493,16 +494,19 @@ class CloudflareMarkdownProvider(Provider):
         http_timeout: float,
     ) -> ProviderResult:
         service_timeout_ms = min(max(1, int(http_timeout * 1000)), 60_000)
-        include_video_page_links = case.track == "video" and any(
+        native = bool(self.config.get("uniform_native_parameters"))
+        include_video_page_links = case.track == "video" and (native or any(
             isinstance(resource, dict) and resource.get("kind") == "video-link"
             for resource in case.expected_resources
-        )
-        selectors = (
-            ["img", "picture source"]
-            if case.track == "image"
-            else (["a[href]"] if include_video_page_links else
-                  ["video", "video source", "audio", "audio source", "iframe", "a[href]"])
-        )
+        ))
+        if case.track == "image":
+            selectors = ["img", "picture source"]
+        elif include_video_page_links and not native:
+            selectors = ["a[href]"]
+        else:
+            # One native media request for every video-resource task; never
+            # choose selectors from expected URLs or reference answers.
+            selectors = ["video", "video source", "audio", "audio source", "iframe", "a[href]"]
         response = request(
             f"https://api.cloudflare.com/client/v4/accounts/{account_id}/browser-rendering/scrape",
             method="POST",
@@ -514,9 +518,9 @@ class CloudflareMarkdownProvider(Provider):
                 "elements": [{"selector": selector} for selector in selectors],
                 "gotoOptions": {
                     "waitUntil": self.config.get("wait_until", "networkidle2"),
-                    "timeout": service_timeout_ms,
+                    **({} if self.config.get("uniform_native_parameters") else {"timeout": service_timeout_ms}),
                 },
-                "actionTimeout": service_timeout_ms,
+                **({} if self.config.get("uniform_native_parameters") else {"actionTimeout": service_timeout_ms}),
             },
         )
         try:
@@ -534,6 +538,7 @@ class CloudflareMarkdownProvider(Provider):
             base_url=case.url,
             track=case.track,
             include_video_page_links=include_video_page_links,
+            only_video_page_links=not self.config.get("uniform_native_parameters"),
         )
         error_type, error_message = _interface_error(
             response_status=response.status,

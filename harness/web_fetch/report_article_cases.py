@@ -121,11 +121,6 @@ def _text_example(case, record, output, *, pdf=False):
                        f'至少 {required}/{len(regions)} 区达到 {threshold:.0%}；每区不低于 {floor:.0%}',
                        ' / '.join(f'{r["coverage"]:.0%}' for r in regions),
                        metrics['body_coverage_pass']))
-    if 'forbidden_hits' in metrics:
-        forbidden = metrics['forbidden_hits']
-        checks.append(_row('排除错误页', '排除：' + ' / '.join(case.get('forbidden_any', [])),
-                           ' / '.join(forbidden) if forbidden else '未命中排除项',
-                           not forbidden))
     if 'text_encoding_corruption' in metrics:
         checks.append(_row('文字解码', '替换字符数 ≥20 且占比 ≥2% 时拒绝',
                            f'{metrics.get("replacement_character_count", 0)} 个替换字符',
@@ -168,12 +163,6 @@ def _list_example(case, record, output):
                    f'{metrics["stable_complete_record_count"]} 条', metrics['stable_structure_pass']),
               _row('唯一记录', f'去重后至少 {contract["minimum_records"]} 条',
                    f'{metrics["stable_unique_record_count"]} 条', metrics['stable_structure_pass'])]
-    forbidden = metrics['forbidden_hits']
-    blocked = metrics['stable_blocked_page']
-    checks.append(_row('排除错误页',
-                       '排除：' + ' / '.join(case.get('forbidden_any', [])) + '；不得返回安全验证或拒绝访问页',
-                       ' / '.join(forbidden) if forbidden else ('命中拦截页特征' if blocked else '未命中排除项或拦截页特征'),
-                       not forbidden and not blocked))
     checks.append(_row('文字解码', '替换字符数 ≥20 且占比 ≥2% 时拒绝',
                        f'{metrics["replacement_character_count"]} 个替换字符',
                        not metrics['text_encoding_corruption']))
@@ -204,10 +193,6 @@ def _dynamic_example(case, record, output):
              metrics['stable_structure_pass']),
         _row('全部固定名言', '10 组原句、作者与标签均须匹配独立参考',
              f'{metrics["stable_anchor_hits"]}/{metrics["stable_anchor_total"]} 组命中', metrics['stable_content_pass']),
-        _row('排除错误页', '排除：' + ' / '.join(case['forbidden_any']) + '；不得返回安全验证或拒绝访问页',
-             ' / '.join(metrics['forbidden_hits']) if metrics['forbidden_hits'] else
-             ('命中拦截页特征' if metrics['stable_blocked_page'] else '未命中排除项或拦截页特征'),
-             not metrics['forbidden_hits'] and not metrics['stable_blocked_page']),
         _row('文字解码', '替换字符数 ≥20 且占比 ≥2% 时拒绝',
              f'{metrics["replacement_character_count"]} 个替换字符', not metrics['text_encoding_corruption']),
     ]

@@ -233,8 +233,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     build_report(evidence, output, local_audit=True)
     home = (output / "index.html").read_text()
     assert "本地实测版" in home
-    assert "1 个案例 · 1 次调用，机器判分。" in home
-    assert "本轮未重新核验来源。" in home
+    assert "查看调用链问题和日志留存范围" not in home
+    assert 'href="guide/index.html"' in home
     assert "5案例小范围" not in home
     guide = (output / "guide/index.html").read_text()
     assert "比例只对应本报告列出的案例与配置" in guide
@@ -385,13 +385,14 @@ def test_local_call_chain_section_discloses_real_log_gaps_and_escapes_text():
     dataset = {"comparison": {"call_chain_audit": {
         "summary": "原判定保留；评分问题未更正",
         "methods": [{"provider": "moli-webfetch", "calls": 5, "request_ok": 0,
-            "task_pass": 0, "logs": 5, "native_log_note": "2次原生日志缺失",
+            "task_pass": 0, "logs": 5, "native_log_note": "2次原生日志缺失；<内部过程未知>",
             "assessment": "<原生内部原因未知>"}],
         "findings": [{"text": "无新增调用"}]}}}
     html = local_call_chain_section(dataset)
-    assert "2次原生日志缺失" in html and "无新增调用" in html
-    assert "&lt;原生内部原因未知&gt;" in html
-    assert "原判定保留；评分问题未更正" in html
+    assert "2次原生日志缺失" in html
+    assert "&lt;内部过程未知&gt;" in html
+    assert "调用数" not in html and "题目通过" not in html
+    assert "调用方事件" in html and "产品与依赖库日志" in html
 
 
 def test_report_real_diagnostics_do_not_claim_missing_debug(tmp_path):
@@ -544,3 +545,129 @@ def test_worker_protocol_response_is_not_a_runtime_log():
     assert "native_tool_returned" in caller
     assert "raw_tool_response" not in native+caller
     assert runtime_log_text(response+progress+worker)==progress+worker
+
+
+def test_local_offline_projection_keeps_native_url_and_call_facts(tmp_path):
+    import copy
+    original = {"attempt_id": "a", "ok": True, "elapsed_ms": 17,
+                "final_url": "https://example.test/input", "metrics": {"content_sha256": "body"}}
+    corrected = copy.deepcopy(original)
+    corrected.update(final_url="https://example.test/actual", scoring={"mode": "offline_rescore"})
+    corrected["metrics"]["score"] = 1
+    native = tmp_path / "native.json"
+    _write(native, {"data": {"url": corrected["final_url"]}})
+    receipt = {"original_call_identities": {"a": local_audit.local_measurement_call_sha256(original)},
+               "call_identities": {"a": local_audit.local_measurement_call_sha256(corrected)},
+               "field_projections": {"a": {"final_url": {"path": "native.json", "sha256": _digest(native),
+                   "json_pointer": ["data", "url"], "original_value": original["final_url"]}}}}
+    path = tmp_path / "local-evidence/scoring-correction.json"
+    _write(path, receipt)
+    local_audit._require_local_record_correction(tmp_path, original, corrected)
+    changed = copy.deepcopy(corrected)
+    changed["elapsed_ms"] = 1
+    receipt["call_identities"]["a"] = local_audit.local_measurement_call_sha256(changed)
+    _write(path, receipt)
+    with pytest.raises(ValueError, match="measured call facts"):
+        local_audit._require_local_record_correction(tmp_path, original, changed)
+    _write(path, {**receipt, "call_identities": {"a": local_audit.local_measurement_call_sha256(corrected)}})
+    _write(native, {"data": {"url": "https://example.test/wrong"}})
+    with pytest.raises(ValueError, match="native response"):
+        local_audit._require_local_record_correction(tmp_path, original, corrected)
+
+
+def test_local_review_retains_deferred_failure_and_rejects_wrong_coverage(tmp_path):
+    import copy
+    (tmp_path / "results.jsonl").write_text("saved results")
+    record = {"attempt_id": "a", "ok": False, "metrics": {"content_sha256": "body"}}
+    review = {"kind": "local_independent_review", "review_protocol": {"scope": "all"},
+              "reviewed_attempts": 1, "expected_attempts": 1,
+              "results_sha256": _digest(tmp_path / "results.jsonl"), "unresolved": 1,
+              "attempts": [{"attempt_id": "a", "content_sha256": "body", "agent_verdict": "pass",
+                            "current_verdict": "fail", "final_verdict": None,
+                            "status": "deferred_unadjudicated"}]}
+    path = tmp_path / "review.json"
+    def bind(value):
+        _write(path, value)
+        return {"comparison": {"independent_review": {"path": "review.json", "sha256": _digest(path)}}}
+    assert local_audit._require_local_review(tmp_path, bind(review), [record])["unresolved"] == 1
+    changed = copy.deepcopy(review)
+    changed["attempts"][0]["final_verdict"] = "pass"
+    with pytest.raises(ValueError, match="scored evidence"):
+        local_audit._require_local_review(tmp_path, bind(changed), [record])
+    changed = copy.deepcopy(review)
+    changed["attempts"].append(changed["attempts"][0])
+    with pytest.raises(ValueError, match="scope differs"):
+        local_audit._require_local_review(tmp_path, bind(changed), [record])
+    changed = {**review, "unresolved": 0}
+    with pytest.raises(ValueError, match="unresolved count"):
+        local_audit._require_local_review(tmp_path, bind(changed), [record])
+
+
+def test_local_review_banner_distinguishes_reviewed_and_original_measurements():
+    from harness.web_fetch.report import local_audit_banner
+    dataset = {"comparison": {"kind": "uniform_native_local_measurement",
+                               "publication_state": "local_audit_only_not_for_release"}}
+    assert "未进行独立人工审核" in local_audit_banner(dataset)
+    dataset["comparison"]["independent_review"] = {"path": "review.json"}
+    text = local_audit_banner(dataset)
+    assert "未裁定项保留现有评分" in text
+    assert "未进行独立人工审核" not in text
+
+
+def test_retrospective_page_review_preserves_call_and_checks_other_requirements(tmp_path):
+    import copy
+    from harness.web_fetch.scoring import score_attempt
+    from harness.web_fetch.metrics import task_passed
+    body = 'Expected complete body. A second distinctive sentence describing this page.'
+    case = {'id': 'synthetic', 'url': 'https://example.test/start', 'track': 'risk_control',
+            'task_kind': 'body', 'source_benchmark': {'risk_control': {'navigation_contract': {
+                'requested_url': 'https://example.test/start',
+                'observed_final_url': 'https://example.test/document'}}},
+            'acceptance_contract': {'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+                'stable_text_anchors': [{'id': 'body', 'alternatives': ['Expected complete body']}]}}
+    (tmp_path / 'answer.txt').write_text(body)
+    record = {'attempt_id': 'method__synthetic__r001', 'case_id': 'synthetic',
+              'artifact_path': 'answer.txt', 'ok': True, 'final_url': None,
+              'metrics': score_attempt(case, body.encode(), ok=True)}
+    captures = [{'url': 'https://example.test/document', 'text': body}]
+    annotation = {'attempt_id': record['attempt_id'],
+                  'case_sha256': local_audit._canonical_sha256(case),
+                  'call_sha256': local_audit.local_measurement_call_sha256(record),
+                  'content_sha256': record['metrics']['content_sha256'],
+                  'basis': 'retrospective_content_correspondence', 'reviewed_at': '2026-10-13',
+                  'capture_index': 0, 'capture_sha256': local_audit._canonical_sha256(captures[0]),
+                  'corresponding_url': captures[0]['url'],
+                  'matching_samples': ['Expected complete body.',
+                      'A second distinctive sentence describing this page.']}
+    before = copy.deepcopy(record)
+    scored = local_audit.score_reviewed_page_identity(tmp_path, case, record, annotation, captures)
+    assert record == before and record['final_url'] is None
+    assert task_passed(True, scored)
+    assert scored['page_identity_basis'] == 'retrospective_content_correspondence'
+    for field, value, message in (
+        ('content_sha256', 'wrong', 'binding'),
+        ('capture_sha256', 'wrong', 'capture'),
+        ('matching_samples', ['Missing substantive text', 'Other missing substantive text'], 'matching'),
+    ):
+        bad = {**annotation, field: value}
+        with pytest.raises(ValueError, match=message):
+            local_audit.score_reviewed_page_identity(tmp_path, case, record, bad, captures)
+    wrong = [{'url': 'https://example.test/other', 'text': body}]
+    bad = {**annotation, 'corresponding_url': wrong[0]['url'],
+           'capture_sha256': local_audit._canonical_sha256(wrong[0])}
+    with pytest.raises(ValueError, match='URL requirement'):
+        local_audit.score_reviewed_page_identity(tmp_path, case, record, bad, wrong)
+    # A reviewed page identity must never excuse missing required content.
+    missing = copy.deepcopy(case)
+    missing['acceptance_contract']['stable_text_anchors'].append(
+        {'id': 'missing', 'alternatives': ['A required fact that was not returned']})
+    bad = {**annotation, 'case_sha256': local_audit._canonical_sha256(missing)}
+    with pytest.raises(ValueError, match='unavailable page identity'):
+        local_audit.score_reviewed_page_identity(tmp_path, missing, record, bad, captures)
+
+
+def test_retrospective_page_review_requires_bound_receipt(tmp_path):
+    with pytest.raises(ValueError, match='lack a receipt'):
+        local_audit._require_page_identity_review(tmp_path, {}, [
+            {'attempt_id': 'synthetic', 'metrics': {
+                'page_identity_basis': 'retrospective_content_correspondence'}}])

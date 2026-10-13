@@ -59,12 +59,12 @@ def test_inline_challenge_phrase_is_not_a_standalone_challenge(tag):
            'stable_text_anchors':[{'id':'body','alternatives':['Required body']} ]}
     case={'id':'article','url':'https://example.com/article','track':'web','task_kind':'body','acceptance_contract':rules}
     body=f'<p>Required body. If you see <{tag}>Verify you are human</{tag}>, complete the verification before continuing.</p>'
-    for html, expected in [(body, True), ('<p>Required body.</p><h1><strong>Verify you are human</strong></h1>', False)]:
+    for html, expected in [(body, True), ('<p>Required body.</p><h1><strong>Verify you are human</strong></h1>', True), ('<h1>Verify you are human</h1>', False)]:
         html='<html><body>'+html+'</body></html>'
         assert evaluate_stable_task(html,rules)['stable_task_pass'] is expected
         scored=score_attempt(case,html.encode(),ok=True)
         assert scored['content_pass'] is expected
-        assert scored['blocked_page'] is (not expected)
+        assert scored['blocked_page'] is ('<h1>' in html)
 
 
 @pytest.mark.parametrize('markup', ['<p>Required body.</p><p>Verify you are human</p>',

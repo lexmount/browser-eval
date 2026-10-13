@@ -335,6 +335,8 @@ def _dynamic_text_expression(plan) -> str:
 
 _ROUTE_OUTPUTS = {
     "raw_file": "raw_bytes",
+    "native_document_bytes": "original_document_bytes_without_extracted_text",
+    "native_resource_html": "html",
     "document_runtime_fetch": "runtime_document_base64+local_text",
     "raw_document": "raw_document_bytes+local_text",
     "document_page_runtime": "document_text_or_embedded_document",
@@ -352,6 +354,13 @@ def _route_for_case(case: EvalCase, *, native_default: bool = False) -> str:
     """Select one output contract before applying page-family extraction rules."""
     if case.task_kind == "file":
         return "raw_file"
+    if native_default:
+        if case.task_kind == "resource":
+            return "native_resource_html"
+        path = urlsplit(case.url).path.casefold()
+        if case.track == "document" and (path.endswith((".pdf", ".docx")) or "/pdf/" in path):
+            return "native_document_bytes"
+        return "dynamic_native_markdown" if case.track == "dynamic" else "ordinary_markdown"
     if case.task_kind == "resource":
         return "resource_page_runtime"
     if case.track == "document":
@@ -551,6 +560,7 @@ class MoliWebFetchProvider(Provider):
                 False, "", error_type="configuration", error_message="; ".join(errors)
             )
         wait = self.config.get("wait_until", "done")
+        native_document_download = route == "native_document_bytes"
         file_task = route == "raw_file"
         document_task = route in {"raw_document", "document_runtime_fetch"}
         document_runtime_fetch_task = route == "document_runtime_fetch"
@@ -563,7 +573,7 @@ class MoliWebFetchProvider(Provider):
                 markdown_package = require_converter(self.config.get('node_html_markdown_path'))
             except ValueError as error:
                 return ProviderResult(False, '', error_type='configuration', error_message=str(error))
-        raw_task = file_task or (document_task and not document_runtime_fetch_task)
+        raw_task = file_task or native_document_download or (document_task and not document_runtime_fetch_task)
         timeout_ms = str(max(1, int(timeout * 1000)))
         if raw_task:
             # Direct file delivery uses Moli's automatic response mode. Forcing
@@ -912,7 +922,9 @@ class MoliWebFetchProvider(Provider):
                 error_message="Moli fetch exceeded time budget",
                 metadata=metadata,
             )
-        if file_task:
+        if case.task_kind == "file" or native_document_download:
+            if native_document_download:
+                metadata["native_output_contract"] = "original_document_bytes_without_extracted_text"
             ok = process.returncode == 0
             return ProviderResult(
                 ok,

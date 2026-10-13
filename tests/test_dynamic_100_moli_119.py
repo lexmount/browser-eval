@@ -7,7 +7,7 @@ import pytest
 from harness.web_fetch import local_audit
 from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.report import local_audit_banner, provider_configuration
-from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+from harness.web_fetch.storage import data_home
 from harness.web_fetch.scoring_regressions import load_scoring_regressions
 from harness.web_fetch.stable_tasks import validate_acceptance_contract
 from tests.conftest import read_frozen_dataset_bytes
@@ -23,7 +23,7 @@ def _dataset():
     return json.loads(read_frozen_dataset_bytes(DATASET_PATH).decode("utf-8"))
 
 
-def test_dynamic_100_dataset_matches_the_frozen_local_audit():
+def test_dynamic_100_dataset_matches_the_frozen_local_audit(pytestconfig):
     dataset = _dataset()
     cases = dataset["cases"]
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
@@ -71,9 +71,27 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
         assert set(scorer_revision['regression_ids']) <= set(followup['regression_ids'])
         scorer_revision = {**scorer_revision, **followup}
     assert scorer_revision["main_baseline_sha256"] == compatibility["bindings"]["scoring_source_sha256"]
-    assert scorer_revision["revised_sha256"] == SCORING_SOURCE_SHA256
+    # Validate the frozen audit against its actual source bytes, not a later
+    # implementation. Keep historical snapshots external and read-only.
+    scorer_files = ("scoring.py", "metrics.py", "stable_tasks.py", "dynamic_lists.py",
+        "list_verification.py", "reference_quality.py", "dynamic_entry_matching.py",
+        "response_input.py", "body_coverage.py", "structured_tables.py",
+        "ordered_tree.py", "composite_tasks.py")
+    snapshot = data_home() / "scoring-snapshots" / scorer_revision["revised_sha256"]
+    required = ["harness/web_fetch/" + name for name in scorer_files]
+    required += ["evaluation/scoring-regressions.json", "tests/test_composite_tasks.py", "tests/test_stable_tasks.py"]
+    missing = [name for name in required if not (snapshot / name).is_file()]
+    if missing:
+        message = "Requires frozen historical scorer inputs: " + str(snapshot)
+        if pytestconfig.getoption("--require-reference-inputs"):
+            pytest.fail(message)
+        pytest.skip(message)
+    assert not snapshot.is_symlink()
+    assert not any((snapshot / name).is_symlink() for name in required)
+    assert scorer_revision["revised_sha256"] == hashlib.sha256(b"\0".join(
+        (snapshot / "harness/web_fetch" / name).read_bytes() for name in scorer_files)).hexdigest()
     assert scorer_revision["scoring_regressions_sha256"] == hashlib.sha256(
-        (ROOT / "evaluation/scoring-regressions.json").read_bytes()).hexdigest()
+        (snapshot / "evaluation/scoring-regressions.json").read_bytes()).hexdigest()
     assert set(scorer_revision["regression_ids"]) <= set(controls)
     modes = {}
     for identifier in scorer_revision["regression_ids"]:
@@ -109,10 +127,10 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert bindings["scoring_source_sha256"] == scorer_revision["main_baseline_sha256"]
     assert bindings["scoring_regressions_sha256"] != scorer_revision["scoring_regressions_sha256"]
     assert bindings["composite_tests_sha256"] == hashlib.sha256(
-        (ROOT / "tests/test_composite_tasks.py").read_bytes()
+        (snapshot / "tests/test_composite_tasks.py").read_bytes()
     ).hexdigest()
     assert bindings["stable_tests_sha256"] == hashlib.sha256(
-        (ROOT / "tests/test_stable_tasks.py").read_bytes()
+        (snapshot / "tests/test_stable_tasks.py").read_bytes()
     ).hexdigest()
     assert "Moli 1.1.9 local audit complete" in dataset["approval_status"]
     assert dataset["comparison"]["local_audit_receipt"] == RECEIPT_PATH.relative_to(ROOT).as_posix()

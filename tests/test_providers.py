@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from harness.web_fetch.metrics import evaluate_resources
+from harness.web_fetch.metrics import evaluate_resources, task_passed, task_measured
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers.cloudflare import (
     CloudflareContentProvider,
@@ -23,9 +23,36 @@ from harness.web_fetch.providers.lexmount import LexmountProvider
 from harness.web_fetch.providers.tavily import TavilyExtractProvider
 from harness.web_fetch.publication_privacy import project_file
 from harness.web_fetch.runner import run_evaluation
+from harness.web_fetch.scoring import score_attempt
 
 
 class ProviderTest(unittest.TestCase):
+    @patch('harness.web_fetch.providers.firecrawl.request')
+    def test_native_final_url_controls_identity(self, request):
+        case=EvalCase(id='redirect-control',name='Redirect control',url='https://example.test/start',
+            category='static',expected_any=['Expected body'],track='risk_control',
+            acceptance_contract={'version':1,'schema':'body_text','minimum_records':0,
+                'stable_text_anchors':[{'id':'body','alternatives':['Expected body']}]},
+            source_benchmark={'risk_control':{'navigation_contract':{
+                'requested_url':'https://example.test/start','observed_final_url':'https://example.test/final'}}})
+        for native_url, passed, measured, identity in (
+            ('https://example.test/final',True,True,'verified'),
+            ('https://example.test/other',False,True,'mismatch'),
+            (None,False,False,'unavailable'),
+        ):
+            with self.subTest(native_url=native_url):
+                metadata={'sourceURL':case.url,'statusCode':200}
+                if native_url is not None: metadata['url']=native_url
+                request.return_value=HttpResponse(200,'https://api.firecrawl.dev/v2/scrape',{},
+                    json.dumps({'success':True,'data':{'markdown':'Expected body','metadata':metadata}}).encode())
+                result=FirecrawlProvider('firecrawl',{'api_key':'synthetic','uniform_native_parameters':True}).fetch(case,45)
+                self.assertEqual(result.final_url,native_url)
+                m=score_attempt(case,result.content.encode(),ok=result.ok,metadata=result.metadata,
+                    status_code=result.status_code,final_url=result.final_url)
+                self.assertEqual(m['page_identity_status'],identity)
+                self.assertEqual(task_passed(result.ok,m),passed)
+                self.assertEqual(task_measured(m),measured)
+
     @patch("harness.web_fetch.providers.firecrawl.request")
     def test_firecrawl_native_page_scope_is_explicit_and_preserves_answer(self, mock_request):
         returned = "Header\n\nMain text\n\nFooter"

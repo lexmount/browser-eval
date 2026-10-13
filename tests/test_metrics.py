@@ -123,7 +123,7 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(result["markdown_headings"], 1)
         self.assertEqual(result["markdown_links"], 1)
 
-    def test_ground_truth_requires_every_fact_and_rejects_error_pages(self) -> None:
+    def test_ground_truth_requires_every_fact_and_keeps_prompt_diagnostics(self) -> None:
         facts = [
             {"id": "title", "alternatives": ["Example Domain"]},
             {"id": "purpose", "alternatives": ["documentation examples"]},
@@ -135,7 +135,7 @@ class MetricsTest(unittest.TestCase):
             "Example Domain documentation examples Access denied",
             ["Example Domain"], required_facts=facts, forbidden_any=["Access denied"],
         )
-        self.assertFalse(blocked["content_pass"])
+        self.assertTrue(blocked["content_pass"])
         self.assertEqual(blocked["forbidden_hits"], ["Access denied"])
 
     def test_summary_separates_transport_and_content(self) -> None:

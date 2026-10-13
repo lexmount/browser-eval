@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.metrics import task_passed
+from harness.web_fetch.metrics import task_measured, task_passed
 from harness.web_fetch.reference_lifecycle import (
     reference_revision_cases,
     scoring_revision_history_sha256,
@@ -71,6 +71,8 @@ class ScoringRegressionTests(unittest.TestCase):
                     row["ok"], metrics, row["case"].get("task_kind", "body")
                 )
                 self.assertEqual(verdict, row["expected_task_pass"])
+                if "expected_task_measured" in row:
+                    self.assertEqual(task_measured(metrics), row["expected_task_measured"])
                 for key, expected in row.get("expected_metrics", {}).items():
                     self.assertEqual(metrics.get(key), expected, key)
                 root_modes.setdefault(row["root_cause"], set()).add(row["failure_mode"])

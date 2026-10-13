@@ -602,6 +602,28 @@ protocol remain dated observations and cannot be certified retroactively.
 
 ### Native caller limits and DNS
 
+With `uniform_native_parameters`, webpage body/structure calls use the same
+native request regardless of the web, dynamic, popular (`challenge`), or
+risk-control family. Case-specific retrieval hints remain prohibited. Scoring
+keeps the original case and frozen acceptance contract; family is not a reason
+to inject scripts, convert HTML to Markdown, or fetch another URL.
+
+Resource tasks may select a declared native output: Firecrawl image/link/video
+fields, Cloudflare's generic media-element scrape, and Crawl4AI media fields.
+Moli uses native HTML for resource discovery and native Markdown for webpage
+body/structure, without caller-authored extraction scripts.
+File tasks may collect Moli's raw output, Firecrawl rawBase64, or Crawl4AI's
+native downloaded files. No caller follows returned links to manufacture files.
+Document text uses the product's own URL handling; Crawl4AI direct PDFs select
+its native PDF strategies. Moli direct PDF/DOCX responses remain original
+file bytes, not extracted text; a body contract cannot pass on bytes alone.
+The fixed mode never uses the legacy Moli external
+document parser or Cloudflare download-then-upload converter. Unsupported or
+incomplete native output remains incomplete under the unchanged scoring rules.
+Cloudflare's fixed media selectors are independent of reference answers, and
+native resource/PDF routes retain product-default internal timeouts.
+
+
 Native workers receive the caller deadline and fixed native capacity options,
 and record effective limits. In fixed-native mode, the outer deadline does not
 override product timers. CowAgent uses its native `DEFAULT_TIMEOUT` unchanged.
@@ -810,3 +832,30 @@ physical-call output, uses the final declared response, verifies hashes and
 exposes the directory only after the entire matrix passes. Unbound review
 receipts cannot authorize a new assembly. Existing published reports retain
 their frozen evidence and are restored from their pinned release.
+
+### Current local 430-task report
+
+`research/native-430-local-report.json` binds the reviewed ten-method snapshot
+by dataset, result and scorer hashes. The 4,300 measured responses, execution
+segments, review payloads, archived interpretation article and its translations
+remain in the external evidence directory; they are not distributed in Git.
+The shared report owner reads those saved inputs and does not call providers
+during rendering. A frozen view can be checked without claiming that a newer
+scorer produced its historical scores:
+
+```sh
+uv run --frozen python scripts/check_report.py /absolute/path/to/local-report \
+  --presentation-binding research/native-430-local-report.json
+```
+
+For a fresh build, use `scripts/build_report.py --local-audit` with the matching
+external evidence, an explicit output directory, and `--language bilingual`.
+Any scoring change must first follow the declared correction protocol; a new
+render alone does not update scores. The public release profile and its
+publication target are separate and are not changed by this local snapshot.
+
+Historical audit tests read their frozen scorer bytes from
+`<data-home>/scoring-snapshots/<scorer-sha256>/`; they verify the complete scorer,
+registry and scenario-test hashes rather than substituting current code.
+Ordinary tests skip absent historical snapshots; strict reference-input tests
+require them. Changed installed bytes fail either mode.

@@ -382,6 +382,9 @@ class FirecrawlProvider(Provider):
         source_url = (
             metadata.get("sourceURL") if isinstance(metadata.get("sourceURL"), str) else None
         )
+        # sourceURL echoes the input; url records the observed destination.
+        final_url = metadata.get("url")
+        final_url = final_url if isinstance(final_url, str) and final_url else None
         content_type = (
             metadata.get("contentType")
             if isinstance(metadata.get("contentType"), str) else None
@@ -390,7 +393,7 @@ class FirecrawlProvider(Provider):
             ok=ok,
             content=content if ok and not file_route else "",
             status_code=response.status,
-            final_url=source_url or case.url,
+            final_url=final_url,
             title=metadata.get("title") if ok and isinstance(metadata.get("title"), str) else None,
             error_type=error_type,
             error_message=error_message,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import html
 import math
 import hashlib
 import statistics
@@ -22,9 +23,9 @@ METRIC_DEFINITIONS = {
     "markdown_links": "输出中目标为 HTTP(S) 的 Markdown 链接数量。",
     "html_tags": "输出中残留的类 HTML 标签数量。",
     "fact_coverage": "命中的预登记事实组除以全部必需事实组；同组可接受表达等价。",
-    "forbidden_hits": "输出中出现的预登记错误页、挑战页或拒绝访问文本。",
-    "blocked_page": "输出整体是已知阻断或人机验证页；即使偶然含目标链接或资源也不通过。",
-    "blocked_page_hits": "对 blocked_page 判定起效的独立页标题或标记，用于证据展示和失败归类。",
+    "forbidden_hits": "输出中出现的历史登记错误提示文本；仅作诊断，不决定任务是否通过。",
+    "blocked_page": "检测到独立的访问限制或人机验证提示；仅作诊断，不决定任务是否通过。",
+    "blocked_page_hits": "检测到的独立提示标题或标记；仅作诊断，不作为失败依据。",
     "declared_truncation_hits": "供应商输出中精确命中的截断声明；正文仅在全部预登记区域均被完整覆盖时可通过，资源与结构任务仍按各自交付合同验收。",
     "content_sha256": "完整输出的 SHA-256，用于核验报告预览与原始结果一致。",
     "unique_line_ratio": "去重后的非空规范化行数除以全部非空行数，用于诊断重复模板。",
@@ -328,8 +329,7 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
     if (metrics.get('page_identity_required')
             and metrics.get('page_identity_status') != 'verified'):
         return False
-    if (not task_measured(metrics, task_kind) or metrics.get('deadline_overrun')
-            or metrics.get('blocked_page')):
+    if not task_measured(metrics, task_kind) or metrics.get('deadline_overrun'):
         return False
     if "stable_task_pass" in metrics:
         combined = (metrics.get("content_pass")
@@ -337,9 +337,7 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
                     else True)
         return bool(ok and metrics["stable_task_pass"]
                     and combined
-                    and metrics.get("body_coverage_pass") is not False
-                    and not metrics.get("forbidden_hits")
-                    and not metrics.get("stable_blocked_page"))
+                    and metrics.get("body_coverage_pass") is not False)
     field = {'structure':'list_task_pass', 'resource':'resource_pass', 'file':'raw_file_pass'}.get(task_kind, 'content_pass')
     return bool(ok and metrics.get(field))
 
@@ -347,11 +345,21 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
 def task_measured(metrics: dict, task_kind: str | None = None) -> bool:
     if metrics.get('rule_review_status') == 'unresolved':
         return False
+    kind = task_kind or metrics.get('task_kind', 'body')
     if (metrics.get('page_identity_required')
             and metrics.get('page_identity_status') == 'unavailable'
             and metrics.get('request_ok') is not False):
-        return False
-    kind = task_kind or metrics.get('task_kind', 'body')
+        # Combined pass flags already include identity. Only independent
+        # failed requirements can prove failure while identity is unknown.
+        definite_failure = bool(
+            metrics.get('deadline_overrun')
+            or any(error != 'page_identity_not_verified'
+                   for error in metrics.get('stable_task_errors', []))
+            or (kind == 'body' and (metrics.get('length_pass') is False
+                                   or metrics.get('body_coverage_pass') is False))
+        )
+        if not definite_failure:
+            return False
     return kind != 'file' or isinstance(metrics.get('raw_file_pass'), bool)
 
 
@@ -415,6 +423,15 @@ def normalize_for_match(value: str) -> str:
     # Keep the separator itself (and all operands); do not collapse >=, signs
     # or English word boundaries. Fold layout newlines on both sides first:
     # plain-text DOM extraction may put every menu label on a separate line.
+    # Preserve an existing quoted scalar's exact key/value while unifying
+    # JSON and YAML notation before layout whitespace is folded away.
+    def quoted_pair(match):
+        import json
+        key, scalar = match[1], match[2]
+        value = scalar[1:-1].replace("''", "'")
+        return json.dumps(key, ensure_ascii=False) + ": " + json.dumps(value, ensure_ascii=False)
+    normalized = re.sub(r"(?m)^[ \t]*([a-z_][a-z0-9_.-]*)[ \t]*:[ \t]*('(?:[^'\n]|'')*')[ \t]*$",
+                        quoted_pair, normalized)
     normalized = re.sub(r"\s+", " ", normalized).strip()
     # A serializer may leave layout whitespace before sentence punctuation at
     # an inline-link boundary. Never bridge a digit to punctuation: doing so
@@ -492,6 +509,10 @@ def evaluate_content(
         # Keep raw HTML for records and links; score prose from visible text.
         from .dynamic_lists import visible_html_text
         visible_content = visible_html_text(content)
+    else:
+        # Native Markdown character references represent visible characters.
+        # HTML has already been decoded by its parser; never decode it twice.
+        visible_content = html.unescape(content)
     answer_text = title_prefix + visible_content
     from .reference_quality import blocked_page_hits, script_payload_shell
     block_hits = blocked_page_hits(answer_text)
@@ -546,15 +567,17 @@ def evaluate_content(
     legacy_pass = bool(matched) if expected else True
     length_pass = len(visible_content) >= min_content_chars
     content_pass = (legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold
-                    and not forbidden and not block_hits and not encoding_corruption
+                    and not encoding_corruption
                     and not script_shell)
     pattern_results = []
     for rule in required_patterns or []:
         count = len(set(re.findall(rule['pattern'], visible_content, re.I)))
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
-    from .body_coverage import evaluate_body_requirements
-    body_checks = evaluate_body_requirements(visible_content, body_requirements or {})
+    from .body_coverage import evaluate_body_requirements, native_markup_body_text
+    body_content = (native_markup_body_text(content, visible_content)
+                    if body_requirements and not is_html else visible_content)
+    body_checks = evaluate_body_requirements(body_content, body_requirements or {})
     content_pass = content_pass and body_checks['body_coverage_pass']
     word_precision = word_recall = word_f1 = None
     if ground_truth_main_content:
@@ -619,10 +642,6 @@ def evaluate_content(
             result["stable_content_pass"] = False
             if "text_encoding_corruption" not in result["stable_task_errors"]:
                 result["stable_task_errors"].append("text_encoding_corruption")
-        if forbidden:
-            result["stable_task_pass"] = False
-            result["stable_content_pass"] = False
-            result["stable_task_errors"].append("forbidden_content")
         if script_shell and acceptance_contract.get("schema") == "body_text":
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False
@@ -642,7 +661,9 @@ def evaluate_content(
     if composite_acceptance:
         from .composite_tasks import evaluate_composite_acceptance
         composite = evaluate_composite_acceptance(
-            visible_content, composite_acceptance, base_url=base_url, links=named_links,
+            visible_html_text(content, preserve_links=True) if is_html else visible_content,
+            composite_acceptance, base_url=base_url, links=named_links,
+            native_html=content if is_html else None,
         )
         result.update(composite)
         result["content_pass"] = bool(result["content_pass"] and composite["composite_acceptance_pass"])

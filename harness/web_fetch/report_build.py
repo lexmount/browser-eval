@@ -203,7 +203,8 @@ def _install_report_tree(staging: Path, output: Path):
 
 def build_report(source: Path, output: Path, *, include_english: bool = False,
                  local_audit: bool = False, authored_interpretation: bool = False,
-                 diagnostic_preview: bool = False, language: str | None = None) -> Path:
+                 diagnostic_preview: bool = False, language: str | None = None,
+                 show_local_status_banners: bool = True) -> Path:
     from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
     source, output = source.resolve(), output.resolve()
@@ -493,6 +494,12 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             shutil.copytree(source/'history/file-baseline', staging/'history/file-baseline')
         if dataset.get("comparison", {}).get("kind") == "uniform_native_local_measurement":
             shutil.copy2(source / "local-run-contract.json", staging / "local-run-contract.json")
+            if (source/"providers.json").is_file():
+                # Publish only an explicit allowlist from the already validated frozen config.
+                config=json.loads((source/'providers.json').read_text())['providers']
+                allowed={'wait_until','block_private_networks','max_bytes','max_age','proxy','formats','only_main_content','extract_depth','include_images','text_verbosity','max_age_hours','include_resource_links','rich_links_limit','document_max_bytes','min_interval_seconds','log_level','retain_complete_diagnostic_log','max_diagnostic_bytes','uniform_native_parameters','dns_mode'}
+                public_options={name:{k:v for k,v in options.items() if k in allowed} for name,options in config.items()}
+                (staging/'frozen-method-options.json').write_text(json.dumps({'schema_version':1,'provider_config_sha256':hashlib.sha256((source/'providers.json').read_bytes()).hexdigest(),'providers':public_options},ensure_ascii=False,indent=2))
             from harness.reporting.templates import resolve_template
             (staging / "report-manifest.json").write_text(json.dumps({
                 "schema_version": 1, "template": resolve_template("webfetch"),
@@ -500,9 +507,13 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 "languages": ["zh", "en"] if include_english else ["zh"], "provider_calls_added": 0,
                 "dataset_sha256": hashlib.sha256((source / "dataset.json").read_bytes()).hexdigest(),
                 "results_sha256": hashlib.sha256((source / "results.jsonl").read_bytes()).hexdigest(),
+                "presentation": {"show_local_status_banners": show_local_status_banners},
             }, ensure_ascii=False, indent=2))
+        from .report_reading import copy_archived_reading
+        copy_archived_reading(source,staging)
         generate(staging,dataset,records,manifests,include_english=include_english,
-                 authored_interpretation=authored_interpretation)
+                 authored_interpretation=authored_interpretation,
+                 show_local_status_banners=show_local_status_banners)
         if language is not None:
             select_report_language(staging, language)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
@@ -1172,6 +1183,7 @@ def validate_local_presentation(output: Path, binding_path: Path):
     not a fresh build or certification. All measured files remain untouched.
     """
     from .safety import contained_path
+    from harness.report_languages import generated_languages
     output = output.resolve()
     binding = json.loads(binding_path.read_text())
     manifest_path = contained_path(output, 'report-manifest.json')
@@ -1179,15 +1191,19 @@ def validate_local_presentation(output: Path, binding_path: Path):
     if (binding.get('comparison_kind') != 'uniform_native_local_measurement'
             or manifest.get('evidence_state') != 'local_measurement'
             or manifest.get('certified') is not False
-            or manifest.get('languages') != ['zh']
+            or manifest.get('languages') != list(generated_languages(output))
             or not (output / '.generated-report').is_file()):
-        raise ValueError('Presentation refresh requires a bound Chinese diagnostic snapshot')
+        raise ValueError('Presentation refresh requires a bound diagnostic snapshot')
     for name, key in [('dataset.json', 'frozen_dataset_sha256'), ('results.jsonl', 'results_sha256')]:
         expected = binding.get(key)
         manifest_key = 'dataset_sha256' if name == 'dataset.json' else key
         if (not expected or manifest.get(manifest_key) != expected
                 or hashlib.sha256(contained_path(output, name).read_bytes()).hexdigest() != expected):
             raise ValueError('Presentation input binding changed: ' + name)
+    for item in binding.get('evidence_bindings', []):
+        path = contained_path(output, item['path'], reject_symlinks=True)
+        if hashlib.sha256(path.read_bytes()).hexdigest() != item['sha256']:
+            raise ValueError('Presentation evidence binding changed: ' + item['path'])
     dataset = json.loads((output / 'dataset.json').read_text())
     records = load_jsonl(contained_path(output, 'results.jsonl'))
     if (len(records) != binding.get('result_count')
@@ -1214,6 +1230,8 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
     output = unlinked_path(output)
     before_tree = evidence_tree_identity(output)
     binding, dataset, records, manifest = validate_local_presentation(output, binding_path)
+    if manifest['languages'] != ['zh']:
+        raise ValueError('Presentation refresh supports Chinese snapshots only; rebuild both editions for bilingual changes')
     manifest_path = output / "report-manifest.json"
     # The existing owner renders from saved metrics. Only these explanatory
     # routes may be installed; result pages, logs and every measured byte stay.

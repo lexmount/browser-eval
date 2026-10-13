@@ -26,6 +26,8 @@ if __name__ == '__main__':
                         help='refresh an existing local report using a hash-bound current-local-results.json; preserve measured evidence')
     parser.add_argument('--local-audit',action='store_true',
                         help='build an explicitly local, non-publishable audit report from bound evidence')
+    parser.add_argument('--hide-local-status-banners', action='store_true',
+                        help='omit repeated top status banners from local audit pages; retain evidence and disclosures')
     parser.add_argument('--diagnostic-cohorts',action='store_true',
                         help='render an explicitly diagnostic cohort model with the maintained WebFetch template')
     parser.add_argument('--wcxb-source',type=Path)
@@ -33,6 +35,8 @@ if __name__ == '__main__':
     parser.add_argument('--wcxb',action='store_true',help='Build the independently bound WCXB report')
     parser.add_argument('--webmainbench-full',action='store_true',help='Build the separately certified complete 545-case report')
     args=parser.parse_args()
+    if args.hide_local_status_banners and not args.local_audit:
+        parser.error('--hide-local-status-banners requires --local-audit')
     from harness.reporting.templates import resolve_template
     resolve_template('webfetch')
     if args.refresh_presentation:
@@ -68,7 +72,8 @@ if __name__ == '__main__':
         evidence=require_evidence(args.evidence)
         print(build_report(evidence,args.output,
                            include_english=args.include_english, language=requested_language(args.output),
-                           local_audit=True))
+                           local_audit=True,
+                           show_local_status_banners=not args.hide_local_status_banners))
         raise SystemExit(0)
     if sum(bool(value) for value in (args.profile, args.wcxb, args.webmainbench_full)) > 1:
         parser.error('--profile, --wcxb and --webmainbench-full are mutually exclusive')

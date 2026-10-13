@@ -4,6 +4,19 @@ from harness.web_fetch.network_preflight import inspect_system_dns, require_usab
 
 
 class NetworkPreflightTests(unittest.TestCase):
+    def test_non_public_dns_is_not_a_fair_public_comparison(self):
+        for addresses,accepted in ((['43.162.217.19'],True),(['2606:4700:4700::1111'],True),
+            (['10.2.0.11'],False),(['127.0.0.1'],False),(['169.254.1.1'],False),
+            (['fd00::1'],False),(['43.162.217.19','10.2.0.11'],False)):
+            with self.subTest(addresses=addresses):
+                def resolve(host,port,**kwargs):
+                    return [(socket.AF_INET6 if ':' in a else socket.AF_INET,socket.SOCK_STREAM,6,'',(a,port)) for a in addresses]
+                audit=inspect_system_dns(['https://public.example/page'],resolver=resolve)
+                self.assertEqual(audit['usable_for_guarded_local_comparison'],accepted)
+                if accepted:require_usable_public_dns(audit)
+                else:
+                    with self.assertRaisesRegex(ValueError,'Do not disable'):
+                        require_usable_public_dns(audit)
     def test_synthetic_dns_fails_before_calls_but_public_dns_passes(self):
         for address, accepted in [('198.19.93.254', False), ('185.199.108.153', True)]:
             with self.subTest(address=address):
@@ -45,6 +58,31 @@ class NetworkPreflightTests(unittest.TestCase):
         with TemporaryDirectory() as directory, patch('socket.getaddrinfo', return_value=fake):
             output = Path(directory) / 'measurement'
             with self.assertRaisesRegex(ValueError, 'synthetic'):
+                run_evaluation(output_dir=output, dataset_meta={}, dataset_path=Path('fixture.json'),
+                               cases=[EvalCase('control', 'control', 'https://example.com/', 'control', [])],
+                               providers=[provider], provider_config_path=Path('fixture-providers.json'),
+                               runs=1, timeout=45, delay=0)
+            self.assertEqual(calls, [])
+            self.assertFalse(output.exists())
+
+
+    def test_runner_rejects_non_public_dns_before_calls_and_artifacts(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        from harness.web_fetch.models import EvalCase
+        from harness.web_fetch.providers.base import Provider
+        from harness.web_fetch.runner import run_evaluation
+        calls = []
+        class GuardedFixture(Provider):
+            def fetch(self, case, timeout):
+                calls.append(case.id)
+                raise AssertionError("No provider calls allowed in invalid DNS environment")
+        provider = GuardedFixture('guarded', {'type': 'openclaw_builtin'})
+        fake = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('10.2.0.11', 443))]
+        with TemporaryDirectory() as directory, patch('socket.getaddrinfo', return_value=fake):
+            output = Path(directory) / 'measurement'
+            with self.assertRaisesRegex(ValueError, 'non-public'):
                 run_evaluation(output_dir=output, dataset_meta={}, dataset_path=Path('fixture.json'),
                                cases=[EvalCase('control', 'control', 'https://example.com/', 'control', [])],
                                providers=[provider], provider_config_path=Path('fixture-providers.json'),

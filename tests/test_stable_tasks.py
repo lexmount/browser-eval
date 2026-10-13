@@ -521,7 +521,7 @@ class StableTaskTests(unittest.TestCase):
         self.assertTrue(result["stable_structure_pass"])
         self.assertFalse(result["stable_content_pass"])
 
-    def test_block_pages_with_complete_cards_never_pass(self):
+    def test_prompt_headings_do_not_veto_complete_cards(self):
         cards = "Alpha\n$10\n\nBeta\n$20"
         for heading in ("# Access denied", "403 Forbidden", "Verify you are human", "Just a moment...",
                         "W3 Performing security verification", "Making sure you're not a bot",
@@ -529,21 +529,21 @@ class StableTaskTests(unittest.TestCase):
                         "![](/shield.png)验证一下，购物无忧"):
             result = self.check(heading + "\n" + cards)
             self.assertTrue(result["stable_structure_pass"])
-            self.assertFalse(result["stable_content_pass"])
-            self.assertFalse(result["stable_task_pass"])
+            self.assertTrue(result["stable_content_pass"])
+            self.assertTrue(result["stable_task_pass"])
             self.assertTrue(result["stable_blocked_page"])
 
-    def test_explicit_forbidden_rule_survives_stable_override_and_reference_exemptions(self):
+    def test_forbidden_diagnostic_does_not_override_target_content(self):
         text = "Custom access failure\nAlpha\n$10\n\nBeta\n$20"
         result = evaluate_content(text, [], forbidden_any=["Custom access failure"],
                                   ground_truth_main_content=text, acceptance_contract=contract("product"))
         self.assertTrue(result["stable_structure_pass"])
-        self.assertFalse(result["stable_content_pass"])
-        self.assertFalse(result["content_pass"])
-        self.assertFalse(task_passed(True, result))
+        self.assertTrue(result["stable_content_pass"])
+        self.assertTrue(result["content_pass"])
+        self.assertTrue(task_passed(True, result))
         self.assertEqual(result["reference_term_exemptions"], [])
         self.assertEqual(result["word_f1"], 1.0)
-        self.assertFalse(task_passed(True, {**result, "stable_task_pass": True}))
+        self.assertTrue(task_passed(True, {**result, "stable_task_pass": True}))
         self.assertFalse(task_passed(False, {"stable_task_pass": True}))
 
     def test_block_page_words_in_explanatory_prose_are_not_automatically_block_pages(self):

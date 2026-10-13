@@ -201,6 +201,33 @@ class MoliTests(unittest.TestCase):
         values.update(changes)
         return SimpleNamespace(**values)
 
+    def test_native_families_never_use_caller_scripts_or_conversion(self):
+        provider = self.provider(
+            "assert '--eval' not in sys.argv and '--wait-script' not in sys.argv\n"
+            "assert '--trace-network' not in sys.argv\n"
+            "if sys.argv[-1].endswith(('.pdf', '.docx')):\n"
+            "    assert '--dump' not in sys.argv\n"
+            "else:\n"
+            "    assert sys.argv[sys.argv.index('--dump') + 1] in ('markdown', 'html')\n"
+            "print('native output')\n", uniform_native_parameters=True)
+        with patch("harness.web_fetch.providers.moli.extract_document_text", side_effect=AssertionError("caller conversion")):
+            for track, kind, url in [("challenge", "structure", "https://example.com/"),
+                    ("risk_control", "body", "https://example.com/"),
+                    ("document", "body", "https://example.com/a.docx"),
+                    ("document", "body", "https://example.com/a.pdf"),
+                    ("document", "body", "https://example.com/viewer.html"),
+                    ("image", "resource", "https://example.com/"),
+                    ("video", "resource", "https://example.com/"),
+                    ("video", "body", "https://example.com/")]:
+                result = provider.fetch(self.case_with(track=track, task_kind=kind, url=url), 5)
+                self.assertTrue(result.ok, result.error_message)
+                if url.endswith((".pdf", ".docx")):
+                    self.assertEqual(result.content, "")
+                    self.assertEqual(result.files[0]["data"].strip(), b"native output")
+                else:
+                    self.assertEqual(result.content.strip(), "native output")
+                    self.assertEqual(result.metadata["dump"], "html" if kind == "resource" else "markdown")
+
     def test_fixed_native_cli_omits_internal_timers(self):
         provider = self.provider(
             "import sys\n"

@@ -10,7 +10,7 @@ TASK_KINDS = ('body', 'structure', 'resource', 'file')
 TRACKS = {
     'web': '静态网站正文', 'dynamic': '动态网站正文', 'challenge': '热门网站正文',
     'document': '文档正文', 'image': '图片获取', 'video': '视频获取',
-    'risk_control': '历史访问受限网址正文',
+    'risk_control': '风控网站',
 }
 
 

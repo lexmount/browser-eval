@@ -84,6 +84,7 @@ class MarkdownLink:
     is_image: bool
     start: int
     end: int
+    title: str = ""
 
 
 _MAX_MARKDOWN_LINK_SPAN = 8192
@@ -133,6 +134,7 @@ def markdown_links(text: str) -> list[MarkdownLink]:
             continue
         raw_label = text[start + 1:label_end]
         raw_destination = text[destination_start + 1:destination_end].strip()
+        native_title = ""
         if raw_destination.startswith("<") and ">" in raw_destination:
             destination = raw_destination[1:raw_destination.index(">")]
         else:
@@ -143,7 +145,8 @@ def markdown_links(text: str) -> list[MarkdownLink]:
             # serializers may also fail to escape a repeated delimiter.
             titled = re.match(r"(?s)^(.*?)\s+(['\"])(.*)\2$", raw_destination)
             destination = re.sub(r"\s+", "", titled[1] if titled else raw_destination)
-        links.append(MarkdownLink(raw_label, destination, image, index, destination_end + 1))
+            native_title = titled[3] if titled else ""
+        links.append(MarkdownLink(raw_label, destination, image, index, destination_end + 1, native_title))
         index = destination_end + 1
     return links
 

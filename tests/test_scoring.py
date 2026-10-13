@@ -44,6 +44,163 @@ REFERENCE = {"case_id": "legacy", "items": [
 
 
 class ScoringTests(unittest.TestCase):
+    def test_caption_inside_link_preserves_heading_boundary(self):
+        case={'url':'https://example.test/','task_kind':'body','expected_any':[],
+          'acceptance_contract':{'version':1,'schema':'named_link','minimum_records':2,'hosts':['example.test'],'entry_path':r'/item/\d+','name_validation':'nonempty','entry_scope':{'html_selector':'main a:has(h3):has(p)','title_selector':'p','link_selector':'a[href]','start_pattern':r'(?m)^# Catalog$','end_pattern':r'(?m)^# End$','markdown_label_pattern':r'(?s)<br>\s*(?P<label>[^<>\n]+?)\s*<br>\s*$'}}}
+        cards='[![Artwork only](/one.jpg)<h3>Uncredited artwork title</h3>Visible first caption](/item/1)\n\n[![Artwork only](/two.jpg)<h3>Other artwork title</h3>Visible second caption](/item/2)'
+        for body,passed in (
+          (cards,True),
+          (cards.replace('<h3>Uncredited artwork title</h3>','<br>').replace('<h3>Other artwork title</h3>','<br>').replace('caption]','caption<br>]'),True),
+          (cards.replace('Visible second caption',''),False),
+          (cards.replace('Visible second caption','<span hidden>Visible second caption</span>'),False),
+          (cards.replace('Visible second caption','')+'\n# End\nVisible second caption',False),
+        ):
+            with self.subTest(body=body):
+                self.assertEqual(task_passed(True,score_attempt(case,('# Catalog\n\n'+body+'\n\n# End').encode(),ok=True)),passed)
+    def test_structured_records_use_visible_html_not_script_payloads(self):
+        case={'url':'https://example.test/','task_kind':'body','expected_any':[],
+          'acceptance_contract':{'version':1,'schema':'review','minimum_records':2,'stable_text_anchors':[]}}
+        cards='<div class="review"><p>2026-09-01</p><p>First independently delivered review</p></div><div class="review"><p>2026-09-02</p><p>Second independently delivered review</p></div>'
+        hidden='<div id="reviews"></div><script type="application/json">[{"date":"2026-09-01","text":"First independently delivered review"},{"date":"2026-09-02","text":"Second independently delivered review"}]</script>'
+        for body,passed in ((cards,True),(hidden,False),(cards.replace('2026-09-02',''),False),(cards.replace('2026-09-02','&amp;#50;026-09-02'),False),(cards.replace('<div class="review">','<div class="review" style="display:none">',1),False)):
+            with self.subTest(body=body):
+                self.assertEqual(task_passed(True,score_attempt(case,('<html><body>'+body+'</body></html>').encode(),ok=True)),passed)
+    def test_inline_html_break_preserves_visible_body_anchor(self):
+        case={'url':'https://example.test/','task_kind':'body','expected_any':[],
+          'acceptance_contract':{'version':1,'schema':'body_text','minimum_records':0,
+          'stable_text_anchors':[{'id':'statement','alternatives':['One platform. Endless ways to work together.']}]}}
+        for body,passed in (
+          ('## One platform. <br>Endless ways to work together.',True),
+          ('## One platform.<BR />Endless ways to work together.',True),
+          ('## One platform.\nEndless ways to work together.',True),
+          ('## One platform. &lt;br&gt;Endless ways to work together.',False),
+          ('## One platform. \\<br>Endless ways to work together.',False),
+          ('`One platform. <br>Endless ways to work together.`',False),
+          ('## One platform. <br>Different ways to work together.',False),
+        ):
+            with self.subTest(body=body):
+                self.assertEqual(task_passed(True,score_attempt(case,body.encode(),ok=True)),passed)
+    def test_parallel_column_scopes_cannot_share_other_column_records(self):
+        case={'url':'https://example.test/','task_kind':'body','expected_any':[],
+          'composite_acceptance':{'version':1,'groups':[
+            {'id':'first','kind':'named_link','minimum_records':2,'hosts':['example.test'],
+              'entry_path':r'/item/\d+','start_pattern':'First Division','end_pattern':'Second Division'},
+            {'id':'second','kind':'named_link','minimum_records':2,'hosts':['example.test'],
+              'entry_path':r'/item/\d+','start_pattern':'Second Division','end_pattern':'End'}]}}
+        html='<html><body><table><tr><th>First Division</th><th>Second Division</th></tr><tr><td><a href="/item/1">Alpha</a></td><td><a href="/item/3">Gamma</a></td></tr><tr><td><a href="/item/2">Beta</a></td><td><a href="/item/4">Delta</a></td></tr></table><h2>End</h2></body></html>'
+        markdown='| First Division | Second Division |\n| --- | --- |\n| [Alpha](/item/1) | [Gamma](/item/3) |\n| [Beta](/item/2) | [Delta](/item/4) |\n\n# End'
+        for content,passed in (
+          (html,True),(markdown,True),
+          (html.replace('<a href="/item/2">Beta</a>',''),False),
+          (markdown.replace('[Beta](/item/2)',''),False),
+          (html.replace('<h2>End</h2>',''),False),
+          (markdown.replace('# End',''),False),
+        ):
+            with self.subTest(content=content):
+                m=score_attempt(case,content.encode(),ok=True)
+                self.assertEqual(task_passed(True,m),passed)
+    def test_thumbnail_card_owns_immediate_visible_caption(self):
+        case={'url':'https://example.test/catalog','task_kind':'body','expected_any':[],
+          'acceptance_contract':{'version':1,'schema':'named_link','minimum_records':2,
+            'hosts':['example.test'],'entry_path':r'/item/\d+',
+            'entry_scope':{'html_selector':'.card','title_selector':'p.name','link_selector':'a[href]',
+              'start_pattern':'^Catalog$','end_pattern':'^Footer$'}}}
+        first='[![](/cover1.jpg)](/item/1)\n\nFirst delivered title\n\n'
+        second='[![](/cover2.jpg)](/item/2)\n\nSecond delivered title\n\n'
+        for content,passed in (
+          ('Catalog\n'+first+second+'Footer',True),
+          ('Catalog\n'+first+'[![Second title only in image alt](/cover2.jpg)](/item/2)\n\nFooter',False),
+          ('Catalog\n[![](/cover1.jpg)](/item/1)\n\n'+second+'Footer',False),
+          ('Catalog\n'+first+'[![](/cover2.jpg)](/item/2)\n\n## Footer\nSecond title outside scope',False),
+          ('Catalog\n'+first+'[![](/cover2.jpg)](/item/2)\n\n[Navigation](/home)\n\nFooter',False),
+        ):
+            with self.subTest(content=content):
+                m=score_attempt(case,content.encode(),ok=True)
+                self.assertEqual(task_passed(True,m),passed)
+    def test_linked_headers_use_visible_labels_only(self):
+        case={'url':'https://example.test/','task_kind':'body','expected_any':[],
+          'composite_acceptance':{'version':1,'groups':[{'id':'rows','kind':'linked_table','minimum_records':2,
+            'hosts':['example.test'],'entry_path':r'/item/\d+','required_columns':[
+              {'id':'name','kind':'text','aliases':['Name']},{'id':'version','kind':'version','aliases':['Version']}],
+            'identity_column':'name','link_column':'name'}]}}
+        rows='\n| --- | --- |\n| [Alpha](/item/1) | 1.2.3 |\n| [Beta](/item/2) | 2.3.4 |'
+        for header,body,passed in (
+          ('| Name | Version |',rows,True),
+          ('| [Name](/sort/name) | [Version](/sort/version "Sort packages") |',rows,True),
+          ('| [Other](/sort/Name) | Version |',rows,False),
+          ('| [Name](/sort/name) | Version |',rows.replace('2.3.4','unknown'),False),
+          ('| [Name](/sort/name) | Version |',rows.replace('/item/2','/item/1'),False),
+        ):
+            with self.subTest(header=header,body=body):
+                m=score_attempt(case,(header+body).encode(),ok=True)
+                self.assertEqual(task_passed(True,m),passed)
+    def test_visible_entity_equivalence_keeps_body_requirements(self):
+        case={'url':'https://example.test/body','task_kind':'body','expected_any':[],
+          'body_requirements':{'version':3,'unit':'region_compact_hexagram_recall','minimum_coverage':1.0,'minimum_floor':1.0,
+            'minimum_region_passes':1,'regions':[{'id':'body','text':'Alpha Beta Gamma Delta'}]}}
+        for content,passed in (
+          ('Alpha Beta Gamma Delta',True),
+          ('Alpha&#32;Beta&#x20;Gamma&nbsp;Delta',True),
+          ('Alpha&#32;Beta&#x20;Gamma&nbsp;Wrong',False),
+          ('Alpha&amp;#32;Beta&amp;#x20;Gamma&amp;nbsp;Delta',False),
+          ('<html><body>Alpha Beta<script> Gamma Delta</script></body></html>',False),
+        ):
+            with self.subTest(content=content):
+                m=score_attempt(case,content.encode(),ok=True)
+                self.assertEqual(task_passed(True,m),passed)
+
+    def test_composite_keeps_visible_html_links(self):
+        case={'url':'https://example.test/base/','task_kind':'body','expected_any':['Directory'],
+          'composite_acceptance':{'version':1,'groups':[{'id':'entries','kind':'named_link','minimum_records':2,
+          'hosts':['example.test'],'entry_path':r'/base/[^/]+'}]}}
+        for content,passed in (
+          ('<html><body><h1>Directory</h1><a href="/base/alpha/">Alpha</a><a href="/base/beta/">Beta</a></body></html>',True),
+          ('<html><body><h1>Directory</h1><a href="/base/alpha/">Alpha</a><a>Beta</a></body></html>',False),
+          ('<html><body><h1>Directory</h1><a href="/base/alpha/">Alpha</a><a hidden href="/base/beta/">Beta</a></body></html>',False),
+          ('<html><body><h1>Directory</h1><a href="/base/alpha/">Alpha</a><script><a href="/base/beta/">Beta</a></script></body></html>',False),
+        ):
+            with self.subTest(content=content):
+                m=score_attempt(case,content.encode(),ok=True)
+                self.assertEqual(task_passed(True,m),passed)
+    def test_inline_html_and_named_metadata_keep_text_scope(self):
+        case={'url':'https://example.test/catalog','task_kind':'body','expected_any':[],
+          'acceptance_contract':{'version':1,'schema':'named_link','minimum_records':2,
+          'hosts':['example.test'],'entry_path':r'/item/\d+',
+          'entry_scope':{'html_selector':'main a[href]','start_pattern':'^Target list$','end_pattern':'^Footer$'}}}
+        labels=[{'text':'First entry','href':'https://example.test/item/1'},
+                {'text':'Second entry','href':'https://example.test/item/2'}]
+        for text,links,passed in (
+          ('## Target list\n[<h3>First entry</h3>](/item/1)\n[<h3>Second entry</h3>](/item/2)\n## Footer',[],True),
+          ('## Target list\nFirst entry\nSecond entry\n## Footer',labels,True),
+          ('## Target list\nFirst entry\n## Footer\nSecond entry',labels,False),
+          ('<html><body><main>Target list</main><footer><a href="/item/1">First entry</a><a href="/item/2">Second entry</a></footer></body></html>',[],False),
+          ('## Target list\nFirst entry\nSecond entry\n## Footer\nFirst entry',labels,False),
+        ):
+            with self.subTest(text=text):
+                m=score_attempt(case,text.encode(),ok=True,metadata={'links':links})
+                self.assertEqual(task_passed(True,m),passed,m.get('stable_task_errors'))
+
+    def test_equivalent_headers_preserve_declared_scope_and_columns(self):
+        case={'url':'https://example.test/table','task_kind':'body','expected_any':[],
+          'acceptance_contract':{'version':1,'schema':'table_row','minimum_records':2,
+          'table_columns':[{'name':'name','label':'Name','type':'text'},
+                           {'name':'amount','label':'Amount','type':'integer'}],
+          'record_identity_fields':['name'],'table_scope':{'row_selector':'table tbody tr','cell_selector':'td',
+             'start_pattern':'^Name$','end_pattern':'^Footer$',
+             'plain_row_pattern':r'(?P<name>[^\t]+)\t(?P<amount>\d+)'}}}
+        for text,passed in (
+          ('| Name ↕ | Amount ↕ |\n| --- | --- |\n| Alpha | 7 |\n| Beta | 8 |',True),
+          ('| Name | Amount |\n| --- | --- |\n\n| | |\n| --- | --- |\n| Name | Amount |\n| Alpha | 7 |\n| Beta | 8 |',True),
+          ('| Name ↕ | Other ↕ |\n| --- | --- |\n| Alpha | 7 |\n| Beta | 8 |',False),
+          ('| Name | Amount |\n| --- | --- |\n\n| | |\n| --- | --- |\n| Alpha | 7 |\n| Beta | 8 |',False),
+        ):
+            with self.subTest(text=text):
+                m=score_attempt(case,text.encode(),ok=True)
+                self.assertEqual(task_passed(True,m),passed,m.get('stable_task_errors'))
+        case['acceptance_contract']['table_scope']['start_pattern']='^Target section$'
+        text='| Name ↕ | Amount ↕ |\n| --- | --- |\n| Alpha | 7 |\n| Beta | 8 |'
+        self.assertFalse(task_passed(True,score_attempt(case,text.encode(),ok=True)))
+
     def test_untagged_source_requires_explicitly_observed_empty_language(self):
         c = case(track="dynamic", evaluation_url="https://example.test/page",
                  expected_final_url="https://example.test/page",
@@ -337,7 +494,7 @@ class ScoringTests(unittest.TestCase):
 
         challenge = score_attempt(
             case(ground_truth_main_content="Accessibility guidance",
-                 required_facts=[]),
+                 required_facts=[{"id":"guidance","alternatives":["Accessibility guidance"]}]),
             b"CAPTCHA", ok=True,
         )
         self.assertEqual(challenge["blocked_page_hits"], ["CAPTCHA"])
@@ -351,7 +508,7 @@ class ScoringTests(unittest.TestCase):
         )
         self.assertEqual(stable["blocked_page_hits"], ["CAPTCHA"])
         self.assertEqual(stable["blocked_page_reference_exemptions"], [])
-        self.assertFalse(task_passed(True, stable))
+        self.assertTrue(task_passed(True, stable))
 
     def test_quote_fields_reject_lost_tag_boundaries(self):
         quote = "“The world as we have created it is a process of our thinking.”"

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "comparison_kind": "uniform_native_local_measurement",
+  "case_count": 430,
+  "result_count": 4300,
+  "providers": [
+    "cloudflare-markdown",
+    "cowagent-built-in",
+    "crawl4ai",
+    "deepseek-harness-built-in",
+    "exa",
+    "firecrawl",
+    "langchain-webbase",
+    "moli-webfetch",
+    "openclaw-built-in",
+    "tavily"
+  ],
+  "frozen_dataset_sha256": "2745cb80a1941fe1931e46e23de174437194984ea838d9cdd1f02b9b081df030",
+  "results_sha256": "8feaeac89b7edc52961103d16c6be4f42310a5de715ec2dd29aa2f7c7cb1a0cc",
+  "measured_scoring_source_sha256": "4ce40cdf2ecb1af4088915a2b869ffbdcb65dce5222d1429578e97d175f13bfc",
+  "evidence_state": "local_measurement",
+  "certified": false,
+  "evidence_storage": "External data-home snapshot; provider calls, review payloads and generated pages are not stored in Git.",
+  "evidence_bindings": [
+    {
+      "path": "local-run-contract.json",
+      "sha256": "350b59d55e872b9b8405a8718b80b83bbe95891a9517d10ef1b89a1c90ccad17"
+    },
+    {
+      "path": "result-review.json",
+      "sha256": "733996bb2b05650e832b99b8d28b2489c8a72eba2fe60a645f94c5b2d90cdb96"
+    },
+    {
+      "path": "archived-reading.json",
+      "sha256": "85da5e52c295eb7fffbcd3e10e41d33294eeadf233ec7a6958de68ed0c9e30fb"
+    }
+  ]
+}

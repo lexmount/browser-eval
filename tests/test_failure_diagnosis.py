@@ -99,56 +99,33 @@ class UnifiedTextFailureTests(unittest.TestCase):
                     self.assertEqual((record, case), before)
         return result
 
-    def test_blocked_page_with_enough_links_is_not_record_shortfall(self):
+    def test_prompt_diagnostics_do_not_replace_missing_target_reason(self):
         contract = self.contract(page_patterns=['Catalog'], stable_text_anchors=[
             {'id': 'heading', 'alternatives': ['Browse products']}])
         metrics = evaluate_stable_task('Access denied\n' + self.links, contract, self.base_url)
         self.assertTrue(metrics['stable_structure_pass'])
-        self.assertEqual(metrics['stable_unique_record_count'], 3)
         self.assertTrue(metrics['stable_blocked_page'])
-        self.assertIn('blocked_page', metrics['stable_task_errors'])
-        self.assertNotIn('too_few_complete_records', metrics['stable_task_errors'])
-        result = self.assert_category(metrics, '返回非目标内容', acceptance_contract=contract)
-        self.assertIn('blocked_page', result['evidence'])
-        self.assertNotIn('条目不足', result['evidence'])
-        # Both persisted representations are understood independently.
-        without_flag = deepcopy(metrics)
-        without_flag.pop('stable_blocked_page')
-        self.assert_category(without_flag, '返回非目标内容')
-        without_code = deepcopy(metrics)
-        without_code['stable_task_errors'].remove('blocked_page')
-        self.assert_category(without_code, '返回非目标内容')
+        self.assertNotIn('blocked_page', metrics['stable_task_errors'])
+        result = diagnose(self.record(metrics), {'task_kind': 'body', 'acceptance_contract': contract}, '')
+        self.assertIsNotNone(result)
+        self.assertNotIn('blocked_page', result['evidence'])
 
-    def test_forbidden_and_blocked_page_have_same_semantics(self):
-        metrics = evaluate_content('Access denied', [], forbidden_any=['Access denied'])
-        self.assert_category(metrics, '返回非目标内容')
-        stable = evaluate_content('Access denied\n' + self.links, [],
-            forbidden_any=['Access denied'], acceptance_contract=self.contract(), base_url=self.base_url)
-        self.assert_category(stable, '返回非目标内容')
-        self.assert_category({'stable_task_pass': False, 'stable_task_errors': ['forbidden_content']},
-                             '返回非目标内容')
+    def test_qualified_content_with_forbidden_hint_has_no_failure(self):
+        facts = [{'id': 'target', 'alternatives': ['Required target content']}]
+        metrics = evaluate_content('Required target content\nAccess denied', [], required_facts=facts,
+            forbidden_any=['Access denied'])
+        self.assertEqual(metrics['forbidden_hits'], ['Access denied'])
+        self.assertIsNone(diagnose(self.record(metrics), {'task_kind': 'body'}, ''))
+        missing = evaluate_content('Access denied', [], required_facts=facts, forbidden_any=['Access denied'])
+        self.assertFalse(missing['content_pass'])
+        self.assertIsNotNone(diagnose(self.record(missing), {'task_kind': 'body'}, ''))
 
-    def test_generic_blocked_page_precedes_resource_success(self):
-        blocked = evaluate_content('# Making sure you\'re not a bot!', [])
-        blocked.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
-        result = diagnose(self.record(blocked), {'task_kind': 'resource'}, '')
-        self.assertEqual(result['category'], '返回非目标内容')
-        self.assertIn("Making sure you're not a bot", result['evidence'])
-
-        prose = evaluate_content("The article explains why sites say you're not a bot.", [])
-        prose.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
-        self.assertIsNone(diagnose(self.record(prose), {'task_kind': 'resource'}, ''))
-
-    def test_chinese_gate_heading_precedes_resource_success_without_prose_fp(self):
-        blocked = evaluate_content('# 验证中心', [])
-        blocked.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
-        result = diagnose(self.record(blocked), {'task_kind': 'resource'}, '')
-        self.assertEqual(result['category'], '返回非目标内容')
-        self.assertIn('验证中心', result['evidence'])
-
-        prose = evaluate_content('本文介绍验证中心的设计与用户体验。', [])
-        prose.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
-        self.assertIsNone(diagnose(self.record(prose), {'task_kind': 'resource'}, ''))
+    def test_prompt_diagnostics_do_not_veto_delivered_resource(self):
+        for heading in ("# Making sure you're not a bot!", '# 验证中心'):
+            metrics = evaluate_content(heading, [])
+            metrics.update(resource_pass=True, resource_results=[{'id': 'hero', 'pass': True}])
+            self.assertTrue(metrics['blocked_page'])
+            self.assertIsNone(diagnose(self.record(metrics), {'task_kind': 'resource'}, ''))
 
     def test_too_many_records_reports_upper_bound_not_too_few(self):
         contract = self.contract(maximum_records=3)

@@ -13,13 +13,13 @@ class Provider(ABC):
         self.type = str(config.get("type", name))
 
     def check_native_call(self, case: EvalCase) -> None:
-        """The fixed native cohort permits no per-case assistance or extra routes."""
+        """Permit native task outputs, never case-specific retrieval assistance."""
         if not self.config.get("uniform_native_parameters"):
             return
         if case.retrieval_hints:
             raise ValueError("fixed native calls prohibit per-case retrieval hints")
-        if case.track not in {"web", "dynamic"} or case.task_kind not in {"body", "structure"}:
-            raise ValueError("fixed native calls support webpage body/structure only; auxiliary routes are prohibited")
+        if case.task_kind not in {"body", "structure", "resource", "file"}:
+            raise ValueError("fixed native calls require a declared native output kind")
 
     @property
     def min_interval_seconds(self) -> float:

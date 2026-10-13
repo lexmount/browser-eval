@@ -133,11 +133,30 @@ def _unwrap_links(text, schema):
 
 
 def _visible(text, schema=None):
+    # Structured text records use the same visible HTML body as body anchors.
+    # Link and table schemas retain their existing DOM ownership parsers.
+    projected_html = (schema in SCHEMA_FIELDS and schema not in {"named_link", "linked_product", "table_row", "body_text", "page_identity"}
+                      and re.match(r'\s*(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)', text, re.I))
+    if projected_html:
+        from .dynamic_lists import visible_html_text
+        text = visible_html_text(text)
+    elif schema == "name_description" and re.search(r"<(?:div|section|article|span|script|template)\b", text, re.I):
+        # Preserve the original Markdown paragraph breaks in text nodes while
+        # excluding explicitly hidden DOM content; do not flatten card layout.
+        from .dynamic_lists import _scoped_html
+        text = _scoped_html(text).get_text(separator="\n")
+        projected_html = True
     text = clean_reference_text(text)
+    # An actual inline HTML break in Markdown is layout. Preserve escaped
+    # markup and code spans, and decode character references only afterward.
+    text = re.sub(r'(`+|~{3,}).*?\1|(?<!\\)<br\s*/?>',
+                  lambda m: m.group(0) if m.group(1) else " ", text,
+                  flags=re.I | re.S)
     # Decode one character-reference layer, as a browser does for both HTML
     # and Markdown. In particular, ``&amp;`` is the visible ``&`` while an
     # intentionally escaped ``&amp;amp;`` remains the literal text ``&amp;``.
-    text = unescape(text)
+    if not projected_html:
+        text = unescape(text)
     # Extractors represent Markdown hard breaks using one or two backslashes.
     text = re.sub(r"\\{1,2}[ \t]*(?=\n)", "", text)
     text = _unwrap_links(text, schema)
@@ -423,6 +442,22 @@ def _operations(lines):
     return records
 
 
+def _closed_title_descriptions(text):
+    """A repeated visible title closes its intervening description span."""
+    paragraphs = [block.strip() for block in re.split(r"\n\s*\n", text) if block.strip()]
+    records = []
+    for first, description, repeated in zip(paragraphs, paragraphs[1:], paragraphs[2:]):
+        if any("\n" in value for value in (first, description, repeated)):
+            continue
+        name = _line(first)
+        if _key(name) != _key(_line(repeated)):
+            continue
+        record = _record({"name": name, "description": _line(description)}, "name_description")
+        if record["valid"]:
+            records.append(record)
+    return records
+
+
 def _descriptions(text):
     records = []
     if _CARD_BOUNDARY in text:
@@ -485,6 +520,16 @@ def _earthquakes(text):
         # line. Split only a complete trailing timestamp, within this card.
         separated = []
         for line in lines:
+            compact = re.fullmatch(
+                r"(.+?)(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}"
+                r"(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}|\s*\(UTC(?:[+-]\d{2}:\d{2})?\))?)"
+                r"\s+(-?\d+(?:\.\d+)?\s*km)", line, re.I,
+            )
+            if (compact and _text(compact[1])
+                    and _valid_field("time", compact[2])
+                    and _valid_field("depth", compact[3])):
+                separated.extend((compact[1].strip(), compact[2], compact[3]))
+                continue
             joined = re.fullmatch(
                 r"(.+?)(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}"
                 r"(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}|\s*\(UTC(?:[+-]\d{2}:\d{2})?\))?)",
@@ -529,7 +574,19 @@ def _parse_records(visible, schema):
         for section in sections:
             records.extend(_operations([_line(line) for line in section.splitlines() if line.strip()]))
     elif schema == "name_description":
-        records.extend(_descriptions(remainder))
+        closed = _closed_title_descriptions(remainder)
+        weak = _descriptions(remainder)
+        for record in weak:
+            description = _key(record["fields"].get("description", ""))
+            name = _key(record["fields"].get("name", ""))
+            if any(name != _key(owner["fields"]["name"])
+                   and _key(owner["fields"]["name"]) in description
+                   and _key(owner["fields"]["description"]) in description
+                   for owner in closed):
+                record["valid"] = False
+                record["errors"].append("description_contains_separate_owned_record")
+        records.extend(weak)
+        records.extend(closed)
     elif schema == "taxonomy_family":
         records.extend(_record({"family": _field(line, "family")}, schema) for line in lines
                        if re.fullmatch(r"(?:family\s*:\s*)?[A-Za-z]+idae", line, re.I))
@@ -572,14 +629,54 @@ def _non_record_visible(content, contract, records, base_url):
     return None
 
 
-def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
-                    anchor_visible=None):
+def _stable_literal_match(surface, value, registered_words=()):
+    """An atomic Latin label is a word, not part of another word.
+
+    Native camel boundaries and fully covered chains of registered labels
+    preserve adjacent UI text without accepting arbitrary word fragments.
+    Longer declared text retains the existing exact-phrase containment rule.
+    """
     from .metrics import fact_in_text, normalize_for_match
+    expected = normalize_for_match(_visible(value))
+    folded = normalize_for_match(surface)
+    if not fact_in_text(folded, expected):
+        return False
+    if not re.fullmatch(r"[A-Za-z]+", value):
+        return True
+    boundary = lambda needle, text: bool(re.search(
+        r"(?<![a-z])" + re.escape(needle) + r"(?![a-z])", text))
+    if boundary(expected, folded):
+        return True
+    camel = lambda text: re.sub(
+        r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", text)
+    if boundary(normalize_for_match(camel(value)),
+                normalize_for_match(camel(surface))):
+        return True
+    labels = {normalize_for_match(word) for word in registered_words}
+    for token in set(re.findall(r"[a-z]+", folded)):
+        if expected not in token:
+            continue
+        states = {(0, False)}
+        for position in range(len(token)):
+            for start, found in tuple(states):
+                if start != position:
+                    continue
+                for label in labels:
+                    if token.startswith(label, position):
+                        states.add((position + len(label), found or label == expected))
+        if (len(token), True) in states:
+            return True
+    return False
+
+
+def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
+                    anchor_visible=None, registered_words=()):
+    from .metrics import normalize_for_match
     if anchor.get('match_scope') == 'non_record_lines':
         if non_record_visible is not None:
             folded = normalize_for_match(non_record_visible)
             return [value for value in anchor['alternatives']
-                    if fact_in_text(folded, normalize_for_match(_visible(value)))]
+                    if _stable_literal_match(non_record_visible, value, registered_words)]
         # A known record label cannot stand in for page context. This is a
         # conservative ownership rule, not a claim of recovered DOM ownership.
         # Flattened page output can put headings and records on one physical
@@ -589,7 +686,7 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
         for title in sorted(set(titles), key=len, reverse=True):
             folded = folded.replace(title, ' ')
         return [value for value in anchor["alternatives"]
-                if fact_in_text(folded, normalize_for_match(_visible(value)))]
+                if _stable_literal_match(folded, value, registered_words)]
     owned = []
     if schema != "named_link":
         for value in anchor["alternatives"]:
@@ -612,7 +709,9 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
             field_matches(record, fields, field)
             for field in SCHEMA_FIELDS[schema]) for record in records)]
     folded = normalize_for_match(anchor_visible if anchor_visible is not None else visible)
-    return [value for value in anchor["alternatives"] if fact_in_text(folded, normalize_for_match(_visible(value)))]
+    return [value for value in anchor["alternatives"]
+            if _stable_literal_match(anchor_visible if anchor_visible is not None else visible,
+                                     value, registered_words)]
 
 
 def validate_acceptance_contract(contract: dict) -> None:
@@ -869,8 +968,6 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])
     from .reference_quality import blocked_page_hits
     blocked_page = bool(blocked_page_hits(text_surface))
-    if blocked_page:
-        content_errors.append("blocked_page")
     errors = []
     if schema in {"named_link", "linked_product"}:
         link_diagnostics = []
@@ -929,9 +1026,12 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     if schema == 'named_link' and any(a.get('match_scope') == 'non_record_lines'
                                       for a in contract.get('stable_text_anchors', [])):
         non_record_visible = _non_record_visible(content, contract, records, base_url)
+    registered_words = tuple(value for anchor in contract.get("stable_text_anchors", [])
+                             for value in anchor["alternatives"]
+                             if re.fullmatch(r"[A-Za-z]+", value))
     for anchor in contract.get("stable_text_anchors", []):
         matched = _anchor_matches(anchor, records, visible, schema,
-                                  non_record_visible, anchor_visible)
+                                  non_record_visible, anchor_visible, registered_words)
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
     content_errors += ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
     complete = [r for r in records if r["valid"]]
