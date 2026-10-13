@@ -166,8 +166,9 @@ def require_native_task_routes(cases, records):
     import hashlib
     from types import SimpleNamespace
     from .providers.headless import output_mode_for_case
+    from .retrieval_hints import native_contract_for_case
 
-    inventory = {case['id']: SimpleNamespace(id=case['id'], url=case['url'], track=case.get('track','web'), task_kind=case.get('task_kind','body'), source_benchmark=case.get('source_benchmark',{}), expected_resources=[{'kind':r.get('kind')} for r in case.get('expected_resources',[])]) for case in cases}
+    inventory = {case['id']: SimpleNamespace(id=case['id'], url=case['url'], track=case.get('track','web'), task_kind=case.get('task_kind','body'), retrieval_hints=case.get('retrieval_hints',{}), source_benchmark=case.get('source_benchmark',{}), expected_resources=[{'kind':r.get('kind')} for r in case.get('expected_resources',[])]) for case in cases}
     expressions = {'resource':RESOURCE_PAGE_EXPRESSION, 'media_metadata':MEDIA_METADATA_EXPRESSION,
                    'document_page':DOCUMENT_PAGE_EXPRESSION}
     failures = []
@@ -186,6 +187,7 @@ def require_native_task_routes(cases, records):
             continue
         case = inventory[row['case_id']]
         mode = output_mode_for_case(provider, 'headless_markdown', case)
+        native_contract = native_contract_for_case(case)
         meta = row.get('provider_metadata') or {}
         # The runner may expire before a worker returns metadata. Its retained
         # call and cohort receipts still bind the invocation and deadline.
@@ -248,6 +250,28 @@ def require_native_task_routes(cases, records):
         if case.track == 'document':
             valid = valid and meta.get('document_extractor') in {None, 'pdfjs_runtime', 'rendered_page_text'}
             valid = valid and '+document_text' not in str(meta.get('extractor', ''))
+        frame_contract = bool(native_contract and native_contract.include_subdocuments)
+        frame_metadata = (
+            (meta.get('wait') or {}).get('subdocuments')
+            if provider == 'moli'
+            else meta.get('subdocuments')
+        )
+        if frame_contract:
+            expected = {
+                'moli': ('native', '--with-frames'),
+                'lightpanda': (
+                    'native_markdown_omits_child_document',
+                    '--load-resources iframe + --with-frames',
+                ),
+            }.get(provider, ('unsupported', None))
+            valid = valid and frame_metadata == {
+                'requested': True,
+                'support': expected[0],
+                'interface': expected[1],
+                'harness_content_assembly': False,
+            }
+        elif frame_metadata is not None:
+            valid = False
         if not valid:
             failures.append(row['provider'] + '/' + case.id)
     if failures:

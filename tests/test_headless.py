@@ -537,6 +537,25 @@ class HeadlessTests(unittest.TestCase):
         self.assertNotIn('--with-frames', obscura)
         self.assertNotIn('--eval', obscura)
 
+    def test_lightpanda_json_envelope_preserves_completion_and_frame_flags(self):
+        plan = {
+            'version': 3, 'wait_until': 'load', 'selector': 'li',
+            'minimum_count': 100, 'timeout_ms': 45000, 'delay_ms': 0,
+            'frame_selector': 'iframe', 'minimum_text_fragments': 0,
+            'wait_kind': 'script',
+            'wait_value': '() => document.querySelectorAll("li").length >= 100',
+        }
+        command = cli_command(
+            'lightpanda', '/lightpanda', 'https://example.com/', 45, 'markdown',
+            retrieval_plan=plan, include_subdocuments=True,
+            native_metadata={'format': 'lightpanda_json'})
+        self.assertEqual(command[command.index('--dump') + 1], 'markdown')
+        self.assertEqual(command.count('--json'), 1)
+        self.assertEqual(command[command.index('--wait-until') + 1], 'load')
+        self.assertEqual(command[command.index('--load-resources') + 1], 'iframe')
+        self.assertEqual(command.count('--with-frames'), 1)
+        self.assertEqual(command[command.index('--wait-script') + 1], plan['wait_value'])
+
     def test_lightpanda_iframe_capability_receipt_does_not_overclaim_markdown(self):
         receipt = json.loads(Path(
             'research/lightpanda-100-native-iframe-capability.json').read_text())

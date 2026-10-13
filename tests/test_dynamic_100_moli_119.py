@@ -48,7 +48,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert len({case["id"] for case in cases}) == 100
     assert len({case["url"] for case in cases}) == 100
     from harness.web_fetch.models import EvalCase
-    from harness.web_fetch.providers.headless import output_mode_for_case
+    from harness.web_fetch.providers.headless import cli_command, output_mode_for_case
     from harness.web_fetch.report_interfaces import browser_task_interface_matrix
     from harness.web_fetch.retrieval_hints import native_contract_for_case
 
@@ -80,10 +80,63 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
         "lightpanda_dynamic": "official_native_markdown",
         "lightpanda_dynamic_case_count": 100,
         "lightpanda_iframe_behavior": (
-            "three contracts add official frame flags; native Markdown omission remains a scored failure"),
+            "three contracts preserve their named completion plan and add official frame flags inside "
+            "the native Markdown JSON transport envelope; native Markdown omission remains a scored failure"),
         "non_chromium_body": "browser-native Markdown",
         "chromium_body": "rendered HTML converted by node-html-markdown 2.0.0",
     }
+    from harness.web_fetch.task_outputs import require_native_task_routes
+
+    by_id = {case.id: case for case in typed_cases}
+    raw_by_id = {case["id"]: case for case in cases}
+    for changed in pre_call["changed_cases"]:
+        case = by_id[changed["case_id"]]
+        contract = native_contract_for_case(case)
+        plan = contract.completion_plan(45_000).worker_dict()
+        command = cli_command(
+            "lightpanda", "/lightpanda", case.url, 45, "markdown",
+            retrieval_plan=plan,
+            include_subdocuments=contract.include_subdocuments,
+            native_metadata={"format": "lightpanda_json"},
+        )
+        assert command[command.index("--dump") + 1] == "markdown"
+        assert command.count("--json") == 1
+        assert command[command.index("--wait-until") + 1] == "load"
+        assert "--wait-selector" in command or "--wait-script" in command
+        if contract.include_subdocuments:
+            assert command.count("--with-frames") == 1
+            assert command[command.index("--load-resources") + 1] == "iframe"
+        else:
+            assert "--with-frames" not in command
+            assert "--load-resources" not in command
+
+        metadata = {
+            "extractor": "lightpanda_native_markdown",
+            "output_contract": "markdown",
+        }
+        if contract.include_subdocuments:
+            metadata["subdocuments"] = {
+                "requested": True,
+                "support": "native_markdown_omits_child_document",
+                "interface": "--load-resources iframe + --with-frames",
+                "harness_content_assembly": False,
+            }
+        row = {"provider": "lightpanda", "case_id": case.id,
+               "provider_metadata": metadata}
+        require_native_task_routes([raw_by_id[case.id]], [row])
+        if contract.include_subdocuments:
+            invalid = {**metadata}
+            invalid.pop("subdocuments")
+        else:
+            invalid = {**metadata, "subdocuments": {
+                "requested": True,
+                "support": "native_markdown_omits_child_document",
+                "interface": "--load-resources iframe + --with-frames",
+                "harness_content_assembly": False,
+            }}
+        with pytest.raises(ValueError, match="Native task route contract violated"):
+            require_native_task_routes([raw_by_id[case.id]], [{**row,
+                "provider_metadata": invalid}])
     assert hashlib.sha256(historical.encode()).hexdigest() == pre_call["revised_dataset_sha256"]
     current_dataset = json.loads(historical)
     for row in pre_call["changed_cases"]:

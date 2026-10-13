@@ -41,7 +41,7 @@
     "interface_policy": {
       "lightpanda_dynamic": "official_native_markdown",
       "lightpanda_dynamic_case_count": 100,
-      "lightpanda_iframe_behavior": "three contracts add official frame flags; native Markdown omission remains a scored failure",
+      "lightpanda_iframe_behavior": "three contracts preserve their named completion plan and add official frame flags inside the native Markdown JSON transport envelope; native Markdown omission remains a scored failure",
       "non_chromium_body": "browser-native Markdown",
       "chromium_body": "rendered HTML converted by node-html-markdown 2.0.0"
     },

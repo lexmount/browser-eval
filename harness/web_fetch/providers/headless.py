@@ -186,12 +186,22 @@ def cli_command(
     include_subdocuments=False,
 ):
     if native_metadata:
-        if output_mode != 'markdown' or retrieval_plan:
+        if output_mode != 'markdown':
             raise ValueError('native metadata requires native Markdown completion')
         if engine == 'lightpanda' and native_metadata.get('format') == 'lightpanda_json':
-            return cli_command(engine, binary, url, timeout, output_mode,
-                               wait_until, retrieval_plan, allow_private_network,
-                               ca_cert, http_proxy) + ['--json']
+            return cli_command(
+                engine, binary, url, timeout, output_mode,
+                wait_until=wait_until,
+                retrieval_plan=retrieval_plan,
+                allow_private_network=allow_private_network,
+                ca_cert=ca_cert,
+                http_proxy=http_proxy,
+                track=track,
+                detail_links=detail_links,
+                include_subdocuments=include_subdocuments,
+            ) + ['--json']
+        if retrieval_plan:
+            raise ValueError('native metadata requires native Markdown completion')
         if engine == 'obscura' and native_metadata.get('format') == 'obscura_eval':
             source = _native_script_bytes(native_metadata)
             expression = ('JSON.stringify({content:(' + source.decode('utf-8')
