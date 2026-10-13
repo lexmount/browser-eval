@@ -540,9 +540,11 @@ def _batch_identity_by_attempt(
             if row["provider"] not in required_providers:
                 continue
             identity = providers.get(row["provider"])
+            metadata = row.get("provider_metadata", {})
+            if not isinstance(identity, dict) or not identity:
+                identity = _recorded_implementation_identity(row)
             if not isinstance(identity, dict) or not identity:
                 raise ValueError(f"Execution batch lacks implementation identity: {attempt_id}")
-            metadata = row.get("provider_metadata", {})
             for field in ("binary_sha256", "reported_version"):
                 if metadata.get(field) is not None and identity.get(field) != metadata[field]:
                     raise ValueError(
@@ -564,6 +566,23 @@ def _batch_identity_by_attempt(
             f"Execution identities do not cover required implementation results: {root}"
         )
     return identities
+
+
+def _recorded_implementation_identity(row: dict) -> dict | None:
+    metadata = row.get("provider_metadata", {})
+    if metadata.get("binary_sha256"):
+        return {
+            "binary_sha256": metadata["binary_sha256"],
+            "reported_version": metadata.get("reported_version")
+            or metadata.get("browser_version"),
+        }
+    if metadata.get("adapter_sha256"):
+        return {
+            "adapter_sha256": metadata["adapter_sha256"],
+            "deployment": metadata.get("deployment"),
+            "service": metadata.get("browser") or metadata.get("engine"),
+        }
+    return None
 
 
 def _validate_impact_receipts(plan: dict, plan_path: Path, canonical: dict) -> list[dict]:
@@ -611,13 +630,20 @@ def _validate_correction_scope_receipts(
         if not path.is_file() or _sha256(path) != binding["sha256"]:
             raise ValueError("Correction-layer scope receipt bytes differ from refresh plan")
         receipt = _read_json(path)
+        entries = receipt.get("layers") if isinstance(receipt.get("layers"), list) else []
+        entry = next(
+            (item for item in entries if isinstance(item, dict)
+             and item.get("layer_id") == layer["id"]),
+            None,
+        )
         if (
             receipt.get("schema_version") != 1
-            or receipt.get("kind") != "predeclared_correction_layer_scope"
+            or receipt.get("kind") != "correction_layer_scope_bindings"
             or receipt.get("provider_calls") != 0
-            or receipt.get("layer_id") != layer["id"]
-            or receipt.get("provider") != layer["provider"]
-            or receipt.get("case_ids") != layer["case_ids"]
+            or entry is None
+            or set(entry) != {"layer_id", "provider", "case_ids"}
+            or entry.get("provider") != layer["provider"]
+            or entry.get("case_ids") != layer["case_ids"]
         ):
             raise ValueError("Correction-layer scope receipt differs from refresh plan")
         validated.append({
@@ -659,6 +685,8 @@ def _validate_layer_execution(
              if isinstance(item, dict) and item.get("name") == provider),
             None,
         )
+        if provider_identity is None:
+            provider_identity = _recorded_implementation_identity(row)
         actual = {
             "runtime_source_sha256": batch.get("runtime_source_sha256"),
             "provider_config_sha256": batch.get("provider_config_sha256"),
@@ -672,7 +700,17 @@ def _validate_layer_execution(
             raise ValueError(
                 f"Correction layer execution differs from its contract: {layer['id']}: {changed}"
             )
-        selected_batch = {**batch, "attempt_ids": [row["attempt_id"]], "attempt_count": 1}
+        selected_providers = [
+            ({**item, "implementation_identity": provider_identity}
+             if isinstance(item, dict) and item.get("name") == provider else item)
+            for item in batch.get("providers", [])
+        ]
+        selected_batch = {
+            **batch,
+            "providers": selected_providers,
+            "attempt_ids": [row["attempt_id"]],
+            "attempt_count": 1,
+        }
         _batch_identity_by_attempt(
             [selected_batch], [row], root, required_providers={provider}
         )

@@ -1109,11 +1109,13 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
         ).encode())
         self.scope_receipt = {
             "schema_version": 1,
-            "kind": "predeclared_correction_layer_scope",
+            "kind": "correction_layer_scope_bindings",
             "provider_calls": 0,
-            "layer_id": "moli-fixed-body-fixes",
-            "provider": "moli-fixed",
-            "case_ids": list(self.AFFECTED),
+            "layers": [{
+                "layer_id": "moli-fixed-body-fixes",
+                "provider": "moli-fixed",
+                "case_ids": list(self.AFFECTED),
+            }],
         }
         self.scope_receipt_path = self.root / "evaluation" / "scope.json"
         self.write_json(self.scope_receipt_path, self.scope_receipt)
@@ -1345,6 +1347,40 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
         audit = json.loads((output / "selection-audit.json").read_text())
         self.assertEqual(len([row for row in audit if row["provider"] == "moli-fixed"]), 4)
 
+    def test_layer_can_bind_identity_recorded_on_each_result(self) -> None:
+        execution = json.loads((self.main / "execution.json").read_text())
+        execution["batches"][0]["providers"][0].pop("implementation_identity")
+        self.write_json(self.main / "execution.json", execution)
+        rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
+        for row in rows:
+            row["provider_metadata"].update({
+                "reported_version": "moli fixture",
+                "binary_sha256": sha(b"moli-fixed-row-identity"),
+            })
+        (self.main / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+        )
+        row_identity = {
+            "reported_version": "moli fixture",
+            "binary_sha256": sha(b"moli-fixed-row-identity"),
+        }
+        self.plan["implementation_upgrades"][0]["rerun_implementation_identity"] = row_identity
+        self.impact["rerun_implementation_identity"] = row_identity
+        self.write_json(self.impact_path, self.impact)
+        self.plan["implementation_upgrades"][0]["impact_receipt"]["sha256"] = sha(
+            self.impact_path.read_bytes()
+        )
+        layer = self.plan["correction_layers"][0]
+        layer["execution_contract"]["implementation_identity"] = row_identity
+        layer["source_bundle"].update({
+            "results_sha256": sha((self.main / "results.jsonl").read_bytes()),
+            "execution_sha256": sha((self.main / "execution.json").read_bytes()),
+        })
+        self.rewrite_plan()
+
+        output = self.assemble(name="row-identity-output")
+        self.assertTrue((output / "refresh-assembly.json").is_file())
+
     def test_upgrade_can_explicitly_omit_same_window_speed_evidence(self) -> None:
         self.declare_speed_not_measured()
         output = self.root / "no-speed-output"
@@ -1444,9 +1480,11 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
             self.write_json(root / "execution.json", execution)
             layer_id = f"layer-{index}"
             scope = {
-                "schema_version": 1, "kind": "predeclared_correction_layer_scope",
-                "provider_calls": 0, "layer_id": layer_id,
-                "provider": "moli-fixed", "case_ids": [case_id],
+                "schema_version": 1, "kind": "correction_layer_scope_bindings",
+                "provider_calls": 0, "layers": [{
+                    "layer_id": layer_id, "provider": "moli-fixed",
+                    "case_ids": [case_id],
+                }],
             }
             scope_path = self.root / "evaluation" / f"{layer_id}-scope.json"
             self.write_json(scope_path, scope)
