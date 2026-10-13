@@ -344,9 +344,13 @@ class NativeRoutePublicationTests(unittest.TestCase):
         from harness.web_fetch.task_outputs import require_native_task_routes, resource_expression
         cases=[{'id':'images','url':'https://example.com/','track':'image','task_kind':'resource'}]
         digest=hashlib.sha256(resource_expression('image').encode()).hexdigest()
+        resource_frames={'requested':True,'support':'native','interface':'--with-frames',
+                         'harness_content_assembly':False,
+                         'scope':'resource_task_family'}
         moli={'route':'resource_native_markdown','output':'native_markdown_resource_urls',
               'output_contract':'native_markdown_resource_urls','dump':'markdown',
-              'extractor':'moli_native_markdown','network_trace_requested':False}
+              'extractor':'moli_native_markdown','network_trace_requested':False,
+              'wait':{'subdocuments':resource_frames}}
         row={'provider':'moli','case_id':'images','provider_metadata':moli}
         require_native_task_routes(cases,[row])
         for bad in ({**moli,'dump':'html'},
@@ -356,7 +360,9 @@ class NativeRoutePublicationTests(unittest.TestCase):
                      'dump':'html','extractor':'moli_native_html'},
                     {**moli,'route':'resource_native_json_trace','output':'native_json_resource_urls',
                      'dump':'json','extractor':'moli_native_json',
-                     'network_trace_requested':True}):
+                     'network_trace_requested':True},
+                    {**moli,'wait':{'subdocuments':{
+                        **resource_frames,'scope':'declared_native_contract'}}}):
             with self.subTest(provider='moli',bad=bad),self.assertRaises(ValueError):
                 require_native_task_routes(cases,[{**row,'provider_metadata':bad}])
         video_cases=[{'id':'video','url':'https://example.com/','track':'video','task_kind':'resource'}]

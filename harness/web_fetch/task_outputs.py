@@ -255,7 +255,10 @@ def require_native_task_routes(cases, records):
         if case.track == 'document':
             valid = valid and meta.get('document_extractor') in {None, 'pdfjs_runtime', 'rendered_page_text'}
             valid = valid and '+document_text' not in str(meta.get('extractor', ''))
-        frame_contract = bool(native_contract and native_contract.include_subdocuments)
+        frame_contract = (
+            (provider == 'moli' and case.task_kind == 'resource')
+            or bool(native_contract and native_contract.include_subdocuments)
+        )
         frame_metadata = (
             (meta.get('wait') or {}).get('subdocuments')
             if provider == 'moli'
@@ -283,7 +286,12 @@ def require_native_task_routes(cases, records):
                     for key, value in expected_frame_metadata.items()
                 )
                 if 'scope' in frame_metadata:
-                    valid = valid and frame_metadata['scope'] == 'declared_native_contract'
+                    expected_scope = (
+                        'resource_task_family'
+                        if case.task_kind == 'resource'
+                        else 'declared_native_contract'
+                    )
+                    valid = valid and frame_metadata['scope'] == expected_scope
             else:
                 valid = False
         elif frame_metadata is not None:
