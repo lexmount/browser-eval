@@ -983,6 +983,64 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
             )
         self.assertFalse(output.exists())
 
+    def test_inherited_baseline_case_must_match_canonical_contract(self) -> None:
+        dataset = json.loads((self.baseline / "dataset.json").read_text())
+        inherited = next(case for case in dataset["cases"] if case["id"] == "filler-001")
+        inherited["url"] = "https://stale.example.test/filler-001"
+        self.write_json(self.baseline / "dataset.json", dataset)
+        self.plan["baseline"]["dataset_sha256"] = sha(
+            (self.baseline / "dataset.json").read_bytes()
+        )
+        self.write_json(self.plan_path, self.plan)
+
+        output = self.root / "stale-inherited-baseline-output"
+        with self.assertRaisesRegex(
+            ValueError, "baseline inherited case/reference binding differs from canonical"
+        ):
+            assemble(
+                self.baseline,
+                [self.main],
+                self.speed,
+                output,
+                canonical_dataset=self.canonical_path,
+                plan=self.plan_path,
+            )
+        self.assertFalse(output.exists())
+
+    def test_assembly_rejects_persisted_verdict_that_public_scorer_flips(self) -> None:
+        rows = [
+            json.loads(line)
+            for line in (self.baseline / "results.jsonl").read_text().splitlines()
+        ]
+        stale = next(
+            row
+            for row in rows
+            if row["provider"] == "cloudflare-markdown"
+            and row["case_id"] == "filler-001"
+        )
+        stale["metrics"]["content_pass"] = False
+        (self.baseline / "results.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8"
+        )
+        self.plan["baseline"]["results_sha256"] = sha(
+            (self.baseline / "results.jsonl").read_bytes()
+        )
+        self.write_json(self.plan_path, self.plan)
+
+        output = self.root / "stale-persisted-verdict-output"
+        with self.assertRaisesRegex(
+            ValueError, "persisted verdict differs from public scorer"
+        ):
+            assemble(
+                self.baseline,
+                [self.main],
+                self.speed,
+                output,
+                canonical_dataset=self.canonical_path,
+                plan=self.plan_path,
+            )
+        self.assertFalse(output.exists())
+
     def test_reused_speed_hash_mismatch_fails_closed(self) -> None:
         self.plan["same_window_speed_cohort"]["results_sha256"] = "0" * 64
         self.write_json(self.plan_path, self.plan)

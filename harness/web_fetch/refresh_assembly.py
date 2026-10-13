@@ -26,6 +26,7 @@ from harness.web_fetch.assembly import (
     _copy_speed_bundle,
     _prune_shadowed_batch_attempts,
 )
+from harness.web_fetch.metrics import task_passed
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
     reference_revision_cases,
@@ -33,6 +34,7 @@ from harness.web_fetch.reference_lifecycle import (
     valid_scoring_revision,
 )
 from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, validate_report_ids
+from harness.web_fetch.scoring import load_list_reference, score_attempt
 from harness.web_fetch.scoring_regressions import (
     build_correction_provenance,
     load_scoring_regressions,
@@ -884,6 +886,45 @@ def _require_canonical_cases(
             raise ValueError(f"{label} case/reference binding differs from canonical: {case_id}")
 
 
+def _require_reproducible_verdicts(root: Path) -> None:
+    """Reject retained verdicts that the public scorer cannot reproduce."""
+    dataset = _read_json(root / "dataset.json")
+    cases = {case["id"]: case for case in dataset.get("cases", [])}
+    list_references = {
+        case_id: load_list_reference(case, root) for case_id, case in cases.items()
+    }
+    flips = []
+    for row in _read_records(root):
+        case = cases[row["case_id"]]
+        raw = contained_path(root, row["artifact_path"]).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != row["metrics"].get("content_sha256"):
+            raise ValueError(f"Assembled artifact hash differs from result: {row['attempt_id']}")
+        before = task_passed(
+            bool(row["ok"]), row["metrics"], case.get("task_kind", "body")
+        )
+        rescored = score_attempt(
+            case,
+            raw,
+            ok=bool(row["ok"]),
+            status_code=row.get("status_code"),
+            title=row.get("title"),
+            final_url=row.get("final_url"),
+            metadata=row.get("provider_metadata", {}),
+            previous_metrics=row["metrics"],
+            list_reference=list_references[row["case_id"]],
+        )
+        after = task_passed(bool(row["ok"]), rescored, case.get("task_kind", "body"))
+        if before != after:
+            flips.append(f"{row['provider']}/{row['case_id']} ({before}->{after})")
+    if flips:
+        preview = ", ".join(flips[:5])
+        suffix = "" if len(flips) <= 5 else f", and {len(flips) - 5} more"
+        raise ValueError(
+            "Assembled persisted verdict differs from public scorer: "
+            f"{preview}{suffix}"
+        )
+
+
 def _copy_artifacts(output: Path, selections: list[tuple[dict, Path]]) -> None:
     by_root = defaultdict(list)
     for row, root in selections:
@@ -1346,6 +1387,16 @@ def _assemble(
                     })
                 selected.append((selected_row, baseline))
     final_rows = [row for row, _ in selected]
+    inherited_baseline_rows = [
+        _physical_record(row) for row, root in selected if root == baseline
+    ]
+    _require_canonical_cases(
+        baseline_dataset,
+        canonical_cases,
+        inherited_baseline_rows,
+        "baseline inherited",
+        equivalent_capture_bindings=equivalent_capture_bindings,
+    )
     _validate_record_identity(
         final_rows, allowed_pairs=expected_final, label="assembled main matrix",
         allow_physical_projection=bool(upgrades),
@@ -1484,6 +1535,7 @@ def _assemble(
     (output / "selection-audit.json").write_text(
         json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    _require_reproducible_verdicts(output)
     _write_composite_revisions(output, selected)
 
     history = output / "history" / "source-executions"
