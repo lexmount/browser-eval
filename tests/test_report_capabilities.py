@@ -89,6 +89,13 @@ class CapabilityTests(unittest.TestCase):
         self.assertIn('只识别其中的资源 URL', CAPABILITIES['moli-webfetch']['tested'])
         self.assertIn('selector', CAPABILITIES['moli-webfetch']['tested'])
 
+    def test_moli_document_capabilities_never_credit_external_parsing(self):
+        for name in ('moli-1.0.6', 'moli', 'moli-1.1.3', 'moli-1.1.11'):
+            row = CAPABILITIES[name]
+            self.assertIn('原生 Markdown 接口直接交付', row['notes'])
+            self.assertIn('不再外部解析', row['notes'])
+            self.assertNotIn('评测在同一次预算内解析', row['notes'])
+
     def test_official_task_routes_are_not_collapsed_into_webpage_markdown(self):
         cloudflare = CAPABILITIES['cloudflare-markdown']
         for route in ('/markdown', '/scrape', '/ai/tomarkdown'):
