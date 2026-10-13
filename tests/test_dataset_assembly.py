@@ -298,6 +298,22 @@ def test_registered_430_assembly_uses_current_sources_and_four_contracts(tmp_pat
         anchor["id"] != "source-stable-310fe77a5860"
         for anchor in corrected_case["acceptance_contract"]["stable_text_anchors"]
     )
+    corrected_by_id = {case["id"]: case for case in dataset["cases"]}
+    assert corrected_by_id["dynamic-050-en-real-usgs-earthquakes"][
+        "acceptance_contract"
+    ]["minimum_records"] == 3
+    assert all(
+        "Log in" not in anchor["alternatives"]
+        for anchor in corrected_by_id["global-homepage-045-nytimes-com"][
+            "acceptance_contract"
+        ]["stable_text_anchors"]
+    )
+    assert all(
+        "翻译" not in anchor["alternatives"]
+        for anchor in corrected_by_id["risk-diverse-011"]["acceptance_contract"][
+            "stable_text_anchors"
+        ]
+    )
     risk_correction = next(
         row for row in corrections["cases"] if row["case_id"] == "risk-102"
     )

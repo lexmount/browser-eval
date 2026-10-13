@@ -29,8 +29,31 @@ HOMEPAGE_READER_SCOPE_PROMPTS = frozenset({
     "不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、"
     "不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。"
     "同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /[0-9]+。",
+    "直接获取这个热门网站首次加载后可见的稳定正文，保留栏目和支持入口文字；同时返回至少 10 条不同的"
+    "具名文章入口，每条包含有意义的名称和 HTTP(S) 链接。不固定当前文章、顺序、排名或数量；不点击子页面、"
+    "不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、按钮控件文字、隐藏名称、"
+    "网页标题和脚本文字不能代替正文。",
 })
 from .safety import contained_path, safe_identifier
+
+
+def homepage_prompt_anchor_correction(old: dict, new: dict) -> bool:
+    """Recognize a reader-scope prompt synchronized with narrowed homepage anchors."""
+    before = old.get("acceptance_contract", {})
+    after = new.get("acceptance_contract", {})
+    without_anchors = lambda value: {
+        key: item for key, item in value.items() if key != "stable_text_anchors"
+    }
+    anchors = after.get("stable_text_anchors", [])
+    return (
+        old.get("source_benchmark", {}).get("mode")
+        == new.get("source_benchmark", {}).get("mode")
+        == "ranked_domain_homepage"
+        and before.get("stable_text_anchors") != anchors
+        and without_anchors(before) == without_anchors(after)
+        and bool(anchors)
+        and new.get("task_prompt") in HOMEPAGE_READER_SCOPE_PROMPTS
+    )
 
 MAX_REFERENCE_AGE_SECONDS = 30 * 60
 

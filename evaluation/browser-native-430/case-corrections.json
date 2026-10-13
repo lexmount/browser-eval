@@ -650,6 +650,275 @@
         ]
       },
       "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "dynamic-050-en-real-usgs-earthquakes",
+      "expected_definition_sha256": "0b7b79248b87bea1ab92b27d4387654ea786489b37479ed2e11228154b632422",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 3,
+          "stable_text_anchors": [
+            {
+              "id": "source-stable-97037cfd871a",
+              "alternatives": [
+                "Magnitude"
+              ],
+              "source_location": "body > span",
+              "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+              "source_evidence_sha256": "5d2a4822bc9986e1b1c3d0089b21d4163b91c6975b7b139a93a1d7035320e848"
+            },
+            {
+              "id": "source-stable-4ea1885778d3",
+              "alternatives": [
+                "Newest First"
+              ],
+              "source_location": "body > span",
+              "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+              "source_evidence_sha256": "f413a6b2bc8576970b1222813c65603d2778bf2fd24f76ee1bb1d10df3d8f59e"
+            },
+            {
+              "id": "source-stable-74a883a037bc",
+              "alternatives": [
+                "Settings"
+              ],
+              "source_location": "body > a",
+              "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+              "source_evidence_sha256": "3f47086ffa8213405ec3ebc8423c281939a5433111b8c3c2960b049e41524a46"
+            },
+            {
+              "id": "source-stable-bec69036aa27",
+              "alternatives": [
+                "Sort"
+              ],
+              "source_location": "body > mat-label",
+              "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+              "source_evidence_sha256": "b2694bcae82851c6ea153f5158daffb53c2e65334d0fc7d747f48af0ea9afe61"
+            },
+            {
+              "id": "source-stable-ae62e153ba72",
+              "alternatives": [
+                "Only List Earthquakes Shown on Map"
+              ],
+              "source_location": "body > label",
+              "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+              "source_evidence_sha256": "2a0aa9d5253b781b74de10e09ef199206106c43a0700f86be46d31f8e11cb222"
+            },
+            {
+              "id": "source-stable-ec60bc50478b",
+              "alternatives": [
+                "Felt something not shown – report it here."
+              ],
+              "source_location": "body > a",
+              "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+              "source_evidence_sha256": "50676cdc4fb5b8f06cf0f623c7ca927d036533b90c63b80670fc71304bea0535"
+            }
+          ],
+          "record_count_policy": {
+            "list_type": "variable",
+            "source_observed_count": 3,
+            "required_ratio": 0.8,
+            "minimum_records": 3,
+            "source_observation_counts": [
+              3,
+              3
+            ],
+            "source_evidence_sha256": "b1f3a532ab58c85c79bbea988444a4d4ad36f9c22c36c2575af3cde85bea2222",
+            "reason": "Both independently captured initial-load targets contain three records; the unrelated 48-record diagnostic denominator is retired."
+          }
+        }
+      },
+      "evidence": {
+        "source": "https://earthquake.usgs.gov/earthquakes/map/",
+        "observed_at": "2026-09-24",
+        "observed_text": "The two bound independent initial-load captures each contain three target records; their target text hashes are identical.",
+        "root_cause": "source_observed_record_threshold",
+        "prior_acceptance_contract_sha256": "9490942d15708e216207b81ec9ef0ff16ffb07ee70a926a1f44e5afefec269bf",
+        "revised_acceptance_contract_sha256": "97475bdbfe37d011aa8cf28294d3fdae956d6ce1f595ce2065fd85eeb3c9bf9b",
+        "affected_scope": "dynamic-050-en-real-usgs-earthquakes across all registered methods; offline rescore only",
+        "regression_ids": [
+          "variable-list-23-of-30-does-not-meet-80-percent-source-threshold",
+          "variable-list-24-of-30-meets-source-threshold-without-claiming-completeness"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "global-homepage-045-nytimes-com",
+      "expected_definition_sha256": "86c8d0d3892b099d3c6768bbe9767b0fbfaa01023d3d42a4d3bd7e838403b221",
+      "set": {
+        "task_prompt": "直接获取这个热门网站首次加载后可见的稳定正文，保留栏目和支持入口文字；同时返回至少 10 条不同的具名文章入口，每条包含有意义的名称和 HTTP(S) 链接。不固定当前文章、顺序、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+        "reference_answer": "直接获取这个热门网站首次加载后可见的稳定正文，保留栏目和支持入口文字；同时返回至少 10 条不同的具名文章入口，每条包含有意义的名称和 HTTP(S) 链接。不固定当前文章、顺序、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、不登录，也不执行其他 Browser Use 操作。图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 10,
+          "hosts": [
+            "www.nytimes.com"
+          ],
+          "entry_path": "/[0-9]{4}/[0-9]{2}/[0-9]{2}/.+",
+          "stable_text_anchors": [
+            {
+              "id": "stable-anchor-1",
+              "alternatives": [
+                "U.S."
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-2",
+              "alternatives": [
+                "World"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-3",
+              "alternatives": [
+                "Business"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-4",
+              "alternatives": [
+                "Opinion"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-5",
+              "alternatives": [
+                "Arts"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-6",
+              "alternatives": [
+                "Cooking"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-7",
+              "alternatives": [
+                "Games"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-8",
+              "alternatives": [
+                "Wirecutter"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-9",
+              "alternatives": [
+                "The Athletic"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-11",
+              "alternatives": [
+                "Help"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-12",
+              "alternatives": [
+                "Site Map"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-13",
+              "alternatives": [
+                "Advertise"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-14",
+              "alternatives": [
+                "Contact Us"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ],
+          "link_base_url": "https://www.nytimes.com/"
+        }
+      },
+      "evidence": {
+        "source": "sources/global-homepage-045-nytimes-com/stable-page.txt",
+        "observed_at": "2026-09-16",
+        "observed_text": "The bound source lists Log in, while its own stable annotation excludes button and control text from the body contract.",
+        "root_cause": "conditional_ui_control_not_body_requirement",
+        "prior_acceptance_contract_sha256": "018c596188d7f9d76a70735b8de00fc3b579bf3ff172f4b39d6402f251eb10a2",
+        "revised_acceptance_contract_sha256": "a35f3a8847d74bedc70de8253b3ab74c106dda6ebecf81380e78c2c54a91b5da",
+        "affected_scope": "global-homepage-045-nytimes-com across all registered methods; offline rescore only",
+        "regression_ids": [
+          "body-without-conditional-ui-control-passes",
+          "conditional-ui-controls-cannot-replace-body"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "risk-diverse-011",
+      "expected_definition_sha256": "a1dc25366197b23bb314d20dcb50d3ebb82c83d6403d45a46634518e8d8707b6",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-01",
+              "alternatives": [
+                "nasa"
+              ]
+            },
+            {
+              "id": "stable-02",
+              "alternatives": [
+                "Space Threads"
+              ]
+            },
+            {
+              "id": "stable-03",
+              "alternatives": [
+                "Curly-haired crew, this one’s for you!"
+              ]
+            },
+            {
+              "id": "stable-04",
+              "alternatives": [
+                "串文"
+              ]
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "https://www.threads.com/@nasa/post/DdEwHNClPdc?hl=zh-cn",
+        "observed_at": "2026-09-24",
+        "observed_text": "The hash-bound post reference owns the author and post text. The translation affordance is conditional interface chrome and is outside that body scope.",
+        "root_cause": "conditional_ui_control_not_body_requirement",
+        "prior_acceptance_contract_sha256": "7a4c57a425fa05e626ba6c98f4b9a3051472359222e2c2d3152826aa2ee353b1",
+        "revised_acceptance_contract_sha256": "d1ef2692d411d68617f43933dcf77f791c39217c4eda5963361836540f0c9ea6",
+        "affected_scope": "risk-diverse-011 across all registered methods; offline rescore only",
+        "regression_ids": [
+          "body-without-conditional-ui-control-passes",
+          "conditional-ui-controls-cannot-replace-body"
+        ]
+      },
+      "execution_effect": "rescore_only"
     }
   ]
 }

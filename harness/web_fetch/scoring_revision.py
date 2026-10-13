@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 from harness.record_io import parse_jsonl
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
-    HOMEPAGE_READER_SCOPE_PROMPTS,
+    homepage_prompt_anchor_correction,
     reference_revision_cases,
     valid_scoring_revision,
 )
@@ -79,21 +79,7 @@ def _resource_prompt_policy_correction(old: dict, new: dict) -> bool:
 
 def _homepage_prompt_anchor_correction(old: dict, new: dict) -> bool:
     """Allow a homepage scope description to stop embedding revised answer anchors."""
-    before = old.get("acceptance_contract", {})
-    after = new.get("acceptance_contract", {})
-    without_anchors = lambda value: {
-        key: item for key, item in value.items() if key != "stable_text_anchors"
-    }
-    anchors = after.get("stable_text_anchors", [])
-    return (
-        old.get("source_benchmark", {}).get("mode")
-        == new.get("source_benchmark", {}).get("mode")
-        == "ranked_domain_homepage"
-        and before.get("stable_text_anchors") != anchors
-        and without_anchors(before) == without_anchors(after)
-        and bool(anchors)
-        and new.get("task_prompt") in HOMEPAGE_READER_SCOPE_PROMPTS
-    )
+    return homepage_prompt_anchor_correction(old, new)
 
 
 def _scoring_source_sha256s(records: list[dict], *, label: str) -> list[str]:

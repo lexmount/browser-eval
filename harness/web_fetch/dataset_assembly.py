@@ -53,6 +53,7 @@ def _apply_case_corrections(
 ) -> list[str]:
     """Apply compact, hash-locked reference and scoring corrections to imported cases."""
     from harness.web_fetch.scoring_regressions import require_scoring_regressions
+    from harness.web_fetch.reference_lifecycle import homepage_prompt_anchor_correction
 
     declaration = definition.get("case_corrections")
     if declaration is None:
@@ -88,6 +89,14 @@ def _apply_case_corrections(
             raise ValueError("Assembly case correction input changed: " + case_id)
         changes = row["set"]
         execution_effect = row.get("execution_effect", "rescore_only")
+        proposed = {**case, **changes} if isinstance(changes, dict) else case
+        rerun_fields = set(changes or {}) & _RERUN_ONLY_CASE_FIELDS
+        prompt_only_scoring_correction = (
+            bool(rerun_fields)
+            and rerun_fields <= {"task_prompt", "reference_answer"}
+            and homepage_prompt_anchor_correction(case, proposed)
+            and proposed.get("reference_answer") == proposed.get("task_prompt")
+        )
         evidence = row.get("evidence")
         regression_ids = evidence.get("regression_ids") if isinstance(evidence, dict) else None
         if (
@@ -95,7 +104,11 @@ def _apply_case_corrections(
             or not changes
             or execution_effect not in {"rescore_only", "rerun_all_methods"}
             or set(changes) - (_CORRECTABLE_CASE_FIELDS | _RERUN_ONLY_CASE_FIELDS)
-            or (set(changes) & _RERUN_ONLY_CASE_FIELDS and execution_effect != "rerun_all_methods")
+            or (
+                rerun_fields
+                and execution_effect != "rerun_all_methods"
+                and not prompt_only_scoring_correction
+            )
             or not isinstance(evidence, dict)
             or not isinstance(evidence.get("source"), str)
             or not evidence["source"].strip()
