@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import importlib.metadata
 import re
+from collections import Counter
 from functools import lru_cache, wraps
 from contextvars import ContextVar
 from pathlib import Path
@@ -50,7 +51,7 @@ def with_measured_method_labels(render):
         path = Path(out) / "implementation-provenance.json"
         provenance = json.loads(path.read_text()) if path.is_file() else {}
         identities = {
-            (item["provider"], item["binary_sha256"]): item["version"]
+            item["binary_sha256"]: item["version"]
             for item in provenance.get("implementations", [])
             if item.get("version") and item.get("binary_sha256")
         }
@@ -59,10 +60,18 @@ def with_measured_method_labels(render):
             if native_browser_engine(name) != "moli":
                 continue
             subset = [r for r in records if r["provider"] == name]
-            hashes = {r.get("provider_metadata", {}).get("binary_sha256") for r in subset}
-            if hashes and all((name, value) in identities for value in hashes):
-                versions = sorted({identities[name, value] for value in hashes})
-                labels[name] = "Moli " + " / ".join(versions)
+            versions = [
+                identities.get(r.get("provider_metadata", {}).get("binary_sha256"))
+                for r in subset
+            ]
+            if versions and all(versions):
+                counts = Counter(versions)
+                if len(counts) == 1:
+                    labels[name] = "Moli " + next(iter(counts))
+                else:
+                    labels[name] = "Moli 修复结果（" + "；".join(
+                        f"{count} 例 {version}" for version, count in sorted(counts.items())
+                    ) + "）"
         token = _MEASURED_LABELS.set(labels)
         try:
             return render(out, dataset, records, *args, **kwargs)
