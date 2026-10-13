@@ -238,6 +238,52 @@ def table_text_surface(content):
     return '\n'.join(output)
 
 
+def table_header_column_surfaces(content):
+    """Return each real table's header followed by one complete body column.
+
+    A visible reference can legitimately omit graphical or auxiliary cell values
+    while retaining every header and the text-bearing column.  Keep each table
+    and column isolated: values from another column, table, or surrounding prose
+    must never repair a missing cell.
+    """
+    lines = table_text_surface(content).splitlines()
+    surfaces = []
+    table_index = 0
+    index = 0
+    while index + 1 < len(lines):
+        headers = _pipe_cells(lines[index])
+        separators = _pipe_cells(lines[index + 1])
+        if ("|" not in lines[index] or len(headers) < 2
+                or len(separators) != len(headers)
+                or not all(header.strip() for header in headers)
+                or not all(re.fullmatch(r"\s*:?-{3,}:?\s*", cell)
+                           for cell in separators)):
+            index += 1
+            continue
+        rows = []
+        cursor = index + 2
+        while cursor < len(lines) and "|" in lines[cursor]:
+            cells = _pipe_cells(lines[cursor])
+            if len(cells) != len(headers):
+                break
+            rows.append(cells)
+            cursor += 1
+        if rows:
+            from .reference_quality import visible_markdown_links
+            table_index += 1
+            visible_headers = [visible_markdown_links(value).strip() for value in headers]
+            for column_index in range(len(headers)):
+                column = [visible_markdown_links(row[column_index]).strip() for row in rows]
+                if all(column):
+                    surfaces.append({
+                        "text": "\n".join(visible_headers + column),
+                        "table_index": table_index,
+                        "column_index": column_index,
+                    })
+        index = max(index + 1, cursor)
+    return surfaces
+
+
 def parse_table_records(content, visible, contract):
     columns, scope = contract['table_columns'], contract['table_scope']
     names = [c['name'] for c in columns]

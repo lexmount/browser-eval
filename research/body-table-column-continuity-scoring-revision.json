@@ -1,0 +1,54 @@
+{
+  "schema_version": 2,
+  "kind": "shared_body_scoring_revision",
+  "provider_calls": 0,
+  "correction_provenance": {
+    "category": "body-scope",
+    "root_cause": "Compact body fragments treated every visible table cell as one linear prose stream, so valid auxiliary values between adjacent cells of the independently observed text column broke its continuity.",
+    "regression_ids": [
+      "body-table-intermediate-column-keeps-text-column-continuous",
+      "body-table-unrelated-column-cannot-repair-missing-record",
+      "body-table-missing-header-cannot-use-column-projection"
+    ],
+    "verdict_corrections": {
+      "false_positives": 0,
+      "false_negatives": 1,
+      "total": 1
+    }
+  },
+  "policy": {
+    "direct_body_surface": "evaluated_first_and_unchanged",
+    "table_projection": "one complete table header plus one nonempty data column from the same rectangular table",
+    "cross_column_or_cross_table_borrowing": "forbidden",
+    "surrounding_prose_borrowing": "forbidden"
+  },
+  "independent_source_authority": {
+    "case_id": "dynamic-043-en-stable-grommet-table",
+    "audit_sha256": "4f19f66321922863c6ffd3dd48fd4981bbbc34ae00b7aed7ad8ba9b1c35cd9bb",
+    "source_html_sha256": "1eb3a7185bbad8a230225cccfdb640ced20c021d926ce10b5500a86fd0eed287",
+    "source_contract_sha256": "e4fc15a0286237b4390201f0ab0ec7dbe94f553d7b6111e1c1198359b806d218",
+    "observation_status": "source_full_rule_met",
+    "provider_output_used": false
+  },
+  "scorer_binding": {
+    "baseline_repository_commit": "748e56e4c530d68757b1ec1799d1e1b6aa6ecbbe",
+    "baseline_scoring_source_sha256": "4a7048e2f6095352ab01f8a50ee459f36683dcb48ea8b5a28c45c575841324ef",
+    "revised_scoring_source_sha256": "8bc386c7c081b70701d635e4fc2ead8c22a7f9a6004ec42adcaf391f9d470f1b",
+    "scoring_regressions_sha256": "a4bfd485ca1f26d6759e2ad3e5c1ba85ac53e6e9687f47243ea9ba65cd7fc45f"
+  },
+  "offline_decision_check": {
+    "dataset_sha256": "029c46d13639cebc298092c0be5649c5e419f2e4868a9ea91e3196403b32906e",
+    "artifact_sha256": "de5cb6d649d637aa961e0e9915a6cb0e0a67e5c5d52d9584339d4d438f981102",
+    "case_id": "dynamic-043-en-stable-grommet-table",
+    "before_task_pass": false,
+    "after_task_pass": true
+  },
+  "unresolved_source_qualification": {
+    "case_id": "dynamic-086-joyn-prosieben",
+    "source_html_sha256": "26718d6d39a91322df8380c89308db99f5ebfa0b7c1672a0a01c54c5660538e6",
+    "status": "source_contract_unmet",
+    "qualified_record_count": 0,
+    "raw_source_bytes_recovered": false,
+    "decision": "No scoring or reference change. Provider output is not an independent source authority."
+  }
+}

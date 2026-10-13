@@ -386,7 +386,7 @@ def _global_region_allocation(predicted, expected, floor_counts, target_counts,
     return allocation, True
 
 
-def evaluate_body_requirements(content, contract):
+def _evaluate_body_surface(content, contract):
     if not contract:
         return {'body_coverage_pass': True, 'body_region_results': []}
     version = contract.get('version')
@@ -481,3 +481,21 @@ def evaluate_body_requirements(content, contract):
             **({'body_matching_text_sha256': hashlib.sha256(
                 matching_text.encode()).hexdigest()} if version == 3 else {}),
             'body_region_results': checks}
+
+
+def evaluate_body_requirements(content, contract):
+    """Evaluate prose directly, then one structure-preserving table column at a time."""
+    result = _evaluate_body_surface(content, contract)
+    if not contract or result['body_coverage_pass']:
+        return result
+    from .structured_tables import table_header_column_surfaces
+    for surface in table_header_column_surfaces(content):
+        candidate = _evaluate_body_surface(surface['text'], contract)
+        if candidate['body_coverage_pass']:
+            candidate.update({
+                'body_matching_surface': 'table_header_and_column',
+                'body_matching_table_index': surface['table_index'],
+                'body_matching_column_index': surface['column_index'],
+            })
+            return candidate
+    return result

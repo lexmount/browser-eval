@@ -171,7 +171,8 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.add("html_language_metadata_diagnostic_not_acceptance")
         paired.update({"table_visible_section_boundaries", "table_escaped_pipe_boundaries"})
         paired.update({"table_header_visual_line", "table_adjacent_split_body",
-                       "composite_html_table_ownership"})
+                       "composite_html_table_ownership",
+                       "body_table_column_continuity"})
         for root_cause in paired:
             self.assertEqual(root_modes.get(root_cause), {"false-positive", "false-negative"})
 
