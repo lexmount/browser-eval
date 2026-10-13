@@ -93,6 +93,13 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
     )
     assert authoritative["case_count"] == 430
     assert authoritative["provider_calls"] == 0
+    correction = pre_call["assembly_correction"]
+    assert correction["revised_native_dataset_sha256"] == authoritative[
+        "revised_pre_call_dataset_sha256"
+    ]
+    assert correction["provider_route_changed"] is False
+    assert correction["acceptance_changed"] is False
+    assert correction["provider_calls"] == 0
     assert pre_call["execution_effect"]["required_new_calls"] == {
         "moli_fixed": 39, "moli_pr919": 21, "lightpanda": 4,
         "obscura": 4, "chromium": 4, "kitesurf": 4,

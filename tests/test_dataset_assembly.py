@@ -95,7 +95,9 @@ def test_profile_dataset_assembly_rejects_stale_source_and_wrong_owner(tmp_path)
         assemble_profile_dataset(path, repository=tmp_path, require_output_hash=False)
 
 
-def test_registered_430_assembly_uses_current_sources_and_four_contracts():
+def test_registered_430_assembly_uses_current_sources_and_four_contracts(tmp_path):
+    from harness.web_fetch.config import load_dataset
+
     definition = json.loads(ASSEMBLY.read_text(encoding="utf-8"))
     for source in definition["sources"]:
         raw = read_frozen_dataset_bytes(ROOT / source["path"])
@@ -113,3 +115,7 @@ def test_registered_430_assembly_uses_current_sources_and_four_contracts():
         "dynamic-iframe": "iframe-fourteen-family-headings",
         "dynamic-delayed": "delayed-ten-records",
     }
+    output = tmp_path / "assembled-dataset.json"
+    output.write_bytes(raw)
+    _metadata, cases = load_dataset(output)
+    assert len(cases) == 430

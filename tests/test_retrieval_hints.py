@@ -29,7 +29,7 @@ def test_native_execution_keeps_dynamic_scenario_and_acceptance_without_injected
     assert selected['cases'][0]['track']=='dynamic'
     assert selected['coverage_plan']==original['coverage_plan']
     assert selected['cases'][0]['category']=='dynamic_content'
-    assert selected['cases'][0]['source_benchmark']['scenario_track']=='dynamic'
+    assert 'source_benchmark' not in selected['cases'][0]
     assert selected['cases'][0]['acceptance_contract']==original['cases'][0]['acceptance_contract']
     assert selected['cases'][0]['min_content_chars']==1000
     assert plan_for_case(EvalCase(**selected['cases'][0])) is None

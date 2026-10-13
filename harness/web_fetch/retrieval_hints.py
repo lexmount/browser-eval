@@ -98,7 +98,6 @@ def native_fetch_dataset(dataset: dict) -> dict:
                 raise ValueError('Native fetch cannot discard declared retrieval hints: ' + case['id'])
         if case.get('track') == 'dynamic':
             case.setdefault('retrieval_hints', {'version': 3, 'mode': 'native'})
-            case.setdefault('source_benchmark', {})['scenario_track'] = 'dynamic'
     result.setdefault('comparison', {})['retrieval_mode'] = 'native_default_completion'
     return result
 
