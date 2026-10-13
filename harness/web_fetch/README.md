@@ -576,8 +576,11 @@ rankings and catalogs change frequently. Annotate fields, not whole websites:
   `stable_text_anchors` with independently justified equivalent alternatives.
 - Frequently changing names, prices, dates and ranking positions use an
   `acceptance_contract`: required fields, types, record grouping, minimum count,
-  uniqueness and optional stable page identity. Values are not compared to a
-  previous ranking. Duplicate cards cannot satisfy the minimum.
+  uniqueness and stable page text. Values are not compared to a previous
+  ranking. Duplicate cards cannot satisfy the minimum. Final-URL agreement is
+  diagnostic: a missing or mismatched URL does not change acceptance or the
+  evaluated denominator. Declared document-language requirements remain
+  separate acceptance checks.
 - Full-reference word precision, recall and F1 remain separate diagnostics.
   Historical demonstration snapshots describe their captured sample; they do
   not certify arbitrary later content. Without a comparable full reference,

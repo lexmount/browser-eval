@@ -93,6 +93,16 @@ class ScoringTests(unittest.TestCase):
         self.assertEqual(missing["page_identity_status"], "unavailable")
         self.assertTrue(task_measured(missing))
         self.assertTrue(task_passed(True, missing))
+        for diagnostic in (wrong, missing):
+            stats = summarize([{
+                "provider": "fixture", "provider_type": "fixture",
+                "case_id": c.id, "case_name": c.name, "category": c.category,
+                "ok": True, "elapsed_ms": 1,
+                "metrics": diagnostic,
+            }])["providers"]["fixture"]
+            self.assertEqual(stats["task_evaluated_attempts"], 1)
+            self.assertEqual(stats["task_unmeasured_attempts"], 0)
+            self.assertEqual(stats["task_pass_rate"], 1.0)
         failed = score_attempt(c, b"", ok=False)
         self.assertEqual(failed["page_identity_status"], "unavailable")
         self.assertTrue(task_measured(failed))

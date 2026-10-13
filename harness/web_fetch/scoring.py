@@ -51,6 +51,7 @@ _CONDITIONAL_FIELDS = {
     "structure_pass", "named_entry_count", "minimum_entries", "snapshot_f1",
     "dynamic_titles", "verification_note", "confirmed_entries", "checked_entries",
     "page_identity_required", "page_identity_status", "final_url_consistent",
+    "document_language_required",
     "language_consistent", "observed_document_language",
     "acceptable_final_urls",
     "ordered_tree", "ordered_tree_similarity",
@@ -213,7 +214,8 @@ def score_attempt(
             acceptable_final_urls=acceptable_urls,
         )
     else:
-        result.update(page_identity_required=False, page_identity_status="not_required")
+        result.update(page_identity_required=False, page_identity_status="not_required",
+                      document_language_required=False)
     result["task_kind"] = task_kind
     result["rule_review_status"] = rule_review.get("status", "resolved")
     if rule_review.get("reason"):
