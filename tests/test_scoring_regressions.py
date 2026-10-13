@@ -167,6 +167,11 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.add("task_relevant_visible_text_scope")
         paired.add("forbidden_phrase_substring_collision")
         paired.add("scoped_markdown_caption_ownership")
+        paired.add("visible_html_record_projection")
+        paired.add("visible_character_reference_projection")
+        paired.add("visible_html_link_ownership")
+        paired.add("native_answer_surface_ownership")
+        paired.add("repeated_title_card_ownership")
         paired.add("final_url_diagnostic_not_acceptance")
         paired.add("html_language_metadata_diagnostic_not_acceptance")
         paired.update({

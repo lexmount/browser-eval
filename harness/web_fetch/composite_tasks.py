@@ -532,6 +532,9 @@ def _name_description_group(content: str, group: dict, base_url: str) -> dict:
             "minimum_records": group["minimum_records"],
         },
         base_url,
+        allow_closed_title_cards=bool(
+            group.get("start_pattern") and group.get("end_pattern")
+        ),
     )
     return {
         "count": result["stable_unique_record_count"],

@@ -2,6 +2,16 @@
 import re
 import unicodedata
 from dataclasses import dataclass
+from html import unescape
+
+
+HTML_BLOCK_ELEMENTS = frozenset({
+    "address", "article", "aside", "blockquote", "caption", "colgroup", "dd",
+    "details", "dialog", "div", "dl", "dt", "fieldset", "figcaption", "figure",
+    "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr",
+    "li", "main", "nav", "ol", "p", "pre", "section", "summary", "table",
+    "tbody", "thead", "tfoot", "tr", "ul",
+})
 
 
 def clean_reference_text(text: str) -> str:
@@ -25,6 +35,20 @@ def normalize_reference_anchor(text: str) -> str:
 def reference_anchor_in_text(reference: str, anchor: str) -> bool:
     expected = normalize_reference_anchor(anchor)
     return bool(expected and expected in normalize_reference_anchor(reference))
+
+
+def is_html_document_or_fragment(text: str) -> bool:
+    """Return whether an answer starts with a block HTML document surface.
+
+    A Markdown answer may retain inline tags inside link labels or prose.  Only
+    a leading document or block element selects the HTML projection path.
+    """
+    elements = "|".join(sorted(HTML_BLOCK_ELEMENTS | {"html", "body"}))
+    return bool(re.match(
+        rf"\s*(?:<!doctype\s+html\b[^>]*>\s*)?<(?:{elements})\b",
+        text,
+        re.I,
+    ))
 
 
 _BLOCKED_PAGE = re.compile(
@@ -261,7 +285,10 @@ def visible_mixed_html_text(text: str) -> str:
         r"tbody|td|th|thead|tr|ul|script|style|template)\b[^>]*>",
         protected, re.I,
     ):
-        return text
+        projected = unescape(protected)
+        for index, literal in enumerate(literals):
+            projected = projected.replace(f"{marker}{index}{marker}", literal)
+        return projected
     projected = visible_html_text(protected, preserve_source_whitespace=True)
     for index, literal in enumerate(literals):
         projected = projected.replace(f"{marker}{index}{marker}", literal)

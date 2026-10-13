@@ -116,11 +116,23 @@ def _unwrap_links(text, schema):
 
 
 def _visible(text, schema=None):
+    from .reference_quality import is_html_document_or_fragment
+
+    projected_html = (
+        schema in SCHEMA_FIELDS
+        and schema not in {"named_link", "linked_product", "table_row", "body_text", "page_identity"}
+        and is_html_document_or_fragment(text)
+    )
+    if projected_html:
+        from .dynamic_lists import visible_html_text
+
+        text = visible_html_text(text)
     text = clean_reference_text(text)
     # Decode one character-reference layer, as a browser does for both HTML
     # and Markdown. In particular, ``&amp;`` is the visible ``&`` while an
     # intentionally escaped ``&amp;amp;`` remains the literal text ``&amp;``.
-    text = unescape(text)
+    if not projected_html:
+        text = unescape(text)
     # Extractors represent Markdown hard breaks using one or two backslashes.
     text = re.sub(r"\\{1,2}[ \t]*(?=\n)", "", text)
     text = _unwrap_links(text, schema)
@@ -454,6 +466,27 @@ def _descriptions(text):
     return records
 
 
+def _closed_title_descriptions(text):
+    """Treat title-description-title triples as explicitly closed cards."""
+    paragraphs = [block.strip() for block in re.split(r"\n\s*\n", text) if block.strip()]
+    records = []
+    for first, description, repeated in zip(
+        paragraphs, paragraphs[1:], paragraphs[2:], strict=False
+    ):
+        if any("\n" in value for value in (first, description, repeated)):
+            continue
+        name = _line(first)
+        if _key(name) != _key(_line(repeated)):
+            continue
+        record = _record(
+            {"name": name, "description": _line(description)},
+            "name_description",
+        )
+        if record["valid"]:
+            records.append(record)
+    return records
+
+
 def _earthquakes(text):
     """Read contiguous magnitude/location/time/depth cards, never bag-of-fields.
 
@@ -490,7 +523,7 @@ def _earthquakes(text):
     return records
 
 
-def _parse_records(visible, schema):
+def _parse_records(visible, schema, *, allow_closed_title_cards=False):
     raw_lines = visible.splitlines()
     records, occupied = _table_records(raw_lines, schema)
     remainder = "\n".join(line if i not in occupied else "" for i, line in enumerate(raw_lines))
@@ -512,7 +545,25 @@ def _parse_records(visible, schema):
         for section in sections:
             records.extend(_operations([_line(line) for line in section.splitlines() if line.strip()]))
     elif schema == "name_description":
-        records.extend(_descriptions(remainder))
+        closed = (
+            _closed_title_descriptions(remainder)
+            if allow_closed_title_cards
+            else []
+        )
+        weak = _descriptions(remainder)
+        for record in weak:
+            description = _key(record["fields"].get("description", ""))
+            name = _key(record["fields"].get("name", ""))
+            if any(
+                name != _key(owner["fields"]["name"])
+                and _key(owner["fields"]["name"]) in description
+                and _key(owner["fields"]["description"]) in description
+                for owner in closed
+            ):
+                record["valid"] = False
+                record["errors"].append("description_contains_separate_owned_record")
+        records.extend(weak)
+        records.extend(closed)
     elif schema == "taxonomy_family":
         records.extend(_record({"family": _field(line, "family")}, schema) for line in lines
                        if re.fullmatch(r"(?:family\s*:\s*)?[A-Za-z]+idae", line, re.I))
@@ -828,7 +879,7 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Invalid stable acceptance regex") from error
 
 
-def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None, anchors_required: bool = True) -> dict:
+def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None, anchors_required: bool = True, allow_closed_title_cards: bool = False) -> dict:
     """Validate a version-1 schema/count contract, without fetching or snapshots.
 
     Required keys: version, schema, minimum_records. Optional maximum_records
@@ -922,7 +973,15 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             from .structured_tables import parse_table_records
             records = parse_table_records(content, visible, contract)
         else:
-            records = [] if schema in {"body_text", "page_identity"} else _parse_records(visible, schema)
+            records = (
+                []
+                if schema in {"body_text", "page_identity"}
+                else _parse_records(
+                    visible,
+                    schema,
+                    allow_closed_title_cards=allow_closed_title_cards,
+                )
+            )
     anchors = []
     non_record_visible = None
     if schema == 'named_link' and any(a.get('match_scope') == 'non_record_lines'

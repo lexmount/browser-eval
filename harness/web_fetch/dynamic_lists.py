@@ -8,7 +8,7 @@ import re
 import unicodedata
 from html import unescape
 from html.parser import HTMLParser
-from urllib.parse import parse_qsl,unquote,urlencode,urljoin,urlsplit,urlunsplit
+from urllib.parse import parse_qsl, quote, unquote, urlencode, urljoin, urlsplit, urlunsplit
 
 
 class Links(HTMLParser):
@@ -60,12 +60,33 @@ def _is_named_label(title,url,parts,nonempty=False):
 
 
 def _canonical_entry_path(path):
-    """Decode only unreserved URL characters; keep encoded separators intact."""
+    """Normalize IRI text without decoding path separators or delimiters."""
     def decode(match):
-        character = chr(int(match[1], 16))
-        return character if character.isascii() and (
-            character.isalnum() or character in '-._~') else match[0].upper()
-    return re.sub(r'%([0-9a-fA-F]{2})', decode, path)
+        encoded = match[0]
+        octets = bytes(int(value, 16) for value in re.findall(r'%([0-9a-fA-F]{2})', encoded))
+        try:
+            characters = octets.decode('utf-8')
+        except UnicodeDecodeError:
+            return encoded.upper()
+        normalized = []
+        for character in characters:
+            character_bytes = character.encode('utf-8')
+            if ord(character) > 127 or character.isalnum() or character in '-._~()':
+                normalized.append(character)
+            else:
+                normalized.extend(f'%{value:02X}' for value in character_bytes)
+        return ''.join(normalized)
+    return re.sub(r'(?:%[0-9a-fA-F]{2})+', decode, path)
+
+
+def _markdown_safe_destination(destination):
+    """Escape only characters that can change Markdown link structure."""
+    return ''.join(
+        quote(character, safe='')
+        if character in r'()[]<>\\' or character.isspace() or ord(character) < 32
+        else character
+        for character in destination
+    )
 
 
 def named_entry_identity(url, contract):
@@ -130,7 +151,9 @@ def _scoped_html(content):
     return soup
 
 
-def visible_html_text(content, *, preserve_source_whitespace=False):
+def visible_html_text(
+    content, *, preserve_source_whitespace=False, preserve_links=False
+):
     """Preserve block boundaries without splitting inline prose into headings.
 
     Mixed Markdown retains source line boundaries for scoped record fields.
@@ -138,11 +161,9 @@ def visible_html_text(content, *, preserve_source_whitespace=False):
     not computed CSS. Source indentation is whitespace, not a rendered line.
     """
     from bs4 import Comment, NavigableString, Tag
-    blocks = {'address', 'article', 'aside', 'blockquote', 'dd', 'details', 'dialog',
-              'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer',
-              'form', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hr', 'li',
-              'main', 'nav', 'ol', 'p', 'pre', 'section', 'summary', 'table',
-              'tbody', 'thead', 'tfoot', 'tr', 'ul'}
+    from .reference_quality import HTML_BLOCK_ELEMENTS
+
+    blocks = HTML_BLOCK_ELEMENTS
     parts = []
     stack = [(_scoped_html(content), False, False)]
     while stack:
@@ -154,12 +175,38 @@ def visible_html_text(content, *, preserve_source_whitespace=False):
                          else re.sub(r'\s+', ' ', str(node)))
         elif isinstance(node, Tag):
             separator = '\n' if node.name in blocks or node.name == 'br' else '\t' if node.name in {'td', 'th'} else ''
+            if preserve_links:
+                if node.name in {'td', 'th'}:
+                    separator = '\t' if closing else ''
+                if node.name == 'a' and node.get('href'):
+                    destination = _markdown_safe_destination(str(node['href']))
+                    parts.append('](' + destination + ')' if closing else '[')
+                if not closing and re.fullmatch(r'h[1-6]', node.name):
+                    parts.append(separator + '#' * int(node.name[1]) + ' ')
+                    separator = ''
             parts.append(separator)
             if not closing:
                 preformatted = preformatted or node.name in {'pre', 'textarea'}
                 stack.append((node, True, preformatted))
                 stack.extend((child, False, preformatted) for child in reversed(node.contents))
-    return '\n'.join(line.strip() for line in ''.join(parts).splitlines() if line.strip())
+    text = '\n'.join(line.strip() for line in ''.join(parts).splitlines() if line.strip())
+    if preserve_links:
+        from .reference_quality import markdown_links
+
+        text = re.sub(r"(?m)^(#{1,6})[ \t]+", r"\1 ", text)
+        for link in reversed(markdown_links(text)):
+            heading = re.fullmatch(r"\s*(#{1,6})[ \t]+([^\n]+)\s*", link.label)
+            if heading and not link.is_image:
+                text = (
+                    text[:link.start]
+                    + "\n"
+                    + heading[1]
+                    + " ["
+                    + heading[2].strip()
+                    + "](" + link.destination + ")\n"
+                    + text[link.end:]
+                )
+    return text
 
 
 def _named_candidate(url, title, contract, base_url, excluded_titles, diagnostics=None):
@@ -247,23 +294,71 @@ def _has_scoped_html(content):
     ))
 
 
+def _document_html(content):
+    from .reference_quality import is_html_document_or_fragment
+
+    return is_html_document_or_fragment(content)
+
+
+def _owned_metadata_links(full_content, scoped_content, links, base_url):
+    """Use flat link metadata only when its visible name proves scope ownership."""
+    from collections import defaultdict
+
+    from .reference_quality import visible_markdown_links
+    from .response_input import safe_named_links
+
+    def visible_text(text):
+        return _label_key(re.sub(r'<[^>]+>', ' ', visible_markdown_links(text)))
+
+    def occurrence_count(text, label):
+        if not label:
+            return 0
+        count = 0
+        start = 0
+        while (position := text.find(label, start)) >= 0:
+            end = position + len(label)
+            left_boundary = label[0].isascii() and label[0].isalnum()
+            right_boundary = label[-1].isascii() and label[-1].isalnum()
+            ascii_word = lambda char: char.isascii() and char.isalnum()
+            left_ok = not left_boundary or position == 0 or not ascii_word(text[position - 1])
+            right_ok = not right_boundary or end == len(text) or not ascii_word(text[end])
+            count += bool(left_ok and right_ok)
+            start = position + max(1, len(label))
+        return count
+
+    full_text = visible_text(full_content)
+    scoped_text = visible_text(scoped_content)
+    candidates = safe_named_links(links, base_url)
+    destinations = defaultdict(set)
+    for url, label in candidates:
+        destinations[_label_key(label)].add(url)
+    return [
+        {'url': url, 'title': label}
+        for url, label in candidates
+        if occurrence_count(full_text, _label_key(label)) == 1
+        and occurrence_count(scoped_text, _label_key(label)) == 1
+        and len(destinations[_label_key(label)]) == 1
+    ]
+
+
 def _scope_named_content(content, scope):
     """Apply one declared HTML or text scope and return owned name/link pairs."""
     owned_items = []
     if _has_scoped_html(content):
         soup = _scoped_html(content)
         owners = soup.select(scope['html_selector'])
-        if not scope.get('title_selector'):
-            return '\n'.join(str(node) for node in owners), owned_items, True
-        for owner in owners:
-            titles = owner.select(scope['title_selector'])
-            destination_nodes = owner.select(scope['link_selector'])
-            if owner.name == 'a' and owner.css.match(scope['link_selector']):
-                destination_nodes.insert(0, owner)
-            destinations = {a.get('href') for a in destination_nodes if a.get('href')}
-            if len(titles) == 1 and len(destinations) == 1:
-                owned_items.append((destinations.pop(), titles[0].get_text(' ', strip=True)))
-        return '', owned_items, True
+        if owners or _document_html(content) or not scope.get('start_pattern'):
+            if not scope.get('title_selector'):
+                return '\n'.join(str(node) for node in owners), owned_items, True
+            for owner in owners:
+                titles = owner.select(scope['title_selector'])
+                destination_nodes = owner.select(scope['link_selector'])
+                if owner.name == 'a' and owner.css.match(scope['link_selector']):
+                    destination_nodes.insert(0, owner)
+                destinations = {a.get('href') for a in destination_nodes if a.get('href')}
+                if len(titles) == 1 and len(destinations) == 1:
+                    owned_items.append((destinations.pop(), titles[0].get_text(' ', strip=True)))
+            return '', owned_items, True
     if scope.get('start_pattern'):
         start = _text_scope_boundary(content, scope['start_pattern'])
         if not start:
@@ -471,6 +566,17 @@ def _markdown_named_items(content, contract, scope):
             # title exists only in artwork. Match within this link's label;
             # never borrow a caption from the following card or navigation.
             match = re.search(scope['markdown_label_pattern'], non_image_label)
+            if not match and not re.search(r'`+|~{3,}', non_image_label):
+                headings = list(re.finditer(r'</h[1-6]\s*>', non_image_label, re.I))
+                if headings:
+                    tail = non_image_label[headings[-1].end():]
+                    if (tail.strip() and not markdown_links(tail)
+                            and not re.search(r'<[^>]+>', tail)):
+                        caption = re.sub(r'\s+', ' ', tail).strip()
+                        match = re.search(
+                            scope['markdown_label_pattern'],
+                            '<br>' + caption + '<br>',
+                        )
             if not match:
                 continue
             non_image_label = match['label']
@@ -531,12 +637,18 @@ def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=N
     scope = contract.get('entry_scope')
     owned_items = []
     if scope:
-        # Flat metadata links carry no section ownership. Never let them fill
-        # a short list from a different region of the page.
-        links = None
+        full_content = content
         content, owned_items, matched = _scope_named_content(content, scope)
         if not matched:
             return {}
+        # Metadata has no DOM position. It may corroborate a link only when its
+        # exact visible name occurs once in the declared text scope and once in
+        # the complete answer, and maps to one destination.
+        links = (
+            _owned_metadata_links(full_content, content, links, base_url)
+            if scope.get('start_pattern') and not _document_html(full_content)
+            else None
+        )
     parser=Links();parser.feed(content)
     items = owned_items + _paired_markdown_items(content, scope) + _named_table_items(content, scope)
     items += list(parser.items) + safe_named_links(links, base_url)

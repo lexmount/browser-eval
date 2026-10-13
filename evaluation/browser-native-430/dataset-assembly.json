@@ -43,7 +43,7 @@
   ],
   "case_corrections": {
     "path": "evaluation/browser-native-430/case-corrections.json",
-    "sha256": "cc2a197451ed9d71c4d3adbde9ab09d1ae055e03a1d8acefb61d722f8e075be6"
+    "sha256": "c2269b7cd08646c5d6e3c8f0b8710b890433718b4d233c108bb2c4b7546fb882"
   },
-  "native_dataset_sha256": "6f3f856145d595fa146c2747f619d1dc0b3c284b3cf9eedfef4c3243db2c2688"
+  "native_dataset_sha256": "7e64be611d9c02ad2db6ed9d0e42618c1fb41b236bf55a3dc790f4ac6e0ca67f"
 }

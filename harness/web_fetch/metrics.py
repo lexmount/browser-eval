@@ -627,8 +627,8 @@ def evaluate_content(
 ) -> dict[str, Any]:
     title_prefix = ((title.strip() + '\n') if title and title.strip() else '')
     visible_content = content
-    is_html = bool(re.match(r'\s*<!doctype\s+html\b', content, re.I) or
-                   re.match(r'\s*<(?:html|body|main|div|section|article)\b', content, re.I))
+    from .reference_quality import is_html_document_or_fragment
+    is_html = is_html_document_or_fragment(content)
     if is_html:
         # Keep raw HTML for records and links; score prose from visible text.
         from .dynamic_lists import visible_html_text
@@ -798,8 +798,12 @@ def evaluate_content(
             if not anchors_required else "stable_contract_and_declared_content_requirements")
     if composite_acceptance:
         from .composite_tasks import evaluate_composite_acceptance
+        from .dynamic_lists import visible_html_text
         composite = evaluate_composite_acceptance(
-            visible_content, composite_acceptance, base_url=base_url, links=named_links,
+            visible_html_text(content, preserve_links=True) if is_html else visible_content,
+            composite_acceptance,
+            base_url=base_url,
+            links=named_links,
             table_content=content,
         )
         result.update(composite)

@@ -44,6 +44,241 @@ REFERENCE = {"case_id": "legacy", "items": [
 
 
 class ScoringTests(unittest.TestCase):
+    def test_scoped_link_caption_stays_owned_by_its_link(self):
+        c = case(
+            acceptance_contract={
+                "version": 1,
+                "schema": "named_link",
+                "minimum_records": 2,
+                "hosts": ["example.test"],
+                "entry_path": r"/item/\d+",
+                "name_validation": "nonempty",
+                "entry_scope": {
+                    "html_selector": "main a:has(h3):has(p)",
+                    "title_selector": "p",
+                    "link_selector": "a[href]",
+                    "start_pattern": r"(?m)^# Catalog$",
+                    "end_pattern": r"(?m)^# End$",
+                    "markdown_label_pattern": (
+                        r"(?s)<br>\s*(?P<label>[^<>\n]+?)\s*<br>\s*$"
+                    ),
+                },
+            }
+        )
+        cards = (
+            "[![Artwork](/one.jpg)<h3>Artwork title</h3>First caption](/item/1)\n\n"
+            "[![Artwork](/two.jpg)<h3>Other artwork title</h3>Second caption](/item/2)"
+        )
+        for body, passed in (
+            (cards, True),
+            (cards.replace("Second caption", ""), False),
+            (cards.replace("Second caption", "<span hidden>Second caption</span>"), False),
+            (cards.replace("Second caption", "") + "\n# End\nSecond caption", False),
+        ):
+            with self.subTest(body=body):
+                metrics = score_attempt(c, ("# Catalog\n\n" + body + "\n\n# End").encode(), ok=True)
+                self.assertEqual(task_passed(True, metrics), passed)
+
+    def test_structured_records_use_visible_html_only(self):
+        c = case(acceptance_contract={
+            "version": 1,
+            "schema": "review",
+            "minimum_records": 2,
+            "stable_text_anchors": [],
+        })
+        cards = (
+            '<div class="review"><p>2026-09-01</p><p>First delivered review</p></div>'
+            '<div class="review"><p>2026-09-02</p><p>Second delivered review</p></div>'
+        )
+        hidden = (
+            '<div id="reviews"></div><script type="application/json">'
+            '[{"date":"2026-09-01","text":"First delivered review"},'
+            '{"date":"2026-09-02","text":"Second delivered review"}]</script>'
+        )
+        for body, passed in (
+            (cards, True),
+            (cards.replace('<div class="review">', "<li>").replace("</div>", "</li>"), True),
+            ("<h1>Reviews</h1>" + cards, True),
+            (hidden, False),
+            (cards.replace("2026-09-02", ""), False),
+            (cards.replace("2026-09-02", "&amp;#50;026-09-02"), False),
+            (cards.replace('<div class="review">', '<div class="review" hidden>', 1), False),
+        ):
+            with self.subTest(body=body):
+                metrics = score_attempt(c, ("<html><body>" + body + "</body></html>").encode(), ok=True)
+                self.assertEqual(task_passed(True, metrics), passed)
+
+    def test_character_references_match_visible_body_once(self):
+        c = case(body_requirements={
+            "version": 3,
+            "unit": "region_compact_hexagram_recall",
+            "minimum_coverage": 1.0,
+            "minimum_floor": 1.0,
+            "minimum_region_passes": 1,
+            "regions": [{"id": "body", "text": "Alpha Beta Gamma Delta"}],
+        })
+        for content, passed in (
+            ("Alpha Beta Gamma Delta", True),
+            ("Alpha&#32;Beta&#x20;Gamma&nbsp;Delta", True),
+            ("Alpha&#32;Beta&#x20;Gamma&nbsp;Wrong", False),
+            ("Alpha&amp;#32;Beta&amp;#x20;Gamma&amp;nbsp;Delta", False),
+            ("<html><body>Alpha Beta<script> Gamma Delta</script></body></html>", False),
+        ):
+            with self.subTest(content=content):
+                metrics = score_attempt(c, content.encode(), ok=True)
+                self.assertEqual(task_passed(True, metrics), passed)
+
+    def test_composite_html_keeps_only_visible_links(self):
+        c = case(
+            expected_any=["Directory"],
+            composite_acceptance={
+                "version": 1,
+                "groups": [{
+                    "id": "entries",
+                    "kind": "named_link",
+                    "minimum_records": 2,
+                    "hosts": ["example.test"],
+                    "entry_path": r"/base/[^/]+",
+                }],
+            },
+        )
+        for content, passed in (
+            ('<html><body><h1>Directory</h1><a href="/base/alpha/">Alpha</a><a href="/base/beta/">Beta</a></body></html>', True),
+            ('<ul><li>Directory</li><li><a href="/base/alpha/">Alpha</a></li><li><a href="/base/beta/">Beta</a></li></ul>', True),
+            ('<hr><h1>Directory</h1><div><a href="/base/alpha/">Alpha</a><a href="/base/beta/">Beta</a></div>', True),
+            ('<table><tr><th>Directory</th></tr><tr><td><a href="/base/alpha/">Alpha</a></td></tr><tr><td><a href="/base/beta/">Beta</a></td></tr></table>', True),
+            ('<h1>Directory</h1><div><a href="/base/alpha/">Alpha</a><a href="/base/beta/">Beta</a></div>', True),
+            ('<html><body><h1>Directory</h1><a href="/base/alpha/">Alpha</a><a>Beta</a></body></html>', False),
+            ('<html><body><h1>Directory</h1><a href="/base/alpha/">Alpha</a><a hidden href="/base/beta/">Beta</a></body></html>', False),
+            ('<html><body><h1>Directory</h1><a href="/base/alpha/">Alpha</a><script><a href="/base/beta/">Beta</a></script></body></html>', False),
+            ('<h1>Directory</h1><a href="/base/alpha/">Alpha</a><a href="/bad/) [Beta](/base/beta/">Decoy</a>', False),
+        ):
+            with self.subTest(content=content):
+                metrics = score_attempt(c, content.encode(), ok=True)
+                self.assertEqual(task_passed(True, metrics), passed)
+
+    def test_scoped_markdown_may_use_uniquely_owned_native_link_metadata(self):
+        c = case(acceptance_contract={
+            "version": 1,
+            "schema": "named_link",
+            "minimum_records": 2,
+            "hosts": ["example.test"],
+            "entry_path": r"/item/\d+",
+            "entry_scope": {
+                "html_selector": "main a[href]",
+                "start_pattern": "^Target list$",
+                "end_pattern": "^Footer$",
+            },
+        })
+        links = [
+            {"text": "First entry", "href": "https://example.test/item/1"},
+            {"text": "Second entry", "href": "https://example.test/item/2"},
+        ]
+        for content, metadata_links, passed in (
+            ("## Target list\n[<h3>First entry</h3>](/item/1)\n[<h3>Second entry</h3>](/item/2)\n## Footer", [], True),
+            ("## Target list\nFirst entry\nSecond entry\n## Footer", links, True),
+            ("## Target list\nFirst entry\n## Footer\nSecond entry", links, False),
+            ('<html><body><main>Target list</main><footer><a href="/item/1">First entry</a><a href="/item/2">Second entry</a></footer></body></html>', [], False),
+            ("## Target list\nFirst entry\nSecond entry\n## Footer\nFirst entry", links, False),
+            ("## Target list\nFirst entry\nSecond entry\n## Footer\nSee First entry for details", links, False),
+        ):
+            with self.subTest(content=content):
+                metrics = score_attempt(c, content.encode(), ok=True, metadata={"links": metadata_links})
+                self.assertEqual(task_passed(True, metrics), passed)
+
+        chinese_links = [
+            {"text": "第一项", "href": "https://example.test/item/1"},
+            {"text": "第二项", "href": "https://example.test/item/2"},
+        ]
+        unique = "## Target list\n第一项\n第二项\n## Footer"
+        repeated = unique + "\n查看第一项详情"
+        self.assertTrue(task_passed(True, score_attempt(
+            c, unique.encode(), ok=True, metadata={"links": chinese_links}
+        )))
+        self.assertFalse(task_passed(True, score_attempt(
+            c, repeated.encode(), ok=True, metadata={"links": chinese_links}
+        )))
+
+        for label, content in (
+            ("VIP", "## Target list\nVIP\nSecond entry\n## Footer\n开通VIP会员"),
+            ("Alpha", "## Target list\nAlpha\nSecond entry\n## Footer\n查看Alpha详情"),
+        ):
+            mixed_links = [
+                {"text": label, "href": "https://example.test/item/1"},
+                {"text": "Second entry", "href": "https://example.test/item/2"},
+            ]
+            self.assertFalse(task_passed(True, score_attempt(
+                c, content.encode(), ok=True, metadata={"links": mixed_links}
+            )))
+
+    def test_html_link_projection_keeps_parenthesized_path_identity(self):
+        c = case(
+            expected_any=["Directory"],
+            composite_acceptance={
+                "version": 1,
+                "groups": [{
+                    "id": "entries",
+                    "kind": "named_link",
+                    "minimum_records": 1,
+                    "hosts": ["example.test"],
+                    "entry_path": r"/base/foo\(bar\)",
+                }],
+            },
+        )
+        metrics = score_attempt(
+            c,
+            b'<h1>Directory</h1><a href="/base/foo(bar)">Parenthesized</a>',
+            ok=True,
+        )
+        self.assertTrue(task_passed(True, metrics), metrics)
+
+    def test_html_link_projection_keeps_unicode_path_identity(self):
+        c = case(
+            expected_any=["Directory"],
+            composite_acceptance={
+                "version": 1,
+                "groups": [{
+                    "id": "entries",
+                    "kind": "named_link",
+                    "minimum_records": 1,
+                    "hosts": ["example.test"],
+                    "entry_path": r"/新闻/\d+",
+                }],
+            },
+        )
+        for href in ("/新闻/1", "/%E6%96%B0%E9%97%BB/1"):
+            with self.subTest(href=href):
+                metrics = score_attempt(
+                    c,
+                    f'<h1>Directory</h1><a href="{href}">News</a>'.encode(),
+                    ok=True,
+                )
+                self.assertTrue(task_passed(True, metrics), metrics)
+
+    def test_invalid_percent_bytes_do_not_become_unicode_path_identity(self):
+        c = case(
+            expected_any=["Directory"],
+            composite_acceptance={
+                "version": 1,
+                "groups": [{
+                    "id": "entries",
+                    "kind": "named_link",
+                    "minimum_records": 2,
+                    "hosts": ["example.test"],
+                    "entry_path": r"/(?:item/\d+|bad/ÿ/tail)",
+                }],
+            },
+        )
+        metrics = score_attempt(
+            c,
+            (
+                '<h1>Directory</h1><a href="/item/1">Valid</a>'
+                '<a href="/bad/%FF%2Ftail">Invalid bytes</a>'
+            ).encode(),
+            ok=True,
+        )
+        self.assertFalse(task_passed(True, metrics), metrics)
+
     def test_untagged_source_requires_explicitly_observed_empty_language(self):
         c = case(track="dynamic", evaluation_url="https://example.test/page",
                  expected_final_url="https://example.test/page",

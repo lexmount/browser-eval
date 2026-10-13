@@ -298,6 +298,28 @@ def test_registered_430_assembly_uses_current_sources_and_four_contracts(tmp_pat
         anchor["id"] != "source-stable-310fe77a5860"
         for anchor in corrected_case["acceptance_contract"]["stable_text_anchors"]
     )
+    risk_correction = next(
+        row for row in corrections["cases"] if row["case_id"] == "risk-102"
+    )
+    corrected_risk = next(case for case in dataset["cases"] if case["id"] == "risk-102")
+    risk_source = next(
+        source for source in definition["sources"] if "risk_control" in source["tracks"]
+    )
+    source_risk_dataset = json.loads(
+        read_frozen_dataset_bytes(ROOT / risk_source["path"])
+    )
+    source_risk = next(
+        case for case in source_risk_dataset["cases"] if case["id"] == "risk-102"
+    )
+    assert risk_correction["expected_definition_sha256"] == _canonical_sha256(source_risk)
+    assert risk_correction["evidence"]["prior_composite_acceptance_sha256"] == (
+        _canonical_sha256(source_risk["composite_acceptance"])
+    )
+    assert risk_correction["evidence"]["revised_composite_acceptance_sha256"] == (
+        _canonical_sha256(corrected_risk["composite_acceptance"])
+    )
+    assert corrected_risk["composite_acceptance"]["groups"][0]["start_pattern"]
+    assert corrected_risk["composite_acceptance"]["groups"][0]["end_pattern"]
     contracts = {
         case["id"]: case["retrieval_hints"]["contract"]
         for case in dataset["cases"]

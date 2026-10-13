@@ -148,6 +148,35 @@ Owner: [Second Owner](https://owners.example/second)
     assert result["composite_group_results"][0]["count"] == 2
 
 
+def test_scoped_repeated_titles_close_cards_without_borrowing_navigation():
+    rules = {
+        "version": 1,
+        "groups": [{
+            "id": "cards",
+            "kind": "name_description",
+            "minimum_records": 2,
+            "start_pattern": r"^# Catalog$",
+            "end_pattern": r"^# End$",
+        }],
+    }
+    cards = (
+        "# Catalog\n\nAlpha film\n\nA complete first description.\n\nAlpha film\n\n"
+        "Beta film\n\nA complete second description.\n\nBeta film\n\n# End"
+    )
+    result = evaluate_composite_acceptance(cards, rules, base_url="https://example.test")
+    assert result["composite_acceptance_pass"] is True
+    assert result["composite_group_results"][0]["count"] == 2
+
+    outside = (
+        "Home\n\nExplore everything we offer today.\n\nHome\n\n"
+        "About\n\nLearn why customers choose us.\n\nAbout\n\n"
+        "# Catalog\n\nAlpha film\n\nA complete first description.\n\nAlpha film\n\n# End"
+    )
+    result = evaluate_composite_acceptance(outside, rules, base_url="https://example.test")
+    assert result["composite_acceptance_pass"] is False
+    assert result["composite_group_results"][0]["count"] == 1
+
+
 def test_first_repeated_link_does_not_replace_the_visible_record_name():
     rules = contract(
         named(

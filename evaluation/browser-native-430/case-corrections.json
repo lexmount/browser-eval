@@ -529,6 +529,38 @@
       }
     },
     {
+      "case_id": "risk-102",
+      "expected_definition_sha256": "a1a5341179ecce8397ee75b09b292ea72f5e184a936419b2e9cead7528d7e142",
+      "set": {
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "movie-cards",
+              "kind": "name_description",
+              "minimum_records": 10,
+              "start_pattern": "(?m)^(?:#{1,6}[ \\t]+)?推荐[ \\t]*$",
+              "end_pattern": "(?m)^(?:#{1,6}[ \\t]+)?为你推荐[ \\t]*$"
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "https://v.qq.com/channel/movie",
+        "observed_at": "2026-10-14",
+        "observed_text": "The visible 推荐 section owns the initial movie cards and ends before the independently visible 为你推荐 section; navigation and later recommendations are outside this record scope.",
+        "root_cause": "repeated_title_card_ownership",
+        "prior_composite_acceptance_sha256": "60bd38cbbaceab021b4551a1573ae52d568ed1162de1e1579c62e726e414bdbf",
+        "revised_composite_acceptance_sha256": "e805be64c176984f396747b040fd84d2f6dd02273be93d92295a55be62764d78",
+        "affected_scope": "risk-102 across all registered methods; offline rescore only",
+        "regression_ids": [
+          "repeated-title-closes-description-card",
+          "scope-outside-repeated-navigation-does-not-form-cards"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
       "case_id": "dynamic-062-zh-sspai-home",
       "expected_definition_sha256": "4f2a23e911296d0f7f6cba3ce479ed83f4bfded40e7167c7c183ca235e63d753",
       "set": {
