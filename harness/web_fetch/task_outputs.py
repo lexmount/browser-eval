@@ -218,16 +218,20 @@ def require_native_task_routes(cases, records):
                             'chromium':'browser_native_response_or_download', 'kitesurf':'kitesurf_cdp_response'}
                 valid = meta.get('extractor') == prefixes[provider] + ('+document_text' if mode == 'document' else '')
             valid = valid and meta.get('route') != 'workers_ai_tomarkdown'
+        elif mode == 'resource' and provider == 'moli':
+            valid = (
+                meta.get('route') == 'resource_native_html'
+                and meta.get('output') == 'native_html_resource_urls'
+                and meta.get('output_contract') == 'native_html_resource_urls'
+                and meta.get('dump') == 'html'
+                and not meta.get('output_projection_sha256')
+            )
         elif mode in expressions:
             expression = resource_expression(case.track, resource_detail_links(case)) if mode == 'resource' else expressions[mode]
             valid = meta.get('output_projection_sha256') == hashlib.sha256(expression.encode()).hexdigest()
             if provider == 'kitesurf':
                 valid = (valid and meta.get('browser') == 'kitesurf'
                          and meta.get('endpoint_route') == '/browser-run/devtools/browser?browser=kitesurf')
-            if provider == 'moli' and mode == 'media_metadata' and not meta.get('output_projection_sha256'):
-                # Historical calls used this exact same shared expression; the
-                # native route and its source-bound cohort remain authoritative.
-                valid = meta.get('route') == 'media_metadata_runtime'
         if case.track == 'document':
             valid = valid and meta.get('document_extractor') in {None, 'pdfjs_runtime', 'rendered_page_text'}
             valid = valid and '+document_text' not in str(meta.get('extractor', ''))

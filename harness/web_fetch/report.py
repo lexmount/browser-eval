@@ -2052,6 +2052,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    route_label='处理路线：方法直接取得原始文件 → 格式、长度与 SHA-256 验收'
   elif provider_meta.get('output_contract')=='readable_document_text':
    route_label='处理路线：浏览器原生接口获取文档 → 共同 PDF / DOCX 正文解析；实际完成步骤见运行证据'
+  elif provider_meta.get('output_contract')=='native_html_resource_urls':
+   route_label='处理路线：Moli 原生 HTML → 共同评分器只识别其中的图片或视频资源地址'
   elif provider_meta.get('output_contract')=='structured_resource_urls':
    route_label='处理路线：浏览器原生 DOM 接口 → 共同资源读取脚本 → 图片或视频资源地址'
   elif provider_meta.get('output_contract')=='readable_media_metadata':

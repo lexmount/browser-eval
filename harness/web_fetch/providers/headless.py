@@ -282,7 +282,7 @@ def output_mode_for_case(engine, provider_type, case):
     if case.task_kind == 'resource' and case.track in {'image', 'video'}:
         return 'resource'
     if case.task_kind == 'body' and case.track == 'video':
-        return 'media_metadata'
+        return 'markdown' if engine == 'moli' else 'media_metadata'
     return 'markdown' if provider_type == 'headless_markdown' else 'html'
 
 

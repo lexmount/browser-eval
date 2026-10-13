@@ -57,7 +57,15 @@ class NativeTaskOutputTests(unittest.TestCase):
                                         'output_mode':'resource', 'task_kind':'resource', 'track':'image', 'allow_private_network':True})
                         self.assertTrue(result['ok'], result)
                         content = result['content']
-                    links = set(json.loads(content)['links'])
+                    if engine == 'moli':
+                        from harness.web_fetch.metrics import evaluate_resources
+                        scored = evaluate_resources(
+                            content, {}, [{"urls": [origin + '/visible.png']}],
+                            base_url=origin + '/',
+                        )
+                        links = set(scored['resource_candidate_urls'])
+                    else:
+                        links = set(json.loads(content)['links'])
                     self.assertTrue({origin+'/visible.png', origin+'/small.png', origin+'/large.png',
                                      origin+'/image/a,b.png', origin+'/image/thumb.png?crop=10,20',
                                      origin+'/set/a,b.png', origin+'/set/thumb.png?crop=10,20'} <= links, links)
@@ -106,6 +114,18 @@ class NativeRoutePublicationTests(unittest.TestCase):
                     require_native_task_routes([case],[{**row,'provider_metadata':bad}])
             with self.subTest(provider=provider,wrong_family=True),self.assertRaises(ValueError):
                 require_native_task_routes([{**case,'track':'web'}],[row])
+
+    def test_moli_video_body_requires_native_markdown(self):
+        from harness.web_fetch.task_outputs import require_native_task_routes
+
+        case={'id':'video-body','url':'https://example.com/watch','track':'video','task_kind':'body'}
+        row={'provider':'moli','case_id':'video-body','provider_metadata':{
+            'route':'ordinary_markdown','output':'markdown','dump':'markdown'}}
+        require_native_task_routes([case],[row])
+        with self.assertRaises(ValueError):
+            require_native_task_routes([case],[{**row,'provider_metadata':{
+                'route':'media_metadata_runtime','output':'visible_text_and_standard_media_metadata',
+                'output_projection_sha256':'0'*64}}])
 
     def test_page_routes_prioritize_native_output_and_keep_required_identity(self):
         from harness.web_fetch.task_outputs import require_native_task_routes
@@ -194,12 +214,21 @@ class NativeRoutePublicationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             require_native_task_routes(cases,[{**row,'provider_metadata':{**row['provider_metadata'],'browser':'chromium'}}])
 
-    def test_shared_projection_hash_rejects_one_provider_extra_crawler(self):
+    def test_resource_routes_bind_moli_native_html_and_shared_projection_elsewhere(self):
         import hashlib
         from harness.web_fetch.task_outputs import require_native_task_routes, resource_expression
         cases=[{'id':'images','url':'https://example.com/','track':'image','task_kind':'resource'}]
         digest=hashlib.sha256(resource_expression('image').encode()).hexdigest()
-        for provider in ('moli','lightpanda','obscura','chromium'):
+        moli={'route':'resource_native_html','output':'native_html_resource_urls',
+              'output_contract':'native_html_resource_urls','dump':'html'}
+        row={'provider':'moli','case_id':'images','provider_metadata':moli}
+        require_native_task_routes(cases,[row])
+        for bad in ({**moli,'dump':'markdown'},
+                    {**moli,'output_projection_sha256':digest},
+                    {**moli,'output_contract':'structured_resource_urls'}):
+            with self.subTest(provider='moli',bad=bad),self.assertRaises(ValueError):
+                require_native_task_routes(cases,[{**row,'provider_metadata':bad}])
+        for provider in ('lightpanda','obscura','chromium'):
             row={'provider':provider,'case_id':'images','provider_metadata':{'output_projection_sha256':digest}}
             require_native_task_routes(cases,[row])
             with self.subTest(provider=provider),self.assertRaises(ValueError):
@@ -230,6 +259,8 @@ class AllFamilyInterfaceTests(unittest.TestCase):
         self.assertIn('内置转换',rows['challenge']['cells']['moli'][0]['description'])
         self.assertIn('内置转换',rows['risk_control']['cells']['moli'][0]['description'])
         self.assertNotIn('共同转换',rows['risk_control']['cells']['moli'][0]['description'])
+        self.assertIn('原生 HTML',rows['image']['cells']['moli'][0]['description'])
+        self.assertIn('共同评分器只识别资源 URL',rows['video']['cells']['moli'][0]['description'])
         changed=deepcopy(cases)
         for case in changed.values():
             case.update(ground_truth_main_content='Different hidden answer',expected_resources=[{'url':'https://secret.test/answer'}])

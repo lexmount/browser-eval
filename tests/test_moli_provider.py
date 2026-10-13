@@ -206,6 +206,7 @@ class MoliTests(unittest.TestCase):
             "import sys\n"
             "assert not {'--timeout', '--http-timeout', '--http-connect-timeout', '--eval'} & set(sys.argv)\n"
             "assert sys.argv[sys.argv.index('--dump') + 1] == 'markdown'\n"
+            "assert '--with-frames' not in sys.argv\n"
             "assert '--dump' in sys.argv and '--http-max-response-size' not in sys.argv\n"
             "print('complete native answer')\n",
             uniform_native_parameters=True,
@@ -363,16 +364,11 @@ class MoliTests(unittest.TestCase):
         self.assertTrue(result.ok, repr(result))
         self.assertFalse(result.metadata["private_network_guard_exception"])
 
-    def test_video_body_uses_generic_answer_free_metadata_extraction(self):
+    def test_video_body_uses_native_markdown_without_metadata_projection(self):
         provider = self.provider(
             "import sys\n"
-            'assert "--eval" in sys.argv and "--dump" not in sys.argv\n'
-            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "document.title" in expression and "document.body?.innerText" in expression\n'
-            'assert "itemprop=\\"author\\"" in expression\n'
-            'assert "application/ld+json" in expression\n'
-            'assert "expected-video-title" not in expression\n'
-            'assert "expected-publisher" not in expression\n'
+            'assert "--eval" not in sys.argv\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
             'print("A video title\\n\\nA publisher")'
         )
         case = self.case_with(
@@ -386,12 +382,9 @@ class MoliTests(unittest.TestCase):
         result = provider.fetch(case, 2)
         self.assertTrue(result.ok, repr(result))
         self.assertEqual(result.content, "A video title\n\nA publisher\n")
-        self.assertEqual(result.metadata["route"], "media_metadata_runtime")
-        self.assertEqual(result.metadata["output"], "visible_text_and_standard_media_metadata")
-        self.assertEqual(
-            result.metadata["wait"]["extraction"],
-            "visible_text_and_standard_media_metadata",
-        )
+        self.assertEqual(result.metadata["route"], "ordinary_markdown")
+        self.assertEqual(result.metadata["output"], "markdown")
+        self.assertNotIn("output_projection_sha256", result.metadata)
 
     def test_non_video_body_keeps_ordinary_markdown_route(self):
         provider = self.provider(
@@ -500,14 +493,13 @@ class MoliTests(unittest.TestCase):
     def test_dynamic_task_prefers_predeclared_selector_without_answer_leakage(self):
         provider = self.provider(
             "import sys\n"
-            'assert sys.argv[1]=="fetch" and "--eval" in sys.argv\n'
-            'assert "--dump" not in sys.argv\n'
-            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "main article" in expression and "const lines = node" in expression\n'
+            'assert sys.argv[1]=="fetch" and "--eval" not in sys.argv\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
             'expected=["--wait-selector","main article","--wait-until","domcontentloaded",'
-            '"--delay-ms","999","--timeout","10000","--http-timeout",'
+            '"--timeout","10000","--http-timeout",'
             '"https://example.com/?a=1&b=2"]\n'
             "assert all(value in sys.argv for value in expected),sys.argv\n"
+            'assert "--delay-ms" not in sys.argv\n'
             'assert "answer-must-not-become-a-wait" not in sys.argv\n'
             'print("ready")'
         )
@@ -535,11 +527,9 @@ class MoliTests(unittest.TestCase):
                 "selector": "main article",
                 "minimum_count": 1,
                 "frame_selector": None,
-                "delay_ms": 999,
-                "timeout_ms": 10000,
                 "wait_until": "domcontentloaded",
                 "completion_support": "exact",
-                "extraction": "selected_records_or_rendered_body_fallback",
+                "output_extraction": "native_markdown",
             },
         )
         self.assertEqual(result.metadata["wait_until"], "domcontentloaded")
@@ -597,15 +587,15 @@ class MoliTests(unittest.TestCase):
         self.assertTrue(result.ok, repr(result))
         self.assertEqual(result.metadata["wait"]["minimum_text_fragments"], 2)
 
-    def test_iframe_waits_for_child_count_and_serializes_frames(self):
+    def test_frame_completion_waits_without_extracting_or_serializing_content(self):
         provider = self.provider(
             "import sys\n"
-            'assert "--eval" in sys.argv and "--wait-script" in sys.argv\n'
-            'assert "frame.contentDocument.querySelectorAll(\\"h3.family-name\\")" in sys.argv[5]\n'
-            'assert "--delay-ms" in sys.argv and "3000" in sys.argv\n'
-            'assert "--dump" not in sys.argv and "--with-frames" not in sys.argv\n'
-            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "iframe#iframe" in expression and "const lines = node" in expression\n'
+            'assert "--eval" not in sys.argv and "--wait-script" in sys.argv\n'
+            'wait=sys.argv[sys.argv.index("--wait-script")+1]\n'
+            'assert "frame.contentDocument.querySelectorAll(\\"h3.family-name\\")" in wait\n'
+            'assert "--delay-ms" not in sys.argv\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
+            'assert "--with-frames" not in sys.argv\n'
             'print("Carettochelyidae")'
         )
         case = self.case_with(
@@ -618,25 +608,25 @@ class MoliTests(unittest.TestCase):
                     "selector": "h3.family-name",
                     "minimum_count": 14,
                     "timeout_ms": 45000,
-                    "delay_ms": 3000,
+                    "delay_ms": 0,
                 },
             },
         )
         result = provider.fetch(case, 45)
         self.assertTrue(result.ok, repr(result))
         self.assertEqual(result.metadata["wait"]["strategy"], "frame_selector_count_script")
-        self.assertEqual(result.metadata["route"], "dynamic_selected_text")
+        self.assertEqual(result.metadata["route"], "dynamic_native_markdown")
+        self.assertEqual(result.metadata["output"], "markdown")
 
-    def test_dynamic_selected_text_is_generic_and_answer_free(self):
+    def test_dynamic_completion_only_waits_and_never_extracts_answer_text(self):
         provider = self.provider(
             "import sys\n"
-            'assert "--eval" in sys.argv and "--wait-script" in sys.argv\n'
-            'assert "--dump" not in sys.argv and "--with-frames" not in sys.argv\n'
-            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert expression.startswith("(() =>") and expression.endswith("})()")\n'
-            'assert "iframe#results" in expression and "h3.family-name" in expression\n'
-            'assert "const lines = node" in expression and "root?.body" in expression\n'
-            'assert "answer-must-not-leak" not in expression\n'
+            'assert "--eval" not in sys.argv and "--wait-script" in sys.argv\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
+            'assert "--with-frames" not in sys.argv\n'
+            'wait=sys.argv[sys.argv.index("--wait-script")+1]\n'
+            'assert "iframe#results" in wait and "h3.family-name" in wait\n'
+            'assert "answer-must-not-leak" not in wait\n'
             'print("Family One\\n\\nFamily Two")'
         )
         case = self.case_with(
@@ -656,19 +646,18 @@ class MoliTests(unittest.TestCase):
         )
         result = provider.fetch(case, 10)
         self.assertTrue(result.ok, repr(result))
-        self.assertEqual(result.metadata["route"], "dynamic_selected_text")
-        self.assertEqual(result.metadata["output"], "selected_records_or_rendered_body_fallback")
+        self.assertEqual(result.metadata["route"], "dynamic_native_markdown")
+        self.assertEqual(result.metadata["output"], "markdown")
         self.assertEqual(
-            result.metadata["wait"]["extraction"],
-            "selected_records_or_rendered_body_fallback",
+            result.metadata["wait"]["output_extraction"],
+            "native_markdown",
         )
 
-    def test_dynamic_selected_records_are_not_duplicated_by_page_body(self):
+    def test_legacy_completion_wait_does_not_replace_native_markdown_output(self):
         provider = self.provider(
             "import sys\n"
-            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            "assert \"? records.join('\\\\n\\\\n') : fallback\" in expression\n"
-            "assert \"records.join('\\\\n\\\\n') +\" not in expression\n"
+            'assert "--eval" not in sys.argv\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
             'print("record one\\n\\nrecord two")'
         )
         case = self.case_with(
@@ -691,9 +680,8 @@ class MoliTests(unittest.TestCase):
     def test_dynamic_v1_does_not_guess_ancestors_from_completion_selector(self):
         provider = self.provider(
             "import sys\n"
-            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "node.parentElement" not in expression\n'
-            'assert ")].slice(0, 16)" in expression\n'
+            'assert "--eval" not in sys.argv\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
             'wait=sys.argv[sys.argv.index("--wait-script")+1]\n'
             'assert "querySelectorAll(\\"button\\").length >= 16" in wait\n'
             'print("Free shipping\\nProduct\\n$10.00\\nor 2 x$5.00\\nAdd to cart")'
@@ -715,17 +703,11 @@ class MoliTests(unittest.TestCase):
         self.assertTrue(result.ok, repr(result))
         self.assertNotIn("extraction_ancestor_levels", result.metadata["wait"])
 
-    def test_dynamic_v2_extracts_declared_cards_without_interactive_controls(self):
+    def test_dynamic_v2_extraction_contract_does_not_replace_native_markdown(self):
         provider = self.provider(
             "import sys\n"
-            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "main main > div > div" in expression\n'
-            'assert ")].slice(0, 16)" in expression\n'
-            'assert "node.querySelectorAll(item)" in expression\n'
-            'assert "cloneNode" not in expression and "clone.textContent" not in expression\n'
-            'assert "values.filter(value => !omitted.has(value))" in expression\n'
-            'assert "node.parentElement" not in expression\n'
-            'assert "document.body" in expression\n'
+            'assert "--eval" not in sys.argv\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
             'wait=sys.argv[sys.argv.index("--wait-script")+1]\n'
             'assert "querySelectorAll(\\"button\\").length >= 16" in wait\n'
             'print("Product\\n$10.00\\nor 2 x$5.00")'
@@ -751,23 +733,13 @@ class MoliTests(unittest.TestCase):
         )
         result = provider.fetch(case, 10)
         self.assertTrue(result.ok, repr(result))
-        self.assertEqual(
-            result.metadata["wait"]["extraction_scope"],
-            {
-                "selector": "main main > div > div",
-                "maximum_count": 16,
-                "frame_selector": None,
-                "exclude_selectors": ["button"],
-                "fallback": "body",
-            },
-        )
+        self.assertEqual(result.metadata["wait"]["output_extraction"], "native_markdown")
 
-    def test_dynamic_v2_missing_iframe_falls_back_to_top_level_body(self):
+    def test_dynamic_v2_iframe_extraction_is_not_run_by_moli(self):
         provider = self.provider(
             "import sys\n"
-            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "iframe#results" in expression\n'
-            'assert "root?.body || root?.documentElement || document.body" in expression\n'
+            'assert "--eval" not in sys.argv\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
             'print("top-level fallback")'
         )
         case = self.case_with(
@@ -792,21 +764,41 @@ class MoliTests(unittest.TestCase):
         result = provider.fetch(case, 10)
         self.assertTrue(result.ok, repr(result))
 
-    def test_resource_page_uses_bounded_runtime_url_discovery(self):
+    def test_resource_page_uses_native_html_for_common_url_scoring(self):
         provider = self.provider(
             "import sys\n"
-            'assert "--dump" not in sys.argv\n'
-            'assert "--eval" in sys.argv\n'
-            'expression=sys.argv[sys.argv.index("--eval")+1]\n'
-            'assert "fetch(" not in expression\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "html"\n'
+            'assert "--eval" not in sys.argv\n'
             'assert not ({"--image","--video","--media","--resource"} & set(sys.argv))\n'
-            'print("{\\"links\\":[\\"https://example.com/movie.mp4\\"]}")'
+            'print("<video><source src=\\"https://example.com/movie.mp4\\"></video>")'
         )
         result = provider.fetch(self.case_with(track="image", task_kind="resource"), 10)
         self.assertTrue(result.ok, repr(result))
-        self.assertEqual(result.metadata["route"], "resource_page_runtime")
-        self.assertEqual(result.metadata["output"], "structured_resource_urls")
+        self.assertEqual(result.metadata["route"], "resource_native_html")
+        self.assertEqual(result.metadata["output"], "native_html_resource_urls")
+        self.assertEqual(result.metadata["output_contract"], "native_html_resource_urls")
         self.assertIn("movie.mp4", result.content)
+        from harness.web_fetch.metrics import evaluate_resources
+        scored = evaluate_resources(
+            result.content,
+            {},
+            [{"id": "movie", "kind": "video", "urls": ["https://example.com/movie.mp4"]}],
+            base_url="https://example.com/gallery",
+        )
+        self.assertTrue(scored["resource_pass"])
+
+    def test_fixed_native_resource_uses_product_timers_and_native_html(self):
+        provider = self.provider(
+            "import sys\n"
+            "assert not {'--timeout', '--http-timeout', '--http-connect-timeout', '--eval'} & set(sys.argv)\n"
+            'assert sys.argv[sys.argv.index("--dump")+1] == "html"\n'
+            'print("<img src=\\"https://example.com/photo.jpg\\">")',
+            uniform_native_parameters=True,
+        )
+        result = provider.fetch(self.case_with(track="image", task_kind="resource"), 45)
+        self.assertTrue(result.ok, repr(result))
+        self.assertEqual(result.metadata["internal_timeout_policy"], "native_default")
+        self.assertIsNone(result.metadata["http_connect_timeout_ms"])
 
     def test_document_urls_use_native_text_without_external_parsing(self):
         for url in ("https://example.com/paper.pdf", "https://example.com/file.docx"):

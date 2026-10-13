@@ -26,11 +26,11 @@ HEADLESS_ACCESS={
 def spec(entry,auth,params,fields,request,source,notes):
  return dict(entry=entry,auth=auth,params=params,fields=fields,request=request,source=source,notes=notes)
 SPECS={
- 'moli-webfetch':spec('CLI · 按任务预选 Markdown、DOM eval 或原始响应路线','本地二进制；无 API Key',
- [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','网页及 HTML/TXT 文档正文','直接取得 Moli 原生 Markdown；直接 PDF/DOCX 不提供可读正文'),('--eval','资源页 / 嵌入文档 / 媒体信息','通过 Moli 原生执行接口读取已加载内容；表达式只由公开任务类型决定'),('--wait-until','string','Markdown 正文统一使用 Moli 默认 done 完成方式'),('外层截止','number','每次调用 45 秒；不改写 Moli 内部 HTTP 和连接超时默认值'),('--block-private-networks','flag','默认启用')],
+ 'moli-webfetch':spec('CLI · 按任务预选原生 Markdown、HTML 或原始响应路线','本地二进制；无 API Key',
+ [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','所有正文与结构任务','直接取得 Moli 原生 Markdown；直接 PDF/DOCX 不提供可读正文'),('--dump html','图片、视频资源页','直接取得 Moli 原生 HTML；共同评分器只识别其中的资源 URL'),('--wait-until / --wait-selector / --wait-script','string','使用 Moli 官方等待能力；只等待，不抽取或拼接正文'),('外层截止','number','每次调用 45 秒；不改写 Moli 内部 HTTP 和连接超时默认值'),('--block-private-networks','flag','默认启用')],
  [('stdout','UTF-8 string / bytes','Markdown、eval 结果或直接文件原始字节'),('stderr','string','独立诊断；不混入正文'),('exit_code','integer','0 表示工具请求完成；正文或文件为空仍由任务规则单独判失败'),('status_code / final_url','可能未提供','CLI 未提供时保持未知，不伪造 HTTP 200 或最终 URL')],
- {'page_body':'moli fetch --dump markdown --wait-until done URL','exact_page_identity':'正文仍用原生 Markdown；最终网址不是评分条件，无法确认时保持空值','resource_or_embedded_page':'moli fetch --eval <task-type projection> URL','direct_document_body':'moli fetch --dump markdown --wait-until done URL','direct_file':'Moli 原生 CDP 响应；附件事件使用同一 Moli 原始附件接口'},
- 'harness/web_fetch/providers/moli.py','普通、动态、热门、风控及 HTML/TXT 文档正文使用 Moli 原生 Markdown。直接 PDF/DOCX 仍调用同一原生接口；接口没有交付可读正文时按失败记录，评测端不下载后解析。文件使用原生 CDP 响应或同一二进制的原始附件接口。图片、视频资源和嵌入文档只通过 Moli 原生执行接口读取已加载内容。最终网址仅作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。'),
+ {'page_body':'moli fetch --dump markdown --wait-until done URL','exact_page_identity':'正文仍用原生 Markdown；最终网址不是评分条件，无法确认时保持空值','resource_page':'moli fetch --dump html --wait-until done URL','direct_document_body':'moli fetch --dump markdown --wait-until done URL','direct_file':'Moli 原生 CDP 响应；附件事件使用同一 Moli 原始附件接口'},
+ 'harness/web_fetch/providers/moli.py','所有正文与结构任务使用 Moli 原生 Markdown。旧版 selector 合同只映射到官方等待参数，不参与正文抽取。图片、视频资源页使用原生 HTML，共同评分器只识别其中的资源 URL。直接 PDF/DOCX 仍调用同一原生接口；接口没有交付可读正文时按失败记录，评测端不下载后解析。文件使用原生 CDP 响应或同一二进制的原始附件接口。最终网址仅作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。'),
  'lexmount-global':spec('POST https://api.lexmount.com/v1/extract','X-API-Key: <API_KEY>；X-Project-Id: <PROJECT_ID>',
  [('extract.url','string · 必填','目标网页 URL'),('extract.engine','string · 可选','指定提取引擎；本轮不传，使用服务端选择')],
  [('result.main_text','string','正文 → content'),('result.title / final_url','string','页面标题 / 最终地址'),('result.links / images','array','页面链接和图片 → provider_metadata'),('result.status_code','number','源站状态；与 HTTP API 状态分开'),('metadata.server_elapsed_ms','number','服务端耗时')],
@@ -91,11 +91,11 @@ for engine,wait in (('lightpanda','done'),('obscura','load + adaptive settle'),(
 def moli_release_spec(version):
  base=SPECS['moli']
  return {**base,
- 'entry':f'CLI · Moli {version} 原生 Markdown / DOM eval / 原始文件接口',
- 'params':[('URL','string · 必填','唯一任务输入'),('--dump markdown','网页及 HTML/TXT 文档正文','直接取得 Markdown；直接 PDF/DOCX 不提供可读正文'),('--eval','资源、嵌入文档和媒体信息','读取已加载内容；脚本按公开任务类型固定'),('外层截止','seconds','45 秒；不改写产品内部超时默认值')],
- 'fields':[('stdout','UTF-8 string / bytes','正文为原生 Markdown；资源为任务投影；直接文件为原始字节'),('raw_stdout_path / sha256','string','保存的原始文档或媒体证据'),('file_evaluation','object','文件格式、长度和目标 SHA-256 验收')],
- 'request':{'page_or_document_body':'moli fetch --dump markdown --wait-until done URL','resource_or_embedded_page':'moli fetch --eval <task-type projection> URL','direct_file':'原始响应或附件接口；具体路线见逐次调用记录','version':version},
- 'notes':f'本方法只使用官方 {version} 发行二进制，与其他 Moli 版本分开计分。网页及 HTML/TXT 文档正文使用原生 Markdown。直接 PDF/DOCX 仍走这条原生接口；接口没有交付可读正文时按失败记录。资源和嵌入文档只读取浏览器内已加载的内容；文件题直接验收原始字节。评测端不使用外部 PDF/DOCX 解析器补正文，也不在失败后切换引擎或输出模式。'}
+ 'entry':f'CLI · Moli {version} 原生 Markdown / HTML / 原始文件接口',
+ 'params':[('URL','string · 必填','唯一任务输入'),('--dump markdown','所有正文与结构任务','直接取得 Markdown；直接 PDF/DOCX 不提供可读正文'),('--dump html','图片、视频资源页','直接取得原生 HTML；共同评分器只识别资源 URL'),('--wait-selector / --wait-script','旧版预声明完成条件','只等待，不抽取或拼接正文'),('外层截止','seconds','45 秒；不改写产品内部超时默认值')],
+ 'fields':[('stdout','UTF-8 string / bytes','正文为原生 Markdown；资源页为原生 HTML；直接文件为原始字节'),('raw_stdout_path / sha256','string','保存的原始文档或媒体证据'),('file_evaluation','object','文件格式、长度和目标 SHA-256 验收')],
+ 'request':{'page_or_document_body':'moli fetch --dump markdown --wait-until done URL','resource_page':'moli fetch --dump html --wait-until done URL','direct_file':'原始响应或附件接口；具体路线见逐次调用记录','version':version},
+ 'notes':f'本方法只使用官方 {version} 发行二进制，与其他 Moli 版本分开计分。网页及 HTML/TXT 文档正文使用原生 Markdown；预声明完成条件只控制等待。资源页使用原生 HTML，共同评分器只读取其中的资源 URL。直接 PDF/DOCX 仍走原生接口；接口没有交付可读正文时按失败记录。文件题直接验收原始字节。评测端不使用外部 PDF/DOCX 解析器补正文，也不在失败后切换引擎或输出模式。'}
 SPECS['moli-1.0.6']=moli_release_spec('1.0.6')
 SPECS['moli']=moli_release_spec('1.1.5')
 SPECS['moli-1.1.7']=moli_release_spec('1.1.7')
@@ -148,7 +148,7 @@ def method_spec(name, record):
  engine=native_browser_engine(name) or name
  if record and record.get('provider_type')=='moli_webfetch':
   base=SPECS['moli-webfetch']
-  return {**base,'entry':'CLI · Moli · 按任务预选原生正文、DOM eval 或原始响应接口'} if name not in SPECS else base
+  return {**base,'entry':'CLI · Moli · 按任务预选原生 Markdown、HTML 或原始响应接口'} if name not in SPECS else base
  base=SPECS.get(name) or SPECS[engine]
  meta=(record or {}).get('provider_metadata',{})
  if name=='moli':
@@ -215,7 +215,7 @@ def browser_task_interface_matrix(cases, providers):
   'kitesurf':'指定 Kitesurf 的官方 CDP 原始响应',
  }
  resource={
-  'moli':'CLI --eval 执行共用 DOM 元素读取脚本',
+  'moli':'CLI fetch --dump html → 原生 HTML；共同评分器只识别资源 URL',
   'lightpanda':'原生 CDP 执行共用 DOM 元素读取脚本',
   'obscura':'CLI --eval 执行共用 DOM 元素读取脚本；内置 assets 缺少所需 srcset/picture 地址',
   'chromium':'Playwright/CDP 执行共用 DOM 元素读取脚本',
