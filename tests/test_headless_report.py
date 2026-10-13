@@ -668,7 +668,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             self.assertEqual(model['stats']['moli']['all']['mean'],20)
             self.assertEqual(model['stats']['moli']['successful']['mean'],10)
             self.assertEqual(model['stats']['lightpanda']['successful']['n'],2)
-            self.assertIn('风控网站正文',body)
+            self.assertIn('风控网页正文',body)
             self.assertIn('Origin returned HTTP 403',body)
             self.assertIn('独立结果审查：0/4',body)
             self.assertNotIn('150 道',body)

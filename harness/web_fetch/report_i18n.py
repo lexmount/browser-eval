@@ -1365,7 +1365,7 @@ TEXT.update({
     "仅链接": "Link only",
 
     # Shared metric definitions and task-family explanations.
-    "静态网站正文、动态网站正文、热门网站正文、风控网站正文和文档正文使用同一评分流程。页面来源与加载方式不同，改变的是案例要求，不改变指标定义。": "Static-site, dynamic-site, popular-site, risk-control, and document body-text tasks share one scoring pipeline. Their sources and loading behavior affect case requirements, not metric definitions.",
+    "静态网站正文、动态网站正文、热门网站正文、风控网页正文和文档正文使用同一评分流程。页面来源与加载方式不同，改变的是案例要求，不改变指标定义。": "Static-site, dynamic-site, popular-site, risk-control, and document body-text tasks share one scoring pipeline. Their sources and loading behavior affect case requirements, not metric definitions.",
     "统一验收流程": "Shared acceptance pipeline",
     "接口返回 → 排除空内容与错误页 → 核对题目要求的文字和字段 → 检查列表数量、类型与唯一性 → 汇总任务结果。只执行该例适用的检查；失败详情保留具体未满足项。图片与视频沿用请求和交付检查，资源地址或文件字节另按格式核验。": "Provider response → reject empty content and error pages → check required text and fields → validate record count, types, and uniqueness → determine the task verdict. Only applicable checks run for each task, and failures retain the unmet requirements. Image and video tasks use the same request and delivery checks, with resource URLs or file bytes validated by format.",
     "满足该例全部验收规则的次数 ÷ 已有验收证据的任务。段落、列表、字段都属于内容要求；没有 F1 最低分门槛。请求失败计入分母；任何计划调用缺失或无法判分时，整份报告标为不可靠并禁止发布。": "Calls satisfying every acceptance rule divided by tasks with acceptance evidence. Paragraphs, lists, and fields are all content requirements; there is no minimum F1 threshold. Request failures remain in the denominator. A missing or unjudgeable planned call makes the report unreliable and blocks publication.",

@@ -56,7 +56,7 @@ class ReportBodyScopeTests(unittest.TestCase):
         from harness.web_fetch.report_explainer import TRACK_NAMES
         self.assertIs(TRACK_NAMES, TRACKS)
         self.assertEqual(list(TRACKS), ['web','dynamic','challenge','risk_control','document','image','video'])
-        self.assertEqual(TRACKS['risk_control'], '风控网站正文')
+        self.assertEqual(TRACKS['risk_control'], '风控网页正文')
 
     def test_all_call_latency_keeps_failed_calls_and_rejects_partial_matrix(self):
         c=case('body',kind='body')
