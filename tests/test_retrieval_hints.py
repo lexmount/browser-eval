@@ -273,7 +273,10 @@ def test_native_default_contract_must_be_valid(tmp_path):
         load_dataset(_write_dataset(tmp_path, case))
 
 
-def test_named_native_contract_resolves_a_source_bound_page_shape():
+def test_named_native_contract_resolves_a_source_bound_page_shape(monkeypatch):
+    monkeypatch.setattr(
+        "harness.web_fetch.retrieval_hints._verify_contract_source", lambda *_: None
+    )
     case = {"id": "dynamic-iframe", "track": "dynamic", "retrieval_hints": {
         "version": 3, "mode": "native", "contract": "iframe-fourteen-family-headings"}}
     assert parse_retrieval_hints("dynamic", case["retrieval_hints"], identifier=case["id"]) is None
@@ -284,7 +287,10 @@ def test_named_native_contract_resolves_a_source_bound_page_shape():
     assert "h3.family-name" in plan.wait_value and ".length >= 14" in plan.wait_value
 
 
-def test_delayed_native_contract_waits_for_complete_visible_records():
+def test_delayed_native_contract_waits_for_complete_visible_records(monkeypatch):
+    monkeypatch.setattr(
+        "harness.web_fetch.retrieval_hints._verify_contract_source", lambda *_: None
+    )
     case = {"id": "dynamic-delayed", "track": "dynamic", "retrieval_hints": {
         "version": 3, "mode": "native", "contract": "delayed-ten-records"}}
     contract = native_contract_for_case(case)

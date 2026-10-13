@@ -349,7 +349,7 @@ class FairnessTests(unittest.TestCase):
         self.assertFalse(task_measured(m))
         self.assertEqual(result_label(r,c),'未测')
         self.assertIn('data-result="unmeasured"',case_attrs(r,c))
-        self.assertIn('0/1', ranking([r],{'x':c},'image'))
+        self.assertIn('0/1', ranking([r],{'x':c},'media_file'))
 
     def test_file_bytes_are_typed_hashed_and_target_bound(self):
         raw = b'\x89PNG\r\n\x1a\n' + b'payload'*10

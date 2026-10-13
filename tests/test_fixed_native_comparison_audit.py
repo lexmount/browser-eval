@@ -49,10 +49,10 @@ class NativeFixture(Provider):
 
 def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
     source_cases = [
-        EvalCase("web", "Web", "https://example.test/web", "web", ["anchor"]),
-        EvalCase("dynamic", "Dynamic", "https://example.test/dynamic", "dynamic",
+        EvalCase("web", "Web", "https://93.184.216.34/web", "web", ["anchor"]),
+        EvalCase("dynamic", "Dynamic", "https://93.184.216.34/dynamic", "dynamic",
                  ["anchor"], track="dynamic"),
-        EvalCase("timeout", "Timeout", "https://example.test/timeout", "web", ["anchor"]),
+        EvalCase("timeout", "Timeout", "https://93.184.216.34/timeout", "web", ["anchor"]),
     ]
     source = {
         "id": "source",

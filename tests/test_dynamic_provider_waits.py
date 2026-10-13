@@ -476,9 +476,10 @@ def test_kitesurf_maps_shared_completion_but_discloses_missing_frame_output(mock
     mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"outer page"}')
     case = replace(dynamic_case(), id="dynamic-iframe", retrieval_hints={
         "version": 3, "mode": "native", "contract": "iframe-fourteen-family-headings"})
-    result = CloudflareMarkdownProvider("kitesurf", {
-        "api_token": "x", "account_id": "a", "browser": "kitesurf"
-    }).fetch(case, 45)
+    with patch("harness.web_fetch.retrieval_hints._verify_contract_source"):
+        result = CloudflareMarkdownProvider("kitesurf", {
+            "api_token": "x", "account_id": "a", "browser": "kitesurf"
+        }).fetch(case, 45)
     assert result.ok
     body = mock_request.call_args.kwargs["json_body"]
     assert "waitForTimeout" not in body
@@ -494,10 +495,11 @@ def test_kitesurf_shared_completion_keeps_product_default_internal_timers(mock_r
     mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"records"}')
     case = replace(dynamic_case(), id="dynamic-delayed", retrieval_hints={
         "version": 3, "mode": "native", "contract": "delayed-ten-records"})
-    result = CloudflareMarkdownProvider("kitesurf", {
-        "api_token": "x", "account_id": "a", "browser": "kitesurf",
-        "uniform_native_parameters": True,
-    }).fetch(case, 45)
+    with patch("harness.web_fetch.retrieval_hints._verify_contract_source"):
+        result = CloudflareMarkdownProvider("kitesurf", {
+            "api_token": "x", "account_id": "a", "browser": "kitesurf",
+            "uniform_native_parameters": True,
+        }).fetch(case, 45)
     assert result.ok
     body = mock_request.call_args.kwargs["json_body"]
     assert body["waitForSelector"] == {"selector": ".quote"}

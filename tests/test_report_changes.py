@@ -221,7 +221,7 @@ class ReportChangesTests(unittest.TestCase):
     def test_ranking_uses_planned_judgment_denominator(self):
         c={'id':'file','name':'File','track':'video','task_kind':'file'}
         r={'case_id':'file','provider':'p','ok':True,'elapsed_ms':1,'metrics':{'task_kind':'file'}}
-        page=ranking([r],{'file':c},'video')
+        page=ranking([r],{'file':c},'media_file')
         self.assertIn('判分完整性',page)
         self.assertNotIn('已执行/总案例',page)
         self.assertIn('缺少验收证据的案例',page)

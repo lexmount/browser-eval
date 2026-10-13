@@ -36,7 +36,7 @@ class NativeBrowserVariantTests(unittest.TestCase):
         self.assertEqual(native_browser_engine("moli-fixed"), "moli")
         self.assertEqual(
             browser_method_label("moli-fixed"),
-            "Moli 1.1.17（main + PR 1476 + PR 1481，60773df3）",
+            "Moli 1.1.17（修复开发分支，60773df3）",
         )
         self.assertEqual(
             browser_method_label("moli-pr919"),

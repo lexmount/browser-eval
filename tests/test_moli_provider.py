@@ -620,7 +620,10 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["route"], "dynamic_native_markdown")
         self.assertEqual(result.metadata["output"], "markdown")
 
-    def test_native_subdocument_contract_uses_moli_serializer_and_wait_only(self):
+    @patch("harness.web_fetch.retrieval_hints._verify_contract_source")
+    def test_native_subdocument_contract_uses_moli_serializer_and_wait_only(
+        self, _verify_source
+    ):
         provider = self.provider(
             "import sys\n"
             'assert "--with-frames" in sys.argv\n'

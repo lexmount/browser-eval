@@ -475,7 +475,7 @@ def test_native_moli_report_describes_the_frozen_uniform_call():
     }
     text = provider_configuration("moli-webfetch", [record] * 100, {})
     assert "默认 done" in text
-    assert "除目标 URL 外没有逐例等待元素" in text
+    assert "除目标 URL 外，没有逐例等待元素" in text
 
 
 def test_local_audit_banner_has_no_pull_request_number():

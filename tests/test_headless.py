@@ -163,7 +163,8 @@ class NativeMetadataTests(unittest.TestCase):
         command.assert_not_called()
 
 class HeadlessTests(unittest.TestCase):
-    def test_lightpanda_receives_shared_native_frame_contract(self):
+    @patch("harness.web_fetch.retrieval_hints._verify_contract_source")
+    def test_lightpanda_receives_shared_native_frame_contract(self, _verify_source):
         provider = HeadlessProvider('lightpanda', {
             'type': 'headless_markdown', 'engine': 'lightpanda', 'binary': '/lightpanda'})
         case = EvalCase('dynamic-iframe', 'Frame', 'https://example.com/', 'dynamic', [],
@@ -188,7 +189,10 @@ class HeadlessTests(unittest.TestCase):
         self.assertEqual(result.metadata['output_contract'], 'markdown')
         self.assertFalse(result.metadata['subdocuments']['harness_content_assembly'])
 
-    def test_engines_without_native_frame_markdown_do_not_assemble_child_content(self):
+    @patch("harness.web_fetch.retrieval_hints._verify_contract_source")
+    def test_engines_without_native_frame_markdown_do_not_assemble_child_content(
+        self, _verify_source
+    ):
         case = EvalCase('dynamic-iframe', 'Frame', 'https://example.com/', 'dynamic', [],
             track='dynamic', retrieval_hints={
                 'version': 3, 'mode': 'native',
