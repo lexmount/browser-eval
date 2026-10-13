@@ -3498,10 +3498,18 @@ class Localizer(HTMLParser):
         self.stack: list[str] = []
         self.source = source
         self.translations = translations
+        self.translate_stack = []
+
+    def _allows_translation(self, attrs):
+        mode = (dict(attrs).get("translate") or "").lower()
+        if mode in {"yes", "no"}:
+            return mode == "yes"
+        return self.translate_stack[-1] if self.translate_stack else True
 
     def _start_tag(self, attrs) -> str:
         original = self.get_starttag_text()
-        if any(tag in self.stack for tag in ("pre", "code", "script", "style")):
+        if (not self._allows_translation(attrs)
+                or any(tag in self.stack for tag in ("pre", "code", "script", "style"))):
             return original
         values = dict(attrs)
         article = self.source in {PurePosixPath("guide/index.html"), PurePosixPath("guide/article.html")}
@@ -3533,6 +3541,7 @@ class Localizer(HTMLParser):
         self.parts.append(f"<!{decl}>")
 
     def handle_starttag(self, tag: str, attrs) -> None:
+        self.translate_stack.append(self._allows_translation(attrs))
         self.stack.append(tag)
         self.parts.append(self._start_tag(attrs))
 
@@ -3542,10 +3551,12 @@ class Localizer(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag in self.stack:
             self.stack = self.stack[:len(self.stack) - 1 - self.stack[::-1].index(tag)]
+            self.translate_stack = self.translate_stack[:len(self.stack)]
         self.parts.append(f"</{tag}>")
 
     def handle_data(self, data: str) -> None:
-        if any(tag in self.stack for tag in ("pre", "code", "script", "style")):
+        if ((self.translate_stack and not self.translate_stack[-1])
+                or any(tag in self.stack for tag in ("pre", "code", "script", "style"))):
             self.parts.append(data)
         else:
             self.parts.append(translate_text(data, self.translations))

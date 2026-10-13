@@ -337,9 +337,9 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     panels = [required_text_answer_panel({"required_facts": [{"alternatives": alternatives}]}),
               stable_answer_panel({"stable_text_anchors": [{"alternatives": alternatives}], "minimum_records": 1})]
     for panel in panels:
-        assert "&lt;source&gt;\n或\noriginal\n<span>或</span>\nsecond" in panel
+        assert '<span translate="no">&lt;source&gt;\n或\noriginal</span>\n<span>或</span>\n<span translate="no">second</span>' in panel
         english_panel = localize_html(panel, PurePosixPath("attempts/example.html"))
-        assert "&lt;source&gt;\n或\noriginal\n<span>or</span>\nsecond" in english_panel
+        assert '<span translate="no">&lt;source&gt;\n或\noriginal</span>\n<span>or</span>\n<span translate="no">second</span>' in english_panel
     assert "region 1 77.5%" in localized
     assert '<pre>原始返回：位置 1\n或\n真实正文</pre>' in localized
     assert (rebuilt / "logs" / debug.name).read_bytes() == debug.read_bytes()

@@ -135,3 +135,22 @@ def test_release_rejects_a_wrong_primary_language(tmp_path, damage):
     path.write_text(json.dumps(contract))
     with pytest.raises(ValueError, match="language|entrypoint"):
         check_language_contract(tmp_path)
+
+
+def test_evidence_translate_no_preserves_nested_text_and_attributes(monkeypatch):
+    from pathlib import PurePosixPath
+    from harness.web_fetch import report_i18n
+    raw = "记录来源" * 1000
+    original = report_i18n.translate_text
+
+    def translate(value, translations=None):
+        assert raw not in value, "Raw evidence reached narrative translation"
+        return original(value, translations)
+
+    monkeypatch.setattr(report_i18n, "translate_text", translate)
+    page = ('<p translate="no" title="记录来源"><span>' + raw + '</span><br/>'
+            '<span translate="yes">记录来源</span></p><p>记录来源</p>')
+    actual = report_i18n.localize_html(page, PurePosixPath("attempts/example.html"))
+    assert '<p translate="no" title="记录来源"><span>' + raw + '</span><br/>' in actual
+    assert '<span translate="yes">Record source</span>' in actual
+    assert actual.endswith('<p>Record source</p>')
