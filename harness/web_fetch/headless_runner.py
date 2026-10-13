@@ -136,6 +136,21 @@ def main(argv=None):
         providers=args.providers,
     )
     names = list(config)
+    incompatible = {
+        name: value.get("type")
+        for name, value in config.items()
+        if value.get("type") != "headless_markdown"
+    }
+    if incompatible:
+        details = ", ".join(
+            f"{name} ({provider_type or 'missing type'})"
+            for name, provider_type in incompatible.items()
+        )
+        parser.error(
+            "Headless benchmark providers must use type headless_markdown; "
+            f"incompatible provider configuration: {details}. "
+            "Use scripts/run_benchmark.py for native Web Fetch providers."
+        )
     if args.resource_sample_interval_ms is not None:
         if args.resource_container_image is None:
             args.resource_container_image = cohort_config.get("resource_container_image")

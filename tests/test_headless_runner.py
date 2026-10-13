@@ -196,6 +196,14 @@ def test_custom_registry_defaults_to_its_methods_and_retains_true_input_identity
     assert manifest["provider_config_source"] == config.name
 
 
+def test_headless_runner_rejects_native_web_fetch_provider_before_execution(experiment):
+    run, _, _, output = experiment
+    with pytest.raises(SystemExit):
+        run({"providers": {"moli": {"type": "moli_webfetch"}}})
+    assert SyntheticBrowser.calls == []
+    assert not output.exists()
+
+
 def test_headless_run_copies_references_only_for_selected_tasks(experiment):
     run, dataset, _, output = experiment
     files = {
