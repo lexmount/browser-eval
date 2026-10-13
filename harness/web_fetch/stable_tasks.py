@@ -126,7 +126,7 @@ def _visible(text, schema=None):
     text = _unwrap_links(text, schema)
     # CommonMark punctuation escapes preserve the same visible characters.
     # Remove them before date/field parsing (for example ``2023\-05\-18``).
-    text = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', r'\1', text)
+    text = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', lambda m: m[0] if schema == 'table_row' and m[1] in {'|', '\\'} else m[1], text)
     if schema == "name_description":
         # Image-only card links intentionally contribute no visible title.
         # Remove their now-empty bullet line so blank-delimited card parsing

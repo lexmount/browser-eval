@@ -126,6 +126,15 @@ class ScoringRegressionTests(unittest.TestCase):
                     self.assertEqual(task_measured(metrics), row["expected_task_measured"])
                 for key, expected in row.get("expected_metrics", {}).items():
                     self.assertEqual(metrics.get(key), expected, key)
+                if (row["root_cause"] == "table_escaped_pipe_boundaries"
+                        and row["expected_task_pass"]):
+                    if row["case"].get("composite_acceptance"):
+                        record = metrics["composite_group_results"][0]["records"][0]
+                        fields = record.get("fields", record)
+                        self.assertEqual(fields["owner"], "Alice | Bob")
+                    else:
+                        self.assertEqual(metrics["stable_records"][0]["fields"]["name"],
+                                         "Alpha | Beta")
                 root_modes.setdefault(row["root_cause"], set()).add(row["failure_mode"])
         paired = {"answer_surface_omission", "body_scope_calibration",
                   "declared_scope_exclusions", "declared_truncation",
@@ -160,6 +169,7 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.add("scoped_markdown_caption_ownership")
         paired.add("final_url_diagnostic_not_acceptance")
         paired.add("html_language_metadata_diagnostic_not_acceptance")
+        paired.update({"table_visible_section_boundaries", "table_escaped_pipe_boundaries"})
         paired.update({"table_header_visual_line", "table_adjacent_split_body",
                        "composite_html_table_ownership"})
         for root_cause in paired:
