@@ -68,7 +68,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             ['web_media', 'web_media', 'web_media', 'media_file', 'media_file'],
         )
         self.assertEqual(REPORT_FAMILIES['web_media'], '网页媒体信息')
-        self.assertEqual(REPORT_FAMILIES['media_file'], '媒体原文件')
+        self.assertEqual(REPORT_FAMILIES['media_file'], '直接媒体文件')
 
     def test_task_family_names_and_order_share_the_report_registry(self):
         from harness.web_fetch.report_explainer import TRACK_NAMES

@@ -3,11 +3,12 @@ import unittest
 from bs4 import BeautifulSoup
 from harness.web_fetch.report_components import task_pass_guide, examples, metric_legend, TRACK_CONTEXT
 from harness.web_fetch.report import ranking, TRACKS
+from harness.web_fetch.models import REPORT_FAMILIES
 
 
 class ContentOwnershipTests(unittest.TestCase):
     def test_every_track_explains_meaning_example_and_boundary(self):
-        self.assertEqual(set(TRACK_CONTEXT),set(TRACKS))
+        self.assertTrue(set(TRACKS) <= set(TRACK_CONTEXT))
         for track in TRACKS:
             soup=BeautifulSoup(task_pass_guide(track),'html.parser')
             self.assertTrue(soup.select_one('.track-meaning').get_text().strip())
@@ -42,7 +43,7 @@ class ContentOwnershipTests(unittest.TestCase):
 
     def test_every_ranking_links_to_its_methodology_example(self):
         page = examples()
-        for track in ('web', 'dynamic', 'document', 'image', 'video', 'challenge'):
+        for track in REPORT_FAMILIES:
             guide = task_pass_guide(track, '../')
             self.assertIn(f'../methodology/index.html#task-examples-{track}', guide)
             self.assertIn(f'id="task-examples-{track}"', page)

@@ -39,7 +39,7 @@ NAV = [
 TEXT = {
     "CLI · 按任务预选原生 Markdown、HTML 或原始响应路线": "CLI · preselects native Markdown, HTML, or raw-response routes by task",
     "网页媒体信息": "Media information from webpages",
-    "媒体原文件": "Original media files",
+    "直接媒体文件": "Direct media files",
     "输入是网页，共 17 题：16 题返回指定图片、视频或视频入口地址，1 题返回视频页登记的文字信息。地址题不下载媒体文件；文字题也不据此推断已取得视频字节。": "The input is a webpage. Across 17 tasks, 16 require specified image, video, or video-entry URLs and one requires registered text from a video page. URL tasks do not download the media file, and the text task does not imply that video bytes were obtained.",
     "输入直接指向媒体文件，共 3 题：必须取得原始字节，并通过格式特征、长度与目标 SHA-256 验收。只复述输入网址不通过，也不要求把二进制内容转换成 Markdown。": "The input points directly to a media file. Across three tasks, the method must obtain the original bytes and pass format-signature, length, and target SHA-256 checks. Repeating the input URL fails, and binary content does not need conversion to Markdown.",
     "直接取得 Moli 原生 HTML；共同评分器只识别其中的资源 URL": "Returns Moli's native HTML directly; the shared scorer only identifies resource URLs in it",

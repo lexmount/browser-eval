@@ -22,7 +22,7 @@ REPORT_FAMILIES = {
     'risk_control': '风控网页正文',
     'document': '文档正文',
     'web_media': '网页媒体信息',
-    'media_file': '媒体原文件',
+    'media_file': '直接媒体文件',
 }
 
 
