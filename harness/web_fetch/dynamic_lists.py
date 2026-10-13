@@ -273,7 +273,10 @@ def _text_scope_boundary(content, pattern):
     if raw:candidates.append((raw.start(),raw.end()))
     offset=0
     for line in content.splitlines(keepends=True):
-        visible=visible_markdown_links(line).strip()
+        decoded_line = unescape(line)
+        if re.match(pattern, decoded_line, re.M):
+            candidates.append((offset, offset + len(line)))
+        visible=unescape(visible_markdown_links(line)).strip()
         visible=re.sub(r'^#{1,6}\s+','',visible)
         visible=re.sub(r'^(?:[-*+]|\d+[.)])\s+','',visible)
         visible=re.sub(r'([*_]{1,2})(.+?)\1',r'\2',visible)
@@ -508,12 +511,103 @@ def _named_table_items(content, scope):
     return items
 
 
-def _markdown_named_items(content, contract, scope):
+def _markdown_heading_card_items(content, contract, scope, base_url):
+    """Bind one heading title to one detail link inside that heading's card.
+
+    This parser is opt-in because a heading does not ordinarily own every link
+    below it. A declared title pattern starts a card, the next Markdown heading
+    ends it, and visible body copy must occur before the detail link. The
+    contract's host and path rules identify detail links without relying on a
+    provider, site name, action label, or saved entity title.
+    """
+    if not scope or not scope.get('markdown_card_title_pattern'):
+        return [], set()
+    from .reference_quality import markdown_links, visible_markdown_links
+
+    title_pattern = re.compile(scope['markdown_card_title_pattern'])
+    headings = list(re.finditer(r'(?m)^ {0,3}#{1,6}[ \t]+[^\n]+$', content))
+    items, owned_link_spans = [], set()
+    excluded_titles = [re.compile(pattern, re.I)
+                       for pattern in contract.get('title_exclusion_patterns', [])]
+    for heading in headings:
+        title_match = title_pattern.fullmatch(heading[0])
+        if not title_match:
+            continue
+        title = re.sub(r'\s+', ' ', visible_markdown_links(title_match['title'])).strip()
+        heading_candidates = []
+        for link in markdown_links(title_match['title']):
+            if link.is_image:
+                continue
+            candidate = _named_candidate(
+                link.destination, title, contract, base_url, excluded_titles,
+            )
+            if candidate is not None:
+                heading_candidates.append(candidate)
+        heading_identities = {candidate[0] for candidate in heading_candidates}
+        if len(heading_identities) == 1:
+            identity = next(iter(heading_identities))
+            candidate = next(
+                candidate for candidate in heading_candidates
+                if candidate[0] == identity
+            )
+            items.append((candidate[1]['url'], candidate[1]['title']))
+            continue
+        if heading_candidates:
+            continue
+        following = content[heading.end():]
+        block_boundary = re.search(
+            r'(?m)^(?: {0,3}#{1,6}[ \t]+| {0,3}(?:(?:\*\s*){3,}|(?:-\s*){3,}|(?:_\s*){3,}))',
+            following,
+        )
+        boundary = (
+            heading.end() + block_boundary.start()
+            if block_boundary else len(content)
+        )
+        segment = content[heading.end():boundary]
+        candidates = []
+        for link in markdown_links(segment):
+            if link.is_image:
+                continue
+            candidate = _named_candidate(
+                link.destination, title, contract, base_url,
+                excluded_titles,
+            )
+            if candidate is not None:
+                candidates.append((link, candidate))
+        identities = {candidate[0] for _link, candidate in candidates}
+        if len(identities) != 1:
+            continue
+        identity = next(iter(identities))
+        first_link, candidate = next(
+            (link, candidate) for link, candidate in candidates
+            if candidate[0] == identity
+        )
+        before_link = segment[:first_link.start]
+        for link in reversed(markdown_links(before_link)):
+            before_link = before_link[:link.start] + before_link[link.end:]
+        body = visible_markdown_links(
+            re.sub(r'!\[[^\]]*\]\([^)]*\)|<[^>]+>', ' ', before_link)
+        )
+        if not any(any(character.isalnum() for character in line)
+                   for line in body.splitlines()):
+            continue
+        owned_link_spans.update(
+            (heading.end() + link.start, heading.end() + link.end)
+            for link, owned_candidate in candidates
+            if owned_candidate[0] == candidate[0]
+        )
+        items.append((candidate[1]['url'], candidate[1]['title']))
+    return items, owned_link_spans
+
+
+def _markdown_named_items(content, contract, scope, excluded_spans=frozenset()):
     """Extract explicit named Markdown links without treating prose as a list."""
     from .reference_quality import markdown_links, visible_markdown_links
     items = []
     parsed_links = markdown_links(content)
     for link_index, link in enumerate(parsed_links):
+        if (link.start, link.end) in excluded_spans:
+            continue
         destination = link.destination.strip()
         try:
             target = urlsplit(destination)
@@ -579,7 +673,8 @@ def _markdown_named_items(content, contract, scope):
                         )
             if not match:
                 continue
-            non_image_label = match['label']
+            else:
+                non_image_label = match['label']
         title=re.sub(r'\s+',' ',visible_markdown_links(non_image_label)).strip()
         items.append((destination,title))
     return items
@@ -650,10 +745,16 @@ def _extract_named_candidates(content,contract,base_url,links=None,diagnostics=N
             else None
         )
     parser=Links();parser.feed(content)
+    heading_items, heading_link_spans = _markdown_heading_card_items(
+        content, contract, scope, base_url,
+    )
     items = owned_items + _paired_markdown_items(content, scope) + _named_table_items(content, scope)
     items += list(parser.items) + safe_named_links(links, base_url)
-    items += _markdown_named_items(content, contract, scope)
+    items += _markdown_named_items(content, contract, scope, heading_link_spans)
     items += _image_heading_items(content, scope)
+    # Explicit card ownership is stronger than a generic link label for the
+    # same destination, so append it last before canonical deduplication.
+    items += heading_items
     return _deduplicated_named_candidates(items, contract, base_url, diagnostics)
 
 

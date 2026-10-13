@@ -919,6 +919,280 @@
         ]
       },
       "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "dynamic-086-joyn-prosieben",
+      "expected_definition_sha256": "d13635e79401a8972634924137bff41907131cccde94234f8308b60ac63fd602",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 12,
+          "hosts": [
+            "www.joyn.de"
+          ],
+          "entry_path": "/(?:serien|filme|shows)/(?!genre(?:/|$))[^/]+",
+          "stable_text_anchors": [
+            {
+              "id": "visible-nav-0",
+              "alternatives": [
+                "Neu & beliebt"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "86dc4a52636f32de9764e757ddfb79628a7eeeb46a6ca4f79ade361d75c407fd"
+            },
+            {
+              "id": "visible-nav-1",
+              "alternatives": [
+                "Für Dich"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "86dc4a52636f32de9764e757ddfb79628a7eeeb46a6ca4f79ade361d75c407fd"
+            },
+            {
+              "id": "visible-nav-2",
+              "alternatives": [
+                "Mediatheken"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "86dc4a52636f32de9764e757ddfb79628a7eeeb46a6ca4f79ade361d75c407fd"
+            },
+            {
+              "id": "visible-nav-3",
+              "alternatives": [
+                "Live TV"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "86dc4a52636f32de9764e757ddfb79628a7eeeb46a6ca4f79ade361d75c407fd"
+            },
+            {
+              "id": "visible-nav-4",
+              "alternatives": [
+                "Serien"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "86dc4a52636f32de9764e757ddfb79628a7eeeb46a6ca4f79ade361d75c407fd"
+            },
+            {
+              "id": "visible-nav-5",
+              "alternatives": [
+                "Filme"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "86dc4a52636f32de9764e757ddfb79628a7eeeb46a6ca4f79ade361d75c407fd"
+            },
+            {
+              "id": "visible-nav-6",
+              "alternatives": [
+                "Sport"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "86dc4a52636f32de9764e757ddfb79628a7eeeb46a6ca4f79ade361d75c407fd"
+            },
+            {
+              "id": "visible-nav-7",
+              "alternatives": [
+                "News & Doku"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "86dc4a52636f32de9764e757ddfb79628a7eeeb46a6ca4f79ade361d75c407fd"
+            },
+            {
+              "id": "visible-nav-8",
+              "alternatives": [
+                "Barrierefrei"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "86dc4a52636f32de9764e757ddfb79628a7eeeb46a6ca4f79ade361d75c407fd"
+            }
+          ],
+          "record_count_policy": {
+            "list_type": "variable",
+            "source_observed_count": 15,
+            "required_ratio": 0.8,
+            "minimum_records": 12,
+            "source_observation_counts": [
+              15,
+              15
+            ],
+            "source_evidence_sha256": "86dc4a52636f32de9764e757ddfb79628a7eeeb46a6ca4f79ade361d75c407fd",
+            "reason": "Initial auto-loaded cards with independently visible caption and corresponding detail link. Captions and membership vary; refresh denominator in the call window."
+          },
+          "name_validation": "nonempty",
+          "entry_scope": {
+            "html_selector": "main a:has(h3):has(p)",
+            "title_selector": "p",
+            "link_selector": "a[href]",
+            "start_pattern": "(?m)^# Alle ProSieben Sendungen bei Joyn[^\\n]*$",
+            "end_pattern": "(?m)^#{1,6}\\s+ProSieben Mediathek bei Joyn:",
+            "markdown_label_pattern": "(?s)<br>\\s*(?P<label>[^<>\\n]+?)\\s*<br>\\s*$",
+            "markdown_card_title_pattern": "(?m)^###\\s+(?P<title>[^\\n]+?)\\s*$"
+          }
+        }
+      },
+      "evidence": {
+        "source": "sha256:06e04978e1a852392cecbd599d69b0c821e37fdc24d4c5a62618610799b724b5",
+        "observed_at": "2026-10-14",
+        "observed_text": "The bounded native Markdown contains visible heading titles and same-card detail links; the prior caption-only pattern returned zero records for this representation.",
+        "root_cause": "scoped_markdown_heading_card_ownership",
+        "prior_acceptance_contract_sha256": "acce0b8bfa61ab04f467a2628855151525717b95abf347c2eba2504f180b07ee",
+        "revised_acceptance_contract_sha256": "6c75f54d7739a3f295cad7710b63d4788b719214ffbf5460c72ea722fa01c37a",
+        "affected_scope": "dynamic-086-joyn-prosieben across all registered methods; offline rescore only",
+        "regression_ids": [
+          "scoped-heading-cards-own-their-detail-links",
+          "scoped-heading-cards-cannot-borrow-across-cards",
+          "scoped-heading-cards-stop-at-explicit-block-boundary",
+          "scoped-heading-cards-reject-wrong-detail-path"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "dynamic-095-joyn-home",
+      "expected_definition_sha256": "ce19dc33fa5c7d4de9d7ad027b7e591ef5d2d1253c71a6f68af8be6786675bd5",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 8,
+          "hosts": [
+            "www.joyn.de"
+          ],
+          "entry_path": "/(?:serien|filme|shows)/(?!genre(?:/|$))[^/]+",
+          "stable_text_anchors": [
+            {
+              "id": "visible-nav-0",
+              "alternatives": [
+                "Neu & beliebt"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "175001a072f969066d1b6e1a16a2a69bec329a4e7baf083196fc41e955a433c9"
+            },
+            {
+              "id": "visible-nav-1",
+              "alternatives": [
+                "Für Dich"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "175001a072f969066d1b6e1a16a2a69bec329a4e7baf083196fc41e955a433c9"
+            },
+            {
+              "id": "visible-nav-2",
+              "alternatives": [
+                "Mediatheken"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "175001a072f969066d1b6e1a16a2a69bec329a4e7baf083196fc41e955a433c9"
+            },
+            {
+              "id": "visible-nav-3",
+              "alternatives": [
+                "Live TV"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "175001a072f969066d1b6e1a16a2a69bec329a4e7baf083196fc41e955a433c9"
+            },
+            {
+              "id": "visible-nav-4",
+              "alternatives": [
+                "Serien"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "175001a072f969066d1b6e1a16a2a69bec329a4e7baf083196fc41e955a433c9"
+            },
+            {
+              "id": "visible-nav-5",
+              "alternatives": [
+                "Filme"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "175001a072f969066d1b6e1a16a2a69bec329a4e7baf083196fc41e955a433c9"
+            },
+            {
+              "id": "visible-nav-6",
+              "alternatives": [
+                "Sport"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "175001a072f969066d1b6e1a16a2a69bec329a4e7baf083196fc41e955a433c9"
+            },
+            {
+              "id": "visible-nav-7",
+              "alternatives": [
+                "News & Doku"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "175001a072f969066d1b6e1a16a2a69bec329a4e7baf083196fc41e955a433c9"
+            },
+            {
+              "id": "visible-nav-8",
+              "alternatives": [
+                "Barrierefrei"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "header navigation",
+              "source_evidence_sha256": "175001a072f969066d1b6e1a16a2a69bec329a4e7baf083196fc41e955a433c9"
+            }
+          ],
+          "record_count_policy": {
+            "list_type": "variable",
+            "source_observed_count": 9,
+            "required_ratio": 0.8,
+            "minimum_records": 8,
+            "source_observation_counts": [
+              9,
+              9
+            ],
+            "source_evidence_sha256": "175001a072f969066d1b6e1a16a2a69bec329a4e7baf083196fc41e955a433c9",
+            "reason": "Initial auto-loaded cards with independently visible caption and corresponding detail link. Captions and membership vary; refresh denominator in the call window."
+          },
+          "name_validation": "nonempty",
+          "entry_scope": {
+            "html_selector": "main a:has(h3):has(p)",
+            "title_selector": "p",
+            "link_selector": "a[href]",
+            "start_pattern": "(?m)^# Joyn - Serien, Filme, Sport & Live TV[^\\n]*$",
+            "end_pattern": "(?m)^#{1,6}\\s+Willkommen bei Joyn:",
+            "markdown_label_pattern": "(?s)<br>\\s*(?P<label>[^<>\\n]+?)\\s*<br>\\s*$",
+            "markdown_card_title_pattern": "(?m)^###\\s+(?P<title>[^\\n]+?)\\s*$"
+          }
+        }
+      },
+      "evidence": {
+        "source": "sha256:4ddc63b3d5273c2aa49fa84319493fa65adcc82996b699b051ba57c4640d5e6d",
+        "observed_at": "2026-10-14",
+        "observed_text": "The bounded native Markdown encodes the visible ampersand in its scope heading and contains heading-owned detail cards; the prior raw boundary match and caption-only record rule returned zero records.",
+        "root_cause": "scoped_markdown_heading_card_ownership_and_visible_boundary_projection",
+        "prior_acceptance_contract_sha256": "06a23577d20b2de5a037c00e2cce681fe473e77a3b3f17862bd004993d3ee8b4",
+        "revised_acceptance_contract_sha256": "8a8158d49e788aa32664033d387219f33435713c6a0b8fe4927f3db55c52321f",
+        "affected_scope": "dynamic-095-joyn-home across all registered methods; offline rescore only",
+        "regression_ids": [
+          "scoped-heading-cards-own-their-detail-links",
+          "scoped-heading-cards-cannot-borrow-across-cards",
+          "scoped-heading-cards-stop-at-explicit-block-boundary",
+          "scoped-heading-cards-reject-wrong-detail-path",
+          "scoped-boundary-decodes-one-character-reference-layer",
+          "scoped-boundary-keeps-double-encoded-reference-literal"
+        ]
+      },
+      "execution_effect": "rescore_only"
     }
   ]
 }

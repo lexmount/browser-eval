@@ -148,6 +148,8 @@ class ScoringRegressionTests(unittest.TestCase):
                   "body_region_structure_priority"}
         paired.add("source_observed_record_threshold")
         paired.add("conditional_ui_control_not_body_requirement")
+        paired.add("scoped_markdown_heading_card_ownership")
+        paired.add("scoped_boundary_character_reference_projection")
         paired.add("dynamic_page_identity_alignment")
         paired.add("dynamic_page_query_identity")
         paired.add("declared_document_language_vs_visible_language")
