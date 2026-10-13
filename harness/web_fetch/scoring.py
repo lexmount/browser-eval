@@ -214,8 +214,7 @@ def score_attempt(
             acceptable_final_urls=acceptable_urls,
         )
     else:
-        result.update(page_identity_required=False, page_identity_status="not_required",
-                      document_language_required=False)
+        result.update(page_identity_required=False, page_identity_status="not_required")
     result["task_kind"] = task_kind
     result["rule_review_status"] = rule_review.get("status", "resolved")
     if rule_review.get("reason"):

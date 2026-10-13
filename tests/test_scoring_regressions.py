@@ -159,6 +159,7 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.add("forbidden_phrase_substring_collision")
         paired.add("scoped_markdown_caption_ownership")
         paired.add("final_url_diagnostic_not_acceptance")
+        paired.add("html_language_metadata_diagnostic_not_acceptance")
         paired.update({"table_header_visual_line", "table_adjacent_split_body",
                        "composite_html_table_ownership"})
         for root_cause in paired:
