@@ -27,7 +27,12 @@ from harness.web_fetch.reference_lifecycle import (
     valid_scoring_revision,
 )
 from harness.web_fetch.result_review import require_result_review
-from harness.web_fetch.safety import contained_path, reject_evidence_symlinks, validate_report_ids
+from harness.web_fetch.safety import (
+    contained_path,
+    reject_evidence_symlinks,
+    unlinked_path,
+    validate_report_ids,
+)
 from harness.web_fetch.scoring_regressions import (
     build_correction_provenance,
     valid_correction_provenance,
@@ -59,32 +64,23 @@ def _sha256_file(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def _selected_provider_replacement_rows(run, root, rows, receipt_path):
-    """Select a correction scope from a broader immutable call bundle."""
-    if receipt_path is None:
-        return rows, None
-    receipt_path = Path(receipt_path)
-    receipt = json.loads(receipt_path.read_text())
-    expected = {
-        'schema_version', 'kind', 'provider_calls', 'baseline_dataset_sha256',
-        'baseline_results_sha256', 'source_dataset_sha256', 'source_results_sha256',
-        'replacements',
-    }
-    if (not isinstance(receipt, dict) or set(receipt) != expected
+_PROVIDER_REPLACEMENT_RECEIPT_FIELDS = {
+    'schema_version', 'kind', 'provider_calls', 'baseline_dataset_sha256',
+    'baseline_results_sha256', 'source_dataset_sha256', 'source_results_sha256',
+    'replacements',
+}
+
+
+def _valid_provider_replacement_receipt(receipt):
+    if (not isinstance(receipt, dict)
+            or set(receipt) != _PROVIDER_REPLACEMENT_RECEIPT_FIELDS
             or receipt.get('schema_version') != 1
             or receipt.get('kind') != 'audited_provider_replacement_scope'
-            or receipt.get('provider_calls') != 0
-            or receipt.get('baseline_dataset_sha256') != _sha256_file(run/'dataset.json')
-            or receipt.get('baseline_results_sha256') != _sha256_file(run/'results.jsonl')
-            or receipt.get('source_dataset_sha256') != _sha256_file(root/'dataset.json')
-            or receipt.get('source_results_sha256') != _sha256_file(root/'results.jsonl')):
-        raise ValueError('Provider replacement scope receipt is not bound to its source evidence')
+            or receipt.get('provider_calls') != 0):
+        return False
     replacements = receipt.get('replacements')
     if not isinstance(replacements, list) or not replacements:
-        raise ValueError('Provider replacement scope receipt has no replacements')
-    source_by_attempt = {row['attempt_id']: row for row in rows}
-    baseline_by_pair = {(row['provider'], row['case_id']): row for row in read_records(run)}
-    selected = []
+        return False
     seen = set()
     for item in replacements:
         if (not isinstance(item, dict) or set(item) != {
@@ -92,7 +88,82 @@ def _selected_provider_replacement_rows(run, root, rows, receipt_path):
                 'category', 'reason'}
                 or item.get('category') not in {'invalid_prior_call', 'input_correction'}
                 or not isinstance(item.get('reason'), str) or not item['reason'].strip()):
-            raise ValueError('Provider replacement scope receipt has an invalid replacement')
+            return False
+        pair = (item.get('provider'), item.get('case_id'))
+        if not all(isinstance(value, str) and value for value in (
+                *pair, item.get('prior_attempt_id'), item.get('selected_attempt_id'))):
+            return False
+        if pair in seen:
+            return False
+        seen.add(pair)
+    return True
+
+
+def _provider_replacement_scope_history(root):
+    """Load immutable scope receipts already owned by an assembled baseline."""
+    index_path = root/'provider-replacement-scopes.json'
+    history_root = root/'history'/'provider-replacement-scopes'
+    if not index_path.exists():
+        if history_root.exists():
+            raise ValueError('Inherited provider replacement scope history has no index')
+        return []
+    if index_path.is_symlink() or not index_path.is_file():
+        raise ValueError('Invalid inherited provider replacement scope index')
+    try:
+        index = json.loads(index_path.read_text())
+    except (OSError, ValueError, TypeError) as error:
+        raise ValueError('Invalid inherited provider replacement scope index') from error
+    if not isinstance(index, list) or not index:
+        raise ValueError('Invalid inherited provider replacement scope index')
+    checked = []
+    seen = set()
+    for item in index:
+        if (not isinstance(item, dict) or set(item) != {'path', 'sha256', 'replacements'}
+                or not isinstance(item.get('path'), str)):
+            raise ValueError('Invalid inherited provider replacement scope index')
+        relative = Path(item['path'])
+        if relative.parent != Path('history/provider-replacement-scopes'):
+            raise ValueError('Inherited provider replacement scope is outside its history owner')
+        path = contained_path(root, relative, reject_symlinks=True)
+        if item['path'] in seen or not path.is_file():
+            raise ValueError('Inherited provider replacement scope is missing or duplicated')
+        seen.add(item['path'])
+        if item.get('sha256') != _sha256_file(path):
+            raise ValueError('Inherited provider replacement scope hash differs')
+        try:
+            receipt = json.loads(path.read_text())
+        except (OSError, ValueError, TypeError) as error:
+            raise ValueError('Invalid inherited provider replacement scope receipt') from error
+        if (not _valid_provider_replacement_receipt(receipt)
+                or item.get('replacements') != receipt['replacements']):
+            raise ValueError('Invalid inherited provider replacement scope receipt')
+        checked.append((item, path, receipt))
+    stored = set(history_root.iterdir()) if history_root.is_dir() else set()
+    if stored != {path for _, path, _ in checked}:
+        raise ValueError('Inherited provider replacement scope history differs from its index')
+    return checked
+
+
+def _selected_provider_replacement_rows(run, root, rows, receipt_path):
+    """Select a correction scope from a broader immutable call bundle."""
+    if receipt_path is None:
+        return rows, None
+    receipt_path = unlinked_path(Path(receipt_path))
+    if not receipt_path.is_file():
+        raise ValueError('Provider replacement scope receipt is missing')
+    receipt = json.loads(receipt_path.read_text())
+    if (not _valid_provider_replacement_receipt(receipt)
+            or receipt.get('baseline_dataset_sha256') != _sha256_file(run/'dataset.json')
+            or receipt.get('baseline_results_sha256') != _sha256_file(run/'results.jsonl')
+            or receipt.get('source_dataset_sha256') != _sha256_file(root/'dataset.json')
+            or receipt.get('source_results_sha256') != _sha256_file(root/'results.jsonl')):
+        raise ValueError('Provider replacement scope receipt is not bound to its source evidence')
+    replacements = receipt.get('replacements')
+    source_by_attempt = {row['attempt_id']: row for row in rows}
+    baseline_by_pair = {(row['provider'], row['case_id']): row for row in read_records(run)}
+    selected = []
+    seen = set()
+    for item in replacements:
         pair = (item['provider'], item['case_id'])
         prior = baseline_by_pair.get(pair)
         current = source_by_attempt.get(item['selected_attempt_id'])
@@ -702,6 +773,9 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                        and set(source_manifest.get('attempt_ids',[])) ==
                        {row['attempt_id'] for row in original})
     assembled_input=(run/'execution.json').exists() and not live_physical_run
+    inherited_replacement_scope_history = (
+        _provider_replacement_scope_history(run) if assembled_input else []
+    )
     replacement_cases={};batches=[];evidence=[];selected=[];audit=[]
     reference_evidence=[]
     if assembled_input:
@@ -947,12 +1021,17 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     for name,payload in [('dataset.json',dataset),('execution.json',{'batches':batches}),('selection-audit.json',audit)]:
         (output/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n')
     (output/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in records))
-    if replacement_scope_receipts:
+    if inherited_replacement_scope_history or replacement_scope_receipts:
+        index = []
+        for item, source, _ in inherited_replacement_scope_history:
+            target = contained_path(output, item['path'], reject_symlinks=True)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            index.append(item)
         history = output/'history'/'provider-replacement-scopes'
         history.mkdir(parents=True, exist_ok=True)
-        index = []
         for position, (receipt_path, receipt) in enumerate(replacement_scope_receipts):
-            target = history/f'{position:03d}-{receipt_path.name}'
+            target = history/f'{len(index) + position:03d}-{receipt_path.name}'
             shutil.copy2(receipt_path, target)
             index.append({
                 'path': str(target.relative_to(output)),
