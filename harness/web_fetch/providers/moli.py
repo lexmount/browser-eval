@@ -428,6 +428,9 @@ class MoliWebFetchProvider(Provider):
         }
         if case.task_kind == "resource":
             metadata["output_contract"] = "native_html_resource_urls"
+        else:
+            metadata["output_contract"] = "markdown"
+            metadata["extractor"] = "moli_native_markdown"
         try:
             if hasattr(self, "_binary_identity"):
                 stat = Path(binary).stat()

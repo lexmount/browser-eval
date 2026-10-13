@@ -195,19 +195,18 @@ def browser_task_interface_matrix(cases, providers):
  from .providers.headless import output_mode_for_case
  capabilities={
   'moli':'内置 Rust Markdown 转换；CLI --dump markdown。最终网址仅使用同次官方日志可明确确认的值；无法确认时保留空值，不切换 JSON 或共同转换。',
-  'lightpanda':'通常使用内置 Markdown；需要子文档时，原生 Markdown 不包含 iframe 正文，改用同一 CLI 的原生 HTML 与官方 iframe 加载、序列化参数，评测端直接评分 HTML。',
+  'lightpanda':'内置 Markdown 转换；动态正文题统一使用 CLI --dump markdown --json。iframe 合同只增加官方加载与序列化参数；原生 Markdown 仍不含子文档时如实判失败，不切换 HTML 或共同转换。',
   'obscura':'内置 Markdown 与 LP.getMarkdown 共用官方 JS 实现；本次执行固定版本的同一脚本，并在同次 --eval 中返回最终网址。',
   'chromium':'没有直接输出 Markdown 的原生接口；取得渲染后的 DOM，再使用共同的 node-html-markdown 2.0.0。',
   'kitesurf':'官方 Browser Run /markdown?browser=kitesurf 返回 Markdown；这是托管服务的转换能力，不是客户端共同转换。',
  }
  markdown={
   'moli':'CLI fetch --dump markdown → 内置转换 → Markdown',
-  'lightpanda':'CLI fetch --dump markdown --json → 内置转换 → 解包 Markdown',
+  'lightpanda':'CLI fetch --dump markdown --json → 内置转换 → 解包 Markdown；iframe 合同只增加 --load-resources iframe 与 --with-frames',
   'obscura':'CLI --eval 官方固定版本脚本与 location.href → 官方转换 → Markdown',
   'chromium':'Playwright/CDP 导航 → 最终 DOM → 共同转换 → Markdown',
   'kitesurf':'/markdown?browser=kitesurf → 官方托管转换 → Markdown',
  }
- native_html={'lightpanda':'CLI fetch --dump html --load-resources iframe --with-frames → 含子文档的原生 HTML；共同评分器直接读取 HTML，不转 Markdown'}
  original={
   'moli':'原生 CDP 响应；附件事件使用同一 Moli 原始附件接口',
   'lightpanda':'原生 CDP Response.body()',
@@ -248,8 +247,7 @@ def browser_task_interface_matrix(cases, providers):
    parts=[];counts=Counter()
    for case in group:
     mode=output_mode_for_case(engine,'headless_markdown',SimpleNamespace(
-     id=case.get('id','<unknown>'),url=case['url'],track=track,task_kind=case.get('task_kind','body'),
-     retrieval_hints=case.get('retrieval_hints',{})))
+     url=case['url'],track=track,task_kind=case.get('task_kind','body')))
     counts[mode]+=1
    for mode,count in counts.items():
     if mode=='markdown':
@@ -257,7 +255,6 @@ def browser_task_interface_matrix(cases, providers):
       description=markdown[engine]+'；HTML/TXT 可直接返回正文，直接 PDF/DOCX 未提供可读正文；评测端不使用外部解析器'
      else:
       description=markdown[engine]+('；文档必须由此接口直接返回文字，不使用外部 PDF/DOCX 解析器' if track=='document' else '')
-    elif mode=='native_html':description=native_html[engine]
     elif mode=='document':description=original[engine]+' → 原始 PDF/DOCX；只取得字节不能通过文档正文题，评测端不外部解析'
     elif mode=='file':description=original[engine]+' → 原始文件字节（不转 Markdown）'
     elif mode=='resource':description=resource[engine]+' → 图片或视频资源地址（不转 Markdown）'
@@ -265,9 +262,7 @@ def browser_task_interface_matrix(cases, providers):
     elif mode=='media_metadata':description=runtime[engine]+' 执行共用脚本，读取正文、作者及 JSON-LD → 页面正文与媒体元数据（不转 Markdown）'
     else:raise ValueError('Unsupported browser task interface mode: '+mode)
     wait=('读取原始响应或下载文件，不等待查看器绘制' if mode in {'file','document'} else waits[engine])
-    if mode == 'native_html':
-     wait='CLI 原生完成条件；同时加载并序列化 iframe'
-    elif mode not in {'file','document','markdown'}:
+    if mode not in {'file','document','markdown'}:
      if engine in {'lightpanda','kitesurf'} or (engine=='obscura' and mode in {'document_page','media_metadata'}):
       wait='CDP 页面提取等待 load'
     if mode=='document_page':wait+='；随后等待查看器文档就绪或页面内容'

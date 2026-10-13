@@ -47,6 +47,22 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert len(cases) == receipt["scope"]["cases"] == 100
     assert len({case["id"] for case in cases}) == 100
     assert len({case["url"] for case in cases}) == 100
+    from harness.web_fetch.models import EvalCase
+    from harness.web_fetch.providers.headless import output_mode_for_case
+    from harness.web_fetch.report_interfaces import browser_task_interface_matrix
+    from harness.web_fetch.retrieval_hints import native_contract_for_case
+
+    typed_cases = [EvalCase(**case) for case in cases]
+    assert all(output_mode_for_case("lightpanda", "headless_markdown", case) == "markdown"
+               for case in typed_cases)
+    assert sum(bool((contract := native_contract_for_case(case))
+                    and contract.include_subdocuments) for case in typed_cases) == 3
+    matrix = browser_task_interface_matrix(
+        {case["id"]: case for case in cases}, ["lightpanda"])
+    dynamic = next(row for row in matrix["rows"] if row["track"] == "dynamic")
+    assert dynamic["cells"]["lightpanda"][0]["mode"] == "markdown"
+    assert dynamic["cells"]["lightpanda"][0]["count"] == 100
+    assert "不切换 HTML 或共同转换" in matrix["capabilities"]["lightpanda"]
     revision = json.loads(REVISION_PATH.read_text(encoding="utf-8"))
     assert revision["provider_calls_for_revision"] == 0
     assert revision["dynamic_dataset"]["historical_sha256"] == receipt["bindings"]["dataset_sha256"]
@@ -57,7 +73,17 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
         item = pre_call[binding]
         assert hashlib.sha256((ROOT / item["path"]).read_bytes()).hexdigest() == item["sha256"]
     assert pre_call["execution_effect"]["required_new_calls"] == {
-        "methods": 6, "cases_per_method": 4, "physical_calls": 24}
+        "fixed_moli": 39, "moli_pr919": 21, "lightpanda": 4,
+        "obscura": 4, "chromium": 4, "kitesurf": 4,
+        "physical_calls": 76}
+    assert pre_call["execution_effect"]["interface_policy"] == {
+        "lightpanda_dynamic": "official_native_markdown",
+        "lightpanda_dynamic_case_count": 100,
+        "lightpanda_iframe_behavior": (
+            "three contracts add official frame flags; native Markdown omission remains a scored failure"),
+        "non_chromium_body": "browser-native Markdown",
+        "chromium_body": "rendered HTML converted by node-html-markdown 2.0.0",
+    }
     assert hashlib.sha256(historical.encode()).hexdigest() == pre_call["revised_dataset_sha256"]
     current_dataset = json.loads(historical)
     for row in pre_call["changed_cases"]:

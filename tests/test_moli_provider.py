@@ -240,6 +240,8 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(len(result.metadata["binary_sha256"]), 64)
         self.assertEqual(result.metadata["route"], "ordinary_markdown")
         self.assertEqual(result.metadata["output"], "markdown")
+        self.assertEqual(result.metadata["output_contract"], "markdown")
+        self.assertEqual(result.metadata["extractor"], "moli_native_markdown")
         self.assertEqual(result.metadata["wait"], {"wait_until": "done"})
         self.assertTrue(result.metadata["block_private_networks"])
 

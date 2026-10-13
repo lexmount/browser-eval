@@ -99,6 +99,41 @@ class NativeTaskOutputTests(unittest.TestCase):
 
 
 class NativeRoutePublicationTests(unittest.TestCase):
+    def test_standard_body_contract_allows_only_native_markdown_except_chromium(self):
+        from harness.web_fetch.task_outputs import require_native_task_routes
+
+        case = {'id': 'body', 'url': 'https://example.com/',
+                'track': 'dynamic', 'task_kind': 'body'}
+        accepted = {
+            'moli': {'route': 'dynamic_native_markdown', 'output': 'markdown',
+                     'dump': 'markdown', 'extractor': 'moli_native_markdown',
+                     'output_contract': 'markdown'},
+            'lightpanda': {'extractor': 'lightpanda_native_markdown',
+                           'output_contract': 'markdown'},
+            'obscura': {'extractor': 'obscura_native_markdown',
+                        'output_contract': 'markdown'},
+            'kitesurf': {'route': 'browser_rendering_markdown',
+                         'extractor': 'cloudflare_native_markdown',
+                         'browser': 'kitesurf', 'output_contract': 'markdown'},
+            'chromium': {'extractor': 'node-html-markdown',
+                         'extractor_version': '2.0.0',
+                         'output_contract': 'markdown'},
+        }
+        for provider, metadata in accepted.items():
+            row = {'provider': provider, 'case_id': case['id'],
+                   'provider_metadata': metadata}
+            with self.subTest(provider=provider):
+                require_native_task_routes([case], [row])
+            if provider != 'chromium':
+                with self.subTest(provider=provider, shared_converter=True), \
+                        self.assertRaises(ValueError):
+                    require_native_task_routes([case], [{**row, 'provider_metadata': {
+                        **metadata, 'extractor': 'node-html-markdown'}}])
+            with self.subTest(provider=provider, html_contract=True), \
+                    self.assertRaises(ValueError):
+                require_native_task_routes([case], [{**row, 'provider_metadata': {
+                    **metadata, 'output_contract': 'native_html'}}])
+
     def test_dynamic_native_markdown_accepts_registered_builds_but_not_conversion(self):
         from harness.web_fetch.task_outputs import require_native_task_routes
         case={'id':'dynamic-page','url':'https://example.com/app','track':'dynamic','task_kind':'body'}
@@ -236,25 +271,6 @@ class NativeRoutePublicationTests(unittest.TestCase):
 
 
 class AllFamilyInterfaceTests(unittest.TestCase):
-    def test_reader_matrix_discloses_lightpanda_native_html_for_iframe_contracts(self):
-        from harness.web_fetch.report_interfaces import browser_task_interface_matrix
-        from harness.web_fetch.task_outputs import require_native_task_routes
-        cases = {'frame': {'id': 'dynamic-iframe', 'url': 'https://example.test/frame',
-            'track': 'dynamic', 'task_kind': 'body', 'retrieval_hints': {
-                'version': 3, 'mode': 'native',
-                'contract': 'iframe-fourteen-family-headings'}}}
-        matrix = browser_task_interface_matrix(cases, ['lightpanda', 'moli'])
-        cells = matrix['rows'][0]['cells']
-        self.assertEqual(cells['lightpanda'][0]['mode'], 'native_html')
-        self.assertIn('不转 Markdown', cells['lightpanda'][0]['description'])
-        self.assertEqual(cells['moli'][0]['mode'], 'markdown')
-        require_native_task_routes(list(cases.values()), [{
-            'provider': 'lightpanda', 'provider_type': 'headless_markdown',
-            'case_id': 'dynamic-iframe', 'ok': True,
-            'provider_metadata': {'extractor': 'lightpanda_native_html',
-                'output_contract': 'native_html',
-                'subdocuments': {'support': 'native'}}}])
-
     def test_reader_matrix_exposes_all_families_and_non_native_processing(self):
         from copy import deepcopy
         from harness.web_fetch.report_interfaces import browser_task_interface_matrix

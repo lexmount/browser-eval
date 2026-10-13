@@ -318,5 +318,20 @@
       "child_marker_present": false
     }
   ],
-  "conclusion": "Loading the iframe and including frame serialization are separate native controls. Both flags expose the child in native HTML, while Lightpanda 1.0.0 native Markdown omits it. Iframe tasks therefore use native HTML directly with no HTML-to-Markdown conversion; ordinary and delayed-content tasks keep native Markdown."
+  "formal_route_policy": {
+    "selection_scope": "browser_by_track",
+    "track": "dynamic",
+    "case_count": 100,
+    "output_contract": "markdown",
+    "interface": "official_native_markdown",
+    "shared_html_to_markdown": false,
+    "iframe_contract_count": 3,
+    "iframe_flags": [
+      "--load-resources iframe",
+      "--with-frames"
+    ],
+    "observed_iframe_limitation": "native_markdown_omits_child_document",
+    "verdict_policy": "retain the scored failure; do not switch output interface"
+  },
+  "conclusion": "Loading the iframe and including frame serialization are separate native controls. Both flags expose the child in native HTML, but Lightpanda 1.0.0 native Markdown still omits it. The formal Dynamic contract therefore keeps official native Markdown for all 100 tasks; the three iframe tasks add only the official frame flags and retain any resulting content failure without switching to HTML or a shared converter."
 }

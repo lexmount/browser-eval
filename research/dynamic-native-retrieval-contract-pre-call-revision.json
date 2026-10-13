@@ -38,12 +38,23 @@
   "execution_effect": {
     "provider_request_changed": true,
     "ordinary_native_cases_changed": false,
-    "required_new_calls": {
-      "methods": 6,
-      "cases_per_method": 4,
-      "physical_calls": 24
+    "interface_policy": {
+      "lightpanda_dynamic": "official_native_markdown",
+      "lightpanda_dynamic_case_count": 100,
+      "lightpanda_iframe_behavior": "three contracts add official frame flags; native Markdown omission remains a scored failure",
+      "non_chromium_body": "browser-native Markdown",
+      "chromium_body": "rendered HTML converted by node-html-markdown 2.0.0"
     },
-    "reason": "The four contracts change native completion or subdocument flags; saved calls made without those inputs cannot represent the revised route."
+    "required_new_calls": {
+      "fixed_moli": 39,
+      "moli_pr919": 21,
+      "lightpanda": 4,
+      "obscura": 4,
+      "chromium": 4,
+      "kitesurf": 4,
+      "physical_calls": 76
+    },
+    "reason": "The four contracts change native completion or subdocument flags for every method. The two Moli variants also have independently audited implementation-fix scopes. Overlap is removed within each method before summing; Lightpanda keeps the same native Markdown interface for its other 96 Dynamic tasks."
   },
   "acceptance_effect": {
     "answers_changed": false,
