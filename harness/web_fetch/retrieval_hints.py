@@ -11,6 +11,7 @@ from typing import Any
 
 _WAIT_UNTIL = {"domcontentloaded", "load", "networkidle"}
 _COMPLETION_KEYS = {"selector", "minimum_count", "timeout_ms", "delay_ms"}
+_NATIVE_COMPLETION_KEYS = {"selector", "minimum_count"}
 _EXTRACTION_KEYS = {"selector", "maximum_count", "exclude_selectors", "fallback"}
 _EXTRACTION_FALLBACKS = {"body", "empty"}
 _SAFE_SELECTOR = re.compile(
@@ -37,7 +38,7 @@ def native_fetch_dataset(dataset: dict) -> dict:
             if plan is not None:
                 raise ValueError('Native fetch cannot discard declared retrieval hints: ' + case['id'])
         if case.get('track') == 'dynamic':
-            case['retrieval_hints'] = {'version': 3, 'mode': 'native'}
+            case.setdefault('retrieval_hints', {'version': 3, 'mode': 'native'})
             case.setdefault('source_benchmark', {})['scenario_track'] = 'dynamic'
     result.setdefault('comparison', {})['retrieval_mode'] = 'native_default_completion'
     return result
@@ -125,6 +126,37 @@ class RetrievalPlan:
         return result
 
 
+@dataclass(frozen=True)
+class NativeRetrievalContract:
+    """Answer-free capabilities requested from each product's native interface.
+
+    Unlike the retired guided routes, this contract never describes content to
+    extract.  A provider may wait for the declared page shape or ask its own
+    serializer to include child documents.  Unsupported capabilities remain
+    visible in provider metadata and must not be emulated by the harness.
+    """
+
+    include_subdocuments: bool = False
+    selector: str | None = None
+    minimum_count: int = 0
+    frame_selector: str | None = None
+    minimum_text_fragments: int = 0
+
+    def completion_plan(self, timeout_ms: int) -> RetrievalPlan | None:
+        if self.selector is None:
+            return None
+        return RetrievalPlan(
+            version=3,
+            wait_until="load",
+            selector=self.selector,
+            minimum_count=self.minimum_count,
+            timeout_ms=timeout_ms,
+            delay_ms=0,
+            frame_selector=self.frame_selector,
+            minimum_text_fragments=self.minimum_text_fragments,
+        )
+
+
 def complete_text_wait_value(plan: RetrievalPlan) -> str:
     """Strengthen a count wait with answer-free record completeness.
 
@@ -180,10 +212,16 @@ def parse_retrieval_hints(
         raise ValueError(f"{identifier}: retrieval_hints must be an object")
     version = hints.get("version")
     if isinstance(version, int) and not isinstance(version, bool) and version == 3:
-        if set(hints) != {"version", "mode"} or hints["mode"] != "native":
+        if hints.get("mode") != "native":
             raise ValueError(
-                f"{identifier}: native retrieval_hints must contain only version=3 and mode=native"
+                f"{identifier}: native retrieval_hints must use version=3 and mode=native"
             )
+        allowed = {"version", "mode", "include_subdocuments", "completion"}
+        if set(hints) - allowed:
+            raise ValueError(
+                f"{identifier}: native retrieval_hints contain unsupported fields"
+            )
+        _parse_native_contract(hints, identifier=identifier)
         return None
     expected_keys = (
         {"version", "wait_until", "completion", "extraction"}
@@ -313,6 +351,74 @@ def parse_retrieval_hints(
         extraction_exclude_selectors=extraction_exclude_selectors,
         extraction_fallback=extraction_fallback,
     )
+
+
+def _parse_native_contract(
+    hints: Mapping[str, Any], *, identifier: str
+) -> NativeRetrievalContract:
+    include_subdocuments = hints.get("include_subdocuments", False)
+    if not isinstance(include_subdocuments, bool):
+        raise ValueError(
+            f"{identifier}: retrieval_hints.include_subdocuments must be a boolean"
+        )
+    completion = hints.get("completion")
+    if completion is None:
+        return NativeRetrievalContract(include_subdocuments=include_subdocuments)
+    if not isinstance(completion, Mapping):
+        raise ValueError(f"{identifier}: retrieval_hints.completion must be an object")
+    optional = {"frame_selector", "minimum_text_fragments"}
+    completion_keys = set(completion)
+    if (
+        not _NATIVE_COMPLETION_KEYS <= completion_keys
+        or completion_keys - _NATIVE_COMPLETION_KEYS - optional
+    ):
+        raise ValueError(
+            f"{identifier}: native completion must contain only selector, minimum_count "
+            "and optional frame_selector or minimum_text_fragments"
+        )
+    selector = _selector(identifier, "selector", completion["selector"])
+    frame_selector = (
+        _selector(identifier, "frame_selector", completion["frame_selector"])
+        if "frame_selector" in completion
+        else None
+    )
+    minimum_count = _integer(
+        identifier, "minimum_count", completion["minimum_count"], minimum=1, maximum=1000
+    )
+    minimum_text_fragments = (
+        _integer(
+            identifier,
+            "minimum_text_fragments",
+            completion["minimum_text_fragments"],
+            minimum=1,
+            maximum=20,
+        )
+        if "minimum_text_fragments" in completion
+        else 0
+    )
+    if frame_selector and not include_subdocuments:
+        raise ValueError(
+            f"{identifier}: frame completion requires include_subdocuments=true"
+        )
+    return NativeRetrievalContract(
+        include_subdocuments=include_subdocuments,
+        selector=selector,
+        minimum_count=minimum_count,
+        frame_selector=frame_selector,
+        minimum_text_fragments=minimum_text_fragments,
+    )
+
+
+def native_contract_for_case(case: Any) -> NativeRetrievalContract | None:
+    """Return a validated version-3 contract without changing legacy plans."""
+    get = case.get if isinstance(case, dict) else lambda key, default=None: getattr(case, key, default)
+    hints = get("retrieval_hints")
+    if not isinstance(hints, Mapping) or hints.get("version") != 3:
+        return None
+    parse_retrieval_hints(
+        get("track", "web"), hints, identifier=get("id", "<unknown>")
+    )
+    return _parse_native_contract(hints, identifier=get("id", "<unknown>"))
 
 
 def native_default_case(case: Any) -> bool:

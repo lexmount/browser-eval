@@ -20,15 +20,18 @@ from harness.web_fetch.safety import validate_http_url
 
 def require_normalized_retrieval_plan(request):
     """Keep the declared family while validating explicit native completion."""
-    from harness.web_fetch.retrieval_hints import parse_retrieval_hints
+    from harness.web_fetch.retrieval_hints import native_contract_for_case, parse_retrieval_hints
     plan = request.get('retrieval_plan')
     track = request.get('track')
     hints = request.get('retrieval_hints')
     declared = parse_retrieval_hints(track, hints) if hints else None
+    native_contract = native_contract_for_case(request) if hints else None
     if track == 'dynamic' and not plan:
         if not hints or declared is not None:
             raise ValueError('dynamic tasks require a normalized retrieval_plan or explicit native contract')
-    if declared is None and hints and plan:
+    if declared is None and hints and plan and not (
+        native_contract is not None and native_contract.selector is not None
+    ):
         raise ValueError('native completion cannot carry a retrieval_plan')
     if track not in {None, 'dynamic'} and plan:
         raise ValueError('retrieval_plan is only valid for dynamic tasks')
@@ -208,6 +211,7 @@ def fetch(request):
                 native_metadata=request.get('native_metadata'),
                 track=request.get('track'),
                 detail_links=request.get('resource_detail_links', False),
+                include_subdocuments=bool(request.get('include_subdocuments')),
             )
             environment = None
             if engine == 'obscura' and request.get('ca_cert'):

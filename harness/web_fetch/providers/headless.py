@@ -20,7 +20,7 @@ from urllib.parse import urlsplit
 
 from ..markdown import converter_package, require_converter
 from ..models import EvalCase, ProviderResult
-from ..retrieval_hints import plan_for_case
+from ..retrieval_hints import native_contract_for_case, plan_for_case
 from ..safety import validate_http_url
 from .base import Provider, terminate_owned_process_tree
 from .runtime_identity import require_expected_provider_versions
@@ -71,8 +71,6 @@ def _cli_completion_arguments(engine, plan):
                 '--delay-ms' if engine == 'moli' else '--wait-ms',
                 str(plan['delay_ms']),
             ]
-        if engine == 'moli' and plan.get('frame_selector'):
-            arguments.append('--with-frames')
         return arguments
     if engine == 'obscura':
         # Obscura can wait for one top-level selector but cannot express a
@@ -114,7 +112,7 @@ def completion_metadata(engine, plan, output_mode):
             'minimum_count_enforced': True,
             'unsupported': [],
         }
-        if engine in {'lightpanda', 'chromium'} and plan.get('frame_selector'):
+        if engine == 'chromium' and plan.get('frame_selector'):
             # These paths can wait on same-origin child content, but their
             # existing Markdown/outerHTML contract does not serialize it.
             metadata['output_unsupported'] = ['child_frame_serialization']
@@ -185,6 +183,7 @@ def cli_command(
     native_metadata=None,
     track=None,
     detail_links=False,
+    include_subdocuments=False,
 ):
     if native_metadata:
         if output_mode != 'markdown' or retrieval_plan:
@@ -247,6 +246,8 @@ def cli_command(
             return prefix + ['fetch', '--dump', 'markdown', *(completion or []), '--timeout',
                     str(math.ceil(timeout)), '--quiet', url]
         common = [binary, 'fetch', '--dump', 'markdown']
+        if include_subdocuments and engine in {'moli', 'lightpanda'}:
+            common.append('--with-frames')
         if http_proxy:
             common += ['--http-proxy', http_proxy]
         common += completion or ['--wait-until', wait_until or 'done']
@@ -455,6 +456,7 @@ class HeadlessProvider(Provider):
             raise ValueError('timeout must be positive and finite')
         try:
             retrieval_plan = plan_for_case(case)
+            native_contract = native_contract_for_case(case)
         except ValueError as error:
             return ProviderResult(False, '', error_type='configuration',
                                   error_message=str(error))
@@ -464,7 +466,11 @@ class HeadlessProvider(Provider):
         binary = (self.config.get('resource_binary') if resource_interval is not None else
                   getattr(self, '_resolved_binary', None) or _resolve_binary(
                       engine, self.config.get('binary')))
-        cli_wait = retrieval_plan.wait_until if retrieval_plan else 'done'
+        completion_plan = retrieval_plan or (
+            native_contract.completion_plan(max(1, math.ceil(timeout * 1000)))
+            if native_contract else None
+        )
+        cli_wait = completion_plan.wait_until if completion_plan else 'done'
         wait_until = ('browser response bytes or completed native download' if output_mode in {'file','document'} and engine == 'chromium'
                       else 'navigation response bytes' if output_mode in {'file','document'} and engine in {'lightpanda','kitesurf'}
                       else 'automatic raw response' if output_mode == 'file'
@@ -509,12 +515,24 @@ class HeadlessProvider(Provider):
             from ..task_outputs import MEDIA_METADATA_EXPRESSION, DOCUMENT_PAGE_EXPRESSION, resource_expression, resource_detail_links
             projection = resource_expression(case.track, resource_detail_links(case)) if output_mode == 'resource' else {'media_metadata': MEDIA_METADATA_EXPRESSION, 'document_page': DOCUMENT_PAGE_EXPRESSION}[output_mode]
             metadata['output_projection_sha256'] = hashlib.sha256(projection.encode('utf-8')).hexdigest()
-        normalized_plan = retrieval_plan.worker_dict() if retrieval_plan else None
+        normalized_plan = completion_plan.worker_dict() if completion_plan else None
+        if normalized_plan is not None and native_contract is not None:
+            normalized_plan['include_subdocuments'] = native_contract.include_subdocuments
+        include_subdocuments = bool(native_contract and native_contract.include_subdocuments)
         if normalized_plan and engine != 'kitesurf':
             metadata['completion'] = completion_metadata(engine, normalized_plan, output_mode)
             metadata['completion']['effective_route_timeout_ms'] = round(
                 min(timeout, retrieval_plan.timeout_ms / 1000) * 1000
+                if retrieval_plan else timeout * 1000
             )
+        if include_subdocuments:
+            supported = engine in {'moli', 'lightpanda'} and output_mode == 'markdown'
+            metadata['subdocuments'] = {
+                'requested': True,
+                'support': 'native' if supported else 'unsupported',
+                'interface': '--with-frames' if supported else None,
+                'harness_content_assembly': False,
+            }
         if engine == 'kitesurf' and output_mode == 'markdown' and resource_interval is None:
             from .cloudflare import CloudflareMarkdownProvider
             cloudflare = CloudflareMarkdownProvider(self.name, {
@@ -544,6 +562,7 @@ class HeadlessProvider(Provider):
                    'wait_until': retrieval_plan.wait_until if retrieval_plan else None,
                    'track': case.track,
                    'retrieval_plan': normalized_plan,
+                   'include_subdocuments': include_subdocuments,
                    'retrieval_hints': case.retrieval_hints,
                    'allow_private_network': bool(self.config.get('allow_private_network')),
                    'block_private_networks': bool(self.config.get('block_private_networks', False)),

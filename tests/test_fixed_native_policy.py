@@ -61,6 +61,16 @@ def test_fixed_native_accepts_public_task_routes_without_per_case_assistance(tra
     provider.check_native_call(case)
 
 
+def test_fixed_native_accepts_shared_answer_free_page_capabilities():
+    provider = build_provider("fixture", {"type": "fixture", "uniform_native_parameters": True})
+    case = EvalCase("frame", "frame", "https://example.com/", "control", [],
+        track="dynamic", task_kind="body", retrieval_hints={
+            "version": 3, "mode": "native", "include_subdocuments": True,
+            "completion": {"frame_selector": "iframe", "selector": "body",
+                           "minimum_count": 1}})
+    provider.check_native_call(case)
+
+
 @pytest.mark.parametrize("track,task_kind", [("document", "resource"), ("image", "file"),
     ("unknown", "body")])
 def test_fixed_native_rejects_undeclared_task_routes(track, task_kind):

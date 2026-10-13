@@ -17,7 +17,7 @@ from pathlib import Path
 from urllib.parse import parse_qsl, quote, urlsplit
 
 from ..models import EvalCase, ProviderResult
-from ..retrieval_hints import plan_for_case
+from ..retrieval_hints import native_contract_for_case, plan_for_case
 from ..safety import validate_http_url
 from .base import Provider, terminate_owned_process_tree
 
@@ -266,6 +266,7 @@ class MoliWebFetchProvider(Provider):
             # A future dynamic file/document case must not bypass fail-closed
             # retrieval planning merely because it takes the raw-byte path.
             retrieval_plan = plan_for_case(case)
+            native_contract = native_contract_for_case(case)
         except ValueError as error:
             return ProviderResult(
                 False,
@@ -273,7 +274,10 @@ class MoliWebFetchProvider(Provider):
                 error_type="configuration",
                 error_message=str(error),
             )
-        completion_plan = retrieval_plan
+        completion_plan = retrieval_plan or (
+            native_contract.completion_plan(max(1, math.ceil(timeout * 1000)))
+            if native_contract else None
+        )
         if completion_plan and case.task_kind == "file":
             return ProviderResult(
                 False, "", error_type="configuration",
@@ -351,6 +355,14 @@ class MoliWebFetchProvider(Provider):
         command = [binary, "fetch"]
         if dump is not None:
             command.extend(["--dump", dump])
+        if native_contract is not None and native_contract.include_subdocuments:
+            command.append("--with-frames")
+            wait_metadata["subdocuments"] = {
+                "requested": True,
+                "support": "native",
+                "interface": "--with-frames",
+                "harness_content_assembly": False,
+            }
         command.extend(
             [
                 *wait_arguments,

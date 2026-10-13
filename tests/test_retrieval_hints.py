@@ -6,7 +6,11 @@ from pathlib import Path
 import pytest
 
 from harness.web_fetch.config import load_dataset
-from harness.web_fetch.retrieval_hints import complete_text_wait_value, parse_retrieval_hints
+from harness.web_fetch.retrieval_hints import (
+    complete_text_wait_value,
+    native_contract_for_case,
+    parse_retrieval_hints,
+)
 
 
 def test_native_execution_keeps_dynamic_scenario_and_acceptance_without_injected_hints():
@@ -243,15 +247,22 @@ def test_frame_complete_text_wait_checks_child_record_fields():
     assert "innerText.split" in plan.wait_value
 
 
-def test_committed_native_100_dataset_loads_without_wait_or_extraction_overrides():
+def test_committed_native_100_dataset_uses_only_native_answer_free_contracts():
     from harness.web_fetch.retrieval_hints import plan_for_case
     from tests.conftest import read_frozen_dataset_bytes
     path = Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json")
     read_frozen_dataset_bytes(path)
     raw, cases = load_dataset(path)
     assert len(cases) == 100
-    assert all(not c.retrieval_hints and plan_for_case(c) is None for c in cases)
-    assert all("retrieval_hints" not in c for c in raw["cases"])
+    assert all(plan_for_case(c) is None for c in cases)
+    assert all(
+        not case.get("retrieval_hints")
+        or (
+            case["retrieval_hints"].get("version") == 3
+            and case["retrieval_hints"].get("mode") == "native"
+        )
+        for case in raw["cases"]
+    )
 
 
 def test_native_default_contract_must_be_valid(tmp_path):
@@ -260,15 +271,46 @@ def test_native_default_contract_must_be_valid(tmp_path):
     case["acceptance_contract"] = {"version": 1, "schema": "unknown"}
     with pytest.raises(ValueError):
         load_dataset(_write_dataset(tmp_path, case))
-@pytest.mark.parametrize("hints", [
-    {"version": 3, "mode": "native", "completion": {"selector": ".answer"}},
-    {"version": 3, "mode": "native", "answer_text": "expected answer"},
-    {"version": 3, "mode": "guided"},
-    {"version": 3},
+
+
+def test_native_contract_can_declare_page_shape_and_subdocuments_without_answer_data():
+    case = {"id": "frame-shape", "track": "dynamic", "retrieval_hints": {
+        "version": 3, "mode": "native", "include_subdocuments": True,
+        "completion": {"frame_selector": "iframe.results", "selector": "article.record",
+                       "minimum_count": 12, "minimum_text_fragments": 2}}}
+    assert parse_retrieval_hints("dynamic", case["retrieval_hints"], identifier=case["id"]) is None
+    contract = native_contract_for_case(case)
+    assert contract.include_subdocuments is True
+    plan = contract.completion_plan(45_000)
+    assert plan.wait_kind == "script" and plan.timeout_ms == 45_000
+    assert "iframe.results" in plan.wait_value and "nodes.length >= 12" in plan.wait_value
+
+
+@pytest.mark.parametrize("mutation", [
+    {"answer_text": "known answer"}, {"domain": "example.test"},
+    {"case_id": "dynamic-special"}, {"timeout_ms": 45_000},
 ])
-def test_native_completion_cannot_carry_answer_or_selector_hints(hints):
+def test_native_completion_rejects_answers_identity_and_private_timers(mutation):
+    hints = {"version": 3, "mode": "native", "completion": {
+        "selector": ".record", "minimum_count": 2, **mutation}}
+    with pytest.raises(ValueError, match="native completion"):
+        parse_retrieval_hints("dynamic", hints, identifier="control")
+
+
+@pytest.mark.parametrize("hints", [
+    {"version": 3, "mode": "native", "answer_text": "expected answer"},
+    {"version": 3, "mode": "guided"}, {"version": 3},
+])
+def test_native_contract_rejects_unknown_or_non_native_fields(hints):
     with pytest.raises(ValueError, match="native retrieval_hints"):
         parse_retrieval_hints("dynamic", hints)
+
+
+def test_native_frame_completion_requires_native_subdocument_output():
+    hints = {"version": 3, "mode": "native", "completion": {
+        "frame_selector": "iframe", "selector": "body", "minimum_count": 1}}
+    with pytest.raises(ValueError, match="include_subdocuments"):
+        parse_retrieval_hints("dynamic", hints, identifier="frame")
 
 
 def test_native_contract_does_not_waive_missing_dynamic_execution_contract():
@@ -293,3 +335,9 @@ def test_worker_accepts_explicit_native_dynamic_contract_without_injected_plan()
     with pytest.raises(ValueError, match="native completion"):
         require_normalized_retrieval_plan({"track": "dynamic", "retrieval_plan": {"selector": "body"},
             "retrieval_hints": {"version": 3, "mode": "native"}})
+    normalized = {"selector": ".record", "minimum_count": 2}
+    assert require_normalized_retrieval_plan({
+        "track": "dynamic", "retrieval_plan": normalized,
+        "retrieval_hints": {"version": 3, "mode": "native",
+                            "completion": {"selector": ".record", "minimum_count": 2}},
+    }) == normalized

@@ -162,6 +162,49 @@ class NativeMetadataTests(unittest.TestCase):
         command.assert_not_called()
 
 class HeadlessTests(unittest.TestCase):
+    def test_lightpanda_receives_shared_native_frame_contract(self):
+        provider = HeadlessProvider('lightpanda', {
+            'type': 'headless_markdown', 'engine': 'lightpanda', 'binary': '/lightpanda'})
+        case = EvalCase('frame', 'Frame', 'https://example.com/', 'dynamic', [],
+            track='dynamic', retrieval_hints={
+                'version': 3, 'mode': 'native', 'include_subdocuments': True,
+                'completion': {'frame_selector': 'iframe.results', 'selector': 'article.record',
+                               'minimum_count': 2}})
+        raw = json.dumps({'ok': True, 'content': 'native frame body', 'metadata': {}}).encode()
+        identity = {'binary_sha256': 'a' * 64, 'reported_version': 'lightpanda fixture',
+                    'version_probe_error': None}
+        with patch.object(provider, '_run_local_worker', return_value=(raw, '', None, 0, len(raw), 0)) as worker, \
+             patch.object(provider, 'implementation_identity', return_value=identity):
+            result = provider.fetch(case, 45)
+        request = worker.call_args.args[1]
+        self.assertTrue(request['include_subdocuments'])
+        self.assertIn('iframe.results', request['retrieval_plan']['wait_value'])
+        self.assertEqual(result.metadata['subdocuments']['interface'], '--with-frames')
+        self.assertFalse(result.metadata['subdocuments']['harness_content_assembly'])
+
+    def test_engines_without_native_frame_markdown_do_not_assemble_child_content(self):
+        case = EvalCase('frame', 'Frame', 'https://example.com/', 'dynamic', [],
+            track='dynamic', retrieval_hints={
+                'version': 3, 'mode': 'native', 'include_subdocuments': True,
+                'completion': {'frame_selector': 'iframe', 'selector': 'body',
+                               'minimum_count': 1}})
+        raw = json.dumps({'ok': True, 'content': 'outer document only', 'metadata': {}}).encode()
+        identity = {'binary_sha256': 'a' * 64, 'reported_version': 'fixture',
+                    'version_probe_error': None}
+        for engine in ('obscura', 'chromium'):
+            provider = HeadlessProvider(engine, {
+                'type': 'headless_markdown', 'engine': engine, 'binary': '/' + engine})
+            with self.subTest(engine=engine), \
+                 patch.object(provider, '_run_local_worker', return_value=(raw, '', None, 0, len(raw), 0)) as worker, \
+                 patch.object(provider, 'implementation_identity', return_value=identity), \
+                 patch('harness.web_fetch.providers.headless.converter_package', return_value=Path('/converter')):
+                result = provider.fetch(case, 45)
+            request = worker.call_args.args[1]
+            self.assertTrue(request['include_subdocuments'])
+            self.assertEqual(result.metadata['subdocuments']['support'], 'unsupported')
+            self.assertIsNone(result.metadata['subdocuments']['interface'])
+            self.assertFalse(result.metadata['subdocuments']['harness_content_assembly'])
+
     def test_resource_mode_routes_remote_client_through_isolated_container(self):
         provider = HeadlessProvider('kitesurf', {
             'type': 'headless_markdown', 'engine': 'kitesurf',
@@ -474,6 +517,17 @@ class HeadlessTests(unittest.TestCase):
                          'networkidle')
         self.assertIn('--terminate-ms', lightpanda)
         self.assertNotIn('--wait-until', obscura)
+
+    def test_subdocuments_use_only_native_serializer_flags(self):
+        for engine in ('moli', 'lightpanda'):
+            command = cli_command(engine, '/' + engine, 'https://example.com/', 5,
+                                  'markdown', include_subdocuments=True)
+            self.assertEqual(command.count('--with-frames'), 1)
+            self.assertNotIn('--eval', command)
+        obscura = cli_command('obscura', '/obscura', 'https://example.com/', 5,
+                              'markdown', include_subdocuments=True)
+        self.assertNotIn('--with-frames', obscura)
+        self.assertNotIn('--eval', obscura)
 
     def test_obscura_loopback_fixture_requires_explicit_private_network_flag(self):
         command = cli_command(

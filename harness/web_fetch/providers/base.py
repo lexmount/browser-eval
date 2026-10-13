@@ -82,7 +82,7 @@ class Provider(ABC):
         self.type = str(config.get("type", name))
 
     def check_native_call(self, case: EvalCase) -> None:
-        """The fixed native cohort permits no per-case assistance or extra routes."""
+        """Allow only shared, answer-free capabilities on fixed native calls."""
         if not self.config.get("uniform_native_parameters"):
             return
         if case.retrieval_hints:

@@ -11,7 +11,7 @@ from pathlib import PurePosixPath
 from urllib.parse import urlencode, urljoin, urlsplit
 
 from ..models import EvalCase, ProviderResult
-from ..retrieval_hints import plan_for_case, native_default_case
+from ..retrieval_hints import native_contract_for_case, native_default_case, plan_for_case
 from ..safety import validate_http_url
 from .base import Provider
 from .http_client import HttpOnlyRedirectHandler, HttpResponse, inner_timeout_budget, request
@@ -349,11 +349,15 @@ class CloudflareMarkdownProvider(Provider):
             request_body.pop("actionTimeout", None)
         wait_metadata = None
         plan = None
+        native_contract = None
         if case.track == "dynamic" and not native_default_case(case) and "url" in request_body:
             try:
                 if not math.isfinite(timeout) or timeout <= 0:
                     raise ValueError
                 plan = plan_for_case(case)
+                native_contract = native_contract_for_case(case)
+                if plan is None and native_contract is not None:
+                    plan = native_contract.completion_plan(service_timeout_ms)
             except (KeyError, TypeError, ValueError):
                 return ProviderResult(
                     False,
@@ -381,9 +385,10 @@ class CloudflareMarkdownProvider(Provider):
                 )
             request_body["gotoOptions"] = {
                 "waitUntil": wait_until,
-                "timeout": effective_timeout_ms,
             }
-            request_body["actionTimeout"] = effective_timeout_ms
+            if not self.config.get("uniform_native_parameters"):
+                request_body["gotoOptions"]["timeout"] = effective_timeout_ms
+                request_body["actionTimeout"] = effective_timeout_ms
             # Quick Actions documents these as independent readiness timers, not
             # an ordered selector-then-delay chain. Supplying both can let the
             # shorter timer win, so choose the strongest single native signal.
@@ -391,13 +396,15 @@ class CloudflareMarkdownProvider(Provider):
                 # The endpoint cannot target a child browsing context. For this
                 # route a predeclared delay is stronger than the outer iframe,
                 # which is normally present before its child content is ready.
-                request_body["waitForTimeout"] = plan.delay_ms
-                strategy = "predeclared_delay"
+                if plan.delay_ms:
+                    request_body["waitForTimeout"] = plan.delay_ms
+                    strategy = "predeclared_delay"
+                else:
+                    strategy = "native_completion_unsupported"
             else:
-                request_body["waitForSelector"] = {
-                    "selector": plan.selector,
-                    "timeout": effective_timeout_ms,
-                }
+                request_body["waitForSelector"] = {"selector": plan.selector}
+                if not self.config.get("uniform_native_parameters"):
+                    request_body["waitForSelector"]["timeout"] = effective_timeout_ms
                 strategy = "selector"
             count_enforced = plan.frame_selector is None and plan.minimum_count == 1
             exact = count_enforced and plan.delay_ms == 0
@@ -418,9 +425,18 @@ class CloudflareMarkdownProvider(Provider):
                 "completion_support": "exact" if exact else "approximate",
                 "unsupported": unsupported,
                 "delay_ms": plan.delay_ms,
-                "timeout_ms": effective_timeout_ms,
+                "timeout_ms": (
+                    None if self.config.get("uniform_native_parameters") else effective_timeout_ms
+                ),
                 "client_http_timeout_ms": int(http_timeout * 1000),
                 "wait_until": wait_until,
+            }
+        if native_contract is not None and native_contract.include_subdocuments:
+            wait_metadata = dict(wait_metadata or {})
+            wait_metadata["subdocuments"] = {
+                "requested": True,
+                "support": "unsupported",
+                "harness_content_assembly": False,
             }
         response = request(
             endpoint + ("?" + query if query else ""),

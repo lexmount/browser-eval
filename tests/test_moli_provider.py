@@ -618,6 +618,26 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["route"], "dynamic_native_markdown")
         self.assertEqual(result.metadata["output"], "markdown")
 
+    def test_native_subdocument_contract_uses_moli_serializer_and_wait_only(self):
+        provider = self.provider(
+            "import sys\n"
+            'assert "--with-frames" in sys.argv\n'
+            'assert "--wait-script" in sys.argv and "--eval" not in sys.argv\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
+            'wait=sys.argv[sys.argv.index("--wait-script")+1]\n'
+            'assert "iframe.results" in wait and "article.record" in wait\n'
+            'assert "known answer" not in wait\n'
+            'print("native frame markdown")'
+        )
+        case = self.case_with(track="dynamic", retrieval_hints={
+            "version": 3, "mode": "native", "include_subdocuments": True,
+            "completion": {"frame_selector": "iframe.results",
+                           "selector": "article.record", "minimum_count": 2},
+        })
+        result = provider.fetch(case, 10)
+        self.assertTrue(result.ok, repr(result))
+        self.assertEqual(result.metadata["wait"]["subdocuments"]["interface"], "--with-frames")
+
     def test_dynamic_completion_only_waits_and_never_extracts_answer_text(self):
         provider = self.provider(
             "import sys\n"
