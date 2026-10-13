@@ -627,6 +627,14 @@ class MoliWebFetchProvider(Provider):
                 error_message="Moli markdown output is not UTF-8",
                 metadata=metadata,
             )
+        if process.returncode == 0 and not content.strip():
+            return ProviderResult(
+                False,
+                content,
+                error_type="empty_response",
+                error_message="Moli returned no Markdown content",
+                metadata=metadata,
+            )
         parsed_error_status = _markdown_http_error_status(content)
         ok = process.returncode == 0 and parsed_error_status is None
         final_url = _diagnostic_main_document_url(diagnostic_raw, case.url)

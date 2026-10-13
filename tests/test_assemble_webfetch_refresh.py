@@ -1347,6 +1347,12 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
         audit = json.loads((output / "selection-audit.json").read_text())
         self.assertEqual(len([row for row in audit if row["provider"] == "moli-fixed"]), 4)
 
+    def test_equal_case_inventory_does_not_require_a_replacement_map(self) -> None:
+        self.canonical["comparison"].pop("case_replacements")
+        self.write_json(self.canonical_path, self.canonical)
+        output = self.assemble(name="no-case-replacement-map")
+        self.assertTrue((output / "refresh-assembly.json").is_file())
+
     def test_layer_can_bind_identity_recorded_on_each_result(self) -> None:
         execution = json.loads((self.main / "execution.json").read_text())
         execution["batches"][0]["providers"][0].pop("implementation_identity")

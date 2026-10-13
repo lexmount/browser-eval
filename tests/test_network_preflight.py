@@ -5,7 +5,11 @@ from harness.web_fetch.network_preflight import inspect_system_dns, require_usab
 
 class NetworkPreflightTests(unittest.TestCase):
     def test_synthetic_dns_fails_before_calls_but_public_dns_passes(self):
-        for address, accepted in [('198.19.93.254', False), ('185.199.108.153', True)]:
+        for address, accepted in [
+            ('198.19.93.254', False),
+            ('10.2.0.11', False),
+            ('185.199.108.153', True),
+        ]:
             with self.subTest(address=address):
                 def resolve(host, port, **kwargs):
                     return [(socket.AF_INET, socket.SOCK_STREAM, 6, '', (address, port))]
@@ -25,7 +29,9 @@ class NetworkPreflightTests(unittest.TestCase):
         audit=inspect_system_dns(['https://public.example/a', 'https://public.example/b'], resolver=resolve)
         self.assertEqual(calls, ['public.example'])
         self.assertEqual(audit['hosts'][0]['dns_error'], 'gaierror')
-        self.assertTrue(audit['usable_for_guarded_local_comparison'])
+        self.assertFalse(audit['usable_for_guarded_local_comparison'])
+        with self.assertRaisesRegex(ValueError, 'resolution failed'):
+            require_usable_public_dns(audit)
 
 
     def test_runner_rejects_synthetic_dns_before_calls_and_artifacts(self):

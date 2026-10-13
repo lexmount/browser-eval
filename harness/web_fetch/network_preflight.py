@@ -14,20 +14,41 @@ def inspect_system_dns(urls, *, resolver=None):
         try:
             addresses = sorted({item[4][0] for item in resolver(host, 443, type=socket.SOCK_STREAM)})
         except OSError as error:
-            return {"host": host, "addresses": [], "dns_error": type(error).__name__, "synthetic": False}
-        synthetic = any(ipaddress.ip_address(address).version == 4 and
-                        ipaddress.ip_address(address) in _FAKE_IP_RANGE for address in addresses)
-        return {"host": host, "addresses": addresses, "synthetic": synthetic}
+            return {"host": host, "addresses": [], "dns_error": type(error).__name__,
+                    "synthetic": False, "non_public": False}
+        parsed = [ipaddress.ip_address(address) for address in addresses]
+        synthetic = any(address.version == 4 and address in _FAKE_IP_RANGE
+                        for address in parsed)
+        non_public = any(not address.is_global for address in parsed)
+        return {"host": host, "addresses": addresses, "synthetic": synthetic,
+                "non_public": non_public}
     with ThreadPoolExecutor(max_workers=4) as pool:
         rows = list(pool.map(inspect, hosts))
-    return {"schema_version": 1, "hosts": rows, "usable_for_guarded_local_comparison": not any(row["synthetic"] for row in rows)}
+    return {
+        "schema_version": 1,
+        "hosts": rows,
+        "usable_for_guarded_local_comparison": not any(
+            row["synthetic"] or row.get("non_public") or row.get("dns_error")
+            for row in rows
+        ),
+    }
 
 
 def require_usable_public_dns(audit):
-    bad = [row["host"] for row in audit["hosts"] if row["synthetic"]]
-    if bad:
-        raise ValueError("System DNS returned synthetic 198.18.0.0/15 addresses for: " + ", ".join(bad) +
+    unresolved = [row["host"] for row in audit["hosts"] if row.get("dns_error")]
+    if unresolved:
+        raise ValueError("DNS resolution failed for public benchmark hosts: "
+                         + ", ".join(unresolved))
+    synthetic = [row["host"] for row in audit["hosts"] if row["synthetic"]]
+    if synthetic:
+        raise ValueError("System DNS returned synthetic 198.18.0.0/15 addresses for: " + ", ".join(synthetic) +
                          "; use a real-public-address DNS environment before comparison. Do not disable product safety guards.")
+    non_public = [row["host"] for row in audit["hosts"] if row.get("non_public")]
+    if non_public:
+        raise ValueError("DNS returned non-public addresses for public benchmark hosts: "
+                         + ", ".join(non_public)
+                         + "; use the declared public_doh environment before comparison. "
+                           "Do not disable product safety guards.")
 
 
 def preflight_guarded_providers(providers, cases):

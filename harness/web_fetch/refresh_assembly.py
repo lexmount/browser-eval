@@ -1132,6 +1132,8 @@ def _assemble(
             raise ValueError("Baseline implementation identity differs from upgrade plan")
 
     replacements = canonical.get("comparison", {}).get("case_replacements")
+    if replacements is None:
+        replacements = {}
     if not isinstance(replacements, dict) or len(set(replacements.values())) != len(replacements):
         raise ValueError("Canonical case replacement map is missing or invalid")
     baseline_only = set(baseline_cases) - set(canonical_cases)

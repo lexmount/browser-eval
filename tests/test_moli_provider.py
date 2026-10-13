@@ -961,11 +961,12 @@ class MoliTests(unittest.TestCase):
             ).validate(),
         )
 
-    def test_zero_exit_empty_markdown_is_request_success(self):
+    def test_zero_exit_empty_markdown_is_an_empty_response(self):
         result = self.provider('print(" ")').fetch(self.case, 2)
-        self.assertTrue(result.ok)
+        self.assertFalse(result.ok)
         self.assertEqual(result.content.strip(), "")
-        self.assertIsNone(result.error_type)
+        self.assertEqual(result.error_type, "empty_response")
+        self.assertEqual(result.metadata["exit_code"], 0)
 
     def test_zero_exit_whole_response_forbidden_page_is_request_failure(self):
         result = self.provider(
