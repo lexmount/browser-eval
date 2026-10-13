@@ -527,6 +527,97 @@
           "m365-retired-navigation-copy-does-not-pass"
         ]
       }
+    },
+    {
+      "case_id": "dynamic-062-zh-sspai-home",
+      "expected_definition_sha256": "4f2a23e911296d0f7f6cba3ce479ed83f4bfded40e7167c7c183ca235e63d753",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 8,
+          "hosts": [
+            "sspai.com"
+          ],
+          "entry_path": "/post/\\d+",
+          "stable_text_anchors": [
+            {
+              "id": "source-stable-4e46b434e5c8",
+              "alternatives": [
+                "少数派"
+              ],
+              "source_location": "aside > span",
+              "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+              "source_evidence_sha256": "49555f88c3c3a5edcdc991d60741539507feecba6447def84660c0c44fb68360",
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "source-stable-76a2171c057b",
+              "alternatives": [
+                "Matrix"
+              ],
+              "source_location": "header > span",
+              "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+              "source_evidence_sha256": "09f971e12fdb9abf2a8ffaeddb3e747e5f7d0a8175f84342864d6ce31dcec895",
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "source-stable-9134428dcb7b",
+              "alternatives": [
+                "关于我们"
+              ],
+              "source_location": "nav > span",
+              "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+              "source_evidence_sha256": "930fce03683489ed25ca833850a9c8f662563689a7dd1a7788039b828a7faba5",
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "source-stable-39adb2edf52e",
+              "alternatives": [
+                "少数派编辑部"
+              ],
+              "source_location": "body > span",
+              "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+              "source_evidence_sha256": "04156507ad98b5e38f9982884cfdd9a93361648e8c1ec2826719288c8896533a"
+            }
+          ],
+          "record_count_policy": {
+            "list_type": "variable",
+            "source_observed_count": 9,
+            "required_ratio": 0.8,
+            "minimum_records": 8,
+            "source_observation_counts": [
+              9,
+              9,
+              9
+            ],
+            "reason": "可变化列表：按调用前Codex独立观察到的记录数取80%，结果向上取整。",
+            "source_evidence_sha256": "cfe3d7a0abab109b111fcdd4e74f234622e07f3270c66c617c9933879c45fbf4"
+          },
+          "name_validation": "nonempty",
+          "entry_scope": {
+            "html_selector": ".feed__main article",
+            "title_selector": "p.article__card__title",
+            "link_selector": "a.article__card__link[href^=\"/post/\"]",
+            "start_pattern": "(?m)^(?:推薦|推荐|\\[推荐\\]\\([^\\n]+\\))[ \\t]*$",
+            "end_pattern": "(?m)^(?:#{1,6}[ \\t]+)?派友在看[ \\t]*$"
+          }
+        }
+      },
+      "evidence": {
+        "source": "https://sspai.com/",
+        "observed_at": "2026-10-13",
+        "observed_text": "Matrix精选 is an article-card badge within the changing record list, not independently owned page-shell text. The page-level anchors remain required.",
+        "root_cause": "dynamic_record_badge_not_page_anchor",
+        "prior_acceptance_contract_sha256": "9bf6df958583cd268f3d1402f5d1d180a6b852397faea75e9c56a65966911e9d",
+        "revised_acceptance_contract_sha256": "da66f041e4dfa21f950eee95808a925eea00051fe8f8393cdad67732f632b9e1",
+        "affected_scope": "dynamic-062-zh-sspai-home across all registered methods; offline rescore only",
+        "regression_ids": [
+          "dynamic-record-badge-is-not-required-page-copy",
+          "dynamic-record-badge-cannot-replace-page-copy"
+        ]
+      },
+      "execution_effect": "rescore_only"
     }
   ]
 }

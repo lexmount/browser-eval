@@ -181,7 +181,11 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.update({"table_visible_section_boundaries", "table_escaped_pipe_boundaries"})
         paired.update({"table_header_visual_line", "table_adjacent_split_body",
                        "composite_html_table_ownership",
-                       "body_table_column_continuity"})
+                       "body_table_column_continuity",
+                       "unclosed_html_example_table_surface",
+                       "table_visible_markdown_scalar",
+                       "table_header_sort_control",
+                       "dynamic_record_badge_not_page_anchor"})
         for root_cause in paired:
             self.assertEqual(root_modes.get(root_cause), {"false-positive", "false-negative"})
 

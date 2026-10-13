@@ -17,6 +17,12 @@ def _write(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def _canonical_sha256(value) -> str:
+    return hashlib.sha256(
+        json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
 def _fixture(tmp_path: Path) -> tuple[Path, dict]:
     profile = {
         "dataset_id": "combined",
@@ -263,6 +269,35 @@ def test_registered_430_assembly_uses_current_sources_and_four_contracts(tmp_pat
         assert hashlib.sha256(raw).hexdigest() == source["sha256"]
     dataset, raw = assemble_profile_dataset(ASSEMBLY)
     assert hashlib.sha256(raw).hexdigest() == definition["native_dataset_sha256"]
+    corrections = json.loads(
+        (ROOT / definition["case_corrections"]["path"]).read_text(encoding="utf-8")
+    )
+    correction = next(
+        row for row in corrections["cases"] if row["case_id"] == "dynamic-062-zh-sspai-home"
+    )
+    corrected_case = next(
+        case for case in dataset["cases"] if case["id"] == "dynamic-062-zh-sspai-home"
+    )
+    dynamic_source = next(
+        source for source in definition["sources"] if "dynamic" in source["tracks"]
+    )
+    source_dataset = json.loads(read_frozen_dataset_bytes(ROOT / dynamic_source["path"]))
+    source_case = next(
+        case for case in source_dataset["cases"] if case["id"] == "dynamic-062-zh-sspai-home"
+    )
+    assert correction["expected_definition_sha256"] == _canonical_sha256(source_case)
+    assert correction["evidence"]["prior_acceptance_contract_sha256"] == _canonical_sha256(
+        source_case["acceptance_contract"]
+    )
+    assert correction["evidence"]["root_cause"] == "dynamic_record_badge_not_page_anchor"
+    assert correction["evidence"]["affected_scope"].endswith("offline rescore only")
+    assert correction["evidence"]["revised_acceptance_contract_sha256"] == _canonical_sha256(
+        corrected_case["acceptance_contract"]
+    )
+    assert all(
+        anchor["id"] != "source-stable-310fe77a5860"
+        for anchor in corrected_case["acceptance_contract"]["stable_text_anchors"]
+    )
     contracts = {
         case["id"]: case["retrieval_hints"]["contract"]
         for case in dataset["cases"]
