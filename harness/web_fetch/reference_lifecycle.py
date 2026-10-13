@@ -1015,7 +1015,7 @@ def valid_scoring_revision(source) -> bool:
         return False
     allowed_fields = {
         'body_requirements', 'required_patterns', 'required_facts',
-        'acceptance_contract', 'forbidden_any', 'expected_resources',
+        'acceptance_contract', 'composite_acceptance', 'forbidden_any', 'expected_resources',
         'resource_output_contract', 'task_prompt', 'reference_answer',
         'mutable_body_policy',
     }
@@ -1222,7 +1222,7 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
             return {}
         allowed = {
             "body_requirements", "required_patterns", "required_facts",
-            "acceptance_contract", "forbidden_any", "expected_resources",
+            "acceptance_contract", "composite_acceptance", "forbidden_any", "expected_resources",
             "resource_output_contract", "task_prompt", "reference_answer",
             "mutable_body_policy",
         }

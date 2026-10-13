@@ -15,7 +15,7 @@ from harness.web_fetch.scoring_regressions import (
     active_scoring_regressions, require_scoring_regressions,
     valid_correction_provenance,
 )
-from harness.web_fetch.scoring_revision import correction_provenance
+from harness.web_fetch.scoring_revision import ALLOWED_FIELDS, correction_provenance
 
 
 class ScoringRegressionTests(unittest.TestCase):
@@ -293,7 +293,7 @@ class ScoringRegressionTests(unittest.TestCase):
                 "input_results_sha256": hashlib.sha256(results).hexdigest(),
                 "output_dataset_sha256": hashlib.sha256(dataset).hexdigest(),
                 "output_results_sha256": hashlib.sha256(results).hexdigest(),
-                "changed_cases": [{"case_id": "case", "fields": ["forbidden_any"]}],
+                "changed_cases": [{"case_id": "case", "fields": sorted(ALLOWED_FIELDS)}],
                 "task_decision_changes": decisions,
                 "correction_provenance": correction_provenance(
                     "task-predicate",

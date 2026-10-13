@@ -1193,6 +1193,959 @@
         ]
       },
       "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "live-025-api-reference",
+      "expected_definition_sha256": "5bc3b2282b7f76999d3ee3462c825c98e1bb2d66fcab13ce4ded8956cc290739",
+      "set": {
+        "required_facts": [
+          {
+            "id": "正文核对点-1",
+            "alternatives": [
+              "from tavily import TavilyClient"
+            ]
+          },
+          {
+            "id": "正文核对点-2",
+            "alternatives": [
+              "Successful URLs appear in results; per-URL failures appear in failed_results."
+            ]
+          },
+          {
+            "id": "正文核对点-3",
+            "alternatives": [
+              "A unique request identifier you can share with customer support"
+            ]
+          }
+        ],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "正文核对点-1",
+              "alternatives": [
+                "from tavily import TavilyClient"
+              ]
+            },
+            {
+              "id": "正文核对点-2",
+              "alternatives": [
+                "Successful URLs appear in results; per-URL failures appear in failed_results."
+              ]
+            },
+            {
+              "id": "正文核对点-3",
+              "alternatives": [
+                "A unique request identifier you can share with customer support"
+              ]
+            }
+          ]
+        },
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-10-14",
+          "http_status": 200,
+          "method": "Independent fresh anonymous Chromium initial-page observations",
+          "selector": "rendered main DOM text, including preloaded response-code panels",
+          "reference_sha256": "ccb12d707395080d9c67e35d53d9d2ef51b7b86c0e1eefb531f8e4e2afc347d6",
+          "note": "Two independent current observations retain the SDK and request-id facts and replace the retired Unauthorized example with the current results/failed_results contract.",
+          "extracted_reference_sha256": "ad42f0c685051847b18d7e1aa7b0c14dd3e2c91a78a20e53f574fdc585d42154",
+          "reference_normalization": "Remove U+200B, U+FEFF and discretionary U+00AD; raw capture unchanged.",
+          "provider_output_used": false,
+          "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+          "observation_sha256s": [
+            "dbd74939bb5bb5923964797b32f9071bf00a0b6e1d51cef6f410af6c49ee7651",
+            "061f7a97b0ec83a5f5122747109bd1f4a0415b162825aa226b3db9a3a6ff3bd8"
+          ]
+        }
+      },
+      "evidence": {
+        "source": "sha256:74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "observed_at": "2026-10-14",
+        "observed_text": "Two independent current observations retain the SDK and request-id facts and replace the retired Unauthorized example with the current results/failed_results contract.",
+        "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "regression_ids": [
+          "volatile-body-change-preserves-stable-anchor-pass",
+          "volatile-body-content-cannot-replace-stable-page-identity"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "dynamic-087-joyn-filme",
+      "expected_definition_sha256": "d7c907fd01e50424a58b45a45940c672d7e9e280d847b5821f357d81c113004d",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 24,
+          "hosts": [
+            "www.joyn.de"
+          ],
+          "entry_path": "/filme/(?!genre(?:/|$))[^/]+",
+          "stable_text_anchors": [
+            {
+              "id": "current-section-1",
+              "alternatives": [
+                "Filme"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "initial rendered body",
+              "source_evidence_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb"
+            },
+            {
+              "id": "current-section-2",
+              "alternatives": [
+                "Genres"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "initial rendered body",
+              "source_evidence_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb"
+            },
+            {
+              "id": "current-section-3",
+              "alternatives": [
+                "Die beliebtesten Filme"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "initial rendered body",
+              "source_evidence_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb"
+            },
+            {
+              "id": "current-section-4",
+              "alternatives": [
+                "Neue Filme auf Joyn"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "initial rendered body",
+              "source_evidence_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb"
+            },
+            {
+              "id": "current-section-5",
+              "alternatives": [
+                "Spannung pur"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "initial rendered body",
+              "source_evidence_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb"
+            },
+            {
+              "id": "current-section-6",
+              "alternatives": [
+                "Lust und Leidenschaft"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "initial rendered body",
+              "source_evidence_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb"
+            },
+            {
+              "id": "current-section-7",
+              "alternatives": [
+                "Für Fans von Fantasy"
+              ],
+              "match_scope": "non_record_lines",
+              "source_location": "initial rendered body",
+              "source_evidence_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb"
+            }
+          ],
+          "record_count_policy": {
+            "list_type": "variable",
+            "source_observed_count": 29,
+            "required_ratio": 0.8,
+            "minimum_records": 24,
+            "source_observation_counts": [
+              29,
+              29
+            ],
+            "source_evidence_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+            "reason": "Two independent current first-load DOM observations each contain 29 unique named movie-detail links; the threshold is the predeclared 80 percent floor rounded up."
+          },
+          "name_validation": "nonempty",
+          "entry_scope": {
+            "html_selector": "main div[class*=\"CardStandard_StandardCardWrapper\"]",
+            "title_selector": "h3",
+            "link_selector": "a[data-testid=\"LL--movie\"]"
+          }
+        },
+        "source_verification": {
+          "interaction_boundary": "first automatic load only; no click/input/scroll/search/pagination",
+          "timeout_ms": 45000,
+          "completion": {
+            "target_selectors": [
+              "main",
+              "#main",
+              "body"
+            ],
+            "frame_url_pattern": null,
+            "stable_samples": 4,
+            "poll_interval_ms": 250,
+            "timeout_ms": 45000,
+            "minimum_chars": 600,
+            "minimum_records": 6,
+            "loading_must_end": true
+          },
+          "independent_capture_a_sha256": "95b67873d3cc97676365af3b9b53f4e6360bd91b517340a07b8d6b27d2157fe0",
+          "independent_capture_b_sha256": "95b67873d3cc97676365af3b9b53f4e6360bd91b517340a07b8d6b27d2157fe0",
+          "state": "structure_only",
+          "reference_sha256": null,
+          "verification_scope": "independent current DOM; volatile values are not frozen",
+          "checked_at": "2026-10-14",
+          "method": "Independent fresh anonymous Chromium initial-page observations",
+          "provider_output_used": false,
+          "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+          "observation_sha256s": [
+            "da1704216206bf2bc2af7dd3197dfba56323ae248edfedff34cccc4bda4da6fa",
+            "7fc609d2411bfa14ba9f3c218130d7793c935702e43bbc4c6811349e14daaf8b"
+          ],
+          "note": "Two independent current first-load DOM observations each contain 29 unique named movie-detail links and the same seven section labels."
+        }
+      },
+      "evidence": {
+        "source": "sha256:74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "observed_at": "2026-10-14",
+        "observed_text": "Two independent current first-load DOM observations each contain 29 unique named movie-detail links and the same seven section labels.",
+        "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "regression_ids": [
+          "current-homepage-stable-intersection-passes",
+          "obsolete-homepage-anchor-does-not-pass",
+          "variable-list-23-of-30-does-not-meet-80-percent-source-threshold",
+          "variable-list-24-of-30-meets-source-threshold-without-claiming-completeness"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "global-homepage-016-amazon-com",
+      "expected_definition_sha256": "c3c58c5a454336515995eefa26d3d693eee2eb5503300458b2f4174408be75a5",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 10,
+          "hosts": [
+            "www.amazon.com"
+          ],
+          "entry_path": "(?:/[^/]+)?/dp/[A-Z0-9]{10}",
+          "stable_text_anchors": [
+            {
+              "id": "stable-anchor-1",
+              "alternatives": [
+                "All"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-2",
+              "alternatives": [
+                "Baby"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-3",
+              "alternatives": [
+                "Help"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-4",
+              "alternatives": [
+                "Sell"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-5",
+              "alternatives": [
+                "Books"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-6",
+              "alternatives": [
+                "Music"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-7",
+              "alternatives": [
+                "Prime"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-8",
+              "alternatives": [
+                "Careers"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-9",
+              "alternatives": [
+                "Coupons"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-10",
+              "alternatives": [
+                "English"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-11",
+              "alternatives": [
+                "Fashion"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-12",
+              "alternatives": [
+                "Returns"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-13",
+              "alternatives": [
+                "Audible"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-14",
+              "alternatives": [
+                "Pharmacy"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-15",
+              "alternatives": [
+                "Registry"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-17",
+              "alternatives": [
+                "Handmade"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-18",
+              "alternatives": [
+                "Gift Cards"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-19",
+              "alternatives": [
+                "Amazon Devices"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-20",
+              "alternatives": [
+                "Conditions of Use"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-21",
+              "alternatives": [
+                "Privacy Notice"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ],
+          "link_base_url": "https://www.amazon.com/"
+        },
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-10-14",
+          "method": "Independent fresh anonymous Chromium initial-page observations",
+          "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "note": "Two independent current first loads retain the declared product-card population and every registered stable label except Computers.",
+          "provider_output_used": false,
+          "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+          "observation_sha256s": [
+            "1ed36796d6cebc2850e2877281008359f0bd935170b3e6b70ea950a1a82fa55d",
+            "362cfb4e21c0f84d31080899e2c46bcd5608d77d16714efede471d5782389b64"
+          ]
+        }
+      },
+      "evidence": {
+        "source": "sha256:74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "observed_at": "2026-10-14",
+        "observed_text": "Two independent current first loads retain the declared product-card population and every registered stable label except Computers.",
+        "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "regression_ids": [
+          "current-homepage-stable-intersection-passes",
+          "obsolete-homepage-anchor-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "global-homepage-072-rakuten-co-jp",
+      "expected_definition_sha256": "6e422561432050c75172552f3fe9b1300e1074bae69897c3d2b2e6060c6cc5e7",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 5,
+          "hosts": [
+            "item.rakuten.co.jp"
+          ],
+          "entry_path": "/.+",
+          "stable_text_anchors": [
+            {
+              "id": "stable-anchor-1",
+              "alternatives": [
+                "お買い物"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-2",
+              "alternatives": [
+                "カード"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-3",
+              "alternatives": [
+                "銀行"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-4",
+              "alternatives": [
+                "証券"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-5",
+              "alternatives": [
+                "トラベル"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-6",
+              "alternatives": [
+                "ブックス"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-7",
+              "alternatives": [
+                "ポイント"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-8",
+              "alternatives": [
+                "モバイル"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-9",
+              "alternatives": [
+                "ラクマ"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-10",
+              "alternatives": [
+                "ROOM"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-11",
+              "alternatives": [
+                "ログイン"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-12",
+              "alternatives": [
+                "ヘルプ"
+              ],
+              "match_scope": "non_record_lines"
+            },
+            {
+              "id": "stable-anchor-14",
+              "alternatives": [
+                "採用情報"
+              ],
+              "match_scope": "non_record_lines"
+            }
+          ]
+        },
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-10-14",
+          "method": "Independent fresh anonymous Chromium initial-page observations",
+          "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "note": "A current complete first-load observation and a separate current repeat show the registered page body while 会社概要 is not invariant.",
+          "provider_output_used": false,
+          "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+          "observation_sha256s": [
+            "49d0d140afda50dedc4d64241d2ad9c76ccd307bfc518676002b8e7c75c7a7d0",
+            "08e589aeb5d646deff8207423ee6ff7abe5ec31e02810c3efb67046ab2316b69"
+          ]
+        }
+      },
+      "evidence": {
+        "source": "sha256:74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "observed_at": "2026-10-14",
+        "observed_text": "A current complete first-load observation and a separate current repeat show the registered page body while 会社概要 is not invariant.",
+        "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "regression_ids": [
+          "current-homepage-stable-intersection-passes",
+          "obsolete-homepage-anchor-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "china-homepage-008-doubao-com",
+      "expected_definition_sha256": "15923cde0d34b94552591970ec4c84a24f37529f678f360fb4727644d91db683",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-anchor-1",
+              "alternatives": [
+                "更多"
+              ]
+            },
+            {
+              "id": "stable-anchor-2",
+              "alternatives": [
+                "最近"
+              ]
+            },
+            {
+              "id": "stable-anchor-3",
+              "alternatives": [
+                "新对话"
+              ]
+            },
+            {
+              "id": "stable-anchor-5",
+              "alternatives": [
+                "关于豆包"
+              ]
+            },
+            {
+              "id": "stable-anchor-6",
+              "alternatives": [
+                "新工作任务"
+              ]
+            },
+            {
+              "id": "stable-anchor-7",
+              "alternatives": [
+                "API 服务"
+              ]
+            },
+            {
+              "id": "stable-anchor-8",
+              "alternatives": [
+                "有什么我能帮你的吗？"
+              ]
+            }
+          ]
+        },
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-10-14",
+          "method": "Independent fresh anonymous Chromium initial-page observations",
+          "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "note": "Two independent current first loads retain seven declared page labels; 为你推荐 appears conditionally and is removed from the stable intersection.",
+          "provider_output_used": false,
+          "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+          "observation_sha256s": [
+            "837a06d7f6dea9d82026f14def3689f12b9fe8c492041f052db2d431c7f6f37f",
+            "71dc6d91d87f369770053030e0ff8989dd3be4f45a51e7f4578808e519351e7d"
+          ]
+        }
+      },
+      "evidence": {
+        "source": "sha256:74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "observed_at": "2026-10-14",
+        "observed_text": "Two independent current first loads retain seven declared page labels; 为你推荐 appears conditionally and is removed from the stable intersection.",
+        "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "regression_ids": [
+          "current-homepage-stable-intersection-passes",
+          "obsolete-homepage-anchor-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "china-homepage-026-aliyun-com",
+      "expected_definition_sha256": "d5174b445103acdc0f7a43e6d365899cd9613ee847b43b25be435e71db79d27d",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-anchor-1",
+              "alternatives": [
+                "域名"
+              ]
+            },
+            {
+              "id": "stable-anchor-2",
+              "alternatives": [
+                "备案"
+              ]
+            },
+            {
+              "id": "stable-anchor-5",
+              "alternatives": [
+                "登录"
+              ]
+            },
+            {
+              "id": "stable-anchor-7",
+              "alternatives": [
+                "计算"
+              ]
+            },
+            {
+              "id": "stable-anchor-10",
+              "alternatives": [
+                "云市场"
+              ]
+            },
+            {
+              "id": "stable-anchor-11",
+              "alternatives": [
+                "大模型"
+              ]
+            },
+            {
+              "id": "stable-anchor-12",
+              "alternatives": [
+                "控制台"
+              ]
+            },
+            {
+              "id": "stable-anchor-14",
+              "alternatives": [
+                "数据集"
+              ]
+            },
+            {
+              "id": "stable-anchor-20",
+              "alternatives": [
+                "产品动态"
+              ]
+            },
+            {
+              "id": "stable-anchor-21",
+              "alternatives": [
+                "产品定价"
+              ]
+            },
+            {
+              "id": "stable-anchor-25",
+              "alternatives": [
+                "信任中心"
+              ]
+            },
+            {
+              "id": "stable-anchor-27",
+              "alternatives": [
+                "免费试用"
+              ]
+            },
+            {
+              "id": "stable-anchor-28",
+              "alternatives": [
+                "免费额度"
+              ]
+            },
+            {
+              "id": "stable-anchor-29",
+              "alternatives": [
+                "全部产品"
+              ]
+            },
+            {
+              "id": "stable-anchor-32",
+              "alternatives": [
+                "加入我们"
+              ]
+            },
+            {
+              "id": "stable-anchor-36",
+              "alternatives": [
+                "安全举报"
+              ]
+            },
+            {
+              "id": "stable-anchor-37",
+              "alternatives": [
+                "安全合规"
+              ]
+            },
+            {
+              "id": "stable-anchor-39",
+              "alternatives": [
+                "帮助文档"
+              ]
+            },
+            {
+              "id": "stable-anchor-42",
+              "alternatives": [
+                "法律声明"
+              ]
+            },
+            {
+              "id": "stable-anchor-45",
+              "alternatives": [
+                "阿里云"
+              ]
+            }
+          ]
+        },
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-10-14",
+          "method": "Independent fresh anonymous Chromium initial-page observations",
+          "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "note": "Two byte-identical current first loads retain 20 task-relevant stable labels; 25 obsolete navigation labels are absent from both observations.",
+          "provider_output_used": false,
+          "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+          "observation_sha256s": [
+            "7f14ca486386fe97df5f92c5da8045dbce7c44a623b1d43c8d71a96beb9a4c1c",
+            "c3f5b11e5df09bf169e7e05230e113a0f153c894dfb42d113f35a2daed15398a"
+          ]
+        }
+      },
+      "evidence": {
+        "source": "sha256:74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "observed_at": "2026-10-14",
+        "observed_text": "Two byte-identical current first loads retain 20 task-relevant stable labels; 25 obsolete navigation labels are absent from both observations.",
+        "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "regression_ids": [
+          "current-homepage-stable-intersection-passes",
+          "obsolete-homepage-anchor-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "china-homepage-081-elsevier-com",
+      "expected_definition_sha256": "fae970f5feae5b29128c614d28b99face408f59c247a15c6f52fc416c1d64896",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-anchor-2",
+              "alternatives": [
+                "Health"
+              ]
+            },
+            {
+              "id": "stable-anchor-6",
+              "alternatives": [
+                "Careers"
+              ]
+            },
+            {
+              "id": "stable-anchor-7",
+              "alternatives": [
+                "Industry"
+              ]
+            },
+            {
+              "id": "stable-anchor-8",
+              "alternatives": [
+                "Open access"
+              ]
+            },
+            {
+              "id": "stable-anchor-9",
+              "alternatives": [
+                "Useful links"
+              ]
+            },
+            {
+              "id": "stable-anchor-10",
+              "alternatives": [
+                "Accessibility"
+              ]
+            },
+            {
+              "id": "stable-anchor-11",
+              "alternatives": [
+                "Cookie Policy"
+              ]
+            },
+            {
+              "id": "stable-anchor-13",
+              "alternatives": [
+                "About Elsevier"
+              ]
+            },
+            {
+              "id": "stable-anchor-14",
+              "alternatives": [
+                "Privacy policy"
+              ]
+            },
+            {
+              "id": "stable-anchor-15",
+              "alternatives": [
+                "Publish a book"
+              ]
+            },
+            {
+              "id": "stable-anchor-16",
+              "alternatives": [
+                "Publish with us"
+              ]
+            },
+            {
+              "id": "stable-anchor-17",
+              "alternatives": [
+                "Customer support"
+              ]
+            },
+            {
+              "id": "stable-anchor-18",
+              "alternatives": [
+                "Elsevier Connect"
+              ]
+            },
+            {
+              "id": "stable-anchor-19",
+              "alternatives": [
+                "Submit your paper"
+              ]
+            },
+            {
+              "id": "stable-anchor-20",
+              "alternatives": [
+                "View all products"
+              ]
+            },
+            {
+              "id": "stable-anchor-21",
+              "alternatives": [
+                "More from Elsevier"
+              ]
+            },
+            {
+              "id": "stable-anchor-22",
+              "alternatives": [
+                "Terms & Conditions"
+              ]
+            },
+            {
+              "id": "stable-anchor-23",
+              "alternatives": [
+                "Researcher & Author"
+              ]
+            },
+            {
+              "id": "stable-anchor-24",
+              "alternatives": [
+                "Academic & Government"
+              ]
+            },
+            {
+              "id": "stable-anchor-26",
+              "alternatives": [
+                "Resources for Editors"
+              ]
+            },
+            {
+              "id": "stable-anchor-27",
+              "alternatives": [
+                "Shop Books & Journals"
+              ]
+            },
+            {
+              "id": "stable-anchor-28",
+              "alternatives": [
+                "Resources for Reviewers"
+              ]
+            },
+            {
+              "id": "stable-anchor-29",
+              "alternatives": [
+                "Advancing human progress"
+              ]
+            },
+            {
+              "id": "stable-anchor-30",
+              "alternatives": [
+                "Publish your article in a journal"
+              ]
+            }
+          ]
+        },
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-10-14",
+          "method": "Independent fresh anonymous Chromium initial-page observations",
+          "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "note": "Two byte-identical current observations remain on the declared Elsevier URL and retain 24 stable labels; six retired product labels are absent.",
+          "provider_output_used": false,
+          "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+          "observation_sha256s": [
+            "20bef1fbdb37fcb1c381bb9ca81627af4ee251056cfb1b7ad67270d9fa44c251",
+            "4bc4e2a64a5dcffd63bdd792cd8de1f84ed13a334ab1d013f55a1d5a8b7dcb1f"
+          ]
+        }
+      },
+      "evidence": {
+        "source": "sha256:74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "observed_at": "2026-10-14",
+        "observed_text": "Two byte-identical current observations remain on the declared Elsevier URL and retain 24 stable labels; six retired product labels are absent.",
+        "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
+        "regression_ids": [
+          "current-homepage-stable-intersection-passes",
+          "obsolete-homepage-anchor-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
     }
   ]
 }
