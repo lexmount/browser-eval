@@ -3,7 +3,7 @@ from pathlib import Path
 from dataclasses import replace
 from unittest.mock import patch
 import pytest
-from harness.web_fetch.config import load_json
+from tests.conftest import read_frozen_dataset_bytes
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers.base import build_provider
 from harness.web_fetch.providers.http_client import HttpResponse
@@ -71,8 +71,8 @@ def test_web_family_does_not_change_native_cloud_request(kind, module):
     bodies = []
     for track in ("web", "dynamic", "challenge", "risk_control"):
         case = EvalCase("one", "one", "https://example.com/", "control", [], track=track,
-            acceptance_contract=load_json(Path(__file__).resolve().parents[1] /
-                "evaluation/dynamic-content-100-moli-webfetch/dataset.json")["cases"][0]["acceptance_contract"])
+            acceptance_contract={"version": 1, "schema": "body_text", "minimum_records": 0,
+                                 "stable_text_anchors": [{"id": "answer", "alternatives": ["Expected answer"]}]})
         with patch(f"harness.web_fetch.providers.{module}.request") as call:
             call.return_value = HttpResponse(200, case.url, {}, b'{}')
             provider.fetch(case, 45)
@@ -110,13 +110,14 @@ def test_native_cloudflare_media_has_no_answer_dependent_selectors_or_timers():
 
 
 def test_all_430_frozen_cases_pass_native_input_guard():
-    from pathlib import Path
     from harness.web_fetch.config import load_dataset
     provider = build_provider("fixture", {"type": "fixture", "uniform_native_parameters": True})
     count = 0
     for filename in ("dataset.json", "dynamic-content-100-moli-webfetch/dataset.json",
                      "popular-sites/dataset.json", "risk-control/dataset.json"):
-        _, cases = load_dataset(Path(__file__).resolve().parents[1] / "evaluation" / filename)
+        path = Path(__file__).resolve().parents[1] / "evaluation" / filename
+        read_frozen_dataset_bytes(path)
+        _, cases = load_dataset(path)
         for case in cases:
             if filename == "dataset.json" and case.track not in {"web", "document", "image", "video"}:
                 continue

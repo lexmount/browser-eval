@@ -78,6 +78,21 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertEqual(len(rows),1)
                 self.assertNotIn('ghijkl</pre>',cards)
 
+    def test_bound_body_evidence_is_displayed_without_rescoring(self):
+        from harness.web_fetch.scoring import score_attempt
+        contract={'version':3,'unit':'region_compact_hexagram_recall',
+                  'minimum_coverage':.8,'minimum_floor':.6,'minimum_region_passes':1,
+                  'regions':[{'id':'body','text':'abcdefghijkl'}]}
+        c=case('body',kind='body');c['body_requirements']=contract
+        metrics=score_attempt(c,b'abcdefghijkl',ok=True)
+        saved=copy.deepcopy(metrics)
+        with patch('harness.web_fetch.body_coverage.evaluate_body_requirements',
+                   side_effect=AssertionError('presentation must not rescore saved passages')):
+            rows,cards=body_region_rows(c,metrics,'abcdefghijkl')
+        self.assertEqual(metrics,saved)
+        self.assertEqual(len(rows),1)
+        self.assertIn('abcdefghijkl',''.join(cards))
+
     def test_body_evidence_uses_the_canonical_global_allocation(self):
         shared='abcdefghijklmnopqrstuvwx'*3
         contract={'version':3,'unit':'region_compact_hexagram_recall',

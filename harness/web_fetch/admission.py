@@ -4,6 +4,7 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import threading
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -88,6 +89,10 @@ class CaseAdmission:
                     return token
             time.sleep(0.1)
 
+    def _release_when_finished(self, token, pending):
+        pending.join()
+        self.release(token)
+
     def release(self, token, *, pending=None, record=None):
         with self._state() as state:
             if token['key'] not in state['active']:
@@ -103,7 +108,9 @@ class CaseAdmission:
                              'reason': 'timeout_or_429_observed_during_overlap; causality_unproven'})
             if pending is not None and pending.is_alive():
                 state['active'][token['key']]['quarantined'] = True
-                self._event({'event': 'quarantined_until_process_exit', **token})
+                self._event({'event': 'quarantined_until_call_exit', **token})
+                threading.Thread(target=self._release_when_finished, args=(token, pending),
+                                 daemon=True, name='webfetch-admission-cleanup').start()
                 return
             del state['active'][token['key']]
             state['finished_sites'][token['site']] = {'at': time.time(), 'provider': token['provider']}

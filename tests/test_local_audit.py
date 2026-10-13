@@ -286,6 +286,44 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
         "measured_scoring_source_sha256": historical_scorer,
         "measured_scoring_git_revision": "historical-revision"}
     _write(binding_path, binding)
+    public_logs = output / "logs"
+    public_logs.mkdir(exist_ok=True)
+    attempt_id = frozen_rows[0]["attempt_id"]
+    debug = public_logs / (attempt_id + ".debug.txt")
+    response = public_logs / (attempt_id + ".response.txt")
+    debug.write_text("actual library event\n")
+    response.write_text('{"observed": "actual API response"}\n')
+    rebuilt = tmp_path / "frozen-bilingual-report"
+    before_results = (output / "results.jsonl").read_bytes()
+    with pytest.raises(ValueError, match="stale scoring"):
+        build_report(output, rebuilt, local_audit=True, include_english=True)
+    build_report(output, rebuilt, local_audit=True, include_english=True,
+                 presentation_binding=binding_path)
+    assert (rebuilt / "results.jsonl").read_bytes() == before_results
+    assert (rebuilt / "dataset.json").read_bytes() == (output / "dataset.json").read_bytes()
+    assert (rebuilt / "en/index.html").is_file()
+    for prefix in ("", "en/"):
+        detail = (rebuilt / prefix / "attempts" / (attempt_id + ".html")).read_text()
+        assert attempt_id + ".debug.txt" in detail
+        assert attempt_id + ".response.html" in detail
+    assert (rebuilt / "logs" / debug.name).read_bytes() == debug.read_bytes()
+    assert (rebuilt / "logs" / response.name).read_bytes() == response.read_bytes()
+    assert json.loads((rebuilt / "report-manifest.json").read_text())["presentation"]["frozen_scores"]
+    reproduce = (rebuilt / "reproduce/index.html").read_text()
+    assert "--language zh --include-english" in reproduce
+    assert "--language bilingual" not in reproduce
+    assert "--presentation-binding" in reproduce
+    assert all(row["metrics"]["scoring_source_sha256"] == historical_scorer
+               for row in map(json.loads, (rebuilt / "results.jsonl").read_text().splitlines()))
+    chinese = tmp_path / "frozen-chinese-report"
+    build_report(rebuilt, chinese, local_audit=True, presentation_binding=binding_path)
+    assert list((chinese / "en").rglob("*.html")) == [chinese / "en/index.html"]
+    assert "not been generated" in (chinese / "en/index.html").read_text()
+    _write(binding_path, {**binding, "results_sha256": "0" * 64})
+    with pytest.raises(ValueError, match="input binding changed"):
+        build_report(output, tmp_path / "invalid-rebuild", local_audit=True,
+                     presentation_binding=binding_path)
+    _write(binding_path, binding)
     (output / "changes/index.html").write_text("<html><body>Old release history</body></html>")
     before = {path.relative_to(output).as_posix(): _digest(path)
               for path in output.rglob("*") if path.is_file()}

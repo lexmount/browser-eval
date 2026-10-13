@@ -624,192 +624,196 @@ def run_evaluation(
                     # Admission waits before the answer timer and 45-second budget.
                     admission_token = (case_admission.acquire(provider, case)
                                        if case_admission is not None else None)
-                    started = utc_now()
-                    physical_attempts = []
-                    stopped_provider = False
-                    for physical_attempt in range(1, max_failure_retries + 2):
-                        retry_throttle_wait_ms = 0.0
-                        if physical_attempt > 1 and provider.min_interval_seconds:
-                            remaining = provider.min_interval_seconds - (time.monotonic() - previous_request_completed)
-                            if remaining > 0:
-                                retry_throttle_wait_ms = round(remaining * 1000, 2)
-                                time.sleep(remaining)
-                        physical_started = utc_now()
-                        physical_begin = time.perf_counter()
-                        pending = None
-                        caught_exception = None
-                        diagnostics = None
-                        if provider.config.get("log_level") == "debug":
-                            diagnostics = CallDiagnostics(output_dir / "private_artifacts" / "live-logs" / provider.name / case.id / f"run-{run_number:03d}-physical-{physical_attempt:03d}.jsonl", attempt_id)
-                            diagnostics.emit("caller", "call_started", provider=provider.name, case_id=case.id, url=case.url, timeout_seconds=timeout)
-                        provider._call_diagnostics = diagnostics
-                        try:
-                            result, pending = fetch_with_deadline(provider, case, timeout)
-                        except Exception as error:  # each physical failure remains inspectable
-                            caught_exception = error
-                            error_type, error_message = classify_exception(error)
-                            public_metadata = getattr(error, "public_metadata", {})
-                            public_metadata = public_metadata if isinstance(public_metadata, dict) else {}
-                            allowed_diagnostic = {
-                                key: public_metadata[key]
-                                for key in ("_answer_elapsed_ms", "exit_code", "stdout",
-                                            "stdout_bytes", "stdout_truncated",
-                                            "stderr", "stderr_bytes", "stderr_truncated")
-                                if key in public_metadata
-                            }
-                            result = ProviderResult(
-                                ok=False,
-                                # Adapter exceptions are diagnostics, never a
-                                # supplier answer for the public scorer.
-                                content="",
-                                error_type=error_type,
-                                error_message=_public_text(error_message),
-                                metadata=allowed_diagnostic,
+                    pending = None
+                    record = None
+                    try:
+                        started = utc_now()
+                        physical_attempts = []
+                        stopped_provider = False
+                        for physical_attempt in range(1, max_failure_retries + 2):
+                            retry_throttle_wait_ms = 0.0
+                            if physical_attempt > 1 and provider.min_interval_seconds:
+                                remaining = provider.min_interval_seconds - (time.monotonic() - previous_request_completed)
+                                if remaining > 0:
+                                    retry_throttle_wait_ms = round(remaining * 1000, 2)
+                                    time.sleep(remaining)
+                            physical_started = utc_now()
+                            physical_begin = time.perf_counter()
+                            pending = None
+                            caught_exception = None
+                            diagnostics = None
+                            if provider.config.get("log_level") == "debug":
+                                diagnostics = CallDiagnostics(output_dir / "private_artifacts" / "live-logs" / provider.name / case.id / f"run-{run_number:03d}-physical-{physical_attempt:03d}.jsonl", attempt_id)
+                                diagnostics.emit("caller", "call_started", provider=provider.name, case_id=case.id, url=case.url, timeout_seconds=timeout)
+                            provider._call_diagnostics = diagnostics
+                            try:
+                                result, pending = fetch_with_deadline(provider, case, timeout)
+                            except Exception as error:  # each physical failure remains inspectable
+                                caught_exception = error
+                                error_type, error_message = classify_exception(error)
+                                public_metadata = getattr(error, "public_metadata", {})
+                                public_metadata = public_metadata if isinstance(public_metadata, dict) else {}
+                                allowed_diagnostic = {
+                                    key: public_metadata[key]
+                                    for key in ("_answer_elapsed_ms", "exit_code", "stdout",
+                                                "stdout_bytes", "stdout_truncated",
+                                                "stderr", "stderr_bytes", "stderr_truncated")
+                                    if key in public_metadata
+                                }
+                                result = ProviderResult(
+                                    ok=False,
+                                    # Adapter exceptions are diagnostics, never a
+                                    # supplier answer for the public scorer.
+                                    content="",
+                                    error_type=error_type,
+                                    error_message=_public_text(error_message),
+                                    metadata=allowed_diagnostic,
+                                )
+                            wall_elapsed_ms = round((time.perf_counter() - physical_begin) * 1000, 2)
+                            if diagnostics is not None:
+                                diagnostics.finish(result)
+                            # Cancellable adapters may need a bounded post-deadline
+                            # unwind. That cleanup determines quarantine safety but
+                            # is not part of the answer latency.
+                            physical_elapsed_ms = result.metadata.pop(
+                                '_answer_elapsed_ms', wall_elapsed_ms
                             )
-                        wall_elapsed_ms = round((time.perf_counter() - physical_begin) * 1000, 2)
-                        if diagnostics is not None:
-                            diagnostics.finish(result)
-                        # Cancellable adapters may need a bounded post-deadline
-                        # unwind. That cleanup determines quarantine safety but
-                        # is not part of the answer latency.
-                        physical_elapsed_ms = result.metadata.pop(
-                            '_answer_elapsed_ms', wall_elapsed_ms
-                        )
-                        previous_request_completed = time.monotonic()
-                        if case.task_kind == 'file':
-                            result.metadata.setdefault('file_evaluation', {'files': [], 'pass': False,
-                                'scope': 'returned_bytes_signature_length_sha256'})
-                        suffix = (f'run-{run_number:03d}.txt' if max_failure_retries == 0 else
-                                  f'run-{run_number:03d}-physical-{physical_attempt:03d}.txt')
-                        artifact_rel = Path('artifacts') / provider.name / case.id / suffix
-                        artifact = persist_result_artifacts(output_dir, artifact_rel, result)
-                        artifact_bytes = result.content.encode('utf-8', errors='replace')
-                        measured = score_attempt(
-                            case, artifact_bytes, ok=result.ok, metadata=result.metadata,
-                            title=result.title, final_url=result.final_url,
-                            list_reference=load_list_reference(case, dataset_path.parent),
-                            status_code=result.status_code,
-                            prepared_answer=result.prepared_answer,
-                        )
-                        measured['deadline_overrun'] = physical_elapsed_ms > timeout * 1000
-                        measured['deadline_budget_ms'] = timeout * 1000
-                        if binding is not None:
-                            measured['reference_sha256'] = binding['reference_sha256']
-                        physical_passed = task_passed(result.ok, measured, case.task_kind)
-                        physical_completed = utc_now()
-                        call_log = persist_public_call_log(
-                            output_dir, provider=provider, case=case, attempt_id=attempt_id,
-                            run_number=run_number, physical_attempt=physical_attempt,
-                            started_at=physical_started, completed_at=physical_completed,
-                            elapsed_ms=physical_elapsed_ms,
-                            retry_throttle_wait_ms=retry_throttle_wait_ms, timeout=timeout,
-                            artifact_rel=artifact_rel,
-                            content_sha256=measured['content_sha256'], result=result,
-                            exception=caught_exception,
-                        )
-                        artifact_paths = [artifact_rel.as_posix()]
-                        for key in ('rendered_html_path', 'raw_stdout_path'):
-                            if result.metadata.get(key):
-                                artifact_paths.append(result.metadata[key])
-                        artifact_paths.extend(
-                            item['artifact_path']
-                            for item in result.metadata.get('file_evaluation', {}).get('files', [])
-                            if item.get('artifact_path')
-                        )
-                        artifact_hashes = {
-                            relative: hashlib.sha256(contained_path(
-                                output_dir, relative, reject_symlinks=True).read_bytes()).hexdigest()
-                            for relative in artifact_paths
-                        }
-                        if artifact_hashes[artifact_rel.as_posix()] != measured['content_sha256']:
+                            previous_request_completed = time.monotonic()
+                            if case.task_kind == 'file':
+                                result.metadata.setdefault('file_evaluation', {'files': [], 'pass': False,
+                                    'scope': 'returned_bytes_signature_length_sha256'})
+                            suffix = (f'run-{run_number:03d}.txt' if max_failure_retries == 0 else
+                                      f'run-{run_number:03d}-physical-{physical_attempt:03d}.txt')
+                            artifact_rel = Path('artifacts') / provider.name / case.id / suffix
+                            artifact = persist_result_artifacts(output_dir, artifact_rel, result)
+                            artifact_bytes = result.content.encode('utf-8', errors='replace')
+                            measured = score_attempt(
+                                case, artifact_bytes, ok=result.ok, metadata=result.metadata,
+                                title=result.title, final_url=result.final_url,
+                                list_reference=load_list_reference(case, dataset_path.parent),
+                                status_code=result.status_code,
+                                prepared_answer=result.prepared_answer,
+                            )
+                            measured['deadline_overrun'] = physical_elapsed_ms > timeout * 1000
+                            measured['deadline_budget_ms'] = timeout * 1000
+                            if binding is not None:
+                                measured['reference_sha256'] = binding['reference_sha256']
+                            physical_passed = task_passed(result.ok, measured, case.task_kind)
+                            physical_completed = utc_now()
+                            call_log = persist_public_call_log(
+                                output_dir, provider=provider, case=case, attempt_id=attempt_id,
+                                run_number=run_number, physical_attempt=physical_attempt,
+                                started_at=physical_started, completed_at=physical_completed,
+                                elapsed_ms=physical_elapsed_ms,
+                                retry_throttle_wait_ms=retry_throttle_wait_ms, timeout=timeout,
+                                artifact_rel=artifact_rel,
+                                content_sha256=measured['content_sha256'], result=result,
+                                exception=caught_exception,
+                            )
+                            artifact_paths = [artifact_rel.as_posix()]
+                            for key in ('rendered_html_path', 'raw_stdout_path'):
+                                if result.metadata.get(key):
+                                    artifact_paths.append(result.metadata[key])
+                            artifact_paths.extend(
+                                item['artifact_path']
+                                for item in result.metadata.get('file_evaluation', {}).get('files', [])
+                                if item.get('artifact_path')
+                            )
+                            artifact_hashes = {
+                                relative: hashlib.sha256(contained_path(
+                                    output_dir, relative, reject_symlinks=True).read_bytes()).hexdigest()
+                                for relative in artifact_paths
+                            }
+                            if artifact_hashes[artifact_rel.as_posix()] != measured['content_sha256']:
+                                raise ValueError('Persisted output differs from scored bytes')
+                            private_artifacts = []
+                            private_binding = raw_response_binding(result.metadata)
+                            if private_binding:
+                                private_artifacts.append(private_binding)
+                            diagnostic_binding = diagnostic_log_binding(result.metadata)
+                            if diagnostic_binding:
+                                private_artifacts.append(diagnostic_binding)
+                            physical_attempts.append({
+                                'physical_attempt': physical_attempt,
+                                'started_at': physical_started,
+                                'completed_at': physical_completed,
+                                'elapsed_ms': physical_elapsed_ms,
+                                'retry_throttle_wait_ms': retry_throttle_wait_ms,
+                                'ok': result.ok,
+                                'status_code': result.status_code,
+                                'error_type': result.error_type,
+                                'error_message': result.error_message,
+                                'task_pass': physical_passed,
+                                'content_sha256': measured['content_sha256'],
+                                'artifact_path': artifact_rel.as_posix(),
+                                'artifact_paths': artifact_paths,
+                                'artifact_sha256': artifact_hashes,
+                                'call_log': call_log,
+                                **({'private_artifacts': private_artifacts} if private_artifacts else {}),
+                            })
+                            stopped_provider = (result.error_type == 'timeout' and pending is not None
+                                                and pending.is_alive())
+                            if physical_passed or stopped_provider or physical_attempt > max_failure_retries:
+                                break
+                        elapsed_ms = round(sum(item['elapsed_ms'] + item['retry_throttle_wait_ms']
+                                               for item in physical_attempts), 2)
+                        result.metadata['call_log'] = physical_attempts[-1]['call_log']
+                        if len(physical_attempts) > 1:
+                            result.metadata['retry'] = {
+                                'physical_attempts': len(physical_attempts),
+                                'retries_used': len(physical_attempts) - 1,
+                                'trigger': 'previous physical attempt failed the task predicate',
+                                'selection': 'final physical attempt is authoritative; no best-of selection',
+                                'attempts': physical_attempts,
+                            }
+                        finished = utc_now()
+                        if hashlib.sha256(artifact.read_bytes()).hexdigest() != measured['content_sha256']:
                             raise ValueError('Persisted output differs from scored bytes')
-                        private_artifacts = []
-                        private_binding = raw_response_binding(result.metadata)
-                        if private_binding:
-                            private_artifacts.append(private_binding)
-                        diagnostic_binding = diagnostic_log_binding(result.metadata)
-                        if diagnostic_binding:
-                            private_artifacts.append(diagnostic_binding)
-                        physical_attempts.append({
-                            'physical_attempt': physical_attempt,
-                            'started_at': physical_started,
-                            'completed_at': physical_completed,
-                            'elapsed_ms': physical_elapsed_ms,
-                            'retry_throttle_wait_ms': retry_throttle_wait_ms,
-                            'ok': result.ok,
-                            'status_code': result.status_code,
-                            'error_type': result.error_type,
-                            'error_message': result.error_message,
-                            'task_pass': physical_passed,
-                            'content_sha256': measured['content_sha256'],
-                            'artifact_path': artifact_rel.as_posix(),
-                            'artifact_paths': artifact_paths,
-                            'artifact_sha256': artifact_hashes,
-                            'call_log': call_log,
-                            **({'private_artifacts': private_artifacts} if private_artifacts else {}),
-                        })
-                        stopped_provider = (result.error_type == 'timeout' and pending is not None
-                                            and pending.is_alive())
-                        if physical_passed or stopped_provider or physical_attempt > max_failure_retries:
-                            break
-                    elapsed_ms = round(sum(item['elapsed_ms'] + item['retry_throttle_wait_ms']
-                                           for item in physical_attempts), 2)
-                    result.metadata['call_log'] = physical_attempts[-1]['call_log']
-                    if len(physical_attempts) > 1:
-                        result.metadata['retry'] = {
-                            'physical_attempts': len(physical_attempts),
-                            'retries_used': len(physical_attempts) - 1,
-                            'trigger': 'previous physical attempt failed the task predicate',
-                            'selection': 'final physical attempt is authoritative; no best-of selection',
-                            'attempts': physical_attempts,
-                        }
-                    finished = utc_now()
-                    if hashlib.sha256(artifact.read_bytes()).hexdigest() != measured['content_sha256']:
-                        raise ValueError('Persisted output differs from scored bytes')
-                    record = AttemptRecord(
-                        attempt_id=attempt_id,
-                        provider=provider.name,
-                        provider_type=provider.type,
-                        case_id=case.id,
-                        case_name=case.name,
-                        category=case.category,
-                        url=case.url,
-                        run=run_number,
-                        started_at=started,
-                        elapsed_ms=elapsed_ms,
-                        ok=result.ok,
-                        status_code=result.status_code,
-                        final_url=result.final_url,
-                        title=result.title,
-                        error_type=result.error_type,
-                        error_message=result.error_message,
-                        artifact_path=artifact_rel.as_posix(),
-                        metrics=measured,
-                        provider_metadata={
-                            **result.metadata,
-                            "configured_min_interval_seconds": provider.min_interval_seconds,
-                            "client_throttle_wait_ms": throttle_wait_ms,
-                        },
-                    ).to_dict()
-                    apply_request_status(record)
-                    record["completed_at"] = finished
-                    from .models import execution_id
-                    record['run_id'] = execution_id(record)
-                    passed = task_passed(record['ok'],record['metrics'],case.task_kind)
-                    state = "PASS" if passed else "FAIL"
-                    with result_lock:
-                        records.append(record)
-                        results_file.write(json.dumps(record, ensure_ascii=True) + "\n")
-                        results_file.flush()
-                        print(
-                            f"{state:4} {provider.name:14} {case.id:24} "
-                            f"{elapsed_ms:9.2f} ms  {result.error_type or ''}",
-                            flush=True,
-                        )
-                    if delay:
-                        time.sleep(delay)
-                    if case_admission is not None:
-                        case_admission.release(admission_token, pending=pending, record=record)
+                        record = AttemptRecord(
+                            attempt_id=attempt_id,
+                            provider=provider.name,
+                            provider_type=provider.type,
+                            case_id=case.id,
+                            case_name=case.name,
+                            category=case.category,
+                            url=case.url,
+                            run=run_number,
+                            started_at=started,
+                            elapsed_ms=elapsed_ms,
+                            ok=result.ok,
+                            status_code=result.status_code,
+                            final_url=result.final_url,
+                            title=result.title,
+                            error_type=result.error_type,
+                            error_message=result.error_message,
+                            artifact_path=artifact_rel.as_posix(),
+                            metrics=measured,
+                            provider_metadata={
+                                **result.metadata,
+                                "configured_min_interval_seconds": provider.min_interval_seconds,
+                                "client_throttle_wait_ms": throttle_wait_ms,
+                            },
+                        ).to_dict()
+                        apply_request_status(record)
+                        record["completed_at"] = finished
+                        from .models import execution_id
+                        record['run_id'] = execution_id(record)
+                        passed = task_passed(record['ok'],record['metrics'],case.task_kind)
+                        state = "PASS" if passed else "FAIL"
+                        with result_lock:
+                            records.append(record)
+                            results_file.write(json.dumps(record, ensure_ascii=True) + "\n")
+                            results_file.flush()
+                            print(
+                                f"{state:4} {provider.name:14} {case.id:24} "
+                                f"{elapsed_ms:9.2f} ms  {result.error_type or ''}",
+                                flush=True,
+                            )
+                        if delay:
+                            time.sleep(delay)
+                    finally:
+                        if case_admission is not None:
+                            case_admission.release(admission_token, pending=pending, record=record)
                     if stopped_provider:
                         remaining_attempts = ((runs - run_number) * len(cases)
                                               + len(cases) - case_index)

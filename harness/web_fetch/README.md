@@ -836,7 +836,9 @@ their frozen evidence and are restored from their pinned release.
 ### Current local 430-task report
 
 `research/native-430-local-report.json` binds the reviewed ten-method snapshot
-by dataset, result and scorer hashes. The 4,300 measured responses, execution
+by dataset, result and scorer hashes. Its `evidence_path` is relative to
+`BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval`), so an installed snapshot
+can be located without inferring it from earlier work logs. The 4,300 measured responses, execution
 segments, review payloads, archived interpretation article and its translations
 remain in the external evidence directory; they are not distributed in Git.
 The shared report owner reads those saved inputs and does not call providers
@@ -849,7 +851,11 @@ uv run --frozen python scripts/check_report.py /absolute/path/to/local-report \
 ```
 
 For a fresh build, use `scripts/build_report.py --local-audit` with the matching
-external evidence, an explicit output directory, and `--language bilingual`.
+external evidence, an explicit output directory, and `--language zh --include-english`.
+When rebuilding the bound historical report with a newer scorer, also pass
+`--presentation-binding research/native-430-local-report.json`; this verifies
+the existing report snapshot and preserves its saved scores and evidence bytes.
+The matching binding is required for `check_report.py` as shown above.
 Any scoring change must first follow the declared correction protocol; a new
 render alone does not update scores. The public release profile and its
 publication target are separate and are not changed by this local snapshot.

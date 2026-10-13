@@ -24,6 +24,8 @@ if __name__ == '__main__':
                         help='generate both editions; --language selects the homepage')
     parser.add_argument('--refresh-presentation', type=Path,
                         help='refresh an existing local report using a hash-bound current-local-results.json; preserve measured evidence')
+    parser.add_argument('--presentation-binding', type=Path,
+                        help='rebuild a hash-bound historical local report without rescoring')
     parser.add_argument('--local-audit',action='store_true',
                         help='build an explicitly local, non-publishable audit report from bound evidence')
     parser.add_argument('--hide-local-status-banners', action='store_true',
@@ -35,6 +37,8 @@ if __name__ == '__main__':
     parser.add_argument('--wcxb',action='store_true',help='Build the independently bound WCXB report')
     parser.add_argument('--webmainbench-full',action='store_true',help='Build the separately certified complete 545-case report')
     args=parser.parse_args()
+    if args.presentation_binding and not args.local_audit:
+        parser.error('--presentation-binding requires --local-audit')
     if args.hide_local_status_banners and not args.local_audit:
         parser.error('--hide-local-status-banners requires --local-audit')
     from harness.reporting.templates import resolve_template
@@ -73,7 +77,8 @@ if __name__ == '__main__':
         print(build_report(evidence,args.output,
                            include_english=args.include_english, language=requested_language(args.output),
                            local_audit=True,
-                           show_local_status_banners=not args.hide_local_status_banners))
+                           show_local_status_banners=not args.hide_local_status_banners,
+                           presentation_binding=args.presentation_binding))
         raise SystemExit(0)
     if sum(bool(value) for value in (args.profile, args.wcxb, args.webmainbench_full)) > 1:
         parser.error('--profile, --wcxb and --webmainbench-full are mutually exclusive')

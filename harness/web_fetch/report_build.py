@@ -201,10 +201,59 @@ def _install_report_tree(staging: Path, output: Path):
         staging.rename(output)
 
 
+def _build_frozen_presentation(source, output, presentation_binding, *,
+                               include_english, language, authored_interpretation,
+                               show_local_status_banners):
+    """Render a bound historical report using saved scores and public evidence."""
+    from harness.report_languages import select_report_language
+    from .safety import evidence_tree_identity
+    before = evidence_tree_identity(source)
+    _, dataset, records, manifest = validate_local_presentation(source, presentation_binding)
+    review_path = source / "result-review.json"
+    binding = json.loads(presentation_binding.read_text())
+    if review_path.is_file() and not any(
+        item.get("path") == "result-review.json"
+        and item.get("sha256") == hashlib.sha256(review_path.read_bytes()).hexdigest()
+        for item in binding.get("evidence_bindings", [])
+    ):
+        raise ValueError("Frozen presentation review lacks a hash binding")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".frozen-presentation-", dir=output.parent) as work:
+        staging = Path(work) / "report"
+        shutil.copytree(source, staging)
+        shutil.rmtree(staging / "en", ignore_errors=True)
+        shutil.copy2(presentation_binding, staging / "presentation-binding.json")
+        batches = json.loads((source / "execution.json").read_text())["batches"]
+        for record in records:
+            metadata = record.setdefault("provider_metadata", {})
+            metadata["public_log_note"] = dataset.get("comparison", {}).get(
+                "call_chain_audit", {}).get("call_log_notes", {}).get(record["attempt_id"], "")
+            for kind, suffix in (("debug_log", "debug"), ("response", "response")):
+                relative = "logs/" + record["attempt_id"] + "." + suffix + ".txt"
+                if relative in before:
+                    metadata["public_" + kind + "_path"] = relative
+                    metadata["public_" + kind + "_sha256"] = before[relative]
+        generate(staging, dataset, records, batches, include_english=include_english,
+                 authored_interpretation=authored_interpretation,
+                 show_local_status_banners=show_local_status_banners)
+        manifest["languages"] = ["zh", "en"] if include_english else ["zh"]
+        manifest["presentation"] = {"show_local_status_banners": show_local_status_banners,
+                                    "frozen_scores": True}
+        (staging / "report-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+        if language is not None:
+            select_report_language(staging, language)
+        validate_local_presentation(staging, presentation_binding)
+        if evidence_tree_identity(source) != before:
+            raise ValueError("Presentation source changed during rendering")
+        _install_report_tree(staging, output)
+    return output / "index.html"
+
+
 def build_report(source: Path, output: Path, *, include_english: bool = False,
                  local_audit: bool = False, authored_interpretation: bool = False,
                  diagnostic_preview: bool = False, language: str | None = None,
-                 show_local_status_banners: bool = True) -> Path:
+                 show_local_status_banners: bool = True,
+                 presentation_binding: Path | None = None) -> Path:
     from harness.report_languages import includes_english, select_report_language
     include_english = includes_english(language, include_english)
     source, output = source.resolve(), output.resolve()
@@ -213,6 +262,13 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     marker = '.generated-report'
     if output.exists() and not (output/marker).is_file():
         raise ValueError(f'Refusing to replace an unmarked directory: {output}')
+    if presentation_binding is not None:
+        if not local_audit:
+            raise ValueError("A frozen presentation binding requires local audit mode")
+        return _build_frozen_presentation(
+            source, output, presentation_binding, include_english=include_english,
+            language=language, authored_interpretation=authored_interpretation,
+            show_local_status_banners=show_local_status_banners)
     dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
     diagnostic_preview = (diagnostic_preview and
         dataset_probe.get('comparison', {}).get('kind') == 'web_fetch_diagnostic')

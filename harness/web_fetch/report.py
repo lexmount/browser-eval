@@ -702,7 +702,6 @@ def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header='�
  body=''.join(f'<tr{attrs}><td>{i+1}</td>{values}</tr>' for i,(attrs,values) in enumerate(rows))
  sort_attrs=(f' data-col="{default_sort[0]}" data-dir="{default_sort[1]}"' if default_sort else '')
  return metric_legend(headers if metrics is None else metrics)+f'<div class="table-wrap"><table class="{cls}"'+(f' id="{id}"' if id else '')+sort_attrs+f'><thead><tr>{head}</tr></thead><tbody'+(' id="rows"' if id=='filtered-table' else '')+f'>{body}</tbody></table></div>'
-EXTRA+='\ntable.ranking th:nth-child(4),table.ranking th:nth-child(4) button,table.ranking td:nth-child(4){color:#117541;font-weight:800}[data-theme="dark"] table.ranking th:nth-child(4),[data-theme="dark"] table.ranking th:nth-child(4) button,[data-theme="dark"] table.ranking td:nth-child(4){color:#74e1a8}\n'
 EXTRA+='\n.change-log section{padding:24px 0}.change-log h2{font-size:24px}.change-log p{margin:10px 0;line-height:1.75}.change-log summary{font-weight:650;color:var(--accent)}.change-log .table-wrap{overflow-x:auto}\n'
 EXTRA+='''
 .anchor-grid[data-scroll-after="5"],.answer-list[data-scroll-after="5"],.record-scroll{max-height:620px;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:6px}
@@ -1238,19 +1237,20 @@ def body_region_rows(case, metrics, output):
  from .body_coverage import evaluate_body_requirements
  contract=case.get('body_requirements') or {}
  if not contract:return [],''
- recalculated={x['id']:x for x in evaluate_body_requirements(output,contract)['body_region_results']}
  saved_regions=metrics.get('body_region_results',[])
+ recalculated={}
  if saved_regions and all('matched_output_passages' in item for item in saved_regions):
   evidence={item['id']:[passage.get('text','') for passage in item.get('matched_output_passages',[]) if passage.get('text')]
             for item in saved_regions}
   evidence_counts={item['id']:item.get('matched_units',item.get('matched_tokens',0)) for item in saved_regions}
  else:
+  recalculated={x['id']:x for x in evaluate_body_requirements(output,contract)['body_region_results']}
   evidence,evidence_counts=_body_region_evidence(output,contract)
  regions={x['id']:x for x in contract['regions']}
  rows=[];cards=[];total=len(regions)
  for index,item in enumerate(metrics.get('body_region_results',[]),1):
   actual={**recalculated.get(item['id'],{}),**item}
-  if evidence_counts.get(item['id'])!=recalculated.get(item['id'],{}).get('matched_units'):
+  if recalculated and evidence_counts.get(item['id'])!=recalculated.get(item['id'],{}).get('matched_units'):
    raise ValueError('Body evidence allocation differs from scorer: '+item['id'])
   expected=regions.get(item['id'],{}).get('text','')
   expected_count=actual.get('expected_units',actual.get('expected_tokens',len(expected.split())))
@@ -2363,7 +2363,10 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  else:
   reproduce+='<p>方法配置、凭据变量和本轮实际版本分别见“方法介绍”“账号”和上方方法版本表；不存在的 headless 专用配置不属于本 cohort。</p>'
  if local_matrix:
-  reproduce='<p>以下命令从本轮保存的证据构建本地报告，不重新调用产品：</p><pre>uv run --frozen python scripts/build_report.py --local-audit --language '+('bilingual' if _ENGLISH_GENERATED else 'zh')+' --hide-local-status-banners --evidence /absolute/path/to/report-evidence --output /absolute/path/to/report\nuv run --frozen python scripts/check_report.py /absolute/path/to/report</pre><p>使用与本轮结果对应的证据目录。调用时的版本、配置和评分器哈希见 '+link('../local-run-contract.json','调用前冻结协议')+' 与 '+link('../execution.json','执行批次')+'。上面的构建命令读取保存的评分；修改评分规则后，应先按声明范围复评分，不能仅重建页面就称成绩已经更新。</p>'
+  frozen_binding=(out/'presentation-binding.json').is_file()
+  build_binding=' --presentation-binding /absolute/path/to/report-evidence/presentation-binding.json' if frozen_binding else ''
+  check_binding=' --presentation-binding /absolute/path/to/report/presentation-binding.json' if frozen_binding else ''
+  reproduce='<p>以下命令从本轮保存的证据构建本地报告，不重新调用产品：</p><pre>uv run --frozen python scripts/build_report.py --local-audit --language '+('zh --include-english' if _ENGLISH_GENERATED else 'zh')+' --hide-local-status-banners --evidence /absolute/path/to/report-evidence --output /absolute/path/to/report'+build_binding+'\nuv run --frozen python scripts/check_report.py /absolute/path/to/report'+check_binding+'</pre><p>使用与本轮结果对应的证据目录。调用时的版本、配置和评分器哈希见 '+link('../local-run-contract.json','调用前冻结协议')+' 与 '+link('../execution.json','执行批次')+'。上面的构建命令读取保存的评分；修改评分规则后，应先按声明范围复评分，不能仅重建页面就称成绩已经更新。</p>'
  support+=section('核心复现指令',reproduce)
  write(out,'reproduce/index.html','环境与复现',support)
  if not authored_interpretation and not local_matrix:
