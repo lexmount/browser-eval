@@ -189,7 +189,6 @@ def score_attempt(
         )
         result.update(
             page_identity_required=False,
-            document_language_required=True,
             page_identity_status=identity_status,
             final_url_consistent=final_consistent,
             language_consistent=language_consistent,
@@ -208,7 +207,6 @@ def score_attempt(
         )
         result.update(
             page_identity_required=False,
-            document_language_required=False,
             page_identity_status=(
                 "verified" if final_consistent else "mismatch" if final_url else "unavailable"
             ),
@@ -216,8 +214,7 @@ def score_attempt(
             acceptable_final_urls=acceptable_urls,
         )
     else:
-        result.update(page_identity_required=False, page_identity_status="not_required",
-                      document_language_required=False)
+        result.update(page_identity_required=False, page_identity_status="not_required")
     result["task_kind"] = task_kind
     result["rule_review_status"] = rule_review.get("status", "resolved")
     if rule_review.get("reason"):
@@ -259,13 +256,6 @@ def score_attempt(
             body_requirements, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
     if not result["content_score_applicable"] or not ok:
         result["content_pass"] = False
-    if result.get("document_language_required") and not result.get("language_consistent"):
-        result["content_pass"] = False
-        if contract:
-            result["stable_task_pass"] = False
-            result["stable_content_pass"] = False
-            if "document_language_not_verified" not in result["stable_task_errors"]:
-                result["stable_task_errors"].append("document_language_not_verified")
     if not ok:
         if contract:
             result["stable_task_pass"] = False

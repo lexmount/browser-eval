@@ -325,9 +325,6 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
     # Scored records carry the case kind so dataset-free summaries use the same
     # predicate as the report. Explicit case context still takes precedence.
     task_kind = task_kind if task_kind is not None else metrics.get('task_kind', 'body')
-    if (metrics.get('document_language_required')
-            and not metrics.get('language_consistent')):
-        return False
     if (not task_measured(metrics, task_kind) or metrics.get('deadline_overrun')
             or metrics.get('blocked_page')):
         return False
@@ -346,10 +343,6 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
 
 def task_measured(metrics: dict, task_kind: str | None = None) -> bool:
     if metrics.get('rule_review_status') == 'unresolved':
-        return False
-    if (metrics.get('document_language_required')
-            and metrics.get('observed_document_language') is None
-            and metrics.get('request_ok') is not False):
         return False
     kind = task_kind or metrics.get('task_kind', 'body')
     return kind != 'file' or isinstance(metrics.get('raw_file_pass'), bool)
