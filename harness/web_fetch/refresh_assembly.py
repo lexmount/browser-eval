@@ -303,6 +303,11 @@ def _implementation_upgrades(plan: dict, canonical: dict) -> list[dict]:
             or not set(case_ids) <= canonical_cases
         ):
             raise ValueError("Implementation upgrade has invalid affected case IDs")
+        if set(case_ids) != canonical_cases:
+            raise ValueError(
+                "Implementation upgrades require a complete canonical rerun; "
+                "partial version upgrades cannot produce a fair aggregate"
+            )
         _require_reason(upgrade.get("reason"), label=f"upgrade reason for {logical}")
         receipt = upgrade.get("impact_receipt")
         if not isinstance(receipt, dict) or set(receipt) != {

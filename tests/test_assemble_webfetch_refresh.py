@@ -1017,7 +1017,7 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
 
 class AssembleImplementationUpgradeTests(unittest.TestCase):
     CASES = ["case-a", "case-b", "case-c", "case-d"]
-    AFFECTED = ["case-b", "case-d"]
+    AFFECTED = list(CASES)
     BASELINE_PROVIDERS = ["moli", "other"]
     FINAL_PROVIDERS = ["moli-fixed", "other"]
 
@@ -1133,7 +1133,7 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
                 "matched_case_reason_groups": [],
                 "pair_replacements": [],
                 "offline_rescore_cases": [],
-                "planned_new_calls": 2,
+                "planned_new_calls": 4,
                 "final_logical_attempts": 8,
             },
             "implementation_upgrades": [{
@@ -1143,7 +1143,7 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
                 "affected_case_ids": list(self.AFFECTED),
                 "reason": {
                     "category": "implementation_upgrade",
-                    "reason": "hash-bound impact audit limits the changed implementation scope",
+                    "reason": "the new implementation is rerun over the complete canonical scope",
                 },
                 "impact_receipt": {
                     "path": "impact.json",
@@ -1190,7 +1190,7 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
                 "auxiliary_sha256": {},
                 "planned_new_calls": 0,
             },
-            "total_planned_new_calls": 2,
+            "total_planned_new_calls": 4,
         }
         self.plan_path = self.root / "evaluation" / "refresh-plan.json"
         self.write_json(self.plan_path, self.plan)
@@ -1314,7 +1314,7 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
         self.assertEqual(len(fixed), 4)
         self.assertEqual(
             {row["physical_execution"]["provider"] for row in fixed},
-            {"moli", "moli-fixed"},
+            {"moli-fixed"},
         )
         for row in fixed:
             physical = row["physical_execution"]
@@ -1325,10 +1325,10 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
             provider["name"] for batch in execution["batches"]
             for provider in batch["providers"]
         }
-        self.assertEqual(physical_providers, {"moli", "moli-fixed", "other"})
+        self.assertEqual(physical_providers, {"moli-fixed", "other"})
         receipt = json.loads((output / "refresh-assembly.json").read_text())
         upgrade = receipt["implementation_upgrades"][0]
-        self.assertEqual((upgrade["inherited_attempts"], upgrade["rerun_attempts"]), (2, 2))
+        self.assertEqual((upgrade["inherited_attempts"], upgrade["rerun_attempts"]), (0, 4))
         self.assertEqual(upgrade["impact_receipt"]["sha256"], sha(self.impact_path.read_bytes()))
         stored_impact = output / upgrade["impact_receipt"]["stored_path"]
         self.assertEqual(stored_impact.read_bytes(), self.impact_path.read_bytes())
@@ -1350,12 +1350,18 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
         self.assertEqual(failed["attempt_id"], rows[0]["attempt_id"])
 
     def test_upgrade_rejects_scope_and_receipt_drift(self) -> None:
-        self.plan["implementation_upgrades"][0]["affected_case_ids"].append("case-a")
+        self.plan["implementation_upgrades"][0]["affected_case_ids"] = self.AFFECTED[:-1]
+        self.plan["implementation_upgrades"][0]["impact_receipt"]["case_ids_sha256"] = sha(
+            json.dumps(sorted(self.AFFECTED[:-1]), separators=(",", ":")).encode()
+        )
         self.rewrite_plan()
-        with self.assertRaisesRegex(ValueError, "impact receipt binding is inconsistent"):
+        with self.assertRaisesRegex(ValueError, "complete canonical rerun"):
             self.assemble("scope-drift")
 
         self.plan["implementation_upgrades"][0]["affected_case_ids"] = list(self.AFFECTED)
+        self.plan["implementation_upgrades"][0]["impact_receipt"]["case_ids_sha256"] = sha(
+            json.dumps(sorted(self.AFFECTED), separators=(",", ":")).encode()
+        )
         self.plan["implementation_upgrades"][0]["impact_receipt"]["sha256"] = "0" * 64
         self.rewrite_plan()
         with self.assertRaisesRegex(ValueError, "impact receipt bytes differ"):
@@ -1422,7 +1428,7 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
         self.assertEqual(
             {layer["execution_contract"]["runtime_source_sha256"]
              for layer in receipt["correction_layers"]},
-            {sha(b"runtime-0"), sha(b"runtime-1")},
+            {sha(f"runtime-{index}".encode()) for index in range(len(self.AFFECTED))},
         )
 
         valid_plan = json.loads(self.plan_path.read_text())
@@ -1500,7 +1506,7 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
                 self.rebind_main_source()
 
         extra = original + AssembleWebfetchRefreshTests.rows_for_pairs(
-            {("moli-fixed", "case-a")}
+            {("other", "case-a")}
         )
         (self.main / "results.jsonl").write_text(
             "".join(json.dumps(row) + "\n" for row in extra), encoding="utf-8"
@@ -1511,11 +1517,11 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
         self.write_json(self.main / "execution.json", execution)
         self.rebind_main_source()
         output = self.assemble("extra-source-row-output")
-        fixed_case_a = next(
+        other_case_a = next(
             row for row in map(json.loads, (output / "results.jsonl").read_text().splitlines())
-            if row["provider"] == "moli-fixed" and row["case_id"] == "case-a"
+            if row["provider"] == "other" and row["case_id"] == "case-a"
         )
-        self.assertEqual(fixed_case_a["physical_execution"]["provider"], "moli")
+        self.assertEqual(other_case_a["attempt_id"], "other__case-a__r001")
 
     def test_upgrade_rejects_batch_or_call_log_physical_identity_drift(self) -> None:
         original_execution = (self.main / "execution.json").read_bytes()
