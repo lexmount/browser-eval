@@ -31,6 +31,16 @@ class NativeBrowserVariantTests(unittest.TestCase):
         self.assertEqual(native_browser_engine("moli-stack-1432"), "moli")
         self.assertIn("1432", browser_method_label("moli-stack-1432"))
 
+    def test_fixed_candidate_is_distinct_from_pr919_and_binds_its_lineage(self):
+        from harness.web_fetch.methods import browser_method_label, browser_method_registry, native_browser_engine
+        self.assertEqual(native_browser_engine("moli-fixed"), "moli")
+        self.assertIn("1476/#1481", browser_method_label("moli-fixed"))
+        self.assertEqual(
+            browser_method_registry()["moli-fixed"]["source_url"],
+            "https://github.com/lexmount/moli/commit/60773df391ad782ab647e878dc6629032d0275a6",
+        )
+        self.assertNotEqual(browser_method_label("moli-fixed"), browser_method_label("moli-pr919"))
+
     def test_unknown_native_participant_cannot_bypass_route_validation(self):
         with self.assertRaises(ValueError):
             require_native_task_routes(self.cases, [self.row(

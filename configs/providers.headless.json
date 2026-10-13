@@ -51,6 +51,15 @@
       "expected_reported_version": "${MOLI_PR919_REPORTED_VERSION}",
       "expected_binary_sha256": "${MOLI_PR919_BINARY_SHA256}"
     },
+    "moli-fixed": {
+      "type": "moli_webfetch",
+      "engine": "moli",
+      "label": "Moli · main + PR #1476/#1481",
+      "source_url": "https://github.com/lexmount/moli/commit/60773df391ad782ab647e878dc6629032d0275a6",
+      "binary": "${MOLI_FIXED_BINARY}",
+      "expected_reported_version": "${MOLI_FIXED_REPORTED_VERSION}",
+      "expected_binary_sha256": "${MOLI_FIXED_BINARY_SHA256}"
+    },
     "moli-stack-1432": {
       "type": "moli_webfetch",
       "engine": "moli",
