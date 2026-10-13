@@ -441,6 +441,15 @@ def fact_in_text(text: str, fact: str) -> bool:
     return False
 
 
+def forbidden_in_text(text: str, phrase: str) -> bool:
+    """Match ASCII word boundaries without segmenting CJK phrases."""
+    if not phrase:
+        return False
+    left = r'(?<![a-z0-9_])' if phrase[0].isascii() and phrase[0].isalnum() else ''
+    right = r'(?![a-z0-9_])' if phrase[-1].isascii() and phrase[-1].isalnum() else ''
+    return bool(re.search(left + re.escape(phrase) + right, text))
+
+
 def text_corruption(value: str) -> tuple[int, float, bool]:
     """Detect substantial UTF-8 replacement-character damage in text output."""
     count = value.count('\ufffd')
@@ -534,12 +543,12 @@ def evaluate_content(
         ]
         block_hits = [hit for hit in block_hits if hit not in block_reference_exemptions]
     reference_exemptions = [item for item in (forbidden_any or [])
-                            if reference_folded and (text := normalize_for_match(item)) and text in reference_folded]
+                            if reference_folded and forbidden_in_text(reference_folded, normalize_for_match(item))]
     if acceptance_contract:
         # A historical snapshot cannot exempt an explicit stable-mode block rule.
         reference_exemptions = []
     forbidden = [item for item in (forbidden_any or [])
-                 if item not in reference_exemptions and (text := normalize_for_match(item)) and text in folded]
+                 if item not in reference_exemptions and forbidden_in_text(folded, normalize_for_match(item))]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in answer_text.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
