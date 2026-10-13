@@ -156,6 +156,8 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.add("equivalent_visible_label_alternatives")
         paired.add("independent_stable_anchor_order")
         paired.add("task_relevant_visible_text_scope")
+        paired.add("forbidden_phrase_substring_collision")
+        paired.add("scoped_markdown_caption_ownership")
         for root_cause in paired:
             self.assertEqual(root_modes.get(root_cause), {"false-positive", "false-negative"})
 
