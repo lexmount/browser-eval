@@ -184,9 +184,6 @@ def run_audit(paths):
 
 def convert_to_provider_batches(paths):
     config = json.loads(paths["config"].read_text())
-    for item in config["providers"].values():
-        item.pop("uniform_native_parameters")
-        item["private_network_allowlist_hosts"] = ["example.test"]
     paths["config"].write_text(json.dumps(config))
     config_sha = hashlib.sha256(paths["config"].read_bytes()).hexdigest()
 
@@ -246,7 +243,7 @@ def test_comparison_audit_proves_protocol_and_lists_every_case(tmp_path):
     assert "`web`" in paths["markdown"].read_text()
 
 
-def test_comparison_audit_accepts_serial_provider_batches_with_shared_allowlist(tmp_path):
+def test_comparison_audit_accepts_serial_provider_batches_with_native_defaults(tmp_path):
     paths = comparison_cohort(tmp_path)
     convert_to_provider_batches(paths)
     audit = run_audit(paths)
@@ -254,6 +251,20 @@ def test_comparison_audit_accepts_serial_provider_batches_with_shared_allowlist(
     assert all(row["call_order"] == ["moli", "moli-stack-1432"]
                for row in audit["cases"])
     assert "serial provider-batch order" in paths["markdown"].read_text()
+
+
+@pytest.mark.parametrize("value", [None, False])
+def test_comparison_audit_requires_uniform_native_parameters(tmp_path, value):
+    paths = comparison_cohort(tmp_path)
+    config = json.loads(paths["config"].read_text())
+    for item in config["providers"].values():
+        if value is None:
+            item.pop("uniform_native_parameters")
+        else:
+            item["uniform_native_parameters"] = value
+    paths["config"].write_text(json.dumps(config))
+    with pytest.raises(ValueError, match="provider configuration is not fixed native"):
+        run_audit(paths)
 
 
 def test_comparison_audit_keeps_diagnostic_evidence_explicit(tmp_path):

@@ -168,6 +168,7 @@ def audit_fixed_native_comparison(
             item.get("type") != "moli_webfetch"
             or item.get("wait_until") != "done"
             or item.get("dynamic_wait_until") != "domstable"
+            or item.get("uniform_native_parameters") is not True
             or item.get("block_private_networks") is not True
             or item.get("dns_mode", "system") != "system"
             or item.get("log_level") != "debug"
