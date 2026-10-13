@@ -102,6 +102,21 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertEqual(len(rows),1)
                 self.assertNotIn('ghijkl</pre>',cards)
 
+    def test_body_display_uses_same_mixed_html_surface_as_scorer(self):
+        from harness.web_fetch.scoring import score_attempt
+        contract={'version':3,'unit':'region_compact_hexagram_recall',
+                  'minimum_coverage':.8,'minimum_floor':.6,'minimum_region_passes':1,
+                  'regions':[{'id':'body','text':'abcdefghijkl'}]}
+        c=case('body',kind='body');c['body_requirements']=contract
+        output='# Heading\nabcdefghijkl<script>hidden words</script>'
+        r={'ok':True,'status_code':200}
+        metrics=score_attempt(c,output.encode(),ok=True)
+        scoring_text=_body_scoring_text(r,output)
+        self.assertNotIn('hidden words',scoring_text)
+        rows,cards=body_region_rows(c,metrics,scoring_text)
+        self.assertEqual(len(rows),1)
+        self.assertIn('abcdefghijkl',''.join(cards))
+
     def test_body_evidence_uses_the_canonical_global_allocation(self):
         shared='abcdefghijklmnopqrstuvwx'*3
         contract={'version':3,'unit':'region_compact_hexagram_recall',

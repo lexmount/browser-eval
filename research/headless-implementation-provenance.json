@@ -45,6 +45,24 @@
       "archive_sha256": "d61b057da58f94c0c9dc2442b5024e576c4b89bd9cce2d385e128d8c95e0e4fd"
     },
     {
+      "provider": "moli-pr919",
+      "version": "1.1.15",
+      "binary_sha256": "5696ccf88d20fdcc38f297af722c74035b9bad99db2a73e0e316ca707ef4766a",
+      "identity_timing": "recorded_during_run",
+      "verification": "The measured source build reports `moli 1.1.15`; every retained call records this exact executable SHA-256.",
+      "source": "https://github.com/lexmount/moli/commit/98be1f105728da8284b70d7aed42d8c84a2a93ed",
+      "source_commit": "98be1f105728da8284b70d7aed42d8c84a2a93ed"
+    },
+    {
+      "provider": "moli-fixed",
+      "version": "1.1.17",
+      "binary_sha256": "a276fc5d11bb3debd9f72246dc01f761a8206e8b28700713ba6c8f1dffaba11d",
+      "identity_timing": "recorded_during_run",
+      "verification": "The measured repair build reports `moli 1.1.17`; every retained call records this exact executable SHA-256.",
+      "source": "https://github.com/lexmount/moli/commit/60773df391ad782ab647e878dc6629032d0275a6",
+      "source_commit": "60773df391ad782ab647e878dc6629032d0275a6"
+    },
+    {
       "provider": "obscura",
       "version": "0.2.1",
       "binary_sha256": "6d07bced7d92f52f955b1407e817100bd649bcf08481d056f80fa4863a0b515a",

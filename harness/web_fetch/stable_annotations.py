@@ -421,6 +421,6 @@ def bind_annotation_evidence(case, source):
     raw = contained_path(source, annotation['anchor_evidence']).read_bytes()
     reference = normalize_for_match(raw.decode('utf-8'))
     for anchor in case['acceptance_contract'].get('stable_text_anchors', []):
-        if not all(fact_in_text(reference, normalize_for_match(value)) for value in anchor['alternatives']):
+        if not any(fact_in_text(reference, normalize_for_match(value)) for value in anchor['alternatives']):
             raise ValueError('Stable text lacks independent evidence: ' + case['id'] + '/' + anchor['id'])
     annotation['anchor_evidence_sha256'] = hashlib.sha256(raw).hexdigest()

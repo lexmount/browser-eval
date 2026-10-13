@@ -7,6 +7,8 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+import harness.web_fetch.assembly as assembly_module
+
 from harness.web_fetch.artifacts import artifact_bindings
 from harness.web_fetch.assembly import (
     _provider_replacement_scope_history,
@@ -429,6 +431,71 @@ def test_assembly_uses_verified_external_reference_trees(source, tmp_path, monke
             else:
                 assert not (target / relative).exists()
     assert not (checkout / 'sources').exists()
+
+
+def test_assembly_materializes_registered_multi_source_canonical_references(
+        source, tmp_path, monkeypatch):
+    root, _ = source
+    owner = tmp_path / 'registered' / 'owner'
+    owner.mkdir(parents=True)
+    source_dataset = owner / 'dataset.json'
+    source_dataset.write_bytes((root / 'dataset.json').read_bytes())
+    for tree, relative, raw in (
+            ('sources', 'one/reference.txt', b'bound source'),
+            ('list-references', 'one.json', b'{"case_id":"one"}')):
+        path = owner / tree / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(raw)
+    canonical = tmp_path / 'canonical' / 'dataset.json'
+    canonical.parent.mkdir()
+    dataset = json.loads((root / 'dataset.json').read_text())
+    dataset.setdefault('comparison', {})['input_sources'] = [{
+        'path': 'registered/owner/dataset.json',
+        'sha256': hashlib.sha256(source_dataset.read_bytes()).hexdigest(),
+        'case_ids': ['one'],
+    }]
+    canonical.write_text(json.dumps(dataset))
+    monkeypatch.setattr(assembly_module, 'REPOSITORY', tmp_path)
+    target = tmp_path / 'assembled-multi-source'
+    assemble(root, tmp_path / 'certificates', [], target, canonical_dataset=canonical)
+    assert (target / 'sources/one/reference.txt').read_bytes() == b'bound source'
+    assert (target / 'list-references/one.json').read_bytes() == b'{"case_id":"one"}'
+
+    dataset['comparison']['input_sources'][0]['sha256'] = '0' * 64
+    canonical.write_text(json.dumps(dataset))
+    with pytest.raises(ValueError, match='input source changed'):
+        assemble(root, tmp_path / 'certificates', [], tmp_path / 'rejected-multi-source',
+                 canonical_dataset=canonical)
+
+
+def test_multi_source_canonical_uses_prior_bound_reference_for_reused_case(
+        tmp_path, monkeypatch):
+    earlier = tmp_path / 'registered/earlier/dataset.json'
+    current = tmp_path / 'registered/current/dataset.json'
+    for path, cases in ((earlier, ['one', 'two']), (current, ['two'])):
+        path.parent.mkdir(parents=True)
+        path.write_text(json.dumps({'cases': [{'id': case} for case in cases]}))
+    prior = earlier.parent / 'sources/two/reference.txt'
+    prior.parent.mkdir(parents=True)
+    prior.write_text('earlier bound capture')
+    canonical_path = tmp_path / 'canonical/dataset.json'
+    canonical_path.parent.mkdir()
+    canonical = {
+        'cases': [{'id': 'one'}, {'id': 'two'}],
+        'comparison': {'input_sources': [
+            {'path': 'registered/earlier/dataset.json',
+             'sha256': hashlib.sha256(earlier.read_bytes()).hexdigest(),
+             'case_ids': ['one']},
+            {'path': 'registered/current/dataset.json',
+             'sha256': hashlib.sha256(current.read_bytes()).hexdigest(),
+             'case_ids': ['two']},
+        ]},
+    }
+    canonical_path.write_text(json.dumps(canonical))
+    monkeypatch.setattr(assembly_module, 'REPOSITORY', tmp_path)
+    output = tmp_path / 'materialized'
+    assembly_module._materialize_canonical_references(output, canonical, canonical_path)
+    assert (output / 'sources/two/reference.txt').read_text() == 'earlier bound capture'
 
 
 @pytest.mark.parametrize('change', ['changed-retry', 'missing-retry', 'linked-primary', 'linked-root'])

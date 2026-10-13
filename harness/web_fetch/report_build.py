@@ -42,6 +42,52 @@ from .webmainbench_diagnostics import validate_teds_revision_if_present
 from .webmainbench_latency_correction import prior_results_path
 from .webmainbench_latency_diagnostic import load_diagnostic as load_latency_diagnostic
 
+REPOSITORY = Path(__file__).resolve().parents[2]
+
+
+def _validate_stable_annotation_evidence(case, source, dataset):
+    """Validate anchors against their primary or registered qualification evidence."""
+    from copy import deepcopy
+
+    from .reference_inputs import input_tree, read_dataset_bytes
+    from .stable_annotations import bind_annotation_evidence
+
+    checked = deepcopy(case)
+    try:
+        bind_annotation_evidence(checked, source)
+        return checked['source_benchmark']['stable_annotation']['anchor_evidence_sha256']
+    except ValueError as error:
+        if not str(error).startswith('Stable text lacks independent evidence:'):
+            raise
+    identifier = case['id']
+    relative = f'sources/{identifier}/mixed-session-stable-text.json'
+    aggregate = contained_path(source, relative, reject_symlinks=True)
+    if not aggregate.is_file():
+        raise ValueError('Stable text lacks registered qualification evidence: ' + identifier)
+    matches = []
+    for declaration in dataset.get('comparison', {}).get('input_sources', []):
+        if (not isinstance(declaration, dict)
+                or set(declaration) != {'path', 'sha256', 'case_ids'}):
+            continue
+        path = contained_path(REPOSITORY, declaration['path'], reject_symlinks=True)
+        raw = read_dataset_bytes(path)
+        if hashlib.sha256(raw).hexdigest() != declaration['sha256']:
+            raise ValueError('Registered input source changed: ' + declaration['path'])
+        source_ids = {row['id'] for row in json.loads(raw).get('cases', [])}
+        candidate = contained_path(input_tree(path, 'sources'),
+                                   f'{identifier}/mixed-session-stable-text.json',
+                                   reject_symlinks=True)
+        if identifier in source_ids and candidate.is_file():
+            matches.append(candidate)
+    if not matches or any(candidate.read_bytes() != aggregate.read_bytes() for candidate in matches):
+        raise ValueError('Stable text qualification evidence is not registry-bound: ' + identifier)
+    annotation = checked['source_benchmark']['stable_annotation']
+    primary_sha256 = annotation['anchor_evidence_sha256']
+    annotation['anchor_evidence'] = relative
+    annotation.pop('anchor_evidence_sha256', None)
+    bind_annotation_evidence(checked, source)
+    return primary_sha256
+
 
 def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | None = None) -> Path:
     """Build an explicitly requested diagnostic edition using the WebFetch owner."""
@@ -274,12 +320,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 # audit receipts.  Do not reinterpret those revisions with the
                 # newer origin/main release gate in a local merged view.
                 continue
-            from copy import deepcopy
-
-            from .stable_annotations import bind_annotation_evidence
-            checked=deepcopy(c)
-            bind_annotation_evidence(checked,source)
-            if checked['source_benchmark']['stable_annotation']['anchor_evidence_sha256'] != annotation['anchor_evidence_sha256']:
+            if _validate_stable_annotation_evidence(c, source, dataset) != annotation['anchor_evidence_sha256']:
                 raise ValueError('Stable text evidence changed: '+c['id'])
     for r in records:
         if r.get('metrics', {}).get('scoring_source_sha256') != SCORING_SOURCE_SHA256:
@@ -508,6 +549,22 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 shutil.copy2(archived, target)
         if (source/'reference-revisions.json').is_file():
             shutil.copy2(source/'reference-revisions.json', staging/'reference-revisions.json')
+        replacement_scopes = source/'provider-replacement-scopes.json'
+        if replacement_scopes.is_file():
+            scopes = json.loads(replacement_scopes.read_text())
+            if not isinstance(scopes, list):
+                raise ValueError('Provider replacement scope index is invalid')
+            for item in scopes:
+                if (not isinstance(item, dict) or set(item) != {'path', 'sha256', 'replacements'}):
+                    raise ValueError('Provider replacement scope entry is invalid')
+                bound = contained_path(source, item['path'], reject_symlinks=True)
+                if (not bound.is_file()
+                        or hashlib.sha256(bound.read_bytes()).hexdigest() != item['sha256']):
+                    raise ValueError('Provider replacement scope receipt changed')
+                target = contained_path(staging, item['path'], reject_symlinks=True)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(bound, target)
+            shutil.copy2(replacement_scopes, staging/'provider-replacement-scopes.json')
         if (source/'report-binding-revisions.json').is_file():
             receipts = json.loads((source/'report-binding-revisions.json').read_text())
             bindings = {row[f'{side}_dataset_path']: row[f'{side}_dataset_sha256']

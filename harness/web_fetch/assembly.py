@@ -39,6 +39,8 @@ from harness.web_fetch.scoring_regressions import (
 )
 from harness.web_fetch.speed_cohort import build_summary as build_speed_summary
 
+REPOSITORY = Path(__file__).resolve().parents[2]
+
 ALLOWED_REVISION_FIELDS = {
     'body_requirements', 'required_patterns', 'required_facts', 'acceptance_contract',
     'forbidden_any', 'expected_resources', 'resource_output_contract', 'task_prompt',
@@ -58,6 +60,64 @@ def _selected_record(selected, key):
 
 def read_records(root):
     return load_jsonl(root/'results.jsonl')
+
+
+def _materialize_canonical_references(output, canonical, canonical_dataset):
+    """Copy each assembled case's references from its hash-bound source dataset."""
+    declarations = canonical.get('comparison', {}).get('input_sources')
+    if not declarations:
+        materialize_task_references(output, {name: input_tree(canonical_dataset,name)
+            for name in ('sources','list-references')}, [case['id'] for case in canonical['cases']])
+        return
+    if not isinstance(declarations, list):
+        raise ValueError('Canonical input source bindings are invalid')
+    expected = {case['id'] for case in canonical['cases']}
+    owned = set()
+    sources = []
+    for declaration in declarations:
+        if (not isinstance(declaration, dict)
+                or set(declaration) != {'path', 'sha256', 'case_ids'}
+                or not isinstance(declaration['case_ids'], list)
+                or not declaration['case_ids']):
+            raise ValueError('Canonical input source binding is invalid')
+        identifiers = declaration['case_ids']
+        if (len(identifiers) != len(set(identifiers)) or owned.intersection(identifiers)
+                or not set(identifiers) <= expected):
+            raise ValueError('Canonical input source ownership is invalid')
+        source_dataset = contained_path(REPOSITORY, declaration['path'], reject_symlinks=True)
+        raw = read_dataset_bytes(source_dataset)
+        if hashlib.sha256(raw).hexdigest() != declaration['sha256']:
+            raise ValueError('Canonical input source changed: ' + declaration['path'])
+        source_ids = {case['id'] for case in json.loads(raw).get('cases', [])}
+        if not set(identifiers) <= source_ids:
+            raise ValueError('Canonical input source is missing an owned case')
+        trees = {name: input_tree(source_dataset,name)
+                 for name in ('sources','list-references')}
+        sources.append((set(identifiers), source_ids, trees))
+        materialize_task_references(output, trees, identifiers)
+        owned.update(identifiers)
+    if owned != expected:
+        raise ValueError('Canonical input sources do not own the complete case inventory')
+    # Some track-specific datasets reuse cases whose source capture remains in
+    # an earlier registered dataset.  Fall back only when the owning dataset has
+    # no reference for that case; copy every matching fallback so conflicts are
+    # still rejected rather than resolved by source order.
+    for identifiers, _source_ids, owner_trees in sources:
+        for identifier in identifiers:
+            owner_has_reference = (
+                (owner_trees['sources'] / identifier).exists()
+                or (owner_trees['list-references'] / (identifier + '.json')).exists()
+            )
+            if owner_has_reference:
+                continue
+            candidates = [trees for _owned, source_ids, trees in sources
+                          if identifier in source_ids and (
+                              (trees['sources'] / identifier).exists()
+                              or (trees['list-references'] / (identifier + '.json')).exists())]
+            if not candidates:
+                continue
+            for trees in candidates:
+                materialize_task_references(output, trees, [identifier])
 
 
 def _sha256_file(path):
@@ -983,9 +1043,12 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     for case in dataset['cases']:
         path=canonical_dataset or reference_input_roots[case['id']]/'dataset.json'
         reference_groups.setdefault(path,[]).append(case['id'])
-    for path, identifiers in reference_groups.items():
-        materialize_task_references(output, {name: input_tree(path,name)
-            for name in ('sources','list-references')}, identifiers)
+    if canonical:
+        _materialize_canonical_references(output, canonical, canonical_dataset)
+    else:
+        for path, identifiers in reference_groups.items():
+            materialize_task_references(output, {name: input_tree(path,name)
+                for name in ('sources','list-references')}, identifiers)
     for row,root in selected:
         materialize_bound_artifacts(output, root, [row])
     for root, source_batches in reference_evidence:

@@ -235,6 +235,61 @@ if __name__ == "__main__":
     unittest.main()
 
 class FrozenProfileInputsTests(unittest.TestCase):
+    def test_current_profile_binds_complete_assembled_evidence(self):
+        from harness.web_fetch.storage import frozen_input_bindings, require_current_report_profile
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            dataset = {
+                'id': 'bound', 'cases': [{'id': 'a', 'track': 'web'}],
+                'coverage_plan': {'web': ['p']},
+                'comparison': {
+                    'kind': 'headless_markdown', 'timeout_seconds': 45,
+                    'runs_per_case': 1, 'concurrency': 1, 'conversion': 'native',
+                    'reference_binding_mode': 'frozen_inputs',
+                    'publication_state': 'verified', 'unverified_reference_cases': [],
+                    'require_independent_result_review': False,
+                },
+            }
+            (root / 'dataset.json').write_text(json.dumps(dataset))
+            (root / 'results.jsonl').write_text(json.dumps({
+                'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a',
+            }) + '\n')
+            (root / 'execution.json').write_text('{"batches": []}\n')
+            (root / 'scoring-revisions.json').write_text('[]\n')
+            files = {
+                name: hashlib.sha256((root / name).read_bytes()).hexdigest()
+                for name in ('dataset.json', 'results.jsonl', 'execution.json',
+                             'scoring-revisions.json')
+            }
+            profile = {
+                'dataset_id': 'bound', 'comparison_kind': 'headless_markdown',
+                'case_count': 1,
+                'case_ids_sha256': hashlib.sha256(b'["a"]').hexdigest(),
+                'providers': ['p'],
+                **{k: v for k, v in dataset['comparison'].items() if k != 'kind'},
+                'frozen_inputs': frozen_input_bindings(root),
+                'case_inventory': {'web': ['a']},
+                'evidence_binding': {
+                    'schema_version': 1, 'kind': 'assembled_webfetch_evidence',
+                    'files': files,
+                },
+            }
+            path = root / 'profile.json'
+            path.write_text(json.dumps(profile))
+            require_current_report_profile(root, path)
+            (root / 'results.jsonl').write_text(json.dumps({
+                'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a', 'changed': True,
+            }) + '\n')
+            with self.assertRaisesRegex(ValueError, 'results.jsonl'):
+                require_current_report_profile(root, path)
+            (root / 'results.jsonl').write_text(json.dumps({
+                'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a',
+            }) + '\n')
+            profile['evidence_binding']['files'].pop('scoring-revisions.json')
+            path.write_text(json.dumps(profile))
+            with self.assertRaisesRegex(ValueError, 'incomplete evidence binding'):
+                require_current_report_profile(root, path)
+
     def test_report_answers_must_match_independently_bound_pre_call_input(self):
         from harness.web_fetch.storage import frozen_input_bindings, require_frozen_case_source
         with tempfile.TemporaryDirectory() as temp:

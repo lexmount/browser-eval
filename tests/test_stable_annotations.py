@@ -1,6 +1,7 @@
 """Reviewed registry against independent source text, never provider outputs."""
 import json
 import re
+import tempfile
 import unittest
 from copy import deepcopy
 from pathlib import Path
@@ -119,6 +120,30 @@ class StableAnnotationTests(unittest.TestCase):
         self.assertEqual(len(annotate_case(self.case("challenge-09"))["acceptance_contract"]["stable_text_anchors"]), 2)
         self.assertEqual(len(annotate_case(self.case("challenge-10-justwatch"))["acceptance_contract"]["stable_text_anchors"]), 3)
         self.assertEqual(annotate_case(self.case("challenge-04"))["acceptance_contract"]["stable_text_anchors"], [])
+
+    def test_evidence_binding_accepts_one_declared_alternative_and_rejects_none(self):
+        from harness.web_fetch.stable_annotations import bind_annotation_evidence
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            evidence = root / 'sources/example/stable-page.txt'
+            evidence.parent.mkdir(parents=True)
+            evidence.write_text('下载')
+            case = {
+                'id': 'example',
+                'acceptance_contract': {'stable_text_anchors': [{
+                    'id': 'download', 'alternatives': ['Download', '下载'],
+                }]},
+                'source_benchmark': {'stable_annotation': {
+                    'anchor_evidence': 'sources/example/stable-page.txt',
+                }},
+            }
+            bind_annotation_evidence(case, root)
+            self.assertRegex(
+                case['source_benchmark']['stable_annotation']['anchor_evidence_sha256'],
+                r'^[0-9a-f]{64}$')
+            evidence.write_text('Unrelated')
+            with self.assertRaisesRegex(ValueError, 'lacks independent evidence'):
+                bind_annotation_evidence(case, root)
 
     def test_all_ten_independent_dynamic_references_are_positive(self):
         for identifier, rule in CASE_ANNOTATIONS.items():

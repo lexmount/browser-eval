@@ -36,8 +36,8 @@ PROVIDER_NAMES = {'cowagent-built-in': 'CowAgent', 'moli-webfetch': 'Moli',
                   'deepseek-harness-built-in': 'DeepSeek Harness', 'tavily': 'Tavily',
                   'lexmount-global': 'Lexmount 国际', 'lexmount-cn': 'Lexmount 中国区',
                   'moli-1.0.6': 'Moli 1.0.6', 'moli': 'Moli 1.1.5',
-                  'moli-pr919': 'Moli 1.1.15（PR 919 对照版）',
-                  'moli-fixed': 'Moli 修复结果（1.1.15 / 1.1.17）',
+                  'moli-pr919': 'Moli 1.1.15（受测源码构建）',
+                  'moli-fixed': 'Moli 1.1.17（受测修复构建）',
                   'moli-1.1.3': 'Moli 1.1.3', 'moli-1.1.11': 'Moli 1.1.11'}
 
 def provider_name(name, fallback):
@@ -621,6 +621,7 @@ def _render_article_resources(summary, selected):
     if summary is None:
         return ('<p>当前证据没有独立的客户端资源测量；本文不从耗时反推 CPU 或内存。</p>',
                 '资源指标待独立同题测量后补充。')
+    selected = summary.get('providers', selected)
     rendered, result = render_resource_comparison(summary, selected)
     interpretation = (
         f'{result["winner_label"]} 是本轮资源效率领先者，在 '
@@ -929,7 +930,14 @@ def _render_current_browser_article(out, cases, records, binding):
     body += section('通过任务的耗时', '<p>只计各浏览器自己通过的任务。各行样本可能不同，须结合通过数阅读；这张表不改变任务范围或整体排名。</p>'+latency_table('successful'), 'successful-latency')
     resource = contained_path(out, 'resource-cohort/resource-comparison.json')
     if resource.is_file():
-        table, explanation = _render_article_resources(json.loads(resource.read_text()), names)
+        resource_summary = json.loads(resource.read_text())
+        # The resource cohort is an independently registered measurement.  Its
+        # provider IDs can differ from the main result matrix (for example,
+        # ``moli`` versus a source-build comparison ID).  Render the cohort's
+        # complete declared population instead of silently dropping rows whose
+        # IDs do not appear in the quality matrix.
+        table, explanation = _render_article_resources(
+            resource_summary, resource_summary['providers'])
         body += section('客户端资源消耗', table+paragraph(explanation), 'resources')
     errors = {'acceptance':'内容或交付验收未通过','timeout':'访问或提取超时',
               'browser_exit':'浏览器进程返回错误','browser_error':'浏览器访问或运行错误',

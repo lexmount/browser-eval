@@ -102,13 +102,14 @@ class HeadlessReportTests(unittest.TestCase):
         self.assertTrue(result['winner_tied'])
         english = localize_html(page, PurePosixPath('guide/index.html'))
         self.assertIn('Resource-efficiency co-leaders in this run', english)
-        self.assertIn('Moli, Lightpanda, Obscura, Chromium', english)
+        self.assertIn('Moli 1.1.15 · independent resource cohort, Lightpanda, Obscura, Chromium', english)
         self.assertNotIn('资源效率并列领先', english)
 
     def test_resource_table_excludes_unobservable_remote_provider(self):
-        selected = ['moli', 'chromium', 'lightpanda', 'obscura', 'kitesurf']
+        resource_providers = ['moli', 'chromium', 'lightpanda', 'obscura']
+        selected = ['moli-fixed', 'chromium', 'lightpanda', 'obscura', 'kitesurf']
         rows = []
-        for index, provider in enumerate(selected[:-1], 1):
+        for index, provider in enumerate(resource_providers, 1):
             metrics = {
                 'cpu_ms': {'mean': index * 10, 'p50': index * 9, 'p95': index * 12},
                 'cpu_average_utilization_pct': {'mean': index * 2},
@@ -123,7 +124,7 @@ class HeadlessReportTests(unittest.TestCase):
                 'network_tx_bytes_per_second': {'mean': index * 2048},
             }
             rows.append({'provider': provider, 'metrics': metrics})
-        summary = {'rows': rows, 'common_pass_cases': ['a'] * 8,
+        summary = {'providers': resource_providers, 'rows': rows, 'common_pass_cases': ['a'] * 8,
                    'planned_cases': ['a'] * 20}
         page, interpretation = _render_article_resources(summary, selected)
         self.assertNotIn('<th scope="col">Kitesurf</th>', page)

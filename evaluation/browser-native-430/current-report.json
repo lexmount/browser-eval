@@ -5,7 +5,7 @@
   "case_count": 430,
   "case_ids_sha256": "a81e5406477b6b2d705cedf32cf79d5ba65242fa3e0a839cb1def5ecdab7e05b",
   "providers": [
-    "moli",
+    "moli-pr919",
     "moli-fixed",
     "lightpanda",
     "obscura",
@@ -468,8 +468,24 @@
     ]
   },
   "frozen_inputs": {
-    "dataset_sha256": "d32ec3a78bc8326b555e2a9863bfe80ef8915aadabcb58b50b89ea4e44f0ed44",
-    "auxiliary_sha256": "1d1726f0a03f9739cc1a0361e6eddac82cb9c01953b8d9591edaff5771a0c272"
+    "dataset_sha256": "67f080b71958c2e7b9dfe0240eab8663e733e3c754eda46250857432e9e16cb2",
+    "auxiliary_sha256": "191192e1994a36ce3fe4001e75d4da4ed45501ab30d593a771ca444ddc899f83"
+  },
+  "evidence_binding": {
+    "schema_version": 1,
+    "kind": "assembled_webfetch_evidence",
+    "files": {
+      "dataset.json": "67f080b71958c2e7b9dfe0240eab8663e733e3c754eda46250857432e9e16cb2",
+      "results.jsonl": "c99eddea915d5c873b464ed66d69f51915df2993059b60ffb0e88ea9a485c77d",
+      "execution.json": "5240ff7e867fbf31545a9f30220f011231efbf5623ee62050c8bb1cee7dda046",
+      "scoring-revisions.json": "7c26223b80aafb11b3193d10b08b34aa2af20d03cd29d97ac3215ce76df7dff3",
+      "provider-replacement-scopes.json": "a6f08d31893b52bbed0997b0dc2ca7cc88497a4dac0cf53df779f471cfb7337d",
+      "reference-revisions.json": "dedd0a45f3383b187c9627422c2d7a260301e51ccf7bd064ad793463bf839585",
+      "resource-cohort/dataset.json": "4806da831ccc5d08014f761385b02fb914eb793a272b883a00155f55db6350d8",
+      "resource-cohort/results.jsonl": "4e6fc43d848fc0b87b62328b912ecfa64a6b0f13482608b67fb2f3c22f349a7e",
+      "resource-cohort/execution.json": "42801d41fb64acdf44b1c11390dca7710a0778aeea4c52c8211875a47ebea16d",
+      "resource-cohort/resource-comparison.json": "2d4056cf4e70d30c71e256ccf43d79530eb4b22371665055036fb9561491fa5c"
+    }
   },
   "report_output": "reports/browser-native-430",
   "source_native_dataset_sha256": "3b1aedf8d1027a57148b434cc0eb6636594aa907318fdd9e465ab88725bf8432",

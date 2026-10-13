@@ -1276,6 +1276,63 @@
   ],
   "releases": [
     {
+      "id": "2026-10-14-six-method-native-route-correction",
+      "publication_state": "published",
+      "scoring_revision_input_sha256": "c99eddea915d5c873b464ed66d69f51915df2993059b60ffb0e88ea9a485c77d",
+      "date": "2026-10-14",
+      "comparison_kinds": [
+        "headless_markdown"
+      ],
+      "title": "按原生接口重测 Moli 文档与媒体任务",
+      "summary": "六种方法各保留 430 个结果，共 2,580 条。整体通过数为：Moli 1.1.17 282、Lightpanda 254、Moli 1.1.15 216、Chromium 206、Obscura 202、Kitesurf 183。两种 Moli 构建的文档与网页媒体任务统一改由原生 Markdown 交付；无法取得正文或资源地址的任务按失败计。",
+      "changes": [
+        [
+          "Moli 文档与媒体接口",
+          "两种 Moli 构建各有 18 条旧结果经过评测器侧的文档提取或 HTML/JSON 后处理，不符合本报告的原生接口口径。",
+          "使用同一批受测二进制补跑完整声明范围，并只替换 36 条不合规结果；直接图片文件原本已按原始字节验收，继续沿用旧调用。",
+          "两种构建各执行 19 条校正调用、零重试；旧调用和两轮替换收据均保留。"
+        ],
+        [
+          "共享评分器",
+          "图片卡片的标题与说明可能被相邻卡片截断，已返回的文字因此漏计。",
+          "按图片拥有关系确定卡片边界，并用正反样例重算全部保存输出。",
+          "只有 Moli 1.1.17 的 risk-102 由失败改为通过；其余 2,579 条判定不变。"
+        ],
+        [
+          "方法身份",
+          "历史内部名称仍带有 PR 编号，容易把方法名称与后来重构的开发分支混在一起。",
+          "报告按受测二进制显示 Moli 1.1.15 与 Moli 1.1.17；复现页另列源码提交和二进制 SHA-256。",
+          "1.1.15 对应 98be1f10，1.1.17 对应 60773df3；没有把后来提交的聚合分支成绩套到这两次测量上。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Rerun Moli document and media tasks through native interfaces",
+          "summary": "The report retains 430 results for each of six methods, or 2,580 results in total. Overall passes are Moli 1.1.17 282, Lightpanda 254, Moli 1.1.15 216, Chromium 206, Obscura 202, and Kitesurf 183. Both measured Moli builds now deliver document and webpage-media tasks through native Markdown; tasks that do not return the required text or resource URL remain failures.",
+          "changes": [
+            [
+              "Moli document and media interfaces",
+              "Eighteen earlier results from each Moli build used evaluator-side document extraction or HTML/JSON postprocessing, which did not meet this report's native-interface contract.",
+              "Rerun the complete declared correction scope with the same measured binaries and replace only the 36 noncompliant results. The direct-image task already used original bytes and keeps its earlier call.",
+              "Each build made 19 correction calls with no retries. Earlier calls and both replacement receipts remain available."
+            ],
+            [
+              "Shared scorer",
+              "Adjacent cards could cut off an image card's title or description even when the method returned that text.",
+              "Bind card boundaries to image ownership and rescore every saved output with paired positive and negative controls.",
+              "Only Moli 1.1.17 on risk-102 changes from fail to pass; the other 2,579 verdicts are unchanged."
+            ],
+            [
+              "Method identity",
+              "A historical internal identifier still contained a PR number and could be confused with later development branches.",
+              "Name the measured methods Moli 1.1.15 and Moli 1.1.17 in the report, while the reproduction page records their source commits and executable SHA-256 values.",
+              "The measured revisions are 98be1f10 and 60773df3. No later aggregate-branch result is attributed to these runs."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-10-12-moli-measured-method-versions",
       "publication_state": "published",
       "date": "2026-10-12",

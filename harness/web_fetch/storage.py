@@ -139,6 +139,46 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
         raise ValueError("WCXB evidence uses the certified cohort validator, not the legacy current-report profile validator")
     dataset = json.loads((evidence / "dataset.json").read_text())
     records = load_jsonl(evidence / "results.jsonl")
+    evidence_binding = profile.get("evidence_binding")
+    if evidence_binding is not None:
+        from .safety import contained_path
+
+        files = evidence_binding.get("files") if isinstance(evidence_binding, dict) else None
+        required = {"dataset.json", "results.jsonl", "execution.json"}
+        authority_files = {
+            "scoring-revisions.json",
+            "provider-replacement-scopes.json",
+            "reference-revisions.json",
+            "latency-corrections.json",
+            "request-status-corrections.json",
+        }
+        required.update(name for name in authority_files if (evidence / name).is_file())
+        if profile.get("resource_profile", {}).get("required"):
+            required.update({
+                "resource-cohort/dataset.json",
+                "resource-cohort/results.jsonl",
+                "resource-cohort/execution.json",
+                "resource-cohort/resource-comparison.json",
+            })
+        if (
+            set(evidence_binding or {}) != {"schema_version", "kind", "files"}
+            or evidence_binding.get("schema_version") != 1
+            or evidence_binding.get("kind") != "assembled_webfetch_evidence"
+            or not isinstance(files, dict)
+            or set(files) != required
+        ):
+            raise ValueError("Current report profile has an incomplete evidence binding")
+        for relative, expected in files.items():
+            path = contained_path(evidence, relative, reject_symlinks=True)
+            if (
+                not path.is_file()
+                or not isinstance(expected, str)
+                or len(expected) != 64
+                or hashlib.sha256(path.read_bytes()).hexdigest() != expected
+            ):
+                raise ValueError("Evidence differs from the current report binding: " + relative)
+        if files["dataset.json"] != profile.get("frozen_inputs", {}).get("dataset_sha256"):
+            raise ValueError("Evidence binding differs from frozen dataset binding")
     if profile.get("frozen_inputs") is not None and frozen_input_bindings(evidence) != profile["frozen_inputs"]:
         raise ValueError("Evidence differs from the profile frozen input bindings")
     comparison = dataset.get("comparison", {})

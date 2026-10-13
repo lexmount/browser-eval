@@ -2478,6 +2478,7 @@ TEXT.update({
 # are deliberately narrow report phrases; they never include task names,
 # reference answers, or provider output.
 PHRASES = {
+    "Moli 1.1.15 · 独立资源批次": "Moli 1.1.15 · independent resource cohort",
     "的 Moli 已保存输出仍包含": "'s saved Moli output still contains ",
     "，内容规则未通过。请求成功在这里记录了一个正常返回的结果，却没有等来任务要求的内容。这比方法是否具备浏览器功能更接近本次接入要解决的问题。": ", but failed the content rule. A normal response did not wait for the required content. This is closer to the integration problem than whether the method has browser features.",
     "Quotes to Scrape 的": "Quotes to Scrape's ",
@@ -3456,7 +3457,13 @@ TEXT.update({
 
 REGEX.insert(0, (
     re.compile(r"^资源表覆盖预先确定的全部 (\d+) 个普通网页，包含失败调用。这组任务的通过数：(.*)。各项平均值、P50、P95 使用同一完整范围。$"),
-    r"The resource table covers all \1 predeclared general pages, including failed calls. Pass counts: \2. Mean, P50, and P95 share this complete population.",
+    lambda match: (
+        f"The resource table covers all {match.group(1)} predeclared general pages, including failed calls. "
+        "Pass counts: " + match.group(2).replace(
+            "Moli 1.1.15 · 独立资源批次", "Moli 1.1.15 · independent resource cohort"
+        ).replace("，", ", ")
+        + ". Mean, P50, and P95 share this complete population."
+    ),
 ))
 
 REGEX.insert(0, (
@@ -3473,8 +3480,10 @@ REGEX.insert(0, (
     + " / sent " + match.group(2).replace("、", ", "),
 ))
 REGEX.insert(0, (
-    re.compile(r"^(?:Chromium|Lightpanda|Moli(?: \d+(?:\.\d+)*)?|Obscura)(?:、(?:Chromium|Lightpanda|Moli(?: \d+(?:\.\d+)*)?|Obscura))+$"),
-    lambda match: match.group(0).replace("、", ", "),
+    re.compile(r"^(?:Chromium|Lightpanda|Moli(?: \d+(?:\.\d+)*)?(?: · 独立资源批次)?|Obscura)(?:、(?:Chromium|Lightpanda|Moli(?: \d+(?:\.\d+)*)?(?: · 独立资源批次)?|Obscura))+$"),
+    lambda match: match.group(0).replace(
+        "Moli 1.1.15 · 独立资源批次", "Moli 1.1.15 · independent resource cohort"
+    ).replace("、", ", "),
 ))
 REGEX.insert(0, (
     re.compile(r"^(.+) 是本轮资源效率领先者，在 (\d+) 个可按低消耗比较的指标中取得 (\d+) 项最低。这里的资源领先不等于综合任务通过率领先。$"),

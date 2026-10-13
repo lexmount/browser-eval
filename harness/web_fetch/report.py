@@ -1258,22 +1258,31 @@ def _body_scoring_text(record, output):
  from .response_input import answer_input
  content=answer_input(output.encode('utf-8'),record.get('provider_metadata'),
                       ok=record.get('ok',False),status_code=record.get('status_code'))[0]
- if re.match(r'\s*(?:<!doctype\s+html\b|<(?:html|body|main|div|section|article)\b)',content,re.I):
+ from .reference_quality import is_html_document_or_fragment,visible_mixed_html_text
+ if is_html_document_or_fragment(content):
   from .dynamic_lists import visible_html_text
   content=visible_html_text(content)
+ else:
+  content=visible_mixed_html_text(content)
  return content
 
 def body_region_rows(case, metrics, output):
  from .body_coverage import evaluate_body_requirements
  contract=case.get('body_requirements') or {}
  if not contract:return [],''
- recalculated={x['id']:x for x in evaluate_body_requirements(output,contract)['body_region_results']}
  saved_regions=metrics.get('body_region_results',[])
  if saved_regions and all('matched_output_passages' in item for item in saved_regions):
+  from .body_coverage import _compact_with_positions
+  matching_text=_compact_with_positions(output)[0]
+  digest=hashlib.sha256(matching_text.encode()).hexdigest()
+  if any(item.get('matching_text_sha256')!=digest for item in saved_regions):
+   raise ValueError('Saved body evidence differs from the scorer input')
   evidence={item['id']:[passage.get('text','') for passage in item.get('matched_output_passages',[]) if passage.get('text')]
             for item in saved_regions}
   evidence_counts={item['id']:item.get('matched_units',item.get('matched_tokens',0)) for item in saved_regions}
+  recalculated={item['id']:item for item in saved_regions}
  else:
+  recalculated={x['id']:x for x in evaluate_body_requirements(output,contract)['body_region_results']}
   evidence,evidence_counts=_body_region_evidence(output,contract)
  regions={x['id']:x for x in contract['regions']}
  rows=[];cards=[];total=len(regions)
