@@ -13,6 +13,7 @@ import re
 import unicodedata
 from urllib.parse import parse_qsl, unquote, urljoin, urlsplit
 
+from .structured_tables import table_text_surface
 from .dynamic_lists import _canonical_entry_path, extract_named_entries
 from .reference_quality import clean_reference_text, markdown_links, visible_markdown_links
 
@@ -541,14 +542,14 @@ def _name_description_group(content: str, group: dict, base_url: str) -> dict:
 
 
 def _table_group(content: str, group: dict) -> dict:
-    lines = [line.strip() for line in clean_reference_text(content).splitlines() if line.strip()]
+    lines = [line.strip() for line in clean_reference_text(table_text_surface(content)).splitlines() if line.strip()]
     required = group["required_columns"]
     records = []
     for index in range(len(lines) - 1):
         delimiter = "|" if "|" in lines[index] else "\t" if "\t" in lines[index] else None
         if not delimiter:
             continue
-        headers = [_key(value) for value in lines[index].strip("|").split(delimiter)]
+        headers = [_key(visible_markdown_links(value)) for value in lines[index].strip("|").split(delimiter)]
         separator = lines[index + 1].strip("|").split(delimiter)
         if delimiter == "|" and not all(
             re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator
@@ -581,7 +582,7 @@ def _table_group(content: str, group: dict) -> dict:
                 if len(values) == len(headers):
                     row = {}
                     for field, (column, pattern) in mapping.items():
-                        match = pattern.fullmatch(visible_markdown_links(values[column])) if pattern else None
+                        match = pattern.fullmatch(visible_markdown_links(values[column]).replace("**", "").strip()) if pattern else None
                         row[field] = (match[field] if match else '') if pattern else values[column]
                     if all(
                         _value_matches_spec(row[spec["id"]], spec, whole_cell=True)
@@ -601,14 +602,14 @@ def _table_group(content: str, group: dict) -> dict:
 
 
 def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
-    """Read named links and all required fields from the same Markdown row."""
-    lines = [line.strip() for line in clean_reference_text(content).splitlines() if line.strip()]
+    """Read named links and required fields from the same owned table row."""
+    lines = [line.strip() for line in clean_reference_text(table_text_surface(content)).splitlines() if line.strip()]
     required = group["required_columns"]
     records = {}
     for index in range(len(lines) - 1):
         if "|" not in lines[index]:
             continue
-        headers = [_key(value) for value in lines[index].strip("|").split("|")]
+        headers = [_key(visible_markdown_links(value)) for value in lines[index].strip("|").split("|")]
         separator = lines[index + 1].strip("|").split("|")
         if not all(re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator):
             continue
@@ -679,12 +680,13 @@ def _field_report_group(content: str, group: dict) -> dict:
 
 
 def evaluate_composite_acceptance(
-    content: str, contract: dict, *, base_url: str, links: list | None = None, eligible: bool = True
+    content: str, contract: dict, *, base_url: str, links: list | None = None, eligible: bool = True, table_content: str | None = None
 ) -> dict:
     validate_composite_acceptance(contract)
     results = []
     for group in contract["groups"]:
-        scoped = _scope(content, group)
+        source = table_content if table_content is not None and group["kind"] in {"table", "linked_table"} else content
+        scoped = _scope(source, group)
         if group["kind"] == "named_link":
             result = _named_link_group(
                 scoped, group, base_url, links if scoped == content else None

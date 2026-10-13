@@ -95,6 +95,8 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.add("declared_full_page_stable_text_scope")
         paired.add("inline_emphasis_in_structured_fields")
         paired.add("markdown_list_prefix_ownership")
+        paired.update({"table_header_visual_line", "table_adjacent_split_body",
+                       "composite_html_table_ownership"})
         for root_cause in paired:
             self.assertEqual(root_modes.get(root_cause), {"false-positive", "false-negative"})
 

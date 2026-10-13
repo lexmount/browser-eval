@@ -174,6 +174,65 @@ def _without_example_fences(text):
     return ''.join(lines)
 
 
+def table_header_label(value):
+    """The first visual line names a column; later lines are controls/help."""
+    return re.split(r'<br\s*/?>', value, maxsplit=1, flags=re.I)[0].strip()
+
+
+def table_text_surface(content):
+    """Preserve owned HTML cells/links and adjacent split Markdown bodies."""
+    from bs4 import BeautifulSoup
+    content = _without_example_fences(content)
+    if re.search(r"<table\b", content, re.I):
+        from .dynamic_lists import _scoped_html
+        content = str(_scoped_html(content))
+
+    def convert(match):
+        soup = BeautifulSoup(match[0], 'html.parser')
+        table = soup.find('table')
+        lines = []
+        for row in table.find_all('tr'):
+            if row.find_parent('table') is not table:
+                continue
+            cells = row.find_all(['th', 'td'], recursive=False)
+            values = []
+            for cell in cells:
+                if cell.get('colspan', '1') != '1' or cell.get('rowspan', '1') != '1':
+                    break
+                for link in cell.find_all('a', href=True):
+                    link.replace_with('[' + link.get_text(' ', strip=True) + '](' + link['href'] + ')')
+                values.append(cell.get_text(' ', strip=True).replace('|', r'\|'))
+            else:
+                if values:
+                    lines.append('| ' + ' | '.join(values) + ' |')
+                    if all(cell.name == 'th' for cell in cells):
+                        lines.append('| ' + ' | '.join('---' for _ in cells) + ' |')
+        return '\n' + '\n'.join(lines) + '\n'
+    content = re.sub(r'<table\b[^>]*>[\s\S]*?</table\s*>', convert, content, flags=re.I)
+    lines = content.splitlines()
+    output = []
+    index = 0
+    def separator(line):
+        return '|' in line and all(
+            re.fullmatch(r'\s*:?-{3,}:?\s*', c) for c in _pipe_cells(line))
+    while index < len(lines):
+        prior = [v for v in output if v.strip()]
+        cells = _pipe_cells(lines[index])
+        if ('|' in lines[index] and all(not c.strip() for c in cells)
+                and index + 1 < len(lines) and separator(lines[index + 1])
+                and len(_pipe_cells(lines[index + 1])) == len(cells)
+                and len(prior) >= 2 and separator(prior[-1])
+                and len(_pipe_cells(prior[-2])) == len(cells)
+                and any(c.strip() for c in _pipe_cells(prior[-2]))):
+            while output and not output[-1].strip():
+                output.pop()
+            index += 2
+            continue
+        output.append(lines[index])
+        index += 1
+    return '\n'.join(output)
+
+
 def parse_table_records(content, visible, contract):
     columns, scope = contract['table_columns'], contract['table_scope']
     names = [c['name'] for c in columns]
@@ -227,7 +286,13 @@ def parse_table_records(content, visible, contract):
     if root is None:
         # Inline layout breaks do not create new Markdown rows/cells. Preserve
         # a space so split numeric tokens cannot become a different valid value.
-        visible = re.sub(r'<br\s*/?>', ' ', visible, flags=re.I)
+        lines = table_text_surface(visible).splitlines()
+        for i in range(len(lines) - 1):
+            cells = _pipe_cells(lines[i])
+            if ('|' in lines[i] and len(cells) == len(_pipe_cells(lines[i + 1]))
+                    and all(re.fullmatch(r'\s*:?-{3,}:?\s*', c) for c in _pipe_cells(lines[i + 1]))):
+                lines[i] = '| ' + ' | '.join(table_header_label(c) for c in cells) + ' |'
+        visible = re.sub(r'<br\s*/?>', ' ', '\n'.join(lines), flags=re.I)
         # Only source-verified, case-declared auxiliary text is removed.
         # This also normalizes headers before locating the target table.
         for pattern in scope.get('plain_text_ignored_patterns', []):

@@ -643,6 +643,7 @@ def evaluate_content(
         from .composite_tasks import evaluate_composite_acceptance
         composite = evaluate_composite_acceptance(
             visible_content, composite_acceptance, base_url=base_url, links=named_links,
+            table_content=content,
         )
         result.update(composite)
         result["content_pass"] = bool(result["content_pass"] and composite["composite_acceptance_pass"])
