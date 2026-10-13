@@ -13,7 +13,7 @@ import re
 import unicodedata
 from urllib.parse import parse_qsl, unquote, urljoin, urlsplit
 
-from .structured_tables import table_text_surface
+from .structured_tables import _pipe_cells, table_text_surface
 from .dynamic_lists import _canonical_entry_path, extract_named_entries
 from .reference_quality import clean_reference_text, markdown_links, visible_markdown_links
 
@@ -549,8 +549,8 @@ def _table_group(content: str, group: dict) -> dict:
         delimiter = "|" if "|" in lines[index] else "\t" if "\t" in lines[index] else None
         if not delimiter:
             continue
-        headers = [_key(visible_markdown_links(value)) for value in lines[index].strip("|").split(delimiter)]
-        separator = lines[index + 1].strip("|").split(delimiter)
+        headers = [_key(visible_markdown_links(value)) for value in (_pipe_cells(lines[index]) if delimiter == "|" else lines[index].split(delimiter))]
+        separator = (_pipe_cells(lines[index + 1]) if delimiter == "|" else lines[index + 1].split(delimiter))
         if delimiter == "|" and not all(
             re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator
         ):
@@ -578,7 +578,7 @@ def _table_group(content: str, group: dict) -> dict:
                 continue
             row_index = index + 2 if delimiter == "|" else index + 1
             while row_index < len(lines) and delimiter in lines[row_index]:
-                values = [value.strip() for value in lines[row_index].strip("|").split(delimiter)]
+                values = [value.strip() for value in (_pipe_cells(lines[row_index]) if delimiter == "|" else lines[row_index].split(delimiter))]
                 if len(values) == len(headers):
                     row = {}
                     for field, (column, pattern) in mapping.items():
@@ -609,8 +609,8 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
     for index in range(len(lines) - 1):
         if "|" not in lines[index]:
             continue
-        headers = [_key(visible_markdown_links(value)) for value in lines[index].strip("|").split("|")]
-        separator = lines[index + 1].strip("|").split("|")
+        headers = [_key(visible_markdown_links(value)) for value in _pipe_cells(lines[index])]
+        separator = _pipe_cells(lines[index + 1])
         if not all(re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in separator):
             continue
         mapping = {}
@@ -626,7 +626,7 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
         else:
             row_index = index + 2
             while row_index < len(lines) and "|" in lines[row_index]:
-                values = [value.strip() for value in lines[row_index].strip("|").split("|")]
+                values = [value.strip() for value in _pipe_cells(lines[row_index])]
                 if len(values) == len(headers):
                     row = {field: values[column] for field, column in mapping.items()}
                     cell = row[group["link_column"]]
@@ -686,6 +686,8 @@ def evaluate_composite_acceptance(
     results = []
     for group in contract["groups"]:
         source = table_content if table_content is not None and group["kind"] in {"table", "linked_table"} else content
+        if group["kind"] in {"table", "linked_table"}:
+            source = table_text_surface(source)
         scoped = _scope(source, group)
         if group["kind"] == "named_link":
             result = _named_link_group(

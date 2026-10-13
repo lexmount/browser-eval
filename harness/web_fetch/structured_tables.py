@@ -186,6 +186,11 @@ def table_text_surface(content):
     if re.search(r"<table\b", content, re.I):
         from .dynamic_lists import _scoped_html
         content = str(_scoped_html(content))
+        content = re.sub(
+            r"<h([1-6])\b[^>]*>[\s\S]*?</h\1\s*>",
+            lambda m: "\n" + BeautifulSoup(m[0], "html.parser").get_text(" ", strip=True) + "\n",
+            content, flags=re.I,
+        )
 
     def convert(match):
         soup = BeautifulSoup(match[0], 'html.parser')
@@ -201,7 +206,7 @@ def table_text_surface(content):
                     break
                 for link in cell.find_all('a', href=True):
                     link.replace_with('[' + link.get_text(' ', strip=True) + '](' + link['href'] + ')')
-                values.append(cell.get_text(' ', strip=True).replace('|', r'\|'))
+                values.append(cell.get_text(' ', strip=True).replace('\\', r'\\').replace('|', r'\|'))
             else:
                 if values:
                     lines.append('| ' + ' | '.join(values) + ' |')
@@ -374,5 +379,23 @@ def parse_table_records(content, visible, contract):
 
 
 def _pipe_cells(line):
-    # Remove only the table's outer delimiters; adjacent pipes are empty cells.
-    return line.strip().removeprefix('|').removesuffix('|').split('|')
+    """Split real delimiters, preserving escaped pipes and empty owned cells."""
+    line = line.strip()
+    cells = ['']
+    index = 0
+    while index < len(line):
+        char = line[index]
+        if char == '\\' and index + 1 < len(line) and line[index + 1] in {'|', '\\'}:
+            cells[-1] += line[index + 1]
+            index += 2
+            continue
+        if char == '|':
+            cells.append('')
+        else:
+            cells[-1] += char
+        index += 1
+    if line.startswith('|'):
+        cells.pop(0)
+    if cells and cells[-1] == '' and line.endswith('|'):
+        cells.pop()
+    return cells
