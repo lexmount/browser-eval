@@ -188,6 +188,19 @@ class NativeMetadataTests(unittest.TestCase):
         command.assert_not_called()
 
 class HeadlessTests(unittest.TestCase):
+    def test_lightpanda_output_interface_is_registered_by_track(self):
+        for identifier in ('first-dynamic', 'second-dynamic'):
+            case = EvalCase(identifier, 'Dynamic', 'https://example.com/', 'dynamic', [],
+                            track='dynamic', retrieval_hints={
+                                'version': 3, 'mode': 'native'})
+            self.assertEqual(output_mode_for_case(
+                'lightpanda', 'headless_markdown', case), 'native_html')
+        for track in ('web', 'challenge', 'risk_control'):
+            case = EvalCase('same-id', 'Body', 'https://example.com/', track, [],
+                            track=track)
+            self.assertEqual(output_mode_for_case(
+                'lightpanda', 'headless_markdown', case), 'markdown')
+
     def test_lightpanda_receives_shared_native_frame_contract(self):
         provider = HeadlessProvider('lightpanda', {
             'type': 'headless_markdown', 'engine': 'lightpanda', 'binary': '/lightpanda'})
@@ -211,6 +224,25 @@ class HeadlessTests(unittest.TestCase):
         self.assertEqual(result.metadata['extractor'], 'lightpanda_native_html')
         self.assertEqual(result.metadata['output_contract'], 'native_html')
         self.assertFalse(result.metadata['subdocuments']['harness_content_assembly'])
+
+    def test_lightpanda_delayed_dynamic_uses_html_without_frame_flags(self):
+        provider = HeadlessProvider('lightpanda', {
+            'type': 'headless_markdown', 'engine': 'lightpanda', 'binary': '/lightpanda'})
+        case = EvalCase('dynamic-delayed', 'Delayed', 'https://example.com/', 'dynamic', [],
+            track='dynamic', retrieval_hints={
+                'version': 3, 'mode': 'native', 'contract': 'delayed-ten-records'})
+        raw = json.dumps({'ok': True, 'content': '<html>delayed body</html>',
+                          'metadata': {}}).encode()
+        identity = {'binary_sha256': 'a' * 64, 'reported_version': 'lightpanda fixture',
+                    'version_probe_error': None}
+        with patch.object(provider, '_run_local_worker',
+                          return_value=(raw, '', None, 0, len(raw), 0)) as worker, \
+             patch.object(provider, 'implementation_identity', return_value=identity):
+            result = provider.fetch(case, 45)
+        request = worker.call_args.args[1]
+        self.assertEqual(request['output_mode'], 'native_html')
+        self.assertFalse(request['include_subdocuments'])
+        self.assertNotIn('subdocuments', result.metadata)
 
     def test_engines_without_native_frame_markdown_do_not_assemble_child_content(self):
         case = EvalCase('dynamic-iframe', 'Frame', 'https://example.com/', 'dynamic', [],
@@ -548,15 +580,16 @@ class HeadlessTests(unittest.TestCase):
         self.assertNotIn('--wait-until', obscura)
 
     def test_subdocuments_use_only_native_serializer_flags(self):
-        for engine in ('moli', 'lightpanda'):
-            command = cli_command(engine, '/' + engine, 'https://example.com/', 5,
-                                  'markdown', include_subdocuments=True)
-            self.assertEqual(command.count('--with-frames'), 1)
-            if engine == 'lightpanda':
-                self.assertEqual(command[command.index('--load-resources') + 1], 'iframe')
-            else:
-                self.assertNotIn('--load-resources', command)
-            self.assertNotIn('--eval', command)
+        moli = cli_command('moli', '/moli', 'https://example.com/', 5,
+                           'markdown', include_subdocuments=True)
+        self.assertEqual(moli.count('--with-frames'), 1)
+        self.assertNotIn('--load-resources', moli)
+        self.assertNotIn('--eval', moli)
+        lightpanda = cli_command('lightpanda', '/lightpanda', 'https://example.com/', 5,
+                                 'native_html', include_subdocuments=True)
+        self.assertEqual(lightpanda.count('--with-frames'), 1)
+        self.assertEqual(lightpanda[lightpanda.index('--load-resources') + 1], 'iframe')
+        self.assertNotIn('--eval', lightpanda)
         obscura = cli_command('obscura', '/obscura', 'https://example.com/', 5,
                               'markdown', include_subdocuments=True)
         self.assertNotIn('--with-frames', obscura)
@@ -572,6 +605,13 @@ class HeadlessTests(unittest.TestCase):
                             and row['child_marker_present'] for row in observations))
         self.assertTrue(all(not row['child_marker_present']
                             for row in observations if row['dump'] == 'markdown'))
+        policy = receipt['routing_policy']
+        self.assertEqual(policy['selection_basis'], 'browser_track_registry')
+        self.assertEqual(policy['case_count'], 100)
+        self.assertEqual(policy['output_interface'], 'native_html')
+        self.assertEqual(policy['subdocument_flags']['case_count'], 3)
+        self.assertTrue(policy['raw_html_is_scored_directly'])
+        self.assertFalse(policy['html_to_markdown_conversion'])
 
     def test_obscura_loopback_fixture_requires_explicit_private_network_flag(self):
         command = cli_command(

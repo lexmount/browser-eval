@@ -6,6 +6,7 @@ import threading
 import unittest
 from collections import Counter
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 from harness.web_fetch.models import EvalCase
 from harness.web_fetch.providers.moli import MoliWebFetchProvider
@@ -236,7 +237,7 @@ class NativeRoutePublicationTests(unittest.TestCase):
 
 
 class AllFamilyInterfaceTests(unittest.TestCase):
-    def test_reader_matrix_discloses_lightpanda_native_html_for_iframe_contracts(self):
+    def test_reader_matrix_discloses_lightpanda_dynamic_native_html_policy(self):
         from harness.web_fetch.report_interfaces import browser_task_interface_matrix
         from harness.web_fetch.task_outputs import require_native_task_routes
         cases = {'frame': {'id': 'dynamic-iframe', 'url': 'https://example.test/frame',
@@ -253,7 +254,68 @@ class AllFamilyInterfaceTests(unittest.TestCase):
             'case_id': 'dynamic-iframe', 'ok': True,
             'provider_metadata': {'extractor': 'lightpanda_native_html',
                 'output_contract': 'native_html',
-                'subdocuments': {'support': 'native'}}}])
+                'subdocuments': {'requested': True, 'support': 'native',
+                    'interface': '--load-resources iframe + --with-frames'}}}])
+
+    def test_lightpanda_all_dynamic_tasks_share_html_and_only_three_add_frame_flags(self):
+        from copy import deepcopy
+        from harness.web_fetch.providers.headless import cli_command, output_mode_for_case
+        from harness.web_fetch.retrieval_hints import native_contract_for_case
+        from harness.web_fetch.task_outputs import require_native_task_routes
+        from tests.conftest import read_frozen_dataset_bytes
+
+        payload = json.loads(read_frozen_dataset_bytes(
+            Path('evaluation/dynamic-content-100-moli-webfetch/dataset.json')))
+        cases = payload['cases']
+        self.assertEqual(len(cases), 100)
+        self.assertTrue(all(output_mode_for_case(
+            'lightpanda', 'headless_markdown', EvalCase(**case)) == 'native_html'
+            for case in cases))
+        frame_cases = {
+            case['id'] for case in cases
+            if (native_contract_for_case(case) and
+                native_contract_for_case(case).include_subdocuments)
+        }
+        self.assertEqual(frame_cases, {
+            'dynamic-015-015-testpages-iframe-list',
+            'dynamic-019-selenium-dev-selenium',
+            'dynamic-iframe',
+        })
+        from harness.web_fetch.report_interfaces import browser_task_interface_matrix
+        cell = browser_task_interface_matrix(
+            {case['id']: case for case in cases}, ['lightpanda'])['rows'][0]['cells'][
+                'lightpanda'][0]
+        self.assertEqual((cell['count'], cell['mode']), (100, 'native_html'))
+        self.assertIn('其中 3 题', cell['description'])
+        records = []
+        for case in cases:
+            metadata = {'extractor': 'lightpanda_native_html',
+                        'output_contract': 'native_html'}
+            if case['id'] in frame_cases:
+                metadata['subdocuments'] = {
+                    'requested': True, 'support': 'native',
+                    'interface': '--load-resources iframe + --with-frames'}
+            records.append({'provider': 'lightpanda', 'provider_type': 'headless_markdown',
+                            'case_id': case['id'], 'ok': True,
+                            'provider_metadata': metadata})
+        require_native_task_routes(cases, records)
+        delayed = next(case for case in cases if case['id'] == 'dynamic-delayed')
+        delayed_record = next(row for row in records if row['case_id'] == 'dynamic-delayed')
+        wrong_delayed = deepcopy(delayed_record)
+        wrong_delayed['provider_metadata']['subdocuments'] = {
+            'requested': True, 'support': 'native',
+            'interface': '--load-resources iframe + --with-frames'}
+        with self.assertRaises(ValueError):
+            require_native_task_routes(cases, [wrong_delayed])
+        frame_record = next(row for row in records if row['case_id'] == 'dynamic-iframe')
+        missing_frame_flags = deepcopy(frame_record)
+        missing_frame_flags['provider_metadata'].pop('subdocuments')
+        with self.assertRaises(ValueError):
+            require_native_task_routes(cases, [missing_frame_flags])
+        command = cli_command('lightpanda', '/lightpanda', delayed['url'], 45,
+                              'native_html', include_subdocuments=False)
+        self.assertNotIn('--load-resources', command)
+        self.assertNotIn('--with-frames', command)
 
     def test_reader_matrix_exposes_all_families_and_non_native_processing(self):
         from copy import deepcopy
@@ -278,6 +340,8 @@ class AllFamilyInterfaceTests(unittest.TestCase):
         self.assertIn('内置转换',rows['challenge']['cells']['moli'][0]['description'])
         self.assertIn('内置转换',rows['risk_control']['cells']['moli'][0]['description'])
         self.assertNotIn('共同转换',rows['risk_control']['cells']['moli'][0]['description'])
+        self.assertEqual(rows['dynamic']['cells']['lightpanda'][0]['mode'], 'native_html')
+        self.assertEqual(rows['web']['cells']['lightpanda'][0]['mode'], 'markdown')
         self.assertIn('原生 HTML',rows['image']['cells']['moli'][0]['description'])
         self.assertIn('共同评分器只识别资源 URL',rows['video']['cells']['moli'][0]['description'])
         changed=deepcopy(cases)
@@ -318,7 +382,11 @@ class AllFamilyInterfaceTests(unittest.TestCase):
             for track, kind, url, expected_mode in families:
                 with self.subTest(engine=engine, track=track):
                     case = EvalCase('arbitrary-id','Arbitrary',url,track,[],track=track,task_kind=kind)
-                    self.assertEqual(output_mode_for_case(engine,'headless_markdown',case),expected_mode)
+                    selected = ('native_html'
+                                if engine == 'lightpanda' and track == 'dynamic'
+                                else expected_mode)
+                    self.assertEqual(output_mode_for_case(
+                        engine, 'headless_markdown', case), selected)
         for answer in ('https://secret-answer.test/video/42','https://different-answer.test/watch/99'):
             case = EvalCase('arbitrary-id','Arbitrary','https://example.test/', 'video',[],
                             track='video',task_kind='resource',expected_resources=[{'kind':'video-link','url':answer}])

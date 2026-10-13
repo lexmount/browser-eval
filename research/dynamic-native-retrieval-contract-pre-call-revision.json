@@ -37,13 +37,18 @@
   ],
   "execution_effect": {
     "provider_request_changed": true,
-    "ordinary_native_cases_changed": false,
+    "ordinary_native_cases_changed": true,
+    "interface_selection": "browser_track_registry",
     "required_new_calls": {
-      "methods": 6,
-      "cases_per_method": 4,
-      "physical_calls": 24
+      "fixed_moli": 39,
+      "moli_pr919": 21,
+      "lightpanda": 100,
+      "obscura": 4,
+      "chromium": 4,
+      "kitesurf": 4,
+      "physical_calls": 172
     },
-    "reason": "The four contracts change native completion or subdocument flags; saved calls made without those inputs cannot represent the revised route."
+    "reason": "The four contracts change native completion or subdocument flags for every method. Lightpanda also changes all 100 dynamic tasks from a mixed Markdown/HTML policy to one preregistered native HTML interface, so all saved Lightpanda dynamic results require replacement. Method scopes are deduplicated before summing."
   },
   "acceptance_effect": {
     "answers_changed": false,

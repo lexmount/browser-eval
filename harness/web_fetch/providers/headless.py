@@ -26,6 +26,11 @@ from .base import Provider, terminate_owned_process_tree
 from .runtime_identity import require_expected_provider_versions
 
 ENGINES = ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium')
+TRACK_OUTPUT_MODES = {
+    # Fixed before execution. Case contracts may add native completion or
+    # serialization flags, but cannot switch the selected output interface.
+    ('lightpanda', 'dynamic'): 'native_html',
+}
 LOOPBACK_SANDBOX_PROFILE = (
     '(version 1)(allow default)(deny network*)'
     '(allow network* (local unix-socket))'
@@ -33,7 +38,8 @@ LOOPBACK_SANDBOX_PROFILE = (
     '(allow network-outbound (remote ip "localhost:*"))'
 )
 HEADLESS_CONVERSION = (
-    'Native Markdown for ordinary pages; task-native browser bytes for files and '
+    'Native Markdown for ordinary body pages; Lightpanda native HTML for all dynamic pages; '
+    'task-native browser bytes for files and '
     'documents with shared text extraction; shared DOM projections for resources, '
     'embedded documents and media metadata; Chromium HTML uses node-html-markdown 2.0.0'
 )
@@ -276,10 +282,9 @@ def cli_command(
 
 def output_mode_for_case(engine, provider_type, case):
     """Choose the fastest version-supported route for the requested deliverable."""
-    native_contract = native_contract_for_case(case)
-    if (engine == 'lightpanda' and provider_type == 'headless_markdown'
-            and native_contract and native_contract.include_subdocuments):
-        return 'native_html'
+    registered = TRACK_OUTPUT_MODES.get((engine, case.track))
+    if provider_type == 'headless_markdown' and registered:
+        return registered
     if engine in ENGINES and case.task_kind == 'file':
         return 'file'
     # Document text must come from the selected browser content interface.

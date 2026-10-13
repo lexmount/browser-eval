@@ -193,9 +193,10 @@ def browser_task_interface_matrix(cases, providers):
  from collections import Counter
  from types import SimpleNamespace
  from .providers.headless import output_mode_for_case
+ from .retrieval_hints import native_contract_for_case
  capabilities={
   'moli':'内置 Rust Markdown 转换；CLI --dump markdown。最终网址仅使用同次官方日志可明确确认的值；无法确认时保留空值，不切换 JSON 或共同转换。',
-  'lightpanda':'通常使用内置 Markdown；需要子文档时，原生 Markdown 不包含 iframe 正文，改用同一 CLI 的原生 HTML 与官方 iframe 加载、序列化参数，评测端直接评分 HTML。',
+  'lightpanda':'接口按任务类别预先固定：100 个动态网页统一使用官方原生 HTML，其他普通正文使用内置 Markdown。仅声明子文档能力的动态任务添加官方 iframe 加载与序列化参数；评测端直接评分 HTML。',
   'obscura':'内置 Markdown 与 LP.getMarkdown 共用官方 JS 实现；本次执行固定版本的同一脚本，并在同次 --eval 中返回最终网址。',
   'chromium':'没有直接输出 Markdown 的原生接口；取得渲染后的 DOM，再使用共同的 node-html-markdown 2.0.0。',
   'kitesurf':'官方 Browser Run /markdown?browser=kitesurf 返回 Markdown；这是托管服务的转换能力，不是客户端共同转换。',
@@ -207,7 +208,7 @@ def browser_task_interface_matrix(cases, providers):
   'chromium':'Playwright/CDP 导航 → 最终 DOM → 共同转换 → Markdown',
   'kitesurf':'/markdown?browser=kitesurf → 官方托管转换 → Markdown',
  }
- native_html={'lightpanda':'CLI fetch --dump html --load-resources iframe --with-frames → 含子文档的原生 HTML；共同评分器直接读取 HTML，不转 Markdown'}
+ native_html={'lightpanda':'CLI fetch --dump html → 原生 HTML；共同评分器直接读取 HTML，不转 Markdown'}
  original={
   'moli':'原生 CDP 响应；附件事件使用同一 Moli 原始附件接口',
   'lightpanda':'原生 CDP Response.body()',
@@ -245,19 +246,26 @@ def browser_task_interface_matrix(cases, providers):
   for provider in providers:
    engine=native_browser_engine(provider)
    if engine not in capabilities:raise ValueError('Unregistered native browser participant: '+provider)
-   parts=[];counts=Counter()
+   parts=[];counts=Counter();subdocument_counts=Counter()
    for case in group:
-    mode=output_mode_for_case(engine,'headless_markdown',SimpleNamespace(
+    selected=SimpleNamespace(
      id=case.get('id','<unknown>'),url=case['url'],track=track,task_kind=case.get('task_kind','body'),
-     retrieval_hints=case.get('retrieval_hints',{})))
+     retrieval_hints=case.get('retrieval_hints',{}))
+    mode=output_mode_for_case(engine,'headless_markdown',selected)
     counts[mode]+=1
+    contract=native_contract_for_case(selected)
+    if mode=='native_html' and contract and contract.include_subdocuments:
+     subdocument_counts[mode]+=1
    for mode,count in counts.items():
     if mode=='markdown':
      if track=='document' and engine=='moli':
       description=markdown[engine]+'；HTML/TXT 可直接返回正文，直接 PDF/DOCX 未提供可读正文；评测端不使用外部解析器'
      else:
       description=markdown[engine]+('；文档必须由此接口直接返回文字，不使用外部 PDF/DOCX 解析器' if track=='document' else '')
-    elif mode=='native_html':description=native_html[engine]
+    elif mode=='native_html':
+     frames=subdocument_counts[mode]
+     description=(native_html[engine]+f'；本组 {count} 题使用同一接口，其中 {frames} 题按预注册合同添加 '
+                  '--load-resources iframe 与 --with-frames')
     elif mode=='document':description=original[engine]+' → 原始 PDF/DOCX；只取得字节不能通过文档正文题，评测端不外部解析'
     elif mode=='file':description=original[engine]+' → 原始文件字节（不转 Markdown）'
     elif mode=='resource':description=resource[engine]+' → 图片或视频资源地址（不转 Markdown）'
@@ -266,7 +274,8 @@ def browser_task_interface_matrix(cases, providers):
     else:raise ValueError('Unsupported browser task interface mode: '+mode)
     wait=('读取原始响应或下载文件，不等待查看器绘制' if mode in {'file','document'} else waits[engine])
     if mode == 'native_html':
-     wait='CLI 原生完成条件；同时加载并序列化 iframe'
+     wait=('CLI 原生完成条件；'+(f'{subdocument_counts[mode]} 题同时加载并序列化 iframe'
+                                  if subdocument_counts[mode] else '不添加 iframe 参数'))
     elif mode not in {'file','document','markdown'}:
      if engine in {'lightpanda','kitesurf'} or (engine=='obscura' and mode in {'document_page','media_metadata'}):
       wait='CDP 页面提取等待 load'
