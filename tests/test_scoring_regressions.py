@@ -95,6 +95,7 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.add("declared_full_page_stable_text_scope")
         paired.add("inline_emphasis_in_structured_fields")
         paired.add("markdown_list_prefix_ownership")
+        paired.add("final_url_diagnostic_not_acceptance")
         paired.update({"table_header_visual_line", "table_adjacent_split_body",
                        "composite_html_table_ownership"})
         for root_cause in paired:

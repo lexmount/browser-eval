@@ -63,7 +63,7 @@ class ScoringTests(unittest.TestCase):
                                         final_url="https://example.test/page")
         self.assertEqual(observed_tagged["page_identity_status"], "mismatch")
 
-    def test_risk_control_requires_declared_page_identity(self):
+    def test_risk_control_final_url_is_diagnostic(self):
         navigation = {
             "risk_control": {
                 "navigation_contract": {
@@ -85,14 +85,24 @@ class ScoringTests(unittest.TestCase):
             source_benchmark=navigation,
         )
         wrong = score_attempt(c, b"Expected", ok=True, final_url="https://other.test/")
-        self.assertTrue(wrong["page_identity_required"])
+        self.assertFalse(wrong["page_identity_required"])
         self.assertEqual(wrong["page_identity_status"], "mismatch")
         self.assertTrue(task_measured(wrong))
-        self.assertFalse(task_passed(True, wrong))
+        self.assertTrue(task_passed(True, wrong))
         missing = score_attempt(c, b"Expected", ok=True)
         self.assertEqual(missing["page_identity_status"], "unavailable")
-        self.assertFalse(task_measured(missing))
-        self.assertFalse(task_passed(True, missing))
+        self.assertTrue(task_measured(missing))
+        self.assertTrue(task_passed(True, missing))
+        for diagnostic in (wrong, missing):
+            stats = summarize([{
+                "provider": "fixture", "provider_type": "fixture",
+                "case_id": c.id, "case_name": c.name, "category": c.category,
+                "ok": True, "elapsed_ms": 1,
+                "metrics": diagnostic,
+            }])["providers"]["fixture"]
+            self.assertEqual(stats["task_evaluated_attempts"], 1)
+            self.assertEqual(stats["task_unmeasured_attempts"], 0)
+            self.assertEqual(stats["task_pass_rate"], 1.0)
         failed = score_attempt(c, b"", ok=False)
         self.assertEqual(failed["page_identity_status"], "unavailable")
         self.assertTrue(task_measured(failed))
