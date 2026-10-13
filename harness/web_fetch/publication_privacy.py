@@ -118,7 +118,12 @@ def _redact_plain_url_queries(text):
     def redact_url(match):
         nonlocal replacements
         original = match.group()
-        decoded = html.unescape(original)
+        decoded = original
+        while True:
+            unescaped = html.unescape(decoded)
+            if unescaped == decoded:
+                break
+            decoded = unescaped
         bounded = EMBEDDED_URL.match(decoded)
         if bounded is None:
             return original

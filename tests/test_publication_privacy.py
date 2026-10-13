@@ -69,6 +69,18 @@ class PublicationPrivacyTests(unittest.TestCase):
                 clean=('<p>https://example.test/video?category'+equals+'news&amp;page'+equals+'2</p>').encode()
                 self.assertEqual(project_file('attempts/case.html',clean),(clean,None))
 
+    def test_nested_entity_escaped_query_separator_is_projected_once(self):
+        raw = json.dumps({
+            'url': 'https://example.test/video?category=news&amp;amp;token=PRIVATE_CANARY',
+        }).encode()
+        self.assertEqual(publication_risk(raw), 'sensitive URL query value')
+        projected, receipt = project_file('results.jsonl', raw)
+        self.assertNotIn(b'PRIVATE_CANARY', projected)
+        self.assertIn('[REDACTED]', json.loads(projected)['url'])
+        self.assertIsNone(publication_risk(projected))
+        self.assertEqual(project_file('results.jsonl', projected), (projected, None))
+        self.assertEqual(receipt['replacements'], 1)
+
     def test_entity_escaped_fields_inside_json_logs_preserve_json_and_mask_values(self):
         for quote in ('&quot;','&#34;','&#x22;','&apos;','&#39;','&#x27;'):
             with self.subTest(quote=quote):
