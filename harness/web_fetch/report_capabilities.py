@@ -154,18 +154,18 @@ SOURCES['moli'] = ('Moli 1.1.4 · WebFetch skill', 'https://github.com/lexmount/
 SOURCES['moli-recipes'] = ('Moli 1.1.4 · 输出与接口边界', 'https://github.com/lexmount/moli/blob/v1.1.4/skills/moli-webfetch/references/fetch-recipes.md')
 SOURCES['moli-release'] = ('Moli 1.1.4 · 官方发布', 'https://github.com/lexmount/moli/releases/tag/v1.1.4')
 CAPABILITIES['moli-webfetch'] = {
- 'scope':'moli fetch；正文使用原生 Markdown，资源页使用原生 HTML，预声明完成条件只调用官方等待参数，直接文件使用原始响应', 'sources':['moli','moli-recipes','moli-release'],
+ 'scope':'moli fetch；网页、文档正文、结构和网页媒体信息使用原生 Markdown，预声明完成条件只调用官方等待参数，直接媒体文件使用原始响应', 'sources':['moli','moli-recipes','moli-release'],
  'web':c('支持','JS 渲染网页 → Markdown / HTML'),
  'document':c('需配置','裸 fetch 取得原始 PDF 后在同一预算内本地解析；Office 取决于实际响应'),
- 'image':c('有限支持','资源页原生 HTML 中的图片地址'),
- 'av':c('有限支持','资源页原生 HTML 中的媒体地址'),
+ 'image':c('有限支持','原生 Markdown 中保留的图片地址；直接文件可验收原始字节'),
+ 'av':c('有限支持','原生 Markdown 中保留的媒体地址；直接文件可验收原始字节'),
  'file':c('有限支持','裸 fetch 可自动返回直接非 HTML 响应的原始字节'),
  'js':c('支持','默认运行 JS，支持多种就绪等待'),
  'input':'单个 URL；每个页面单独调用 fetch。',
- 'structure':'--dump markdown 返回原生 Markdown；--dump html 返回原生 HTML；等待条件不参与正文抽取。',
+ 'structure':'网页与文档任务由 --dump markdown 返回原生 Markdown；直接媒体文件返回原始字节；等待条件不参与内容抽取。',
  'access':'支持授权 cookie-file / profile-dir 和请求头；仍可能被站点拒绝。默认适配器不加载登录状态。',
  'notes':'截图和 PDF 是启用 --layout 后生成的页面产物，不是读取已有文档或下载原媒体。官方未承诺文档 OCR、媒体理解或音频转写；直接非 HTML 输入不强制使用 Markdown。',
- 'tested':'Moli 1.1.4：所有正文与结构任务使用原生 Markdown；旧版动态任务的预声明 selector 只映射到 --wait-selector 或 --wait-script。资源页使用原生 HTML，共同评分器只识别其中的资源 URL。直接 PDF/DOCX 仍走原生接口，未提供可读正文时按失败记录；文件题验收原始字节。无 layout、失败后格式回退或跨 provider 补抓；只有实际执行记录参与榜单。',
+ 'tested':'网页正文、文档正文、结构和网页媒体信息任务统一使用 Moli 原生 Markdown；旧版动态任务的预声明 selector 只映射到 --wait-selector 或 --wait-script。网页媒体只核对同一 Markdown 输出里的目标地址，不下载媒体。直接 PDF/DOCX 未提供可读正文时按失败记录；直接媒体文件验收原始字节。无 layout、失败后格式回退或跨 provider 补抓；只有实际执行记录参与榜单。',
 }
 CAPABILITIES['lexmount-cn'] = {**CAPABILITIES['lexmount-global'], 'scope': 'POST /v1/extract · 中国区'}
 for engine,url in {
@@ -248,13 +248,13 @@ def task_capabilities(out, names, records):
                       if engine=='moli' else
                       c('原生输出','直接使用正文接口或浏览器内查看器文字；不使用外部 PDF/DOCX 解析器')),
             image=c('资源地址 / 字节',
-                    '原生 HTML 由共同评分器识别资源 URL；直接文件通过原生响应取得'
+                    '原生 Markdown 由共同评分器识别目标资源 URL；直接文件通过原生响应取得'
                     if engine=='moli' else
                     '原生 DOM 接口读取资源地址；直接文件通过原生响应取得'),
             av=c('资源与元数据','原生接口读取地址、页面元数据或原始字节；不做媒体理解'),
             file=c('原生获取','使用该浏览器原始响应或附件接口，按固定规则验收字节'),
             structure='按任务交付 Markdown、文档正文、资源地址、媒体元数据或原始文件。',
-            notes=('浏览器负责访问与原生产物获取；Moli 资源页保留原生 HTML，共同评分器只识别资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。'
+            notes=('浏览器负责访问与原生产物获取；Moli 的网页媒体信息与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。'
                    if engine=='moli' else
                    '浏览器负责访问与原生产物获取；资源读取脚本由评测提供，通过原生接口读取已加载内容；只有 Chromium 使用标准 HTML 转 Markdown 包。这些调用步骤不会被写成浏览器内置能力。完整分类及边界见报告解读的接口表。'),
             tested='接口按任务输入预选；获取、等待、网页转换与原生内容投影共享 45 秒预算。失败不切换引擎，不按评分结果选择更好的返回。')

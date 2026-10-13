@@ -25,7 +25,7 @@ in readable text; direct-file tasks end in verified original bytes.
 | Kitesurf | Cloudflare account Browser Run | page text: `/markdown?browser=kitesurf`; resource URLs: Kitesurf CDP DOM reads; document text: native `/markdown`; original files: the Kitesurf CDP endpoint |
 | Lightpanda | local browser | page text: `fetch --dump markdown --json`; original files and shared DOM projections: native CDP |
 | Obscura | local browser, standard mode | page text: pinned upstream Markdown expression with the final URL; original files: `fetch --dump original`; synchronous DOM projections: `--eval`; asynchronous embedded documents: native CDP |
-| Moli | local CLI | page text: native Markdown; final URL comes only from unambiguous same-call official diagnostics; original inline files: native CDP response bytes; attachment events: the same pinned Moli CLI raw response; resource URLs, media metadata and embedded documents: shared DOM expressions |
+| Moli | local CLI | webpage text, document text, structured tasks and webpage media information: native Markdown; final URL comes only from unambiguous same-call official diagnostics; direct media files: native CDP response bytes or the same pinned CLI attachment interface |
 | Chromium | local Playwright/CDP | page text: rendered DOM → `node-html-markdown`; original files: navigation response or native download; resource URLs, metadata and embedded documents: shared DOM expressions |
 
 Choose the route from the input URL and declared deliverable before calling the

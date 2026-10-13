@@ -783,20 +783,21 @@ class MoliTests(unittest.TestCase):
         result = provider.fetch(case, 10)
         self.assertTrue(result.ok, repr(result))
 
-    def test_resource_page_uses_native_html_for_common_url_scoring(self):
+    def test_resource_page_uses_native_markdown_for_common_url_scoring(self):
         provider = self.provider(
             "import sys\n"
-            'assert sys.argv[sys.argv.index("--dump")+1] == "html"\n'
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
             'assert "--eval" not in sys.argv\n'
+            'assert "--trace-network" not in sys.argv\n'
             'assert "--with-frames" in sys.argv\n'
             'assert not ({"--image","--video","--media","--resource"} & set(sys.argv))\n'
-            'print("<video><source src=\\"https://example.com/movie.mp4\\"></video>")'
+            'print("[movie](https://example.com/movie.mp4)")'
         )
         result = provider.fetch(self.case_with(track="image", task_kind="resource"), 10)
         self.assertTrue(result.ok, repr(result))
-        self.assertEqual(result.metadata["route"], "resource_native_html")
-        self.assertEqual(result.metadata["output"], "native_html_resource_urls")
-        self.assertEqual(result.metadata["output_contract"], "native_html_resource_urls")
+        self.assertEqual(result.metadata["route"], "resource_native_markdown")
+        self.assertEqual(result.metadata["output"], "native_markdown_resource_urls")
+        self.assertEqual(result.metadata["output_contract"], "native_markdown_resource_urls")
         self.assertEqual(
             result.metadata["wait"]["subdocuments"]["scope"],
             "resource_task_family",
@@ -811,21 +812,21 @@ class MoliTests(unittest.TestCase):
         )
         self.assertTrue(scored["resource_pass"])
 
-    def test_video_resource_page_uses_native_json_network_trace(self):
+    def test_video_resource_page_uses_the_same_native_markdown_route(self):
         provider = self.provider(
-            "import json, sys\n"
-            'assert sys.argv[sys.argv.index("--dump")+1] == "json"\n'
-            'assert "--trace-network" in sys.argv and "--with-frames" in sys.argv\n'
+            "import sys\n"
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
+            'assert "--trace-network" not in sys.argv and "--with-frames" in sys.argv\n'
             'assert sys.argv[sys.argv.index("--wait-until")+1] == "done"\n'
-            'assert sys.argv[sys.argv.index("--delay-ms")+1] == "5000"\n'
-            'print(json.dumps({"html":"<video></video>","network":{"subresources":[{"final_url":"https://example.com/movie.m3u8"}]}}))'
+            'assert "--delay-ms" not in sys.argv\n'
+            'print("[stream](https://example.com/movie.m3u8)")'
         )
         result = provider.fetch(self.case_with(track="video", task_kind="resource"), 10)
         self.assertTrue(result.ok, repr(result))
-        self.assertEqual(result.metadata["route"], "resource_native_json_trace")
-        self.assertEqual(result.metadata["output"], "native_json_resource_urls")
-        self.assertEqual(result.metadata["output_contract"], "native_json_resource_urls")
-        self.assertTrue(result.metadata["network_trace_requested"])
+        self.assertEqual(result.metadata["route"], "resource_native_markdown")
+        self.assertEqual(result.metadata["output"], "native_markdown_resource_urls")
+        self.assertEqual(result.metadata["output_contract"], "native_markdown_resource_urls")
+        self.assertFalse(result.metadata["network_trace_requested"])
         from harness.web_fetch.metrics import evaluate_resources
         scored = evaluate_resources(
             result.content,
@@ -835,12 +836,12 @@ class MoliTests(unittest.TestCase):
         )
         self.assertTrue(scored["resource_pass"])
 
-    def test_fixed_native_resource_uses_product_timers_and_native_html(self):
+    def test_fixed_native_resource_uses_product_timers_and_native_markdown(self):
         provider = self.provider(
             "import sys\n"
             "assert not {'--timeout', '--http-timeout', '--http-connect-timeout', '--eval'} & set(sys.argv)\n"
-            'assert sys.argv[sys.argv.index("--dump")+1] == "html"\n'
-            'print("<img src=\\"https://example.com/photo.jpg\\">")',
+            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
+            'print("![photo](https://example.com/photo.jpg)")',
             uniform_native_parameters=True,
         )
         result = provider.fetch(self.case_with(track="image", task_kind="resource"), 45)
@@ -849,7 +850,11 @@ class MoliTests(unittest.TestCase):
         self.assertIsNone(result.metadata["http_connect_timeout_ms"])
 
     def test_document_urls_use_native_text_without_external_parsing(self):
-        for url in ("https://example.com/paper.pdf", "https://example.com/file.docx"):
+        for url in (
+            "https://example.com/paper.pdf",
+            "https://example.com/file.docx",
+            "https://example.com/document-viewer.html",
+        ):
             with self.subTest(url=url):
                 provider = self.provider(
                     "import sys\n"

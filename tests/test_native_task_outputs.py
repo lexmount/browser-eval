@@ -249,28 +249,27 @@ class NativeRoutePublicationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             require_native_task_routes(cases,[{**row,'provider_metadata':{**row['provider_metadata'],'browser':'chromium'}}])
 
-    def test_resource_routes_bind_moli_native_html_and_shared_projection_elsewhere(self):
+    def test_resource_routes_bind_moli_native_markdown_and_shared_projection_elsewhere(self):
         import hashlib
         from harness.web_fetch.task_outputs import require_native_task_routes, resource_expression
         cases=[{'id':'images','url':'https://example.com/','track':'image','task_kind':'resource'}]
         digest=hashlib.sha256(resource_expression('image').encode()).hexdigest()
-        moli={'route':'resource_native_html','output':'native_html_resource_urls',
-              'output_contract':'native_html_resource_urls','dump':'html'}
+        moli={'route':'resource_native_markdown','output':'native_markdown_resource_urls',
+              'output_contract':'native_markdown_resource_urls','dump':'markdown',
+              'extractor':'moli_native_markdown','network_trace_requested':False}
         row={'provider':'moli','case_id':'images','provider_metadata':moli}
         require_native_task_routes(cases,[row])
-        for bad in ({**moli,'dump':'markdown'},
+        for bad in ({**moli,'dump':'html'},
                     {**moli,'output_projection_sha256':digest},
                     {**moli,'output_contract':'structured_resource_urls'}):
             with self.subTest(provider='moli',bad=bad),self.assertRaises(ValueError):
                 require_native_task_routes(cases,[{**row,'provider_metadata':bad}])
         video_cases=[{'id':'video','url':'https://example.com/','track':'video','task_kind':'resource'}]
-        video={'route':'resource_native_json_trace','output':'native_json_resource_urls',
-               'output_contract':'native_json_resource_urls','dump':'json',
-               'network_trace_requested':True,'wait_until':'done','wait':{'delay_ms':5000}}
+        video={**moli,'wait_until':'done'}
         require_native_task_routes(video_cases,[{'provider':'moli','case_id':'video','provider_metadata':video}])
         with self.assertRaises(ValueError):
             require_native_task_routes(video_cases,[{'provider':'moli','case_id':'video',
-                'provider_metadata':{**video,'network_trace_requested':False}}])
+                'provider_metadata':{**video,'network_trace_requested':True}}])
         for provider in ('lightpanda','obscura','chromium'):
             row={'provider':provider,'case_id':'images','provider_metadata':{'output_projection_sha256':digest}}
             require_native_task_routes(cases,[row])
@@ -297,16 +296,18 @@ class AllFamilyInterfaceTests(unittest.TestCase):
         rows={row['track']:row for row in matrix['rows']}
         for provider in providers:
             self.assertIn('不使用外部',rows['document']['cells'][provider][0]['description'])
-            self.assertIn('不转 Markdown',rows['web_media']['cells'][provider][0]['description'])
             self.assertTrue(rows['web']['cells'][provider][0]['wait'])
+        for provider in providers[1:]:
+            self.assertIn('不转 Markdown',rows['web_media']['cells'][provider][0]['description'])
         self.assertIn('直接 PDF/DOCX 未提供可读正文',rows['document']['cells']['moli'][0]['description'])
         self.assertIn('共同转换',rows['web']['cells']['chromium'][0]['description'])
         self.assertIn('内置转换',rows['challenge']['cells']['moli'][0]['description'])
         self.assertIn('内置转换',rows['risk_control']['cells']['moli'][0]['description'])
         self.assertNotIn('共同转换',rows['risk_control']['cells']['moli'][0]['description'])
-        self.assertIn('原生 HTML',rows['web_media']['cells']['moli'][0]['description'])
-        self.assertIn('共同评分器只识别图片资源地址',rows['web_media']['cells']['moli'][0]['description'])
-        self.assertIn('共同评分器只识别视频资源地址',rows['web_media']['cells']['moli'][1]['description'])
+        self.assertEqual(len(rows['web_media']['cells']['moli']),1)
+        self.assertIn('原生 Markdown',rows['web_media']['cells']['moli'][0]['description'])
+        self.assertIn('共同评分器只识别题目指定的资源 URL',rows['web_media']['cells']['moli'][0]['description'])
+        self.assertIn('直接从原生 Markdown 核对',rows['web_media']['cells']['moli'][0]['description'])
         self.assertEqual(rows['media_file']['count'],1)
         changed=deepcopy(cases)
         for case in changed.values():

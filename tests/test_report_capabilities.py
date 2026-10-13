@@ -22,14 +22,14 @@ class CapabilityTests(unittest.TestCase):
             self.assertIn('直接 PDF/DOCX 未提供可读正文',claims['moli']['document']['detail'])
             for name in names[1:]:
                 self.assertEqual(claims[name]['document']['status'],'原生输出')
-            self.assertIn('Moli 资源页保留原生 HTML',claims['moli']['notes'])
+            self.assertIn('网页媒体信息与正文统一走原生 Markdown',claims['moli']['notes'])
             for name in names[1:]:
                 self.assertIn('资源读取脚本由评测提供',claims[name]['notes'])
             for name in names:
                 self.assertIn('不使用外部',claims[name]['document']['detail'])
                 self.assertNotIn('没有 PDF / Office 解析器',claims[name]['document']['detail'])
             self.assertIn('--eval',claims['obscura']['scope'])
-            self.assertIn('JSON',claims['moli']['scope'])
+            self.assertIn('原生 Markdown',claims['moli']['scope'])
             self.assertIn('browser=kitesurf',claims['kitesurf']['scope'])
             self.assertEqual(CAPABILITIES['lightpanda']['document']['status'],'未声明')
             self.assertIsNone(task_capabilities(out,['firecrawl'],[{'provider_metadata':{'output_contract':'markdown'}}]))
@@ -84,9 +84,8 @@ class CapabilityTests(unittest.TestCase):
         self.assertNotIn('未启用专用 PDF 策略', CAPABILITIES['crawl4ai']['tested'])
         self.assertIn('Actions wait', CAPABILITIES['firecrawl']['tested'])
         self.assertIn('iframe', CAPABILITIES['firecrawl']['tested'])
-        self.assertIn('Moli 1.1.4', CAPABILITIES['moli-webfetch']['tested'])
-        self.assertIn('资源页使用原生 HTML', CAPABILITIES['moli-webfetch']['tested'])
-        self.assertIn('只识别其中的资源 URL', CAPABILITIES['moli-webfetch']['tested'])
+        self.assertIn('统一使用 Moli 原生 Markdown', CAPABILITIES['moli-webfetch']['tested'])
+        self.assertIn('网页媒体只核对同一 Markdown 输出', CAPABILITIES['moli-webfetch']['tested'])
         self.assertIn('selector', CAPABILITIES['moli-webfetch']['tested'])
 
     def test_moli_document_capabilities_never_credit_external_parsing(self):

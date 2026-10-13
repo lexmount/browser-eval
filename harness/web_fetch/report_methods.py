@@ -17,7 +17,7 @@ PROFILES={
  'moli-1.1.11':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；本轮风险网站评测固定 debug 日志并逐次完整留存。','https://github.com/lexmount/moli/releases/tag/v1.1.11'),
  'moli-1.1.3':('本地浏览器 CLI','普通网页使用 fetch --dump markdown；直接文档和媒体使用裸 fetch。原始文档的本地正文解析计入耗时，文件任务直接校验字节。','https://github.com/lexmount/moli/releases/tag/v1.1.3'),
  'chromium':('本地浏览器 CDP','Playwright 启动 Chromium，取完整渲染 DOM，再由 node-html-markdown 2.0.0 生成 Markdown。','https://playwright.dev/python/docs/browsers'),
- 'moli-webfetch':('本地 CLI','Moli：正文与结构任务使用原生 Markdown，资源页使用原生 HTML，文件题使用原始响应。结构完成条件只控制官方等待参数；不调用模型。','https://github.com/lexmount/moli/tree/main/skills/moli-webfetch'),
+ 'moli-webfetch':('本地 CLI','Moli：网页正文、文档正文、结构和网页媒体信息统一使用原生 Markdown；直接媒体文件使用原始响应。完成条件只控制官方等待参数；不调用模型。','https://github.com/lexmount/moli/tree/main/skills/moli-webfetch'),
  'cowagent-built-in':('项目内置','CowAgent 内的 HTTP 抓取和文本、文档解析工具。','https://github.com/zhayujie/CowAgent/blob/main/agent/tools/web_fetch/web_fetch.py'),
  'lexmount-global':('托管 API','Lexmount 国际 API，返回网页主正文与元数据。','https://browser.lexmount.com/en/docs/webfetch'),
  'lexmount-cn':('托管 API','Lexmount 中国区 API；与国际 API 分开实测，不重复计算品牌采用。','https://browser.lexmount.com/en/docs/webfetch'),

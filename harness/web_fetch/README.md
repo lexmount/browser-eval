@@ -424,15 +424,13 @@ variables take precedence; `--env-file` overrides which file is read.
 
 `moli-webfetch` invokes the official local Moli CLI; set `MOLI_BINARY` when it
 is not on PATH. All webpage and document-body tasks use the CLI's native
-Markdown output. Image-resource pages use native HTML, including native frame
-serialization, and the shared scorer reads only declared image URLs from that
-output. Video-resource pages use native JSON with the native network trace and
-a uniform completion delay; the scorer reads URL fields from the page and
-network records without selecting fields from the reference answer. Direct
-file tasks use the CLI's raw response path so the evaluator can verify the
-original bytes. These routes are selected by task family before execution and
-do not fall back after failure. The six measured configurations and their
-document limits are defined in [HEADLESS.md](HEADLESS.md).
+Markdown output. Webpage media-information tasks use that same native Markdown
+call with native frame inclusion; the shared scorer checks only the requested
+resource URLs already present in the output and does not download the media.
+Direct-media-file tasks use the CLI's raw response path so the evaluator can
+verify the original bytes. These routes are selected by deliverable before
+execution and do not fall back after failure. The six measured configurations
+and their document limits are defined in [HEADLESS.md](HEADLESS.md).
 
 The installed console command is `browser-harness-eval`. There is no legacy
 Python package or compatibility entrypoint.
@@ -755,7 +753,7 @@ its download would change page execution. Answers above `max_bytes` fail with
 
 `uniform_native_parameters: true` selects the fixed-native body/structure policy for web and dynamic tasks. Choose documented native extraction options once per method (for example Tavily advanced, Cloudflare networkidle2, Crawl4AI iframe/overlay options, native freshness and capacity options). The caller deadline is 45 seconds; product connection, navigation and extraction timers retain their native defaults. HTTP-client deadlines and worker cancellation enforce collection time, not product-side budgets. CowAgent globals are never patched.
 
-Per-case retrieval hints and auxiliary document/media/challenge routes are rejected before invocation in this mode. Cross-provider fallback, injected extraction algorithms and answer synthesis are prohibited. Caller failure retries follow the shared [retry policy](#retries); historical cohorts retain their frozen retry budgets. Keep the native response envelope and its declared answer; the product may still impose its own limits or internal retries. Moli resource tasks use native HTML and the common scorer recognizes resource URLs; other browser resource routes remain unchanged until their native interfaces are audited separately. Prepare a new frozen invocation profile after a policy change; preserve previous measurements and do not infer revised scores without calls.
+Per-case retrieval hints and auxiliary document/media/challenge routes are rejected before invocation in this mode. Cross-provider fallback, injected extraction algorithms and answer synthesis are prohibited. Caller failure retries follow the shared [retry policy](#retries); historical cohorts retain their frozen retry budgets. Keep the native response envelope and its declared answer; the product may still impose its own limits or internal retries. Moli webpage, document-body and webpage-media-information tasks all use its native Markdown; only direct-media-file tasks use raw bytes. Prepare a new frozen invocation profile after a policy change; preserve previous measurements and do not infer revised scores without calls.
 ### 原生内容接口与评测边界
 
 给定网址的正文任务验收返回的目标内容，不要求接口返回最终网址或 HTML 语言标签。
@@ -884,8 +882,9 @@ Chromium 没有原生 Markdown，网页 HTML 使用固定版本的 node-html-mar
 
 Lightpanda 使用 `--dump markdown --json` 的原生正文；Obscura 使用其固定官方
 `HTML_TO_MARKDOWN_JS`，脚本哈希必须与所测版本绑定；Kitesurf 使用显式指定该浏览器
-的官方 `/markdown` 或 CDP 接口。Moli 正文使用原生 Markdown，资源或嵌入文档可用
-原生脚本/CDP 读取对应输出；禁止失败后切换为 HTML 或 JSON 再替它加工正文。
+的官方 `/markdown` 或 CDP 接口。Moli 的网页正文、文档正文、结构与网页媒体信息
+统一使用原生 Markdown；网页媒体只核对同一次输出里的目标地址。直接媒体文件才走
+原始响应。禁止失败后切换为 HTML、JSON、网络跟踪或查看器脚本补结果。
 
 `output_mode_for_case` 负责路线选择，`browser_task_interface_matrix` 使用同一选择器
 生成每类任务与每种浏览器的接口表。`require_native_task_routes` 检查实测路线与外部

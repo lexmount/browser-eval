@@ -305,6 +305,8 @@ def output_mode_for_case(engine, provider_type, case):
     """Choose the fastest version-supported route for the requested deliverable."""
     if engine in ENGINES and case.task_kind == 'file':
         return 'file'
+    if engine == 'moli' and case.track == 'document':
+        return 'markdown'
     # Document text must come from the selected browser content interface.
     # Downloaded bytes must not be turned into readable text by the harness.
     if case.track == 'document' and (urlsplit(case.url).path.casefold().endswith('.html') or urlsplit(case.url).path.endswith('/')):

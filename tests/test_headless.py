@@ -666,11 +666,16 @@ class HeadlessTests(unittest.TestCase):
     def test_every_measured_moli_version_uses_raw_route_for_direct_files(self):
         pdf = EvalCase('pdf', 'PDF', 'https://example.com/paper.pdf', 'document', [],
                        track='document')
+        embedded = EvalCase('embedded', 'Embedded document',
+                            'https://example.com/viewer.html', 'document', [],
+                            track='document')
         image = EvalCase('image', 'Image', 'https://example.com/image.png', 'image', [],
                          track='image', task_kind='file')
         for name in ('moli-1.0.6', 'moli', 'moli-1.1.3'):
             with self.subTest(provider=name):
                 self.assertEqual(output_mode_for_case('moli', 'headless_markdown', pdf),
+                                 'markdown')
+                self.assertEqual(output_mode_for_case('moli', 'headless_markdown', embedded),
                                  'markdown')
                 self.assertEqual(output_mode_for_case('moli', 'headless_markdown', image),
                                  'file')
