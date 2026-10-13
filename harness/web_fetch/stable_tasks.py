@@ -524,7 +524,7 @@ def _non_record_visible(content, contract, records, base_url):
     from urllib.parse import urljoin
 
     from .dynamic_lists import _scoped_html, named_entry_identity
-    from .reference_quality import markdown_links
+    from .reference_quality import markdown_links, visible_markdown_links
 
     identities = {named_entry_identity(r['fields']['url'], contract)
                   for r in records if r.get('valid') and r.get('fields', {}).get('url')}
@@ -551,7 +551,11 @@ def _non_record_visible(content, contract, records, base_url):
         for link in reversed(links):
             if is_record(link.destination):
                 content = content[:link.start] + ' ' + content[link.end:]
-        return _visible(content)
+        # A linked logo can be the only reader-visible site identity. Preserve
+        # its alt text for page-level anchors after owned record links are
+        # removed. Record parsing still uses ``_visible`` above, so image alt
+        # text cannot manufacture a named-link record title.
+        return _visible(visible_markdown_links(content))
     # Plain text has no URL ownership; retain the conservative fallback.
     return None
 

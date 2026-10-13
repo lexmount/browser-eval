@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "kind": "profile_dataset_assembly",
   "profile": "evaluation/browser-native-430/current-report.json",
   "dataset": {
@@ -41,5 +41,9 @@
       ]
     }
   ],
-  "native_dataset_sha256": "de540d36c49ae49caf6189769627966f8975d87b82a1f355a91bbc20a70be8e7"
+  "case_corrections": {
+    "path": "evaluation/browser-native-430/case-corrections.json",
+    "sha256": "173d78b6bb904b7f62964bb47a1981f291d9416870ab2128a10667ef757a7a3a"
+  },
+  "native_dataset_sha256": "47e1ef865f499c2169f99614c9c37f69f842fcd0792c1258783edc249fed273d"
 }

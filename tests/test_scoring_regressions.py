@@ -169,6 +169,15 @@ class ScoringRegressionTests(unittest.TestCase):
         paired.add("scoped_markdown_caption_ownership")
         paired.add("final_url_diagnostic_not_acceptance")
         paired.add("html_language_metadata_diagnostic_not_acceptance")
+        paired.update({
+            "current_example_body_reference",
+            "retail_return_heading_reference",
+            "scrapy_python_version_reference",
+            "postgresql_stable_body_excludes_release_banner",
+            "openai_stable_body_excludes_model_catalog_copy",
+            "non_record_image_alt_visibility",
+            "microsoft_homepage_language_and_drift",
+        })
         paired.update({"table_visible_section_boundaries", "table_escaped_pipe_boundaries"})
         paired.update({"table_header_visual_line", "table_adjacent_split_body",
                        "composite_html_table_ownership",

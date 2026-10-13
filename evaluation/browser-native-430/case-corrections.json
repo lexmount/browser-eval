@@ -1,0 +1,532 @@
+{
+  "schema_version": 2,
+  "kind": "profile_case_corrections",
+  "cases": [
+    {
+      "case_id": "static-simple",
+      "expected_definition_sha256": "982c4083495d0edeec20bc720b4dd104eab2333d7011ebe249e5be58e69f3fad",
+      "set": {
+        "ground_truth_main_content": "This domain is for use in documentation examples without needing permission.\n\nThis is not a service; avoid relying on it for testing and monitoring purposes.\n\nLearn more",
+        "ground_truth_evidence": [
+          {
+            "source": "https://example.com/",
+            "supports": "Complete visible body independently observed on 2026-10-13."
+          }
+        ],
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-10-13",
+          "http_status": 200,
+          "method": "Independent HTTP response; complete body text",
+          "selector": "body",
+          "reference_sha256": "71a768a6c4f06264b71fad21ad7cc90185157c22ab513a3556e2cbe7f04c1afd",
+          "note": "Complete current visible body independently verified; the document title is outside the requested body-text contract."
+        },
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "sentences",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "this domain is for use in documentation examples without needing permission this is not a service avoid relying on it for testing and monitoring purposes learn more",
+              "source_text": "This domain is for use in documentation examples without needing permission.\n\nThis is not a service; avoid relying on it for testing and monitoring purposes.\n\nLearn more",
+              "segmentation_method": "sentences"
+            }
+          ]
+        },
+        "required_facts": [
+          {
+            "id": "purpose",
+            "alternatives": [
+              "documentation examples without needing permission"
+            ]
+          },
+          {
+            "id": "service-warning",
+            "alternatives": [
+              "not a service; avoid relying on it for testing and monitoring purposes"
+            ]
+          },
+          {
+            "id": "iana-link",
+            "alternatives": [
+              "Learn more"
+            ]
+          }
+        ]
+      },
+      "evidence": {
+        "source": "https://example.com/",
+        "observed_at": "2026-10-13",
+        "observed_text": "This domain is for use in documentation examples without needing permission.\n\nThis is not a service; avoid relying on it for testing and monitoring purposes.\n\nLearn more",
+        "regression_ids": [
+          "example-current-body-passes",
+          "example-retired-body-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "redirect",
+      "expected_definition_sha256": "64162f1829c5e527f3818b5781a99f7b9146c4dac8d63524729b5ee129b219ee",
+      "set": {
+        "ground_truth_main_content": "This domain is for use in documentation examples without needing permission.\n\nThis is not a service; avoid relying on it for testing and monitoring purposes.\n\nLearn more",
+        "ground_truth_evidence": [
+          {
+            "source": "https://httpbin.org/redirect-to?url=https%3A%2F%2Fexample.com%2F",
+            "supports": "Complete visible body independently observed on 2026-10-13."
+          }
+        ],
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-10-13",
+          "http_status": 200,
+          "method": "Independent HTTP response; complete body text",
+          "selector": "body",
+          "reference_sha256": "71a768a6c4f06264b71fad21ad7cc90185157c22ab513a3556e2cbe7f04c1afd",
+          "note": "Complete current visible body independently verified; the document title is outside the requested body-text contract."
+        },
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "sentences",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "this domain is for use in documentation examples without needing permission this is not a service avoid relying on it for testing and monitoring purposes learn more",
+              "source_text": "This domain is for use in documentation examples without needing permission.\n\nThis is not a service; avoid relying on it for testing and monitoring purposes.\n\nLearn more",
+              "segmentation_method": "sentences"
+            }
+          ]
+        },
+        "required_facts": [
+          {
+            "id": "purpose",
+            "alternatives": [
+              "documentation examples without needing permission"
+            ]
+          },
+          {
+            "id": "service-warning",
+            "alternatives": [
+              "not a service; avoid relying on it for testing and monitoring purposes"
+            ]
+          },
+          {
+            "id": "iana-link",
+            "alternatives": [
+              "Learn more"
+            ]
+          }
+        ]
+      },
+      "evidence": {
+        "source": "https://httpbin.org/redirect-to?url=https%3A%2F%2Fexample.com%2F",
+        "observed_at": "2026-10-13",
+        "observed_text": "This domain is for use in documentation examples without needing permission.\n\nThis is not a service; avoid relying on it for testing and monitoring purposes.\n\nLearn more",
+        "regression_ids": [
+          "example-current-body-passes",
+          "example-retired-body-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "web-retail-returns",
+      "expected_definition_sha256": "bbc22cbaa92edf04bafdb991ae6be973477ee236668d15400496f9145e4fa1fa",
+      "set": {
+        "ground_truth_main_content": "",
+        "ground_truth_evidence": [
+          {
+            "source": "https://www.anthropologie.com/help/returns-exchanges",
+            "supports": "Stable acceptance text independently observed on 2026-10-13; participant output was not used as reference evidence."
+          }
+        ],
+        "source_verification": {
+          "state": "unavailable",
+          "checked_at": "2026-10-13",
+          "http_status": 200,
+          "method": "Independent official-page observation; stable acceptance anchors only",
+          "selector": "main",
+          "reference_sha256": null,
+          "note": "The complete page reference remains unavailable; current stable task anchors were independently observed."
+        },
+        "required_facts": [
+          {
+            "id": "online-returns",
+            "alternatives": [
+              "Returning or Exchanging Online Orders"
+            ]
+          },
+          {
+            "id": "store-returns",
+            "alternatives": [
+              "In-store purchases must be returned to a store location"
+            ]
+          },
+          {
+            "id": "furniture-returns",
+            "alternatives": [
+              "Returning Furniture"
+            ]
+          }
+        ]
+      },
+      "evidence": {
+        "source": "https://www.anthropologie.com/help/returns-exchanges",
+        "observed_at": "2026-10-13",
+        "observed_text": "Returning or Exchanging Online Orders; In-store purchases must be returned to a store location; Returning Furniture",
+        "regression_ids": [
+          "retail-current-heading-passes",
+          "retail-retired-heading-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "live-010-navigation-menu",
+      "expected_definition_sha256": "3df38d53f2af6f76cd123826274e09fea639c63ceca7d7631c2eddeb440327b0",
+      "set": {
+        "ground_truth_main_content": "",
+        "ground_truth_evidence": [
+          {
+            "source": "https://github.com/scrapy/scrapy",
+            "supports": "Stable acceptance text independently observed on 2026-10-13; participant output was not used as reference evidence."
+          }
+        ],
+        "source_verification": {
+          "state": "unavailable",
+          "checked_at": "2026-10-13",
+          "http_status": 200,
+          "method": "Independent official-page observation; stable acceptance anchors only",
+          "selector": "main",
+          "reference_sha256": null,
+          "note": "The prior full snapshot is retired; only independently re-observed stable README anchors are authoritative."
+        },
+        "required_facts": [
+          {
+            "id": "正文核对点-1",
+            "alternatives": [
+              "is a web scraping framework to extract structured data from"
+            ]
+          },
+          {
+            "id": "正文核对点-2",
+            "alternatives": [
+              "It is cross-platform, and requires Python 3.11+. It is maintained"
+            ]
+          },
+          {
+            "id": "正文核对点-3",
+            "alternatives": [
+              "If you wish to contribute, see"
+            ]
+          }
+        ],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "正文核对点-1",
+              "alternatives": [
+                "is a web scraping framework to extract structured data from"
+              ]
+            },
+            {
+              "id": "正文核对点-2",
+              "alternatives": [
+                "It is cross-platform, and requires Python 3.11+. It is maintained"
+              ]
+            },
+            {
+              "id": "正文核对点-3",
+              "alternatives": [
+                "If you wish to contribute, see"
+              ]
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "https://github.com/scrapy/scrapy",
+        "observed_at": "2026-10-13",
+        "observed_text": "It is cross-platform, and requires Python 3.11+. It is maintained",
+        "regression_ids": [
+          "scrapy-current-python-requirement-passes",
+          "scrapy-retired-python-requirement-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "live-035-part-i-tutorial",
+      "expected_definition_sha256": "4a43eecdc326bc7a9d6038844dd0f8eb6fce650b8fd3af6cee049a1dba0714d9",
+      "set": {
+        "ground_truth_main_content": "",
+        "ground_truth_evidence": [
+          {
+            "source": "https://www.postgresql.org/docs/current/tutorial.html",
+            "supports": "Stable acceptance text independently observed on 2026-10-13; participant output was not used as reference evidence."
+          }
+        ],
+        "source_verification": {
+          "state": "unavailable",
+          "checked_at": "2026-10-13",
+          "http_status": 200,
+          "method": "Independent official-page observation; stable acceptance anchors only",
+          "selector": "main",
+          "reference_sha256": null,
+          "note": "The prior full snapshot is retired. Release banners are volatile site chrome; only stable tutorial anchors are authoritative."
+        },
+        "required_facts": [
+          {
+            "id": "正文核对点-1",
+            "alternatives": [
+              "Welcome to the PostgreSQL Tutorial. The tutorial is intended to give an introduction to PostgreSQL"
+            ]
+          },
+          {
+            "id": "正文核对点-2",
+            "alternatives": [
+              ". Those who provision and manage their own PostgreSQL installation"
+            ]
+          },
+          {
+            "id": "正文核对点-3",
+            "alternatives": [
+              "to report a documentation issue."
+            ]
+          }
+        ],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "正文核对点-1",
+              "alternatives": [
+                "Welcome to the PostgreSQL Tutorial. The tutorial is intended to give an introduction to PostgreSQL"
+              ]
+            },
+            {
+              "id": "正文核对点-2",
+              "alternatives": [
+                ". Those who provision and manage their own PostgreSQL installation"
+              ]
+            },
+            {
+              "id": "正文核对点-3",
+              "alternatives": [
+                "to report a documentation issue."
+              ]
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "https://www.postgresql.org/docs/current/tutorial.html",
+        "observed_at": "2026-10-13",
+        "observed_text": "Welcome to the PostgreSQL Tutorial. The tutorial is intended to give an introduction to PostgreSQL; release banners are site chrome and excluded.",
+        "regression_ids": [
+          "postgresql-stable-tutorial-copy-passes",
+          "postgresql-release-banner-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "live-036-build-on-the-openai-api-platform",
+      "expected_definition_sha256": "7a0e4ee714173832b40ce7c4403d5fc0889badd3d6adcdd23a302840839b1303",
+      "set": {
+        "ground_truth_main_content": "",
+        "ground_truth_evidence": [
+          {
+            "source": "https://developers.openai.com/api/docs",
+            "supports": "Stable acceptance text independently observed on 2026-10-13; participant output was not used as reference evidence."
+          }
+        ],
+        "source_verification": {
+          "state": "unavailable",
+          "checked_at": "2026-10-13",
+          "http_status": 200,
+          "method": "Independent official-page observation; stable acceptance anchors only",
+          "selector": "main",
+          "reference_sha256": null,
+          "note": "The prior full snapshot is retired. Model recommendations are volatile catalog copy and are excluded from stable acceptance."
+        },
+        "required_facts": [
+          {
+            "id": "正文核对点-1",
+            "alternatives": [
+              "Make your first API request in minutes. Learn the basics"
+            ]
+          },
+          {
+            "id": "正文核对点-2",
+            "alternatives": [
+              "Make direct model requests for text, structured output, tools, and"
+            ]
+          },
+          {
+            "id": "正文核对点-3",
+            "alternatives": [
+              "Check the status of OpenAI services"
+            ]
+          },
+          {
+            "id": "plugin-introduction",
+            "alternatives": [
+              "The OpenAI Developers plugin connects ChatGPT and Codex to the OpenAI Platform"
+            ]
+          }
+        ],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "正文核对点-1",
+              "alternatives": [
+                "Make your first API request in minutes. Learn the basics"
+              ]
+            },
+            {
+              "id": "正文核对点-2",
+              "alternatives": [
+                "Make direct model requests for text, structured output, tools, and"
+              ]
+            },
+            {
+              "id": "正文核对点-3",
+              "alternatives": [
+                "Check the status of OpenAI services"
+              ]
+            },
+            {
+              "id": "plugin-introduction",
+              "alternatives": [
+                "The OpenAI Developers plugin connects ChatGPT and Codex to the OpenAI Platform"
+              ]
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "https://developers.openai.com/api/docs",
+        "observed_at": "2026-10-13",
+        "observed_text": "Make your first API request in minutes; Responses API; OpenAI Developers plugin; Check the status of OpenAI services. Model recommendations are excluded as volatile copy.",
+        "regression_ids": [
+          "openai-stable-api-copy-passes",
+          "openai-volatile-model-copy-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "global-homepage-023-cloud-microsoft",
+      "execution_effect": "rerun_all_methods",
+      "expected_definition_sha256": "6ad25f05312b58cafcdc948aeb61904b22d54d50385db30272bb63455b700707",
+      "set": {
+        "url": "https://m365.cloud.microsoft/en-us/",
+        "description": "三次全新匿名浏览器首次加载均得到同一英文正文；验收只使用页面主体中稳定可见的文字。",
+        "task_prompt": "直接获取 Microsoft 365 英文首页当前可见的正文，保留这些在三次全新匿名浏览器首次加载中都出现的稳定文字：Work smarter across Microsoft 365；Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365.；Popular prompts to try；Jump into your favorite app；Bring Copilot and your work together in a focused desktop experience.。不点击子页面、不登录，也不把图片文字、控件标签、隐藏名称、网页标题或脚本文字当作正文。",
+        "reference_answer": "直接获取 Microsoft 365 英文首页当前可见的正文，保留这些在三次全新匿名浏览器首次加载中都出现的稳定文字：Work smarter across Microsoft 365；Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365.；Popular prompts to try；Jump into your favorite app；Bring Copilot and your work together in a focused desktop experience.。不点击子页面、不登录，也不把图片文字、控件标签、隐藏名称、网页标题或脚本文字当作正文。",
+        "ground_truth_main_content": "",
+        "ground_truth_evidence": [
+          {
+            "source": "https://m365.cloud.microsoft/en-us/",
+            "supports": "Five stable visible body anchors independently observed in three fresh anonymous browser loads on 2026-10-13."
+          }
+        ],
+        "source_verification": {
+          "state": "unavailable",
+          "checked_at": "2026-10-13",
+          "http_status": 200,
+          "method": "Three fresh anonymous browser initial-page observations; stable acceptance anchors only",
+          "selector": "main",
+          "reference_sha256": null,
+          "note": "The ranked domain now redirects to Microsoft 365. The explicit English route removes locale ambiguity; the retired cross-locale header and footer contract is not reused."
+        },
+        "required_facts": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-anchor-1",
+              "alternatives": [
+                "Work smarter across Microsoft 365"
+              ]
+            },
+            {
+              "id": "stable-anchor-2",
+              "alternatives": [
+                "Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365."
+              ]
+            },
+            {
+              "id": "stable-anchor-3",
+              "alternatives": [
+                "Popular prompts to try"
+              ]
+            },
+            {
+              "id": "stable-anchor-4",
+              "alternatives": [
+                "Jump into your favorite app"
+              ]
+            },
+            {
+              "id": "stable-anchor-5",
+              "alternatives": [
+                "Bring Copilot and your work together in a focused desktop experience."
+              ]
+            }
+          ]
+        },
+        "body_requirements": {},
+        "source_benchmark": {
+          "mode": "ranked_domain_homepage",
+          "rank_metadata_used_for_scoring": false,
+          "requested_ranked_domain": "cloud.microsoft",
+          "observed_final_url": "https://m365.cloud.microsoft/",
+          "stable_annotation": {
+            "registry": "popular-sites",
+            "content_kind": "landing_page",
+            "stable_fields": [
+              "task_related_visible_page_text"
+            ],
+            "structural_only_fields": [],
+            "anchor_evidence": null,
+            "anchor_evidence_sha256": null,
+            "record_requirement": "Every registered visible stable-text group is required.",
+            "task_decision_scope": "structure_and_explicit_stable_content",
+            "live_factual_correctness": null,
+            "note": "The current body anchors were independently observed. Participant output was not used. Controls, image text, hidden labels, document title, scripts and volatile values were excluded."
+          }
+        }
+      },
+      "evidence": {
+        "source": "https://m365.cloud.microsoft/en-us/",
+        "observed_at": "2026-10-13",
+        "observed_text": "Work smarter across Microsoft 365; Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365.; Popular prompts to try; Jump into your favorite app; Bring Copilot and your work together in a focused desktop experience.",
+        "regression_ids": [
+          "m365-current-english-body-passes",
+          "m365-retired-navigation-copy-does-not-pass"
+        ]
+      }
+    }
+  ]
+}

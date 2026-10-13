@@ -419,6 +419,20 @@ class AssembleWebfetchRefreshTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "must both be empty or nonempty"):
             expected_refresh_pairs(self.plan, self.canonical)
 
+    def test_input_changing_correction_requires_matched_all_method_rerun(self) -> None:
+        case_id = RERUN_CASES[0]
+        self.canonical["comparison"]["case_corrections"] = {
+            "path": "corrections.json",
+            "sha256": "0" * 64,
+            "rerun_all_methods": [case_id],
+        }
+        self.plan["main_matrix"]["matched_case_ids"].remove(case_id)
+        for group in self.plan["main_matrix"]["matched_case_reason_groups"]:
+            if case_id in group["case_ids"]:
+                group["case_ids"].remove(case_id)
+        with self.assertRaisesRegex(ValueError, "must rerun all methods"):
+            expected_refresh_pairs(self.plan, self.canonical)
+
     def test_refresh_scope_rejects_missing_reasons_and_bad_counts(self) -> None:
         self.plan["main_matrix"]["matched_case_reason_groups"][0]["reason"] = ""
         with self.assertRaisesRegex(ValueError, "empty matched case reason group"):

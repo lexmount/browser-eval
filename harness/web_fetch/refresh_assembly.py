@@ -160,6 +160,19 @@ def _expected_v2_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, st
         raise ValueError("Refresh plan has invalid pair_replacements")
     if not set(matched_cases) <= set(cases):
         raise ValueError("Refresh plan names a noncanonical case")
+    correction_reruns = (
+        canonical.get("comparison", {}).get("case_corrections", {}).get(
+            "rerun_all_methods", []
+        )
+    )
+    if (
+        not isinstance(correction_reruns, list)
+        or len(correction_reruns) != len(set(correction_reruns))
+        or not set(correction_reruns) <= set(matched_cases)
+    ):
+        raise ValueError(
+            "Every input-changing case correction must rerun all methods"
+        )
     if not set(full_providers) <= set(providers):
         raise ValueError("Refresh plan names a noncanonical provider")
     reasons = matrix.get("full_rerun_reason_by_provider")

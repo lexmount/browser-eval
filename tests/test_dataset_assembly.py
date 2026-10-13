@@ -36,19 +36,27 @@ def _fixture(tmp_path: Path) -> tuple[Path, dict]:
     _write(tmp_path / "profile.json", profile)
     sources = {
         "plain.json": {"cases": [{"id": "plain", "url": "https://example.test", "track": "web"}]},
-        "dynamic.json": {"cases": [{
-            "id": "frame", "url": "https://example.test/frame", "track": "dynamic",
-            "retrieval_hints": {"version": 3, "mode": "native"},
-        }]},
+        "dynamic.json": {
+            "cases": [
+                {
+                    "id": "frame",
+                    "url": "https://example.test/frame",
+                    "track": "dynamic",
+                    "retrieval_hints": {"version": 3, "mode": "native"},
+                }
+            ]
+        },
     }
     declarations = []
     for name, source in sources.items():
         _write(tmp_path / name, source)
-        declarations.append({
-            "path": name,
-            "sha256": hashlib.sha256((tmp_path / name).read_bytes()).hexdigest(),
-            "tracks": ["web" if name == "plain.json" else "dynamic"],
-        })
+        declarations.append(
+            {
+                "path": name,
+                "sha256": hashlib.sha256((tmp_path / name).read_bytes()).hexdigest(),
+                "tracks": ["web" if name == "plain.json" else "dynamic"],
+            }
+        )
     assembly = {
         "schema_version": 1,
         "kind": "profile_dataset_assembly",
@@ -67,13 +75,9 @@ def _fixture(tmp_path: Path) -> tuple[Path, dict]:
 
 def test_profile_dataset_assembly_preserves_native_contract(tmp_path):
     path, _assembly = _fixture(tmp_path)
-    dataset, raw = assemble_profile_dataset(
-        path, repository=tmp_path, require_output_hash=False
-    )
+    dataset, raw = assemble_profile_dataset(path, repository=tmp_path, require_output_hash=False)
     assert len(dataset["cases"]) == 2
-    assert dataset["cases"][1]["retrieval_hints"] == {
-        "version": 3, "mode": "native"
-    }
+    assert dataset["cases"][1]["retrieval_hints"] == {"version": 3, "mode": "native"}
     assert dataset["coverage_plan"] == {
         "web": ["lightpanda", "chromium"],
         "dynamic": ["lightpanda", "chromium"],
@@ -93,6 +97,161 @@ def test_profile_dataset_assembly_rejects_stale_source_and_wrong_owner(tmp_path)
     _write(path, changed)
     with pytest.raises(ValueError, match="track ownership"):
         assemble_profile_dataset(path, repository=tmp_path, require_output_hash=False)
+
+
+def test_profile_dataset_assembly_applies_hash_locked_case_corrections(tmp_path):
+    path, assembly = _fixture(tmp_path)
+    source_case = json.loads((tmp_path / "plain.json").read_text())["cases"][0]
+    definition_sha256 = hashlib.sha256(
+        json.dumps(source_case, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    corrections = {
+        "schema_version": 2,
+        "kind": "profile_case_corrections",
+        "cases": [
+            {
+                "case_id": "plain",
+                "execution_effect": "rescore_only",
+                "expected_definition_sha256": definition_sha256,
+                "set": {
+                    "ground_truth_main_content": "Current copy",
+                    "source_verification": {
+                        "state": "valid",
+                        "reference_sha256": hashlib.sha256(b"Current copy").hexdigest(),
+                    },
+                    "required_facts": [{"id": "current", "alternatives": ["Current copy"]}],
+                },
+                "evidence": {
+                    "source": "https://example.test",
+                    "observed_at": "2026-10-13",
+                    "observed_text": "Current copy",
+                    "regression_ids": [
+                        "example-current-body-passes",
+                        "example-retired-body-does-not-pass",
+                    ],
+                },
+            }
+        ],
+    }
+    _write(tmp_path / "corrections.json", corrections)
+    assembly["schema_version"] = 2
+    assembly["case_corrections"] = {
+        "path": "corrections.json",
+        "sha256": hashlib.sha256((tmp_path / "corrections.json").read_bytes()).hexdigest(),
+    }
+    _write(path, assembly)
+    dataset, _raw = assemble_profile_dataset(path, repository=tmp_path, require_output_hash=False)
+    assert dataset["cases"][0]["ground_truth_main_content"] == "Current copy"
+    assert dataset["cases"][0]["source_verification"]["state"] == "valid"
+    assert dataset["cases"][0]["required_facts"][0]["alternatives"] == ["Current copy"]
+    assert dataset["comparison"]["case_corrections"]["rerun_all_methods"] == []
+
+    corrections["cases"][0]["expected_definition_sha256"] = "0" * 64
+    _write(tmp_path / "corrections.json", corrections)
+    assembly["case_corrections"]["sha256"] = hashlib.sha256(
+        (tmp_path / "corrections.json").read_bytes()
+    ).hexdigest()
+    _write(path, assembly)
+    with pytest.raises(ValueError, match="correction input changed"):
+        assemble_profile_dataset(path, repository=tmp_path, require_output_hash=False)
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda row: row["set"].update({"provider": "favored-method"}),
+        lambda row: row["evidence"].pop("observed_at"),
+        lambda row: row["evidence"].update({"regression_ids": ["unknown-control"]}),
+    ],
+)
+def test_profile_dataset_assembly_rejects_unbounded_case_corrections(tmp_path, mutate):
+    path, assembly = _fixture(tmp_path)
+    source_case = json.loads((tmp_path / "plain.json").read_text())["cases"][0]
+    definition_sha256 = hashlib.sha256(
+        json.dumps(
+            source_case,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+    row = {
+        "case_id": "plain",
+        "execution_effect": "rescore_only",
+        "expected_definition_sha256": definition_sha256,
+        "set": {"required_facts": [{"id": "current", "alternatives": ["Current copy"]}]},
+        "evidence": {
+            "source": "https://example.test",
+            "observed_at": "2026-10-13",
+            "observed_text": "Current copy",
+            "regression_ids": [
+                "example-current-body-passes",
+                "example-retired-body-does-not-pass",
+            ],
+        },
+    }
+    mutate(row)
+    corrections = {
+        "schema_version": 2,
+        "kind": "profile_case_corrections",
+        "cases": [row],
+    }
+    _write(tmp_path / "corrections.json", corrections)
+    assembly["schema_version"] = 2
+    assembly["case_corrections"] = {
+        "path": "corrections.json",
+        "sha256": hashlib.sha256((tmp_path / "corrections.json").read_bytes()).hexdigest(),
+    }
+    _write(path, assembly)
+    with pytest.raises(ValueError):
+        assemble_profile_dataset(path, repository=tmp_path, require_output_hash=False)
+
+
+def test_input_changing_case_correction_requires_all_method_rerun(tmp_path):
+    path, assembly = _fixture(tmp_path)
+    source_case = json.loads((tmp_path / "plain.json").read_text())["cases"][0]
+    definition_sha256 = hashlib.sha256(
+        json.dumps(source_case, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    row = {
+        "case_id": "plain",
+        "execution_effect": "rescore_only",
+        "expected_definition_sha256": definition_sha256,
+        "set": {"url": "https://example.test/current"},
+        "evidence": {
+            "source": "https://example.test/current",
+            "observed_at": "2026-10-13",
+            "observed_text": "Current copy",
+            "regression_ids": [
+                "example-current-body-passes",
+                "example-retired-body-does-not-pass",
+            ],
+        },
+    }
+    corrections = {
+        "schema_version": 2,
+        "kind": "profile_case_corrections",
+        "cases": [row],
+    }
+    _write(tmp_path / "corrections.json", corrections)
+    assembly["schema_version"] = 2
+    assembly["case_corrections"] = {
+        "path": "corrections.json",
+        "sha256": hashlib.sha256((tmp_path / "corrections.json").read_bytes()).hexdigest(),
+    }
+    _write(path, assembly)
+    with pytest.raises(ValueError, match="bounded fields or evidence"):
+        assemble_profile_dataset(path, repository=tmp_path, require_output_hash=False)
+
+    row["execution_effect"] = "rerun_all_methods"
+    _write(tmp_path / "corrections.json", corrections)
+    assembly["case_corrections"]["sha256"] = hashlib.sha256(
+        (tmp_path / "corrections.json").read_bytes()
+    ).hexdigest()
+    _write(path, assembly)
+    dataset, _raw = assemble_profile_dataset(path, repository=tmp_path, require_output_hash=False)
+    assert dataset["cases"][0]["url"] == "https://example.test/current"
+    assert dataset["comparison"]["case_corrections"]["rerun_all_methods"] == ["plain"]
 
 
 def test_registered_430_assembly_uses_current_sources_and_four_contracts(tmp_path):
