@@ -273,27 +273,21 @@ def test_native_default_contract_must_be_valid(tmp_path):
         load_dataset(_write_dataset(tmp_path, case))
 
 
-def test_native_contract_can_declare_page_shape_and_subdocuments_without_answer_data():
-    case = {"id": "frame-shape", "track": "dynamic", "retrieval_hints": {
-        "version": 3, "mode": "native", "include_subdocuments": True,
-        "completion": {"frame_selector": "iframe.results", "selector": "article.record",
-                       "minimum_count": 12, "minimum_text_fragments": 2}}}
+def test_named_native_contract_resolves_a_source_bound_page_shape():
+    case = {"id": "dynamic-iframe", "track": "dynamic", "retrieval_hints": {
+        "version": 3, "mode": "native", "contract": "iframe-fourteen-family-headings"}}
     assert parse_retrieval_hints("dynamic", case["retrieval_hints"], identifier=case["id"]) is None
     contract = native_contract_for_case(case)
     assert contract.include_subdocuments is True
     plan = contract.completion_plan(45_000)
     assert plan.wait_kind == "script" and plan.timeout_ms == 45_000
-    assert "iframe.results" in plan.wait_value and "nodes.length >= 12" in plan.wait_value
+    assert "h3.family-name" in plan.wait_value and ".length >= 14" in plan.wait_value
 
 
-@pytest.mark.parametrize("mutation", [
-    {"answer_text": "known answer"}, {"domain": "example.test"},
-    {"case_id": "dynamic-special"}, {"timeout_ms": 45_000},
-])
-def test_native_completion_rejects_answers_identity_and_private_timers(mutation):
-    hints = {"version": 3, "mode": "native", "completion": {
-        "selector": ".record", "minimum_count": 2, **mutation}}
-    with pytest.raises(ValueError, match="native completion"):
+@pytest.mark.parametrize("field", ["completion", "include_subdocuments", "answer_text", "timeout_ms"])
+def test_native_dataset_rows_reject_inline_capabilities_and_answers(field):
+    hints = {"version": 3, "mode": "native", field: {"selector": ".record"}}
+    with pytest.raises(ValueError, match="native retrieval_hints"):
         parse_retrieval_hints("dynamic", hints, identifier="control")
 
 
@@ -306,11 +300,48 @@ def test_native_contract_rejects_unknown_or_non_native_fields(hints):
         parse_retrieval_hints("dynamic", hints)
 
 
-def test_native_frame_completion_requires_native_subdocument_output():
-    hints = {"version": 3, "mode": "native", "completion": {
-        "frame_selector": "iframe", "selector": "body", "minimum_count": 1}}
-    with pytest.raises(ValueError, match="include_subdocuments"):
-        parse_retrieval_hints("dynamic", hints, identifier="frame")
+def test_named_contract_is_bound_to_one_case_and_unknown_names_fail_closed():
+    with pytest.raises(ValueError, match="belongs to another case"):
+        parse_retrieval_hints("dynamic", {"version": 3, "mode": "native",
+            "contract": "iframe-fourteen-family-headings"}, identifier="another-case")
+    with pytest.raises(ValueError, match="unknown native retrieval contract"):
+        parse_retrieval_hints("dynamic", {"version": 3, "mode": "native",
+            "contract": "unknown-contract"}, identifier="another-case")
+
+
+@pytest.mark.parametrize("selector", [".answer", "#correct-answer"])
+def test_registry_rejects_answer_derived_selectors(tmp_path, monkeypatch, selector):
+    import harness.web_fetch.retrieval_hints as owner
+    registry = {"schema_version": 1, "contracts": {"answer-derived": {
+        "case_id": "control", "task_definition_sha256": "b" * 64,
+        "source_authority": {"path": "source.json",
+            "sha256": "a" * 64, "provider_output_used": False},
+        "capabilities": {"completion": {"selector": selector, "minimum_count": 1}}}}}
+    path = tmp_path / "registry.json"
+    path.write_text(json.dumps(registry))
+    monkeypatch.setattr(owner, "_CONTRACT_REGISTRY_PATH", path)
+    owner._native_contract_registry.cache_clear()
+    monkeypatch.setattr(owner, "_verify_task_definition", lambda *_: None)
+    monkeypatch.setattr(owner, "_verify_contract_source", lambda *_: None)
+    with pytest.raises(ValueError, match="answer-derived"):
+        owner.native_contract_for_case({"id": "control", "track": "dynamic",
+            "retrieval_hints": {"version": 3, "mode": "native", "contract": "answer-derived"}})
+    owner._native_contract_registry.cache_clear()
+
+
+def test_registry_source_hash_must_match_bound_external_bytes(tmp_path, monkeypatch):
+    import harness.web_fetch.retrieval_hints as owner
+    registry = json.loads(Path("evaluation/native-retrieval-contracts.json").read_text())
+    registry["contracts"]["delayed-ten-records"]["source_authority"]["sha256"] = "0" * 64
+    path = tmp_path / "registry.json"
+    path.write_text(json.dumps(registry))
+    monkeypatch.setattr(owner, "_CONTRACT_REGISTRY_PATH", path)
+    owner._native_contract_registry.cache_clear()
+    with pytest.raises(ValueError, match="source hash is not in the source manifest"):
+        owner.native_contract_for_case({"id": "dynamic-delayed", "track": "dynamic",
+            "retrieval_hints": {"version": 3, "mode": "native",
+                                "contract": "delayed-ten-records"}})
+    owner._native_contract_registry.cache_clear()
 
 
 def test_native_contract_does_not_waive_missing_dynamic_execution_contract():
@@ -332,12 +363,6 @@ def test_worker_accepts_explicit_native_dynamic_contract_without_injected_plan()
         "retrieval_hints": {"version": 3, "mode": "native"}}) is None
     with pytest.raises(ValueError, match="explicit native contract"):
         require_normalized_retrieval_plan({"track": "dynamic", "retrieval_plan": None})
-    with pytest.raises(ValueError, match="native completion"):
+    with pytest.raises(ValueError, match="native completion cannot carry"):
         require_normalized_retrieval_plan({"track": "dynamic", "retrieval_plan": {"selector": "body"},
             "retrieval_hints": {"version": 3, "mode": "native"}})
-    normalized = {"selector": ".record", "minimum_count": 2}
-    assert require_normalized_retrieval_plan({
-        "track": "dynamic", "retrieval_plan": normalized,
-        "retrieval_hints": {"version": 3, "mode": "native",
-                            "completion": {"selector": ".record", "minimum_count": 2}},
-    }) == normalized

@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "kind": "lightpanda_native_iframe_capability_probe",
+  "provider_calls": 0,
+  "implementation": {
+    "version": "1.0.0",
+    "binary_sha256": "955440053a84754dd64c62f970449a56a2b350cdf43ea5f2e809a73047b8173d"
+  },
+  "official_cli_help": {
+    "command": "lightpanda fetch --help",
+    "sha256": "dc18abddc11d455ed3e51251021603828f19989c74bc2751cb35f8f0b9511aa6",
+    "declared_flags": [
+      "--load-resources iframe",
+      "--with-frames"
+    ]
+  },
+  "fixture": {
+    "network": "127.0.0.1 only",
+    "parent_marker": "PARENT_READY",
+    "child_marker": "CHILD_FRAME_READY",
+    "matrix_sha256": "42f0af8fec947d503269181b4384ab16573b557189372564a50e89ca14f99859"
+  },
+  "observations": [
+    {
+      "dump": "semantic_tree_text",
+      "wait": "load",
+      "flags": [],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree_text",
+      "wait": "load",
+      "flags": [
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree_text",
+      "wait": "load",
+      "flags": [
+        "--load-resources",
+        "iframe"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree_text",
+      "wait": "load",
+      "flags": [
+        "--load-resources",
+        "iframe",
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree_text",
+      "wait": "done",
+      "flags": [],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree_text",
+      "wait": "done",
+      "flags": [
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree_text",
+      "wait": "done",
+      "flags": [
+        "--load-resources",
+        "iframe"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree_text",
+      "wait": "done",
+      "flags": [
+        "--load-resources",
+        "iframe",
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree",
+      "wait": "load",
+      "flags": [],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree",
+      "wait": "load",
+      "flags": [
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree",
+      "wait": "load",
+      "flags": [
+        "--load-resources",
+        "iframe"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree",
+      "wait": "load",
+      "flags": [
+        "--load-resources",
+        "iframe",
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree",
+      "wait": "done",
+      "flags": [],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree",
+      "wait": "done",
+      "flags": [
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree",
+      "wait": "done",
+      "flags": [
+        "--load-resources",
+        "iframe"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "semantic_tree",
+      "wait": "done",
+      "flags": [
+        "--load-resources",
+        "iframe",
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "html",
+      "wait": "load",
+      "flags": [],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "html",
+      "wait": "load",
+      "flags": [
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "html",
+      "wait": "load",
+      "flags": [
+        "--load-resources",
+        "iframe"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "html",
+      "wait": "load",
+      "flags": [
+        "--load-resources",
+        "iframe",
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": true
+    },
+    {
+      "dump": "html",
+      "wait": "done",
+      "flags": [],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "html",
+      "wait": "done",
+      "flags": [
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "html",
+      "wait": "done",
+      "flags": [
+        "--load-resources",
+        "iframe"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "html",
+      "wait": "done",
+      "flags": [
+        "--load-resources",
+        "iframe",
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": true
+    },
+    {
+      "dump": "markdown",
+      "wait": "load",
+      "flags": [],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "markdown",
+      "wait": "load",
+      "flags": [
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "markdown",
+      "wait": "load",
+      "flags": [
+        "--load-resources",
+        "iframe"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "markdown",
+      "wait": "load",
+      "flags": [
+        "--load-resources",
+        "iframe",
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "markdown",
+      "wait": "done",
+      "flags": [],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "markdown",
+      "wait": "done",
+      "flags": [
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "markdown",
+      "wait": "done",
+      "flags": [
+        "--load-resources",
+        "iframe"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    },
+    {
+      "dump": "markdown",
+      "wait": "done",
+      "flags": [
+        "--load-resources",
+        "iframe",
+        "--with-frames"
+      ],
+      "returncode": 0,
+      "child_marker_present": false
+    }
+  ],
+  "conclusion": "Loading the iframe and including frame serialization are separate native controls. Both flags expose the child in native HTML; Lightpanda 1.0.0 native Markdown still omits it, so the benchmark must not claim successful iframe Markdown support merely because both flags were sent."
+}

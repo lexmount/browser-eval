@@ -9,7 +9,7 @@
     ]
   },
   "dataset": "dataset.json",
-  "dataset_sha256": "1f3268366b17d490c85b75fbda329e5b3e6143d0a058523c1cad8a73ed916278",
+  "dataset_sha256": "0da2bb30aaabe3ca2b93ec17b4cb88cdc1cf3ea46336bb3777fdb21c1f211b84",
   "case_count": 100,
   "cases": [
     {
@@ -159,7 +159,7 @@
       "category": "dynamic_content",
       "track": "dynamic",
       "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
-      "definition_sha256": "590812f60d9eebe4db53ef19036d4bcb8d39c2a5e727a5cfcac729b0d444ec1c",
+      "definition_sha256": "cfd57dd7273d49da4a9792c5802eaab43969d1cf3412f85c55f377f397861187",
       "reference_sha256": "7d03bf2e3f739f5ac451815a0bba26082210da0d995c26516c87288f813df5c9"
     },
     {
@@ -429,7 +429,7 @@
       "category": "dynamic_content",
       "track": "dynamic",
       "task_prompt": "提取声明 URL 首次自动加载完成后的目标正文；不得登录、点击、输入、搜索、滚动、翻页或接受同意墙。排除导航、广告、推荐、页脚、Cookie、登录和订阅提示。",
-      "definition_sha256": "60177d04d06bc3bcf4ca43fddde548cc03f382e541b66bb1fe37bb978ad4c819",
+      "definition_sha256": "f3dfb5832ac20c50a2246db9991fa255594a126ae0a8f4ad584e2434c269b60e",
       "reference_sha256": "9429d55770b19f44d152aaeae72630e567326e675ae712f22844b86a54817c3b"
     },
     {
@@ -659,7 +659,7 @@
       "category": "delayed_render",
       "track": "dynamic",
       "task_prompt": "读取初次自动加载完成后的 10 条记录，保留全部文字字段；不要求滚动、翻页或点击。允许渲染、解析内嵌数据或获取公开接口，不限制实现路径。",
-      "definition_sha256": "9af86098b6303bf838ae58438322b5ab38d6de51ddd8f0585c014376d64f68c0",
+      "definition_sha256": "fb358c76b50d670d547bc8a4b86839bc1cfbd6c343f289d13cfc33aa57d2fd5b",
       "reference_sha256": "1b0d230de9e4e8f91674cd3db383c68b17519c94da70b6d1dda382848fae4780"
     },
     {
@@ -719,7 +719,7 @@
       "category": "embedded_frame",
       "track": "dynamic",
       "task_prompt": "父页自动加载的 iframe 中全部 14 个龟类科名称；不进入详情，不要求图片或按钮文字。允许渲染、解析内嵌数据、加载子文档或获取公开接口，不限制实现路径。",
-      "definition_sha256": "f9d3f2e96fa994b41f30d1c0eae566ff7357476b50ecff2c3555a5533e090370",
+      "definition_sha256": "d612b823798a1e3409a30c407a1e7cb52b22e7f4cf98608ed6095c1e3d164222",
       "reference_sha256": "e4183696f6e74f9016c0668ee9809eb2fe7b03c244bfdae2231d8e1a1326f9ca"
     },
     {

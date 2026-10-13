@@ -165,11 +165,10 @@ class HeadlessTests(unittest.TestCase):
     def test_lightpanda_receives_shared_native_frame_contract(self):
         provider = HeadlessProvider('lightpanda', {
             'type': 'headless_markdown', 'engine': 'lightpanda', 'binary': '/lightpanda'})
-        case = EvalCase('frame', 'Frame', 'https://example.com/', 'dynamic', [],
+        case = EvalCase('dynamic-iframe', 'Frame', 'https://example.com/', 'dynamic', [],
             track='dynamic', retrieval_hints={
-                'version': 3, 'mode': 'native', 'include_subdocuments': True,
-                'completion': {'frame_selector': 'iframe.results', 'selector': 'article.record',
-                               'minimum_count': 2}})
+                'version': 3, 'mode': 'native',
+                'contract': 'iframe-fourteen-family-headings'})
         raw = json.dumps({'ok': True, 'content': 'native frame body', 'metadata': {}}).encode()
         identity = {'binary_sha256': 'a' * 64, 'reported_version': 'lightpanda fixture',
                     'version_probe_error': None}
@@ -178,16 +177,18 @@ class HeadlessTests(unittest.TestCase):
             result = provider.fetch(case, 45)
         request = worker.call_args.args[1]
         self.assertTrue(request['include_subdocuments'])
-        self.assertIn('iframe.results', request['retrieval_plan']['wait_value'])
-        self.assertEqual(result.metadata['subdocuments']['interface'], '--with-frames')
+        self.assertIn('h3.family-name', request['retrieval_plan']['wait_value'])
+        self.assertEqual(result.metadata['subdocuments']['interface'],
+                         '--load-resources iframe + --with-frames')
+        self.assertEqual(result.metadata['subdocuments']['support'],
+                         'native_markdown_omits_child_document')
         self.assertFalse(result.metadata['subdocuments']['harness_content_assembly'])
 
     def test_engines_without_native_frame_markdown_do_not_assemble_child_content(self):
-        case = EvalCase('frame', 'Frame', 'https://example.com/', 'dynamic', [],
+        case = EvalCase('dynamic-iframe', 'Frame', 'https://example.com/', 'dynamic', [],
             track='dynamic', retrieval_hints={
-                'version': 3, 'mode': 'native', 'include_subdocuments': True,
-                'completion': {'frame_selector': 'iframe', 'selector': 'body',
-                               'minimum_count': 1}})
+                'version': 3, 'mode': 'native',
+                'contract': 'iframe-fourteen-family-headings'})
         raw = json.dumps({'ok': True, 'content': 'outer document only', 'metadata': {}}).encode()
         identity = {'binary_sha256': 'a' * 64, 'reported_version': 'fixture',
                     'version_probe_error': None}
@@ -523,11 +524,26 @@ class HeadlessTests(unittest.TestCase):
             command = cli_command(engine, '/' + engine, 'https://example.com/', 5,
                                   'markdown', include_subdocuments=True)
             self.assertEqual(command.count('--with-frames'), 1)
+            if engine == 'lightpanda':
+                self.assertEqual(command[command.index('--load-resources') + 1], 'iframe')
+            else:
+                self.assertNotIn('--load-resources', command)
             self.assertNotIn('--eval', command)
         obscura = cli_command('obscura', '/obscura', 'https://example.com/', 5,
                               'markdown', include_subdocuments=True)
         self.assertNotIn('--with-frames', obscura)
         self.assertNotIn('--eval', obscura)
+
+    def test_lightpanda_iframe_capability_receipt_does_not_overclaim_markdown(self):
+        receipt = json.loads(Path(
+            'research/lightpanda-100-native-iframe-capability.json').read_text())
+        self.assertEqual(receipt['provider_calls'], 0)
+        observations = receipt['observations']
+        both = ['--load-resources', 'iframe', '--with-frames']
+        self.assertTrue(any(row['dump'] == 'html' and row['flags'] == both
+                            and row['child_marker_present'] for row in observations))
+        self.assertTrue(all(not row['child_marker_present']
+                            for row in observations if row['dump'] == 'markdown'))
 
     def test_obscura_loopback_fixture_requires_explicit_private_network_flag(self):
         command = cli_command(

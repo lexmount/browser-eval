@@ -248,6 +248,8 @@ def cli_command(
         common = [binary, 'fetch', '--dump', 'markdown']
         if include_subdocuments and engine in {'moli', 'lightpanda'}:
             common.append('--with-frames')
+            if engine == 'lightpanda':
+                common += ['--load-resources', 'iframe']
         if http_proxy:
             common += ['--http-proxy', http_proxy]
         common += completion or ['--wait-until', wait_until or 'done']
@@ -526,11 +528,22 @@ class HeadlessProvider(Provider):
                 if retrieval_plan else timeout * 1000
             )
         if include_subdocuments:
-            supported = engine in {'moli', 'lightpanda'} and output_mode == 'markdown'
+            interface = (
+                '--load-resources iframe + --with-frames'
+                if engine == 'lightpanda' and output_mode == 'markdown'
+                else '--with-frames'
+                if engine == 'moli' and output_mode == 'markdown'
+                else None
+            )
             metadata['subdocuments'] = {
                 'requested': True,
-                'support': 'native' if supported else 'unsupported',
-                'interface': '--with-frames' if supported else None,
+                'support': (
+                    'native' if engine == 'moli' and interface
+                    else 'native_markdown_omits_child_document'
+                    if engine == 'lightpanda' and interface
+                    else 'unsupported'
+                ),
+                'interface': interface,
                 'harness_content_assembly': False,
             }
         if engine == 'kitesurf' and output_mode == 'markdown' and resource_interval is None:

@@ -474,11 +474,8 @@ def test_kitesurf_native_dynamic_completion_uses_ordinary_url_route(mock_request
 def test_kitesurf_maps_shared_completion_but_discloses_missing_frame_output(mock_request):
     from dataclasses import replace
     mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"outer page"}')
-    case = replace(dynamic_case(), retrieval_hints={
-        "version": 3, "mode": "native", "include_subdocuments": True,
-        "completion": {"frame_selector": "iframe", "selector": ".record",
-                       "minimum_count": 2},
-    })
+    case = replace(dynamic_case(), id="dynamic-iframe", retrieval_hints={
+        "version": 3, "mode": "native", "contract": "iframe-fourteen-family-headings"})
     result = CloudflareMarkdownProvider("kitesurf", {
         "api_token": "x", "account_id": "a", "browser": "kitesurf"
     }).fetch(case, 45)
@@ -495,17 +492,15 @@ def test_kitesurf_maps_shared_completion_but_discloses_missing_frame_output(mock
 def test_kitesurf_shared_completion_keeps_product_default_internal_timers(mock_request):
     from dataclasses import replace
     mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"records"}')
-    case = replace(dynamic_case(), retrieval_hints={
-        "version": 3, "mode": "native",
-        "completion": {"selector": ".record", "minimum_count": 10},
-    })
+    case = replace(dynamic_case(), id="dynamic-delayed", retrieval_hints={
+        "version": 3, "mode": "native", "contract": "delayed-ten-records"})
     result = CloudflareMarkdownProvider("kitesurf", {
         "api_token": "x", "account_id": "a", "browser": "kitesurf",
         "uniform_native_parameters": True,
     }).fetch(case, 45)
     assert result.ok
     body = mock_request.call_args.kwargs["json_body"]
-    assert body["waitForSelector"] == {"selector": ".record"}
+    assert body["waitForSelector"] == {"selector": ".quote"}
     assert "timeout" not in body["gotoOptions"]
     assert "actionTimeout" not in body
     assert result.metadata["wait"]["timeout_ms"] is None

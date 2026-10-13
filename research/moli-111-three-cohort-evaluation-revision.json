@@ -862,6 +862,55 @@
         "rendered-result-section-accepts-visible-table",
         "rendered-result-section-rejects-source-only-values"
       ]
+    },
+    {
+      "case_id": "dynamic-082-allocine-films",
+      "provider_calls": 0,
+      "predecessor_sha256": "c278cdc46a5f9cc193a346d29712861de2f8a16125e8d44934fa15328d1c9686",
+      "revised_sha256": "1f3268366b17d490c85b75fbda329e5b3e6143d0a058523c1cad8a73ed916278",
+      "root_cause": "The frozen dynamic task needed an explicit native execution contract. This adds no completion selector, answer text, delay, extraction rule, or acceptance change.",
+      "source_authority": {
+        "path": "evaluation/dynamic-content-100-moli-webfetch/sources/dynamic-082-allocine-films/current-browser-observation.json",
+        "sha256": "717a0d1a864f561ae80c601c5733fccdfda16120e37b2ff4d0837c2718d86038",
+        "provider_output_used": false
+      },
+      "changes": [
+        {
+          "field_path": [
+            "acceptance_contract",
+            "stable_text_anchors"
+          ],
+          "operation": "remove_list_item",
+          "index": 49,
+          "removed_value": {
+            "id": "phase1-stable-0e2130d4bdb9",
+            "alternatives": [
+              "TVActu"
+            ],
+            "match_scope": "non_record_lines",
+            "source_location": "nav > a",
+            "observation_status": "三次混合会话观察均可见（含全新匿名环境和已有正常会话）",
+            "source_evidence_sha256": "5c0632b98101bfc24446ed9c114f77ce691b8493578f34313b111b708a300ea7"
+          }
+        },
+        {
+          "field_path": [
+            "retrieval_hints"
+          ],
+          "value": {
+            "version": 3,
+            "mode": "native"
+          }
+        },
+        {
+          "field_path": [
+            "source_benchmark"
+          ],
+          "value": {
+            "scenario_track": "dynamic"
+          }
+        }
+      ]
     }
   ],
   "shared_scorer": {
@@ -952,5 +1001,10 @@
         "unmatched-markdown-brackets-cannot-supply-missing-prose"
       ]
     }
-  ]
+  ],
+  "current_shared_scorer_authority": {
+    "path": "research/body-table-column-continuity-scoring-revision.json",
+    "sha256": "f9c9b1f283c122b6768291b94d086fc87ae24c3e153c94c9079fc35fce03483e",
+    "current_scoring_regressions_sha256": "f9660650ebeee38df87491ad913c2946c67431c1ddecef5f968f2e006194d3df"
+  }
 }

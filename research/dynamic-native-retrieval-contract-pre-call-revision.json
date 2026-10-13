@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "kind": "dynamic_native_retrieval_contract_pre_call_revision",
+  "created_at": "2026-10-13T16:03:40+08:00",
+  "provider_calls": 0,
+  "predecessor_dataset_sha256": "1f3268366b17d490c85b75fbda329e5b3e6143d0a058523c1cad8a73ed916278",
+  "revised_dataset_sha256": "0da2bb30aaabe3ca2b93ec17b4cb88cdc1cf3ea46336bb3777fdb21c1f211b84",
+  "dataset_manifest": {
+    "path": "evaluation/dynamic-content-100-moli-webfetch/source-inputs.json",
+    "sha256": "710f9c91705b29bb9e4aa15af97dcc856e64e406baa4b9966446408d7e3d26a8"
+  },
+  "dataset_catalog": {
+    "path": "evaluation/dynamic-content-100-moli-webfetch/dataset-catalog.json",
+    "sha256": "ca1572aa80fc2324b2f00800a79b053cfd584d1831ffb16e6906ae0981522c6c"
+  },
+  "contract_registry": {
+    "path": "evaluation/native-retrieval-contracts.json",
+    "sha256": "b54e31b9b1872cc126935c8e078611249d9cc2c5c17cf5a4cf49290990095132"
+  },
+  "changed_cases": [
+    {
+      "case_id": "dynamic-015-015-testpages-iframe-list",
+      "contract": "iframe-list-one-hundred-items"
+    },
+    {
+      "case_id": "dynamic-019-selenium-dev-selenium",
+      "contract": "iframe-one-form"
+    },
+    {
+      "case_id": "dynamic-iframe",
+      "contract": "iframe-fourteen-family-headings"
+    },
+    {
+      "case_id": "dynamic-delayed",
+      "contract": "delayed-ten-records"
+    }
+  ],
+  "execution_effect": {
+    "provider_request_changed": true,
+    "ordinary_native_cases_changed": false,
+    "required_new_calls": {
+      "methods": 6,
+      "cases_per_method": 4,
+      "physical_calls": 24
+    },
+    "reason": "The four contracts change native completion or subdocument flags; saved calls made without those inputs cannot represent the revised route."
+  },
+  "acceptance_effect": {
+    "answers_changed": false,
+    "scoring_changed": false,
+    "task_scope_changed": false
+  }
+}

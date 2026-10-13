@@ -35,6 +35,19 @@ class ProviderRequestContractTests(unittest.TestCase):
         }
         self.assertEqual(_provider_request_contract(case, "crawl4ai"), case)
 
+    def test_named_native_contract_changes_only_its_declared_case_request(self):
+        ordinary = {"id": "ordinary", "url": "https://example.test/",
+                    "retrieval_hints": {"version": 3, "mode": "native"}}
+        self.assertEqual(_provider_request_contract(ordinary, "moli-webfetch"), ordinary)
+        before = {"id": "dynamic-delayed", "url": "https://example.test/",
+                  "retrieval_hints": {"version": 3, "mode": "native"}}
+        after = {**before, "retrieval_hints": {"version": 3, "mode": "native",
+                                                "contract": "delayed-ten-records"}}
+        for provider in ("moli-webfetch", "moli-pr919-webfetch", "lightpanda",
+                         "obscura", "chromium", "kitesurf"):
+            self.assertNotEqual(_provider_request_contract(before, provider),
+                                _provider_request_contract(after, provider))
+
 
 if __name__ == "__main__":
     unittest.main()

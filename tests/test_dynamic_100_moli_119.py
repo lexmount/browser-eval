@@ -17,6 +17,21 @@ DATASET_PATH = ROOT / "evaluation/dynamic-content-100-moli-webfetch/dataset.json
 RECEIPT_PATH = ROOT / "research/dynamic-100-moli-119-local-audit.json"
 COMPATIBILITY_PATH = ROOT / "research/dynamic-100-moli-119-risk-scorer-compatibility.json"
 REVISION_PATH = ROOT / "research/moli-111-three-cohort-evaluation-revision.json"
+PRE_CALL_PATH = ROOT / "research/dynamic-native-retrieval-contract-pre-call-revision.json"
+
+
+def _authority_binding(path):
+    path = Path(path)
+    if path.parts[:2] == ("evaluation", "dynamic-content-100-moli-webfetch"):
+        owner = ROOT / "evaluation/dynamic-content-100-moli-webfetch"
+        tree = path.parts[2]
+        relative = Path(*path.parts[3:])
+    else:
+        owner = ROOT / "evaluation"
+        tree = path.parts[1]
+        relative = Path(*path.parts[2:])
+    manifest = json.loads((owner / "source-inputs.json").read_text())
+    return owner, tree, relative, manifest["trees"][tree][relative.as_posix()]
 
 
 def _dataset():
@@ -36,18 +51,31 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert revision["provider_calls_for_revision"] == 0
     assert revision["dynamic_dataset"]["historical_sha256"] == receipt["bindings"]["dataset_sha256"]
     historical = read_frozen_dataset_bytes(DATASET_PATH).decode("utf-8")
+    pre_call = json.loads(PRE_CALL_PATH.read_text())
+    assert pre_call["provider_calls"] == 0
+    for binding in ("dataset_manifest", "dataset_catalog", "contract_registry"):
+        item = pre_call[binding]
+        assert hashlib.sha256((ROOT / item["path"]).read_bytes()).hexdigest() == item["sha256"]
+    assert pre_call["execution_effect"]["required_new_calls"] == {
+        "methods": 6, "cases_per_method": 4, "physical_calls": 24}
+    assert hashlib.sha256(historical.encode()).hexdigest() == pre_call["revised_dataset_sha256"]
+    current_dataset = json.loads(historical)
+    for row in pre_call["changed_cases"]:
+        case = next(c for c in current_dataset["cases"] if c["id"] == row["case_id"])
+        assert case.pop("retrieval_hints") == {
+            "version": 3, "mode": "native", "contract": row["contract"]}
+    historical = json.dumps(current_dataset, ensure_ascii=False, indent=2) + "\n"
+    assert hashlib.sha256(historical.encode()).hexdigest() == pre_call["predecessor_dataset_sha256"]
     expected_hash=revision['dynamic_dataset']['revised_sha256']
     for followup in revision.get('dynamic_dataset_followups',[]):
         assert followup['predecessor_sha256']==expected_hash
         assert followup['provider_calls']==0
         assert followup['source_authority']['provider_output_used'] is False
-        authority_path = Path(followup['source_authority']['path'])
-        tree = authority_path.parts[1]
-        relative = authority_path.relative_to('evaluation', tree).as_posix()
-        manifest = json.loads((ROOT / 'evaluation/source-inputs.json').read_text())
-        assert manifest['trees'][tree][relative] == followup['source_authority']['sha256']
+        _, _, _, bound = _authority_binding(followup['source_authority']['path'])
+        assert bound == followup['source_authority']['sha256']
         expected_hash=followup['revised_sha256']
-    assert hashlib.sha256(read_frozen_dataset_bytes(DATASET_PATH)).hexdigest()==expected_hash
+    assert hashlib.sha256(historical.encode()).hexdigest() == expected_hash
+    assert hashlib.sha256(read_frozen_dataset_bytes(DATASET_PATH)).hexdigest() == pre_call["revised_dataset_sha256"]
     for followup in reversed(revision.get('dynamic_dataset_followups',[])):
         case=next(c for c in cases if c['id']==followup['case_id'])
         changes = followup.get('changes') or [{
@@ -63,6 +91,10 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
                 current = current[key]
                 restored = restored[key]
             leaf = change['field_path'][-1]
+            if change.get('operation') == 'remove_list_item':
+                assert change['removed_value'] not in current[leaf]
+                restored[leaf].insert(change['index'], change['removed_value'])
+                continue
             assert current[leaf] == change['value']
             if 'previous_value' in change:
                 restored[leaf] = change['previous_value']
@@ -96,9 +128,15 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
                    for row in revision['shared_scorer_followups'])
         assert set(parallel['regression_ids']) <= set(scorer_revision['regression_ids'])
     assert scorer_revision["main_baseline_sha256"] == compatibility["bindings"]["scoring_source_sha256"]
-    assert scorer_revision["revised_sha256"] == SCORING_SOURCE_SHA256
-    assert scorer_revision["scoring_regressions_sha256"] == hashlib.sha256(
+    successor = revision["current_shared_scorer_authority"]
+    successor_path = ROOT / successor["path"]
+    assert hashlib.sha256(successor_path.read_bytes()).hexdigest() == successor["sha256"]
+    successor_receipt = json.loads(successor_path.read_text())
+    assert successor_receipt["provider_calls"] == 0
+    assert successor_receipt["scorer_binding"]["revised_scoring_source_sha256"] == SCORING_SOURCE_SHA256
+    assert successor["current_scoring_regressions_sha256"] == hashlib.sha256(
         (ROOT / "evaluation/scoring-regressions.json").read_bytes()).hexdigest()
+    assert set(successor_receipt["correction_provenance"]["regression_ids"]) <= set(controls)
     assert set(scorer_revision["regression_ids"]) <= set(controls)
     modes = {}
     for identifier in scorer_revision["regression_ids"]:
@@ -154,18 +192,20 @@ def test_dynamic_followup_reference_values_match_bound_external_source():
     require_historical_inputs()
     revision = json.loads(REVISION_PATH.read_text())
     for followup in revision.get('dynamic_dataset_followups', []):
-        authority_path = Path(followup['source_authority']['path'])
-        tree = authority_path.parts[1]
-        relative = authority_path.relative_to('evaluation', tree)
-        authority = input_tree(ROOT / 'evaluation/dataset.json', tree) / relative
+        owner, tree, relative, _ = _authority_binding(followup['source_authority']['path'])
+        dataset = DATASET_PATH if owner.name == "dynamic-content-100-moli-webfetch" else ROOT / "evaluation/dataset.json"
+        authority = input_tree(dataset, tree) / relative
         assert hashlib.sha256(authority.read_bytes()).hexdigest() == followup['source_authority']['sha256']
         record = json.loads(authority.read_text())
-        assert record['provider_output_used'] is False
+        assert record.get('provider_output_used', False) is False
         if 'value' in followup:
             assert record['expected_final_url'] == followup['value']
-        else:
+        elif followup['case_id'] == 'dynamic-069-ja-nintendo-search':
             assert record['rendered_valid_record_counts'] == [10, 10, 10]
             assert record['minimum_records'] == 8
+        else:
+            assert record['case_id'] == followup['case_id']
+            assert record['independent'] is True
 
 
 def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monkeypatch):
@@ -205,13 +245,17 @@ def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monke
 
 
 def test_dynamic_100_contracts_are_valid_and_do_not_configure_provider_waits():
+    registered = json.loads((ROOT / "evaluation/native-retrieval-contracts.json").read_text())["contracts"]
     for case in _dataset()["cases"]:
         validate_acceptance_contract(case["acceptance_contract"])
         serialized = json.dumps(case, ensure_ascii=False).lower()
         assert "wait_for_selector" not in serialized
         assert "wait_after_load_ms" not in serialized
         assert "extraction_script" not in serialized
-        assert "retrieval_hints" not in serialized
+        hints = case.get("retrieval_hints")
+        if hints and "contract" in hints:
+            assert hints["contract"] in registered
+            assert registered[hints["contract"]]["case_id"] == case["id"]
 
 
 def test_native_moli_report_describes_the_frozen_uniform_call():

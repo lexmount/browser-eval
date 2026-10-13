@@ -164,8 +164,13 @@ selector-guided retrieval hints rather than dropping them.
 Dynamic task families stay `dynamic`: the explicit
 `retrieval_hints: {"version": 3, "mode": "native"}` contract selects each
 provider's ordinary completion without injecting selectors, extraction hints or
-extra waits. It accepts no other fields. Selecting native mode again preserves
-this marker unchanged; the runner validates it through the same strict parser.
+extra waits. A small number of independently qualified page shapes may add only
+`"contract": "<registered-name>"`. The shared registry in
+`evaluation/native-retrieval-contracts.json` binds each name to one case and one
+hash-verified source observation. Dataset rows cannot carry selectors, counts,
+delays or answer text directly; unknown names and names used by another case fail
+closed. Selecting native mode again preserves either form unchanged, and the
+runner validates it through the same strict parser.
 Version 1/2 selector-guided contracts keep their existing meaning.
 The diagnostic report accepts a `webfetch_diagnostic_inputs/1` manifest naming
 complete runs, independently captured whole-page observations and hash-bound

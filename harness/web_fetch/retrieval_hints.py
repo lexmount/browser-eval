@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 _WAIT_UNTIL = {"domcontentloaded", "load", "networkidle"}
@@ -19,6 +22,53 @@ _SAFE_SELECTOR = re.compile(
     r"(?:(?:[.#][A-Za-z_][A-Za-z0-9_-]*)|"
     r"(?:\s*>\s*|\s+)(?:[A-Za-z][A-Za-z0-9_-]*|[.#][A-Za-z_][A-Za-z0-9_-]*))*$"
 )
+_CONTRACT_NAME = re.compile(r"^[a-z][a-z0-9-]{2,80}$")
+_CONTRACT_REGISTRY_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "evaluation/native-retrieval-contracts.json"
+)
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+_ANSWER_SELECTOR = re.compile(r"(?:^|[.#_-])(answer|correct-answer)(?:$|[.#_-])", re.I)
+
+
+@lru_cache(maxsize=1)
+def _native_contract_registry() -> dict[str, Any]:
+    registry = json.loads(_CONTRACT_REGISTRY_PATH.read_text(encoding="utf-8"))
+    if registry.get("schema_version") != 1 or not isinstance(registry.get("contracts"), dict):
+        raise ValueError("Native retrieval contract registry is invalid")
+    return registry
+
+
+@lru_cache(maxsize=None)
+def _verify_contract_source(path: str, expected_sha256: str) -> None:
+    prefix = Path("evaluation/sources")
+    authority = Path(path)
+    try:
+        relative = authority.relative_to(prefix)
+    except ValueError as error:
+        raise ValueError("Native retrieval contract source must belong to evaluation/sources") from error
+    manifest = json.loads((_REPOSITORY_ROOT / "evaluation/source-inputs.json").read_text())
+    if manifest.get("trees", {}).get("sources", {}).get(relative.as_posix()) != expected_sha256:
+        raise ValueError("Native retrieval contract source hash is not in the source manifest")
+    source = _verified_source_tree() / relative
+    if hashlib.sha256(source.read_bytes()).hexdigest() != expected_sha256:
+        raise ValueError("Native retrieval contract source bytes do not match the declared hash")
+
+
+@lru_cache(maxsize=None)
+def _verify_task_definition(identifier: str, expected_sha256: str) -> None:
+    catalog = json.loads((_REPOSITORY_ROOT /
+        "evaluation/dynamic-content-100-moli-webfetch/dataset-catalog.json").read_text())
+    declared = next((case for case in catalog.get("cases", [])
+                     if case.get("id") == identifier), None)
+    if declared is None or declared.get("definition_sha256") != expected_sha256:
+        raise ValueError("Native retrieval contract task definition hash is not in the dataset catalog")
+
+
+@lru_cache(maxsize=1)
+def _verified_source_tree() -> Path:
+    from .reference_inputs import input_tree
+    return input_tree(_REPOSITORY_ROOT / "evaluation/dataset.json", "sources")
 
 
 def native_fetch_dataset(dataset: dict) -> dict:
@@ -216,7 +266,7 @@ def parse_retrieval_hints(
             raise ValueError(
                 f"{identifier}: native retrieval_hints must use version=3 and mode=native"
             )
-        allowed = {"version", "mode", "include_subdocuments", "completion"}
+        allowed = {"version", "mode", "contract"}
         if set(hints) - allowed:
             raise ValueError(
                 f"{identifier}: native retrieval_hints contain unsupported fields"
@@ -356,12 +406,43 @@ def parse_retrieval_hints(
 def _parse_native_contract(
     hints: Mapping[str, Any], *, identifier: str
 ) -> NativeRetrievalContract:
-    include_subdocuments = hints.get("include_subdocuments", False)
+    name = hints.get("contract")
+    if name is None:
+        return NativeRetrievalContract()
+    if not isinstance(name, str) or not _CONTRACT_NAME.fullmatch(name):
+        raise ValueError(f"{identifier}: retrieval_hints.contract is invalid")
+    registry = _native_contract_registry()
+    declared = registry["contracts"].get(name)
+    if not isinstance(declared, Mapping):
+        raise ValueError(f"{identifier}: unknown native retrieval contract {name!r}")
+    if declared.get("case_id") != identifier:
+        raise ValueError(f"{identifier}: native retrieval contract belongs to another case")
+    definition_sha256 = declared.get("task_definition_sha256")
+    if not isinstance(definition_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", definition_sha256):
+        raise ValueError(f"{identifier}: native retrieval contract task binding is invalid")
+    _verify_task_definition(identifier, definition_sha256)
+    authority = declared.get("source_authority")
+    if (
+        not isinstance(authority, Mapping)
+        or not isinstance(authority.get("path"), str)
+        or not re.fullmatch(r"[0-9a-f]{64}", str(authority.get("sha256", "")))
+        or authority.get("provider_output_used") is not False
+    ):
+        raise ValueError(f"{identifier}: native retrieval contract source binding is invalid")
+    _verify_contract_source(authority["path"], authority["sha256"])
+    capabilities = declared.get("capabilities")
+    if not isinstance(capabilities, Mapping):
+        raise ValueError(f"{identifier}: native retrieval contract capabilities are invalid")
+    if set(declared) != {"case_id", "task_definition_sha256", "source_authority", "capabilities"}:
+        raise ValueError(f"{identifier}: native retrieval contract contains unsupported fields")
+    if set(capabilities) - {"include_subdocuments", "completion"}:
+        raise ValueError(f"{identifier}: native retrieval contract capabilities are unsupported")
+    include_subdocuments = capabilities.get("include_subdocuments", False)
     if not isinstance(include_subdocuments, bool):
         raise ValueError(
             f"{identifier}: retrieval_hints.include_subdocuments must be a boolean"
         )
-    completion = hints.get("completion")
+    completion = capabilities.get("completion")
     if completion is None:
         return NativeRetrievalContract(include_subdocuments=include_subdocuments)
     if not isinstance(completion, Mapping):
@@ -382,6 +463,10 @@ def _parse_native_contract(
         if "frame_selector" in completion
         else None
     )
+    if _ANSWER_SELECTOR.search(selector) or (
+        frame_selector is not None and _ANSWER_SELECTOR.search(frame_selector)
+    ):
+        raise ValueError(f"{identifier}: native retrieval contract selector is answer-derived")
     minimum_count = _integer(
         identifier, "minimum_count", completion["minimum_count"], minimum=1, maximum=1000
     )

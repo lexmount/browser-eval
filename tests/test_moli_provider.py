@@ -625,15 +625,12 @@ class MoliTests(unittest.TestCase):
             'assert "--wait-script" in sys.argv and "--eval" not in sys.argv\n'
             'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
             'wait=sys.argv[sys.argv.index("--wait-script")+1]\n'
-            'assert "iframe.results" in wait and "article.record" in wait\n'
+            'assert "iframe" in wait and "h3.family-name" in wait\n'
             'assert "known answer" not in wait\n'
             'print("native frame markdown")'
         )
-        case = self.case_with(track="dynamic", retrieval_hints={
-            "version": 3, "mode": "native", "include_subdocuments": True,
-            "completion": {"frame_selector": "iframe.results",
-                           "selector": "article.record", "minimum_count": 2},
-        })
+        case = self.case_with(id="dynamic-iframe", track="dynamic", retrieval_hints={
+            "version": 3, "mode": "native", "contract": "iframe-fourteen-family-headings"})
         result = provider.fetch(case, 10)
         self.assertTrue(result.ok, repr(result))
         self.assertEqual(result.metadata["wait"]["subdocuments"]["interface"], "--with-frames")

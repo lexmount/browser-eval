@@ -17,6 +17,7 @@ from .reference_lifecycle import require_verified_reference_checks
 from .reference_lifecycle import is_diagnostic_evidence
 from .safety import contained_path, reject_evidence_symlinks, safe_identifier
 from .task_outputs import require_native_task_routes
+from .retrieval_hints import parse_retrieval_hints
 
 
 _IDENTITY_FIELDS = {
@@ -148,7 +149,11 @@ def audit_fixed_native_comparison(
     for case in dataset["cases"]:
         hints = case.get("retrieval_hints")
         if case.get("track", "web") == "dynamic":
-            if hints != {"version": 3, "mode": "native"}:
+            try:
+                parse_retrieval_hints("dynamic", hints, identifier=case["id"])
+            except ValueError as error:
+                raise ValueError("Dynamic comparison case did not use a registered native contract") from error
+            if hints.get("version") != 3 or hints.get("mode") != "native":
                 raise ValueError("Dynamic comparison case did not use native completion")
         elif hints:
             raise ValueError("Fixed-native comparison contains per-case retrieval hints")
