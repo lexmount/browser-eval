@@ -38,7 +38,7 @@ def _dataset():
     return json.loads(read_frozen_dataset_bytes(DATASET_PATH).decode("utf-8"))
 
 
-def test_dynamic_100_dataset_matches_the_frozen_local_audit():
+def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
     dataset = _dataset()
     cases = dataset["cases"]
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
@@ -48,7 +48,12 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
     assert len({case["id"] for case in cases}) == 100
     assert len({case["url"] for case in cases}) == 100
     from harness.web_fetch.models import EvalCase
-    from harness.web_fetch.providers.headless import cli_command, output_mode_for_case
+    from harness.web_fetch.providers.headless import (
+        HeadlessProvider,
+        cli_command,
+        output_mode_for_case,
+    )
+    from harness.web_fetch.providers.headless_worker import fetch as worker_fetch
     from harness.web_fetch.report_interfaces import browser_task_interface_matrix
     from harness.web_fetch.retrieval_hints import native_contract_for_case
 
@@ -89,6 +94,20 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
 
     by_id = {case.id: case for case in typed_cases}
     raw_by_id = {case["id"]: case for case in cases}
+    fixture_binary = tmp_path / "lightpanda"
+    fixture_binary.write_text(
+        "#!/bin/sh\n"
+        "if [ \"$1\" = \"--version\" ]; then echo 'lightpanda fixture'; exit 0; fi\n"
+        "printf '%s\\n' '{\"content\":\"# Browser-native Markdown\","
+        "\"url\":\"https://example.com/final\",\"http_status\":200}'\n"
+    )
+    fixture_binary.chmod(0o755)
+    provider = HeadlessProvider("lightpanda", {
+        "type": "headless_markdown",
+        "engine": "lightpanda",
+        "binary": str(fixture_binary),
+        "native_metadata": {"format": "lightpanda_json"},
+    })
     for changed in pre_call["changed_cases"]:
         case = by_id[changed["case_id"]]
         contract = native_contract_for_case(case)
@@ -137,6 +156,38 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
         with pytest.raises(ValueError, match="Native task route contract violated"):
             require_native_task_routes([raw_by_id[case.id]], [{**row,
                 "provider_metadata": invalid}])
+
+        # Exercise the disposable worker process itself.  A mocked worker used
+        # to hide that the serialized request had lost the case identity.
+        result = provider.fetch(case, 45)
+        assert result.ok, result.error_message
+        assert result.content == "# Browser-native Markdown"
+        assert result.metadata["completion"]["selector"] == contract.selector
+        if contract.include_subdocuments:
+            assert result.metadata["subdocuments"]["interface"] == (
+                "--load-resources iframe + --with-frames")
+
+    frame_case = by_id["dynamic-iframe"]
+    frame_contract = native_contract_for_case(frame_case)
+    frame_request = {
+        "engine": "lightpanda",
+        "binary": str(fixture_binary),
+        "url": frame_case.url,
+        "timeout": 45,
+        "output_mode": "markdown",
+        "task_kind": "body",
+        "track": "dynamic",
+        "retrieval_plan": frame_contract.completion_plan(45_000).worker_dict(),
+        "include_subdocuments": True,
+        "retrieval_hints": frame_case.retrieval_hints,
+        "native_metadata": {"format": "lightpanda_json"},
+    }
+    for bad_case_id in (None, "dynamic-delayed"):
+        invalid_request = {**frame_request}
+        if bad_case_id is not None:
+            invalid_request["case_id"] = bad_case_id
+        with pytest.raises(ValueError, match="case_id|belongs to another case"):
+            worker_fetch(invalid_request)
     assert hashlib.sha256(historical.encode()).hexdigest() == pre_call["revised_dataset_sha256"]
     current_dataset = json.loads(historical)
     for row in pre_call["changed_cases"]:

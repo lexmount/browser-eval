@@ -11,6 +11,12 @@ import tempfile
 from importlib.metadata import version
 from pathlib import Path
 
+# Direct script execution prepends this directory to sys.path.  Leaving it
+# there makes providers/http.py shadow Python's stdlib http package when the
+# contract verifier imports urllib inside the isolated worker.
+_WORKER_DIRECTORY = Path(__file__).resolve().parent
+if sys.path and Path(sys.path[0]).resolve() == _WORKER_DIRECTORY:
+    sys.path.pop(0)
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from harness.web_fetch.markdown import CONVERTER, converter_command, require_converter
 from harness.web_fetch.document_text import extract_document_text
@@ -24,8 +30,15 @@ def require_normalized_retrieval_plan(request):
     plan = request.get('retrieval_plan')
     track = request.get('track')
     hints = request.get('retrieval_hints')
-    declared = parse_retrieval_hints(track, hints) if hints else None
-    native_contract = native_contract_for_case(request) if hints else None
+    case_id = request.get('case_id')
+    if isinstance(hints, dict) and hints.get('contract'):
+        if not isinstance(case_id, str) or not case_id:
+            raise ValueError('named native retrieval contracts require case_id')
+    identifier = case_id if isinstance(case_id, str) and case_id else '<unknown>'
+    declared = parse_retrieval_hints(track, hints, identifier=identifier) if hints else None
+    native_contract = native_contract_for_case(
+        {**request, 'id': identifier}
+    ) if hints else None
     if track == 'dynamic' and not plan:
         if not hints or declared is not None:
             raise ValueError('dynamic tasks require a normalized retrieval_plan or explicit native contract')

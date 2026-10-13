@@ -577,6 +577,7 @@ class HeadlessProvider(Provider):
             if identity['version_probe_error']:
                 metadata['browser_version_probe_error'] = identity['version_probe_error']
         request = {'engine': engine, 'binary': binary, 'url': case.url,
+                   'case_id': case.id,
                    'timeout': timeout, 'output_mode': output_mode,
                    'task_kind': case.task_kind,
                    'resource_detail_links': resource_detail_links(case) if output_mode == 'resource' else False,
