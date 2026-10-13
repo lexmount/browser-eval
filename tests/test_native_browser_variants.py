@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 
 from harness.web_fetch.task_outputs import require_native_task_routes
-from harness.web_fetch.report_interfaces import browser_task_interface_matrix, method_access, method_spec
+from harness.web_fetch.report_interfaces import SPECS, browser_task_interface_matrix, method_access, method_spec
 
 
 class NativeBrowserVariantTests(unittest.TestCase):
@@ -115,15 +115,31 @@ class NativeBrowserVariantTests(unittest.TestCase):
         self.assertIn("未传入 Moli 内部超时参数", description["notes"])
         self.assertIn("保留该二进制默认值", str(description["params"]))
 
+    def test_moli_base_timeout_description_covers_both_evidence_policies(self):
+        for method in ("moli-webfetch", "moli"):
+            description = str(SPECS[method]["params"])
+            self.assertIn("内部参数以冻结的调用记录为准", description)
+            self.assertIn("显式模式留出收尾和清理时间", description)
+            self.assertIn("uniform", description)
+            self.assertIn("沿用产品默认值", description)
+
     def test_moli_interface_discloses_observed_explicit_timeout_policy(self):
-        description = method_spec(self.candidate, self.row({
-            "reported_version": "moli 1.1.15",
-            "internal_timeout_policy": "explicit",
-            "http_connect_timeout_ms": 45_000,
-        }))
-        self.assertIn("显式 Moli 超时", description["notes"])
-        self.assertIn("45000 毫秒", str(description["params"]))
-        self.assertNotIn("产品默认值。", str(description["params"]))
+        from harness.web_fetch.report_i18n import translate_text
+
+        for timeout_ms in (45_000, 40_500):
+            with self.subTest(timeout_ms=timeout_ms):
+                description = method_spec(self.candidate, self.row({
+                    "reported_version": "moli 1.1.15",
+                    "internal_timeout_policy": "explicit",
+                    "http_connect_timeout_ms": timeout_ms,
+                }))
+                self.assertIn("显式 Moli 超时", description["notes"])
+                self.assertIn(f"{timeout_ms:,} 毫秒", str(description["params"]))
+                self.assertNotIn("产品默认值。", str(description["params"]))
+                timeout_description = next(
+                    detail for key, _, detail in description["params"] if key == "外层截止"
+                )
+                self.assertIn(f"{timeout_ms:,} ms", translate_text(timeout_description))
 
     def test_chromium_interface_uses_observed_wait_and_binds_converter_wrapper(self):
         digest = "a" * 64

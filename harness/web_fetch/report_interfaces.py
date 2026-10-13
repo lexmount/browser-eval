@@ -27,7 +27,7 @@ def spec(entry,auth,params,fields,request,source,notes):
  return dict(entry=entry,auth=auth,params=params,fields=fields,request=request,source=source,notes=notes)
 SPECS={
  'moli-webfetch':spec('CLI · 原生 Markdown 或原始响应路线','本地二进制；无 API Key',
- [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','所有网页、文档正文与网页媒体信息任务','直接取得 Moli 原生 Markdown；直接 PDF/DOCX 未提供可读正文时失败'),('--with-frames','网页媒体信息任务','让同一次原生 Markdown 调用包含已加载子文档；不切换输出格式'),('--wait-until / --wait-selector / --wait-script','string','使用 Moli 官方等待能力；只等待，不抽取或拼接正文'),('外层截止','number','每次调用 45 秒；不改写 Moli 内部 HTTP 和连接超时默认值'),('--block-private-networks','flag','默认启用')],
+ [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','所有网页、文档正文与网页媒体信息任务','直接取得 Moli 原生 Markdown；直接 PDF/DOCX 未提供可读正文时失败'),('--with-frames','网页媒体信息任务','让同一次原生 Markdown 调用包含已加载子文档；不切换输出格式'),('--wait-until / --wait-selector / --wait-script','string','使用 Moli 官方等待能力；只等待，不抽取或拼接正文'),('外层截止','number','外层统一为 45 秒。内部参数以冻结的调用记录为准：显式模式留出收尾和清理时间；uniform 模式沿用产品默认值'),('--block-private-networks','flag','默认启用')],
  [('stdout','UTF-8 string / bytes','Markdown、eval 结果或直接文件原始字节'),('stderr','string','独立诊断；不混入正文'),('exit_code','integer','0 表示工具请求完成；正文或文件为空仍由任务规则单独判失败'),('status_code / final_url','可能未提供','CLI 未提供时保持未知，不伪造 HTTP 200 或最终 URL')],
  {'page_body':'moli fetch --dump markdown --wait-until done URL','exact_page_identity':'正文仍用原生 Markdown；最终网址不是评分条件，无法确认时保持空值','webpage_media':'moli fetch --dump markdown --with-frames --wait-until done URL','direct_document_body':'moli fetch --dump markdown --wait-until done URL','direct_file':'Moli 原生 CDP 响应；附件事件使用同一 Moli 原始附件接口'},
  'harness/web_fetch/providers/moli.py','网页正文、文档正文、结构题和网页媒体信息题统一使用 Moli 原生 Markdown。网页媒体信息只在这份原生输出中核对题目指定的资源地址，不下载媒体，也不切换 HTML、JSON 或网络跟踪接口。旧版 selector 合同只映射到官方等待参数，不参与正文抽取。直接 PDF/DOCX 没有交付可读正文时按失败记录，评测端不下载后解析。直接媒体文件使用原生 CDP 响应或同一二进制的原始附件接口。最终网址只作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。'),
@@ -92,7 +92,7 @@ def moli_release_spec(version):
  base=SPECS['moli']
  return {**base,
  'entry':f'CLI · Moli {version} 原生 Markdown / 原始文件接口',
- 'params':[('URL','string · 必填','唯一任务输入'),('--dump markdown','网页、文档正文、结构与网页媒体信息任务','直接取得 Markdown；直接 PDF/DOCX 不提供可读正文时失败'),('--with-frames','网页媒体信息任务','在同一次 Markdown 调用中包含已加载子文档'),('--wait-selector / --wait-script','旧版预声明完成条件','只等待，不抽取或拼接正文'),('外层截止','seconds','45 秒；不改写产品内部超时默认值')],
+ 'params':[('URL','string · 必填','唯一任务输入'),('--dump markdown','网页、文档正文、结构与网页媒体信息任务','直接取得 Markdown；直接 PDF/DOCX 不提供可读正文时失败'),('--with-frames','网页媒体信息任务','在同一次 Markdown 调用中包含已加载子文档'),('--wait-selector / --wait-script','旧版预声明完成条件','只等待，不抽取或拼接正文'),('外层截止','seconds','外层统一为 45 秒。内部参数以冻结的调用记录为准：显式模式留出收尾和清理时间；uniform 模式沿用产品默认值')],
  'fields':[('stdout','UTF-8 string / bytes','网页与文档任务为原生 Markdown；直接文件为原始字节'),('raw_stdout_path / sha256','string','保存的原始文档或媒体证据'),('file_evaluation','object','文件格式、长度和目标 SHA-256 验收')],
  'request':{'page_or_document_body':'moli fetch --dump markdown --wait-until done URL','webpage_media':'moli fetch --dump markdown --with-frames --wait-until done URL','direct_file':'原始响应或附件接口；具体路线见逐次调用记录','version':version},
  'notes':f'本方法只使用官方 {version} 发行二进制，与其他 Moli 版本分开计分。网页正文、文档正文、结构题和网页媒体信息题统一使用原生 Markdown；网页媒体只核对这份输出中的目标地址，不下载，也不切换 HTML、JSON 或网络跟踪接口。预声明完成条件只控制等待。直接 PDF/DOCX 没有交付可读正文时按失败记录；直接媒体文件验收原始字节。评测端不使用外部 PDF/DOCX 解析器补正文，也不在失败后切换引擎或输出模式。'}
@@ -156,7 +156,7 @@ def method_spec(name, record):
   elif policy=='explicit':
    timeout_ms=meta.get('http_connect_timeout_ms')
    timeout_description=('45 秒外层截止；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时'
-                        +((' '+str(timeout_ms)+' 毫秒') if isinstance(timeout_ms,int) else ''))
+                        +((' '+f'{timeout_ms:,}'+' 毫秒') if isinstance(timeout_ms,int) else ''))
    timeout_note='这批调用使用保存记录中的显式 Moli 超时，未写成产品默认值。'
   else:
    timeout_description='45 秒外层截止；Moli 内部超时以逐次调用记录为准'
