@@ -43,5 +43,23 @@
       "reason": "This correction addresses only the clipped heading. The retained input-area prompt and other inherited criteria were not newly certified across historical page states."
     }
   ],
-  "case_rules_sha256": "6d6fbaaa41a7b8911417569fdd191910e9b04cc82bfd4bddaab0dd593fd2478b"
+  "case_rules_sha256": "40530454766310cefa68972792c3ee66cab94056264dac040bad3ab46b4dfb95",
+  "reference_contract_revision": {
+    "provider_calls": 0,
+    "case_ids": [
+      "china-homepage-033-dingtalk-com",
+      "china-homepage-040-quark-cn",
+      "china-homepage-048-douyu-com",
+      "china-homepage-085-shopify-com",
+      "china-homepage-088-figma-com",
+      "global-homepage-008-whatsapp-com",
+      "global-homepage-010-bing-com",
+      "global-homepage-067-deepseek-com",
+      "global-homepage-086-usps-com"
+    ],
+    "source_qualification": "task-relevant intersection of two same-region independent first loads",
+    "provider_outputs_used_as_source": false,
+    "saved_call_url_route_runtime_changed": false,
+    "verdict_impact_bound_separately": "research/current-page-reference-contract-revision.json"
+  }
 }

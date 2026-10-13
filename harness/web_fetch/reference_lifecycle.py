@@ -19,6 +19,17 @@ from harness.record_io import load_jsonl, parse_jsonl
 from .metrics import normalize_for_match, normalize_resource_url
 from .reference_inputs import input_tree, read_dataset_bytes
 from .render_evidence import validate_render_reference
+
+
+HOMEPAGE_READER_SCOPE_PROMPTS = frozenset({
+    "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。"
+    "不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、"
+    "不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+    "直接获取这个热门网站首次加载后可见的稳定正文，保留产品、功能、栏目和支持入口文字。"
+    "不固定轮播内容、当前条目、顺序、价格、排名或数量；不点击子页面、不翻页、不滚动触发更多内容、"
+    "不登录，也不执行其他 Browser Use 操作。图片文字、隐藏名称、网页标题和脚本文字不能代替正文。"
+    "同时返回至少 10 条不同的具名详情入口；每条包含有意义的名称和 HTTP(S) 链接，链接路径完整匹配 /[0-9]+。",
+})
 from .safety import contained_path, safe_identifier
 
 MAX_REFERENCE_AGE_SECONDS = 30 * 60
@@ -641,9 +652,15 @@ def check_case_scoring_revision_binding(case, binding: dict) -> None:
         and {key: value for key, value in before_policy.items() if key != "unexpected"}
             == {key: value for key, value in after_policy.items() if key != "unexpected"}
     )
+    prompt_homepage_correction = (
+        current.get("source_benchmark", {}).get("mode")
+        == original.get("source_benchmark", {}).get("mode")
+        == "ranked_domain_homepage"
+        and current.get("task_prompt") in HOMEPAGE_READER_SCOPE_PROMPTS
+    )
     current.pop("evaluation_contract", None)
     original.pop("evaluation_contract", None)
-    if prompt_policy_correction:
+    if prompt_policy_correction or prompt_homepage_correction:
         current.pop("task_prompt", None)
         original.pop("task_prompt", None)
     if (sha256(reference) != binding.get("reference_sha256")
@@ -976,7 +993,7 @@ def valid_scoring_revision(source) -> bool:
     allowed_fields = {
         'body_requirements', 'required_patterns', 'required_facts',
         'acceptance_contract', 'forbidden_any', 'expected_resources',
-        'resource_output_contract', 'task_prompt',
+        'resource_output_contract', 'task_prompt', 'reference_answer',
         'mutable_body_policy',
     }
     previous_output = None
@@ -1006,6 +1023,13 @@ def valid_scoring_revision(source) -> bool:
                 or not all(isinstance(change, dict)
                            and set(change.get('fields', ())) <= allowed_fields
                            for change in row['changed_cases'])):
+            return False
+        if any(
+            'task_prompt' in set(change.get('fields', ()))
+            and not ({'acceptance_contract', 'resource_output_contract'}
+                     & set(change.get('fields', ())))
+            for change in row['changed_cases']
+        ):
             return False
         scoring_sources = (
             row.get('input_scoring_source_sha256'),
@@ -1168,7 +1192,8 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
         allowed = {
             "body_requirements", "required_patterns", "required_facts",
             "acceptance_contract", "forbidden_any", "expected_resources",
-            "resource_output_contract", "task_prompt", "mutable_body_policy",
+            "resource_output_contract", "task_prompt", "reference_answer",
+            "mutable_body_policy",
         }
         for receipt in scoring if isinstance(scoring, list) else ():
             before, after = hash_pair(receipt, "input"), hash_pair(receipt, "output")
@@ -1259,14 +1284,21 @@ def check_case_reference_and_scoring_revision_binding(
     )
     before_policy = before_contract.get("resource_output_contract", {})
     after_policy = after_contract.get("resource_output_contract", {})
-    if (
+    prompt_policy_correction = (
         current.get("task_kind") == original.get("task_kind") == "resource"
         and aliases_expand_only
         and before_policy.get("candidate_scope") == after_policy.get("candidate_scope")
             == "image_answer_fields"
         and before_policy.get("unexpected") == "reject"
         and after_policy.get("unexpected") == "allow"
-    ):
+    )
+    prompt_homepage_correction = (
+        current.get("source_benchmark", {}).get("mode")
+        == original.get("source_benchmark", {}).get("mode")
+        == "ranked_domain_homepage"
+        and current.get("task_prompt") in HOMEPAGE_READER_SCOPE_PROMPTS
+    )
+    if prompt_policy_correction or prompt_homepage_correction:
         current.pop("task_prompt", None)
         original.pop("task_prompt", None)
     if binding.get("reference_sha256") not in original_hashes or current != original:

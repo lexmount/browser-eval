@@ -1,13 +1,17 @@
 {
   "schema_version": 2,
   "kind": "frozen_reference_inputs",
-  "id": "dynamic-content-100-moli-webfetch-c278cdc46a5f-v3",
-  "dataset": "dataset.json",
-  "dataset_sha256": "c278cdc46a5f9cc193a346d29712861de2f8a16125e8d44934fa15328d1c9686",
+  "id": "dynamic-content-100-moli-webfetch-1f3268366b17-v4",
   "catalog": "dataset-catalog.json",
-  "catalog_sha256": "552b6cd9618db3bc80f98a4f25c20b6ecf53af2237c348b4e556befa80469864",
+  "catalog_sha256": "12fd94b7a0fcfd3ae6fa309914cd9feb6d5741dc792788337198ce272ef6f14a",
+  "dataset": "dataset.json",
+  "dataset_sha256": "1f3268366b17d490c85b75fbda329e5b3e6143d0a058523c1cad8a73ed916278",
   "files": {
-    "dataset.json": "c278cdc46a5f9cc193a346d29712861de2f8a16125e8d44934fa15328d1c9686"
+    "dataset.json": "1f3268366b17d490c85b75fbda329e5b3e6143d0a058523c1cad8a73ed916278"
   },
-  "trees": {}
+  "trees": {
+    "sources": {
+      "dynamic-082-allocine-films/current-browser-observation.json": "717a0d1a864f561ae80c601c5733fccdfda16120e37b2ff4d0837c2718d86038"
+    }
+  }
 }

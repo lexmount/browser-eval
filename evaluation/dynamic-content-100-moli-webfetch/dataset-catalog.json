@@ -9,7 +9,7 @@
     ]
   },
   "dataset": "dataset.json",
-  "dataset_sha256": "c278cdc46a5f9cc193a346d29712861de2f8a16125e8d44934fa15328d1c9686",
+  "dataset_sha256": "1f3268366b17d490c85b75fbda329e5b3e6143d0a058523c1cad8a73ed916278",
   "case_count": 100,
   "cases": [
     {
@@ -349,7 +349,7 @@
       "category": "dynamic_content",
       "track": "dynamic",
       "task_prompt": "提取首次自动加载完成后的目标正文；不点击、不输入、不滚动、不搜索、不翻页。",
-      "definition_sha256": "cfec76b111bd77e66e24efe11f74690bfd6de4b1dea4af9cff55c9ab9a4a6cf9",
+      "definition_sha256": "617fbaf8e8d8458d7457a7fc0c93ab44f97f58401fda21b0c9572faea9e39409",
       "reference_sha256": null
     },
     {

@@ -72,7 +72,7 @@ class ResourceContractLifecycleTests(unittest.TestCase):
         self.assertNotEqual(digest(scope_identity(changed_targets)), original)
         self.assertNotEqual(digest(scope_identity(changed_policy)), original)
 
-    def test_audited_recall_policy_may_update_matching_prompt_but_not_prompt_alone(self):
+    def test_audited_revision_may_update_reader_prompt_but_not_provider_url(self):
         original = self.resource_case()
         original["source_verification"] = {"reference_sha256": sha256("")}
         binding = {
@@ -89,6 +89,11 @@ class ResourceContractLifecycleTests(unittest.TestCase):
         prompt_only["task_prompt"] = corrected["task_prompt"]
         with self.assertRaises(ReferenceLifecycleError):
             check_case_scoring_revision_binding(prompt_only, binding)
+
+        different_call = json.loads(json.dumps(prompt_only))
+        different_call["url"] = "https://other.example.test/gallery"
+        with self.assertRaises(ReferenceLifecycleError):
+            check_case_scoring_revision_binding(different_call, binding)
 
     def test_dynamic_frozen_case_retains_complete_resource_contract(self):
         case = self.resource_case()

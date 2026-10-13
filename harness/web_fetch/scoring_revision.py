@@ -11,7 +11,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 from harness.record_io import parse_jsonl
 from harness.web_fetch.reference_inputs import read_dataset_bytes
-from harness.web_fetch.reference_lifecycle import reference_revision_cases, valid_scoring_revision
+from harness.web_fetch.reference_lifecycle import (
+    HOMEPAGE_READER_SCOPE_PROMPTS,
+    reference_revision_cases,
+    valid_scoring_revision,
+)
 from harness.web_fetch.rescoring import rescore
 from harness.web_fetch.result_review import (
     IndependentReviewRequired,
@@ -34,6 +38,7 @@ ALLOWED_FIELDS = {
     "expected_resources",
     "resource_output_contract",
     "task_prompt",
+    "reference_answer",
     "mutable_body_policy",
 }
 
@@ -48,13 +53,7 @@ def _without_rules(case):
 
 
 def _resource_prompt_policy_correction(old: dict, new: dict) -> bool:
-    """Allow wording to follow one narrowly audited resource-policy correction.
-
-    The physical resource request receives the URL and native resource route;
-    it never receives a target URL.  Changing an impossible target-only
-    precision requirement to recall acceptance therefore changes scoring and
-    its reader-facing wording, not the preserved provider call.
-    """
+    """Allow wording to follow one narrowly audited resource-policy correction."""
     before = old.get("resource_output_contract", {})
     after = new.get("resource_output_contract", {})
     old_targets = old.get("expected_resources", [])
@@ -74,6 +73,25 @@ def _resource_prompt_policy_correction(old: dict, new: dict) -> bool:
         and after.get("unexpected") == "allow"
         and {key: value for key, value in before.items() if key != "unexpected"}
         == {key: value for key, value in after.items() if key != "unexpected"}
+    )
+
+
+def _homepage_prompt_anchor_correction(old: dict, new: dict) -> bool:
+    """Allow a homepage scope description to stop embedding revised answer anchors."""
+    before = old.get("acceptance_contract", {})
+    after = new.get("acceptance_contract", {})
+    without_anchors = lambda value: {
+        key: item for key, item in value.items() if key != "stable_text_anchors"
+    }
+    anchors = after.get("stable_text_anchors", [])
+    return (
+        old.get("source_benchmark", {}).get("mode")
+        == new.get("source_benchmark", {}).get("mode")
+        == "ranked_domain_homepage"
+        and before.get("stable_text_anchors") != anchors
+        and without_anchors(before) == without_anchors(after)
+        and bool(anchors)
+        and new.get("task_prompt") in HOMEPAGE_READER_SCOPE_PROMPTS
     )
 
 
@@ -149,11 +167,12 @@ def _revise_unlocked(
         for key in ("url", "track", "task_kind"):
             if old.get(key) != canonical_case.get(key):
                 raise ValueError(identifier + ": captured task differs from canonical " + key)
-        if old.get("task_prompt") != canonical_case.get(
-            "task_prompt"
-        ) and not _resource_prompt_policy_correction(old, canonical_case):
+        if old.get("task_prompt") != canonical_case.get("task_prompt") and not (
+            _resource_prompt_policy_correction(old, canonical_case)
+            or _homepage_prompt_anchor_correction(old, canonical_case)
+        ):
             raise ValueError(
-                identifier + ": task_prompt changed outside the audited resource-policy correction"
+                identifier + ": task_prompt changed without its audited scoring contract"
             )
         new = dict(old)
         for key in ALLOWED_FIELDS:

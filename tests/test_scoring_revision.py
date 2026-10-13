@@ -6,7 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from harness.web_fetch.reference_lifecycle import valid_scoring_revision
+from harness.web_fetch.reference_lifecycle import (
+    HOMEPAGE_READER_SCOPE_PROMPTS,
+    valid_scoring_revision,
+)
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, score_attempt
 from harness.web_fetch.scoring_revision import revise
 
@@ -93,6 +96,74 @@ def test_valid_history_can_extend_and_retains_prior_receipts(tmp_path: Path):
     for key in ("attempt_id", "run_id", "elapsed_ms", "artifact_path"):
         assert current[key] == original_record[key]
     assert current["metrics"]["content_sha256"] == original_record["metrics"]["content_sha256"]
+
+
+def test_reader_prompt_can_follow_scoring_contract_without_changing_saved_call(tmp_path: Path):
+    evidence, canonical, original_case = revision_fixture(tmp_path, b"[]")
+    original_record = json.loads((evidence / "results.jsonl").read_text())
+    measured = json.loads((evidence / "dataset.json").read_text())
+    measured_case = measured["cases"][0]
+    measured_case["source_benchmark"] = {"mode": "ranked_domain_homepage"}
+    measured_case["task_prompt"] = "Return this exact answer: expected answer"
+    measured_case["acceptance_contract"] = {
+        "version": 1,
+        "schema": "body_text",
+        "minimum_records": 0,
+        "stable_text_anchors": [{"id": "body", "alternatives": ["expected answer"]}],
+    }
+    (evidence / "dataset.json").write_text(json.dumps(measured))
+    candidate = json.loads(canonical.read_text())
+    candidate["cases"][0].update(measured_case)
+    candidate["cases"][0]["required_patterns"] = [
+        {"id": "fact", "pattern": "missing fact"}
+    ]
+    candidate["cases"][0]["acceptance_contract"]["stable_text_anchors"] = [
+        {"id": "body", "alternatives": ["missing fact"]}
+    ]
+    candidate["cases"][0]["task_prompt"] = next(iter(HOMEPAGE_READER_SCOPE_PROMPTS))
+    candidate["cases"][0]["reference_answer"] = (
+        "Stable task-relevant body from the requested page."
+    )
+    canonical.write_text(json.dumps(candidate))
+
+    receipt = revise(
+        evidence,
+        canonical,
+        root_cause_category="answer-surface",
+        root_cause="The reader-facing scope described obsolete answer tokens that providers never receive.",
+        regression_ids=["answer-title-supplies-required-fact"],
+    )
+
+    assert receipt["provider_calls"] == 0
+    assert receipt["changed_cases"] == [
+        {"case_id": "one", "fields": [
+            "acceptance_contract", "reference_answer", "required_patterns", "task_prompt",
+        ]}
+    ]
+    current = json.loads((evidence / "results.jsonl").read_text())
+    for key in ("attempt_id", "run_id", "elapsed_ms", "artifact_path"):
+        assert current[key] == original_record[key]
+    assert current["metrics"]["content_sha256"] == original_record["metrics"]["content_sha256"]
+
+
+def test_reader_prompt_revision_cannot_change_provider_url(tmp_path: Path):
+    evidence, canonical, _ = revision_fixture(tmp_path, b"[]")
+    candidate = json.loads(canonical.read_text())
+    candidate["cases"][0]["task_prompt"] = "Return the current stable page body."
+    candidate["cases"][0]["url"] = "https://other.example.invalid/"
+    canonical.write_text(json.dumps(candidate))
+    before = {path.name: path.read_bytes() for path in evidence.iterdir()}
+
+    with pytest.raises(ValueError, match="captured task differs from canonical url"):
+        revise(
+            evidence,
+            canonical,
+            root_cause_category="answer-surface",
+            root_cause="The reader-facing scope changed but the physical provider URL must remain frozen.",
+            regression_ids=["answer-title-supplies-required-fact"],
+        )
+
+    assert {path.name: path.read_bytes() for path in evidence.iterdir()} == before
 
 
 def test_scorer_drift_and_task_rule_change_are_rejected_atomically(tmp_path: Path):
