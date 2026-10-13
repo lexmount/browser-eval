@@ -297,6 +297,29 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual(by_url["https://example.test/logo.png"],
                          ["content.html_img_srcset"])
 
+    def test_resource_discovery_reads_only_visible_inline_frame_documents(self) -> None:
+        content = (
+            '<iframe id="result" data-moli-frame-url="about:blank" '
+            'srcdoc="&lt;img src=&quot;pic_trulli.jpg&quot;&gt;"></iframe>'
+            '<iframe style="display:none" srcdoc="&lt;img src=&quot;ad.jpg&quot;&gt;"></iframe>'
+        )
+        result = evaluate_resources(
+            content,
+            {},
+            [{"id": "target", "kind": "image", "urls": ["/html/pic_trulli.jpg"]}],
+            base_url="https://www.w3schools.com/html/tryit.asp?filename=images",
+            output_contract={"candidate_scope": "image_answer_fields", "unexpected": "reject"},
+        )
+        self.assertTrue(result["resource_pass"])
+        self.assertEqual(
+            result["resource_candidate_urls"],
+            ["https://www.w3schools.com/html/pic_trulli.jpg"],
+        )
+        self.assertEqual(
+            result["resource_candidates"][0]["sources"],
+            ["content.frame_html_img"],
+        )
+
     def test_invalid_target_only_contract_fails_closed(self) -> None:
         invalid = (
             ({"candidate_scope": "all", "unexpected": "reject"},

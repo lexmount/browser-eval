@@ -6,6 +6,7 @@ import hashlib
 import statistics
 import unicodedata
 from collections import Counter, defaultdict
+from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urljoin, urlsplit, urlunsplit, unquote
 
@@ -183,6 +184,82 @@ def _image_content_candidates(
     return candidates
 
 
+class _VisibleInlineFrames(HTMLParser):
+    """Collect browser-serialized inline frame documents that are visibly embedded."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.documents: list[tuple[str, str | None]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.casefold() != "iframe":
+            return
+        values = {key.casefold(): value for key, value in attrs}
+        style = re.sub(r"\s+", "", values.get("style") or "").casefold()
+        if (
+            "hidden" in values
+            or "display:none" in style
+            or "visibility:hidden" in style
+            or (values.get("width") == "0" and values.get("height") == "0")
+        ):
+            return
+        source = values.get("srcdoc")
+        if source:
+            self.documents.append((source, values.get("data-moli-frame-url")))
+
+
+def _inline_frame_candidates(
+    content: str,
+    expected_resources: list[dict[str, Any]],
+    *,
+    base_url: str,
+    images_only: bool,
+) -> list[tuple[str, str]]:
+    """Read resource URLs from visible native ``srcdoc`` serialization.
+
+    Moli's official ``--with-frames`` output keeps child documents inside the
+    returned HTML.  This is still provider output; the scorer only resolves
+    URLs that the browser serialized, and ignores hidden synchronization or ad
+    frames.  The same parser applies to any provider returning inline frames.
+    """
+    parser = _VisibleInlineFrames()
+    parser.feed(content)
+    candidates: list[tuple[str, str]] = []
+    for document, declared_base in parser.documents[:100]:
+        try:
+            declared_base_is_http = bool(
+                declared_base
+                and urlsplit(declared_base).scheme in {"http", "https"}
+            )
+        except ValueError:
+            declared_base_is_http = False
+        frame_base = (
+            declared_base
+            if declared_base_is_http
+            else base_url
+        )
+        if images_only:
+            raw_candidates = _image_content_candidates(
+                document, expected_resources, base_url=frame_base,
+            )
+        else:
+            raw_candidates = [
+                (url, "content.frame_html_url")
+                for _, url in re.findall(
+                    r"(?:src|href)\s*=\s*([\"'])(.*?)\1", document, re.I
+                )
+            ]
+            raw_candidates.extend(
+                (url, "content.frame_bare_url")
+                for url in re.findall(r"https?://[^\s<>'\")\]]+", document)
+            )
+        for raw_url, source in raw_candidates:
+            normalized = normalize_resource_url(raw_url, frame_base)
+            if normalized:
+                candidates.append((normalized, source.replace("content.", "content.frame_", 1)))
+    return candidates
+
+
 def _normalized_candidates(
     candidates: list[tuple[str, str]], *, base_url: str,
 ) -> tuple[list[str], list[dict[str, Any]]]:
@@ -244,6 +321,9 @@ def evaluate_resources(
         candidates.extend(_image_content_candidates(
             content, expected_resources, base_url=base_url,
         ))
+        candidates.extend(_inline_frame_candidates(
+            content, expected_resources, base_url=base_url, images_only=True,
+        ))
     elif eligible:
         answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
         candidates.extend(_metadata_resource_candidates(answer_fields))
@@ -256,6 +336,9 @@ def evaluate_resources(
                           for url in markdown_link_destinations(content))
         candidates.extend((url, "content.visible_file")
                           for url in _visible_relative_resource_urls(content))
+        candidates.extend(_inline_frame_candidates(
+            content, expected_resources, base_url=base_url, images_only=False,
+        ))
     normalized_candidates, candidate_evidence = _normalized_candidates(candidates, base_url=base_url)
     results = []
     allowed_urls: set[str] = set()

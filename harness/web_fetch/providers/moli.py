@@ -355,13 +355,22 @@ class MoliWebFetchProvider(Provider):
         command = [binary, "fetch"]
         if dump is not None:
             command.extend(["--dump", dump])
-        if native_contract is not None and native_contract.include_subdocuments:
+        include_subdocuments = (
+            case.task_kind == "resource"
+            or native_contract is not None and native_contract.include_subdocuments
+        )
+        if include_subdocuments:
             command.append("--with-frames")
             wait_metadata["subdocuments"] = {
                 "requested": True,
                 "support": "native",
                 "interface": "--with-frames",
                 "harness_content_assembly": False,
+                "scope": (
+                    "resource_task_family"
+                    if case.task_kind == "resource"
+                    else "declared_native_contract"
+                ),
             }
         command.extend(
             [

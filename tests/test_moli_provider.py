@@ -788,6 +788,7 @@ class MoliTests(unittest.TestCase):
             "import sys\n"
             'assert sys.argv[sys.argv.index("--dump")+1] == "html"\n'
             'assert "--eval" not in sys.argv\n'
+            'assert "--with-frames" in sys.argv\n'
             'assert not ({"--image","--video","--media","--resource"} & set(sys.argv))\n'
             'print("<video><source src=\\"https://example.com/movie.mp4\\"></video>")'
         )
@@ -796,6 +797,10 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["route"], "resource_native_html")
         self.assertEqual(result.metadata["output"], "native_html_resource_urls")
         self.assertEqual(result.metadata["output_contract"], "native_html_resource_urls")
+        self.assertEqual(
+            result.metadata["wait"]["subdocuments"]["scope"],
+            "resource_task_family",
+        )
         self.assertIn("movie.mp4", result.content)
         from harness.web_fetch.metrics import evaluate_resources
         scored = evaluate_resources(
