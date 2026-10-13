@@ -20,6 +20,7 @@ from ..models import EvalCase, ProviderResult
 from ..retrieval_hints import native_contract_for_case, plan_for_case
 from ..safety import validate_http_url
 from .base import Provider, terminate_owned_process_tree
+from .http_client import inner_timeout_budget
 
 _WAIT_UNTIL_VALUES = {
     "done",
@@ -312,7 +313,7 @@ class MoliWebFetchProvider(Provider):
             finally:
                 with self._process_lock: self._active_native_provider = None
         wait = self.config.get("wait_until", "done")
-        timeout_ms = str(max(1, int(timeout * 1000)))
+        timeout_ms = str(max(1, int(inner_timeout_budget(timeout) * 1000)))
         dump = "markdown"
         try:
             if case.task_kind == "resource":

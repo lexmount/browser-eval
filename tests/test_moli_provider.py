@@ -223,7 +223,8 @@ class MoliTests(unittest.TestCase):
         provider = self.provider(
             "import sys\n"
             'expected=["fetch","--dump","markdown","--wait-until","done",'
-            '"--timeout","2000","--http-timeout","2000","--http-connect-timeout","2000",'
+            '"--timeout","40500","--http-timeout","40500",'
+            '"--http-connect-timeout","40500",'
             '"--block-private-networks",'
             '"https://example.com/?a=1&b=2"]\n'
             "assert sys.argv[1:]==expected\n"
@@ -231,7 +232,7 @@ class MoliTests(unittest.TestCase):
             'print("diagnostic only",file=sys.stderr)\n'
         )
         self.assertEqual(provider.validate(), [])
-        result = provider.fetch(self.case, 2)
+        result = provider.fetch(self.case, 45)
         self.assertTrue(result.ok)
         self.assertEqual(result.content, "# Example Domain\n")
         self.assertIn("diagnostic only", result.metadata["stderr"])
@@ -243,7 +244,63 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["output_contract"], "markdown")
         self.assertEqual(result.metadata["extractor"], "moli_native_markdown")
         self.assertEqual(result.metadata["wait"], {"wait_until": "done"})
+        self.assertEqual(result.metadata["http_connect_timeout_ms"], 40_500)
         self.assertTrue(result.metadata["block_private_networks"])
+
+    def test_internal_deadline_preserves_typed_cli_error_before_outer_deadline(self):
+        from harness.web_fetch.call_boundary import fetch_with_deadline
+
+        provider = self.provider(
+            "import sys, time\n"
+            "values = [sys.argv[sys.argv.index(flag) + 1] for flag in "
+            "('--timeout', '--http-timeout', '--http-connect-timeout')]\n"
+            "assert values == ['250', '250', '250'], values\n"
+            "time.sleep(0.27)\n"
+            "print('fetch readiness timed out after 250 ms while waiting for load', "
+            "file=sys.stderr, flush=True)\n"
+            "raise SystemExit(1)\n"
+        )
+        self.assertEqual(provider.validate(), [])
+
+        result, worker = fetch_with_deadline(provider, self.case, 0.5)
+
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(result.error_type, "tool_error")
+        self.assertEqual(result.metadata["exit_code"], 1)
+        self.assertEqual(result.metadata["http_connect_timeout_ms"], 250)
+        self.assertEqual(
+            result.error_message,
+            "fetch readiness timed out after 250 ms while waiting for load\n",
+        )
+
+    def test_outer_deadline_still_stops_cli_that_ignores_internal_deadline(self):
+        from harness.web_fetch.call_boundary import fetch_with_deadline
+
+        provider = self.provider(
+            "import sys, time\n"
+            "values = [sys.argv[sys.argv.index(flag) + 1] for flag in "
+            "('--timeout', '--http-timeout', '--http-connect-timeout')]\n"
+            "assert values == ['250', '250', '250'], values\n"
+            "time.sleep(5)\n"
+            "print('late answer')\n"
+        )
+        self.assertEqual(provider.validate(), [])
+
+        def kill(process):
+            if process is not None and process.poll() is None:
+                process.kill()
+            return True
+
+        with patch(
+            "harness.web_fetch.providers.moli.terminate_owned_process_tree",
+            side_effect=kill,
+        ):
+            result, worker = fetch_with_deadline(provider, self.case, 0.5)
+
+        self.assertEqual(result.error_type, "timeout")
+        self.assertEqual(result.content, "")
+        self.assertFalse(worker.is_alive())
+        self.assertLessEqual(result.metadata["_answer_elapsed_ms"], 550)
 
     def test_ordinary_markdown_exposes_effective_url_from_debug_stderr(self):
         provider = self.provider(
@@ -498,7 +555,7 @@ class MoliTests(unittest.TestCase):
             'assert sys.argv[1]=="fetch" and "--eval" not in sys.argv\n'
             'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
             'expected=["--wait-selector","main article","--wait-until","domcontentloaded",'
-            '"--timeout","10000","--http-timeout",'
+            '"--timeout","9000","--http-timeout",'
             '"https://example.com/?a=1&b=2"]\n'
             "assert all(value in sys.argv for value in expected),sys.argv\n"
             'assert "--delay-ms" not in sys.argv\n'
