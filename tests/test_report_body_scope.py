@@ -16,10 +16,12 @@ from harness.web_fetch.report import (
     write_support,
 )
 from harness.web_fetch.report_components import (
-    task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status, task_instruction,
+    task_contract_guide, task_pass_guide, examples, list_rule_description, metric_guide, reference_status,
+    stable_contract_details, task_instruction,
 )
 from harness.web_fetch.stable_tasks import evaluate_stable_task
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256
+from harness.web_fetch.report_i18n import translate_text
 
 
 def case(identifier='list', kind='structure', track='challenge'):
@@ -129,6 +131,50 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertIn('<div class="anchor-grid" data-scroll-after="5">',evidence)
         self.assertIn('<div class="record-scroll" data-scroll-after="5">',stable_checks(metrics))
         self.assertNotIn('data-scroll-after="5"',stable_answer_panel({**contract,'stable_text_anchors':anchors[:5]}))
+
+    def test_diagnostic_stable_text_is_not_described_as_required(self):
+        anchors=[{'id':f'a-{index}','alternatives':[f'Stable text {index}']} for index in range(6)]
+        contract={'version':1,'schema':'body_text','minimum_records':0,
+                  'stable_text_role':'diagnostic','stable_text_anchors':anchors}
+        c=case('diagnostic-anchor','body','risk_control');c['acceptance_contract']=contract
+        answer=stable_answer_panel(contract)
+        details=stable_contract_details(c)
+        metrics={'stable_anchors_required':False,'stable_anchor_results':[
+            {'id':item['id'],'alternatives':item['alternatives'],'matched':[],'pass':False}
+            for item in anchors]}
+        evidence=stable_anchor_evidence(metrics,'complete body without shell labels')
+        guide=task_pass_guide('risk_control',cases={c['id']:c})
+        for rendered in (answer,details,evidence,guide):
+            self.assertIn('不影响是否通过',rendered)
+            self.assertNotIn('全部参与评分',rendered)
+            self.assertNotIn('所有组均须通过',rendered)
+        self.assertNotIn('必须出现的稳定文字',answer)
+        self.assertIn('范围核对文字',evidence)
+        self.assertNotIn('<b>标准答案</b>',evidence)
+
+    def test_required_stable_text_keeps_acceptance_language(self):
+        contract={'version':1,'schema':'body_text','minimum_records':0,
+                  'stable_text_role':'required',
+                  'stable_text_anchors':[{'id':'a','alternatives':['Required text']}]}
+        c=case('required-anchor','body','risk_control');c['acceptance_contract']=contract
+        self.assertIn('必须出现的稳定文字',stable_answer_panel(contract))
+        self.assertIn('所有组均须通过',stable_contract_details(c))
+
+    def test_diagnostic_stable_text_explanation_has_english_copy(self):
+        chinese=('页面正文按登记的正文规则核验；稳定文字只用于核对抓取范围，不影响是否通过；'
+                 '新闻、日期、轮播卡片、仓库状态等易变内容不固定为答案。'
+                 '历史完整快照只作诊断，不进入全文质量汇总。')
+        english=translate_text(chinese)
+        self.assertNotEqual(english,chinese)
+        self.assertIn('does not affect acceptance',english)
+
+    def test_method_guide_distinguishes_required_and_diagnostic_anchors(self):
+        rendered=task_contract_guide()
+        self.assertIn('必需锚点参与验收',rendered)
+        self.assertIn('诊断锚点只核对抓取范围',rendered)
+        self.assertNotIn('稳定内容锚点仍用于任务验收',rendered)
+        english=translate_text('标为必需的稳定内容锚点参与验收；诊断锚点只核对抓取范围。')
+        self.assertIn('required affect acceptance',english)
     def test_local_report_links_complete_private_debug_log(self):
         c = case('debug-log', 'body', 'risk_control')
         r = record(c)

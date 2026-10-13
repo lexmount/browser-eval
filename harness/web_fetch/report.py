@@ -1296,17 +1296,20 @@ def body_region_rows(case, metrics, output):
 
 def stable_answer_panel(contract):
  anchors=contract.get('stable_text_anchors',[])
+ anchors_required=contract.get('stable_text_role','required')!='diagnostic'
+ anchor_label='必须出现的稳定文字' if anchors_required else '用于范围核对的稳定文字'
  items=[]
  for index,anchor in enumerate(anchors,1):
   alternatives=anchor.get('alternatives',[])
   text='\n或\n'.join(alternatives)
-  items.append(f'<div class="answer-item"><b>必须出现的稳定文字 {index}（任一写法即可）</b><blockquote>{esc(text)}</blockquote></div>')
+  items.append(f'<div class="answer-item"><b>{anchor_label} {index}（任一写法即可）</b><blockquote>{esc(text)}</blockquote></div>')
  minimum=contract.get('minimum_records')
  maximum=contract.get('maximum_records')
  count=(f'至少 {minimum} 条完整且不重复的记录' if maximum is None else
         f'{minimum}–{maximum} 条完整且不重复的记录')
  scroll=' data-scroll-after="5"' if len(anchors)>5 else ''
- note=(f'<p class="source-note">共 {len(anchors)} 组稳定文字，全部属于标准答案；当前区域显示约 5 组高度，向下滚动查看全部。</p>'
+ role_note='全部属于标准答案' if anchors_required else '只用于范围核对，不影响是否通过'
+ note=(f'<p class="source-note">共 {len(anchors)} 组稳定文字，{role_note}；当前区域显示约 5 组高度，向下滚动查看全部。</p>'
        if len(anchors)>5 else '')
  return note+f'<div class="answer-list"{scroll}><div class="answer-item"><b>结构要求</b><blockquote>{esc(count)}</blockquote></div>{"".join(items)}</div>'
 
@@ -1396,6 +1399,8 @@ def _quote_field_issue(metrics):
 
 def stable_anchor_evidence(metrics,output):
  cards=[]
+ anchors_required=metrics.get('stable_anchors_required',True)
+ expected_label='标准答案' if anchors_required else '范围核对文字'
  for index,item in enumerate(metrics.get('stable_anchor_results',[]),1):
   alternatives=item.get('alternatives',[]);expected='\n或\n'.join(alternatives)
   excerpt=''
@@ -1420,9 +1425,11 @@ def stable_anchor_evidence(metrics,output):
    field_detail='<p class="source-note">整条记录按字段判定；文字出现不等于列表边界完整。</p>'+table(['字段','标准答案','实际解析','判定'],rows,metrics=[])
    badge='字段边界不合格'
   actual=(f'<p>{esc(excerpt)}</p>' if excerpt else '<p class="empty">实际返回中未找到可供定位的连续原文。</p>')
-  cards.append(f'<article class="anchor-card {css}"><div class="anchor-head"><h3>稳定文字 {index}</h3><span class="verdict-badge">{badge}</span></div><div class="evidence-pair"><div class="evidence-sample"><b>标准答案</b><p>{esc(expected)}</p></div><div class="evidence-sample"><b>实际返回证据</b>{actual}</div></div>{field_detail}</article>')
+  cards.append(f'<article class="anchor-card {css}"><div class="anchor-head"><h3>稳定文字 {index}</h3><span class="verdict-badge">{badge}</span></div><div class="evidence-pair"><div class="evidence-sample"><b>{expected_label}</b><p>{esc(expected)}</p></div><div class="evidence-sample"><b>实际返回证据</b>{actual}</div></div>{field_detail}</article>')
  if not cards:return ''
- note=(f'<p class="source-note">共 {len(cards)} 项稳定文字判定，全部参与评分；当前区域显示约 5 项高度，向下滚动查看全部。</p>'
+ role_note=('全部参与评分' if anchors_required else
+            '只用于范围核对，不影响是否通过')
+ note=(f'<p class="source-note">共 {len(cards)} 项稳定文字判定，{role_note}；当前区域显示约 5 项高度，向下滚动查看全部。</p>'
        if len(cards)>5 else '')
  scroll=' data-scroll-after="5"' if len(cards)>5 else ''
  return note+f'<div class="anchor-grid"{scroll}>'+''.join(cards)+'</div>'
@@ -2106,7 +2113,9 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
                 (composite_contract_details(c['composite_acceptance']) if c.get('composite_acceptance') else '')+
                 '<details class="technical-details"><summary>查看机器可读契约</summary>'
                 f'<pre data-kind="contract">{esc(contract_text)}</pre></details>')
-   source_meta='这里直接列出本任务真正要求的文字和记录数量，不要求用户阅读 JSON。'
+   source_meta=('这里直接列出本任务真正要求的文字和记录数量，不要求用户阅读 JSON。'
+                if c['acceptance_contract'].get('stable_text_role','required')!='diagnostic' else
+                '这里列出正文验收规则和用于范围核对的文字；范围核对文字不影响是否通过。')
   corruption=''
   if m.get('text_encoding_corruption'):
    corruption=(f'<p class="callout failure encoding-warning"><b>实际输出存在解码损坏：</b>'
