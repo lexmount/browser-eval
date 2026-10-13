@@ -221,7 +221,10 @@ def require_native_task_routes(cases, records):
             elif provider in {'lightpanda','obscura'}:
                 valid = valid and meta.get('extractor') == provider+'_native_markdown'
             elif provider == 'kitesurf':
-                valid = valid and (meta.get('route') == 'browser_rendering_markdown'
+                routes = {'browser_rendering_markdown'}
+                if case.track == 'dynamic':
+                    routes.add('browser_rendering_markdown_dynamic')
+                valid = valid and (meta.get('route') in routes
                                    and meta.get('extractor') == 'cloudflare_native_markdown'
                                    and meta.get('browser') == 'kitesurf')
         elif mode in {'document','file'}:
@@ -266,12 +269,23 @@ def require_native_task_routes(cases, records):
                     '--load-resources iframe + --with-frames',
                 ),
             }.get(provider, ('unsupported', None))
-            valid = valid and frame_metadata == {
+            expected_frame_metadata = {
                 'requested': True,
                 'support': expected[0],
                 'interface': expected[1],
                 'harness_content_assembly': False,
             }
+            if isinstance(frame_metadata, dict):
+                extra = set(frame_metadata) - set(expected_frame_metadata)
+                valid = valid and not extra - {'scope'}
+                valid = valid and all(
+                    frame_metadata.get(key) == value
+                    for key, value in expected_frame_metadata.items()
+                )
+                if 'scope' in frame_metadata:
+                    valid = valid and frame_metadata['scope'] == 'declared_native_contract'
+            else:
+                valid = False
         elif frame_metadata is not None:
             valid = False
         if not valid:

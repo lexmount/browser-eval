@@ -150,6 +150,56 @@ class NativeRoutePublicationTests(unittest.TestCase):
             with self.subTest(provider=provider,wrong_family=True),self.assertRaises(ValueError):
                 require_native_task_routes([{**case,'track':'web'}],[row])
 
+    def test_iframe_contract_accepts_native_markdown_receipts_without_content_assembly(self):
+        from harness.web_fetch.task_outputs import require_native_task_routes
+
+        case = {'id':'dynamic-iframe','url':'https://example.com/frames','track':'dynamic',
+                'task_kind':'body','retrieval_hints':{'version':3,'mode':'native',
+                'contract':'iframe-fourteen-family-headings'}}
+        frame_receipt = {'requested':True,'support':'native','interface':'--with-frames',
+                         'harness_content_assembly':False,
+                         'scope':'declared_native_contract'}
+        moli = {'route':'dynamic_native_markdown','output':'markdown','dump':'markdown',
+                'extractor':'moli_native_markdown','output_contract':'markdown',
+                'wait':{'subdocuments':frame_receipt}}
+        require_native_task_routes([case],[{'provider':'moli','case_id':'dynamic-iframe',
+                                            'provider_metadata':moli}])
+        for bad_receipt in ({**frame_receipt,'scope':'resource_task_family'},
+                            {**frame_receipt,'harness_content_assembly':True},
+                            {**frame_receipt,'answer_selector':'h3.family-name'}):
+            with self.subTest(moli_receipt=bad_receipt), self.assertRaises(ValueError):
+                require_native_task_routes([case],[{'provider':'moli','case_id':'dynamic-iframe',
+                    'provider_metadata':{**moli,'wait':{'subdocuments':bad_receipt}}}])
+
+        unsupported = {'requested':True,'support':'unsupported','interface':None,
+                       'harness_content_assembly':False}
+        kitesurf = {'route':'browser_rendering_markdown_dynamic',
+                    'extractor':'cloudflare_native_markdown','browser':'kitesurf',
+                    'output_contract':'markdown','subdocuments':unsupported}
+        require_native_task_routes([case],[{'provider':'kitesurf','case_id':'dynamic-iframe',
+                                            'provider_metadata':kitesurf}])
+        for bad in ({**kitesurf,'extractor':'node-html-markdown'},
+                    {**kitesurf,'route':'browser_rendering_html'},
+                    {**kitesurf,'subdocuments':{**unsupported,
+                                                'harness_content_assembly':True}}):
+            with self.subTest(kitesurf=bad), self.assertRaises(ValueError):
+                require_native_task_routes([case],[{'provider':'kitesurf','case_id':'dynamic-iframe',
+                                                    'provider_metadata':bad}])
+
+    def test_kitesurf_dynamic_route_is_limited_to_dynamic_native_markdown(self):
+        from harness.web_fetch.task_outputs import require_native_task_routes
+
+        meta = {'route':'browser_rendering_markdown_dynamic',
+                'extractor':'cloudflare_native_markdown','browser':'kitesurf',
+                'output_contract':'markdown'}
+        dynamic = {'id':'page','url':'https://example.com/app','track':'dynamic',
+                   'task_kind':'body'}
+        require_native_task_routes([dynamic],[{'provider':'kitesurf','case_id':'page',
+                                               'provider_metadata':meta}])
+        with self.assertRaises(ValueError):
+            require_native_task_routes([{**dynamic,'track':'web'}],[{
+                'provider':'kitesurf','case_id':'page','provider_metadata':meta}])
+
     def test_moli_video_body_requires_native_markdown(self):
         from harness.web_fetch.task_outputs import require_native_task_routes
 
@@ -225,6 +275,12 @@ class NativeRoutePublicationTests(unittest.TestCase):
                         {'route':'workers_ai_tomarkdown','extractor':'external_conversion'}):
                 with self.subTest(provider=provider,bad=bad),self.assertRaises(ValueError):
                     require_native_task_routes(cases,[{**row,'provider_metadata':bad}])
+        with self.assertRaises(ValueError):
+            require_native_task_routes(cases,[{'provider':'moli','case_id':'pdf',
+                'provider_metadata':{'route':'document_page_runtime',
+                'extractor':'browser_runtime_document_text',
+                'document_extractor':'pdfjs_runtime',
+                'output_contract':'readable_document_text'}}])
 
     def test_kitesurf_resource_backend_must_be_bound_explicitly(self):
         from harness.web_fetch.task_outputs import require_native_task_routes
@@ -238,6 +294,40 @@ class NativeRoutePublicationTests(unittest.TestCase):
             bad={k:v for k,v in meta.items() if k!=field}
             with self.subTest(missing=field),self.assertRaises(ValueError):
                 require_native_task_routes(cases,[{**row,'provider_metadata':bad}])
+
+    def test_kitesurf_native_projections_bind_each_declared_task_family(self):
+        from harness.web_fetch.task_outputs import (
+            DOCUMENT_PAGE_EXPRESSION, MEDIA_METADATA_EXPRESSION,
+            require_native_task_routes, resource_expression,
+        )
+
+        examples = [
+            ({'id':'image','url':'https://example.com/gallery','track':'image',
+              'task_kind':'resource'}, resource_expression('image')),
+            ({'id':'video','url':'https://example.com/watch','track':'video',
+              'task_kind':'resource'}, resource_expression('video')),
+            ({'id':'video-link','url':'https://example.com/watch','track':'video',
+              'task_kind':'resource','expected_resources':[{'kind':'video-link'}]},
+             resource_expression('video', True)),
+            ({'id':'video-body','url':'https://example.com/watch','track':'video',
+              'task_kind':'body'}, MEDIA_METADATA_EXPRESSION),
+            ({'id':'document-page','url':'https://example.com/viewer/','track':'document',
+              'task_kind':'body'}, DOCUMENT_PAGE_EXPRESSION),
+        ]
+        for case, expression in examples:
+            meta = {
+                'browser':'kitesurf',
+                'endpoint_route':'/browser-run/devtools/browser?browser=kitesurf',
+                'output_projection_sha256':hashlib.sha256(expression.encode()).hexdigest(),
+            }
+            row = {'provider':'kitesurf','case_id':case['id'],
+                   'provider_metadata':meta}
+            with self.subTest(case=case['id']):
+                require_native_task_routes([case],[row])
+            with self.subTest(case=case['id'], stale_projection=True), \
+                    self.assertRaises(ValueError):
+                require_native_task_routes([case],[{**row,'provider_metadata':{
+                    **meta,'output_projection_sha256':'0'*64}}])
 
     def test_network_timeout_with_only_runner_receipts_is_not_an_adapter_substitution(self):
         from harness.web_fetch.task_outputs import require_native_task_routes
@@ -261,7 +351,12 @@ class NativeRoutePublicationTests(unittest.TestCase):
         require_native_task_routes(cases,[row])
         for bad in ({**moli,'dump':'html'},
                     {**moli,'output_projection_sha256':digest},
-                    {**moli,'output_contract':'structured_resource_urls'}):
+                    {**moli,'output_contract':'structured_resource_urls'},
+                    {**moli,'route':'resource_native_html','output':'native_html_resource_urls',
+                     'dump':'html','extractor':'moli_native_html'},
+                    {**moli,'route':'resource_native_json_trace','output':'native_json_resource_urls',
+                     'dump':'json','extractor':'moli_native_json',
+                     'network_trace_requested':True}):
             with self.subTest(provider='moli',bad=bad),self.assertRaises(ValueError):
                 require_native_task_routes(cases,[{**row,'provider_metadata':bad}])
         video_cases=[{'id':'video','url':'https://example.com/','track':'video','task_kind':'resource'}]
