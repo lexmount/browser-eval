@@ -237,7 +237,8 @@ def _revise_staged(
         # result rows for such a correction would manufacture a scoring revision
         # and invalidate an otherwise unchanged result-review binding.
         decisions = (
-            rescore(source, allow_rule_revision=True, reference_revision_hashes=original_hashes)
+            rescore(source, case_ids=selected, allow_rule_revision=True,
+                    reference_revision_hashes=original_hashes)
             if scoring_relevant_change
             else []
         )
