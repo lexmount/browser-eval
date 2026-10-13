@@ -63,9 +63,9 @@ def test_dataset_covers_the_exact_audited_cohort(dataset):
     assert dataset["case_count"] == len(dataset["cases"]) == 100
     assert [case["id"] for case in dataset["cases"]] == [case["id"] for case in cohort["cases"]]
     assert dataset["site_count"] == 74
-    assert dataset["stable_literal_count"] == 1600
+    assert dataset["stable_literal_count"] == 1586
     assert "page_context_literal_count" not in dataset
-    assert dataset["observed_literal_count"] == 1600
+    assert dataset["observed_literal_count"] == 1586
     assert dataset["body_case_count"] == 79
     assert dataset["quantity_case_count"] == 21
     assert dataset["independent_quantity_group_count"] == 27
@@ -131,9 +131,13 @@ def test_zillow_sample_revision_binds_current_frozen_inputs():
     locale=json.loads((ROOT/'research/risk-control-navigation-language-revision.json').read_text())
     for key in ('dataset','run_profile'):
         assert full_page['correction']['new_'+key+'_sha256'] == locale['correction']['predecessor_'+key+'_sha256']
-    assert locale['correction']['new_dataset_sha256'] == hashlib.sha256(read_frozen_dataset_bytes(DATASET)).hexdigest()
-    assert locale['correction']['new_run_profile_sha256'] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
-    assert profile["dataset"]["sha256"] == locale["correction"]["new_dataset_sha256"]
+    responsive=json.loads((ROOT/'research/risk-control-responsive-navigation-revision.json').read_text())
+    assert responsive['predecessor_revision'] == 'research/risk-control-navigation-language-revision.json'
+    assert locale['correction']['new_dataset_sha256'] == responsive['correction']['predecessor_dataset_sha256']
+    assert locale['correction']['new_run_profile_sha256'] == responsive['correction']['predecessor_run_profile_sha256']
+    assert responsive['correction']['new_dataset_sha256'] == hashlib.sha256(read_frozen_dataset_bytes(DATASET)).hexdigest()
+    assert responsive['correction']['new_run_profile_sha256'] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
+    assert profile["dataset"]["sha256"] == responsive["correction"]["new_dataset_sha256"]
     assert revision["correction"]["provider_calls"] == 1
     assert revision["correction"]["rerun_case_ids"] == ["risk-diverse-134"]
 
@@ -958,7 +962,7 @@ def test_archwiki_requires_both_page_chrome_and_full_body(dataset):
         ),
         (
             "risk-diverse-225",
-            ["Products", "Services & Support", "Resources"],
+            ["Products", "Services & Support"],
         ),
     ],
 )
