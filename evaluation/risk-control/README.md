@@ -40,7 +40,7 @@ Moli identity must remain unchanged before and after calls. Each of the 100 decl
 
 This directory contains no measured Moli outputs, raw provider artifacts, debug logs or credentials. Use the existing report builder with complete certified evidence. Historical results lacking pre/post-call reference certification cannot be promoted by writing a receipt afterward.
 
-“Page body” means the declared body and record requirements within initial load. Missing navigation, login links or footer text cannot reject content that satisfies those requirements. Page identity, blocked-page detection, record counts, same-record fields and real links remain acceptance gates. Cases without a body or composite contract retain their stable-text gate.
+“Page body” means the declared body and record requirements within initial load. Missing navigation, login links or footer text cannot reject content that satisfies those requirements. Blocked-page detection, record counts, same-record fields and real links remain acceptance gates. Cases without a body or composite contract retain their stable-text gate.
 
 ## Current contract and historical results
 
