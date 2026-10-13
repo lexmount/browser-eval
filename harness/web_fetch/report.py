@@ -1272,8 +1272,8 @@ def stable_answer_panel(contract):
  items=[]
  for index,anchor in enumerate(anchors,1):
   alternatives=anchor.get('alternatives',[])
-  text='\n或\n'.join(alternatives)
-  items.append(f'<div class="answer-item"><b>必须出现的稳定文字 {index}（任一写法即可）</b><blockquote>{esc(text)}</blockquote></div>')
+  text='\n<span>或</span>\n'.join(esc(value) for value in alternatives)
+  items.append(f'<div class="answer-item"><b>必须出现的稳定文字 {index}（任一写法即可）</b><blockquote>{text}</blockquote></div>')
  minimum=contract.get('minimum_records')
  maximum=contract.get('maximum_records')
  count=(f'至少 {minimum} 条完整且不重复的记录' if maximum is None else
@@ -1286,8 +1286,8 @@ def stable_answer_panel(contract):
 def required_text_answer_panel(case):
  items=[f'<div class="answer-item"><b>正文长度要求</b><blockquote>至少 {case.get("min_content_chars",1):,} 字符</blockquote></div>']
  for index,fact in enumerate(case.get('required_facts',[]),1):
-  text='\n或\n'.join(fact.get('alternatives',[]))
-  items.append(f'<div class="answer-item"><b>必需文字组 {index}（任一写法即可）</b><blockquote>{esc(text)}</blockquote></div>')
+  text='\n<span>或</span>\n'.join(esc(value) for value in fact.get('alternatives',[]))
+  items.append(f'<div class="answer-item"><b>必需文字组 {index}（任一写法即可）</b><blockquote>{text}</blockquote></div>')
  threshold=case.get('fact_coverage_threshold',1.0)
  note=('<p class="source-note">全部文字组都须命中。</p>' if threshold==1 else
        f'<p class="source-note">文字组覆盖至少达到 {pct(threshold)}。</p>')
@@ -1381,7 +1381,7 @@ def _quote_field_issue(metrics):
 def stable_anchor_evidence(metrics,output):
  cards=[];normalized_lines=None
  for index,item in enumerate(metrics.get('stable_anchor_results',[]),1):
-  alternatives=item.get('alternatives',[]);expected='\n或\n'.join(alternatives)
+  alternatives=item.get('alternatives',[]);expected='\n<span>或</span>\n'.join(esc(value) for value in alternatives)
   excerpt=''
   for alternative in alternatives:
    if normalized_lines is None:normalized_lines=_normalized_evidence_lines(output)
@@ -1405,7 +1405,7 @@ def stable_anchor_evidence(metrics,output):
    field_detail='<p class="source-note">整条记录按字段判定；文字出现不等于列表边界完整。</p>'+table(['字段','标准答案','实际解析','判定'],rows,metrics=[])
    badge='字段边界不合格'
   actual=(f'<p>{esc(excerpt)}</p>' if excerpt else '<p class="empty">实际返回中未找到可供定位的连续原文。</p>')
-  cards.append(f'<article class="anchor-card {css}"><div class="anchor-head"><h3>稳定文字 {index}</h3><span class="verdict-badge">{badge}</span></div><div class="evidence-pair"><div class="evidence-sample"><b>标准答案</b><p>{esc(expected)}</p></div><div class="evidence-sample"><b>实际返回证据</b>{actual}</div></div>{field_detail}</article>')
+  cards.append(f'<article class="anchor-card {css}"><div class="anchor-head"><h3>稳定文字 {index}</h3><span class="verdict-badge">{badge}</span></div><div class="evidence-pair"><div class="evidence-sample"><b>标准答案</b><p>{expected}</p></div><div class="evidence-sample"><b>实际返回证据</b>{actual}</div></div>{field_detail}</article>')
  if not cards:return ''
  note=(f'<p class="source-note">共 {len(cards)} 项稳定文字判定，全部参与评分；当前区域显示约 5 项高度，向下滚动查看全部。</p>'
        if len(cards)>5 else '')

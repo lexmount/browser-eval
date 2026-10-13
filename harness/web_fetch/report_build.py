@@ -207,16 +207,20 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
     """Render a bound historical report using saved scores and public evidence."""
     from harness.report_languages import select_report_language
     from .safety import evidence_tree_identity
+    if source in output.parents:
+        raise ValueError("Frozen presentation output must be outside its source tree")
     before = evidence_tree_identity(source)
     _, dataset, records, manifest = validate_local_presentation(source, presentation_binding)
     review_path = source / "result-review.json"
     binding = json.loads(presentation_binding.read_text())
-    if review_path.is_file() and not any(
-        item.get("path") == "result-review.json"
-        and item.get("sha256") == hashlib.sha256(review_path.read_bytes()).hexdigest()
-        for item in binding.get("evidence_bindings", [])
-    ):
-        raise ValueError("Frozen presentation review lacks a hash binding")
+    required = ["local-run-contract.json", "execution.json"]
+    if review_path.is_file():
+        required.append("result-review.json")
+    for relative in required:
+        if not any(item.get("path") == relative
+                   and item.get("sha256") == before.get(relative)
+                   for item in binding.get("evidence_bindings", [])):
+            raise ValueError("Frozen presentation input lacks a hash binding: " + relative)
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".frozen-presentation-", dir=output.parent) as work:
         staging = Path(work) / "report"

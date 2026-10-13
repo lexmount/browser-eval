@@ -33,6 +33,10 @@
     {
       "path": "archived-reading.json",
       "sha256": "85da5e52c295eb7fffbcd3e10e41d33294eeadf233ec7a6958de68ed0c9e30fb"
+    },
+    {
+      "path": "execution.json",
+      "sha256": "42a7adef621fd925308c6c82b82aa08eca0f42dcb41affcc76947c912323b4ac"
     }
   ],
   "evidence_path": "runs/native-430-20261010T071648Z/local-report"

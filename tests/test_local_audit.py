@@ -284,8 +284,20 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
         "frozen_dataset_sha256": _digest(output / "dataset.json"),
         "results_sha256": manifest["results_sha256"],
         "measured_scoring_source_sha256": historical_scorer,
-        "measured_scoring_git_revision": "historical-revision"}
+        "measured_scoring_git_revision": "historical-revision",
+        "evidence_bindings": [{"path": name, "sha256": _digest(output / name)}
+                              for name in ("local-run-contract.json", "execution.json")]}
     _write(binding_path, binding)
+    for missing in ("local-run-contract.json", "execution.json"):
+        _write(binding_path, {**binding, "evidence_bindings": [
+            item for item in binding["evidence_bindings"] if item["path"] != missing]})
+        with pytest.raises(ValueError, match="input lacks a hash binding: " + missing):
+            build_report(output, tmp_path / (missing + "-unbound"), local_audit=True,
+                         presentation_binding=binding_path)
+    _write(binding_path, binding)
+    with pytest.raises(ValueError, match="outside its source tree"):
+        build_report(output, output / "nested-report", local_audit=True,
+                     presentation_binding=binding_path)
     public_logs = output / "logs"
     public_logs.mkdir(exist_ok=True)
     attempt_id = frozen_rows[0]["attempt_id"]
@@ -306,6 +318,30 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
         detail = (rebuilt / prefix / "attempts" / (attempt_id + ".html")).read_text()
         assert attempt_id + ".debug.txt" in detail
         assert attempt_id + ".response.html" in detail
+    from harness.web_fetch.report_i18n import untranslated_english_narrative, localize_html
+    from pathlib import PurePosixPath
+    english_detail = (rebuilt / "en/attempts" / (attempt_id + ".html")).read_text()
+    assert "View complete API response (credentials and local paths hidden)" in english_detail
+    for suffix in ("debug", "response"):
+        view = (rebuilt / "en/logs" / (attempt_id + "." + suffix + ".html")).read_text()
+        assert not untranslated_english_narrative(view, {"中文"})
+    sample = ('<p>必需文字组 3（任一写法即可）</p><blockquote>first\n<span>或</span>\nsecond</blockquote><blockquote>引文 first\n或\nsecond</blockquote>'
+              '<p>正文没有抓全；低于目标的位置为：位置 1 77.5%。下方会把完整标准答案与实际返回并排展示。</p>'
+              '<pre>原始返回：位置 1\n或\n真实正文</pre>')
+    localized = localize_html(sample, PurePosixPath("attempts/example.html"))
+    assert "Required text group 3" in localized
+    assert "first\n<span>or</span>\nsecond" in localized
+    assert "引文 first\n或\nsecond" in localized
+    from harness.web_fetch.report import required_text_answer_panel, stable_answer_panel
+    alternatives = ["<source>\n或\noriginal", "second"]
+    panels = [required_text_answer_panel({"required_facts": [{"alternatives": alternatives}]}),
+              stable_answer_panel({"stable_text_anchors": [{"alternatives": alternatives}], "minimum_records": 1})]
+    for panel in panels:
+        assert "&lt;source&gt;\n或\noriginal\n<span>或</span>\nsecond" in panel
+        english_panel = localize_html(panel, PurePosixPath("attempts/example.html"))
+        assert "&lt;source&gt;\n或\noriginal\n<span>or</span>\nsecond" in english_panel
+    assert "region 1 77.5%" in localized
+    assert '<pre>原始返回：位置 1\n或\n真实正文</pre>' in localized
     assert (rebuilt / "logs" / debug.name).read_bytes() == debug.read_bytes()
     assert (rebuilt / "logs" / response.name).read_bytes() == response.read_bytes()
     assert json.loads((rebuilt / "report-manifest.json").read_text())["presentation"]["frozen_scores"]
