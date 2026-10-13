@@ -59,6 +59,7 @@ def _key(text):
 
 
 _CARD_BOUNDARY = "\ue000"
+_MEDIA_BOUNDARY = "\ue001"
 
 
 def _unwrap_links(text, schema):
@@ -90,6 +91,14 @@ def _unwrap_links(text, schema):
             prefix = "".join(output).rsplit("\n", 1)[-1]
             if re.fullmatch(r"\s*(?:[-*+]|\d+[.)])\s*", prefix):
                 output.append(_CARD_BOUNDARY)
+            elif image and not prefix.strip():
+                line_end = text.find("\n", close + 1)
+                suffix = text[close + 1:line_end if line_end >= 0 else len(text)]
+                if not suffix.strip():
+                    # A standalone image is an explicit local card boundary.
+                    # Keep it as ownership evidence without treating alt text as
+                    # the record name or joining prose across adjacent cards.
+                    output.append(_MEDIA_BOUNDARY)
         if label:
             rendered = "".join(output)
             prefix = rendered.rsplit("\n", 1)[-1]
@@ -146,8 +155,9 @@ def _visible(text, schema=None):
         text = re.sub(r"(?m)^\s*(?:[-*+]|\d+[.)])\s*$", "", text)
         text = re.sub(rf"(?m)^\s*(?:[-*+]|\d+[.)])\s*{_CARD_BOUNDARY}\s*$",
                       f"\n{_CARD_BOUNDARY}\n", text)
-        text = "\n".join(line if line.strip() == _CARD_BOUNDARY
-                         else line.replace(_CARD_BOUNDARY, "")
+        boundaries = {_CARD_BOUNDARY, _MEDIA_BOUNDARY}
+        text = "\n".join(line if line.strip() in boundaries
+                         else line.replace(_CARD_BOUNDARY, "").replace(_MEDIA_BOUNDARY, "")
                          for line in text.splitlines())
     text = re.sub(r"\*\*|__|`", "", text)
     # Link unwrapping may insert boundary spaces inside surrounding emphasis
@@ -487,6 +497,17 @@ def _closed_title_descriptions(text):
     return records
 
 
+def _media_closed_title_descriptions(text):
+    """Read title-description-title closures only inside image-owned blocks."""
+    if _MEDIA_BOUNDARY not in text:
+        return []
+    return [
+        record
+        for block in text.split(_MEDIA_BOUNDARY)[1:]
+        for record in _closed_title_descriptions(block)
+    ]
+
+
 def _earthquakes(text):
     """Read contiguous magnitude/location/time/depth cards, never bag-of-fields.
 
@@ -545,7 +566,7 @@ def _parse_records(visible, schema, *, allow_closed_title_cards=False):
         for section in sections:
             records.extend(_operations([_line(line) for line in section.splitlines() if line.strip()]))
     elif schema == "name_description":
-        closed = (
+        closed = _media_closed_title_descriptions(remainder) + (
             _closed_title_descriptions(remainder)
             if allow_closed_title_cards
             else []
