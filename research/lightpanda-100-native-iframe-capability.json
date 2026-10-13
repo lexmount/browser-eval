@@ -318,5 +318,5 @@
       "child_marker_present": false
     }
   ],
-  "conclusion": "Loading the iframe and including frame serialization are separate native controls. Both flags expose the child in native HTML; Lightpanda 1.0.0 native Markdown still omits it, so the benchmark must not claim successful iframe Markdown support merely because both flags were sent."
+  "conclusion": "Loading the iframe and including frame serialization are separate native controls. Both flags expose the child in native HTML, while Lightpanda 1.0.0 native Markdown omits it. Iframe tasks therefore use native HTML directly with no HTML-to-Markdown conversion; ordinary and delayed-content tasks keep native Markdown."
 }

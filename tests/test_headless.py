@@ -30,6 +30,32 @@ from harness.web_fetch.runner import run_evaluation
 
 
 class NativeMetadataTests(unittest.TestCase):
+    def test_lightpanda_native_iframe_html_is_scored_without_conversion(self):
+        from types import SimpleNamespace
+        response = SimpleNamespace(returncode=0,
+            stdout=b'<html><body><iframe></iframe><h2>CHILD_FRAME_READY</h2></body></html>',
+            stderr=b'')
+        request = {'engine': 'lightpanda', 'binary': '/browser',
+                   'url': 'https://example.com/start', 'timeout': 5,
+                   'output_mode': 'native_html', 'include_subdocuments': True}
+        with patch('harness.web_fetch.providers.headless_worker.subprocess.run',
+                   return_value=response) as run, patch(
+                       'harness.web_fetch.providers.headless_worker.require_converter',
+                       side_effect=AssertionError('native HTML must not be converted')):
+            result = fetch(request)
+        self.assertTrue(result['ok'], result)
+        self.assertEqual(result['content'], response.stdout.decode())
+        self.assertEqual(result['html'], result['content'])
+        from harness.web_fetch.scoring import score_attempt
+        metrics = score_attempt(
+            {'url': request['url'], 'expected_any': ['CHILD_FRAME_READY']},
+            result['content'].encode(), ok=result['ok'], metadata=result['metadata'])
+        self.assertTrue(metrics['content_pass'])
+        command = run.call_args.args[0]
+        self.assertEqual(command[command.index('--dump') + 1], 'html')
+        self.assertIn('--with-frames', command)
+        self.assertEqual(command[command.index('--load-resources') + 1], 'iframe')
+
     def test_kitesurf_page_tasks_share_native_projection_and_cdp_completion(self):
         from harness.web_fetch.task_outputs import resource_expression, DOCUMENT_PAGE_EXPRESSION, MEDIA_METADATA_EXPRESSION
         for track,kind,url,expression in (
@@ -177,11 +203,13 @@ class HeadlessTests(unittest.TestCase):
             result = provider.fetch(case, 45)
         request = worker.call_args.args[1]
         self.assertTrue(request['include_subdocuments'])
+        self.assertEqual(request['output_mode'], 'native_html')
         self.assertIn('h3.family-name', request['retrieval_plan']['wait_value'])
         self.assertEqual(result.metadata['subdocuments']['interface'],
                          '--load-resources iframe + --with-frames')
-        self.assertEqual(result.metadata['subdocuments']['support'],
-                         'native_markdown_omits_child_document')
+        self.assertEqual(result.metadata['subdocuments']['support'], 'native')
+        self.assertEqual(result.metadata['extractor'], 'lightpanda_native_html')
+        self.assertEqual(result.metadata['output_contract'], 'native_html')
         self.assertFalse(result.metadata['subdocuments']['harness_content_assembly'])
 
     def test_engines_without_native_frame_markdown_do_not_assemble_child_content(self):

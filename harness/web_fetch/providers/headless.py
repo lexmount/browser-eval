@@ -214,7 +214,7 @@ def cli_command(
                 command += ['--proxy', http_proxy]
             return command + [url]
         raise ValueError('Rendered projection requires a native CDP or eval interface')
-    if output_mode not in {'html', 'markdown', 'document', 'file'}:
+    if output_mode not in {'html', 'native_html', 'markdown', 'document', 'file'}:
         raise ValueError('Unsupported browser output mode: ' + output_mode)
     if output_mode in {'document', 'file'}:
         if engine == 'obscura':
@@ -260,6 +260,8 @@ def cli_command(
         raise ValueError('Not a native Markdown CLI engine: ' + engine)
     completion = _cli_completion_arguments(engine, retrieval_plan)
     common = [binary, 'fetch', '--dump', 'html']
+    if include_subdocuments and engine == 'lightpanda':
+        common += ['--load-resources', 'iframe', '--with-frames']
     if http_proxy:
         common += ['--http-proxy' if engine in {'moli', 'lightpanda'} else '--proxy', http_proxy]
     common += completion or ['--wait-until', 'domcontentloaded']
@@ -274,6 +276,10 @@ def cli_command(
 
 def output_mode_for_case(engine, provider_type, case):
     """Choose the fastest version-supported route for the requested deliverable."""
+    native_contract = native_contract_for_case(case)
+    if (engine == 'lightpanda' and provider_type == 'headless_markdown'
+            and native_contract and native_contract.include_subdocuments):
+        return 'native_html'
     if engine in ENGINES and case.task_kind == 'file':
         return 'file'
     # Document text must come from the selected browser content interface.
@@ -495,12 +501,14 @@ class HeadlessProvider(Provider):
                      else 'moli_cdp_response+document_text' if output_mode == 'document'
                      else 'cloudflare_native_markdown' if engine == 'kitesurf' and output_mode == 'markdown'
                      else f'{engine}_native_markdown' if output_mode == 'markdown' and engine != 'chromium'
+                     else 'lightpanda_native_html' if output_mode == 'native_html'
                      else 'rendered_dom_resources' if output_mode == 'resource'
                      else 'rendered_body_and_standard_media_metadata' if output_mode == 'media_metadata'
                      else 'browser_runtime_document_text' if output_mode == 'document_page'
                      else 'node-html-markdown')
         output_contract = ('original_file_bytes' if output_mode == 'file' else
                            'readable_document_text' if output_mode in {'document','document_page'} else
+                           'native_html' if output_mode == 'native_html' else
                            'structured_resource_urls' if output_mode == 'resource' else
                            'readable_media_metadata' if output_mode == 'media_metadata' else 'markdown')
         metadata = {'engine': engine, 'wait_until': wait_until,
@@ -530,7 +538,7 @@ class HeadlessProvider(Provider):
         if include_subdocuments:
             interface = (
                 '--load-resources iframe + --with-frames'
-                if engine == 'lightpanda' and output_mode == 'markdown'
+                if engine == 'lightpanda' and output_mode == 'native_html'
                 else '--with-frames'
                 if engine == 'moli' and output_mode == 'markdown'
                 else None
@@ -538,9 +546,7 @@ class HeadlessProvider(Provider):
             metadata['subdocuments'] = {
                 'requested': True,
                 'support': (
-                    'native' if engine == 'moli' and interface
-                    else 'native_markdown_omits_child_document'
-                    if engine == 'lightpanda' and interface
+                    'native' if interface
                     else 'unsupported'
                 ),
                 'interface': interface,

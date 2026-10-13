@@ -282,6 +282,12 @@ def fetch(request):
                 return dict(ok=bool(browser_output.strip()), content=browser_output, html='',
                             status_code=None, final_url=None, metadata=meta,
                             error_type=None if browser_output.strip() else 'empty_response')
+            if output_mode == 'native_html':
+                meta['native_html_ms'] = round((time.monotonic()-start)*1000, 2)
+                return dict(ok=bool(browser_output.strip()), content=browser_output,
+                            html=browser_output, status_code=None, final_url=None,
+                            metadata=meta,
+                            error_type=None if browser_output.strip() else 'empty_response')
             html = browser_output
             status = None
             final_url = None

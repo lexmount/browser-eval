@@ -236,6 +236,25 @@ class NativeRoutePublicationTests(unittest.TestCase):
 
 
 class AllFamilyInterfaceTests(unittest.TestCase):
+    def test_reader_matrix_discloses_lightpanda_native_html_for_iframe_contracts(self):
+        from harness.web_fetch.report_interfaces import browser_task_interface_matrix
+        from harness.web_fetch.task_outputs import require_native_task_routes
+        cases = {'frame': {'id': 'dynamic-iframe', 'url': 'https://example.test/frame',
+            'track': 'dynamic', 'task_kind': 'body', 'retrieval_hints': {
+                'version': 3, 'mode': 'native',
+                'contract': 'iframe-fourteen-family-headings'}}}
+        matrix = browser_task_interface_matrix(cases, ['lightpanda', 'moli'])
+        cells = matrix['rows'][0]['cells']
+        self.assertEqual(cells['lightpanda'][0]['mode'], 'native_html')
+        self.assertIn('不转 Markdown', cells['lightpanda'][0]['description'])
+        self.assertEqual(cells['moli'][0]['mode'], 'markdown')
+        require_native_task_routes(list(cases.values()), [{
+            'provider': 'lightpanda', 'provider_type': 'headless_markdown',
+            'case_id': 'dynamic-iframe', 'ok': True,
+            'provider_metadata': {'extractor': 'lightpanda_native_html',
+                'output_contract': 'native_html',
+                'subdocuments': {'support': 'native'}}}])
+
     def test_reader_matrix_exposes_all_families_and_non_native_processing(self):
         from copy import deepcopy
         from harness.web_fetch.report_interfaces import browser_task_interface_matrix

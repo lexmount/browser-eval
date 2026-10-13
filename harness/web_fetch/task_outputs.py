@@ -167,7 +167,7 @@ def require_native_task_routes(cases, records):
     from types import SimpleNamespace
     from .providers.headless import output_mode_for_case
 
-    inventory = {case['id']: SimpleNamespace(id=case['id'], url=case['url'], track=case.get('track','web'), task_kind=case.get('task_kind','body'), source_benchmark=case.get('source_benchmark',{}), expected_resources=[{'kind':r.get('kind')} for r in case.get('expected_resources',[])]) for case in cases}
+    inventory = {case['id']: SimpleNamespace(id=case['id'], url=case['url'], track=case.get('track','web'), task_kind=case.get('task_kind','body'), retrieval_hints=case.get('retrieval_hints',{}), source_benchmark=case.get('source_benchmark',{}), expected_resources=[{'kind':r.get('kind')} for r in case.get('expected_resources',[])]) for case in cases}
     expressions = {'resource':RESOURCE_PAGE_EXPRESSION, 'media_metadata':MEDIA_METADATA_EXPRESSION,
                    'document_page':DOCUMENT_PAGE_EXPRESSION}
     failures = []
@@ -209,6 +209,11 @@ def require_native_task_routes(cases, records):
                 valid = (meta.get('route') == 'browser_rendering_markdown'
                          and meta.get('extractor') == 'cloudflare_native_markdown'
                          and meta.get('browser') == 'kitesurf')
+        elif mode == 'native_html':
+            valid = (provider == 'lightpanda'
+                     and meta.get('extractor') == 'lightpanda_native_html'
+                     and meta.get('output_contract') == 'native_html'
+                     and meta.get('subdocuments', {}).get('support') == 'native')
         elif mode in {'document','file'}:
             if provider == 'moli':
                 valid = (meta.get('route') == ('raw_document' if mode == 'document' else 'raw_file')
