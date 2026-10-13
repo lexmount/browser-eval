@@ -100,6 +100,34 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
     assert correction["provider_route_changed"] is False
     assert correction["acceptance_changed"] is False
     assert correction["provider_calls"] == 0
+    delayed_correction = pre_call["delayed_completion_correction"]
+    assert delayed_correction["case_id"] == "dynamic-delayed"
+    assert delayed_correction["completion"] == {
+        "selector": ".quote", "minimum_count": 10,
+        "minimum_text_fragments": 3}
+    assert delayed_correction["source_authority"] == {
+        "path": "evaluation/sources/dynamic-delayed/render-audit.json",
+        "sha256": "cb72f36b479827c25816f1df5e2448885c0935ab61c0ad130bc145a2d466cc93",
+        "provider_output_used": False,
+    }
+    owner, tree, relative, bound = _authority_binding(
+        delayed_correction["source_authority"]["path"])
+    assert bound == delayed_correction["source_authority"]["sha256"]
+    delayed_audit = json.loads((input_tree(owner / "dataset.json", tree) / relative).read_text())
+    assert delayed_audit["completion"]["satisfied"] is True
+    assert delayed_audit["completion"]["condition"] == (
+        "dynamic-delayed: 10 nonempty target records with populated text fields; no interaction")
+    rendered_coverage = delayed_audit["coverage"]["rendered"]
+    assert rendered_coverage["hits"] == rendered_coverage["total"] == 30
+    assert rendered_coverage["all_present"] is True
+    assert delayed_correction["required_new_calls"] == {
+        "moli_fixed": 1, "moli_pr919": 1, "lightpanda": 1,
+        "obscura": 1, "chromium": 1, "kitesurf": 1,
+        "physical_calls": 6}
+    assert delayed_correction["deduplication"] == (
+        "These six calls replace the already-declared dynamic-delayed calls in the "
+        "method scopes below; they do not increase the 76-call physical total.")
+    assert delayed_correction["provider_calls"] == 0
     assert pre_call["execution_effect"]["required_new_calls"] == {
         "moli_fixed": 39, "moli_pr919": 21, "lightpanda": 4,
         "obscura": 4, "chromium": 4, "kitesurf": 4,
@@ -145,6 +173,9 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
         assert command.count("--json") == 1
         assert command[command.index("--wait-until") + 1] == "load"
         assert "--wait-selector" in command or "--wait-script" in command
+        if case.id == "dynamic-delayed":
+            assert command[command.index("--wait-script") + 1] == plan["wait_value"]
+            assert plan["minimum_text_fragments"] == 3
         if contract.include_subdocuments:
             assert command.count("--with-frames") == 1
             assert command[command.index("--load-resources") + 1] == "iframe"

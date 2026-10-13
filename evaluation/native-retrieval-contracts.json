@@ -6,14 +6,15 @@
       "case_id": "dynamic-delayed",
       "task_definition_sha256": "fb358c76b50d670d547bc8a4b86839bc1cfbd6c343f289d13cfc33aa57d2fd5b",
       "source_authority": {
-        "path": "evaluation/sources/dynamic-delayed/initial.html.txt",
-        "sha256": "dd107dafcb272fae743c8fc84ee4807c8c1fb3dea2416c30ff6c242e13305329",
+        "path": "evaluation/sources/dynamic-delayed/render-audit.json",
+        "sha256": "cb72f36b479827c25816f1df5e2448885c0935ab61c0ad130bc145a2d466cc93",
         "provider_output_used": false
       },
       "capabilities": {
         "completion": {
           "selector": ".quote",
-          "minimum_count": 10
+          "minimum_count": 10,
+          "minimum_text_fragments": 3
         }
       }
     },

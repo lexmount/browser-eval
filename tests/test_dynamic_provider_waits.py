@@ -504,3 +504,6 @@ def test_kitesurf_shared_completion_keeps_product_default_internal_timers(mock_r
     assert "timeout" not in body["gotoOptions"]
     assert "actionTimeout" not in body
     assert result.metadata["wait"]["timeout_ms"] is None
+    assert result.metadata["wait"]["completion_support"] == "approximate"
+    assert result.metadata["wait"]["unsupported"] == [
+        "minimum_count", "minimum_text_fragments"]

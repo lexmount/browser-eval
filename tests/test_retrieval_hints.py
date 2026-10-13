@@ -284,6 +284,24 @@ def test_named_native_contract_resolves_a_source_bound_page_shape():
     assert "h3.family-name" in plan.wait_value and ".length >= 14" in plan.wait_value
 
 
+def test_delayed_native_contract_waits_for_complete_visible_records():
+    case = {"id": "dynamic-delayed", "track": "dynamic", "retrieval_hints": {
+        "version": 3, "mode": "native", "contract": "delayed-ten-records"}}
+    contract = native_contract_for_case(case)
+    plan = contract.completion_plan(45_000)
+
+    assert contract.selector == ".quote"
+    assert contract.minimum_count == 10
+    assert contract.minimum_text_fragments == 3
+    assert plan.wait_kind == "script"
+    assert 'document.querySelectorAll(".quote")' in plan.wait_value
+    assert "nodes.length >= 10" in plan.wait_value
+    assert "nodes.slice(0, 10).every" in plan.wait_value
+    assert "innerText.split" in plan.wait_value
+    assert ">= 3" in plan.wait_value
+    assert "Albert Einstein" not in plan.wait_value
+
+
 def test_public_dataset_loader_binds_named_contract_to_the_current_task_definition(tmp_path):
     from tests.conftest import read_frozen_dataset_bytes
 

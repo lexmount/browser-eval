@@ -413,6 +413,8 @@ class CloudflareMarkdownProvider(Provider):
                 unsupported.extend(["child_frame_selector", "selector"])
             if plan.minimum_count != 1:
                 unsupported.append("minimum_count")
+            if plan.minimum_text_fragments:
+                unsupported.append("minimum_text_fragments")
             if plan.delay_ms and not plan.frame_selector:
                 unsupported.append("post_selector_delay")
             route = "browser_rendering_markdown_dynamic"

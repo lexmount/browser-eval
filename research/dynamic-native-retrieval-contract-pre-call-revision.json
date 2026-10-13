@@ -15,7 +15,7 @@
   },
   "contract_registry": {
     "path": "evaluation/native-retrieval-contracts.json",
-    "sha256": "b54e31b9b1872cc126935c8e078611249d9cc2c5c17cf5a4cf49290990095132"
+    "sha256": "210281ea49c61aa9c1ae4976be0f8b97adf1ef0eed6e08a74d77f54bab80b71b"
   },
   "authoritative_430_input": {
     "assembly": {
@@ -38,6 +38,36 @@
     "reason": "The native compiler already preserves track=dynamic. Adding a second scenario marker changed the frozen task definition after its catalog and named retrieval contract had been verified.",
     "provider_route_changed": false,
     "acceptance_changed": false,
+    "provider_calls": 0
+  },
+  "delayed_completion_correction": {
+    "case_id": "dynamic-delayed",
+    "predecessor_contract_registry_sha256": "b54e31b9b1872cc126935c8e078611249d9cc2c5c17cf5a4cf49290990095132",
+    "revised_contract_registry_sha256": "210281ea49c61aa9c1ae4976be0f8b97adf1ef0eed6e08a74d77f54bab80b71b",
+    "completion": {
+      "selector": ".quote",
+      "minimum_count": 10,
+      "minimum_text_fragments": 3
+    },
+    "source_authority": {
+      "path": "evaluation/sources/dynamic-delayed/render-audit.json",
+      "sha256": "cb72f36b479827c25816f1df5e2448885c0935ab61c0ad130bc145a2d466cc93",
+      "provider_output_used": false
+    },
+    "source_basis": "The independent render audit records 30 of 30 populated fields across ten visible quote cards: quote text, author and tags. Counting empty card containers was insufficient.",
+    "provider_request_changed": true,
+    "acceptance_changed": false,
+    "scoring_changed": false,
+    "required_new_calls": {
+      "moli_fixed": 1,
+      "moli_pr919": 1,
+      "lightpanda": 1,
+      "obscura": 1,
+      "chromium": 1,
+      "kitesurf": 1,
+      "physical_calls": 6
+    },
+    "deduplication": "These six calls replace the already-declared dynamic-delayed calls in the method scopes below; they do not increase the 76-call physical total.",
     "provider_calls": 0
   },
   "changed_cases": [
