@@ -753,6 +753,11 @@ its download would change page execution. Answers above `max_bytes` fail with
 
 `uniform_native_parameters: true` selects the fixed-native body/structure policy for web and dynamic tasks. Choose documented native extraction options once per method (for example Tavily advanced, Cloudflare networkidle2, Crawl4AI iframe/overlay options, native freshness and capacity options). The caller deadline is 45 seconds; product connection, navigation and extraction timers retain their native defaults. HTTP-client deadlines and worker cancellation enforce collection time, not product-side budgets. CowAgent globals are never patched.
 
+Moli uses its native `done` completion for ordinary tasks and native
+`domstable` completion for the complete dynamic-body family. The same policy
+applies to the release and candidate builds. It is fixed before calls and may
+not vary by case or change after a failure.
+
 Per-case retrieval hints and auxiliary document/media/challenge routes are rejected before invocation in this mode. Cross-provider fallback, injected extraction algorithms and answer synthesis are prohibited. Caller failure retries follow the shared [retry policy](#retries); historical cohorts retain their frozen retry budgets. Keep the native response envelope and its declared answer; the product may still impose its own limits or internal retries. Moli webpage, document-body and webpage-media-information tasks all use its native Markdown; only direct-media-file tasks use raw bytes. Prepare a new frozen invocation profile after a policy change; preserve previous measurements and do not infer revised scores without calls.
 ### 原生内容接口与评测边界
 

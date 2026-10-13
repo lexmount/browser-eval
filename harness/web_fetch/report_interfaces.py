@@ -29,7 +29,7 @@ SPECS={
  'moli-webfetch':spec('CLI · 原生 Markdown 或原始响应路线','本地二进制；无 API Key',
  [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','所有网页、文档正文与网页媒体信息任务','直接取得 Moli 原生 Markdown；直接 PDF/DOCX 未提供可读正文时失败'),('--with-frames','网页媒体信息任务','让同一次原生 Markdown 调用包含已加载子文档；不切换输出格式'),('--wait-until / --wait-selector / --wait-script','string','使用 Moli 官方等待能力；只等待，不抽取或拼接正文'),('外层截止','number','外层统一为 45 秒。内部参数以冻结的调用记录为准：显式模式留出收尾和清理时间；uniform 模式沿用产品默认值'),('--block-private-networks','flag','默认启用')],
  [('stdout','UTF-8 string / bytes','Markdown、eval 结果或直接文件原始字节'),('stderr','string','独立诊断；不混入正文'),('exit_code','integer','0 表示工具请求完成；正文或文件为空仍由任务规则单独判失败'),('status_code / final_url','可能未提供','CLI 未提供时保持未知，不伪造 HTTP 200 或最终 URL')],
- {'page_body':'moli fetch --dump markdown --wait-until done URL','exact_page_identity':'正文仍用原生 Markdown；最终网址不是评分条件，无法确认时保持空值','webpage_media':'moli fetch --dump markdown --with-frames --wait-until done URL','direct_document_body':'moli fetch --dump markdown --wait-until done URL','direct_file':'Moli 原生 CDP 响应；附件事件使用同一 Moli 原始附件接口'},
+ {'page_body':'moli fetch --dump markdown --wait-until done URL','dynamic_body':'moli fetch --dump markdown --wait-until domstable URL','exact_page_identity':'正文仍用原生 Markdown；最终网址不是评分条件，无法确认时保持空值','webpage_media':'moli fetch --dump markdown --with-frames --wait-until done URL','direct_document_body':'moli fetch --dump markdown --wait-until done URL','direct_file':'Moli 原生 CDP 响应；附件事件使用同一 Moli 原始附件接口'},
  'harness/web_fetch/providers/moli.py','网页正文、文档正文、结构题和网页媒体信息题统一使用 Moli 原生 Markdown。网页媒体信息只在这份原生输出中核对题目指定的资源地址，不下载媒体，也不切换 HTML、JSON 或网络跟踪接口。旧版 selector 合同只映射到官方等待参数，不参与正文抽取。直接 PDF/DOCX 没有交付可读正文时按失败记录，评测端不下载后解析。直接媒体文件使用原生 CDP 响应或同一二进制的原始附件接口。最终网址只作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。'),
  'lexmount-global':spec('POST https://api.lexmount.com/v1/extract','X-API-Key: <API_KEY>；X-Project-Id: <PROJECT_ID>',
  [('extract.url','string · 必填','目标网页 URL'),('extract.engine','string · 可选','指定提取引擎；本轮不传，使用服务端选择')],
@@ -240,7 +240,7 @@ def browser_task_interface_matrix(cases, providers):
  runtime={'moli':'原生 CDP','obscura':'原生 CDP','lightpanda':'原生 CDP',
           'chromium':'Playwright/CDP','kitesurf':'指定 Kitesurf 的官方 CDP'}
  waits={
-  'moli':'CLI 等待 done',
+ 'moli':'CLI 等待 done',
   'lightpanda':'Markdown CLI 等待 done',
   'obscura':'CLI 使用官方默认 load 加自适应静默等待（最多 5 秒）',
   'chromium':'页面提取等待 load',
@@ -280,6 +280,8 @@ def browser_task_interface_matrix(cases, providers):
     elif mode=='media_metadata':description=runtime[engine]+' 执行共用脚本，读取正文、作者及 JSON-LD → 页面正文与媒体元数据（不转 Markdown）'
     else:raise ValueError('Unsupported browser task interface mode: '+mode)
     wait=('读取原始响应或下载文件，不等待查看器绘制' if mode in {'file','document'} else waits[engine])
+    if engine=='moli' and track=='dynamic' and mode=='markdown':
+     wait='动态网页正文整类使用 CLI 原生 domstable'
     if mode not in {'file','document','markdown'}:
      if engine in {'lightpanda','kitesurf'} or (engine=='obscura' and mode in {'document_page','media_metadata'}):
       wait='CDP 页面提取等待 load'

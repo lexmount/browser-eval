@@ -66,7 +66,7 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
     measured["cases"][1]["retrieval_hints"] = {"version": 3, "mode": "native"}
     measured["comparison"] = {
         "input_dataset_sha256": source_hash,
-        "retrieval_mode": "native_default_completion",
+        "retrieval_mode": "native_task_family_completion",
     }
     measured["coverage_plan"] = {
         "web": ["moli", "moli-stack-1432"],
@@ -84,6 +84,7 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
             "expected_binary_sha256": character * 64,
             "dns_mode": "system",
             "wait_until": "done",
+            "dynamic_wait_until": "domstable",
             "block_private_networks": True,
             "uniform_native_parameters": True,
             "max_bytes": 20_000_000,

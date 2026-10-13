@@ -140,13 +140,10 @@ A direct-file case must return and validate the bytes. This produces seven
 reader-facing families without pretending that URL discovery and file delivery
 are the same operation.
 
-Moli uses native HTML for image-resource pages. Video-resource pages use its
-native JSON page and network record with a single family-wide `done` plus
-five-second readiness window, because a hydrated player may request its media
-URL without serializing it into an HTML attribute. The shared scorer only reads
-URLs already present in that native output; it never derives a playback URL
-from a site-specific identifier. This route is selected for the whole video
-resource subtype before the call and cannot change after a failure.
+Moli uses native Markdown with frame inclusion for every webpage-media case.
+The shared scorer only reads URLs already present in that output; it never
+derives a playback URL from a site-specific identifier. A missing URL remains
+a failure and cannot trigger an HTML, JSON or network-trace fallback.
 
 ## Credentials and binaries
 

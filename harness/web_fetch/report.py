@@ -2297,7 +2297,8 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  if headless:
   methods_count=len({row['provider'] for row in records})
   methodology=methodology.replace('Firecrawl 每次完成后冷却 6.1 秒。',f'本轮 {methods_count} 种配置分别使用独立进程或新上下文。具体接口、等待条件与输出处理见报告解读的任务接口表，实际版本和配置见执行批次。每次调用使用 45 秒端到端预算，调用次数和重试规则以事前声明的协议为准。命令、版本、参考、评分或计时错误按完整声明范围纠正，保留旧证据；不按分数选择重试结果。')
-  if dataset.get('comparison',{}).get('retrieval_mode')=='native_default_completion':
+  if dataset.get('comparison',{}).get('retrieval_mode') in {
+      'native_default_completion', 'native_task_family_completion'}:
    methodology=methodology.replace('正文任务中，方法只返回原始 PDF 或 DOCX 时，本地正文解析也计时；原始文件任务则到字节校验完成即停止，不做无关的 Markdown 转换。','本轮文档正文只验收浏览器原生接口交付的文字；取得文件字节后不另接外部解析器补正文。原始文件任务到字节校验完成即停止。')
  if local_matrix:
   methodology+=section('本轮固定原生配置','<p>每种方法内部串行执行，每题只调用一次，45秒为外层交卷期限。内部加载、连接和处理时间保留产品默认值。允许测试前固定的原生选项，不传入逐题等待、选择器、数量提示或脚本；不补抓、不额外重试。产品返回的正文和原始响应分别保存。</p><p>每种方法内部串行执行；方法之间的调度以执行批次和保存的调用时间为准。分段执行保留每个原始分段，完整调用时间见执行批次。</p>')

@@ -541,6 +541,7 @@ class MoliTests(unittest.TestCase):
             'import sys\n'
             'assert "--eval" not in sys.argv and "--wait-selector" not in sys.argv\n'
             'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
+            'assert sys.argv[sys.argv.index("--wait-until")+1] == "domstable"\n'
             'print("# Native body")'
         )
         result = provider.fetch(self.case_with(track="dynamic", retrieval_hints={
@@ -548,6 +549,21 @@ class MoliTests(unittest.TestCase):
         self.assertTrue(result.ok, result.error_message)
         self.assertEqual(result.content, "# Native body\n")
         self.assertEqual(result.metadata["output"], "markdown")
+        self.assertEqual(result.metadata["wait"], {
+            "wait_until": "domstable", "scope": "dynamic_task_family",
+            "strategy": "native_task_family_completion"})
+
+    def test_dynamic_family_wait_is_configurable_but_not_case_specific(self):
+        provider = self.provider(
+            'import sys\n'
+            'assert sys.argv[sys.argv.index("--wait-until")+1] == "networkidle"\n'
+            'print("# Native body")',
+            dynamic_wait_until="networkidle",
+        )
+        result = provider.fetch(self.case_with(track="dynamic", retrieval_hints={
+            "version": 3, "mode": "native"}), 10)
+        self.assertTrue(result.ok, result.error_message)
+        self.assertEqual(result.metadata["wait"]["scope"], "dynamic_task_family")
 
     def test_dynamic_task_prefers_predeclared_selector_without_answer_leakage(self):
         provider = self.provider(
@@ -1148,6 +1164,10 @@ class MoliTests(unittest.TestCase):
                 provider.fetch(EvalCase("x", "x", "file:///etc/passwd", "x", []), 1)
             process.assert_not_called()
         self.assertIn("wait_until", self.provider("", wait_until="invalid").validate())
+        self.assertIn(
+            "dynamic_wait_until",
+            self.provider("", dynamic_wait_until="invalid").validate(),
+        )
         self.assertIn(
             "private_network_allowlist_hosts",
             self.provider("", private_network_allowlist_hosts=["https://example.com"]).validate(),

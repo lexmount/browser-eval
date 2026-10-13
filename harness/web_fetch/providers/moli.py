@@ -162,6 +162,8 @@ class MoliWebFetchProvider(Provider):
             errors.append("expected_binary_sha256")
         if self.config.get("wait_until", "done") not in _WAIT_UNTIL_VALUES:
             errors.append("wait_until")
+        if self.config.get("dynamic_wait_until", "domstable") not in _WAIT_UNTIL_VALUES:
+            errors.append("dynamic_wait_until")
         if int(self.config.get("max_bytes", 20_000_000)) <= 0:
             errors.append("max_bytes")
         retain_diagnostic = self.config.get("retain_complete_diagnostic_log", False)
@@ -313,6 +315,11 @@ class MoliWebFetchProvider(Provider):
             finally:
                 with self._process_lock: self._active_native_provider = None
         wait = self.config.get("wait_until", "done")
+        family_wait = (
+            self.config.get("dynamic_wait_until", "domstable")
+            if case.track == "dynamic"
+            else wait
+        )
         timeout_ms = str(max(1, int(inner_timeout_budget(timeout) * 1000)))
         dump = "markdown"
         try:
@@ -329,7 +336,7 @@ class MoliWebFetchProvider(Provider):
                     "--wait-selector" if plan.wait_kind == "selector" else "--wait-script",
                     plan.wait_value,
                     "--wait-until",
-                    plan.wait_until or wait,
+                    plan.wait_until or family_wait,
                 ]
                 wait_metadata = {
                     "strategy": (
@@ -342,15 +349,20 @@ class MoliWebFetchProvider(Provider):
                     "selector": plan.selector,
                     "minimum_count": plan.minimum_count,
                     "frame_selector": plan.frame_selector,
-                    "wait_until": plan.wait_until or wait,
+                    "wait_until": plan.wait_until or family_wait,
                     "completion_support": "exact",
                     "output_extraction": "native_markdown",
                 }
                 if plan.minimum_text_fragments:
                     wait_metadata["minimum_text_fragments"] = plan.minimum_text_fragments
             else:
-                wait_arguments = ["--wait-until", wait]
-                wait_metadata = {"wait_until": wait}
+                wait_arguments = ["--wait-until", family_wait]
+                wait_metadata = {"wait_until": family_wait}
+                if case.track == "dynamic":
+                    wait_metadata.update(
+                        scope="dynamic_task_family",
+                        strategy="native_task_family_completion",
+                    )
         except ValueError as error:
             return ProviderResult(
                 False,

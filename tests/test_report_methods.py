@@ -41,6 +41,18 @@ class AdoptionTests(unittest.TestCase):
   self.assertIn('本轮 100 例',model['configuration'])
   self.assertIn('默认 done',model['configuration'])
 
+ def test_method_page_model_reports_uniform_dynamic_family_completion(self):
+  record={'provider_type':'moli_webfetch','provider_metadata':{
+      'reported_version':'moli 1.1.15','dump':'markdown',
+      'route':'dynamic_native_markdown','wait_until':'domstable',
+      'wait':{'strategy':'native_task_family_completion'}}}
+  model=method_page_model('moli','Moli',[record]*100)
+  self.assertEqual(
+      model['endpoint'], 'moli fetch --dump markdown --wait-until domstable URL')
+  self.assertIn('100 个动态网页正文任务',model['configuration'])
+  self.assertIn('统一使用',model['configuration'])
+  self.assertIn('没有逐题等待元素',model['configuration'])
+
  def test_future_method_page_is_registry_driven_without_renderer_changes(self):
   method={'endpoint':'future fetch URL','contract':'URL → text','output':'text',
           'freshness':'fresh process','leaderboard':'body',

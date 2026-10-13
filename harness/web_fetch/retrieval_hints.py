@@ -83,9 +83,10 @@ def _verified_source_tree() -> Path:
 def native_fetch_dataset(dataset: dict) -> dict:
     """Select default WebFetch execution without changing scenario acceptance.
 
-    Keep the task family independent of completion strategy. An explicit
-    version-3 native contract selects ordinary provider completion without
-    selectors, delays, extraction hints or changes to acceptance rules.
+    Keep answer-bearing completion hints out of the native comparison. An
+    explicit version-3 native contract lets each provider select one official
+    completion mode for the complete task family, without per-case selectors,
+    delays, extraction hints or changes to acceptance rules.
     """
     result = deepcopy(dataset)
     for case in result['cases']:
@@ -98,7 +99,7 @@ def native_fetch_dataset(dataset: dict) -> dict:
                 raise ValueError('Native fetch cannot discard declared retrieval hints: ' + case['id'])
         if case.get('track') == 'dynamic':
             case.setdefault('retrieval_hints', {'version': 3, 'mode': 'native'})
-    result.setdefault('comparison', {})['retrieval_mode'] = 'native_default_completion'
+    result.setdefault('comparison', {})['retrieval_mode'] = 'native_task_family_completion'
     return result
 
 

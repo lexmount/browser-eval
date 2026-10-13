@@ -143,7 +143,8 @@ def audit_fixed_native_comparison(
         or len(set(source_ids)) != expected_count
         or case_ids != source_ids
         or dataset.get("comparison", {}).get("input_dataset_sha256") != source_sha256
-        or dataset.get("comparison", {}).get("retrieval_mode") != "native_default_completion"
+        or dataset.get("comparison", {}).get("retrieval_mode")
+        != "native_task_family_completion"
     ):
         raise ValueError("Measured dataset differs from the bound native source scope")
     for case in dataset["cases"]:
@@ -166,6 +167,7 @@ def audit_fixed_native_comparison(
         if (
             item.get("type") != "moli_webfetch"
             or item.get("wait_until") != "done"
+            or item.get("dynamic_wait_until") != "domstable"
             or item.get("block_private_networks") is not True
             or item.get("dns_mode", "system") != "system"
             or item.get("log_level") != "debug"
