@@ -5,7 +5,7 @@
   "root_cause": "Eight rules required labels that appear only in some responsive navigation layouts. The labels are outside the declared target body and are absent from other valid first-load layouts, so they cannot be universal body acceptance requirements.",
   "source_authority": {
     "path": "research/moli-111-three-cohort-evaluation-revision.json",
-    "sha256": "056be01db41d5e721c2b1c948853d0c83b0bef3c6932fbeeebc8433458c802b0",
+    "sha256": "b21974be8e887043617d43aaac08b786ed9abd808c9e18c2becc08226be63293",
     "provider_output_used": false
   },
   "correction": {

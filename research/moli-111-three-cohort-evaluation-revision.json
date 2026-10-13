@@ -866,13 +866,27 @@
     {
       "case_id": "dynamic-082-allocine-films",
       "provider_calls": 0,
+      "provider_outputs_used": false,
       "predecessor_sha256": "c278cdc46a5f9cc193a346d29712861de2f8a16125e8d44934fa15328d1c9686",
       "revised_sha256": "1f3268366b17d490c85b75fbda329e5b3e6143d0a058523c1cad8a73ed916278",
-      "root_cause": "The frozen dynamic task needed an explicit native execution contract. This adds no completion selector, answer text, delay, extraction rule, or acceptance change.",
+      "root_cause": "The independent current-browser capture no longer contains the previously required TVActu navigation label, so that stale page-shell anchor was removed. The same revision adds an explicit native execution contract without a selector, answer text, delay or extraction rule.",
       "source_authority": {
         "path": "evaluation/dynamic-content-100-moli-webfetch/sources/dynamic-082-allocine-films/current-browser-observation.json",
         "sha256": "717a0d1a864f561ae80c601c5733fccdfda16120e37b2ff4d0837c2718d86038",
         "provider_output_used": false
+      },
+      "source_basis": {
+        "observation_method": "rendered_selector_dom_text_with_reference_scope_pruning",
+        "checked_at": "2026-10-13T06:10:46.798835+00:00",
+        "captured_text_contains_removed_anchor": false
+      },
+      "acceptance_effect": {
+        "changed": true,
+        "required_stable_anchor_count_before": 55,
+        "required_stable_anchor_count_after": 54,
+        "removed_required_anchor_id": "phase1-stable-0e2130d4bdb9",
+        "effect": "An otherwise valid result no longer fails solely because TVActu is absent; all 54 remaining anchors, the 57-record minimum, host, entry-path and link rules remain required.",
+        "record_and_link_rules_changed": false
       },
       "changes": [
         {

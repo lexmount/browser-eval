@@ -71,8 +71,29 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit():
         assert followup['predecessor_sha256']==expected_hash
         assert followup['provider_calls']==0
         assert followup['source_authority']['provider_output_used'] is False
-        _, _, _, bound = _authority_binding(followup['source_authority']['path'])
+        owner, tree, relative, bound = _authority_binding(followup['source_authority']['path'])
         assert bound == followup['source_authority']['sha256']
+        if followup['case_id'] == 'dynamic-082-allocine-films':
+            assert followup['provider_outputs_used'] is False
+            effect = followup['acceptance_effect']
+            assert effect == {
+                'changed': True,
+                'required_stable_anchor_count_before': 55,
+                'required_stable_anchor_count_after': 54,
+                'removed_required_anchor_id': 'phase1-stable-0e2130d4bdb9',
+                'effect': ('An otherwise valid result no longer fails solely because TVActu '
+                           'is absent; all 54 remaining anchors, the 57-record minimum, host, '
+                           'entry-path and link rules remain required.'),
+                'record_and_link_rules_changed': False,
+            }
+            current = next(c for c in cases if c['id'] == followup['case_id'])
+            assert len(current['acceptance_contract']['stable_text_anchors']) == 54
+            source = json.loads((input_tree(owner / 'dataset.json', tree) / relative).read_text())
+            assert source['independent'] is True
+            assert source['observation_method'] == followup['source_basis']['observation_method']
+            assert source['checked_at'] == followup['source_basis']['checked_at']
+            assert ('TVActu' in source['content_text']) is followup['source_basis'][
+                'captured_text_contains_removed_anchor']
         expected_hash=followup['revised_sha256']
     assert hashlib.sha256(historical.encode()).hexdigest() == expected_hash
     assert hashlib.sha256(read_frozen_dataset_bytes(DATASET_PATH)).hexdigest() == pre_call["revised_dataset_sha256"]

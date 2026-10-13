@@ -65,6 +65,15 @@ def _verify_task_definition(identifier: str, expected_sha256: str) -> None:
         raise ValueError("Native retrieval contract task definition hash is not in the dataset catalog")
 
 
+def task_definition_sha256(case: Mapping[str, Any]) -> str:
+    """Hash one task with the same canonical form as the frozen catalog."""
+    return hashlib.sha256(
+        json.dumps(
+            case, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode()
+    ).hexdigest()
+
+
 @lru_cache(maxsize=1)
 def _verified_source_tree() -> Path:
     from .reference_inputs import input_tree
@@ -250,6 +259,7 @@ def parse_retrieval_hints(
     hints: Any,
     *,
     identifier: str = "<unknown>",
+    current_task_definition_sha256: str | None = None,
 ) -> RetrievalPlan | None:
     """Validate once and produce the only plan consumed by provider adapters."""
     if hints is None:
@@ -271,7 +281,11 @@ def parse_retrieval_hints(
             raise ValueError(
                 f"{identifier}: native retrieval_hints contain unsupported fields"
             )
-        _parse_native_contract(hints, identifier=identifier)
+        _parse_native_contract(
+            hints,
+            identifier=identifier,
+            current_task_definition_sha256=current_task_definition_sha256,
+        )
         return None
     expected_keys = (
         {"version", "wait_until", "completion", "extraction"}
@@ -404,7 +418,8 @@ def parse_retrieval_hints(
 
 
 def _parse_native_contract(
-    hints: Mapping[str, Any], *, identifier: str
+    hints: Mapping[str, Any], *, identifier: str,
+    current_task_definition_sha256: str | None = None,
 ) -> NativeRetrievalContract:
     name = hints.get("contract")
     if name is None:
@@ -421,6 +436,13 @@ def _parse_native_contract(
     if not isinstance(definition_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", definition_sha256):
         raise ValueError(f"{identifier}: native retrieval contract task binding is invalid")
     _verify_task_definition(identifier, definition_sha256)
+    if (
+        current_task_definition_sha256 is not None
+        and current_task_definition_sha256 != definition_sha256
+    ):
+        raise ValueError(
+            f"{identifier}: native retrieval contract does not match the current task definition"
+        )
     authority = declared.get("source_authority")
     if (
         not isinstance(authority, Mapping)

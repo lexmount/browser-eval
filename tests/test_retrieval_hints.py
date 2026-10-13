@@ -284,6 +284,26 @@ def test_named_native_contract_resolves_a_source_bound_page_shape():
     assert "h3.family-name" in plan.wait_value and ".length >= 14" in plan.wait_value
 
 
+def test_public_dataset_loader_binds_named_contract_to_the_current_task_definition(tmp_path):
+    from tests.conftest import read_frozen_dataset_bytes
+
+    dataset = json.loads(read_frozen_dataset_bytes(
+        Path("evaluation/dynamic-content-100-moli-webfetch/dataset.json")
+    ))
+    original = next(case for case in dataset["cases"] if case["id"] == "dynamic-iframe")
+    load_dataset(_write_dataset(tmp_path, deepcopy(original)))
+
+    changed_url = deepcopy(original)
+    changed_url["url"] += "?different-task=1"
+    changed_body_requirement = deepcopy(original)
+    changed_body_requirement["min_content_chars"] += 1
+    changed_acceptance = deepcopy(original)
+    changed_acceptance["acceptance_contract"]["minimum_records"] -= 1
+    for changed in (changed_url, changed_body_requirement, changed_acceptance):
+        with pytest.raises(ValueError, match="does not match the current task definition"):
+            load_dataset(_write_dataset(tmp_path, changed))
+
+
 @pytest.mark.parametrize("field", ["completion", "include_subdocuments", "answer_text", "timeout_ms"])
 def test_native_dataset_rows_reject_inline_capabilities_and_answers(field):
     hints = {"version": 3, "mode": "native", field: {"selector": ".record"}}
