@@ -98,7 +98,9 @@ def completion_metadata(engine, plan, output_mode):
             'minimum_count_enforced': False,
             'unsupported': ['selector', 'minimum_count', 'post_completion_delay'],
         }
-    elif engine in {'moli', 'lightpanda', 'chromium'}:
+    elif engine in {'moli', 'chromium'} or (
+        engine == 'lightpanda' and plan['wait_kind'] == 'selector'
+    ):
         strategy = (
             'frame_selector_count_script'
             if plan.get('frame_selector')
@@ -116,6 +118,22 @@ def completion_metadata(engine, plan, output_mode):
             # These paths can wait on same-origin child content, but their
             # existing Markdown/outerHTML contract does not serialize it.
             metadata['output_unsupported'] = ['child_frame_serialization']
+    elif engine == 'lightpanda':
+        # Lightpanda 1.0.0 accepts --wait-script but does not enforce the
+        # predicate: even `() => false` returns a successful response
+        # immediately.  Keep using the official flag so the attempted route is
+        # reproducible, but do not describe count, frame or text-completeness
+        # predicates as an exact request boundary.
+        metadata = {
+            'strategy': 'native_script_not_enforced',
+            'completion_support': 'unsupported',
+            'minimum_count_enforced': False,
+            'unsupported': [
+                'script_enforcement', 'minimum_count', 'minimum_text_fragments',
+            ],
+        }
+        if plan.get('frame_selector'):
+            metadata['unsupported'].append('child_frame_selector')
     elif engine == 'obscura':
         frame = bool(plan.get('frame_selector'))
         # The CLI only warns when its selector poll expires and still exits
@@ -144,6 +162,7 @@ def completion_metadata(engine, plan, output_mode):
         'selector': plan['selector'],
         'frame_selector': plan.get('frame_selector'),
         'minimum_count': plan['minimum_count'],
+        'minimum_text_fragments': plan.get('minimum_text_fragments', 0),
         'timeout_ms': plan['timeout_ms'],
         'delay_ms': plan['delay_ms'],
     }

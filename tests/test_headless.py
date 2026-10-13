@@ -13,6 +13,7 @@ from harness.web_fetch.providers.headless import (
     HeadlessProvider,
     _resolve_binary,
     cli_command,
+    completion_metadata,
     output_mode_for_case,
 )
 from harness.web_fetch.providers.headless_worker import fetch
@@ -555,6 +556,33 @@ class HeadlessTests(unittest.TestCase):
         self.assertEqual(command[command.index('--load-resources') + 1], 'iframe')
         self.assertEqual(command.count('--with-frames'), 1)
         self.assertEqual(command[command.index('--wait-script') + 1], plan['wait_value'])
+
+    def test_lightpanda_script_wait_does_not_claim_enforcement(self):
+        plan = {
+            'version': 3, 'wait_until': 'load', 'selector': '.quote',
+            'minimum_count': 10, 'timeout_ms': 45000, 'delay_ms': 0,
+            'frame_selector': None, 'minimum_text_fragments': 3,
+            'wait_kind': 'script', 'wait_value': '() => false',
+        }
+        metadata = completion_metadata('lightpanda', plan, 'markdown')
+        self.assertEqual(metadata['strategy'], 'native_script_not_enforced')
+        self.assertEqual(metadata['completion_support'], 'unsupported')
+        self.assertFalse(metadata['minimum_count_enforced'])
+        self.assertEqual(metadata['minimum_text_fragments'], 3)
+        self.assertIn('script_enforcement', metadata['unsupported'])
+        self.assertIn('minimum_text_fragments', metadata['unsupported'])
+
+    def test_lightpanda_selector_wait_keeps_its_native_capability(self):
+        plan = {
+            'version': 3, 'wait_until': 'load', 'selector': '.ready',
+            'minimum_count': 1, 'timeout_ms': 45000, 'delay_ms': 0,
+            'frame_selector': None, 'minimum_text_fragments': 0,
+            'wait_kind': 'selector', 'wait_value': '.ready',
+        }
+        metadata = completion_metadata('lightpanda', plan, 'markdown')
+        self.assertEqual(metadata['completion_support'], 'exact')
+        self.assertEqual(metadata['minimum_text_fragments'], 0)
+        self.assertEqual(metadata['unsupported'], [])
 
     def test_lightpanda_iframe_capability_receipt_does_not_overclaim_markdown(self):
         receipt = json.loads(Path(
