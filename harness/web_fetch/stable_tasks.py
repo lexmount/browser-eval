@@ -605,8 +605,12 @@ def validate_acceptance_contract(contract: dict) -> None:
             or contract.get("version") != 1 or not isinstance(contract.get("schema"), str)
             or contract.get("schema") not in SCHEMA_FIELDS):
         raise ValueError("Unsupported stable acceptance contract")
-    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "entry_scope", "name_validation", "identity_query_keys", "field_minimum_records", "record_name_exclusions", "title_exclusion_patterns", "price_patterns", "price_exclusion_patterns", "price_unavailable_patterns", "record_count_policy", "source_record_pair_hashes", "source_record_pairs_sha256", "table_columns", "record_identity_fields", "table_scope", "duplicate_policy", "link_base_url"}:
+    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "stable_text_role", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "entry_scope", "name_validation", "identity_query_keys", "field_minimum_records", "record_name_exclusions", "title_exclusion_patterns", "price_patterns", "price_exclusion_patterns", "price_unavailable_patterns", "record_count_policy", "source_record_pair_hashes", "source_record_pairs_sha256", "table_columns", "record_identity_fields", "table_scope", "duplicate_policy", "link_base_url"}:
         raise ValueError("Unknown stable acceptance contract fields")
+    if contract.get("stable_text_role", "required") not in {"required", "diagnostic"}:
+        raise ValueError("Invalid stable text role")
+    if contract.get("stable_text_role") == "diagnostic" and contract["schema"] != "body_text":
+        raise ValueError("Diagnostic stable text requires a body-text contract")
     if contract['schema'] == 'table_row':
         from .structured_tables import validate_table
         validate_table(contract)
@@ -820,14 +824,15 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Invalid stable acceptance regex") from error
 
 
-def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None) -> dict:
+def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None, anchors_required: bool = True) -> dict:
     """Validate a version-1 schema/count contract, without fetching or snapshots.
 
     Required keys: version, schema, minimum_records. Optional maximum_records
     imposes a finite exact scope when equal to the minimum. page_patterns is a
     list of required regexes for stable page/section identity (not current items).
     stable_text_anchors contains explicit {id, alternatives} groups; every group
-    must match, independently of record shape and optional snapshot word metrics.
+    must match unless the caller supplies a separate body or composite contract
+    and selects diagnostic anchors. Record and page-pattern gates remain required.
     named_link additionally requires hosts and entry_path, using the existing
     same-site detail-link parser. Raw URL identity is not factual verification.
     anchor_text may reuse the caller's normalized visible HTML prose;
@@ -923,7 +928,9 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         matched = _anchor_matches(anchor, records, visible, schema,
                                   non_record_visible, anchor_visible)
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
-    content_errors += ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
+    anchor_errors = ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
+    if anchors_required:
+        content_errors += anchor_errors
     complete = [r for r in records if r["valid"]]
     identity_fields = contract["record_identity_fields"] if schema == "table_row" else UNIQUE_FIELDS[schema]
     compact_fields = {c['name'] for c in contract.get('table_columns', [])
@@ -970,7 +977,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             "stable_field_results": field_checks,
             "stable_structure_pass": structure_pass, "stable_content_pass": not content_errors,
             "stable_blocked_page": blocked_page,
-            "stable_anchor_results": anchors, "stable_page_pattern_results": page_results,
+            "stable_anchors_required": anchors_required,
+            "stable_anchor_errors": anchor_errors, "stable_anchor_results": anchors, "stable_page_pattern_results": page_results,
             "stable_anchor_hits": sum(r["pass"] for r in anchors),
             "stable_anchor_total": len(anchors),
             "stable_anchor_coverage": sum(r["pass"] for r in anchors) / len(anchors) if anchors else None,

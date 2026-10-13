@@ -43,6 +43,17 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def assign_content_acceptance_roles(cases: list[dict]) -> None:
+    """Bind stable-text diagnostics to independently declared content gates."""
+    for case in cases:
+        contract = case["acceptance_contract"]
+        contract["stable_text_role"] = (
+            "diagnostic" if case.get("body_requirements") or case.get("composite_acceptance")
+            else "required"
+        )
+        validate_acceptance_contract(contract)
+
+
 def compact_key(value: str) -> str:
     return "".join(
         character
@@ -388,11 +399,14 @@ def build(output: Path, definition_dir: Path = RISK) -> dict:
                 }
             },
         }
+        # Keep independently observed anchors intact. Shared scoring makes
+        # them diagnostic when body or composite requirements own acceptance.
         if body:
             case["body_requirements"] = body
         if composite:
             case["composite_acceptance"] = composite
         cases.append(case)
+    assign_content_acceptance_roles(cases)
     dataset = {
         "schema_version": 1,
         "id": "risk-control-audited-100",

@@ -618,9 +618,11 @@ def evaluate_content(
             if ground_truth_main_content else None),
     }
     if acceptance_contract:
-        # Frozen literal markers and snapshot facts are diagnostics once a
-        # stable contract owns acceptance.  A separately declared body-region
-        # contract is different: it remains an independent acceptance gate.
+        # Explicit body/record requirements own body-text acceptance. Stable
+        # page-shell literals remain inspectable diagnostics in those cases.
+        anchors_required = acceptance_contract.get("stable_text_role", "required") != "diagnostic"
+        if not anchors_required and not (body_requirements or composite_acceptance):
+            raise ValueError("Diagnostic stable text requires body or composite acceptance")
         declared_body_pass = bool(result["body_coverage_pass"])
         declared_pattern_pass = all(item["pass"] for item in result["pattern_results"])
         from .stable_tasks import evaluate_stable_task
@@ -628,7 +630,8 @@ def evaluate_content(
         # page anchors, records, or declared body coverage.
         result.update(evaluate_stable_task(content, acceptance_contract,
                                            base_url, links=named_links,
-                                           anchor_text=visible_content if has_html_prose else None))
+                                            anchor_text=visible_content if has_html_prose else None,
+                                           anchors_required=anchors_required))
         if encoding_corruption:
             result["stable_task_pass"] = False
             result["stable_content_pass"] = False
@@ -655,7 +658,9 @@ def evaluate_content(
         result["content_pass"] = bool(
             declared_body_pass and declared_pattern_pass and result["stable_task_pass"]
         )
-        result["content_decision_basis"] = "stable_contract_and_declared_content_requirements"
+        result["content_decision_basis"] = (
+            "declared_content_requirements_with_stable_text_diagnostics"
+            if not anchors_required else "stable_contract_and_declared_content_requirements")
     if composite_acceptance:
         from .composite_tasks import evaluate_composite_acceptance
         composite = evaluate_composite_acceptance(

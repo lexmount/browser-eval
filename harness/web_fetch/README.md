@@ -220,6 +220,14 @@ borrowing without using aggregate F1 as an acceptance gate, while
 allowing one mildly noisy conversion region. It does not verify semantics. The
 thresholds and regions are stored in each case, never selected by provider.
 
+A `body_text` acceptance contract can declare `stable_text_role: diagnostic`
+when the case also supplies `body_requirements` or `composite_acceptance`.
+The declared body and record requirements remain mandatory; stable anchor hits,
+misses and coverage are retained as diagnostics. A diagnostic role without either
+content contract is rejected. Other schemas and contracts that omit the role keep
+their existing mandatory anchors. The risk-control compiler assigns this role
+from the independent contracts, without reading provider outputs.
+
 ## End-to-end budget and missing measurements
 
 The common call boundary includes provider acquisition, network retries, rendering,
