@@ -37,6 +37,16 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "按题目要求预先选定参评浏览器的官方原生接口。网页正文和文档正文都必须以可读 Markdown 交付；除 Chromium 使用固定的 HTML-to-Markdown 包外，不会改取 HTML、JSON DOM 或 PDF/DOCX 字节后替选手提取正文。网页媒体信息题只检查原生输出中的指定图片、视频或条目地址，媒体文件不下载。只有直接媒体文件题返回原始字节，并校验类型、文件头、长度和 SHA-256；这是二进制文件交付，不冒充 Markdown。下表按固定任务输入列出处理链；失败后不切换接口或引擎。": "Each task is assigned an official native interface before execution. Webpage and document body tasks must deliver readable Markdown. Chromium is the sole exception: it uses the fixed HTML-to-Markdown package because it has no native Markdown output. The benchmark does not take HTML, a JSON DOM, or PDF or DOCX bytes and extract body text on a participant's behalf. Webpage media-information tasks check only the required image, video, or entry URL in native output and do not download the media. Direct-media-file tasks alone return original bytes, which are checked for type, signature, length, and SHA-256. That binary deliverable is not presented as Markdown. The table lists the route fixed for each task input; a failure never switches interface or engine.",
+    "45 秒外层截止；Moli 总等待、HTTP 和连接超时保留该二进制默认值": "45-second outer deadline; Moli's total-wait, HTTP, and connection timeouts retain the measured binary's defaults",
+    "这批调用未传入 Moli 内部超时参数。": "These calls did not pass Moli internal-timeout arguments.",
+    "45 秒外层截止；实测命令同时显式传入 Moli 总等待、HTTP 和连接超时 45000 毫秒": "45-second outer deadline; the measured command also explicitly set Moli's total-wait, HTTP, and connection timeouts to 45,000 ms",
+    "这批调用使用保存记录中的显式 Moli 超时，未写成产品默认值。": "These calls used the explicit Moli timeouts preserved in their records; the report does not describe them as product defaults.",
+    "45 秒外层截止；Moli 内部超时以逐次调用记录为准": "45-second outer deadline; Moli's internal timeout policy is taken from each saved call record",
+    "保存证据未提供可核对的 Moli 内部超时策略。": "The saved evidence does not expose a verifiable Moli internal-timeout policy.",
+    "网页和文档正文使用原生 Markdown；直接媒体文件使用原始响应": "Native Markdown for webpage and document body text; raw responses for direct media files",
+    "HTML/TXT 可以直接返回正文；PDF/DOCX 必须由同一原生 Markdown 接口交付可读文字": "HTML and TXT can return body text directly; PDF and DOCX must deliver readable text through the same native Markdown interface",
+    "网页和文档正文输出 Markdown；直接媒体文件输出原始字节。": "Webpage and document body tasks output Markdown; direct media files output original bytes.",
     "CLI · 按任务预选原生 Markdown、HTML 或原始响应路线": "CLI · preselects native Markdown, HTML, or raw-response routes by task",
     "网页媒体信息": "Media information from webpages",
     "直接媒体文件": "Direct media files",
