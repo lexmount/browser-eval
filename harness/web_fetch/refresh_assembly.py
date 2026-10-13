@@ -109,6 +109,15 @@ def _require_reason(value: object, *, label: str) -> None:
         raise ValueError(f"Refresh plan has empty {label}")
 
 
+def _same_window_speed_not_measured(plan: dict) -> bool:
+    speed = plan.get("same_window_speed_cohort")
+    return (
+        plan.get("schema_version") == 3
+        and isinstance(speed, dict)
+        and speed.get("evidence_state") == "not_measured_same_window"
+    )
+
+
 def _expected_v2_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, str]]:
     """Return the exact main refresh scope, rejecting an internally inconsistent plan."""
     matrix = plan.get("main_matrix")
@@ -241,14 +250,25 @@ def _expected_v2_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, st
     if not isinstance(speed, dict) or type(speed.get("required")) is not bool:
         raise ValueError("Refresh plan has invalid speed cohort")
     speed_common = {"required", "reuse_existing", "reason", "planned_new_calls"}
-    expected_speed_fields = (
-        speed_common | {"case_ids", "provider_count"}
-        if speed["required"]
-        else speed_common | {
-            "dataset_sha256", "results_sha256", "execution_sha256",
-            "speed_comparison_sha256", "auxiliary_sha256",
-        }
-    )
+    if _same_window_speed_not_measured(plan):
+        expected_speed_fields = speed_common | {"evidence_state"}
+        if (
+            speed["required"] is not False
+            or speed.get("reuse_existing") is not False
+            or speed.get("planned_new_calls") != 0
+        ):
+            raise ValueError(
+                "Absent same-window speed evidence cannot be required, reused, or scheduled"
+            )
+    else:
+        expected_speed_fields = (
+            speed_common | {"case_ids", "provider_count"}
+            if speed["required"]
+            else speed_common | {
+                "dataset_sha256", "results_sha256", "execution_sha256",
+                "speed_comparison_sha256", "auxiliary_sha256",
+            }
+        )
     if set(speed) != expected_speed_fields:
         raise ValueError("Refresh plan has unknown or missing speed-cohort fields")
     if not isinstance(speed.get("reason"), str) or not speed["reason"].strip():
@@ -1000,13 +1020,20 @@ def _write_composite_revisions(output: Path, selections: list[tuple[dict, Path]]
 def _assemble(
     baseline: Path,
     main_reruns: list[Path],
-    speed_cohort: Path,
+    speed_cohort: Path | None,
     canonical_path: Path,
     plan_path: Path,
     output: Path,
 ) -> None:
     plan = _read_json(plan_path)
     canonical = _read_json(canonical_path)
+    speed_not_measured = _same_window_speed_not_measured(plan)
+    if speed_not_measured and speed_cohort is not None:
+        raise ValueError(
+            "Refresh plan declares no same-window speed evidence but a speed cohort was supplied"
+        )
+    if not speed_not_measured and speed_cohort is None:
+        raise ValueError("Refresh plan requires a speed cohort input")
     canonical_cases = {case["id"]: case for case in canonical.get("cases", [])}
     providers = _provider_order(canonical)
     upgrades = _implementation_upgrades(plan, canonical)
@@ -1272,98 +1299,105 @@ def _assemble(
     )
 
     speed_plan = plan.get("same_window_speed_cohort", {})
-    speed_dataset = _read_json(speed_cohort / "dataset.json")
-    speed_rows = _read_records(speed_cohort)
-    speed_case_inventory = [case.get("id") for case in speed_dataset.get("cases", [])]
-    if (
-        not speed_case_inventory
-        or len(speed_case_inventory) != len(set(speed_case_inventory))
-        or not set(speed_case_inventory) <= set(canonical_cases)
-    ):
-        raise ValueError("Invalid speed cohort case inventory")
-    required_speed = speed_plan.get("required")
-    if type(required_speed) is not bool:
-        raise ValueError("Invalid speed cohort plan")
-    if required_speed:
-        speed_cases = speed_plan.get("case_ids")
+    if not speed_not_measured:
+        assert speed_cohort is not None
+        speed_dataset = _read_json(speed_cohort / "dataset.json")
+        speed_rows = _read_records(speed_cohort)
+        speed_case_inventory = [case.get("id") for case in speed_dataset.get("cases", [])]
         if (
-            speed_plan.get("reuse_existing") is not False
-            or not isinstance(speed_cases, list)
-            or len(speed_cases) != len(set(speed_cases))
-            or speed_cases != speed_case_inventory
+            not speed_case_inventory
+            or len(speed_case_inventory) != len(set(speed_case_inventory))
+            or not set(speed_case_inventory) <= set(canonical_cases)
         ):
-            raise ValueError("Invalid measured speed cohort plan")
-        if speed_plan.get("provider_count") != len(providers):
-            raise ValueError("Speed provider count differs from the main cohort")
-        expected_speed_calls = len(providers) * len(speed_cases)
-        if speed_plan.get("planned_new_calls") != expected_speed_calls:
-            raise ValueError("Speed call count differs from its exact matrix")
-    else:
-        if speed_plan.get("reuse_existing") is not True or speed_plan.get("planned_new_calls") != 0:
-            raise ValueError("Unmeasured speed cohort must explicitly reuse existing evidence")
-        if not isinstance(speed_plan.get("reason"), str) or not speed_plan["reason"].strip():
-            raise ValueError("Reused speed cohort requires a reason")
-        bindings = {
+            raise ValueError("Invalid speed cohort case inventory")
+        required_speed = speed_plan.get("required")
+        if type(required_speed) is not bool:
+            raise ValueError("Invalid speed cohort plan")
+        if required_speed:
+            speed_cases = speed_plan.get("case_ids")
+            if (
+                speed_plan.get("reuse_existing") is not False
+                or not isinstance(speed_cases, list)
+                or len(speed_cases) != len(set(speed_cases))
+                or speed_cases != speed_case_inventory
+            ):
+                raise ValueError("Invalid measured speed cohort plan")
+            if speed_plan.get("provider_count") != len(providers):
+                raise ValueError("Speed provider count differs from the main cohort")
+            expected_speed_calls = len(providers) * len(speed_cases)
+            if speed_plan.get("planned_new_calls") != expected_speed_calls:
+                raise ValueError("Speed call count differs from its exact matrix")
+        else:
+            if (
+                speed_plan.get("reuse_existing") is not True
+                or speed_plan.get("planned_new_calls") != 0
+            ):
+                raise ValueError("Unmeasured speed cohort must explicitly reuse existing evidence")
+            if not isinstance(speed_plan.get("reason"), str) or not speed_plan["reason"].strip():
+                raise ValueError("Reused speed cohort requires a reason")
+            bindings = {
+                "dataset_sha256": _sha256(speed_cohort / "dataset.json"),
+                "results_sha256": _sha256(speed_cohort / "results.jsonl"),
+                "execution_sha256": _sha256(speed_cohort / "execution.json"),
+                "speed_comparison_sha256": _sha256(speed_cohort / "speed-comparison.json"),
+            }
+            if any(speed_plan.get(field) != digest for field, digest in bindings.items()):
+                raise ValueError("Reused speed cohort bytes differ from the refresh plan")
+            auxiliary_names = (
+                "result-review.json", "scoring-revisions.json", "reference-revisions.json"
+            )
+            actual_auxiliary = {
+                name: _sha256(speed_cohort / name)
+                for name in auxiliary_names if (speed_cohort / name).is_file()
+            }
+            if speed_plan.get("auxiliary_sha256") != actual_auxiliary:
+                raise ValueError("Reused speed auxiliary bytes differ from the refresh plan")
+            speed_cases = speed_case_inventory
+        speed_providers = _provider_order(speed_dataset)
+        mapped_speed_providers = [logical_by_baseline.get(name, name) for name in speed_providers]
+        if mapped_speed_providers != providers:
+            raise ValueError("Speed provider cohort differs from the main cohort")
+        expected_speed = {
+            (provider, case_id) for provider in speed_providers for case_id in speed_cases
+        }
+        # A hash-bound reused speed cohort is historical measured evidence, not a
+        # fresh execution against today's canonical scoring annotations.  Its exact
+        # dataset/results/execution/summary and auxiliary receipts were verified
+        # above, so do not reinterpret it as if those calls used later task rules.
+        # A newly measured cohort must still match the current canonical cases.
+        if required_speed:
+            _require_canonical_cases(
+                speed_dataset,
+                canonical_cases,
+                speed_rows,
+                "speed cohort",
+                equivalent_capture_bindings=equivalent_capture_bindings,
+            )
+        _validate_record_identity(speed_rows, allowed_pairs=expected_speed, label="speed cohort")
+        _verify_artifacts(speed_cohort, speed_rows)
+        _speed_batches, speed_execution = _validate_source_batches(
+            speed_cohort, speed_dataset, speed_rows, references=True
+        )
+        if speed_execution.name != "execution.json":
+            raise ValueError("Speed cohort requires aggregate execution.json")
+        speed_execution_value = _read_json(speed_execution)
+        if speed_execution_value.get("schema_version") != 1:
+            raise ValueError("Unsupported speed execution schema")
+        expected_speed_summary = build_speed_summary(
+            speed_dataset,
+            speed_rows,
+            _speed_batches,
+            speed_execution_value.get("aggregate"),
+        )
+        expected_speed_summary["bindings"] = {
             "dataset_sha256": _sha256(speed_cohort / "dataset.json"),
             "results_sha256": _sha256(speed_cohort / "results.jsonl"),
-            "execution_sha256": _sha256(speed_cohort / "execution.json"),
-            "speed_comparison_sha256": _sha256(speed_cohort / "speed-comparison.json"),
         }
-        if any(speed_plan.get(field) != digest for field, digest in bindings.items()):
-            raise ValueError("Reused speed cohort bytes differ from the refresh plan")
-        auxiliary_names = (
-            "result-review.json", "scoring-revisions.json", "reference-revisions.json"
-        )
-        actual_auxiliary = {
-            name: _sha256(speed_cohort / name)
-            for name in auxiliary_names if (speed_cohort / name).is_file()
-        }
-        if speed_plan.get("auxiliary_sha256") != actual_auxiliary:
-            raise ValueError("Reused speed auxiliary bytes differ from the refresh plan")
-        speed_cases = speed_case_inventory
-    speed_providers = _provider_order(speed_dataset)
-    mapped_speed_providers = [logical_by_baseline.get(name, name) for name in speed_providers]
-    if mapped_speed_providers != providers:
-        raise ValueError("Speed provider cohort differs from the main cohort")
-    expected_speed = {
-        (provider, case_id) for provider in speed_providers for case_id in speed_cases
-    }
-    # A hash-bound reused speed cohort is historical measured evidence, not a
-    # fresh execution against today's canonical scoring annotations.  Its exact
-    # dataset/results/execution/summary and auxiliary receipts were verified
-    # above, so do not reinterpret it as if those calls used later task rules.
-    # A newly measured cohort must still match the current canonical cases.
-    if required_speed:
-        _require_canonical_cases(
-            speed_dataset,
-            canonical_cases,
-            speed_rows,
-            "speed cohort",
-            equivalent_capture_bindings=equivalent_capture_bindings,
-        )
-    _validate_record_identity(speed_rows, allowed_pairs=expected_speed, label="speed cohort")
-    _verify_artifacts(speed_cohort, speed_rows)
-    _speed_batches, speed_execution = _validate_source_batches(
-        speed_cohort, speed_dataset, speed_rows, references=True
-    )
-    if speed_execution.name != "execution.json":
-        raise ValueError("Speed cohort requires aggregate execution.json")
-    speed_execution_value = _read_json(speed_execution)
-    if speed_execution_value.get("schema_version") != 1:
-        raise ValueError("Unsupported speed execution schema")
-    expected_speed_summary = build_speed_summary(
-        speed_dataset,
-        speed_rows,
-        _speed_batches,
-        speed_execution_value.get("aggregate"),
-    )
-    expected_speed_summary["bindings"] = {
-        "dataset_sha256": _sha256(speed_cohort / "dataset.json"),
-        "results_sha256": _sha256(speed_cohort / "results.jsonl"),
-    }
-    packaged_speed_summary = _read_json(speed_cohort / "speed-comparison.json")
-    if packaged_speed_summary != expected_speed_summary:
-        raise ValueError("Speed comparison schema, bindings, or rows differ from measured evidence")
+        packaged_speed_summary = _read_json(speed_cohort / "speed-comparison.json")
+        if packaged_speed_summary != expected_speed_summary:
+            raise ValueError(
+                "Speed comparison schema, bindings, or rows differ from measured evidence"
+            )
 
     output.mkdir(parents=True)
     materialize_task_references(output, {name: input_tree(canonical_path,name)
@@ -1434,9 +1468,30 @@ def _assemble(
             shutil.copy2(source, output / relative)
             receipts_by_layer[layer["id"]]["stored_path"] = relative
 
-    _copy_speed_bundle(
-        speed_cohort, output / "speed-cohort", speed_dataset, speed_rows, _speed_batches
-    )
+    if not speed_not_measured:
+        assert speed_cohort is not None
+        _copy_speed_bundle(
+            speed_cohort, output / "speed-cohort", speed_dataset, speed_rows, _speed_batches
+        )
+        speed_receipt = {
+            **_bundle_identity(speed_cohort, speed_execution),
+            "logical_attempts": len(speed_rows),
+            "new_calls": speed_plan["planned_new_calls"],
+            "reused_existing": speed_plan.get("reuse_existing") is True,
+            "stored_below": "speed-cohort/",
+            "excluded_from_main_results": True,
+            "excluded_from_main_execution": True,
+        }
+    else:
+        speed_receipt = {
+            "evidence_state": "not_measured_same_window",
+            "reason": speed_plan["reason"],
+            "new_calls": 0,
+            "reused_existing": False,
+            "stored_below": None,
+            "excluded_from_main_results": True,
+            "excluded_from_main_execution": True,
+        }
     receipt = {
         "schema_version": 2 if upgrades else 1,
         "kind": "predeclared_webfetch_refresh_assembly",
@@ -1456,15 +1511,7 @@ def _assemble(
         "output_results_sha256": hashlib.sha256(results_bytes).hexdigest(),
         "output_execution_sha256": _sha256(output / "execution.json"),
         "selection_audit_sha256": _sha256(output / "selection-audit.json"),
-        "speed_cohort": {
-            **_bundle_identity(speed_cohort, speed_execution),
-            "logical_attempts": len(speed_rows),
-            "new_calls": speed_plan["planned_new_calls"],
-            "reused_existing": speed_plan.get("reuse_existing") is True,
-            "stored_below": "speed-cohort/",
-            "excluded_from_main_results": True,
-            "excluded_from_main_execution": True,
-        },
+        "speed_cohort": speed_receipt,
         "provider_calls_performed_by_assembler": 0,
         "selection_policy": "exact profile scope; never select by score or retry outcome",
     }
@@ -1515,21 +1562,22 @@ def _assemble(
 def assemble(
     baseline: Path,
     main_reruns: list[Path],
-    speed_cohort: Path,
+    speed_cohort: Path | None,
     output: Path,
     *,
     canonical_dataset: Path = ROOT / "evaluation/dataset.json",
     plan: Path = ROOT / "evaluation/current-rerun.json",
 ) -> None:
     """Validate into a sibling staging directory and expose the result atomically."""
-    reject_evidence_symlinks(speed_cohort)
+    if speed_cohort is not None:
+        reject_evidence_symlinks(speed_cohort)
     for root in [baseline, *main_reruns]:
         reject_evidence_symlinks(root)
         for name in ("dataset.json", "results.jsonl", "manifest.json", "execution.json"):
             contained_path(root, name, reject_symlinks=True)
     baseline = baseline.resolve()
     main_reruns = [root.resolve() for root in main_reruns]
-    speed_cohort = speed_cohort.resolve()
+    speed_cohort = speed_cohort.resolve() if speed_cohort is not None else None
     output = output.resolve()
     if not main_reruns:
         raise ValueError("At least one main rerun bundle is required")
@@ -1558,7 +1606,7 @@ def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--baseline", required=True, type=Path)
     parser.add_argument("--main-rerun", required=True, action="append", type=Path)
-    parser.add_argument("--speed-cohort", required=True, type=Path)
+    parser.add_argument("--speed-cohort", type=Path)
     parser.add_argument("--canonical-dataset", type=Path, default=ROOT / "evaluation/dataset.json")
     parser.add_argument("--plan", type=Path, default=ROOT / "evaluation/current-rerun.json")
     parser.add_argument("--output", required=True, type=Path)

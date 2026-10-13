@@ -1297,6 +1297,16 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
     def rewrite_plan(self) -> None:
         self.write_json(self.plan_path, self.plan)
 
+    def declare_speed_not_measured(self) -> None:
+        self.plan["same_window_speed_cohort"] = {
+            "required": False,
+            "reuse_existing": False,
+            "evidence_state": "not_measured_same_window",
+            "reason": "the fixed implementation was not measured in the shared time window",
+            "planned_new_calls": 0,
+        }
+        self.rewrite_plan()
+
     def rebind_main_source(self) -> None:
         bundle = self.plan["correction_layers"][0]["source_bundle"]
         bundle.update({
@@ -1334,6 +1344,60 @@ class AssembleImplementationUpgradeTests(unittest.TestCase):
         self.assertEqual(stored_impact.read_bytes(), self.impact_path.read_bytes())
         audit = json.loads((output / "selection-audit.json").read_text())
         self.assertEqual(len([row for row in audit if row["provider"] == "moli-fixed"]), 4)
+
+    def test_upgrade_can_explicitly_omit_same_window_speed_evidence(self) -> None:
+        self.declare_speed_not_measured()
+        output = self.root / "no-speed-output"
+        assemble(
+            self.baseline, [self.main], None, output,
+            canonical_dataset=self.canonical_path, plan=self.plan_path,
+        )
+
+        self.assertFalse((output / "speed-cohort").exists())
+        receipt = json.loads((output / "refresh-assembly.json").read_text())
+        self.assertEqual(receipt["speed_cohort"], {
+            "evidence_state": "not_measured_same_window",
+            "reason": "the fixed implementation was not measured in the shared time window",
+            "new_calls": 0,
+            "reused_existing": False,
+            "stored_below": None,
+            "excluded_from_main_results": True,
+            "excluded_from_main_execution": True,
+        })
+
+    def test_speed_input_must_match_declared_evidence_state(self) -> None:
+        self.declare_speed_not_measured()
+        with self.assertRaisesRegex(ValueError, "no same-window speed evidence"):
+            assemble(
+                self.baseline, [self.main], self.speed, self.root / "unexpected-speed",
+                canonical_dataset=self.canonical_path, plan=self.plan_path,
+            )
+
+        self.plan["same_window_speed_cohort"] = {
+            key: value for key, value in self.plan["same_window_speed_cohort"].items()
+            if key != "evidence_state"
+        }
+        self.rewrite_plan()
+        with self.assertRaisesRegex(ValueError, "requires a speed cohort input"):
+            assemble(
+                self.baseline, [self.main], None, self.root / "missing-speed",
+                canonical_dataset=self.canonical_path, plan=self.plan_path,
+            )
+
+    def test_absent_speed_state_rejects_reuse_calls_and_evidence_bindings(self) -> None:
+        self.declare_speed_not_measured()
+        valid = json.loads(json.dumps(self.plan))
+        for name, update, pattern in (
+            ("reuse", {"reuse_existing": True}, "cannot be required, reused, or scheduled"),
+            ("calls", {"planned_new_calls": 1}, "cannot be required, reused, or scheduled"),
+            ("binding", {"results_sha256": "0" * 64}, "speed-cohort fields"),
+        ):
+            with self.subTest(name=name):
+                self.plan = json.loads(json.dumps(valid))
+                self.plan["same_window_speed_cohort"].update(update)
+                self.rewrite_plan()
+                with self.assertRaisesRegex(ValueError, pattern):
+                    expected_refresh_pairs(self.plan, self.canonical)
 
     def test_upgrade_selection_is_independent_of_outcome(self) -> None:
         rows = [json.loads(line) for line in (self.main / "results.jsonl").read_text().splitlines()]
