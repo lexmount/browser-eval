@@ -55,6 +55,60 @@ def read_records(root):
     return load_jsonl(root/'results.jsonl')
 
 
+def _sha256_file(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def _selected_provider_replacement_rows(run, root, rows, receipt_path):
+    """Select a correction scope from a broader immutable call bundle."""
+    if receipt_path is None:
+        return rows, None
+    receipt_path = Path(receipt_path)
+    receipt = json.loads(receipt_path.read_text())
+    expected = {
+        'schema_version', 'kind', 'provider_calls', 'baseline_dataset_sha256',
+        'baseline_results_sha256', 'source_dataset_sha256', 'source_results_sha256',
+        'replacements',
+    }
+    if (not isinstance(receipt, dict) or set(receipt) != expected
+            or receipt.get('schema_version') != 1
+            or receipt.get('kind') != 'audited_provider_replacement_scope'
+            or receipt.get('provider_calls') != 0
+            or receipt.get('baseline_dataset_sha256') != _sha256_file(run/'dataset.json')
+            or receipt.get('baseline_results_sha256') != _sha256_file(run/'results.jsonl')
+            or receipt.get('source_dataset_sha256') != _sha256_file(root/'dataset.json')
+            or receipt.get('source_results_sha256') != _sha256_file(root/'results.jsonl')):
+        raise ValueError('Provider replacement scope receipt is not bound to its source evidence')
+    replacements = receipt.get('replacements')
+    if not isinstance(replacements, list) or not replacements:
+        raise ValueError('Provider replacement scope receipt has no replacements')
+    source_by_attempt = {row['attempt_id']: row for row in rows}
+    baseline_by_pair = {(row['provider'], row['case_id']): row for row in read_records(run)}
+    selected = []
+    seen = set()
+    for item in replacements:
+        if (not isinstance(item, dict) or set(item) != {
+                'provider', 'case_id', 'prior_attempt_id', 'selected_attempt_id',
+                'category', 'reason'}
+                or item.get('category') not in {'invalid_prior_call', 'input_correction'}
+                or not isinstance(item.get('reason'), str) or not item['reason'].strip()):
+            raise ValueError('Provider replacement scope receipt has an invalid replacement')
+        pair = (item['provider'], item['case_id'])
+        prior = baseline_by_pair.get(pair)
+        current = source_by_attempt.get(item['selected_attempt_id'])
+        if (pair in seen or prior is None or current is None
+                or prior['attempt_id'] != item['prior_attempt_id']
+                or (current['provider'], current['case_id']) != pair):
+            raise ValueError('Provider replacement scope differs from bound attempts')
+        if (item['category'] == 'invalid_prior_call'
+                and prior.get('provider_metadata', {}).get('binary_sha256') !=
+                current.get('provider_metadata', {}).get('binary_sha256')):
+            raise ValueError('Invalid-call correction changed the provider binary')
+        seen.add(pair)
+        selected.append(current)
+    return selected, receipt
+
+
 def has_bound_direct_scoring_revision(root):
     """Require a provenance-checked receipt bound to this exact source bundle."""
     path = root/'scoring-revisions.json'
@@ -613,9 +667,14 @@ def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_provider
 
 def _assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
               provider_additions=None, speed_cohort=None, resource_cohort=None,
-              canonical_dataset=None, retain_unverified=False, exclude_providers=None):
+              canonical_dataset=None, retain_unverified=False, exclude_providers=None,
+              provider_replacement_scope_receipts=None):
     additions = additions or []
     provider_replacements = provider_replacements or []
+    provider_replacement_scope_receipts = provider_replacement_scope_receipts or []
+    if provider_replacement_scope_receipts and (
+            len(provider_replacement_scope_receipts) != len(provider_replacements)):
+        raise ValueError('Provider replacement sources and scope receipts differ in count')
     provider_additions = provider_additions or []
     exclude_providers = exclude_providers or []
     if output.exists():raise ValueError('Destination exists; evidence must not be overwritten')
@@ -728,10 +787,21 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         reference_evidence.append((root, addition_batches))
         audit.extend({'case_id':cid,'selection_reason':'missing case completed as the full declared provider cohort; no score-based selection','excluded_attempts':[]} for cid in incoming)
     pair_replacements = {}
-    for root in provider_replacements:
+    replacement_scope_receipts = []
+    for replacement_index, root in enumerate(provider_replacements):
         new_dataset=json.loads((root/'dataset.json').read_text())
         rows=read_records(root)
         replacement_batches=read_verified_batches(root,new_dataset,rows)
+        receipt_path = (provider_replacement_scope_receipts[replacement_index]
+                        if provider_replacement_scope_receipts else None)
+        rows, scope_receipt = _selected_provider_replacement_rows(
+            run, root, rows, receipt_path)
+        if scope_receipt is not None:
+            replacement_scope_receipts.append((Path(receipt_path), scope_receipt))
+        scope_by_pair = {
+            (item['provider'], item['case_id']): item
+            for item in (scope_receipt or {}).get('replacements', [])
+        }
         incoming={c['id']:c for c in new_dataset['cases']}
         for row in rows:
             key=(row['case_id'],row['provider'])
@@ -750,8 +820,13 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                     raise ValueError('Provider replacement reference hash differs: '+row['case_id'])
             pair_replacements[key]=(row,root)
             old=_selected_record(selected,key)
+            declared = scope_by_pair.get(key)
             audit.append({'case_id':row['case_id'],'provider':row['provider'],
-                'selection_reason':'predeclared provider implementation replacement; complete scope selected without score-based retries',
+                'selection_reason':(
+                    declared['reason'] if declared else
+                    'predeclared provider implementation replacement; complete scope selected without score-based retries'),
+                **({'selection_category': declared['category']}
+                   if declared else {}),
                 'excluded_attempts':[{k:old[k] for k in ('attempt_id','run_id','started_at','elapsed_ms')}]})
         batches.extend(project_execution_manifest(batch) for batch in replacement_batches);evidence.append(root)
         reference_evidence.append((root, replacement_batches))
@@ -872,6 +947,20 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     for name,payload in [('dataset.json',dataset),('execution.json',{'batches':batches}),('selection-audit.json',audit)]:
         (output/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n')
     (output/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in records))
+    if replacement_scope_receipts:
+        history = output/'history'/'provider-replacement-scopes'
+        history.mkdir(parents=True, exist_ok=True)
+        index = []
+        for position, (receipt_path, receipt) in enumerate(replacement_scope_receipts):
+            target = history/f'{position:03d}-{receipt_path.name}'
+            shutil.copy2(receipt_path, target)
+            index.append({
+                'path': str(target.relative_to(output)),
+                'sha256': _sha256_file(target),
+                'replacements': receipt['replacements'],
+            })
+        (output/'provider-replacement-scopes.json').write_text(
+            json.dumps(index, ensure_ascii=False, indent=2)+'\n')
     copy_scoring_revision_history(run, output)
     copy_projected_latency_correction(run, output)
     # Consolidate independently validated source reference-correction receipts
@@ -983,7 +1072,8 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
 
 def assemble(run, certificates, replacements, output, additions=None, provider_replacements=None,
              provider_additions=None, speed_cohort=None, resource_cohort=None,
-             canonical_dataset=None, retain_unverified=False, exclude_providers=None):
+             canonical_dataset=None, retain_unverified=False, exclude_providers=None,
+             provider_replacement_scope_receipts=None):
     """Build and verify in a sibling staging directory, then publish atomically."""
     for source in [run, certificates, *(replacements or []), *(additions or []),
                    *(provider_replacements or []), *(provider_additions or []),
@@ -1001,7 +1091,8 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
             provider_replacements=provider_replacements,provider_additions=provider_additions,
             speed_cohort=speed_cohort,resource_cohort=resource_cohort,
             canonical_dataset=canonical_dataset,
-            retain_unverified=retain_unverified,exclude_providers=exclude_providers)
+            retain_unverified=retain_unverified,exclude_providers=exclude_providers,
+            provider_replacement_scope_receipts=provider_replacement_scope_receipts)
         staging.replace(output)
         work.rmdir()
     except BaseException:
@@ -1016,6 +1107,7 @@ def main(argv=None):
     parser.add_argument('--replacements',type=Path,nargs='*',default=[])
     parser.add_argument('--additions',type=Path,nargs='*',default=[])
     parser.add_argument('--provider-replacements',type=Path,nargs='*',default=[])
+    parser.add_argument('--provider-replacement-scope-receipts',type=Path,nargs='*',default=[],help='Hash-bound exact pair scopes for broader provider replacement bundles')
     parser.add_argument('--provider-additions',type=Path,nargs='*',default=[])
     parser.add_argument('--speed-cohort',type=Path)
     parser.add_argument('--resource-cohort',type=Path)
@@ -1026,6 +1118,7 @@ def main(argv=None):
     args=parser.parse_args(argv)
     assemble(args.run_dir,args.certificates,args.replacements,args.output,
         additions=args.additions,provider_replacements=args.provider_replacements,
+        provider_replacement_scope_receipts=args.provider_replacement_scope_receipts,
         provider_additions=args.provider_additions,
         speed_cohort=args.speed_cohort,resource_cohort=args.resource_cohort,
         canonical_dataset=args.canonical_dataset,

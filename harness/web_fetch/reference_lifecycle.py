@@ -1031,18 +1031,26 @@ def valid_scoring_revision(source) -> bool:
             for change in row['changed_cases']
         ):
             return False
-        scoring_sources = (
-            row.get('input_scoring_source_sha256'),
-            row.get('output_scoring_source_sha256'),
-        )
-        if any(value is not None for value in scoring_sources):
-            if (any(not isinstance(value, str)
-                    or re.fullmatch(r'[0-9a-f]{64}', value) is None
-                    for value in scoring_sources)
+        input_scoring_sources = row.get('input_scoring_source_sha256s')
+        single_input_scoring_source = row.get('input_scoring_source_sha256')
+        output_scoring_source = row.get('output_scoring_source_sha256')
+        if input_scoring_sources is not None and single_input_scoring_source is not None:
+            return False
+        if input_scoring_sources is None and single_input_scoring_source is not None:
+            input_scoring_sources = [single_input_scoring_source]
+        if input_scoring_sources is not None or output_scoring_source is not None:
+            if (not isinstance(input_scoring_sources, list)
+                    or not input_scoring_sources
+                    or input_scoring_sources != sorted(set(input_scoring_sources))
+                    or any(not isinstance(value, str)
+                           or re.fullmatch(r'[0-9a-f]{64}', value) is None
+                           for value in input_scoring_sources)
+                    or not isinstance(output_scoring_source, str)
+                    or re.fullmatch(r'[0-9a-f]{64}', output_scoring_source) is None
                     or (previous_scoring_source is not None
-                        and scoring_sources[0] != previous_scoring_source)):
+                        and input_scoring_sources != [previous_scoring_source])):
                 return False
-            previous_scoring_source = scoring_sources[1]
+            previous_scoring_source = output_scoring_source
             scoring_source_binding_started = True
         else:
             if scoring_source_binding_started:

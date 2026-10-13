@@ -95,15 +95,16 @@ def _homepage_prompt_anchor_correction(old: dict, new: dict) -> bool:
     )
 
 
-def _single_scoring_source_sha256(records: list[dict], *, label: str) -> str:
+def _scoring_source_sha256s(records: list[dict], *, label: str) -> list[str]:
     values = {
         row.get("metrics", {}).get("scoring_source_sha256")
         for row in records
     }
-    if (len(values) != 1 or not isinstance(value := next(iter(values), None), str)
-            or len(value) != 64 or any(char not in "0123456789abcdef" for char in value)):
-        raise ValueError(label + " results require one valid scoring source SHA-256")
-    return value
+    if (not values or any(not isinstance(value, str) or len(value) != 64
+                          or any(char not in "0123456789abcdef" for char in value)
+                          for value in values)):
+        raise ValueError(label + " results require valid scoring source SHA-256 values")
+    return sorted(values)
 
 
 def _revise_unlocked(
@@ -123,7 +124,7 @@ def _revise_unlocked(
     before_dataset = read_dataset_bytes(dataset_path)
     before_results = results_path.read_bytes()
     before_records = parse_jsonl(before_results)
-    input_scoring_source_sha256 = _single_scoring_source_sha256(
+    input_scoring_source_sha256s = _scoring_source_sha256s(
         before_records, label="Input",
     )
     receipt_path = contained_path(source, "scoring-revisions.json", reject_symlinks=True)
@@ -186,7 +187,7 @@ def _revise_unlocked(
             changed.append({"case_id": identifier, "fields": fields})
     dataset["cases"] = [updated_cases[case["id"]] for case in dataset["cases"]]
     validate_report_ids(dataset, before_records)
-    if input_scoring_source_sha256 != SCORING_SOURCE_SHA256 and changed:
+    if input_scoring_source_sha256s != [SCORING_SOURCE_SHA256] and changed:
         raise ValueError(
             "Shared scorer and task requirements changed together; "
             "apply a scorer-only revision first"
@@ -199,6 +200,7 @@ def _revise_unlocked(
     try:
         decisions = rescore(
             source,
+            case_ids={change["case_id"] for change in changed} if changed else None,
             allow_rule_revision=True,
             reference_revision_hashes=revised_reference_hashes or None,
             validate_only=validate_only,
@@ -223,10 +225,10 @@ def _revise_unlocked(
         case_id = attempt_cases[decision["attempt_id"]]
         changed_by_case.setdefault(case_id, {"case_id": case_id, "fields": []})
     changed = [changed_by_case[case_id] for case_id in sorted(changed_by_case)]
-    output_scoring_source_sha256 = _single_scoring_source_sha256(
+    output_scoring_source_sha256s = _scoring_source_sha256s(
         parse_jsonl(results_path.read_bytes()), label="Output",
     )
-    if output_scoring_source_sha256 != SCORING_SOURCE_SHA256:
+    if output_scoring_source_sha256s != [SCORING_SOURCE_SHA256]:
         raise ValueError("Scoring revision did not bind the current shared scorer")
     review_revision = {}
     try:
@@ -250,8 +252,12 @@ def _revise_unlocked(
         "input_results_sha256": hashlib.sha256(before_results).hexdigest(),
         "output_dataset_sha256": hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest(),
         "output_results_sha256": hashlib.sha256(results_path.read_bytes()).hexdigest(),
-        "input_scoring_source_sha256": input_scoring_source_sha256,
-        "output_scoring_source_sha256": output_scoring_source_sha256,
+        **(
+            {"input_scoring_source_sha256": input_scoring_source_sha256s[0]}
+            if len(input_scoring_source_sha256s) == 1
+            else {"input_scoring_source_sha256s": input_scoring_source_sha256s}
+        ),
+        "output_scoring_source_sha256": output_scoring_source_sha256s[0],
         "changed_cases": changed,
         "task_decision_changes": decisions,
         "provider_calls": 0,

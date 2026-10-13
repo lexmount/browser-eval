@@ -219,6 +219,38 @@ def test_scorer_drift_and_task_rule_change_can_be_recorded_in_two_steps(tmp_path
     assert not valid_scoring_revision(evidence)
 
 
+def test_scorer_only_revision_accepts_an_assembled_mixed_source_cohort(tmp_path: Path):
+    evidence, _, case = revision_fixture(tmp_path, b"[]")
+    dataset = json.loads((evidence / "dataset.json").read_text())
+    second_case = {**case, "id": "two", "name": "Two"}
+    dataset["cases"].append(second_case)
+    (evidence / "dataset.json").write_text(json.dumps(dataset))
+    rows = [json.loads((evidence / "results.jsonl").read_text())]
+    rows[0]["metrics"]["scoring_source_sha256"] = "0" * 64
+    second = {**rows[0], "attempt_id": "custom__two__r001", "case_id": "two",
+              "case_name": "Two", "metrics": dict(rows[0]["metrics"])}
+    second["metrics"]["scoring_source_sha256"] = "1" * 64
+    rows.append(second)
+    (evidence / "results.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in rows)
+    )
+    (evidence / "manifest.json").write_text(json.dumps({
+        "attempt_ids": [row["attempt_id"] for row in rows]
+    }))
+
+    receipt = revise(
+        evidence,
+        evidence / "dataset.json",
+        root_cause_category="answer-surface",
+        root_cause="An assembled cohort retains outputs scored by two older scorer builds.",
+        regression_ids=["answer-title-supplies-required-fact"],
+    )
+
+    assert receipt["input_scoring_source_sha256s"] == ["0" * 64, "1" * 64]
+    assert receipt["output_scoring_source_sha256"] == SCORING_SOURCE_SHA256
+    assert valid_scoring_revision(evidence)
+
+
 @pytest.mark.parametrize('failed', [False, True])
 def test_scoring_validation_preserves_complete_saved_attempt_bytes(tmp_path, failed):
     evidence, _, case = revision_fixture(tmp_path, b'[]')

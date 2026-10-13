@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from harness.web_fetch.artifacts import artifact_bindings
-from harness.web_fetch.assembly import assemble
+from harness.web_fetch.assembly import _selected_provider_replacement_rows, assemble
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.reference_inputs import import_inputs
@@ -51,6 +51,49 @@ def test_assembly_preserves_all_physical_call_evidence(source, tmp_path):
     assert [json.loads(line) for line in (target / 'results.jsonl').read_text().splitlines()] == records
     for relative, _ in artifact_bindings(records[0]):
         assert (target / relative).read_bytes() == (root / relative).read_bytes()
+
+
+def test_provider_replacement_scope_selects_bound_pair_without_reading_scores(tmp_path):
+    baseline, incoming = tmp_path/'baseline', tmp_path/'incoming'
+    baseline.mkdir(); incoming.mkdir()
+    dataset = {'cases': [{'id': 'one'}, {'id': 'two'}]}
+    (baseline/'dataset.json').write_text(json.dumps(dataset))
+    (incoming/'dataset.json').write_text(json.dumps(dataset))
+    prior = [
+        {'attempt_id': 'old-one', 'provider': 'p', 'case_id': 'one',
+         'provider_metadata': {'binary_sha256': 'a'*64}},
+        {'attempt_id': 'old-two', 'provider': 'p', 'case_id': 'two',
+         'provider_metadata': {'binary_sha256': 'a'*64}},
+    ]
+    current = [
+        {'attempt_id': 'new-one', 'provider': 'p', 'case_id': 'one',
+         'provider_metadata': {'binary_sha256': 'a'*64}, 'metrics': {'content_pass': False}},
+        {'attempt_id': 'new-two', 'provider': 'p', 'case_id': 'two',
+         'provider_metadata': {'binary_sha256': 'a'*64}, 'metrics': {'content_pass': True}},
+    ]
+    for root, rows in ((baseline, prior), (incoming, current)):
+        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+    receipt = {
+        'schema_version': 1, 'kind': 'audited_provider_replacement_scope',
+        'provider_calls': 0,
+        'baseline_dataset_sha256': hashlib.sha256((baseline/'dataset.json').read_bytes()).hexdigest(),
+        'baseline_results_sha256': hashlib.sha256((baseline/'results.jsonl').read_bytes()).hexdigest(),
+        'source_dataset_sha256': hashlib.sha256((incoming/'dataset.json').read_bytes()).hexdigest(),
+        'source_results_sha256': hashlib.sha256((incoming/'results.jsonl').read_bytes()).hexdigest(),
+        'replacements': [{
+            'provider': 'p', 'case_id': 'one', 'prior_attempt_id': 'old-one',
+            'selected_attempt_id': 'new-one', 'category': 'invalid_prior_call',
+            'reason': 'The original call ended before returning a result.',
+        }],
+    }
+    path = tmp_path/'scope.json'; path.write_text(json.dumps(receipt))
+    selected, checked = _selected_provider_replacement_rows(
+        baseline, incoming, current, path)
+    assert [row['attempt_id'] for row in selected] == ['new-one']
+    assert checked == receipt
+    current[0]['provider_metadata']['binary_sha256'] = 'b'*64
+    with pytest.raises(ValueError, match='changed the provider binary'):
+        _selected_provider_replacement_rows(baseline, incoming, current, path)
 
 
 @pytest.mark.parametrize('config_source', ['configs/custom.json', '/home/private/custom.json'])
