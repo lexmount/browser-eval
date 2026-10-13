@@ -34,7 +34,14 @@ class NativeBrowserVariantTests(unittest.TestCase):
     def test_fixed_candidate_is_distinct_from_pr919_and_binds_its_lineage(self):
         from harness.web_fetch.methods import browser_method_label, browser_method_registry, native_browser_engine
         self.assertEqual(native_browser_engine("moli-fixed"), "moli")
-        self.assertIn("1476/#1481", browser_method_label("moli-fixed"))
+        self.assertEqual(
+            browser_method_label("moli-fixed"),
+            "Moli 1.1.17（main + PR 1476 + PR 1481，60773df3）",
+        )
+        self.assertEqual(
+            browser_method_label("moli-pr919"),
+            "Moli 1.1.15（PR 919 对照版）",
+        )
         self.assertEqual(
             browser_method_registry()["moli-fixed"]["source_url"],
             "https://github.com/lexmount/moli/commit/60773df391ad782ab647e878dc6629032d0275a6",
@@ -133,6 +140,6 @@ class NativeBrowserVariantTests(unittest.TestCase):
             body = _render_current_browser_article(out, cases, records,
                 {"path": "article.json", "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
             self.assertIn("5 种浏览器、6 种配置", body)
-            self.assertIn("Moli · PR #919", body)
+            self.assertIn("Moli 1.1.15（PR 919 对照版）", body)
             self.assertNotIn("6 个浏览器", body)
             self.assertEqual(body.count('data-browser-interface='), 42)

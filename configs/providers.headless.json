@@ -45,7 +45,7 @@
     "moli-pr919": {
       "type": "moli_webfetch",
       "engine": "moli",
-      "label": "Moli · PR #919",
+      "label": "Moli 1.1.15（PR 919 对照版）",
       "source_url": "https://github.com/lexmount/moli/pull/919",
       "binary": "${MOLI_PR919_BINARY}",
       "expected_reported_version": "${MOLI_PR919_REPORTED_VERSION}",
@@ -54,7 +54,7 @@
     "moli-fixed": {
       "type": "moli_webfetch",
       "engine": "moli",
-      "label": "Moli · main + PR #1476/#1481",
+      "label": "Moli 1.1.17（main + PR 1476 + PR 1481，60773df3）",
       "source_url": "https://github.com/lexmount/moli/commit/60773df391ad782ab647e878dc6629032d0275a6",
       "binary": "${MOLI_FIXED_BINARY}",
       "expected_reported_version": "${MOLI_FIXED_REPORTED_VERSION}",
