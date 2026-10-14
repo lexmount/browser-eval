@@ -4,6 +4,42 @@ from harness.web_fetch.assembly import _provider_request_contract
 
 
 class ProviderRequestContractTests(unittest.TestCase):
+    def test_ignores_reader_description_and_reference_evidence(self):
+        case = {
+            "id": "page",
+            "url": "https://example.test/",
+            "task_prompt": "Return the page body.",
+            "description": "Earlier reader-facing explanation.",
+            "ground_truth_evidence": {"source": "earlier observation"},
+        }
+        canonical = {
+            **case,
+            "description": "Corrected reader-facing explanation.",
+            "ground_truth_evidence": {"source": "current observation"},
+        }
+        self.assertEqual(
+            _provider_request_contract(case, "crawl4ai"),
+            _provider_request_contract(canonical, "crawl4ai"),
+        )
+
+    def test_preserves_fields_that_change_the_physical_request(self):
+        case = {
+            "id": "page",
+            "url": "https://example.test/",
+            "task_prompt": "Return the page body.",
+            "acceptance_contract": {"body_requirements": ["Current body"]},
+        }
+        for field, changed in (
+                ("url", "https://other.example.test/"),
+                ("task_prompt", "Return a different scope."),
+                ("acceptance_contract", {"body_requirements": ["Different body"]})):
+            with self.subTest(field=field):
+                canonical = {**case, field: changed}
+                self.assertNotEqual(
+                    _provider_request_contract(case, "crawl4ai"),
+                    _provider_request_contract(canonical, "crawl4ai"),
+                )
+
     def test_ignores_draft_mutable_body_annotation_that_never_entered_request(self):
         case = {
             "id": "body",

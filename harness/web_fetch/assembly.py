@@ -583,9 +583,14 @@ def _provider_request_contract(case, provider):
     Firecrawl records ``minimum_text_fragments`` as unsupported and never puts
     it in the Scrape request.  A cohort frozen immediately before that
     evaluator-only completion diagnostic was added is therefore physically
-    equivalent for Firecrawl, while every other task field remains exact.
+    equivalent for Firecrawl, while request-bearing task fields remain exact.
     """
     value = _without_reference(case)
+    # Reader-facing explanation and independent reference provenance are not
+    # sent to providers.  Keep the physical-call comparison focused on the
+    # URL, requested scope and execution/acceptance contract.
+    value.pop("description", None)
+    value.pop("ground_truth_evidence", None)
     benchmark = value.get("source_benchmark", {})
     annotation = benchmark.get("stable_annotation", {})
     if annotation.get("content_kind") == "changing_public_body":

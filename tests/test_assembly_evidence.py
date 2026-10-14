@@ -540,13 +540,20 @@ def test_scored_cohort_composition_keeps_authority_without_starting_review(sourc
     original_bytes = (root / 'results.jsonl').read_bytes()
     original_history = (root / 'scoring-revisions.json').read_bytes()
     dataset = json.loads((root / 'dataset.json').read_text())
-    case = EvalCase(**dataset['cases'][0])
+    incoming_dataset = json.loads(json.dumps(dataset))
+    if operation == 'replacement':
+        incoming_dataset['cases'][0]['description'] = 'Corrected reader-facing explanation.'
+        incoming_dataset['cases'][0]['ground_truth_evidence'] = [{
+            'source': 'independent observation', 'note': 'Corrected provenance note.'}]
+        incoming_dataset['cases'][0]['source_verification'] = {
+            'status': 'verified', 'note': 'Reader-facing source review metadata.'}
+    case = EvalCase(**incoming_dataset['cases'][0])
     class Fixture(Provider):
         def fetch(self, case, timeout):
             return ProviderResult(True, 'Expected')
     provider = 'added' if operation == 'addition' else 'retrying'
     incoming = tmp_path / 'incoming'
-    run_evaluation(output_dir=incoming, dataset_meta={**dataset,
+    run_evaluation(output_dir=incoming, dataset_meta={**incoming_dataset,
             'coverage_plan': {'web': [provider]}}, dataset_path=tmp_path / 'input.json',
         cases=[case], providers=[Fixture(provider, {'type': 'fixture'})],
         provider_config_path=tmp_path / 'providers.json', runs=1, timeout=1, delay=0)
@@ -576,6 +583,33 @@ def test_scored_cohort_composition_keeps_authority_without_starting_review(sourc
         assert (output / row['artifact_path']).read_bytes() == (
             (root if row['provider'] == 'retrying' and operation == 'addition' else incoming)
             / old['artifact_path']).read_bytes()
+
+
+@pytest.mark.parametrize('field,changed', [
+    ('url', 'https://other.example.invalid/'),
+    ('task_prompt', 'Return a different scope.'),
+    ('retrieval_hints', {'version': 3, 'mode': 'native'}),
+])
+def test_provider_replacement_rejects_request_bearing_task_changes(
+        source, tmp_path, field, changed):
+    root, _ = source
+    dataset = json.loads((root / 'dataset.json').read_text())
+    incoming_dataset = json.loads(json.dumps(dataset))
+    incoming_dataset['cases'][0][field] = changed
+    case = EvalCase(**incoming_dataset['cases'][0])
+
+    class Fixture(Provider):
+        def fetch(self, case, timeout):
+            return ProviderResult(True, 'Expected')
+
+    incoming = tmp_path / 'incoming'
+    run_evaluation(output_dir=incoming, dataset_meta=incoming_dataset,
+        dataset_path=tmp_path / 'input.json', cases=[case],
+        providers=[Fixture('retrying', {'type': 'fixture'})],
+        provider_config_path=tmp_path / 'providers.json', runs=1, timeout=1, delay=0)
+    with pytest.raises(ValueError, match='changed task rules'):
+        assemble(root, tmp_path / 'certificates', [], tmp_path / 'assembled',
+                 provider_replacements=[incoming])
 
 
 @pytest.mark.parametrize('damage', ['source-authority', 'incoming-verdict', 'declared-review'])
