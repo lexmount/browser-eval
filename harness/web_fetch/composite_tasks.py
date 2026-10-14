@@ -506,7 +506,45 @@ def _required_fields(context: str, title: str, *, field_specs: list[dict]) -> bo
     lines = _context_lines(context, title)
     used = set()
     typed_lines = set()
+    declared_aliases = [
+        alias for field in field_specs for alias in field.get("aliases", [])
+    ]
     for spec in field_specs:
+        if spec.get("aliases"):
+            aliases = "|".join(
+                sorted((re.escape(alias) for alias in declared_aliases), key=len, reverse=True)
+            )
+            candidates = []
+            for index, line in enumerate(lines):
+                for alias in spec["aliases"]:
+                    pattern = re.compile(
+                        rf"(?i)(?:^|\s){re.escape(alias)}\s*[:：-]\s*"
+                        rf"(.+?)(?=\s+(?:{aliases})\s*[:：-]|$)"
+                    )
+                    candidates.extend(
+                        (index, match[1].strip())
+                        for match in pattern.finditer(line)
+                        if match[1].strip()
+                    )
+                if _key(line) in {_key(alias) for alias in spec["aliases"]}:
+                    if index + 1 < len(lines):
+                        next_line = lines[index + 1].strip()
+                        next_is_label = any(
+                            re.match(rf"(?i)^{re.escape(alias)}\s*[:：-]?(?:\s|$)", next_line)
+                            for alias in declared_aliases
+                        )
+                        if not next_is_label:
+                            candidates.append((index + 1, next_line))
+            result = next(
+                ((index, value) for index, value in candidates
+                 if _value_matches_spec(value, spec)),
+                None,
+            )
+            if result is None:
+                return False
+            index, value = result
+            lines[index] = lines[index].replace(value, " " * len(value), 1)
+            continue
         typed = _field_token_pattern(spec) is not None
         result = _field_value(lines, spec, used if typed else used | typed_lines)
         if result is None:
@@ -648,6 +686,67 @@ def _linked_table_group(content: str, group: dict, base_url: str) -> dict:
                             records[identity] = {"url": destination, "title": label, "fields": row}
                 row_index += 1
             break
+    if not records:
+        links = [link for link in markdown_links(content) if not link.is_image]
+        entry_links = []
+        for link in links:
+            destination = urljoin(group.get("link_base_url", base_url), link.destination)
+            identity = _link_identity(destination, group)
+            if identity is not None:
+                entry_links.append((identity, destination, link))
+        ordered = []
+        for candidate in entry_links:
+            if not ordered or ordered[-1][0] != candidate[0]:
+                ordered.append(candidate)
+        if ordered:
+            prefix = content[: ordered[0][2].start]
+            header_positions = []
+            for spec in required:
+                hits = [
+                    match.start()
+                    for alias in spec["aliases"]
+                    for match in re.finditer(
+                        rf"(?im)^\s*(?:\[[^]]*{re.escape(alias)}[^]]*\]\([^)]*\)|"
+                        rf"{re.escape(alias)})\s*$",
+                        prefix,
+                    )
+                ]
+                if hits:
+                    header_positions.append(min(hits))
+            if len(header_positions) == len(required) and header_positions == sorted(header_positions):
+                for index, (identity, destination, link) in enumerate(ordered):
+                    finish = ordered[index + 1][2].start if index + 1 < len(ordered) else len(content)
+                    block = content[link.start:finish]
+                    raw_lines = [line.strip() for line in block.splitlines() if line.strip()]
+                    cell_links = []
+                    for line in raw_lines[: len(required)]:
+                        candidates = [item for item in markdown_links(line) if not item.is_image]
+                        if len(candidates) != 1:
+                            break
+                        cell_links.append(candidates[0])
+                    # Once table delimiters are gone, one owned link per required
+                    # cell is the remaining unambiguous column boundary. Plain
+                    # trailing values (for example Idle or action text) cannot
+                    # slide left to repair an absent Description or Owner cell.
+                    if len(cell_links) < len(required):
+                        continue
+                    row = {
+                        spec["id"]: visible_markdown_links(cell_links[position].label).strip()
+                        for position, spec in enumerate(required)
+                    }
+                    link_label = visible_markdown_links(link.label).strip()
+                    if (
+                        row.get(group["link_column"]) == link_label
+                        and all(
+                            _value_matches_spec(row[spec["id"]], spec, whole_cell=True)
+                            for spec in required
+                        )
+                    ):
+                        records[identity] = {
+                            "url": destination,
+                            "title": link_label,
+                            "fields": row,
+                        }
     values = list(records.values())
     return {
         "count": len(values),

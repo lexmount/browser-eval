@@ -274,6 +274,74 @@ def test_linked_table_requires_link_and_fields_in_same_row():
     )["composite_acceptance_pass"]
 
 
+def test_linearized_linked_table_preserves_rows_without_borrowing_fields():
+    rules = contract({
+        "id": "repositories", "kind": "linked_table", "minimum_records": 2,
+        "hosts": ["example.test"], "entry_path": r"/repo/[a-z]+",
+        "required_columns": [
+            {"id": "name", "kind": "text", "aliases": ["Name"]},
+            {"id": "description", "kind": "text", "aliases": ["Description"]},
+            {"id": "owner", "kind": "text", "aliases": ["Owner"]},
+        ],
+        "identity_column": "name", "link_column": "name",
+    })
+    complete = """[Name](/sort/name)\n[Description](/sort/description)\n[Owner](/sort/owner)\n\n[alpha](/repo/alpha)\n[Alpha summary](/repo/alpha)\n[Alice](/owner/alice)\n\n[beta](/repo/beta)\n[Beta summary](/repo/beta)\n[Bob](/owner/bob)"""
+    assert evaluate_composite_acceptance(
+        complete, rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+    for missing in ("[Beta summary](/repo/beta)\n", "[Bob](/owner/bob)"):
+        incomplete = complete.replace(missing, "")
+        if missing == "[Bob](/owner/bob)":
+            incomplete += "\n2 months\n[summary](/repo/beta)"
+        assert not evaluate_composite_acceptance(
+            incomplete, rules, base_url="https://example.test/"
+        )["composite_acceptance_pass"]
+
+
+def test_labeled_fields_may_share_a_line_but_stay_inside_their_card():
+    rules = contract(named(
+        "news", r"^# News$", r"^# End$", 2,
+        required_fields=[
+            {"id": "published", "kind": "date_or_time", "aliases": ["Published"]},
+            {"id": "comments", "kind": "integer", "aliases": ["Comments"]},
+        ],
+    ))
+    complete = """# News\n[First](/item/1)\nPublished: Tue 08:30 UTC Comments: 0\n[Second](/item/2)\nPublished: Wed 09:45 UTC Comments: 3\n# End"""
+    assert evaluate_composite_acceptance(
+        complete, rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+    assert not evaluate_composite_acceptance(
+        complete.replace("Comments: 0", "Comments:"),
+        rules, base_url="https://example.test/",
+    )["composite_acceptance_pass"]
+
+
+def test_standalone_labels_do_not_lend_one_following_value_to_other_fields():
+    rules = contract(named(
+        "news", r"^# News$", r"^# End$", 1,
+        required_fields=[
+            {"id": "publisher", "kind": "text", "aliases": ["Publisher"]},
+            {"id": "comments", "kind": "integer", "aliases": ["Comments"]},
+        ],
+    ))
+    label_after_label = """# News\n[First](/item/1)\nPublisher\nComments: 3\n# End"""
+    assert not evaluate_composite_acceptance(
+        label_after_label, rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+
+    repeated = contract(named(
+        "news", r"^# News$", r"^# End$", 1,
+        required_fields=[
+            {"id": "first", "kind": "integer", "aliases": ["Count"]},
+            {"id": "second", "kind": "integer", "aliases": ["Count"]},
+        ],
+    ))
+    assert not evaluate_composite_acceptance(
+        "# News\n[First](/item/1)\nCount\n3\n# End",
+        repeated, base_url="https://example.test/",
+    )["composite_acceptance_pass"]
+
+
 def test_field_report_binds_fixed_values_to_their_labels():
     rules = contract(
         {

@@ -187,6 +187,9 @@ class ScoringRegressionTests(unittest.TestCase):
             "microsoft_homepage_language_and_drift",
         })
         paired.update({"table_visible_section_boundaries", "table_escaped_pipe_boundaries"})
+        paired.update({"nested_image_accessible_link_name",
+                       "same_line_labeled_field_spans",
+                       "linearized_linked_table_ownership"})
         paired.update({"table_header_visual_line", "table_adjacent_split_body",
                        "composite_html_table_ownership",
                        "body_table_column_continuity",

@@ -137,17 +137,17 @@ class DynamicListTests(unittest.TestCase):
         )
         self.assertEqual(extract_named_entries(prose, self.contract, 'https://example.com/'), [])
 
-    def test_image_link_can_use_one_matching_heading_in_the_same_card(self):
+    def test_image_link_uses_its_accessible_name_without_requiring_a_heading(self):
         content = (
             '[![First title](https://img.example/1.jpg)](/item/1)\n\n'
             '[Category](/category)\n\n## First title\n\nDescription\n\n'
             '[![Second title](https://img.example/2.jpg)](/item/2)\n\n'
             '## Different heading\n'
         )
-        self.assertEqual(
-            extract_named_entries(content, self.contract, 'https://example.com/'),
-            [{'url': 'https://example.com/item/1', 'title': 'First title'}],
-        )
+        self.assertEqual(extract_named_entries(content, self.contract, 'https://example.com/'), [
+            {'url': 'https://example.com/item/1', 'title': 'First title'},
+            {'url': 'https://example.com/item/2', 'title': 'Second title'},
+        ])
 
     def check(self, text, ok=True):
         return evaluate_dynamic_list(text, self.contract, "https://example.com", ok)
@@ -199,10 +199,10 @@ class DynamicListTests(unittest.TestCase):
             f"[![Poster](https://img.test/{i}.png) Title {i}](/item/{i})" for i in range(3)
         )
         self.assertTrue(self.check(visible_names)["structure_pass"])
-        image_only = "\n".join(
+        accessible_image_links = "\n".join(
             f"[![New title {i}](https://img.test/{i}.png)](/item/{i})" for i in range(3)
         )
-        self.assertFalse(self.check(image_only)["structure_pass"])
+        self.assertTrue(self.check(accessible_image_links)["structure_pass"])
         text = "\n".join(f"- {i}\nhttps://example.com/item/{i}" for i in range(10))
         self.assertEqual(self.check(text)["named_entry_count"], 0)
 
