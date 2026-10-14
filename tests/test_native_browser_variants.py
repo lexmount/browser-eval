@@ -99,12 +99,23 @@ class NativeBrowserVariantTests(unittest.TestCase):
         for row in matrix["rows"]:
             self.assertEqual(row["cells"]["moli"], row["cells"][self.candidate])
         self.assertEqual(matrix["capabilities"]["moli"], matrix["capabilities"][self.candidate])
+        dynamic = next(row for row in matrix["rows"] if row["track"] == "dynamic")
+        dynamic_route = str(dynamic["cells"]["moli"])
+        self.assertIn("--layout", dynamic_route)
+        self.assertIn("--with-frames", dynamic_route)
+        self.assertIn("不使用逐题 selector", dynamic_route)
 
     def test_branch_interface_description_uses_native_moli_contract(self):
         self.assertIsNotNone(method_access(self.candidate, []))
         description = method_spec(self.candidate, self.row({"reported_version": "moli 1.1.15"}))
         self.assertIn("Moli", description["entry"])
         self.assertNotIn("pypdf", description["notes"])
+        self.assertEqual(
+            description["request"]["dynamic_body"],
+            "moli fetch --dump markdown --layout --with-frames "
+            "--wait-until domstable URL",
+        )
+        self.assertIn("不按题目设置 selector", description["notes"])
 
     def test_moli_interface_discloses_native_default_timeout_policy(self):
         description = method_spec(self.candidate, self.row({

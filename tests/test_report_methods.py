@@ -45,13 +45,17 @@ class AdoptionTests(unittest.TestCase):
   record={'provider_type':'moli_webfetch','provider_metadata':{
       'reported_version':'moli 1.1.15','dump':'markdown',
       'route':'dynamic_native_markdown','wait_until':'domstable',
+      'layout':True,'with_frames':True,
       'wait':{'strategy':'native_task_family_completion'}}}
   model=method_page_model('moli','Moli',[record]*100)
   self.assertEqual(
-      model['endpoint'], 'moli fetch --dump markdown --wait-until domstable URL')
+      model['endpoint'],
+      'moli fetch --dump markdown --layout --with-frames --wait-until domstable URL')
   self.assertIn('100 个动态网站正文任务',model['configuration'])
   self.assertIn('统一使用',model['configuration'])
   self.assertIn('没有逐题等待元素',model['configuration'])
+  self.assertIn('--layout',model['configuration'])
+  self.assertIn('--with-frames',model['configuration'])
 
  def test_future_method_page_is_registry_driven_without_renderer_changes(self):
   method={'endpoint':'future fetch URL','contract':'URL → text','output':'text',

@@ -165,7 +165,7 @@ CAPABILITIES['moli-webfetch'] = {
  'structure':'网页与文档任务由 --dump markdown 返回原生 Markdown；直接媒体文件返回原始字节；等待条件不参与内容抽取。',
  'access':'支持授权 cookie-file / profile-dir 和请求头；仍可能被站点拒绝。默认适配器不加载登录状态。',
  'notes':'截图和 PDF 是启用 --layout 后生成的页面产物，不是读取已有文档或下载原媒体。官方未承诺文档 OCR、媒体理解或音频转写；直接非 HTML 输入不强制使用 Markdown。',
- 'tested':'网页正文、文档正文、结构和网页媒体信息任务统一使用 Moli 原生 Markdown；旧版动态任务的预声明 selector 只映射到 --wait-selector 或 --wait-script。网页媒体只核对同一 Markdown 输出里的目标地址，不下载媒体。直接 PDF/DOCX 未提供可读正文时按失败记录；直接媒体文件验收原始字节。无 layout、失败后格式回退或跨 provider 补抓；只有实际执行记录参与榜单。',
+ 'tested':'网页正文、文档正文、结构和网页媒体信息任务统一使用 Moli 原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不使用逐题 selector。网页媒体只核对同一 Markdown 输出里的目标地址，不下载媒体。直接 PDF/DOCX 未提供可读正文时按失败记录；直接媒体文件验收原始字节。失败后不切换格式，也不借用其他 provider 补抓；只有实际执行记录参与榜单。',
 }
 CAPABILITIES['lexmount-cn'] = {**CAPABILITIES['lexmount-global'], 'scope': 'POST /v1/extract · 中国区'}
 for engine,url in {

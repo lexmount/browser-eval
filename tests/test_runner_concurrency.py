@@ -1,13 +1,17 @@
 import json
+import socket
+import ssl
 import tempfile
 import threading
 import unittest
+import urllib.error
 from pathlib import Path
 
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.runner import (
     IncompleteEvaluationError, preflight_declared_capacity, run_evaluation,
+    classify_exception, transient_retry_reason,
 )
 
 
@@ -22,6 +26,21 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_certificate_validation_failure_is_not_a_transient_transport_retry(self):
+        certificate = ssl.SSLCertVerificationError(1, "certificate verify failed")
+        for error, expected, retry in (
+            (certificate, "tls_certificate", None),
+            (urllib.error.URLError(certificate), "tls_certificate", None),
+            (urllib.error.URLError(socket.gaierror("DNS lookup failed")), "dns", "transient_dns"),
+            (urllib.error.URLError(TimeoutError("read timed out")), "timeout", "transient_timeout"),
+        ):
+            with self.subTest(error=error):
+                kind, message = classify_exception(error)
+                self.assertEqual(kind, expected)
+                self.assertEqual(transient_retry_reason(ProviderResult(
+                    False, "", error_type=kind, error_message=message,
+                )), retry)
+
     def test_deadline_retains_cancelled_process_diagnostics_never_late_answer(self):
         from harness.web_fetch.call_boundary import fetch_with_deadline
         class Cancelled(Provider):

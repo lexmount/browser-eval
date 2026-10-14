@@ -637,6 +637,22 @@ class StableTaskTests(unittest.TestCase):
         ):
             self.assertFalse(self.check(text, "name_description")["stable_task_pass"], text)
 
+    def test_scoped_image_cards_are_not_parsed_twice(self):
+        text = (
+            "![](/alpha.jpg)\n\nAlpha film\n\nA complete first description.\n\n"
+            "Alpha film\n\n![](/beta.jpg)\n\nBeta film\n\n"
+            "A complete second description.\n\nBeta film"
+        )
+        result = evaluate_stable_task(
+            text,
+            contract("name_description", 2),
+            "https://example.test/catalog",
+            allow_closed_title_cards=True,
+        )
+        self.assertTrue(result["stable_task_pass"], result)
+        self.assertEqual(result["stable_unique_record_count"], 2)
+        self.assertEqual(len(result["stable_records"]), 2)
+
     def test_named_link_page_anchor_accepts_dropped_inline_link_spacing(self):
         text = ('- Do you have a question? Check out[/r/learnprogramming](/r/learnprogramming),'
                 '[/r/cscareerquestions](/r/cscareerquestions), or[Stack Overflow](https://stackoverflow.com/).\n'

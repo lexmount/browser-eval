@@ -7,6 +7,7 @@ import math
 import platform
 import re
 import socket
+import ssl
 import sys
 import threading
 import time
@@ -112,10 +113,14 @@ def utc_now() -> str:
 
 
 def classify_exception(error: Exception) -> tuple[str, str]:
+    if isinstance(error, (ssl.SSLCertVerificationError, ssl.CertificateError)):
+        return "tls_certificate", str(error)
     if isinstance(error, (TimeoutError, socket.timeout)):
         return "timeout", str(error)
     if isinstance(error, urllib.error.URLError):
         reason = getattr(error, "reason", None)
+        if isinstance(reason, (ssl.SSLCertVerificationError, ssl.CertificateError)):
+            return "tls_certificate", str(error)
         if isinstance(reason, socket.gaierror):
             return "dns", str(error)
         if isinstance(reason, (TimeoutError, socket.timeout)):

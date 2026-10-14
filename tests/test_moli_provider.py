@@ -206,7 +206,7 @@ class MoliTests(unittest.TestCase):
             "import sys\n"
             "assert not {'--timeout', '--http-timeout', '--http-connect-timeout', '--eval'} & set(sys.argv)\n"
             "assert sys.argv[sys.argv.index('--dump') + 1] == 'markdown'\n"
-            "assert '--with-frames' not in sys.argv\n"
+            "assert '--layout' not in sys.argv and '--with-frames' not in sys.argv\n"
             "assert '--dump' in sys.argv and '--http-max-response-size' not in sys.argv\n"
             "print('complete native answer')\n",
             uniform_native_parameters=True,
@@ -249,6 +249,7 @@ class MoliTests(unittest.TestCase):
 
     def test_internal_deadline_preserves_typed_cli_error_before_outer_deadline(self):
         from harness.web_fetch.call_boundary import fetch_with_deadline
+        from harness.web_fetch.runner import transient_retry_reason
 
         provider = self.provider(
             "import sys, time\n"
@@ -256,7 +257,8 @@ class MoliTests(unittest.TestCase):
             "('--timeout', '--http-timeout', '--http-connect-timeout')]\n"
             "assert values == ['250', '250', '250'], values\n"
             "time.sleep(0.27)\n"
-            "print('fetch readiness timed out after 250 ms while waiting for load', "
+            "print('Error: failed to fetch `https://example.com/?a=1&b=2`\\n' "
+            "      'Reason: fetch readiness timed out after 250 ms while waiting for load', "
             "file=sys.stderr, flush=True)\n"
             "raise SystemExit(1)\n"
         )
@@ -265,12 +267,14 @@ class MoliTests(unittest.TestCase):
         result, worker = fetch_with_deadline(provider, self.case, 0.5)
 
         self.assertFalse(worker.is_alive())
-        self.assertEqual(result.error_type, "tool_error")
+        self.assertEqual(result.error_type, "timeout")
+        self.assertEqual(transient_retry_reason(result), "transient_timeout")
         self.assertEqual(result.metadata["exit_code"], 1)
         self.assertEqual(result.metadata["http_connect_timeout_ms"], 250)
         self.assertEqual(
             result.error_message,
-            "fetch readiness timed out after 250 ms while waiting for load\n",
+            "Error: failed to fetch `https://example.com/?a=1&b=2`\n"
+            "Reason: fetch readiness timed out after 250 ms while waiting for load\n",
         )
 
     def test_outer_deadline_still_stops_cli_that_ignores_internal_deadline(self):
@@ -394,6 +398,38 @@ class MoliTests(unittest.TestCase):
         self.assertTrue(result.ok)
         self.assertEqual(result.metadata["route"], "dynamic_native_markdown")
 
+    def test_native_wait_override_applies_to_every_page_in_a_family(self):
+        provider = self.provider(
+            "import sys\n"
+            "url = sys.argv[-1]\n"
+            "wait = sys.argv[sys.argv.index('--wait-until') + 1]\n"
+            "assert wait == ('domstable' if '/risk-' in url else 'done')\n"
+            "assert '--wait-selector' not in sys.argv and '--wait-script' not in sys.argv\n"
+            "assert '--eval' not in sys.argv and '--delay-ms' not in sys.argv\n"
+            "print('native page body')\n",
+            wait_until_by_track={"risk_control": "domstable"},
+        )
+        for index in range(2):
+            with self.subTest(index=index):
+                result = provider.fetch(self.case_with(
+                    id=f"risk-{index}", track="risk_control",
+                    url=f"https://example.com/risk-{index}",
+                ), 2)
+                self.assertTrue(result.ok, repr(result))
+                self.assertEqual(result.metadata["wait"]["scope"], "risk_control_task_family")
+                self.assertEqual(result.metadata["wait_until"], "domstable")
+        result = provider.fetch(self.case_with(track="web"), 2)
+        self.assertTrue(result.ok, repr(result))
+        self.assertEqual(result.metadata["wait_until"], "done")
+
+    def test_wait_override_rejects_case_specific_and_invalid_settings(self):
+        for overrides in ({"risk-123": "domstable"}, {"risk_control": "invalid"},
+                          {"risk_control": []}, ["risk_control"]):
+            with self.subTest(overrides=overrides):
+                provider = self.provider("raise AssertionError('must not execute')",
+                                         wait_until_by_track=overrides)
+                self.assertIn("wait_until_by_track", provider.validate())
+
     def test_network_trace_cannot_change_markdown_scoring_route(self):
         provider = self.provider('raise AssertionError("should not run")', trace_network=True)
         self.assertIn(
@@ -515,12 +551,77 @@ class MoliTests(unittest.TestCase):
         self.assertIsNone(_diagnostic_main_document_url(log,'https://example.com/start'))
 
     def test_popular_site_native_http_error_keeps_body_but_request_fails(self):
+        from harness.web_fetch.runner import transient_retry_reason
+
         provider = self.provider('print("**Error:** Forbidden\\n\\n**403**: Forbidden")')
         result = provider.fetch(self.case_with(track="challenge", task_kind="structure"), 10)
         self.assertFalse(result.ok)
         self.assertEqual(result.error_type, "api_error")
         self.assertEqual(result.status_code, 403)
         self.assertIn("Forbidden", result.content)
+        self.assertIsNone(transient_retry_reason(result))
+
+    def test_only_explicit_transient_native_failures_are_retryable(self):
+        from harness.web_fetch.runner import transient_retry_reason
+
+        scenarios = (
+            (
+                "dns",
+                "Error: failed to fetch `https://example.com/`\n"
+                "Reason: failed to resolve example.com:443: failed to lookup address "
+                "information: Temporary failure in name resolution",
+                "dns",
+                "transient_dns",
+            ),
+            (
+                "curl_timeout",
+                "Error: failed to fetch `https://example.com/`\n"
+                "Reason: curl request failed for https://example.com/ after active=500ms "
+                "queued=2ms: [28] Timeout was reached",
+                "timeout",
+                "transient_timeout",
+            ),
+            (
+                "curl_transfer",
+                "Error: failed to fetch `https://example.com/`\n"
+                "Reason: curl request failed for https://example.com/ after active=500ms "
+                "queued=2ms: [56] Failure when receiving data from the peer",
+                "network",
+                "transient_network",
+            ),
+            (
+                "certificate",
+                "Error: failed to fetch `https://example.com/`\n"
+                "Reason: curl request failed for https://example.com/ after active=500ms "
+                "queued=2ms: [60] SSL peer certificate or SSH remote key was not OK",
+                "tool_error",
+                None,
+            ),
+            (
+                "content_contract",
+                "Error: failed to fetch `https://example.com/`\n"
+                "Reason: raw download output only supports automatic output or --dump json",
+                "tool_error",
+                None,
+            ),
+            (
+                "ambiguous",
+                "SSL connect error: connection reset",
+                "tool_error",
+                None,
+            ),
+        )
+        for name, stderr, error_type, retry_reason in scenarios:
+            with self.subTest(name=name):
+                provider = self.provider(
+                    "import sys\n"
+                    f"print({stderr!r}, file=sys.stderr)\n"
+                    "raise SystemExit(1)\n"
+                )
+                result = provider.fetch(self.case, 2)
+                self.assertFalse(result.ok)
+                self.assertEqual(result.error_type, error_type)
+                self.assertEqual(transient_retry_reason(result), retry_reason)
 
     def test_native_markdown_runtime_error_keeps_official_stderr(self):
         provider = self.provider('import sys\nprint("SSL connect error: connection reset", file=sys.stderr)\nsys.exit(1)\n')
@@ -540,6 +641,8 @@ class MoliTests(unittest.TestCase):
         provider = self.provider(
             'import sys\n'
             'assert "--eval" not in sys.argv and "--wait-selector" not in sys.argv\n'
+            'assert "--wait-script" not in sys.argv\n'
+            'assert "--layout" in sys.argv and "--with-frames" in sys.argv\n'
             'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
             'assert sys.argv[sys.argv.index("--wait-until")+1] == "domstable"\n'
             'print("# Native body")'
@@ -549,9 +652,17 @@ class MoliTests(unittest.TestCase):
         self.assertTrue(result.ok, result.error_message)
         self.assertEqual(result.content, "# Native body\n")
         self.assertEqual(result.metadata["output"], "markdown")
+        self.assertTrue(result.metadata["layout"])
+        self.assertTrue(result.metadata["with_frames"])
         self.assertEqual(result.metadata["wait"], {
             "wait_until": "domstable", "scope": "dynamic_task_family",
-            "strategy": "native_task_family_completion"})
+            "strategy": "native_task_family_completion",
+            "layout": {"requested": True, "support": "native",
+                       "interface": "--layout", "scope": "dynamic_task_family"},
+            "subdocuments": {"requested": True, "support": "native",
+                             "interface": "--with-frames",
+                             "harness_content_assembly": False,
+                             "scope": "dynamic_task_family"}})
 
     def test_dynamic_family_wait_is_configurable_but_not_case_specific(self):
         provider = self.provider(

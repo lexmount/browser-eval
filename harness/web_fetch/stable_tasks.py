@@ -566,10 +566,15 @@ def _parse_records(visible, schema, *, allow_closed_title_cards=False):
         for section in sections:
             records.extend(_operations([_line(line) for line in section.splitlines() if line.strip()]))
     elif schema == "name_description":
-        closed = _media_closed_title_descriptions(remainder) + (
+        # Scoped title-description-title cards and image-owned cards are two
+        # ways to establish the same ownership boundary.  When the caller has
+        # already bounded the target section, parsing both routes would emit
+        # every image-backed card twice and reject an otherwise valid answer as
+        # a duplicate-name list.
+        closed = (
             _closed_title_descriptions(remainder)
             if allow_closed_title_cards
-            else []
+            else _media_closed_title_descriptions(remainder)
         )
         weak = _descriptions(remainder)
         for record in weak:

@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 from urllib.parse import parse_qsl, quote, urlsplit
 
-from ..models import EvalCase, ProviderResult
+from ..models import EvalCase, ProviderResult, TRACKS
 from ..retrieval_hints import native_contract_for_case, plan_for_case
 from ..safety import validate_http_url
 from .base import Provider, terminate_owned_process_tree
@@ -40,6 +40,29 @@ _MARKDOWN_HTTP_ERROR_PAGE = re.compile(
     re.IGNORECASE,
 )
 
+_MOLI_FETCH_FAILURE = re.compile(
+    r"(?:^|\n)Error: failed to fetch `[^`\r\n]+`\r?\n"
+    r"Reason: (?P<reason>[^\r\n]+)\s*\Z"
+)
+_MOLI_READINESS_TIMEOUT = re.compile(
+    r"fetch readiness timed out after [1-9]\d* ms while waiting for [^\r\n]+"
+)
+_MOLI_DNS_FAILURE = re.compile(
+    r"failed to resolve [^\s:]+:\d+: failed to lookup address information: .+"
+)
+_MOLI_CURL_FAILURE = re.compile(
+    r"curl request failed for \S+ after active=\d+ms queued=\d+ms: "
+    r"\[(?P<code>\d+)\] (?P<detail>.+)"
+)
+_CURL_DNS_FAILURES = {5, 6}
+_CURL_TIMEOUT_FAILURES = {28}
+_CURL_TRANSIENT_TRANSFER_FAILURES = {7, 16, 18, 35, 52, 55, 56, 92, 95}
+_CURL_CERTIFICATE_FAILURES = {51, 58, 60, 77, 82, 83, 90, 91}
+_CERTIFICATE_FAILURE_DETAIL = re.compile(
+    r"certificate|cert(?:ificate)? verify|issuer|CA cert|SSH remote key|CRL|OCSP",
+    re.IGNORECASE,
+)
+
 
 def _markdown_http_error_status(content: str) -> int | None:
     """Recognize Moli's whole-response HTTP error page, not status prose."""
@@ -47,6 +70,39 @@ def _markdown_http_error_status(content: str) -> int | None:
         return None
     match = _MARKDOWN_HTTP_ERROR_PAGE.fullmatch(content)
     return int(match.group("status")) if match else None
+
+
+def _moli_native_error_type(stderr: str | bytes) -> str:
+    """Classify only explicit, retry-safe Moli failure envelopes.
+
+    The shared runner owns the single declared retry.  This adapter exposes a
+    transient type only when Moli's final error envelope identifies a bounded
+    readiness timeout, DNS failure, or known curl transport failure.  All
+    ambiguous, content, certificate, and configuration failures stay terminal.
+    """
+    diagnostic = stderr.decode("utf-8", "replace") if isinstance(stderr, bytes) else stderr
+    failure = _MOLI_FETCH_FAILURE.search(diagnostic)
+    if failure is None:
+        return "tool_error"
+    reason = failure.group("reason")
+    if _MOLI_READINESS_TIMEOUT.fullmatch(reason):
+        return "timeout"
+    if _MOLI_DNS_FAILURE.fullmatch(reason):
+        return "dns"
+    curl = _MOLI_CURL_FAILURE.fullmatch(reason)
+    if curl is None:
+        return "tool_error"
+    code = int(curl.group("code"))
+    detail = curl.group("detail")
+    if code in _CURL_CERTIFICATE_FAILURES or _CERTIFICATE_FAILURE_DETAIL.search(detail):
+        return "tool_error"
+    if code in _CURL_DNS_FAILURES:
+        return "dns"
+    if code in _CURL_TIMEOUT_FAILURES:
+        return "timeout"
+    if code in _CURL_TRANSIENT_TRANSFER_FAILURES:
+        return "network"
+    return "tool_error"
 
 
 def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> str | None:
@@ -164,6 +220,12 @@ class MoliWebFetchProvider(Provider):
             errors.append("wait_until")
         if self.config.get("dynamic_wait_until", "domstable") not in _WAIT_UNTIL_VALUES:
             errors.append("dynamic_wait_until")
+        track_waits = self.config.get("wait_until_by_track", {})
+        if (not isinstance(track_waits, dict)
+                or any(not isinstance(track, str) or track not in TRACKS
+                       or not isinstance(wait, str) or wait not in _WAIT_UNTIL_VALUES
+                       for track, wait in track_waits.items())):
+            errors.append("wait_until_by_track")
         if int(self.config.get("max_bytes", 20_000_000)) <= 0:
             errors.append("max_bytes")
         retain_diagnostic = self.config.get("retain_complete_diagnostic_log", False)
@@ -320,11 +382,18 @@ class MoliWebFetchProvider(Provider):
             if case.track == "dynamic"
             else wait
         )
+        track_waits = self.config.get("wait_until_by_track", {})
+        family_wait = track_waits.get(case.track, family_wait)
+        native_dynamic_body = (
+            case.track == "dynamic"
+            and case.task_kind == "body"
+            and case.retrieval_hints == {"version": 3, "mode": "native"}
+        )
         timeout_ms = str(max(1, int(inner_timeout_budget(timeout) * 1000)))
         dump = "markdown"
         try:
             if case.task_kind == "resource":
-                resource_wait = wait
+                resource_wait = family_wait
                 wait_arguments = ["--wait-until", resource_wait]
                 wait_metadata = {
                     "wait_until": resource_wait,
@@ -363,6 +432,11 @@ class MoliWebFetchProvider(Provider):
                         scope="dynamic_task_family",
                         strategy="native_task_family_completion",
                     )
+            if completion_plan is None and case.track in track_waits:
+                wait_metadata.update(
+                    scope=f"{case.track}_task_family",
+                    strategy="native_task_family_completion",
+                )
         except ValueError as error:
             return ProviderResult(
                 False,
@@ -373,8 +447,18 @@ class MoliWebFetchProvider(Provider):
         command = [binary, "fetch"]
         if dump is not None:
             command.extend(["--dump", dump])
+        layout = native_dynamic_body
+        if layout:
+            command.append("--layout")
+            wait_metadata["layout"] = {
+                "requested": True,
+                "support": "native",
+                "interface": "--layout",
+                "scope": "dynamic_task_family",
+            }
         include_subdocuments = (
-            case.task_kind == "resource"
+            native_dynamic_body
+            or case.task_kind == "resource"
             or native_contract is not None and native_contract.include_subdocuments
         )
         if include_subdocuments:
@@ -385,7 +469,9 @@ class MoliWebFetchProvider(Provider):
                 "interface": "--with-frames",
                 "harness_content_assembly": False,
                 "scope": (
-                    "resource_task_family"
+                    "dynamic_task_family"
+                    if native_dynamic_body
+                    else "resource_task_family"
                     if case.task_kind == "resource"
                     else "declared_native_contract"
                 ),
@@ -423,6 +509,8 @@ class MoliWebFetchProvider(Provider):
         diagnostic_read_limit = diagnostic_limit if retain_diagnostic else limit
         metadata = {
             "dump": dump,
+            "layout": layout,
+            "with_frames": include_subdocuments,
             "http_connect_timeout_ms": None if self.config.get("uniform_native_parameters") else int(timeout_ms),
             "internal_timeout_policy": "native_default" if self.config.get("uniform_native_parameters") else "explicit",
             "http_max_response_bytes": None,
@@ -638,6 +726,7 @@ class MoliWebFetchProvider(Provider):
             )
         parsed_error_status = _markdown_http_error_status(content)
         ok = process.returncode == 0 and parsed_error_status is None
+        native_error_type = _moli_native_error_type(diagnostic_raw)
         final_url = _diagnostic_main_document_url(diagnostic_raw, case.url)
         if final_url:
             metadata["final_url_source"] = "same_call_debug_log"
@@ -650,7 +739,11 @@ class MoliWebFetchProvider(Provider):
             status_code=parsed_error_status,
             final_url=final_url,
             error_type=(
-                None if ok else "api_error" if parsed_error_status is not None else "tool_error"
+                None
+                if ok
+                else "api_error"
+                if parsed_error_status is not None
+                else native_error_type
             ),
             error_message=(
                 None
