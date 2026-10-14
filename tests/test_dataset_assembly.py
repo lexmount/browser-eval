@@ -503,12 +503,17 @@ def test_registered_430_profile_uses_official_release_and_frozen_minimal_reruns(
         "source": "https://github.com/lexmount/moli/releases/tag/v1.1.15",
     }
     assert profile["method_sources"]["moli-fixed"]["source_commit"] == (
-        "99a22382a459247c5c68101718484eeaf3c75ec7"
+        "cb81f05a505c10f1fba2a7562e9c0bad71d11399"
     )
     assert profile["method_sources"]["moli-fixed"]["binary_sha256"] == (
-        "82b50f5e3835fdceb9fcf4cbcd165c8546fd06453bed78d5081a4a8c0c4abc08"
+        "05f8d6eee72b6e85215ef8be6a92b9951ae6ff299776a334c06e111d797e75a2"
     )
-    assert profile["method_sources"]["moli-fixed"]["identity_state"] == "pre_call_frozen"
+    assert profile["method_sources"]["moli-fixed"]["identity_state"] == "latest_failure_scope_measured"
+    scope = profile["method_sources"]["moli-fixed"]["measurement_scope"]
+    assert scope["latest_binary_case_count"] == 162
+    assert scope["inherited_case_count"] == 268
+    assert scope["latest_binary_case_count"] + scope["inherited_case_count"] == profile["case_count"]
+    assert scope["inherited_binary_sha256"] != profile["method_sources"]["moli-fixed"]["binary_sha256"]
     for method in ("moli-1.1.15", "moli-fixed", "lightpanda", "obscura", "chromium"):
         assert providers[method]["dns_mode"] == "public_doh"
     for method in ("moli-1.1.15", "moli-fixed", "lightpanda", "obscura"):

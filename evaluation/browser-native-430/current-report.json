@@ -535,10 +535,20 @@
     "moli-fixed": {
       "version": "1.1.17",
       "reported_version": "moli 1.1.17",
-      "source_commit": "99a22382a459247c5c68101718484eeaf3c75ec7",
+      "source_commit": "cb81f05a505c10f1fba2a7562e9c0bad71d11399",
       "pull_request": "https://github.com/lexmount/moli/pull/1501",
-      "binary_sha256": "82b50f5e3835fdceb9fcf4cbcd165c8546fd06453bed78d5081a4a8c0c4abc08",
-      "identity_state": "pre_call_frozen"
+      "binary_sha256": "05f8d6eee72b6e85215ef8be6a92b9951ae6ff299776a334c06e111d797e75a2",
+      "identity_state": "latest_failure_scope_measured",
+      "measurement_scope": {
+        "latest_binary_case_count": 162,
+        "inherited_case_count": 268,
+        "inherited_binary_sha256": "a276fc5d11bb3debd9f72246dc01f761a8206e8b28700713ba6c8f1dffaba11d",
+        "latest_execution": {
+          "data_home_path": "evidence/research/webfetch-430-refresh-20261014/moli-failure-162-cb81-final/execution.json",
+          "sha256": "b69e41eb00679fb9134040d0faf4665e3dea4c80315c6626931e3039682fc3ab"
+        },
+        "comparison_scope": "latest logical result per task; inherited calls retain their original version, route and network configuration; not a full 430-case rerun of the latest binary"
+      }
     },
     "lightpanda": {
       "version": "1.0.0",
