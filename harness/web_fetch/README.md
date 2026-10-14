@@ -583,7 +583,13 @@ dynamic examples are fixed demonstration data delivered after loading; popular
 rankings and catalogs change frequently. Annotate fields, not whole websites:
 
 - Stable document titles, headings and instructions can be explicit
-  `stable_text_anchors` with independently justified equivalent alternatives.
+  `stable_text_anchors`. Alternatives may express the same frozen content in
+  equivalent formatting; they must not accept different regional, historical,
+  or redesigned page bodies. DNS, redirects, access failures, and variant page
+  responses are retrieval outcomes, not reasons to add acceptable answers.
+  Fix a wrong source or reference only from independent evidence. A change to
+  the target URL requires new calls for every affected method; retain the old
+  task and calls as historical evidence.
 - Frequently changing names, prices, dates and ranking positions use an
   `acceptance_contract`: required fields, types, record grouping, minimum count,
   uniqueness and stable page text. Values are not compared to a previous

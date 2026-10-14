@@ -392,6 +392,65 @@ def test_registered_430_assembly_uses_current_sources_and_four_contracts(tmp_pat
     assert len(cases) == 430
 
 
+def test_registered_m365_reference_uses_one_current_body_version():
+    from harness.web_fetch.metrics import task_passed
+    from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, score_attempt
+
+    dataset, _raw = assemble_profile_dataset(ASSEMBLY)
+    case = next(
+        row for row in dataset["cases"]
+        if row["id"] == "global-homepage-023-cloud-microsoft"
+    )
+    anchors = {
+        row["id"]: row["alternatives"]
+        for row in case["acceptance_contract"]["stable_text_anchors"]
+    }
+    current_introduction = (
+        "AI in Microsoft 365 helps you create, summarize, and find information "
+        "across your work."
+    )
+    retired_introduction = (
+        "Sign in to create, collaborate, and move your work forward with Copilot "
+        "in Microsoft 365."
+    )
+    unchanged = [
+        "Work smarter across Microsoft 365",
+        "Popular prompts to try",
+        "Jump into your favorite app",
+        "Bring Copilot and your work together in a focused desktop experience.",
+    ]
+
+    assert case["url"] == "https://m365.cloud.microsoft/en-us/"
+    assert anchors["stable-anchor-2"] == [current_introduction]
+    definition = json.loads(ASSEMBLY.read_text())
+    corrections = json.loads(
+        (ROOT / definition["case_corrections"]["path"]).read_text()
+    )
+    correction = next(
+        row for row in corrections["cases"]
+        if row["case_id"] == "global-homepage-023-cloud-microsoft"
+    )
+    evidence = correction["evidence"]
+    assert evidence["root_cause"] == (
+        "retired_homepage_copy_was_kept_as_a_parallel_reference"
+    )
+    assert evidence["reference_version_policy"]["current"] == (
+        "single_v3_observed_body"
+    )
+    assert evidence["revised_acceptance_contract_sha256"] == _canonical_sha256(
+        case["acceptance_contract"]
+    )
+    assert evidence["scoring_source_sha256"] == SCORING_SOURCE_SHA256
+
+    def verdict(introduction: str) -> bool:
+        body = "\n".join([unchanged[0], introduction, *unchanged[1:]])
+        metrics = score_attempt(case, body.encode(), ok=True)
+        return task_passed(True, metrics, case["task_kind"])
+
+    assert verdict(current_introduction)
+    assert not verdict(retired_introduction)
+
+
 def test_registered_430_profile_uses_official_release_and_frozen_minimal_reruns():
     profile = json.loads((ROOT / "evaluation/browser-native-430/current-report.json").read_text())
     providers = json.loads((ROOT / "configs/providers.headless.json").read_text())["providers"]

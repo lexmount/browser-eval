@@ -439,14 +439,14 @@
       "expected_definition_sha256": "6ad25f05312b58cafcdc948aeb61904b22d54d50385db30272bb63455b700707",
       "set": {
         "url": "https://m365.cloud.microsoft/en-us/",
-        "description": "三次全新匿名浏览器首次加载均得到同一英文正文；验收只使用页面主体中稳定可见的文字。",
-        "task_prompt": "直接获取 Microsoft 365 英文首页当前可见的正文，保留以下稳定文字：Work smarter across Microsoft 365；Popular prompts to try；Jump into your favorite app；Bring Copilot and your work together in a focused desktop experience.。正文还须包含以下两版官方介绍中的任意一版：Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365.；或 AI in Microsoft 365 helps you create, summarize, and find information across your work.。不点击子页面、不登录，也不把图片文字、控件标签、隐藏名称、网页标题或脚本文字当作正文。",
-        "reference_answer": "直接获取 Microsoft 365 英文首页当前可见的正文，保留以下稳定文字：Work smarter across Microsoft 365；Popular prompts to try；Jump into your favorite app；Bring Copilot and your work together in a focused desktop experience.。正文还须包含以下两版官方介绍中的任意一版：Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365.；或 AI in Microsoft 365 helps you create, summarize, and find information across your work.。不点击子页面、不登录，也不把图片文字、控件标签、隐藏名称、网页标题或脚本文字当作正文。",
+        "description": "独立匿名浏览器观察确认目标为 Microsoft 365 英文首页；验收只使用页面主体中稳定可见的文字。",
+        "task_prompt": "直接获取 Microsoft 365 英文首页当前可见的正文，保留以下稳定文字：Work smarter across Microsoft 365；AI in Microsoft 365 helps you create, summarize, and find information across your work.；Popular prompts to try；Jump into your favorite app；Bring Copilot and your work together in a focused desktop experience.。不点击子页面、不登录，也不把图片文字、控件标签、隐藏名称、网页标题或脚本文字当作正文。",
+        "reference_answer": "直接获取 Microsoft 365 英文首页当前可见的正文，保留以下稳定文字：Work smarter across Microsoft 365；AI in Microsoft 365 helps you create, summarize, and find information across your work.；Popular prompts to try；Jump into your favorite app；Bring Copilot and your work together in a focused desktop experience.。不点击子页面、不登录，也不把图片文字、控件标签、隐藏名称、网页标题或脚本文字当作正文。",
         "ground_truth_main_content": "",
         "ground_truth_evidence": [
           {
             "source": "https://m365.cloud.microsoft/en-us/",
-            "supports": "The four unchanged body anchors and either independently observed official Microsoft 365 introduction."
+            "supports": "The four unchanged body anchors and the current introduction independently observed in the v3 source capture."
           }
         ],
         "source_verification": {
@@ -458,7 +458,7 @@
           "reference_sha256": "869cbe00735edeea0d049adc165fc843d370fc3ce61e979d4f2310652f17761b",
           "provider_output_used": false,
           "qualification_bundle_sha256": "a2c47a0eb2c6c629e6da4a5a82e0089624b821ec5ffa17fa3a555dd3bb659f76",
-          "note": "The official page retained four established anchors and replaced its introductory sentence with an equivalent current description. The earlier official sentence remains an accepted historical variant."
+          "note": "Independent observations reached the same English Microsoft 365 host; DNS did not select a different site. This revision freezes the v3 observed body and does not accept a retired introduction as an alternative."
         },
         "required_facts": [],
         "acceptance_contract": {
@@ -475,7 +475,6 @@
             {
               "id": "stable-anchor-2",
               "alternatives": [
-                "Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365.",
                 "AI in Microsoft 365 helps you create, summarize, and find information across your work."
               ]
             },
@@ -526,10 +525,19 @@
         "observed_at": "2026-10-14",
         "observed_text": "The official Microsoft 365 body retains four established anchors and now says: AI in Microsoft 365 helps you create, summarize, and find information across your work.",
         "qualification_bundle_sha256": "a2c47a0eb2c6c629e6da4a5a82e0089624b821ec5ffa17fa3a555dd3bb659f76",
+        "root_cause": "retired_homepage_copy_was_kept_as_a_parallel_reference",
+        "reference_version_policy": {
+          "prior": "two_version_alternatives",
+          "current": "single_v3_observed_body",
+          "reason": "The task has one fixed target body. An older official sentence is provenance, not a second acceptable answer.",
+          "removed_alternative": "Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365."
+        },
+        "prior_acceptance_contract_sha256": "f5d485a1a8f117da0dc5f7df404327636158758cb350f6b0d25d64599b13833a",
+        "revised_acceptance_contract_sha256": "487adb894e52604469f7f623f886655c7181c141a555ba01703496dd31cc14d6",
+        "scoring_source_sha256": "db507a6f0a90c8346aaa0fc7613505c8050c20427547cfccd94754548f1c8e9f",
         "regression_ids": [
-          "m365-current-introduction-variant-passes",
-          "m365-established-introduction-variant-still-passes",
-          "m365-retired-navigation-copy-does-not-pass"
+          "m365-single-current-reference-body-passes",
+          "m365-single-current-reference-rejects-retired-introduction"
         ]
       }
     },
