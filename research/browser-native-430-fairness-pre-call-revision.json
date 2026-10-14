@@ -71,6 +71,7 @@
     "browser_eval_base_commit": "f6dac02e585a275ac946e4ccfdcf260dd0d0f909",
     "browser_eval_inputs": [
       {"path": "configs/providers.headless.json", "sha256": "b21029b9d7c858e8838d43235fea51fb37460e9392e24730f56b53c064e061af"},
+      {"path": "harness/web_fetch/certification.py", "sha256": "1179f31cda8bc13fd970740c9c079b18142ad8c3ad652a9e8f92f6321bc3a610"},
       {"path": "harness/web_fetch/headless_runner.py", "sha256": "d99c3ced8a6571733f798b1af1ca6f19132776ddad6f9e694a0530fe3cb68714"},
       {"path": "harness/web_fetch/providers/base.py", "sha256": "e5431b96db961467b449c573c55af4c0a6083221e9093885433d1b75561eec84"},
       {"path": "harness/web_fetch/providers/cloudflare.py", "sha256": "b5b17510479b4c178d9ac2b65bfff4fd317ba0084b6fba4e038a479e76cd8d21"},
