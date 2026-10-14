@@ -365,8 +365,12 @@ def test_registered_430_profile_uses_official_release_and_frozen_minimal_reruns(
         "source": "https://github.com/lexmount/moli/releases/tag/v1.1.15",
     }
     assert profile["method_sources"]["moli-fixed"]["source_commit"] == (
-        "884103830c5443068b73f0b3faa0a528e4550581"
+        "99a22382a459247c5c68101718484eeaf3c75ec7"
     )
+    assert profile["method_sources"]["moli-fixed"]["binary_sha256"] == (
+        "82b50f5e3835fdceb9fcf4cbcd165c8546fd06453bed78d5081a4a8c0c4abc08"
+    )
+    assert profile["method_sources"]["moli-fixed"]["identity_state"] == "pre_call_frozen"
     binding = profile["rerun_scope"]
     path = ROOT / binding["path"]
     assert hashlib.sha256(path.read_bytes()).hexdigest() == binding["sha256"]

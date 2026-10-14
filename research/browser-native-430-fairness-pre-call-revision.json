@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "kind": "browser_native_430_fairness_pre_call_revision",
-  "created_at": "2026-10-14T10:00:00+08:00",
+  "created_at": "2026-10-14T10:55:00+08:00",
   "provider_calls": 0,
   "profile": {
     "path": "evaluation/browser-native-430/current-report.json",
-    "sha256": "4028af3ef2a51352dbd14a202a3bc03f774ec18b348d4509c6129da7da76c18c"
+    "sha256": "a47199e6fba01b5ff9274f19cda4b3b4fd9391f3d0a0cff9d31217deee3ceb61"
   },
   "dataset_assembly": {
     "path": "evaluation/browser-native-430/dataset-assembly.json",
@@ -82,9 +82,11 @@
       {"path": "harness/web_fetch/task_outputs.py", "sha256": "7b0bc5747600d8b8e1ddb5c838298f2244f7ab11cc6a070ba83871c8e6ebe5f2"},
       {"path": "package-lock.json", "sha256": "993a7c7f7811b8bb43c28290e0394a46d028d3cf3fc3d5a863fb41027a749bce"}
     ],
-    "moli_fixed_source_commit": "884103830c5443068b73f0b3faa0a528e4550581",
+    "moli_fixed_source_commit": "99a22382a459247c5c68101718484eeaf3c75ec7",
     "moli_fixed_pull_request": "https://github.com/lexmount/moli/pull/1501",
-    "moli_fixed_binary_state": "awaiting_ci_release_artifact_before_calls"
+    "moli_fixed_reported_version": "moli 1.1.17",
+    "moli_fixed_binary_sha256": "82b50f5e3835fdceb9fcf4cbcd165c8546fd06453bed78d5081a4a8c0c4abc08",
+    "moli_fixed_binary_state": "pre_call_frozen"
   },
   "acceptance_effect": {
     "task_answers_changed": false,

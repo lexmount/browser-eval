@@ -518,10 +518,12 @@
       "source": "https://github.com/lexmount/moli/releases/tag/v1.1.15"
     },
     "moli-fixed": {
-      "source_commit": "884103830c5443068b73f0b3faa0a528e4550581",
+      "version": "1.1.17",
+      "reported_version": "moli 1.1.17",
+      "source_commit": "99a22382a459247c5c68101718484eeaf3c75ec7",
       "pull_request": "https://github.com/lexmount/moli/pull/1501",
-      "binary_sha256": null,
-      "identity_state": "awaiting_ci_release_artifact"
+      "binary_sha256": "82b50f5e3835fdceb9fcf4cbcd165c8546fd06453bed78d5081a4a8c0c4abc08",
+      "identity_state": "pre_call_frozen"
     },
     "lightpanda": {
       "version": "1.0.0",
