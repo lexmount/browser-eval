@@ -63,6 +63,17 @@ def test_table_header_gate_accepts_explicit_unranked_methods_only_locally():
             require_table_index_headers(missing_flag, english=english, diagnostic=True)
 
 
+def test_home_gate_requires_diagnostic_summary_and_rejects_winner_claims():
+    from harness.web_fetch.report_check import require_home_comparison_layout
+    home = ('<h2>7 类任务概览</h2><h2>任务判定汇总（非排名）</h2>'
+            '<h2>按任务类别查看诊断结果</h2><p>判分完整性</p>')
+    require_home_comparison_layout(home, 7, diagnostic=True)
+    with pytest.raises(ValueError, match='winner disclosure'):
+        require_home_comparison_layout(home+'<p>本类最高：A</p>', 7, diagnostic=True)
+    with pytest.raises(ValueError, match='comparison must precede'):
+        require_home_comparison_layout(home, 7, diagnostic=False)
+
+
 def test_release_check_rejects_hidden_status_or_ranked_diagnostic(tmp_path):
     from harness.web_fetch.report_check import check_local_diagnostic_presentation
     page = tmp_path / 'index.html'

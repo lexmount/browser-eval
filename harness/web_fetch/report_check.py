@@ -55,6 +55,17 @@ def require_table_index_headers(parser, *, english=False, diagnostic=False):
             raise ValueError('Unexpected table index header: ' + header)
 
 
+def require_home_comparison_layout(home, track_count, *, diagnostic=False):
+    overall = '任务判定汇总（非排名）' if diagnostic else '综合通过率总榜'
+    details = '按任务类别查看诊断结果' if diagnostic else f'{track_count} 类分榜'
+    markers = [f'<h2>{track_count} 类任务概览</h2>', f'<h2>{overall}</h2>', f'<h2>{details}</h2>']
+    if any(marker not in home for marker in markers) or not (
+            home.index(markers[0]) < home.index(markers[1]) < home.index(markers[2])):
+        raise ValueError('Task overview and comparison must precede detailed results')
+    if '判分完整性' not in home or ('本类最高：' in home) == diagnostic:
+        raise ValueError('Comparison winner disclosure differs from evidence state')
+
+
 class VisibleText(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -557,14 +568,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         raise ValueError("Report acceptance check failed")
     home = (root / "index.html").read_text()
     track_count = len({case.get("track", "web") for case in d["cases"]})
-    if (
-        not home.index(f"<h2>{track_count} 类任务概览</h2>")
-        < home.index("<h2>综合通过率总榜</h2>")
-        < home.index(f"<h2>{track_count} 类分榜</h2>")
-    ):
-        raise ValueError("Task overview and overall ranking must precede detailed rankings")
-    if not ("本类最高：" in home and "判分完整性" in home):
-        raise ValueError("Report acceptance check failed")
+    require_home_comparison_layout(home, track_count, diagnostic=local_measurement)
     if (root / "resource-cohort/resource-comparison.json").is_file():
         guide = (root / "guide/index.html").read_text()
         for page_name, text in [("home", home), ("guide", guide)]:
