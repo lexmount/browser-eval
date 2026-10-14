@@ -201,6 +201,7 @@ class ScoringRegressionTests(unittest.TestCase):
                        "table_visible_markdown_scalar",
                        "table_header_sort_control",
                        "dynamic_record_badge_not_page_anchor"})
+        paired.add("escaped_literal_bang_before_link_misclassified_as_image")
         for root_cause in paired:
             self.assertEqual(root_modes.get(root_cause), {"false-positive", "false-negative"})
 

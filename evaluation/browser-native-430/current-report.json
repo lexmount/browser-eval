@@ -484,7 +484,7 @@
     ]
   },
   "report_output": "reports/browser-native-430",
-  "source_native_dataset_sha256": "235d007394c9d54b8512b6f16740275ca498ab95d0a726991280539d613b6fba",
+  "source_native_dataset_sha256": "f4fd17f0785db2848919ecf7055029d781ca03e8290531d0bba855aca0b22009",
   "resource_profile": {
     "required": true,
     "comparison_kind": "headless_client_resource_profile",
@@ -535,19 +535,18 @@
     "moli-fixed": {
       "version": "1.1.17",
       "reported_version": "moli 1.1.17",
-      "source_commit": "cb81f05a505c10f1fba2a7562e9c0bad71d11399",
+      "source_commit": "a737f2aec071905537e3dc8f86fb91a8052219be",
       "pull_request": "https://github.com/lexmount/moli/pull/1501",
-      "binary_sha256": "05f8d6eee72b6e85215ef8be6a92b9951ae6ff299776a334c06e111d797e75a2",
-      "identity_state": "latest_failure_scope_measured",
+      "binary_sha256": "2935b89fc91f83b4e189f0aa139ae5ad425496853441f56f976d29f2a41bc85c",
+      "identity_state": "uniform_latest_binary_full_scope_measured",
       "measurement_scope": {
-        "latest_binary_case_count": 162,
-        "inherited_case_count": 268,
-        "inherited_binary_sha256": "a276fc5d11bb3debd9f72246dc01f761a8206e8b28700713ba6c8f1dffaba11d",
+        "latest_binary_case_count": 430,
+        "inherited_case_count": 0,
         "latest_execution": {
-          "data_home_path": "evidence/research/webfetch-430-refresh-20261014/moli-failure-162-cb81-final/execution.json",
-          "sha256": "b69e41eb00679fb9134040d0faf4665e3dea4c80315c6626931e3039682fc3ab"
+          "data_home_path": "evidence/research/webfetch-430-refresh-20261014/moli-fixed-final-430-a737-native-v1/execution.json",
+          "sha256": "7a1392cc46faa577492b05a13bc58e1447ffc75cdbf87cba105c15bd4e5b0db3"
         },
-        "comparison_scope": "latest logical result per task; inherited calls retain their original version, route and network configuration; not a full 430-case rerun of the latest binary"
+        "comparison_scope": "One frozen binary, native interfaces and shared public DNS across the complete 430-task scope. Earlier fixed-build calls are retained as historical evidence."
       }
     },
     "lightpanda": {
@@ -568,5 +567,6 @@
       "product": "Cloudflare Browser Run /markdown · Kitesurf Beta",
       "server_build": "not_exposed"
     }
-  }
+  },
+  "independent_result_review_scope": "all"
 }

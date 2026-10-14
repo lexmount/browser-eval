@@ -238,6 +238,11 @@ def assemble_profile_dataset(
         "reproduction_profile": definition["profile"],
         "report_output": profile["report_output"],
     }
+    review_scope = profile.get("independent_result_review_scope")
+    if review_scope is not None:
+        if review_scope not in {"all", "machine-failures"}:
+            raise ValueError("Unsupported declared result review scope")
+        comparison["independent_result_review_scope"] = review_scope
     if "retry_selection" in profile:
         comparison["retry_selection"] = profile["retry_selection"]
     if definition.get("case_corrections") is not None:

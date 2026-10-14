@@ -98,6 +98,20 @@ for brackets in ('[' * 20000, '[x](' * 5000):
         self.assertEqual(markdown_link_destinations(
             '[![Moon](//cdn.example/moon(large).jpg)](/file/moon)'),
             ['/file/moon', '//cdn.example/moon(large).jpg'])
+
+    def test_escaped_literal_bang_before_link_is_not_an_image(self):
+        odd = r'OpenWrt wants you\![Join the project](#join)'
+        even = r'OpenWrt wants you\\![Join the project](avatar.png)'
+
+        odd_links = markdown_links(odd)
+        self.assertEqual([(link.label, link.is_image) for link in odd_links],
+                         [('Join the project', False)])
+        self.assertEqual(normalize_for_match(visible_markdown_links(odd)),
+                         normalize_for_match('OpenWrt wants you! Join the project'))
+
+        even_links = markdown_links(even)
+        self.assertEqual([(link.label, link.is_image) for link in even_links],
+                         [('Join the project', True)])
     def test_relative_path_autolinks_are_visible_but_html_closing_tags_are_not_rewritten(self):
         value = ('Questions: </help/start>, </help/advanced>, or '
                  '[Support](https://support.example.test/). </div>')

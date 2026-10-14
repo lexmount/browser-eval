@@ -110,6 +110,24 @@ def _fixture(tmp_path: Path) -> tuple[Path, dict]:
     return tmp_path / "assembly.json", assembly
 
 
+def test_profile_review_scope_survives_dataset_assembly(tmp_path):
+    path, _assembly = _fixture(tmp_path)
+    profile_path = tmp_path / "profile.json"
+    profile = json.loads(profile_path.read_text())
+    profile["require_independent_result_review"] = True
+    for scope in ("all", "machine-failures"):
+        profile["independent_result_review_scope"] = scope
+        _write(profile_path, profile)
+        dataset, raw = assemble_profile_dataset(
+            path, repository=tmp_path, require_output_hash=False)
+        assert dataset["comparison"]["independent_result_review_scope"] == scope
+        assert json.loads(raw)["comparison"]["independent_result_review_scope"] == scope
+    profile["independent_result_review_scope"] = "unsupported"
+    _write(profile_path, profile)
+    with pytest.raises(ValueError, match="Unsupported declared"):
+        assemble_profile_dataset(path, repository=tmp_path, require_output_hash=False)
+
+
 def test_profile_dataset_assembly_preserves_native_contract(tmp_path):
     path, _assembly = _fixture(tmp_path)
     dataset, raw = assemble_profile_dataset(path, repository=tmp_path, require_output_hash=False)
@@ -441,7 +459,7 @@ def test_registered_430_assembly_keeps_only_frozen_first_load_alternatives():
 
 def test_registered_m365_reference_uses_one_current_body_version():
     from harness.web_fetch.metrics import task_passed
-    from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, score_attempt
+    from harness.web_fetch.scoring import score_attempt
 
     dataset, _raw = assemble_profile_dataset(ASSEMBLY)
     case = next(
@@ -487,7 +505,7 @@ def test_registered_m365_reference_uses_one_current_body_version():
     assert evidence["revised_acceptance_contract_sha256"] == _canonical_sha256(
         case["acceptance_contract"]
     )
-    assert evidence["scoring_source_sha256"] == SCORING_SOURCE_SHA256
+    # Historical evidence retains its original scorer; exercise current behavior below.
 
     def verdict(introduction: str) -> bool:
         body = "\n".join([unchanged[0], introduction, *unchanged[1:]])
@@ -510,17 +528,17 @@ def test_registered_430_profile_uses_official_release_and_frozen_minimal_reruns(
         "source": "https://github.com/lexmount/moli/releases/tag/v1.1.15",
     }
     assert profile["method_sources"]["moli-fixed"]["source_commit"] == (
-        "cb81f05a505c10f1fba2a7562e9c0bad71d11399"
+        "a737f2aec071905537e3dc8f86fb91a8052219be"
     )
     assert profile["method_sources"]["moli-fixed"]["binary_sha256"] == (
-        "05f8d6eee72b6e85215ef8be6a92b9951ae6ff299776a334c06e111d797e75a2"
+        "2935b89fc91f83b4e189f0aa139ae5ad425496853441f56f976d29f2a41bc85c"
     )
-    assert profile["method_sources"]["moli-fixed"]["identity_state"] == "latest_failure_scope_measured"
+    assert profile["method_sources"]["moli-fixed"]["identity_state"] == "uniform_latest_binary_full_scope_measured"
+    assert profile["independent_result_review_scope"] == "all"
     scope = profile["method_sources"]["moli-fixed"]["measurement_scope"]
-    assert scope["latest_binary_case_count"] == 162
-    assert scope["inherited_case_count"] == 268
+    assert scope["latest_binary_case_count"] == profile["case_count"]
+    assert scope["inherited_case_count"] == 0
     assert scope["latest_binary_case_count"] + scope["inherited_case_count"] == profile["case_count"]
-    assert scope["inherited_binary_sha256"] != profile["method_sources"]["moli-fixed"]["binary_sha256"]
     for method in ("moli-1.1.15", "moli-fixed", "lightpanda", "obscura", "chromium"):
         assert providers[method]["dns_mode"] == "public_doh"
     for method in ("moli-1.1.15", "moli-fixed", "lightpanda", "obscura"):

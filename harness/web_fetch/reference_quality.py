@@ -113,6 +113,23 @@ class MarkdownLink:
 _MAX_MARKDOWN_LINK_SPAN = 8192
 
 
+def is_markdown_image_start(text: str, index: int) -> bool:
+    """Return whether ``![`` starts image syntax at *index*.
+
+    CommonMark punctuation escapes are parity-sensitive: an odd number of
+    immediately preceding backslashes escapes the bang, while an even number
+    leaves it active after the backslashes are paired.
+    """
+    if not text.startswith("![", index):
+        return False
+    backslashes = 0
+    cursor = index - 1
+    while cursor >= 0 and text[cursor] == "\\":
+        backslashes += 1
+        cursor -= 1
+    return backslashes % 2 == 0
+
+
 def markdown_delimiter_pairs(text, *, maximum_span=None):
     """Index escaped, nested Markdown delimiters once, including malformed prose."""
     pairs = {}
@@ -151,7 +168,7 @@ def markdown_links(text: str) -> list[MarkdownLink]:
     links: list[MarkdownLink] = []
     index = 0
     while index < len(text):
-        image = text.startswith("![", index)
+        image = is_markdown_image_start(text, index)
         start = index + 1 if image else index
         if text[start:start + 1] != "[":
             index += 1

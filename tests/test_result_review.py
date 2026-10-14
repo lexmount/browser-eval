@@ -169,6 +169,32 @@ class ResultReviewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'correct and re-review'):
                 require_result_review(root,dataset,records)
 
+    def test_declared_full_review_rejects_failure_only_even_with_no_failures(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset, records, review = self.fixture(root)
+            dataset['comparison']['independent_result_review_scope'] = 'all'
+            (root / 'dataset.json').write_text(json.dumps(dataset))
+            review['bindings']['dataset_sha256'] = hashlib.sha256(
+                (root / 'dataset.json').read_bytes()).hexdigest()
+            review['review_protocol']['scope'] = 'machine-failures'
+            review['attempts'] = []
+            with self.assertRaisesRegex(ValueError, 'declared full review'):
+                require_result_review(root, dataset, records, review)
+            review['review_protocol']['scope'] = 'all'
+            review['attempts'] = [{'attempt_id': records[0]['attempt_id'],
+                                  'machine_verdict': 'pass', 'agent_verdict': 'pass',
+                                  'final_verdict': 'pass'}]
+            result = require_result_review(root, dataset, records, review)
+            self.assertEqual(result['reviewed_attempts'], 1)
+            self.assertEqual(result['accepted_unreviewed_passes'], 0)
+            dataset['comparison']['independent_result_review_scope'] = 'unsupported'
+            (root / 'dataset.json').write_text(json.dumps(dataset))
+            review['bindings']['dataset_sha256'] = hashlib.sha256(
+                (root / 'dataset.json').read_bytes()).hexdigest()
+            with self.assertRaisesRegex(ValueError, 'Unsupported declared'):
+                require_result_review(root, dataset, records, review)
+
     def test_machine_failure_scope_reviews_only_failures_and_accounts_for_passes(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset,records,review=self.fixture(root)

@@ -103,6 +103,11 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
     scope = protocol.get('scope', 'all')
     if scope not in {'all','machine-failures'}:
         raise ValueError('Unsupported result review scope')
+    declared_scope = dataset.get('comparison', {}).get('independent_result_review_scope')
+    if declared_scope is not None and declared_scope not in {'all', 'machine-failures'}:
+        raise ValueError('Unsupported declared result review scope')
+    if declared_scope == 'all' and scope != 'all':
+        raise ValueError('The declared full review must include successful and failed attempts')
     anomaly_attempts = set()
     if anomaly_gate and dataset.get('comparison', {}).get('require_anomaly_review', False):
         from .anomaly_review import detect_anomalies

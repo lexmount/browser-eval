@@ -105,6 +105,39 @@ class NativeBrowserVariantTests(unittest.TestCase):
         self.assertIn("--with-frames", dynamic_route)
         self.assertIn("不使用逐题 selector", dynamic_route)
 
+    def test_measured_interface_matrix_uses_saved_route_and_wait_fields(self):
+        cases = {
+            "web": {"id": "web", "url": "https://example.test/", "track": "web",
+                    "task_kind": "body"},
+            "dynamic": {"id": "dynamic", "url": "https://example.test/app",
+                        "track": "dynamic", "task_kind": "body"},
+        }
+        records = [
+            {"provider": "moli", "case_id": "web", "provider_metadata": {
+                "route": "ordinary_markdown", "dump": "markdown",
+                "extractor": "moli_native_markdown", "output_contract": "markdown",
+                "wait_until": "done"}},
+            {"provider": "moli", "case_id": "dynamic", "provider_metadata": {
+                "route": "dynamic_native_markdown", "dump": "markdown",
+                "extractor": "moli_native_markdown", "output_contract": "markdown",
+                "wait_until": "domstable"}},
+            {"provider": "lightpanda", "case_id": "web", "provider_metadata": {}},
+            {"provider": "lightpanda", "case_id": "dynamic", "provider_metadata": {
+                "extractor": "lightpanda_native_markdown", "output_contract": "markdown",
+                "wait_until": "load", "navigation_wait_until": "domcontentloaded"}},
+        ]
+        matrix = browser_task_interface_matrix(cases, ["moli", "lightpanda"], records)
+        rows = {row["track"]: row for row in matrix["rows"]}
+        self.assertIn("Moli 原生 Markdown", rows["web"]["cells"]["moli"][0]["description"])
+        self.assertEqual(rows["web"]["cells"]["moli"][0]["wait"], "输出完成条件 done")
+        self.assertEqual(rows["dynamic"]["cells"]["moli"][0]["wait"],
+                         "输出完成条件 domstable")
+        unknown = rows["web"]["cells"]["lightpanda"][0]["description"]
+        self.assertIn("未提供可核对的接口路线", unknown)
+        self.assertNotIn("原生 HTML", unknown)
+        self.assertEqual(rows["dynamic"]["cells"]["lightpanda"][0]["wait"],
+                         "导航等待 domcontentloaded；输出完成条件 load")
+
     def test_branch_interface_description_uses_native_moli_contract(self):
         self.assertIsNotNone(method_access(self.candidate, []))
         description = method_spec(self.candidate, self.row({"reported_version": "moli 1.1.15"}))
@@ -116,6 +149,17 @@ class NativeBrowserVariantTests(unittest.TestCase):
             "--wait-until domstable URL",
         )
         self.assertIn("不按题目设置 selector", description["notes"])
+
+    def test_versioned_moli_entry_does_not_invent_an_html_route(self):
+        for provider in (self.candidate, "moli-fixed"):
+            description = method_spec(provider, self.row({
+                "reported_version": "moli 1.1.15", "route": "ordinary_markdown",
+                "dump": "markdown", "extractor": "moli_native_markdown",
+                "wait_until": "done",
+            }, provider=provider))
+            self.assertEqual(description["entry"],
+                             "CLI · Moli · 路线以逐次调用记录为准")
+            self.assertNotIn("HTML", description["entry"])
 
     def test_moli_interface_discloses_native_default_timeout_policy(self):
         description = method_spec(self.candidate, self.row({

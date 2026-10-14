@@ -163,7 +163,7 @@ def method_spec(name, record):
    timeout_note='保存证据未提供可核对的 Moli 内部超时策略。'
   params=[(key,kind,timeout_description if key=='外层截止' else description)
           for key,kind,description in base['params']]
-  entry=base['entry'] if name in SPECS else 'CLI · Moli · 按任务预选原生 Markdown、HTML 或原始响应接口'
+  entry=base['entry'] if name in SPECS else 'CLI · Moli · 路线以逐次调用记录为准'
   return {**base,'entry':entry,'params':params,'notes':base['notes']+' '+timeout_note}
  base=SPECS.get(name) or SPECS[engine]
  meta=(record or {}).get('provider_metadata',{})
@@ -204,8 +204,62 @@ def method_spec(name, record):
 
 
 
-def browser_task_interface_matrix(cases, providers):
- """Describe selected task routes without receiving answers or measured scores."""
+def _observed_wait(meta):
+ navigation=meta.get('navigation_wait_until')
+ completion=meta.get('wait_until')
+ if navigation and completion and navigation!=completion:
+  return f'导航等待 {navigation}；输出完成条件 {completion}'
+ if navigation:return f'导航等待 {navigation}'
+ if completion:return f'输出完成条件 {completion}'
+ return '调用记录未提供可核对的等待条件'
+
+
+def _observed_route(engine, meta):
+ """Describe only the interface persisted by one measured call."""
+ route=meta.get('route')
+ extractor=meta.get('extractor')
+ contract=meta.get('output_contract')
+ dump=meta.get('dump')
+ browser=meta.get('browser')
+ native=meta.get('native_metadata') or {}
+ route_note=f'（route={route}）' if route else ''
+ if engine=='moli' and extractor=='moli_native_markdown' and dump=='markdown':
+  flags=' --layout --with-frames' if (meta.get('layout') and meta.get('with_frames')) else ''
+  return 'moli fetch --dump markdown'+flags+' → Moli 原生 Markdown'+route_note
+ if engine=='lightpanda' and extractor=='lightpanda_native_markdown':
+  json_flag=' --json' if native.get('format')=='lightpanda_json' else ''
+  return 'Lightpanda --dump markdown'+json_flag+' → 原生 Markdown'+route_note
+ if engine=='obscura' and extractor=='obscura_native_markdown':
+  script='（脚本 SHA-256 '+native['script_sha256']+'）' if native.get('script_sha256') else ''
+  return 'Obscura --eval 官方 Markdown 脚本'+script+' → 原生 Markdown'+route_note
+ if engine=='chromium' and extractor=='node-html-markdown':
+  version=(' '+str(meta['extractor_version'])) if meta.get('extractor_version') else ''
+  return 'Chromium 渲染 HTML → node-html-markdown'+version+' → Markdown'+route_note
+ if (engine=='kitesurf' and browser=='kitesurf'
+     and extractor=='cloudflare_native_markdown'):
+  return 'Cloudflare /markdown?browser=kitesurf → 托管原生 Markdown'+route_note
+ if contract=='original_file_bytes':
+  origins={
+   'moli_cdp_response':'Moli CDP 原始响应',
+   'lightpanda_cdp_response':'Lightpanda CDP 原始响应',
+   'obscura_original_response':'Obscura --dump original 原始响应',
+   'kitesurf_cdp_response':'Kitesurf 官方 CDP 原始响应',
+   'browser_native_response_or_download':'Chromium 原始响应或原生下载',
+  }
+  source=origins.get(extractor,('调用记录 extractor='+str(extractor)
+    if extractor else '调用记录未注明原始文件接口'))
+  return source+' → 原始文件字节'+route_note
+ fields=[]
+ for key,value in (('route',route),('extractor',extractor),
+                   ('output_contract',contract),('dump',dump)):
+  if value:fields.append(f'{key}={value}')
+ if fields:
+  return '调用记录：'+'；'.join(fields)+'；未据此补写未记录的转换步骤'
+ return '调用记录未提供可核对的接口路线；不推断原生 Markdown、HTML 或额外转换'
+
+
+def browser_task_interface_matrix(cases, providers, records=None):
+ """Describe task routes, preferring persisted call metadata when available."""
  from collections import Counter
  from types import SimpleNamespace
  from .providers.headless import output_mode_for_case
@@ -254,6 +308,8 @@ def browser_task_interface_matrix(cases, providers):
  order=list(REPORT_FAMILIES)
  tracks.sort(key=lambda track:order.index(track) if track in order else len(order))
  rows=[]
+ indexed={(row['provider'],row['case_id']):row for row in (records or [])}
+ case_ids={id(case):case_id for case_id,case in cases.items()}
  for track in tracks:
   group=[case for case in cases.values() if report_family(case)==track]
   cells={}
@@ -262,10 +318,16 @@ def browser_task_interface_matrix(cases, providers):
    if engine not in capabilities:raise ValueError('Unregistered native browser participant: '+provider)
    parts=[];counts=Counter()
    for case in group:
+    case_id=case.get('id',case_ids[id(case)])
     mode=output_mode_for_case(engine,'headless_markdown',SimpleNamespace(
      url=case['url'],track=case.get('track','web'),task_kind=case.get('task_kind','body')))
-    counts[mode]+=1
-   for mode,count in counts.items():
+    measured=indexed.get((provider,case_id))
+    if records is not None:
+     meta=(measured or {}).get('provider_metadata') or {}
+     counts[(mode,_observed_route(engine,meta),_observed_wait(meta))]+=1
+    else:
+     counts[(mode,None,None)]+=1
+   for (mode,observed_description,observed_wait),count in counts.items():
     if mode=='markdown':
      if track=='document' and engine=='moli':
       description=markdown[engine]+'；HTML/TXT 可直接返回正文，直接 PDF/DOCX 未提供可读正文；评测端不使用外部解析器'
@@ -287,10 +349,24 @@ def browser_task_interface_matrix(cases, providers):
      if engine in {'lightpanda','kitesurf'} or (engine=='obscura' and mode in {'document_page','media_metadata'}):
       wait='CDP 页面提取等待 load'
     if mode=='document_page':wait+='；随后等待查看器文档就绪或页面内容'
+    if records is not None:
+     description=observed_description
+     wait=observed_wait
     parts.append({'count':count,'mode':mode,'description':description,'wait':wait})
    cells[provider]=parts
   rows.append({'track':track,'count':len(group),'cells':cells})
- return {'providers':providers,'capabilities':{name:capabilities[native_browser_engine(name)] for name in providers},'rows':rows}
+ selected_capabilities={name:capabilities[native_browser_engine(name)] for name in providers}
+ if records is not None:
+  for provider in providers:
+   engine=native_browser_engine(provider)
+   observed=[]
+   for row in records:
+    if row['provider']!=provider:continue
+    description=_observed_route(engine,row.get('provider_metadata') or {})
+    if description not in observed:observed.append(description)
+   selected_capabilities[provider]=('本轮调用记录：'+'；'.join(observed)
+     if observed else '本轮没有可核对的调用接口记录。')
+ return {'providers':providers,'capabilities':selected_capabilities,'rows':rows}
 
 
 def render_interfaces(out,records):

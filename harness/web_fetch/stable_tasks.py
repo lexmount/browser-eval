@@ -15,7 +15,9 @@ from html import unescape
 from urllib.parse import urlsplit
 
 from .dynamic_lists import extract_named_entries, named_entry_source_pair_hash
-from .reference_quality import clean_reference_text, markdown_delimiter_pairs
+from .reference_quality import (
+    clean_reference_text, is_markdown_image_start, markdown_delimiter_pairs,
+)
 
 SCHEMA_FIELDS = {
     "table_row": (),
@@ -71,7 +73,7 @@ def _unwrap_links(text, schema):
     pairs = markdown_delimiter_pairs(text)
     output, i = [], 0
     while i < len(text):
-        image = text.startswith("![", i)
+        image = is_markdown_image_start(text, i)
         start = i + 1 if image else i
         if text[start:start + 1] != "[":
             output.append(text[i])

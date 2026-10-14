@@ -23797,6 +23797,198 @@
         "expected_metrics": {
             "stable_task_pass": false
         }
+    },
+    {
+        "id": "escaped-literal-bang-before-link-preserves-visible-title",
+        "category": "acceptance-contract",
+        "root_cause": "escaped_literal_bang_before_link_misclassified_as_image",
+        "failure_mode": "false-negative",
+        "case": {
+            "url": "https://example.test/project",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "body_text",
+                "minimum_records": 0,
+                "stable_text_anchors": [
+                    {
+                        "id": "title",
+                        "alternatives": [
+                            "OpenWrt wants you!"
+                        ]
+                    }
+                ]
+            }
+        },
+        "artifact": "OpenWrt wants you\\![Join the project](#join)",
+        "ok": true,
+        "expected_task_pass": true,
+        "expected_metrics": {
+            "stable_task_pass": true
+        }
+    },
+    {
+        "id": "even-escaped-image-alt-does-not-fabricate-body-title",
+        "category": "acceptance-contract",
+        "root_cause": "escaped_literal_bang_before_link_misclassified_as_image",
+        "failure_mode": "false-positive",
+        "case": {
+            "url": "https://example.test/project",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "body_text",
+                "minimum_records": 0,
+                "stable_text_anchors": [
+                    {
+                        "id": "title",
+                        "alternatives": [
+                            "Required body title"
+                        ]
+                    }
+                ]
+            }
+        },
+        "artifact": "Introductory body\\\\![Required body title](avatar.png)",
+        "ok": true,
+        "expected_task_pass": false,
+        "expected_metrics": {
+            "stable_task_pass": false
+        }
+    },
+    {
+        "id": "escaped-link-does-not-supply-an-absent-second-title",
+        "category": "acceptance-contract",
+        "root_cause": "escaped_literal_bang_before_link_misclassified_as_image",
+        "failure_mode": "false-positive",
+        "case": {
+            "url": "https://example.test/project",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "body_text",
+                "minimum_records": 0,
+                "stable_text_anchors": [
+                    {
+                        "id": "visible-link-title",
+                        "alternatives": [
+                            "OpenWrt wants you!"
+                        ]
+                    },
+                    {
+                        "id": "required-body-title",
+                        "alternatives": [
+                            "Required body title"
+                        ]
+                    }
+                ]
+            }
+        },
+        "artifact": "OpenWrt wants you\\![Join the project](#join)",
+        "ok": true,
+        "expected_task_pass": false,
+        "expected_metrics": {
+            "stable_task_pass": false
+        }
+    },
+    {
+        "id": "ordinary-image-alt-does-not-fabricate-body-title",
+        "category": "acceptance-contract",
+        "root_cause": "escaped_literal_bang_before_link_misclassified_as_image",
+        "failure_mode": "false-positive",
+        "case": {
+            "url": "https://example.test/project",
+            "task_kind": "body",
+            "acceptance_contract": {
+                "version": 1,
+                "schema": "body_text",
+                "minimum_records": 0,
+                "stable_text_anchors": [
+                    {
+                        "id": "title",
+                        "alternatives": [
+                            "Required body title"
+                        ]
+                    }
+                ]
+            }
+        },
+        "artifact": "![Required body title](avatar.png)",
+        "ok": true,
+        "expected_task_pass": false,
+        "expected_metrics": {
+            "stable_task_pass": false
+        }
+    },
+    {
+      "id": "body-heading-does-not-require-joined-navigation",
+      "category": "acceptance-contract",
+      "root_cause": "stable_anchor_concatenates_unrelated_navigation_and_body_heading",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/packages",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "heading",
+              "alternatives": [
+                "Package Search"
+              ]
+            },
+            {
+              "id": "criteria",
+              "alternatives": [
+                "Enter search criteria"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "# Package Search\nEnter search criteria\nArch Repository Keywords",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_task_pass": true
+      }
+    },
+    {
+      "id": "navigation-alone-does-not-replace-body-heading",
+      "category": "acceptance-contract",
+      "root_cause": "stable_anchor_concatenates_unrelated_navigation_and_body_heading",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/packages",
+        "task_kind": "structure",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "heading",
+              "alternatives": [
+                "Package Search"
+              ]
+            },
+            {
+              "id": "criteria",
+              "alternatives": [
+                "Enter search criteria"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[Arch Linux Official](https://example.test/project)\nEnter search criteria\nArch Repository Keywords",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_task_pass": false
+      }
     }
   ],
   "superseded_cases": {

@@ -3871,6 +3871,136 @@
           "sha256": "35e35e85420e3a0c20c760a79f3da77981ccbd4bf5a5c028eedf80ed8f34948c"
         }
       }
+    },
+    {
+      "case_id": "risk-diverse-049",
+      "execution_effect": "rescore_only",
+      "expected_definition_sha256": "36a18f11e670411c7969a26b4095de6a5b1bfe2cea37c111dbce440764e11991",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-01",
+              "alternatives": [
+                "Package Search"
+              ]
+            },
+            {
+              "id": "stable-02",
+              "alternatives": [
+                "Enter search criteria"
+              ]
+            },
+            {
+              "id": "stable-03",
+              "alternatives": [
+                "Arch"
+              ]
+            },
+            {
+              "id": "stable-04",
+              "alternatives": [
+                "Repository"
+              ]
+            },
+            {
+              "id": "stable-05",
+              "alternatives": [
+                "Keywords"
+              ]
+            },
+            {
+              "id": "stable-06",
+              "alternatives": [
+                "Repo"
+              ]
+            },
+            {
+              "id": "stable-07",
+              "alternatives": [
+                "Name"
+              ]
+            },
+            {
+              "id": "stable-08",
+              "alternatives": [
+                "Version"
+              ]
+            },
+            {
+              "id": "stable-09",
+              "alternatives": [
+                "Bugs"
+              ]
+            },
+            {
+              "id": "stable-10",
+              "alternatives": [
+                "Build Date"
+              ]
+            },
+            {
+              "id": "stable-11",
+              "alternatives": [
+                "Last Updated"
+              ]
+            },
+            {
+              "id": "stable-12",
+              "alternatives": [
+                "Delete"
+              ]
+            },
+            {
+              "id": "stable-13",
+              "alternatives": [
+                "Home"
+              ]
+            },
+            {
+              "id": "stable-14",
+              "alternatives": [
+                "Packages"
+              ]
+            },
+            {
+              "id": "stable-15",
+              "alternatives": [
+                "Forums"
+              ]
+            },
+            {
+              "id": "stable-16",
+              "alternatives": [
+                "Mailing List"
+              ]
+            },
+            {
+              "id": "stable-17",
+              "alternatives": [
+                "Download"
+              ]
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "https://www.archlinux32.org/packages/",
+        "observed_at": "2026-10-14T18:38:24.002970+00:00",
+        "observed_text": "The navigation link Arch Linux Official and the body heading Package Search are separate DOM elements. Their concatenation is not a heading.",
+        "root_cause": "stable_anchor_concatenates_unrelated_navigation_and_body_heading",
+        "regression_ids": [
+          "body-heading-does-not-require-joined-navigation",
+          "navigation-alone-does-not-replace-body-heading"
+        ],
+        "independent_evidence": {
+          "data_home_path": "evidence/research/webfetch-430-refresh-20261014/reference-archlinux32-cross-module-anchor-v1/source-decision.json",
+          "sha256": "e3061581d465facd39f5fcaac17e08850bcf6d4ec0f6899c1851dc8bbff6e03e"
+        }
+      }
     }
   ]
 }

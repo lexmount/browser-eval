@@ -643,7 +643,9 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                 (root/'attempts'/f'{attempt}.html').write_text('<p>Canonical result and error</p>')
                 rows.append({'provider':name,'provider_type':'headless_markdown','case_id':cid,
                              'attempt_id':attempt,'artifact_path':artifact,'ok':passed,'elapsed_ms':ms,
-                             'started_at':'2026-10-09T00:00:00Z','provider_metadata':{},
+                             'started_at':'2026-10-09T00:00:00Z','provider_metadata':(
+                                 {'dns_mode':'public_doh','system_dns_fallback':False}
+                                 if name=='moli' else {'dns_mode':'system'}),
                              'error_type':None if passed else 'http_status',
                              'error_message':None if passed else 'Origin returned HTTP 403',
                              'metrics':{'content_pass':passed}})
@@ -672,9 +674,35 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             self.assertIn('风控网页正文',body)
             self.assertIn('Origin returned HTTP 403',body)
             self.assertIn('独立结果审查：0/4',body)
-            self.assertIn('data-network-environment="local-public-doh"', body)
+            self.assertIn('data-network-method="moli" data-network-mode="public_doh"', body)
+            self.assertIn('public_doh 2 次', body)
+            self.assertIn('统一解析策略不保证', body)
             self.assertNotIn('150 道',body)
             self.assertNotIn('1.1.5',body)
+
+    def test_network_disclosure_uses_recorded_modes_and_separates_service_network(self):
+        from harness.web_fetch.report_explainer import _browser_network_rows
+        records = [
+            {'provider': 'moli', 'provider_metadata': {
+                'dns_mode': 'public_doh', 'system_dns_fallback': False}},
+            {'provider': 'moli', 'provider_metadata': {
+                'dns_mode': 'public_doh', 'system_dns_fallback': False}},
+            {'provider': 'chromium', 'provider_metadata': {
+                'dns_mode': 'public_doh', 'secure_dns_mode': 'strict',
+                'system_dns_fallback': False}},
+            {'provider': 'lightpanda', 'provider_metadata': {}},
+            {'provider': 'kitesurf', 'provider_metadata': {'dns_mode': 'public_doh'}},
+        ]
+        rows = {row['provider']: row for row in _browser_network_rows(
+            records, ['moli', 'chromium', 'lightpanda', 'kitesurf'])}
+        self.assertEqual(rows['moli']['mode'], 'public_doh')
+        self.assertIn('不回退系统 DNS', rows['moli']['text'])
+        self.assertIn('不保证', rows['moli']['text'])
+        self.assertEqual(rows['chromium']['mode'], 'public_doh')
+        self.assertIn('严格安全 DNS 配置', rows['chromium']['text'])
+        self.assertEqual(rows['lightpanda']['mode'], 'unknown')
+        self.assertEqual(rows['kitesurf']['mode'], 'service_network')
+        self.assertIn('托管网络', rows['kitesurf']['text'])
 
     def test_release_rejects_wrong_highlights_values_and_missing_evidence(self):
         from harness.web_fetch.report_explainer import render_explainer, check_current_browser_article
@@ -688,10 +716,13 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                      body.replace('../attempts/moli__risk-case.html','../attempts/absent.html',1),
                      body.replace('data-count="1"','data-count="9"',1),
                      body.replace('data-browser-interface="moli"','data-removed-interface="moli"',1),
-                     body.replace('data-network-environment="local-public-doh"','data-removed-network="local-public-doh"',1),
+                     body.replace('data-network-method="moli"','data-removed-network="moli"',1),
+                     body.replace('data-network-mode="public_doh"','data-network-mode="system"',1),
+                     body.replace('public_doh 2 次','public_doh 9 次',1),
+                     body.replace('其中 2 次明确记录不回退系统 DNS','其中 1 次明确记录不回退系统 DNS',1),
                      body.replace('data-case-count="1"','data-case-count="9"',1),
-                     body.replace('CLI fetch --dump markdown → 内置转换 → Markdown','共同转换 → Markdown',1),
-                     body.replace('等待：CLI 等待 done','等待：不等待',1)]
+                     body.replace('1 题：调用记录未提供可核对的接口路线','1 题：共同转换',1),
+                     body.replace('等待：调用记录未提供可核对的等待条件','等待：不等待',1)]
             for changed in changes:
                 with self.subTest(change=changes.index(changed)):
                     page.write_text(changed)
