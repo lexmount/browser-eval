@@ -347,6 +347,43 @@ class ResultReviewTests(unittest.TestCase):
                 rebind_unchanged_result_review(
                     path,after_bytes,results,after_bytes,changed_results,rebound_at='later')
 
+    def test_equal_empty_answers_do_not_reuse_changed_runtime_diagnosis(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset, records, review = self.fixture(root)
+            record = records[0]
+            record.update(ok=False, error_type='tool_error', error_message='Engine panic A')
+            record['provider_metadata'] = {
+                'diagnostic_log_path': 'private_artifacts/current.stderr.log',
+                'diagnostic_log_sha256': 'a' * 64,
+                'diagnostic_log_bytes': 100,
+            }
+            record['metrics'].update(content_pass=False, content_sha256='e' * 64)
+            before = (json.dumps(record) + '\n').encode()
+            review['bindings']['results_sha256'] = hashlib.sha256(before).hexdigest()
+            review['attempts'][0].update(machine_verdict='fail', agent_verdict='fail',
+                                         final_verdict='fail')
+            path = root / 'result-review.json'
+            path.write_text(json.dumps(review))
+            self.assertTrue(rebind_unchanged_result_review(
+                path, (root / 'dataset.json').read_bytes(), before,
+                (root / 'dataset.json').read_bytes(), before, rebound_at='now'))
+            for change in ('diagnostic_hash', 'error_message'):
+                changed = json.loads(json.dumps(record))
+                if change == 'diagnostic_hash':
+                    changed['provider_metadata']['diagnostic_log_sha256'] = 'b' * 64
+                else:
+                    changed['error_message'] = 'Transport reset B'
+                after = (json.dumps(changed) + '\n').encode()
+                path.write_text(json.dumps(review))
+                original = path.read_bytes()
+                with self.subTest(change=change), self.assertRaisesRegex(
+                        IndependentReviewRequired, 'Review-visible input changed'):
+                    rebind_unchanged_result_review(
+                        path, (root / 'dataset.json').read_bytes(), before,
+                        (root / 'dataset.json').read_bytes(), after, rebound_at='now')
+                self.assertEqual(path.read_bytes(), original)
+
     def test_superseded_review_is_hash_addressed_and_binding_checked(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset,records,review=self.fixture(root)

@@ -1,5 +1,6 @@
 """Publication scenarios independent of a historical benchmark size or dataset ID."""
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -52,6 +53,53 @@ def report_tree(root, *, sampled=False):
     (source / "dataset.json").write_text(json.dumps(dataset))
     (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in records))
     return source, root / "published.zip"
+
+
+@pytest.mark.parametrize("damage", [None, "missing", "failure-only", "partial", "stale-binding"])
+def test_full_review_cannot_be_bypassed_by_stale_complete_flag(tmp_path, damage):
+    source, archive = report_tree(tmp_path)
+    dataset = json.loads((source / "dataset.json").read_text())
+    dataset["comparison"] = {
+        "require_independent_result_review": True,
+        "independent_result_review_scope": "all",
+    }
+    (source / "dataset.json").write_text(json.dumps(dataset))
+    records = [{"attempt_id": "native-" + name, "provider": "native",
+                "case_id": name, "artifact_path": name + ".txt",
+                "ok": True, "metrics": {"content_pass": True}}
+               for name in ("alpha", "beta")]
+    for row in records:
+        (source / row["artifact_path"]).write_text("The declared synthetic answer.")
+    (source / "results.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in records))
+    review = {
+        "schema_version": 1,
+        "bindings": {"dataset_sha256": hashlib.sha256(
+                         (source / "dataset.json").read_bytes()).hexdigest(),
+                     "results_sha256": hashlib.sha256(
+                         (source / "results.jsonl").read_bytes()).hexdigest()},
+        "review_protocol": {"scope": "all", "machine_judgments_withheld": True},
+        "attempts": [{"attempt_id": row["attempt_id"], "machine_verdict": "pass",
+                      "agent_verdict": "pass", "final_verdict": "pass"}
+                     for row in records],
+    }
+    if damage == "failure-only":
+        review["review_protocol"]["scope"] = "machine-failures"
+        review["attempts"] = []
+    elif damage == "partial":
+        review["attempts"].pop()
+    elif damage == "stale-binding":
+        review["bindings"]["results_sha256"] = "0" * 64
+    if damage != "missing":
+        (source / "result-review.json").write_text(json.dumps(review))
+    archive.write_bytes(b"previous verified release")
+    if damage:
+        with pytest.raises(ValueError):
+            report_package.build(source, archive)
+        assert archive.read_bytes() == b"previous verified release"
+    else:
+        report_package.build(source, archive)
+        assert zipfile.is_zipfile(archive)
 
 
 def test_declared_small_matrix_packages_through_public_command(tmp_path):

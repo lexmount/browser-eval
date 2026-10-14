@@ -42,6 +42,9 @@ def validate_release(source: Path) -> bool:
         reliability = json.loads((source / "reliability.json").read_text())
         if reliability.get("complete") is not True:
             raise ValueError("Refusing to package an incomplete or unjudged benchmark report")
+        if dataset.get("comparison", {}).get("require_independent_result_review"):
+            from .result_review import require_result_review
+            require_result_review(source, dataset, load_jsonl(source / "results.jsonl"))
         return False
     review = json.loads((source / "result-review.json").read_text())
     if review.get("status") != "passed" or review.get("failures"):

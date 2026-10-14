@@ -64,6 +64,12 @@ def review_input_identity(record):
         'artifact_path': record.get('artifact_path'),
         'request_ok': record.get('ok'),
         'error_type': record.get('error_type'),
+        'error_message': record.get('error_message'),
+        'diagnostic_log': ({
+            'path': metadata.get('diagnostic_log_path'),
+            'sha256': metadata.get('diagnostic_log_sha256'),
+            'bytes': metadata.get('diagnostic_log_bytes'),
+        } if metadata.get('diagnostic_log_path') else None),
         'content_sha256': record.get('metrics', {}).get('content_sha256'),
         'file_artifacts': [item for item in raw_artifacts if item['kind'] == 'file'],
         'raw_artifacts': raw_artifacts,
