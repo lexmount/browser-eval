@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "kind": "browser_native_430_fairness_pre_call_revision",
+  "created_at": "2026-10-14T10:00:00+08:00",
+  "provider_calls": 0,
+  "profile": {
+    "path": "evaluation/browser-native-430/current-report.json",
+    "sha256": "4028af3ef2a51352dbd14a202a3bc03f774ec18b348d4509c6129da7da76c18c"
+  },
+  "dataset_assembly": {
+    "path": "evaluation/browser-native-430/dataset-assembly.json",
+    "sha256": "a4ba8866e47ec48ac7abf883c16b974761442fd05eca9af99ce095d276351ca5",
+    "native_dataset_sha256": "8327cbe175ecbf577ee84090f40908168a751d0b70ebc61b7f0d880b502019af",
+    "schema_version": 3,
+    "native_retrieval_policy": "uniform_dynamic_native_v1"
+  },
+  "rerun_scope": {
+    "path": "evaluation/browser-native-430/rerun-scope.json",
+    "sha256": "79b5f4f2b97ea31846ecc677224c6e845a5ed3d368e756a4a831a3ac99b53663",
+    "logical_new_calls": 651,
+    "maximum_physical_new_calls": 1177,
+    "new_identity_or_route_calls": 526,
+    "inherited_transient_followups": 125
+  },
+  "method_set": [
+    "moli-1.1.15",
+    "moli-fixed",
+    "lightpanda",
+    "obscura",
+    "chromium",
+    "kitesurf"
+  ],
+  "interface_policy": {
+    "dynamic": "one native task-family completion marker for all 100 cases; no per-case selectors, delays, counts or iframe flags",
+    "non_chromium_pages": "provider-native Markdown for body, embedded-document and webpage-media deliverables",
+    "chromium_pages": "full rendered HTML converted with node-html-markdown 2.0.0 for every page deliverable",
+    "direct_media_files": "browser-native response or download bytes",
+    "final_url": "diagnostic only; not an acceptance condition"
+  },
+  "retry_policy": {
+    "max_failure_retries": 1,
+    "eligibility": "transient_transport_or_http_failure_only",
+    "content_failure_retry": false,
+    "final_physical_attempt": "authoritative"
+  },
+  "scorer": {
+    "public_score_attempt_sha256": "fabffc316e9d827d369cb5276dee8fc8153a289042f581ed7b0f4ee28bfbc8ed",
+    "scoring_source_file_sha256": "6488d212d51cd4ac2e902f0c90e4ff56ffca7f9e63798a0de588300e05f0c91e",
+    "regression_registry": {
+      "path": "evaluation/scoring-regressions.json",
+      "sha256": "cfa7c78f9397b2795b616447305249533ccf02fc971af7673d88d7084d4aec2a"
+    },
+    "regression_ids": [
+      "risk_control-diagnostic-url-missing-valid",
+      "risk_control-diagnostic-url-missing-missing-content",
+      "risk_control-diagnostic-url-mismatch-valid",
+      "risk_control-diagnostic-url-mismatch-missing-content",
+      "dynamic-diagnostic-url-missing-valid",
+      "dynamic-diagnostic-url-missing-missing-content",
+      "dynamic-diagnostic-url-mismatch-valid",
+      "dynamic-diagnostic-url-mismatch-missing-content",
+      "dynamic-diagnostic-lang-missing-valid",
+      "dynamic-diagnostic-lang-missing-missing-content",
+      "dynamic-diagnostic-lang-fr-valid",
+      "dynamic-diagnostic-lang-fr-missing-content",
+      "dynamic-diagnostic-lang-empty-valid",
+      "dynamic-diagnostic-lang-empty-missing-content"
+    ]
+  },
+  "implementation": {
+    "browser_eval_base_commit": "f6dac02e585a275ac946e4ccfdcf260dd0d0f909",
+    "browser_eval_inputs": [
+      {"path": "configs/providers.headless.json", "sha256": "b21029b9d7c858e8838d43235fea51fb37460e9392e24730f56b53c064e061af"},
+      {"path": "harness/web_fetch/headless_runner.py", "sha256": "d99c3ced8a6571733f798b1af1ca6f19132776ddad6f9e694a0530fe3cb68714"},
+      {"path": "harness/web_fetch/providers/base.py", "sha256": "e5431b96db961467b449c573c55af4c0a6083221e9093885433d1b75561eec84"},
+      {"path": "harness/web_fetch/providers/cloudflare.py", "sha256": "b5b17510479b4c178d9ac2b65bfff4fd317ba0084b6fba4e038a479e76cd8d21"},
+      {"path": "harness/web_fetch/providers/headless.py", "sha256": "1246a9634762543ed620d3ce94f36bb2d369e049d42a8d594ef563119d0e3f56"},
+      {"path": "harness/web_fetch/retrieval_hints.py", "sha256": "7a6a2680df0d248b45344024f2537c4bdf3a71f0cd9833a0bd1dc03f2556ecb2"},
+      {"path": "harness/web_fetch/runner.py", "sha256": "9752db1cbbf2646daa7a72b1e598c73c1d462de9c76518d4894790aea6aea27b"},
+      {"path": "harness/web_fetch/storage.py", "sha256": "60158ed31d3115e4c27ad1c0494e70fa02a178763f0f61b153c479e807e5788d"},
+      {"path": "harness/web_fetch/task_outputs.py", "sha256": "7b0bc5747600d8b8e1ddb5c838298f2244f7ab11cc6a070ba83871c8e6ebe5f2"},
+      {"path": "package-lock.json", "sha256": "993a7c7f7811b8bb43c28290e0394a46d028d3cf3fc3d5a863fb41027a749bce"}
+    ],
+    "moli_fixed_source_commit": "884103830c5443068b73f0b3faa0a528e4550581",
+    "moli_fixed_pull_request": "https://github.com/lexmount/moli/pull/1501",
+    "moli_fixed_binary_state": "awaiting_ci_release_artifact_before_calls"
+  },
+  "acceptance_effect": {
+    "task_answers_changed": false,
+    "scoring_rules_changed": false,
+    "provider_routes_changed": true,
+    "provider_identity_changed": [
+      "moli-fixed"
+    ]
+  }
+}

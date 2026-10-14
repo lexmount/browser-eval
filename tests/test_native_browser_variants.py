@@ -9,7 +9,7 @@ from harness.web_fetch.report_interfaces import SPECS, browser_task_interface_ma
 
 
 class NativeBrowserVariantTests(unittest.TestCase):
-    candidate = "moli-pr919"
+    candidate = "moli-1.1.15"
     cases = [{"id": "body", "url": "https://example.com/", "track": "web", "task_kind": "body"}]
 
     def row(self, metadata, **fields):
@@ -31,22 +31,22 @@ class NativeBrowserVariantTests(unittest.TestCase):
         self.assertEqual(native_browser_engine("moli-stack-1432"), "moli")
         self.assertIn("1432", browser_method_label("moli-stack-1432"))
 
-    def test_fixed_candidate_is_distinct_from_pr919_and_binds_its_lineage(self):
+    def test_fixed_candidate_is_distinct_from_release_and_binds_its_lineage(self):
         from harness.web_fetch.methods import browser_method_label, browser_method_registry, native_browser_engine
         self.assertEqual(native_browser_engine("moli-fixed"), "moli")
         self.assertEqual(
             browser_method_label("moli-fixed"),
-            "Moli 1.1.17（修复开发分支，60773df3）",
+            "Moli 修复版（聚合 PR #1501）",
         )
         self.assertEqual(
-            browser_method_label("moli-pr919"),
-            "Moli 1.1.15（PR 919 对照版）",
+            browser_method_label("moli-1.1.15"),
+            "Moli 1.1.15（正式版）",
         )
         self.assertEqual(
             browser_method_registry()["moli-fixed"]["source_url"],
-            "https://github.com/lexmount/moli/commit/60773df391ad782ab647e878dc6629032d0275a6",
+            "https://github.com/lexmount/moli/pull/1501",
         )
-        self.assertNotEqual(browser_method_label("moli-fixed"), browser_method_label("moli-pr919"))
+        self.assertNotEqual(browser_method_label("moli-fixed"), browser_method_label("moli-1.1.15"))
 
     def test_report_labels_mixed_fixed_evidence_by_measured_versions_and_counts(self):
         from harness.web_fetch.methods import browser_method_label, with_measured_method_labels
@@ -206,6 +206,6 @@ class NativeBrowserVariantTests(unittest.TestCase):
             body = _render_current_browser_article(out, cases, records,
                 {"path": "article.json", "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
             self.assertIn("5 种浏览器、6 种配置", body)
-            self.assertIn("Moli 1.1.15（PR 919 对照版）", body)
+            self.assertIn("Moli 1.1.15（正式版）", body)
             self.assertNotIn("6 个浏览器", body)
             self.assertEqual(body.count('data-browser-interface='), 42)

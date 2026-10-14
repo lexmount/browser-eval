@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 
 from harness.web_fetch.reference_inputs import read_dataset_bytes
-from harness.web_fetch.retrieval_hints import native_fetch_dataset
+from harness.web_fetch.retrieval_hints import historical_native_fetch_dataset, native_fetch_dataset
 from harness.web_fetch.safety import contained_path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -132,21 +132,31 @@ def _apply_case_corrections(
 
 
 def assemble_profile_dataset(
-    assembly_path: Path, *, repository: Path = ROOT, require_output_hash: bool = True
+    assembly_path: Path, *, repository: Path = ROOT, require_output_hash: bool = True,
+    profile_path_override: Path | None = None,
 ) -> tuple[dict, bytes]:
     """Build the exact preregistered case inventory without provider calls."""
     assembly_path = assembly_path.resolve()
     definition = json.loads(assembly_path.read_text(encoding="utf-8"))
     if (
-        definition.get("schema_version") not in {1, 2}
+        definition.get("schema_version") not in {1, 2, 3}
         or definition.get("kind") != "profile_dataset_assembly"
         or not isinstance(definition.get("sources"), list)
     ):
         raise ValueError("Unsupported profile dataset assembly")
-    if definition.get("case_corrections") is not None and definition["schema_version"] != 2:
-        raise ValueError("Case corrections require profile dataset assembly schema 2")
+    if definition.get("case_corrections") is not None and definition["schema_version"] not in {2, 3}:
+        raise ValueError("Case corrections require profile dataset assembly schema 2 or 3")
+    if definition["schema_version"] == 3:
+        if definition.get("native_retrieval_policy") != "uniform_dynamic_native_v1":
+            raise ValueError("Schema-3 assembly requires the uniform native retrieval policy")
+    elif "native_retrieval_policy" in definition:
+        raise ValueError("Native retrieval policy requires profile dataset assembly schema 3")
     repository = repository.resolve()
-    profile_path = contained_path(repository, definition["profile"], reject_symlinks=True)
+    profile_path = (
+        contained_path(repository, profile_path_override, reject_symlinks=True)
+        if profile_path_override is not None
+        else contained_path(repository, definition["profile"], reject_symlinks=True)
+    )
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
     inventory = profile.get("case_inventory")
     if not isinstance(inventory, dict) or not inventory:
@@ -225,6 +235,8 @@ def assemble_profile_dataset(
         "reproduction_profile": definition["profile"],
         "report_output": profile["report_output"],
     }
+    if "retry_selection" in profile:
+        comparison["retry_selection"] = profile["retry_selection"]
     if definition.get("case_corrections") is not None:
         comparison["case_corrections"] = {
             **definition["case_corrections"],
@@ -237,7 +249,11 @@ def assemble_profile_dataset(
         "comparison": comparison,
         "coverage_plan": {track: list(profile["providers"]) for track in inventory},
     }
-    dataset = native_fetch_dataset(dataset)
+    dataset = (
+        native_fetch_dataset(dataset)
+        if definition["schema_version"] == 3
+        else historical_native_fetch_dataset(dataset)
+    )
     raw = _canonical_bytes(dataset)
     expected = definition.get("native_dataset_sha256")
     if require_output_hash and (

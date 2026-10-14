@@ -40,8 +40,24 @@ def test_native_execution_keeps_dynamic_scenario_and_acceptance_without_injected
         assert cases[0].track == 'dynamic'
         assert plan_for_case(cases[0]) is None
     dataset['cases'][0]['retrieval_hints']={'version':1,'completion':{'selector':'.record'}}
-    with pytest.raises(ValueError,match='cannot discard'):
-        native_fetch_dataset(dataset)
+    normalized = native_fetch_dataset(dataset)
+    assert normalized['cases'][0]['retrieval_hints'] == {'version': 3, 'mode': 'native'}
+
+
+@pytest.mark.parametrize("case_specific", [
+    {"version": 1, "completion": {"selector": ".record", "minimum_count": 10,
+                                     "timeout_ms": 30000, "delay_ms": 100}},
+    {"version": 3, "mode": "native", "contract": "any-case-contract"},
+    {"selector": "iframe", "minimum_count": 100, "include_subdocuments": True},
+])
+def test_native_execution_normalizes_every_dynamic_case_to_one_family_marker(case_specific):
+    from harness.web_fetch.retrieval_hints import native_fetch_dataset
+    source = {"tool": "web_fetch", "cases": [
+        {"id": "arbitrary-dynamic-case", "track": "dynamic",
+         "retrieval_hints": case_specific},
+    ]}
+    selected = native_fetch_dataset(source)
+    assert selected["cases"][0]["retrieval_hints"] == {"version": 3, "mode": "native"}
 
 
 def _write_dataset(tmp_path, case):

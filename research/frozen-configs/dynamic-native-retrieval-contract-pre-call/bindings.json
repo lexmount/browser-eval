@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "receipt": "research/dynamic-native-retrieval-contract-pre-call-revision.json",
+  "source_commit": "db5d57ab32485961ee70952e2c590a73551161b0",
+  "artifacts": {
+    "evaluation/browser-native-430/dataset-assembly.json": {
+      "path": "research/frozen-configs/dynamic-native-retrieval-contract-pre-call/dataset-assembly.json",
+      "sha256": "0f03d61c42550020a39e8ca76f8879bf152fcdd7c1beca3753f728a9438709bc"
+    },
+    "evaluation/browser-native-430/current-report.json": {
+      "path": "research/frozen-configs/dynamic-native-retrieval-contract-pre-call/current-report.json",
+      "sha256": "ca114f8856ca495df9c82c28f4c0f1b8a65b2c004b49b26f571cb744d6c62343"
+    }
+  },
+  "historical_artifacts": {
+    "evaluation/scoring-regressions.json": {
+      "path": "research/frozen-configs/dynamic-native-retrieval-contract-pre-call/scoring-regressions.json.gz",
+      "compression": "gzip",
+      "sha256": "55c0b34d604896d1d0031940e68fda4ef08c64b39f4a02ad81384de8db9c4bda",
+      "decoded_sha256": "f9660650ebeee38df87491ad913c2946c67431c1ddecef5f968f2e006194d3df"
+    },
+    "tests/test_composite_tasks.py": {
+      "path": "research/frozen-configs/dynamic-native-retrieval-contract-pre-call/test_composite_tasks.py.gz",
+      "compression": "gzip",
+      "sha256": "29161aeeb9400a83184b4ec74b3aa5a25d1ae642b41105cfeb5e081a64c9c83e",
+      "decoded_sha256": "2dcb402cc55e192dc556d37c3150f6ae9ba76178c22da5ceb54a66e6af39b274"
+    },
+    "tests/test_stable_tasks.py": {
+      "path": "research/frozen-configs/dynamic-native-retrieval-contract-pre-call/test_stable_tasks.py.gz",
+      "compression": "gzip",
+      "sha256": "c1e5a027d490496eafdcf01ab853cbf634d845c9bad44d9d11127138f5cb59d3",
+      "decoded_sha256": "0e6fcbaaf739d54fd875bf283d25caae7650b6a2879a7ba2fc299737ff6f7881"
+    }
+  }
+}

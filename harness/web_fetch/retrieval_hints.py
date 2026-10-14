@@ -83,23 +83,40 @@ def _verified_source_tree() -> Path:
 def native_fetch_dataset(dataset: dict) -> dict:
     """Select default WebFetch execution without changing scenario acceptance.
 
-    Keep answer-bearing completion hints out of the native comparison. An
-    explicit version-3 native contract lets each provider select one official
-    completion mode for the complete task family, without per-case selectors,
-    delays, extraction hints or changes to acceptance rules.
+    Keep case-specific routing and completion hints out of the native
+    comparison. Every dynamic case receives the same marker; providers choose
+    one official completion policy for the whole dynamic task family.
     """
+    result = deepcopy(dataset)
+    for case in result['cases']:
+        if case.get('track') == 'dynamic':
+            case['retrieval_hints'] = {'version': 3, 'mode': 'native'}
+        elif case.get('retrieval_hints'):
+            raise ValueError('Native retrieval hints are only valid for dynamic cases: ' + case['id'])
+    result.setdefault('comparison', {})['retrieval_mode'] = 'native_task_family_completion'
+    return result
+
+
+def historical_native_fetch_dataset(dataset: dict) -> dict:
+    """Reproduce schema-1/2 assemblies whose bytes predate family normalization."""
     result = deepcopy(dataset)
     for case in result['cases']:
         if case.get('retrieval_hints'):
             try:
-                plan = parse_retrieval_hints(case.get('track', 'web'), case['retrieval_hints'], identifier=case['id'])
+                plan = parse_retrieval_hints(
+                    case.get('track', 'web'), case['retrieval_hints'], identifier=case['id']
+                )
             except ValueError as error:
-                raise ValueError('Native fetch cannot discard declared retrieval hints: ' + case['id']) from error
+                raise ValueError(
+                    'Native fetch cannot discard declared retrieval hints: ' + case['id']
+                ) from error
             if plan is not None:
-                raise ValueError('Native fetch cannot discard declared retrieval hints: ' + case['id'])
+                raise ValueError(
+                    'Native fetch cannot discard declared retrieval hints: ' + case['id']
+                )
         if case.get('track') == 'dynamic':
             case.setdefault('retrieval_hints', {'version': 3, 'mode': 'native'})
-    result.setdefault('comparison', {})['retrieval_mode'] = 'native_task_family_completion'
+    result.setdefault('comparison', {})['retrieval_mode'] = 'native_default_completion'
     return result
 
 

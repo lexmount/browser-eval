@@ -20,15 +20,16 @@ class CapabilityTests(unittest.TestCase):
             claims=task_capabilities(out,names,[{'provider_metadata':{'output_contract':'readable_document_text'}}])
             self.assertEqual(claims['moli']['document']['status'],'有限支持')
             self.assertIn('直接 PDF/DOCX 未提供可读正文',claims['moli']['document']['detail'])
-            for name in names[1:]:
+            for name in ('lightpanda','obscura','kitesurf'):
                 self.assertEqual(claims[name]['document']['status'],'原生输出')
-            self.assertIn('网页媒体信息与正文统一走原生 Markdown',claims['moli']['notes'])
-            for name in names[1:]:
-                self.assertIn('资源读取脚本由评测提供',claims[name]['notes'])
+            self.assertEqual(claims['chromium']['document']['status'],'共同转换')
+            for name in ('moli','lightpanda','obscura','kitesurf'):
+                self.assertIn('媒体信息与正文统一走原生 Markdown',claims[name]['notes'])
+            self.assertIn('固定标准包',claims['chromium']['notes'])
             for name in names:
                 self.assertIn('不使用外部',claims[name]['document']['detail'])
                 self.assertNotIn('没有 PDF / Office 解析器',claims[name]['document']['detail'])
-            self.assertIn('--eval',claims['obscura']['scope'])
+            self.assertIn('官方 JS 实现',claims['obscura']['scope'])
             self.assertIn('原生 Markdown',claims['moli']['scope'])
             self.assertIn('browser=kitesurf',claims['kitesurf']['scope'])
             self.assertEqual(CAPABILITIES['lightpanda']['document']['status'],'未声明')

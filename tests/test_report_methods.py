@@ -49,7 +49,7 @@ class AdoptionTests(unittest.TestCase):
   model=method_page_model('moli','Moli',[record]*100)
   self.assertEqual(
       model['endpoint'], 'moli fetch --dump markdown --wait-until domstable URL')
-  self.assertIn('100 个动态网页正文任务',model['configuration'])
+  self.assertIn('100 个动态网站正文任务',model['configuration'])
   self.assertIn('统一使用',model['configuration'])
   self.assertIn('没有逐题等待元素',model['configuration'])
 
@@ -132,26 +132,27 @@ def test_report_labels_distinguish_release_and_source_build_with_same_version(tm
     from harness.web_fetch.report_explainer import provider_name
 
     identities={'implementations':[
-        {'provider':'moli','binary_sha256':'stable','version':'1.1.15'},
-        {'provider':'moli-pr919','binary_sha256':'branch','version':'1.1.15 · PR #919 源码构建（98be1f10）'}]}
+        {'provider':'moli-1.1.15','binary_sha256':'stable','version':'1.1.15'},
+        {'provider':'moli-fixed','binary_sha256':'branch',
+         'version':'1.1.17 · 聚合 PR #1501 源码构建（88410383）'}]}
     (tmp_path/'implementation-provenance.json').write_text(json.dumps(identities))
     records=[{'provider':x['provider'],'provider_metadata':{'binary_sha256':x['binary_sha256']}}
              for x in identities['implementations']]
-    original=provider_label('moli')
+    original=provider_label('moli-1.1.15')
 
     @with_measured_method_labels
     def render(out,dataset,rows):
         for label in (provider_label,display_name,lambda n:provider_name(n,n)):
-            assert label('moli')=='Moli 1.1.15'
-            assert label('moli-pr919')=='Moli 1.1.15 · PR #919 源码构建（98be1f10）'
+            assert label('moli-1.1.15')=='Moli 1.1.15'
+            assert label('moli-fixed')=='Moli 1.1.17 · 聚合 PR #1501 源码构建（88410383）'
 
     render(tmp_path,{},records)
-    assert provider_label('moli')==original
+    assert provider_label('moli-1.1.15')==original
     records[0]['provider_metadata']['binary_sha256']='different-build'
 
     @with_measured_method_labels
     def unrelated(out,dataset,rows):
-        assert provider_label('moli')==original
+        assert provider_label('moli-1.1.15')==original
 
     unrelated(tmp_path,{},records)
-    assert provider_label('moli')==original
+    assert provider_label('moli-1.1.15')==original

@@ -80,14 +80,14 @@ SPECS['kitesurf']=spec(
  [('url','string','唯一任务输入'),('gotoOptions.waitUntil','string','networkidle2'),('browser','query','kitesurf'),('timeout','seconds','45 秒客户端端到端截止')],
  [('result','string','Cloudflare 原生 Markdown → content'),('success / errors','boolean / array','接口状态与错误'),('browser_ms_used','number-like','服务端浏览器计费时间；不等于客户端耗时')],
  {'url':URL,'gotoOptions':{'waitUntil':'networkidle2'}},'harness/web_fetch/providers/cloudflare.py',
- '正文使用账号版 Browser Run 原生 Markdown；图片、视频资源通过指定 Kitesurf 的官方 CDP 执行共用 DOM 脚本，可读取已加载的同源 iframe。直接文档使用官方 Markdown 接口，嵌入文档通过该 CDP 读取已加载的查看器文字；直接文件通过 CDP 获取原始响应。Workers AI 文档转换不计入 Kitesurf 成绩。客户端耗时包含公网往返、排队与执行。')
+ '网页正文、嵌入文档以及网页中的图片或视频信息都使用指定 Kitesurf 的 Browser Run 原生 Markdown。直接文档也使用官方 Markdown 接口，直接文件通过官方 CDP 获取原始响应。Workers AI 文档转换不计入 Kitesurf 成绩。客户端耗时包含公网往返、排队与执行。')
 for engine,wait in (('lightpanda','done'),('obscura','load + adaptive settle'),('moli','done')):
  SPECS[engine]=spec(
   'CLI · '+engine+' fetch --dump markdown','本地独立浏览器；不需要供应商 API Key',
   [('URL','string','唯一任务输入'),('--dump','string','markdown'),('wait_until','string',wait),('timeout','seconds','45 秒外层截止；CLI 参数按各自单位换算')],
   [('stdout','UTF-8 string','浏览器原生 Markdown → content'),('native_markdown_ms','number','CLI 调用及原生序列化阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
   {'url':URL,'engine':engine,'timeout':45,'wait_until':wait,'dump':'markdown'},'harness/web_fetch/providers/headless_worker.py',
-  '正文使用原生 Markdown。文件使用浏览器已有的原始响应接口；资源与嵌入文档使用共用 DOM 脚本。嵌入文档只读取浏览器内已经加载的文字，不下载后外部解析。不在失败后切换引擎或请求外部服务补正文。接口未提供 HTTP 状态或最终 URL 时保留空值。')
+  '网页正文、嵌入文档以及网页中的图片或视频信息都使用浏览器原生 Markdown。直接文件使用浏览器已有的原始响应接口。不在失败后切换输出方式、调用共同 DOM 脚本，或请求外部服务补正文。接口未提供 HTTP 状态或最终网址时保留空值。')
 def moli_release_spec(version):
  base=SPECS['moli']
  return {**base,
@@ -106,7 +106,7 @@ SPECS['chromium']=spec(
  [('url','string','唯一任务输入'),('wait_until','string','load'),('timeout','seconds','45 秒端到端截止'),('converter','string','node-html-markdown 2.0.0')],
  [('content','string','转换后的 Markdown'),('rendered_html_path / sha256','string','转换前 DOM HTML 证据'),('fetch_html_ms / conversion_ms','number','分阶段耗时'),('browser_stderr','string','浏览器诊断；不进入正文')],
  {'url':URL,'engine':'chromium','timeout':45,'wait_until':'load','dump':'html','converter':'node-html-markdown 2.0.0'},'harness/web_fetch/providers/headless_worker.py',
- '网页正文取完整渲染 DOM 后转为 Markdown；图片、视频资源使用共用 DOM 脚本。直接文档使用浏览器自身返回的页面内容，嵌入文档读取已加载的查看器文字；不使用外部文档解析器。DOM 转换、页面获取与原始文件读取均计入耗时；原始字节、HTML 与转换器哈希均保留。')
+ '所有页面类任务都取得完整渲染 DOM，再使用 node-html-markdown 2.0.0 转为 Markdown；不运行资源提取脚本，不读取 PDF.js 等查看器私有对象，也不使用外部文档解析器。页面获取、DOM 转换与原始文件读取均计入耗时；原始字节、HTML 与转换器哈希均保留。')
 
 def method_provenance(out):
  path=out/'implementation-provenance.json'
@@ -200,7 +200,7 @@ def method_spec(name, record):
  if name=='obscura':request.pop('dump',None)
  return {**base,'entry':'CLI · '+command,'request':request,
          'params':[row for row in base['params'] if name!='obscura' or row[0]!='--dump'],
-         'notes':'正文保留同一次调用的原生 Markdown 和最终地址。Lightpanda 解包原生 JSON；Obscura 执行固定哈希的官方 Markdown 脚本。直接文件分别使用 Lightpanda CDP 与 Obscura --dump original；资源和嵌入文档使用共用 DOM 读取脚本，不外部解析文档；获取与输出处理均计入耗时。'}
+         'notes':'Lightpanda 解包同一次调用返回的原生 Markdown；Obscura 执行固定哈希的官方 Markdown 脚本。网页正文、嵌入文档以及网页中的图片或视频信息均保留该原生输出。直接文件分别使用 Lightpanda CDP 与 Obscura --dump original。评测端不再加工 DOM 或外部解析文档；获取与输出处理均计入耗时。'}
 
 
 
@@ -211,15 +211,15 @@ def browser_task_interface_matrix(cases, providers):
  from .providers.headless import output_mode_for_case
  capabilities={
   'moli':'网页正文、文档正文、结构和网页媒体信息统一使用原生 Markdown；网页媒体只核对输出中的目标地址。最终网址不参与正文判分。',
-  'lightpanda':'内置 Markdown 转换；动态正文题统一使用 CLI --dump markdown --json。iframe 合同只增加官方加载与序列化参数；原生 Markdown 仍不含子文档时如实判失败，不切换 HTML 或共同转换。',
-  'obscura':'内置 Markdown 与 LP.getMarkdown 共用官方 JS 实现；本次执行固定版本的同一脚本，并在同次 --eval 中返回最终网址。',
+  'lightpanda':'内置 Markdown 转换；同一任务大类只使用 CLI --dump markdown --json，不传逐题选择器、数量、延迟或 iframe 参数。',
+  'obscura':'内置 Markdown 与 LP.getMarkdown 共用官方 JS 实现；本次执行固定版本的同一脚本，不按题目切换接口。',
   'chromium':'没有直接输出 Markdown 的原生接口；取得渲染后的 DOM，再使用共同的 node-html-markdown 2.0.0。',
   'kitesurf':'官方 Browser Run /markdown?browser=kitesurf 返回 Markdown；这是托管服务的转换能力，不是客户端共同转换。',
  }
  markdown={
   'moli':'CLI fetch --dump markdown → 内置转换 → Markdown',
-  'lightpanda':'CLI fetch --dump markdown --json → 内置转换 → 解包 Markdown；iframe 合同只增加 --load-resources iframe 与 --with-frames',
-  'obscura':'CLI --eval 官方固定版本脚本与 location.href → 官方转换 → Markdown',
+  'lightpanda':'CLI fetch --dump markdown --json → 内置转换 → 解包 Markdown',
+  'obscura':'CLI --eval 官方固定版本脚本 → 官方转换 → Markdown',
   'chromium':'Playwright/CDP 导航 → 最终 DOM → 共同转换 → Markdown',
   'kitesurf':'/markdown?browser=kitesurf → 官方托管转换 → Markdown',
  }
@@ -232,10 +232,10 @@ def browser_task_interface_matrix(cases, providers):
  }
  resource={
   'moli':'CLI fetch --dump markdown --with-frames → 原生 Markdown；共同评分器只识别题目指定的资源 URL',
-  'lightpanda':'原生 CDP 执行共用 DOM 元素读取脚本',
-  'obscura':'CLI --eval 执行共用 DOM 元素读取脚本；内置 assets 缺少所需 srcset/picture 地址',
-  'chromium':'Playwright/CDP 执行共用 DOM 元素读取脚本',
-  'kitesurf':'指定 Kitesurf 的官方 CDP 执行共用 DOM 元素读取脚本',
+  'lightpanda':'CLI fetch --dump markdown --json → 原生 Markdown；评分器只从交付内容中核对资源地址',
+  'obscura':'CLI --eval 官方固定版本脚本 → 原生 Markdown；评分器只从交付内容中核对资源地址',
+  'chromium':'Playwright/CDP 取得完整渲染 HTML → node-html-markdown 2.0.0 → 评分器核对资源地址',
+  'kitesurf':'/markdown?browser=kitesurf → 原生 Markdown；评分器只从交付内容中核对资源地址',
  }
  runtime={'moli':'原生 CDP','obscura':'原生 CDP','lightpanda':'原生 CDP',
           'chromium':'Playwright/CDP','kitesurf':'指定 Kitesurf 的官方 CDP'}
@@ -281,7 +281,7 @@ def browser_task_interface_matrix(cases, providers):
     else:raise ValueError('Unsupported browser task interface mode: '+mode)
     wait=('读取原始响应或下载文件，不等待查看器绘制' if mode in {'file','document'} else waits[engine])
     if engine=='moli' and track=='dynamic' and mode=='markdown':
-     wait='动态网页正文整类使用 CLI 原生 domstable'
+     wait='动态网站正文整类使用 CLI 原生 domstable'
     if mode not in {'file','document','markdown'}:
      if engine in {'lightpanda','kitesurf'} or (engine=='obscura' and mode in {'document_page','media_metadata'}):
       wait='CDP 页面提取等待 load'

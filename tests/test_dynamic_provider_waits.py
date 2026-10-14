@@ -490,22 +490,22 @@ def test_kitesurf_maps_shared_completion_but_discloses_missing_frame_output(mock
 
 
 @patch("harness.web_fetch.providers.cloudflare.request")
-def test_kitesurf_shared_completion_keeps_product_default_internal_timers(mock_request):
+def test_kitesurf_uniform_dynamic_family_uses_product_default_completion(mock_request):
     from dataclasses import replace
     mock_request.return_value = HttpResponse(200, "u", {}, b'{"success":true,"result":"records"}')
-    case = replace(dynamic_case(), id="dynamic-delayed", retrieval_hints={
-        "version": 3, "mode": "native", "contract": "delayed-ten-records"})
-    with patch("harness.web_fetch.retrieval_hints._verify_contract_source"):
-        result = CloudflareMarkdownProvider("kitesurf", {
-            "api_token": "x", "account_id": "a", "browser": "kitesurf",
-            "uniform_native_parameters": True,
-        }).fetch(case, 45)
+    case = replace(
+        dynamic_case(),
+        id="dynamic-delayed",
+        retrieval_hints={"version": 3, "mode": "native"},
+    )
+    result = CloudflareMarkdownProvider("kitesurf", {
+        "api_token": "x", "account_id": "a", "browser": "kitesurf",
+        "uniform_native_parameters": True,
+    }).fetch(case, 45)
     assert result.ok
     body = mock_request.call_args.kwargs["json_body"]
-    assert body["waitForSelector"] == {"selector": ".quote"}
+    assert "waitForSelector" not in body
+    assert "waitForTimeout" not in body
     assert "timeout" not in body["gotoOptions"]
     assert "actionTimeout" not in body
-    assert result.metadata["wait"]["timeout_ms"] is None
-    assert result.metadata["wait"]["completion_support"] == "approximate"
-    assert result.metadata["wait"]["unsupported"] == [
-        "minimum_count", "minimum_text_fragments"]
+    assert result.metadata["wait"] is None

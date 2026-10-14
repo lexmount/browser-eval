@@ -30,7 +30,9 @@ def source(tmp_path):
 
         def fetch(self, case, timeout):
             self.calls += 1
-            return ProviderResult(True, 'Expected' if self.calls == 2 else 'Wrong',
+            return ProviderResult(self.calls == 2, 'Expected' if self.calls == 2 else '',
+                error_type=None if self.calls == 2 else 'network',
+                error_message=None if self.calls == 2 else 'synthetic transient failure',
                 metadata={'_rendered_html': '<main>retained HTML</main>',
                           'rendered_html_sha256': hashlib.sha256(b'<main>retained HTML</main>').hexdigest(),
                           'raw_stdout_sha256': hashlib.sha256(b'retained stdout').hexdigest(),

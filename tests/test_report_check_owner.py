@@ -304,17 +304,17 @@ def test_registered_browser_build_has_its_own_interface_panel(tmp_path, defect):
     from tests.report_check_fixture import create_revision_report
     root, authority = create_revision_report(tmp_path)
     row=json.loads((root/'results.jsonl').read_text())
-    row['provider']='moli-pr919'
+    row['provider']='moli-fixed'
     (root/'results.jsonl').write_text(json.dumps(row)+'\n')
     counts=json.loads((root/'adoption/counts.json').read_text())
     for item in counts['methods']:
-        if item['provider']=='alpha':item['provider']='moli-pr919'
+        if item['provider']=='alpha':item['provider']='moli-fixed'
     write_json(root/'adoption/counts.json',counts)
-    panel='<details class="interface-panel" id="interface-moli-pr919"><pre>Request</pre><pre>Response</pre></details>'
+    panel='<details class="interface-panel" id="interface-moli-fixed"><pre>Request</pre><pre>Response</pre></details>'
     path=root/'adoption/index.html'
     additions='' if defect=='missing' else panel
     if defect=='duplicate':additions+=panel
-    if defect=='unregistered':additions+=panel.replace('moli-pr919','unknown-build')
+    if defect=='unregistered':additions+=panel.replace('moli-fixed','unknown-build')
     path.write_text(path.read_text().replace('</body>',additions+'</body>'))
     if defect:
         with pytest.raises(ValueError):check_revision(root,authority_root=authority)

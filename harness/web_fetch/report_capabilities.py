@@ -246,18 +246,23 @@ def task_capabilities(out, names, records):
             web=c('支持','原生网页正文输出' if engine!='chromium' else '原生 DOM 加共同 HTML 转换'),
             document=(c('有限支持','HTML/TXT 可由原生 Markdown 返回；直接 PDF/DOCX 未提供可读正文，评测端不使用外部解析器')
                       if engine=='moli' else
-                      c('原生输出','直接使用正文接口或浏览器内查看器文字；不使用外部 PDF/DOCX 解析器')),
+                      c('共同转换','使用浏览器渲染后的完整 HTML，再由固定 HTML-to-Markdown 包转换；不读取查看器私有对象，不使用外部 PDF/DOCX 解析器')
+                      if engine=='chromium' else
+                      c('原生输出','直接使用浏览器正文接口；不使用外部 PDF/DOCX 解析器')),
             image=c('资源地址 / 字节',
                     '原生 Markdown 由共同评分器识别目标资源 URL；直接文件通过原生响应取得'
-                    if engine=='moli' else
-                    '原生 DOM 接口读取资源地址；直接文件通过原生响应取得'),
-            av=c('资源与元数据','原生接口读取地址、页面元数据或原始字节；不做媒体理解'),
+                    if engine!='chromium' else
+                    '完整渲染 HTML 经过共同转换，评分器从 Markdown 核对资源地址；直接文件通过原生响应取得'),
+            av=c('资源与元数据',
+                 '完整渲染 HTML 经过共同转换，评分器从 Markdown 核对地址或页面信息；直接文件读取原始字节'
+                 if engine=='chromium' else
+                 '原生接口读取地址、页面元数据或原始字节；不做媒体理解'),
             file=c('原生获取','使用该浏览器原始响应或附件接口，按固定规则验收字节'),
             structure='按任务交付 Markdown、文档正文、资源地址、媒体元数据或原始文件。',
-            notes=('浏览器负责访问与原生产物获取；Moli 的网页媒体信息与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。'
-                   if engine=='moli' else
-                   '浏览器负责访问与原生产物获取；资源读取脚本由评测提供，通过原生接口读取已加载内容；只有 Chromium 使用标准 HTML 转 Markdown 包。这些调用步骤不会被写成浏览器内置能力。完整分类及边界见报告解读的接口表。'),
-            tested='接口按任务输入预选；获取、等待、网页转换与原生内容投影共享 45 秒预算。失败不切换引擎，不按评分结果选择更好的返回。')
+            notes=('浏览器负责访问与原生产物获取；网页媒体信息与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。'
+                   if engine!='chromium' else
+                   'Chromium 负责访问和渲染；所有页面类任务都取得完整 HTML，再由固定标准包转成 Markdown。评测端不运行资源提取脚本，也不读取文档查看器私有对象。完整分类及边界见报告解读的接口表。'),
+            tested='接口按任务大类预选；获取、等待和原生输出共享 45 秒预算。Chromium 的 HTML 转换也计入该预算。失败不切换引擎，不按评分结果选择更好的返回。')
         source='task-native-'+name
         source_url={'moli':'https://github.com/lexmount/moli','lightpanda':'https://github.com/lightpanda-io/browser','obscura':'https://github.com/h4ckf0r0day/obscura','chromium':'https://developer.chrome.com/docs/automation-and-testing/headless','kitesurf':'https://developers.cloudflare.com/browser-run/kitesurf/'}[engine]
         source_url=browser_method_registry()[name].get('source_url',source_url)

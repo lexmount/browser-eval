@@ -1,6 +1,7 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "kind": "profile_dataset_assembly",
+  "native_retrieval_policy": "uniform_dynamic_native_v1",
   "profile": "evaluation/browser-native-430/current-report.json",
   "dataset": {
     "id": "webfetch-five-browsers-seven-families-430",
@@ -45,5 +46,5 @@
     "path": "evaluation/browser-native-430/case-corrections.json",
     "sha256": "67fa149c2921d7d603767bc8e54ed1cdde7018c1e51d8beed27c597580b8c5a8"
   },
-  "native_dataset_sha256": "3b1aedf8d1027a57148b434cc0eb6636594aa907318fdd9e465ab88725bf8432"
+  "native_dataset_sha256": "8327cbe175ecbf577ee84090f40908168a751d0b70ebc61b7f0d880b502019af"
 }

@@ -238,8 +238,10 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
                 or hashlib.sha256(sample_path.read_bytes()).hexdigest() != profile.get("sample_manifest_sha256")
                 or dataset.get("sample_manifest_sha256") != profile.get("sample_manifest_sha256")):
             failures.append("sample_manifest_file")
-    for key in ("concurrency", "reference_binding_mode", "publication_state",
+    for key in ("concurrency", "reference_binding_mode", "publication_state", "retry_selection",
                 "unverified_reference_cases", "require_independent_result_review"):
+        if key == "retry_selection" and key not in profile:
+            continue
         if comparison.get(key) != profile[key]:
             failures.append(key)
     tracks = {case.get("track", "web") for case in cases}

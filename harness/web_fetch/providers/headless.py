@@ -33,9 +33,9 @@ LOOPBACK_SANDBOX_PROFILE = (
     '(allow network-outbound (remote ip "localhost:*"))'
 )
 HEADLESS_CONVERSION = (
-    'Native Markdown for ordinary pages; task-native browser bytes for files and '
-    'documents with shared text extraction; shared DOM projections for resources, '
-    'embedded documents and media metadata; Chromium HTML uses node-html-markdown 2.0.0'
+    'Native Markdown for page, embedded-document and webpage-media tasks when the '
+    'browser supplies it; task-native browser bytes for files; Chromium DOM HTML '
+    'uses node-html-markdown 2.0.0 for every page deliverable'
 )
 
 
@@ -302,10 +302,26 @@ def cli_command(
 
 
 def output_mode_for_case(engine, provider_type, case):
-    """Choose the fastest version-supported route for the requested deliverable."""
+    """Choose one product-native route for each task family."""
     if engine in ENGINES and case.task_kind == 'file':
         return 'file'
     if engine == 'moli' and case.track == 'document':
+        return 'markdown'
+    native_markdown = (
+        provider_type == 'headless_markdown'
+        and engine in {'lightpanda', 'obscura', 'kitesurf'}
+    )
+    if native_markdown and (
+        case.track == 'document'
+        or (case.task_kind == 'resource' and case.track in {'image', 'video'})
+        or (case.task_kind == 'body' and case.track == 'video')
+    ):
+        return 'markdown'
+    if engine == 'chromium' and (
+        case.track == 'document'
+        or (case.task_kind == 'resource' and case.track in {'image', 'video'})
+        or (case.task_kind == 'body' and case.track == 'video')
+    ):
         return 'markdown'
     # Document text must come from the selected browser content interface.
     # Downloaded bytes must not be turned into readable text by the harness.
@@ -583,6 +599,8 @@ class HeadlessProvider(Provider):
                 'account_id': self.config['account_id'], 'api_token': self.config['api_token'],
                 'browser': 'kitesurf', 'wait_until': self.config.get('wait_until', 'networkidle2'),
                 'max_bytes': self.config.get('max_bytes', 20_000_000),
+                'page_output': 'native_markdown',
+                'uniform_native_parameters': self.config.get('uniform_native_parameters', False),
                 'endpoint': 'wss://api.cloudflare.com/client/v4/accounts/' + self.config['account_id'] + '/browser-run/devtools/browser?browser=kitesurf',
             })
             result = cloudflare.fetch(case, timeout)

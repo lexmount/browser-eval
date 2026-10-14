@@ -61,13 +61,13 @@ def test_fixed_native_accepts_public_task_routes_without_per_case_assistance(tra
     provider.check_native_call(case)
 
 
-@patch("harness.web_fetch.retrieval_hints._verify_contract_source")
-def test_fixed_native_accepts_shared_answer_free_page_capabilities(_verify_source):
+def test_fixed_native_rejects_case_specific_page_capabilities():
     provider = build_provider("fixture", {"type": "fixture", "uniform_native_parameters": True})
     case = EvalCase("dynamic-iframe", "frame", "https://example.com/", "control", [],
         track="dynamic", task_kind="body", retrieval_hints={
             "version": 3, "mode": "native", "contract": "iframe-fourteen-family-headings"})
-    provider.check_native_call(case)
+    with pytest.raises(ValueError, match="per-case"):
+        provider.check_native_call(case)
 
 
 @pytest.mark.parametrize("track,task_kind", [("document", "resource"), ("image", "file"),

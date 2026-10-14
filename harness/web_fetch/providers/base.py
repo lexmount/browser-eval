@@ -86,12 +86,10 @@ class Provider(ABC):
         if not self.config.get("uniform_native_parameters"):
             return
         if case.retrieval_hints:
-            from ..retrieval_hints import parse_retrieval_hints
-            try:
-                plan = parse_retrieval_hints(case.track, case.retrieval_hints, identifier=case.id)
-            except ValueError as error:
-                raise ValueError("fixed native calls prohibit per-case retrieval hints") from error
-            if plan is not None:
+            if (
+                case.track != "dynamic"
+                or case.retrieval_hints != {"version": 3, "mode": "native"}
+            ):
                 raise ValueError("fixed native calls prohibit per-case retrieval hints")
         supported = {
             "web": {"body", "structure"},

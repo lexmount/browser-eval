@@ -1,4 +1,5 @@
 import hashlib
+import gzip
 import json
 from pathlib import Path
 
@@ -18,6 +19,8 @@ RECEIPT_PATH = ROOT / "research/dynamic-100-moli-119-local-audit.json"
 COMPATIBILITY_PATH = ROOT / "research/dynamic-100-moli-119-risk-scorer-compatibility.json"
 REVISION_PATH = ROOT / "research/moli-111-three-cohort-evaluation-revision.json"
 PRE_CALL_PATH = ROOT / "research/dynamic-native-retrieval-contract-pre-call-revision.json"
+PRE_CALL_ARCHIVE = ROOT / "research/frozen-configs/dynamic-native-retrieval-contract-pre-call/bindings.json"
+CURRENT_PRE_CALL_PATH = ROOT / "research/browser-native-430-fairness-pre-call-revision.json"
 
 
 def _authority_binding(path):
@@ -67,7 +70,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
     dynamic = next(row for row in matrix["rows"] if row["track"] == "dynamic")
     assert dynamic["cells"]["lightpanda"][0]["mode"] == "markdown"
     assert dynamic["cells"]["lightpanda"][0]["count"] == 100
-    assert "不切换 HTML 或共同转换" in matrix["capabilities"]["lightpanda"]
+    assert "不传逐题选择器、数量、延迟或 iframe 参数" in matrix["capabilities"]["lightpanda"]
     revision = json.loads(REVISION_PATH.read_text(encoding="utf-8"))
     assert revision["provider_calls_for_revision"] == 0
     assert revision["dynamic_dataset"]["historical_sha256"] == receipt["bindings"]["dataset_sha256"]
@@ -78,11 +81,19 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
         item = pre_call[binding]
         assert hashlib.sha256((ROOT / item["path"]).read_bytes()).hexdigest() == item["sha256"]
     authoritative = pre_call["authoritative_430_input"]
+    archive = json.loads(PRE_CALL_ARCHIVE.read_text())
+    assert archive["receipt"] == PRE_CALL_PATH.relative_to(ROOT).as_posix()
     for binding in ("assembly", "profile"):
         item = authoritative[binding]
-        assert hashlib.sha256((ROOT / item["path"]).read_bytes()).hexdigest() == item["sha256"]
+        archived = archive["artifacts"][item["path"]]
+        assert archived["sha256"] == item["sha256"]
+        assert hashlib.sha256((ROOT / archived["path"]).read_bytes()).hexdigest() == item["sha256"]
     from harness.web_fetch.dataset_assembly import assemble_profile_dataset
-    _assembled, assembled_raw = assemble_profile_dataset(ROOT / authoritative["assembly"]["path"])
+    _assembled, assembled_raw = assemble_profile_dataset(
+        ROOT / archive["artifacts"][authoritative["assembly"]["path"]]["path"],
+        repository=ROOT,
+        profile_path_override=archive["artifacts"][authoritative["profile"]["path"]]["path"],
+    )
     assert (
         hashlib.sha256(assembled_raw).hexdigest()
         == authoritative["revised_pre_call_dataset_sha256"]
@@ -338,9 +349,35 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
     assert hashlib.sha256(successor_path.read_bytes()).hexdigest() == successor["sha256"]
     successor_receipt = json.loads(successor_path.read_text())
     assert successor_receipt["provider_calls"] == 0
-    assert successor_receipt["scorer_binding"]["revised_scoring_source_sha256"] == SCORING_SOURCE_SHA256
-    assert successor["current_scoring_regressions_sha256"] == hashlib.sha256(
-        (ROOT / "evaluation/scoring-regressions.json").read_bytes()).hexdigest()
+    assert successor_receipt["scorer_binding"]["revised_scoring_source_sha256"] == (
+        "8bc386c7c081b70701d635e4fc2ead8c22a7f9a6004ec42adcaf391f9d470f1b"
+    )
+    current_pre_call = json.loads(CURRENT_PRE_CALL_PATH.read_text())
+    assert current_pre_call["provider_calls"] == 0
+    assert current_pre_call["scorer"]["public_score_attempt_sha256"] == SCORING_SOURCE_SHA256
+    for key in ("profile", "dataset_assembly", "rerun_scope"):
+        binding = current_pre_call[key]
+        assert hashlib.sha256((ROOT / binding["path"]).read_bytes()).hexdigest() == binding[
+            "sha256"
+        ]
+    regression_binding = current_pre_call["scorer"]["regression_registry"]
+    assert hashlib.sha256((ROOT / regression_binding["path"]).read_bytes()).hexdigest() == (
+        regression_binding["sha256"]
+    )
+    implementation_inputs = current_pre_call["implementation"]["browser_eval_inputs"]
+    assert len({item["path"] for item in implementation_inputs}) == len(implementation_inputs)
+    for item in implementation_inputs:
+        assert hashlib.sha256((ROOT / item["path"]).read_bytes()).hexdigest() == item["sha256"]
+    historical_regressions = archive["historical_artifacts"][
+        "evaluation/scoring-regressions.json"
+    ]
+    compressed = (ROOT / historical_regressions["path"]).read_bytes()
+    assert hashlib.sha256(compressed).hexdigest() == historical_regressions["sha256"]
+    decoded = gzip.decompress(compressed)
+    assert hashlib.sha256(decoded).hexdigest() == historical_regressions["decoded_sha256"]
+    assert successor["current_scoring_regressions_sha256"] == historical_regressions[
+        "decoded_sha256"
+    ]
     assert set(successor_receipt["correction_provenance"]["regression_ids"]) <= set(controls)
     assert set(scorer_revision["regression_ids"]) <= set(controls)
     modes = {}
@@ -376,12 +413,16 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
     ]
     assert bindings["scoring_source_sha256"] == scorer_revision["main_baseline_sha256"]
     assert bindings["scoring_regressions_sha256"] != scorer_revision["scoring_regressions_sha256"]
-    assert bindings["composite_tests_sha256"] == hashlib.sha256(
-        (ROOT / "tests/test_composite_tasks.py").read_bytes()
-    ).hexdigest()
-    assert bindings["stable_tests_sha256"] == hashlib.sha256(
-        (ROOT / "tests/test_stable_tasks.py").read_bytes()
-    ).hexdigest()
+    for historical_path, binding_key in (
+        ("tests/test_composite_tasks.py", "composite_tests_sha256"),
+        ("tests/test_stable_tasks.py", "stable_tests_sha256"),
+    ):
+        historical_test = archive["historical_artifacts"][historical_path]
+        compressed = (ROOT / historical_test["path"]).read_bytes()
+        assert hashlib.sha256(compressed).hexdigest() == historical_test["sha256"]
+        decoded = gzip.decompress(compressed)
+        assert hashlib.sha256(decoded).hexdigest() == historical_test["decoded_sha256"]
+        assert bindings[binding_key] == historical_test["decoded_sha256"]
     assert "Moli 1.1.9 local audit complete" in dataset["approval_status"]
     assert dataset["comparison"]["local_audit_receipt"] == RECEIPT_PATH.relative_to(ROOT).as_posix()
 

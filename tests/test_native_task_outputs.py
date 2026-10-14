@@ -138,7 +138,7 @@ class NativeRoutePublicationTests(unittest.TestCase):
         from harness.web_fetch.task_outputs import require_native_task_routes
         case={'id':'dynamic-page','url':'https://example.com/app','track':'dynamic','task_kind':'body'}
         native={'route':'dynamic_native_markdown','output':'markdown','dump':'markdown'}
-        for provider in ('moli','moli-pr919'):
+        for provider in ('moli','moli-1.1.15'):
             row={'provider':provider,'case_id':case['id'],'provider_metadata':native}
             with self.subTest(provider=provider):
                 require_native_task_routes([case],[row])
@@ -212,6 +212,42 @@ class NativeRoutePublicationTests(unittest.TestCase):
                 'route':'media_metadata_runtime','output':'visible_text_and_standard_media_metadata',
                 'output_projection_sha256':'0'*64}}])
 
+    def test_native_browsers_use_native_markdown_for_page_media_and_embedded_documents(self):
+        from harness.web_fetch.task_outputs import require_native_task_routes
+
+        cases = [
+            {'id':'image-resource','url':'https://example.com/gallery','track':'image',
+             'task_kind':'resource'},
+            {'id':'video-resource','url':'https://example.com/watch','track':'video',
+             'task_kind':'resource'},
+            {'id':'video-body','url':'https://example.com/watch','track':'video',
+             'task_kind':'body'},
+            {'id':'embedded-document','url':'https://example.com/viewer/','track':'document',
+             'task_kind':'body'},
+        ]
+        metadata = {
+            'lightpanda': {'extractor':'lightpanda_native_markdown',
+                           'output_contract':'markdown'},
+            'obscura': {'extractor':'obscura_native_markdown',
+                        'output_contract':'markdown'},
+            'kitesurf': {'route':'browser_rendering_markdown',
+                         'extractor':'cloudflare_native_markdown',
+                         'browser':'kitesurf','output_contract':'markdown'},
+            'chromium': {'extractor':'node-html-markdown',
+                         'extractor_version':'2.0.0',
+                         'output_contract':'markdown'},
+        }
+        for case in cases:
+            for provider, meta in metadata.items():
+                row = {'provider':provider,'case_id':case['id'],'provider_metadata':meta}
+                with self.subTest(case=case['id'], provider=provider):
+                    require_native_task_routes([case],[row])
+                with self.subTest(case=case['id'], provider=provider, projection=True), \
+                        self.assertRaises(ValueError):
+                    require_native_task_routes([case],[{**row,'provider_metadata':{
+                        'extractor':'rendered_dom_resources',
+                        'output_projection_sha256':'0'*64}}])
+
     def test_page_routes_prioritize_native_output_and_keep_required_identity(self):
         from harness.web_fetch.task_outputs import require_native_task_routes
         pages=[{'id':'page','url':'https://example.com/page','track':'challenge','task_kind':'structure'}]
@@ -282,52 +318,49 @@ class NativeRoutePublicationTests(unittest.TestCase):
                 'document_extractor':'pdfjs_runtime',
                 'output_contract':'readable_document_text'}}])
 
-    def test_kitesurf_resource_backend_must_be_bound_explicitly(self):
+    def test_kitesurf_resource_uses_native_markdown(self):
         from harness.web_fetch.task_outputs import require_native_task_routes
         cases=[{'id':'images','url':'https://example.com/','track':'image','task_kind':'resource'}]
-        from harness.web_fetch.task_outputs import resource_expression
-        meta={'browser':'kitesurf','endpoint_route':'/browser-run/devtools/browser?browser=kitesurf',
-              'output_projection_sha256':hashlib.sha256(resource_expression('image').encode()).hexdigest()}
+        meta={'browser':'kitesurf','route':'browser_rendering_markdown',
+              'extractor':'cloudflare_native_markdown','output_contract':'markdown'}
         row={'provider':'kitesurf','case_id':'images','provider_metadata':meta}
         require_native_task_routes(cases,[row])
-        for field in ('browser','endpoint_route','output_projection_sha256'):
+        for field in ('browser','route','extractor'):
             bad={k:v for k,v in meta.items() if k!=field}
             with self.subTest(missing=field),self.assertRaises(ValueError):
                 require_native_task_routes(cases,[{**row,'provider_metadata':bad}])
 
-    def test_kitesurf_native_projections_bind_each_declared_task_family(self):
-        from harness.web_fetch.task_outputs import (
-            DOCUMENT_PAGE_EXPRESSION, MEDIA_METADATA_EXPRESSION,
-            require_native_task_routes, resource_expression,
-        )
+    def test_kitesurf_native_markdown_covers_each_page_deliverable_family(self):
+        from harness.web_fetch.task_outputs import require_native_task_routes
 
         examples = [
             ({'id':'image','url':'https://example.com/gallery','track':'image',
-              'task_kind':'resource'}, resource_expression('image')),
+              'task_kind':'resource'}),
             ({'id':'video','url':'https://example.com/watch','track':'video',
-              'task_kind':'resource'}, resource_expression('video')),
+              'task_kind':'resource'}),
             ({'id':'video-link','url':'https://example.com/watch','track':'video',
-              'task_kind':'resource','expected_resources':[{'kind':'video-link'}]},
-             resource_expression('video', True)),
+              'task_kind':'resource','expected_resources':[{'kind':'video-link'}]}),
             ({'id':'video-body','url':'https://example.com/watch','track':'video',
-              'task_kind':'body'}, MEDIA_METADATA_EXPRESSION),
+              'task_kind':'body'}),
             ({'id':'document-page','url':'https://example.com/viewer/','track':'document',
-              'task_kind':'body'}, DOCUMENT_PAGE_EXPRESSION),
+              'task_kind':'body'}),
         ]
-        for case, expression in examples:
+        for case in examples:
             meta = {
                 'browser':'kitesurf',
-                'endpoint_route':'/browser-run/devtools/browser?browser=kitesurf',
-                'output_projection_sha256':hashlib.sha256(expression.encode()).hexdigest(),
+                'route':'browser_rendering_markdown',
+                'extractor':'cloudflare_native_markdown',
+                'output_contract':'markdown',
             }
             row = {'provider':'kitesurf','case_id':case['id'],
                    'provider_metadata':meta}
             with self.subTest(case=case['id']):
                 require_native_task_routes([case],[row])
-            with self.subTest(case=case['id'], stale_projection=True), \
+            with self.subTest(case=case['id'], shared_projection=True), \
                     self.assertRaises(ValueError):
                 require_native_task_routes([case],[{**row,'provider_metadata':{
-                    **meta,'output_projection_sha256':'0'*64}}])
+                    **meta,'extractor':'rendered_dom_resources',
+                    'output_projection_sha256':'0'*64}}])
 
     def test_network_timeout_with_only_runner_receipts_is_not_an_adapter_substitution(self):
         from harness.web_fetch.task_outputs import require_native_task_routes
@@ -339,7 +372,7 @@ class NativeRoutePublicationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             require_native_task_routes(cases,[{**row,'provider_metadata':{**row['provider_metadata'],'browser':'chromium'}}])
 
-    def test_resource_routes_bind_moli_native_markdown_and_shared_projection_elsewhere(self):
+    def test_resource_routes_bind_each_native_markdown_and_chromium_projection(self):
         import hashlib
         from harness.web_fetch.task_outputs import require_native_task_routes, resource_expression
         cases=[{'id':'images','url':'https://example.com/','track':'image','task_kind':'resource'}]
@@ -371,11 +404,21 @@ class NativeRoutePublicationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             require_native_task_routes(video_cases,[{'provider':'moli','case_id':'video',
                 'provider_metadata':{**video,'network_trace_requested':True}}])
-        for provider in ('lightpanda','obscura','chromium'):
-            row={'provider':provider,'case_id':'images','provider_metadata':{'output_projection_sha256':digest}}
+        for provider in ('lightpanda','obscura'):
+            meta={'extractor':provider+'_native_markdown','output_contract':'markdown'}
+            row={'provider':provider,'case_id':'images','provider_metadata':meta}
             require_native_task_routes(cases,[row])
             with self.subTest(provider=provider),self.assertRaises(ValueError):
-                require_native_task_routes(cases,[{**row,'provider_metadata':{'output_projection_sha256':'0'*64}}])
+                require_native_task_routes(cases,[{**row,'provider_metadata':{
+                    'output_projection_sha256':digest}}])
+        chromium={'provider':'chromium','case_id':'images',
+                  'provider_metadata':{'extractor':'node-html-markdown',
+                                       'extractor_version':'2.0.0',
+                                       'output_contract':'markdown'}}
+        require_native_task_routes(cases,[chromium])
+        with self.assertRaises(ValueError):
+            require_native_task_routes(cases,[{**chromium,'provider_metadata':{
+                'output_projection_sha256':digest}}])
 
 
 class AllFamilyInterfaceTests(unittest.TestCase):
@@ -398,8 +441,9 @@ class AllFamilyInterfaceTests(unittest.TestCase):
         for provider in providers:
             self.assertIn('不使用外部',rows['document']['cells'][provider][0]['description'])
             self.assertTrue(rows['web']['cells'][provider][0]['wait'])
-        for provider in providers[1:]:
-            self.assertIn('不转 Markdown',rows['web_media']['cells'][provider][0]['description'])
+        for provider in ('lightpanda','obscura','kitesurf'):
+            self.assertIn('Markdown',rows['web_media']['cells'][provider][0]['description'])
+        self.assertIn('共同转换',rows['web_media']['cells']['chromium'][0]['description'])
         self.assertIn('直接 PDF/DOCX 未提供可读正文',rows['document']['cells']['moli'][0]['description'])
         self.assertIn('共同转换',rows['web']['cells']['chromium'][0]['description'])
         self.assertIn('内置转换',rows['challenge']['cells']['moli'][0]['description'])
@@ -428,14 +472,10 @@ class AllFamilyInterfaceTests(unittest.TestCase):
         self.assertIn('done',rows['web']['cells']['lightpanda'][0]['wait'])
         self.assertIn('networkidle2',rows['web']['cells']['kitesurf'][0]['wait'])
         for provider in providers:
-            self.assertTrue(rows['document']['cells'][provider][0]['wait'].startswith('CDP 页面提取等待 load'))
+            self.assertEqual(rows['document']['cells'][provider][0]['mode'], 'markdown')
             media_parts={part['mode']:part for part in rows['web_media']['cells'][provider]}
-            self.assertTrue(media_parts['media_metadata']['wait'].startswith('CDP 页面提取等待 load'))
-        for provider in ('lightpanda','kitesurf'):
-            media_parts={part['mode']:part for part in rows['web_media']['cells'][provider]}
-            self.assertEqual(media_parts['resource']['wait'],'CDP 页面提取等待 load')
-        media_parts={part['mode']:part for part in rows['web_media']['cells']['obscura']}
-        self.assertIn('自适应静默等待',media_parts['resource']['wait'])
+            self.assertEqual(set(media_parts), {'markdown'})
+            self.assertIn('Markdown', media_parts['markdown']['description'])
 
     def test_all_thirty_five_combinations_follow_deliverable_without_answer_values(self):
         from harness.web_fetch.providers.headless import ENGINES, output_mode_for_case
@@ -445,13 +485,18 @@ class AllFamilyInterfaceTests(unittest.TestCase):
                     ('challenge','body','https://example.test/popular','markdown'),
                     ('risk_control','body','https://example.test/protected','markdown'),
                     ('document','body','https://example.test/paper.pdf#page=2','markdown'),
-                    ('image','resource','https://example.test/gallery','resource'),
-                    ('video','resource','https://example.test/watch','resource')]
+                    ('image','resource','https://example.test/gallery',None),
+                    ('video','resource','https://example.test/watch',None)]
         for engine in ENGINES:
             for track, kind, url, expected_mode in families:
                 with self.subTest(engine=engine, track=track):
                     case = EvalCase('arbitrary-id','Arbitrary',url,track,[],track=track,task_kind=kind)
-                    self.assertEqual(output_mode_for_case(engine,'headless_markdown',case),expected_mode)
+                    selected = output_mode_for_case(engine,'headless_markdown',case)
+                    expected = expected_mode
+                    if expected is None:
+                        expected = ('markdown' if engine in {
+                            'lightpanda','obscura','chromium','kitesurf'} else 'resource')
+                    self.assertEqual(selected,expected)
         for answer in ('https://secret-answer.test/video/42','https://different-answer.test/watch/99'):
             case = EvalCase('arbitrary-id','Arbitrary','https://example.test/', 'video',[],
                             track='video',task_kind='resource',expected_resources=[{'kind':'video-link','url':answer}])

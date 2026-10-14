@@ -172,7 +172,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
             self.assertEqual(manifest['attempt_count'], 1)
             self.assertNotIn('physical_attempt_count', manifest)
 
-    def test_explicit_failure_retry_keeps_both_calls_and_uses_second(self):
+    def test_transient_failure_retry_keeps_both_calls_and_uses_second(self):
         class Flaky(Provider):
             def __init__(self):
                 super().__init__('flaky', {'type': 'fixture'})
@@ -180,7 +180,9 @@ class RunnerConcurrencyTest(unittest.TestCase):
 
             def fetch(self, case, timeout):
                 self.calls += 1
-                return ProviderResult(True, 'wrong' if self.calls == 1 else 'Expected')
+                if self.calls == 1:
+                    return ProviderResult(False, '', error_type='network')
+                return ProviderResult(True, 'Expected')
 
         case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
         provider = Flaky()
@@ -197,11 +199,57 @@ class RunnerConcurrencyTest(unittest.TestCase):
             self.assertEqual(retry['physical_attempts'], 2)
             self.assertEqual(retry['retries_used'], 1)
             self.assertEqual([item['task_pass'] for item in retry['attempts']], [False, True])
-            self.assertEqual((root / retry['attempts'][0]['artifact_path']).read_text(), 'wrong')
+            self.assertEqual((root / retry['attempts'][0]['artifact_path']).read_text(), '')
             self.assertEqual((root / records[0]['artifact_path']).read_text(), 'Expected')
             manifest = json.loads((root / 'manifest.json').read_text())
             self.assertEqual(manifest['attempt_count'], 1)
             self.assertEqual(manifest['parameters']['max_failure_retries'], 1)
+
+    def test_content_failure_is_not_retried(self):
+        class Incomplete(Provider):
+            def __init__(self):
+                super().__init__('incomplete', {'type': 'fixture'})
+                self.calls = 0
+
+            def fetch(self, case, timeout):
+                self.calls += 1
+                return ProviderResult(True, 'wrong')
+
+        provider = Incomplete()
+        with tempfile.TemporaryDirectory() as directory:
+            records, _ = run_evaluation(
+                output_dir=Path(directory), dataset_meta={'id': 'test'},
+                dataset_path=Path('dataset.json'),
+                cases=[EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])],
+                providers=[provider], provider_config_path=Path('providers.json'),
+                runs=1, timeout=2, delay=0, max_failure_retries=1,
+            )
+        self.assertEqual(provider.calls, 1)
+        self.assertNotIn('retry', records[0]['provider_metadata'])
+
+    def test_permanent_http_failure_is_not_retried_but_temporary_service_failure_is(self):
+        class Statuses(Provider):
+            def __init__(self, status):
+                super().__init__('statuses', {'type': 'fixture'})
+                self.status = status
+                self.calls = 0
+
+            def fetch(self, case, timeout):
+                self.calls += 1
+                return ProviderResult(False, '', status_code=self.status,
+                                      error_type='http_error')
+
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        for status, expected_calls in ((403, 1), (503, 2)):
+            provider = Statuses(status)
+            with self.subTest(status=status), tempfile.TemporaryDirectory() as directory:
+                run_evaluation(
+                    output_dir=Path(directory), dataset_meta={'id': 'test'},
+                    dataset_path=Path('dataset.json'), cases=[case], providers=[provider],
+                    provider_config_path=Path('providers.json'), runs=1, timeout=2,
+                    delay=0, max_failure_retries=1,
+                )
+                self.assertEqual(provider.calls, expected_calls)
 
     def test_explicit_failure_retry_never_selects_better_first_call(self):
         class TwiceFailed(Provider):

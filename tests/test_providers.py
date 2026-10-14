@@ -1065,6 +1065,23 @@ class ProviderTest(unittest.TestCase):
             self.assertEqual(parse_qs(urlsplit(mock_request.call_args.args[0]).query).get("browser"), ["kitesurf"])
 
     @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_kitesurf_headless_route_keeps_page_resources_in_native_markdown(self, mock_request):
+        mock_request.return_value = HttpResponse(
+            200, "u", {}, b'{"success":true,"result":"![image](asset.png)"}'
+        )
+        case = EvalCase("resource", "Resource", "https://example.com/", "image", [],
+                        track="image", task_kind="resource")
+        result = CloudflareMarkdownProvider("kitesurf", {
+            "api_token":"x", "account_id":"a", "browser":"kitesurf",
+            "page_output":"native_markdown",
+        }).fetch(case, 45)
+        self.assertTrue(result.ok)
+        self.assertEqual(result.content, "![image](asset.png)")
+        self.assertIn("/browser-rendering/markdown?browser=kitesurf",
+                      mock_request.call_args.args[0])
+        self.assertEqual(result.metadata["route"], "browser_rendering_markdown")
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_video_resource_scrape_filters_ordinary_links(
         self, mock_request
     ) -> None:

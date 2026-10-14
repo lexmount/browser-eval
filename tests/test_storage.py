@@ -329,6 +329,7 @@ class FrozenProfileInputsTests(unittest.TestCase):
                      'coverage_plan':{'document':['moli']},'comparison':{'kind':'headless_markdown',
                      'timeout_seconds':45,'runs_per_case':1,'concurrency':1,'conversion':'native',
                      'reference_binding_mode':'frozen_inputs','publication_state':'verified',
+                     'retry_selection':'transient_transport_or_http_failure_only; final_physical_attempt_is_authoritative',
                      'unverified_reference_cases':[],'require_independent_result_review':False}}
             (root/'dataset.json').write_text(json.dumps(dataset))
             row={'attempt_id':'moli__a','provider':'moli','case_id':'a',
@@ -355,6 +356,7 @@ class FrozenProfileInputsTests(unittest.TestCase):
                      'coverage_plan':{'web':['p']},
                      'comparison':{'kind':'headless_markdown','timeout_seconds':45,'runs_per_case':1,
                          'concurrency':1,'conversion':'native','reference_binding_mode':'frozen_inputs',
+                         'retry_selection':'transient_transport_or_http_failure_only; final_physical_attempt_is_authoritative',
                          'publication_state':'verified','unverified_reference_cases':[],
                          'require_independent_result_review':False}}
             (root/'dataset.json').write_text(json.dumps(dataset))

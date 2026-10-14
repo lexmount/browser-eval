@@ -5,7 +5,7 @@
   "case_count": 430,
   "case_ids_sha256": "a81e5406477b6b2d705cedf32cf79d5ba65242fa3e0a839cb1def5ecdab7e05b",
   "providers": [
-    "moli-pr919",
+    "moli-1.1.15",
     "moli-fixed",
     "lightpanda",
     "obscura",
@@ -15,12 +15,13 @@
   "timeout_seconds": 45,
   "runs_per_case": 1,
   "concurrency": 1,
-  "max_failure_retries": 0,
+  "max_failure_retries": 1,
+  "retry_selection": "transient_transport_or_http_failure_only; final_physical_attempt_is_authoritative",
   "conversion": null,
   "reference_binding_mode": "equivalent_reference_bytes_with_independent_batch_captures",
-  "publication_state": "verified",
+  "publication_state": "pre_call_frozen",
   "unverified_reference_cases": [],
-  "require_independent_result_review": false,
+  "require_independent_result_review": true,
   "case_inventory": {
     "web": [
       "static-simple",
@@ -467,31 +468,8 @@
       "risk-diverse-250"
     ]
   },
-  "frozen_inputs": {
-    "dataset_sha256": "67f080b71958c2e7b9dfe0240eab8663e733e3c754eda46250857432e9e16cb2",
-    "auxiliary_sha256": "191192e1994a36ce3fe4001e75d4da4ed45501ab30d593a771ca444ddc899f83"
-  },
-  "evidence_binding": {
-    "schema_version": 1,
-    "kind": "assembled_webfetch_evidence",
-    "files": {
-      "dataset.json": "67f080b71958c2e7b9dfe0240eab8663e733e3c754eda46250857432e9e16cb2",
-      "results.jsonl": "c99eddea915d5c873b464ed66d69f51915df2993059b60ffb0e88ea9a485c77d",
-      "execution.json": "5240ff7e867fbf31545a9f30220f011231efbf5623ee62050c8bb1cee7dda046",
-      "scoring-revisions.json": "7c26223b80aafb11b3193d10b08b34aa2af20d03cd29d97ac3215ce76df7dff3",
-      "provider-replacement-scopes.json": "a6f08d31893b52bbed0997b0dc2ca7cc88497a4dac0cf53df779f471cfb7337d",
-      "reference-revisions.json": "dedd0a45f3383b187c9627422c2d7a260301e51ccf7bd064ad793463bf839585",
-      "resource-cohort/dataset.json": "4806da831ccc5d08014f761385b02fb914eb793a272b883a00155f55db6350d8",
-      "resource-cohort/results.jsonl": "4e6fc43d848fc0b87b62328b912ecfa64a6b0f13482608b67fb2f3c22f349a7e",
-      "resource-cohort/execution.json": "42801d41fb64acdf44b1c11390dca7710a0778aeea4c52c8211875a47ebea16d",
-      "resource-cohort/resource-comparison.json": "2d4056cf4e70d30c71e256ccf43d79530eb4b22371665055036fb9561491fa5c"
-    }
-  },
   "report_output": "reports/browser-native-430",
-  "source_native_dataset_sha256": "3b1aedf8d1027a57148b434cc0eb6636594aa907318fdd9e465ab88725bf8432",
-  "generated_languages": [
-    "zh"
-  ],
+  "source_native_dataset_sha256": "8327cbe175ecbf577ee84090f40908168a751d0b70ebc61b7f0d880b502019af",
   "resource_profile": {
     "required": true,
     "comparison_kind": "headless_client_resource_profile",
@@ -528,5 +506,40 @@
   "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
   "artifact_hub_site": "jGXOOJwkdBK_",
   "artifact_hub_expected_version": "ver_e7d5d84083f54d96a2e384f5c747384a",
-  "artifact_hub_share_url": "https://artifact-site.lexmount.cn/v/IqGpMUYHWat-dw4n8usQttTptoPzboAo"
+  "artifact_hub_share_url": "https://artifact-site.lexmount.cn/v/IqGpMUYHWat-dw4n8usQttTptoPzboAo",
+  "rerun_scope": {
+    "path": "evaluation/browser-native-430/rerun-scope.json",
+    "sha256": "79b5f4f2b97ea31846ecc677224c6e845a5ed3d368e756a4a831a3ac99b53663"
+  },
+  "method_sources": {
+    "moli-1.1.15": {
+      "version": "1.1.15",
+      "binary_sha256": "7a53cdd071ae60a2f8ff6d08107f67f6b0f1d6247a9acd970d2bcec77ff15b50",
+      "source": "https://github.com/lexmount/moli/releases/tag/v1.1.15"
+    },
+    "moli-fixed": {
+      "source_commit": "884103830c5443068b73f0b3faa0a528e4550581",
+      "pull_request": "https://github.com/lexmount/moli/pull/1501",
+      "binary_sha256": null,
+      "identity_state": "awaiting_ci_release_artifact"
+    },
+    "lightpanda": {
+      "version": "1.0.0",
+      "binary_sha256": "955440053a84754dd64c62f970449a56a2b350cdf43ea5f2e809a73047b8173d"
+    },
+    "obscura": {
+      "version": "0.2.4",
+      "binary_sha256": "04c02e6b826cb96de2136ad3c6931c6ec3cf87b6912b3d50191a5d00dbecda13",
+      "native_markdown_script_sha256": "3c4569cc616fe395748a718026d401e3337596a05f8fa05eec8a5d63d7164fc5"
+    },
+    "chromium": {
+      "version": "155.0.8059.39",
+      "binary_sha256": "316795971c05d253320fcc574168aa8ae7782eae9beb540e0595ebbd654ab965",
+      "converter": "node-html-markdown 2.0.0"
+    },
+    "kitesurf": {
+      "product": "Cloudflare Browser Run /markdown · Kitesurf Beta",
+      "server_build": "not_exposed"
+    }
+  }
 }

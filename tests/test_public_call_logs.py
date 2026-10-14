@@ -167,8 +167,10 @@ class PublicCallLogTests(unittest.TestCase):
 
             def fetch(self, case, timeout):
                 self.calls += 1
-                return ProviderResult(True, "wrong" if self.calls == 1 else "Expected",
-                                      metadata={"route": "best_route"})
+                if self.calls == 1:
+                    return ProviderResult(False, "", error_type="network",
+                                          metadata={"route": "best_route"})
+                return ProviderResult(True, "Expected", metadata={"route": "best_route"})
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

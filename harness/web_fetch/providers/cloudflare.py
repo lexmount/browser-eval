@@ -319,7 +319,11 @@ class CloudflareMarkdownProvider(Provider):
     def _fetch_payload(self, case: EvalCase, timeout: float, request_body: dict) -> ProviderResult:
         account_id = str(self.config.get("account_id", ""))
         http_timeout = inner_timeout_budget(timeout, native_default=bool(self.config.get("uniform_native_parameters")))
-        if case.task_kind == "resource" and case.track in {"image", "video"}:
+        if (
+            case.task_kind == "resource"
+            and case.track in {"image", "video"}
+            and self.config.get("page_output") != "native_markdown"
+        ):
             return self._fetch_media_resources(
                 case,
                 account_id=account_id,

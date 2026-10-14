@@ -31,27 +31,31 @@ from harness.web_fetch.runner import run_evaluation
 
 
 class NativeMetadataTests(unittest.TestCase):
-    def test_kitesurf_page_tasks_share_native_projection_and_cdp_completion(self):
-        from harness.web_fetch.task_outputs import resource_expression, DOCUMENT_PAGE_EXPRESSION, MEDIA_METADATA_EXPRESSION
-        for track,kind,url,expression in (
-            ('image','resource','https://example.com/',resource_expression('image')),
-            ('video','resource','https://example.com/',resource_expression('video')),
-            ('document','body','https://example.com/viewer/',DOCUMENT_PAGE_EXPRESSION),
-            ('video','body','https://example.com/watch',MEDIA_METADATA_EXPRESSION),
+    def test_kitesurf_page_deliverables_use_the_native_markdown_endpoint(self):
+        from harness.web_fetch.models import ProviderResult
+        for track,kind,url in (
+            ('image','resource','https://example.com/'),
+            ('video','resource','https://example.com/'),
+            ('document','body','https://example.com/viewer/'),
+            ('video','body','https://example.com/watch'),
         ):
             with self.subTest(track=track,kind=kind):
                 provider=HeadlessProvider('kitesurf',{'type':'headless_markdown','engine':'kitesurf',
                     'account_id':'account','api_token':'token','wait_until':'networkidle2'})
                 case=EvalCase('case','Case',url,'public',[],track=track,task_kind=kind)
-                raw=json.dumps({'ok':True,'content':'public output','metadata':{}}).encode()
-                with patch.object(provider,'_run_local_worker',return_value=(raw,'',None,0,len(raw),0)) as worker, \
-                        patch('harness.web_fetch.providers.cloudflare.CloudflareMarkdownProvider.fetch',side_effect=AssertionError('Top-level scrape loses frame content')):
+                native=ProviderResult(True,'public Markdown',metadata={
+                    'route':'browser_rendering_markdown',
+                    'extractor':'cloudflare_native_markdown',
+                    'browser':'kitesurf',
+                })
+                with patch.object(provider,'_run_local_worker',side_effect=AssertionError('CDP projection is forbidden')) as worker, \
+                        patch('harness.web_fetch.providers.cloudflare.CloudflareMarkdownProvider.fetch',return_value=native) as markdown:
                     result=provider.fetch(case,45)
-                request=worker.call_args.args[1]
-                self.assertEqual(request['wait_until'],'load')
-                self.assertFalse(request['remote_markdown_api'])
-                self.assertIn('browser=kitesurf',request['endpoint'])
-                self.assertEqual(result.metadata['output_projection_sha256'],hashlib.sha256(expression.encode()).hexdigest())
+                worker.assert_not_called()
+                markdown.assert_called_once_with(case,45)
+                self.assertEqual(result.content,'public Markdown')
+                self.assertEqual(result.metadata['extractor'],'cloudflare_native_markdown')
+                self.assertNotIn('output_projection_sha256',result.metadata)
 
     def test_native_envelope_preserves_content_and_actual_destination(self):
         from types import SimpleNamespace

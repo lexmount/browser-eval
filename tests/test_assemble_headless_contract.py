@@ -35,18 +35,20 @@ class ProviderRequestContractTests(unittest.TestCase):
         }
         self.assertEqual(_provider_request_contract(case, "crawl4ai"), case)
 
-    def test_named_native_contract_changes_only_its_declared_case_request(self):
-        ordinary = {"id": "ordinary", "url": "https://example.test/",
+    def test_native_dataset_removes_named_contracts_before_request_binding(self):
+        from harness.web_fetch.retrieval_hints import native_fetch_dataset
+        source = {"tool": "web_fetch", "cases": [
+            {"id": "arbitrary", "url": "https://example.test/", "track": "dynamic",
+             "retrieval_hints": {"version": 3, "mode": "native",
+                                  "contract": "case-specific-contract"}},
+        ]}
+        selected = native_fetch_dataset(source)["cases"][0]
+        expected = {"id": "arbitrary", "url": "https://example.test/", "track": "dynamic",
                     "retrieval_hints": {"version": 3, "mode": "native"}}
-        self.assertEqual(_provider_request_contract(ordinary, "moli-webfetch"), ordinary)
-        before = {"id": "dynamic-delayed", "url": "https://example.test/",
-                  "retrieval_hints": {"version": 3, "mode": "native"}}
-        after = {**before, "retrieval_hints": {"version": 3, "mode": "native",
-                                                "contract": "delayed-ten-records"}}
         for provider in ("moli-webfetch", "moli-pr919-webfetch", "lightpanda",
                          "obscura", "chromium", "kitesurf"):
-            self.assertNotEqual(_provider_request_contract(before, provider),
-                                _provider_request_contract(after, provider))
+            self.assertEqual(_provider_request_contract(selected, provider),
+                             _provider_request_contract(expected, provider))
 
 
 if __name__ == "__main__":

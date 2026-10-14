@@ -34,6 +34,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, dict]:
         "runs_per_case": 1,
         "concurrency": 1,
         "max_failure_retries": 0,
+        "retry_selection": "transient_transport_or_http_failure_only; final_physical_attempt_is_authoritative",
         "require_independent_result_review": False,
         "reference_binding_mode": "frozen_inputs",
         "report_output": "reports/combined",
@@ -264,6 +265,8 @@ def test_registered_430_assembly_uses_current_sources_and_four_contracts(tmp_pat
     from harness.web_fetch.config import load_dataset
 
     definition = json.loads(ASSEMBLY.read_text(encoding="utf-8"))
+    assert definition["schema_version"] == 3
+    assert definition["native_retrieval_policy"] == "uniform_dynamic_native_v1"
     for source in definition["sources"]:
         raw = read_frozen_dataset_bytes(ROOT / source["path"])
         assert hashlib.sha256(raw).hexdigest() == source["sha256"]
@@ -336,18 +339,45 @@ def test_registered_430_assembly_uses_current_sources_and_four_contracts(tmp_pat
     )
     assert corrected_risk["composite_acceptance"]["groups"][0]["start_pattern"]
     assert corrected_risk["composite_acceptance"]["groups"][0]["end_pattern"]
-    contracts = {
-        case["id"]: case["retrieval_hints"]["contract"]
+    dynamic_hints = {
+        case["id"]: case["retrieval_hints"]
         for case in dataset["cases"]
-        if case.get("retrieval_hints", {}).get("contract")
+        if case.get("track") == "dynamic"
     }
-    assert contracts == {
-        "dynamic-015-015-testpages-iframe-list": "iframe-list-one-hundred-items",
-        "dynamic-019-selenium-dev-selenium": "iframe-one-form",
-        "dynamic-iframe": "iframe-fourteen-family-headings",
-        "dynamic-delayed": "delayed-ten-records",
+    assert len(dynamic_hints) == 100
+    assert set(map(json.dumps, dynamic_hints.values())) == {
+        json.dumps({"version": 3, "mode": "native"})
     }
     output = tmp_path / "assembled-dataset.json"
     output.write_bytes(raw)
     _metadata, cases = load_dataset(output)
     assert len(cases) == 430
+
+
+def test_registered_430_profile_uses_official_release_and_frozen_minimal_reruns():
+    profile = json.loads((ROOT / "evaluation/browser-native-430/current-report.json").read_text())
+    assert profile["providers"] == [
+        "moli-1.1.15", "moli-fixed", "lightpanda", "obscura", "chromium", "kitesurf"
+    ]
+    assert profile["method_sources"]["moli-1.1.15"] == {
+        "version": "1.1.15",
+        "binary_sha256": "7a53cdd071ae60a2f8ff6d08107f67f6b0f1d6247a9acd970d2bcec77ff15b50",
+        "source": "https://github.com/lexmount/moli/releases/tag/v1.1.15",
+    }
+    assert profile["method_sources"]["moli-fixed"]["source_commit"] == (
+        "884103830c5443068b73f0b3faa0a528e4550581"
+    )
+    binding = profile["rerun_scope"]
+    path = ROOT / binding["path"]
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == binding["sha256"]
+    scope = json.loads(path.read_text())
+    assert scope["provider_calls_at_freeze"] == 0
+    assert scope["logical_new_calls"] == 651
+    assert scope["execution_groups"] == {
+        "new_identity_or_route_calls": 526,
+        "inherited_transient_followups": 125,
+    }
+    assert scope["methods"]["moli-fixed"]["case_count"] == 430
+    assert scope["methods"]["moli-1.1.15"]["case_count"] == 20
+    assert scope["source_results"][0]["selected_provider"] == "moli"
+    assert scope["source_results"][0]["method_scope"] == ["moli-1.1.15"]
