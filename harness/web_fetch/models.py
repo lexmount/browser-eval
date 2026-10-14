@@ -8,7 +8,7 @@ from .safety import safe_identifier, validate_http_url
 
 TASK_KINDS = ('body', 'structure', 'resource', 'file')
 TRACKS = {
-    'web': '静态网站正文', 'dynamic': '动态网站正文', 'challenge': '热门网站正文',
+    'web': '普通网页正文', 'dynamic': '动态网站正文', 'challenge': '热门网站正文',
     'risk_control': '风控网页正文',
     'document': '文档正文', 'image': '图片获取', 'video': '视频获取',
 }
