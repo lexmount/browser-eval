@@ -24,14 +24,18 @@ class Tables(HTMLParser):
         self.in_th = False
         self.first = False
         self.headers = []
+        self.unindexed_headers = []
+        self.unindexed = False
 
     def handle_starttag(self, tag, attrs):
         if tag == "table":
             self.first = True
+            self.unindexed = dict(attrs).get('data-row-index') == 'false'
         if tag == "th" and self.first:
             self.in_th = True
             self.first = False
             self.headers.append("")
+            self.unindexed_headers.append(self.unindexed)
 
     def handle_data(self, text):
         if self.in_th:
@@ -40,6 +44,15 @@ class Tables(HTMLParser):
     def handle_endtag(self, tag):
         if tag == "th":
             self.in_th = False
+
+
+def require_table_index_headers(parser, *, english=False, diagnostic=False):
+    expected = 'No.' if english else '序号'
+    for header, unindexed in zip(parser.headers, parser.unindexed_headers):
+        if diagnostic and unindexed and header in {'方法', '方法 ↕', 'Method', 'Method ↕'}:
+            continue
+        if header != expected:
+            raise ValueError('Unexpected table index header: ' + header)
 
 
 class VisibleText(HTMLParser):
@@ -489,9 +502,8 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         parser.feed(text)
         relative_parts = p.relative_to(root).parts
         if "browser-use" not in relative_parts:
-            expected_index_header = "No." if relative_parts[0] == "en" else "序号"
-            if not all(h == expected_index_header for h in parser.headers):
-                raise ValueError((p, parser.headers))
+            require_table_index_headers(parser, english=relative_parts[0] == 'en',
+                                        diagnostic=local_measurement)
         if p.parent.name == "attempts":
             record = next(r for r in rs if r["attempt_id"] == p.stem)
             case = case_by_id[record["case_id"]]
