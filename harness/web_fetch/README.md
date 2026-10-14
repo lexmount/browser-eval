@@ -583,10 +583,12 @@ dynamic examples are fixed demonstration data delivered after loading; popular
 rankings and catalogs change frequently. Annotate fields, not whole websites:
 
 - Stable document titles, headings and instructions can be explicit
-  `stable_text_anchors`. Alternatives may express the same frozen content in
-  equivalent formatting; they must not accept different regional, historical,
-  or redesigned page bodies. DNS, redirects, access failures, and variant page
-  responses are retrieval outcomes, not reasons to add acceptable answers.
+  `stable_text_anchors`. Every alternative must be grounded in the same frozen
+  page and declared content scope. Formatting variants and explicitly
+  interchangeable statements within that page are allowed; alternatives must
+  not accept different regional, historical, or redesigned page bodies. DNS,
+  redirects, access failures, and variant page responses are retrieval
+  outcomes, not reasons to add acceptable answers.
   Fix a wrong source or reference only from independent evidence. A change to
   the target URL requires new calls for every affected method; retain the old
   task and calls as historical evidence.

@@ -2837,6 +2837,881 @@
         ]
       },
       "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "china-homepage-089-yuque-com",
+      "expected_definition_sha256": "54a9ac13bc98bdcad886dea102e6b82af94fc6841776b50460ddf83716defe77",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-anchor-1",
+              "alternatives": [
+                "画板"
+              ]
+            },
+            {
+              "id": "stable-anchor-2",
+              "alternatives": [
+                "互动交流"
+              ]
+            },
+            {
+              "id": "stable-anchor-3",
+              "alternatives": [
+                "文档协同"
+              ]
+            },
+            {
+              "id": "stable-anchor-4",
+              "alternatives": [
+                "权限管理"
+              ]
+            },
+            {
+              "id": "stable-anchor-5",
+              "alternatives": [
+                "特色卡片"
+              ]
+            },
+            {
+              "id": "stable-anchor-6",
+              "alternatives": [
+                "目录编排"
+              ]
+            },
+            {
+              "id": "stable-anchor-7",
+              "alternatives": [
+                "知识管理"
+              ]
+            },
+            {
+              "id": "stable-anchor-8",
+              "alternatives": [
+                "个人免费使用"
+              ]
+            },
+            {
+              "id": "stable-anchor-9",
+              "alternatives": [
+                "团队免费使用"
+              ]
+            },
+            {
+              "id": "stable-anchor-10",
+              "alternatives": [
+                "组件化编辑器"
+              ]
+            },
+            {
+              "id": "stable-anchor-11",
+              "alternatives": [
+                "专业好用的编辑器"
+              ]
+            },
+            {
+              "id": "stable-anchor-12",
+              "alternatives": [
+                "像书一样的知识库"
+              ]
+            },
+            {
+              "id": "stable-anchor-13",
+              "alternatives": [
+                "Edge 插件"
+              ]
+            },
+            {
+              "id": "stable-anchor-14",
+              "alternatives": [
+                "Chrome 插件"
+              ]
+            },
+            {
+              "id": "stable-anchor-15",
+              "alternatives": [
+                "Help Center"
+              ]
+            },
+            {
+              "id": "stable-anchor-16",
+              "alternatives": [
+                "Security"
+              ]
+            },
+            {
+              "id": "stable-anchor-17",
+              "alternatives": [
+                "Terms"
+              ]
+            },
+            {
+              "id": "stable-anchor-18",
+              "alternatives": [
+                "Join us"
+              ]
+            },
+            {
+              "id": "stable-anchor-19",
+              "alternatives": [
+                "Pricing"
+              ]
+            },
+            {
+              "id": "stable-anchor-20",
+              "alternatives": [
+                "Support"
+              ]
+            },
+            {
+              "id": "stable-anchor-23",
+              "alternatives": [
+                "Download"
+              ]
+            },
+            {
+              "id": "stable-anchor-24",
+              "alternatives": [
+                "Feedback"
+              ]
+            },
+            {
+              "id": "stable-anchor-26",
+              "alternatives": [
+                "Developer"
+              ]
+            },
+            {
+              "id": "stable-anchor-27",
+              "alternatives": [
+                "Contact us"
+              ]
+            },
+            {
+              "id": "stable-anchor-28",
+              "alternatives": [
+                "Media reports"
+              ]
+            },
+            {
+              "id": "stable-anchor-29",
+              "alternatives": [
+                "Product information"
+              ]
+            },
+            {
+              "id": "stable-anchor-31",
+              "alternatives": [
+                "Login / Register"
+              ]
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "sha256:b25d34580413cd6303983e5d4f12cbcdceaee759191b9172f8f5776a448f3809",
+        "observed_at": "2026-10-14",
+        "observed_text": "The bound Yuque first-load stable page contains Download and does not contain 下载.",
+        "root_cause": "unobserved_locale_alternative",
+        "prior_acceptance_contract_sha256": "96aa435b978f38687adaf8b2457a7ddb03f44563300de83d35dac1d24e506403",
+        "revised_acceptance_contract_sha256": "2c62fcdf17a79c733c3b476dfec488cea2d29d9d7f3190d88aaa73796049d730",
+        "affected_scope": "china-homepage-089-yuque-com across all registered methods; offline rescore only",
+        "regression_ids": [
+          "frozen-localized-homepage-anchor-passes",
+          "other-locale-homepage-copy-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "global-homepage-008-whatsapp-com",
+      "expected_definition_sha256": "7ee2656ed20ae532286dd7c9029aa79d72602ef1b26fbae7f86a34567d0b67ea",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "current-stable-c737a59e7210",
+              "alternatives": [
+                "私密地收发消息"
+              ],
+              "source_evidence_sha256": "3d379cb138e21709683e314d07bac7576279bfedea8796af61c4baecbaff0584"
+            },
+            {
+              "id": "current-stable-8a47066bf393",
+              "alternatives": [
+                "下载"
+              ],
+              "source_evidence_sha256": "3d379cb138e21709683e314d07bac7576279bfedea8796af61c4baecbaff0584"
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "sha256:3d379cb138e21709683e314d07bac7576279bfedea8796af61c4baecbaff0584",
+        "observed_at": "2026-10-14",
+        "observed_text": "Both bound anonymous first-load observations contain 私密地收发消息 and 下载; the English counterparts are not part of this frozen page.",
+        "root_cause": "unobserved_locale_alternative",
+        "prior_acceptance_contract_sha256": "7951b8874e5cc12a0ada7a3563c7a3bdad438dcc35381c2568c4671db4875163",
+        "revised_acceptance_contract_sha256": "683faa04905df0b3838e3ec208239b4f14b0f430aaeab455419509eaea173ab4",
+        "affected_scope": "global-homepage-008-whatsapp-com across all registered methods; offline rescore only",
+        "regression_ids": [
+          "frozen-localized-homepage-anchor-passes",
+          "other-locale-homepage-copy-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "china-homepage-012-feishu-cn",
+      "expected_definition_sha256": "b11303b1cccafbd5933c46e5f3de52c6b31e711efbc5599ca044fe73e8c469ba",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-anchor-1",
+              "alternatives": [
+                "定价"
+              ]
+            },
+            {
+              "id": "stable-anchor-2",
+              "alternatives": [
+                "审批"
+              ]
+            },
+            {
+              "id": "stable-anchor-3",
+              "alternatives": [
+                "邮箱"
+              ]
+            },
+            {
+              "id": "stable-anchor-4",
+              "alternatives": [
+                "云文档"
+              ]
+            },
+            {
+              "id": "stable-anchor-5",
+              "alternatives": [
+                "知识库"
+              ]
+            },
+            {
+              "id": "stable-anchor-6",
+              "alternatives": [
+                "下载飞书"
+              ]
+            },
+            {
+              "id": "stable-anchor-7",
+              "alternatives": [
+                "产品功能"
+              ]
+            },
+            {
+              "id": "stable-anchor-8",
+              "alternatives": [
+                "企业服务"
+              ]
+            },
+            {
+              "id": "stable-anchor-9",
+              "alternatives": [
+                "关于飞书"
+              ]
+            },
+            {
+              "id": "stable-anchor-10",
+              "alternatives": [
+                "加入我们"
+              ]
+            },
+            {
+              "id": "stable-anchor-11",
+              "alternatives": [
+                "协同办公"
+              ]
+            },
+            {
+              "id": "stable-anchor-12",
+              "alternatives": [
+                "博客中心"
+              ]
+            },
+            {
+              "id": "stable-anchor-13",
+              "alternatives": [
+                "即时消息"
+              ]
+            },
+            {
+              "id": "stable-anchor-14",
+              "alternatives": [
+                "友情链接"
+              ]
+            },
+            {
+              "id": "stable-anchor-15",
+              "alternatives": [
+                "合作伙伴"
+              ]
+            },
+            {
+              "id": "stable-anchor-16",
+              "alternatives": [
+                "多维表格"
+              ]
+            },
+            {
+              "id": "stable-anchor-17",
+              "alternatives": [
+                "安全合规"
+              ]
+            },
+            {
+              "id": "stable-anchor-18",
+              "alternatives": [
+                "帮助中心"
+              ]
+            },
+            {
+              "id": "stable-anchor-19",
+              "alternatives": [
+                "应用目录"
+              ]
+            },
+            {
+              "id": "stable-anchor-20",
+              "alternatives": [
+                "开放平台"
+              ]
+            },
+            {
+              "id": "stable-anchor-21",
+              "alternatives": [
+                "技术支持"
+              ]
+            },
+            {
+              "id": "stable-anchor-22",
+              "alternatives": [
+                "探索飞书"
+              ]
+            },
+            {
+              "id": "stable-anchor-23",
+              "alternatives": [
+                "更新日志"
+              ]
+            },
+            {
+              "id": "stable-anchor-24",
+              "alternatives": [
+                "服务协议"
+              ]
+            },
+            {
+              "id": "stable-anchor-25",
+              "alternatives": [
+                "查看案例"
+              ]
+            },
+            {
+              "id": "stable-anchor-26",
+              "alternatives": [
+                "管理后台"
+              ]
+            },
+            {
+              "id": "stable-anchor-27",
+              "alternatives": [
+                "组织管理"
+              ]
+            },
+            {
+              "id": "stable-anchor-28",
+              "alternatives": [
+                "联系我们"
+              ]
+            },
+            {
+              "id": "stable-anchor-29",
+              "alternatives": [
+                "联系销售"
+              ]
+            },
+            {
+              "id": "stable-anchor-30",
+              "alternatives": [
+                "营业执照"
+              ]
+            },
+            {
+              "id": "stable-anchor-31",
+              "alternatives": [
+                "视频会议"
+              ]
+            },
+            {
+              "id": "stable-anchor-32",
+              "alternatives": [
+                "解决方案"
+              ]
+            },
+            {
+              "id": "stable-anchor-33",
+              "alternatives": [
+                "隐私政策"
+              ]
+            },
+            {
+              "id": "stable-anchor-34",
+              "alternatives": [
+                "飞书人事"
+              ]
+            },
+            {
+              "id": "stable-anchor-35",
+              "alternatives": [
+                "飞书招聘"
+              ]
+            },
+            {
+              "id": "stable-anchor-36",
+              "alternatives": [
+                "飞书绩效"
+              ]
+            },
+            {
+              "id": "stable-anchor-37",
+              "alternatives": [
+                "飞书项目"
+              ]
+            },
+            {
+              "id": "stable-anchor-38",
+              "alternatives": [
+                "举报与反馈"
+              ]
+            },
+            {
+              "id": "stable-anchor-39",
+              "alternatives": [
+                "飞书 AI"
+              ]
+            },
+            {
+              "id": "stable-anchor-40",
+              "alternatives": [
+                "智能会议纪要"
+              ]
+            },
+            {
+              "id": "stable-anchor-41",
+              "alternatives": [
+                "字节跳动旗下 AI 工作平台"
+              ]
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "sha256:84297664cc2d46a139129346600d069a87a06ce7d042d42eb57d23b41fb04c40",
+        "observed_at": "2026-10-14",
+        "observed_text": "The bound Feishu first-load stable page contains 查看案例 and does not contain the expanded rewording 了解更多客户案例.",
+        "root_cause": "unobserved_semantic_rewording",
+        "prior_acceptance_contract_sha256": "4626943810fb826fa3b907134a4ffe720a29e2d5d436139c920d9197d590318a",
+        "revised_acceptance_contract_sha256": "a96123b755c7cd8c2d42e2115c579c06064a7b7859e34b6f5a6682bcbeb0c2f8",
+        "affected_scope": "china-homepage-012-feishu-cn across all registered methods; offline rescore only",
+        "regression_ids": [
+          "source-attested-homepage-label-passes",
+          "unattested-homepage-rewording-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "risk-diverse-153",
+      "expected_definition_sha256": "9857521a0b6a1ec9b2a80313f994346b68c942524b45ffdbf4531c7811acdad3",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-01",
+              "alternatives": [
+                "教材《C++版信息学奥赛一本通编程启蒙》题单"
+              ]
+            },
+            {
+              "id": "stable-02",
+              "alternatives": [
+                "登录以参加训练计划",
+                "Login to join training plan"
+              ]
+            },
+            {
+              "id": "stable-03",
+              "alternatives": [
+                "题目",
+                "Problem"
+              ]
+            },
+            {
+              "id": "stable-04",
+              "alternatives": [
+                "尝试",
+                "Tried"
+              ]
+            },
+            {
+              "id": "stable-05",
+              "alternatives": [
+                "AC"
+              ]
+            },
+            {
+              "id": "stable-06",
+              "alternatives": [
+                "难度",
+                "Difficulty"
+              ]
+            },
+            {
+              "id": "stable-07",
+              "alternatives": [
+                "首页"
+              ]
+            },
+            {
+              "id": "stable-08",
+              "alternatives": [
+                "题库"
+              ]
+            },
+            {
+              "id": "stable-09",
+              "alternatives": [
+                "训练"
+              ]
+            },
+            {
+              "id": "stable-10",
+              "alternatives": [
+                "比赛"
+              ]
+            },
+            {
+              "id": "stable-11",
+              "alternatives": [
+                "评测记录"
+              ]
+            },
+            {
+              "id": "stable-12",
+              "alternatives": [
+                "排名"
+              ]
+            },
+            {
+              "id": "stable-13",
+              "alternatives": [
+                "登录"
+              ]
+            },
+            {
+              "id": "stable-14",
+              "alternatives": [
+                "注册"
+              ]
+            },
+            {
+              "id": "stable-15",
+              "alternatives": [
+                "Language"
+              ]
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "research/risk-control-navigation-language-revision.json",
+        "observed_at": "2026-10-14",
+        "observed_text": "The English navigation labels were observed only after Language → English. English login and table labels from the untouched first load remain valid.",
+        "root_cause": "interactive_locale_state_added_to_no_interaction_contract",
+        "prior_acceptance_contract_sha256": "a567f0a71c3e7718f3c37af7ee62ebb6c375de74e50c4c7d46d9e718657b09f4",
+        "revised_acceptance_contract_sha256": "40b7f12b2ed32521482d2c734bf4cb5c57380a6286f9a69b5dde5270c12a6e1e",
+        "affected_scope": "risk-diverse-153 across all registered methods; offline rescore only",
+        "regression_ids": [
+          "first-load-mixed-language-controls-pass",
+          "clicked-locale-navigation-does-not-pass-first-load-contract"
+        ],
+        "first_load_observation_sha256": "479116ad4cdca847c460bc41690dee7f7dd6a7e21d07e2bf8d2e32d24f9b6687"
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "live-037-breadcrumb",
+      "expected_definition_sha256": "418e6f2b5bdd966d38e42f415c63ab22adf4b70e03daf66cf418b9ecfc984bcf",
+      "set": {
+        "required_facts": [
+          {
+            "id": "page-purpose",
+            "alternatives": [
+              "NOAA experts provide data, tools and information to help people understand, prepare for and adapt to our changing climate."
+            ]
+          },
+          {
+            "id": "climate-destination-drought",
+            "alternatives": [
+              "Drought.gov"
+            ]
+          },
+          {
+            "id": "climate-destination-heat",
+            "alternatives": [
+              "Heat.gov"
+            ]
+          },
+          {
+            "id": "focus-area-1",
+            "alternatives": [
+              "Education"
+            ]
+          },
+          {
+            "id": "focus-area-2",
+            "alternatives": [
+              "Sanctuaries"
+            ]
+          },
+          {
+            "id": "focus-area-3",
+            "alternatives": [
+              "Charting"
+            ]
+          },
+          {
+            "id": "focus-area-4",
+            "alternatives": [
+              "Marine & Aviation"
+            ]
+          },
+          {
+            "id": "focus-area-5",
+            "alternatives": [
+              "Research"
+            ]
+          },
+          {
+            "id": "focus-area-6",
+            "alternatives": [
+              "Satellites"
+            ]
+          },
+          {
+            "id": "focus-area-7",
+            "alternatives": [
+              "Fisheries"
+            ]
+          },
+          {
+            "id": "focus-area-8",
+            "alternatives": [
+              "Ocean & Coasts"
+            ]
+          },
+          {
+            "id": "focus-area-9",
+            "alternatives": [
+              "Weather"
+            ]
+          }
+        ],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "page-purpose",
+              "alternatives": [
+                "NOAA experts provide data, tools and information to help people understand, prepare for and adapt to our changing climate."
+              ]
+            },
+            {
+              "id": "climate-destination-drought",
+              "alternatives": [
+                "Drought.gov"
+              ]
+            },
+            {
+              "id": "climate-destination-heat",
+              "alternatives": [
+                "Heat.gov"
+              ]
+            },
+            {
+              "id": "focus-area-1",
+              "alternatives": [
+                "Education"
+              ]
+            },
+            {
+              "id": "focus-area-2",
+              "alternatives": [
+                "Sanctuaries"
+              ]
+            },
+            {
+              "id": "focus-area-3",
+              "alternatives": [
+                "Charting"
+              ]
+            },
+            {
+              "id": "focus-area-4",
+              "alternatives": [
+                "Marine & Aviation"
+              ]
+            },
+            {
+              "id": "focus-area-5",
+              "alternatives": [
+                "Research"
+              ]
+            },
+            {
+              "id": "focus-area-6",
+              "alternatives": [
+                "Satellites"
+              ]
+            },
+            {
+              "id": "focus-area-7",
+              "alternatives": [
+                "Fisheries"
+              ]
+            },
+            {
+              "id": "focus-area-8",
+              "alternatives": [
+                "Ocean & Coasts"
+              ]
+            },
+            {
+              "id": "focus-area-9",
+              "alternatives": [
+                "Weather"
+              ]
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "sha256:ab62f0273ab9f9b792c99d2d021bb1fe7f6ff7fcf6af9935de7b65cc4443d2e8",
+        "observed_at": "2026-10-14",
+        "observed_text": "The frozen NOAA Quick links section contains both Drought.gov and Heat.gov; they are two required facts, not interchangeable wording.",
+        "root_cause": "independent_same_document_facts_encoded_as_alternatives",
+        "prior_acceptance_contract_sha256": "519a62e1fc110a4eb78a2b61bdf2025f718ca852527a6e66f75abdc9f27210d4",
+        "revised_acceptance_contract_sha256": "88400b366e26d490bbe7e32999e048c439fc522bdfbd1d7931b508ff07ede7c4",
+        "affected_scope": "live-037-breadcrumb across all registered methods; offline rescore only",
+        "regression_ids": [
+          "same-document-required-links-both-pass",
+          "one-of-two-same-document-links-does-not-pass"
+        ],
+        "prior_required_facts_sha256": "681bf012d0d9605cae6466d9fa2004a255570b868e091222ca3ff7efd4ce7497",
+        "revised_required_facts_sha256": "604d1d6dadde50f2587ff868d5e43114767a83eaac6b76d9bbccd52df389499a"
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "cowagent-doc",
+      "expected_definition_sha256": "e4b165a4f5ea4b652a3d8fad8980106382cb65429342ea4a61753a8b30180015",
+      "set": {
+        "required_facts": [
+          {
+            "id": "tool-name",
+            "alternatives": [
+              "web_fetch",
+              "Web Fetch"
+            ]
+          },
+          {
+            "id": "url-input",
+            "alternatives": [
+              "url",
+              "URL"
+            ]
+          },
+          {
+            "id": "purpose",
+            "alternatives": [
+              "获取网页或文档内容",
+              "获取 HTTP/HTTPS URL 的内容",
+              "获取网页的文本内容"
+            ]
+          }
+        ],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "tool-name",
+              "alternatives": [
+                "web_fetch",
+                "Web Fetch"
+              ]
+            },
+            {
+              "id": "url-input",
+              "alternatives": [
+                "url",
+                "URL"
+              ]
+            },
+            {
+              "id": "purpose",
+              "alternatives": [
+                "获取网页或文档内容",
+                "获取 HTTP/HTTPS URL 的内容",
+                "获取网页的文本内容"
+              ]
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "sha256:6d63269cfe683cd215e564852909f903c97d33fc7a01495421670ab7fe0c2591",
+        "observed_at": "2026-10-14",
+        "observed_text": "The frozen CowAgent document contains three complete purpose statements. 网页正文 is absent and 获取网页 is only a shared stem.",
+        "root_cause": "partial_stem_and_unattested_paraphrase_as_fact",
+        "prior_acceptance_contract_sha256": "10a24239eb07621417899cca0ddea18d52d29bd75b8403b6f419d8a6bc791496",
+        "revised_acceptance_contract_sha256": "8d01040116527d4d94873122337c8b4dacbce293861014d12be680135c6f7d17",
+        "affected_scope": "cowagent-doc across all registered methods; offline rescore only",
+        "regression_ids": [
+          "source-attested-purpose-statement-passes",
+          "purpose-stem-or-unattested-paraphrase-does-not-pass"
+        ],
+        "prior_required_facts_sha256": "bcafdf681d344d70301ddfc46ab59bd7090b24c9b0885c25e8f8b96ba88adbef",
+        "revised_required_facts_sha256": "61a34d8eb978a4c961ba4759170b705bd57118be17559af5350af2c35b4066ba"
+      },
+      "execution_effect": "rescore_only"
     }
   ]
 }

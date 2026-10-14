@@ -392,6 +392,46 @@ def test_registered_430_assembly_uses_current_sources_and_four_contracts(tmp_pat
     assert len(cases) == 430
 
 
+def test_registered_430_assembly_keeps_only_frozen_first_load_alternatives():
+    dataset, _raw = assemble_profile_dataset(ASSEMBLY)
+    cases = {case["id"]: case for case in dataset["cases"]}
+
+    def alternatives(case_id: str, anchor_id: str) -> list[str]:
+        anchors = cases[case_id]["acceptance_contract"]["stable_text_anchors"]
+        return next(anchor["alternatives"] for anchor in anchors if anchor["id"] == anchor_id)
+
+    assert alternatives("china-homepage-089-yuque-com", "stable-anchor-23") == ["Download"]
+    assert alternatives(
+        "global-homepage-008-whatsapp-com", "current-stable-c737a59e7210"
+    ) == ["私密地收发消息"]
+    assert alternatives(
+        "global-homepage-008-whatsapp-com", "current-stable-8a47066bf393"
+    ) == ["下载"]
+    assert alternatives("china-homepage-012-feishu-cn", "stable-anchor-25") == [
+        "查看案例"
+    ]
+
+    # English table labels were independently observed on the untouched first load;
+    # only navigation labels introduced by clicking Language -> English are excluded.
+    assert alternatives("risk-diverse-153", "stable-03") == ["题目", "Problem"]
+    assert alternatives("risk-diverse-153", "stable-07") == ["首页"]
+    assert alternatives("risk-diverse-153", "stable-14") == ["注册"]
+
+    noaa_facts = {fact["id"]: fact for fact in cases["live-037-breadcrumb"]["required_facts"]}
+    assert noaa_facts["climate-destination-drought"]["alternatives"] == ["Drought.gov"]
+    assert noaa_facts["climate-destination-heat"]["alternatives"] == ["Heat.gov"]
+    assert "climate-destinations" not in noaa_facts
+
+    cowagent_purpose = next(
+        fact for fact in cases["cowagent-doc"]["required_facts"] if fact["id"] == "purpose"
+    )
+    assert cowagent_purpose["alternatives"] == [
+        "获取网页或文档内容",
+        "获取 HTTP/HTTPS URL 的内容",
+        "获取网页的文本内容",
+    ]
+
+
 def test_registered_m365_reference_uses_one_current_body_version():
     from harness.web_fetch.metrics import task_passed
     from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, score_attempt
