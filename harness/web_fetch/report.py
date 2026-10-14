@@ -2127,13 +2127,16 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
     ('最终结论',final),
    ]
    if reviewed.get('adjudication_evidence'):
-    review_rows.append(('分歧裁定',reviewed['adjudication']))
+    proof=reviewed['adjudication_evidence']
+    review_rows.append(('分歧裁定',proof.get('summary_zh',reviewed['adjudication'])))
    body+=section('独立结果核验',table(
        ['项目','核验记录'],
        [('',cell(esc(label))+cell(
            model_text(value,reviewed.get('adjudication_evidence',{}).get('reason_en')) if label=='分歧裁定'
            else '<span translate="no">'+esc(value)+'</span>' if label=='直接证据' else esc(value))) for label,value in review_rows],
        metrics=[]),'independent-review')
+   if reviewed.get('adjudication_evidence',{}).get('summary_zh'):
+    body+='<details><summary>'+model_text('完整裁定记录（原文）','Full adjudication record (original)')+'</summary><pre translate="no">'+esc(reviewed['adjudication'])+'</pre></details>'
   reference_heading='完整标准答案' if c.get('task_kind')!='structure' else '标准答案与验收规则'
   reference_download='../references/'+c['id']+'.txt'
   source_body=f'<pre data-kind="reference">{esc(ref)}</pre>'

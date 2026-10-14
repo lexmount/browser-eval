@@ -240,6 +240,9 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
         generate(staging, dataset, records, batches, include_english=include_english,
                  authored_interpretation=authored_interpretation,
                  show_local_status_banners=show_local_status_banners)
+        # Scores remain frozen, but cached inventory/summary files must describe
+        # those exact current scores after an explicitly bound offline revision.
+        write_frozen_result_summary(staging, dataset, records)
         manifest["languages"] = ["zh", "en"] if include_english else ["zh"]
         manifest["presentation"] = {"show_local_status_banners": show_local_status_banners,
                                     "frozen_scores": True}
@@ -251,6 +254,34 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
             raise ValueError("Presentation source changed during rendering")
         _install_report_tree(staging, output)
     return output / "index.html"
+
+
+def write_frozen_result_summary(output, dataset, records):
+    cases = {case['id']: case for case in dataset['cases']}
+    summary = {}
+    for track in TRACKS:
+        providers = {}
+        for provider in sorted({row['provider'] for row in records}):
+            rows = [row for row in records if row['provider'] == provider
+                    and cases[row['case_id']].get('track', 'web') == track]
+            if not rows:
+                continue
+            eligible = [row for row in rows if measured(row, cases[row['case_id']])]
+            text = [row for row in eligible if row['metrics'].get('content_check_coverage') is not None]
+            item = {'attempts': len(rows), 'task_pass': sum(succeeded(row, cases[row['case_id']]) for row in rows),
+                    'task_evaluated_attempts': len(eligible), 'task_unmeasured_attempts': len(rows) - len(eligible),
+                    'task_excluded_attempts': sum(bool(row['metrics'].get('evaluation_excluded')) for row in rows),
+                    'scoring_scope': scoring_scope(eligible, cases), 'text_checked_attempts': len(text),
+                    'text_checked_cases': len({row['case_id'] for row in text})}
+            if track == 'challenge':
+                body = [row for row in eligible if cases[row['case_id']].get('task_kind', 'body') == 'body'
+                        and cases[row['case_id']].get('ground_truth_main_content')]
+                item.update(body_evaluated_attempts=len(body),
+                            body_task_pass=sum(succeeded(row, cases[row['case_id']]) for row in body) if body else None)
+            providers[provider] = item
+        summary[track] = providers
+    for name, value in [('summary.json', summary), ('reliability.json', assess_reliability(dataset, records))]:
+        (output / name).write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
 
 
 def build_report(source: Path, output: Path, *, include_english: bool = False,

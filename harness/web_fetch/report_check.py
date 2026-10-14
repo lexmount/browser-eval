@@ -133,6 +133,24 @@ class PageShape(HTMLParser):
             self.numbers.extend(visible_numbers(text))
 
 
+def check_saved_result_summary(root, dataset, records):
+    from .metrics import task_measured, task_passed
+    cases = {case['id']: case for case in dataset['cases']}
+    summary = json.loads((root / 'summary.json').read_text())
+    groups = {}
+    for row in records:
+        key = (cases[row['case_id']].get('track', 'web'), row['provider'])
+        groups.setdefault(key, []).append(row)
+    for (track, provider), rows in groups.items():
+        saved = summary.get(track, {}).get(provider, {})
+        expected = {'attempts': len(rows),
+                    'task_pass': sum(task_passed(row['ok'], row['metrics']) for row in rows),
+                    'task_evaluated_attempts': sum(task_measured(row['metrics']) for row in rows),
+                    'task_excluded_attempts': sum(bool(row['metrics'].get('evaluation_excluded')) for row in rows)}
+        if any(saved.get(key) != value for key, value in expected.items()):
+            raise ValueError('Saved result summary differs from current evidence: ' + provider + '/' + track)
+
+
 def check_local_diagnostic_presentation(root: Path):
     """Completeness must never turn uncertified evidence into a displayed ranking."""
     for path in root.rglob('*.html'):
@@ -289,6 +307,8 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     saved_reliability = json.loads((root / "reliability.json").read_text())
     if not saved_reliability == reliability:
         raise ValueError("Saved reliability status differs from report evidence")
+    if local_measurement and d.get('comparison', {}).get('result_ledger'):
+        check_saved_result_summary(root, d, rs)
     for r in rs:
         safe_identifier(r["attempt_id"])
         safe_identifier(r["provider"])

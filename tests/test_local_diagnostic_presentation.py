@@ -62,3 +62,35 @@ def test_release_check_rejects_hidden_status_or_ranked_diagnostic(tmp_path):
         check_local_diagnostic_presentation(tmp_path)
     page.write_text(prefix + banner + '<table id="ranking-overall"><th>Method</th></table>')
     check_local_diagnostic_presentation(tmp_path)
+
+
+def test_frozen_download_summary_uses_current_scores_and_exclusions(tmp_path):
+    import copy
+    import json
+    from harness.web_fetch.report_build import write_frozen_result_summary
+    from harness.web_fetch.reliability import assess_reliability
+    c = case('body', kind='body', track='web')
+    included = record(c)
+    excluded = copy.deepcopy(included)
+    excluded['attempt_id'] = 'excluded'
+    excluded['provider'] = 'excluded-method'
+    excluded['metrics']['evaluation_excluded'] = True
+    rows = [included, excluded]
+    dataset = {'cases': [c], 'coverage_plan': {'web': [row['provider'] for row in rows]}}
+    saved = copy.deepcopy(rows)
+    (tmp_path / 'summary.json').write_text('{"stale":999}')
+    (tmp_path / 'reliability.json').write_text('{"stale":true}')
+    write_frozen_result_summary(tmp_path, dataset, rows)
+    summary = json.loads((tmp_path / 'summary.json').read_text())['web']
+    assert summary[included['provider']]['task_pass'] == 1
+    assert summary['excluded-method']['task_pass'] == 0
+    assert summary['excluded-method']['task_evaluated_attempts'] == 0
+    assert summary['excluded-method']['task_excluded_attempts'] == 1
+    assert json.loads((tmp_path / 'reliability.json').read_text()) == assess_reliability(dataset, rows)
+    assert rows == saved
+    from harness.web_fetch.report_check import check_saved_result_summary
+    check_saved_result_summary(tmp_path, dataset, rows)
+    summary['excluded-method']['task_pass'] = 1
+    (tmp_path / 'summary.json').write_text(json.dumps({'web': summary}))
+    with pytest.raises(ValueError, match='summary differs'):
+        check_saved_result_summary(tmp_path, dataset, rows)
