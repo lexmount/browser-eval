@@ -751,6 +751,19 @@ Moli's native capacity policy; the adapter does not pass this answer limit as
 its download would change page execution. Answers above `max_bytes` fail with
 `output_too_large`; truncated answers are not scored.
 
+### Moli native family completion
+
+For native dynamic-body tasks, Moli requests `--layout`, `--with-frames`, and
+`--wait-until domstable` for the whole family. Markdown comes directly from
+Moli; the harness does not assemble frame content or refresh DOM geometry.
+
+A Moli provider configuration can override completion with
+`wait_until_by_track`, for example `{"risk_control": "domstable"}`. Keys must
+be registered task families and values must be supported native wait modes.
+The policy is declared before calls and applies to every task in that family;
+case IDs, hostname rules, answer-dependent delays, and extraction scripts are
+not accepted by this setting. Call metadata records the selected family policy.
+
 ### Fixed native webpage calls
 
 `uniform_native_parameters: true` selects the fixed-native body/structure policy for web and dynamic tasks. Choose documented native extraction options once per method (for example Tavily advanced, Cloudflare networkidle2, Crawl4AI iframe/overlay options, native freshness and capacity options). The caller deadline is 45 seconds; product connection, navigation and extraction timers retain their native defaults. HTTP-client deadlines and worker cancellation enforce collection time, not product-side budgets. CowAgent globals are never patched.
