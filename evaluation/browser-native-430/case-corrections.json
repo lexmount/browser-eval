@@ -440,23 +440,25 @@
       "set": {
         "url": "https://m365.cloud.microsoft/en-us/",
         "description": "三次全新匿名浏览器首次加载均得到同一英文正文；验收只使用页面主体中稳定可见的文字。",
-        "task_prompt": "直接获取 Microsoft 365 英文首页当前可见的正文，保留这些在三次全新匿名浏览器首次加载中都出现的稳定文字：Work smarter across Microsoft 365；Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365.；Popular prompts to try；Jump into your favorite app；Bring Copilot and your work together in a focused desktop experience.。不点击子页面、不登录，也不把图片文字、控件标签、隐藏名称、网页标题或脚本文字当作正文。",
-        "reference_answer": "直接获取 Microsoft 365 英文首页当前可见的正文，保留这些在三次全新匿名浏览器首次加载中都出现的稳定文字：Work smarter across Microsoft 365；Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365.；Popular prompts to try；Jump into your favorite app；Bring Copilot and your work together in a focused desktop experience.。不点击子页面、不登录，也不把图片文字、控件标签、隐藏名称、网页标题或脚本文字当作正文。",
+        "task_prompt": "直接获取 Microsoft 365 英文首页当前可见的正文，保留以下稳定文字：Work smarter across Microsoft 365；Popular prompts to try；Jump into your favorite app；Bring Copilot and your work together in a focused desktop experience.。正文还须包含以下两版官方介绍中的任意一版：Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365.；或 AI in Microsoft 365 helps you create, summarize, and find information across your work.。不点击子页面、不登录，也不把图片文字、控件标签、隐藏名称、网页标题或脚本文字当作正文。",
+        "reference_answer": "直接获取 Microsoft 365 英文首页当前可见的正文，保留以下稳定文字：Work smarter across Microsoft 365；Popular prompts to try；Jump into your favorite app；Bring Copilot and your work together in a focused desktop experience.。正文还须包含以下两版官方介绍中的任意一版：Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365.；或 AI in Microsoft 365 helps you create, summarize, and find information across your work.。不点击子页面、不登录，也不把图片文字、控件标签、隐藏名称、网页标题或脚本文字当作正文。",
         "ground_truth_main_content": "",
         "ground_truth_evidence": [
           {
             "source": "https://m365.cloud.microsoft/en-us/",
-            "supports": "Five stable visible body anchors independently observed in three fresh anonymous browser loads on 2026-10-13."
+            "supports": "The four unchanged body anchors and either independently observed official Microsoft 365 introduction."
           }
         ],
         "source_verification": {
-          "state": "unavailable",
-          "checked_at": "2026-10-13",
+          "state": "valid",
+          "checked_at": "2026-10-14",
           "http_status": 200,
-          "method": "Three fresh anonymous browser initial-page observations; stable acceptance anchors only",
-          "selector": "main",
-          "reference_sha256": null,
-          "note": "The ranked domain now redirects to Microsoft 365. The explicit English route removes locale ambiguity; the retired cross-locale header and footer contract is not reused."
+          "method": "Independent fresh Chromium initial-page observation with strict public DNS-over-HTTPS",
+          "selector": "body",
+          "reference_sha256": "869cbe00735edeea0d049adc165fc843d370fc3ce61e979d4f2310652f17761b",
+          "provider_output_used": false,
+          "qualification_bundle_sha256": "a2c47a0eb2c6c629e6da4a5a82e0089624b821ec5ffa17fa3a555dd3bb659f76",
+          "note": "The official page retained four established anchors and replaced its introductory sentence with an equivalent current description. The earlier official sentence remains an accepted historical variant."
         },
         "required_facts": [],
         "acceptance_contract": {
@@ -473,7 +475,8 @@
             {
               "id": "stable-anchor-2",
               "alternatives": [
-                "Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365."
+                "Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365.",
+                "AI in Microsoft 365 helps you create, summarize, and find information across your work."
               ]
             },
             {
@@ -519,11 +522,13 @@
         }
       },
       "evidence": {
-        "source": "https://m365.cloud.microsoft/en-us/",
-        "observed_at": "2026-10-13",
-        "observed_text": "Work smarter across Microsoft 365; Sign in to create, collaborate, and move your work forward with Copilot in Microsoft 365.; Popular prompts to try; Jump into your favorite app; Bring Copilot and your work together in a focused desktop experience.",
+        "source": "sha256:a2c47a0eb2c6c629e6da4a5a82e0089624b821ec5ffa17fa3a555dd3bb659f76",
+        "observed_at": "2026-10-14",
+        "observed_text": "The official Microsoft 365 body retains four established anchors and now says: AI in Microsoft 365 helps you create, summarize, and find information across your work.",
+        "qualification_bundle_sha256": "a2c47a0eb2c6c629e6da4a5a82e0089624b821ec5ffa17fa3a555dd3bb659f76",
         "regression_ids": [
-          "m365-current-english-body-passes",
+          "m365-current-introduction-variant-passes",
+          "m365-established-introduction-variant-still-passes",
           "m365-retired-navigation-copy-does-not-pass"
         ]
       }
@@ -902,16 +907,17 @@
                 "串文"
               ]
             }
-          ]
+          ],
+          "stable_text_role": "required"
         }
       },
       "evidence": {
         "source": "https://www.threads.com/@nasa/post/DdEwHNClPdc?hl=zh-cn",
         "observed_at": "2026-09-24",
-        "observed_text": "The hash-bound post reference owns the author and post text. The translation affordance is conditional interface chrome and is outside that body scope.",
+        "observed_text": "The frozen post body keeps the author and post text as required anchors. The earlier correction still excludes the conditional translation control.",
         "root_cause": "conditional_ui_control_not_body_requirement",
         "prior_acceptance_contract_sha256": "7a4c57a425fa05e626ba6c98f4b9a3051472359222e2c2d3152826aa2ee353b1",
-        "revised_acceptance_contract_sha256": "d1ef2692d411d68617f43933dcf77f791c39217c4eda5963361836540f0c9ea6",
+        "revised_acceptance_contract_sha256": "f94d7ea5d49c79785bdaebc086ebb4d255e741af97bd1384f4fccfb829897fed",
         "affected_scope": "risk-diverse-011 across all registered methods; offline rescore only",
         "regression_ids": [
           "body-without-conditional-ui-control-passes",
@@ -1813,158 +1819,177 @@
       "case_id": "china-homepage-026-aliyun-com",
       "expected_definition_sha256": "d5174b445103acdc0f7a43e6d365899cd9613ee847b43b25be435e71db79d27d",
       "set": {
+        "name": "Alibaba Cloud",
+        "url": "https://www.alibabacloud.com/en",
+        "description": "固定获取 Alibaba Cloud 官方国际站英文首页；验收覆盖首屏、AI 平台、模型、产品、试用、行业方案、客户、分析机构、全球基础设施、合规和支持正文。",
+        "task_prompt": "直接获取 Alibaba Cloud 国际站英文首页首次加载后可见的完整正文，并保留这些独立观察确认的稳定正文区段：Everything You Need in One Powerful AI Cloud Platform；Introducing Our Best-in-Class AI QWEN；Model Studio enables fast development of Gen AI apps；Platform for AI (PAI) is Alibaba Cloud's scalable, cost-effective platform；Get to Know QWEN #1 Most Downloaded Open-Source Model；End-to-End AI and Cloud Solutions For All Your Needs；Elastic Compute Service (ECS)；Object Storage Service (OSS)；Domain Names and Website；Start Your Free Trial；Industry Use Cases；Loved by Innovators All Over the World；Our Leadership Status Awarded by Global Analysts；Open for Business Globally 24/7；#1 most compliant cloud platform in Asia with 150+ certificates；Documentation Center。仅返回品牌、导航菜单或页脚不算完成。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+        "reference_answer": "直接获取 Alibaba Cloud 国际站英文首页首次加载后可见的完整正文，并保留这些独立观察确认的稳定正文区段：Everything You Need in One Powerful AI Cloud Platform；Introducing Our Best-in-Class AI QWEN；Model Studio enables fast development of Gen AI apps；Platform for AI (PAI) is Alibaba Cloud's scalable, cost-effective platform；Get to Know QWEN #1 Most Downloaded Open-Source Model；End-to-End AI and Cloud Solutions For All Your Needs；Elastic Compute Service (ECS)；Object Storage Service (OSS)；Domain Names and Website；Start Your Free Trial；Industry Use Cases；Loved by Innovators All Over the World；Our Leadership Status Awarded by Global Analysts；Open for Business Globally 24/7；#1 most compliant cloud platform in Asia with 150+ certificates；Documentation Center。仅返回品牌、导航菜单或页脚不算完成。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替正文。",
+        "ground_truth_main_content": "",
+        "ground_truth_evidence": [
+          {
+            "source": "https://www.alibabacloud.com/en",
+            "supports": "An independent strict public-DNS-over-HTTPS browser observation captured the complete visible official international homepage body."
+          }
+        ],
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-10-14",
+          "http_status": 200,
+          "method": "Independent fresh Chromium initial-page observation of the fixed /en URL with strict public DNS-over-HTTPS",
+          "selector": "body",
+          "reference_sha256": "d809d26595dcd5abf45c1c5086bb891fd882d8b2e536e94e9629a6fc90a95b95",
+          "provider_output_used": false,
+          "qualification_bundle_sha256": "b83fff306c63a8cbc3ad80b0e5f4d93d124ac5da21b5f1b728bf3f588e5fc7bd",
+          "observation_sha256s": [
+            "d809d26595dcd5abf45c1c5086bb891fd882d8b2e536e94e9629a6fc90a95b95"
+          ],
+          "note": "The fixed official /en URL completed under strict public DNS-over-HTTPS and returned a full English body. The site appended only its own locale query."
+        },
+        "required_facts": [],
         "acceptance_contract": {
           "version": 1,
           "schema": "body_text",
           "minimum_records": 0,
           "stable_text_anchors": [
             {
-              "id": "stable-anchor-1",
+              "id": "international-body-01",
               "alternatives": [
-                "域名"
+                "Everything You Need in One Powerful AI Cloud Platform"
               ]
             },
             {
-              "id": "stable-anchor-2",
+              "id": "international-body-02",
               "alternatives": [
-                "备案"
+                "Introducing Our Best-in-Class AI QWEN"
               ]
             },
             {
-              "id": "stable-anchor-5",
+              "id": "international-body-03",
               "alternatives": [
-                "登录"
+                "Model Studio enables fast development of Gen AI apps"
               ]
             },
             {
-              "id": "stable-anchor-7",
+              "id": "international-body-04",
               "alternatives": [
-                "计算"
+                "Platform for AI (PAI) is Alibaba Cloud's scalable, cost-effective platform"
               ]
             },
             {
-              "id": "stable-anchor-10",
+              "id": "international-body-05",
               "alternatives": [
-                "云市场"
+                "Get to Know QWEN #1 Most Downloaded Open-Source Model"
               ]
             },
             {
-              "id": "stable-anchor-11",
+              "id": "international-body-06",
               "alternatives": [
-                "大模型"
+                "End-to-End AI and Cloud Solutions For All Your Needs"
               ]
             },
             {
-              "id": "stable-anchor-12",
+              "id": "international-body-07",
               "alternatives": [
-                "控制台"
+                "Elastic Compute Service (ECS)"
               ]
             },
             {
-              "id": "stable-anchor-14",
+              "id": "international-body-08",
               "alternatives": [
-                "数据集"
+                "Object Storage Service (OSS)"
               ]
             },
             {
-              "id": "stable-anchor-20",
+              "id": "international-body-09",
               "alternatives": [
-                "产品动态"
+                "Domain Names and Website"
               ]
             },
             {
-              "id": "stable-anchor-21",
+              "id": "international-body-10",
               "alternatives": [
-                "产品定价"
+                "Start Your Free Trial"
               ]
             },
             {
-              "id": "stable-anchor-25",
+              "id": "international-body-11",
               "alternatives": [
-                "信任中心"
+                "Industry Use Cases"
               ]
             },
             {
-              "id": "stable-anchor-27",
+              "id": "international-body-12",
               "alternatives": [
-                "免费试用"
+                "Loved by Innovators All Over the World"
               ]
             },
             {
-              "id": "stable-anchor-28",
+              "id": "international-body-13",
               "alternatives": [
-                "免费额度"
+                "Our Leadership Status Awarded by Global Analysts"
               ]
             },
             {
-              "id": "stable-anchor-29",
+              "id": "international-body-14",
               "alternatives": [
-                "全部产品"
+                "Open for Business Globally 24/7"
               ]
             },
             {
-              "id": "stable-anchor-32",
+              "id": "international-body-15",
               "alternatives": [
-                "加入我们"
+                "#1 most compliant cloud platform in Asia with 150+ certificates"
               ]
             },
             {
-              "id": "stable-anchor-36",
+              "id": "international-body-16",
               "alternatives": [
-                "安全举报"
-              ]
-            },
-            {
-              "id": "stable-anchor-37",
-              "alternatives": [
-                "安全合规"
-              ]
-            },
-            {
-              "id": "stable-anchor-39",
-              "alternatives": [
-                "帮助文档"
-              ]
-            },
-            {
-              "id": "stable-anchor-42",
-              "alternatives": [
-                "法律声明"
-              ]
-            },
-            {
-              "id": "stable-anchor-45",
-              "alternatives": [
-                "阿里云"
+                "Documentation Center"
               ]
             }
           ]
         },
-        "source_verification": {
-          "state": "valid",
-          "checked_at": "2026-10-14",
-          "method": "Independent fresh anonymous Chromium initial-page observations",
-          "reference_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "note": "Two byte-identical current first loads retain 20 task-relevant stable labels; 25 obsolete navigation labels are absent from both observations.",
-          "provider_output_used": false,
-          "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
-          "observation_sha256s": [
-            "7f14ca486386fe97df5f92c5da8045dbce7c44a623b1d43c8d71a96beb9a4c1c",
-            "c3f5b11e5df09bf169e7e05230e113a0f153c894dfb42d113f35a2daed15398a"
-          ]
-        }
-      },
-      "evidence": {
-        "source": "sha256:74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
-        "observed_at": "2026-10-14",
-        "observed_text": "Two byte-identical current first loads retain 20 task-relevant stable labels; 25 obsolete navigation labels are absent from both observations.",
-        "qualification_bundle_sha256": "74e7841b8937fc6fea41f50a40b050ac3872f2c7fce2a8779283b0d9df7e9fcb",
-        "regression_ids": [
-          "current-homepage-stable-intersection-passes",
-          "obsolete-homepage-anchor-does-not-pass"
+        "body_requirements": {},
+        "source_benchmark": {
+          "mode": "ranked_domain_homepage",
+          "rank_metadata_used_for_scoring": false,
+          "ranking_source": "Semrush Most Visited Websites in China, July 2026",
+          "china_rank": 26,
+          "requested_ranked_domain": "aliyun.com",
+          "observed_final_url": "https://www.alibabacloud.com/en",
+          "stable_annotation": {
+            "registry": "popular-sites",
+            "content_kind": "landing_page",
+            "stable_fields": [
+              "task_related_visible_page_text"
+            ],
+            "structural_only_fields": [],
+            "anchor_evidence": null,
+            "anchor_evidence_sha256": null,
+            "record_requirement": "Every registered stable body section from the fixed official international homepage is required.",
+            "task_decision_scope": "structure_and_explicit_stable_content",
+            "live_factual_correctness": null,
+            "note": "The China-ranked source domain is retained as sampling provenance. The task now fixes the official Alibaba Cloud international English URL; participant output was not used to define its complete body scope."
+          }
+        },
+        "category": "global_homepage",
+        "tags": [
+          "global-popular",
+          "ranked-domain-homepage",
+          "landing_page"
         ]
       },
-      "execution_effect": "rescore_only"
+      "evidence": {
+        "source": "sha256:b83fff306c63a8cbc3ad80b0e5f4d93d124ac5da21b5f1b728bf3f588e5fc7bd",
+        "observed_at": "2026-10-14",
+        "observed_text": "The fixed official /en URL returned a complete English body spanning the hero, QWEN platform, model and product descriptions, trial, industry solutions, customer evidence, analyst recognition, global infrastructure, compliance, and support sections.",
+        "qualification_bundle_sha256": "b83fff306c63a8cbc3ad80b0e5f4d93d124ac5da21b5f1b728bf3f588e5fc7bd",
+        "regression_ids": [
+          "complete-official-homepage-body-passes",
+          "homepage-navigation-and-brand-shell-do-not-pass"
+        ]
+      },
+      "execution_effect": "rerun_all_methods"
     },
     {
       "case_id": "china-homepage-081-elsevier-com",
@@ -2143,6 +2168,664 @@
         "regression_ids": [
           "current-homepage-stable-intersection-passes",
           "obsolete-homepage-anchor-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "china-homepage-050-openai-com",
+      "expected_definition_sha256": "972cf4042ec508e1750fde47e88464b2705c9dc230dcc207ff6a233fd75a744c",
+      "set": {
+        "task_prompt": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Docs；More；News；Codex；Academy；Careers；Company；Podcast；Support；About Us；Apps SDK；Download；Overview；Products；Security；Resources；Solutions；API Log In；Developers；Foundation；Help Center；Open Models；Our Charter；Try ChatGPT；API Platform；Terms of Use；Contact Sales；Release Notes；Other Policies；Privacy Policy；Research Index；Developer Forum；Safety Approach；ChatGPT Business；Customer Stories；Terms & Policies；OpenAI。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+        "reference_answer": "直接获取这个热门网站页面，并保留这些三次独立观察都出现的稳定普通网页文字：Docs；More；News；Codex；Academy；Careers；Company；Podcast；Support；About Us；Apps SDK；Download；Overview；Products；Security；Resources；Solutions；API Log In；Developers；Foundation；Help Center；Open Models；Our Charter；Try ChatGPT；API Platform；Terms of Use；Contact Sales；Release Notes；Other Policies；Privacy Policy；Research Index；Developer Forum；Safety Approach；ChatGPT Business；Customer Stories；Terms & Policies；OpenAI。不点击子页面、翻页、滚动触发更多内容、登录或执行其他 Browser Use 操作；图片文字、按钮控件文字、隐藏名称、网页标题和脚本文字不能代替这些文字。",
+        "ground_truth_evidence": [
+          {
+            "source": "https://openai.com/",
+            "supports": "The current official homepage retains every registered stable body label except the retired Engineering link."
+          }
+        ],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-anchor-1",
+              "alternatives": [
+                "Docs"
+              ]
+            },
+            {
+              "id": "stable-anchor-2",
+              "alternatives": [
+                "More"
+              ]
+            },
+            {
+              "id": "stable-anchor-3",
+              "alternatives": [
+                "News"
+              ]
+            },
+            {
+              "id": "stable-anchor-4",
+              "alternatives": [
+                "Codex"
+              ]
+            },
+            {
+              "id": "stable-anchor-5",
+              "alternatives": [
+                "Academy"
+              ]
+            },
+            {
+              "id": "stable-anchor-6",
+              "alternatives": [
+                "Careers"
+              ]
+            },
+            {
+              "id": "stable-anchor-7",
+              "alternatives": [
+                "Company"
+              ]
+            },
+            {
+              "id": "stable-anchor-8",
+              "alternatives": [
+                "Podcast"
+              ]
+            },
+            {
+              "id": "stable-anchor-9",
+              "alternatives": [
+                "Support"
+              ]
+            },
+            {
+              "id": "stable-anchor-10",
+              "alternatives": [
+                "About Us"
+              ]
+            },
+            {
+              "id": "stable-anchor-11",
+              "alternatives": [
+                "Apps SDK"
+              ]
+            },
+            {
+              "id": "stable-anchor-12",
+              "alternatives": [
+                "Download"
+              ]
+            },
+            {
+              "id": "stable-anchor-13",
+              "alternatives": [
+                "Overview"
+              ]
+            },
+            {
+              "id": "stable-anchor-14",
+              "alternatives": [
+                "Products"
+              ]
+            },
+            {
+              "id": "stable-anchor-15",
+              "alternatives": [
+                "Security"
+              ]
+            },
+            {
+              "id": "stable-anchor-16",
+              "alternatives": [
+                "Resources"
+              ]
+            },
+            {
+              "id": "stable-anchor-17",
+              "alternatives": [
+                "Solutions"
+              ]
+            },
+            {
+              "id": "stable-anchor-18",
+              "alternatives": [
+                "API Log In"
+              ]
+            },
+            {
+              "id": "stable-anchor-19",
+              "alternatives": [
+                "Developers"
+              ]
+            },
+            {
+              "id": "stable-anchor-20",
+              "alternatives": [
+                "Foundation"
+              ]
+            },
+            {
+              "id": "stable-anchor-22",
+              "alternatives": [
+                "Help Center"
+              ]
+            },
+            {
+              "id": "stable-anchor-23",
+              "alternatives": [
+                "Open Models"
+              ]
+            },
+            {
+              "id": "stable-anchor-24",
+              "alternatives": [
+                "Our Charter"
+              ]
+            },
+            {
+              "id": "stable-anchor-25",
+              "alternatives": [
+                "Try ChatGPT"
+              ]
+            },
+            {
+              "id": "stable-anchor-26",
+              "alternatives": [
+                "API Platform"
+              ]
+            },
+            {
+              "id": "stable-anchor-27",
+              "alternatives": [
+                "Terms of Use"
+              ]
+            },
+            {
+              "id": "stable-anchor-28",
+              "alternatives": [
+                "Contact Sales"
+              ]
+            },
+            {
+              "id": "stable-anchor-29",
+              "alternatives": [
+                "Release Notes"
+              ]
+            },
+            {
+              "id": "stable-anchor-30",
+              "alternatives": [
+                "Other Policies"
+              ]
+            },
+            {
+              "id": "stable-anchor-31",
+              "alternatives": [
+                "Privacy Policy"
+              ]
+            },
+            {
+              "id": "stable-anchor-32",
+              "alternatives": [
+                "Research Index"
+              ]
+            },
+            {
+              "id": "stable-anchor-33",
+              "alternatives": [
+                "Developer Forum"
+              ]
+            },
+            {
+              "id": "stable-anchor-34",
+              "alternatives": [
+                "Safety Approach"
+              ]
+            },
+            {
+              "id": "stable-anchor-35",
+              "alternatives": [
+                "ChatGPT Business"
+              ]
+            },
+            {
+              "id": "stable-anchor-36",
+              "alternatives": [
+                "Customer Stories"
+              ]
+            },
+            {
+              "id": "stable-anchor-37",
+              "alternatives": [
+                "Terms & Policies"
+              ]
+            },
+            {
+              "id": "stable-anchor-38",
+              "alternatives": [
+                "OpenAI"
+              ]
+            }
+          ]
+        },
+        "source_verification": {
+          "state": "valid",
+          "checked_at": "2026-10-14",
+          "method": "Independent current official-page retrieval",
+          "reference_sha256": "d25d5cf54c60526d976ac6072c411cb83e12e88ef13c7073528b5c5104b2b6cf",
+          "provider_output_used": false,
+          "qualification_bundle_sha256": "536ec31bff4e8d945564e30ebf017c262bb6038c27d398bad1f26a852c9a289b",
+          "note": "The current official homepage retains all other registered stable labels. Engineering is absent and is the only retired gate removed."
+        }
+      },
+      "evidence": {
+        "source": "sha256:536ec31bff4e8d945564e30ebf017c262bb6038c27d398bad1f26a852c9a289b",
+        "observed_at": "2026-10-14",
+        "observed_text": "The current official homepage retains Docs, More, News, Codex, Academy, Careers, Company, Podcast, Support, About Us, Apps SDK, Download, Overview, Products, Security, Resources, Solutions, API Log In, Developers, Foundation, Help Center, Open Models, Our Charter, Try ChatGPT, API Platform, Terms of Use, Contact Sales, Release Notes, Other Policies, Privacy Policy, Research Index, Developer Forum, Safety Approach, ChatGPT Business, Customer Stories, Terms & Policies, and OpenAI. Engineering is absent.",
+        "regression_ids": [
+          "current-homepage-stable-intersection-passes",
+          "obsolete-homepage-anchor-does-not-pass"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "risk-diverse-042",
+      "expected_definition_sha256": "6aba3f75d126638c5a852af5b0be872afbb5bf44f732d5ce4dd26a84f94ae5d6",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-01",
+              "alternatives": [
+                "devuan"
+              ]
+            },
+            {
+              "id": "stable-02",
+              "alternatives": [
+                "installer-iso"
+              ]
+            },
+            {
+              "id": "stable-03",
+              "alternatives": [
+                "README.md"
+              ]
+            },
+            {
+              "id": "stable-04",
+              "alternatives": [
+                "Devuan Installer ISO"
+              ]
+            },
+            {
+              "id": "stable-05",
+              "alternatives": [
+                "How to Build an ISO"
+              ]
+            },
+            {
+              "id": "stable-06",
+              "alternatives": [
+                "Using APT Proxy"
+              ]
+            },
+            {
+              "id": "stable-07",
+              "alternatives": [
+                "Including local udebs"
+              ]
+            },
+            {
+              "id": "stable-08",
+              "alternatives": [
+                "Including local debs"
+              ]
+            },
+            {
+              "id": "stable-09",
+              "alternatives": [
+                "Help?"
+              ]
+            },
+            {
+              "id": "stable-10",
+              "alternatives": [
+                "Code"
+              ]
+            },
+            {
+              "id": "stable-11",
+              "alternatives": [
+                "Clone"
+              ]
+            },
+            {
+              "id": "stable-12",
+              "alternatives": [
+                "Explore"
+              ]
+            },
+            {
+              "id": "stable-13",
+              "alternatives": [
+                "Help"
+              ]
+            },
+            {
+              "id": "stable-14",
+              "alternatives": [
+                "Register"
+              ]
+            },
+            {
+              "id": "stable-15",
+              "alternatives": [
+                "Sign In"
+              ]
+            },
+            {
+              "id": "stable-16",
+              "alternatives": [
+                "Issues"
+              ]
+            },
+            {
+              "id": "stable-17",
+              "alternatives": [
+                "Pull Requests"
+              ]
+            },
+            {
+              "id": "stable-18",
+              "alternatives": [
+                "Projects"
+              ]
+            },
+            {
+              "id": "stable-19",
+              "alternatives": [
+                "Releases"
+              ]
+            },
+            {
+              "id": "stable-20",
+              "alternatives": [
+                "Wiki"
+              ]
+            }
+          ],
+          "stable_text_role": "diagnostic"
+        }
+      },
+      "evidence": {
+        "source": "evaluation/risk-control/history/v5/dataset-catalog.json",
+        "observed_at": "2026-10-14",
+        "observed_text": "The frozen README body owns the public project identity and summary. Responsive repository controls remain diagnostic.",
+        "root_cause": "conditional_ui_control_not_body_requirement",
+        "prior_acceptance_contract_sha256": "cd3c63a44782fe0bfb990561da1413a2ca389ec3ec0ea7a9d847f9cc7c203055",
+        "revised_acceptance_contract_sha256": "2d476c2e4d389253fb6c869c2c8a187954bbfd0636df488b79d60535f4a17c4a",
+        "affected_scope": "risk-diverse-042 across all registered methods; offline rescore only",
+        "regression_ids": [
+          "declared-body-without-conditional-ui-control-passes",
+          "conditional-ui-control-cannot-replace-declared-body"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "risk-diverse-181",
+      "expected_definition_sha256": "f5dc3515fbb61ed45e0be4e6784e314728a703f4d65e3eac5f0c276617fbdf02",
+      "set": {
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "general-statistics",
+              "kind": "field_report",
+              "start_pattern": "^(?:#{1,6}\\s*)?General statistics(?:\\s+(?:\\\\)?\\[(?:show|hide)(?:\\\\)?\\])*$",
+              "end_pattern": "^(?:#{1,6}\\s*)?Prose\\s*$",
+              "required_fields": [
+                {
+                  "id": "page_id",
+                  "kind": "integer",
+                  "aliases": [
+                    "ID"
+                  ]
+                },
+                {
+                  "id": "wikidata_id",
+                  "kind": "text",
+                  "aliases": [
+                    "Wikidata ID"
+                  ],
+                  "pattern": "Q[0-9]+"
+                },
+                {
+                  "id": "page_size",
+                  "kind": "integer",
+                  "aliases": [
+                    "Page size"
+                  ]
+                },
+                {
+                  "id": "total_edits",
+                  "kind": "integer",
+                  "aliases": [
+                    "Total edits"
+                  ]
+                },
+                {
+                  "id": "editors",
+                  "kind": "integer",
+                  "aliases": [
+                    "Editors"
+                  ]
+                },
+                {
+                  "id": "assessment",
+                  "kind": "text",
+                  "aliases": [
+                    "Assessment"
+                  ]
+                },
+                {
+                  "id": "page_watchers",
+                  "kind": "integer",
+                  "aliases": [
+                    "Page watchers"
+                  ]
+                },
+                {
+                  "id": "pageviews",
+                  "kind": "integer",
+                  "aliases": [
+                    "Pageviews"
+                  ]
+                },
+                {
+                  "id": "first_edit",
+                  "kind": "date_or_time",
+                  "aliases": [
+                    "First edit"
+                  ]
+                },
+                {
+                  "id": "latest_edit",
+                  "kind": "date_or_time",
+                  "aliases": [
+                    "Latest edit"
+                  ]
+                }
+              ],
+              "fixed_values": {
+                "page_id": "1164",
+                "wikidata_id": "Q11660"
+              }
+            },
+            {
+              "id": "prose-statistics",
+              "kind": "field_report",
+              "start_pattern": "^(?:#{1,6}\\s*)?Prose\\s*$",
+              "end_pattern": "^(?:#{1,6}\\s*)?Registered edits(?:\\s*(?:·|:|[-–—])\\s*.*)?$",
+              "required_fields": [
+                {
+                  "id": "prose_words",
+                  "kind": "integer",
+                  "aliases": [
+                    "Words"
+                  ]
+                },
+                {
+                  "id": "references",
+                  "kind": "integer",
+                  "aliases": [
+                    "References"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "evidence": {
+        "source": "research/risk-control-xtools-field-scope-revision.json",
+        "observed_at": "2026-10-14",
+        "observed_text": "General statistics and Prose are separate bounded sections; Words and References belong to Prose rather than the preceding field list.",
+        "root_cause": "field_report_section_ownership",
+        "prior_composite_acceptance_sha256": "17ce23c6b3036ae0a4314cfceaa815eed05abe38389f0c8879f78ae01a0ca8b8",
+        "revised_composite_acceptance_sha256": "04c4698467834ad4492ce2caadfdcd16bfeacf2a9e0e737db75fd7802b00e6d0",
+        "affected_scope": "risk-diverse-181 across all registered methods; offline rescore only",
+        "regression_ids": [
+          "markdown-field-report-cells-own-canonical-fixed-values",
+          "markdown-field-report-cannot-borrow-fixed-value-from-comment",
+          "scoped-field-report-reads-declared-prose-subfields",
+          "scoped-field-report-cannot-replace-words-with-unrelated-bytes",
+          "field-report-scope-accepts-plain-and-markdown-heading-boundaries",
+          "field-report-scope-requires-declared-semantic-end-boundary"
+        ]
+      },
+      "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "risk-diverse-192",
+      "expected_definition_sha256": "e5aa019d864c6248715f6183e159bed1751aeaee849d29179723b743eb27111b",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-01",
+              "alternatives": [
+                "Explore"
+              ]
+            },
+            {
+              "id": "stable-02",
+              "alternatives": [
+                "Share"
+              ]
+            },
+            {
+              "id": "stable-03",
+              "alternatives": [
+                "Software"
+              ]
+            },
+            {
+              "id": "stable-04",
+              "alternatives": [
+                "Projects"
+              ]
+            },
+            {
+              "id": "stable-05",
+              "alternatives": [
+                "About ibiblio"
+              ]
+            },
+            {
+              "id": "stable-06",
+              "alternatives": [
+                "ibiblio.org is a collaboration of the School of Information and Library Science and Information Technology Services at the University of North Carolina at Chapel Hill."
+              ]
+            },
+            {
+              "id": "stable-07",
+              "alternatives": [
+                "Donate"
+              ]
+            },
+            {
+              "id": "stable-08",
+              "alternatives": [
+                "About"
+              ]
+            },
+            {
+              "id": "stable-09",
+              "alternatives": [
+                "Help"
+              ]
+            },
+            {
+              "id": "stable-10",
+              "alternatives": [
+                "Blog"
+              ]
+            },
+            {
+              "id": "stable-11",
+              "alternatives": [
+                "Contact"
+              ]
+            },
+            {
+              "id": "stable-12",
+              "alternatives": [
+                "Privacy"
+              ]
+            },
+            {
+              "id": "stable-13",
+              "alternatives": [
+                "Logos"
+              ]
+            }
+          ],
+          "stable_text_role": "diagnostic",
+          "page_patterns": [
+            "(?is)\\bibiblio(?:\\.org)?\\b.{0,500}\\b(?:collections? of collections|public digital (?:library|archive)|digital (?:library|archive|repository))\\b.{0,700}\\b(?:freely available information|free(?:ly)? available (?:digital )?(?:information|resources|collections))\\b.{0,700}\\b(?:software|music|literature|art|history|science|politics|cultural studies)\\b.{0,700}\\b(?:UNC|University of North Carolina(?: at|-)? Chapel Hill)\\b"
+          ]
+        },
+        "composite_acceptance": null
+      },
+      "evidence": {
+        "source": "research/risk-control-explicit-content-owner-revision.json",
+        "observed_at": "2026-10-14",
+        "observed_text": "The task requires ibiblio archive identity and its automatically visible collection introduction, not a changing three-item homepage news list.",
+        "root_cause": "archive_introduction_scope_not_legacy_ui_copy",
+        "prior_acceptance_contract_sha256": "d2f662fb4a35b057d95313da266206c45a75cde85f5b1a7de8fae8ffbc173e72",
+        "revised_acceptance_contract_sha256": "fccbd213f940926041cd8d1bd68e87fec141098d01b0ecc68bd26a823686b84e",
+        "prior_composite_acceptance_sha256": "a55470085f88f625c3d18dcab6c017e4ad6c278fd845eb5f6a045f48f778dcda",
+        "revised_composite_acceptance": null,
+        "affected_scope": "risk-diverse-192 across all registered methods; offline rescore only",
+        "regression_ids": [
+          "archive-introduction-semantic-scope-passes",
+          "archive-news-and-footer-cannot-replace-introduction",
+          "wrong-archive-identity-cannot-satisfy-introduction",
+          "archive-identity-without-topical-introduction-fails"
         ]
       },
       "execution_effect": "rescore_only"

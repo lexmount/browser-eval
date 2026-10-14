@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from harness.web_fetch.dataset_assembly import assemble_profile_dataset
+from harness.web_fetch.reference_lifecycle import homepage_prompt_anchor_correction
 from tests.conftest import read_frozen_dataset_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +22,35 @@ def _canonical_sha256(value) -> str:
     return hashlib.sha256(
         json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
+
+
+def test_homepage_anchor_reference_correction_preserves_reader_constraints():
+    suffix = "不点击子页面、翻页、登录或执行其他 Browser Use 操作。"
+    old = {
+        "source_benchmark": {"mode": "ranked_domain_homepage"},
+        "task_prompt": "保留 Current；Retired。" + suffix,
+        "reference_answer": "保留 Current；Retired。" + suffix,
+        "acceptance_contract": {
+            "version": 1,
+            "schema": "body_text",
+            "minimum_records": 0,
+            "stable_text_anchors": [
+                {"id": "current", "alternatives": ["Current"]},
+                {"id": "retired", "alternatives": ["Retired"]},
+            ],
+        },
+    }
+    current = copy.deepcopy(old)
+    current["task_prompt"] = current["reference_answer"] = "保留 Current。" + suffix
+    current["acceptance_contract"]["stable_text_anchors"] = [
+        {"id": "current", "alternatives": ["Current"]},
+    ]
+    assert homepage_prompt_anchor_correction(old, current)
+
+    current["task_prompt"] = current["reference_answer"] = (
+        "保留 Current。不点击子页面、翻页后再登录。"
+    )
+    assert not homepage_prompt_anchor_correction(old, current)
 
 
 def _fixture(tmp_path: Path) -> tuple[Path, dict]:
@@ -224,7 +254,12 @@ def test_input_changing_case_correction_requires_all_method_rerun(tmp_path):
         "case_id": "plain",
         "execution_effect": "rescore_only",
         "expected_definition_sha256": definition_sha256,
-        "set": {"url": "https://example.test/current"},
+        "set": {
+            "category": "current_homepage",
+            "name": "Current example",
+            "tags": ["current"],
+            "url": "https://example.test/current",
+        },
         "evidence": {
             "source": "https://example.test/current",
             "observed_at": "2026-10-13",
@@ -258,6 +293,9 @@ def test_input_changing_case_correction_requires_all_method_rerun(tmp_path):
     _write(path, assembly)
     dataset, _raw = assemble_profile_dataset(path, repository=tmp_path, require_output_hash=False)
     assert dataset["cases"][0]["url"] == "https://example.test/current"
+    assert dataset["cases"][0]["name"] == "Current example"
+    assert dataset["cases"][0]["category"] == "current_homepage"
+    assert dataset["cases"][0]["tags"] == ["current"]
     assert dataset["comparison"]["case_corrections"]["rerun_all_methods"] == ["plain"]
 
 

@@ -95,7 +95,7 @@ Do not freeze current leaderboard members, news headlines, prices, ranks, stock,
 
 There is no universal minimum or maximum group count. Do not stop at three or add unsuitable phrases to reach three. Overlapping fragments of one sentence are not independent identity items. Each group needs a meaningful phrase, original text, position, purpose and stability evidence; avoid large spans containing volatile dates or prices.
 
-The compiler sets `stable_text_role` to `diagnostic` whenever a body or composite contract exists, and to `required` for the remaining cases. Missing diagnostic groups remains visible in coverage and per-group results but does not reject complete target content. Select peripheral text carefully; navigation and footer matches cannot establish body or list completeness.
+Stable text is `required` by default. A body or list-contract owner may explicitly set `stable_text_role` to `diagnostic` only after its mandatory body regions, structured records and any `page_patterns` together cover the complete qualified target scope. Missing diagnostic groups remain visible in coverage and per-group results but do not reject complete target content. Select peripheral text carefully; navigation and footer matches cannot establish body, identity or list completeness.
 
 ### Formatting and variants
 

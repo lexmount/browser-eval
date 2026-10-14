@@ -316,6 +316,34 @@ def test_labeled_fields_may_share_a_line_but_stay_inside_their_card():
     )["composite_acceptance_pass"]
 
 
+def test_labeled_fields_accept_unpunctuated_values_on_independent_lines():
+    rules = contract(named(
+        "news", r"^# News$", r"^# End$", 2,
+        required_fields=[
+            {"id": "published", "kind": "date_or_time", "aliases": ["Published"]},
+            {"id": "comments", "kind": "integer", "aliases": ["Comments"]},
+        ],
+    ))
+    content = """# News
+[First](/item/1)
+Published Tue 08:30 UTC
+Comments 0
+[Second](/item/2)
+Published Wed 09:45 UTC
+Comments 3
+# End"""
+    assert evaluate_composite_acceptance(
+        content, rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+
+    dashed = content.replace("Published ", "Published - ").replace(
+        "Comments ", "Comments - "
+    )
+    assert evaluate_composite_acceptance(
+        dashed, rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+
+
 def test_standalone_labels_do_not_lend_one_following_value_to_other_fields():
     rules = contract(named(
         "news", r"^# News$", r"^# End$", 1,
@@ -327,6 +355,15 @@ def test_standalone_labels_do_not_lend_one_following_value_to_other_fields():
     label_after_label = """# News\n[First](/item/1)\nPublisher\nComments: 3\n# End"""
     assert not evaluate_composite_acceptance(
         label_after_label, rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+
+    unpunctuated_label_after_label = """# News
+[First](/item/1)
+Publisher
+Comments 3
+# End"""
+    assert not evaluate_composite_acceptance(
+        unpunctuated_label_after_label, rules, base_url="https://example.test/"
     )["composite_acceptance_pass"]
 
     repeated = contract(named(
@@ -360,6 +397,201 @@ def test_field_report_binds_fixed_values_to_their_labels():
     ]
     assert not evaluate_composite_acceptance(
         "ID: 999\nWikidata ID: Q11660\nElsewhere 1164", rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+
+
+def test_field_report_reads_owned_markdown_table_cells_before_fixed_value_checks():
+    rules = contract(
+        {
+            "id": "report",
+            "kind": "field_report",
+            "required_fields": [
+                {"id": "page_id", "kind": "integer", "aliases": ["ID"]},
+                {
+                    "id": "wikidata",
+                    "kind": "text",
+                    "aliases": ["Wikidata ID"],
+                    "pattern": r"Q[0-9]+",
+                },
+                {"id": "pageviews", "kind": "integer", "aliases": ["Pageviews"]},
+            ],
+            "fixed_values": {
+                "page_id": "1164",
+                "wikidata": "Q11660",
+                "pageviews": "567652",
+            },
+        }
+    )
+    positive = """|  |  |
+| --- | --- |
+| ID | [1164](/page/1164) |
+| Wikidata ID | [Q11660](/entity/Q11660) · 214 sitelinks |
+| Pageviews (30 days) | [567,652](/views) |
+"""
+    assert evaluate_composite_acceptance(
+        positive, rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+    wrong_owned_cells = positive.replace("[1164](/page/1164)", "999").replace(
+        "214 sitelinks", "214 sitelinks; unrelated note 1164"
+    )
+    assert not evaluate_composite_acceptance(
+        wrong_owned_cells, rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+
+
+def test_field_report_prefers_the_longest_declared_label():
+    rules = contract(
+        {
+            "id": "report",
+            "kind": "field_report",
+            "required_fields": [
+                {"id": "page_id", "kind": "integer", "aliases": ["ID"]},
+            ],
+            "fixed_values": {"page_id": "1164"},
+        }
+    )
+    assert not evaluate_composite_acceptance(
+        "Wikidata ID: Q1164 · 214 sitelinks",
+        rules,
+        base_url="https://example.test/",
+    )["composite_acceptance_pass"]
+
+
+def test_field_report_explicit_fields_may_share_one_line_without_sharing_values():
+    rules = contract(
+        {
+            "id": "report",
+            "kind": "field_report",
+            "required_fields": [
+                {"id": "page_id", "kind": "integer", "aliases": ["ID"]},
+                {
+                    "id": "wikidata",
+                    "kind": "text",
+                    "aliases": ["Wikidata ID"],
+                    "pattern": r"Q[0-9]+",
+                },
+            ],
+            "fixed_values": {"page_id": "1164", "wikidata": "Q11660"},
+        }
+    )
+    assert evaluate_composite_acceptance(
+        "ID: 1164 Wikidata ID: Q11660",
+        rules,
+        base_url="https://example.test/",
+    )["composite_acceptance_pass"]
+    assert not evaluate_composite_acceptance(
+        "ID: 1164 Wikidata ID:",
+        rules,
+        base_url="https://example.test/",
+    )["composite_acceptance_pass"]
+
+
+def test_field_value_equal_to_its_label_consumes_the_owned_value_span():
+    rules = contract(named(
+        "items", r"^# Items$", r"^# End$", 1,
+        required_fields=[
+            {"id": "owner", "kind": "text", "aliases": ["Owner"]},
+            {"id": "comments", "kind": "integer", "aliases": ["Comments"]},
+        ],
+    ))
+    assert evaluate_composite_acceptance(
+        "# Items\n[First](/item/1)\nOwner: Owner Comments: 3\n# End",
+        rules,
+        base_url="https://example.test/",
+    )["composite_acceptance_pass"]
+
+
+def test_field_report_section_scope_requires_the_declared_subfield():
+    rules = contract(
+        {
+            "id": "prose",
+            "kind": "field_report",
+            "start_pattern": r"^Prose$",
+            "end_pattern": r"^Registered edits$",
+            "required_fields": [
+                {"id": "words", "kind": "integer", "aliases": ["Words"]},
+                {"id": "references", "kind": "integer", "aliases": ["References"]},
+            ],
+        }
+    )
+    complete = """Other section
+Bytes
+999999
+Prose
+Bytes
+84958
+Words
+12599
+References
+558
+Registered edits"""
+    assert evaluate_composite_acceptance(
+        complete, rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+    assert not evaluate_composite_acceptance(
+        complete.replace("Words\n12599\n", ""), rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+
+
+@pytest.mark.parametrize(
+    ("general", "prose", "registered"),
+    [
+        ("General statistics", "Prose", "Registered edits"),
+        ("## General statistics", "## Prose", "## Registered edits"),
+        ("##General statistics", "#Prose", "###Registered edits · 100"),
+        (r"#### General statistics \[show\] \[hide\]", "Prose", "Registered edits: 100"),
+    ],
+)
+def test_field_report_scope_accepts_plain_or_markdown_heading_boundaries(
+    general, prose, registered
+):
+    general_pattern = (
+        r"^(?:#{1,6}\s*)?General statistics"
+        r"(?:\s+(?:\\)?\[(?:show|hide)(?:\\)?\])*$"
+    )
+    prose_pattern = r"^(?:#{1,6}\s*)?Prose\s*$"
+    registered_pattern = (
+        r"^(?:#{1,6}\s*)?Registered edits(?:\s*(?:·|:|[-–—])\s*.*)?$"
+    )
+    rules = contract(
+        {
+            "id": "general",
+            "kind": "field_report",
+            "start_pattern": general_pattern,
+            "end_pattern": prose_pattern,
+            "required_fields": [
+                {"id": "page_id", "kind": "integer", "aliases": ["ID"]},
+            ],
+            "fixed_values": {"page_id": "1164"},
+        },
+        {
+            "id": "prose",
+            "kind": "field_report",
+            "start_pattern": prose_pattern,
+            "end_pattern": registered_pattern,
+            "required_fields": [
+                {"id": "words", "kind": "integer", "aliases": ["Words"]},
+                {"id": "references", "kind": "integer", "aliases": ["References"]},
+            ],
+        },
+    )
+    content = f"""General statistics
+Navigation only
+{general}
+ID | 1164
+{prose}
+Bytes 84958
+Words 12599
+References 558
+{registered}
+Words 999999"""
+    assert evaluate_composite_acceptance(
+        content, rules, base_url="https://example.test/"
+    )["composite_acceptance_pass"]
+    assert not evaluate_composite_acceptance(
+        content.replace(registered, "Registered editors"),
+        rules,
+        base_url="https://example.test/",
     )["composite_acceptance_pass"]
 
 

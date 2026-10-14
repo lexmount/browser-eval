@@ -1,0 +1,13 @@
+{
+  "schema_version": 2,
+  "kind": "frozen_reference_inputs",
+  "id": "risk-control-d0d038bae011-v2",
+  "dataset": "dataset.json",
+  "dataset_sha256": "d0d038bae0114be107116edd94e501996ba6cda852ac29244c089e15a3e37437",
+  "catalog": "dataset-catalog.json",
+  "catalog_sha256": "43e79ab63c12f56ed025d78fa6e417cfc91b812faa6a69b9016b99979a498a98",
+  "files": {
+    "dataset.json": "d0d038bae0114be107116edd94e501996ba6cda852ac29244c089e15a3e37437"
+  },
+  "trees": {}
+}

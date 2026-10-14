@@ -9,8 +9,10 @@ import ipaddress
 import json
 import socket
 import sys
+import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -18,6 +20,10 @@ from urllib.parse import urlsplit
 
 from harness.reporting.publication import atomic_create, json_bytes
 from harness.web_fetch.metrics import normalize_for_match
+from harness.web_fetch.network_dns import (
+    configure_chromium_dns_profile,
+    validate_dns_mode,
+)
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
     _resource_target_matches,
@@ -282,34 +288,62 @@ def capture(
     resolved_ip: str | None = None,
     *,
     observation_scope: str = "reference",
+    dns_mode: str = "system",
 ) -> dict:
     from playwright.sync_api import sync_playwright
 
     if type(timeout_ms) is not int or timeout_ms < 1:
         raise ValueError("Browser observation timeout must be positive")
+    dns_mode = validate_dns_mode(dns_mode)
+    if dns_mode == "public_doh" and resolved_ip is not None:
+        raise ValueError("public_doh cannot use a resolved-IP override")
     policy = capture_policy(case, observation_scope)
     begin = time.monotonic()
     host = url_host(case["url"])
     if resolved_ip is not None:
         resolved_ip = public_ip(resolved_ip)
     frames = []
-    with sync_playwright() as playwright:
+    dns_metadata = {"dns_mode": dns_mode}
+    browser_version = None
+    primary_response_server_addr = None
+    with sync_playwright() as playwright, ExitStack() as resources:
         launch_args = (
             [f"--host-resolver-rules={chromium_host_rule(host, resolved_ip)}"]
             if resolved_ip
             else []
         )
-        browser = playwright.chromium.launch(
-            headless=True,
-            executable_path=browser_binary,
-            args=launch_args,
+        context = None
+        launch = dict(
+            headless=True, executable_path=browser_binary, args=launch_args,
             timeout=remaining_ms(begin, timeout_ms),
         )
-        try:
+        if dns_mode == "public_doh":
+            profile = resources.enter_context(
+                tempfile.TemporaryDirectory(prefix="browser-observation-dns-")
+            )
+            dns_metadata = configure_chromium_dns_profile(profile, dns_mode)
+            context = playwright.chromium.launch_persistent_context(profile, **launch)
+            browser = context.browser
+            page = context.new_page()
+        else:
+            browser = playwright.chromium.launch(**launch)
             page = browser.new_page()
-            page.goto(
+        try:
+            browser_version = browser.version if browser is not None else None
+            response = page.goto(
                 case["url"], wait_until="domcontentloaded", timeout=remaining_ms(begin, timeout_ms)
             )
+            if response is not None:
+                try:
+                    address = response.server_addr()
+                    if isinstance(address, dict):
+                        ip_address = address.get("ip_address", address.get("ipAddress"))
+                        primary_response_server_addr = {
+                            **({"ip_address": ip_address} if ip_address else {}),
+                            **({"port": address["port"]} if "port" in address else {}),
+                        } or None
+                except Exception:
+                    primary_response_server_addr = None
             if case.get("task_kind") == "resource":
                 captured = capture_resource_observation(page, case, timeout_ms, begin)
                 final_url, title = page.url, page.title()
@@ -381,14 +415,24 @@ def capture(
                                 {"url": frame.url, "status": "failure", "error": str(error)[:1000]}
                             )
         finally:
-            browser.close()
+            if context is not None:
+                context.close()
+            elif browser is not None:
+                browser.close()
     observer = {
         "browser": "Chromium",
         "binary": "explicit" if browser_binary else "Playwright default",
         "dns_override": bool(resolved_ip),
         "host": host,
         "resolved_ip": resolved_ip,
-        "resolution_method": "caller_supplied" if resolved_ip else "chromium_dns",
+        "resolution_method": (
+            "chromium_secure_dns"
+            if dns_mode == "public_doh"
+            else "caller_supplied" if resolved_ip else "chromium_dns"
+        ),
+        "browser_version": browser_version,
+        "primary_response_server_addr": primary_response_server_addr,
+        **dns_metadata,
     }
     if case.get("task_kind") == "resource":
         return {
@@ -451,8 +495,12 @@ def capture_with_retries(
     resolved_ip: str | None = None,
     *,
     observation_scope: str = "reference",
+    dns_mode: str = "system",
 ) -> dict:
     """Capture one case without allowing it to abort the rest of the batch."""
+    dns_mode = validate_dns_mode(dns_mode)
+    if dns_mode == "public_doh" and resolved_ip is not None:
+        raise ValueError("public_doh cannot use a resolved-IP override")
     errors = []
     last_row: dict = {}
     observer = {
@@ -462,15 +510,28 @@ def capture_with_retries(
         "host": None,
         "resolved_ip": None,
         "resolution_method": (
-            "explicit_cli_override" if resolved_ip is not None else "system_dns_getaddrinfo"
+            "chromium_secure_dns"
+            if dns_mode == "public_doh"
+            else "explicit_cli_override" if resolved_ip is not None else "system_dns_getaddrinfo"
+        ),
+        "dns_mode": dns_mode,
+        **(
+            {"system_dns_fallback": False}
+            if dns_mode == "public_doh"
+            else {}
         ),
     }
     for attempt in range(1, attempts + 1):
         try:
-            host, attempt_ip, resolution_method = resolve_public_host(case["url"], resolved_ip)
+            if dns_mode == "public_doh":
+                host, attempt_ip, resolution_method = (
+                    url_host(case["url"]), None, "chromium_secure_dns"
+                )
+            else:
+                host, attempt_ip, resolution_method = resolve_public_host(case["url"], resolved_ip)
             observer.update(
                 {
-                    "dns_override": True,
+                    "dns_override": attempt_ip is not None,
                     "host": host,
                     "resolved_ip": attempt_ip,
                     "resolution_method": resolution_method,
@@ -479,6 +540,8 @@ def capture_with_retries(
             options = (
                 {"observation_scope": observation_scope} if observation_scope != "reference" else {}
             )
+            if dns_mode != "system":
+                options["dns_mode"] = dns_mode
             row = capture(case, timeout_ms, browser_binary, attempt_ip, **options)
             last_row = row
             row["observer"].update(observer)
@@ -523,6 +586,7 @@ def capture_with_retries(
 def capture_source_identity() -> dict:
     names = (
         "browser_observations.py",
+        "network_dns.py",
         "source_capture.py",
         "reference_lifecycle.py",
         "metrics.py",
@@ -540,6 +604,7 @@ def capture_batch(
     attempts,
     browser_binary=None,
     resolved_ip=None,
+    dns_mode="system",
     observation_scope="reference",
     checkpoints=None,
     workers=1,
@@ -547,6 +612,9 @@ def capture_batch(
     """Checkpoint independent observations against capture code, policy and binary."""
     if any(type(value) is not int or value < 1 for value in (timeout_ms, attempts, workers)):
         raise ValueError("Browser observation budgets and workers must be positive integers")
+    dns_mode = validate_dns_mode(dns_mode)
+    if dns_mode == "public_doh" and resolved_ip is not None:
+        raise ValueError("public_doh cannot use a resolved-IP override")
     if len({case["id"] for case in cases}) != len(cases):
         raise ValueError("Invalid browser observation batch: duplicate case IDs")
     for case in cases:
@@ -583,8 +651,9 @@ def capture_batch(
             attempts=attempts,
             binary_sha256=binary_sha,
             resolved_ip=resolved_ip,
+            dns_mode=dns_mode,
             observation_scope=observation_scope,
-            capture_schema=2,
+            capture_schema=3,
             capture_sources=sources,
         )
         fingerprint = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
@@ -610,6 +679,8 @@ def capture_batch(
         options = (
             {"observation_scope": observation_scope} if observation_scope != "reference" else {}
         )
+        if dns_mode != "system":
+            options["dns_mode"] = dns_mode
         row = capture_with_retries(
             case, timeout_ms, attempts, browser_binary, resolved_ip, **options
         )
@@ -649,6 +720,7 @@ def main(argv=None, *, root: Path | None = None) -> None:
     )
     parser.add_argument("--checkpoint-dir", type=Path)
     parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--dns-mode", choices=("system", "public_doh"), default="system")
     parser.add_argument(
         "--resolved-ip",
         help="Audited public IP override, mapped only to each current case URL host",
@@ -661,6 +733,8 @@ def main(argv=None, *, root: Path | None = None) -> None:
             args.resolved_ip = public_ip(args.resolved_ip)
         except ValueError as error:
             parser.error(str(error))
+    if args.dns_mode == "public_doh" and args.resolved_ip is not None:
+        parser.error("public_doh cannot use --resolved-ip")
     if args.output.exists() or args.output.is_symlink():
         parser.error("Output exists; observations are immutable")
     rows = json.loads(read_dataset_bytes(args.dataset))["cases"]
@@ -680,6 +754,7 @@ def main(argv=None, *, root: Path | None = None) -> None:
         attempts=args.attempts,
         browser_binary=args.browser_binary,
         resolved_ip=args.resolved_ip,
+        dns_mode=args.dns_mode,
         observation_scope=args.observation_scope,
         checkpoints=args.checkpoint_dir,
         workers=args.workers,

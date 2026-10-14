@@ -329,20 +329,12 @@ def fetch(request):
                     if needs_profile:
                         profile = tempfile.TemporaryDirectory(prefix='browser-profile-')
                         if request.get('dns_mode', 'system') == 'public_doh':
-                            from harness.web_fetch.network_dns import DNS_ENDPOINT
-                            (Path(profile.name) / 'Local State').write_text(json.dumps({
-                                'dns_over_https': {
-                                    'mode': 'secure',
-                                    'templates': DNS_ENDPOINT + '{?dns}',
-                                },
-                                'built_in_dns_client_enabled': True,
-                            }))
-                            meta.update(
-                                dns_mode='public_doh',
-                                dns_endpoint=DNS_ENDPOINT,
-                                secure_dns_mode='secure',
-                                system_dns_fallback=False,
+                            from harness.web_fetch.network_dns import (
+                                configure_chromium_dns_profile,
                             )
+                            meta.update(configure_chromium_dns_profile(
+                                profile.name, 'public_doh'
+                            ))
                         if output_mode in {'file', 'document'}:
                             # The built-in PDF viewer replaces response bytes
                             # with HTML, so document tasks use native downloads.

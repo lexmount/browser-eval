@@ -467,94 +467,140 @@ def _field_token_pattern(spec: dict):
             'version': _VERSION}.get(spec['kind'])
 
 
+def _declared_aliases(field_specs: list[dict]) -> list[str]:
+    return sorted(
+        {alias for spec in field_specs for alias in spec.get("aliases", [])},
+        key=len,
+        reverse=True,
+    )
+
+
+def _trimmed_value_span(line: str, start: int, end: int) -> tuple[str, int, int]:
+    while start < end and line[start] in "| ":
+        start += 1
+    while end > start and line[end - 1] in "| ":
+        end -= 1
+    return line[start:end], start, end
+
+
+def _owned_labeled_values(
+    line: str, aliases: list[str]
+) -> list[tuple[str, str, int, int]]:
+    """Split one visible line into values owned by its longest declared labels."""
+    if not aliases:
+        return []
+    names = "|".join(re.escape(alias) for alias in aliases)
+    label = rf"(?P<label>{names})(?:\s*\([^)]*\))?"
+    explicit = re.compile(
+        rf"(?i)(?<!\S){label}\s*(?:[:：|]|[-–—])\s*"
+    )
+    matches = list(explicit.finditer(line))
+    # A field line starts with a declared label. Once that owner is known,
+    # later explicit labels may share the same physical line.
+    if matches and not line[: matches[0].start()].strip():
+        values = []
+        for position, match in enumerate(matches):
+            finish = matches[position + 1].start() if position + 1 < len(matches) else len(line)
+            value, start, end = _trimmed_value_span(line, match.end(), finish)
+            if value:
+                values.append((match.group("label"), value, start, end))
+        return values
+    unpunctuated = re.match(rf"(?i)^\s*{label}\s+(.+)$", line)
+    if unpunctuated:
+        value, start, end = _trimmed_value_span(line, *unpunctuated.span(2))
+        return [(unpunctuated.group("label"), value, start, end)] if value else []
+    return []
+
+
+def _line_starts_declared_label(line: str, aliases: list[str]) -> bool:
+    return _key(line) in {_key(alias) for alias in aliases} or bool(
+        _owned_labeled_values(line, aliases)
+    )
+
+
 def _field_value(
-    lines: list[str], spec: dict, used: set[int] | None = None
-) -> tuple[int, str] | None:
+    lines: list[str],
+    spec: dict,
+    used: set[int] | None = None,
+    *,
+    declared_aliases: list[str] | None = None,
+) -> tuple[int, str, int, int] | None:
+    """Return one value owned by its declared label or typed line."""
     aliases = spec.get("aliases", [])
-    candidates = []
-    if aliases:
-        for index, line in enumerate(lines):
-            if used and index in used:
-                continue
-            for alias in aliases:
-                match = re.match(rf"(?i)^\s*{re.escape(alias)}\s*[:：-]?\s*(.+)$", line)
-                if match and match[1].strip():
-                    candidates.append((index, match[1].strip()))
-                elif (
-                    _key(line) == _key(alias)
-                    and index + 1 < len(lines)
-                    and (not used or index + 1 not in used)
-                ):
-                    candidates.append((index + 1, lines[index + 1].strip()))
-    else:
-        candidates = [
-            (index, line) for index, line in enumerate(lines) if not used or index not in used
-        ]
-    for index, value in candidates:
+    candidates: list[tuple[int, str, int, int]] = []
+    declared = declared_aliases or list(aliases)
+    spec_alias_keys = {_key(alias) for alias in aliases}
+    for index, line in enumerate(lines):
+        if used and index in used:
+            continue
+        if aliases:
+            candidates.extend(
+                (index, value, start, end)
+                for alias, value, start, end in _owned_labeled_values(line, declared)
+                if _key(alias) in spec_alias_keys
+            )
+            if _key(line) in spec_alias_keys:
+                if index + 1 < len(lines) and (not used or index + 1 not in used):
+                    next_line = lines[index + 1].strip()
+                    if next_line and not _line_starts_declared_label(next_line, declared):
+                        candidates.append((index + 1, next_line, 0, len(next_line)))
+            continue
+        candidates.append((index, line, 0, len(line)))
+    for index, value, start, end in candidates:
         if token_pattern := _field_token_pattern(spec):
             for match in token_pattern.finditer(value):
                 if _value_matches_spec(match[0], spec):
-                    return index, match[0]
+                    return index, match[0], start + match.start(), start + match.end()
             continue
         if _value_matches_spec(value, spec):
-            return index, value
+            return index, value, start, end
     return None
+
+
+def _canonical_field_report_value(value: str, spec: dict) -> str:
+    """Keep the typed scalar from an owned field cell for diagnostics/fixed values."""
+    visible = visible_markdown_links(value).strip().strip("| ")
+    if spec["kind"] == "integer":
+        match = re.search(_AMOUNT, visible)
+        return match[0] if match else visible
+    if pattern := spec.get("pattern"):
+        match = re.search(pattern, visible, re.I)
+        return match[0] if match else visible
+    if spec["kind"] == "date_or_time":
+        match = _DATE_OR_TIME.search(visible)
+        return match[0] if match else visible
+    return visible
+
+
+def _fixed_field_value_key(value: str, spec: dict) -> str:
+    if spec["kind"] == "integer":
+        value = re.sub(r"(?<=\d)[,\s](?=\d{3}\b)", "", value)
+    return _key(value)
 
 
 def _required_fields(context: str, title: str, *, field_specs: list[dict]) -> bool:
     """Require every declared field inside the record block which owns the link."""
     lines = _context_lines(context, title)
-    used = set()
-    typed_lines = set()
-    declared_aliases = [
-        alias for field in field_specs for alias in field.get("aliases", [])
-    ]
+    used: set[int] = set()
+    typed_lines: set[int] = set()
+    declared = _declared_aliases(field_specs)
     for spec in field_specs:
-        if spec.get("aliases"):
-            aliases = "|".join(
-                sorted((re.escape(alias) for alias in declared_aliases), key=len, reverse=True)
-            )
-            candidates = []
-            for index, line in enumerate(lines):
-                for alias in spec["aliases"]:
-                    pattern = re.compile(
-                        rf"(?i)(?:^|\s){re.escape(alias)}\s*[:：-]\s*"
-                        rf"(.+?)(?=\s+(?:{aliases})\s*[:：-]|$)"
-                    )
-                    candidates.extend(
-                        (index, match[1].strip())
-                        for match in pattern.finditer(line)
-                        if match[1].strip()
-                    )
-                if _key(line) in {_key(alias) for alias in spec["aliases"]}:
-                    if index + 1 < len(lines):
-                        next_line = lines[index + 1].strip()
-                        next_is_label = any(
-                            re.match(rf"(?i)^{re.escape(alias)}\s*[:：-]?(?:\s|$)", next_line)
-                            for alias in declared_aliases
-                        )
-                        if not next_is_label:
-                            candidates.append((index + 1, next_line))
-            result = next(
-                ((index, value) for index, value in candidates
-                 if _value_matches_spec(value, spec)),
-                None,
-            )
-            if result is None:
-                return False
-            index, value = result
-            lines[index] = lines[index].replace(value, " " * len(value), 1)
-            continue
         typed = _field_token_pattern(spec) is not None
-        result = _field_value(lines, spec, used if typed else used | typed_lines)
+        result = _field_value(
+            lines,
+            spec,
+            used if typed else used | typed_lines,
+            declared_aliases=declared,
+        )
         if result is None:
             return False
-        index, value = result
+        index, value, start, end = result
+        # Consume the exact owned value. Multiple declared labels may share a
+        # physical line, but one value cannot satisfy two required fields.
+        lines[index] = lines[index][:start] + " " * (end - start) + lines[index][end:]
         if typed:
-            # Consume this exact span so fields may share a line, never a value.
-            lines[index] = lines[index].replace(value, ' ' * len(value), 1)
             typed_lines.add(index)
-        else:
+        elif not spec.get("aliases"):
             used.add(index)
     return True
 
@@ -760,13 +806,23 @@ def _field_report_group(content: str, group: dict) -> dict:
     lines = _context_lines(content, "")
     fields = {}
     used = set()
+    declared = _declared_aliases(group["required_fields"])
     for spec in group["required_fields"]:
-        value = _field_value(lines, spec, used)
+        value = _field_value(lines, spec, used, declared_aliases=declared)
         if value is not None:
-            fields[spec["id"]] = value[1]
-            used.add(value[0])
+            index, raw, start, end = value
+            fields[spec["id"]] = _canonical_field_report_value(raw, spec)
+            lines[index] = lines[index][:start] + " " * (end - start) + lines[index][end:]
+            if not spec.get("aliases"):
+                used.add(index)
+    specs = {spec["id"]: spec for spec in group["required_fields"]}
     fixed = {
-        key: {"value": value, "pass": key in fields and _key(fields[key]) == _key(value)}
+        key: {
+            "value": value,
+            "pass": key in fields
+            and _fixed_field_value_key(fields[key], specs[key])
+            == _fixed_field_value_key(value, specs[key]),
+        }
         for key, value in group.get("fixed_values", {}).items()
     }
     passed = len(fields) == len(group["required_fields"]) and all(

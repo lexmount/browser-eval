@@ -37,6 +37,21 @@ HOMEPAGE_READER_SCOPE_PROMPTS = frozenset({
 from .safety import contained_path, safe_identifier
 
 
+def _same_homepage_reader_constraints(old: dict, new: dict) -> bool:
+    """Accept revised homepage prose only when its operational suffix is unchanged."""
+    old_prompt = old.get("task_prompt", "")
+    new_prompt = new.get("task_prompt", "")
+    constraint_marker = "不点击子页面"
+    return (
+        isinstance(old_prompt, str)
+        and isinstance(new_prompt, str)
+        and constraint_marker in old_prompt
+        and constraint_marker in new_prompt
+        and old_prompt[old_prompt.index(constraint_marker):]
+        == new_prompt[new_prompt.index(constraint_marker):]
+    )
+
+
 def homepage_prompt_anchor_correction(old: dict, new: dict) -> bool:
     """Recognize a reader-scope prompt synchronized with narrowed homepage anchors."""
     before = old.get("acceptance_contract", {})
@@ -45,6 +60,7 @@ def homepage_prompt_anchor_correction(old: dict, new: dict) -> bool:
         key: item for key, item in value.items() if key != "stable_text_anchors"
     }
     anchors = after.get("stable_text_anchors", [])
+    new_prompt = new.get("task_prompt", "")
     return (
         old.get("source_benchmark", {}).get("mode")
         == new.get("source_benchmark", {}).get("mode")
@@ -52,7 +68,13 @@ def homepage_prompt_anchor_correction(old: dict, new: dict) -> bool:
         and before.get("stable_text_anchors") != anchors
         and without_anchors(before) == without_anchors(after)
         and bool(anchors)
-        and new.get("task_prompt") in HOMEPAGE_READER_SCOPE_PROMPTS
+        and (
+            new_prompt in HOMEPAGE_READER_SCOPE_PROMPTS
+            or (
+                new.get("reference_answer") == new_prompt
+                and _same_homepage_reader_constraints(old, new)
+            )
+        )
     )
 
 MAX_REFERENCE_AGE_SECONDS = 30 * 60
@@ -679,7 +701,10 @@ def check_case_scoring_revision_binding(case, binding: dict) -> None:
         current.get("source_benchmark", {}).get("mode")
         == original.get("source_benchmark", {}).get("mode")
         == "ranked_domain_homepage"
-        and current.get("task_prompt") in HOMEPAGE_READER_SCOPE_PROMPTS
+        and (
+            current.get("task_prompt") in HOMEPAGE_READER_SCOPE_PROMPTS
+            or _same_homepage_reader_constraints(original, current)
+        )
     )
     current.pop("evaluation_contract", None)
     original.pop("evaluation_contract", None)
@@ -1327,7 +1352,10 @@ def check_case_reference_and_scoring_revision_binding(
         current.get("source_benchmark", {}).get("mode")
         == original.get("source_benchmark", {}).get("mode")
         == "ranked_domain_homepage"
-        and current.get("task_prompt") in HOMEPAGE_READER_SCOPE_PROMPTS
+        and (
+            current.get("task_prompt") in HOMEPAGE_READER_SCOPE_PROMPTS
+            or _same_homepage_reader_constraints(original, current)
+        )
     )
     if prompt_policy_correction or prompt_homepage_correction:
         current.pop("task_prompt", None)

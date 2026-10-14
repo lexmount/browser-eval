@@ -7,6 +7,7 @@ import threading
 import time
 import urllib.parse
 import urllib.request
+from pathlib import Path
 
 DNS_ENDPOINT = "https://cloudflare-dns.com/dns-query"
 DNS_MODES = {"system", "public_doh"}
@@ -25,6 +26,28 @@ def validate_dns_mode(mode):
     if mode not in DNS_MODES:
         raise ValueError("dns_mode must be system or public_doh")
     return mode
+
+
+def configure_chromium_dns_profile(profile, mode):
+    """Configure a fresh Chromium profile for one declared DNS mode."""
+    mode = validate_dns_mode(mode)
+    if mode == "system":
+        return {"dns_mode": "system"}
+    profile = Path(profile)
+    state = profile / "Local State"
+    if state.exists() or state.is_symlink():
+        raise ValueError("Chromium DNS profile must be fresh")
+    state.write_text(json.dumps({
+        "dns_over_https": {"mode": "secure", "templates": DNS_ENDPOINT + "{?dns}"},
+        "built_in_dns_client_enabled": True,
+    }))
+    return {
+        "dns_mode": "public_doh",
+        "dns_endpoint": DNS_ENDPOINT,
+        "secure_dns_mode": "secure",
+        "system_dns_fallback": False,
+        "dns_bootstrap": "system resolver for the fixed DoH endpoint only",
+    }
 
 
 def lookup_public_dns(hostname, *, timeout, opener=None):
@@ -247,10 +270,7 @@ async def crawl4ai_public_dns_browser(config):
         raise ValueError("public_doh requires the frozen Chrome channel")
     with tempfile.TemporaryDirectory(prefix="webfetch-crawl-dns-") as directory:
         profile = pathlib.Path(directory)
-        (profile / "Local State").write_text(json.dumps({
-            "dns_over_https": {"mode": "secure", "templates": DNS_ENDPOINT + "{?dns}"},
-            "built_in_dns_client_enabled": True,
-        }))
+        dns_metadata = configure_chromium_dns_profile(profile, "public_doh")
         arguments = BrowserManager(config)._build_browser_args()
         arguments["args"] += ["--remote-debugging-port=0", "--remote-debugging-address=127.0.0.1"]
         async with async_playwright() as playwright:
@@ -264,11 +284,9 @@ async def crawl4ai_public_dns_browser(config):
                 if not 1 <= port <= 65535:
                     raise ValueError("invalid Chrome debugging endpoint")
                 yield config.clone(cdp_url=f"http://127.0.0.1:{port}"), {
-                    "dns_mode": "public_doh", "dns_endpoint": DNS_ENDPOINT,
-                    "secure_dns_mode": "secure", "system_dns_fallback": False,
+                    **dns_metadata,
                     "browser_channel": config.chrome_channel,
                     "browser_version": context.browser.version if context.browser else None,
-                    "dns_bootstrap": "system resolver for the fixed DoH endpoint only",
                 }
             finally:
                 await context.close()

@@ -44,14 +44,50 @@ def sha(path: Path) -> str:
 
 
 def assign_content_acceptance_roles(cases: list[dict]) -> None:
-    """Bind stable-text diagnostics to independently declared content gates."""
+    """Default stable text to required; preserve explicit audited declarations."""
     for case in cases:
         contract = case["acceptance_contract"]
-        contract["stable_text_role"] = (
-            "diagnostic" if case.get("body_requirements") or case.get("composite_acceptance")
-            else "required"
-        )
+        role = contract.get("stable_text_role", "required")
+        if role == "diagnostic" and not (
+            case.get("body_requirements")
+            or (
+                case.get("composite_acceptance")
+                and case["composite_acceptance"].get("groups")
+            )
+            or contract.get("page_patterns")
+        ):
+            raise ValueError(
+                "Diagnostic stable text requires body, composite, or page-pattern acceptance"
+            )
         validate_acceptance_contract(contract)
+
+
+def apply_content_acceptance_policy(acceptance: dict, *owners: dict | None) -> None:
+    """Apply an explicit scope-completeness decision from an existing contract owner."""
+    roles = {
+        owner["stable_text_role"]
+        for owner in owners
+        if owner is not None and "stable_text_role" in owner
+    }
+    if len(roles) > 1:
+        raise ValueError("Conflicting stable-text roles across content contracts")
+    if roles:
+        acceptance["stable_text_role"] = roles.pop()
+
+    page_patterns = []
+    for owner in owners:
+        if owner is None:
+            continue
+        declared = owner.get("page_patterns", [])
+        if not isinstance(declared, list) or any(
+            not isinstance(pattern, str) or not pattern for pattern in declared
+        ):
+            raise ValueError("Invalid content-contract page patterns")
+        page_patterns.extend(declared)
+    if len(page_patterns) != len(set(page_patterns)):
+        raise ValueError("Duplicate content-contract page patterns")
+    if page_patterns:
+        acceptance["page_patterns"] = page_patterns
 
 
 def compact_key(value: str) -> str:
@@ -323,15 +359,15 @@ def build(output: Path, definition_dir: Path = RISK) -> dict:
         for group in value["groups"]
     )
     # The replacement removes Kuaishou's two independently counted list groups
-    # and adds a fixed full-body About page.  The remaining multi-group cases are
-    # Scioly (3), HydroOJ (2), and Global European (4).
+    # and adds a fixed full-body About page. Ibiblio's owner carries only its
+    # explicit page-scope policy: the task does not require its changing news list.
     if (
-        len(quantity_contracts) != 21
-        or quantity_groups != 27
+        len(quantity_contracts) != 20
+        or quantity_groups != 26
         or len(contracts) != 23
         or groups != 29
     ):
-        raise ValueError("Expected 21 quantity cases/27 groups plus 2 field groups")
+        raise ValueError("Expected 20 quantity cases/26 groups plus 3 field groups")
     cases = []
     body_count = 0
     for section, qualified_case in zip(sections, qualified, strict=True):
@@ -361,11 +397,16 @@ def build(output: Path, definition_dir: Path = RISK) -> dict:
             "minimum_records": 0,
             "stable_text_anchors": anchors,
         }
+        apply_content_acceptance_policy(
+            acceptance,
+            body_contracts.get(section["id"]),
+            contracts.get(section["id"]),
+        )
         validate_acceptance_contract(acceptance)
         body = body_reference(section, source, body_contracts.get(section["id"]))
         body_count += bool(body)
         composite = None
-        if section["id"] in contracts:
+        if section["id"] in contracts and contracts[section["id"]]["groups"]:
             composite = {"version": 1, "groups": contracts[section["id"]]["groups"]}
             validate_composite_acceptance(composite)
         final_url = qualified_case.get("observed_final_url") or section["url"]
@@ -417,7 +458,7 @@ def build(output: Path, definition_dir: Path = RISK) -> dict:
         "body_case_count": body_count,
         "quantity_case_count": len(quantity_contracts),
         "independent_quantity_group_count": quantity_groups,
-        "list_or_field_case_count": len(contracts),
+        "list_or_field_case_count": sum(bool(owner["groups"]) for owner in contracts.values()),
         "composite_group_count": groups,
         "stable_literal_count": stable_literal_count,
         "observed_literal_count": stable_literal_count,

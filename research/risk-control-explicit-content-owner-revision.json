@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "kind": "risk_control_acceptance_scope_revision",
+  "predecessor_revision": "research/risk-control-xtools-field-scope-revision.json",
+  "root_cause": "Three cases left the role of historical page-shell text implicit. Devuan's independently frozen README body can satisfy the declared project scope without responsive repository controls; ibiblio's task asks for archive identity and its visible collection introduction rather than a changing news list or historical navigation copy. The NASA post retains its original required author and post text contract.",
+  "source_authority": {
+    "cohort_manifest_sha256": "aeec7ec26d24650896263574135a27fc4848f4d362bd38f0a5b5c167f82abc26",
+    "frozen_predecessor_dataset_sha256": "43717c2f8d5e9d3568f84670ba4975fbd22e05468fd2353c3a13f6c48983cdae",
+    "case_scopes": {
+      "risk-diverse-042": "Devuan installer-iso public project identity and README summary",
+      "risk-diverse-192": "ibiblio public archive identity and automatically visible collection introduction"
+    },
+    "ibiblio_first_party_sources": [
+      "https://www.ibiblio.org/hosted/about/about.ibiblio.sheet.pdf",
+      "https://www.ibiblio.org/pjones/blog/ibibliolulu/"
+    ],
+    "provider_output_used": false,
+    "new_provider_calls": 0
+  },
+  "correction": {
+    "predecessor_dataset_sha256": "43717c2f8d5e9d3568f84670ba4975fbd22e05468fd2353c3a13f6c48983cdae",
+    "predecessor_run_profile_sha256": "6cd713e74eae815b3c2688d069381e05e633ecb881c66910cbbc28aca4ca1f36",
+    "new_dataset_sha256": "165b888133e859304b035d74183dd40bf7ab609cac78bb6ae6e75b645c1de426",
+    "new_dataset_catalog_sha256": "52ec968b2ada26e5e061ccb25cbe4a73747539e556fa88f31bece6d7fb79b3cb",
+    "new_run_profile_sha256": "f56b04e66cff763fdff14619b2e2a6524fa92875ee612d852c038a1df4bb0d74",
+    "new_body_contracts_sha256": "de5a1ff1b4333e980dd824848e79f2e7717175b53ffade512491afeb4f6c13f9",
+    "new_list_contracts_sha256": "a566fb13328bd1a88b189b5a49fb7b3565a8d037c22aaa19c2b86087cbbe0881",
+    "provider_calls": 0,
+    "score_only_revision": true,
+    "unchanged_case_count": 97,
+    "affected_case_ids": [
+      "risk-diverse-011",
+      "risk-diverse-042",
+      "risk-diverse-192"
+    ],
+    "quantity_case_count_before": 21,
+    "quantity_case_count_after": 20,
+    "quantity_group_count_before": 27,
+    "quantity_group_count_after": 26,
+    "composite_group_count_before": 30,
+    "composite_group_count_after": 29
+  },
+  "scoring_provenance": {
+    "scoring_regressions_sha256": "117fb98b5ffbf5d05515e83804606e7804c0f662c76e2d87cca0aa61fbe03690",
+    "regression_ids": [
+      "declared-body-without-conditional-ui-control-passes",
+      "conditional-ui-control-cannot-replace-declared-body",
+      "archive-introduction-semantic-scope-passes",
+      "archive-news-and-footer-cannot-replace-introduction",
+      "wrong-archive-identity-cannot-satisfy-introduction",
+      "archive-identity-without-topical-introduction-fails"
+    ]
+  },
+  "history_policy": {
+    "preserve_revision": "v5",
+    "preserve_prior_certified_calls": true,
+    "rescore_or_rerun_required": true,
+    "reason": "The revision changes task acceptance only; historical calls and their original receipts remain immutable."
+  }
+}

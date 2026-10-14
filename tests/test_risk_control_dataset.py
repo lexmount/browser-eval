@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.web_fetch.composite_tasks import validate_composite_acceptance
-from harness.web_fetch.metrics import evaluate_content, normalize_for_match
+from harness.web_fetch.metrics import evaluate_content, normalize_for_match, task_passed
 from harness.web_fetch.report_build import require_risk_control_certification
 from harness.web_fetch.risk_control import main as run_risk_control
 from harness.web_fetch.risk_control import (
@@ -25,6 +25,7 @@ from harness.web_fetch.risk_control_dataset import (
     evidence_roots,
     parse_sections,
 )
+from harness.web_fetch.scoring import score_attempt
 from harness.web_fetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
 from tests.conftest import read_frozen_dataset_bytes
 
@@ -45,12 +46,16 @@ assert callable(validate_risk_control_certification)
 '''
     result = subprocess.run([sys.executable, "-c", code], cwd=ROOT, text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
-DATASET = ROOT / "evaluation/risk-control/dataset.json"
+DATASET = ROOT / "evaluation/risk-control/current/dataset.json"
 COHORT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-manifest.json"
 COHORT_RECEIPT = ROOT / "evaluation/risk-control/qualification/cohort/cohort-receipt.json"
 RUN_PROFILE = ROOT / "evaluation/risk-control/run-profile.json"
 LANGUAGE_REVISION = ROOT / "research/risk-control-language-rule-revision.json"
 ZILLOW_REVISION = ROOT / "research/risk-control-zillow-sample-revision.json"
+XTOOLS_REVISION = ROOT / "research/risk-control-xtools-field-scope-revision.json"
+CONTENT_OWNER_REVISION = ROOT / "research/risk-control-explicit-content-owner-revision.json"
+HISTORICAL_V5 = ROOT / "evaluation/risk-control/history/v5"
+HISTORICAL_PROFILE = ROOT / "evaluation/risk-control/history/v4/run-profile.json"
 
 
 @pytest.fixture(scope="module")
@@ -67,9 +72,9 @@ def test_dataset_covers_the_exact_audited_cohort(dataset):
     assert "page_context_literal_count" not in dataset
     assert dataset["observed_literal_count"] == 1586
     assert dataset["body_case_count"] == 79
-    assert dataset["quantity_case_count"] == 21
-    assert dataset["independent_quantity_group_count"] == 27
-    assert dataset["list_or_field_case_count"] == 23
+    assert dataset["quantity_case_count"] == 20
+    assert dataset["independent_quantity_group_count"] == 26
+    assert dataset["list_or_field_case_count"] == 22
     assert dataset["composite_group_count"] == 29
 
 
@@ -132,12 +137,36 @@ def test_zillow_sample_revision_binds_current_frozen_inputs():
     for key in ('dataset','run_profile'):
         assert full_page['correction']['new_'+key+'_sha256'] == locale['correction']['predecessor_'+key+'_sha256']
     responsive=json.loads((ROOT/'research/risk-control-responsive-navigation-revision.json').read_text())
+    xtools=json.loads(XTOOLS_REVISION.read_text())
+    content_owner=json.loads(CONTENT_OWNER_REVISION.read_text())
     assert responsive['predecessor_revision'] == 'research/risk-control-navigation-language-revision.json'
     assert locale['correction']['new_dataset_sha256'] == responsive['correction']['predecessor_dataset_sha256']
     assert locale['correction']['new_run_profile_sha256'] == responsive['correction']['predecessor_run_profile_sha256']
-    assert responsive['correction']['new_dataset_sha256'] == hashlib.sha256(read_frozen_dataset_bytes(DATASET)).hexdigest()
-    assert responsive['correction']['new_run_profile_sha256'] == hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest()
-    assert profile["dataset"]["sha256"] == responsive["correction"]["new_dataset_sha256"]
+    assert xtools['predecessor_revision'] == 'research/risk-control-responsive-navigation-revision.json'
+    assert responsive['correction']['new_dataset_sha256'] == xtools['correction']['predecessor_dataset_sha256']
+    assert responsive['correction']['new_run_profile_sha256'] == xtools['correction']['predecessor_run_profile_sha256']
+    assert xtools['correction']['new_dataset_sha256'] == hashlib.sha256(
+        read_frozen_dataset_bytes(HISTORICAL_V5 / "dataset.json")
+    ).hexdigest()
+    assert xtools['correction']['new_run_profile_sha256'] == hashlib.sha256(
+        (HISTORICAL_V5 / "run-profile.json").read_bytes()
+    ).hexdigest()
+    assert content_owner['predecessor_revision'] == str(
+        XTOOLS_REVISION.relative_to(ROOT)
+    )
+    assert content_owner['correction']['predecessor_dataset_sha256'] == xtools['correction']['new_dataset_sha256']
+    assert content_owner['correction']['predecessor_run_profile_sha256'] == xtools['correction']['new_run_profile_sha256']
+    assert content_owner['correction']['new_dataset_sha256'] == hashlib.sha256(
+        read_frozen_dataset_bytes(DATASET)
+    ).hexdigest()
+    assert content_owner['correction']['new_run_profile_sha256'] == hashlib.sha256(
+        RUN_PROFILE.read_bytes()
+    ).hexdigest()
+    assert profile["dataset"]["sha256"] == content_owner["correction"]["new_dataset_sha256"]
+    assert profile["dataset"]["path"] == "evaluation/risk-control/current/dataset.json"
+    assert xtools['correction']['predecessor_run_profile_sha256'] == hashlib.sha256(
+        HISTORICAL_PROFILE.read_bytes()
+    ).hexdigest()
     assert revision["correction"]["provider_calls"] == 1
     assert revision["correction"]["rerun_case_ids"] == ["risk-diverse-134"]
 
@@ -628,13 +657,11 @@ def test_corrected_rule_evidence_conflicts_are_encoded_exactly(dataset):
 
     ibiblio = cases["risk-diverse-192"]
     assert "body_requirements" not in ibiblio
-    assert "collections of collections" not in json.dumps(ibiblio, ensure_ascii=False)
-    news = ibiblio["composite_acceptance"]["groups"]
-    assert len(news) == 1
-    assert news[0]["id"] == "homepage-news"
-    assert news[0]["minimum_records"] == 3
-    assert news[0]["hosts"] == ["www.ibiblio.org"]
-    assert [field["id"] for field in news[0]["required_fields"]] == ["published", "summary"]
+    assert "composite_acceptance" not in ibiblio
+    assert ibiblio["acceptance_contract"]["stable_text_role"] == "diagnostic"
+    patterns = ibiblio["acceptance_contract"]["page_patterns"]
+    assert len(patterns) == 1
+    assert "collections? of collections" in patterns[0]
 
     anton_paar = cases["risk-diverse-225"]
     assert len(anton_paar["body_requirements"]["regions"]) == 1
@@ -821,60 +848,21 @@ def test_stable_text_groups_are_unique_after_display_normalization(dataset):
         assert len(anchors) == len(set(anchors)), case["id"]
 
 
-def test_ibiblio_news_requires_three_unique_real_article_cards(dataset):
+def test_ibiblio_scope_requires_archive_identity_and_collection_introduction(dataset):
     case = next(case for case in dataset["cases"] if case["id"] == "risk-diverse-192")
-    contract = case["composite_acceptance"]
-    cards = [
-        ("Importance of Summer", "/archive/2026/06/importance-of-summer/", "19 June 2026"),
-        (
-            "Poetry Available through ibiblio",
-            "/archive/2024/03/poetry-available-through-ibiblio/",
-            "4 March 2024",
-        ),
-        (
-            "SoundExchange and Digital Audio Streaming",
-            "/archive/2024/01/soundexchange-and-digital-audio-streaming/",
-            "24 January 2024",
-        ),
-    ]
-
-    def markdown(selected):
-        return "\n\n".join(
-            f"## [{title}]({path})\n"
-            "This is a sufficiently long same-record article summary explaining "
-            f"the news item in useful detail.\n[{date}]({path})"
-            for title, path, date in selected
-        )
-
-    from harness.web_fetch.composite_tasks import evaluate_composite_acceptance
-
-    positive = evaluate_composite_acceptance(
-        markdown(cards), contract, base_url="https://ibiblio.org/"
+    complete = (
+        "ibiblio.org is a public digital library and collection of collections. "
+        "It preserves freely available information about software, music, literature, art, "
+        "history, science, politics, and cultural studies in collaboration with the "
+        "University of North Carolina at Chapel Hill."
     )
-    assert positive["composite_acceptance_pass"]
-    assert positive["composite_group_results"][0]["count"] == 3
-
-    missing = evaluate_composite_acceptance(
-        markdown(cards[:2]), contract, base_url="https://ibiblio.org/"
-    )
-    assert not missing["composite_acceptance_pass"]
-    assert missing["composite_group_results"][0]["count"] == 2
-
-    duplicate = evaluate_composite_acceptance(
-        markdown([cards[0], cards[0], cards[1]]),
-        contract,
-        base_url="https://ibiblio.org/",
-    )
-    assert not duplicate["composite_acceptance_pass"]
-    assert duplicate["composite_group_results"][0]["count"] == 2
-
-    wrong_path = list(cards)
-    wrong_path[2] = (wrong_path[2][0], "/about/", wrong_path[2][2])
-    invalid = evaluate_composite_acceptance(
-        markdown(wrong_path), contract, base_url="https://ibiblio.org/"
-    )
-    assert not invalid["composite_acceptance_pass"]
-    assert invalid["composite_group_results"][0]["count"] == 2
+    news_and_footer = "ibiblio News One Two Three Logos Hosted by UNC Chapel Hill"
+    wrong_identity = complete.replace("ibiblio.org", "Another Archive")
+    identity_only = "ibiblio.org is hosted with UNC Chapel Hill. Browse Logos and news."
+    assert task_passed(True, score_attempt(case, complete.encode(), ok=True))
+    assert not task_passed(True, score_attempt(case, news_and_footer.encode(), ok=True))
+    assert not task_passed(True, score_attempt(case, wrong_identity.encode(), ok=True))
+    assert not task_passed(True, score_attempt(case, identity_only.encode(), ok=True))
 
 
 def test_formal_run_requires_one_complete_hash_bound_diagnostic_log_per_case():

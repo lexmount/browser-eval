@@ -756,8 +756,14 @@ def evaluate_content(
         # Explicit body/record requirements own body-text acceptance. Stable
         # page-shell literals remain inspectable diagnostics in those cases.
         anchors_required = acceptance_contract.get("stable_text_role", "required") != "diagnostic"
-        if not anchors_required and not (body_requirements or composite_acceptance):
-            raise ValueError("Diagnostic stable text requires body or composite acceptance")
+        if not anchors_required and not (
+            body_requirements
+            or (composite_acceptance and composite_acceptance.get("groups"))
+            or acceptance_contract.get("page_patterns")
+        ):
+            raise ValueError(
+                "Diagnostic stable text requires body, composite, or page-pattern acceptance"
+            )
         declared_body_pass = bool(result["body_coverage_pass"])
         declared_pattern_pass = all(item["pass"] for item in result["pattern_results"])
         from .stable_tasks import evaluate_stable_task

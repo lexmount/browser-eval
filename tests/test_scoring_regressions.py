@@ -185,11 +185,15 @@ class ScoringRegressionTests(unittest.TestCase):
             "openai_stable_body_excludes_model_catalog_copy",
             "non_record_image_alt_visibility",
             "microsoft_homepage_language_and_drift",
+            "complete_official_homepage_body_scope",
         })
         paired.update({"table_visible_section_boundaries", "table_escaped_pipe_boundaries"})
         paired.update({"nested_image_accessible_link_name",
                        "same_line_labeled_field_spans",
-                       "linearized_linked_table_ownership"})
+                       "linearized_linked_table_ownership",
+                       "markdown_field_cell_ownership",
+                       "field_report_section_ownership",
+                       "declared_field_span_ownership"})
         paired.update({"table_header_visual_line", "table_adjacent_split_body",
                        "composite_html_table_ownership",
                        "body_table_column_continuity",

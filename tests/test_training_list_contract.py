@@ -14,8 +14,10 @@ TITLE='教材《C++版信息学奥赛一本通编程启蒙》题单'
 
 
 def training_case():
-    return next(c for c in json.loads(read_frozen_dataset_bytes(ROOT/'evaluation/risk-control/dataset.json'))['cases']
-                if c['id']=='risk-diverse-153')
+    dataset = json.loads(
+        read_frozen_dataset_bytes(ROOT / 'evaluation/risk-control/current/dataset.json')
+    )
+    return next(c for c in dataset['cases'] if c['id'] == 'risk-diverse-153')
 
 
 def training_output(*,combined=True,rows=26,missing=None):
@@ -63,9 +65,15 @@ def test_training_revision_preserves_the_entire_predecessor_dataset_and_profile(
     import hashlib
     receipt=json.loads((ROOT/'research/risk-control-training-list-revision.json').read_text())
     correction=receipt['correction']
-    dataset=json.loads(read_frozen_dataset_bytes(ROOT/'evaluation/risk-control/dataset.json'))
+    dataset=json.loads(read_frozen_dataset_bytes(ROOT/'evaluation/risk-control/history/v2/dataset.json'))
     full_page=json.loads((ROOT/'research/risk-control-full-page-rule-revision.json').read_text())
     historical=copy.deepcopy(dataset)
+    locale=json.loads((ROOT/'research/risk-control-navigation-language-revision.json').read_text())
+    training=next(c for c in historical['cases'] if c['id']==locale['case_id'])
+    for anchor in training['acceptance_contract']['stable_text_anchors']:
+        added=locale['correction']['equivalent_ui_alternatives_added'].get(anchor['id'])
+        if added:
+            anchor['alternatives'].remove(added)
     for case in historical['cases']:
         count=full_page['predecessor_target_anchor_counts'][case['id']]
         anchors=case['acceptance_contract']['stable_text_anchors']
@@ -88,7 +96,7 @@ def test_training_revision_preserves_the_entire_predecessor_dataset_and_profile(
     historical['source_bindings']['list_contracts_sha256']=correction['predecessor_list_contracts_sha256']
     encode=lambda x:(json.dumps(x,ensure_ascii=False,indent=2)+'\n').encode()
     assert hashlib.sha256(encode(historical)).hexdigest()==correction['predecessor_dataset_sha256']
-    profile=json.loads((ROOT/'evaluation/risk-control/run-profile.json').read_text())
+    profile=json.loads((ROOT/'evaluation/risk-control/history/v2/run-profile.json').read_text())
     profile['source_bindings']=full_page['predecessor_profile_source_bindings']
     profile['dataset']['sha256']=full_page['correction']['predecessor_dataset_sha256']
     assert hashlib.sha256(encode(profile)).hexdigest()==full_page['correction']['predecessor_run_profile_sha256']

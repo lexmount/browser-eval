@@ -8,6 +8,27 @@ from harness.web_fetch.network_dns import lookup_public_dns, public_dns_context
 
 
 class NetworkDnsTests(unittest.TestCase):
+    def test_shared_chromium_profile_enables_strict_doh_without_system_fallback(self):
+        import tempfile
+        from pathlib import Path
+        from harness.web_fetch.network_dns import (
+            DNS_ENDPOINT,
+            configure_chromium_dns_profile,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            profile = Path(directory)
+            metadata = configure_chromium_dns_profile(profile, "public_doh")
+            state = json.loads((profile / "Local State").read_text())
+            self.assertEqual(state["dns_over_https"], {
+                "mode": "secure", "templates": DNS_ENDPOINT + "{?dns}",
+            })
+            self.assertTrue(state["built_in_dns_client_enabled"])
+            self.assertFalse(metadata["system_dns_fallback"])
+        with tempfile.TemporaryDirectory() as directory:
+            metadata = configure_chromium_dns_profile(directory, "system")
+            self.assertEqual(metadata, {"dns_mode": "system"})
+            self.assertFalse((Path(directory) / "Local State").exists())
+
     def test_native_process_environment_records_binding_and_resolutions(self):
         import time
         from pathlib import Path

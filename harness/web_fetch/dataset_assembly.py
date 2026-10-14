@@ -27,6 +27,9 @@ _CORRECTABLE_CASE_FIELDS = {
 }
 
 _RERUN_ONLY_CASE_FIELDS = {
+    "category",
+    "name",
+    "tags",
     "url",
     "description",
     "task_prompt",
