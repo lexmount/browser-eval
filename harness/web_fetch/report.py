@@ -1658,7 +1658,7 @@ def overview_all_call_latency(records,cases):
   times=[r['elapsed_ms'] for r in records if r['provider']==name]
   rows.append(('',cell(link('providers/'+name+'.html',provider_label(name)))+cell(str(len(times)))+
                cell(ms(statistics.mean(times)))+cell(ms(percentile(times,.5)))+cell(ms(percentile(times,.95)))))
- return (f'<p>每种方法均使用同一组 {len(cases)} 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。每种方法内部按案例依次执行；方法之间的并发安排和限制见调用链检查。耗时仍受本地与远程环境、网络和产品内部限制影响。</p>'+
+ return ('<p>'+model_text(f'每种方法均使用同一组 {len(cases)} 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。每种方法内部按案例依次执行；方法之间的并发安排和限制见调用链检查。耗时仍受本地与远程环境、网络和产品内部限制影响。',f'Each method uses the same {len(cases)} tasks, including passes, failures, errors and timeouts. Latency covers one call from input to output, excluding cooldown intervals between calls. Each method executes cases sequentially; method concurrency and limits are documented in the call-chain audit. Local/remote execution, network conditions and native product limits still affect latency.')+'</p>'+
          table(['方法','调用数','全部调用均值','全部调用 P50','全部调用 P95'],rows,'all-call-latency-table',metrics=[]))
 
 
@@ -2252,7 +2252,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  elif not authored_interpretation:
   review_path=out/'result-review.json'
   review=json.loads(review_path.read_text()) if review_path.is_file() else {}
-  updates=''.join('<article class="review-round"><div class="round-label">'+esc(row.get('date',''))+'</div><div><h3>'+esc(row.get('title',''))+'</h3><p>'+esc(row.get('fix',''))+'</p><p class="source-note">'+esc(row.get('scope',''))+'</p></div></article>' for row in review.get('review_rounds',[]))
+  updates=''.join('<article class="review-round"><div class="round-label">'+esc(row.get('date',''))+'</div><div><h3>'+model_text(row.get('title',''),row.get('title_en'))+'</h3><p>'+model_text(row.get('fix',''),row.get('fix_en'))+'</p><p class="source-note">'+model_text(row.get('scope',''),row.get('scope_en'))+'</p></div></article>' for row in review.get('review_rounds',[]))
   write(out,'changes/index.html','变更记录',hero('变更记录','列出本轮核验后的修正；修正读取已保存的返回，不代表重新调用产品。')+section('本轮结果修正','<div class="review-rounds">'+updates+'</div>')+section('详细依据','<p>'+link('../review/index.html','核验范围与修正说明')+' · '+link('../analysis/index.html','逐任务结果与证据')+' · '+link('../reproduce/index.html','运行参数与版本')+'</p>'))
  else:
   render_changes(out,cases,records,dataset)
@@ -2277,7 +2277,7 @@ def write_review_page(out,records):
  from .report_changes import require_review_rounds
  rounds=(audit['review_rounds'] if audit.get('kind')=='local_independent_review' else require_review_rounds(changes))
  rounds_html=''.join(
-  f'<article class="review-round"><div class="round-label">第 {i} 轮<br><small>{esc(row.get("date",""))}</small></div><div><h3>{esc(row.get("title",""))}</h3><p><b>范围：</b>{esc(row.get("scope",""))}</p><p><b>发现：</b>{esc(row.get("finding",""))}</p><p><b>纠正：</b>{esc(row.get("fix",""))}</p><p class="round-result"><b>未完成：</b>{esc(row.get("pending",""))}</p></div></article>'
+  f'<article class="review-round"><div class="round-label">第 {i} 轮<br><small>{esc(row.get("date",""))}</small></div><div><h3>{model_text(row.get("title",""),row.get("title_en"))}</h3><p><b>范围：</b>{model_text(row.get("scope",""),row.get("scope_en"))}</p><p><b>发现：</b>{model_text(row.get("finding",""),row.get("finding_en"))}</p><p><b>纠正：</b>{model_text(row.get("fix",""),row.get("fix_en"))}</p><p class="round-result"><b>未完成：</b>{model_text(row.get("pending",""),row.get("pending_en"))}</p></div></article>'
   for i,row in enumerate(rounds,1))
  page=hero('核验记录','记录每轮核验的范围、发现、纠正和未决事项。')
  reviewed_attempts=audit.get('attempts',[])
@@ -2300,12 +2300,14 @@ def write_review_page(out,records):
  page+=section('核验轮次','<div class="review-rounds">'+rounds_html+'</div>')
  method=(f'<details class="technical-details"><summary>核验协议与执行者</summary><p>执行者：{esc(reviewer.get("agent","独立代理"))}；模型：{esc(reviewer.get("model","—"))}；推理强度：{esc(reviewer.get("effort","—"))}。'
          '核验时隐藏机器结论和分数，只提供任务契约、标准答案与完整实际输出；分歧回到原始证据裁定，未决非零则禁止发布。任务和输出未变化时沿用原核验；发生变化的调用必须重新盲审。</p></details>')
+ if audit.get('adjudication_revision'):
+  method='<p>'+model_text('原独立判断和补充判断保留在逐条记录中。本次补充裁定查看了已有评分、契约和原始输出，不是新一轮全量盲审。每条裁定列出具体规则和原始证据片段；本地结果不因裁定完成而获得来源认证。','Original independent and supplemental opinions remain in the per-result records. This supplemental adjudication inspected saved scores, contracts and original answers; it is not a new full blind review. Each adjudication records specific rules and original excerpts. Completing adjudication does not certify source validity.')+'</p>'
  page+=section('核验口径',method)
  dataset_path=out/'dataset.json'
  if dataset_path.is_file():
   findings=json.loads(dataset_path.read_text()).get('comparison',{}).get('call_chain_audit',{}).get('findings',[])
   if findings:
-   page+=section('本轮修正与检查限制',''.join('<p>'+esc(item['text'])+'</p>' for item in findings))
+   page+=section('本轮修正与检查限制',''.join('<p>'+model_text(item['text'],item.get('text_en'))+'</p>' for item in findings))
  write(out,'review/index.html','核验记录',page)
 
 def write_support(out,records,manifests,*,authored_interpretation=True):

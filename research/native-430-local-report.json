@@ -15,7 +15,7 @@
     "openclaw-built-in",
     "tavily"
   ],
-  "frozen_dataset_sha256": "487d17fdf2b4b2f7c761323a67875acd624b7d5bb99961052fefd7362572708e",
+  "frozen_dataset_sha256": "77e3cbed9aaf22fb3cab66e709701b9f8d418a67bbfb01d7f7565d2b2843c140",
   "results_sha256": "568ae78cbd8293138cb3c57b06c6545fa7b9d5a9f0db363fa1dfba5870312d38",
   "measured_scoring_source_sha256": "4ce40cdf2ecb1af4088915a2b869ffbdcb65dce5222d1429578e97d175f13bfc",
   "evidence_state": "local_measurement",
@@ -28,7 +28,7 @@
     },
     {
       "path": "result-review.json",
-      "sha256": "9d77bf5f9bf11ff1cb25ca1d0b74821939980d0f0626b56c0958e5725fb2eeb3"
+      "sha256": "7557ff8d0d583d794a177c5d32d8deedb4fc49ff8b7a519c337f88ddca5b9d7b"
     },
     {
       "path": "archived-reading.json",
@@ -44,12 +44,12 @@
     },
     {
       "path": "local-evidence/final-audit/audit-summary.json",
-      "sha256": "0a19248a3e2cd5d3a2528227947196c31e15f4565a261b194b0f6e29bed1a60d"
+      "sha256": "322c3f1792bf146dee50534291cd37602add89aab99daaf3d4613f5af28a0b74"
     }
   ],
   "evidence_path": "runs/native-430-20261010T071648Z/review-corrected-evidence",
   "offline_revision": {
     "path": "local-evidence/offline-revisions/09fa7af4da226746/receipt.json",
-    "sha256": "3ad4f59d18985314d93b88c10b988ff31d047b0b85b6775dcb470c04018f2d2d"
+    "sha256": "79bca55851338841485475697159cc520dad016674152d317eea4994d0c2208b"
   }
 }
