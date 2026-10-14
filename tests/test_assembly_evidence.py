@@ -14,6 +14,7 @@ from harness.web_fetch.assembly import (
     _provider_replacement_scope_history,
     _selected_provider_replacement_rows,
     assemble,
+    bind_assembled_scoring_revision,
 )
 from harness.web_fetch.models import EvalCase, ProviderResult
 from harness.web_fetch.providers.base import Provider
@@ -59,6 +60,90 @@ def test_assembly_preserves_all_physical_call_evidence(source, tmp_path):
     assert [json.loads(line) for line in (target / 'results.jsonl').read_text().splitlines()] == records
     for relative, _ in artifact_bindings(records[0]):
         assert (target / relative).read_bytes() == (root / relative).read_bytes()
+
+
+def test_canonical_dataset_promotes_an_explicit_full_review_policy(source, tmp_path):
+    from harness.web_fetch.reference_lifecycle import valid_scoring_revision
+    from harness.web_fetch.result_review import require_result_review
+    from harness.web_fetch.scoring_revision import revise
+
+    root, _ = source
+    baseline = json.loads((root / 'dataset.json').read_text())
+    baseline['comparison'] = {
+        'require_independent_result_review': False,
+        'independent_result_review_scope': 'machine-failures',
+    }
+    (root / 'dataset.json').write_text(json.dumps(baseline))
+    revise(root, root / 'dataset.json', root_cause_category='answer-surface',
+        root_cause='Synthetic retained-answer correction is checked on the complete cohort.',
+        regression_ids=['answer-title-supplies-required-fact'])
+    baseline = json.loads((root / 'dataset.json').read_text())
+    canonical = tmp_path / 'canonical.json'
+    promoted = json.loads(json.dumps(baseline))
+    promoted['comparison'] = {
+        'require_independent_result_review': True,
+        'independent_result_review_scope': 'all',
+    }
+    canonical.write_text(json.dumps(promoted))
+
+    output = tmp_path / 'assembled-for-full-review'
+    assemble(root, tmp_path / 'certificates', [], output,
+             canonical_dataset=canonical)
+
+    comparison = json.loads((output / 'dataset.json').read_text())['comparison']
+    assert comparison['require_independent_result_review'] is True
+    assert comparison['independent_result_review_scope'] == 'all'
+    assert not (output / 'result-review.json').exists()
+    assert not valid_scoring_revision(output)
+
+    record = json.loads((output / 'results.jsonl').read_text())
+    with pytest.raises(ValueError, match='review is required but missing'):
+        require_result_review(output, json.loads((output / 'dataset.json').read_text()),
+                              [record])
+    review = {
+        'schema_version': 1,
+        'bindings': {
+            'dataset_sha256': hashlib.sha256(
+                (output / 'dataset.json').read_bytes()).hexdigest(),
+            'results_sha256': hashlib.sha256(
+                (output / 'results.jsonl').read_bytes()).hexdigest(),
+        },
+        'review_protocol': {
+            'scope': 'all',
+            'machine_judgments_withheld': True,
+        },
+        'attempts': [{
+            'attempt_id': record['attempt_id'],
+            'machine_verdict': 'pass',
+            'agent_verdict': 'pass',
+            'final_verdict': 'pass',
+        }],
+    }
+    (output / 'result-review.json').write_text(json.dumps(review))
+    assert bind_assembled_scoring_revision(output, source=root)
+    assert valid_scoring_revision(output)
+
+
+def test_canonical_dataset_without_review_policy_keeps_baseline_policy(source, tmp_path):
+    root, _ = source
+    baseline = json.loads((root / 'dataset.json').read_text())
+    baseline['comparison'] = {
+        'require_independent_result_review': False,
+        'independent_result_review_scope': 'machine-failures',
+    }
+    (root / 'dataset.json').write_text(json.dumps(baseline))
+    canonical = tmp_path / 'canonical.json'
+    inherited = json.loads(json.dumps(baseline))
+    inherited['comparison'] = {}
+    canonical.write_text(json.dumps(inherited))
+
+    output = tmp_path / 'assembled-with-inherited-review-policy'
+    assemble(root, tmp_path / 'certificates', [], output,
+             canonical_dataset=canonical)
+
+    comparison = json.loads((output / 'dataset.json').read_text())['comparison']
+    assert comparison['require_independent_result_review'] is False
+    assert comparison['independent_result_review_scope'] == 'machine-failures'
 
 
 def test_provider_replacement_scope_selects_bound_pair_without_reading_scores(tmp_path):

@@ -459,7 +459,7 @@ def bind_assembled_scoring_revision(output, *, source=None):
             changed[json.dumps(change,ensure_ascii=False,sort_keys=True)]=change
         for change in row.get('task_decision_changes',[]):
             decisions[json.dumps(change,ensure_ascii=False,sort_keys=True)]=change
-    history.append({
+    assembled_receipt = {
         'kind':'audited_assembled_scoring_revision',
         'scored_at':datetime.now(timezone.utc).isoformat(),
         'input_dataset_sha256':history[-1]['output_dataset_sha256'],
@@ -472,7 +472,14 @@ def bind_assembled_scoring_revision(output, *, source=None):
         'immutable_call_fields':'attempt identity, output bytes/hash, timestamps, elapsed time, metrics and verdicts retained',
         'source_scoring_receipts_sha256':scoring_revision_history_sha256(history),
         'independent_result_review_sha256':hashlib.sha256(review_path.read_bytes()).hexdigest(),
-    })
+    }
+    scoring_source = history[-1].get('output_scoring_source_sha256')
+    if scoring_source is not None:
+        assembled_receipt.update(
+            input_scoring_source_sha256=scoring_source,
+            output_scoring_source_sha256=scoring_source,
+        )
+    history.append(assembled_receipt)
     candidate=json.dumps(history,ensure_ascii=False,indent=2)+'\n'
     # Validate the complete candidate chain before replacing the real receipt.
     # A failed inherited chain must never be persisted even transiently.
@@ -819,6 +826,13 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     reference_input_roots={identifier:run for identifier in cases}
     canonical=(json.loads(read_dataset_bytes(canonical_dataset)) if canonical_dataset else None)
     canonical_cases={c['id']:c for c in canonical['cases']} if canonical else {}
+    if canonical:
+        canonical_comparison = canonical.get('comparison', {})
+        comparison = dataset.setdefault('comparison', {})
+        for key in ('require_independent_result_review',
+                    'independent_result_review_scope'):
+            if key in canonical_comparison:
+                comparison[key] = deepcopy(canonical_comparison[key])
     case_replacements=(canonical.get('comparison',{}).get('case_replacements',{})
                        if canonical else {})
     if (not isinstance(case_replacements,dict)
@@ -1187,7 +1201,17 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         if not copied and not any((replacements, additions, provider_replacements,
                                    provider_additions, canonical_dataset)):
             copy_projected_review(run,output,[])
-    bind_assembled_scoring_revision(output, source=run)
+    review_required = dataset.get('comparison', {}).get(
+        'require_independent_result_review', False)
+    review_pending = review_required and not (output/'result-review.json').is_file()
+    canonical_review_policy = bool(canonical and
+        canonical.get('comparison', {}).get('require_independent_result_review') is True)
+    # A changed matrix cannot inherit the old review.  Keep the canonical gate
+    # on the staged cohort so the normal review installer can bind these exact
+    # bytes, then bind the inherited scoring history after that review exists.
+    if not (review_pending and canonical_review_policy
+            and (output/'scoring-revisions.json').is_file()):
+        bind_assembled_scoring_revision(output, source=run)
     if speed_cohort:
         if not (speed_cohort/'speed-comparison.json').is_file():
             raise ValueError('Speed cohort has not been packaged')
