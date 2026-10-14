@@ -559,7 +559,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
             {"tool": "web_fetch", "attempt_ids": [record["attempt_id"]]},
             cases=self.dataset(), records=[record])
 
-    def test_public_guard_allows_uncertified_stable_and_resource_records(self):
+    def test_public_guard_allows_complete_current_batch_without_live_references(self):
         stable = replace(
             self.case,
             id="stable",
@@ -572,13 +572,85 @@ class ReferenceLifecycleTests(unittest.TestCase):
         )
         resource = replace(self.case, id="resource", track="image", task_kind="resource")
         records = [
-            {"attempt_id": "p__stable__r001", "case_id": "stable", "provider": "p"},
-            {"attempt_id": "p__resource__r001", "case_id": "resource", "provider": "p"},
+            {"attempt_id": "p__stable__r001", "case_id": "stable", "provider": "p",
+             "started_at": "2026-01-01T00:00:01+00:00", "elapsed_ms": 10,
+             "completed_at": "2026-01-01T00:00:01.010000+00:00"},
+            {"attempt_id": "p__resource__r001", "case_id": "resource", "provider": "p",
+             "started_at": "2026-01-01T00:00:02+00:00", "elapsed_ms": 10,
+             "completed_at": "2026-01-01T00:00:02.010000+00:00"},
         ]
+        batch = {"schema_version": 1, "tool": "web_fetch",
+                 "attempt_count": len(records),
+                 "attempt_ids": [record["attempt_id"] for record in records],
+                 "started_at": "2026-01-01T00:00:00+00:00",
+                 "completed_at": "2026-01-01T00:00:03+00:00"}
+        records[1]["elapsed_ms"] = 10_000
+        with patch(
+            "harness.web_fetch.reference_lifecycle.latency_correction_original_elapsed",
+            return_value={("p", "resource"): 10},
+        ):
+            require_verified_reference_checks(
+                [batch], cases=[stable, resource], records=records)
+
+    def test_public_guard_rejects_incomplete_current_batch_without_live_references(self):
+        stable = replace(
+            self.case,
+            id="stable",
+            acceptance_contract={
+                "version": 1,
+                "schema": "product",
+                "minimum_records": 1,
+                "stable_text_anchors": [{"id": "section", "alternatives": ["Catalog"]}],
+            },
+        )
+        records = [
+            {"attempt_id": "p__stable__r001", "case_id": "stable", "provider": "p",
+             "started_at": "2026-01-01T00:00:01+00:00", "elapsed_ms": 10},
+            {"attempt_id": "q__stable__r001", "case_id": "stable", "provider": "q",
+             "started_at": "2026-01-01T00:00:02+00:00", "elapsed_ms": 10},
+        ]
+        base = {"schema_version": 1, "tool": "web_fetch",
+                "started_at": "2026-01-01T00:00:00+00:00",
+                "completed_at": "2026-01-01T00:00:03+00:00"}
+        empty = {**base, "attempt_count": 0, "attempt_ids": []}
+        with self.assertRaisesRegex(ReferenceLifecycleError, "Incomplete batch attempt identity"):
+            require_verified_reference_checks([empty], cases=[stable], records=records)
+        partial = {**base, "attempt_count": 1, "attempt_ids": [records[0]["attempt_id"]]}
+        with self.assertRaisesRegex(ReferenceLifecycleError, "exactly cover measured records"):
+            require_verified_reference_checks([partial], cases=[stable], records=records)
+        duplicate = {**base, "attempt_count": 2,
+                     "attempt_ids": [record["attempt_id"] for record in records]}
+        with self.assertRaisesRegex(ReferenceLifecycleError, "more than one current batch"):
+            require_verified_reference_checks(
+                [duplicate, deepcopy(duplicate)], cases=[stable], records=records)
+
+    def test_current_batch_is_strict_inside_mixed_historical_manifests(self):
+        stable = replace(
+            self.case,
+            id="stable",
+            acceptance_contract={
+                "version": 1,
+                "schema": "product",
+                "minimum_records": 1,
+                "stable_text_anchors": [{"id": "section", "alternatives": ["Catalog"]}],
+            },
+        )
+        current = {"attempt_id": "p__stable__r001", "case_id": "stable", "provider": "p",
+                   "started_at": "2026-01-01T00:00:01+00:00", "elapsed_ms": 10}
+        historical = {"attempt_id": "legacy__stable__r001", "case_id": "stable",
+                      "provider": "legacy"}
+        batch = {"schema_version": 1, "tool": "web_fetch", "attempt_count": 1,
+                 "attempt_ids": [current["attempt_id"]],
+                 "started_at": "2026-01-01T00:00:00+00:00",
+                 "completed_at": "2026-01-01T00:00:02+00:00"}
         require_verified_reference_checks(
-            [{"schema_version": 1, "tool": "web_fetch",
-              "attempt_ids": [record["attempt_id"] for record in records]}],
-            cases=[stable, resource], records=records)
+            [batch, {"historical": True}], cases=[stable],
+            records=[current, historical])
+        damaged = {**batch, "attempt_ids": ["missing__stable__r001"]}
+        with self.assertRaisesRegex(ReferenceLifecycleError, "Missing or duplicate measured attempts"):
+            require_verified_reference_checks(
+                [damaged, {"historical": True}], cases=[stable],
+                records=[current, historical])
 
     def test_latency_only_correction_preserves_original_certificate_timeline(self):
         manifest = self.verified_run()

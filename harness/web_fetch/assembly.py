@@ -891,6 +891,8 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         if cid in replacement_cases:continue
         rows=[r for r in original if r['case_id']==cid]
         if requires_fresh_reference(canonical_cases.get(cid,case)) and not assembled_input:
+            if certificates is None:
+                raise ValueError('Fresh-reference assembly requires certificate evidence: '+cid)
             cert=certificates/cid
             manifest=json.loads((cert/'manifest.json').read_text())
             if {r['attempt_id']:r for r in read_records(cert)}!={r['attempt_id']:r for r in rows}:
@@ -1064,8 +1066,8 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         rows=[r for r in original if r['case_id']==cid]
         # Keep the existing diagnostic serialization stable for downstream tools.
         (target/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in rows))
-        certificate=certificates/cid
-        if certificate.exists():
+        certificate=certificates/cid if certificates is not None else None
+        if certificate is not None and certificate.exists():
             rejected=project_execution_manifest(json.loads((certificate/'manifest.json').read_text()))
             (target/'manifest.json').write_text(json.dumps(rejected,ensure_ascii=False,indent=2)+'\n')
         elif (run/'manifest.json').exists():
@@ -1082,7 +1084,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                 raise ValueError('Assembled input has no execution batch for replaced case: '+cid)
             (target/'execution.json').write_text(json.dumps(
                 {'batches':rejected_batches},ensure_ascii=False,indent=2)+'\n')
-        if (certificate/'manifest.json').is_file():
+        if certificate is not None and (certificate/'manifest.json').is_file():
             materialize_reference_checks(target, certificate,
                 [json.loads((certificate/'manifest.json').read_text())])
         materialize_bound_artifacts(target, run, rows)
@@ -1222,10 +1224,13 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
              canonical_dataset=None, retain_unverified=False, exclude_providers=None,
              provider_replacement_scope_receipts=None):
     """Build and verify in a sibling staging directory, then publish atomically."""
-    for source in [run, certificates, *(replacements or []), *(additions or []),
-                   *(provider_replacements or []), *(provider_additions or []),
-                   *([speed_cohort] if speed_cohort else []),
-                   *([resource_cohort] if resource_cohort else [])]:
+    sources = [run, *(replacements or []), *(additions or []),
+               *(provider_replacements or []), *(provider_additions or []),
+               *([speed_cohort] if speed_cohort else []),
+               *([resource_cohort] if resource_cohort else [])]
+    if certificates is not None:
+        sources.append(certificates)
+    for source in sources:
         reject_evidence_symlinks(source)
         for name in ('dataset.json', 'results.jsonl', 'manifest.json', 'execution.json'):
             contained_path(source, name, reject_symlinks=True)
@@ -1250,7 +1255,7 @@ def assemble(run, certificates, replacements, output, additions=None, provider_r
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run-dir',type=Path,required=True)
-    parser.add_argument('--certificates',type=Path,required=True)
+    parser.add_argument('--certificates',type=Path,help='Certificate tree required only for unfinalized fresh-reference physical runs')
     parser.add_argument('--replacements',type=Path,nargs='*',default=[])
     parser.add_argument('--additions',type=Path,nargs='*',default=[])
     parser.add_argument('--provider-replacements',type=Path,nargs='*',default=[])

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "kind": "historical_pre_call_git_identity",
+  "receipt": {
+    "path": "research/browser-native-430-fairness-pre-call-revision.json",
+    "sha256": "1dec5d1085ccdda983c416ff32a6f610c73375b619c9b67e2f93c986a4737b5f"
+  },
+  "git_commit": "fab5449be227b44b26bbfe10784d0ef642e46d05",
+  "git_tree": "b6e7fd0feb2364d213ed88e73aa9785b552230dc",
+  "scoring_source_files": [
+    "scoring.py",
+    "metrics.py",
+    "stable_tasks.py",
+    "dynamic_lists.py",
+    "list_verification.py",
+    "reference_quality.py",
+    "dynamic_entry_matching.py",
+    "response_input.py",
+    "body_coverage.py",
+    "structured_tables.py",
+    "ordered_tree.py",
+    "composite_tasks.py"
+  ]
+}

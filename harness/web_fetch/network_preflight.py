@@ -34,11 +34,8 @@ def inspect_system_dns(urls, *, resolver=None):
     }
 
 
-def require_usable_public_dns(audit):
-    unresolved = [row["host"] for row in audit["hosts"] if row.get("dns_error")]
-    if unresolved:
-        raise ValueError("DNS resolution failed for public benchmark hosts: "
-                         + ", ".join(unresolved))
+def require_usable_public_dns(audit, *, allow_partial_resolution_failures=False):
+    """Reject unsafe answers and environment-wide DNS failure."""
     synthetic = [row["host"] for row in audit["hosts"] if row["synthetic"]]
     if synthetic:
         raise ValueError("System DNS returned synthetic 198.18.0.0/15 addresses for: " + ", ".join(synthetic) +
@@ -49,6 +46,11 @@ def require_usable_public_dns(audit):
                          + ", ".join(non_public)
                          + "; use the declared public_doh environment before comparison. "
                            "Do not disable product safety guards.")
+    unresolved = [row["host"] for row in audit["hosts"] if row.get("dns_error")]
+    resolved = [row["host"] for row in audit["hosts"] if not row.get("dns_error")]
+    if unresolved and (not allow_partial_resolution_failures or not resolved):
+        scope = "all declared public benchmark hosts" if not resolved else "public benchmark hosts"
+        raise ValueError("DNS resolution failed for " + scope + ": " + ", ".join(unresolved))
 
 
 def preflight_guarded_providers(providers, cases):
@@ -76,9 +78,16 @@ def preflight_guarded_providers(providers, cases):
                      socket.SOCK_STREAM, 6, '', (address, port))
                     for address, family in lookup_public_dns(host, timeout=45)]
         audit = inspect_system_dns([case.url for case in cases], resolver=resolve)
-        failed = [row["host"] for row in audit["hosts"] if row.get("dns_error")]
-        if failed:
-            raise ValueError("Public DNS preflight failed for: " + ", ".join(failed))
     audit["dns_mode"] = mode
-    require_usable_public_dns(audit)
+    audit["unresolved_hosts"] = [
+        row["host"] for row in audit["hosts"] if row.get("dns_error")
+    ]
+    # ``usable_for_guarded_local_comparison`` keeps its original strict
+    # meaning: every declared host resolved only to public addresses.  Under
+    # strict public DoH, a partial lookup outage is left to the affected
+    # measured call, but a nonempty scope with no successful lookup still
+    # indicates an unusable benchmark environment and fails closed here.
+    require_usable_public_dns(
+        audit, allow_partial_resolution_failures=mode == "public_doh"
+    )
     return audit

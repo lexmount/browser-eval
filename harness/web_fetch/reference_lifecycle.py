@@ -1463,8 +1463,33 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
     allow_scoring_rule_revision = (allow_scoring_rule_revision or valid_scoring_revision(source))
     revised_references = reference_revision_cases(source)
     original_latency = latency_correction_original_elapsed(source, records=records)
+    selected_current_batches = {}
+    duplicate_current_attempts = []
+    if records is not None:
+        current_indexes = [
+            index for index, batch in enumerate(manifests) if current_protocol(batch)
+        ]
+        current_coverage = {}
+        for index in current_indexes:
+            selected = _selected_records(manifests[index], records, original_latency)
+            selected_current_batches[index] = selected
+            for record in selected:
+                attempt_id = record["attempt_id"]
+                current_coverage[attempt_id] = current_coverage.get(attempt_id, 0) + 1
+        duplicate_current_attempts = sorted(
+            attempt_id for attempt_id, count in current_coverage.items() if count != 1
+        )
+        if current_indexes and len(current_indexes) == len(manifests):
+            record_ids = [record.get("attempt_id") for record in records]
+            if (any(not isinstance(attempt_id, str) or not attempt_id
+                    for attempt_id in record_ids)
+                    or len(record_ids) != len(set(record_ids))
+                    or set(record_ids) != set(current_coverage)):
+                raise ReferenceLifecycleError(
+                    "Current batch attempts do not exactly cover measured records"
+                )
     try:
-        for batch in manifests:
+        for batch_index, batch in enumerate(manifests):
             if not isinstance(batch, dict):
                 raise ReferenceLifecycleError("Invalid manifest")
             if "reference_checks" not in batch:
@@ -1488,7 +1513,12 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
             finalized_at = timestamp(post.get("checked_at"))
             if finalized_at < preflight_at:
                 raise ReferenceLifecycleError("Reference postcheck precedes preflight")
-            selected = _selected_records(batch, records, original_latency) if records is not None else None
+            selected = (
+                selected_current_batches.get(batch_index)
+                if records is not None and current_protocol(batch)
+                else (_selected_records(batch, records, original_latency)
+                      if records is not None else None)
+            )
             if fresh_attempt_coverage is not None and current_protocol(batch):
                 for record in selected or []:
                     attempt_id = record.get("attempt_id")
@@ -1606,3 +1636,8 @@ def require_verified_reference_checks(manifests, *, cases=None, records=None, so
             raise ReferenceLifecycleError(
                 "Fresh-reference measured attempts require exactly one certificate: "
                 + "; ".join(detail))
+    if duplicate_current_attempts:
+        raise ReferenceLifecycleError(
+            "Measured attempt appears in more than one current batch: "
+            + ", ".join(duplicate_current_attempts)
+        )

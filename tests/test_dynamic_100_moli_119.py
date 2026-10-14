@@ -1,6 +1,7 @@
 import hashlib
 import gzip
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -20,7 +21,8 @@ COMPATIBILITY_PATH = ROOT / "research/dynamic-100-moli-119-risk-scorer-compatibi
 REVISION_PATH = ROOT / "research/moli-111-three-cohort-evaluation-revision.json"
 PRE_CALL_PATH = ROOT / "research/dynamic-native-retrieval-contract-pre-call-revision.json"
 PRE_CALL_ARCHIVE = ROOT / "research/frozen-configs/dynamic-native-retrieval-contract-pre-call/bindings.json"
-CURRENT_PRE_CALL_PATH = ROOT / "research/browser-native-430-fairness-pre-call-revision.json"
+HISTORICAL_PRE_CALL_PATH = ROOT / "research/browser-native-430-fairness-pre-call-revision.json"
+HISTORICAL_PRE_CALL_GIT_BINDING = ROOT / "research/browser-native-430-fairness-pre-call-git-binding.json"
 
 
 def _authority_binding(path):
@@ -39,6 +41,43 @@ def _authority_binding(path):
 
 def _dataset():
     return json.loads(read_frozen_dataset_bytes(DATASET_PATH).decode("utf-8"))
+
+
+def test_historical_browser_native_pre_call_matches_bound_git_identity():
+    identity = json.loads(HISTORICAL_PRE_CALL_GIT_BINDING.read_text())
+    receipt_path = ROOT / identity["receipt"]["path"]
+    assert hashlib.sha256(receipt_path.read_bytes()).hexdigest() == identity["receipt"]["sha256"]
+    try:
+        commit = subprocess.run(
+            ["git", "-C", str(ROOT), "cat-file", "-e", identity["git_commit"] + "^{commit}"],
+            capture_output=True,
+        )
+    except FileNotFoundError:
+        pytest.skip("historical Git objects are unavailable in this source package")
+    if commit.returncode:
+        pytest.skip("historical Git objects are unavailable in this checkout")
+    tree = subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", identity["git_commit"] + "^{tree}"],
+        text=True,
+    ).strip()
+    assert tree == identity["git_tree"]
+
+    def historical_bytes(path):
+        return subprocess.check_output(
+            ["git", "-C", str(ROOT), "show", identity["git_commit"] + ":" + path]
+        )
+
+    assert historical_bytes(identity["receipt"]["path"]) == receipt_path.read_bytes()
+    receipt = json.loads(receipt_path.read_text())
+    bindings = [receipt[key] for key in ("profile", "dataset_assembly", "rerun_scope")]
+    bindings += [receipt["scorer"]["regression_registry"]]
+    bindings += receipt["implementation"]["browser_eval_inputs"]
+    for binding in bindings:
+        assert hashlib.sha256(historical_bytes(binding["path"])).hexdigest() == binding["sha256"]
+    scoring_bytes = [historical_bytes("harness/web_fetch/" + name)
+                     for name in identity["scoring_source_files"]]
+    assert hashlib.sha256(scoring_bytes[0]).hexdigest() == receipt["scorer"]["scoring_source_file_sha256"]
+    assert hashlib.sha256(b"\0".join(scoring_bytes)).hexdigest() == receipt["scorer"]["public_score_attempt_sha256"]
 
 
 def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
@@ -352,22 +391,24 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(tmp_path):
     assert successor_receipt["scorer_binding"]["revised_scoring_source_sha256"] == (
         "8bc386c7c081b70701d635e4fc2ead8c22a7f9a6004ec42adcaf391f9d470f1b"
     )
-    current_pre_call = json.loads(CURRENT_PRE_CALL_PATH.read_text())
-    assert current_pre_call["provider_calls"] == 0
-    assert current_pre_call["scorer"]["public_score_attempt_sha256"] == SCORING_SOURCE_SHA256
-    for key in ("profile", "dataset_assembly", "rerun_scope"):
-        binding = current_pre_call[key]
-        assert hashlib.sha256((ROOT / binding["path"]).read_bytes()).hexdigest() == binding[
-            "sha256"
-        ]
-    regression_binding = current_pre_call["scorer"]["regression_registry"]
-    assert hashlib.sha256((ROOT / regression_binding["path"]).read_bytes()).hexdigest() == (
-        regression_binding["sha256"]
-    )
-    implementation_inputs = current_pre_call["implementation"]["browser_eval_inputs"]
-    assert len({item["path"] for item in implementation_inputs}) == len(implementation_inputs)
-    for item in implementation_inputs:
-        assert hashlib.sha256((ROOT / item["path"]).read_bytes()).hexdigest() == item["sha256"]
+    assembly_definition = json.loads(
+        (ROOT / "evaluation/browser-native-430/dataset-assembly.json").read_text())
+    correction_binding = assembly_definition["case_corrections"]
+    correction_path = ROOT / correction_binding["path"]
+    assert hashlib.sha256(correction_path.read_bytes()).hexdigest() == correction_binding["sha256"]
+    current_corrections = json.loads(correction_path.read_text())
+    current_scorer_bindings = {
+        row["evidence"]["scoring_source_sha256"]
+        for row in current_corrections["cases"]
+        if row.get("evidence", {}).get("scoring_source_sha256")
+    }
+    assert current_scorer_bindings == {SCORING_SOURCE_SHA256}
+    current_regression_ids = {
+        identifier
+        for row in current_corrections["cases"]
+        for identifier in row.get("evidence", {}).get("regression_ids", [])
+    }
+    assert current_regression_ids <= set(controls)
     historical_regressions = archive["historical_artifacts"][
         "evaluation/scoring-regressions.json"
     ]

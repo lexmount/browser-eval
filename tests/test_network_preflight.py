@@ -97,14 +97,107 @@ class NetworkPreflightTests(unittest.TestCase):
                 preflight_guarded_providers(providers, [])
         resolve.assert_not_called()
 
-    def test_public_dns_resolver_failure_stops_before_product_calls(self):
+    def test_partial_public_dns_failure_is_retained_for_the_affected_calls(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from harness.web_fetch.network_preflight import preflight_guarded_providers
+        provider = SimpleNamespace(type='cowagent_builtin', config={'dns_mode': 'public_doh'})
+        def resolve(host, timeout):
+            if host == 'unresolved.example':
+                raise socket.gaierror('failure')
+            return [('185.199.108.153', 4)]
+        with patch('harness.web_fetch.network_dns.lookup_public_dns', side_effect=resolve):
+            audit = preflight_guarded_providers([provider], [
+                SimpleNamespace(url='https://public.example/'),
+                SimpleNamespace(url='https://unresolved.example/'),
+            ])
+        self.assertEqual(audit['unresolved_hosts'], ['unresolved.example'])
+        self.assertFalse(audit['usable_for_guarded_local_comparison'])
+
+    def test_all_public_dns_failures_stop_before_product_calls(self):
         from types import SimpleNamespace
         from unittest.mock import patch
         from harness.web_fetch.network_preflight import preflight_guarded_providers
         provider = SimpleNamespace(type='cowagent_builtin', config={'dns_mode': 'public_doh'})
         with patch('harness.web_fetch.network_dns.lookup_public_dns', side_effect=socket.gaierror('failure')):
-            with self.assertRaisesRegex(ValueError, 'Public DNS preflight failed'):
-                preflight_guarded_providers([provider], [SimpleNamespace(url='https://example.com/')])
+            with self.assertRaisesRegex(ValueError, 'all declared public benchmark hosts'):
+                preflight_guarded_providers([provider], [
+                    SimpleNamespace(url='https://one.example/'),
+                    SimpleNamespace(url='https://two.example/'),
+                ])
+
+    def test_partial_dns_failure_reaches_both_measured_calls(self):
+        from pathlib import Path
+        from tempfile import TemporaryDirectory
+        from unittest.mock import patch
+        from harness.web_fetch.models import EvalCase, ProviderResult
+        from harness.web_fetch.providers.base import Provider
+        from harness.web_fetch.runner import run_evaluation
+        calls = []
+        class GuardedFixture(Provider):
+            def fetch(self, case, timeout):
+                calls.append(case.id)
+                return ProviderResult(
+                    ok=case.id == 'resolved', content='public body' if case.id == 'resolved' else '',
+                    error_type=None if case.id == 'resolved' else 'dns',
+                    error_message=None if case.id == 'resolved' else 'name resolution failed',
+                    metadata={},
+                )
+        provider = GuardedFixture('guarded', {
+            'type': 'openclaw_builtin', 'dns_mode': 'public_doh',
+        })
+        def resolve(host, timeout):
+            if host == 'unresolved.example':
+                raise socket.gaierror('failure')
+            return [('185.199.108.153', 4)]
+        with TemporaryDirectory() as directory, patch(
+            'harness.web_fetch.network_dns.lookup_public_dns', side_effect=resolve,
+        ):
+            output = Path(directory) / 'measurement'
+            rows, _ = run_evaluation(
+                output_dir=output, dataset_meta={}, dataset_path=Path('fixture.json'),
+                cases=[
+                    EvalCase('resolved', 'resolved', 'https://public.example/', 'control', []),
+                    EvalCase('unresolved', 'unresolved', 'https://unresolved.example/', 'control', []),
+                ],
+                providers=[provider], provider_config_path=Path('fixture-providers.json'),
+                runs=1, timeout=45, delay=0, max_failure_retries=0,
+            )
+            audit = __import__('json').loads((output / 'network-preflight.json').read_text())
+        self.assertEqual(calls, ['resolved', 'unresolved'])
+        self.assertEqual([row['error_type'] for row in rows], [None, 'dns'])
+        self.assertEqual(audit['unresolved_hosts'], ['unresolved.example'])
+
+    def test_partial_failure_does_not_hide_private_or_synthetic_answers(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from harness.web_fetch.network_preflight import preflight_guarded_providers
+        provider = SimpleNamespace(type='cowagent_builtin', config={'dns_mode': 'public_doh'})
+        for unsafe in [('198.18.0.1', 4), ('10.0.0.1', 4)]:
+            def resolve(host, timeout):
+                if host == 'unresolved.example':
+                    raise socket.gaierror('failure')
+                return [unsafe]
+            with self.subTest(address=unsafe[0]), patch(
+                'harness.web_fetch.network_dns.lookup_public_dns', side_effect=resolve,
+            ):
+                with self.assertRaisesRegex(ValueError, 'Do not disable'):
+                    preflight_guarded_providers([provider], [
+                        SimpleNamespace(url='https://unresolved.example/'),
+                        SimpleNamespace(url='https://unsafe.example/'),
+                    ])
+
+    def test_strict_public_dns_failure_never_falls_back_to_system_resolution(self):
+        from unittest.mock import Mock, patch
+        from harness.web_fetch.network_dns import public_dns_context
+        fallback = Mock(side_effect=AssertionError('system fallback must not run'))
+        resolver = Mock(side_effect=socket.gaierror('failure'))
+        with patch('harness.web_fetch.network_dns._SYSTEM_GETADDRINFO', fallback):
+            with public_dns_context('public_doh', 1, resolver=resolver):
+                with self.assertRaises(socket.gaierror):
+                    socket.getaddrinfo('unresolved.example', 443)
+        resolver.assert_called_once()
+        fallback.assert_not_called()
 
     def test_browser_workers_cannot_bypass_shared_dns_gate(self):
         from types import SimpleNamespace

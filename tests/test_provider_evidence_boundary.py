@@ -341,6 +341,8 @@ def test_case_certificates_remain_the_authority_for_an_unfinalized_physical_run(
             'completion': {'satisfied': True, 'elapsed_ms': 1, 'timeout_ms': 1000}}
         certify_case(source, certificates, case,
                      [row for row in rows if row['case_id'] == case['id']], observation)
+    with pytest.raises(ValueError, match='requires certificate evidence'):
+        assemble(source, None, [], tmp_path / 'missing-certificates')
     output = tmp_path / 'assembled'
     assemble(source, certificates, [], output)
     saved = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]

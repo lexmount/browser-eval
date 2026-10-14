@@ -183,6 +183,51 @@ def test_assembled_baseline_keeps_scope_history_when_appending_replacement(sourc
     assert json.loads((output/index[1]['path']).read_text()) == current_receipt
 
 
+def test_assembled_provider_replacement_accepts_no_certificate_tree(source, tmp_path):
+    baseline = tmp_path / 'baseline'
+    assemble(source[0], tmp_path / 'certificates', [], baseline)
+    dataset = json.loads((baseline / 'dataset.json').read_text())
+    case = EvalCase(**dataset['cases'][0])
+
+    class Fixture(Provider):
+        def fetch(self, case, timeout):
+            return ProviderResult(True, 'Expected')
+
+    incoming = tmp_path / 'incoming'
+    run_evaluation(output_dir=incoming, dataset_meta=dataset,
+        dataset_path=tmp_path / 'input.json', cases=[case],
+        providers=[Fixture('retrying', {'type': 'fixture'})],
+        provider_config_path=tmp_path / 'providers.json', runs=1,
+        timeout=1, delay=0)
+    output = tmp_path / 'assembled-without-certificates'
+    assemble(baseline, None, [], output, provider_replacements=[incoming])
+    assert (output / 'results.jsonl').is_file()
+
+    manifest = json.loads((incoming / 'manifest.json').read_text())
+    manifest['attempt_ids'] = []
+    (incoming / 'manifest.json').write_text(json.dumps(manifest))
+    with pytest.raises(ValueError):
+        assemble(baseline, None, [], tmp_path / 'invalid-incoming',
+                 provider_replacements=[incoming])
+
+
+def test_assembly_cli_allows_provider_replacement_without_certificates(monkeypatch, tmp_path):
+    captured = {}
+
+    def fake_assemble(run, certificates, replacements, output, **options):
+        captured.update(run=run, certificates=certificates,
+                        replacements=replacements, output=output, options=options)
+
+    monkeypatch.setattr(assembly_module, 'assemble', fake_assemble)
+    assembly_module.main([
+        '--run-dir', str(tmp_path / 'baseline'),
+        '--provider-replacements', str(tmp_path / 'incoming'),
+        '--output', str(tmp_path / 'output'),
+    ])
+    assert captured['certificates'] is None
+    assert captured['options']['provider_replacements'] == [tmp_path / 'incoming']
+
+
 @pytest.mark.parametrize('damage', ['missing', 'hash', 'outside', 'symlink'])
 def test_inherited_provider_replacement_scope_history_rejects_damage(tmp_path, damage):
     root = tmp_path/'baseline'
