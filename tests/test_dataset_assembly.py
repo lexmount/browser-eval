@@ -372,8 +372,9 @@ def test_registered_430_profile_uses_official_release_and_frozen_minimal_reruns(
         "82b50f5e3835fdceb9fcf4cbcd165c8546fd06453bed78d5081a4a8c0c4abc08"
     )
     assert profile["method_sources"]["moli-fixed"]["identity_state"] == "pre_call_frozen"
-    for method in ("moli-1.1.15", "moli-fixed"):
+    for method in ("moli-1.1.15", "moli-fixed", "lightpanda", "obscura", "chromium"):
         assert providers[method]["dns_mode"] == "public_doh"
+    for method in ("moli-1.1.15", "moli-fixed", "lightpanda", "obscura"):
         assert providers[method]["native_dns_library"] == "${MOLI_NATIVE_DNS_LIBRARY}"
     binding = profile["rerun_scope"]
     path = ROOT / binding["path"]

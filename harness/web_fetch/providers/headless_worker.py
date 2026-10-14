@@ -229,8 +229,18 @@ def fetch(request):
             environment = None
             if engine == 'obscura' and request.get('ca_cert'):
                 environment = {**os.environ, 'SSL_CERT_FILE': str(request['ca_cert'])}
-            result = subprocess.run(command, capture_output=True, timeout=route_timeout,
-                                    **({'env': environment} if environment else {}))
+            from harness.web_fetch.network_dns import native_process_dns_environment
+            with native_process_dns_environment(
+                request.get('dns_mode', 'system'),
+                request.get('native_dns_library'),
+                start + route_timeout,
+                meta,
+                environment,
+            ) as process_environment:
+                result = subprocess.run(
+                    command, capture_output=True, timeout=route_timeout,
+                    **({'env': process_environment} if process_environment else {})
+                )
             meta.update(browser_exit_code=result.returncode,
                         browser_stderr=result.stderr.decode('utf-8', 'replace'))
             if result.returncode and not request.get('native_metadata'):
@@ -312,18 +322,40 @@ def fetch(request):
                                   args=request.get('browser_args') or [], timeout=timeout*1000)
                     if request.get('http_proxy'):
                         launch['proxy'] = {'server': request['http_proxy']}
-                    if output_mode in {'file', 'document'}:
-                        # Use Chrome's standard PDF download preference. Its
-                        # built-in viewer replaces response bytes with an HTML
-                        # wrapper, which cannot satisfy a binary/text contract.
-                        profile = tempfile.TemporaryDirectory(prefix='browser-download-')
-                        preferences = Path(profile.name) / 'Default' / 'Preferences'
-                        preferences.parent.mkdir()
-                        preferences.write_text(json.dumps({'plugins': {'always_open_pdf_externally': True}}))
+                    needs_profile = (
+                        output_mode in {'file', 'document'}
+                        or request.get('dns_mode', 'system') == 'public_doh'
+                    )
+                    if needs_profile:
+                        profile = tempfile.TemporaryDirectory(prefix='browser-profile-')
+                        if request.get('dns_mode', 'system') == 'public_doh':
+                            from harness.web_fetch.network_dns import DNS_ENDPOINT
+                            (Path(profile.name) / 'Local State').write_text(json.dumps({
+                                'dns_over_https': {
+                                    'mode': 'secure',
+                                    'templates': DNS_ENDPOINT + '{?dns}',
+                                },
+                                'built_in_dns_client_enabled': True,
+                            }))
+                            meta.update(
+                                dns_mode='public_doh',
+                                dns_endpoint=DNS_ENDPOINT,
+                                secure_dns_mode='secure',
+                                system_dns_fallback=False,
+                            )
+                        if output_mode in {'file', 'document'}:
+                            # The built-in PDF viewer replaces response bytes
+                            # with HTML, so document tasks use native downloads.
+                            preferences = Path(profile.name) / 'Default' / 'Preferences'
+                            preferences.parent.mkdir()
+                            preferences.write_text(json.dumps({
+                                'plugins': {'always_open_pdf_externally': True}
+                            }))
                         persistent_context = p.chromium.launch_persistent_context(
                             profile.name, accept_downloads=True, ignore_https_errors=fixture_https, **launch)
                         browser = persistent_context.browser
-                        meta['pdf_handling'] = 'native download; viewer disabled in fresh temporary profile'
+                        if output_mode in {'file', 'document'}:
+                            meta['pdf_handling'] = 'native download; viewer disabled in fresh temporary profile'
                     else:
                         browser = p.chromium.launch(**launch)
                 try:

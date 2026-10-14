@@ -81,6 +81,22 @@ class NetworkPreflightTests(unittest.TestCase):
                 preflight_guarded_providers(providers, [])
         resolve.assert_not_called()
 
+    def test_local_browser_and_native_method_must_share_dns_mode(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from harness.web_fetch.network_preflight import preflight_guarded_providers
+        providers = [
+            SimpleNamespace(type='moli_webfetch', config={'dns_mode': 'public_doh'}),
+            SimpleNamespace(type='headless_markdown',
+                            config={'engine': 'lightpanda', 'dns_mode': 'system'}),
+            SimpleNamespace(type='headless_markdown',
+                            config={'engine': 'kitesurf'}),
+        ]
+        with patch('harness.web_fetch.network_preflight.inspect_system_dns') as resolve:
+            with self.assertRaisesRegex(ValueError, 'same dns_mode'):
+                preflight_guarded_providers(providers, [])
+        resolve.assert_not_called()
+
     def test_public_dns_resolver_failure_stops_before_product_calls(self):
         from types import SimpleNamespace
         from unittest.mock import patch

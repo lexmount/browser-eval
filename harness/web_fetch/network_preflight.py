@@ -52,15 +52,21 @@ def require_usable_public_dns(audit):
 
 
 def preflight_guarded_providers(providers, cases):
-    """Require one declared DNS environment for all supported native callers."""
+    """Require one declared DNS environment for every local comparison method."""
     from .network_dns import lookup_public_dns, validate_dns_mode
     native = {"openclaw_builtin", "deepseek_harness_builtin", "cowagent_builtin", "langchain_webbase", "moli_webfetch", "crawl4ai"}
-    selected = [provider for provider in providers if provider.type in native]
+    selected = [
+        provider for provider in providers
+        if provider.type in native or (
+            provider.type in {"headless_markdown", "headless_html"}
+            and provider.config.get("engine") != "kitesurf"
+        )
+    ]
     if not selected:
         return None
     modes = {validate_dns_mode(provider.config.get("dns_mode", "system")) for provider in selected}
     if len(modes) != 1:
-        raise ValueError("Selected native callers must declare the same dns_mode")
+        raise ValueError("Selected local methods must declare the same dns_mode")
     mode = modes.pop()
     if mode == "system":
         audit = inspect_system_dns([case.url for case in cases])

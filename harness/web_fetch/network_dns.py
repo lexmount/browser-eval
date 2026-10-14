@@ -276,8 +276,7 @@ async def crawl4ai_public_dns_browser(config):
 
 def _native_dns_sources():
     import pathlib
-    owner = pathlib.Path(__file__).resolve()
-    return [owner.parent / "workers/native_dns_darwin.c", owner]
+    return [pathlib.Path(__file__).resolve().parent / "workers/native_dns_darwin.c"]
 
 
 def validate_native_dns_library(library):
@@ -315,14 +314,37 @@ def build_native_dns_library(destination):
         raise ValueError("native public DNS bridge currently requires Darwin")
     path = pathlib.Path(destination).expanduser().resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
-    source, helper = _native_dns_sources()
+    source, = _native_dns_sources()
     with tempfile.TemporaryDirectory(dir=path.parent) as directory:
         staged = pathlib.Path(directory) / path.name
         subprocess.run(["cc", "-dynamiclib", "-O2", "-Wall", "-Wextra", "-Werror", str(source), "-o", str(staged)], check=True)
         manifest = {"platform": "Darwin", "architecture": platform.machine(),
                     "compiler": subprocess.check_output(["cc", "--version"], text=True).splitlines()[0],
-                    "source_sha256": {item.name: hashlib.sha256(item.read_bytes()).hexdigest() for item in (source, helper)},
+                    "source_sha256": {
+                        source.name: hashlib.sha256(source.read_bytes()).hexdigest()
+                    },
                     "library_sha256": hashlib.sha256(staged.read_bytes()).hexdigest()}
         staged.replace(path)
         path.with_suffix(".json").write_text(json.dumps(manifest, indent=2) + "\n")
     return validate_native_dns_library(path)
+
+
+@contextmanager
+def native_process_dns_environment(mode, library, deadline, metadata, base=None):
+    """Apply the selected resolver to one Darwin browser process."""
+    validate_dns_mode(mode)
+    metadata["dns_mode"] = mode
+    if mode == "system":
+        yield base
+        return
+    path, binding = validate_native_dns_library(library)
+    with NativeDnsBroker() as broker:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("DNS setup exceeded the call deadline")
+        broker.begin_call(remaining)
+        try:
+            yield broker.environment(path, base=base)
+        finally:
+            metadata["dns_resolutions"] = list(broker.traces)
+            metadata["native_dns_binding"] = binding

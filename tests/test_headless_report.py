@@ -672,6 +672,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             self.assertIn('风控网页正文',body)
             self.assertIn('Origin returned HTTP 403',body)
             self.assertIn('独立结果审查：0/4',body)
+            self.assertIn('data-network-environment="local-public-doh"', body)
             self.assertNotIn('150 道',body)
             self.assertNotIn('1.1.5',body)
 
@@ -687,6 +688,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                      body.replace('../attempts/moli__risk-case.html','../attempts/absent.html',1),
                      body.replace('data-count="1"','data-count="9"',1),
                      body.replace('data-browser-interface="moli"','data-removed-interface="moli"',1),
+                     body.replace('data-network-environment="local-public-doh"','data-removed-network="local-public-doh"',1),
                      body.replace('data-case-count="1"','data-case-count="9"',1),
                      body.replace('CLI fetch --dump markdown → 内置转换 → Markdown','共同转换 → Markdown',1),
                      body.replace('等待：CLI 等待 done','等待：不等待',1)]

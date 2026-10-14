@@ -378,6 +378,18 @@ class HeadlessProvider(Provider):
             except (KeyError, OSError, ValueError) as error:
                 errors.append('native_metadata:' + str(error))
         resource_interval = self.config.get('resource_sample_interval_ms')
+        from ..network_dns import validate_dns_mode, validate_native_dns_library
+        try:
+            dns_mode = validate_dns_mode(self.config.get('dns_mode', 'system'))
+            if engine == 'kitesurf' and dns_mode != 'system':
+                errors.append('hosted Kitesurf owns its DNS environment')
+            elif dns_mode == 'public_doh':
+                if resource_interval is not None:
+                    errors.append('public_doh is unavailable inside resource containers')
+                elif engine != 'chromium':
+                    validate_native_dns_library(self.config.get('native_dns_library'))
+        except ValueError as error:
+            errors.append(str(error))
         if resource_interval is not None:
             if engine == 'kitesurf' and self.type == 'headless_markdown':
                 errors.extend(name for name in ('api_token', 'account_id')
@@ -552,6 +564,7 @@ class HeadlessProvider(Provider):
                            'readable_media_metadata' if output_mode == 'media_metadata' else 'markdown')
         metadata = {'engine': engine, 'wait_until': wait_until,
                     'extractor': extractor, 'output_contract': output_contract,
+                    'dns_mode': self.config.get('dns_mode', 'system'),
                     'session': 'fresh per call',
                     'network_policy': self.config.get('network_policy', 'unrestricted'),
                     'deployment': ('Cloudflare Browser Run from isolated client container'
@@ -636,6 +649,8 @@ class HeadlessProvider(Provider):
                    if output_mode == 'markdown' else None,
                    'ca_cert': self.config.get('ca_cert'),
                    'http_proxy': self.config.get('http_proxy'),
+                   'dns_mode': self.config.get('dns_mode', 'system'),
+                   'native_dns_library': self.config.get('native_dns_library'),
                    'network_policy': self.config.get('network_policy', 'unrestricted'),
                    'endpoint': self.config.get('endpoint',
                    'wss://kitesurf.cloudflare.app/devtools/browser')}
@@ -804,37 +819,47 @@ def native_cdp_browser(playwright, request, deadline, metadata=None):
     browser = None
     with tempfile.TemporaryFile() as log:
         environment = {**os.environ, 'SSL_CERT_FILE': str(request['ca_cert'])} if engine == 'obscura' and request.get('ca_cert') else None
-        process = subprocess.Popen(command, stdout=log, stderr=log, env=environment)
-        try:
-            while True:
-                if process.poll() is not None:
-                    log.seek(0)
-                    raise RuntimeError(log.read().decode('utf-8', 'replace')[:4000])
-                if time.monotonic() >= deadline:
-                    raise TimeoutError('Native CDP server startup exceeded the call deadline')
-                try:
-                    with socket.create_connection(('127.0.0.1', port), timeout=min(.1, remaining())):
-                        break
-                except OSError:
-                    time.sleep(min(.02, remaining()))
-            browser = playwright.chromium.connect_over_cdp(
-                'http://127.0.0.1:' + str(port), timeout=remaining() * 1000)
-            yield browser
-        finally:
+        from ..network_dns import native_process_dns_environment
+        with native_process_dns_environment(
+            request.get('dns_mode', 'system'),
+            request.get('native_dns_library'),
+            deadline,
+            metadata if metadata is not None else {},
+            environment,
+        ) as process_environment:
+            process = subprocess.Popen(
+                command, stdout=log, stderr=log, env=process_environment
+            )
             try:
-                if browser is not None:
-                    browser.close()
-            finally:
-                if process.poll() is None:
-                    process.terminate()
+                while True:
+                    if process.poll() is not None:
+                        log.seek(0)
+                        raise RuntimeError(log.read().decode('utf-8', 'replace')[:4000])
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError('Native CDP server startup exceeded the call deadline')
                     try:
-                        process.wait(timeout=1)
-                    except subprocess.TimeoutExpired:
-                        process.kill()
-                        process.wait(timeout=1)
-                if engine == 'moli' and metadata is not None:
-                    log.seek(0)
-                    raw_log = log.read(int(request.get('max_diagnostic_bytes', 100_000_000))+1)
-                    metadata.update(_diagnostic_log_b64=base64.b64encode(raw_log).decode('ascii'),
-                        diagnostic_log_sha256=hashlib.sha256(raw_log).hexdigest(), diagnostic_log_bytes=len(raw_log),
-                        diagnostic_log_process_completed=True)
+                        with socket.create_connection(('127.0.0.1', port), timeout=min(.1, remaining())):
+                            break
+                    except OSError:
+                        time.sleep(min(.02, remaining()))
+                browser = playwright.chromium.connect_over_cdp(
+                    'http://127.0.0.1:' + str(port), timeout=remaining() * 1000)
+                yield browser
+            finally:
+                try:
+                    if browser is not None:
+                        browser.close()
+                finally:
+                    if process.poll() is None:
+                        process.terminate()
+                        try:
+                            process.wait(timeout=1)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
+                            process.wait(timeout=1)
+                    if engine == 'moli' and metadata is not None:
+                        log.seek(0)
+                        raw_log = log.read(int(request.get('max_diagnostic_bytes', 100_000_000))+1)
+                        metadata.update(_diagnostic_log_b64=base64.b64encode(raw_log).decode('ascii'),
+                            diagnostic_log_sha256=hashlib.sha256(raw_log).hexdigest(), diagnostic_log_bytes=len(raw_log),
+                            diagnostic_log_process_completed=True)

@@ -677,8 +677,10 @@ Moli on Darwin uses a process-local native resolver bridge. Build it explicitly
 outside Git with `uv run --frozen python scripts/build_native_dns.py
 ~/.browser-eval/toolchains/native-dns/libbrowser-eval-dns.dylib`, and configure
 `native_dns_library` (or `MOLI_NATIVE_DNS_LIBRARY` in the example). The adapter
-checks the library hash, current source hashes and architecture before calls;
-changed source requires rebuilding. It never compiles during a measured call.
+checks the library hash, compiled C source hash and architecture before calls;
+a changed compiled source requires rebuilding. The Python coordinator remains
+covered by the run's runtime-source hash. It never compiles during a measured
+call.
 Crawl4AI's browser route starts the configured Chrome channel with a temporary
 strict-DoH profile and connects through its native CDP interface. The original
 native launch arguments are preserved; there is no system-DNS fallback for

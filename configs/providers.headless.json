@@ -11,12 +11,16 @@
       "type": "headless_markdown",
       "engine": "lightpanda",
       "binary": "${LIGHTPANDA_BINARY:-lightpanda}",
+      "dns_mode": "public_doh",
+      "native_dns_library": "${MOLI_NATIVE_DNS_LIBRARY}",
       "resource_binary": "/usr/local/bin/lightpanda"
     },
     "obscura": {
       "type": "headless_markdown",
       "engine": "obscura",
       "binary": "${OBSCURA_BINARY:-obscura}",
+      "dns_mode": "public_doh",
+      "native_dns_library": "${MOLI_NATIVE_DNS_LIBRARY}",
       "resource_binary": "/usr/local/bin/obscura"
     },
     "moli-1.0.6": {
@@ -83,6 +87,7 @@
       "type": "headless_markdown",
       "engine": "chromium",
       "binary": "${CHROMIUM_BINARY}",
+      "dns_mode": "public_doh",
       "resource_binary": "/usr/bin/chromium"
     }
   },

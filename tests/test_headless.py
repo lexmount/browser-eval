@@ -31,6 +31,52 @@ from harness.web_fetch.runner import run_evaluation
 
 
 class NativeMetadataTests(unittest.TestCase):
+    def test_chromium_public_dns_uses_strict_secure_profile(self):
+        import sys
+        from types import SimpleNamespace
+        from harness.web_fetch.network_dns import DNS_ENDPOINT
+        observed = {}
+        class Page:
+            url = 'https://example.com/'
+            def goto(self, *args, **kwargs):
+                return SimpleNamespace(status=200)
+        class Context:
+            browser = SimpleNamespace(version='fixture-chromium')
+            def new_page(self): return Page()
+            def close(self): observed['closed'] = True
+        class Chromium:
+            def launch_persistent_context(self, directory, **kwargs):
+                observed['local_state'] = json.loads(
+                    (Path(directory) / 'Local State').read_text()
+                )
+                return Context()
+        class Driver:
+            def __enter__(self):
+                return SimpleNamespace(chromium=Chromium())
+            def __exit__(self, *args):
+                observed['driver_closed'] = True
+        request = {
+            'engine': 'chromium',
+            'binary': '/chromium',
+            'url': 'https://example.com/',
+            'timeout': 1,
+            'output_mode': 'resource',
+            'track': 'image',
+            'dns_mode': 'public_doh',
+        }
+        module = SimpleNamespace(sync_playwright=Driver, Error=RuntimeError)
+        with patch.dict(sys.modules, {'playwright.sync_api': module}), \
+             patch('harness.web_fetch.providers.headless_worker._page_projection',
+                   return_value='{"urls":["https://example.com/image.png"]}'):
+            result = fetch(request)
+        self.assertTrue(result['ok'])
+        self.assertEqual(observed['local_state']['dns_over_https'], {
+            'mode': 'secure', 'templates': DNS_ENDPOINT + '{?dns}',
+        })
+        self.assertTrue(observed['local_state']['built_in_dns_client_enabled'])
+        self.assertFalse(result['metadata']['system_dns_fallback'])
+        self.assertTrue(observed['closed'] and observed['driver_closed'])
+
     def test_kitesurf_page_deliverables_use_the_native_markdown_endpoint(self):
         from harness.web_fetch.models import ProviderResult
         for track,kind,url in (
@@ -167,6 +213,28 @@ class NativeMetadataTests(unittest.TestCase):
         command.assert_not_called()
 
 class HeadlessTests(unittest.TestCase):
+    def test_local_browser_request_carries_declared_public_dns_environment(self):
+        provider = HeadlessProvider('lightpanda', {
+            'type': 'headless_markdown',
+            'engine': 'lightpanda',
+            'binary': '/lightpanda',
+            'dns_mode': 'public_doh',
+            'native_dns_library': '/resolver.dylib',
+        })
+        raw = json.dumps({'ok': True, 'content': '# Body', 'metadata': {}}).encode()
+        identity = {'binary_sha256': 'a' * 64, 'reported_version': 'lightpanda fixture',
+                    'version_probe_error': None}
+        case = EvalCase('case', 'Case', 'https://example.com/', 'web', [])
+        with patch.object(provider, '_run_local_worker',
+                          return_value=(raw, '', None, 0, len(raw), 0)) as worker, \
+             patch.object(provider, 'implementation_identity', return_value=identity):
+            result = provider.fetch(case, 45)
+        request = worker.call_args.args[1]
+        self.assertTrue(result.ok)
+        self.assertEqual(request['dns_mode'], 'public_doh')
+        self.assertEqual(request['native_dns_library'], '/resolver.dylib')
+        self.assertEqual(result.metadata['dns_mode'], 'public_doh')
+
     @patch("harness.web_fetch.retrieval_hints._verify_contract_source")
     def test_lightpanda_receives_shared_native_frame_contract(self, _verify_source):
         provider = HeadlessProvider('lightpanda', {

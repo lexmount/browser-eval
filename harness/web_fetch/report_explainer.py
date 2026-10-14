@@ -490,7 +490,12 @@ def headless_evidence(cases, records):
             'independent_result_audit': None, 'chromium_markdown_selection': selection}
     for name in names:
         meta = next(r['provider_metadata'] for r in records if r['provider']==name)
-        data['runtime'][name] = {k:v for k,v in meta.items() if k in ('binary_sha256','browser_version','worker_sha256','extractor_version','playwright_version','deployment','wait_until')}
+        data['runtime'][name] = {k:v for k,v in meta.items() if k in (
+            'binary_sha256', 'browser_version', 'worker_sha256',
+            'extractor_version', 'playwright_version', 'deployment',
+            'wait_until', 'dns_mode', 'dns_endpoint', 'secure_dns_mode',
+            'system_dns_fallback', 'native_dns_binding',
+        )}
         text_rows=[r for r in records if r['provider']==name and cases[r['case_id']].get('track','web')=='web' and r['metrics'].get('word_f1') is not None]
         data['quality'][name]={'attempts':len(text_rows), **{key:_mean([r['metrics'].get(key) for r in text_rows]) for key in ('word_precision','word_recall','word_f1')}}
     for r in records:
@@ -919,9 +924,16 @@ def _render_current_browser_article(out, cases, records, binding):
                            +str(part['count'])+' 题：'+escape(part['description'])+'<br>等待：'+escape(part['wait'])+'</span>' for part in parts)+'</div>')
         route_rows.append((escape(BROWSER_FAMILY_NAMES[row['track']])+f" · {row['count']} 题", *cells))
     matrix = _table(['任务类型',*(label(name) for name in names)], route_rows, '每格列出获取接口、额外处理及最终输出；同类中的不同交付格式分别列出题数。')
+    local_method_count = sum(name != 'kitesurf' for name in names)
+    network_note = (
+        '<p data-network-environment="local-public-doh" data-local-method-count="'
+        +str(local_method_count)+'">本轮所有本地方法的每个主机名和跳转都使用固定的 Cloudflare HTTPS DNS，且不回退到系统 DNS。Moli、Lightpanda 和 Obscura 通过进程内解析器取得同一组公网地址；Chromium 使用自身的严格安全 DNS 配置。各浏览器原有的私网访问保护保持不变。</p>'
+    )
+    if 'kitesurf' in names:
+        network_note += '<p>Kitesurf 在 Cloudflare Browser Run 中执行，使用云端网络。它的任务结果可以按同一验收规则比较，但耗时包含不同的部署位置和公网路径，不能据此判断本地浏览器引擎谁更快。</p>'
     body += section('各类任务的获取与转换方式',
         '<p>按题目要求预先选定参评浏览器的官方原生接口。网页正文和文档正文都必须以可读 Markdown 交付；除 Chromium 使用固定的 HTML-to-Markdown 包外，不会改取 HTML、JSON DOM 或 PDF/DOCX 字节后替选手提取正文。网页媒体信息题只检查原生输出中的指定图片、视频或条目地址，媒体文件不下载。只有直接媒体文件题返回原始字节，并校验类型、文件头、长度和 SHA-256；这是二进制文件交付，不冒充 Markdown。下表按固定任务输入列出处理链；失败后不切换接口或引擎。</p>'
-        +native+'<div class="browser-interface-matrix">'+matrix+'</div>'
+        +native+'<div class="browser-interface-matrix">'+matrix+'</div>'+network_note
         +'<p>Obscura 的正文提取脚本与官方 CLI、LP.getMarkdown 相同；JSON 包装只解包原生输出，不改写内容。Lightpanda、Obscura、Kitesurf 和 Moli 的网页正文、嵌入文档及网页媒体信息都由各自的原生 Markdown 接口直接交付；同一任务大类不按题目切换接口。Chromium 的所有页面类任务都取得完整渲染 HTML，再统一使用 node-html-markdown 2.0.0；不运行资源提取脚本，也不读取 PDF.js 等查看器的私有对象。所有浏览器都不使用外部 PDF/DOCX 解析器补正文。最终网址只作诊断，不参与正文判分。获取、等待、原生转换、Chromium 的共同转换与附件读取都计入同一 45 秒预算。Moli 附件的原生 CDP 导航与原始附件接口是两步操作，次数和耗时保留在结果记录，不因评分失败而触发。所有结果采用同一评分器和固定验收规则。</p>', 'interfaces')
     flow = 'flowchart LR\n A[同一目标网址与验收规则] --> B[各浏览器原生访问与提取]\n B --> C[保留完整输出与调用日志]\n C --> D[统一评分]\n D --> E[整体与专项结果]'
     fallback = ' → '.join('<span class="tag">'+x+'</span>' for x in ('目标网址与规则','浏览器原生访问','完整输出与日志','统一评分','整体与专项'))
@@ -999,7 +1011,7 @@ def check_current_browser_article(out, cases, records, binding):
     class Inspect(HTMLParser):
         def __init__(self):
             super().__init__();self.metrics=[];self.failures=[];self.chapters=[];self.errors=[];self.links=[];self.active=None
-            self.interfaces={};self.interface=None;self.route=None
+            self.interfaces={};self.interface=None;self.route=None;self.network=[]
         def handle_starttag(self, tag, attrs):
             data=dict(attrs)
             if 'data-browser-interface' in data:
@@ -1010,6 +1022,8 @@ def check_current_browser_article(out, cases, records, binding):
                 if self.interface is None:raise ValueError('Browser route has no task interface')
                 self.route=[data['data-route-mode'],int(data['data-case-count']),'']
                 self.interfaces[self.interface].append(self.route)
+            if 'data-network-environment' in data:
+                self.network.append((data['data-network-environment'], int(data['data-local-method-count'])))
             if 'data-browser-metric' in data:
                 self.active=[data,''];self.metrics.append(self.active)
             if 'data-browser-failure' in data:
@@ -1028,6 +1042,9 @@ def check_current_browser_article(out, cases, records, binding):
         actual_interfaces={key:[tuple(part) for part in parts] for key,parts in inspect.interfaces.items()}
         if actual_interfaces != expected_interfaces:
             raise ValueError('Browser task interface matrix is missing or differs from declared tasks')
+        expected_local_count = sum(name != 'kitesurf' for name in model['providers'])
+        if inspect.network != [('local-public-doh', expected_local_count)]:
+            raise ValueError('Browser network environment disclosure is missing or wrong')
         actual={}
         for data,text in inspect.metrics:
             key=(data['data-provider'],data['data-browser-metric'])

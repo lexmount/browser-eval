@@ -17,6 +17,21 @@
   "concurrency": 1,
   "max_failure_retries": 1,
   "retry_selection": "transient_transport_or_http_failure_only; final_physical_attempt_is_authoritative",
+  "network_environment": {
+    "local_methods": [
+      "moli-1.1.15",
+      "moli-fixed",
+      "lightpanda",
+      "obscura",
+      "chromium"
+    ],
+    "dns_mode": "public_doh",
+    "dns_endpoint": "https://cloudflare-dns.com/dns-query",
+    "system_dns_fallback": false,
+    "product_private_network_policy": "unchanged",
+    "hosted_method": "kitesurf",
+    "hosted_network": "Cloudflare Browser Run"
+  },
   "conversion": null,
   "reference_binding_mode": "equivalent_reference_bytes_with_independent_batch_captures",
   "publication_state": "pre_call_frozen",

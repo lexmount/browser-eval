@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
   "kind": "browser_native_430_fairness_pre_call_revision",
-  "created_at": "2026-10-14T10:55:44+08:00",
+  "created_at": "2026-10-14T12:04:36+08:00",
   "provider_calls": 0,
   "profile": {
     "path": "evaluation/browser-native-430/current-report.json",
-    "sha256": "a47199e6fba01b5ff9274f19cda4b3b4fd9391f3d0a0cff9d31217deee3ceb61"
+    "sha256": "0465e2d01aab0b977c41e0e54f3a6295c0d8bc298acfcb124a4834f7dd4583ff"
   },
   "dataset_assembly": {
     "path": "evaluation/browser-native-430/dataset-assembly.json",
@@ -35,7 +35,7 @@
     "non_chromium_pages": "provider-native Markdown for body, embedded-document and webpage-media deliverables",
     "chromium_pages": "full rendered HTML converted with node-html-markdown 2.0.0 for every page deliverable",
     "direct_media_files": "browser-native response or download bytes",
-    "moli_dns_environment": "both Moli methods use the source-bound Darwin public_doh bridge for every hostname and redirect; native private-network guards remain enabled",
+    "local_dns_environment": "both Moli methods, Lightpanda, Obscura and Chromium use public_doh for every hostname and redirect; native private-network guards remain enabled; hosted Kitesurf keeps the Cloudflare Browser Run network",
     "final_url": "diagnostic only; not an acceptance condition"
   },
   "retry_policy": {
@@ -71,12 +71,15 @@
   "implementation": {
     "browser_eval_base_commit": "f6dac02e585a275ac946e4ccfdcf260dd0d0f909",
     "browser_eval_inputs": [
-      {"path": "configs/providers.headless.json", "sha256": "c7d6b8a05bf1ea2114502711aa1e17ad28969ddf33147e5295eeff984276bab0"},
+      {"path": "configs/providers.headless.json", "sha256": "655d2be88f9b04e30938557e9ac24e3688609b40ed3d41e0e062d7b35111b6ce"},
       {"path": "harness/web_fetch/certification.py", "sha256": "1179f31cda8bc13fd970740c9c079b18142ad8c3ad652a9e8f92f6321bc3a610"},
       {"path": "harness/web_fetch/headless_runner.py", "sha256": "d99c3ced8a6571733f798b1af1ca6f19132776ddad6f9e694a0530fe3cb68714"},
       {"path": "harness/web_fetch/providers/base.py", "sha256": "e5431b96db961467b449c573c55af4c0a6083221e9093885433d1b75561eec84"},
       {"path": "harness/web_fetch/providers/cloudflare.py", "sha256": "b5b17510479b4c178d9ac2b65bfff4fd317ba0084b6fba4e038a479e76cd8d21"},
-      {"path": "harness/web_fetch/providers/headless.py", "sha256": "1246a9634762543ed620d3ce94f36bb2d369e049d42a8d594ef563119d0e3f56"},
+      {"path": "harness/web_fetch/network_dns.py", "sha256": "46b94ce1129c8a9f20cee81f0788ac71757e1793acacb730c4d698cb5669fc1b"},
+      {"path": "harness/web_fetch/network_preflight.py", "sha256": "39ae3c484cf95b2f890c7c5a45a502f85abb908ec686208ec0aee72f63f92c75"},
+      {"path": "harness/web_fetch/providers/headless.py", "sha256": "148d1bda064652053e1d5c87d857f798bde69740f2956bbde17844219c364ed3"},
+      {"path": "harness/web_fetch/providers/headless_worker.py", "sha256": "f12b9258f0ed3507010115a729e82ef2cbb86f6373b5208cd6f9b34f7aaba1f8"},
       {"path": "harness/web_fetch/retrieval_hints.py", "sha256": "7a6a2680df0d248b45344024f2537c4bdf3a71f0cd9833a0bd1dc03f2556ecb2"},
       {"path": "harness/web_fetch/runner.py", "sha256": "9752db1cbbf2646daa7a72b1e598c73c1d462de9c76518d4894790aea6aea27b"},
       {"path": "harness/web_fetch/storage.py", "sha256": "60158ed31d3115e4c27ad1c0494e70fa02a178763f0f61b153c479e807e5788d"},

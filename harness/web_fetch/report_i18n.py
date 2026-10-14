@@ -37,6 +37,8 @@ NAV = [
 # Exact editorial translations take priority.  Dynamic evidence (task names,
 # references and provider output) is deliberately absent from this catalog.
 TEXT = {
+    "本轮所有本地方法的每个主机名和跳转都使用固定的 Cloudflare HTTPS DNS，且不回退到系统 DNS。Moli、Lightpanda 和 Obscura 通过进程内解析器取得同一组公网地址；Chromium 使用自身的严格安全 DNS 配置。各浏览器原有的私网访问保护保持不变。": "Every local method uses the fixed Cloudflare HTTPS DNS service for each hostname and redirect, with no fallback to system DNS. Moli, Lightpanda, and Obscura receive the same public addresses through a process-scoped resolver; Chromium uses its own strict secure-DNS profile. Each browser keeps its existing private-network protection.",
+    "Kitesurf 在 Cloudflare Browser Run 中执行，使用云端网络。它的任务结果可以按同一验收规则比较，但耗时包含不同的部署位置和公网路径，不能据此判断本地浏览器引擎谁更快。": "Kitesurf runs in Cloudflare Browser Run and uses its cloud network. Its task outcomes use the same acceptance rules, but its latency includes a different deployment location and public-network path and therefore cannot rank local browser-engine speed.",
     "CLI · 原生 Markdown 或原始响应路线": "CLI · native Markdown or raw-response route",
     "直接取得 Moli 原生 Markdown；直接 PDF/DOCX 未提供可读正文时失败": "Returns Moli's native Markdown directly; a direct PDF or DOCX fails when the interface does not deliver readable body text",
     "让同一次原生 Markdown 调用包含已加载子文档；不切换输出格式": "Includes loaded child documents in the same native Markdown call without switching output format",
