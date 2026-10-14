@@ -150,6 +150,44 @@ class NativeRoutePublicationTests(unittest.TestCase):
             with self.subTest(provider=provider,wrong_family=True),self.assertRaises(ValueError):
                 require_native_task_routes([{**case,'track':'web'}],[row])
 
+    def test_moli_native_dynamic_family_requires_one_shared_route(self):
+        from harness.web_fetch.task_outputs import require_native_task_routes
+
+        case = {'id':'dynamic-page','url':'https://example.com/app','track':'dynamic',
+                'task_kind':'body','retrieval_hints':{'version':3,'mode':'native'}}
+        family_receipt = {
+            'route':'dynamic_native_markdown','output':'markdown','dump':'markdown',
+            'extractor':'moli_native_markdown','output_contract':'markdown',
+            'layout':True,'with_frames':True,'wait_until':'domstable',
+            'wait':{
+                'wait_until':'domstable','scope':'dynamic_task_family',
+                'strategy':'native_task_family_completion',
+                'layout':{'requested':True,'support':'native','interface':'--layout',
+                          'scope':'dynamic_task_family'},
+                'subdocuments':{'requested':True,'support':'native',
+                                'interface':'--with-frames',
+                                'harness_content_assembly':False,
+                                'scope':'dynamic_task_family'},
+            },
+        }
+        row={'provider':'moli','case_id':case['id'],'provider_metadata':family_receipt}
+        for task_kind in ('body','structure'):
+            with self.subTest(task_kind=task_kind):
+                require_native_task_routes([{**case,'task_kind':task_kind}],[row])
+        invalid = (
+            {**family_receipt,'layout':False},
+            {**family_receipt,'with_frames':False},
+            {**family_receipt,'wait':{**family_receipt['wait'],
+                                      'scope':'declared_native_contract'}},
+            {**family_receipt,'wait':{**family_receipt['wait'],
+                                      'selector':'#case-specific'}},
+        )
+        for task_kind in ('body','structure'):
+            for metadata in invalid:
+                with self.subTest(task_kind=task_kind,metadata=metadata),self.assertRaises(ValueError):
+                    require_native_task_routes([{**case,'task_kind':task_kind}],
+                                               [{**row,'provider_metadata':metadata}])
+
     def test_iframe_contract_accepts_native_markdown_receipts_without_content_assembly(self):
         from harness.web_fetch.task_outputs import require_native_task_routes
 

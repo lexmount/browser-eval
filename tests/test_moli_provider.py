@@ -638,31 +638,50 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.error_type, "configuration")
 
     def test_dynamic_native_completion_keeps_native_markdown_route(self):
+        for task_kind in ("body", "structure"):
+            with self.subTest(task_kind=task_kind):
+                provider = self.provider(
+                    'import sys\n'
+                    'assert "--eval" not in sys.argv and "--wait-selector" not in sys.argv\n'
+                    'assert "--wait-script" not in sys.argv\n'
+                    'assert "--layout" in sys.argv and "--with-frames" in sys.argv\n'
+                    'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
+                    'assert sys.argv[sys.argv.index("--wait-until")+1] == "domstable"\n'
+                    'print("# Native dynamic page")'
+                )
+                result = provider.fetch(self.case_with(
+                    track="dynamic", task_kind=task_kind,
+                    retrieval_hints={"version": 3, "mode": "native"}), 10)
+                self.assertTrue(result.ok, result.error_message)
+                self.assertEqual(result.content, "# Native dynamic page\n")
+                self.assertEqual(result.metadata["output"], "markdown")
+                self.assertTrue(result.metadata["layout"])
+                self.assertTrue(result.metadata["with_frames"])
+                self.assertEqual(result.metadata["wait_interface"], "--wait-until")
+                self.assertEqual(result.metadata["wait"], {
+                    "wait_until": "domstable", "scope": "dynamic_task_family",
+                    "strategy": "native_task_family_completion",
+                    "layout": {"requested": True, "support": "native",
+                               "interface": "--layout", "scope": "dynamic_task_family"},
+                    "subdocuments": {"requested": True, "support": "native",
+                                     "interface": "--with-frames",
+                                     "harness_content_assembly": False,
+                                     "scope": "dynamic_task_family"}})
+
+    def test_wait_option_selects_a_supported_native_cli_without_version_branching(self):
         provider = self.provider(
             'import sys\n'
-            'assert "--eval" not in sys.argv and "--wait-selector" not in sys.argv\n'
-            'assert "--wait-script" not in sys.argv\n'
+            'assert "--wait-until" not in sys.argv\n'
+            'assert sys.argv[sys.argv.index("--wait")+1] == "domstable"\n'
             'assert "--layout" in sys.argv and "--with-frames" in sys.argv\n'
-            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
-            'assert sys.argv[sys.argv.index("--wait-until")+1] == "domstable"\n'
-            'print("# Native body")'
+            'print("# Native dynamic page")',
+            wait_option="wait",
         )
-        result = provider.fetch(self.case_with(track="dynamic", retrieval_hints={
-            "version": 3, "mode": "native"}), 10)
+        result = provider.fetch(self.case_with(
+            track="dynamic", task_kind="structure",
+            retrieval_hints={"version": 3, "mode": "native"}), 10)
         self.assertTrue(result.ok, result.error_message)
-        self.assertEqual(result.content, "# Native body\n")
-        self.assertEqual(result.metadata["output"], "markdown")
-        self.assertTrue(result.metadata["layout"])
-        self.assertTrue(result.metadata["with_frames"])
-        self.assertEqual(result.metadata["wait"], {
-            "wait_until": "domstable", "scope": "dynamic_task_family",
-            "strategy": "native_task_family_completion",
-            "layout": {"requested": True, "support": "native",
-                       "interface": "--layout", "scope": "dynamic_task_family"},
-            "subdocuments": {"requested": True, "support": "native",
-                             "interface": "--with-frames",
-                             "harness_content_assembly": False,
-                             "scope": "dynamic_task_family"}})
+        self.assertEqual(result.metadata["wait_interface"], "--wait")
 
     def test_dynamic_family_wait_is_configurable_but_not_case_specific(self):
         provider = self.provider(
@@ -804,25 +823,16 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(result.metadata["route"], "dynamic_native_markdown")
         self.assertEqual(result.metadata["output"], "markdown")
 
-    @patch("harness.web_fetch.retrieval_hints._verify_contract_source")
-    def test_native_subdocument_contract_uses_moli_serializer_and_wait_only(
-        self, _verify_source
-    ):
-        provider = self.provider(
-            "import sys\n"
-            'assert "--with-frames" in sys.argv\n'
-            'assert "--wait-script" in sys.argv and "--eval" not in sys.argv\n'
-            'assert sys.argv[sys.argv.index("--dump")+1] == "markdown"\n'
-            'wait=sys.argv[sys.argv.index("--wait-script")+1]\n'
-            'assert "iframe" in wait and "h3.family-name" in wait\n'
-            'assert "known answer" not in wait\n'
-            'print("native frame markdown")'
-        )
+    def test_native_dynamic_marker_rejects_a_per_case_contract_before_process(self):
+        provider = self.provider('raise AssertionError("should not run")')
         case = self.case_with(id="dynamic-iframe", track="dynamic", retrieval_hints={
             "version": 3, "mode": "native", "contract": "iframe-fourteen-family-headings"})
-        result = provider.fetch(case, 10)
-        self.assertTrue(result.ok, repr(result))
-        self.assertEqual(result.metadata["wait"]["subdocuments"]["interface"], "--with-frames")
+        with patch("harness.web_fetch.providers.moli.subprocess.Popen") as process:
+            result = provider.fetch(case, 10)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_type, "configuration")
+        self.assertIn("one family marker", result.error_message)
+        process.assert_not_called()
 
     def test_dynamic_completion_only_waits_and_never_extracts_answer_text(self):
         provider = self.provider(
@@ -1279,6 +1289,7 @@ class MoliTests(unittest.TestCase):
             "dynamic_wait_until",
             self.provider("", dynamic_wait_until="invalid").validate(),
         )
+        self.assertIn("wait_option", self.provider("", wait_option="invalid").validate())
         self.assertIn(
             "private_network_allowlist_hosts",
             self.provider("", private_network_allowlist_hosts=["https://example.com"]).validate(),

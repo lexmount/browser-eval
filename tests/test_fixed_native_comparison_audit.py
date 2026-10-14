@@ -33,6 +33,30 @@ class NativeFixture(Provider):
             "diagnostic_log_truncated": False,
             "_diagnostic_log_b64": base64.b64encode(diagnostic).decode(),
         }
+        if case.track == "dynamic":
+            metadata.update(
+                layout=True,
+                with_frames=True,
+                wait_until="domstable",
+                wait={
+                    "wait_until": "domstable",
+                    "scope": "dynamic_task_family",
+                    "strategy": "native_task_family_completion",
+                    "layout": {
+                        "requested": True,
+                        "support": "native",
+                        "interface": "--layout",
+                        "scope": "dynamic_task_family",
+                    },
+                    "subdocuments": {
+                        "requested": True,
+                        "support": "native",
+                        "interface": "--with-frames",
+                        "harness_content_assembly": False,
+                        "scope": "dynamic_task_family",
+                    },
+                },
+            )
         if self.name == "moli-stack-1432" and case.id == "timeout":
             return ProviderResult(False, "", error_type="timeout", error_message="deadline",
                                   metadata=metadata)

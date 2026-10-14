@@ -220,6 +220,8 @@ class MoliWebFetchProvider(Provider):
             errors.append("wait_until")
         if self.config.get("dynamic_wait_until", "domstable") not in _WAIT_UNTIL_VALUES:
             errors.append("dynamic_wait_until")
+        if self.config.get("wait_option", "wait-until") not in {"wait", "wait-until"}:
+            errors.append("wait_option")
         track_waits = self.config.get("wait_until_by_track", {})
         if (not isinstance(track_waits, dict)
                 or any(not isinstance(track, str) or track not in TRACKS
@@ -330,6 +332,15 @@ class MoliWebFetchProvider(Provider):
             # Validate the dynamic contract before selecting any content route.
             # A future dynamic file/document case must not bypass fail-closed
             # retrieval planning merely because it takes the raw-byte path.
+            if (
+                case.track == "dynamic"
+                and isinstance(case.retrieval_hints, dict)
+                and case.retrieval_hints.get("version") == 3
+                and case.retrieval_hints != {"version": 3, "mode": "native"}
+            ):
+                raise ValueError(
+                    f"{case.id}: Moli native dynamic tasks require one family marker"
+                )
             retrieval_plan = plan_for_case(case)
             native_contract = native_contract_for_case(case)
         except ValueError as error:
@@ -384,17 +395,17 @@ class MoliWebFetchProvider(Provider):
         )
         track_waits = self.config.get("wait_until_by_track", {})
         family_wait = track_waits.get(case.track, family_wait)
-        native_dynamic_body = (
+        native_dynamic_task = (
             case.track == "dynamic"
-            and case.task_kind == "body"
             and case.retrieval_hints == {"version": 3, "mode": "native"}
         )
+        wait_option = "--" + self.config.get("wait_option", "wait-until")
         timeout_ms = str(max(1, int(inner_timeout_budget(timeout) * 1000)))
         dump = "markdown"
         try:
             if case.task_kind == "resource":
                 resource_wait = family_wait
-                wait_arguments = ["--wait-until", resource_wait]
+                wait_arguments = [wait_option, resource_wait]
                 wait_metadata = {
                     "wait_until": resource_wait,
                     "resource_discovery": "native_markdown_common_url_scoring",
@@ -404,7 +415,7 @@ class MoliWebFetchProvider(Provider):
                 wait_arguments = [
                     "--wait-selector" if plan.wait_kind == "selector" else "--wait-script",
                     plan.wait_value,
-                    "--wait-until",
+                    wait_option,
                     plan.wait_until or family_wait,
                 ]
                 wait_metadata = {
@@ -425,7 +436,7 @@ class MoliWebFetchProvider(Provider):
                 if plan.minimum_text_fragments:
                     wait_metadata["minimum_text_fragments"] = plan.minimum_text_fragments
             else:
-                wait_arguments = ["--wait-until", family_wait]
+                wait_arguments = [wait_option, family_wait]
                 wait_metadata = {"wait_until": family_wait}
                 if case.track == "dynamic":
                     wait_metadata.update(
@@ -447,7 +458,7 @@ class MoliWebFetchProvider(Provider):
         command = [binary, "fetch"]
         if dump is not None:
             command.extend(["--dump", dump])
-        layout = native_dynamic_body
+        layout = native_dynamic_task
         if layout:
             command.append("--layout")
             wait_metadata["layout"] = {
@@ -457,7 +468,7 @@ class MoliWebFetchProvider(Provider):
                 "scope": "dynamic_task_family",
             }
         include_subdocuments = (
-            native_dynamic_body
+            native_dynamic_task
             or case.task_kind == "resource"
             or native_contract is not None and native_contract.include_subdocuments
         )
@@ -470,7 +481,7 @@ class MoliWebFetchProvider(Provider):
                 "harness_content_assembly": False,
                 "scope": (
                     "dynamic_task_family"
-                    if native_dynamic_body
+                    if native_dynamic_task
                     else "resource_task_family"
                     if case.task_kind == "resource"
                     else "declared_native_contract"
@@ -529,6 +540,7 @@ class MoliWebFetchProvider(Provider):
             ),
             "wait": wait_metadata,
             "wait_until": wait_metadata.get("wait_until"),
+            "wait_interface": wait_option,
             "binary": Path(binary).name,
             "block_private_networks": block_private_networks,
             "private_network_guard_exception": private_network_guard_exception,

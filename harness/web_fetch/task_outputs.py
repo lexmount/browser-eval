@@ -189,6 +189,11 @@ def require_native_task_routes(cases, records):
         mode = output_mode_for_case(provider, 'headless_markdown', case)
         native_contract = native_contract_for_case(case)
         meta = row.get('provider_metadata') or {}
+        native_dynamic_task = (
+            provider == 'moli'
+            and case.track == 'dynamic'
+            and case.retrieval_hints == {'version': 3, 'mode': 'native'}
+        )
         # The runner may expire before a worker returns metadata. Its retained
         # call and cohort receipts still bind the invocation and deadline.
         runner_fields = {'call_log', 'configured_min_interval_seconds', 'client_throttle_wait_ms'}
@@ -214,6 +219,27 @@ def require_native_task_routes(cases, records):
                     native = (case.track == 'dynamic' and meta.get('output') == 'markdown'
                               and meta.get('dump') == 'markdown')
                 valid = valid and native and meta.get('extractor') in {None, 'moli_native_markdown'}
+                if native_dynamic_task:
+                    wait = meta.get('wait') or {}
+                    layout = wait.get('layout') or {}
+                    valid = valid and (
+                        meta.get('layout') is True
+                        and meta.get('with_frames') is True
+                        and meta.get('wait_until') == 'domstable'
+                        and wait.get('wait_until') == 'domstable'
+                        and wait.get('scope') == 'dynamic_task_family'
+                        and wait.get('strategy') == 'native_task_family_completion'
+                        and layout == {
+                            'requested': True,
+                            'support': 'native',
+                            'interface': '--layout',
+                            'scope': 'dynamic_task_family',
+                        }
+                        and not set(wait).intersection({
+                            'selector', 'frame_selector', 'minimum_count',
+                            'minimum_text_fragments', 'output_extraction',
+                        })
+                    )
             elif provider == 'chromium':
                 valid = valid and (meta.get('extractor') == 'node-html-markdown'
                                    and (meta.get('extractor_version') == '2.0.0'
@@ -256,7 +282,8 @@ def require_native_task_routes(cases, records):
             valid = valid and meta.get('document_extractor') in {None, 'pdfjs_runtime', 'rendered_page_text'}
             valid = valid and '+document_text' not in str(meta.get('extractor', ''))
         frame_contract = (
-            (provider == 'moli' and case.task_kind == 'resource')
+            native_dynamic_task
+            or (provider == 'moli' and case.task_kind == 'resource')
             or bool(native_contract and native_contract.include_subdocuments)
         )
         frame_metadata = (
@@ -287,7 +314,9 @@ def require_native_task_routes(cases, records):
                 )
                 if 'scope' in frame_metadata:
                     expected_scope = (
-                        'resource_task_family'
+                        'dynamic_task_family'
+                        if native_dynamic_task
+                        else 'resource_task_family'
                         if case.task_kind == 'resource'
                         else 'declared_native_contract'
                     )
