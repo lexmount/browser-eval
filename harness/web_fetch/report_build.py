@@ -1266,15 +1266,24 @@ def validate_local_presentation(output: Path, binding_path: Path):
             raise ValueError('Presentation evidence binding changed: ' + item['path'])
     dataset = json.loads((output / 'dataset.json').read_text())
     records = load_jsonl(contained_path(output, 'results.jsonl'))
+    scoring_sources = {row['attempt_id']: binding.get('measured_scoring_source_sha256') for row in records}
+    if binding.get('offline_revision'):
+        from .local_revision import require_local_revision
+        scoring_sources = require_local_revision(output, binding['offline_revision'], dataset, records)
     if (len(records) != binding.get('result_count')
             or len(dataset['cases']) != binding.get('case_count')
             or sorted({row['provider'] for row in records}) != sorted(binding['providers'])
-            or any(row['metrics'].get('scoring_source_sha256') != binding.get('measured_scoring_source_sha256') for row in records)):
+            or any(row['metrics'].get('scoring_source_sha256') != scoring_sources[row['attempt_id']] for row in records)):
         raise ValueError('Presentation refresh cannot change the measured matrix or scoring revision')
     if any(path.is_symlink() for path in output.rglob("*")):
         raise ValueError("Presentation snapshot must not contain symlinks")
     validate_report_ids(dataset, records)
-    if not assess_reliability(dataset, records)['complete']:
+    reliability = assess_reliability(dataset, records)
+    from .cohort_exclusions import require_cohort_exclusions
+    excluded = require_cohort_exclusions(output, dataset, records)
+    if (not reliability['complete'] and
+            (any(reliability[key] for key in ('missing', 'extra', 'duplicates'))
+             or any(item['case_id'] not in excluded for item in reliability['unjudged']))):
         raise ValueError('Presentation refresh requires the complete declared matrix')
     for row in records:
         artifact = contained_path(output, row['artifact_path'])

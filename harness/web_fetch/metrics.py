@@ -326,6 +326,10 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
     # Scored records carry the case kind so dataset-free summaries use the same
     # predicate as the report. Explicit case context still takes precedence.
     task_kind = task_kind if task_kind is not None else metrics.get('task_kind', 'body')
+    if metrics.get('acceptance_policy_version', 2) == 1 and (
+            metrics.get('forbidden_hits') or metrics.get('blocked_page')
+            or metrics.get('stable_blocked_page')):
+        return False
     if (metrics.get('page_identity_required')
             and metrics.get('page_identity_status') != 'verified'):
         return False
@@ -343,6 +347,8 @@ def task_passed(ok: bool, metrics: dict, task_kind: str | None = None) -> bool:
 
 
 def task_measured(metrics: dict, task_kind: str | None = None) -> bool:
+    if metrics.get('evaluation_excluded'):
+        return False
     if metrics.get('rule_review_status') == 'unresolved':
         return False
     kind = task_kind or metrics.get('task_kind', 'body')

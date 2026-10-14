@@ -133,6 +133,19 @@ class PageShape(HTMLParser):
             self.numbers.extend(visible_numbers(text))
 
 
+def check_local_diagnostic_presentation(root: Path):
+    """Completeness must never turn uncertified evidence into a displayed ranking."""
+    for path in root.rglob('*.html'):
+        page = path.read_text(encoding='utf-8')
+        if '<meta name="browser-eval-report" content="1">' not in page:
+            continue  # Original response/source HTML is evidence, not report prose.
+        if 'data-evidence-state="local_measurement"' not in page:
+            raise ValueError('Local diagnostic disclosure missing: ' + str(path.relative_to(root)))
+        for table in re.findall(r'<table\b[^>]*\bid="ranking-[^"]+".*?</table>', page, re.S):
+            if 'data-dir="desc"' in table or re.search(r'<th>\s*(?:序号|Rank|No\.)\s*</th>', table):
+                raise ValueError('Uncertified diagnostic comparison assigns ranks: ' + str(path.relative_to(root)))
+
+
 def check(root: Path, *, authority_root: Path, profile: Path | None = None, presentation_binding: Path | None = None):
     reject_evidence_symlinks(root)
     root = root.resolve()
@@ -176,6 +189,17 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     if presentation_binding and not local_measurement:
         raise ValueError("Presentation binding requires a frozen uniform-native diagnostic snapshot")
     if local_measurement:
+        check_local_diagnostic_presentation(root)
+        if (root / 'result-review.json').is_file():
+            from .adjudication_evidence import require_adjudication_evidence, require_current_review_state
+            review=json.loads((root / 'result-review.json').read_text())
+            require_current_review_state(rs,review)
+            require_adjudication_evidence(root,d,rs,review)
+        if (root / 'local-evidence/result-ledger.json').is_file():
+            from .result_ledger import validate_ledger
+            ledger = validate_ledger(json.loads((root / 'local-evidence/result-ledger.json').read_text()), rs)
+            if ledger['states'][-1]['source_results_sha256'] != hashlib.sha256((root / 'results.jsonl').read_bytes()).hexdigest():
+                raise ValueError('Result ledger source hash differs from current results')
         from .local_audit import require_local_measurement, local_measurement_cases
         if presentation_binding:
             if profile:

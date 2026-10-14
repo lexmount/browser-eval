@@ -13,6 +13,8 @@ from .metrics import evaluate_content, evaluate_resources
 from .models import EvalCase
 from .safety import contained_path
 
+SCORING_POLICY_VERSION = 2
+
 
 # Bind orchestration as well as the underlying deterministic matchers. Computed
 # once at import, shared by live/rescore output; never a reference-freshness claim.
@@ -98,6 +100,14 @@ def score_attempt(
     evidence is preserved; the caller must have validated its artifact binding.
     """
     case = _case_dict(case)
+    policy_version = case.get('acceptance_policy_version', SCORING_POLICY_VERSION)
+    if type(policy_version) is not int or policy_version not in {1, 2}:
+        raise ValueError('Unsupported scoring policy version')
+    contract = case.get('acceptance_contract') or {}
+    if contract.get('content_scope') == 'full_page_stable_coverage':
+        if (contract.get('minimum_records', 0) == 0
+                and not (case.get('body_requirements') or {}).get('regions')):
+            raise ValueError('Full-page coverage requires target records or body regions')
     from .response_input import answer_input
     # Live callers forward the conversion completed inside the timed boundary.
     # Offline callers reconstruct it from immutable evidence by the same function.
@@ -106,6 +116,7 @@ def score_attempt(
     result = {key: value for key, value in (previous_metrics or {}).items()
               if key not in _CONDITIONAL_FIELDS
               and not key.startswith(("stable_", "list_", "page_context_"))}
+    result['acceptance_policy_version'] = policy_version
     keys = ("required_facts", "forbidden_any", "min_content_chars",
             "fact_coverage_threshold", "ground_truth_main_content", "required_patterns",
             "acceptance_contract", "body_requirements", "composite_acceptance")
@@ -306,4 +317,10 @@ def score_attempt(
             result['content_pass'] = bool(
                 ok and tree_result['score'] >= case['ordered_tree_min_similarity'])
     result["scoring_source_sha256"] = SCORING_SOURCE_SHA256
+    if policy_version == 1 and (result.get('forbidden_hits') or result.get('blocked_page')
+                                or result.get('stable_blocked_page')):
+        result['content_pass'] = False
+        if 'stable_task_pass' in result:
+            result['stable_task_pass'] = False
+            result['stable_content_pass'] = False
     return result

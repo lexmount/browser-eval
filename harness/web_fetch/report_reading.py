@@ -3,9 +3,65 @@ import hashlib
 import json
 import re
 import shutil
+import base64
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from .safety import contained_path
+
+
+def sanitize_article_html(fragment):
+    """Keep static article content; never import executable HTML or global CSS."""
+    from bs4 import BeautifulSoup
+    allowed = {'article', 'section', 'div', 'span', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+               'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'ul', 'ol', 'li', 'a', 'img',
+               'figure', 'figcaption', 'pre', 'code', 'blockquote', 'strong', 'em', 'b', 'i',
+               'small', 'sup', 'sub', 'br', 'hr', 'details', 'summary'}
+    soup = BeautifulSoup(fragment, 'html.parser')
+    for element in list(soup.find_all(['script', 'style', 'iframe', 'form', 'input', 'button',
+                                     'object', 'embed', 'link', 'meta', 'base', 'svg', 'math', 'template'])):
+        element.decompose()
+    for element in list(soup.find_all(True)):
+        if element.name not in allowed:
+            element.unwrap()
+            continue
+        attrs = {}
+        for key in ('title', 'alt', 'colspan', 'rowspan'):
+            if key in element.attrs:
+                attrs[key] = str(element.attrs[key])
+        if element.get('id'):
+            attrs['id'] = 'archived-' + str(element['id'])
+        for key in ('href', 'src'):
+            if key not in element.attrs or (key == 'src' and element.name != 'img'):
+                continue
+            value = str(element[key]).strip()
+            compact = re.sub(r'[\x00-\x20\x7f]', '', value)
+            if key == 'src' and compact.startswith('data:'):
+                raster = re.fullmatch(r'data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/]*={0,2})', compact)
+                if raster and len(raster[2]) <= 16_000_000:
+                    try:
+                        raw = base64.b64decode(raster[2], validate=True)
+                    except ValueError:
+                        raw = b''
+                    kind = raster[1]
+                    if ((kind == 'png' and raw.startswith(b'\x89PNG\r\n\x1a\n'))
+                            or (kind == 'jpeg' and raw.startswith(b'\xff\xd8\xff'))
+                            or (kind == 'webp' and raw.startswith(b'RIFF') and raw[8:12] == b'WEBP')):
+                        attrs[key] = value
+                continue
+            try:
+                parts = urlsplit(compact)
+            except ValueError:
+                continue
+            if '\\' in compact or parts.scheme.lower() not in {'', 'http', 'https', 'mailto'}:
+                continue
+            if key == 'src' and parts.scheme == 'mailto':
+                continue
+            attrs[key] = '#archived-' + value[1:] if value.startswith('#') else value
+        if element.name == 'a' and 'href' in attrs:
+            attrs['rel'] = 'noopener noreferrer'
+        element.attrs = attrs
+    return str(soup)
 
 
 def copy_archived_reading(source: Path, out: Path) -> None:
@@ -36,7 +92,6 @@ def render_archived_reading(out: Path, language: str = "zh") -> str | None:
     body = re.search(r"<main[^>]*>(.*?)</main>", text, re.S)
     if not body:
         raise ValueError("Archived article has no main content")
-    styles = "".join(re.findall(r"<style[^>]*>.*?</style>", text, re.S))
     date = data.get("source_data_date")
     if language == "zh":
         date_note = f"（截至{date}）" if date else ""
@@ -44,8 +99,8 @@ def render_archived_reading(out: Path, language: str = "zh") -> str | None:
     else:
         date_note = f" through {date}" if date else ""
         note = f"This article retains the older report and its data{date_note}; it does not describe the current benchmark results."
-    return (styles + '<div class="wrap"><p class="source-note">' + note
-            + '</p></div><div class="wrap essay">' + body[1] + '</div>')
+    return ('<div class="wrap" data-archived-reading="true"><p class="source-note">' + note
+            + '</p><div class="essay">' + sanitize_article_html(body[1]) + '</div></div>')
 
 
 def archived_translations(out: Path) -> dict[str, str]:

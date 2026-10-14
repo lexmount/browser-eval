@@ -346,7 +346,7 @@ function filterValues(r,key){return key==='issue'?(r.dataset[key]||'').split(' '
 function filterMatch(r,s){return !s.value||(s.dataset.filter==='query'?(r.textContent+' '+(r.dataset.search||'')).toLowerCase().includes(s.value.trim().toLowerCase()):filterValues(r,s.dataset.filter).includes(s.value))}
 function filterRows(){let count=0;document.querySelectorAll('#rows tr').forEach(r=>{let show=[...document.querySelectorAll('[data-filter]')].every(s=>filterMatch(r,s));r.hidden=!show;if(show)count++});let c=document.querySelector('#count');if(c)c.textContent=tr(`显示 ${count} 条`,`Showing ${count}`)}
 function paintSort(t){let col=Number(t.dataset.col);if(!Number.isFinite(col)||!t.tHead?.rows[0]?.cells[col])return;[...t.tHead.rows[0].cells].forEach((h,i)=>{h.classList.toggle('sorted',i===col);h.removeAttribute('aria-sort')});t.tHead.rows[0].cells[col].setAttribute('aria-sort',t.dataset.dir==='asc'?'ascending':'descending')}
-function sortTable(id,col){let t=document.getElementById(id),dir=t.dataset.col===String(col)&&t.dataset.dir==='desc'?'asc':'desc';let rows=[...t.tBodies[0].rows];rows.sort((a,b)=>{let av=a.cells[col].dataset.sort,bv=b.cells[col].dataset.sort;if(av==='-1'||bv==='-1')return av===bv?0:av==='-1'?1:-1;let result=(av==null||bv==null)?a.cells[col].textContent.localeCompare(b.cells[col].textContent,document.documentElement.lang):Number(av)-Number(bv);return dir==='asc'?result:-result});rows.forEach((r,i)=>{r.cells[0].textContent=i+1;t.tBodies[0].append(r)});t.dataset.col=String(col);t.dataset.dir=dir;paintSort(t);if(t.hasAttribute?.('data-wmb-table'))wmbFilters();if(t.id==='wmb-slices')wmbSliceFilters()}
+function sortTable(id,col){let t=document.getElementById(id),dir=t.dataset.col===String(col)&&t.dataset.dir==='desc'?'asc':'desc';let rows=[...t.tBodies[0].rows];rows.sort((a,b)=>{let av=a.cells[col].dataset.sort,bv=b.cells[col].dataset.sort;if(av==='-1'||bv==='-1')return av===bv?0:av==='-1'?1:-1;let result=(av==null||bv==null)?a.cells[col].textContent.localeCompare(b.cells[col].textContent,document.documentElement.lang):Number(av)-Number(bv);return dir==='asc'?result:-result});rows.forEach((r,i)=>{if(t.dataset.rowIndex!=='false')r.cells[0].textContent=i+1;t.tBodies[0].append(r)});t.dataset.col=String(col);t.dataset.dir=dir;paintSort(t);if(t.hasAttribute?.('data-wmb-table'))wmbFilters();if(t.id==='wmb-slices')wmbSliceFilters()}
 function chooseTab(group,key){let box=document.getElementById(group);if(!box)return;box.querySelectorAll(':scope > .tab-bar > button').forEach(b=>{let on=b.dataset.tab===key;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1});box.querySelectorAll(':scope > [role="tabpanel"]').forEach(p=>p.hidden=p.dataset.panel!==key)}
 function tabKeys(event,group){if(!['ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;let bs=[...document.getElementById(group).querySelectorAll(':scope > .tab-bar > button')],i=bs.indexOf(event.target);i=event.key==='Home'?0:event.key==='End'?bs.length-1:(i+(event.key==='ArrowRight'?1:-1)+bs.length)%bs.length;event.preventDefault();chooseTab(group,bs[i].dataset.tab);bs[i].focus()}
 function cascadeFilters(changed){let rows=[...document.querySelectorAll('#rows tr')],selects=[...document.querySelectorAll('select[data-filter]')],prior=[];selects.forEach(s=>{let available=new Set(rows.filter(r=>prior.every(p=>filterMatch(r,p))).flatMap(r=>filterValues(r,s.dataset.filter)));if(s.dataset.filter!=='result'){let failureFilter=['failureStage','failureCategory','issue'].includes(s.dataset.filter);[...s.options].forEach(o=>o.disabled=!!o.value&&!available.has(o.value));if(s.value&&!available.has(s.value))s.value=failureFilter?'':([...s.options].find(o=>o.value&&!o.disabled)?.value||'');if(failureFilter)s.disabled=![...s.options].some(o=>o.value&&!o.disabled);}prior.push(s)});filterRows()}
@@ -694,13 +694,16 @@ def pct(n):return '—' if n is None else f'{n*100:.1f}%'
 def ms(n):return '—' if n is None else f'{n:,.0f} ms'
 def link(url,label):return f'<a href="{esc(safe_href(url))}">{esc(label)}</a>'
 def cell(value,sort=None):return '<td'+(f' data-sort="{sort}"' if sort is not None else '')+f'>{value}</td>'
+def model_text(value,english=None):
+ return esc(value) if english is None else '<span data-report-en="'+esc(english)+'">'+esc(value)+'</span>'
 def rate(a,b):return pct(a/b) if b else '—'
 def section(title,body,id=''):return '<section class="section"'+(f' id="{id}"' if id else '')+f'><div class="wrap"><h2>{title}</h2>{body}</div></section>'
 def hero(title,desc):return f'<section class="hero"><div class="wrap"><div class="eyebrow">Web Fetch · 评测报告</div><h1>{title}</h1><p class="lead">{desc}</p></div></section>'
-def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header='序号',default_sort=None):
- head=f'<th>{esc(index_header)}</th>'+''.join(f'<th><button class="sort-button" onclick="sortTable(\'{id}\',{i+1})">{h} ↕</button></th>' if sortable else f'<th>{h}</th>' for i,h in enumerate(headers))
- body=''.join(f'<tr{attrs}><td>{i+1}</td>{values}</tr>' for i,(attrs,values) in enumerate(rows))
+def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header='序号',default_sort=None,include_index=True):
+ head=(f'<th>{esc(index_header)}</th>' if include_index else '')+''.join(f'<th><button class="sort-button" onclick="sortTable(\'{id}\',{i+int(include_index)})">{h} ↕</button></th>' if sortable else f'<th>{h}</th>' for i,h in enumerate(headers))
+ body=''.join(f'<tr{attrs}>'+ (f'<td>{i+1}</td>' if include_index else '')+f'{values}</tr>' for i,(attrs,values) in enumerate(rows))
  sort_attrs=(f' data-col="{default_sort[0]}" data-dir="{default_sort[1]}"' if default_sort else '')
+ if not include_index:sort_attrs+=' data-row-index="false"'
  return metric_legend(headers if metrics is None else metrics)+f'<div class="table-wrap"><table class="{cls}"'+(f' id="{id}"' if id else '')+sort_attrs+f'><thead><tr>{head}</tr></thead><tbody'+(' id="rows"' if id=='filtered-table' else '')+f'>{body}</tbody></table></div>'
 EXTRA+='\n.change-log section{padding:24px 0}.change-log h2{font-size:24px}.change-log p{margin:10px 0;line-height:1.75}.change-log summary{font-weight:650;color:var(--accent)}.change-log .table-wrap{overflow-x:auto}\n'
 EXTRA+='''
@@ -1054,6 +1057,7 @@ def measured(r,c):
  return task_measured(r['metrics'],c.get('task_kind','body'))
 
 def result_label(r,c):
+ if r['metrics'].get('evaluation_excluded'):return '排除比较'
  if not measured(r,c):return '无法判定'
  state='通过' if succeeded(r,c) else '未通过'
  return '列表任务：'+state if c.get('task_kind')=='structure' else state
@@ -1063,11 +1067,13 @@ def case_rate(rs,c):
  value=rate(sum(succeeded(r,c) for r in rs),len(rs))
  return value
 
-def overview_card(records,cases,track,label,names):
+def overview_card(records,cases,track,label,names,*,diagnostic=False):
  selected=[c for c in cases.values() if c.get('track','web')==track]
  if not selected:return ''
  rs=[r for r in records if cases[r['case_id']].get('track','web')==track]
  eligible=[r for r in rs if measured(r,cases[r['case_id']])]
+ if diagnostic:
+  return f'<div class="card"><div class="eyebrow">{len(selected)} 个任务</div><h3>{link("#home-rankings-"+track,label)}</h3><p>本地诊断结果，不提供名次。</p></div>'
  rates={n:sum(succeeded(r,cases[r['case_id']]) for r in eligible if r['provider']==n)/sum(r['provider']==n for r in eligible) for n in names if any(r['provider']==n for r in eligible)}
  maximum=max(rates.values(),default=None)
  winners='、'.join(provider_label(n) for n in names if rates.get(n)==maximum) if maximum else '本轮无通过任务' if rates else '暂无调用记录'
@@ -1077,6 +1083,11 @@ def review_summary(out, prefix=''):
  path=out/'result-review.json'
  if not path.is_file():return ''
  audit=json.loads(path.read_text())
+ if audit.get('adjudication_revision'):
+  count=len(audit['adjudication_revision']['adjudicated_attempt_ids'])
+  return ('<p class="callout">'+model_text(
+      f'保留历史复核记录 {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}；本次补充逐案裁定 {count} 条。未新增全量盲审，也不构成正式认证。',
+      f'Historical review records: {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}; {count} case-specific adjudications supplemented. No new full blind review or certification is claimed.')+' '+link(prefix+'review/index.html','查看核验轮次 →')+'</p>')
  scope=audit.get('review_protocol',{}).get('scope','all')
  if scope=='supplement-25-local-audit':
   return (f'<p class="callout success"><b>新增25例结果审核 '
@@ -1096,7 +1107,7 @@ def review_cell(audit, rows, base=''):
  if not audit:return ''
  indexed=review_index(audit);items=[indexed[r['attempt_id']] for r in rows if r['attempt_id'] in indexed]
  unresolved=sum(not x.get('final_verdict') for x in items)
- label=f'{len(items)}/{len(rows)} · Codex 已核验'
+ label=f'{len(items)}/{len(rows)} · 复核记录'
  if unresolved:label+=f' · 未决 {unresolved}'
  return cell(link(base+'review/index.html',label),len(items)/len(rows) if rows else -1)
 
@@ -1413,6 +1424,7 @@ def stable_anchor_evidence(metrics,output):
  return note+f'<div class="anchor-grid"{scroll}>'+''.join(cards)+'</div>'
 
 def failure_category(r,c):
+ if r['metrics'].get('evaluation_excluded'):return '评测环境异常：统一排除比较'
  if not measured(r,c):return '无法判定：最终网页身份缺少证据' if r['metrics'].get('page_identity_required') and r['metrics'].get('page_identity_status')=='unavailable' else '未测：缺少验收证据'
  if succeeded(r,c):return '—'
  # Classification describes an already failed result; hints never veto success.
@@ -1469,6 +1481,8 @@ def stable_failure_summary(metrics):
  return '；'.join(parts) or '稳定文字或记录结构没有满足任务要求'
 
 def reason(r,c):
+ if r['metrics'].get('evaluation_excluded'):
+  return r['metrics']['evaluation_exclusion_reason']
  if not measured(r,c):
   if r['metrics'].get('page_identity_required') and r['metrics'].get('page_identity_status')=='unavailable':
    return '无法判定：已保存实际返回，但缺少可核实的最终网页身份，不计入通过数、失败数或任务通过率的分母。'
@@ -1531,16 +1545,19 @@ def stable_checks(m):
  if len(records)>5:record_table=f'<div class="record-scroll" data-scroll-after="5">{record_table}</div>'
  return content+record_table+('<p>未通过原因：'+esc(stable_failure_summary(m))+'。</p>' if m.get('stable_task_errors') else '')
 
-def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
+def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagnostic=False):
+ excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
+ records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
  from .report_components import comparable_body_reference
  title_scope=track=='challenge' and any('title_quality' in r for r in records if cases[r['case_id']].get('track')==track)
- selected={k:c for k,c in cases.items() if c.get('track','web')==track}
+ selected={k:c for k,c in cases.items() if c.get('track','web')==track and k not in excluded}
  text_track=track in {'web','dynamic','document','challenge'} and any(c.get('task_kind','body') in {'body','structure'} for c in selected.values())
  groups=defaultdict(list)
  for r in records:
   if cases[r['case_id']].get('track','web')==track:groups[r['provider']].append(r)
  def sort_key(item):
   name,rs=item
+  if diagnostic:return name
   n=sum(measured(r,cases[r['case_id']]) for r in rs)
   return (-sum(succeeded(r,cases[r['case_id']]) for r in rs)/n if n else 1,name)
  rows=[];text_scopes={}
@@ -1603,7 +1620,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
   missing=sorted({r['provider'] for r in records}-set(groups))
   note+=' 各类型按各自任务范围比较，不合并为跨类型总分。'
   if missing:note+=' 未测方法（不计为失败）：'+esc('、'.join(missing))+'。'
- result=table(heads,rows,id or 'ranking-'+track,True,'ranking',metrics=[] if compact else None)
+ result=table(heads,rows,id or 'ranking-'+track,True,'ranking',metrics=[] if compact else None,include_index=not diagnostic)
  if text_scopes and len(set(text_scopes.values()))>1:
   result='<details><summary>文字核对覆盖范围</summary><ul>'+''.join('<li>'+esc(name)+f'：{len(scope)}/{len(selected)} 例；'+esc('、'.join(selected[k]['name'] for k in sorted(scope)) or '无文字核对记录')+'</li>' for name,scope in sorted(text_scopes.items()))+'</ul></details>'+result
  if compact:
@@ -1611,7 +1628,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None):
  if title_scope:result+=title_diagnostics(groups,selected,base,id or 'ranking-'+track)
  result+=matched_latency(groups,cases,base)
  from .report_components import task_pass_guide
- return task_pass_guide(track,base,selected)+'<p class="source-note">'+note+'</p>'+result.replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
+ return task_pass_guide(track,base,selected)+'<p class="source-note">'+note+'</p>'+(result if diagnostic else result.replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"'))
 
 def matched_latency(groups,cases,base):
  scopes=[{r['case_id'] for r in rows if succeeded(r,cases[r['case_id']])} for rows in groups.values()]
@@ -1629,6 +1646,9 @@ def matched_latency(groups,cases,base):
  return '<details><summary>同题耗时 · 全部方法共同通过子集</summary><p>'+note+'</p>'+ (table(['方法','同题均值','同题 P50'],rows,metrics=[])+ '<p>'+links+'</p>' if rows else '')+'</details>'
 
 def overview_all_call_latency(records,cases):
+ excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
+ records=[r for r in records if r['case_id'] not in excluded]
+ cases={key:case for key,case in cases.items() if key not in excluded}
  names=sorted({r['provider'] for r in records})
  keys={(r['provider'],r['case_id']) for r in records}
  if len(keys)!=len(records) or any((name,cid) not in keys for name in names for cid in cases):
@@ -1640,6 +1660,17 @@ def overview_all_call_latency(records,cases):
                cell(ms(statistics.mean(times)))+cell(ms(percentile(times,.5)))+cell(ms(percentile(times,.95)))))
  return (f'<p>每种方法均使用同一组 {len(cases)} 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。每种方法内部按案例依次执行；方法之间的并发安排和限制见调用链检查。耗时仍受本地与远程环境、网络和产品内部限制影响。</p>'+
          table(['方法','调用数','全部调用均值','全部调用 P50','全部调用 P95'],rows,'all-call-latency-table',metrics=[]))
+
+
+def result_ledger_section(out, records, prefix=''):
+ path=out/'local-evidence/result-ledger.json'
+ if not path.is_file():return ''
+ from .result_ledger import validate_ledger
+ ledger=validate_ledger(json.loads(path.read_text()),records)
+ rows=[('',cell(esc(row['id']))+cell(str(row['before_passes']))+cell(str(row['added_passes']))+
+           cell(str(row['removed_passes']))+cell(str(row['totals']['pass']))+
+           cell(str(row['totals']['excluded']))) for row in ledger['rounds']]
+ return section('评分修正账目','<p>每轮增加、减少与最终通过数均从逐条状态记录计算；排除结果保留原始调用，不计入比较分母。</p>'+table(['阶段','修正前通过','新增通过','减少通过','修正后通过','排除比较'],rows,metrics=[])+link(prefix+'local-evidence/result-ledger.json','下载逐条增减账目'),'result-ledger')
 
 def overview_matched_latency(records,cases):
  from .report_explainer import _article_speed_population
@@ -1704,7 +1735,10 @@ def title_diagnostics(groups,selected,base,identifier):
   '<p>该诊断回答“已经返回的条目标题是否完整、干净”，不衡量榜单召回率、实时性或整页正文质量。</p>'+steps
   +table(['方法','标题完整度','标题纯净度','标题 F1','标题参考覆盖（可评分 / 返回）'],rows,identifier+'-titles',True,metrics=[])+ '</details>')
 
-def overall_ranking(records,cases,audit=None):
+def overall_ranking(records,cases,audit=None,*,diagnostic=False):
+ excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
+ records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
+ cases={k:c for k,c in cases.items() if k not in excluded}
  has_unknown=any(not measured(r,cases[r["case_id"]]) for r in records)
  groups=defaultdict(list)
  for r in records:groups[r['provider']].append(r)
@@ -1723,7 +1757,7 @@ def overall_ranking(records,cases,audit=None):
   values+=cell(ms(percentile(times,.95)),percentile(times,.95))
   if audit:values+=review_cell(audit,rs)
   rows.append((passed,name,('',values)))
- rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]))]
+ rows=[row for _,_,row in sorted(rows,key=lambda x:x[1] if diagnostic else (-x[0],x[1]))]
  tracks=active_tracks(cases)
  heads=['方法','请求成功率','综合任务通过率']+(['无法判定'] if has_unknown else [])+[label for _,label in tracks]+['均值','P50','P95']
  if audit:heads+=['审查结果']
@@ -1740,7 +1774,11 @@ def overall_ranking(records,cases,audit=None):
        f'<div><dt>全调用均值 / P50 / P95</dt><dd>每种方法在同一组 {case_count} 个计划任务上的端到端耗时，包含通过与失败；三项不参与通过率排名。主矩阵调用跨日期、跨批次，不等同于同窗受控速度比较。</dd></div>'
        '<div><dt>审查结果</dt><dd>独立盲审覆盖数、审查方法和未决数。</dd></div>'
        '</dl></div></details>')
- return intro+help+table(heads,rows,'ranking-overall',True,'ranking',metrics=[]).replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
+ if diagnostic:
+  intro='<p class="decision-lead">本地未认证诊断结果，仅展示保存的任务判定与耗时，不用于产品排名。通过不代表返回内容干净；请同时查看全文指标和挑战提示。</p>'
+  help=help.replace('总榜指标说明','诊断指标说明')
+ rendered=table(heads,rows,'ranking-overall',True,'ranking',metrics=[],include_index=not diagnostic)
+ return intro+help+(rendered if diagnostic else rendered.replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"'))
 
 def filter_controls(options,all_first=()):
  controls=''
@@ -1795,12 +1833,12 @@ def case_attrs(r,c):
  resources='na' if not c.get('expected_resources') else 'pass' if r['ok'] and r['metrics'].get('resource_pass') else 'fail'
  stage='' if succeeded(r,c) or not measured(r,c) else 'task' if r['ok'] else 'request'
  category='' if not stage else failure_category(r,c)
- result='unmeasured' if not measured(r,c) else 'pass' if succeeded(r,c) else 'fail'
+ result='excluded' if r['metrics'].get('evaluation_excluded') else 'unmeasured' if not measured(r,c) else 'pass' if succeeded(r,c) else 'fail'
  return dataset_attrs(c)+f' data-provider="{esc(r["provider"])}" data-transport="{"pass" if r["ok"] else "fail"}" data-result="{result}" data-content="{content}" data-resources="{resources}" data-failure-stage="{stage}" data-failure-category="{esc(category)}" data-search="{esc(reason(r,c))}"'
 
 def attempt_row(r,c,base='../',*,label=None):
  state=result_label(r,c)
- values=cell(link(base+'attempts/'+r['attempt_id']+'.html',c['name'] if label is None else label))+cell(case_track_label(c))+cell(f'<span class="{"good" if succeeded(r,c) else "bad"}">{state}</span>')+cell(esc(failure_category(r,c)))+cell(ms(r['elapsed_ms']))
+ values=cell(link(base+'attempts/'+r['attempt_id']+'.html',c['name'] if label is None else label))+cell(case_track_label(c))+cell(f'<span class="{"muted" if not measured(r,c) else "good" if succeeded(r,c) else "bad"}">{state}</span>')+cell(esc(failure_category(r,c)))+cell(ms(r['elapsed_ms']))
  values+=cell(f'<code class="tiny break">{esc(r.get("run_id") or execution_id(r))}</code>')
  return case_attrs(r,c),values
 
@@ -1819,14 +1857,16 @@ def local_audit_banner(dataset):
  if dataset.get('comparison',{}).get('publication_state')!='local_audit_only_not_for_release':
   return ''
  if dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
-  reviewed=dataset.get('comparison',{}).get('independent_review')
-  note='已完成全量独立复核；未裁定项保留现有评分，具体范围见核验记录。' if reviewed else '结果为机器判定，未进行独立人工审核；'
-  return '<div class="wrap callout"><strong>本地实测版</strong><p>全部方法使用同一组已提交案例和判分规则，每例一次调用，统一45秒外部时限，不设逐例等待或提取参数，不重试。'+note+'本报告仅供本地查看，不代表正式发布。</p></div>'
+  note='已有复核记录；覆盖和裁定依据见核验页面。' if dataset['comparison'].get('independent_review') else '结果为机器判定，未进行独立人工审核。'
+  return '<div class="wrap callout" role="alert" data-evidence-state="local_measurement"><strong>本地未认证诊断快照 · 不可用于排名</strong><p>来源未在调用前后完成全量核验。保存的评分、质量指标和复核记录仅供诊断，不代表正式发布或认证结果。</p><p>'+note+'</p></div>'
  return '<div class="wrap callout"><strong>本地审核版</strong><p>本页合并两个不同日期的 Moli 调用批次，保留每例的真实调用时间。本次仅更换报告展示代码，没有新增 Moli 调用，也不代表正式发布。</p></div>'
 
 def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True):
  global _RELIABILITY_BANNER,_ENGLISH_GENERATED
  _ENGLISH_GENERATED=include_english
+ diagnostic=dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release'
+ if diagnostic and not show_local_status_banners:
+  raise ValueError('Uncertified local diagnostic status cannot be hidden')
  from .reliability import assess_reliability
  reliability=assess_reliability(dataset,records)
  if reliability['complete']:
@@ -1834,7 +1874,13 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  elif (dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement'
        and dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release'
        and not any(reliability[key] for key in ('missing','extra','duplicates'))):
-  _RELIABILITY_BANNER='<div class="wrap reliability failure" role="alert"><strong>调用已完整，部分结果无法判定</strong><span>'+esc(f'{reliability["present_calls"]} 条调用均有记录；其中 {len(reliability["unjudged"])} 条缺少足够验收证据。通过率按可判定结果计算，分母和无法判定数量分别显示。本地报告不代表完整验收或正式发布。')+'</span></div>'
+  excluded=[r for r in records if r['metrics'].get('evaluation_excluded')]
+  if len(excluded)==len(reliability['unjudged']):
+   _RELIABILITY_BANNER='<div class="wrap callout">'+model_text(
+       f'{len(excluded)} 条结果因已确认的评测环境异常统一排除比较；原始调用和输出保留。',
+       f'{len(excluded)} results are excluded across all methods for a verified evaluation-environment defect; original calls and outputs are retained.')+'</div>'
+  else:
+   _RELIABILITY_BANNER='<div class="wrap reliability failure" role="alert"><strong>调用已完整，部分结果无法判定</strong><span>'+esc(f'{reliability["present_calls"]} 条调用均有记录；其中 {len(reliability["unjudged"])} 条缺少足够验收证据。通过率按可判定结果计算，分母和无法判定数量分别显示。本地报告不代表完整验收或正式发布。')+'</span></div>'
  else:
   _RELIABILITY_BANNER='<div class="wrap reliability failure" role="alert"><strong>报告不可靠：评测未完整</strong><span>'+esc('；'.join(reliability['errors']))+'。本页排名不得用于结论或发布。</span></div>'
  if not show_local_status_banners and dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release' and not any(reliability[key] for key in ('missing','extra','duplicates')):
@@ -1863,8 +1909,9 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  for r in records:bycase[r['case_id']].append(r);byprovider[r['provider']].append(r)
  cards=''
  for track,label in tracks:
-  cards+=overview_card(records,cases,track,label,names)
- home='<div class="home-page">'+hero('Web Fetch 评测报告',f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类分榜与一个综合通过率总榜。')
+  cards+=overview_card(records,cases,track,label,names,diagnostic=diagnostic)
+ description=(f'{len(cases)} 个案例 · {len(names)} 种方法 · 本地未认证诊断快照。' if diagnostic else f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类分榜与一个综合通过率总榜。')
+ home='<div class="home-page">'+hero('Web Fetch 评测报告',description)
  from .report_explainer import article_title,render_explainer,supports_authored_explainer
  TITLE='本轮调用链检查与日志范围' if dataset.get('comparison',{}).get('call_chain_audit') else article_title(records) if authored_interpretation and supports_authored_explainer(cases) and not all(row.get('provider_type') == 'fixture' for row in records) else '本报告的任务范围与验收规则'
  reading_note='从分数差异、失败案例和实现机制，理解如何选择抓取方法。' if authored_interpretation else '查看本报告的任务范围、结果数量与验收规则。'
@@ -1884,15 +1931,19 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  for track,label in tracks:
   selected=[c for c in cases.values() if c.get('track','web')==track]
   coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if cases[r["case_id"]].get("track","web")==track})} 种已测方法'
-  panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
+  panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit,diagnostic=diagnostic)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
  home+=section(f'{track_label} 类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
- home+=section('综合通过率总榜',overall_ranking(records,cases,audit),'overall-ranking')
+ home+=section('任务判定汇总（非排名）' if diagnostic else '综合通过率总榜',overall_ranking(records,cases,audit,diagnostic=diagnostic),'overall-ranking')
+ if diagnostic:
+  home+=result_ledger_section(out,records)
+  low=[r for r in records if not r['metrics'].get('evaluation_excluded') and succeeded(r,cases[r['case_id']]) and cases[r['case_id']].get('ground_truth_main_content') and r['metrics'].get('word_precision') is not None and r['metrics']['word_precision']<.3]
+  home+=section('通过结果的内容诊断',f'<p>{len(low)} 条通过结果的参考词精确率低于 30%。此比例用于定位检查对象，不是统一失败线；通过不保证干净正文，正文参考的范围和时间也会影响该指标。</p>','coverage-quality')
  if dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
   home+=section('同一任务集合的全部调用耗时',overview_all_call_latency(records,cases),'all-call-latency')
  home+=section('全部方法共同成功任务的耗时',overview_matched_latency(records,cases),'overall-matched-latency')
  if (out/'resource-cohort/resource-comparison.json').is_file():
   home+=section('CPU、内存与网络',overview_resources(out),'overall-resources')
- home+=section(f'{track_label} 类分榜','<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>'+tabs('home-rankings',panels),'results')
+ home+=section('按任务类别查看诊断结果' if diagnostic else f'{track_label} 类分榜',('<p class="ranking-orientation">方法按名称排列，不提供名次。任务判定、内容质量和耗时分别展示。</p>' if diagnostic else '<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>')+tabs('home-rankings',panels),'results')
  write(out,'index.html','评测报告',home+'</div>')
  controls=filter_controls([('track','类型',tracks),('category','类别',[(x,x) for x in dict.fromkeys(c['category'] for c in cases.values())])])
  rows=[]
@@ -1963,7 +2014,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  for r in ([] if presentation_only else records):
   c=cases[r['case_id']];m=r['metrics'];ref=reference_text(c)
   output=contained_path(out,r['artifact_path']).read_text(encoding='utf-8',errors='replace')
-  rows=[('',cell(k)+cell(v)) for k,v in [('任务 ID',f'<code>{esc(c["id"])}</code>'),('方法',link('../providers/'+r['provider']+'.html',provider_label(r['provider']))),('请求','成功' if r['ok'] else '失败'),('任务结果','通过' if succeeded(r,c) else '未通过'),('HTTP 状态',esc(r.get('status_code'))),('耗时',ms(r['elapsed_ms'])),('全文完整度 / 纯净度 / F1',f'{pct(m.get("word_recall"))} / {pct(m.get("word_precision"))} / {pct(m.get("word_f1"))}'),('输出字符',f'{len(output):,}'),('输出校验值',f'<code class="break">{esc(m.get("content_sha256"))}</code>')]]
+  rows=[('',cell(k)+cell(v)) for k,v in [('任务 ID',f'<code>{esc(c["id"])}</code>'),('方法',link('../providers/'+r['provider']+'.html',provider_label(r['provider']))),('请求','成功' if r['ok'] else '失败'),('任务结果',result_label(r,c)),('HTTP 状态',esc(r.get('status_code'))),('耗时',ms(r['elapsed_ms'])),('全文完整度 / 纯净度 / F1',f'{pct(m.get("word_recall"))} / {pct(m.get("word_precision"))} / {pct(m.get("word_f1"))}'),('输出字符',f'{len(output):,}'),('输出校验值',f'<code class="break">{esc(m.get("content_sha256"))}</code>')]]
   if not c.get('ground_truth_main_content'):
    rows[6]=('',cell('全文完整度 / 纯净度 / F1')+cell('— / — / —（全文指标无完整参考，未评测）'))
   else:
@@ -2046,7 +2097,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   hero_meta=(f'<strong>任务 ID：<code>{esc(c["id"])}</code></strong><br>{esc(task_instruction(c))}'
              f'<span class="meta"><span class="pill">方法：{esc(provider_label(r["provider"]))}</span>'
              f'<span class="pill">运行 ID：{esc(r.get("run_id") or execution_id(r))}</span></span>')
-  summary=(f'<div class="attempt-verdict {"" if passed else "failure"}">'
+  summary=(f'<div class="attempt-verdict {"" if passed or not measured(r,c) else "failure"}">'
            f'<span class="status-line">{esc(state)}</span><p>{esc(reason(r,c))}</p>'
            f'<p class="source-note">方法：{link("../providers/"+r["provider"]+".html",provider_label(r["provider"]))} · '
            f'请求：{"成功" if r["ok"] else "失败"} · 耗时：{ms(r["elapsed_ms"])} · {actual_summary}</p></div>')
@@ -2055,7 +2106,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
             '<a href="#evidence-output">查看本次完整实际返回</a>'
             '<a href="#decision">查看逐项判定</a>'
             '<a href="#run-log">查看运行日志与证据</a></p>')
-  if r.get('diagnosis') and not passed:
+  if r.get('diagnosis') and not passed and measured(r,c):
    d=r['diagnosis'];s=d.get('independent_source_check') or {}
    quote_issue=_quote_field_issue(m)
    facts=[('失败分类','字段边界丢失' if quote_issue else d['category']),
@@ -2064,6 +2115,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    if s:facts.extend([('独立源页复查',f"{s.get('checked_at','')} · HTTP {s.get('status','未取得')} · {s.get('title') or s.get('error','')}"),('复查边界',d['source_check_boundary'])])
    summary+='<details class="technical-details"><summary>查看失败分类与归因边界</summary>'+table(['项目','依据'],[('',cell(esc(k))+cell(esc(v))) for k,v in facts],metrics=[])+"</details>"
   body=hero(esc(c['name']),hero_meta)+section('结论',summary,'overview')
+  from .report_quality import render_quality_observations
+  body+=section('目标覆盖与附加内容',render_quality_observations(r,c,output,esc=esc),'quality-diagnostics')
   reviewed=audited_attempts.get(r['attempt_id'])
   if reviewed:
    independent={'pass':'通过','fail':'未通过','insufficient':'证据不足'}.get(reviewed.get('agent_verdict'),'未记录')
@@ -2073,11 +2126,13 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
     ('直接证据',reviewed.get('agent_evidence') or '—'),
     ('最终结论',final),
    ]
-   if reviewed.get('adjudication'):
+   if reviewed.get('adjudication_evidence'):
     review_rows.append(('分歧裁定',reviewed['adjudication']))
    body+=section('独立结果核验',table(
        ['项目','核验记录'],
-       [('',cell(esc(label))+cell(esc(value))) for label,value in review_rows],
+       [('',cell(esc(label))+cell(
+           model_text(value,reviewed.get('adjudication_evidence',{}).get('reason_en')) if label=='分歧裁定'
+           else '<span translate="no">'+esc(value)+'</span>' if label=='直接证据' else esc(value))) for label,value in review_rows],
        metrics=[]),'independent-review')
   reference_heading='完整标准答案' if c.get('task_kind')!='structure' else '标准答案与验收规则'
   reference_download='../references/'+c['id']+'.txt'
@@ -2235,7 +2290,10 @@ def write_review_page(out,records):
   return f'{label}全量 {item.get("reviewed_attempts",0):,}/{item.get("total_attempts",item.get("expected_attempts",0)):,}'
  conclusion=(f'<p class="callout success">{coverage("主结果",audit)}；'
              f'代理分歧 {len(disagreements)}；已裁定 {len(adjudicated)}；未决 {unresolved}。</p>')
+ if audit.get('adjudication_revision'):
+  conclusion=review_summary(out,'../')
  page+=section('当前状态',conclusion)
+ page+=result_ledger_section(out,records,'../')
  page+=section('核验轮次','<div class="review-rounds">'+rounds_html+'</div>')
  method=(f'<details class="technical-details"><summary>核验协议与执行者</summary><p>执行者：{esc(reviewer.get("agent","独立代理"))}；模型：{esc(reviewer.get("model","—"))}；推理强度：{esc(reviewer.get("effort","—"))}。'
          '核验时隐藏机器结论和分数，只提供任务契约、标准答案与完整实际输出；分歧回到原始证据裁定，未决非零则禁止发布。任务和输出未变化时沿用原核验；发生变化的调用必须重新盲审。</p></details>')

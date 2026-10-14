@@ -110,6 +110,35 @@ TEXT = {
     "已保存真实诊断（原生日志范围见说明）": "Observed diagnostics saved (see native log coverage notes)",
     "本轮未重新核验来源。": "Sources were not reverified for this run.",
     "本地实测版": "Local measured comparison",
+    "本地未认证诊断快照 · 不可用于排名": "Local uncertified diagnostic snapshot · not for ranking",
+    "来源未在调用前后完成全量核验。保存的评分、质量指标和复核记录仅供诊断，不代表正式发布或认证结果。": "Sources were not fully verified before and after calls. Saved scores, quality metrics and review records are diagnostic evidence, not a certified release.",
+    "本地诊断结果，不提供名次。": "Local diagnostic results; no ranks are assigned.",
+    "任务判定汇总（非排名）": "Task judgments (not a ranking)",
+    "按任务类别查看诊断结果": "Diagnostic results by task family",
+    "方法按名称排列，不提供名次。任务判定、内容质量和耗时分别展示。": "Methods are listed by name without ranks. Task judgments, content quality and latency are shown separately.",
+    "本地未认证诊断结果，仅展示保存的任务判定与耗时，不用于产品排名。通过不代表返回内容干净；请同时查看全文指标和挑战提示。": "Local uncertified diagnostic results show saved task judgments and latency, not product rankings. Passing does not establish clean content; also inspect full-text metrics and challenge indicators.",
+    "诊断指标说明": "Diagnostic metric definitions",
+    "无命中": "No matches",
+    "评分修正账目": "Scoring revision ledger",
+    "每轮增加、减少与最终通过数均从逐条状态记录计算；排除结果保留原始调用，不计入比较分母。": "Additions, removals and final passes are derived from individual result states. Excluded results retain their original calls and stay outside comparison denominators.",
+    "阶段": "Stage",
+    "修正前通过": "Passes before",
+    "新增通过": "Passes added",
+    "减少通过": "Passes removed",
+    "修正后通过": "Passes after",
+    "下载逐条增减账目": "Download per-result revision ledger",
+    "通过结果的内容诊断": "Content diagnostics for passing results",
+    "目标覆盖与附加内容": "Target coverage and additional content",
+    "目标要求：": "Target requirements:",
+    "附加内容诊断：": "Additional-content diagnostics:",
+    "参考词精确率：": "Reference word precision:",
+    "包含验证码组件文字": "Challenge-widget text is present",
+    "未检测到该组件文字特征": "No matching widget-text signature detected",
+    "排除比较": "Excluded from comparison",
+    "通过只表示满足登记的目标要求，不保证干净正文。提示词命中不证明整页被拦截；词精确率也受参考范围和时间影响。低于 30% 仅用于定位检查对象，不是统一失败线。": "Passing means the registered target requirements were met, not that the body is clean. Hint words do not establish that the whole page was blocked; word precision also depends on reference scope and time. Below 30% identifies inspection candidates, not a universal failure threshold.",
+    "评测环境异常：统一排除比较": "Evaluation environment defect: excluded across all methods",
+    "已有复核记录；覆盖和裁定依据见核验页面。": "Review records are available; see the review page for coverage and adjudication evidence.",
+    "结果为机器判定，未进行独立人工审核。": "Results are machine judgments without independent human review.",
     "全部方法使用同一组已提交案例和判分规则，每例一次调用，统一45秒外部时限，不设逐例等待或提取参数，不重试。结果为机器判定，未进行独立人工审核；本报告仅供本地查看，不代表正式发布。": "All methods use the same committed cases and scoring rules: one call per case, a shared 45-second caller deadline, no per-case wait or extraction parameters, and no retries. Results are machine-scored without independent human review. This report is for local inspection and is not a formal release.",
     "调用链与日志检查": "Call-chain and log audit",
     "题目通过": "Task passes",
@@ -1707,6 +1736,8 @@ TEXT.update({
     "请求网页": "Request page",
     "定位正文区域": "Locate body region",
     "去除导航等杂文": "Remove navigation and noise",
+    "按题目范围保留文字": "Retain text within the task scope",
+    "从文章、文档站、百科或项目主页中取回题目要求的内容。导航和页脚是否需要保留，由每道题登记的范围决定；它们不能替代要求的正文、列表或表格。": "Retrieve the required content from articles, documentation, encyclopedias or project pages. Each task declares whether navigation and footer text must be retained; they cannot substitute for the required body, lists or tables.",
     "输出正文": "Return body text",
     "目标是读出页面内容，而不是保存整份网页源码。正文若已在响应中，普通 HTTP 加解析器就可能完成。": "The goal is readable page content, not a copy of the complete page source. When the body is already present in the response, ordinary HTTP plus a parser may be sufficient.",
     "项目仓库页以 README 为正文：只返回仓库名称和简介不够；把文件目录、导航一起带回来，也可能降低纯净度。": "For a repository page, the README is the body target. A repository name and short description are insufficient, while including the file tree and navigation may reduce precision.",
@@ -2618,6 +2649,7 @@ REGEX = [
      lambda match: f"The evaluation does not cover its plan; {match.group(1)} unplanned calls are present"
                    + (f"; {match.group(2)} calls have no pass/fail judgement" if match.group(2) else "")
                    + ". Rankings on this page must not be used for conclusions or publication."),
+    (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · 本地未认证诊断快照。$"), r"\1 tasks · \2 methods · local uncertified diagnostic snapshot."),
     (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · (\d+)\s*类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · \3 family rankings and one overall coverage ranking."),
     (re.compile(r"^(\d+)\s*类任务概览$"), r"\1 task families"),
     (re.compile(r"^(\d+)\s*类分榜$"), r"Rankings for \1 task families"),
@@ -3502,6 +3534,7 @@ class Localizer(HTMLParser):
         self.source = source
         self.translations = translations
         self.translate_stack = []
+        self.model_text_stack = []
 
     def _allows_translation(self, attrs):
         mode = (dict(attrs).get("translate") or "").lower()
@@ -3544,9 +3577,14 @@ class Localizer(HTMLParser):
         self.parts.append(f"<!{decl}>")
 
     def handle_starttag(self, tag: str, attrs) -> None:
+        localized = dict(attrs).get('data-report-en') if tag == 'span' else None
+        parent_model = any(self.model_text_stack)
+        self.model_text_stack.append(localized is not None or parent_model)
         self.translate_stack.append(self._allows_translation(attrs))
         self.stack.append(tag)
         self.parts.append(self._start_tag(attrs))
+        if localized is not None and not parent_model:
+            self.parts.append(html.escape(localized))
 
     def handle_startendtag(self, tag: str, attrs) -> None:
         self.parts.append(self._start_tag(attrs))
@@ -3555,9 +3593,12 @@ class Localizer(HTMLParser):
         if tag in self.stack:
             self.stack = self.stack[:len(self.stack) - 1 - self.stack[::-1].index(tag)]
             self.translate_stack = self.translate_stack[:len(self.stack)]
+            self.model_text_stack = self.model_text_stack[:len(self.stack)]
         self.parts.append(f"</{tag}>")
 
     def handle_data(self, data: str) -> None:
+        if any(self.model_text_stack):
+            return
         if ((self.translate_stack and not self.translate_stack[-1])
                 or any(tag in self.stack for tag in ("pre", "code", "script", "style"))):
             self.parts.append(data)
@@ -3565,9 +3606,13 @@ class Localizer(HTMLParser):
             self.parts.append(translate_text(data, self.translations))
 
     def handle_entityref(self, name: str) -> None:
+        if any(self.model_text_stack):
+            return
         self.parts.append(f"&{name};")
 
     def handle_charref(self, name: str) -> None:
+        if any(self.model_text_stack):
+            return
         self.parts.append(f"&#{name};")
 
     def handle_comment(self, data: str) -> None:
@@ -4088,6 +4133,8 @@ TEXT.update({
     "请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求。验证码或错误提示文字不单独决定任务是否通过。完整度、纯净度和 F1 另算，不作为通过门槛。": "The request must succeed and satisfy minimum length, every required checkpoint, significant marker, and structure requirement. Verification or error notices do not independently determine acceptance. Completeness, purity, and F1 are separate metrics, not pass thresholds.",
 })
 REGEX.insert(0, (re.compile(r"^(\d+) 个计划任务中的通过数 / 可判定数；每题等权，无法判定结果不参与分母。$"), r"Passed / decidable results among \1 planned tasks; every task has equal weight, and undecidable results are excluded from the denominator."))
+REGEX.insert(0, (re.compile(r"^(\d+)/(\d+) · 复核记录$"), r"\1/\2 · review records"))
+REGEX.insert(0, (re.compile(r"^(\d+) 条通过结果的参考词精确率低于 30%。此比例用于定位检查对象，不是统一失败线；通过不保证干净正文，正文参考的范围和时间也会影响该指标。$"), r"\1 passing results have reference word precision below 30%. This locates inspection candidates, not a universal failure threshold. Passing does not establish clean body text; reference scope and time also affect this metric."))
 
 TEXT.update({
     "版本优先使用调用时记录的版本号；源码实现使用冻结的提交号。云端服务没有公开后端版本时如实标注。二进制哈希用于确认具体执行文件；事后核验的版本会说明依据。": "Versions use call-time records where available; source implementations use frozen commits. Undisclosed cloud backend versions are stated explicitly. Binary hashes identify the executable, and retrospectively verified versions state their evidence.",
@@ -4098,7 +4145,7 @@ def write_english_report(out: Path) -> int:
     history_path = out / "report-changes.json"
     translations = release_translations(json.loads(history_path.read_text())) if history_path.is_file() else {}
     from .report_reading import archived_translations
-    translations.update(archived_translations(out))
+    article_translations = archived_translations(out)
     english_root = out / "en"
     if english_root.exists():
         shutil.rmtree(english_root)
@@ -4120,8 +4167,16 @@ def write_english_report(out: Path) -> int:
         raw=source_path.read_text(encoding="utf-8")
         if str(source)=='guide/index.html' and (out/'archived-reading.json').is_file():
             from .report_reading import render_archived_reading
-            shell=re.sub(r'<main>.*?</main>', '<main><!--ARCHIVED-ARTICLE--></main>',raw,flags=re.S)
-            localized=localize_html(shell,source,translations=translations).replace('<!--ARCHIVED-ARTICLE-->',render_archived_reading(out,'en'))
+            from bs4 import BeautifulSoup, Comment
+            parsed = BeautifulSoup(raw, 'html.parser')
+            article = parsed.select_one('[data-archived-reading="true"]')
+            if article is None:
+                raise ValueError('Historical article route lacks its scoped wrapper')
+            article.replace_with(Comment('ARCHIVED-ARTICLE'))
+            shell = localize_html(str(parsed), source, translations=translations)
+            body = localize_html(render_archived_reading(out,'en'), source,
+                                 translations=article_translations)
+            localized = shell.replace('<!--ARCHIVED-ARTICLE-->', body)
         else:
             localized=localize_html(raw,source,translations=translations)
         if source in {PurePosixPath("guide/index.html"), PurePosixPath("guide/article.html")}:

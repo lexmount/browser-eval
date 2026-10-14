@@ -58,11 +58,14 @@ class EvalCase:
     target_language: str = ""
     target_region: str = ""
     rule_review: dict[str, Any] = field(default_factory=dict)
+    acceptance_policy_version: int = 2
 
 
 def validate_case(case: EvalCase) -> None:
     """Validate required fields, routing and identity before acquisition."""
     safe_identifier(case.id)
+    if type(case.acceptance_policy_version) is not int or case.acceptance_policy_version not in {1, 2}:
+        raise ValueError('Unsupported scoring policy version')
     validate_http_url(case.url)
     if not isinstance(case.name, str) or not case.name.strip():
         raise ValueError(f"Task name must be nonempty text: {case.id}")

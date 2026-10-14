@@ -720,8 +720,28 @@ def validate_acceptance_contract(contract: dict) -> None:
             or contract.get("version") != 1 or not isinstance(contract.get("schema"), str)
             or contract.get("schema") not in SCHEMA_FIELDS):
         raise ValueError("Unsupported stable acceptance contract")
-    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "entry_scope", "name_validation", "identity_query_keys", "field_minimum_records", "record_name_exclusions", "title_exclusion_patterns", "price_patterns", "price_exclusion_patterns", "price_unavailable_patterns", "record_count_policy", "source_record_pair_hashes", "source_record_pairs_sha256", "table_columns", "record_identity_fields", "table_scope", "duplicate_policy", "link_base_url"}:
+    if set(contract) - {"version", "schema", "minimum_records", "maximum_records", "page_patterns", "stable_text_anchors", "hosts", "entry_path", "entry_identity_pattern", "entry_context", "entry_scope", "name_validation", "identity_query_keys", "field_minimum_records", "record_name_exclusions", "title_exclusion_patterns", "price_patterns", "price_exclusion_patterns", "price_unavailable_patterns", "record_count_policy", "source_record_pair_hashes", "source_record_pairs_sha256", "table_columns", "record_identity_fields", "table_scope", "duplicate_policy", "link_base_url", "text_exclusions", "content_scope"}:
         raise ValueError("Unknown stable acceptance contract fields")
+    if contract.get('content_scope', 'legacy') not in {'legacy', 'target_content', 'full_page_stable_coverage'}:
+        raise ValueError('Invalid stable content scope')
+    if contract.get('content_scope') == 'target_content' and any(
+            re.search(r'(^|[ >])(nav|footer)([ >.#:]|$)', a.get('source_location', ''), re.I)
+            for a in contract.get('stable_text_anchors', [])):
+        raise ValueError('Excluded navigation/footer cannot supply target-content anchors')
+    exclusions = contract.get('text_exclusions', {})
+    if (not isinstance(exclusions, dict)
+            or set(exclusions) - {'html_selectors', 'text_patterns'}):
+        raise ValueError('Invalid stable text exclusions')
+    for key, values in exclusions.items():
+        if (not isinstance(values, list)
+                or any(not isinstance(value, str) or not value.strip() for value in values)):
+            raise ValueError('Invalid stable text exclusions')
+        for value in values:
+            if key == 'text_patterns':
+                re.compile(value)
+            else:
+                import soupsieve
+                soupsieve.compile(value)
     if contract['schema'] == 'table_row':
         from .structured_tables import validate_table
         validate_table(contract)
@@ -963,6 +983,22 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                     html_candidate, re.I):
             from .dynamic_lists import visible_html_text
             anchor_visible = visible_html_text(html_candidate)
+    exclusions = dict(contract.get('text_exclusions', {}))
+    if contract.get('content_scope') == 'target_content':
+        exclusions['html_selectors'] = ['nav', 'footer', *exclusions.get('html_selectors', [])]
+    if exclusions:
+        if exclusions.get('html_selectors') and re.search(r'<[a-z][^>]*>', content, re.I):
+            from bs4 import BeautifulSoup
+            from .dynamic_lists import visible_html_text
+            soup = BeautifulSoup(content, 'html.parser')
+            for selector in exclusions['html_selectors']:
+                for element in soup.select(selector):
+                    element.decompose()
+            anchor_visible = visible_html_text(str(soup))
+        else:
+            anchor_visible = anchor_visible if anchor_visible is not None else visible
+        for pattern in exclusions.get('text_patterns', []):
+            anchor_visible = re.sub(pattern, ' ', anchor_visible, flags=re.I | re.M)
     text_surface = anchor_visible if anchor_visible is not None else visible
     page_results = [{"pattern": p, "pass": bool(re.search(p, text_surface, re.I | re.M))} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])

@@ -28,8 +28,6 @@ if __name__ == '__main__':
                         help='rebuild a hash-bound historical local report without rescoring')
     parser.add_argument('--local-audit',action='store_true',
                         help='build an explicitly local, non-publishable audit report from bound evidence')
-    parser.add_argument('--hide-local-status-banners', action='store_true',
-                        help='omit repeated top status banners from local audit pages; retain evidence and disclosures')
     parser.add_argument('--diagnostic-cohorts',action='store_true',
                         help='render an explicitly diagnostic cohort model with the maintained WebFetch template')
     parser.add_argument('--wcxb-source',type=Path)
@@ -39,8 +37,6 @@ if __name__ == '__main__':
     args=parser.parse_args()
     if args.presentation_binding and not args.local_audit:
         parser.error('--presentation-binding requires --local-audit')
-    if args.hide_local_status_banners and not args.local_audit:
-        parser.error('--hide-local-status-banners requires --local-audit')
     from harness.reporting.templates import resolve_template
     resolve_template('webfetch')
     if args.refresh_presentation:
@@ -77,7 +73,7 @@ if __name__ == '__main__':
         print(build_report(evidence,args.output,
                            include_english=args.include_english, language=requested_language(args.output),
                            local_audit=True,
-                           show_local_status_banners=not args.hide_local_status_banners,
+                           show_local_status_banners=True,
                            presentation_binding=args.presentation_binding))
         raise SystemExit(0)
     if sum(bool(value) for value in (args.profile, args.wcxb, args.webmainbench_full)) > 1:

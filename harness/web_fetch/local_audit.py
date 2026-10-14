@@ -417,12 +417,15 @@ def _require_local_scoring_revision(source, contract, records):
         provenance.get("regression_ids", []), receipt.get("task_verdict_changes", []))
     if provenance != expected_provenance:
         raise ValueError("Invalid local scoring correction provenance")
+    rule_revision = receipt.get('rule_revision', False)
+    if type(rule_revision) is not bool or (rule_revision and receipt.get('acceptance_policy_version') != 2):
+        raise ValueError('Local scoring rule revision requires an explicit policy version')
     for record in records:
         scoring = record.get("scoring", {})
         if (record.get("metrics", {}).get("scoring_source_sha256") != SCORING_SOURCE_SHA256
                 or scoring.get("mode") != "offline_rescore"
                 or scoring.get("input_results_sha256") != receipt.get("original_results_sha256")
-                or scoring.get("rule_revision") is not False
+                or scoring.get("rule_revision") is not rule_revision
                 or scoring.get("reference_revision") is not False):
             raise ValueError("Local scoring correction changed rules or lost its predecessor")
 
@@ -491,9 +494,10 @@ def score_reviewed_page_identity(source, case, record, annotation, captures):
     samples = annotation.get("matching_samples", [])
     saved = normalize_for_match(answer.decode("utf-8"))
     observed = normalize_for_match(capture["text"])
-    if (len(set(samples)) < 2 or any(len(value) < 20
-            or normalize_for_match(value) not in saved
-            or normalize_for_match(value) not in observed for value in samples)):
+    normalized = [normalize_for_match(value).strip() for value in samples if isinstance(value, str)]
+    if (len(normalized) != len(samples) or len(set(normalized)) < 2
+            or any(sum(char.isalnum() for char in value) < 20
+                   or value not in saved or value not in observed for value in normalized)):
         raise ValueError("Page review needs matching substantive text in both bodies")
     navigation = (case.get("source_benchmark", {}).get("risk_control", {})
                   .get("navigation_contract", {}))
@@ -579,6 +583,8 @@ def _require_local_review(source, dataset, records):
                 raise ValueError("Local unresolved review lacks explicit deferral")
     if review.get("unresolved") != unresolved:
         raise ValueError("Local review unresolved count differs")
+    from .adjudication_evidence import require_adjudication_evidence
+    require_adjudication_evidence(source, dataset, records, review)
     return review
 
 

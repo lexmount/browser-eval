@@ -114,10 +114,11 @@ class ReportRevisionTests(unittest.TestCase):
    self.assertNotRegex(translate_text(source),r'[\u4e00-\u9fff]',source)
  def test_regional_endpoint_distinct(self):
   self.assertNotEqual(SPECS['lexmount-cn']['entry'],SPECS['lexmount-global']['entry'])
- def test_review_label_names_codex(self):
+ def test_review_label_links_records_without_claiming_fresh_verification(self):
   audit={'attempts':[{'attempt_id':'one','final_verdict':'pass'}]}
   row=review_cell(audit,[{'attempt_id':'one'}])
-  self.assertIn('1/1 · Codex 已核验',row)
+  self.assertIn('1/1 · 复核记录',row)
+  self.assertNotIn('已核验',row)
  def test_headless_access_covers_every_method_and_lists_setup_variables(self):
   self.assertEqual(set(HEADLESS_ACCESS),{'kitesurf','lightpanda','obscura','moli-1.0.6','moli','moli-1.1.3','moli-1.1.7','moli-1.1.11','moli-pr643','chromium'})
   for access in HEADLESS_ACCESS.values():

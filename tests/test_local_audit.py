@@ -232,7 +232,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     output = tmp_path / "report"
     build_report(evidence, output, local_audit=True)
     home = (output / "index.html").read_text()
-    assert "本地实测版" in home
+    assert "本地未认证诊断快照" in home
     assert "查看调用链问题和日志留存范围" not in home
     assert 'href="guide/index.html"' in home
     assert "5案例小范围" not in home
@@ -684,7 +684,8 @@ def test_local_review_banner_distinguishes_reviewed_and_original_measurements():
     assert "未进行独立人工审核" in local_audit_banner(dataset)
     dataset["comparison"]["independent_review"] = {"path": "review.json"}
     text = local_audit_banner(dataset)
-    assert "未裁定项保留现有评分" in text
+    assert "已有复核记录" in text
+    assert "已完成全量独立复核" not in text
     assert "未进行独立人工审核" not in text
 
 
@@ -718,6 +719,11 @@ def test_retrospective_page_review_preserves_call_and_checks_other_requirements(
     assert record == before and record['final_url'] is None
     assert task_passed(True, scored)
     assert scored['page_identity_basis'] == 'retrospective_content_correspondence'
+    for samples in ([' ' * 20, ' ' * 21], ['.' * 20, '!' * 21],
+                    ['Expected complete body.', '**Expected complete body.**']):
+        with pytest.raises(ValueError, match='substantive text'):
+            local_audit.score_reviewed_page_identity(tmp_path, case, record,
+                                                    {**annotation, 'matching_samples': samples}, captures)
     for field, value, message in (
         ('content_sha256', 'wrong', 'binding'),
         ('capture_sha256', 'wrong', 'capture'),
