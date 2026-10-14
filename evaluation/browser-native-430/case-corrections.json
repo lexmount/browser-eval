@@ -3716,6 +3716,161 @@
         "revised_required_facts_sha256": "61a34d8eb978a4c961ba4759170b705bd57118be17559af5350af2c35b4066ba"
       },
       "execution_effect": "rescore_only"
+    },
+    {
+      "case_id": "risk-diverse-059",
+      "expected_definition_sha256": "5a5131232354f0e34134945124cccdf809ba7d5e23ae710683d35063d53bc4b8",
+      "set": {
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "stable-01",
+              "alternatives": [
+                "superlove"
+              ]
+            },
+            {
+              "id": "stable-03",
+              "alternatives": [
+                "for fanfiction, original fiction, multimedia fanworks, and more"
+              ]
+            },
+            {
+              "id": "stable-04",
+              "alternatives": [
+                "superlove is a project by"
+              ]
+            },
+            {
+              "id": "stable-05",
+              "alternatives": [
+                "girl on the moon"
+              ]
+            },
+            {
+              "id": "stable-06",
+              "alternatives": [
+                "superlove is:"
+              ]
+            },
+            {
+              "id": "stable-07",
+              "alternatives": [
+                "Find your favorites"
+              ]
+            },
+            {
+              "id": "stable-08",
+              "alternatives": [
+                "Browse"
+              ]
+            },
+            {
+              "id": "stable-09",
+              "alternatives": [
+                "Works"
+              ]
+            },
+            {
+              "id": "stable-10",
+              "alternatives": [
+                "Bookmarks"
+              ]
+            },
+            {
+              "id": "stable-11",
+              "alternatives": [
+                "Tags"
+              ]
+            },
+            {
+              "id": "stable-12",
+              "alternatives": [
+                "Collections"
+              ]
+            },
+            {
+              "id": "stable-13",
+              "alternatives": [
+                "Search"
+              ]
+            },
+            {
+              "id": "stable-14",
+              "alternatives": [
+                "People"
+              ]
+            },
+            {
+              "id": "stable-15",
+              "alternatives": [
+                "About"
+              ]
+            },
+            {
+              "id": "stable-16",
+              "alternatives": [
+                "About Us"
+              ]
+            },
+            {
+              "id": "stable-17",
+              "alternatives": [
+                "News"
+              ]
+            },
+            {
+              "id": "stable-18",
+              "alternatives": [
+                "FAQ"
+              ]
+            },
+            {
+              "id": "stable-19",
+              "alternatives": [
+                "Wrangling Guidelines"
+              ]
+            },
+            {
+              "id": "stable-20",
+              "alternatives": [
+                "Donate or Volunteer"
+              ]
+            },
+            {
+              "id": "stable-21",
+              "alternatives": [
+                "Site Status"
+              ]
+            },
+            {
+              "id": "stable-22",
+              "alternatives": [
+                "Links"
+              ]
+            }
+          ]
+        }
+      },
+      "execution_effect": "rescore_only",
+      "evidence": {
+        "source": "https://superlove.sayitditto.net/",
+        "observed_at": "2026-10-15",
+        "observed_text": "Two different header taglines appeared in three independent initial HTTP responses. The rotating slogan is not stable body content.",
+        "root_cause": "server_selected_random_header_tagline_frozen_as_stable_text",
+        "regression_ids": [
+          "random-header-tagline-does-not-replace-stable-contract",
+          "random-header-tagline-still-requires-body-purpose"
+        ],
+        "scoring_source_sha256": "db507a6f0a90c8346aaa0fc7613505c8050c20427547cfccd94754548f1c8e9f",
+        "source_receipt": {
+          "data_home_path": "evidence/research/webfetch-430-refresh-20261014/reference-superlove-random-tagline-v1/source-decision.json",
+          "sha256": "35e35e85420e3a0c20c760a79f3da77981ccbd4bf5a5c028eedf80ed8f34948c"
+        }
+      }
     }
   ]
 }
