@@ -410,6 +410,13 @@ def test_registered_430_assembly_keeps_only_frozen_first_load_alternatives():
     assert alternatives("china-homepage-012-feishu-cn", "stable-anchor-25") == [
         "查看案例"
     ]
+    for case_id, excluded in (
+        ("china-homepage-089-yuque-com", "Download/下载"),
+        ("china-homepage-012-feishu-cn", "查看案例/了解更多客户案例"),
+    ):
+        assert excluded not in cases[case_id]["task_prompt"]
+        assert excluded not in cases[case_id]["reference_answer"]
+        assert cases[case_id]["task_prompt"] == cases[case_id]["reference_answer"]
 
     # English table labels were independently observed on the untouched first load;
     # only navigation labels introduced by clicking Language -> English are excluded.
