@@ -105,6 +105,38 @@ def _moli_native_error_type(stderr: str | bytes) -> str:
     return "tool_error"
 
 
+def _native_fetch_diagnostics(stderr: bytes, requested_url: str) -> tuple[int | None, bool]:
+    """Read only same-call native events; ambiguous document ownership stays unknown."""
+    prefix = rb"(?:^|\n)(?:\d{4}-\d{2}-\d{2}T[^\s]+\s+)?"
+    rows = list(re.finditer(
+        prefix + rb"DEBUG fetch request complete method=(?:GET|POST) "
+        rb"url=(?P<url>\S+) final_url=\S+ status=(?P<status>\d{3})\b[^\r\n]*",
+        stderr,
+    ))
+    requested = requested_url.encode("utf-8")
+    matches = [row for row in rows if row.group("url") == requested]
+    status = None
+    if len(matches) == 1:
+        row = matches[0]
+        value = int(row.group("status"))
+        # Legacy logs cannot bind subsequent HTTP redirect hops to a Document.
+        # A committed script navigation also invalidates the initial response.
+        later = stderr[row.end():]
+        if not 300 <= value < 400 and not any(marker in later for marker in (
+            b"committed main navigation before replacement realm bootstrap",
+            b"detached committed main WindowProxy for replacement context",
+        )):
+            status = value
+    waits = re.finditer(
+        prefix + rb"WARN fetch readiness wait timed out; returning best-effort page "
+        rb"page_id=\d+ url=(?P<url>\S+) final_url=\S+ "
+        rb"wait_until=(?:DomStable|NetworkIdle) timeout_ms=[1-9]\d* "
+        rb"remaining_ms=\d+ error=[^\r\n]+",
+        stderr,
+    )
+    return status, any(row.group("url") == requested for row in waits)
+
+
 def _diagnostic_main_document_url(stderr: str | bytes, requested_url: str) -> str | None:
     """Read Moli's effective main-document URL from the same call's debug log."""
     pattern = re.compile(
@@ -728,27 +760,34 @@ class MoliWebFetchProvider(Provider):
                 error_message="Moli markdown output is not UTF-8",
                 metadata=metadata,
             )
-        if process.returncode == 0 and not content.strip():
+        native_status, readiness_timed_out = _native_fetch_diagnostics(diagnostic_raw, case.url)
+        if native_status is not None:
+            metadata["http_status_source"] = "same_call_native_document_event"
+        if readiness_timed_out:
+            metadata["native_readiness_timed_out"] = True
+        if process.returncode == 0 and not content.strip() and native_status not in range(400, 600):
             return ProviderResult(
                 False,
                 content,
-                error_type="empty_response",
-                error_message="Moli returned no Markdown content",
+                error_type="timeout" if readiness_timed_out else "empty_response",
+                error_message=("Moli readiness deadline expired without Markdown content"
+                               if readiness_timed_out else "Moli returned no Markdown content"),
                 metadata=metadata,
             )
-        parsed_error_status = _markdown_http_error_status(content)
+        parsed_error_status = ((native_status if native_status >= 400 else None)
+                               if native_status is not None else _markdown_http_error_status(content))
         ok = process.returncode == 0 and parsed_error_status is None
         native_error_type = _moli_native_error_type(diagnostic_raw)
         final_url = _diagnostic_main_document_url(diagnostic_raw, case.url)
         if final_url:
             metadata["final_url_source"] = "same_call_debug_log"
-        # The debug trace is part of this same provider call, so page identity
-        # does not require a second request. Moli's compact whole-response error
-        # page remains the only status envelope recognized in Markdown output.
+        # Preserve native Markdown even on HTTP errors or best-effort readiness.
+        # Nonempty best-effort output remains a valid answer for the shared scorer;
+        # its content failures do not acquire a new retry policy.
         return ProviderResult(
             ok,
             content,
-            status_code=parsed_error_status,
+            status_code=native_status if native_status is not None else parsed_error_status,
             final_url=final_url,
             error_type=(
                 None

@@ -561,6 +561,83 @@ class MoliTests(unittest.TestCase):
         self.assertIn("Forbidden", result.content)
         self.assertIsNone(transient_retry_reason(result))
 
+    def test_native_document_http_status_preserves_markdown_and_retry_scope(self):
+        from harness.web_fetch.runner import transient_retry_reason
+
+        request = self.case.url
+        for name, log, expected_status, retry in (
+            ("main-service-failure", f"DEBUG fetch request complete method=GET url={request} "
+             f"final_url={request} status=503", 503, "transient_http_503"),
+            ("main-ok-subresource-service-failure", f"DEBUG fetch request complete method=GET url={request} "
+             f"final_url={request} status=200\nDEBUG fetch request complete method=GET "
+             "url=https://cdn.example.com/app.js final_url=https://cdn.example.com/app.js "
+             "status=503", 200, None),
+            ("unowned-redirect-service-failure", f"DEBUG fetch request complete method=GET url={request} "
+             f"final_url={request} status=302\nDEBUG fetch request complete method=GET "
+             "url=https://cdn.example.com/app.js final_url=https://cdn.example.com/app.js "
+             "status=503", None, None),
+            ("subresource-service-failure", "DEBUG fetch request complete method=GET "
+             "url=https://cdn.example.com/app.js final_url=https://cdn.example.com/app.js "
+             "status=503", None, None),
+            ("stale-document-response", f"DEBUG fetch request complete method=GET url={request} "
+             f"final_url={request} status=503\n"
+             "DEBUG detached committed main WindowProxy for replacement context page_id=1", None, None),
+            ("ambiguous-same-url", (f"DEBUG fetch request complete method=GET url={request} "
+             f"final_url={request} status=503\n") * 2, None, None),
+            ("console-status-prose", "INFO console.log=DEBUG fetch request complete method=GET "
+             f"url={request} final_url={request} status=503", None, None),
+        ):
+            with self.subTest(name=name):
+                body = "# Service documentation\nHTTP 503 and timeout are described here."
+                provider = self.provider(f"print({body!r})\nprint({log!r}, file=sys.stderr)\n")
+                result = provider.fetch(self.case, 10)
+                self.assertEqual(result.content, body + "\n")
+                self.assertEqual(result.status_code, expected_status)
+                self.assertEqual(result.ok, expected_status is None or expected_status < 400)
+                self.assertEqual(transient_retry_reason(result), retry)
+
+    def test_empty_native_service_failure_preserves_http_retry(self):
+        from harness.web_fetch.runner import transient_retry_reason
+        log = (f"DEBUG fetch request complete method=GET url={self.case.url} "
+               f"final_url={self.case.url} status=503")
+        result = self.provider(f"print({log!r}, file=sys.stderr)\n").fetch(self.case, 10)
+        self.assertEqual(result.content, "")
+        self.assertEqual(result.status_code, 503)
+        self.assertEqual(result.error_type, "api_error")
+        self.assertEqual(transient_retry_reason(result), "transient_http_503")
+
+    def test_native_best_effort_deadline_retries_only_empty_delivery(self):
+        from harness.web_fetch.runner import transient_retry_reason
+
+        warning = ("2026-10-15T00:00:00.000000Z  WARN fetch readiness wait timed out; "
+                   f"returning best-effort page page_id=1 url={self.case.url} "
+                   f"final_url={self.case.url} wait_until=DomStable timeout_ms=40500 "
+                   "remaining_ms=30000 error=deadline has elapsed")
+        for name, body, log, expected_error, expected_ok in (
+            ("empty-native-deadline", "", warning, "timeout", False),
+            ("usable-body", "# Expected article\nComplete content.", warning, None, True),
+            ("empty-without-deadline", "", "DEBUG ordinary fetch completed", "empty_response", False),
+            ("console-deadline-prose", "", "INFO console.log=" + warning, "empty_response", False),
+            ("different-document-deadline", "", warning.replace(self.case.url, "https://other.example/"),
+             "empty_response", False),
+        ):
+            with self.subTest(name=name):
+                provider = self.provider(f"sys.stdout.write({body!r})\nprint({log!r}, file=sys.stderr)\n")
+                result = provider.fetch(self.case, 10)
+                self.assertEqual(result.content, body)
+                self.assertEqual(result.error_type, expected_error)
+                self.assertEqual(result.ok, expected_ok)
+                self.assertEqual(transient_retry_reason(result),
+                                 "transient_timeout" if expected_error == "timeout" else None)
+                if body:
+                    from harness.web_fetch.scoring import score_attempt
+                    from harness.web_fetch.metrics import task_passed
+                    case = self.case_with(min_content_chars=1000)
+                    metrics = score_attempt(vars(case), body.encode(), ok=result.ok,
+                                            metadata=result.metadata)
+                    self.assertFalse(task_passed(result.ok, metrics, case.task_kind))
+                    self.assertIsNone(transient_retry_reason(result))
+
     def test_only_explicit_transient_native_failures_are_retryable(self):
         from harness.web_fetch.runner import transient_retry_reason
 
