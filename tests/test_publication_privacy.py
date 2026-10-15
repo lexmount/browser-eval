@@ -47,6 +47,28 @@ class PublicationPrivacyTests(unittest.TestCase):
         self.assertEqual(receipt['omitted_fields'], {'stderr': 1, 'browser_stderr': 1})
         self.assertEqual(project_redundant_result_streams('dataset.json', raw), (raw, None))
 
+    def test_truncated_quoted_sensitive_values_are_redacted_at_text_boundaries(self):
+        import html
+        fragments=["{'cookie':'PRIVATE_CANARY", '{"authorization":"Bearer PRIVATE_CANARY',
+                   '"api_key":"PRIVATE_CANARY', "'refresh_token':'PRIVATE_CANARY"]
+        for fragment in fragments:
+            for encoding in (lambda value:value,html.escape):
+                with self.subTest(fragment=fragments.index(fragment),encoded=encoding is html.escape):
+                    raw=('<p>Recorded failure: '+encoding(fragment)+'</p><p>Independent explanation.</p><a href="../result.html">Evidence</a>').encode()
+                    self.assertEqual(publication_risk(raw),'sensitive field value')
+                    projected,receipt=project_file('attempts/example.html',raw)
+                    self.assertNotIn(b'PRIVATE_CANARY',projected)
+                    self.assertIn(b'Independent explanation.',projected)
+                    self.assertIn(b'href="../result.html"',projected)
+                    self.assertIsNone(publication_risk(projected))
+                    self.assertEqual(project_file('attempts/example.html',projected),(projected,None))
+                    self.assertTrue(receipt)
+        # Ordinary partial JSON and already-redacted values remain intact.
+        for fragment in ("{'status':'unavailable", "{'cookie':'[REDACTED]", "{'authorization':'<TOKEN>"):
+            raw=('<p>'+html.escape(fragment)+'</p>').encode()
+            self.assertIsNone(publication_risk(raw))
+            self.assertEqual(project_file('attempts/example.html',raw),(raw,None))
+
     def test_public_cors_boolean_and_abnf_are_not_credentials(self):
         for policy in (b'Access-Control-Allow-Credentials: true',
                        b'Access-Control-Allow-Credentials = %s"true"',
