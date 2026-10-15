@@ -1,8 +1,8 @@
 {
   "root": "research/brightdata",
   "files": {
-    "video/editorial.json": "1d0f426f067ec77b11b2f9b0feb59f7f0bc3b9114b03a3180e5e6d34f58d8fe9",
-    "video/remotion/src/timeline.json": "3080ea28adb081b919eb97f080df1277a4ea1b52632c36706b75a2b21349e38c",
+    "video/editorial.json": "97a24e9554ab7172ef7875980f3b7a433ab47c6afd6865d606c5eb1882bc6470",
+    "video/remotion/src/timeline.json": "3c7d54679c7cf459d413bbdaea31c7ae3fdcc4665b3defa7d532c3b69cb70e64",
     "video/chapter-sources.json": "57ad7a8c58aa4990d7f2a310165663d4203c80ed6342bcc0824bfc77c13a02e9",
     "video/content-contract.json": "0ab8e369530c958c4abb3634614d4b0b06769847cd3f19b67590b8f981f4d9fb",
     "assets/infographics/architecture.png": "f5b14e5912b53f5adddad18ce0c13863c71687867acd1a9053c07234ef3fd981",

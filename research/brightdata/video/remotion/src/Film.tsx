@@ -428,6 +428,7 @@ const stackRows = [
   ["network", "网络供给", "住宅 / ISP / 数据中心 · 地区与运营商"],
 ];
 const detail: Record<string, [string, string, string]> = {
+  whole: ["两条产品路线", "提取数据 · 操作网页", "共同依赖网络与访问能力"],
   network: ["真实网络出口", "IP 类型与地区定位", "解决“从哪里访问”"],
   access: ["取得目标页面", "封锁、验证码、指纹、重试", "解决“能否持续访问”"],
   extraction: ["页面变成字段", "站点适配与字段定义", "解决“数据能否直接使用”"],
@@ -436,8 +437,11 @@ const detail: Record<string, [string, string, string]> = {
   agent: ["浏览器执行分支", "点击、输入、翻页、表单", "与字段提取并行"],
 };
 function Stack({ focus }: { focus: string }) {
-  let d = detail[focus] || detail.access;
+  const d = detail[focus] || detail.whole;
   const selected = stackRows.find(([id]) => id === focus);
+  const detailTitle = selected
+    ? `${selected[1]} · 作用`
+    : focus === "agent" ? "浏览器执行 · 作用" : "能力总览";
   return (
     <>
       {stackRows.map(([id, title, sub], i) => (
@@ -476,7 +480,7 @@ function Stack({ focus }: { focus: string }) {
         active={focus === "agent"}
       />
       <Arrow x1={1185} y1={590} x2={1370} y2={640} active={focus === "agent"} />
-      <Label x={1320} y={180} w={500} text={selected ? `${selected[1]} · 作用` : "浏览器执行 · 作用"} size={26} color={C.muted} />
+      <Label x={1320} y={180} w={500} text={detailTitle} size={26} color={C.muted} />
       <Label
         x={1320}
         y={235}
@@ -1050,7 +1054,7 @@ function AI({ focus }: { focus: string }) {
 function Lexmount({ focus }: { focus: string }) {
   const execution = ["execution", "loop", "whole"].includes(focus),
     extraction = ["extraction", "loop", "whole"].includes(focus),
-    quality = ["quality", "loop"].includes(focus);
+    quality = ["quality", "loop", "whole"].includes(focus);
   return (
     <>
       <Label

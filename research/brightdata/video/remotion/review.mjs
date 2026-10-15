@@ -112,6 +112,29 @@ for (const [i, e] of timeline.events.entries()) {
       path: `../review/current/focus/${String(i).padStart(3, "0")}-${e.scene}-${e.target}.png`,
     });
 }
+// Inspect the default overview too: event-only sampling misses stale detail
+// labels that flash before the first spoken focus arrives.
+const openings = [];
+for (const s of timeline.scenes) {
+  const first = timeline.events.find((e) => e.scene === s.id);
+  const frame = Math.max(s.from, Math.ceil(first.start * timeline.fps) - 1);
+  await page.evaluate(
+    (f) => window.remotion_setFrame(f, "BrightData", 1),
+    frame,
+  );
+  await page.waitForFunction(() => window.remotion_renderReady === true);
+  await page.screenshot({ path: `../review/current/focus/opening-${s.id}.png` });
+  const state = await page.evaluate(() => ({
+    scene: document.querySelector("[data-scene]")?.getAttribute("data-scene"),
+    text: document.querySelector("[data-scene]")?.textContent,
+    active: [...document.querySelectorAll('[data-active="true"]')].map(
+      (e) => e.getAttribute("data-target"),
+    ),
+  }));
+  if (state.scene !== s.id) throw Error("Opening belongs to another scene: " + s.id);
+  openings.push({ time: frame / timeline.fps, ...state });
+}
+fs.writeFileSync("../review/current/opening-review.json", JSON.stringify(openings, null, 2));
 const pauses = [];
 for (const s of timeline.scenes) {
   const samples = [];

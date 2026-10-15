@@ -26,6 +26,10 @@ Pacing depends on concurrent demands: unfamiliar terms, new spatial structure, r
 
 Allow an orientation interval on a substantially new layout, pauses at meaningful boundaries, and a stable hold after a comparison or conclusion. Derive durations from the actual audio and viewing task. Slowing the entire soundtrack or adding arbitrary silence is insufficient if the visual target still changes mid-thought. Preserve the overall model between details and return to it with the relationships now explained.
 
+Orientation also needs a spoken purpose. At a change of subject, connect the preceding idea to the question the new view answers before naming its first item. A visible heading cannot carry this job alone. Read adjacent scenes without their headings: the listener should understand why the topic changed and what to follow next. Keep a natural existing connection; do not mechanically announce every slide or read every title. Let a brief opening sentence accompany the whole view before focusing on details. Verify that the renderer's whole-view state is genuinely neutral and does not retain an unrelated detail label.
+
+Count a scene's closing hold, the following lead and the natural recording gap together. Individually reasonable pauses can combine into an unexplained break. Preserve time to absorb the preceding idea, then use the spoken connection to orient the next view; do not fill all silence or remove comprehension holds. Review transitions as paired outgoing and incoming scenes, including their actual audio gaps, rather than judging each page in isolation.
+
 ## Review observable behavior
 
 Technical checks can reject missing assets, invalid timestamps, nonexistent target IDs, frame overflow, truncated speech or cuts inside utterances. They cannot certify clarity. Test these general failure modes with deliberately broken fixtures, not exact wording snapshots.
