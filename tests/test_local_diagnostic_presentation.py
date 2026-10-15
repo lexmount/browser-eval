@@ -186,3 +186,31 @@ def test_sample_ranking_rejects_invisible_scope_disclosure(tmp_path, wrapper):
     (tmp_path/'index.html').write_text('<meta name="browser-eval-report" content="1">'+wrapper.format(attrs=attrs))
     with pytest.raises(ValueError, match='disclosure missing'):
         check_local_diagnostic_presentation(tmp_path, ranked=True)
+
+
+def test_review_display_distinguishes_fresh_reviews_from_retained_history(tmp_path):
+    import hashlib
+    import json
+    from harness.web_fetch.report import current_local_review_findings, review_summary
+    audit = {'reviewed_attempts': 100, 'expected_attempts': 100,
+             'fresh_reviewed_attempts': 10, 'retained_reviewed_attempts': 90,
+             'retained_reviews': {'path': 'retention.json'},
+             'supplemental_reviews': [{'path': 'supplement.json'}],
+             'attempts': [{'review_origin': 'fresh', 'agent_verdict': 'fail', 'final_verdict': 'pass'}]}
+    (tmp_path/'result-review.json').write_text(json.dumps(audit))
+    summary = BeautifulSoup(review_summary(tmp_path, highlight=False), 'html.parser')
+    assert '本次重新检查 10 条' in summary.get_text()
+    assert '90 条沿用' in summary.get_text()
+    assert not summary.select('.callout')
+    receipt = tmp_path/'replacement.json'
+    receipt.write_text(json.dumps({'provider_calls_added': 1, 'inherited_results': 99}))
+    dataset = {'comparison': {'task_replacement': {'path': receipt.name,
+        'sha256': hashlib.sha256(receipt.read_bytes()).hexdigest()}}}
+    c = case('body', kind='body', track='web')
+    dataset['cases'] = [c]
+    findings = current_local_review_findings(tmp_path, dataset, [record(c)], audit)
+    text = ' '.join(x['text'] for x in findings)
+    assert '重新检查 10 条' in text and '90 条沿用原始复核' in text
+    assert '初判与程序有 1 条分歧' in text
+    assert '复核前已知机器汇总' not in text
+    assert '新增调用中 10 条' not in text

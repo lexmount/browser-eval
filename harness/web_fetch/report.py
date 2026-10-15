@@ -1083,6 +1083,10 @@ def review_summary(out, prefix='', *, highlight=True):
  path=out/'result-review.json'
  if not path.is_file():return ''
  audit=json.loads(path.read_text())
+ if audit.get('retained_reviews'):
+  return ('<p'+(' class="callout"' if highlight else '')+'>'+model_text(
+      f'当前复核覆盖 {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}：本次重新检查 {audit.get("fresh_reviewed_attempts",0)} 条，{audit.get("retained_reviewed_attempts",0)} 条沿用检查依据未变的旧复核。',
+      f'Current review coverage: {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}: {audit.get("fresh_reviewed_attempts",0)} freshly reviewed; {audit.get("retained_reviewed_attempts",0)} prior reviews retained after verifying unchanged decision inputs.')+' '+link(prefix+'review/index.html','查看核验轮次 →')+'</p>')
  if audit.get('adjudication_revision'):
   count=len(audit['adjudication_revision']['adjudicated_attempt_ids'])
   return ('<p'+(' class="callout"' if highlight else '')+'>'+model_text(
@@ -1668,7 +1672,7 @@ def result_ledger_section(out, records, prefix=''):
  path=out/'local-evidence/result-ledger.json'
  if not path.is_file():return ''
  from .result_ledger import validate_ledger
- ledger=validate_ledger(json.loads(path.read_text()),records)
+ ledger=validate_ledger(json.loads(path.read_text()),records,source=out)
  rows=[('',cell(esc(row['id']))+cell(str(row['before_passes']))+cell(str(row['added_passes']))+
            cell(str(row['removed_passes']))+cell(str(row['totals']['pass']))+
            cell(str(row['totals']['excluded']))) for row in ledger['rounds']]
@@ -2296,8 +2300,17 @@ def current_local_review_findings(out,dataset,records,audit):
   ("目标内容要求、正文质量和诊断文字分别展示；具体评分实现哈希见各结果详情，诊断词不单独决定任务是否通过。",
    "Target requirements, body quality and diagnostic text are reported separately. Each result binds its scorer hash; diagnostic words alone do not determine acceptance."),
  ]
+ if audit.get('retained_reviews'):
+  rows[2] = (
+   f"当前复核覆盖 {audit['reviewed_attempts']}/{len(records)}：本次按当前要求重新检查 {audit['fresh_reviewed_attempts']} 条；{audit['retained_reviewed_attempts']} 条沿用原始复核。沿用前逐条确认正向要求、保存的返回和结论未变，且旧判断不依赖已删除的限制。沿用不算作新一轮盲审。",
+   f"Current review covers {audit['reviewed_attempts']}/{len(records)} results: {audit['fresh_reviewed_attempts']} newly checked under current requirements; {audit['retained_reviewed_attempts']} original reviews retained. Retention verifies unchanged positive requirements, saved answers and verdicts, with no dependency on removed restrictions. Retention is not a fresh blind review.")
  supplements = audit.get('supplemental_reviews', [])
- if supplements:
+ if supplements and audit.get('retained_reviews'):
+  fresh = [row for row in audit.get('attempts', []) if row.get('review_origin') == 'fresh']
+  conflicts = sum(row.get('agent_verdict') != row.get('final_verdict') for row in fresh)
+  rows.append((f'本次新复核先隐藏程序结论；初判与程序有 {conflicts} 条分歧，已对照原始返回和题目要求裁定。原始独立意见保留，未新增网页调用。',
+               f'Fresh review withheld machine verdicts. {conflicts} initial disagreements were adjudicated against the original answers and task requirements. Initial independent opinions are preserved; no new webpage calls were added.'))
+ elif supplements:
   supplement_rows = [json.loads(read_bound(out, item).read_text()) for item in supplements]
   reviewed = sum(item['reviewed_attempts'] for item in supplement_rows)
   rows.append((f'新增调用中 {reviewed} 条已逐条补充复核，判定与程序一致；复核前已知机器汇总，不称为盲审。内容通过不保证代码可直接运行，具体质量问题见复核记录。',

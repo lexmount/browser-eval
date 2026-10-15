@@ -62,8 +62,33 @@ def require_local_task_replacement(source, binding, dataset, records):
             for identifier, row in rows.items()}
 
 
+def replacement_predecessor(source, binding):
+    """Follow hash-linked score receipts back to the original replacement view."""
+    seen = set()
+    while True:
+        identity = (binding['path'], binding['sha256'])
+        if identity in seen:
+            raise ValueError('Local score revision lineage repeats a receipt')
+        seen.add(identity)
+        receipt = json.loads(read_bound(source, binding).read_text())
+        if (receipt.get('kind') != 'local_offline_score_revision'
+                or receipt.get('provider_calls_added') != 0):
+            raise ValueError('Invalid predecessor score revision')
+        for key in ('input_dataset', 'input_results'):
+            read_bound(source, receipt[key])
+        parent = receipt.get('predecessor_revision')
+        if parent is None:
+            return receipt['input_dataset'], receipt['input_results']
+        prior = json.loads(read_bound(source, parent).read_text())
+        if (prior.get('output_dataset_sha256') != receipt['input_dataset']['sha256']
+                or prior.get('output_results_sha256') != receipt['input_results']['sha256']):
+            raise ValueError('Local score revision predecessor does not match its inputs')
+        binding = parent
+
+
 def require_local_revision(source, binding, dataset, records):
     receipt = json.loads(read_bound(source, binding).read_text())
+    replacement_predecessor(source, binding)
     if receipt.get('kind') != 'local_offline_score_revision' or receipt.get('provider_calls_added') != 0:
         raise ValueError('Local revision must preserve original provider calls')
     before_dataset = json.loads(read_bound(source, receipt['input_dataset']).read_text())
@@ -169,6 +194,9 @@ def revise_local_snapshot(source, configuration):
     dataset['comparison']['excluded_cases'] = config.get('excluded_cases', [])
     if config.get('rule_revision'):
         dataset['comparison'].pop('scoring_policy_version', None)
+        prior_review = dataset['comparison'].pop('independent_review', None)
+        if prior_review:
+            dataset['comparison']['historical_independent_review'] = prior_review
     additional = set(config.get('rescore_attempt_ids', []))
     if not additional <= {row['attempt_id'] for row in records}:
         raise ValueError('Local revision has an invalid additional rescoring scope')
@@ -230,6 +258,7 @@ def revise_local_snapshot(source, configuration):
             if case != next(c for c in original_dataset['cases'] if c['id'] == case['id'])),
         'rescored_attempt_ids': selected, 'rule_revision': bool(config.get('rule_revision')),
         'input_verdicts': config.get('input_verdicts'),
+        **({'predecessor_revision': config['predecessor_revision']} if config.get('predecessor_revision') else {}),
         'superseded_controls': config.get('superseded_controls', []),
         'page_identity_review': identity_binding,
         'task_verdict_changes': changes, 'regression_ids': regressions, 'authority': config['authority']}

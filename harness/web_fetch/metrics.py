@@ -492,6 +492,28 @@ def declared_truncation_hits(value: str) -> list[str]:
             if (match := pattern.search(value))]
 
 
+def code_matching_text(content: str) -> str:
+    """Keep literal code punctuation while ignoring layout and line numbers."""
+    if re.search(r'<(?:!doctype|html|body|pre)\b', content, re.I):
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(content, 'html.parser')
+        blocks = [node.get_text('', strip=False) for node in soup.find_all('pre')]
+        text = '\n'.join(blocks) if blocks else ''
+    else:
+        # Quote markers belong to Markdown layout, never to the code itself.
+        text = re.sub(r'(?m)^[ \t]*(?:>[ \t]?)+', '', content)
+        fenced = re.findall(r'(?ms)^[ \t]*```[^\n]*\n(.*?)^[ \t]*```', text)
+        text = '\n'.join(fenced) if fenced else text
+        text = html.unescape(text)
+        from .body_coverage import native_markup_body_text
+        # Inline HTML within native Markdown may carry original emphasis.
+        # Do not strip literal Markdown emphasis from inside fenced code.
+        if not fenced and re.search(r'<(?:b|a|span)\b', text, re.I):
+            text = native_markup_body_text(text, text)
+    text = re.sub(r'(?m)^[ \t]*[0-9]{2,4}[ \t]+', '', text)
+    return re.sub(r'\s+', '', text)
+
+
 def evaluate_content(
     content: str,
     expected: list[str],
@@ -578,8 +600,16 @@ def evaluate_content(
                     and not encoding_corruption
                     and not script_shell)
     pattern_results = []
+    code_text = None
     for rule in required_patterns or []:
-        count = len(set(re.findall(rule['pattern'], visible_content, re.I)))
+        scope = rule.get('match_scope', 'visible_text')
+        if scope not in {'visible_text', 'code_compact'}:
+            raise ValueError('Unknown required-pattern matching scope')
+        if scope == 'code_compact' and code_text is None:
+            code_text = code_matching_text(content)
+        target = code_text if scope == 'code_compact' else visible_content
+        flags = 0 if scope == 'code_compact' else re.I
+        count = len(set(re.findall(rule['pattern'], target, flags)))
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
     from .body_coverage import evaluate_body_requirements, native_markup_body_text

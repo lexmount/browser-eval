@@ -104,3 +104,28 @@ def test_same_input_keeps_distinct_revision_receipts(tmp_path):
             preserved = (path.parent/'receipt.json', (path.parent/'receipt.json').read_bytes())
     assert len(list((tmp_path/'local-evidence/offline-revisions').glob('*/receipt.json'))) == 2
     assert preserved[0].read_bytes() == preserved[1]
+
+
+@pytest.mark.parametrize('broken', [False, True])
+def test_score_revision_chain_reaches_the_original_replacement_without_rewriting_it(tmp_path, broken):
+    from harness.web_fetch.local_revision import replacement_predecessor
+    def save(name, document):
+        path = tmp_path/name
+        path.write_text(json.dumps(document))
+        return {'path': name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    first_dataset = save('first-dataset.json', {'cases': []})
+    first_results = save('first-results.json', [])
+    middle_dataset = save('middle-dataset.json', {'cases': [], 'stage': 'middle'})
+    middle_results = save('middle-results.json', ['middle'])
+    parent = save('parent.json', {'kind': 'local_offline_score_revision', 'provider_calls_added': 0,
+        'input_dataset': first_dataset, 'input_results': first_results,
+        'output_dataset_sha256': middle_dataset['sha256'],
+        'output_results_sha256': 'x'*64 if broken else middle_results['sha256']})
+    latest = save('latest.json', {'kind': 'local_offline_score_revision', 'provider_calls_added': 0,
+        'input_dataset': middle_dataset, 'input_results': middle_results,
+        'predecessor_revision': parent})
+    if broken:
+        with pytest.raises(ValueError, match='predecessor does not match'):
+            replacement_predecessor(tmp_path, latest)
+    else:
+        assert replacement_predecessor(tmp_path, latest) == (first_dataset, first_results)

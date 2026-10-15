@@ -1307,9 +1307,10 @@ def validate_local_presentation(output: Path, binding_path: Path):
         scoring_sources = require_local_revision(output, binding['offline_revision'], dataset, records)
         if binding.get('task_replacement'):
             from .local_revision import require_local_task_replacement
-            revision = json.loads(read_bound(output, binding['offline_revision']).read_text())
-            previous_dataset = json.loads(read_bound(output, revision['input_dataset']).read_text())
-            previous_records = load_jsonl(read_bound(output, revision['input_results']))
+            from .local_revision import replacement_predecessor
+            input_dataset, input_results = replacement_predecessor(output, binding['offline_revision'])
+            previous_dataset = json.loads(read_bound(output, input_dataset).read_text())
+            previous_records = load_jsonl(read_bound(output, input_results))
             require_local_task_replacement(output, binding['task_replacement'], previous_dataset, previous_records)
     elif binding.get('task_replacement'):
         from .local_revision import require_local_task_replacement

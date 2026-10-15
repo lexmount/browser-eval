@@ -31410,6 +31410,102 @@
       "expected_metrics": {
         "content_pass": true
       }
+    },
+    {
+      "id": "literal-code-whitespace-preserved",
+      "category": "acceptance-contract",
+      "root_cause": "literal_code_checked_as_lossy_prose",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/code",
+        "required_patterns": [
+          {
+            "id": "include",
+            "match_scope": "code_compact",
+            "pattern": "\\#include<stdio\\.h>"
+          },
+          {
+            "id": "open",
+            "match_scope": "code_compact",
+            "pattern": "rc=sqlite3_open\\(argv\\[1\\],\\&db\\);"
+          }
+        ]
+      },
+      "artifact": "```c\n01 #include <stdio.h>\n02 rc = sqlite3_open(argv[1], &db);\n```",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-code-api-names-incomplete",
+      "category": "acceptance-contract",
+      "root_cause": "literal_code_checked_as_lossy_prose",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/code",
+        "required_patterns": [
+          {
+            "id": "include",
+            "match_scope": "code_compact",
+            "pattern": "\\#include<stdio\\.h>"
+          },
+          {
+            "id": "open",
+            "match_scope": "code_compact",
+            "pattern": "rc=sqlite3_open\\(argv\\[1\\],\\&db\\);"
+          }
+        ]
+      },
+      "artifact": "sqlite3_open sqlite3_exec sqlite3_close",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "literal-code-html-inline-preserved",
+      "category": "acceptance-contract",
+      "root_cause": "literal_code_checked_as_lossy_prose",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/code",
+        "required_patterns": [
+          {
+            "id": "include",
+            "match_scope": "code_compact",
+            "pattern": "\\#include<stdio\\.h>"
+          },
+          {
+            "id": "open",
+            "match_scope": "code_compact",
+            "pattern": "rc=sqlite3_open\\(argv\\[1\\],\\&db\\);"
+          }
+        ]
+      },
+      "artifact": "<html><pre>#include &lt;stdio.h&gt;\nrc = <b>sqlite3_open</b>(argv&#91;1], &amp;db);</pre></html>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-code-fenced-emphasis-corruption",
+      "category": "acceptance-contract",
+      "root_cause": "literal_code_checked_as_lossy_prose",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/code",
+        "required_patterns": [
+          {
+            "id": "include",
+            "match_scope": "code_compact",
+            "pattern": "\\#include<stdio\\.h>"
+          },
+          {
+            "id": "open",
+            "match_scope": "code_compact",
+            "pattern": "rc=sqlite3_open\\(argv\\[1\\],\\&db\\);"
+          }
+        ]
+      },
+      "artifact": "```c\n#include <stdio.h>\nrc = **sqlite3_open**(argv[1], &db);\n```",
+      "ok": true,
+      "expected_task_pass": false
     }
   ],
   "superseded_controls": {

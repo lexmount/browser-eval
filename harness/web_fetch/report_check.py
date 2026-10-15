@@ -291,7 +291,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             require_adjudication_evidence(root,d,rs,review)
         if (root / 'local-evidence/result-ledger.json').is_file():
             from .result_ledger import validate_ledger
-            ledger = validate_ledger(json.loads((root / 'local-evidence/result-ledger.json').read_text()), rs)
+            ledger = validate_ledger(json.loads((root / 'local-evidence/result-ledger.json').read_text()), rs, source=root)
             if ledger['states'][-1]['source_results_sha256'] != hashlib.sha256((root / 'results.jsonl').read_bytes()).hexdigest():
                 raise ValueError('Result ledger source hash differs from current results')
         from .local_audit import require_local_measurement, local_measurement_cases
