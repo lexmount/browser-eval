@@ -1,0 +1,25 @@
+# Report publication stays in Artifact Site; never commit account/test dumps.
+evidence/
+assets/video/
+video/audio/
+video/alignment/
+video/review/
+video/renderer/
+video/remotion/node_modules/
+video/remotion/public/narration.wav
+video/remotion/public/architecture.png
+video/remotion/render-parts/
+video/remotion/*.mp4
+video/remotion/src/reel.json
+video/storyboards/
+video/*.html
+__pycache__/
+*.pyc
+
+# Authored report inputs stay with the existing local publication bundle.
+video/editorial.json
+video/remotion/src/timeline.json
+video/chapter-sources.json
+video/content-contract.json
+assets/infographics/architecture.png
+assets/diagrams/original-architecture.mmd

@@ -1,0 +1,36 @@
+name: Bright Data video source
+permissions:
+  contents: read
+on:
+  pull_request:
+    paths:
+      - 'research/brightdata/video/**'
+      - 'research/brightdata/assets/diagrams/original-architecture.mmd'
+      - 'research/brightdata/assets/infographics/architecture.png'
+      - 'research/brightdata/tests/test_*alignment.py'
+      - 'research/brightdata/tests/test_tts_request.py'
+      - 'research/brightdata/tests/test_video_timeline.py'
+      - '.agents/skills/video-gen/**'
+      - '.github/workflows/brightdata-video.yml'
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.7.8'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: research/brightdata/video/remotion/package-lock.json
+      - run: |
+          uv run --frozen python -m unittest discover -s research/brightdata/tests -p test_video_timeline.py
+          uv run --frozen python -m unittest discover -s research/brightdata/tests -p test_speech_alignment.py
+          uv run --frozen python -m unittest discover -s research/brightdata/tests -p test_tts_request.py
+      - run: npm ci && node check_fixture.mjs && npm run check
+        working-directory: research/brightdata/video/remotion
