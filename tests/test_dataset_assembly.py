@@ -13,6 +13,14 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSEMBLY = ROOT / "evaluation/browser-native-430/dataset-assembly.json"
 
 
+@pytest.fixture
+def registered_430_assembly():
+    definition = json.loads(ASSEMBLY.read_text(encoding="utf-8"))
+    for source in definition["sources"]:
+        read_frozen_dataset_bytes(ROOT / source["path"])
+    return assemble_profile_dataset(ASSEMBLY)
+
+
 def _write(path: Path, value: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -317,7 +325,9 @@ def test_input_changing_case_correction_requires_all_method_rerun(tmp_path):
     assert dataset["comparison"]["case_corrections"]["rerun_all_methods"] == ["plain"]
 
 
-def test_registered_430_assembly_uses_current_sources_and_four_contracts(tmp_path):
+def test_registered_430_assembly_uses_current_sources_and_four_contracts(
+    tmp_path, registered_430_assembly
+):
     from harness.web_fetch.config import load_dataset
 
     definition = json.loads(ASSEMBLY.read_text(encoding="utf-8"))
@@ -326,7 +336,7 @@ def test_registered_430_assembly_uses_current_sources_and_four_contracts(tmp_pat
     for source in definition["sources"]:
         raw = read_frozen_dataset_bytes(ROOT / source["path"])
         assert hashlib.sha256(raw).hexdigest() == source["sha256"]
-    dataset, raw = assemble_profile_dataset(ASSEMBLY)
+    dataset, raw = registered_430_assembly
     assert hashlib.sha256(raw).hexdigest() == definition["native_dataset_sha256"]
     corrections = json.loads(
         (ROOT / definition["case_corrections"]["path"]).read_text(encoding="utf-8")
@@ -410,8 +420,8 @@ def test_registered_430_assembly_uses_current_sources_and_four_contracts(tmp_pat
     assert len(cases) == 430
 
 
-def test_registered_430_assembly_keeps_only_frozen_first_load_alternatives():
-    dataset, _raw = assemble_profile_dataset(ASSEMBLY)
+def test_registered_430_assembly_keeps_only_frozen_first_load_alternatives(registered_430_assembly):
+    dataset, _raw = registered_430_assembly
     cases = {case["id"]: case for case in dataset["cases"]}
 
     def alternatives(case_id: str, anchor_id: str) -> list[str]:
@@ -457,11 +467,11 @@ def test_registered_430_assembly_keeps_only_frozen_first_load_alternatives():
     ]
 
 
-def test_registered_m365_reference_uses_one_current_body_version():
+def test_registered_m365_reference_uses_one_current_body_version(registered_430_assembly):
     from harness.web_fetch.metrics import task_passed
     from harness.web_fetch.scoring import score_attempt
 
-    dataset, _raw = assemble_profile_dataset(ASSEMBLY)
+    dataset, _raw = registered_430_assembly
     case = next(
         row for row in dataset["cases"]
         if row["id"] == "global-homepage-023-cloud-microsoft"

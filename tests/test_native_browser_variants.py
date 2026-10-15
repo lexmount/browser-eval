@@ -283,7 +283,8 @@ class NativeBrowserVariantTests(unittest.TestCase):
             path.write_text(json.dumps(content))
             body = _render_current_browser_article(out, cases, records,
                 {"path": "article.json", "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
-            self.assertIn("5 种浏览器、6 种配置", body)
+            self.assertIn("5 种浏览器", body)
+            self.assertIn("6 种配置", body)
             self.assertIn("Moli 1.1.15（正式版）", body)
-            self.assertNotIn("6 个浏览器", body)
+            self.assertNotRegex(body, r"6\s*[种个]\s*浏览器")
             self.assertEqual(body.count('data-browser-interface='), 42)

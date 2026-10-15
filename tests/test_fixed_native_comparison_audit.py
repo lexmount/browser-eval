@@ -71,7 +71,7 @@ class NativeFixture(Provider):
         })
 
 
-def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
+def comparison_cohort(tmp_path: Path, *, call_order="case-alternating") -> dict[str, Path]:
     source_cases = [
         EvalCase("web", "Web", "https://93.184.216.34/web", "web", ["anchor"]),
         EvalCase("dynamic", "Dynamic", "https://93.184.216.34/dynamic", "dynamic",
@@ -137,7 +137,7 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
         runs=1,
         timeout=1,
         delay=0,
-        call_order="case-alternating",
+        call_order=call_order,
     )
     materialize_bound_artifacts(evidence, worker, records)
     manifest = json.loads((worker / "manifest.json").read_text())
@@ -151,7 +151,7 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
             "providers": ["moli", "moli-stack-1432"],
             "case_ids": ["web", "dynamic", "timeout"],
             "batch_count": 1,
-            "call_order": "case-alternating",
+            "call_order": call_order,
         },
         "batches": [manifest],
     }))
@@ -175,7 +175,7 @@ def comparison_cohort(tmp_path: Path) -> dict[str, Path]:
         },
         "execution": {
             "workers": 1,
-            "call_order": "case-alternating",
+            "call_order": call_order,
             "runs": 1,
             "caller_retries": 0,
             "retrieval_mode": "native",
@@ -214,14 +214,6 @@ def convert_to_provider_batches(paths):
     rows = [json.loads(line) for line in
             paths["evidence"].joinpath("results.jsonl").read_text().splitlines()]
     providers = ["moli", "moli-stack-1432"]
-    case_ids = ["web", "dynamic", "timeout"]
-    rows.sort(key=lambda row: (providers.index(row["provider"]), case_ids.index(row["case_id"])))
-    for index, row in enumerate(rows):
-        row["started_at"] = f"2026-10-12T00:00:{index:02d}+00:00"
-        row["completed_at"] = f"2026-10-12T00:00:{index:02d}.500000+00:00"
-    paths["evidence"].joinpath("results.jsonl").write_text(
-        "".join(json.dumps(row) + "\n" for row in rows)
-    )
 
     execution_path = paths["evidence"] / "execution.json"
     execution = json.loads(execution_path.read_text())
@@ -268,7 +260,7 @@ def test_comparison_audit_proves_protocol_and_lists_every_case(tmp_path):
 
 
 def test_comparison_audit_accepts_serial_provider_batches_with_native_defaults(tmp_path):
-    paths = comparison_cohort(tmp_path)
+    paths = comparison_cohort(tmp_path, call_order="provider")
     convert_to_provider_batches(paths)
     audit = run_audit(paths)
     assert audit["scope"]["call_order"] == "serial_provider_batches"
