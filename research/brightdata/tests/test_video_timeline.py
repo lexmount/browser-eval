@@ -1,5 +1,5 @@
 """Behavior scenarios: preserve material and reject broken audiovisual timelines."""
-import importlib.util,json,copy,unittest
+import importlib.util,json,unittest
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 SPEC=importlib.util.spec_from_file_location('timeline_validator',ROOT.parents[1]/'.agents/skills/video-gen/scripts/validate_timeline.py')

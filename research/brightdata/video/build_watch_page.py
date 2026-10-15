@@ -1,6 +1,5 @@
 from pathlib import Path
 from html import escape
-import json
 ROOT=Path(__file__).parent;report=ROOT.parent
 from current_film import current_film
 p=current_film();aligned={s['id']:s['start'] for s in p['scenes']};offset=0;sections=[];chapters=[]

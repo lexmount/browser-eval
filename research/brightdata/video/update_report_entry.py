@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
 from html import escape
-import json,re
+import re
 R=Path(__file__).parent;root=R.parent;p=__import__('current_film').current_film();seconds=round(p['measured_duration_seconds']);stamp=f'{seconds//60} 分 {seconds%60:02} 秒'
 f=root/'report.html';s=f.read_text()
 legacy_css='.film-intro{margin-bottom:36px;padding-bottom:24px;border-bottom:1px solid #dbe6ec}.film-intro video{display:block;width:100%;aspect-ratio:16/9;background:#15343b;border-radius:8px}.film-intro h2{margin-top:0}@media print{.film-intro{display:none}}'
