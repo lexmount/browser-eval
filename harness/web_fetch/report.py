@@ -1079,13 +1079,13 @@ def overview_card(records,cases,track,label,names,*,diagnostic=False):
  winners='、'.join(provider_label(n) for n in names if rates.get(n)==maximum) if maximum else '本轮无通过任务' if rates else '暂无调用记录'
  return f'<div class="card"><div class="eyebrow">{len(selected)} 个任务</div><h3>{link("#home-rankings-"+track,label)}</h3><p>本类最高：<b>{pct(maximum)}</b></p><p>{esc(winners)}</p></div>'
 
-def review_summary(out, prefix=''):
+def review_summary(out, prefix='', *, highlight=True):
  path=out/'result-review.json'
  if not path.is_file():return ''
  audit=json.loads(path.read_text())
  if audit.get('adjudication_revision'):
   count=len(audit['adjudication_revision']['adjudicated_attempt_ids'])
-  return ('<p class="callout">'+model_text(
+  return ('<p'+(' class="callout"' if highlight else '')+'>'+model_text(
       f'保留历史复核记录 {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}；本次补充逐案裁定 {count} 条。未新增全量盲审，也不构成正式认证。',
       f'Historical review records: {audit.get("reviewed_attempts",0)}/{audit.get("expected_attempts",0)}; {count} case-specific adjudications supplemented. No new full blind review or certification is claimed.')+' '+link(prefix+'review/index.html','查看核验轮次 →')+'</p>')
  scope=audit.get('review_protocol',{}).get('scope','all')
@@ -2271,12 +2271,40 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  return out/'index.html'
 
 
+def current_local_review_findings(out,dataset,records,audit):
+ """Describe the current snapshot from bound calls, never cached release prose."""
+ from .local_revision import read_bound
+ receipt=json.loads(read_bound(out,dataset['comparison']['task_replacement']).read_text())
+ added=receipt['provider_calls_added']
+ cases={c['id']:c for c in dataset['cases']}
+ eligible=[r for r in records if measured(r,cases[r['case_id']])]
+ passed=sum(succeeded(r,cases[r['case_id']]) for r in eligible)
+ adjudicated=len(audit.get('adjudication_revision',{}).get('adjudicated_attempt_ids',[]))
+ unreviewed=len(audit.get('unreviewed_attempt_ids',[]))
+ rows=[
+  (f"当前报告包含 {len(records)} 条结果：{receipt['inherited_results']} 条沿用历史调用，{added} 条来自新增调用。原始返回、调用时间和耗时均保留。",
+   f"The current report contains {len(records)} results: {receipt['inherited_results']} inherited calls and {added} new calls. Original answers, timestamps and latencies are retained."),
+  (f"当前通过 {passed} 条，可比较 {len(eligible)} 条，排除 {len(records)-len(eligible)} 条。页面与可下载汇总使用同一组保存结果。",
+   f"Currently {passed} pass among {len(eligible)} eligible results; {len(records)-len(eligible)} are excluded. Pages and downloadable summaries use the same saved results."),
+  (f"保留独立复核记录 {audit.get('reviewed_attempts',0)}/{len(records)}；另有 {unreviewed} 条未独立复核，其中机器通过 {audit.get('accepted_unreviewed_passes',0)} 条。补充裁定 {adjudicated} 条，不称为新一轮全量盲审。",
+   f"Retained independent review covers {audit.get('reviewed_attempts',0)}/{len(records)} results. Another {unreviewed} are not independently reviewed, including {audit.get('accepted_unreviewed_passes',0)} machine passes. There are {adjudicated} supplemental adjudications; this is not a new full blind review."),
+  (f"评分规则版本为 {dataset['comparison'].get('scoring_policy_version',1)}。目标内容要求、正文质量和验证提示分别展示；提示文字不单独决定任务是否通过。",
+   f"Scoring policy version: {dataset['comparison'].get('scoring_policy_version',1)}. Target requirements, body quality and verification hints are reported separately; hint words alone do not determine acceptance."),
+ ]
+ if local_pass_rate_ranking(dataset):
+  rows.append(('名次按当前任务通过率计算，耗时单独展示，不参与名次。历史调用未完成调用前后的全量来源核验，保留实际检查日期和范围，不声称已完成来源认证。',
+               'Ranks use current task pass rates. Latency is separate and does not determine rank. Historical calls lack complete before/after source verification; actual check dates and scope are retained without claiming source certification.'))
+ return [{'text':zh,'text_en':en} for zh,en in rows]
+
+
 def write_review_page(out,records):
  path=out/'result-review.json'
  if not path.is_file():
   write(out,'review/index.html','核验记录',hero('核验记录','本轮没有绑定独立核验记录。'))
   return
  audit=json.loads(path.read_text());reviewer=audit.get('reviewer',{})
+ dataset_path=out/'dataset.json'
+ dataset=json.loads(dataset_path.read_text()) if dataset_path.is_file() else {}
  metadata_path=Path(__file__).resolve().parents[2]/'research/report-changes.json'
  if not metadata_path.is_file():
   raise ValueError('A reviewed report requires research/report-changes.json')
@@ -2301,10 +2329,10 @@ def write_review_page(out,records):
  conclusion=(f'<p class="callout success">{coverage("主结果",audit)}；'
              f'代理分歧 {len(disagreements)}；已裁定 {len(adjudicated)}；未决 {unresolved}。</p>')
  if audit.get('adjudication_revision'):
-  conclusion=review_summary(out,'../')
+  conclusion=review_summary(out,'../',highlight=not local_pass_rate_ranking(dataset))
  page+=section('当前状态',conclusion)
  page+=result_ledger_section(out,records,'../')
- page+=section('核验轮次','<div class="review-rounds">'+rounds_html+'</div>')
+ page+=section('核验轮次','<p>'+model_text('以下历史轮次保留当时的处理和限制；当前成绩、案例范围和排名状态以本页当前说明为准。','Historical rounds retain the treatment and limits recorded at the time. Current scores, task scope and ranking state are described by the current summary on this page.')+'</p><div class="review-rounds">'+rounds_html+'</div>')
  method=(f'<details class="technical-details"><summary>核验协议与执行者</summary><p>执行者：{esc(reviewer.get("agent","独立代理"))}；模型：{esc(reviewer.get("model","—"))}；推理强度：{esc(reviewer.get("effort","—"))}。'
          '核验时隐藏机器结论和分数，只提供任务契约、标准答案与完整实际输出；分歧回到原始证据裁定，未决非零则禁止发布。任务和输出未变化时沿用原核验；发生变化的调用必须重新盲审。</p></details>')
  if audit.get('adjudication_revision'):
@@ -2312,7 +2340,10 @@ def write_review_page(out,records):
  page+=section('核验口径',method)
  dataset_path=out/'dataset.json'
  if dataset_path.is_file():
-  findings=json.loads(dataset_path.read_text()).get('comparison',{}).get('call_chain_audit',{}).get('findings',[])
+  dataset=json.loads(dataset_path.read_text())
+  findings=dataset.get('comparison',{}).get('call_chain_audit',{}).get('findings',[])
+  if dataset.get('comparison',{}).get('task_replacement'):
+   findings=current_local_review_findings(out,dataset,records,audit)
   if findings:
    page+=section('本轮修正与检查限制',''.join('<p>'+model_text(item['text'],item.get('text_en'))+'</p>' for item in findings))
  write(out,'review/index.html','核验记录',page)
@@ -2436,7 +2467,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
   frozen_binding=(out/'presentation-binding.json').is_file()
   build_binding=' --presentation-binding /absolute/path/to/report-evidence/presentation-binding.json' if frozen_binding else ''
   check_binding=' --presentation-binding /absolute/path/to/report/presentation-binding.json' if frozen_binding else ''
-  reproduce='<p>以下命令从本轮保存的证据构建本地报告，不重新调用产品：</p><pre>uv run --frozen python scripts/build_report.py --local-audit --language '+('zh --include-english' if _ENGLISH_GENERATED else 'zh')+' --hide-local-status-banners --evidence /absolute/path/to/report-evidence --output /absolute/path/to/report'+build_binding+'\nuv run --frozen python scripts/check_report.py /absolute/path/to/report'+check_binding+'</pre><p>使用与本轮结果对应的证据目录。调用时的版本、配置和评分器哈希见 '+link('../local-run-contract.json','调用前冻结协议')+' 与 '+link('../execution.json','执行批次')+'。上面的构建命令读取保存的评分；修改评分规则后，应先按声明范围复评分，不能仅重建页面就称成绩已经更新。</p>'
+  reproduce='<p>以下命令从本轮保存的证据构建本地报告，不重新调用产品：</p><pre>uv run --frozen python scripts/build_report.py --local-audit --language '+('zh --include-english' if _ENGLISH_GENERATED else 'zh')+' --evidence /absolute/path/to/report-evidence --output /absolute/path/to/report'+build_binding+'\nuv run --frozen python scripts/check_report.py /absolute/path/to/report'+check_binding+'</pre><p>使用与本轮结果对应的证据目录。调用时的版本、配置和评分器哈希见 '+link('../local-run-contract.json','调用前冻结协议')+' 与 '+link('../execution.json','执行批次')+'。上面的构建命令读取保存的评分；修改评分规则后，应先按声明范围复评分，不能仅重建页面就称成绩已经更新。</p>'
  support+=section('核心复现指令',reproduce)
  write(out,'reproduce/index.html','环境与复现',support)
  if not authored_interpretation and not local_matrix:
