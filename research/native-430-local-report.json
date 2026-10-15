@@ -98,12 +98,12 @@
   },
   "current_scoring_source_sha256": "d4ec10f02e742d6b94d3e9e2aa8a1d605ab3954f59bfd7908a096fc5a4958916",
   "review_evidence_package": {
-    "url": "https://github.com/lexmount/browser-eval/releases/download/untagged-c84db0e3f874d633407c/PR-51-current-rule-and-sqlite-evidence.zip",
+    "url": "https://api.github.com/repos/lexmount/browser-eval/releases/assets/643044605",
     "sha256": "3218b22ad388ebb2ae3e084e9378d323ddd9950e75783ae33f75339a4812bdc0",
     "bytes": 14815846,
-    "access": "GitHub draft release; repository write permission required",
+    "access": "GitHub draft release; repository write permission required; download asset API with authentication and Accept: application/octet-stream",
     "prerequisite": {
-      "url": "https://github.com/lexmount/browser-eval/releases/download/untagged-c84db0e3f874d633407c/PR-51-diagnostic-correction-patch.zip",
+      "url": "https://api.github.com/repos/lexmount/browser-eval/releases/assets/640487634",
       "sha256": "90d51b8bed3c8c480a45160a3cd8d624753451ee08f04ba816b7e6bb708d1c24",
       "bytes": 7580469
     }
