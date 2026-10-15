@@ -32356,6 +32356,96 @@
       "expected_metrics": {
         "resource_pass": false
       }
+    },
+    {
+      "id": "html-image-attribute-entities-decoded",
+      "category": "format-normalization",
+      "root_cause": "html_resource_attribute_entity_decoding",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/gallery",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "photo",
+            "urls": [
+              "https://cdn.example/photo.png?asset=one&size=640"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"https://cdn.example/photo.png?asset=one&amp;size=640\">",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "plain-resource-query-entity-spelling-remains-literal",
+      "category": "format-normalization",
+      "root_cause": "html_resource_attribute_entity_decoding",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/gallery",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "photo",
+            "urls": [
+              "https://cdn.example/photo.png?asset=one&size=640"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "https://cdn.example/photo.png?asset=one&amp;size=640",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "html-image-srcset-entities-decoded",
+      "category": "format-normalization",
+      "root_cause": "html_resource_attribute_entity_decoding",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/gallery",
+        "track": "image",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "id": "photo",
+            "urls": [
+              "https://cdn.example/photo.png?asset=one&size=640"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img srcset=\"https://cdn.example/photo.png?asset=one&amp;size=640 1x\">",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
     }
   ],
   "superseded_controls": {

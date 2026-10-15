@@ -143,20 +143,23 @@ def _looks_like_image_url(value: str) -> bool:
 def _image_content_candidates(content: str) -> list[tuple[str, str]]:
     candidates = [(url, "content.markdown_image")
                   for url in _markdown_image_destinations(content)]
-    candidates.extend((match[1], "content.html_img") for match in re.findall(
+    candidates.extend((html.unescape(match[1]), "content.html_img") for match in re.findall(
         r"<img\b[^>]*?\bsrc\s*=\s*([\"'])(.*?)\1", content, re.I | re.S
     ))
     for match in re.findall(r"<img\b[^>]*?\bsrcset\s*=\s*([\"'])(.*?)\1", content, re.I | re.S):
-        candidates.extend((part.strip().split()[0], "content.html_img_srcset")
+        candidates.extend((html.unescape(part.strip().split()[0]), "content.html_img_srcset")
                           for part in match[1].split(',') if part.strip())
+    # HTML attributes are decoded above. Do not also admit their raw entity
+    # spelling as a second bare candidate; plain URL answers remain literal.
+    bare_content = re.sub(r"<img\b[^>]*>", "", content, flags=re.I | re.S)
     # Explicit image markup is typed evidence. A standalone HTTP URL may also
     # be the entire answer, including an extensionless CDN address. Every URL
     # with that syntax is admitted alike, without consulting target resources.
     url_pattern = r"https?://[^\s<>'\")\]]+"
-    bare_lines = {line.strip().strip('<>') for line in content.splitlines()
+    bare_lines = {line.strip().strip('<>') for line in bare_content.splitlines()
                   if re.fullmatch(r"\s*<?" + url_pattern + r">?\s*", line)}
     candidates.extend((url, "content.bare_image_url") for url in
-                      re.findall(url_pattern, content)
+                      re.findall(url_pattern, bare_content)
                       if _looks_like_image_url(url) or url in bare_lines)
     return candidates
 
