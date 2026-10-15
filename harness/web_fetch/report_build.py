@@ -1306,12 +1306,11 @@ def validate_local_presentation(output: Path, binding_path: Path):
     records = load_jsonl(contained_path(output, 'results.jsonl'))
     scoring_sources = {row['attempt_id']: binding.get('measured_scoring_source_sha256') for row in records}
     if binding.get('offline_revision'):
-        from .local_revision import require_local_revision, read_bound
-        scoring_sources = require_local_revision(output, binding['offline_revision'], dataset, records)
+        from .local_revision import validate_revision_chain, read_bound
+        scoring_sources, input_dataset, input_results = validate_revision_chain(
+            output, binding['offline_revision'], dataset, records)
         if binding.get('task_replacement'):
             from .local_revision import require_local_task_replacement
-            from .local_revision import replacement_predecessor
-            input_dataset, input_results = replacement_predecessor(output, binding['offline_revision'])
             previous_dataset = json.loads(read_bound(output, input_dataset).read_text())
             previous_records = load_jsonl(read_bound(output, input_results))
             require_local_task_replacement(output, binding['task_replacement'], previous_dataset, previous_records)

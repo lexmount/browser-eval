@@ -62,39 +62,57 @@ def require_local_task_replacement(source, binding, dataset, records):
             for identifier, row in rows.items()}
 
 
-def replacement_predecessor(source, binding):
-    """Follow hash-linked score receipts back to the original replacement view."""
-    seen = set()
+def validate_revision_chain(source, binding, dataset=None, records=None):
+    """Validate each transition, then expose the earliest replacement inputs."""
+    if dataset is None:
+        dataset = json.loads((source / 'dataset.json').read_text())
+    if records is None:
+        records = load_jsonl(source / 'results.jsonl')
+    outputs = {name: hashlib.sha256((source / name).read_bytes()).hexdigest()
+               for name in ('dataset.json', 'results.jsonl')}
+    seen, latest_scoring = set(), None
     while True:
         identity = (binding['path'], binding['sha256'])
         if identity in seen:
             raise ValueError('Local score revision lineage repeats a receipt')
         seen.add(identity)
         receipt = json.loads(read_bound(source, binding).read_text())
-        if (receipt.get('kind') != 'local_offline_score_revision'
-                or receipt.get('provider_calls_added') != 0):
-            raise ValueError('Invalid predecessor score revision')
-        for key in ('input_dataset', 'input_results'):
-            read_bound(source, receipt[key])
+        expected, before, previous = _require_revision_step(source, receipt, dataset, records, outputs)
+        if latest_scoring is None:
+            latest_scoring = expected
         parent = receipt.get('predecessor_revision')
         if parent is None:
-            return receipt['input_dataset'], receipt['input_results']
-        prior = json.loads(read_bound(source, parent).read_text())
-        if (prior.get('output_dataset_sha256') != receipt['input_dataset']['sha256']
-                or prior.get('output_results_sha256') != receipt['input_results']['sha256']):
-            raise ValueError('Local score revision predecessor does not match its inputs')
-        binding = parent
+            return latest_scoring, receipt['input_dataset'], receipt['input_results']
+        outputs = {'dataset.json': receipt['input_dataset']['sha256'],
+                   'results.jsonl': receipt['input_results']['sha256']}
+        dataset, records, binding = before, previous, parent
+
+
+def replacement_predecessor(source, binding):
+    """Return original replacement inputs only after validating the full chain."""
+    _, dataset_binding, results_binding = validate_revision_chain(source, binding)
+    return dataset_binding, results_binding
 
 
 def require_local_revision(source, binding, dataset, records):
-    receipt = json.loads(read_bound(source, binding).read_text())
-    replacement_predecessor(source, binding)
+    return validate_revision_chain(source, binding, dataset, records)[0]
+
+
+def _require_revision_step(source, receipt, dataset, records, outputs):
     if receipt.get('kind') != 'local_offline_score_revision' or receipt.get('provider_calls_added') != 0:
         raise ValueError('Local revision must preserve original provider calls')
+    if (not isinstance(receipt.get('authority', {}).get('description'), str)
+            or not receipt['authority']['description'].strip()
+            or not isinstance(receipt.get('changed_case_ids'), list)
+            or len(receipt['changed_case_ids']) != len(set(receipt['changed_case_ids']))
+            or not isinstance(receipt.get('rescored_attempt_ids'), list)
+            or len(receipt['rescored_attempt_ids']) != len(set(receipt['rescored_attempt_ids']))
+            or not isinstance(receipt.get('task_verdict_changes'), list)):
+        raise ValueError('Local revision needs authority, declared scope and verdict changes')
     before_dataset = json.loads(read_bound(source, receipt['input_dataset']).read_text())
     previous = load_jsonl(read_bound(source, receipt['input_results']))
     for name, key in [('dataset.json', 'output_dataset_sha256'), ('results.jsonl', 'output_results_sha256')]:
-        if hashlib.sha256((source / name).read_bytes()).hexdigest() != receipt.get(key):
+        if outputs[name] != receipt.get(key):
             raise ValueError('Local revision output binding changed: ' + name)
     regressions = receipt.get('regression_ids')
     if not regressions:
@@ -102,7 +120,9 @@ def require_local_revision(source, binding, dataset, records):
     require_scoring_regressions(regressions)
     old_cases = {case['id']: case for case in before_dataset['cases']}
     new_cases = {case['id']: case for case in dataset['cases']}
-    if set(old_cases) != set(new_cases) or before_dataset.get('coverage_plan') != dataset.get('coverage_plan'):
+    if (len(old_cases) != len(before_dataset['cases']) or len(new_cases) != len(dataset['cases'])
+            or set(old_cases) != set(new_cases)
+            or before_dataset.get('coverage_plan') != dataset.get('coverage_plan')):
         raise ValueError('Local revision changed the original case/method matrix')
     changed_cases = set()
     for identifier, old in old_cases.items():
@@ -143,8 +163,11 @@ def require_local_revision(source, binding, dataset, records):
                 raise ValueError('Unselected score changed: ' + identifier)
         if new['case_id'] in changed_cases and identifier not in scored:
             raise ValueError('Changed case was not rescored across every method')
+    if any(new_rows[key]['metrics'].get('scoring_source_sha256') != value
+           for key, value in expected_scoring.items()):
+        raise ValueError('Local revision scoring source binding changed')
+    from .metrics import task_passed
     if receipt.get('input_verdicts'):
-        from .metrics import task_passed
         proof = json.loads(read_bound(source, receipt['input_verdicts']).read_text())
         verdicts = proof.get('verdicts', {})
         if (proof.get('input_results_sha256') != receipt['input_results']['sha256']
@@ -154,16 +177,18 @@ def require_local_revision(source, binding, dataset, records):
             raise ValueError('Frozen input verdict proof is incomplete')
         read_bound(source, proof['frozen_predicate'])
         read_bound(source, proof['snapshot_manifest'])
-        transitions = [{'attempt_id': row['attempt_id'], 'before': verdicts[row['attempt_id']],
-                        'after': task_passed(row['ok'], row['metrics'])}
-                       for row in records if row['attempt_id'] in scored
-                       and verdicts[row['attempt_id']] != task_passed(row['ok'], row['metrics'])]
-        if transitions != receipt.get('task_verdict_changes'):
-            raise ValueError('Local revision verdict transitions differ from frozen input proof')
+    else:
+        verdicts = {key: task_passed(row['ok'], row['metrics']) for key, row in old_rows.items()}
+    transitions = [{'attempt_id': row['attempt_id'], 'before': verdicts[row['attempt_id']],
+                    'after': task_passed(row['ok'], row['metrics'])}
+                   for row in records if row['attempt_id'] in scored
+                   and verdicts[row['attempt_id']] != task_passed(row['ok'], row['metrics'])]
+    if transitions != receipt['task_verdict_changes']:
+        raise ValueError('Local revision verdict transitions differ from input proof')
     from .local_audit import _require_page_identity_review
-    _require_page_identity_review(source, dataset, records)
+    _require_page_identity_review(source, dataset, records, scoring_sources=expected_scoring)
     require_cohort_exclusions(source, dataset, records)
-    return expected_scoring
+    return expected_scoring, before_dataset, previous
 
 
 def revise_local_snapshot(source, configuration):

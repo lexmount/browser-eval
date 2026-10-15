@@ -818,4 +818,15 @@ def test_offline_hint_revision_reapplies_bound_identity_evidence(tmp_path, defec
         assert local_audit.task_passed(record['ok'], record['metrics'])
         assert record['final_url'] is None
         local_audit._require_page_identity_review(tmp_path, dataset, [record])
+        record['metrics']['scoring_source_sha256'] = 'historical-source'
+        sources = {record['attempt_id']: 'historical-source'}
+        local_audit._require_page_identity_review(tmp_path, dataset, [record], scoring_sources=sources)
+        with pytest.raises(ValueError, match='shared scorer'):
+            local_audit._require_page_identity_review(tmp_path, dataset, [record])
+        with pytest.raises(ValueError, match='scoring source'):
+            local_audit._require_page_identity_review(tmp_path, dataset, [record],
+                scoring_sources={record['attempt_id']: 'other-source'})
+        record['metrics']['content_chars'] += 1
+        with pytest.raises(ValueError, match='shared scorer'):
+            local_audit._require_page_identity_review(tmp_path, dataset, [record], scoring_sources=sources)
     assert (tmp_path/'identity.json').read_bytes() == prior_receipt

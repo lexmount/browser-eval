@@ -31506,6 +31506,82 @@
       "artifact": "```c\n#include <stdio.h>\nrc = **sqlite3_open**(argv[1], &db);\n```",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "literal-code-markdown-single-block-preserved",
+      "category": "acceptance-contract",
+      "root_cause": "code_block_boundaries_erased",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/code",
+        "required_patterns": [
+          {
+            "id": "open",
+            "match_scope": "code_compact",
+            "pattern": "sqlite3_open\\(argv\\[1\\],\\&db\\);"
+          }
+        ]
+      },
+      "artifact": "```c\nsqlite3_open(argv[1], &db);\n```",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-code-markdown-split-blocks-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "code_block_boundaries_erased",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/code",
+        "required_patterns": [
+          {
+            "id": "open",
+            "match_scope": "code_compact",
+            "pattern": "sqlite3_open\\(argv\\[1\\],\\&db\\);"
+          }
+        ]
+      },
+      "artifact": "```c\nsqlite3_open(\n```\nUnrelated body\n```c\nargv[1], &db);\n```",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "literal-code-html-single-block-preserved",
+      "category": "acceptance-contract",
+      "root_cause": "code_block_boundaries_erased",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/code",
+        "required_patterns": [
+          {
+            "id": "open",
+            "match_scope": "code_compact",
+            "pattern": "sqlite3_open\\(argv\\[1\\],\\&db\\);"
+          }
+        ]
+      },
+      "artifact": "<pre>sqlite3_open(argv[1], &amp;db);</pre>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "literal-code-html-split-blocks-rejected",
+      "category": "acceptance-contract",
+      "root_cause": "code_block_boundaries_erased",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/code",
+        "required_patterns": [
+          {
+            "id": "open",
+            "match_scope": "code_compact",
+            "pattern": "sqlite3_open\\(argv\\[1\\],\\&db\\);"
+          }
+        ]
+      },
+      "artifact": "<pre>sqlite3_open(</pre><p>Unrelated body</p><pre>argv[1], &amp;db);</pre>",
+      "ok": true,
+      "expected_task_pass": false
     }
   ],
   "superseded_controls": {

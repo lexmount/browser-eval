@@ -492,26 +492,37 @@ def declared_truncation_hits(value: str) -> list[str]:
             if (match := pattern.search(value))]
 
 
-def code_matching_text(content: str) -> str:
-    """Keep literal code punctuation while ignoring layout and line numbers."""
+def code_matching_blocks(content: str) -> list[str]:
+    """Keep literal code and independent block boundaries while ignoring layout."""
     if re.search(r'<(?:!doctype|html|body|pre)\b', content, re.I):
         from bs4 import BeautifulSoup
         soup = BeautifulSoup(content, 'html.parser')
         blocks = [node.get_text('', strip=False) for node in soup.find_all('pre')]
-        text = '\n'.join(blocks) if blocks else ''
     else:
-        # Quote markers belong to Markdown layout, never to the code itself.
         text = re.sub(r'(?m)^[ \t]*(?:>[ \t]?)+', '', content)
-        fenced = re.findall(r'(?ms)^[ \t]*```[^\n]*\n(.*?)^[ \t]*```', text)
-        text = '\n'.join(fenced) if fenced else text
-        text = html.unescape(text)
-        from .body_coverage import native_markup_body_text
-        # Inline HTML within native Markdown may carry original emphasis.
-        # Do not strip literal Markdown emphasis from inside fenced code.
-        if not fenced and re.search(r'<(?:b|a|span)\b', text, re.I):
-            text = native_markup_body_text(text, text)
-    text = re.sub(r'(?m)^[ \t]*[0-9]{2,4}[ \t]+', '', text)
-    return re.sub(r'\s+', '', text)
+        blocks, current, fence = [], [], None
+        for line in text.splitlines(keepends=True):
+            if fence is not None:
+                if re.fullmatch(r'[ \t]*' + re.escape(fence[0])
+                                + '{' + str(len(fence)) + r',}[ \t]*', line.rstrip('\r\n')):
+                    blocks.append(''.join(current))
+                    current, fence = [], None
+                else:
+                    current.append(line)
+            elif match := re.match(r'^[ \t]*(`{3,}|~{3,})[^\r\n]*', line):
+                fence = match[1]
+        if fence is not None:
+            blocks.append(''.join(current))
+        if not blocks:
+            text = html.unescape(text)
+            from .body_coverage import native_markup_body_text
+            if re.search(r'<(?:b|a|span)\b', text, re.I):
+                text = native_markup_body_text(text, text)
+            blocks = [text]
+        else:
+            blocks = [html.unescape(block) for block in blocks]
+    return [re.sub(r'\s+', '', re.sub(r'(?m)^[ \t]*[0-9]{2,4}[ \t]+', '', block))
+            for block in blocks]
 
 
 def evaluate_content(
@@ -600,16 +611,16 @@ def evaluate_content(
                     and not encoding_corruption
                     and not script_shell)
     pattern_results = []
-    code_text = None
+    code_blocks = None
     for rule in required_patterns or []:
         scope = rule.get('match_scope', 'visible_text')
         if scope not in {'visible_text', 'code_compact'}:
             raise ValueError('Unknown required-pattern matching scope')
-        if scope == 'code_compact' and code_text is None:
-            code_text = code_matching_text(content)
-        target = code_text if scope == 'code_compact' else visible_content
+        if scope == 'code_compact' and code_blocks is None:
+            code_blocks = code_matching_blocks(content)
+        targets = code_blocks if scope == 'code_compact' else [visible_content]
         flags = 0 if scope == 'code_compact' else re.I
-        count = len(set(re.findall(rule['pattern'], target, flags)))
+        count = len({match for target in targets for match in re.findall(rule['pattern'], target, flags)})
         pattern_results.append({'id':rule['id'],'count':count,'minimum':rule.get('minimum',1),'pass':count >= rule.get('minimum',1)})
     content_pass = content_pass and all(item['pass'] for item in pattern_results)
     from .body_coverage import evaluate_body_requirements, native_markup_body_text

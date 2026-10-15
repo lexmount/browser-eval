@@ -515,7 +515,7 @@ def score_reviewed_page_identity(source, case, record, annotation, captures):
     return metrics
 
 
-def _require_page_identity_review(source, dataset, records):
+def _require_page_identity_review(source, dataset, records, *, scoring_sources=None):
     binding = dataset.get("comparison", {}).get("page_identity_review")
     marked = {r["attempt_id"] for r in records
               if r["metrics"].get("page_identity_basis") == "retrospective_content_correspondence"}
@@ -544,6 +544,13 @@ def _require_page_identity_review(source, dataset, records):
         record = indexed[annotation["attempt_id"]]
         expected = score_reviewed_page_identity(
             source, cases[record["case_id"]], record, annotation, captures)
+        if scoring_sources is not None:
+            # The revision validator proves this exact historical scorer binding.
+            # Recompute all content/identity checks without relabeling its version.
+            declared = scoring_sources.get(record["attempt_id"])
+            if not declared or record["metrics"].get("scoring_source_sha256") != declared:
+                raise ValueError("Reviewed result lost its revision scoring source")
+            expected["scoring_source_sha256"] = declared
         if expected != record["metrics"]:
             raise ValueError("Reviewed result differs from the shared scorer")
 
