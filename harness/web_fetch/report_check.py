@@ -124,6 +124,7 @@ class PageShape(HTMLParser):
         self.assets = assets
         self.figures = []
         self.images = []
+        self.english_images = []
 
     def handle_starttag(self, tag, attrs):
         if tag == "figure":
@@ -139,12 +140,15 @@ class PageShape(HTMLParser):
                 (key, value)
                 for key, value in attrs
                 if key.startswith("data-") and key != "data-i18n-attrs"
+                and not (key == "data-en-src" and self.page
+                         and self.page.parts[-2:] == ("methodology", "index.html"))
             )
         )
         if values.get("href") and (not values.get("hreflang")):
             self.links.append(values["href"])
         if tag == "img" and values.get("src"):
             self.images.append(values["src"])
+            self.english_images.append(values.get("data-en-src", values["src"]))
         if tag in {"pre", "code", "script", "style"}:
             self.skip += 1
 
@@ -157,6 +161,14 @@ class PageShape(HTMLParser):
     def handle_data(self, text):
         if not self.skip:
             self.numbers.extend(visible_numbers(text))
+
+
+def check_localized_image_sources(zh, en, canonical):
+    """Require each declared English companion, never silently use the old image."""
+    expected = Counter(canonical(zh.page, value) for value in zh.english_images)
+    actual = Counter(canonical(en.page, value) for value in en.images)
+    if expected != actual:
+        raise ValueError('Localized image sources differ from the declared companions')
 
 
 def check_saved_result_summary(root, dataset, records):
@@ -493,6 +505,8 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             en_links = Counter(canonical_link(en_path, value) for value in en.links)
             if zh_links != en_links:
                 bilingual_issues.append((relative, "evidence or navigation links differ"))
+            if relative == Path("methodology/index.html"):
+                check_localized_image_sources(zh, en, canonical_link)
             if relative in {Path("guide/index.html"), Path("guide/article.html")}:
                 if Counter(canonical_link(zh_path, value) for value in zh.images) != Counter(
                     canonical_link(en_path, value) for value in en.images

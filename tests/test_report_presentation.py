@@ -290,3 +290,19 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('<pre><img src="data:image/png;base64,YQ==" alt="文章目录"></pre>',translated)
   outside=localize_html(markup,PurePosixPath('attempts/example.html'))
   self.assertIn('src="data:image/png;base64,YQ==" data-en-src="data:image/png;base64,Yg=="',outside)
+
+
+def test_methodology_image_parity_rejects_wrong_or_missing_english_companion(tmp_path):
+ import pytest
+ from harness.web_fetch.report_check import PageShape, check_localized_image_sources
+ zh=PageShape(tmp_path/'methodology/index.html')
+ zh.feed('<img src="zh.png" data-en-src="en.png">')
+ for source in ('en.png','zh.png','missing.png',None):
+  en=PageShape(tmp_path/'en/methodology/index.html')
+  en.feed('<img src="'+source+'">' if source else '<p>No figure</p>')
+  if source=='en.png':
+   check_localized_image_sources(zh,en,lambda page,value:value)
+   assert zh.data==en.data
+  else:
+   with pytest.raises(ValueError,match='Localized image'):
+    check_localized_image_sources(zh,en,lambda page,value:value)

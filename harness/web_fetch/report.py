@@ -2532,6 +2532,10 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
   build_binding=' --presentation-binding /absolute/path/to/report-evidence/presentation-binding.json' if frozen_binding else ''
   check_binding=' --presentation-binding /absolute/path/to/report/presentation-binding.json' if frozen_binding else ''
   reproduce='<p>以下命令从本轮保存的证据构建本地报告，不重新调用产品：</p><pre>uv run --frozen python scripts/build_report.py --local-audit --language '+('zh --include-english' if _ENGLISH_GENERATED else 'zh')+' --evidence /absolute/path/to/report-evidence --output /absolute/path/to/report'+build_binding+'\nuv run --frozen python scripts/check_report.py /absolute/path/to/report'+check_binding+'</pre><p>使用与本轮结果对应的证据目录。调用时的版本、配置和评分器哈希见 '+link('../local-run-contract.json','调用前冻结协议')+' 与 '+link('../execution.json','执行批次')+'。上面的构建命令读取保存的评分；修改评分规则后，应先按声明范围复评分，不能仅重建页面就称成绩已经更新。</p>'
+ if local_matrix and frozen_binding:
+  public_profile=json.loads((out/'presentation-binding.json').read_text())
+  if public_profile.get('publication_projection'):
+   reproduce+='<p>'+model_text('公开副本已去掉本机目录信息。清单分别记录原始文件与公开副本的校验值；公开校验值不冒充原始调用标识。网页返回、成绩、耗时和复核结论保持不变。','This public copy omits host paths. The manifest distinguishes original and public file hashes; public hashes do not claim to be original call identities. Answers, scores, timings and review decisions are unchanged.')+' '+link('../'+public_profile['publication_projection']['path'],'PUBLICATION-PROJECTION.json')+'</p>'
  support+=section('核心复现指令',reproduce)
  write(out,'reproduce/index.html','环境与复现',support)
  if not authored_interpretation and not local_matrix:

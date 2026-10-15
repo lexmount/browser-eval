@@ -459,3 +459,91 @@ class PublicationPrivacyTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def test_host_metadata_projection_rebinds_dependencies_without_changing_measurements():
+    import hashlib
+    import json
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    config = json.dumps({'binary': '/Users/fixture/tool/bin', 'version': '1.2.3', 'environment': {'hostname': 'private-machine'}}).encode()
+    config_hash = hashlib.sha256(config).hexdigest()
+    result = json.dumps({'ok': True, 'duration': 1.25, 'content_sha256': 'a'*64,
+                         'provider_config_sha256': config_hash,
+                         'provider_metadata': {'stderr': 'at /Users/fixture/work/main.py:4'}}).encode()+b'\n'
+    files = {'config.json': config, 'results.jsonl': result, 'answer.txt': b'actual answer'}
+    original = files.copy()
+    public, receipt = project_host_metadata_files(files, ['/Users/fixture'])
+    assert files == original
+    assert public['answer.txt'] == files['answer.txt']
+    row = json.loads(public['results.jsonl'])
+    assert row['provider_config_sha256'] == hashlib.sha256(public['config.json']).hexdigest()
+    assert (row['ok'], row['duration'], row['content_sha256']) == (True, 1.25, 'a'*64)
+    assert json.loads(public['config.json'])['version'] == '1.2.3'
+    assert 'hostname' not in json.loads(public['config.json'])['environment']
+    assert b'/Users/fixture' not in b''.join(public.values())
+    assert receipt['files'][0]['original_sha256'] == config_hash
+    assert receipt['files'][0]['published_sha256'] != config_hash
+    assert '/Users/fixture' not in json.dumps(receipt)
+    repeated, unchanged = project_host_metadata_files(public, ['/Users/fixture'])
+    assert repeated == public and unchanged['files'] == []
+
+
+def test_host_metadata_projection_requires_an_explicit_non_root_prefix():
+    import pytest
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    for prefixes in ([], ['/'], ['relative/path']):
+        with pytest.raises(ValueError):
+            project_host_metadata_files({}, prefixes)
+
+
+def test_public_metadata_receipt_checks_bytes_and_excludes_scored_payloads(tmp_path):
+    import hashlib
+    import json
+    import pytest
+    from harness.web_fetch.publication_privacy import project_host_metadata_files, require_host_metadata_projection
+    original={'config.json': b'{"binary":"/Users/fixture/tool"}'}
+    public,receipt=project_host_metadata_files(original,['/Users/fixture'])
+    (tmp_path/'config.json').write_bytes(public['config.json'])
+    def bind():
+        path=tmp_path/'projection.json'
+        path.write_text(json.dumps(receipt))
+        return {'path':path.name,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+    require_host_metadata_projection(tmp_path,bind())
+    (tmp_path/'config.json').write_text('{"binary":"changed"}')
+    with pytest.raises(ValueError):require_host_metadata_projection(tmp_path,bind())
+    (tmp_path/'config.json').write_bytes(public['config.json'])
+    receipt['files'][0]['path']='artifacts/answer.json'
+    with pytest.raises(ValueError,match='preserve scored payloads'):
+        require_host_metadata_projection(tmp_path,bind())
+
+
+def test_host_projection_does_not_match_another_user_with_the_same_prefix():
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    files={'config.json': b'{"binary":"/Users/fixture-other/tool"}'}
+    public,receipt=project_host_metadata_files(files,['/Users/fixture'])
+    assert public==files and receipt['files']==[]
+
+
+def test_named_host_in_auxiliary_log_is_projected_with_bound_public_hash(tmp_path):
+    import hashlib
+    import json
+    from harness.web_fetch.publication_privacy import project_host_metadata_files, require_host_metadata_projection
+    name='logs/case.debug.txt'
+    raw=b'{"hostname":"fixture.local","message":"response completed"}'
+    inputs={name:raw,'answer.txt':b'unchanged scored text'}
+    public,receipt=project_host_metadata_files(inputs,['/Users/fixture'],host_names=['fixture.local'])
+    assert public['answer.txt']==inputs['answer.txt']
+    assert b'fixture.local' not in public[name]
+    assert b'response completed' in public[name]
+    (tmp_path/'logs').mkdir();(tmp_path/name).write_bytes(public[name])
+    path=tmp_path/'projection.json';path.write_text(json.dumps(receipt))
+    require_host_metadata_projection(tmp_path,{'path':path.name,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
+
+
+def test_host_projection_refuses_to_rewrite_score_bearing_or_response_payloads():
+    import pytest
+    from harness.web_fetch.publication_privacy import project_host_metadata_files
+    for name in ('artifacts/answer.json','logs/case.response.txt','answer.txt'):
+        raw=b'{"host":"fixture.local"}'
+        with pytest.raises(ValueError,match='must not alter scored'):
+            project_host_metadata_files({name:raw},['/Users/fixture'],host_names=['fixture.local'])

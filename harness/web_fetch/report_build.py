@@ -1299,6 +1299,9 @@ def validate_local_presentation(output: Path, binding_path: Path):
         path = contained_path(output, item['path'], reject_symlinks=True)
         if hashlib.sha256(path.read_bytes()).hexdigest() != item['sha256']:
             raise ValueError('Presentation evidence binding changed: ' + item['path'])
+    if binding.get('publication_projection'):
+        from .publication_privacy import require_host_metadata_projection
+        require_host_metadata_projection(output, binding['publication_projection'])
     dataset = json.loads((output / 'dataset.json').read_text())
     records = load_jsonl(contained_path(output, 'results.jsonl'))
     scoring_sources = {row['attempt_id']: binding.get('measured_scoring_source_sha256') for row in records}

@@ -242,3 +242,115 @@ def project_file(name, data):
         'original_bytes': len(original),
         'published_bytes': len(projected),
     }
+
+
+def _host_metadata_projection_path(name):
+    path = PurePosixPath(name)
+    if path.is_absolute() or '..' in path.parts or any(p.startswith('.') for p in path.parts):
+        return False
+    metadata = (path.suffix in {'.json', '.jsonl'}
+                and path.parts[0] not in {'artifacts', 'sources', 'logs', 'references'})
+    auxiliary_log = path.parts[0] == 'logs' and path.name.endswith(('.debug.txt', '.debug.html'))
+    return metadata or auxiliary_log
+
+
+def project_host_metadata_files(files, host_prefixes, *, host_names=()):
+    """Project host metadata/auxiliary logs and explicitly rebind dependencies.
+
+    Inputs and measured payloads are immutable. Returned receipts distinguish
+    original file identities from the public copies; public hashes never claim
+    to be original call hashes. Only known whole-file digest references change.
+    """
+    if not host_prefixes or any(not p.startswith('/') or p == '/' for p in host_prefixes):
+        raise ValueError('Explicit non-root host prefixes are required')
+    patterns = [re.compile(re.escape(p.rstrip('/')) + r"(?=/|$)[^\s\"'<>\x00]*")
+                for p in sorted(set(host_prefixes), key=len, reverse=True)]
+    json_names = {name for name in files if name.endswith(('.json', '.jsonl'))}
+    parsed = {}
+    for name in json_names:
+        text = files[name].decode('utf-8')
+        parsed[name] = ([json.loads(line) for line in text.splitlines() if line.strip()]
+                        if name.endswith('.jsonl') else json.loads(text))
+    by_hash = {hashlib.sha256(raw).hexdigest(): name for name, raw in files.items()}
+    projected, published_hashes, changed_fields, visiting = {}, {}, {}, set()
+
+    def project(name):
+        if name in projected:
+            return projected[name]
+        if name in visiting:
+            raise ValueError('Cyclic publication metadata dependencies')
+        visiting.add(name)
+        raw = files[name]
+        fields = []
+        def value(node, path=''):
+            if isinstance(node, dict):
+                if 'hostname' in node and path.endswith('.environment'):
+                    fields.append(path + '.hostname')
+                return {key: value(item, path + '.' + key) for key, item in node.items()
+                        if not (key == 'hostname' and path.endswith('.environment'))}
+            if isinstance(node, list):
+                return [value(item, path + '[]') for item in node]
+            if not isinstance(node, str):
+                return node
+            if node in by_hash:
+                dependency = by_hash[node]
+                if dependency != name:
+                    project(dependency)
+                    return published_hashes[dependency]
+            result = node
+            for pattern in patterns:
+                result = pattern.sub('[HOST_PATH_OMITTED]', result)
+            for host in host_names:
+                if not host:
+                    raise ValueError('Host names must be explicit nonempty identities')
+                result = result.replace(host, '[HOSTNAME_OMITTED]')
+            if result != node:
+                fields.append(path)
+            return result
+        if name in parsed:
+            result = value(parsed[name])
+            if result != parsed[name]:
+                raw = ((''.join(json.dumps(row, ensure_ascii=False, separators=(',', ':')) + '\n'
+                                for row in result)) if name.endswith('.jsonl')
+                       else json.dumps(result, ensure_ascii=False, indent=2) + '\n').encode()
+        elif host_names:
+            raw = value(raw.decode('utf-8'), 'auxiliary_log').encode('utf-8')
+        if raw != files[name] and not _host_metadata_projection_path(name):
+            raise ValueError('Host projection must not alter scored or response payloads')
+        projected[name] = raw
+        published_hashes[name] = hashlib.sha256(raw).hexdigest()
+        changed_fields[name] = sorted(set(fields))
+        visiting.remove(name)
+        return raw
+
+    for name in files:
+        project(name)
+    receipt = {'kind': 'host_metadata_publication_projection',
+               'provider_calls_added': 0,
+               'meaning': 'Original identities are retained below; published hashes identify redacted copies only.',
+               'files': [{'path': name, 'original_sha256': hashlib.sha256(files[name]).hexdigest(),
+                          'published_sha256': hashlib.sha256(projected[name]).hexdigest(),
+                          'original_bytes': len(files[name]), 'published_bytes': len(projected[name]),
+                          'redacted_fields': changed_fields[name]}
+                         for name in sorted(files) if files[name] != projected[name]]}
+    return projected, receipt
+
+
+def require_host_metadata_projection(source, binding):
+    """Validate public metadata hashes without certifying unavailable originals."""
+    from .local_revision import read_bound
+    receipt = json.loads(read_bound(source, binding).read_text())
+    rows = receipt.get('files', [])
+    names = [item['path'] for item in rows]
+    if (receipt.get('kind') != 'host_metadata_publication_projection'
+            or receipt.get('provider_calls_added') != 0 or len(names) != len(set(names))):
+        raise ValueError('Invalid host metadata projection receipt')
+    for item in rows:
+        if (not _host_metadata_projection_path(item['path'])
+                or not re.fullmatch('[0-9a-f]{64}', item.get('original_sha256', ''))
+                or item['original_sha256'] == item.get('published_sha256')):
+            raise ValueError('Projection must preserve scored payloads and original identities')
+        public = read_bound(source, {'path': item['path'], 'sha256': item['published_sha256']})
+        if public.stat().st_size != item['published_bytes']:
+            raise ValueError('Published metadata size differs from projection receipt')
+    return receipt
