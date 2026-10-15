@@ -209,3 +209,39 @@ class NetworkPreflightTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'synthetic'):
                     preflight_guarded_providers([SimpleNamespace(type=kind, config={})],
                                                [SimpleNamespace(url='https://example.com/')])
+
+
+def test_explicit_isolated_fixtures_reach_the_runner(tmp_path):
+    from unittest.mock import patch
+    from harness.web_fetch.models import EvalCase, ProviderResult
+    from harness.web_fetch.providers.base import Provider
+    from harness.web_fetch.runner import run_evaluation
+    class Fixture(Provider):
+        def fetch(self, case, timeout):
+            return ProviderResult(ok=True, content='Fixture body')
+    provider = Fixture('isolated', {'type': 'headless_markdown', 'engine': 'chromium',
+        'network_policy': 'loopback_only', 'allow_private_network': True})
+    with patch('socket.getaddrinfo', side_effect=AssertionError('fixture requires no public DNS lookup')):
+        rows, _ = run_evaluation(output_dir=tmp_path/'run', dataset_meta={},
+            dataset_path=tmp_path/'dataset.json',
+            cases=[EvalCase('fixture', 'Fixture', 'http://127.0.0.1:12345/fixture', 'web', [])],
+            providers=[provider], provider_config_path=tmp_path/'providers.json',
+            runs=1, timeout=5, delay=0, max_failure_retries=0)
+    assert len(rows) == 1 and rows[0]['ok']
+
+
+def test_fixture_exemption_requires_isolation_and_loopback_scope():
+    from types import SimpleNamespace
+    from unittest.mock import patch
+    import pytest
+    from harness.web_fetch.network_preflight import preflight_guarded_providers
+    fixture = {'engine': 'chromium', 'allow_private_network': True, 'network_policy': 'loopback_only'}
+    with pytest.raises(ValueError, match='loopback task URLs'):
+        preflight_guarded_providers([SimpleNamespace(type='headless_markdown', config=fixture)],
+            [SimpleNamespace(url='https://example.com/')])
+    for incomplete in ({'engine':'chromium', 'allow_private_network':True},
+                       {'engine':'chromium', 'network_policy':'loopback_only'}):
+        with patch('socket.getaddrinfo', return_value=[(socket.AF_INET,socket.SOCK_STREAM,6,'',('127.0.0.1',80))]):
+            with pytest.raises(ValueError, match='non-public'):
+                preflight_guarded_providers([SimpleNamespace(type='headless_markdown', config=incomplete)],
+                    [SimpleNamespace(url='http://127.0.0.1/')])

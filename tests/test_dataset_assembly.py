@@ -538,13 +538,13 @@ def test_registered_430_profile_uses_official_release_and_frozen_minimal_reruns(
     }
     assert fixed["measurement_scope"]["replacement_build"] == {
         "source_commit": "0d9a7ceb25f630e7a296e83011e2d11f0279c5a7",
-        "binary_sha256": "c1ea816e684b05ecbdb6b544a333e2430794e788202ba600711f6d4cb2c8734f",
+        "binary_sha256": "c1ea816783f0031ff7e349ecf660c3ffd5eeeeb05574ddb8794a212ec540840a",
     }
     assert profile["independent_result_review_scope"] == "all"
+    assert profile["network_environment"]["dns_mode"] == "public_doh"
     for method in ("moli-1.1.15", "moli-fixed", "lightpanda", "obscura", "chromium"):
-        assert providers[method]["dns_mode"] == "public_doh"
-    for method in ("moli-1.1.15", "moli-fixed", "lightpanda", "obscura"):
-        assert providers[method]["native_dns_library"] == "${MOLI_NATIVE_DNS_LIBRARY}"
+        assert "dns_mode" not in providers[method]
+        assert "native_dns_library" not in providers[method]
     binding = profile["rerun_scope"]
     path = ROOT / binding["path"]
     assert hashlib.sha256(path.read_bytes()).hexdigest() == binding["sha256"]

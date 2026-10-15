@@ -51,12 +51,14 @@ class ReportRevisionTests(unittest.TestCase):
    {'provider':'slow-high-pass','case_id':'a','ok':True,'elapsed_ms':100,'metrics':{'content_pass':True}},
    {'provider':'slow-high-pass','case_id':'b','ok':True,'elapsed_ms':200,'metrics':{'content_pass':True}},
   ]
-  rendered=overall_ranking(records,cases)
+  rendered=overall_ranking(records,cases,call_budget_seconds=45)
   from bs4 import BeautifulSoup
   headers=[cell.get_text(' ',strip=True) for cell in BeautifulSoup(rendered,'html.parser').select('#ranking-overall thead th')]
-  self.assertEqual(headers[-3:],['均值 ↕','P50 ↕','P95 ↕'])
+  self.assertEqual(headers[-3:],['总耗时均值 ↕','总耗时 P50 ↕','总耗时 P95 ↕'])
   self.assertNotIn('全调用', ' '.join(headers))
-  self.assertIn('全调用均值 / P50 / P95',rendered)
+  self.assertIn('总耗时均值 / P50 / P95',rendered)
+  self.assertIn('包含失败重试和重试等待',rendered)
+  self.assertIn('每次物理调用预算为 45 秒',rendered)
   from harness.web_fetch.report_i18n import translate_text
   self.assertEqual([translate_text(label) for label in ('均值','P50','P95')],['Mean','P50','P95'])
   self.assertIn('包含通过与失败',rendered)

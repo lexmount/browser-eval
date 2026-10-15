@@ -258,8 +258,15 @@ def table_text_surface(content):
         return '|' in line and all(
             re.fullmatch(r'\s*:?-{3,}:?\s*', c) for c in _pipe_cells(line))
     while index < len(lines):
-        prior = [v for v in output if v.strip()]
         cells = _pipe_cells(lines[index])
+        prior = []
+        if '|' in lines[index] and all(not c.strip() for c in cells):
+            for line in reversed(output):
+                if line.strip():
+                    prior.append(line)
+                    if len(prior) == 2:
+                        break
+            prior.reverse()
         if ('|' in lines[index] and all(not c.strip() for c in cells)
                 and index + 1 < len(lines) and separator(lines[index + 1])
                 and len(_pipe_cells(lines[index + 1])) == len(cells)

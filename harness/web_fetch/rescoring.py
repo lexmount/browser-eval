@@ -26,8 +26,44 @@ from harness.web_fetch.safety import contained_path, validate_report_ids
 from harness.web_fetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 
 
+def _rescore_one(arguments):
+    r,c,source,audit,validate_only=arguments
+    original = deepcopy(r) if validate_only else None
+    raw = contained_path(source, r["artifact_path"]).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != r["metrics"]["content_sha256"]:
+        raise ValueError("Output integrity failure: " + r["attempt_id"])
+    before = succeeded(r, c)
+    # Status and artifact normalization are shared with live execution.
+    r["metrics"] = score_attempt(
+        c,
+        raw,
+        ok=bool(r["ok"]),
+        status_code=r.get("status_code"),
+        title=r.get("title"),
+        final_url=r.get("final_url"),
+        metadata=r.get("provider_metadata", {}),
+        previous_metrics=r["metrics"],
+        list_reference=load_list_reference(c, source),
+    )
+    apply_request_status(r)
+    if validate_only:
+        if r != original:
+            raise ValueError('Scoring validation would change a retained attempt: ' + r['attempt_id'])
+        return r, None
+    if "run_id" not in r:
+        r["run_id"] = execution_id(r)
+    r["diagnosis"] = diagnose(r, c, raw.decode("utf-8", errors="replace"))
+    r["failure_category"] = failure_category(r, c)
+    r["scoring"] = {**r.get("scoring", {}), **audit}
+    after = succeeded(r, c)
+    change={"attempt_id":r["attempt_id"],"before":before,"after":after} if before!=after else None
+    return r,change
+
+
 def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revision_hashes=None,
-            validate_only=False):
+            validate_only=False, jobs=1):
+    if type(jobs) is not int or not 1<=jobs<=8:
+        raise ValueError('Offline scoring jobs must be between 1 and 8')
     dataset_path = contained_path(source, "dataset.json")
     dataset_bytes = dataset_path.read_bytes()
     dataset = json.loads(dataset_bytes)
@@ -110,40 +146,32 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revis
         "reference_revision": bool(reference_revision_hashes),
     }
     changes = []
-    for r in records:
-        if case_ids is not None and r["case_id"] not in case_ids:
-            continue
-        c = cases[r["case_id"]]
-        original = deepcopy(r) if validate_only else None
-        raw = contained_path(source, r["artifact_path"]).read_bytes()
-        if hashlib.sha256(raw).hexdigest() != r["metrics"]["content_sha256"]:
-            raise ValueError("Output integrity failure: " + r["attempt_id"])
-        before = succeeded(r, c)
-        # Status and artifact normalization are shared with live execution.
-        r["metrics"] = score_attempt(
-            c,
-            raw,
-            ok=bool(r["ok"]),
-            status_code=r.get("status_code"),
-            title=r.get("title"),
-            final_url=r.get("final_url"),
-            metadata=r.get("provider_metadata", {}),
-            previous_metrics=r["metrics"],
-            list_reference=load_list_reference(c, source),
-        )
-        apply_request_status(r)
-        if validate_only:
-            if r != original:
-                raise ValueError('Scoring validation would change a retained attempt: ' + r['attempt_id'])
-            continue
-        if "run_id" not in r:
-            r["run_id"] = execution_id(r)
-        r["diagnosis"] = diagnose(r, c, raw.decode("utf-8", errors="replace"))
-        r["failure_category"] = failure_category(r, c)
-        r["scoring"] = {**r.get("scoring", {}), **audit}
-        after = succeeded(r, c)
-        if before != after:
-            changes.append({"attempt_id": r["attempt_id"], "before": before, "after": after})
+    selected=[index for index,row in enumerate(records) if case_ids is None or row['case_id'] in case_ids]
+    def arguments(index):
+        row=records[index]
+        return row,cases[row['case_id']],source,audit,validate_only
+    def accept(index,computed):
+        row,change=computed
+        records[index]=row
+        if change is not None:changes.append(change)
+    if jobs==1:
+        for index in selected:
+            accept(index,_rescore_one(arguments(index)))
+    else:
+        from collections import deque
+        from concurrent.futures import ProcessPoolExecutor
+        # Bound queued records as well as workers: saved answers and diagnostics
+        # can be large, so eager map would retain many duplicated payloads.
+        with ProcessPoolExecutor(max_workers=jobs) as pool:
+            remaining=iter(selected)
+            pending=deque((index,pool.submit(_rescore_one,arguments(index)))
+                          for index in [next(remaining,None) for _ in range(jobs)] if index is not None)
+            while pending:
+                index,future=pending.popleft()
+                accept(index,future.result())
+                following=next(remaining,None)
+                if following is not None:
+                    pending.append((following,pool.submit(_rescore_one,arguments(following))))
     temporary = contained_path(source, "results.jsonl.tmp")
     if path.read_bytes() != original_results or dataset_path.read_bytes() != dataset_bytes:
         raise ValueError("Scoring inputs changed during rescoring")

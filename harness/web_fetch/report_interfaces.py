@@ -27,10 +27,10 @@ def spec(entry,auth,params,fields,request,source,notes):
  return dict(entry=entry,auth=auth,params=params,fields=fields,request=request,source=source,notes=notes)
 SPECS={
  'moli-webfetch':spec('CLI · 原生 Markdown 或原始响应路线','本地二进制；无 API Key',
- [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','所有网页、文档正文与网页媒体信息任务','直接取得 Moli 原生 Markdown；直接 PDF/DOCX 未提供可读正文时失败'),('--layout / --with-frames','动态网站正文整类；网页媒体信息任务使用 --with-frames','动态正文统一启用 Moli 页面布局能力，并在同一次原生 Markdown 调用中包含已加载子文档；不按题目设置 selector'),('--wait-until / --wait-selector / --wait-script','string','使用 Moli 官方等待能力；只等待，不抽取或拼接正文'),('外层截止','number','外层统一为 45 秒。内部参数以冻结的调用记录为准：显式模式留出收尾和清理时间；uniform 模式沿用产品默认值'),('--block-private-networks','flag','默认启用')],
+ [('URL','string · 必填','公开 HTTP(S) 页面或直接文件'),('--dump markdown','所有网页、文档正文与网页内嵌媒体任务','直接取得 Moli 原生 Markdown；直接 PDF/DOCX 未提供可读正文时失败'),('--layout / --with-frames','动态网站正文整类；网页内嵌媒体任务使用 --with-frames','动态正文统一启用 Moli 页面布局能力，并在同一次原生 Markdown 调用中包含已加载子文档；不按题目设置 selector'),('--wait-until / --wait-selector / --wait-script','string','使用 Moli 官方等待能力；只等待，不抽取或拼接正文'),('外层截止','number','外层统一为 45 秒。内部参数以冻结的调用记录为准：显式模式留出收尾和清理时间；uniform 模式沿用产品默认值'),('--block-private-networks','flag','默认启用')],
  [('stdout','UTF-8 string / bytes','Markdown、eval 结果或直接文件原始字节'),('stderr','string','独立诊断；不混入正文'),('exit_code','integer','0 表示工具请求完成；正文或文件为空仍由任务规则单独判失败'),('status_code / final_url','可能未提供','CLI 未提供时保持未知，不伪造 HTTP 200 或最终 URL')],
  {'page_body':'moli fetch --dump markdown --wait-until done URL','dynamic_body':'moli fetch --dump markdown --layout --with-frames --wait-until domstable URL','exact_page_identity':'正文仍用原生 Markdown；最终网址不是评分条件，无法确认时保持空值','webpage_media':'moli fetch --dump markdown --with-frames --wait-until done URL','direct_document_body':'moli fetch --dump markdown --wait-until done URL','direct_file':'Moli 原生 CDP 响应；附件事件使用同一 Moli 原始附件接口'},
- 'harness/web_fetch/providers/moli.py','网页正文、文档正文、结构题和网页媒体信息题统一使用 Moli 原生 Markdown。动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不按题目设置 selector。网页媒体信息只在原生输出中核对题目指定的资源地址，不下载媒体，也不切换 HTML、JSON 或网络跟踪接口。直接 PDF/DOCX 没有交付可读正文时按失败记录，评测端不下载后解析。直接媒体文件使用原生 CDP 响应或同一二进制的原始附件接口。最终网址只作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。'),
+ 'harness/web_fetch/providers/moli.py','网页正文、文档正文、结构题和网页内嵌媒体题统一使用 Moli 原生 Markdown。动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不按题目设置 selector。网页内嵌媒体只在原生输出中核对题目指定的资源地址，不下载媒体，也不切换 HTML、JSON 或网络跟踪接口。直接 PDF/DOCX 没有交付可读正文时按失败记录，评测端不下载后解析。直接媒体文件使用原生 CDP 响应或同一二进制的原始附件接口。最终网址只作诊断，不决定正文是否通过；失败后不切换格式或借用其他 provider。'),
  'lexmount-global':spec('POST https://api.lexmount.com/v1/extract','X-API-Key: <API_KEY>；X-Project-Id: <PROJECT_ID>',
  [('extract.url','string · 必填','目标网页 URL'),('extract.engine','string · 可选','指定提取引擎；本轮不传，使用服务端选择')],
  [('result.main_text','string','正文 → content'),('result.title / final_url','string','页面标题 / 最终地址'),('result.links / images','array','页面链接和图片 → provider_metadata'),('result.status_code','number','源站状态；与 HTTP API 状态分开'),('metadata.server_elapsed_ms','number','服务端耗时')],
@@ -92,10 +92,10 @@ def moli_release_spec(version):
  base=SPECS['moli']
  return {**base,
  'entry':f'CLI · Moli {version} 原生 Markdown / 原始文件接口',
- 'params':[('URL','string · 必填','唯一任务输入'),('--dump markdown','网页、文档正文、结构与网页媒体信息任务','直接取得 Markdown；直接 PDF/DOCX 不提供可读正文时失败'),('--layout / --with-frames','动态网站正文整类；网页媒体信息任务使用 --with-frames','动态正文统一启用 Moli 页面布局能力，并在同一次原生 Markdown 调用中包含已加载子文档；不按题目设置 selector'),('--wait-selector / --wait-script','旧版预声明完成条件','只等待，不抽取或拼接正文'),('外层截止','seconds','外层统一为 45 秒。内部参数以冻结的调用记录为准：显式模式留出收尾和清理时间；uniform 模式沿用产品默认值')],
+ 'params':[('URL','string · 必填','唯一任务输入'),('--dump markdown','网页、文档正文、结构与网页内嵌媒体任务','直接取得 Markdown；直接 PDF/DOCX 不提供可读正文时失败'),('--layout / --with-frames','动态网站正文整类；网页内嵌媒体任务使用 --with-frames','动态正文统一启用 Moli 页面布局能力，并在同一次原生 Markdown 调用中包含已加载子文档；不按题目设置 selector'),('--wait-selector / --wait-script','旧版预声明完成条件','只等待，不抽取或拼接正文'),('外层截止','seconds','外层统一为 45 秒。内部参数以冻结的调用记录为准：显式模式留出收尾和清理时间；uniform 模式沿用产品默认值')],
  'fields':[('stdout','UTF-8 string / bytes','网页与文档任务为原生 Markdown；直接文件为原始字节'),('raw_stdout_path / sha256','string','保存的原始文档或媒体证据'),('file_evaluation','object','文件格式、长度和目标 SHA-256 验收')],
  'request':{'page_or_document_body':'moli fetch --dump markdown --wait-until done URL','dynamic_body':'moli fetch --dump markdown --layout --with-frames --wait-until domstable URL','webpage_media':'moli fetch --dump markdown --with-frames --wait-until done URL','direct_file':'原始响应或附件接口；具体路线见逐次调用记录','version':version},
- 'notes':f'本方法只使用官方 {version} 发行二进制，与其他 Moli 版本分开计分。网页正文、文档正文、结构题和网页媒体信息题统一使用原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不按题目设置 selector。网页媒体只核对这份输出中的目标地址，不下载，也不切换 HTML、JSON 或网络跟踪接口。直接 PDF/DOCX 没有交付可读正文时按失败记录；直接媒体文件验收原始字节。评测端不使用外部 PDF/DOCX 解析器补正文，也不在失败后切换引擎或输出模式。'}
+ 'notes':f'本方法只使用官方 {version} 发行二进制，与其他 Moli 版本分开计分。网页正文、文档正文、结构题和网页内嵌媒体题统一使用原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不按题目设置 selector。网页媒体只核对这份输出中的目标地址，不下载，也不切换 HTML、JSON 或网络跟踪接口。直接 PDF/DOCX 没有交付可读正文时按失败记录；直接媒体文件验收原始字节。评测端不使用外部 PDF/DOCX 解析器补正文，也不在失败后切换引擎或输出模式。'}
 SPECS['moli-1.0.6']=moli_release_spec('1.0.6')
 SPECS['moli']=moli_release_spec('1.1.5')
 SPECS['moli-1.1.7']=moli_release_spec('1.1.7')
@@ -258,13 +258,13 @@ def _observed_route(engine, meta):
  return '调用记录未提供可核对的接口路线；不推断原生 Markdown、HTML 或额外转换'
 
 
-def browser_task_interface_matrix(cases, providers, records=None):
+def browser_task_interface_matrix(cases, providers, records=None, *, compact=False):
  """Describe task routes, preferring persisted call metadata when available."""
  from collections import Counter
  from types import SimpleNamespace
  from .providers.headless import output_mode_for_case
  capabilities={
-  'moli':'网页正文、文档正文、结构和网页媒体信息统一使用原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable；网页媒体只核对输出中的目标地址。最终网址不参与正文判分。',
+  'moli':'网页正文、文档正文、结构和网页内嵌媒体统一使用原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable；网页媒体只核对输出中的目标地址。最终网址不参与正文判分。',
   'lightpanda':'内置 Markdown 转换；同一任务大类只使用 CLI --dump markdown --json，不传逐题选择器、数量、延迟或 iframe 参数。',
   'obscura':'内置 Markdown 与 LP.getMarkdown 共用官方 JS 实现；本次执行固定版本的同一脚本，不按题目切换接口。',
   'chromium':'没有直接输出 Markdown 的原生接口；取得渲染后的 DOM，再使用共同的 node-html-markdown 2.0.0。',
@@ -353,6 +353,27 @@ def browser_task_interface_matrix(cases, providers, records=None):
      description=observed_description
      wait=observed_wait
     parts.append({'count':count,'mode':mode,'description':description,'wait':wait})
+   if compact and records is not None:
+    grouped={}
+    for part in parts:
+     description=part['description']
+     if description.startswith('调用记录未提供'):
+      description='接口未记录'
+     elif 'node-html-markdown' in description:
+      description='渲染 HTML → node-html-markdown → Markdown'
+     elif '原生 Markdown' in description or '官方 Markdown 脚本' in description:
+      description='官方脚本 → Markdown' if engine=='obscura' else '原生 Markdown'
+     elif '原始文件字节' in description:
+      description=description.split(' → ')[0]+' → 文件字节'
+     elif description.startswith('调用记录未提供'):
+      description='接口未记录'
+     else:
+      description=description.split('（route=')[0]
+     mode='markdown' if 'Markdown' in description else part['mode']
+     key=(mode,description)
+     if key not in grouped:grouped[key]={'mode':mode,'count':0,'description':description,'wait':''}
+     grouped[key]['count']+=part['count']
+    parts=list(grouped.values())
    cells[provider]=parts
   rows.append({'track':track,'count':len(group),'cells':cells})
  selected_capabilities={name:capabilities[native_browser_engine(name)] for name in providers}

@@ -1,6 +1,5 @@
 """Browser-facing controls for shared output scope and forbidden answer repair."""
 import json
-import hashlib
 import os
 import threading
 import unittest
@@ -66,9 +65,12 @@ class NativeTaskOutputTests(unittest.TestCase):
                         links = set(scored['resource_candidate_urls'])
                     else:
                         links = set(json.loads(content)['links'])
-                    self.assertTrue({origin+'/visible.png', origin+'/small.png', origin+'/large.png',
-                                     origin+'/image/a,b.png', origin+'/image/thumb.png?crop=10,20',
-                                     origin+'/set/a,b.png', origin+'/set/thumb.png?crop=10,20'} <= links, links)
+                    expected = {origin+'/visible.png', origin+'/image/a,b.png',
+                                origin+'/image/thumb.png?crop=10,20'}
+                    if engine != 'moli':
+                        expected |= {origin+'/small.png', origin+'/large.png',
+                                     origin+'/set/a,b.png', origin+'/set/thumb.png?crop=10,20'}
+                    self.assertTrue(expected <= links, links)
                     self.assertNotIn(origin+'/image/a', links)
                     self.assertNotIn(origin+'/20', links)
                     self.assertNotIn(hidden, links)

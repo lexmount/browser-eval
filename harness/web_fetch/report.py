@@ -1729,7 +1729,7 @@ def title_diagnostics(groups,selected,base,identifier):
   '<p>该诊断回答“已经返回的条目标题是否完整、干净”，不衡量榜单召回率、实时性或整页正文质量。</p>'+steps
   +table(['方法','标题完整度','标题纯净度','标题 F1','标题参考覆盖（可评分 / 返回）'],rows,identifier+'-titles',True,metrics=[])+ '</details>')
 
-def overall_ranking(records,cases,audit=None):
+def overall_ranking(records,cases,audit=None,*,call_budget_seconds=None):
  groups=defaultdict(list)
  for r in records:groups[r['provider']].append(r)
  rows=[]
@@ -1748,7 +1748,7 @@ def overall_ranking(records,cases,audit=None):
   rows.append((passed,name,('',values)))
  rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]))]
  tracks=active_tracks(cases)
- heads=['方法','请求成功率','综合任务通过率']+[label for _,label in tracks]+['均值','P50','P95']
+ heads=['方法','请求成功率','综合任务通过率']+[label for _,label in tracks]+['总耗时均值','总耗时 P50','总耗时 P95']
  if audit:heads+=['审查结果']
  case_count=len(cases);track_count=len(tracks);track_label=track_count_label(track_count)
  if case_count==150 and track_count==6:
@@ -1758,13 +1758,17 @@ def overall_ranking(records,cases,audit=None):
  help=('<details class="ranking-metric-help"><summary>总榜指标说明</summary><div class="metric-help"><dl>'
        f'<div><dt>综合任务通过率</dt><dd>{case_count} 个任务中满足各自验收规则的数量；每题等权。</dd></div>'
        f'<div><dt>{track_label} 类通过数</dt><dd>各分榜通过数 / 本类任务数，用于定位总分来自哪些能力。</dd></div>'
-       f'<div><dt>全调用均值 / P50 / P95</dt><dd>每种方法在同一组 {case_count} 个计划任务上的端到端耗时，包含通过与失败；三项不参与通过率排名。主矩阵调用跨日期、跨批次，不等同于同窗受控速度比较。</dd></div>'
+       f'<div><dt>总耗时均值 / P50 / P95</dt><dd>每种方法在同一组 {case_count} 个计划任务上的端到端耗时，包含通过与失败；三项不参与通过率排名。主矩阵调用跨日期、跨批次，不等同于同窗受控速度比较。</dd></div>'
        '<div><dt>审查结果</dt><dd>独立盲审覆盖数、审查方法和未决数。</dd></div>'
        '</dl></div></details>')
  directions={i:('acceptance_'+str(i),'max') for i in range(1,3+len(tracks))}
  directions.update({i:('all_latency_'+str(i),'min') for i in range(3+len(tracks),6+len(tracks))})
  rows=comparative_rows(rows,directions)
- return intro+help+table(heads,rows,'ranking-overall',True,'ranking',metrics=[]).replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
+ timing_note='<p>总耗时按每题所有物理调用累计，包含失败重试和重试等待；每题仍只计一个样本。'
+ if call_budget_seconds is not None:
+  timing_note+=f'<span>每次物理调用预算为 {call_budget_seconds:g} 秒，重试后的累计耗时可能超过该预算。</span>'
+ timing_note+='</p>'
+ return intro+timing_note+help+table(heads,rows,'ranking-overall',True,'ranking',metrics=[]).replace('<table class="ranking"','<table class="ranking" data-col="3" data-dir="desc"')
 
 def filter_controls(options,all_first=()):
  controls=''
@@ -1914,7 +1918,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   selected=[c for c in cases.values() if report_family(c)==track]
   coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if report_family(cases[r["case_id"]])==track})} 种已测方法'
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
- home+=section('综合通过率总榜',overall_ranking(records,cases,audit),'overall-ranking')
+ budgets={m['timeout_seconds'] for m in manifests if m.get('timeout_seconds') is not None}
+ home+=section('综合通过率总榜',overall_ranking(records,cases,audit,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None),'overall-ranking')
  if dataset.get('comparison',{}).get('kind')=='uniform_native_local_measurement':
   home+=section('同一任务集合的全部调用耗时',overview_all_call_latency(records,cases),'all-call-latency')
  home+=section(f'{track_label} 类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
@@ -2124,7 +2129,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   failure_review=failure_reviews.get(r['attempt_id'])
   if failure_review:
    cause_body='<p><strong>'+esc(failure_review['category_label'])+'</strong></p><p>'+esc(failure_review['reason'])+'</p>'
-   cause_body+='<p>处理结论：'+esc(failure_review['remediation_status'])+'</p><p>'+link('../guide/index.html#failure-review-'+r['attempt_id'],'同类失败与专题分析')+'</p>'
+   cause_body+='<p>处理结论：'+esc(failure_review['remediation_status'])+'</p><p>'+link('../guide/index.html#browser-'+r['provider'],'同类失败与专题分析')+'</p>'
    cause_body+='<details><summary>专题审查依据</summary><ul>'+''.join('<li>'+link('../'+item['path'],'证据 '+str(index))+'</li>' for index,item in enumerate(failure_review['evidence_paths'],1))+'</ul></details>'
    body+=section('失败原因专题核验',cause_body,'failure-review')
   reference_heading='完整标准答案' if c.get('task_kind')!='structure' else '标准答案与验收规则'
@@ -2244,6 +2249,13 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   from harness.report_languages import check_language_contract, generated_languages
   if ('en' in generated_languages(out)) != include_english:
    raise ValueError('Presentation refresh cannot change generated languages')
+  if not include_english:
+   from harness.report_languages import english_notice
+   (out/'en').mkdir(exist_ok=True)
+   (out/'en/index.html').write_text(english_notice(), encoding='utf-8')
+  from harness.report_languages import primary_report_language, select_report_language
+  if primary_report_language(out) == 'en':
+   select_report_language(out, 'en')
   check_language_contract(out)
  else:
   write_language_contract(out,include_english=include_english)

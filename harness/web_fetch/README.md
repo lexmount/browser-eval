@@ -910,7 +910,7 @@ Chromium 没有原生 Markdown，网页 HTML 使用固定版本的 node-html-mar
 
 Lightpanda 使用 `--dump markdown --json` 的原生正文；Obscura 使用其固定官方
 `HTML_TO_MARKDOWN_JS`，脚本哈希必须与所测版本绑定；Kitesurf 使用显式指定该浏览器
-的官方 `/markdown` 或 CDP 接口。Moli 的网页正文、文档正文、结构与网页媒体信息
+的官方 `/markdown` 或 CDP 接口。Moli 的网页正文、文档正文、结构与网页内嵌媒体
 统一使用原生 Markdown；网页媒体只核对同一次输出里的目标地址。直接媒体文件才走
 原始响应。禁止失败后切换为 HTML、JSON、网络跟踪或查看器脚本补结果。
 

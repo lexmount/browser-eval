@@ -352,3 +352,33 @@ def test_report_asset_update_rejects_unbound_provenance_before_writing(tmp_path,
             {'path':content.name,'sha256':hashlib.sha256(content.read_bytes()).hexdigest()},
             implementation_binding=candidate)
     assert {p.relative_to(evidence):p.read_bytes() for p in evidence.rglob('*') if p.is_file()} == before
+
+
+def test_parallel_offline_scoring_matches_serial_and_keeps_attempt_order(tmp_path):
+    from harness.web_fetch.rescoring import rescore
+    serial_root=tmp_path/'serial';parallel_root=tmp_path/'parallel'
+    serial_root.mkdir();parallel_root.mkdir()
+    serial,_,_=revision_fixture(serial_root,b'[]')
+    parallel,_,_=revision_fixture(parallel_root,b'[]')
+    for root in (serial,parallel):
+        original=json.loads((root/'results.jsonl').read_text())
+        rows=[{**original,'attempt_id':f'provider-{index}__one__r001','provider':f'provider-{index}'} for index in range(4)]
+        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        (root/'manifest.json').write_text(json.dumps({'attempt_ids':[row['attempt_id'] for row in rows]}))
+    assert rescore(serial,jobs=1)==rescore(parallel,jobs=2)==[]
+    def measured(root):
+        rows=[json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+        return [{key:value for key,value in row.items() if key!='scoring'} for row in rows]
+    assert measured(serial)==measured(parallel)
+    assert [row['attempt_id'] for row in measured(parallel)]==[f'provider-{i}__one__r001' for i in range(4)]
+    assert (serial/'answer.txt').read_bytes()==(parallel/'answer.txt').read_bytes()
+
+
+def test_parallel_offline_failure_leaves_original_results_unchanged(tmp_path):
+    from harness.web_fetch.rescoring import rescore
+    evidence,_,_=revision_fixture(tmp_path,b'[]')
+    before=(evidence/'results.jsonl').read_bytes()
+    (evidence/'answer.txt').write_text('Tampered artifact')
+    with pytest.raises(ValueError,match='Artifact differs|integrity|hash|SHA|sha'):
+        rescore(evidence,jobs=2)
+    assert (evidence/'results.jsonl').read_bytes()==before

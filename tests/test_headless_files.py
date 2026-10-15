@@ -226,11 +226,8 @@ class MoliNativeDeliveryTests(unittest.TestCase):
                                side_effect=AssertionError("external document conversion is forbidden")) as external:
                         result = provider.fetch(EvalCase("native-document", "Document", url, "document", [], track="document"), 10)
                     external.assert_not_called()
-                    if path == "/body.html":
-                        self.assertEqual(result.metadata["route"], "document_page_runtime")
-                    else:
-                        self.assertEqual(result.metadata["route"], "ordinary_markdown")
-                        self.assertEqual(result.metadata["output"], "markdown")
+                    self.assertEqual(result.metadata["route"], "ordinary_markdown")
+                    self.assertEqual(result.metadata["output"], "markdown")
                     if native.returncode == 0:
                         self.assertTrue(result.ok, result.error_message)
                         self.assertEqual(result.content.strip(), native.stdout.decode("utf-8", errors="replace").strip())
@@ -288,3 +285,64 @@ class MoliNativeDeliveryTests(unittest.TestCase):
                         files_b64=[base64.b64encode(file['data']).decode() for file in result.files])
         with patch(__name__ + ".BINARY", binary), patch(__name__ + ".fetch", native_fetch):
             control()
+
+
+class NativeAttachmentResolverTests(unittest.TestCase):
+    def test_attachment_cli_keeps_resolver_and_redirect_target_within_deadline(self):
+        import time
+        from contextlib import contextmanager
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from harness.web_fetch.providers.headless_worker import _native_browser_file
+        for original, target in (('https://example.test/file', 'https://example.test/file'),
+                                 ('https://example.test/redirect', 'https://cdn.example.test/file')):
+            with self.subTest(original=original):
+                class Page:
+                    def on(self, event, callback): self.callback = callback
+                    def goto(self, url, **kwargs):
+                        self.callback(SimpleNamespace(url=target))
+                @contextmanager
+                def resolver(mode, library, deadline, metadata):
+                    self.assertEqual((mode, library), ('public_doh', '/declared.dylib'))
+                    self.assertGreater(deadline, time.monotonic())
+                    yield {'DECLARED_RESOLVER': 'strict-public'}
+                    metadata.update(dns_mode=mode, dns_resolutions=[{'hostname':'cdn.example.test'}])
+                metadata = {}
+                with patch('harness.web_fetch.network_dns.native_process_dns_environment', resolver), patch(
+                    'harness.web_fetch.providers.headless_worker.subprocess.run',
+                    return_value=SimpleNamespace(returncode=0, stdout=PNG, stderr=b'')) as call:
+                    result = _native_browser_file(Page(), {'engine':'moli', 'binary':'/moli',
+                        'url':original, 'dns_mode':'public_doh', 'native_dns_library':'/declared.dylib'},
+                        5, time.monotonic(), metadata)
+                self.assertTrue(result['ok'])
+                self.assertIn(target, call.call_args.args[0])
+                self.assertEqual(call.call_args.kwargs['env'], {'DECLARED_RESOLVER':'strict-public'})
+                self.assertLessEqual(call.call_args.kwargs['timeout'], 5)
+                self.assertEqual(metadata['native_attachment_dns']['dns_resolutions'], [{'hostname':'cdn.example.test'}])
+
+
+    def test_attachment_timeout_retains_the_resolver_trace(self):
+        import subprocess
+        import time
+        from contextlib import contextmanager
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from harness.web_fetch.providers.headless_worker import _native_browser_file
+        class Page:
+            def on(self, event, callback): self.callback = callback
+            def goto(self, url, **kwargs): self.callback(SimpleNamespace(url=url))
+        @contextmanager
+        def resolver(mode, library, deadline, metadata):
+            try:
+                yield {'DECLARED_RESOLVER': 'strict-public'}
+            finally:
+                metadata['dns_resolutions'] = [{'hostname':'example.test'}]
+        metadata = {}
+        with patch('harness.web_fetch.network_dns.native_process_dns_environment', resolver), patch(
+            'harness.web_fetch.providers.headless_worker.subprocess.run',
+            side_effect=subprocess.TimeoutExpired('moli', 1)):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                _native_browser_file(Page(), {'engine':'moli', 'binary':'/moli',
+                    'url':'https://example.test/file', 'dns_mode':'public_doh'},
+                    5, time.monotonic(), metadata)
+        self.assertEqual(metadata['native_attachment_dns']['dns_resolutions'], [{'hostname':'example.test'}])

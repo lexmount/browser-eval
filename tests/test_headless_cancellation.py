@@ -65,7 +65,8 @@ else:
             cases = [EvalCase(name, name, 'https://example.test/' + name, 'web', [])
                      for name in ('slow', 'fast')]
             try:
-                records, _ = run_evaluation(output_dir=root / 'run',
+                with patch('socket.getaddrinfo', return_value=[(2,1,6,'',('93.184.216.34',443))]):
+                    records, _ = run_evaluation(output_dir=root / 'run',
                     dataset_meta={'id': 'cancellation', 'cases': []},
                     dataset_path=root / 'dataset.json', cases=cases,
                     providers=[provider], provider_config_path=root / 'providers.json',

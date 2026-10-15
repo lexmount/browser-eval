@@ -76,7 +76,15 @@ def _native_browser_file(page, request, route_timeout, start, meta):
                 remaining_ms()/1000, output_mode='file', ca_cert=request.get('ca_cert'),
                 http_proxy=request.get('http_proxy'))
             if request.get('block_private_networks'): command.append('--block-private-networks')
-            result = subprocess.run(command, capture_output=True, timeout=remaining_ms()/1000)
+            from harness.web_fetch.network_dns import native_process_dns_environment
+            attachment_dns = {}
+            meta['native_attachment_dns'] = attachment_dns
+            with native_process_dns_environment(
+                request.get('dns_mode', 'system'), request.get('native_dns_library'),
+                start + route_timeout, attachment_dns,
+            ) as process_environment:
+                result = subprocess.run(command, capture_output=True,
+                    timeout=remaining_ms()/1000, env=process_environment)
             if result.returncode: raise ValueError(result.stderr.decode('utf-8','replace'))
             raw = result.stdout
             meta.update(native_attachment_interface='moli_cli_raw_response',

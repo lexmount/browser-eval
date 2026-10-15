@@ -64,6 +64,19 @@ def preflight_guarded_providers(providers, cases):
             and provider.config.get("engine") != "kitesurf"
         )
     ]
+    isolated = [provider for provider in selected
+                if provider.config.get("network_policy") == "loopback_only"
+                and provider.config.get("allow_private_network") is True]
+    if isolated:
+        for case in cases:
+            host = urlsplit(case.url).hostname
+            try:
+                loopback = ipaddress.ip_address(host).is_loopback
+            except ValueError:
+                loopback = host == "localhost"
+            if not loopback:
+                raise ValueError("Isolated fixture runs require loopback task URLs")
+        selected = [provider for provider in selected if provider not in isolated]
     if not selected:
         return None
     modes = {validate_dns_mode(provider.config.get("dns_mode", "system")) for provider in selected}

@@ -137,17 +137,13 @@ class DynamicListTests(unittest.TestCase):
         )
         self.assertEqual(extract_named_entries(prose, self.contract, 'https://example.com/'), [])
 
-    def test_image_link_uses_its_accessible_name_without_requiring_a_heading(self):
-        content = (
-            '[![First title](https://img.example/1.jpg)](/item/1)\n\n'
-            '[Category](/category)\n\n## First title\n\nDescription\n\n'
-            '[![Second title](https://img.example/2.jpg)](/item/2)\n\n'
-            '## Different heading\n'
-        )
-        self.assertEqual(extract_named_entries(content, self.contract, 'https://example.com/'), [
-            {'url': 'https://example.com/item/1', 'title': 'First title'},
-            {'url': 'https://example.com/item/2', 'title': 'Second title'},
-        ])
+    def test_image_alternative_and_unlinked_heading_do_not_name_a_record(self):
+        content = ('[![First title](https://img.example/1.jpg)](/item/1)\n\n'
+                   '## Different visible title\n\nDescription\n')
+        self.assertEqual(extract_named_entries(content, self.contract, 'https://example.com/'), [])
+        visible = content.replace('Different visible title', 'First title')
+        self.assertEqual(extract_named_entries(visible, self.contract, 'https://example.com/'), [
+            {'url': 'https://example.com/item/1', 'title': 'First title'}])
 
     def check(self, text, ok=True):
         return evaluate_dynamic_list(text, self.contract, "https://example.com", ok)
@@ -202,7 +198,7 @@ class DynamicListTests(unittest.TestCase):
         accessible_image_links = "\n".join(
             f"[![New title {i}](https://img.test/{i}.png)](/item/{i})" for i in range(3)
         )
-        self.assertTrue(self.check(accessible_image_links)["structure_pass"])
+        self.assertFalse(self.check(accessible_image_links)["structure_pass"])
         text = "\n".join(f"- {i}\nhttps://example.com/item/{i}" for i in range(10))
         self.assertEqual(self.check(text)["named_entry_count"], 0)
 
@@ -254,3 +250,12 @@ class DynamicListTests(unittest.TestCase):
                 }
             ],
         )
+
+
+def test_long_non_table_output_keeps_linear_processing_cost():
+    import time
+    from harness.web_fetch.structured_tables import table_text_surface
+    body = '\n'.join('Ordinary prose line number ' + str(i) for i in range(20000))
+    started = time.monotonic()
+    assert table_text_surface(body) == body
+    assert time.monotonic() - started < 1.5

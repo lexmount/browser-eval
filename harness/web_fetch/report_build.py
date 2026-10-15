@@ -1293,9 +1293,9 @@ def validate_local_presentation(output: Path, binding_path: Path):
     if (binding.get('comparison_kind') != 'uniform_native_local_measurement'
             or manifest.get('evidence_state') != 'local_measurement'
             or manifest.get('certified') is not False
-            or manifest.get('languages') != ['zh']
+            or manifest.get('languages') not in (['zh'], ['zh', 'en'])
             or not (output / '.generated-report').is_file()):
-        raise ValueError('Presentation refresh requires a bound Chinese diagnostic snapshot')
+        raise ValueError('Presentation refresh requires a bound diagnostic snapshot')
     for name, key in [('dataset.json', 'frozen_dataset_sha256'), ('results.jsonl', 'results_sha256')]:
         expected = binding.get(key)
         manifest_key = 'dataset_sha256' if name == 'dataset.json' else key
@@ -1334,12 +1334,15 @@ def refresh_local_presentation(output: Path, binding_path: Path) -> Path:
     routes = ['index.html', 'methodology/index.html', 'adoption/index.html', 'reproduce/index.html', 'changes/index.html']
     routes += ['providers/' + provider + '.html' for provider in binding['providers']]
     routes += ['adoption/interfaces/' + provider + '.json' for provider in binding['providers']]
+    include_english = 'en' in manifest['languages']
+    if include_english:
+        routes += ['en/' + relative for relative in routes if relative.endswith('.html')]
     with tempfile.TemporaryDirectory(prefix='.presentation-', dir=output.parent) as scratch:
         staging = Path(scratch) / 'report'
         shutil.copytree(output, staging)
         shutil.rmtree(staging / 'en', ignore_errors=True)
         batches = json.loads((output / 'execution.json').read_text())['batches']
-        generate(staging, dataset, records, batches, presentation_only=True)
+        generate(staging, dataset, records, batches, include_english=include_english, presentation_only=True)
         changed = []
         for relative in routes:
             before, after = contained_path(output, relative), contained_path(staging, relative)

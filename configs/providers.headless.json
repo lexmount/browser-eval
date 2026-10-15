@@ -11,16 +11,12 @@
       "type": "headless_markdown",
       "engine": "lightpanda",
       "binary": "${LIGHTPANDA_BINARY:-lightpanda}",
-      "dns_mode": "public_doh",
-      "native_dns_library": "${MOLI_NATIVE_DNS_LIBRARY}",
       "resource_binary": "/usr/local/bin/lightpanda"
     },
     "obscura": {
       "type": "headless_markdown",
       "engine": "obscura",
       "binary": "${OBSCURA_BINARY:-obscura}",
-      "dns_mode": "public_doh",
-      "native_dns_library": "${MOLI_NATIVE_DNS_LIBRARY}",
       "resource_binary": "/usr/local/bin/obscura"
     },
     "moli-1.0.6": {
@@ -52,8 +48,6 @@
       "label": "Moli 1.1.15（正式版）",
       "source_url": "https://github.com/lexmount/moli/releases/tag/v1.1.15",
       "binary": "${MOLI_1_1_15_BINARY}",
-      "dns_mode": "public_doh",
-      "native_dns_library": "${MOLI_NATIVE_DNS_LIBRARY}",
       "expected_reported_version": "${MOLI_1_1_15_REPORTED_VERSION}",
       "expected_binary_sha256": "${MOLI_1_1_15_BINARY_SHA256}"
     },
@@ -63,8 +57,6 @@
       "label": "Moli 修复版（聚合 PR #1501）",
       "source_url": "https://github.com/lexmount/moli/pull/1501",
       "binary": "${MOLI_FIXED_BINARY}",
-      "dns_mode": "public_doh",
-      "native_dns_library": "${MOLI_NATIVE_DNS_LIBRARY}",
       "expected_reported_version": "${MOLI_FIXED_REPORTED_VERSION}",
       "expected_binary_sha256": "${MOLI_FIXED_BINARY_SHA256}"
     },
@@ -87,7 +79,6 @@
       "type": "headless_markdown",
       "engine": "chromium",
       "binary": "${CHROMIUM_BINARY}",
-      "dns_mode": "public_doh",
       "resource_binary": "/usr/bin/chromium"
     }
   },

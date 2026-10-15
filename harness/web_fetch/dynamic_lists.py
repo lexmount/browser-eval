@@ -653,24 +653,6 @@ def _markdown_named_items(content, contract, scope, excluded_spans=frozenset()):
         for nested in reversed(nested_images):
             if nested.is_image:
                 non_image_label=non_image_label[:nested.start]+non_image_label[nested.end:]
-        # ``<a><img alt="Accessible name"></a>`` has the image alternative as
-        # the link's accessible name. Native Markdown represents that ownership
-        # as ``[![Accessible name](image)](detail)``. Accept the name only when
-        # it is the sole label and is specific enough to identify a record.
-        if (
-            not non_image_label.strip()
-            and len(nested_images) == 1
-        ):
-            image_name = re.sub(
-                r'\s+', ' ', visible_markdown_links(nested_images[0].label)
-            ).strip()
-            if image_name and not re.fullmatch(
-                r'(?i)(?:product|item)?\s*(?:image|photo|picture|thumbnail)'
-                r'|(?:no|unavailable|missing)\s+(?:image|photo|picture)'
-                r'|logo|poster|cover|icon|封面|海报|缩略图|图像|图标|(?:商品|产品)?图片',
-                image_name,
-            ):
-                non_image_label = image_name
         if (not non_image_label.strip() if contract.get('name_validation') == 'nonempty'
                 else not re.search(r'[\w\u3400-\u9fff]',non_image_label)):
             continue

@@ -49,6 +49,10 @@ Use dependency impact, not convenience:
 
 Never overwrite old evidence or select a later response because it scores better. Assemble a new complete evidence view atomically, record inherited versus rerun attempts, and verify all downstream bindings.
 
+Before a cohort-wide offline recomputation, finish the paired controls and compare the known affected output family with its independent judgments. Cover equivalent serializers and adjacent invalid forms together, including visible text outside a link, image alternatives, and record ownership. Batch the shared corrections before the expensive sweep; do not rerun unchanged browser calls. Bound both worker count and queued payloads when saved outputs or logs are large.
+
+A subresource network error does not establish a main-navigation failure. Failure categories must agree with the reviewed cause and its actual stage; keep missing embedded content, unsupported direct-file conversion, empty output, and process crashes distinct. Interpretation pages show complete distributions and representative evidence. Full per-result diagnoses belong in the existing result inventory and details.
+
 ## Revision receipts
 
 A score-only revision must record old and new dataset/result hashes, changed fields, decision changes, provider call count of zero, reviewer binding, and predecessor history hash. A new provider call must receive a new call identity and must not be described as a scoring correction.

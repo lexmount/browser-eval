@@ -21,7 +21,7 @@ REPORT_FAMILIES = {
     'challenge': '热门网站正文',
     'risk_control': '风控网页正文',
     'document': '文档正文',
-    'web_media': '网页媒体信息',
+    'web_media': '网页内嵌媒体',
     'media_file': '直接媒体文件',
 }
 

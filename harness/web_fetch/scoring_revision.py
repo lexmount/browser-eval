@@ -102,6 +102,7 @@ def _revise_unlocked(
     root_cause: str,
     regression_ids: list[str],
     validate_only: bool = False,
+    jobs: int = 1,
 ):
     # Validate correction intent and executable controls before touching evidence.
     provenance = correction_provenance(root_cause_category, root_cause, regression_ids)
@@ -191,6 +192,7 @@ def _revise_unlocked(
             allow_rule_revision=True,
             reference_revision_hashes=revised_reference_hashes or None,
             validate_only=validate_only,
+            jobs=jobs,
         )
     except BaseException:
         # Never roll stale bytes over a different process's completed revision.
@@ -326,6 +328,7 @@ def revise(
     root_cause: str,
     regression_ids: list[str],
     validate_only: bool = False,
+    jobs: int = 1,
 ):
     """Serialize evidence revisions and make rollback ownership explicit."""
     source = source.resolve()
@@ -341,6 +344,7 @@ def revise(
                 root_cause=root_cause,
                 regression_ids=regression_ids,
                 validate_only=validate_only,
+                jobs=jobs,
             )
         finally:
             fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
@@ -364,6 +368,7 @@ def main(argv=None):
         required=True,
         help="Executable case id from evaluation/scoring-regressions.json; repeat as needed",
     )
+    parser.add_argument("--jobs",type=int,default=1,help="Parallel offline scoring workers (1–8); no provider calls")
     args = parser.parse_args(argv)
     print(
         json.dumps(
@@ -373,6 +378,7 @@ def main(argv=None):
                 root_cause_category=args.root_cause_category,
                 root_cause=args.root_cause,
                 regression_ids=args.regression_id,
+                jobs=args.jobs,
             ),
             ensure_ascii=False,
             indent=2,

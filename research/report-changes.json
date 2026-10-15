@@ -1284,6 +1284,79 @@
   ],
   "releases": [
     {
+      "id": "2026-10-15-browser-native-430-visible-names-latency",
+      "date": "2026-10-15",
+      "publication_state": "published",
+      "comparison_kinds": [
+        "headless_markdown"
+      ],
+      "scoring_revision_input_sha256": [
+        "f48fa481d5467694b1f42184af0fbbd068686ef91f292d8d25780667897f8754",
+        "b72b6fe3125bf44e973ff9240511fd665d170bc9317e8aa55dfdce362b308ee5",
+        "703d47576bbf63dc72c60f428413444f5aa1155d152f1460976b6ca2c9cad559"
+      ],
+      "title": "纠正可见名称评分，说明耗时差异并精简报告解读",
+      "summary": "六种方法各 430 题。修复版 Moli 为 385/430，Lightpanda 为 229/430，其它方法不变。统一评分修正规则作用于全部保存输出，没有新增浏览器调用。报告说明重试与等待条件带来的耗时差异，并精简接口矩阵和失败解读。",
+      "changes": [
+        [
+          "可见条目名称",
+          "图片替代文字被误计为可见商品名；部分原生输出中的可见地址又被漏计。",
+          "统一评分规则区分图片替代文字与可见文本，识别相邻名称及其所属字段，并防止跨条目借用。",
+          "Moli 修复版 386→385，Lightpanda 228→229；其它方法不变。"
+        ],
+        [
+          "耗时口径",
+          "表头没有说清重试成本和不同等待条件。",
+          "标明总耗时包含重试，补充最后一次调用耗时、额外成本和各方法等待方式。",
+          "原始耗时不变；这些数据不能单独证明浏览器内核或两个版本的速度差异。"
+        ],
+        [
+          "报告解读",
+          "长表格重复接口说明和逐条失败记录，阅读主线不清。",
+          "压缩七类任务与六种方法的接口矩阵，逐方法解释失败分布，保留可检查的参考与输出实例。",
+          "完整逐条诊断仍在结果分析和详情页；统一使用“网页内嵌媒体”。"
+        ],
+        [
+          "失败原因",
+          "部分子资源、内嵌文档和空正文问题归类不准确。",
+          "纠正 13 条原因分类，并展示运行时错误的准确节选。",
+          "共 950 条失败、2,580 条结果均有审查结论；浏览器输出和调用次数不变。"
+        ]
+      ],
+      "i18n": {
+        "en": {
+          "title": "Correct visible-name scoring, explain timing and simplify interpretation",
+          "summary": "Each of six methods retains 430 tasks. Fixed Moli scores 385/430 and Lightpanda 229/430; other scores are unchanged. Shared scoring corrections apply to retained outputs without new provider calls. The report explains retry and readiness costs and simplifies interface and failure interpretation.",
+          "changes": [
+            [
+              "Visible names",
+              "Image alternative text was accepted as a visible product name, while some visible addresses in native output were omitted.",
+              "Separate image alternatives from visible text, associate adjacent names and fields, and reject cross-record borrowing.",
+              "Fixed Moli changes from 386 to 385; Lightpanda from 228 to 229. Other scores stay unchanged."
+            ],
+            [
+              "Timing population",
+              "Headers did not explain retry costs or different readiness conditions.",
+              "Label cumulative task time and show final-call time, additional costs and readiness policies.",
+              "Raw timings stay unchanged. They do not isolate engine speed or a causal version-to-version speed difference."
+            ],
+            [
+              "Interpretation",
+              "Long cells repeated interface descriptions and per-result diagnoses.",
+              "Condense the seven-family, six-method matrix, explain each method’s failure distribution and retain inspectable examples.",
+              "Complete diagnoses remain in result analysis and details. Rename the family to embedded webpage media."
+            ],
+            [
+              "Failure causes",
+              "Some subresource, embedded-document and empty-body failures had incorrect categories.",
+              "Correct 13 cause categories and expose precise runtime-error excerpts.",
+              "All 950 failures and 2,580 results retain reviewed conclusions. Output bytes and provider call counts are unchanged."
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "2026-10-15-browser-native-430-failure-topic",
       "date": "2026-10-15",
       "publication_state": "published",
@@ -1291,8 +1364,7 @@
         "headless_markdown"
       ],
       "scoring_revision_input_sha256": [
-        "ad92f548180df2d498f4a49b4e7643b17df332a634888794d3d42d362e3f3a81",
-        "f48fa481d5467694b1f42184af0fbbd068686ef91f292d8d25780667897f8754"
+        "ad92f548180df2d498f4a49b4e7643b17df332a634888794d3d42d362e3f3a81"
       ],
       "title": "补齐全部失败原因，纠正原生接口调用与新闻日期识别",
       "summary": "六种方法各 430 题，共 2,580 个结果。Chromium 两条跳转提取问题纠正后通过数从 232 改为 234；其余方法通过数不变。最新 950 条失败全部有专题分类、原因和证据。报告解读按范围、结果、实例、配置、失败和结论重写。",

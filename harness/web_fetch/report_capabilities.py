@@ -154,7 +154,7 @@ SOURCES['moli'] = ('Moli 1.1.4 · WebFetch skill', 'https://github.com/lexmount/
 SOURCES['moli-recipes'] = ('Moli 1.1.4 · 输出与接口边界', 'https://github.com/lexmount/moli/blob/v1.1.4/skills/moli-webfetch/references/fetch-recipes.md')
 SOURCES['moli-release'] = ('Moli 1.1.4 · 官方发布', 'https://github.com/lexmount/moli/releases/tag/v1.1.4')
 CAPABILITIES['moli-webfetch'] = {
- 'scope':'moli fetch；网页、文档正文、结构和网页媒体信息使用原生 Markdown，预声明完成条件只调用官方等待参数，直接媒体文件使用原始响应', 'sources':['moli','moli-recipes','moli-release'],
+ 'scope':'moli fetch；网页、文档正文、结构和网页内嵌媒体使用原生 Markdown，预声明完成条件只调用官方等待参数，直接媒体文件使用原始响应', 'sources':['moli','moli-recipes','moli-release'],
  'web':c('支持','JS 渲染网页 → Markdown / HTML'),
  'document':c('需配置','裸 fetch 取得原始 PDF 后在同一预算内本地解析；Office 取决于实际响应'),
  'image':c('有限支持','原生 Markdown 中保留的图片地址；直接文件可验收原始字节'),
@@ -165,7 +165,7 @@ CAPABILITIES['moli-webfetch'] = {
  'structure':'网页与文档任务由 --dump markdown 返回原生 Markdown；直接媒体文件返回原始字节；等待条件不参与内容抽取。',
  'access':'支持授权 cookie-file / profile-dir 和请求头；仍可能被站点拒绝。默认适配器不加载登录状态。',
  'notes':'截图和 PDF 是启用 --layout 后生成的页面产物，不是读取已有文档或下载原媒体。官方未承诺文档 OCR、媒体理解或音频转写；直接非 HTML 输入不强制使用 Markdown。',
- 'tested':'网页正文、文档正文、结构和网页媒体信息任务统一使用 Moli 原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不使用逐题 selector。网页媒体只核对同一 Markdown 输出里的目标地址，不下载媒体。直接 PDF/DOCX 未提供可读正文时按失败记录；直接媒体文件验收原始字节。失败后不切换格式，也不借用其他 provider 补抓；只有实际执行记录参与榜单。',
+ 'tested':'网页正文、文档正文、结构和网页内嵌媒体任务统一使用 Moli 原生 Markdown；动态网站正文整类统一启用 --layout、--with-frames 和 domstable，不使用逐题 selector。网页媒体只核对同一 Markdown 输出里的目标地址，不下载媒体。直接 PDF/DOCX 未提供可读正文时按失败记录；直接媒体文件验收原始字节。失败后不切换格式，也不借用其他 provider 补抓；只有实际执行记录参与榜单。',
 }
 CAPABILITIES['lexmount-cn'] = {**CAPABILITIES['lexmount-global'], 'scope': 'POST /v1/extract · 中国区'}
 for engine,url in {
@@ -259,7 +259,7 @@ def task_capabilities(out, names, records):
                  '原生接口读取地址、页面元数据或原始字节；不做媒体理解'),
             file=c('原生获取','使用该浏览器原始响应或附件接口，按固定规则验收字节'),
             structure='按任务交付 Markdown、文档正文、资源地址、媒体元数据或原始文件。',
-            notes=('浏览器负责访问与原生产物获取；网页媒体信息与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。'
+            notes=('浏览器负责访问与原生产物获取；网页内嵌媒体与正文统一走原生 Markdown，共同评分器只核对目标资源 URL；只有 Chromium 使用标准 HTML 转 Markdown 包。完整分类及边界见报告解读的接口表。'
                    if engine!='chromium' else
                    'Chromium 负责访问和渲染；所有页面类任务都取得完整 HTML，再由固定标准包转成 Markdown。评测端不运行资源提取脚本，也不读取文档查看器私有对象。完整分类及边界见报告解读的接口表。'),
             tested='接口按任务大类预选；获取、等待和原生输出共享 45 秒预算。Chromium 的 HTML 转换也计入该预算。失败不切换引擎，不按评分结果选择更好的返回。')

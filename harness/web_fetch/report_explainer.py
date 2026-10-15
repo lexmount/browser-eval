@@ -829,7 +829,7 @@ def load_browser_failure_review(out, cases, records, content):
     return indexed
 
 
-def browser_example_evidence(out, case, row):
+def browser_example_evidence(out, case, row, *, focus=None):
     """Project saved scoring evidence for a compact example; never rescore outputs."""
     from .report_components import task_instruction
     m = row['metrics']
@@ -889,8 +889,46 @@ def browser_example_evidence(out, case, row):
             add(field,title,'满足本题登记要求',m[field],m[field])
     accepted = task_passed(row['ok'],m,case.get('task_kind','body'))
     add('task','最终任务判定','满足完整验收规则',accepted,accepted)
+    # Prefer frozen rule evidence and corresponding body paragraphs to navigation.
+    facts=case.get('required_facts') or []
+    if facts:
+        expected=task_instruction(case)+'\n\n必需内容：\n'+'\n'.join(text(fact.get('any',fact.get('alternatives',fact))) for fact in facts)+'\n\n'+str(reference or '')
+    if case.get('acceptance_contract'):
+        contract=case['acceptance_contract']
+        labels={'body_text':'稳定正文','named_link':'带名称的目标链接记录','table':'表格','quote':'名言记录','taxonomy_family':'龟科目录'}
+        requirements=[task_instruction(case),'验收内容：'+labels.get(contract.get('schema'),str(contract.get('schema')))]
+        if contract.get('minimum_records'):
+            requirements.append('完整且唯一的记录至少 '+str(contract['minimum_records'])+' 条。')
+        if contract.get('entry_path'):
+            requirements.append('目标记录链接格式：'+contract['entry_path'])
+        anchors=contract.get('stable_text_anchors') or []
+        if anchors:
+            requirements.append('必需的可见文字（节选）：'+ '；'.join(' / '.join(item.get('alternatives') or []) for item in anchors[:8]))
+        if contract.get('required_fields'):
+            requirements.append('每条记录必需字段：'+text(contract['required_fields']))
+        if reference:
+            requirements.append('冻结要求节选：\n'+str(reference)[:1500])
+        expected='\n\n'.join(requirements)
+    full_actual_chars=len(actual)
+    if focus:
+        if not isinstance(focus,str) or focus not in actual:
+            raise ValueError('Browser example focus is absent from measured output')
+        start=actual.index(focus)
+        actual=actual[start:start+3600]
+    else:
+        urls=[url for item in m.get('resource_results',[]) for url in item.get('matched_urls',[])]
+        located=next((actual.index(url) for url in urls if url in actual),None)
+        if located is not None:
+            start=actual.rfind('\n',0,located)+1
+            actual=actual[max(start,located-500):located+2500]
+        elif len(actual)>3600:
+            paragraphs=actual.split('\n\n')
+            substantive=[part for part in paragraphs if len(part)>100 and sum(len(link) for link in re.findall(r'\[[^\]]*\]\([^)]*\)',part))<len(part)*0.7]
+            if substantive:
+                actual='\n\n[…节选…]\n\n'.join(substantive[:5])[:3600]
+    actual=re.sub(r'data:image/[^;,)\s]+;base64,[A-Za-z0-9+/=]+','[内嵌图片字节省略，完整输出保留]',actual)
     return {'expected':expected[:3600], 'actual':actual[:3600], 'checks':checks,
-            'expected_chars':len(expected), 'actual_chars':len(actual),
+            'expected_chars':len(expected), 'actual_chars':full_actual_chars,
             'run_id':str(row.get('run_id') or row.get('attempt_id')), 'passed':accepted}
 
 
@@ -939,7 +977,7 @@ def current_browser_article_model(out, cases, records, binding):
         if row is None or not isinstance(item.get('explanation'), str) or not item['explanation'].strip():
             raise ValueError('Browser example requires a measured result and explanation')
         examples.append({'row': row, 'explanation': item['explanation'],
-                         'evidence': browser_example_evidence(out,cases[row['case_id']],row)})
+                         'evidence': browser_example_evidence(out,cases[row['case_id']],row,focus=item.get('focus'))})
     stats = {}
     from .report_interfaces import method_provenance, method_version
     provenance = method_provenance(out)
@@ -956,10 +994,18 @@ def current_browser_article_model(out, cases, records, binding):
             raise ValueError('Browser chapter requires a measured explanation')
         versions = sorted({str(method_version(row,provenance) or '') for row in rows} - {''})
         groups = {track: [row for row in rows if report_family(cases[row['case_id']]) == track] for track in tracks}
+        final_times=[]
+        physical_calls=0
+        for row in rows:
+            attempts=((row.get('provider_metadata') or {}).get('retry') or {}).get('attempts') or []
+            physical_calls+=len(attempts) or 1
+            final_times.append(attempts[-1]['elapsed_ms'] if attempts else row['elapsed_ms'])
         stats[name] = {'version': ' / '.join(versions) if versions else '托管服务，内部版本未公开' if name == 'kitesurf' else '未提供版本',
                        'passed': len(successes), 'pass_rate': len(successes)/len(cases),
                        'tracks': {track: {'passed': sum(passed(row) for row in subset), 'n': len(subset)} for track,subset in groups.items()},
                        'all': distribution(rows), 'successful': distribution(successes),
+                       'physical_calls':physical_calls, 'final_call_mean_ms':statistics.mean(final_times),
+                       'prior_call_mean_ms':statistics.mean(row['elapsed_ms'] for row in rows)-statistics.mean(final_times),
                        'failure_counts': dict(Counter(row.get('error_type') or 'acceptance' for row in failures)),
                        'reviewed_failure_counts': dict(Counter(failure_review[row['attempt_id']]['category'] for row in failures)) if failure_review else {},
                        'failure_reviews': [failure_review[row['attempt_id']] for row in failures] if failure_review else [],
@@ -996,7 +1042,7 @@ def _offline_browser_article(body, out, cases, model):
                  '<pre>'+escape(json.dumps(case,ensure_ascii=False,indent=2))+'</pre>')
         raw = contained_path(out,row['artifact_path']).read_text(encoding='utf-8',errors='replace')
         payload = '<h3>完整实际返回</h3><pre data-standalone-output="'+escape(name)+'">'+escape(raw)+'</pre>'
-        payload += '<h3>结果与评分</h3><pre>'+escape(json.dumps(row,ensure_ascii=False,indent=2))+'</pre>'
+        payload += '<h3>结果与评分</h3><pre>'+escape(json.dumps({key:row[key] for key in ('attempt_id','provider','case_id','run_id','started_at','elapsed_ms','ok','status_code','error_type','metrics') if key in row},ensure_ascii=False,indent=2))+'</pre>'
         for binding in record_public_call_log_bindings(row):
             log = verify_public_call_log(out,binding).read_text()
             payload += '<h3>调用日志</h3><pre>'+escape(log)+'</pre>'
@@ -1010,19 +1056,24 @@ def _offline_browser_article(body, out, cases, model):
         evidence('../attempts/'+row['attempt_id']+'.html', 'offline-result-'+row['attempt_id'],
                  '实例返回与判定 · '+row['case_id'],
                  '<p>'+escape(example['explanation'])+'</p><pre>'+escape(json.dumps(row,ensure_ascii=False,indent=2))+'</pre>')
+    referenced={anchor.get('href') for anchor in document.select('a[href]')}
     for item in model.get('failure_review', {}).values():
-        targets.setdefault('../attempts/'+item['attempt_id']+'.html', '#failure-review-'+item['attempt_id'])
-        for binding in item['evidence_paths']:
-            # Evidence remains in the hosted report; avoid copying full logs into the standalone article.
-            targets.setdefault('../'+binding['path'], '#failure-review-'+item['attempt_id'])
+        target='../attempts/'+item['attempt_id']+'.html'
+        if target in referenced and target not in targets:
+            evidence(target,'offline-failure-'+item['attempt_id'],'失败原因 · '+item['case_id'],
+                     '<p>'+escape(item['category_label'])+'：'+escape(item['reason'])+'</p><p>'+escape(item['remediation_status'])+'</p>')
+    for route,title in (('../analysis/index.html','全部逐题结果'),('../methodology/index.html','评测方法'),('../adoption/index.html','方法介绍')):
+        evidence(route,'offline-'+route.split('/')[1],title,'<p>完整调用及逐题结果见报告的对应栏目；本文保留各类原因的代表证据。</p>')
     for image in document.select('img[data-browser-figure]'):
         relative = image['data-browser-figure']
         suffix = Path(relative).suffix.lower()
         mime = 'image/jpeg' if suffix in {'.jpg','.jpeg'} else 'image/'+suffix[1:]
         image['src'] = 'data:'+mime+';base64,'+base64.b64encode(contained_path(out,relative).read_bytes()).decode('ascii')
     if (out/'result-review.json').is_file():
-        evidence('../review/index.html','offline-review','独立审查记录',
-                 '<pre>'+escape((out/'result-review.json').read_text())+'</pre>')
+        review=json.loads((out/'result-review.json').read_text())
+        summary={key:review[key] for key in ('reviewed_attempts','total_attempts','expected_attempts','accepted_unreviewed_passes','disagreements','unresolved') if key in review}
+        evidence('../review/index.html','offline-review','独立审查范围',
+                 '<pre>'+escape(json.dumps(summary,ensure_ascii=False,indent=2))+'</pre>')
     for anchor in document.select('a[href]'):
         href = anchor['href']
         if href in targets:
@@ -1069,12 +1120,40 @@ def _browser_network_rows(records, providers):
     return rows
 
 
-def _browser_error_excerpt(row, has_failures):
-    error = str(row.get('error_message') or (
+def _browser_error_excerpt(row, has_failures, *, reviewed_error=None):
+    error = str(reviewed_error or row.get('error_message') or (
         '未满足完整验收规则；逐项期望与实际值见结果详情。' if has_failures else '满足该题验收规则。'))
     if len(error) > 4000:
-        return '错误过长，仅展示最后 4,000 字符；完整错误和日志见结果详情。\n'+error[-4000:]
+        matches=list(re.finditer(r'(?im)^.*(?:panicked at|FATAL ERROR|fatal runtime error|WeakMap\.get|FINAL ERROR:|\bError:).*$',error))
+        fragments=[]
+        for match in (matches[:2]+matches[-2:]):
+            fragment=error[max(0,match.start()-80):min(len(error),match.end()+300)]
+            if fragment not in fragments:fragments.append(fragment)
+        excerpt=('\n[…节选…]\n'.join(fragment[:450] for fragment in fragments)+'\n[…结尾…]\n'+error[-1800:])[:4000] if fragments else error[-4000:]
+        return '错误过长，仅节选关键错误及结尾；完整错误和日志见结果详情。\n'+excerpt
     return error
+
+
+
+def _browser_wait_summary(records, name):
+    labels={'done':'原生默认完成（done）','domstable':'DOM 稳定（domstable）',
+            'load':'文档加载完成（load）','networkidle2':'网络静默（networkidle2）',
+            'load + adaptive settle':'文档加载后自适应静默等待',
+            'automatic raw response':'自动原始响应',
+            'navigation response bytes':'导航响应字节',
+            'browser response bytes or completed native download':'响应字节或原生下载完成'}
+    waits=Counter(str((row.get('provider_metadata') or {}).get('wait_until') or '未记录')
+                  for row in records if row['provider']==name)
+    return '；'.join(labels.get(wait,wait)+'：'+str(count)+' 题' for wait,count in waits.items())
+
+
+def _browser_reviewed_error(out, model, row):
+    item=model['failure_review'].get(row['attempt_id'],{})
+    relative=item.get('error_excerpt_path')
+    if not relative:return None
+    if relative not in {binding['path'] for binding in item['evidence_paths']}:
+        raise ValueError('Program error excerpt has no verified evidence binding')
+    return contained_path(out,relative,reject_symlinks=True).read_text()
 
 
 def _render_current_browser_article(out, cases, records, binding):
@@ -1097,11 +1176,11 @@ def _render_current_browser_article(out, cases, records, binding):
                 +'" data-value="'+('' if value is None else str(value))+'"'
                 + (' data-winner="true" class="good"' if winner else '')+'>'+text+'</span>')
     def latency_table(population):
-        return _table(['浏览器', '样本数', '平均耗时 · ms', 'P50 · ms', 'P95 · ms'], [
+        return _table(['浏览器', '样本数', '平均总耗时 · ms', 'P50 · ms', 'P95 · ms'], [
             (label(name), str(stats[name][population]['n']), *(
                 metric(name, population+'_'+key, stats[name][population][key],
                        [stats[n][population][key] for n in names]) for key in ('mean','p50','p95')))
-            for name in names], '同一行三个耗时指标使用相同样本；每个逻辑结果只计一次。')
+            for name in names], '均值、P50、P95 使用同一行样本；每题只计一次，耗时含该题重试。')
     body = '<article class="wrap browser-interpretation" data-browser-interpretation="1"><h1>'+escape(content['title'])+'</h1>'
     dates = sorted({row['started_at'][:10] for row in records})
     body += '<p class="tiny">调用日期：'+escape('、'.join(dates))+'</p>'
@@ -1110,7 +1189,7 @@ def _render_current_browser_article(out, cases, records, binding):
                       +'" src="../'+escape(item['path'],quote=True)+'" alt="'+escape(item['alt'],quote=True)
                       +'" style="display:block;width:100%;height:auto"><figcaption>'+escape(item['caption'])+'</figcaption></figure>'
                       for item in model['figures'])
-    body += section('这次测什么', paragraph(content.get('background', content['intro']))+figures, 'scope')
+    body += section('这次测什么', paragraph(content.get('background', content['intro'])), 'scope')
     body += section('整体任务通过率', _table(['浏览器','实测版本','通过数 / 总数','任务通过率'], [
         (label(name), escape(stats[name]['version']), f'{stats[name]["passed"]}/{model["cases"]}',
          metric(name,'pass_rate',stats[name]['pass_rate'],[stats[n]['pass_rate'] for n in names],True))
@@ -1124,9 +1203,7 @@ def _render_current_browser_article(out, cases, records, binding):
         (escape(BROWSER_FAMILY_NAMES[track]), *(family_cell(name,track) for name in names))
         for track in model['tracks']], '分组单元格为通过数 / 该组总数及通过率；专项结果不能代替整体排名。'), 'families')
     from .report_interfaces import browser_task_interface_matrix
-    interfaces = browser_task_interface_matrix(cases, names, records)
-    native = _table(['浏览器','Markdown 能力与本次调用'], [
-        ('<span style="white-space:nowrap">'+label(name)+'</span>', escape(interfaces['capabilities'][name])) for name in names], 'Markdown 能力指网页转换；不代表 PDF、DOCX 或媒体文件解析能力。')
+    interfaces = browser_task_interface_matrix(cases, names, records, compact=True)
     route_rows = []
     for row in interfaces['rows']:
         cells = []
@@ -1134,33 +1211,44 @@ def _render_current_browser_article(out, cases, records, binding):
             parts = row['cells'][name]
             cells.append('<div data-browser-interface="'+escape(name)+'" data-track="'+escape(row['track'])+'">'
                          + '<br><br>'.join('<span data-route-mode="'+escape(part['mode'])+'" data-case-count="'+str(part['count'])+'">'
-                           +str(part['count'])+' 题：'+escape(part['description'])+'<br>等待：'+escape(part['wait'])+'</span>' for part in parts)+'</div>')
+                           +str(part['count'])+' 题：'+escape(part['description'])+'</span>' for part in parts)+'</div>')
         route_rows.append((escape(BROWSER_FAMILY_NAMES[row['track']])+f" · {row['count']} 题", *cells))
-    matrix = _table(['任务类型',*(label(name) for name in names)], route_rows, '每格列出获取接口、额外处理及最终输出；同类中的不同交付格式分别列出题数。')
+    matrix = _table(['任务类型',*(label(name) for name in names)], route_rows, '每格为实际请求的接口路线与目标交付物；调用失败或能力不足仍保留原路线，不代表已经成功交付。')
     network_rows = _browser_network_rows(records, names)
-    network_note = ''.join(
+    network_note = '<details><summary>网络执行位置与解析方式</summary>'+''.join(
         '<p data-network-method="'+escape(row['provider'])+'" data-network-mode="'
-        +escape(row['mode'])+'">'+escape(row['text'])+'</p>' for row in network_rows)
-    body += section('各类任务的获取与转换方式',
-        '<p>下表按逐次调用记录汇总实际接口和等待条件。网页正文和文档正文的交付要求是可读 Markdown；评测合同只允许 Chromium 使用固定的 HTML-to-Markdown 包。网页媒体信息题只检查交付输出中的指定图片、视频或条目地址，媒体文件不下载。只有直接媒体文件题返回原始字节，并校验类型、文件头、长度和 SHA-256。记录缺少接口字段时保持未知，不从浏览器名称补写处理链。</p>'
-        +native+'<div class="browser-interface-matrix">'+matrix+'</div>'+network_note
-        +'<p>表格按每条结果保存的接口、提取器和等待字段汇总；同一类中若实际路线不同，会分别列出题数。记录缺字段时明确写“未提供”，不会从浏览器名称反推接口。评测端不使用外部 PDF/DOCX 解析器补正文，最终网址只作诊断，不参与正文判分。获取、等待、原生转换、Chromium 的共同转换与附件读取均计入同一 45 秒预算。所有结果采用同一评分器和固定验收规则。</p>', 'interfaces')
+        +escape(row['mode'])+'">'+escape(row['text'])+'</p>' for row in network_rows)+'</details>'
+    wait_rows=[]
+    for name in names:
+        wait_rows.append((label(name),'<span data-browser-wait="'+escape(name)+'">'+escape(_browser_wait_summary(records,name))+'</span>'))
+    body += section('七类任务分别用了什么接口',
+        '<p>下表列出实际获取方式与交付物。本轮网页和文档正文统一选择 Markdown 输出。Chromium 额外使用固定的 HTML 转换器；其余方法保留官方原生输出，不在评测端补正文。网页内嵌媒体主要验收指定地址，直接媒体文件验收原始字节。</p>'
+        +'<div class="browser-interface-matrix">'+matrix+'</div>'
+        +'<p>Moli 使用 fetch --dump markdown；动态正文整类启用 --layout 与 --with-frames。Lightpanda 使用 --dump markdown，JSON 外壳只用于读取同一次返回的 Markdown；Obscura 执行固定版本的官方 Markdown 脚本；Kitesurf 使用 Cloudflare Browser Run 的 /markdown 接口。完整命令、转换器版本和各题原始调用见<a href="../methodology/index.html">评测方法</a>及<a href="../adoption/index.html">方法介绍</a>。接口缺失的记录在表中单列，不推定它使用了什么路线。</p>'
+        +_table(['方法','原生等待条件及题数'],wait_rows,'等待条件来自保存的调用记录；文件字节路线不等待查看器绘制。')
+        +'<p>单次物理调用预算为 45 秒，包含启动、访问、等待和转换。传输或 HTTP 临时错误允许一次重试，整题总耗时会累加两次调用；评分在计时结束后执行。最终网址只用于诊断，不参与正文判分。评测端没有追加 PDF 或 DOCX 解析器。</p>'+network_note,'interfaces')
     flow = 'flowchart LR\n A[同一目标网址与验收规则] --> B[各浏览器原生访问与提取]\n B --> C[保留完整输出与调用日志]\n C --> D[统一评分]\n D --> E[整体与专项结果]'
     fallback = ' → '.join('<span class="tag">'+x+'</span>' for x in ('目标网址与规则','浏览器原生访问','完整输出与日志','统一评分','整体与专项'))
     mechanism = '<div class="wmb-flow"><div data-wmb-flow-fallback>'+fallback+'</div><pre class="mermaid" hidden>'+escape(flow)+'</pre></div>'
-    body += section('怎样判断一次获取是否可用', mechanism+paragraph(content['scoring']), 'scoring')
+    body += section('怎样判断一次获取是否可用', mechanism+paragraph(content['scoring'])+figures, 'scoring')
     if model['examples']:
         examples = ''
-        for item in model['examples']:
+        for example_index,item in enumerate(model['examples']):
             row = item['row']; case = cases[row['case_id']]
-            examples += '<details data-browser-example="'+escape(row['attempt_id'])+'"><summary>'+escape(BROWSER_FAMILY_NAMES[report_family(case)])+' · '+escape(case.get('name',case['id']))+'</summary>'
+            examples += '<details'+(' open' if example_index==0 else '')+' data-browser-example="'+escape(row['attempt_id'])+'"><summary>'+escape(BROWSER_FAMILY_NAMES[report_family(case)])+' · '+escape(case.get('name',case['id']))+'</summary>'
             evidence = item['evidence']
             examples += paragraph(item['explanation'])+'<p>方法：'+label(row['provider'])+' · 运行 ID：<code>'+escape(evidence['run_id'])+'</code> · 任务判定：<strong data-example-verdict="'+escape(row['attempt_id'])+'">'+('通过' if evidence['passed'] else '未通过')+'</strong></p>'
-            examples += '<div class="evidence-compare" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1rem"><article class="evidence-pane"><h4>题目要求与参考节选</h4><p>共 '+str(evidence['expected_chars'])+' 字符，显示前 '+str(len(evidence['expected']))+' 字符。</p><pre style="max-height:28rem;overflow:auto;white-space:pre-wrap" data-example-expected="'+escape(row['attempt_id'])+'">'+escape(evidence['expected'])+'</pre></article><article class="evidence-pane"><h4>原始输出节选</h4><p>文件任务展示交付元数据；文本显示前 '+str(len(evidence['actual']))+' 字符。</p><pre style="max-height:28rem;overflow:auto;white-space:pre-wrap" data-example-actual="'+escape(row['attempt_id'])+'">'+escape(evidence['actual'])+'</pre></article></div>'
+            examples += '<div class="evidence-compare" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1rem"><article class="evidence-pane"><h4>题目要求与参考节选</h4><p>共 '+str(evidence['expected_chars'])+' 字符，节选 '+str(len(evidence['expected']))+' 字符。</p><pre style="max-height:28rem;overflow:auto;white-space:pre-wrap" data-example-expected="'+escape(row['attempt_id'])+'">'+escape(evidence['expected'])+'</pre></article><article class="evidence-pane"><h4>原始输出节选</h4><p>文件任务展示交付元数据；正文节选 '+str(len(evidence['actual']))+' 字符。</p><pre style="max-height:28rem;overflow:auto;white-space:pre-wrap" data-example-actual="'+escape(row['attempt_id'])+'">'+escape(evidence['actual'])+'</pre></article></div>'
             examples += _table(['检查项目','题目要求','实际结果','判定'],[(escape(check['label']),escape(check['expected']),escape(check['actual']),'<span data-example-check="'+escape(row['attempt_id'])+'" data-check-key="'+escape(check['key'])+'">'+escape(check['verdict'])+'</span>') for check in evidence['checks']], '检查值来自本次保存的统一评分结果；完整输出和逐项证据见结果详情。')
             examples += '<p><a href="../datasets/'+escape(case['id'],quote=True)+'.html">任务与验收规则</a> · <a href="../attempts/'+escape(row['attempt_id'],quote=True)+'.html">实际返回与判定证据</a></p></details>'
         body += section('同一任务怎样验收', examples, 'examples')
-    body += section('全部调用的耗时', '<p>P50 是中位数，P95 表示 95% 的调用在该耗时内完成。所有浏览器使用相同任务分母，包含成功与失败调用。调用分布在不同日期，不能把耗时差异直接归因于浏览器引擎或新版改进；耗时较短也不等于任务通过率更高。</p>'+latency_table('all'), 'all-latency')
+    body += section('全部调用的耗时', '<p>P50 是中位数，P95 表示 95% 任务的累计耗时不超过该值。每行均为全部任务，包含成功、失败与自动重试的累计耗时。45 秒是单次调用预算，允许一次重试的任务可能接近 90 秒。评分时间不计入。调用分布在不同日期，不能把耗时差异直接归因于浏览器引擎或新版改进；耗时较短也不等于任务通过率更高。</p>'+latency_table('all'), 'all-latency')
+    timing_rows=[(label(name),str(stats[name]['physical_calls']),
+                  *(metric(name,key,stats[name][key],[stats[n][key] for n in names]) for key in ('final_call_mean_ms','prior_call_mean_ms'))) for name in names]
+    body += section('重试与原生等待怎样影响耗时',
+        _table(['方法','实际调用数','末次调用平均耗时 · ms','此前调用及重试等待 · ms/题'],timing_rows,
+               '每行均对应完整任务集；两项平均耗时相加等于上表平均总耗时。没有按成功与否筛选任务。')
+        +paragraph(content.get('timing_explanation','原生完成条件决定何时交付。等待更多页面变化可能延长耗时，仍须同时检查交付内容；提前返回错误或空正文也会使平均耗时缩短。')),'timing-boundary')
     body += section('通过任务的耗时', '<p>只计各浏览器自己通过的任务。各行样本可能不同，须结合通过数阅读；这张表不改变任务范围或整体排名。</p>'+latency_table('successful'), 'successful-latency')
     resource = contained_path(out, 'resource-cohort/resource-comparison.json')
     if resource.is_file():
@@ -1179,22 +1267,16 @@ def _render_current_browser_article(out, cases, records, binding):
         counts = Counter(item['category'] for item in items)
         labels = {item['category']: item['category_label'] for item in items}
         return _table(['核验后的失败原因', '未通过数量'], [
-            ('<a href="#failure-category-'+escape(provider)+'-'+escape(category)+'">'+escape(labels[category])+'</a>',
+            ('<a href="../attempts/'+escape(next(item['attempt_id'] for item in items if item['category']==category)) +'.html">'+escape(labels[category])+'</a>',
              '<span data-reviewed-failure="'+escape(provider)+'" data-category="'+escape(category)+'" data-count="'+str(count)+'">'+str(count)+'</span>')
             for category,count in sorted(counts.items(),key=lambda item:(-item[1],item[0]))],
             '每个失败结果只归入一个主要原因；程序错误分类单独保留。')
     if model['failure_review']:
-        failure_index = ''
-        for category in sorted({item['category'] for item in model['failure_review'].values()}):
-            items = [item for item in model['failure_review'].values() if item['category'] == category]
-            failure_index += '<details id="failure-category-all-'+escape(category)+'"><summary>'+escape(items[0]['category_label'])+' · '+str(len(items))+' 个结果</summary><ul>'
-            failure_index += ''.join('<li><a href="#failure-review-'+escape(item['attempt_id'])+'">'+label(item['provider'])+' · '+escape(item['case_id'])+'</a></li>' for item in items)
-            failure_index += '</ul></details>'
-        body += section('失败任务的主要原因', reviewed_distribution(list(model['failure_review'].values()), 'all')
-                        +'<p>以下按方法展开全部失败。访问限制只在返回内容或调用日志明确出现拒绝、登录、验证码等证据时成立，不能用来代替网络和功能问题。</p>'+failure_index, 'failure-summary')
+        body += section('失败集中在哪些环节', reviewed_distribution(list(model['failure_review'].values()), 'all')
+                        +'<p>每条失败只归入一个主要原因。验证码、登录和风控要求有明确返回证据；子资源报错不等于主导航失败。全部逐题原因、处理结论和原始日志保留在<a href="../analysis/index.html">结果分析</a>与结果详情。</p>', 'failure-summary')
     errors = {'acceptance':'内容或交付验收未通过','timeout':'访问或提取超时',
               'browser_exit':'浏览器进程返回错误','browser_error':'浏览器访问或运行错误',
-              'http_status':'网页返回错误状态','empty_response':'返回内容为空','tool_error':'工具执行错误'}
+              'http_status':'网页返回错误状态','empty_response':'返回内容为空','tool_error':'工具执行错误','api_error':'服务接口错误'}
     for name in names:
         stat, chapter = stats[name], content['providers'][name]
         counts = stat['failure_counts']
@@ -1204,27 +1286,22 @@ def _render_current_browser_article(out, cases, records, binding):
         if model['failure_review']:
             reviewed = stat['failure_reviews']
             diagnosis = reviewed_distribution(reviewed, name) if reviewed else '<p>本轮所有任务均通过。</p>'
-            for category in sorted({item['category'] for item in reviewed}):
-                items = [item for item in reviewed if item['category'] == category]
-                diagnosis += '<details id="failure-category-'+escape(name)+'-'+escape(category)+'"><summary>'+escape(items[0]['category_label'])+' · '+str(len(items))+' 个结果</summary>'
-                for item in items:
-                    diagnosis += '<details id="failure-review-'+escape(item['attempt_id'])+'" data-failure-review="'+escape(item['attempt_id'])+'"><summary>'+escape(item['case_id'])+'</summary><p data-reviewed-reason="'+escape(item['attempt_id'])+'">'+escape(item['reason'])+'</p><p data-reviewed-treatment="'+escape(item['attempt_id'])+'">处理结论：'+escape(item['remediation_status'])+'</p><p><a href="../attempts/'+escape(item['attempt_id'],quote=True)+'.html">完整结果、评分与日志</a></p></details>'
-                diagnosis += '</details>'
             distribution = diagnosis+'<details><summary>程序返回分类</summary>'+distribution+'</details>'
         row = stat['specimen'];case = cases[row['case_id']]
         raw = contained_path(out,row['artifact_path']).read_text(encoding='utf-8',errors='replace')
-        reference = case.get('ground_truth_main_content') or case.get('reference_answer') or json.dumps({
-            key:case[key] for key in ('required_facts','body_requirements','acceptance_contract','expected_resources','resource_output_contract') if case.get(key)},ensure_ascii=False,indent=2)
-        error = _browser_error_excerpt(row, bool(counts))
-        example = '<details open data-browser-specimen="'+escape(name)+'"><summary>'+escape(case.get('name',case['id']))+' · '+escape(case['id'])+'</summary>'
+        specimen_evidence=browser_example_evidence(out,case,row)
+        reference=specimen_evidence['expected']
+        raw=specimen_evidence['actual']
+        error = _browser_error_excerpt(row, bool(counts),reviewed_error=_browser_reviewed_error(out,model,row))
+        example = '<details data-browser-specimen="'+escape(name)+'"><summary>'+escape(case.get('name',case['id']))+' · '+escape(case['id'])+'</summary>'
         example += '<p><a href="'+escape(case['url'],quote=True)+'">原始页面</a> · <a href="../datasets/'+escape(case['id'],quote=True)+'.html">任务与验收规则</a> · <a data-browser-result="'+escape(name)+'" href="../attempts/'+escape(row['attempt_id'],quote=True)+'.html">完整结果、评分与日志</a></p>'
-        example += '<h4>参考范围或验收要求（节选）</h4><pre>'+escape(reference[:1800])+'</pre><h4>实际返回（节选）</h4><pre>'+escape(raw[:1800])+'</pre><h4>程序返回或验收结果</h4><pre style="max-height:24rem;overflow:auto;white-space:pre-wrap" data-browser-error="'+escape(name)+'">'+escape(error)+'</pre></details>'
+        example += '<h4>参考范围或验收要求（节选）</h4><pre>'+escape(reference)+'</pre><h4>实际返回（节选）</h4><pre>'+escape(raw)+'</pre><h4>程序返回或验收结果</h4><pre style="max-height:24rem;overflow:auto;white-space:pre-wrap" data-browser-error="'+escape(name)+'">'+escape(error)+'</pre></details>'
         body += section((browser_method_label(name) if browser_method_label(name) != name else name.title())+'：'+str(stat['passed'])+'/'+str(model['cases'])+' 题通过',
                         '<div data-browser-chapter="'+escape(name)+'">'+paragraph(chapter['explanation'])+distribution+example+'</div>', 'browser-'+name)
     review_path = contained_path(out,'result-review.json')
     review = json.loads(review_path.read_text()) if review_path.is_file() else None
     body += section('结论与审查范围', paragraph(content['conclusions'])+
-                    ('<p>独立审查范围见<a href="../review/index.html">审查记录</a>，未审查结果仍按程序验收结果展示。</p>' if review else
+                    ('<p>独立核验范围与修订见<a href="../review/index.html">核验记录</a>。逐题原因与原始证据可从结果分析打开。</p>' if review else
                      '<p>独立结果审查：0/'+str(model['results'])+'。未经独立复判的程序通过结果：'+str(sum(stats[n]['passed'] for n in names))+'。本轮报告使用统一评分器的原始验收结果。</p>'), 'conclusions')
     # Assemble the authored reading sequence without duplicating measured sections.
     from bs4 import BeautifulSoup
@@ -1232,7 +1309,7 @@ def _render_current_browser_article(out, cases, records, binding):
     owner = article.select_one('article')
     chapters = [
         ('scope', '01 这次测什么', ['scope']),
-        ('results', '02 通过率、耗时与资源', ['overall','families','all-latency','successful-latency','resources']),
+        ('results', '02 通过率、耗时与资源', ['overall','families','all-latency','timing-boundary','successful-latency','resources']),
         ('method', '03 测试方法与实例', ['scoring','examples']),
         ('configuration', '04 浏览器与测试配置', ['interfaces']),
         ('failures', '05 失败任务与正文缺失', ['failure-summary']+['browser-'+name for name in names]),
@@ -1256,7 +1333,7 @@ def _render_current_browser_article(out, cases, records, binding):
     body += '<script>document.addEventListener("DOMContentLoaded",()=>{if(typeof wmbRenderFlow==="function")wmbRenderFlow()});</script>'
     evidence = {'schema':'webfetch_browser_interpretation_evidence/1','input_sha256':content['evidence_sha256'],
                 'cases':model['cases'],'results':model['results'],'providers':names,'interfaces':interfaces,
-                'stats':{n:{k:v for k,v in stats[n].items() if k!='specimen'} for n in names}}
+                'stats':{n:{k:v for k,v in stats[n].items() if k not in {'specimen','failure_reviews'}} for n in names}}
     guide = contained_path(out,'guide');guide.mkdir(parents=True,exist_ok=True)
     (guide/'interpretation-evidence.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n')
     from .report import EXTRA
@@ -1272,14 +1349,16 @@ def check_current_browser_article(out, cases, records, binding):
     from urllib.parse import urlsplit
     model = current_browser_article_model(out, cases, records, binding)
     from .report_interfaces import browser_task_interface_matrix
-    interfaces = browser_task_interface_matrix(cases, model['providers'], records)
-    expected_interfaces = {(name,row['track']):[(part['mode'],part['count'],str(part['count'])+' 题：'+part['description']+'等待：'+part['wait']) for part in row['cells'][name]]
+    interfaces = browser_task_interface_matrix(cases, model['providers'], records, compact=True)
+    expected_interfaces = {(name,row['track']):[(part['mode'],part['count'],str(part['count'])+' 题：'+part['description']) for part in row['cells'][name]]
                            for row in interfaces['rows'] for name in model['providers']}
     expected = {}
     failures = {}
     for name in model['providers']:
         stats = model['stats'][name]
         expected[name, 'pass_rate'] = stats['pass_rate']
+        for key in ('final_call_mean_ms','prior_call_mean_ms'):
+            expected[name,key]=stats[key]
         for population in ('all','successful'):
             for key in ('mean','p50','p95'):
                 expected[name, population+'_'+key] = stats[population][key]
@@ -1337,14 +1416,8 @@ def check_current_browser_article(out, cases, records, binding):
         for node in document.select('[data-reviewed-failure]'):
             if node.find_parent('tr').find('a').get_text() != category_labels[node['data-category']]:
                 raise ValueError('Reviewed failure category label differs from evidence')
-        treatments = document.select('[data-reviewed-treatment]')
-        if len(treatments) != len(model['failure_review']) or {node['data-reviewed-treatment']:node.get_text() for node in treatments} != {
-                aid:'处理结论：'+item['remediation_status'] for aid,item in model['failure_review'].items()}:
-            raise ValueError('Reviewed failure treatment is incomplete or wrong')
-        reason_nodes = document.select('[data-reviewed-reason]')
-        actual_reasons = {node['data-reviewed-reason']:node.get_text() for node in reason_nodes}
-        if len(reason_nodes) != len(model['failure_review']) or actual_reasons != {aid:item['reason'] for aid,item in model['failure_review'].items()}:
-            raise ValueError('Reviewed per-failure causes are incomplete or wrong')
+        if document.select('[data-reviewed-reason], [data-reviewed-treatment]'):
+            raise ValueError('Interpretation duplicates the per-result audit inventory')
         for item in model['figures']:
             matches = [node for node in document.select('img[data-browser-figure]') if node['data-browser-figure'] == item['path']]
             if len(matches) != 1 or matches[0].get('alt') != item['alt']:
@@ -1360,7 +1433,7 @@ def check_current_browser_article(out, cases, records, binding):
         for name in model['providers']:
             values = document.select('[data-browser-error="'+name+'"]')
             stat = model['stats'][name]
-            if len(values) != 1 or values[0].get_text() != _browser_error_excerpt(stat['specimen'], bool(stat['failure_counts'])):
+            if len(values) != 1 or values[0].get_text() != _browser_error_excerpt(stat['specimen'], bool(stat['failure_counts']),reviewed_error=_browser_reviewed_error(out,model,stat['specimen'])):
                 raise ValueError('Browser specimen error excerpt is missing or differs from evidence')
         examples = document.select('[data-browser-example]')
         expected_examples = {item['row']['attempt_id']:item for item in model['examples']}
@@ -1393,6 +1466,19 @@ def check_current_browser_article(out, cases, records, binding):
             if target not in [anchor.get('href') for anchor in node.select('a[href]')]:
                 raise ValueError('Browser interpretation example evidence target is broken')
 
+        for name in model['providers']:
+            expected_wait=_browser_wait_summary(records,name)
+            node=document.select('[data-browser-wait="'+name+'"]')
+            if len(node)!=1 or node[0].get_text()!=expected_wait:
+                raise ValueError('Browser wait disclosure is missing or wrong')
+        timing=document.find(id='timing-boundary')
+        if timing is None or len(timing.select('tbody tr'))!=len(model['providers']):
+            raise ValueError('Browser retry timing boundary is missing')
+        for node,name in zip(timing.select('tbody tr'),model['providers']):
+            values=[cell.get_text() for cell in node.find_all('td')]
+            stat=model['stats'][name]
+            if values[-3:]!=[str(stat['physical_calls']),f"{stat['final_call_mean_ms']:,.0f}",f"{stat['prior_call_mean_ms']:,.0f}"]:
+                raise ValueError('Browser retry cost differs from recorded calls')
         for anchor in document.select('a[href^="#failure-category-"]'):
             if document.find(id=anchor['href'][1:]) is None:
                 raise ValueError('Failure category drilldown is broken')

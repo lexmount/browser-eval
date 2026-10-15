@@ -14,7 +14,7 @@ import unicodedata
 from urllib.parse import parse_qsl, unquote, urljoin, urlsplit
 
 from .structured_tables import _pipe_cells, table_text_surface
-from .dynamic_lists import _canonical_entry_path, extract_named_entries
+from .dynamic_lists import _canonical_entry_path, _named_candidate, extract_named_entries
 from .reference_quality import clean_reference_text, markdown_links, visible_markdown_links
 
 
@@ -325,21 +325,88 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
         # link for one identity up to the first qualifying link for another
         # identity.  Repeated title/date links to the same article stay inside
         # that record and cannot inflate the count.
-        allowed_rows = {_link_identity(entry["url"], group): entry for entry in entries}
+        source_links = markdown_links(content)
+        previous_targets = {}
+        previous_target = None
+        for source_link in source_links:
+            previous_targets[source_link.start] = previous_target
+            source_destination = urljoin(group.get("link_base_url", base_url), source_link.destination)
+            source_identity = _link_identity(source_destination, group)
+            if source_identity is not None and not source_link.is_image:
+                previous_target = (source_identity, source_link.end)
+
+        def previous_scalar(link):
+            destination = urljoin(group.get("link_base_url", base_url), link.destination)
+            if link.label.strip() not in {link.destination, destination}:
+                return None
+            start = content.rfind("\n", 0, link.start) + 1
+            end = content.find("\n", link.end)
+            end = len(content) if end < 0 else end
+            if content[start:link.start].strip() or content[link.end:end].strip() or start == 0:
+                return None
+            previous_start = content.rfind("\n", 0, start - 1) + 1
+            scalar = content[previous_start:start - 1].strip()
+            if (not scalar or markdown_links(scalar) or re.search(r"<[^>]*>", scalar)
+                    or re.match(r"(?:[#>*]|[-+]\s|\d+[.)]\s|https?://|//)", scalar)):
+                return None
+            prior = previous_targets[link.start]
+            paragraph = content.rfind("\n\n", 0, previous_start) + 2
+            if (prior and prior[1] > paragraph and prior[0] != _link_identity(destination, group)
+                    and not (_PRICE.fullmatch(scalar) or _DATE_OR_TIME.fullmatch(scalar)
+                             or _AREA.fullmatch(scalar))):
+                return None
+            return previous_start, scalar
+
+        def visible_label(link):
+            label = link.label
+            for image in reversed([item for item in markdown_links(label) if item.is_image]):
+                label = label[:image.start] + label[image.end:]
+            label = visible_markdown_links(label).strip()
+            if previous := previous_scalar(link):
+                scalar = previous[1]
+                field_like = (_AREA.fullmatch(scalar) or _VERSION.fullmatch(scalar)
+                              or _line_starts_declared_label(scalar, _declared_aliases(fields))
+                              or any(pattern.fullmatch(scalar) for spec in fields
+                                     if (pattern := _field_token_pattern(spec)) is not None))
+                if not field_like:
+                    label = scalar
+            return label
+
+        def name_only(label):
+            return not (_PRICE.fullmatch(label) or _DATE_OR_TIME.fullmatch(label)
+                        or re.fullmatch(r"(?i)(?:today|tomorrow|\d[\d,.]*|more|details?)", label))
+
+        allowed_rows = {_link_identity(entry["url"], group): entry for entry in entries
+                        if name_only(entry["title"])} if "*" not in group["hosts"] else {}
+        # Field cards prove their own ownership through the target identity and
+        # typed fields. Adjacent status text need not satisfy ordinary list
+        # prefix rules, but the title must still be real visible link text.
+        for link in markdown_links(content):
+            destination = urljoin(group.get("link_base_url", base_url), link.destination)
+            identity = _link_identity(destination, group)
+            if identity is None or link.is_image or not is_record_start(link):
+                continue
+            label = visible_label(link)
+            candidate_contract = (standard if "*" not in group["hosts"] else
+                                  {**standard, "hosts": [urlsplit(destination).hostname]})
+            candidate = _named_candidate(destination, label, candidate_contract, base_url, [])
+            if candidate and name_only(candidate[1]["title"]) and _key(candidate[1]["title"]) not in exclusions:
+                allowed_rows.setdefault(identity, candidate[1])
         preferred_titles = {}
         for link in markdown_links(content):
             destination = urljoin(group.get("link_base_url", base_url), link.destination)
             identity = _link_identity(destination, group)
             if identity not in allowed_rows or link.is_image or not is_record_start(link):
                 continue
-            label = visible_markdown_links(link.label).strip()
+            label = visible_label(link)
             field_like = bool(
                 _PRICE.search(label)
                 or _DATE_OR_TIME.search(label)
                 or re.fullmatch(r"(?i)(?:today|tomorrow|\d[\d,.]*|more|details?)", label)
                 or re.search(r"[A-Za-z][A-Za-z .'-]+,\s*[A-Z]{2}\b$", label)
             )
-            if label and not field_like and _key(label) not in exclusions:
+            if (label and not field_like and label not in {link.destination, destination}
+                    and _key(label) not in exclusions):
                 preferred_titles.setdefault(identity, label)
         candidates = []
         for link in markdown_links(content):
@@ -348,12 +415,12 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
             if identity is None or link.is_image or not is_record_start(link):
                 continue
             entry = allowed_rows.get(identity)
-            if entry is None:
-                continue
-            title = preferred_titles.get(identity, entry["title"])
-            if not title or _key(title) in exclusions:
-                continue
-            candidates.append((identity, entry["url"], title, link.start))
+            title = preferred_titles.get(identity, entry["title"] if entry else "")
+            # Even an unnamed target starts a different card. Its fields must
+            # never complete the preceding named record.
+            previous = previous_scalar(link)
+            start = previous[0] if previous else link.start
+            candidates.append((identity, destination, title, start))
         owned = {}
         # Consecutive links to the same identity belong to one card (for
         # example, a title link followed by a linked date).  A later duplicate
@@ -368,10 +435,9 @@ def _named_link_group(content: str, group: dict, base_url: str, links: list | No
             finish = ordered[index + 1][3] if index + 1 < len(ordered) else len(content)
             next_line = content.rfind("\n", 0, finish) + 1 if finish < len(content) else finish
             context = content[line_start:next_line]
-            if _required_fields(context, label, field_specs=fields):
+            if label and _required_fields(context, label, field_specs=fields):
                 owned[identity] = {"url": destination, "title": label, "context": context}
-        allowed = {_link_identity(entry["url"], group) for entry in entries}
-        records = [row for identity, row in owned.items() if identity in allowed]
+        records = [row for identity, row in owned.items() if identity in allowed_rows]
     else:
         records = entries
     return {
@@ -846,6 +912,14 @@ def evaluate_composite_acceptance(
         source = table_content if table_content is not None and group["kind"] in {"table", "linked_table"} else content
         if group["kind"] in {"table", "linked_table"}:
             source = table_text_surface(source)
+        if group["kind"] == "named_link" and group.get("required_fields") and table_content:
+            from .dynamic_lists import _document_html, visible_html_text
+            if _document_html(table_content):
+                # The ordinary HTML text surface removes blank lines and images.
+                # Keep explicit breaks for this adjacency-sensitive card route.
+                boundary = "\ufdd0"
+                marked = re.sub(r"<(?:img|br)\b[^>]*>", boundary, table_content, flags=re.I)
+                source = visible_html_text(marked, preserve_links=True).replace(boundary, "\n\n")
         scoped = _scope(source, group)
         if group["kind"] == "named_link":
             result = _named_link_group(

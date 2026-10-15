@@ -692,17 +692,41 @@ class CurrentBrowserArticleTests(unittest.TestCase):
         binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
         return review
 
+    def test_compact_interfaces_group_same_output_without_guessing_missing_records(self):
+        from harness.web_fetch.report_interfaces import browser_task_interface_matrix
+        cases={cid:dict(id=cid,url='https://example.com/'+cid,track='image',task_kind=kind)
+               for cid,kind in [('address','resource'),('metadata','body'),('unknown','body')]}
+        rows=[dict(provider='moli',case_id=cid,provider_metadata=(
+            dict(extractor='moli_native_markdown',dump='markdown',route=cid)
+            if cid!='unknown' else {})) for cid in cases]
+        matrix=browser_task_interface_matrix(cases,['moli'],rows,compact=True)
+        parts=matrix['rows'][0]['cells']['moli']
+        self.assertEqual([(p['count'],p['description']) for p in parts],[(2,'原生 Markdown'),(1,'接口未记录')])
+
+    def test_example_focus_is_verbatim_and_does_not_modify_saved_answer(self):
+        from harness.web_fetch.report_explainer import browser_example_evidence
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);cases,rows,binding=self.example(root);row=rows[0]
+            answer='Navigation\n'*900+'# Product body\nVisible article text'
+            (root/row['artifact_path']).write_text(answer)
+            evidence=browser_example_evidence(root,cases[row['case_id']],row,focus='# Product body')
+            self.assertTrue(evidence['actual'].startswith('# Product body'))
+            self.assertEqual((root/row['artifact_path']).read_text(),answer)
+            with self.assertRaisesRegex(ValueError,'focus is absent'):
+                browser_example_evidence(root,cases[row['case_id']],row,focus='Invented body')
+
     def test_failure_review_is_complete_current_and_independent_of_program_errors(self):
         from harness.web_fetch.report_explainer import render_explainer, check_current_browser_article
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);cases,rows,binding=self.example(root)
-            review=self.bind_failure_review(root,cases,rows,binding)
+            self.bind_failure_review(root,cases,rows,binding)
             body=render_explainer(root,cases,rows,content_binding=binding)
             (root/'guide/index.html').write_text(body)
             model=check_current_browser_article(root,cases,rows,binding)
             self.assertEqual(model['stats']['moli']['failure_counts'],{'http_status':1})
             self.assertEqual(model['stats']['moli']['reviewed_failure_counts'],{'source_access_denied':1})
-            self.assertIn(review['failures'][0]['reason'],body)
+            self.assertNotIn('data-reviewed-reason=',body)
+            self.assertIn('../attempts/moli__risk-case.html',body)
             self.assertIn('程序返回分类',body)
             self.assertIn('03 测试方法与实例',body)
             self.assertIn('data-browser-figure="report-assets/delivery.png"',body)
@@ -717,11 +741,8 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                 self.assertIsNotNone(document.find(id=anchor['href'][1:]))
             page=root/'guide/index.html'
             for changed in [body.replace('data-reviewed-failure="moli"','data-removed="moli"',1),
-                            body.replace(review['failures'][0]['reason'],'没有依据的归因',1),
-                            body.replace('id="failure-category-moli-source_access_denied"','id="missing-cause"',1),
                             body.replace('id="reading-method"','id="missing-method"',1),
                             body.replace('data-browser-figure="report-assets/delivery.png"','data-removed-figure="x"',1),
-                            body.replace('保留失败；评测端不绕过访问限制。','已修复',1),
                             body.replace('data-example-expected=','data-hidden-expected=',1),
                             body.replace('data-example-actual=','data-hidden-actual=',1),
                             body.replace('data-example-check=','data-hidden-check=',1),
@@ -917,8 +938,8 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                      body.replace('public_doh 2 次','public_doh 9 次',1),
                      body.replace('其中 2 次明确记录不回退系统 DNS','其中 1 次明确记录不回退系统 DNS',1),
                      body.replace('data-case-count="1"','data-case-count="9"',1),
-                     body.replace('1 题：调用记录未提供可核对的接口路线','1 题：共同转换',1),
-                     body.replace('等待：调用记录未提供可核对的等待条件','等待：不等待',1)]
+                     body.replace('1 题：接口未记录','1 题：共同转换',1),
+                     body.replace('data-browser-wait=','data-removed-wait=',1)]
             for changed in changes:
                 with self.subTest(change=changes.index(changed)):
                     page.write_text(changed)
