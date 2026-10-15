@@ -492,7 +492,7 @@
   "native_task_route_contract": 4,
   "artifact_hub_base_url": "https://artifact-site.lexmount.cn",
   "artifact_hub_site": "jGXOOJwkdBK_",
-  "artifact_hub_expected_version": "ver_04e3c81a643c4a248ceaf5d03519ff81",
+  "artifact_hub_expected_version": "ver_7e1561f2fcc940bf8847f5b5db78641e",
   "artifact_hub_share_url": "https://artifact-site.lexmount.cn/v/IqGpMUYHWat-dw4n8usQttTptoPzboAo",
   "rerun_scope": {
     "path": "evaluation/browser-native-430/rerun-scope.json",
